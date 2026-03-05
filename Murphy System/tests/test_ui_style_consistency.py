@@ -134,7 +134,8 @@ def test_murphy_branding():
 
 
 def test_terminal_files_have_ascii_banner():
-    """Terminal-style HTML files must have the MURPHY ASCII art banner."""
+    """Terminal-style HTML files must have the MURPHY SYSTEM ASCII art banner
+    with proper box-drawing borders (╔/╗/╚/╝, not ☠ emoji corners)."""
     terminal_files = [
         'terminal_architect.html',
         'terminal_integrated.html',
@@ -145,8 +146,49 @@ def test_terminal_files_have_ascii_banner():
     ]
     for fname in terminal_files:
         content = _read_html(fname)
-        assert '☠══' in content, (
-            f"{fname} missing MURPHY ASCII art banner (☠══ border)"
+        assert '╔══' in content, (
+            f"{fname} missing MURPHY SYSTEM ASCII art banner (╔══ top border)"
+        )
+        assert '╚══' in content, (
+            f"{fname} missing MURPHY SYSTEM ASCII art banner (╚══ bottom border)"
+        )
+
+
+def test_ascii_banner_says_murphy_system():
+    """ASCII art banner must spell MURPHY SYSTEM, not just MURPHY.
+    Checks for the SYSTEM block letter signature line."""
+    banner_files = [
+        'terminal_architect.html',
+        'terminal_integrated.html',
+        'terminal_enhanced.html',
+        'terminal_worker.html',
+        'murphy_ui_integrated_terminal.html',
+        'murphy_ui_integrated.html',
+    ]
+    # The SYSTEM block art has this distinctive first line
+    system_signature = '███████╗██╗   ██╗███████╗████████╗███████╗███╗   ███╗'
+    for fname in banner_files:
+        content = _read_html(fname)
+        assert system_signature in content, (
+            f"{fname} ASCII banner says MURPHY only — must say MURPHY SYSTEM"
+        )
+
+
+def test_no_emoji_in_banner_borders():
+    """Banner borders must use box-drawing chars (╔/╗/╚/╝), not ☠ emoji,
+    to prevent alignment issues from emoji double-width rendering."""
+    banner_files = [
+        'terminal_architect.html',
+        'terminal_integrated.html',
+        'terminal_enhanced.html',
+        'terminal_worker.html',
+        'murphy_ui_integrated_terminal.html',
+        'murphy_ui_integrated.html',
+    ]
+    for fname in banner_files:
+        content = _read_html(fname)
+        assert '☠══' not in content, (
+            f"{fname} still has ☠ emoji in banner borders — use ╔/╗/╚/╝ instead"
         )
 
 
