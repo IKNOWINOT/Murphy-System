@@ -56,7 +56,7 @@ open "Murphy System/terminal_architect.html"
 xdg-open "Murphy System/terminal_architect.html"
 
 # Windows
-start "Murphy System\terminal_architect.html"
+start "" "Murphy System\terminal_architect.html"
 ```
 
 The Architect Terminal connects to the backend at `http://localhost:8000` automatically. You can type natural-language commands directly in the terminal prompt — Murphy routes them through `/api/chat` and responds using the onboard knowledge system (no API keys required to start).
@@ -194,7 +194,9 @@ cd "Murphy System"
 python -c "from src.setup_wizard import run_cli; run_cli()"
 ```
 
-The wizard walks you through environment configuration, API key setup, and initial system preferences.
+The wizard walks you through environment configuration, API key setup, and initial system preferences. You can answer in natural language — for example, type **"all of them"** to select every option, **"local for now"** to pick `local`, or **"not yet"** for a no. The wizard will extract the closest valid answer from your response; if it can't determine one, it falls back to the default.
+
+After the wizard completes, it prints **next steps** telling you how to start the backend and open the Architect Terminal.
 
 ---
 

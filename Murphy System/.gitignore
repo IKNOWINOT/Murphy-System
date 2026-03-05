@@ -7,3 +7,4 @@ eqemu-server/
 eqemu-assets/
 *.sql.gz
 eqemu-server-*.zip
+murphy_config.json

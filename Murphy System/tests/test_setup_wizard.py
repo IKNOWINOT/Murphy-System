@@ -15,6 +15,9 @@ from setup_wizard import (
     VALID_DEPLOYMENT_MODES,
     VALID_ROBOTICS_PROTOCOLS,
     VALID_COMPLIANCE_FRAMEWORKS,
+    _parse_bool,
+    _fuzzy_match_choice,
+    _fuzzy_match_multi_choice,
 )
 
 
@@ -328,3 +331,99 @@ class TestSummary:
                                      robotics_protocols=["ros2"])
         summary = wiz.summarize(profile)
         assert "ros2" in summary
+
+
+# ---------------------------------------------------------------------------
+# Tests — Fuzzy input helpers (CLI layer)
+# ---------------------------------------------------------------------------
+
+class TestParseBool:
+    def test_standard_yes(self):
+        assert _parse_bool("yes") is True
+        assert _parse_bool("y") is True
+        assert _parse_bool("true") is True
+        assert _parse_bool("1") is True
+
+    def test_standard_no(self):
+        assert _parse_bool("no") is False
+        assert _parse_bool("n") is False
+        assert _parse_bool("false") is False
+        assert _parse_bool("0") is False
+
+    def test_natural_language_yes(self):
+        assert _parse_bool("sure") is True
+        assert _parse_bool("yep") is True
+        assert _parse_bool("absolutely") is True
+        assert _parse_bool("definitely") is True
+
+    def test_natural_language_no(self):
+        assert _parse_bool("not yet") is False
+        assert _parse_bool("nah") is False
+        assert _parse_bool("nope") is False
+        assert _parse_bool("maybe later") is False
+        assert _parse_bool("skip") is False
+
+    def test_unrecognised_returns_none(self):
+        assert _parse_bool("banana") is None
+        assert _parse_bool("42") is None
+
+
+class TestFuzzyMatchChoice:
+    def test_exact_match(self):
+        assert _fuzzy_match_choice("local", VALID_LLM_PROVIDERS) == "local"
+
+    def test_option_with_trailing_text(self):
+        assert _fuzzy_match_choice("local for now.", VALID_LLM_PROVIDERS) == "local"
+
+    def test_option_as_standalone_word(self):
+        assert _fuzzy_match_choice("I'd pick groq please", VALID_LLM_PROVIDERS) == "groq"
+
+    def test_no_match_returns_none(self):
+        assert _fuzzy_match_choice("something random", VALID_LLM_PROVIDERS) is None
+
+    def test_case_insensitive(self):
+        assert _fuzzy_match_choice("LOCAL", VALID_LLM_PROVIDERS) == "local"
+
+    def test_industry_embedded(self):
+        assert _fuzzy_match_choice(
+            "all of those. i'm the creator of the murphy system.",
+            VALID_INDUSTRIES,
+        ) is None  # no single valid option dominates
+
+
+class TestFuzzyMatchMultiChoice:
+    def test_all_keyword(self):
+        result = _fuzzy_match_multi_choice("all", VALID_AUTOMATION_TYPES)
+        assert result == list(VALID_AUTOMATION_TYPES)
+
+    def test_all_of_them(self):
+        result = _fuzzy_match_multi_choice("all of them", VALID_AUTOMATION_TYPES)
+        assert result == list(VALID_AUTOMATION_TYPES)
+
+    def test_all_of_those(self):
+        result = _fuzzy_match_multi_choice("all of those", VALID_AUTOMATION_TYPES)
+        assert result == list(VALID_AUTOMATION_TYPES)
+
+    def test_everything(self):
+        result = _fuzzy_match_multi_choice("everything", VALID_AUTOMATION_TYPES)
+        assert result == list(VALID_AUTOMATION_TYPES)
+
+    def test_comma_separated(self):
+        result = _fuzzy_match_multi_choice("data, content", VALID_AUTOMATION_TYPES)
+        assert result == ["data", "content"]
+
+    def test_skip_phrase_returns_empty(self):
+        result = _fuzzy_match_multi_choice("I dont know yet", VALID_COMPLIANCE_FRAMEWORKS)
+        assert result == []
+
+    def test_skip_none_keyword(self):
+        result = _fuzzy_match_multi_choice("skip", VALID_AUTOMATION_TYPES)
+        assert result == []
+
+    def test_skip_not_sure(self):
+        result = _fuzzy_match_multi_choice("not sure", VALID_AUTOMATION_TYPES)
+        assert result == []
+
+    def test_single_word_match(self):
+        result = _fuzzy_match_multi_choice("just data", VALID_AUTOMATION_TYPES)
+        assert result == ["data"]

@@ -555,18 +555,113 @@ class SetupWizard:
 
 
 # ---------------------------------------------------------------------------
-# CLI entry-point
+# CLI entry-point — fuzzy input helpers
 # ---------------------------------------------------------------------------
 
+_YES_WORDS = frozenset([
+    "y", "yes", "true", "1", "sure", "yep", "yeah",
+    "absolutely", "of course", "definitely",
+])
+
+_NO_WORDS = frozenset([
+    "n", "no", "false", "0", "nah", "nope", "never",
+])
+
+_YES_PHRASES = (
+    "yes please", "go ahead", "enable", "turn on",
+    "i want", "i do", "let's do it",
+)
+
+_NO_PHRASES = (
+    "not yet", "not now", "no thanks", "not right now",
+    "maybe later", "skip", "none", "later",
+)
+
+_MULTI_SKIP_PHRASES = frozenset([
+    "none", "skip", "later", "not yet", "not sure", "no idea",
+    "i don't know", "i dont know", "i don't know yet", "i dont know yet",
+])
+
+
 def _parse_bool(raw: str) -> Optional[bool]:
-    """Parse a yes/no string into a boolean."""
+    """Parse a yes/no string into a boolean.
+
+    Handles natural-language responses such as ``"not yet"``, ``"sure"``,
+    or ``"nah"``.
+    """
     lower = raw.strip().lower()
-    if lower in ("y", "yes", "true", "1"):
+    if lower in _YES_WORDS:
         return True
-    if lower in ("n", "no", "false", "0"):
+    if lower in _NO_WORDS:
         return False
+    for phrase in _NO_PHRASES:
+        if phrase in lower:
+            return False
+    for phrase in _YES_PHRASES:
+        if phrase in lower:
+            return True
     return None
 
+
+def _fuzzy_match_choice(raw: str, options: List[str]) -> Optional[str]:
+    """Try to extract a valid option from free-text input.
+
+    For example, ``"local for now."`` matches ``"local"`` when
+    ``options`` is ``["local", "groq", "openai", ...]``.
+    """
+    lower = raw.strip().lower()
+    # Exact match (case-insensitive)
+    for opt in options:
+        if lower == opt.lower():
+            return opt
+    # The input starts with a valid option followed by non-alpha chars or space
+    for opt in options:
+        ol = opt.lower()
+        if lower.startswith(ol) and (
+            len(lower) == len(ol) or not lower[len(ol)].isalpha()
+        ):
+            return opt
+    # A valid option appears as a standalone word in the input
+    words = lower.replace(",", " ").replace(".", " ").split()
+    for opt in options:
+        if opt.lower() in words:
+            return opt
+    return None
+
+
+def _fuzzy_match_multi_choice(raw: str, options: List[str]) -> Optional[List[str]]:
+    """Try to extract valid options from free-text input.
+
+    Recognises ``"all"``, ``"all of them"``, ``"all of those"`` as selecting
+    every option.  Recognises uncertainty phrases like ``"I don't know"`` or
+    ``"skip"`` as an empty selection.  Also attempts to find individual options
+    mentioned in the user's response.
+    """
+    lower = raw.strip().lower()
+    # "all" / "all of them" / "all of those" / "everything"
+    if lower in ("all", "everything") or lower.startswith("all of"):
+        return list(options)
+    # "none" / uncertainty / deferral phrases → empty list (use default)
+    if lower in _MULTI_SKIP_PHRASES:
+        return []
+    # Build a case-insensitive lookup for option matching
+    options_lower = {opt.lower(): opt for opt in options}
+    # Try comma-separated first (normal path)
+    parts = [v.strip().lower() for v in raw.split(",") if v.strip()]
+    valid = [options_lower[p] for p in parts if p in options_lower]
+    if valid:
+        return valid
+    # Try to find individual options mentioned anywhere in the text
+    words = lower.replace(",", " ").replace(".", " ").split()
+    found = [opt for opt in options if opt.lower() in words]
+    if found:
+        return found
+    return None
+
+
+# ---------------------------------------------------------------------------
+# CLI entry-point
+# ---------------------------------------------------------------------------
 
 def run_cli() -> None:
     """Interactive CLI session that walks through all setup questions."""
@@ -577,6 +672,7 @@ def run_cli() -> None:
     print("=" * 40)
     print("Answer the following questions to configure your system.\n")
 
+    step = 0
     for q in questions:
         qid = q["id"]
         qtype = q["question_type"]
@@ -587,22 +683,28 @@ def run_cli() -> None:
             wizard.apply_answer(qid, [])
             continue
 
-        print(f"\n[{qid}] {q['text']}")
+        step += 1
+        print(f"\n[Step {step}] {q['text']}")
 
         if qtype == "choice":
             print(f"  Options: {', '.join(q['options'])}")
             print(f"  Default: {q['default']}")
             raw = input("  > ").strip()
-            answer = raw if raw else q["default"]
+            if not raw:
+                answer = q["default"]
+            else:
+                matched = _fuzzy_match_choice(raw, q["options"])
+                answer = matched if matched is not None else raw
 
         elif qtype == "multi_choice":
             print(f"  Options: {', '.join(q['options'])}")
-            print("  Enter comma-separated values (or press Enter for none):")
+            print("  Enter comma-separated values, 'all', or press Enter for none:")
             raw = input("  > ").strip()
-            if raw:
-                answer = [v.strip() for v in raw.split(",") if v.strip()]
-            else:
+            if not raw:
                 answer = q["default"] if q["default"] else []
+            else:
+                matched = _fuzzy_match_multi_choice(raw, q["options"])
+                answer = matched if matched is not None else [v.strip() for v in raw.split(",") if v.strip()]
 
         elif qtype == "boolean":
             print("  (yes/no)")
@@ -642,7 +744,18 @@ def run_cli() -> None:
         wizard.export_config(config, path)
         print(f"Configuration saved to {path}")
 
-    print("\n✅  Setup complete.\n")
+    print("\n✅  Setup complete.")
+    print("\n" + "=" * 40)
+    print("What to do next:")
+    print("  1. Start the backend server:")
+    print('     python murphy_system_1.0_runtime.py')
+    print("  2. Open the Architect Terminal in your browser:")
+    print('     - macOS:   open terminal_architect.html')
+    print('     - Linux:   xdg-open terminal_architect.html')
+    print('     - Windows: start "" "terminal_architect.html"')
+    print("  3. Or try the onboarding wizard (no-code):")
+    print('     - Open onboarding_wizard.html in your browser')
+    print("=" * 40 + "\n")
 
 
 if __name__ == "__main__":
