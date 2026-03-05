@@ -559,12 +559,77 @@ class SetupWizard:
 # ---------------------------------------------------------------------------
 
 def _parse_bool(raw: str) -> Optional[bool]:
-    """Parse a yes/no string into a boolean."""
+    """Parse a yes/no string into a boolean.
+
+    Handles natural-language responses such as "not yet", "sure", or "nah".
+    """
     lower = raw.strip().lower()
-    if lower in ("y", "yes", "true", "1"):
+    if lower in ("y", "yes", "true", "1", "sure", "yep", "yeah", "absolutely",
+                  "of course", "definitely", "please"):
         return True
-    if lower in ("n", "no", "false", "0"):
+    if lower in ("n", "no", "false", "0", "nah", "nope", "never"):
         return False
+    # Catch common phrases that imply no
+    _no_phrases = ("not yet", "not now", "no thanks", "not right now",
+                   "maybe later", "skip", "none", "later")
+    for phrase in _no_phrases:
+        if phrase in lower:
+            return False
+    # Catch common phrases that imply yes
+    _yes_phrases = ("yes please", "go ahead", "enable", "turn on",
+                    "i want", "i do", "let's do it")
+    for phrase in _yes_phrases:
+        if phrase in lower:
+            return True
+    return None
+
+
+def _fuzzy_match_choice(raw: str, options: List[str]) -> Optional[str]:
+    """Try to extract a valid option from free-text input.
+
+    For example, ``"local for now."`` matches ``"local"`` when
+    ``options`` is ``["local", "groq", "openai", ...]``.
+    """
+    lower = raw.strip().lower()
+    # Exact match (case-insensitive)
+    for opt in options:
+        if lower == opt.lower():
+            return opt
+    # The input starts with a valid option followed by non-alpha chars or space
+    for opt in options:
+        if lower.startswith(opt.lower()) and (
+            len(lower) == len(opt) or not lower[len(opt)].isalpha()
+        ):
+            return opt
+    # A valid option appears as a standalone word in the input
+    words = lower.replace(",", " ").replace(".", " ").split()
+    for opt in options:
+        if opt.lower() in words:
+            return opt
+    return None
+
+
+def _fuzzy_match_multi_choice(raw: str, options: List[str]) -> Optional[List[str]]:
+    """Try to extract valid options from free-text input.
+
+    Recognises ``"all"``, ``"all of them"``, ``"all of those"`` as selecting
+    every option.  Also attempts to find individual options mentioned in
+    the user's response.
+    """
+    lower = raw.strip().lower()
+    # "all" / "all of them" / "all of those" / "everything"
+    if lower in ("all", "everything") or lower.startswith("all of"):
+        return list(options)
+    # Try comma-separated first (normal path)
+    parts = [v.strip() for v in raw.split(",") if v.strip()]
+    valid = [p for p in parts if p in options]
+    if valid:
+        return valid
+    # Try to find individual options mentioned anywhere in the text
+    words = lower.replace(",", " ").replace(".", " ").split()
+    found = [opt for opt in options if opt.lower() in words]
+    if found:
+        return found
     return None
 
 
@@ -593,16 +658,21 @@ def run_cli() -> None:
             print(f"  Options: {', '.join(q['options'])}")
             print(f"  Default: {q['default']}")
             raw = input("  > ").strip()
-            answer = raw if raw else q["default"]
+            if not raw:
+                answer = q["default"]
+            else:
+                matched = _fuzzy_match_choice(raw, q["options"])
+                answer = matched if matched is not None else raw
 
         elif qtype == "multi_choice":
             print(f"  Options: {', '.join(q['options'])}")
             print("  Enter comma-separated values (or press Enter for none):")
             raw = input("  > ").strip()
-            if raw:
-                answer = [v.strip() for v in raw.split(",") if v.strip()]
-            else:
+            if not raw:
                 answer = q["default"] if q["default"] else []
+            else:
+                matched = _fuzzy_match_multi_choice(raw, q["options"])
+                answer = matched if matched is not None else [v.strip() for v in raw.split(",") if v.strip()]
 
         elif qtype == "boolean":
             print("  (yes/no)")
