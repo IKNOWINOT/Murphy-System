@@ -360,12 +360,36 @@ def build_default_registry() -> MetricsRegistry:
     return reg
 
 
-# Module-level singletons
-default_registry: MetricsRegistry = build_default_registry()
-default_tracer: DistributedTracer = DistributedTracer()
-default_dashboard: ObservabilityDashboard = ObservabilityDashboard(
-    default_registry, default_tracer
-)
+# Lazy-initialized module-level singletons — call get_default_*() to access
+_default_registry: Optional[MetricsRegistry] = None
+_default_tracer: Optional[DistributedTracer] = None
+_default_dashboard: Optional[ObservabilityDashboard] = None
+
+
+def get_default_registry() -> MetricsRegistry:
+    """Return (and lazily create) the shared default MetricsRegistry."""
+    global _default_registry
+    if _default_registry is None:
+        _default_registry = build_default_registry()
+    return _default_registry
+
+
+def get_default_tracer() -> DistributedTracer:
+    """Return (and lazily create) the shared default DistributedTracer."""
+    global _default_tracer
+    if _default_tracer is None:
+        _default_tracer = DistributedTracer()
+    return _default_tracer
+
+
+def get_default_dashboard() -> ObservabilityDashboard:
+    """Return (and lazily create) the shared default ObservabilityDashboard."""
+    global _default_dashboard
+    if _default_dashboard is None:
+        _default_dashboard = ObservabilityDashboard(
+            get_default_registry(), get_default_tracer()
+        )
+    return _default_dashboard
 
 
 if __name__ == "__main__":

@@ -103,7 +103,7 @@ def _generate_report(
     current: float,
     readiness: float,
 ) -> str:
-    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
+    now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     lines = [
         "# Murphy System — Gap Closure Test Report",
         "",
