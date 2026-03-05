@@ -46,7 +46,7 @@ This security policy covers the Murphy System core runtime and all modules in th
 
 ## Security Enhancement Roadmap
 
-All planned security enhancements have been implemented and are tracked in the [Security Implementation Plan](SECURITY_IMPLEMENTATION_PLAN.md). The following multi-agent security controls are now operational:
+All planned security enhancements have been implemented. The following multi-agent security controls are now operational:
 
 - **Per-request authorization** — ownership verification on every mutating request (`src/security_plane/authorization_enhancer.py`)
 - **PII sanitization** — automated detection and redaction of 8 sensitive data types in logs (`src/security_plane/log_sanitizer.py`)

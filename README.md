@@ -114,7 +114,7 @@ murphy help           # See all commands
 | File system cleanup | **100%** |
 | Test coverage (dynamic chains) | **100%** |
 | UI + user testing | **85%** |
-| Security hardening ([plan](SECURITY_IMPLEMENTATION_PLAN.md)) | **100%** |
+| Security hardening | **100%** |
 | Code quality audit (25 categories) | **100%** |
 | **Overall average** | **~99%** |
 
@@ -133,15 +133,15 @@ Murphy-System/
 ├── CONTRIBUTING.md                     ← Contribution guidelines
 ├── CODE_OF_CONDUCT.md                  ← Community standards
 ├── SECURITY.md                         ← Vulnerability reporting
-├── SECURITY_IMPLEMENTATION_PLAN.md     ← Security enhancement roadmap
 ├── CHANGELOG.md                        ← Version history
 ├── LICENSE                             ← BSL 1.1 (→ Apache 2.0 after 4 yr)
 ├── install.sh                          ← One-line CLI installer
 ├── .gitignore
 ├── requirements.txt
+├── scripts/
+│   └── transfer_archive.sh             ← Archive transfer tool
 ├── docs/
-│   ├── screenshots/                    ← Verification screenshots
-│   └── LICENSE_STRATEGY.md             ← License rationale
+│   └── screenshots/                    ← Verification screenshots
 └── Murphy System/                      ← ACTIVE SYSTEM
     ├── murphy                          ← CLI tool (start/stop/status/…)
     ├── murphy_system_1.0_runtime.py    ← Single production runtime
@@ -159,6 +159,10 @@ Murphy-System/
     ├── README.md, API_DOCUMENTATION.md, DEPLOYMENT_GUIDE.md
     └── Dockerfile, docker-compose.yml  ← Container deployment
 ```
+
+> **Archive:** Legacy versions and artifacts have been moved to
+> [iknowinot/murphy-system-archive](https://github.com/IKNOWINOT/murphy-system-archive)
+> to keep downloads lean.
 
 ---
 
@@ -279,7 +283,7 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 | **Bot Anomaly Detector** | `src/security_plane/bot_anomaly_detector.py` | Z-score anomaly detection, resource spikes, API pattern analysis |
 | **Security Dashboard** | `src/security_plane/security_dashboard.py` | Unified event view, correlation, compliance reports, escalation |
 
-**Progress tracking:** All security enhancements are complete — see [SECURITY_IMPLEMENTATION_PLAN.md](SECURITY_IMPLEMENTATION_PLAN.md). All RFI items (`RFI-001`..`RFI-015`) have been resolved.
+**Progress tracking:** All security enhancements are complete. All RFI items (`RFI-001`..`RFI-015`) have been resolved. See [SECURITY.md](SECURITY.md) for vulnerability reporting.
 
 ---
 
@@ -521,7 +525,7 @@ POST /api/integrations/add
 -   ✅ Includes HIPAA-aligned controls (requires review)
 -   ✅ Includes PCI DSS-aligned controls (requires review)
 
-### Multi-Agent Security Enhancements ([full plan](SECURITY_IMPLEMENTATION_PLAN.md))
+### Multi-Agent Security Enhancements
 
 -   ✅ Per-request ownership verification with session context enforcement (`authorization_enhancer.py`)
 -   ✅ PII detection and automated log sanitization — 8 pattern types (`log_sanitizer.py`)
@@ -556,7 +560,7 @@ POST /api/integrations/add
 
 ### Containers & Kubernetes (Legacy Examples)
 
-Container and Kubernetes deployment manifests are available as legacy reference in the repository archives.
+Container and Kubernetes deployment manifests are available as legacy reference in the [murphy-system-archive](https://github.com/IKNOWINOT/murphy-system-archive) repository.
 
 ---
 
@@ -568,14 +572,9 @@ Container and Kubernetes deployment manifests are available as legacy reference 
 | [Specification](<Murphy System/MURPHY_SYSTEM_1.0_SPECIFICATION.md>) | Complete system spec |
 | [API Documentation](<Murphy System/API_DOCUMENTATION.md>) | API reference |
 | [Deployment Guide](<Murphy System/DEPLOYMENT_GUIDE.md>) | Deployment instructions |
-| [Security Implementation Plan](SECURITY_IMPLEMENTATION_PLAN.md) | Security enhancements — all phases complete |
 | [User Manual](<Murphy System/USER_MANUAL.md>) | Comprehensive user manual |
-| [Launch Automation Plan](<Murphy System/docs/LAUNCH_AUTOMATION_PLAN.md>) | Self-automating launch strategy |
-| [Operations & Testing Plan](<Murphy System/docs/OPERATIONS_TESTING_PLAN.md>) | Iterative test-fix-document cycle |
-| [Gap Analysis](<Murphy System/docs/GAP_ANALYSIS.md>) | System gap analysis and status |
-| [Remediation Plan](<Murphy System/docs/REMEDIATION_PLAN.md>) | Fixes for all identified gaps |
-| [Manual Commissioning Test Plan](<Murphy System/docs/MANUAL_COMMISSIONING_TEST_PLAN.md>) | Step-by-step manual UI and API verification |
 | [API Docs](http://localhost:8000/docs) | Interactive API docs (requires running server) |
+| [Archive](https://github.com/IKNOWINOT/murphy-system-archive) | Legacy versions and artifacts (separate repository) |
 
 ---
 
@@ -615,9 +614,7 @@ License 2.0 after four years. You may freely use, modify, and redistribute
 the software for any purpose except offering it as a competing hosted service.
 Enterprise features are available under a separate commercial license.
 
-See [LICENSE](LICENSE) for the full license text and
-[docs/LICENSE_STRATEGY.md](docs/LICENSE_STRATEGY.md) for the detailed license
-strategy analysis.
+See [LICENSE](LICENSE) for the full license text.
 
 ---
 
