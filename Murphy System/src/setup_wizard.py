@@ -558,27 +558,40 @@ class SetupWizard:
 # CLI entry-point
 # ---------------------------------------------------------------------------
 
+_YES_WORDS = frozenset([
+    "y", "yes", "true", "1", "sure", "yep", "yeah",
+    "absolutely", "of course", "definitely", "please",
+])
+
+_NO_WORDS = frozenset([
+    "n", "no", "false", "0", "nah", "nope", "never",
+])
+
+_YES_PHRASES = (
+    "yes please", "go ahead", "enable", "turn on",
+    "i want", "i do", "let's do it",
+)
+
+_NO_PHRASES = (
+    "not yet", "not now", "no thanks", "not right now",
+    "maybe later", "skip", "none", "later",
+)
+
+
 def _parse_bool(raw: str) -> Optional[bool]:
     """Parse a yes/no string into a boolean.
 
     Handles natural-language responses such as "not yet", "sure", or "nah".
     """
     lower = raw.strip().lower()
-    if lower in ("y", "yes", "true", "1", "sure", "yep", "yeah", "absolutely",
-                  "of course", "definitely", "please"):
+    if lower in _YES_WORDS:
         return True
-    if lower in ("n", "no", "false", "0", "nah", "nope", "never"):
+    if lower in _NO_WORDS:
         return False
-    # Catch common phrases that imply no
-    _no_phrases = ("not yet", "not now", "no thanks", "not right now",
-                   "maybe later", "skip", "none", "later")
-    for phrase in _no_phrases:
+    for phrase in _NO_PHRASES:
         if phrase in lower:
             return False
-    # Catch common phrases that imply yes
-    _yes_phrases = ("yes please", "go ahead", "enable", "turn on",
-                    "i want", "i do", "let's do it")
-    for phrase in _yes_phrases:
+    for phrase in _YES_PHRASES:
         if phrase in lower:
             return True
     return None
@@ -597,8 +610,9 @@ def _fuzzy_match_choice(raw: str, options: List[str]) -> Optional[str]:
             return opt
     # The input starts with a valid option followed by non-alpha chars or space
     for opt in options:
-        if lower.startswith(opt.lower()) and (
-            len(lower) == len(opt) or not lower[len(opt)].isalpha()
+        ol = opt.lower()
+        if lower.startswith(ol) and (
+            len(lower) == len(ol) or not lower[len(ol)].isalpha()
         ):
             return opt
     # A valid option appears as a standalone word in the input
