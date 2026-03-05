@@ -12047,7 +12047,10 @@ class MurphySystem:
                 "Hello! I'm Murphy — your professional automation assistant. "
                 "I help teams automate operations, onboard new users, manage integrations, "
                 "and run end-to-end workflows.\n\n"
-                "Type 'help' to see available commands, or 'start interview' to begin onboarding.",
+                "💡 **Need help?** Use `/librarian \"your question\"` at any time to ask "
+                "the Murphy Librarian — it analyzes your question against the system "
+                "knowledge base and suggests exactly what you need.\n\n"
+                "Type **start interview** to begin onboarding, or **help** to see all commands.",
                 session_id, intent=intent
             )
         if intent == "help":
@@ -13003,8 +13006,27 @@ class MurphySystem:
 
     def handle_chat(self, message: str, session_id: Optional[str], use_mfgc: bool) -> Dict[str, Any]:
         session_id = session_id or "default"
+        is_new = session_id not in self.chat_sessions
         session = self.chat_sessions.setdefault(session_id, {"stage_index": 0, "history": []})
         start = time.perf_counter()
+
+        # --- Companion welcome on first interaction with a new session ---
+        if is_new and not session.get("welcomed"):
+            session["welcomed"] = True
+            companion_intro = (
+                "👋 **Welcome to Murphy System!**\n\n"
+                "I'm your automation companion. I can help you set up, "
+                "configure, and run automations.\n\n"
+                "💡 **Tip:** Use `/librarian \"your question\"` at any time for "
+                "knowledge-base support — I'll analyze your question and suggest "
+                "exactly what you need based on your setup.\n\n"
+                "Try: `/librarian what modules do I need for email automation?`\n\n"
+                "Type **start interview** to begin guided onboarding, or just ask "
+                "me anything.\n"
+                "─────────────────────────────────────\n\n"
+            )
+        else:
+            companion_intro = ""
 
         # --- Intent detection (Chapter 1: route recognised commands) ---
         intent = self._detect_intent(message)
@@ -13014,6 +13036,10 @@ class MurphySystem:
         if intent == "librarian_direct":
             resp = self._handle_intent(intent, message, session_id)
             if resp is not None:
+                if companion_intro:
+                    resp["message"] = companion_intro + resp.get("message", "")
+                    if "response" in resp:
+                        resp["response"] = companion_intro + resp["response"]
                 duration = time.perf_counter() - start
                 self._record_execution(success=True, duration=duration)
                 return resp
@@ -13027,13 +13053,16 @@ class MurphySystem:
             first = self.flow_steps[0]
             duration = time.perf_counter() - start
             self._record_execution(success=True, duration=duration)
+            onboard_msg = (
+                "Welcome to Murphy onboarding! Let's set up your system.\n\n"
+                "💡 *You can use `/librarian \"question\"` at any time during "
+                "onboarding for help.*\n\n"
+                f"**Step 1 ({first['stage']}):** {first['prompt']}"
+            )
             return {
                 "success": True,
                 "session_id": session_id,
-                "message": (
-                    "Welcome to Murphy onboarding! Let's set up your system.\n\n"
-                    f"**Step 1 ({first['stage']}):** {first['prompt']}"
-                ),
+                "message": companion_intro + onboard_msg,
                 "intent": "onboarding",
                 "flow_stage": first["stage"],
             }
@@ -13042,6 +13071,10 @@ class MurphySystem:
             # Handle non-flow intents
             resp = self._handle_intent(intent, message, session_id)
             if resp is not None:
+                if companion_intro:
+                    resp["message"] = companion_intro + resp.get("message", "")
+                    if "response" in resp:
+                        resp["response"] = companion_intro + resp["response"]
                 duration = time.perf_counter() - start
                 self._record_execution(success=True, duration=duration)
                 return resp
@@ -13049,6 +13082,10 @@ class MurphySystem:
         # --- Natural-language routing (not in onboarding flow, no recognised intent) ---
         if not in_flow and not intent:
             result = self.librarian_ask(message, session_id)
+            if companion_intro:
+                result["message"] = companion_intro + result.get("message", "")
+                if "response" in result:
+                    result["response"] = companion_intro + result["response"]
             duration = time.perf_counter() - start
             self._record_execution(success=True, duration=duration)
             return result

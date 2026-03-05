@@ -830,5 +830,46 @@ class TestLibrarianFlowEnrichment(unittest.TestCase):
         self.assertIn("GitHub", msg)
 
 
+class TestCompanionWelcome(unittest.TestCase):
+    """Test that the LLM companion welcome fires on first session interaction."""
+
+    def setUp(self):
+        self.murphy = MurphySystem()
+
+    def test_first_message_includes_companion_welcome(self):
+        """First message to a new session should include the companion intro."""
+        result = self.murphy.handle_chat("hello", session_id="test-welcome-new", use_mfgc=False)
+        self.assertTrue(result["success"])
+        self.assertIn("Welcome to Murphy System", result["message"])
+        self.assertIn("/librarian", result["message"])
+
+    def test_second_message_no_companion_welcome(self):
+        """Second message to same session should NOT repeat the companion intro."""
+        self.murphy.handle_chat("hello", session_id="test-welcome-repeat", use_mfgc=False)
+        result = self.murphy.handle_chat("hello", session_id="test-welcome-repeat", use_mfgc=False)
+        self.assertNotIn("Welcome to Murphy System", result["message"])
+
+    def test_greeting_mentions_librarian(self):
+        """Greeting response should mention /librarian for support."""
+        result = self.murphy.handle_chat("hello", session_id="test-librarian-mention", use_mfgc=False)
+        self.assertIn("/librarian", result["message"])
+
+    def test_onboarding_start_mentions_librarian(self):
+        """Onboarding start message should mention /librarian for help."""
+        result = self.murphy.handle_chat("start interview", session_id="test-onboard-librarian", use_mfgc=False)
+        self.assertIn("/librarian", result["message"])
+
+    def test_companion_welcome_on_natural_language(self):
+        """First message with unrecognised input should still include companion intro."""
+        result = self.murphy.handle_chat(
+            "how do I automate email?",
+            session_id="test-welcome-nl",
+            use_mfgc=False,
+        )
+        self.assertTrue(result["success"])
+        self.assertIn("Welcome to Murphy System", result["message"])
+        self.assertIn("/librarian", result["message"])
+
+
 if __name__ == "__main__":
     unittest.main()

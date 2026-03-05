@@ -955,7 +955,26 @@
             messageInput.focus();
             loadConfig();
             setInterval(updateStats, 5000);
+            // Auto-send greeting to trigger companion welcome
+            sendGreeting();
         });
+
+        // Send initial greeting to activate the LLM companion welcome
+        async function sendGreeting() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: 'hello', use_mfgc: false })
+                });
+                const result = await response.json();
+                if (result.success && result.message) {
+                    addLine(result.message.replace(/\n/g, '<br>'), 'system');
+                }
+            } catch (error) {
+                addLine('Murphy System ready. Type <b>help</b> for commands or use <b>/librarian "your question"</b> for support.', 'system');
+            }
+        }
 
         // Add line to terminal
         function addLine(message, type = 'system') {
