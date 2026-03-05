@@ -311,7 +311,7 @@ for mod in ['fastapi', 'uvicorn', 'pydantic']:
 | Tier | Price | Notes |
 |------|-------|-------|
 | Community | Free | Open source (MIT), budgeted from paid income |
-| Creator Starter | $20/mo | Flat rate |
+| Creator Starter | $20/mo | Monthly |
 | Professional | $99/mo | Per seat |
 | Enterprise | $750/mo | Per seat — funds community free tier |
 

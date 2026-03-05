@@ -247,7 +247,7 @@ _DEFAULT_TIER_REVENUES: Dict[str, float] = {
     "community": 0.00,       # Free — budgeted from total paid income
     "pro": 99.00,            # $99/mo per seat
     "enterprise": 750.00,    # $750/mo per seat
-    "creator_starter": 20.00,  # $20/mo flat rate
+    "creator_starter": 20.00,  # $20/mo monthly
     "creator_pro": 99.00,    # Direct $99/mo subscription
 }
 
