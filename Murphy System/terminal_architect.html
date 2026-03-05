@@ -196,6 +196,22 @@
             background-color: #00CC00;
         }
 
+        .send-button.loading {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
+        /* Focus-visible styles for keyboard navigation */
+        .header-btn:focus-visible,
+        .send-button:focus-visible,
+        .tab:focus-visible,
+        .config-toggle:focus-visible,
+        .config-select:focus-visible,
+        #messageInput:focus-visible {
+            outline: 2px solid #00ffff;
+            outline-offset: 2px;
+        }
+
         /* Right Panel - System State */
         .state-panel {
             width: 500px;
@@ -610,10 +626,82 @@
             border-radius: 2px;
             display: inline-block;
         }
+
+        /* ── Skip to content (a11y) ────────────────────── */
+        .skip-link {
+            position: absolute;
+            top: -100%;
+            left: 0;
+            background: #00ff41;
+            color: #0a0a0a;
+            padding: 8px 16px;
+            z-index: 10000;
+            font-weight: bold;
+        }
+        .skip-link:focus {
+            top: 0;
+        }
+
+        /* ── Responsive ────────────────────────────── */
+        @media (max-width: 900px) {
+            .state-panel {
+                width: 320px;
+            }
+            .header-title {
+                font-size: 16px;
+                letter-spacing: 1px;
+            }
+            .header-subtitle {
+                display: none;
+            }
+        }
+        @media (max-width: 700px) {
+            .container {
+                flex-direction: column;
+            }
+            .state-panel {
+                width: 100%;
+                max-height: 40vh;
+                border-top: 2px solid #00ff41;
+            }
+            .terminal-panel {
+                border-right: none;
+                min-height: 50vh;
+            }
+            .header {
+                flex-direction: column;
+                gap: 8px;
+                padding: 8px 12px;
+            }
+            .header-controls {
+                flex-wrap: wrap;
+                gap: 8px;
+                justify-content: center;
+            }
+            .header-title {
+                font-size: 14px;
+                letter-spacing: 1px;
+                text-align: center;
+            }
+            .color-key {
+                justify-content: center;
+            }
+            .mfgc-phases {
+                flex-wrap: wrap;
+                gap: 4px;
+            }
+            .metrics-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .tabs {
+                flex-wrap: wrap;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="header">
+    <a class="skip-link" href="#messageInput">Skip to terminal input</a>
+    <div class="header" role="banner">
         <div>
             <div class="header-title">🏛️ MURPHY SYSTEM - ARCHITECT TERMINAL</div>
             <div class="header-subtitle">Advanced Interface for System Architecture & Control</div>
@@ -623,11 +711,11 @@
                 <span>API</span>
                 <span class="data-status offline" id="apiStatus">OFFLINE</span>
             </div>
-            <button class="header-btn" onclick="toggleMFGC()" id="mfgcToggle">MFGC: OFF</button>
-            <button class="header-btn" onclick="setupProfile('production')">PROD</button>
-            <button class="header-btn" onclick="setupProfile('certification')">CERT</button>
-            <button class="header-btn" onclick="setupProfile('development')">DEV</button>
-            <button class="header-btn" onclick="toggleTerminal()">TERM</button>
+            <button class="header-btn" onclick="toggleMFGC()" id="mfgcToggle" aria-label="Toggle MFGC control">MFGC: OFF</button>
+            <button class="header-btn" onclick="setupProfile('production')" aria-label="Switch to Production profile">PROD</button>
+            <button class="header-btn" onclick="setupProfile('certification')" aria-label="Switch to Certification profile">CERT</button>
+            <button class="header-btn" onclick="setupProfile('development')" aria-label="Switch to Development profile">DEV</button>
+            <button class="header-btn" onclick="toggleTerminal()" aria-label="Toggle terminal visibility">TERM</button>
         </div>
     </div>
     <div class="color-key">
@@ -642,8 +730,8 @@
 
     <div class="container">
         <!-- Terminal Panel -->
-        <div class="terminal-panel">
-            <div class="terminal-output" id="terminalOutput">
+        <div class="terminal-panel" role="main">
+            <div class="terminal-output" id="terminalOutput" role="log" aria-live="polite" aria-label="Terminal output">
                 <div class="terminal-line system" style="white-space:pre; line-height:1.15; font-size:0.85em;">
 ╔════════════════════════════════════════════════════════════════════════╗
 ║ ███╗   ███╗██╗   ██╗██████╗ ██████╗ ██╗  ██╗██╗   ██╗                  ║
@@ -668,8 +756,8 @@
             <div class="terminal-input-container">
                 <div class="terminal-input-wrapper">
                     <span class="terminal-prompt" id="promptLabel">murphy:architect$</span>
-                    <input type="text" id="messageInput" placeholder="Enter command or system instruction..." autocomplete="off">
-                    <button class="send-button" id="sendButton">EXECUTE</button>
+                    <input type="text" id="messageInput" placeholder="Enter command or system instruction..." autocomplete="off" aria-label="Terminal command input">
+                    <button class="send-button" id="sendButton" aria-label="Execute command">EXECUTE</button>
                 </div>
             </div>
         </div>
@@ -975,6 +1063,8 @@
             messageInput.value = '';
             messageInput.disabled = true;
             sendButton.disabled = true;
+            sendButton.textContent = 'RUNNING…';
+            sendButton.classList.add('loading');
 
             try {
                 // Check if command
@@ -1048,6 +1138,8 @@
 
             messageInput.disabled = false;
             sendButton.disabled = false;
+            sendButton.textContent = 'EXECUTE';
+            sendButton.classList.remove('loading');
             messageInput.focus();
         }
 

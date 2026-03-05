@@ -305,6 +305,56 @@ for mod in ['fastapi', 'uvicorn', 'pydantic']:
 "
 ```
 
+### Windows: `git pull` fails with "Your local changes would be overwritten"
+
+On Windows (Git Bash / MINGW64) you may see an error like:
+
+```
+error: Your local changes to the following files would be overwritten by merge:
+        Murphy System/bots/Engineering_bot.py
+        Murphy System/bots/Ghost_Controller_Bot.py
+Please commit your changes or stash them before you merge.
+```
+
+This is caused by a **case-sensitivity mismatch**. Windows file systems are
+case-insensitive, so `engineering_bot.py` and `Engineering_bot.py` refer to the
+same file. Git, however, tracks file names case-sensitively. When the two get
+out of sync, Git sees phantom local changes that block `pull`.
+
+**Quick fix — discard the conflicting local state and pull:**
+
+```bash
+# From the repository root:
+git checkout -- "Murphy System/bots/Engineering_bot.py" "Murphy System/bots/Ghost_Controller_Bot.py"
+git pull
+```
+
+If that doesn't work, reset the whole working tree (you will lose **all**
+uncommitted changes):
+
+```bash
+git checkout -- .
+git pull
+```
+
+**Prevent future occurrences:**
+
+```bash
+# Tell Git to track case changes even on case-insensitive file systems:
+git config core.ignorecase false
+
+# If a file still shows as modified with a different case, rename it
+# back to the correct lowercase name:
+git mv "Murphy System/bots/Engineering_bot.py" "Murphy System/bots/engineering_bot.py"
+git mv "Murphy System/bots/Ghost_Controller_Bot.py" "Murphy System/bots/ghost_controller_bot.py"
+git commit -m "fix: normalize file name casing"
+```
+
+> **Tip:** The repository ships a `.gitattributes` file that normalises line
+> endings across platforms. If you cloned before this file was added, run
+> `git rm --cached -r . && git reset --hard` once to let Git re-apply the
+> attributes.
+
 ---
 
 ## 9. Screenshots — Current Build

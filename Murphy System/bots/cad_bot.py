@@ -12,7 +12,10 @@ from .gpt_oss_runner import GPTOSSRunner
 from .analysis_bot import AnalysisBot
 from .engineering_bot import EngineeringBot
 from .simulation_bot import SimulationBot
-from .ghost_controller_bot import GhostControllerBot
+try:
+    from .ghost_controller_bot import GhostControllerBot
+except Exception:  # pynput / pygetwindow may be absent on headless systems
+    GhostControllerBot = None  # type: ignore[assignment,misc]
 
 OUTPUT_DIR = Path("generated_cad")
 PRINT_LOG = OUTPUT_DIR / "print_log.json"
@@ -26,7 +29,7 @@ class CADBot:
         self.analysis = AnalysisBot(model_path)
         self.engineer = EngineeringBot(model_path)
         self.simulator = SimulationBot(model_path)
-        self.ghost = GhostControllerBot(model_path)
+        self.ghost = GhostControllerBot(model_path) if GhostControllerBot is not None else None
         self.memory_file = OUTPUT_DIR / "cadbot_memory.json"
         self.history: list[dict] = []
 
