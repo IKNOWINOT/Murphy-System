@@ -1,4 +1,0 @@
-1781:            <button class="action-btn primary" onclick="alert('Button clicked!'); initializeSystem()">INITIALIZE SYSTEM</button>
-3999:            console.log('=== INITIALIZE SYSTEM STARTED ===');
-4093:            console.log('=== INITIALIZE SYSTEM COMPLETED ===');
-4327:            addLog('Click "INITIALIZE SYSTEM" to start', 'info');

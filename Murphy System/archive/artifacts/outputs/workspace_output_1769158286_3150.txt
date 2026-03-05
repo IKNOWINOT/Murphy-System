@@ -1,6 +1,0 @@
-    def search_artifacts(self, query: str) -> List[Dict]:
-        """Search artifacts by name or content"""
-        results = []
-        query_lower = query.lower()
-        
-        for artifact in self.artifacts.values():

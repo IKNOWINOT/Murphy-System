@@ -1,9 +1,0 @@
-2504:        async function evolveState(stateId) {
-2520:        async function regenerateState(stateId) {
-2536:        async function rollbackState(stateId) {
-2595:        function closeDetailPanel() {
-3469:        function closeShadowPanel() {
-3480:        function closeMonitoringPanel() {
-4134:        async function evolveStateCommand(stateId) {
-4163:        async function regenerateStateCommand(stateId) {
-4192:        async function rollbackStateCommand(stateId) {

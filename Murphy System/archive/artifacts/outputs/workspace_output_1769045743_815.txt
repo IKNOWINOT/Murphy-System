@@ -1,6 +1,0 @@
-107:        .terminal-input-area {
-113:        .command-input {
-124:        .command-input:focus {
-236:        <div class="terminal-input-area">
-237:            <input type="text" class="command-input" id="commandInput" 
-264:                const command = input.value.trim();

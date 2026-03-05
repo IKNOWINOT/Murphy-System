@@ -1,2 +1,0 @@
-Found 1 global variables:
-  - LLM_AVAILABLE

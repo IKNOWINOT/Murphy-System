@@ -1,1 +1,0 @@
-50:    logger.info("✓ Authentication System loaded successfully")

@@ -1,1 +1,0 @@
-        .terminal-line.librarian { color: #ffb347; }

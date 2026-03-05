@@ -1,5 +1,0 @@
-Fixed: murphy_integrated/src/confidence_engine/uncertainty_calculator.py
-Fixed: murphy_integrated/src/confidence_engine/murphy_gate.py
-Fixed: murphy_integrated/src/confidence_engine/murphy_validator.py
-
-Files fixed: 3

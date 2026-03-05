@@ -1,4 +1,0 @@
-  File "/workspace/murphy_backend_phase2.py", line 358
-    """
-       ^
-SyntaxError: f-string: closing parenthesis '}' does not match opening parenthesis '['

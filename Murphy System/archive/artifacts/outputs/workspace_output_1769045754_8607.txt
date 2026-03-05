@@ -1,9 +1,0 @@
-314:                    showAllCommands();
-319:                showSystemStatus();
-321:                processStateCommand(args);
-323:                processSetupCommand(args);
-338:        function showAllCommands() {
-393:        function processStateCommand(args) {
-446:        function processSetupCommand(args) {
-494:        function showSystemStatus() {
-504:            showAllCommands();

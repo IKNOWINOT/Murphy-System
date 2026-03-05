@@ -1,4 +1,0 @@
-  File "/workspace/murphy_backend_complete.py", line 80
-    def pass_through_decorator(*args, **kwargs):
-    ^^^
-SyntaxError: expected 'except' or 'finally' block

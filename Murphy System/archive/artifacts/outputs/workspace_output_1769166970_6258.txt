@@ -1,1 +1,0 @@
-✓ auth_system.py compiles successfully

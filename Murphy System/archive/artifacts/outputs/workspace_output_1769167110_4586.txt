@@ -1,6 +1,0 @@
-Testing input validation (missing username)...
-{
-  "error": "validation_error",
-  "message": "username is required",
-  "success": false
-}

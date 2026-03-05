@@ -1,6 +1,0 @@
-Testing input validation (too short password)...
-{
-  "error": "validation_error",
-  "message": "password must be at least 6 characters",
-  "success": false
-}

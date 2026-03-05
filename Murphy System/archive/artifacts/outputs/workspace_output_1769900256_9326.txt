@@ -1,6 +1,0 @@
-./murphy_complete_all_files/llm_providers_enhanced.py:252:            response = f"[Aristotle Math Response for: {prompt[:50]}...]"
-./murphy_system_v2.0_UI_UPDATED_20260130_1810/llm_providers_enhanced.py:252:            response = f"[Aristotle Math Response for: {prompt[:50]}...]"
-./murphy_system_v2.0_BUGFIXED_20260130_2114/llm_providers_enhanced.py:252:            response = f"[Aristotle Math Response for: {prompt[:50]}...]"
-./murphy_complete_final/llm_providers_enhanced.py:252:            response = f"[Aristotle Math Response for: {prompt[:50]}...]"
-./murphy_system_fixed/llm_providers_enhanced.py:252:            response = f"[Aristotle Math Response for: {prompt[:50]}...]"
-./llm_providers_enhanced.py:252:            response = f"[Aristotle Math Response for: {prompt[:50]}...]"

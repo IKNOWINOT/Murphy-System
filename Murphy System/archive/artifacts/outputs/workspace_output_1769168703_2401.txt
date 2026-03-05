@@ -1,1 +1,0 @@
-204:def init_auth_system(secret_key: Optional[str] = None) -> AuthenticationSystem:

@@ -1,3 +1,0 @@
-4334:            window.planReviewPanel = new PlanReviewPanel(API_BASE);
-4348:            window.shadowAgentPanel = new ShadowAgentPanel();
-4352:            window.monitoringPanel = new MonitoringPanel();

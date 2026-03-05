@@ -1,8 +1,0 @@
-5. Looking for mfgc_core.py:
-murphy_system_working/src/unified_mfgc.py
-murphy_system_working/src/mfgc_adapter.py
-murphy_system_working/src/mfgc_metrics.py
-murphy_system_working/src/mfgc_core.py
-murphy_system_working/tests/test_mfgc_core.py
-murphy_system_working/tests/test_mfgc_v1_1.py
-murphy_system_working/tests/test_mfgc_integration.py

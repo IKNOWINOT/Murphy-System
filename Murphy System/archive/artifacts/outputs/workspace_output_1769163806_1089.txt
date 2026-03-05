@@ -1,2 +1,0 @@
-1973:        function connectWebSocket() {
-4003:                    connectWebSocket();

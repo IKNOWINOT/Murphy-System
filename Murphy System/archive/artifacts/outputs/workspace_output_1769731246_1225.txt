@@ -1,3 +1,0 @@
-Testing LLM endpoint...
-Success: True
-Response: Hello. I'm Murphy, your AI assistant for the Murph

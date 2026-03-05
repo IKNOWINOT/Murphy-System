@@ -1,3 +1,0 @@
-  1313 /workspace/murphy_complete_ui.html
-  4494 /workspace/murphy_complete_v2.html
-  5807 total

@@ -1,1 +1,0 @@
-1178:        const murphy = new MurphyIntegratedSystem();

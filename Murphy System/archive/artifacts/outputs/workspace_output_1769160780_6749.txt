@@ -1,8 +1,0 @@
-40:    def register_handoff_handler(self, handoff_type: str, handler: Callable):
-44:    async def initiate_handoff(self, 
-91:    async def _perform_handoff(self, handoff: Dict, task: Task) -> Dict[str, Any]:
-111:    async def _default_handoff(self, from_agent: str, to_agent: str, 
-138:    async def _send_handoff_notification(self, handoff: Dict):
-143:    async def await_handoff_confirmation(self, handoff_id: str, 
-164:    def get_handoff_history(self, agent: str = None, 
-175:    def get_active_handoffs(self, agent: str = None) -> List[Dict]:

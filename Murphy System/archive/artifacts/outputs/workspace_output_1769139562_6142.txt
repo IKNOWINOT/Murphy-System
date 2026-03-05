@@ -1,1 +1,0 @@
-2645:            terminalInput.addEventListener('keydown', handleTerminalKeyPress);

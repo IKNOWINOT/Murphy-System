@@ -1,7 +1,0 @@
- id | client_id |       workflow_id       | execution_id |   error_type    |                 error_message                  | error_stack | error_severity | error_category |                             context                              |          occurred_at          | resolved | resolved_at | resolution_notes 
-----+-----------+-------------------------+--------------+-----------------+------------------------------------------------+-------------+----------------+----------------+------------------------------------------------------------------+-------------------------------+----------+-------------+------------------
-  3 |         1 | TASKS_v1_Assign_Tasks   |              | AssignmentError | No available team members with required skills |             | medium         | business       | {"task_id": 456, "required_skills": ["python", "data_analysis"]} | 2026-01-29 16:15:08.965558+00 | f        |             | 
-  2 |         1 | DOCS_v1_Extract_Data    |              | NetworkError    | Failed to connect to OCR service               |             | high           | network        | {"document_id": 123, "retry_count": 3}                           | 2026-01-29 16:15:08.965558+00 | f        |             | 
-  1 |         1 | INTAKE_v1_Capture_Leads |              | ValidationError | Missing required field: email                  |             | medium         | validation     | {"field_count": 1, "missing_fields": ["email"]}                  | 2026-01-29 16:15:08.965558+00 | f        |             | 
-(3 rows)
-

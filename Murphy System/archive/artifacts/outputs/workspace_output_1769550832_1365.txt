@@ -1,8 +1,0 @@
-        // CONFIGURATION
-        // ============================================
-        // Use relative URL - since HTML is served from Flask, API is at same origin
-        const API_BASE = window.location.origin;
-        // Make API_BASE globally accessible for external panel scripts
-        window.API_BASE = API_BASE;
-        let ws = null;
-

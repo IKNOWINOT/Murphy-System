@@ -1,1 +1,0 @@
-export function abDiff(pA:number,nA:number,pB:number,nB:number){ const lift=pB-pA; return { lift, ciA: [pA, pA], ciB:[pB,pB] }; }

@@ -1,7 +1,0 @@
-370:@app.route('/api/status', methods=['GET'])
-734:@app.route('/api/production/ssl/status', methods=['GET'])
-1209:@app.route('/api/book/multi-agent/status', methods=['GET'])
-1377:@app.route('/api/runtime/status', methods=['GET'])
-1411:@app.route('/api/llm/status', methods=['GET'])
-1758:@app.route('/api/pipeline/status', methods=['GET'])
-2018:@app.route('/api/gates/sensors/status', methods=['GET'])

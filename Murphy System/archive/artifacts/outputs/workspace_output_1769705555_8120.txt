@@ -1,3 +1,0 @@
-113:    from command_system import CommandRegistry, execute_command
-114:    command_registry = CommandRegistry()
-119:    command_registry = None

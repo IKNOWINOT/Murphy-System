@@ -1,6 +1,0 @@
-/workspace/document_editor_panel.js
-/workspace/shadow_agent_panel.js
-/workspace/librarian_panel.js
-/workspace/artifact_panel.js
-/workspace/plan_review_panel.js
-/workspace/monitoring_panel.js

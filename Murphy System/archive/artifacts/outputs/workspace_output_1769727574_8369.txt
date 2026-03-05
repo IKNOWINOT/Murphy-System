@@ -1,9 +1,0 @@
-
-[notice] A new release of pip is available: 24.0 -> 25.3
-[notice] To update, run: pip install --upgrade pip
-flask-cors         6.0.2
-groq               1.0.0
-psutil             7.2.2
-pydantic           2.6.1
-pydantic_core      2.16.2
-requests           2.32.5

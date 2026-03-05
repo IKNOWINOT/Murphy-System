@@ -1,3 +1,0 @@
-./murphy_complete_integrated.py
-./murphy_system_v2.0_UI_UPDATED_20260130_1810/murphy_complete_integrated.py
-./murphy_system_v2.0_BUGFIXED_20260130_2114/murphy_complete_integrated.py

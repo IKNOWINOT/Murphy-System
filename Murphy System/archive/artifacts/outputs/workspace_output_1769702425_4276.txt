@@ -1,2 +1,0 @@
- public | client_workflows     | table | postgres
- public | workflow_executions  | table | postgres

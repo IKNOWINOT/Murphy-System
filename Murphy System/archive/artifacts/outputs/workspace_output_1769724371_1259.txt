@@ -1,4 +1,0 @@
-  File "murphy_complete_integrated.py", line 1923
-    &quot;&quot;&quot;Generate decision gates dynamically for a task&quot;&quot;&quot;
-    ^
-SyntaxError: invalid syntax

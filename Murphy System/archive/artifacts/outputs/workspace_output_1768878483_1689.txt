@@ -1,4 +1,0 @@
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   223  100   223    0     0   111k      0 --:--:-- --:--:-- --:--:--  217k
-{"artifacts_count":0,"confidence":0.0,"constraints_count":0,"gates_count":0,"initialized":false,"llms":{"aristotle":false,"groq":false,"onboard":false},"murphy_index":0.0,"phase":"expand","states_count":0,"swarms_count":0}

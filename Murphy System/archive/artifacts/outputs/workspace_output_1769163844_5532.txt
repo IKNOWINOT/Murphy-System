@@ -1,7 +1,0 @@
-            // Use Socket.IO for Flask-SocketIO compatibility
-            // CRITICAL: Store socket globally for access throughout the application
-            window.socket = io({
-                transports: ['websocket', 'polling'],
-                reconnection: true,
-                reconnectionDelay: 1000,
-                reconnectionAttempts: 5

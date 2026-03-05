@@ -1,1 +1,0 @@
-bash: line 2: 12915 Killed                  python3 -m http.server 7000 > /dev/null 2>&1

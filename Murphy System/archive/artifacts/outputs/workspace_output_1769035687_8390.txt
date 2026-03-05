@@ -1,1 +1,0 @@
-{"agents":10,"components":8,"gates":4,"initial_state_id":"state-cc50e14b","message":"System initialized successfully","states":2,"system_id":"system-0ec59367"}

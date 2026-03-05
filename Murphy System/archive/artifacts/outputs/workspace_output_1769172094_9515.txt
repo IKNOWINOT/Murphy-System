@@ -1,2 +1,0 @@
-740:class IntegratedModuleCompiler:
-1045:class ModuleManager:

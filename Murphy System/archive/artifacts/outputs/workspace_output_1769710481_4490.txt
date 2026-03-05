@@ -1,3 +1,0 @@
-379:def generate_artifact():
-997:def generate_command():
-1036:def generate_book_multi_agent_endpoint():

@@ -1,7 +1,0 @@
-INFO:__main__:Loaded 9 Groq API keys
-INFO:llm_providers:Groq provider initialized with 9 API keys
-INFO:llm_providers:LLM Manager initialized with 2 providers
-INFO:__main__:LLM Manager initialized with 9 real Groq API keys
-INFO:groq_client:Initialized Groq client with 9 API keys
-ERROR:groq_client:Groq API error: Groq API error 400: {"error":{"message":"The model `mixtral-8x7b-32768` has been decommissioned and is no longer supported. Please refer to https://console.groq.com/docs/deprecations for a recommendation on which model to use instead.","type":"invalid_request_error","code":"model_decommissioned"}}
-ERROR:llm_providers:Groq API error: Groq API error 400: {"error":{"message":"The model `mixtral-8x7b-32768` has been decommissioned and is no longer supported. Please refer to https://console.groq.com/docs/deprecations for a recommendation on which model to use instead.","type":"invalid_request_error","code":"model_decommissioned"}}

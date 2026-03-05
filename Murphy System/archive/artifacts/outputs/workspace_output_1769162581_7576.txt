@@ -1,6 +1,0 @@
-268:<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
-351:    <script>
-364:                this.terminalInput.addEventListener('keypress', (e) => {
-371:                document.getElementById('approveBtn').addEventListener('click', () => {
-375:                document.getElementById('rejectBtn').addEventListener('click', () => {
-669:    </script>

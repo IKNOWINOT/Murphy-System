@@ -1,1 +1,0 @@
-21:app.config['SECRET_KEY'] = 'murphy-backend-complete-secret'

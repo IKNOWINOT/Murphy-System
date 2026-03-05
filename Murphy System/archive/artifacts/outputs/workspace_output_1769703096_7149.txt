@@ -1,9 +1,0 @@
-      info       |     table_name      
------------------+---------------------
- Security Tables | audit_logs_enhanced
- Security Tables | encryption_keys
- Security Tables | roles
- Security Tables | security_events
- Security Tables | user_roles
-(5 rows)
-

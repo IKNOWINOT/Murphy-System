@@ -1,1 +1,0 @@
-Added !important to both hide functions!

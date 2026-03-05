@@ -1,4 +1,0 @@
-{
-    "message": "Error forming attention: 'InternalRepresentation' object has no attribute 'confidence'",
-    "success": false
-}

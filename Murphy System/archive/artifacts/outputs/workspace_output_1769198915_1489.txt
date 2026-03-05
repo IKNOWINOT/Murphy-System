@@ -1,5 +1,0 @@
--rw-r--r-- 1 root root  15868 Jan 21 23:14 /workspace/index.html
--rw-r--r-- 1 root root  42926 Jan 20 00:37 /workspace/murphy_backend_integrated.html
--rw-r--r-- 1 root root  29578 Jan 20 06:03 /workspace/murphy_complete_frontend.html
--rw-r--r-- 1 root root  44976 Jan 20 16:15 /workspace/murphy_complete_ui.html
--rw-r--r-- 1 root root 164173 Jan 23 12:09 /workspace/murphy_complete_v2.html

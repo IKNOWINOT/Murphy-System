@@ -1,7 +1,0 @@
- id | dependency_name | dependency_type | health_status |          last_check           | last_success | last_failure | response_time_ms | error_message | uptime_percentage | total_checks | successful_checks | failed_checks | metadata 
-----+-----------------+-----------------+---------------+-------------------------------+--------------+--------------+------------------+---------------+-------------------+--------------+-------------------+---------------+----------
-  2 | n8n             | service         | healthy       | 2026-01-29 16:13:46.278974+00 |              |              |            15.20 |               |            100.00 |            1 |                 1 |             0 | 
-  1 | postgresql      | database        | healthy       | 2026-01-29 16:13:46.278974+00 |              |              |             7.50 |               |            100.00 |            1 |                 1 |             0 | 
-  3 | storage         | storage         | healthy       | 2026-01-29 16:13:46.278974+00 |              |              |             2.10 |               |            100.00 |            1 |                 1 |             0 | 
-(3 rows)
-

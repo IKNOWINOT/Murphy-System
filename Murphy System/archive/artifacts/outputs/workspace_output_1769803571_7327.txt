@@ -1,7 +1,0 @@
-76:    confidence_level: float  # Statistical confidence (0.0-1.0)
-190:    def value_at_risk(exposure: RiskExposure, confidence_level: float = 0.95) -> float:
-194:        VaR = Maximum loss at given confidence level
-199:        # For 95% confidence: VaR ≈ Mean + 1.645 × StdDev
-205:        }.get(confidence_level, 1.645)
-320:                'confidence': frequency.confidence_level
-506:            confidence_level=0.80

@@ -1,4 +1,0 @@
-69:    llm_manager = LLMManager(groq_api_keys=groq_keys)
-74:    llm_manager = None
-193:    business_automation = get_business_automation(llm_manager=llm_manager if llm_manager else None)
-252:        llm_manager=llm_manager if llm_manager else None

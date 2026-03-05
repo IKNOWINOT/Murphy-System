@@ -1,8 +1,0 @@
-murphy_integrated/src/module_manager.py:    def load_module(self, name: str) -> bool:
-murphy_integrated/src/module_manager.py:    def unload_module(self, name: str) -> bool:
-murphy_integrated/src/system_librarian.py:    def _load_module_functions(self) -> Dict[str, Dict]:
-murphy_integrated/src/system_librarian.py:    def _load_module_capabilities(self) -> Dict[str, List[str]]:
-murphy_integrated/src/modular_runtime.py:    def _load_module(self):
-murphy_integrated/src/modular_runtime.py:    def load_module(self, name: str, module_path: str, description: str, 
-murphy_integrated/src/modular_runtime.py:    def unload_module(self, name: str):
-murphy_integrated/bots/swisskiss_loader.py:class SwissKissLoader:

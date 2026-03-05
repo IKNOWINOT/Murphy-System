@@ -1,4 +1,0 @@
-{
-  "message": "ArtifactManager.list_artifacts() got an unexpected keyword argument 'type'",
-  "success": false
-}

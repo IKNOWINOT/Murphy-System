@@ -1,4 +1,0 @@
-Line 2994 bytes: b'                            if (data.results &amp;&amp; data.results.length > 0) {'
-Line 2994 repr: b'                            if (data.results &amp;&amp; data.results.length > 0) {'
-Did not find && as bytes
-Found 6 occurrences of && in entire file

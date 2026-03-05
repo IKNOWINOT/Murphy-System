@@ -1,6 +1,0 @@
-2464:                const response = await fetch(`${API_BASE}/api/states/${stateId}/evolve`, {
-2480:                const response = await fetch(`${API_BASE}/api/states/${stateId}/regenerate`, {
-2496:                const response = await fetch(`${API_BASE}/api/states/${stateId}/rollback`, {
-4041:                const response = await fetch(`${API_BASE}/api/states/${stateId}/evolve`, {
-4070:                const response = await fetch(`${API_BASE}/api/states/${stateId}/regenerate`, {
-4099:                const response = await fetch(`${API_BASE}/api/states/${stateId}/rollback`, {

@@ -1,1 +1,0 @@
-Added direct style.display = 'none' fix!

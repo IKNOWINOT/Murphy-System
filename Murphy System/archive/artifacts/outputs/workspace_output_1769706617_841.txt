@@ -1,1 +1,0 @@
-693:    emit('task_result', result)

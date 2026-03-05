@@ -1,8 +1,0 @@
-tcp        0      0 0.0.0.0:3002            0.0.0.0:*               LISTEN      3259/python3        
-tcp        0      0 0.0.0.0:6080            0.0.0.0:*               LISTEN      952/python3         
-tcp        0      0 0.0.0.0:8080            0.0.0.0:*               LISTEN      654/python          
-tcp        0      0 0.0.0.0:8002            0.0.0.0:*               LISTEN      652/python          
-tcp        0      0 0.0.0.0:8054            0.0.0.0:*               LISTEN      666/python3         
-tcp        0      0 0.0.0.0:8053            0.0.0.0:*               LISTEN      665/python3         
-tcp        0      0 0.0.0.0:8052            0.0.0.0:*               LISTEN      664/python3         
-tcp        0      0 0.0.0.0:8051            0.0.0.0:*               LISTEN      663/python3         

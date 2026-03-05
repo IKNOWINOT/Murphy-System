@@ -1,5 +1,0 @@
-1025:            loop = asyncio.new_event_loop()
-1774:        loop = asyncio.new_event_loop()
-1850:        loop = asyncio.new_event_loop()
-1890:        loop = asyncio.new_event_loop()
-2780:        loop = asyncio.new_event_loop()

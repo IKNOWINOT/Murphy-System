@@ -1,2 +1,0 @@
-5:            terminalInput.addEventListener('keydown', handleTerminalKeyPress);
-1571:        document.getElementById('terminal')?.addEventListener('click', function() {

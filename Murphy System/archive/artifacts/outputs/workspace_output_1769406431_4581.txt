@@ -1,5 +1,0 @@
-2728:                    console.log('DEBUG: Calling executeTerminalCommand');
-2729:                    executeTerminalCommand(command);
-2829:        function executeTerminalCommand(command) {
-4378:            // Make executeTerminalCommand available globally
-4379:            window.executeTerminalCommand = executeTerminalCommand;
