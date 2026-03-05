@@ -11,7 +11,7 @@ This is the main entry point for Murphy System 1.0, integrating:
 
 Copyright © 2020 Inoni Limited Liability Company
 Creator: Corey Post
-License: Apache License 2.0
+License: BSL 1.1
 """
 
 import sys

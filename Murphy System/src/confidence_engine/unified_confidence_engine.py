@@ -9,7 +9,7 @@ confidence system and the new Murphy validation system.
 
 Copyright © 2020 Inoni Limited Liability Company
 Creator: Corey Post
-License: Apache License 2.0
+License: BSL 1.1
 """
 
 from typing import Dict, Any, Optional
