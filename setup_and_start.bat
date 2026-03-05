@@ -154,8 +154,8 @@ echo.
 REM Offer choice: backend server vs terminal UI
 if exist "%MURPHY_DIR%\murphy_terminal.py" (
     echo How would you like to start Murphy?
-    echo   1^) Start backend server  (API + Swagger UI)
-    echo   2^) Start terminal UI     (interactive natural-language terminal)
+    echo   1^) Start backend server  (API + Architect Terminal in browser)
+    echo   2^) Start terminal UI     (interactive natural-language terminal in shell)
     echo.
     set /p LAUNCH_CHOICE="Enter choice [1]: "
     if "!LAUNCH_CHOICE!"=="" set LAUNCH_CHOICE=1
@@ -173,6 +173,8 @@ if "!LAUNCH_CHOICE!"=="2" (
     python murphy_terminal.py
 ) else (
     echo Starting Murphy System backend on port %MURPHY_PORT%...
+    echo Open the Architect Terminal in your browser:
+    echo   Murphy System\terminal_architect.html
     echo Press Ctrl+C to stop
     echo.
     python murphy_system_1.0_runtime.py
