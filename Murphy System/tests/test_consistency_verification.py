@@ -183,7 +183,11 @@ class TestDocumentationConsistency(unittest.TestCase):
         self.assertTrue(os.path.exists(self.readme_path))
 
     def test_assessment_exists(self):
-        """FULL_SYSTEM_ASSESSMENT.md must exist."""
+        """FULL_SYSTEM_ASSESSMENT.md must exist (or archive is moved)."""
+        if not os.path.isdir(os.path.join(ROOT, "archive")):
+            # Archive was moved to external repository
+            # (https://github.com/IKNOWINOT/murphy-system-archive)
+            self.skipTest("archive directory moved to external repository")
         self.assertTrue(os.path.exists(self.assessment_path))
 
     def test_catalog_count_matches_docs(self):
