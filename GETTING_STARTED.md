@@ -32,8 +32,8 @@ curl -fsSL https://raw.githubusercontent.com/IKNOWINOT/Murphy-System/main/instal
 
 ```bash
 # Requires Python 3.10+
-cd "Murphy System"
 pip install -r requirements.txt
+cd "Murphy System"
 python murphy_system_1.0_runtime.py
 ```
 
