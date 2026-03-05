@@ -13,7 +13,7 @@
 5. [Performance Tests](#performance-tests)
 6. [Load Tests](#load-tests)
 7. [Stress Tests](#stress-tests)
-8. [Integration Tests](#integration-tests)
+8. [Integration Tests](#1-integration-tests)
 9. [Enterprise Tests](#enterprise-tests)
 10. [Testing Best Practices](#testing-best-practices)
 
