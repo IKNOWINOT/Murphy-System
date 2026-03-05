@@ -323,11 +323,11 @@ for mod in ['fastapi', 'uvicorn', 'pydantic']:
 
 ### Architect Terminal
 
-![Architect Terminal](https://github.com/user-attachments/assets/f35939ad-18b9-413f-b2ae-7a95a4c82ae6)
+![Architect Terminal](https://github.com/user-attachments/assets/0ea6c4fc-ea11-437e-be25-9e1780d4eafa)
 
 ### Integrated Terminal
 
-![Integrated Terminal](https://github.com/user-attachments/assets/5bb4a5ff-7358-48da-92d4-ab55ee9fcfcc)
+![Integrated Terminal](https://github.com/user-attachments/assets/2778aba7-d442-4b91-b2c0-d8539751a1ee)
 
 ### API Health & Status
 
