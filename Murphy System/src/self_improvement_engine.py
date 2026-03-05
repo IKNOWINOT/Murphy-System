@@ -444,6 +444,140 @@ class SelfImprovementEngine:
         }
 
     # ------------------------------------------------------------------
+    # Executable fix generation
+    # ------------------------------------------------------------------
+
+    def generate_executable_fix(self, proposal: "ImprovementProposal") -> Dict[str, Any]:
+        """Convert a human-readable proposal into a structured executable plan.
+
+        Returns a dictionary describing a FixPlan suitable for the SelfFixLoop.
+        For runtime-adjustable issues (timeouts, confidence, routing), the plan
+        contains executable steps. For code-level issues, the fix_type is
+        'code_proposal' and the steps describe the change for human review.
+        """
+        fix_type = "code_proposal"
+        fix_steps: List[Dict[str, Any]] = []
+        rollback_steps: List[Dict[str, Any]] = []
+        test_criteria: List[Dict[str, Any]] = []
+        expected_outcome = proposal.suggested_action
+
+        action_lower = proposal.suggested_action.lower()
+        category_lower = proposal.category.lower()
+
+        if "timeout" in action_lower or "timeout" in category_lower:
+            fix_type = "threshold_tuning"
+            fix_steps = [
+                {
+                    "action": "adjust_timeout",
+                    "target": proposal.category,
+                    "parameter": "timeout_seconds",
+                    "delta": 30,
+                    "reason": proposal.description,
+                }
+            ]
+            rollback_steps = [
+                {
+                    "action": "adjust_timeout",
+                    "target": proposal.category,
+                    "parameter": "timeout_seconds",
+                    "delta": -30,
+                }
+            ]
+            test_criteria = [
+                {"check": "timeout_errors_reduced", "category": proposal.category},
+            ]
+            expected_outcome = f"Timeout errors in '{proposal.category}' reduced by tuning timeout threshold"
+
+        elif "confidence" in action_lower or "calibrat" in action_lower:
+            fix_type = "threshold_tuning"
+            fix_steps = [
+                {
+                    "action": "recalibrate_confidence",
+                    "target": proposal.category,
+                    "parameter": "confidence_threshold",
+                    "reason": proposal.description,
+                }
+            ]
+            rollback_steps = [
+                {
+                    "action": "restore_confidence",
+                    "target": proposal.category,
+                }
+            ]
+            test_criteria = [
+                {"check": "confidence_calibrated", "category": proposal.category},
+            ]
+            expected_outcome = f"Confidence thresholds recalibrated for '{proposal.category}'"
+
+        elif "rout" in action_lower:
+            fix_type = "route_optimization"
+            optimization = self.get_route_optimization(proposal.category)
+            fix_steps = [
+                {
+                    "action": "apply_route_optimization",
+                    "target": proposal.category,
+                    "recommended_route": optimization.get("recommended_route", "llm"),
+                    "reason": optimization.get("reason", ""),
+                }
+            ]
+            rollback_steps = [
+                {
+                    "action": "restore_route",
+                    "target": proposal.category,
+                }
+            ]
+            test_criteria = [
+                {"check": "route_success_rate_improved", "category": proposal.category},
+            ]
+            expected_outcome = f"Routing optimised for '{proposal.category}'"
+
+        elif "recovery" in action_lower or "restart" in action_lower or "retry" in action_lower:
+            fix_type = "recovery_registration"
+            fix_steps = [
+                {
+                    "action": "register_recovery_procedure",
+                    "target": proposal.category,
+                    "description": proposal.suggested_action,
+                    "reason": proposal.description,
+                }
+            ]
+            rollback_steps = [
+                {
+                    "action": "unregister_recovery_procedure",
+                    "target": proposal.category,
+                }
+            ]
+            test_criteria = [
+                {"check": "recovery_procedure_registered", "category": proposal.category},
+            ]
+            expected_outcome = f"Recovery procedure registered for '{proposal.category}'"
+
+        else:
+            fix_steps = [
+                {
+                    "action": "human_review",
+                    "description": proposal.suggested_action,
+                    "proposal_id": proposal.proposal_id,
+                    "reason": proposal.description,
+                }
+            ]
+            test_criteria = [
+                {"check": "proposal_logged_for_review", "proposal_id": proposal.proposal_id},
+            ]
+
+        return {
+            "proposal_id": proposal.proposal_id,
+            "category": proposal.category,
+            "description": proposal.description,
+            "priority": proposal.priority,
+            "fix_type": fix_type,
+            "fix_steps": fix_steps,
+            "rollback_steps": rollback_steps,
+            "expected_outcome": expected_outcome,
+            "test_criteria": test_criteria,
+        }
+
+    # ------------------------------------------------------------------
     # Status / summary
     # ------------------------------------------------------------------
 

@@ -1753,3 +1753,55 @@ This architecture map documents Phases 0–10 of the self-automation plan (46 de
 18. **Capacity Planning:** Run ADV-004 ResourceScalingController against production metrics
 
 See `FILE_CLASSIFICATION.md` for complete file inventory and `SYSTEM_OVERVIEW.md` for system statistics.
+
+---
+
+## Self-Fix Loop (ARCH-005)
+
+### Overview
+
+The **Autonomous Self-Fix Loop** (`src/self_fix_loop.py`) closes the remediation gap by implementing a closed-loop cycle that detects, plans, executes, tests, and verifies runtime fixes — with no human intervention required for runtime-adjustable issues.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    SELF-FIX LOOP  (ARCH-005)                    │
+│                                                                 │
+│  1. DIAGNOSE  → Scan system for errors/gaps/bugs               │
+│  2. PLAN      → Generate structured remediation plan            │
+│  3. EXECUTE   → Apply fixes (config changes, runtime patches,  │
+│  │               parameter adjustments, recovery procedures)    │
+│  4. TEST      → Run targeted tests proving the fix works       │
+│  5. VERIFY    → Confirm gap is closed, no regressions          │
+│  6. REPEAT    → If gaps remain, go to step 1                   │
+│  7. REPORT    → Generate final verification report             │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Component Wiring
+
+| Dependency | Integration Point |
+|---|---|
+| `SelfImprovementEngine` (ARCH-001) | `diagnose()` calls `get_remediation_backlog()`, `generate_proposals()`; `plan()` calls `generate_executable_fix()` |
+| `SelfHealingCoordinator` (OBS-004) | `execute()` registers new `RecoveryProcedure` objects for unhandled failure categories |
+| `BugPatternDetector` (DEV-004) | `diagnose()` calls `run_detection_cycle()` and `get_patterns()` |
+| `EventBackbone` | Publishes `SELF_FIX_STARTED`, `SELF_FIX_PLAN_CREATED`, `SELF_FIX_EXECUTED`, `SELF_FIX_TESTED`, `SELF_FIX_VERIFIED`, `SELF_FIX_COMPLETED`, `SELF_FIX_ROLLED_BACK` |
+| `PersistenceManager` | Every `FixPlan`, `FixExecution`, and `LoopReport` is durably saved |
+
+### Fix Types
+
+| `fix_type` | Description | Autonomous? |
+|---|---|---|
+| `threshold_tuning` | Adjusts confidence thresholds, timeout values | ✅ Yes |
+| `recovery_registration` | Registers new `RecoveryProcedure` handlers | ✅ Yes |
+| `route_optimization` | Applies routing weight changes from engine data | ✅ Yes |
+| `config_adjustment` | Modifies runtime configuration values | ✅ Yes |
+| `code_proposal` | Code-level change — logged for human review | ❌ Human review |
+
+### Safety Invariants
+
+1. **Never modifies source files on disk** — all fixes operate at the runtime level.
+2. **Bounded iterations** — `max_iterations` (default 10) prevents infinite loops.
+3. **Mutex enforcement** — `RuntimeError` raised if a second loop is started concurrently.
+4. **Rollback on failure** — every `FixPlan` carries `rollback_steps`; on test failure, all steps are reversed.
+5. **Full audit trail** — every plan, execution, test, and report is persisted and published as events.
+6. **Code proposals require human approval** — source files are never touched autonomously.
