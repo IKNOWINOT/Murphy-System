@@ -555,6 +555,231 @@ class SetupWizard:
 
 
 # ---------------------------------------------------------------------------
+# Deployment preset profiles
+# ---------------------------------------------------------------------------
+
+PRESET_PROFILES: Dict[str, Dict[str, Any]] = {
+    # ------------------------------------------------------------------
+    # 1. Solo Operator — one-person owner-operator running everything
+    # ------------------------------------------------------------------
+    "solo_operator": {
+        "id": "solo_operator",
+        "name": "Solo Operator",
+        "description": (
+            "For a single owner-operator who wears every hat. "
+            "Enables business automation, data dashboards, content tools, "
+            "and sales outreach so one person can run an entire operation "
+            "with HITL approval on all critical actions."
+        ),
+        "profile": {
+            "organization_name": "",  # filled by user
+            "industry": "other",
+            "company_size": "small",
+            "automation_types": ["business", "data", "content"],
+            "security_level": "standard",
+            "robotics_enabled": False,
+            "robotics_protocols": [],
+            "avatar_enabled": True,
+            "avatar_connectors": [],
+            "llm_provider": "groq",
+            "monitoring_enabled": True,
+            "compliance_frameworks": ["none"],
+            "deployment_mode": "local",
+            "sales_automation_enabled": True,
+        },
+    },
+
+    # ------------------------------------------------------------------
+    # 2. Personal Assistant — lightweight automations for individuals
+    # ------------------------------------------------------------------
+    "personal_assistant": {
+        "id": "personal_assistant",
+        "name": "Personal Assistant",
+        "description": (
+            "Minimal footprint for someone who wants a smart assistant. "
+            "Enables data sync, basic system automation, and an AI avatar "
+            "for day-to-day task support — no heavy infrastructure."
+        ),
+        "profile": {
+            "organization_name": "",
+            "industry": "other",
+            "company_size": "small",
+            "automation_types": ["data", "system"],
+            "security_level": "basic",
+            "robotics_enabled": False,
+            "robotics_protocols": [],
+            "avatar_enabled": True,
+            "avatar_connectors": [],
+            "llm_provider": "local",
+            "monitoring_enabled": False,
+            "compliance_frameworks": ["none"],
+            "deployment_mode": "local",
+            "sales_automation_enabled": False,
+        },
+    },
+
+    # ------------------------------------------------------------------
+    # 3. Org Onboarding — org chart mirroring with HR onboarding
+    # ------------------------------------------------------------------
+    "org_onboarding": {
+        "id": "org_onboarding",
+        "name": "Org Chart & Onboarding",
+        "description": (
+            "Mirrors a corporate org chart with shadow agents per role. "
+            "Includes onboarding workflows with employment-offer letter "
+            "generation, HITL approvals at every hiring stage, and form "
+            "generation for new-hire paperwork."
+        ),
+        "profile": {
+            "organization_name": "",
+            "industry": "other",
+            "company_size": "medium",
+            "automation_types": ["business", "agent", "data"],
+            "security_level": "standard",
+            "robotics_enabled": False,
+            "robotics_protocols": [],
+            "avatar_enabled": True,
+            "avatar_connectors": [],
+            "llm_provider": "groq",
+            "monitoring_enabled": True,
+            "compliance_frameworks": ["SOC2"],
+            "deployment_mode": "docker",
+            "sales_automation_enabled": False,
+        },
+    },
+
+    # ------------------------------------------------------------------
+    # 4. Startup Growth (recommended) — scaling startup
+    # ------------------------------------------------------------------
+    "startup_growth": {
+        "id": "startup_growth",
+        "name": "Startup Growth",
+        "description": (
+            "Recommended for early-stage companies scaling fast. "
+            "Combines sales automation with agentic swarms, data "
+            "pipelines, and content generation — all with HITL gates "
+            "so the founding team stays in control."
+        ),
+        "profile": {
+            "organization_name": "",
+            "industry": "technology",
+            "company_size": "small",
+            "automation_types": ["business", "agent", "data", "content"],
+            "security_level": "standard",
+            "robotics_enabled": False,
+            "robotics_protocols": [],
+            "avatar_enabled": True,
+            "avatar_connectors": [],
+            "llm_provider": "groq",
+            "monitoring_enabled": True,
+            "compliance_frameworks": ["SOC2"],
+            "deployment_mode": "docker",
+            "sales_automation_enabled": True,
+        },
+    },
+
+    # ------------------------------------------------------------------
+    # 5. Enterprise Compliance (recommended) — full compliance stack
+    # ------------------------------------------------------------------
+    "enterprise_compliance": {
+        "id": "enterprise_compliance",
+        "name": "Enterprise Compliance",
+        "description": (
+            "Recommended for regulated enterprises. Enables every "
+            "automation type with hardened security, full compliance "
+            "frameworks (SOC2, HIPAA, GDPR, ISO27001), and Kubernetes "
+            "deployment for production-grade infrastructure."
+        ),
+        "profile": {
+            "organization_name": "",
+            "industry": "finance",
+            "company_size": "enterprise",
+            "automation_types": [
+                "factory_iot", "content", "data", "system", "agent",
+                "business",
+            ],
+            "security_level": "hardened",
+            "robotics_enabled": False,
+            "robotics_protocols": [],
+            "avatar_enabled": True,
+            "avatar_connectors": [],
+            "llm_provider": "azure",
+            "monitoring_enabled": True,
+            "compliance_frameworks": ["SOC2", "HIPAA", "GDPR", "ISO27001"],
+            "deployment_mode": "kubernetes",
+            "sales_automation_enabled": True,
+        },
+    },
+
+    # ------------------------------------------------------------------
+    # 6. Agency Automation (recommended) — consultancies & agencies
+    # ------------------------------------------------------------------
+    "agency_automation": {
+        "id": "agency_automation",
+        "name": "Agency Automation",
+        "description": (
+            "Recommended for agencies, consultancies, and service firms. "
+            "Focuses on content creation, client-facing sales outreach, "
+            "agentic task delegation, and data analytics — with HITL "
+            "checkpoints before any client-visible deliverable ships."
+        ),
+        "profile": {
+            "organization_name": "",
+            "industry": "media",
+            "company_size": "medium",
+            "automation_types": ["content", "agent", "data", "business"],
+            "security_level": "standard",
+            "robotics_enabled": False,
+            "robotics_protocols": [],
+            "avatar_enabled": True,
+            "avatar_connectors": [],
+            "llm_provider": "openai",
+            "monitoring_enabled": True,
+            "compliance_frameworks": ["GDPR"],
+            "deployment_mode": "docker",
+            "sales_automation_enabled": True,
+        },
+    },
+}
+
+
+def get_preset_profiles() -> Dict[str, Dict[str, Any]]:
+    """Return all available deployment preset profiles.
+
+    Each entry contains ``id``, ``name``, ``description``, and a ``profile``
+    dict whose keys match the :class:`SetupProfile` fields.
+    """
+    return copy.deepcopy(PRESET_PROFILES)
+
+
+def apply_preset(preset_id: str, organization_name: str = "") -> SetupProfile:
+    """Instantiate a :class:`SetupProfile` from a named preset.
+
+    Parameters
+    ----------
+    preset_id:
+        Key into :data:`PRESET_PROFILES` (e.g. ``"solo_operator"``).
+    organization_name:
+        Optional override — presets ship with an empty org name so the
+        caller can fill it in.
+
+    Raises
+    ------
+    ValueError
+        If *preset_id* is not a recognised preset.
+    """
+    if preset_id not in PRESET_PROFILES:
+        raise ValueError(
+            f"Unknown preset '{preset_id}'. "
+            f"Available: {list(PRESET_PROFILES.keys())}"
+        )
+    data = copy.deepcopy(PRESET_PROFILES[preset_id]["profile"])
+    if organization_name:
+        data["organization_name"] = organization_name
+    return SetupProfile(**data)
+
+
+# ---------------------------------------------------------------------------
 # CLI entry-point
 # ---------------------------------------------------------------------------
 
