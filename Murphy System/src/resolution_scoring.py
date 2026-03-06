@@ -23,7 +23,7 @@ Flow:
 Safety invariants:
   - Thread-safe: all shared state guarded by Lock
   - Deterministic: no randomness, no LLM calls
-  - Bounded: LRU-style dict cache, configurable limit
+  - Bounded: LRU cache, configurable limit
   - Idempotent: identical inputs always yield identical outputs
 
 Copyright © 2020 Inoni Limited Liability Company
@@ -33,6 +33,7 @@ License: BSL 1.1
 
 from __future__ import annotations
 
+import collections
 import hashlib
 import logging
 import re
@@ -256,6 +257,19 @@ _D5_TABLE: _PatternTable = _compile_table([
 ])
 
 
+# D3 helper patterns (compiled once at module level)
+_D3_STEP_PATTERN: re.Pattern[str] = re.compile(
+    r"\b(?:step\s*\d|first|second|third|fourth|fifth|"
+    r"then|next|after that|finally|followed by)\b",
+    re.IGNORECASE,
+)
+
+_D3_ACTION_VERB_PATTERN: re.Pattern[str] = re.compile(
+    r"\b(?:run|execute|send|process|fetch|compute|call|start|stop|read|write)\b",
+    re.IGNORECASE,
+)
+
+
 # ---------------------------------------------------------------------------
 # Scoring helpers
 # ---------------------------------------------------------------------------
@@ -326,12 +340,7 @@ def _score_d3(text: str) -> float:
         if pat.search(text):
             return 5.0
 
-    step_pattern = re.compile(
-        r"\b(?:step\s*\d|first|second|third|fourth|fifth|"
-        r"then|next|after that|finally|followed by)\b",
-        re.IGNORECASE,
-    )
-    if len(step_pattern.findall(text)) >= 5:
+    if len(_D3_STEP_PATTERN.findall(text)) >= 5:
         return 5.0
 
     # Levels 4, 3, 2
@@ -341,7 +350,7 @@ def _score_d3(text: str) -> float:
                 return float(score)
 
     # Level 1 — any action verb present
-    if re.search(r"\b(?:run|execute|send|process|fetch|compute|call|start|stop|read|write)\b", text, re.IGNORECASE):
+    if _D3_ACTION_VERB_PATTERN.search(text):
         return 1.0
 
     return 0.0
@@ -391,9 +400,11 @@ class ResolutionDetectionEngine:
 
         Args:
             cache_limit: Maximum number of cached scores.  When exceeded
-                the oldest half of entries are evicted.
+                the least-recently-used entry is evicted.
         """
-        self._cache: Dict[str, ResolutionScore] = {}
+        self._cache: collections.OrderedDict[str, ResolutionScore] = (
+            collections.OrderedDict()
+        )
         self._lock: threading.Lock = threading.Lock()
         self._cache_limit: int = cache_limit
 
@@ -413,6 +424,7 @@ class ResolutionDetectionEngine:
 
         with self._lock:
             if input_hash in self._cache:
+                self._cache.move_to_end(input_hash)
                 logger.debug("Cache hit for hash %s", input_hash[:12])
                 return self._cache[input_hash]
 
@@ -465,13 +477,7 @@ class ResolutionDetectionEngine:
     # -- internals ----------------------------------------------------------
 
     def _maybe_evict(self) -> None:
-        """Evict oldest half of cache entries when limit is exceeded."""
-        if len(self._cache) >= self._cache_limit:
-            keys = list(self._cache.keys())
-            for key in keys[: len(keys) // 2]:
-                del self._cache[key]
-            logger.debug(
-                "Evicted %d cache entries; %d remaining",
-                len(keys) // 2,
-                len(self._cache),
-            )
+        """Evict least-recently-used entries when cache limit is exceeded."""
+        while len(self._cache) >= self._cache_limit:
+            evicted_key, _ = self._cache.popitem(last=False)
+            logger.debug("Evicted cache entry %s", evicted_key[:12])
