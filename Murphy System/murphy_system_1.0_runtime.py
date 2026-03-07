@@ -13793,12 +13793,16 @@ def create_app() -> FastAPI:
         from src.fastapi_security import configure_secure_fastapi
         configure_secure_fastapi(app, service_name="murphy-system-1.0")
     except ImportError:
-        logger.warning("fastapi_security not available — falling back to permissive CORS")
+        logger.warning("fastapi_security not available — falling back to env-based CORS")
+        _cors_origins = os.environ.get(
+            "MURPHY_CORS_ORIGINS",
+            "http://localhost:3000,http://localhost:8080,http://localhost:8000",
+        ).split(",")
         app.add_middleware(
             CORSMiddleware,
-            allow_origins=["*"],
+            allow_origins=[o.strip() for o in _cors_origins],
             allow_credentials=True,
-            allow_methods=["*"],
+            allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             allow_headers=["*"],
         )
     

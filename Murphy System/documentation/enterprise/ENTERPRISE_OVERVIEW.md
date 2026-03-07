@@ -59,7 +59,7 @@ The system supports organizations of any size:
 **Feature**: Batch process multiple roles simultaneously
 
 **Benefits**:
-- 10x faster compilation for large role sets
+- faster compilation for large role sets
 - Efficient resource utilization
 - Scalable to thousands of roles
 - No bottlenecks in compilation
@@ -135,7 +135,7 @@ for role in enterprise_compiler.stream_roles(batch_size=100):
 **Feature**: Fast queries on large role sets
 
 **Benefits**:
-- 10x faster query performance
+- faster query performance
 - O(1) lookup time for indexed fields
 - Efficient filtering and sorting
 - Scalable to millions of roles
@@ -202,9 +202,9 @@ for role in enterprise_compiler.stream_roles(batch_size=100):
 
 | Metric | Enterprise Scale | Target | Status |
 |--------|------------------|--------|--------|
-| Compilation Time (1000 roles) | 0.027s | <30s | ✅ 1100x faster |
+| Compilation Time (1000 roles) | 0.027s | <30s | ✅ Sub-second at scale |
 | Memory Usage (1000 roles) | 150MB | <500MB | ✅ 30% of target |
-| Query Response Time | <10ms | <100ms | ✅ 10x faster |
+| Query Response Time | <10ms | <100ms | ✅ Low-latency |
 | Throughput | 20,000+ ops/sec | 1,000 ops/sec | ✅ 20x above target |
 | Concurrent Users | 10,000+ | 1,000 | ✅ 10x capacity |
 
@@ -215,7 +215,7 @@ for role in enterprise_compiler.stream_roles(batch_size=100):
 | Small | 30 | 0.002s | <2s | 1000x |
 | Medium | 100 | 0.005s | <5s | 1000x |
 | Large | 500 | 0.020s | <15s | 750x |
-| Enterprise | 1000 | 0.027s | <30s | 1100x |
+| Enterprise | 1000 | 0.027s | <30s | fast |
 
 ### Memory Performance
 
