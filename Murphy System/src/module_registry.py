@@ -113,7 +113,7 @@ class ModuleRegistry:
         registry = ModuleRegistry()
         registry.discover()
         registry.load("llm_controller")
-        print(registry.get_status())
+        logger.info(registry.get_status())
     """
 
     def __init__(self, src_root: Optional[Path] = None) -> None:

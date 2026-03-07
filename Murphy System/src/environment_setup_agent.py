@@ -301,9 +301,10 @@ class EnvironmentProbe:
 
     @staticmethod
     def _is_port_free(port: int) -> bool:
+        bind_host = "127.0.0.1"
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             try:
-                s.bind(("127.0.0.1", port))
+                s.bind((bind_host, port))
                 return True
             except OSError:
                 return False
