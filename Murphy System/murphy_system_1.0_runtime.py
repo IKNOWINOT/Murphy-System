@@ -529,7 +529,7 @@ except ImportError as e:
 
 # FastAPI for REST API
 try:
-    from fastapi import FastAPI, HTTPException, Request
+    from fastapi import Depends, FastAPI, HTTPException, Request
     from fastapi.responses import JSONResponse
     from fastapi.middleware.cors import CORSMiddleware
     import uvicorn
@@ -13843,11 +13843,28 @@ def create_app() -> FastAPI:
             register_rbac_governance(rbac)
         except ImportError:
             logger.warning("fastapi_security not available — RBAC enforcement skipped")
-    
+
+    # RBAC permission dependencies for sensitive endpoints (SEC-005)
+    # Falls back to a no-op dependency when fastapi_security is unavailable.
+    try:
+        from src.fastapi_security import require_permission as _require_permission
+
+        async def _noop_dep():
+            pass
+
+        _perm_execute = _require_permission("execute_task")
+        _perm_configure = _require_permission("configure_system")
+    except ImportError:
+        async def _noop_dep():  # type: ignore[no-redef]
+            pass
+
+        _perm_execute = _noop_dep
+        _perm_configure = _noop_dep
+
     # ==================== CORE ENDPOINTS ====================
-    
+
     @app.post("/api/execute")
-    async def execute_task(request: Request):
+    async def execute_task(request: Request, _rbac=Depends(_perm_execute)):
         """Execute a task — routes through AionMind cognitive pipeline when available."""
         data = await request.json()
         task_description = data.get('task_description', '')
@@ -13944,7 +13961,7 @@ def create_app() -> FastAPI:
         return JSONResponse(murphy._get_llm_status())
 
     @app.post("/api/llm/configure")
-    async def llm_configure(request: Request):
+    async def llm_configure(request: Request, _rbac=Depends(_perm_configure)):
         """Hot-reload LLM configuration from the terminal without restarting."""
         try:
             data = await request.json()

@@ -7,8 +7,15 @@ except Exception:  # pragma: no cover - optional dependency
     Flask = None
     jsonify = None
 
+try:
+    from flask_security import configure_secure_app
+except Exception:  # pragma: no cover - optional dependency
+    configure_secure_app = None
+
 if Flask:
     app = Flask(__name__)
+    if configure_secure_app:
+        configure_secure_app(app, service_name="bots-dashboard")
 else:
     app = None
 
