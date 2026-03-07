@@ -709,3 +709,147 @@ For API issues or questions:
 - Check the START_INTEGRATED_SYSTEM.md guide
 - Review integration documentation
 - Test with the provided UI at murphy_ui_integrated.html
+---
+
+## Agent Run Publishing API
+
+### Recordings
+
+#### `GET /api/recordings`
+
+List all recorded successful agent runs.
+
+**Query Parameters:**
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `publishable_only` | bool | false | Return only publishable runs (status=SUCCESS, confidence≥min\_confidence) |
+| `min_confidence` | float | 0.70 | Minimum confidence threshold for publishable filter |
+| `status` | string | null | Filter by status (SUCCESS\_COMPLETED, FAILED, PARTIAL) |
+| `limit` | int | 100 | Maximum results to return |
+
+**Response:**
+```json
+[
+  {
+    "run_id": "abc-123",
+    "task_description": "Deploy payment gateway",
+    "task_type": "infrastructure",
+    "status": "SUCCESS_COMPLETED",
+    "confidence_score": 0.92,
+    "duration_seconds": 142.0,
+    "system_version": "1.0",
+    "started_at": "2024-01-01T00:00:00Z",
+    "completed_at": "2024-01-01T00:02:22Z"
+  }
+]
+```
+
+---
+
+#### `GET /api/recordings/{run_id}`
+
+Get full details of a specific recording.
+
+**Response:** Full `AgentRunRecording` dict including steps, HITL decisions, terminal output.
+
+---
+
+#### `POST /api/recordings/{run_id}/publish`
+
+Trigger the full upload pipeline for a recording:
+1. Content review (secrets/PII scan)
+2. HITL approval gate
+3. Video packaging (ffmpeg → Pillow → static)
+4. MercyAnnouncer narration
+5. YouTube upload
+6. Archive externalization
+
+**Response:**
+```json
+{
+  "upload_id": "uid-001",
+  "run_id": "abc-123",
+  "video_id": "dQw4w9WgXcQ",
+  "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+  "upload_status": "uploaded",
+  "quota_used": 1600
+}
+```
+
+---
+
+#### `GET /api/recordings/{run_id}/review`
+
+Get content review results for a recording (without triggering upload).
+
+**Response:**
+```json
+{
+  "review_id": "cf-abc123",
+  "run_id": "abc-123",
+  "is_safe": true,
+  "findings_count": 0,
+  "critical_count": 0,
+  "high_count": 0,
+  "findings": []
+}
+```
+
+---
+
+### YouTube Channel
+
+#### `GET /api/youtube/status`
+
+Get channel connection status, quota, and recent uploads.
+
+**Response:**
+```json
+{
+  "credentials_exist": true,
+  "authenticated": true,
+  "api_packages_installed": true,
+  "quota_remaining": 8400,
+  "uploads_remaining_today": 5,
+  "channel_title": "The Murphy System",
+  "recent_uploads": [...]
+}
+```
+
+---
+
+#### `POST /api/youtube/connect`
+
+Initiate the OAuth2 consent flow. Opens browser, waits for callback, stores credentials.
+
+**Response:**
+```json
+{"success": true, "message": "OAuth flow completed — credentials saved"}
+```
+
+---
+
+#### `GET /api/youtube/settings`
+
+Get current publishing settings.
+
+**Response:**
+```json
+{
+  "default_privacy": "unlisted",
+  "auto_approve_threshold": null,
+  "category_id": "28"
+}
+```
+
+#### `PUT /api/youtube/settings`
+
+Update publishing settings.
+
+**Request body:**
+```json
+{
+  "default_privacy": "public",
+  "auto_approve_threshold": 0.85
+}
+```
