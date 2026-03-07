@@ -261,7 +261,7 @@ class GateBuilder:
 ```
 # Pseudocode example
 if gate_check_fails():
-    log_error("Gate {gate_id} failed")
+    log_error("Gate {{gate_id}} failed")
     return error_response
 else:
     continue_with_operation()

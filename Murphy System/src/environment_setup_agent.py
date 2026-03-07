@@ -270,7 +270,8 @@ class EnvironmentProbe:
             usage = shutil.disk_usage(os.path.expanduser("~"))
             report.disk_free_mb = usage.free / (1024 * 1024)
             report.disk_ok = report.disk_free_mb >= REQUIRED_DISK_MB
-        except Exception:
+        except Exception as exc:
+            logging.getLogger(__name__).debug("Caught exception: %s", exc)
             report.disk_free_mb = 0.0
             report.disk_ok = False
 
@@ -286,8 +287,8 @@ class EnvironmentProbe:
                             kb = int(line.split()[1])
                             report.ram_mb = kb / 1024
                             break
-        except Exception:
-            pass
+        except Exception as exc:
+            logging.getLogger(__name__).debug("Caught exception: %s", exc)
         if report.ram_mb == 0.0:
             # Fallback: mark as OK (cannot reliably determine on all platforms)
             report.ram_mb = REQUIRED_RAM_MB
@@ -311,7 +312,8 @@ class EnvironmentProbe:
             import importlib
             spec = importlib.util.find_spec("playwright")
             report.playwright_installed = spec is not None
-        except Exception:
+        except Exception as exc:
+            logging.getLogger(__name__).debug("Caught exception: %s", exc)
             report.playwright_installed = False
 
     def _probe_files(self, report: EnvironmentReport) -> None:
@@ -572,7 +574,8 @@ class SetupExecutor:
             return error_result
 
     def _run_command(self, step: SetupStep) -> Dict[str, Any]:
-        assert step.command is not None
+        if step.command is None:
+            return {"success": False, "error": "No command specified"}
         proc = subprocess.run(
             step.command,
             shell=True,
@@ -589,7 +592,8 @@ class SetupExecutor:
         }
 
     def _run_file_op(self, step: SetupStep) -> Dict[str, Any]:
-        assert step.file_op is not None
+        if step.file_op is None:
+            return {"success": False, "error": "No file operation specified"}
         op = step.file_op
         path = op.get("path", "")
         if op.get("type") == "directory":

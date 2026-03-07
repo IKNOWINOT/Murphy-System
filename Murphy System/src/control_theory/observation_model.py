@@ -13,11 +13,14 @@ import math
 import random
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple
 
 import numpy as np
 
 from .canonical_state import CanonicalStateVector, _DIMENSION_NAMES
+
+if TYPE_CHECKING:
+    from .infinity_metric import CandidateQuestion, EntropyTracker, QuestionSelector
 
 import logging
 

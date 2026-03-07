@@ -229,7 +229,7 @@ class ConflictDetector:
         c1_fields = set(c1.get_affected_fields())
         c2_fields = set(c2.get_affected_fields())
 
-        overlapping_fields = c1_fields &amp; c2_fields
+        overlapping_fields = c1_fields & c2_fields
 
         if overlapping_fields:
             # Check if changes are contradictory
