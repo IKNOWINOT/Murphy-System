@@ -76,7 +76,7 @@ def _classify_npc_role(npc: NPCData) -> str:
 _CASTER_CLASSES = {11, 12, 13, 14}  # Necro, Wizard, Mage, Enchanter
 _HEALER_CLASSES = {2, 6}  # Cleric, Druid
 _HYBRID_CLASSES = {3, 4, 5, 8, 10, 15}  # Paladin, Ranger, SK, Bard, SHM, Berserker
-_MELEE_CLASSES = {1, 7, 9, 16}  # Warrior, Monk, Rogue, Sourcerior (custom)
+_MELEE_CLASSES = {1, 7, 9, 16}  # Warrior, Monk, Rogue, Sorceror (custom)
 
 
 def _classify_combat_archetype(npc: NPCData) -> CombatArchetype:
@@ -302,7 +302,7 @@ class LoreSeeder:
             1: "warrior", 2: "cleric", 3: "paladin", 4: "ranger",
             5: "shadowknight", 6: "druid", 7: "monk", 8: "bard",
             9: "rogue", 10: "shaman", 11: "necromancer", 12: "wizard",
-            13: "magician", 14: "enchanter", 15: "berserker", 16: "sourcerior",
+            13: "magician", 14: "enchanter", 15: "berserker", 16: "sorceror",
         }
         return _CLASS_MAP.get(class_id, "warrior")
 

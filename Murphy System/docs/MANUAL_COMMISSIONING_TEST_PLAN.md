@@ -30,7 +30,7 @@ This test plan is organized into **commissioning phases**. Work through each pha
 python3 --version
 ```
 
-**Expected Result:** Python 3.11.x or higher (e.g., `Python 3.12.3`).
+**Expected Result:** Python 3.10.x or higher (e.g., `Python 3.12.3`).
 
 - [ ] **PASS** / **FAIL**
 
@@ -83,7 +83,7 @@ cd "Murphy System/"
 
 **Expected Result:**
 
-1. Script checks Python version (passes for 3.11+).
+1. Script checks Python version (passes for 3.10+).
 2. Virtual environment is created or reused.
 3. Dependencies are installed/verified.
 4. Required directories are created: `logs/`, `data/`, `modules/`, `sessions/`, `repositories/`.
