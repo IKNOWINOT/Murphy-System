@@ -73,7 +73,7 @@ jobs:
           pip install pip-audit bandit
 
       - name: Run pip-audit
-        run: pip-audit -r requirements_murphy_1.0.txt --exit-code 0
+        run: pip-audit -r requirements_murphy_1.0.txt
 
       - name: Run bandit security linting
         run: bandit -r src/ -f txt --exit-zero

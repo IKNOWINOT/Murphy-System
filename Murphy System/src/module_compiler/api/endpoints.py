@@ -499,4 +499,4 @@ def create_standalone_app():
 
 if __name__ == '__main__':
     app = create_standalone_app()
-    app.run(host='0.0.0.0', port=8053, debug=is_debug_mode())
+    app.run(host='0.0.0.0', port=8053, debug=os.environ.get('FLASK_DEBUG', '0') == '1')
