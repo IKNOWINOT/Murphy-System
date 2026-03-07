@@ -35,6 +35,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from thread_safe_operations import capped_append
+
 logger = logging.getLogger(__name__)
 
 
@@ -328,7 +330,7 @@ class SelfFixLoop:
             duration_ms=round(duration_ms, 2),
             final_health_status=health_status,
         )
-        self._reports.append(report)
+        capped_append(self._reports, report)
         if self._pm is not None:
             try:
                 self._pm.save_document(report.report_id, report.to_dict())
@@ -583,7 +585,7 @@ class SelfFixLoop:
                         handler=_default_handler,
                     )
                     self._coordinator.register_procedure(proc)
-                    self._registered_procedures.append(proc_id)
+                    capped_append(self._registered_procedures, proc_id)
                     return {"success": True, "message": f"Registered recovery procedure '{proc_id}' for '{target}'", "proc_id": proc_id}
                 return {"success": True, "message": f"Recovery registration noted for '{target}' (no coordinator attached)"}
 
