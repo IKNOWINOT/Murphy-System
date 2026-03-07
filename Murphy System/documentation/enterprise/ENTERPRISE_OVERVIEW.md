@@ -392,7 +392,7 @@ metrics = compiler.get_metrics()
 **Scenario**: Healthcare provider with 1000+ employees across multiple departments
 
 **Benefits**:
-- HIPAA-compliant role management
+- HIPAA-aligned role management
 - Automated compliance checking
 - Secure access control
 - Audit trail for all actions
