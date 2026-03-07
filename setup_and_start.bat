@@ -6,7 +6,7 @@ REM Usage (from repo root):
 REM   setup_and_start.bat
 REM
 REM Copyright (c) 2020 Inoni Limited Liability Company
-REM Creator: Corey Post | License: Apache License 2.0
+REM Creator: Corey Post | License: BSL 1.1
 REM ============================================================================
 
 setlocal enabledelayedexpansion
@@ -74,6 +74,17 @@ if exist "%VENV_DIR%" (
 )
 
 call "%VENV_DIR%\Scripts\activate.bat"
+if errorlevel 1 (
+    echo [ERROR] venv activation failed.
+    pause
+    exit /b 1
+)
+python -m pip --version >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] venv activation failed - pip not found in venv.
+    pause
+    exit /b 1
+)
 python -m pip install --upgrade pip -q >nul 2>&1
 echo [OK] Virtual environment ready and activated
 echo.
@@ -116,7 +127,8 @@ if not exist "%MURPHY_DIR%\.env" (
         echo MURPHY_PORT=%MURPHY_PORT%
         echo.
         echo # LLM provider - set to groq, openai, or anthropic once you add a key below
-        echo MURPHY_LLM_PROVIDER=
+        echo # Defaults to local ^(onboard LLM, no API key required^)
+        echo MURPHY_LLM_PROVIDER=local
         echo.
         echo # The onboard LLM works without any API key.
         echo # Add an external key below for enhanced quality ^(optional^).
@@ -150,6 +162,8 @@ echo   API Docs:    http://localhost:%MURPHY_PORT%/docs
 echo   Health:      http://localhost:%MURPHY_PORT%/api/health
 echo   Status:      http://localhost:%MURPHY_PORT%/api/status
 echo.
+echo   Architect Terminal: %MURPHY_DIR%\terminal_architect.html
+echo.
 
 REM Offer choice: backend server vs terminal UI
 if exist "%MURPHY_DIR%\murphy_terminal.py" (
@@ -174,9 +188,11 @@ if "!LAUNCH_CHOICE!"=="2" (
 ) else (
     echo Starting Murphy System backend on port %MURPHY_PORT%...
     echo Open the Architect Terminal in your browser:
-    echo   Murphy System\terminal_architect.html
+    echo   %MURPHY_DIR%\terminal_architect.html
     echo Press Ctrl+C to stop
     echo.
+    REM Start backend in foreground — health check prompt is printed before launch
+    REM (CMD has no reliable background+wait; backend runs until user presses Ctrl+C)
     python murphy_system_1.0_runtime.py
 )
 
