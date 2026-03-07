@@ -202,6 +202,37 @@
             cursor: wait;
         }
 
+        /* MSS Controls */
+        .mss-controls {
+            display: flex;
+            gap: 8px;
+            padding: 8px 20px 0 20px;
+        }
+        .mss-btn {
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 4px 14px;
+            border: 1px solid #00ff41;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: background-color 0.2s;
+            background-color: #0a0a0a;
+            color: #00ff41;
+        }
+        .mss-btn:hover { background-color: #1a1a2e; }
+        .mss-simplify { border-color: #00ccff; color: #00ccff; }
+        .mss-magnify { border-color: #ffcc00; color: #ffcc00; }
+        .mss-solidify { border-color: #ff4444; color: #ff4444; }
+        .resolution-indicator {
+            padding: 4px 20px;
+            font-size: 11px;
+            color: #00cc33;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 1px;
+        }
+
         /* Focus-visible styles for keyboard navigation */
         .header-btn:focus-visible,
         .send-button:focus-visible,
@@ -760,6 +791,12 @@
                     <input type="text" id="messageInput" placeholder="Enter command or system instruction..." autocomplete="off" aria-label="Terminal command input">
                     <button class="send-button" id="sendButton" aria-label="Execute command">EXECUTE</button>
                 </div>
+                <div class="mss-controls">
+                    <button class="mss-btn mss-simplify" onclick="mssTransform('simplify')">Simplify</button>
+                    <button class="mss-btn mss-magnify" onclick="mssTransform('magnify')">Magnify</button>
+                    <button class="mss-btn mss-solidify" onclick="mssTransform('solidify')">Solidify</button>
+                </div>
+                <div class="resolution-indicator" id="resolution-panel"></div>
             </div>
         </div>
 
@@ -1053,6 +1090,29 @@
             line.innerHTML = message;
             terminalOutput.appendChild(line);
             terminalOutput.scrollTop = terminalOutput.scrollHeight;
+        }
+
+        // MSS Transform
+        async function mssTransform(operator) {
+            const text = messageInput.value.trim();
+            if (!text) { addLine('✗ Enter text before applying MSS transform', 'error'); return; }
+            addLine(`murphy:architect$ [MSS ${operator.toUpperCase()}] ${text}`, 'user');
+            messageInput.value = '';
+            try {
+                const resp = await fetch(`${API_BASE_URL}/mss/${operator}`, {
+                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({text: text})
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    const r = data.result;
+                    const iq = r.input_quality || {};
+                    document.getElementById('resolution-panel').textContent =
+                        `Resolution: ${iq.resolution_level || '—'} (RS ${(iq.resolution_score||0).toFixed(1)}) | Density: ${(iq.density_index||0).toFixed(2)} | Coherence: ${(iq.coherence_score||0).toFixed(1)} | CQI: ${(iq.cqi||0).toFixed(1)}`;
+                    addLine(`✓ ${operator.toUpperCase()} → ${r.target_rm} | Status: ${r.governance_status}`, 'success');
+                    addLine(JSON.stringify(r.output, null, 2), 'system');
+                } else { addLine(`✗ ${data.error}`, 'error'); }
+            } catch(e) { addLine(`✗ MSS error: ${e.message}`, 'error'); }
         }
 
         // Send message
