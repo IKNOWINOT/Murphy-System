@@ -234,3 +234,55 @@ All events are published to `EventBackbone` using the following `EventType` valu
 | `SELF_FIX_VERIFIED` | After `verify()` completes |
 | `SELF_FIX_COMPLETED` | At the end of `run_loop()` with the final report |
 | `SELF_FIX_ROLLED_BACK` | When a plan's rollback is triggered |
+
+
+---
+
+## MMSMMS Cadence in Setup Retries
+
+The `EnvironmentSetupAgent` applies a specialised **Magnify→Magnify→Simplify→Magnify→Magnify→Solidify** cadence
+to its retry loop every 3rd attempt.  This prevents the retry loop from repeatedly attempting the same failing
+approach and instead generates a qualitatively different fix strategy using root-cause analysis.
+
+### Cadence Pattern
+
+```
+Attempt 1  →  Normal retry (probe → plan → execute → verify)
+Attempt 2  →  Normal retry
+Attempt 3  →  MMSMMS cadence:
+               M1: Magnify — gather full failure context, OS state, cascade effects
+               M2: Magnify — deepen: find prerequisite gaps, OS quirks, port conflicts
+               S:  Simplify — distil to single root cause
+               M3: Magnify — expand solution space given root cause
+               M4: Magnify — rank solutions by reliability, invasiveness, speed
+               S:  Solidify — emit a concrete SetupPlan targeting the root cause
+Attempt 4  →  Normal retry (using the amplified plan)
+Attempt 5  →  Normal retry
+Attempt 6  →  MMSMMS cadence again  …
+```
+
+### Implementation
+
+| File | Role |
+|---|---|
+| `src/setup_retry_amplifier.py` | `SetupRetryAmplifier` — standalone MMSMMS engine |
+| `src/environment_setup_agent.py` | `EnvironmentSetupAgent.execute_and_verify()` — triggers cadence every 3rd retry |
+| `tests/test_setup_retry_amplifier.py` | Full test coverage for all 6 phases and integration |
+
+### Confidence Thresholds
+
+All phase gates use thresholds aligned with the MFGC system:
+
+| Gate | Threshold | Effect if not met |
+|---|---|---|
+| `CONFIDENCE_EXPAND` | 0.30 | Cadence aborted — fall back to normal retry |
+| `CONFIDENCE_CONSTRAIN` | 0.65 | Cadence aborted after Simplify — fall back to normal retry |
+| `CONFIDENCE_EXECUTE` | 0.85 | Solidified plan rejected — fall back to normal retry |
+
+### Design Guarantees
+
+- **HITL preserved:** every amplified plan goes through `HITLApprovalGate.approve_all()` before execution
+- **Bounded:** `max_attempts` is always respected — the cadence never extends the loop
+- **Thread-safe:** the amplifier shares the agent's `_audit_log` list with capped appends
+- **LLM-free:** all phase reasoning is structural (pattern-matching), no external API key required
+- **Full audit trail:** every amplification phase is logged with phase name, confidence, and timestamp

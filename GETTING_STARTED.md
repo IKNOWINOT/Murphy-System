@@ -33,20 +33,27 @@ murphy start
 
 ---
 
-## ✅ Recommended for Windows (Git Bash / MINGW64)
+## ✅ Windows (Git Bash / MINGW64) and All Platforms
 
-> **If you are on Windows using Git Bash (MINGW64), use the manual setup steps below.** The `setup_and_start.sh` script may hang at Step 2 (venv activation or pip self-upgrade) on Windows Git Bash. The manual path below is the proven, reliable workaround until the script is patched.
+`setup_and_start.sh` now completes all 5 steps reliably on Windows Git Bash (MINGW64), macOS, and Linux.
+The script no longer uses `set -euo pipefail` — all pip operations are individually guarded to prevent
+MINGW64 stderr-as-error kills that previously caused silent exit after Step 2.
 
 ```bash
-git clone https://github.com/IKNOWINOT/Murphy-System.git
-cd Murphy-System
-cd "Murphy System"
-python -m venv venv
-source venv/Scripts/activate
-pip install -r requirements_murphy_1.0.txt
-pip install -r requirements.txt
-python murphy_system_1.0_runtime.py
+bash setup_and_start.sh          # Linux / macOS / Windows Git Bash
 ```
+
+```cmd
+setup_and_start.bat              # Windows CMD / PowerShell
+```
+
+Both scripts will:
+
+1. Check prerequisites (Python 3.10+, pip)
+2. Create or reuse a virtual environment and activate it (with sanity check)
+3. Install all dependencies from `requirements_murphy_1.0.txt`
+4. Generate a default `.env` with `MURPHY_LLM_PROVIDER=local` (onboard LLM, no API key needed)
+5. Launch the backend and wait for it to be ready (health-check retry loop)
 
 ---
 
