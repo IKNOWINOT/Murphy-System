@@ -325,7 +325,8 @@ class WorkflowOrchestrator:
         # Execute the task
         task_id = self.task_executor.schedule_task(task)
 
-        # Wait for task completion
+        # Wait for task completion with timeout
+        deadline = time.monotonic() + 30
         while True:
             task_status = self.task_executor.get_task_status(task_id)
             if not task_status:
@@ -333,6 +334,9 @@ class WorkflowOrchestrator:
 
             if task_status['state'] in ['completed', 'failed', 'cancelled', 'timeout']:
                 break
+
+            if time.monotonic() > deadline:
+                raise Exception(f"Task timed out: {task_id}")
 
             time.sleep(0.1)
 
