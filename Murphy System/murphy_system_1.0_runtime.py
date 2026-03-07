@@ -13846,18 +13846,14 @@ def create_app() -> FastAPI:
 
     # RBAC permission dependencies for sensitive endpoints (SEC-005)
     # Falls back to a no-op dependency when fastapi_security is unavailable.
+    async def _noop_dep():
+        pass
+
     try:
         from src.fastapi_security import require_permission as _require_permission
-
-        async def _noop_dep():
-            pass
-
         _perm_execute = _require_permission("execute_task")
         _perm_configure = _require_permission("configure_system")
     except ImportError:
-        async def _noop_dep():  # type: ignore[no-redef]
-            pass
-
         _perm_execute = _noop_dep
         _perm_configure = _noop_dep
 
