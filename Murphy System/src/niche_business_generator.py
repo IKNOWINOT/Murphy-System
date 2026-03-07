@@ -19,6 +19,23 @@ from typing import Any, Dict, List, Optional
 from inference_gate_engine import InferenceDomainGateEngine, InferenceResult
 from mss_controls import MSSController, TransformationResult
 from mss_sequence_optimizer import MSSSequenceOptimizer, OPTIMAL_SEQUENCE
+from niche_viability_gate import (
+    NicheViabilityGate,
+    ViabilityResult,
+    InoniLLCEntity,
+    DeployabilityStatus,
+    HITLApprovalDecision,
+    RFPGapAnalyzer,
+    RFPAnalysis,
+    CredentialNegotiationEngine,
+    CredentialRecord,
+    NegotiationRecord,
+    COYARecord,
+    ContractorQualityProfile,
+    ContractorPartnerRecord,
+)
+from prompt_amplifier import PromptAmplifier, AmplifiedPrompt, AMPLIFIER_SEQUENCE
+from end_user_agreement import EUAGenerator, EUADocument, EUAAcceptanceMethod
 from simulation_engine import SimulationResult
 
 logger = logging.getLogger(__name__)
@@ -95,6 +112,14 @@ class NicheDeploymentSpec:
     deployment_ready: bool
     simulation_result: Optional[SimulationResult]
     dataset: Dict[str, Any]
+    # Viability gate results (always populated when gate is run)
+    viability_result: Optional[ViabilityResult] = None
+    # Inoni LLC entity created by the viability gate
+    inoni_entity: Optional[InoniLLCEntity] = None
+    # End User Agreement for this niche deployment
+    eua: Optional[EUADocument] = None
+    # The amplified (MMMS→Solidify) version of the niche description used internally
+    amplified_description: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
@@ -238,6 +263,16 @@ class NicheBusinessGenerator:
         self.sequence = sequence
         self._optimizer = MSSSequenceOptimizer(mss_controller)
         self._contractor_interface = ContractorDispatchInterface()
+        # Viability gate — runs entirely internally using Murphy's own modules
+        self._viability_gate = NicheViabilityGate(inference_engine, mss_controller)
+        # RFP gap analyser — assesses what Murphy can vs. needs to generate per RFP
+        self._rfp_analyzer = RFPGapAnalyzer(inference_engine, mss_controller)
+        # Credential + negotiation engine — 75/25 COYA-documented contractor agreements
+        self._credential_engine = CredentialNegotiationEngine()
+        # Prompt amplifier — MMMS→Solidify filter on every incoming request
+        self._prompt_amplifier = PromptAmplifier(mss_controller, inference_engine)
+        # End user agreement generator
+        self._eua_generator = EUAGenerator()
         self.NICHE_CATALOG: List[NicheDefinition] = self._build_catalog()
 
     # ------------------------------------------------------------------
@@ -793,11 +828,20 @@ class NicheBusinessGenerator:
         """Run the full pipeline for a single niche and return its deployment spec.
 
         Pipeline:
-          1. Run ``inference_engine.infer(description, seed_data)``
-          2. Call ``produce_dataset()`` for agent roster / KPIs / checkpoints
-          3. Run the MMSMM sequence through the optimizer
-          4. Generate contractor tasks for HYBRID / LEGS_REQUIRED niches
-          5. Build and return a :class:`NicheDeploymentSpec`
+          0. Amplify the niche description (MMMS→Solidify) — Murphy acts on the
+             amplified version internally, not the raw description
+          1. Viability gate (capability check, cost, profit, HITL request) — 100% internal
+          2. Run ``inference_engine.infer(amplified_description, seed_data)``
+          3. Call ``produce_dataset()`` for agent roster / KPIs / checkpoints
+          4. Run the MMSMM sequence through the optimizer
+          5. Generate contractor tasks for HYBRID / LEGS_REQUIRED niches
+          6. Generate the End User Agreement for this niche
+          7. Build and return a :class:`NicheDeploymentSpec` including viability result,
+             Inoni LLC entity, and EUA
+
+        ``deployment_ready`` is ``True`` only after the human operator has approved the
+        HITL request via :meth:`approve_niche`.  Until then the spec is returned with
+        ``deployment_ready=False`` so the operator can review and approve.
 
         Args:
             niche: The niche definition to generate a spec for.
@@ -806,13 +850,29 @@ class NicheBusinessGenerator:
         Returns:
             A populated :class:`NicheDeploymentSpec`.
         """
-        # Step 1 — inference
+        # ----------------------------------------------------------------
+        # Step 0 — Amplify description (MMMS→Solidify filter)
+        # Murphy always acts on the amplified version, never the raw prompt.
+        # ----------------------------------------------------------------
+        amplified = self._prompt_amplifier.amplify(niche.description, context)
+        internal_description = amplified.amplified_prompt
+
+        # ----------------------------------------------------------------
+        # Step 1 — Viability gate (100% internal, no external contacts yet)
+        # ----------------------------------------------------------------
+        viability = self._viability_gate.evaluate(niche)
+
+        # ----------------------------------------------------------------
+        # Steps 2–5 — Full generation (always runs so the spec is ready for review)
+        # ----------------------------------------------------------------
+
+        # Step 2 — inference on the amplified description
         inference_result: InferenceResult = self._engine.infer(
-            niche.description,
+            internal_description,
             existing_data=niche.seed_data,
         )
 
-        # Step 2 — produce dataset
+        # Step 3 — produce dataset
         dataset = inference_result.produce_dataset()
         agent_roster = dataset.get("agent_roster", [])
         kpi_dataset = [
@@ -824,8 +884,8 @@ class NicheBusinessGenerator:
             for entry in dataset.get("checkpoint_dataset", [])
         ]
 
-        # Step 3 — MMSMM sequence
-        seq_result = self._optimizer.run_sequence(niche.description, self.sequence, context)
+        # Step 4 — MMSMM sequence (on the amplified description)
+        seq_result = self._optimizer.run_sequence(internal_description, self.sequence, context)
         mss_results = seq_result.steps + (
             [seq_result.final_result] if seq_result.final_result is not None else []
         )
@@ -836,7 +896,7 @@ class NicheBusinessGenerator:
             else None
         )
 
-        # Step 4 — contractor tasks for hybrid niches
+        # Step 5 — contractor tasks for hybrid niches
         contractor_tasks: List[ContractorTask] = []
         if niche.autonomy_class in (NicheAutonomyClass.HYBRID, NicheAutonomyClass.LEGS_REQUIRED):
             templates = niche.seed_data.get("contractor_task_templates", [])
@@ -852,10 +912,42 @@ class NicheBusinessGenerator:
                 )
                 contractor_tasks.append(task)
 
-        # Step 5 — build spec
+        # Step 6 — End User Agreement
+        autonomy_str = (
+            niche.autonomy_class.value
+            if hasattr(niche.autonomy_class, "value")
+            else str(niche.autonomy_class)
+        )
+        revenue_str = (
+            niche.revenue_model.value
+            if hasattr(niche.revenue_model, "value")
+            else str(niche.revenue_model)
+        )
+        requires_licensed = autonomy_str in ("hybrid", "legs_required")
+        requires_physical = autonomy_str in ("hybrid", "legs_required")
+        inoni_entity_name = (
+            viability.inoni_entity.entity_name
+            if viability.inoni_entity
+            else f"Inoni {niche.name} LLC"
+        )
+        eua = self._eua_generator.generate(
+            niche_id=niche.niche_id,
+            niche_name=niche.name,
+            inoni_entity_name=inoni_entity_name,
+            autonomy_class=autonomy_str,
+            revenue_model=revenue_str,
+            murphy_modules_required=niche.murphy_modules_required,
+            requires_licensed_professionals=requires_licensed,
+            requires_physical_contractors=requires_physical,
+        )
+
+        # ----------------------------------------------------------------
+        # Step 7 — Build spec
+        # deployment_ready is True only if viability gate returned DEPLOYABLE,
+        # which requires prior HITL approval with risk_accepted=True.
+        # ----------------------------------------------------------------
         deployment_ready = (
-            seq_result.governance_status in ("approved", "conditional")
-            and final_confidence > 0.0
+            viability.deployability_status == DeployabilityStatus.DEPLOYABLE
         )
 
         return NicheDeploymentSpec(
@@ -872,6 +964,10 @@ class NicheBusinessGenerator:
             deployment_ready=deployment_ready,
             simulation_result=simulation_result,
             dataset=dataset,
+            viability_result=viability,
+            inoni_entity=viability.inoni_entity,
+            eua=eua,
+            amplified_description=internal_description,
         )
 
     def generate_all(
@@ -978,3 +1074,278 @@ class NicheBusinessGenerator:
     def get_contractor_interface(self) -> ContractorDispatchInterface:
         """Return the contractor dispatch interface."""
         return self._contractor_interface
+
+    # ------------------------------------------------------------------
+    # Viability gate access + HITL approval
+    # ------------------------------------------------------------------
+
+    def get_viability_gate(self) -> NicheViabilityGate:
+        """Return the internal :class:`NicheViabilityGate` instance."""
+        return self._viability_gate
+
+    def approve_niche(
+        self,
+        request_id: str,
+        decided_by: str,
+        notes: str = "",
+        risk_accepted: bool = False,
+        conditions: Optional[List[str]] = None,
+    ) -> HITLApprovalDecision:
+        """Approve an HITL deployment request for a niche.
+
+        The operator MUST set ``risk_accepted=True`` — this is their explicit
+        acknowledgment that they accept financial and operational responsibility
+        for this Inoni LLC deployment.  After approval Murphy is authorised to
+        make external contacts (contractor dispatch, APIs, deliveries).
+
+        Args:
+            request_id: The HITL request UUID to approve.
+            decided_by: Operator identifier (e.g. ``"corey_post"``).
+            notes: Optional approval notes.
+            risk_accepted: Must be ``True`` — the approver accepts the RFP risk.
+            conditions: Optional list of conditions attached to the approval.
+
+        Returns:
+            The recorded :class:`HITLApprovalDecision`.
+        """
+        return self._viability_gate.approve_hitl_request(
+            request_id=request_id,
+            decided_by=decided_by,
+            notes=notes,
+            risk_accepted=risk_accepted,
+            conditions=conditions,
+        )
+
+    # ------------------------------------------------------------------
+    # RFP gap analysis
+    # ------------------------------------------------------------------
+
+    def analyze_rfp(
+        self,
+        rfp_text: str,
+        niche_id: str,
+    ) -> Optional[RFPAnalysis]:
+        """Analyse an incoming RFP against the niche's generation capabilities.
+
+        Determines what Murphy can generate fully, what needs a credentialed
+        contractor, and what cannot be delivered.  Produces a stealth quote
+        at 75 % of the human rate for the same work.
+
+        Args:
+            rfp_text: The raw RFP text received by the niche business.
+            niche_id: The niche business receiving the RFP.
+
+        Returns:
+            A populated :class:`RFPAnalysis`, or ``None`` if the niche is not found.
+        """
+        niche = self.get_niche(niche_id)
+        if niche is None:
+            logger.warning("analyze_rfp: niche %r not found", niche_id)
+            return None
+        return self._rfp_analyzer.analyze(rfp_text, niche)
+
+    # ------------------------------------------------------------------
+    # Credential + negotiation engine (COYA)
+    # ------------------------------------------------------------------
+
+    def get_credential_engine(self) -> CredentialNegotiationEngine:
+        """Return the internal :class:`CredentialNegotiationEngine`."""
+        return self._credential_engine
+
+    def negotiate_contractor(
+        self,
+        request_id: str,
+        human_response: Dict[str, Any],
+    ) -> NegotiationRecord:
+        """Build a 75/25 negotiation record from a contractor's response.
+
+        Args:
+            request_id: The credentialed HITL request being negotiated.
+            human_response: Dict with optional keys ``rate``, ``preferred_contact``,
+                            ``schedule_note``.
+
+        Returns:
+            A populated :class:`NegotiationRecord`.
+        """
+        return self._credential_engine.build_negotiation(request_id, human_response)
+
+    def record_contractor_credentials(
+        self,
+        request_id: str,
+        credential_data: Dict[str, Any],
+    ) -> CredentialRecord:
+        """Record credentials provided by a contractor in response to an HITL request.
+
+        Args:
+            request_id: The credentialed HITL request this responds to.
+            credential_data: Dict with keys ``holder_name``, ``credential_number``,
+                             ``issue_date``, and optionally ``expiry_date``,
+                             ``masked_as``.
+
+        Returns:
+            A populated :class:`CredentialRecord`.
+        """
+        return self._credential_engine.record_credentials(request_id, credential_data)
+
+    def get_coya_records(self, niche_id: str) -> List[COYARecord]:
+        """Return all COYA documentation records for a niche.
+
+        Args:
+            niche_id: The niche to retrieve records for.
+
+        Returns:
+            List of :class:`COYARecord` instances (may be empty).
+        """
+        return self._credential_engine.get_coya_records_for_niche(niche_id)
+
+    # ------------------------------------------------------------------
+    # Prompt amplifier (MMMS→Solidify filter)
+    # ------------------------------------------------------------------
+
+    def amplify_prompt(
+        self,
+        raw_prompt: str,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> AmplifiedPrompt:
+        """Amplify a raw prompt through the MMMS→Solidify filter.
+
+        Every prompt Murphy acts on internally is amplified first.  This method
+        exposes the amplifier for external callers (e.g., to preview what Murphy
+        will actually process before committing to a generation run).
+
+        Args:
+            raw_prompt: The raw user prompt or request text.
+            context: Optional context dict.
+
+        Returns:
+            An :class:`AmplifiedPrompt` — ``.amplified_prompt`` is what Murphy uses.
+        """
+        return self._prompt_amplifier.amplify(raw_prompt, context)
+
+    # ------------------------------------------------------------------
+    # End User Agreement
+    # ------------------------------------------------------------------
+
+    def get_eua(self, niche_id: str) -> Optional[EUADocument]:
+        """Return the End User Agreement for a niche deployment spec.
+
+        The EUA is generated as part of :meth:`generate_niche`.  This method
+        provides a quick lookup by niche ID by generating a fresh EUA if one
+        is not already attached to the spec.
+
+        Args:
+            niche_id: The niche to retrieve the EUA for.
+
+        Returns:
+            A :class:`EUADocument`, or ``None`` if the niche is not found.
+        """
+        niche = self.get_niche(niche_id)
+        if niche is None:
+            return None
+        autonomy_str = (
+            niche.autonomy_class.value
+            if hasattr(niche.autonomy_class, "value")
+            else str(niche.autonomy_class)
+        )
+        revenue_str = (
+            niche.revenue_model.value
+            if hasattr(niche.revenue_model, "value")
+            else str(niche.revenue_model)
+        )
+        return self._eua_generator.generate(
+            niche_id=niche.niche_id,
+            niche_name=niche.name,
+            inoni_entity_name=f"Inoni {niche.name} LLC",
+            autonomy_class=autonomy_str,
+            revenue_model=revenue_str,
+            murphy_modules_required=niche.murphy_modules_required,
+            requires_licensed_professionals=autonomy_str in ("hybrid", "legs_required"),
+            requires_physical_contractors=autonomy_str in ("hybrid", "legs_required"),
+        )
+
+    # ------------------------------------------------------------------
+    # Contractor quality scoring + partner program
+    # ------------------------------------------------------------------
+
+    def score_contractor(
+        self,
+        contractor_id: str,
+        request_id: str,
+        credential_record: Any,
+        past_coya_niche_id: Optional[str] = None,
+    ) -> ContractorQualityProfile:
+        """Score a contractor's quality for negotiation and partner eligibility.
+
+        Args:
+            contractor_id: The contractor to score.
+            request_id: The credentialed HITL request that has a negotiation.
+            credential_record: The contractor's :class:`CredentialRecord`.
+            past_coya_niche_id: If provided, include past COYA records from this niche.
+
+        Returns:
+            A :class:`ContractorQualityProfile`.
+        """
+        past_coya = []
+        if past_coya_niche_id:
+            past_coya = self._credential_engine.get_coya_records_for_niche(past_coya_niche_id)
+        negotiation = self._credential_engine._negotiations.get(request_id)
+        if negotiation is None:
+            # No negotiation yet — create a minimal scoring based on credentials only
+            from niche_viability_gate import NegotiationRecord, NegotiationTerm, NegotiationStance
+            from datetime import datetime, timezone
+            dummy_neg = NegotiationRecord(
+                negotiation_id=f"dummy_{request_id}",
+                request_id=request_id,
+                niche_id="unknown",
+                murphy_terms=[],
+                human_terms=[],
+                murphy_weight=0.75,
+                human_weight=0.25,
+                balance_valid=True,
+                agreed_at=datetime.now(timezone.utc).isoformat(),
+                total_terms=0,
+                scope_summary="Pre-negotiation scoring",
+            )
+            negotiation = dummy_neg
+        return self._credential_engine.score_contractor(
+            contractor_id, negotiation, credential_record, past_coya
+        )
+
+    def promote_contractor_to_partner(
+        self,
+        contractor_id: str,
+        credential_record: Any,
+        quality_profile: ContractorQualityProfile,
+        niche_ids: Optional[List[str]] = None,
+    ) -> ContractorPartnerRecord:
+        """Promote a qualified contractor to preferred HITL partner status.
+
+        Args:
+            contractor_id: The contractor to promote.
+            credential_record: Their verified :class:`CredentialRecord`.
+            quality_profile: Their :class:`ContractorQualityProfile`
+                             (must have ``partner_eligible=True``).
+            niche_ids: Niches this partner is preferred for.
+
+        Returns:
+            A new :class:`ContractorPartnerRecord`.
+        """
+        return self._credential_engine.register_partner(
+            contractor_id, credential_record, quality_profile, niche_ids
+        )
+
+    def get_preferred_partner(
+        self,
+        niche_id: str,
+        skill_required: str,
+    ) -> Optional[ContractorPartnerRecord]:
+        """Return the highest-priority active partner for a niche + skill.
+
+        Args:
+            niche_id: The niche to find a partner for.
+            skill_required: The skill needed.
+
+        Returns:
+            The best :class:`ContractorPartnerRecord`, or ``None``.
+        """
+        return self._credential_engine.get_preferred_partner(niche_id, skill_required)
