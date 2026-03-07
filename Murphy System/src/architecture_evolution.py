@@ -78,6 +78,46 @@ class _RegisteredGap:
     category: str = "general"
 
 
+# ---------------------------------------------------------------------------
+# Resolution Path Stages (R1 → R2 → R3 → Utopia)
+# ---------------------------------------------------------------------------
+
+RESOLUTION_PATH_STAGES: List[Dict[str, Any]] = [
+    {
+        "stage": "R1",
+        "label": "Foundation",
+        "description": "Core modules operational, basic automation enabled",
+        "milestones": ["core_modules_deployed", "basic_governance_active", "initial_testing"],
+        "min_es": 0.0,
+        "max_es": 2.0,
+    },
+    {
+        "stage": "R2",
+        "label": "Integration",
+        "description": "Cross-module orchestration, regulatory alignment, quality scoring",
+        "milestones": ["cross_module_orchestration", "regulatory_domains_covered", "quality_scoring_active"],
+        "min_es": 2.0,
+        "max_es": 4.0,
+    },
+    {
+        "stage": "R3",
+        "label": "Optimization",
+        "description": "Self-healing, predictive evolution, full compliance automation",
+        "milestones": ["self_healing_active", "predictive_evolution", "full_compliance_automation"],
+        "min_es": 4.0,
+        "max_es": 5.5,
+    },
+    {
+        "stage": "Utopia",
+        "label": "Autonomous Excellence",
+        "description": "Autonomous operation, zero-gap architecture, regenerative systems",
+        "milestones": ["autonomous_operation", "zero_gap_architecture", "regenerative_systems"],
+        "min_es": 5.5,
+        "max_es": 6.0,
+    },
+]
+
+
 class ArchitectureEvolutionEngine:
     """Evaluates architecture health and predicts evolution trajectories.
 
@@ -257,6 +297,57 @@ class ArchitectureEvolutionEngine:
         dep_ratio = total_deps / total_modules
 
         return self._build_stress_warnings(dep_ratio, dep_graph, modules)
+
+    def assess_resolution_path_stage(self) -> Dict[str, Any]:
+        """Evaluate current system against Resolution Path milestones.
+
+        Runs a full analysis to compute the Evolution Score, then maps it
+        to a Resolution Path stage (R1 → R2 → R3 → Utopia).
+
+        Returns:
+            Dict with ``stage``, ``label``, ``description``, ``es``,
+            ``completed_milestones``, and ``next_milestones``.
+        """
+        indicators = self.analyze()
+        es = indicators.es
+
+        current_stage = RESOLUTION_PATH_STAGES[0]
+        for stage in RESOLUTION_PATH_STAGES:
+            if stage["min_es"] <= es < stage["max_es"]:
+                current_stage = stage
+                break
+        else:
+            # ES at or above 6.0 — Utopia
+            if es >= RESOLUTION_PATH_STAGES[-1]["min_es"]:
+                current_stage = RESOLUTION_PATH_STAGES[-1]
+
+        # Find next stage
+        stage_index = next(
+            (i for i, s in enumerate(RESOLUTION_PATH_STAGES)
+             if s["stage"] == current_stage["stage"]),
+            0,
+        )
+        next_stage = (
+            RESOLUTION_PATH_STAGES[stage_index + 1]
+            if stage_index + 1 < len(RESOLUTION_PATH_STAGES)
+            else None
+        )
+
+        result: Dict[str, Any] = {
+            "stage": current_stage["stage"],
+            "label": current_stage["label"],
+            "description": current_stage["description"],
+            "es": es,
+            "milestones": current_stage["milestones"],
+            "next_stage": next_stage["stage"] if next_stage else None,
+            "next_milestones": next_stage["milestones"] if next_stage else [],
+        }
+
+        logger.info(
+            "Resolution path assessment: stage=%s (ES=%.2f)",
+            result["stage"], es,
+        )
+        return result
 
     # ------------------------------------------------------------------
     # Data collection (must be called inside self._lock)
