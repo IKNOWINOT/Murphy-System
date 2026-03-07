@@ -563,7 +563,7 @@ Contributors are recognized for their contributions:
 
 ## License
 
-By contributing to the Murphy System Runtime, you agree that your contributions will be licensed under the Apache License 2.0.
+By contributing to the Murphy System Runtime, you agree that your contributions will be licensed under the BSL 1.1 (converts to Apache 2.0 after four years).
 
 ---
 
