@@ -565,6 +565,49 @@ Container and Kubernetes deployment manifests are available as legacy reference 
 
 ---
 
+## 🔌 API Endpoints
+
+The Murphy System Runtime exposes a FastAPI-based REST API. Start the server with `./start_murphy_1.0.sh`, then visit `http://localhost:8000/docs` for interactive documentation.
+
+| Method | Path | Auth Required | Description |
+| --- | --- | --- | --- |
+| `GET` | `/api/health` | No | Health check — returns system status |
+| `GET` | `/api/status` | Yes | Full system status and metrics |
+| `GET` | `/api/info` | Yes | System info (version, modules, capabilities) |
+| `GET` | `/api/system/info` | Yes | Detailed system configuration info |
+| `POST` | `/api/execute` | Yes | Execute a task via the universal control plane |
+| `POST` | `/api/forms/plan-upload` | Yes | Upload a pre-existing execution plan |
+| `POST` | `/api/forms/plan-generation` | Yes | Generate a plan from natural language description |
+| `POST` | `/api/forms/task-execution` | Yes | Execute a task with structured validation |
+| `POST` | `/api/forms/validation` | Yes | Validate an execution packet |
+| `POST` | `/api/forms/correction` | Yes | Submit a correction for learning loop |
+| `GET` | `/api/forms/submission/{id}` | Yes | Retrieve a form submission by ID |
+| `GET` | `/api/llm/status` | Yes | LLM provider status and availability |
+| `GET` | `/api/librarian/status` | Yes | System Librarian knowledge-base status |
+| `GET` | `/api/onboarding/status` | Yes | Onboarding workflow status |
+| `POST` | `/api/ucp/execute` | Yes | Universal Control Protocol execution |
+| `GET` | `/api/integrations/{status}` | Yes | List integrations filtered by status |
+
+> **Authentication:** Production mode (`MURPHY_ENV=production`) requires `Authorization: Bearer <key>` or `X-API-Key: <key>` header on all non-health endpoints. Development mode allows unauthenticated access. See [`Murphy System/documentation/api/AUTHENTICATION.md`](<Murphy System/documentation/api/AUTHENTICATION.md>) for full details.
+
+---
+
+## ⚙️ Configuration
+
+The following environment variables control Murphy System behaviour. Copy `.env.example` to `.env` and fill in the values.
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `GROQ_API_KEY` | *(none)* | Groq API key — enables Mixtral/Llama/Gemma cloud LLMs. Optional: the onboard local LLM works without this. |
+| `MURPHY_LLM_PROVIDER` | `groq` | LLM provider to use: `groq`, `openai`, or `local`. |
+| `MURPHY_ENV` | `development` | Runtime environment: `development` (auth optional) or `production` (auth required). |
+| `MURPHY_API_KEYS` | *(none)* | Comma-separated API keys for request authentication in production mode. |
+| `MURPHY_CORS_ORIGINS` | `http://localhost:3000,...` | Comma-separated list of allowed CORS origins. Defaults to common localhost ports. |
+| `MURPHY_RATE_LIMIT_RPM` | `60` | Maximum requests per minute per client IP (token-bucket rate limiter). |
+| `MURPHY_RATE_LIMIT_BURST` | `20` | Maximum burst size for rate limiter. |
+
+---
+
 ## 📚 Documentation
 
 | Document | Description |
