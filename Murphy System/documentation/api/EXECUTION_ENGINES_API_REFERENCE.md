@@ -907,7 +907,7 @@ if decision.confidence < 0.5:
 
 ## License
 
-Apache License 2.0
+BSL 1.1 (converts to Apache 2.0 after four years)
 
 Copyright © 2026 Corey Post InonI LLC
 

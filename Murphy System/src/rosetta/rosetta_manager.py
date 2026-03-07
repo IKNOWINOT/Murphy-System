@@ -54,7 +54,7 @@ class RosettaManager:
                     try:
                         msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
                     except OSError:
-                        pass
+                        logger.debug("File unlock failed (non-critical)")
                 else:
                     import fcntl
                     fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)

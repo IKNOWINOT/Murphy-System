@@ -68,6 +68,14 @@ NORMALIZATION_TABLE: List[Dict[str, str]] = [
     {"nontechnical": "test", "technical_analogue": "validation element", "structural_category": "validation", "murphy_module": "validation_engine"},
     {"nontechnical": "audit", "technical_analogue": "validation element", "structural_category": "validation", "murphy_module": "compliance_engine"},
     {"nontechnical": "inspection", "technical_analogue": "validation element", "structural_category": "validation", "murphy_module": "validation_engine"},
+    # Environmental / Sustainability concepts
+    {"nontechnical": "go green", "technical_analogue": "sustainability_engine", "structural_category": "process", "murphy_module": "sustainability_engine"},
+    {"nontechnical": "reduce waste", "technical_analogue": "waste_optimization", "structural_category": "process", "murphy_module": "waste_optimization"},
+    {"nontechnical": "clean energy", "technical_analogue": "energy_optimization", "structural_category": "process", "murphy_module": "energy_optimization"},
+    {"nontechnical": "fair wages", "technical_analogue": "labor_compliance", "structural_category": "component", "murphy_module": "labor_compliance"},
+    {"nontechnical": "recycle", "technical_analogue": "circular_economy_module", "structural_category": "process", "murphy_module": "circular_economy_module"},
+    {"nontechnical": "carbon footprint", "technical_analogue": "emissions_tracking", "structural_category": "component", "murphy_module": "emissions_tracking"},
+    {"nontechnical": "social responsibility", "technical_analogue": "social_impact_engine", "structural_category": "process", "murphy_module": "social_impact_engine"},
 ]
 
 # ---------------------------------------------------------------------------
@@ -98,6 +106,18 @@ REGULATORY_DOMAINS: Dict[str, Dict[str, Any]] = {
     "technology": {
         "keywords": ["software", "cloud", "data center", "server", "SaaS", "infrastructure", "cyber", "network"],
         "frameworks": ["SOC2", "ISO27001"],
+    },
+    "environmental": {
+        "keywords": ["environmental", "pollution", "emissions", "sustainability", "green", "EPA", "ISO14001", "waste management", "ecological"],
+        "frameworks": ["EPA", "ISO14001"],
+    },
+    "energy": {
+        "keywords": ["energy", "power grid", "renewable", "solar", "wind", "FERC", "DOE", "electricity", "utility"],
+        "frameworks": ["FERC", "DOE"],
+    },
+    "social_impact": {
+        "keywords": ["social impact", "fair labor", "ILO", "human rights", "community", "equity", "inclusion", "diversity"],
+        "frameworks": ["ILO", "fair labor"],
     },
 }
 
@@ -155,6 +175,36 @@ _REGULATORY_MODULE_TEMPLATES: Dict[str, Dict[str, str]] = {
         "module_name": "iso27001_compliance_monitor",
         "purpose": "Ensure information security management meets ISO 27001 standards",
         "rules": "Risk assessment, access control, incident management, continuous improvement",
+    },
+    "EPA": {
+        "module_name": "epa_compliance_monitor",
+        "purpose": "Monitor environmental operations for EPA regulatory alignment",
+        "rules": "Emissions tracking, waste disposal compliance, environmental impact assessment, reporting",
+    },
+    "ISO14001": {
+        "module_name": "iso14001_compliance_monitor",
+        "purpose": "Ensure environmental management system meets ISO 14001 standards",
+        "rules": "Environmental policy, planning, implementation, performance evaluation, improvement",
+    },
+    "FERC": {
+        "module_name": "ferc_compliance_monitor",
+        "purpose": "Monitor energy operations for FERC regulatory alignment",
+        "rules": "Market rules, reliability standards, tariff compliance, reporting requirements",
+    },
+    "DOE": {
+        "module_name": "doe_compliance_monitor",
+        "purpose": "Ensure energy programs align with DOE standards and regulations",
+        "rules": "Energy efficiency standards, nuclear safety, environmental remediation",
+    },
+    "ILO": {
+        "module_name": "ilo_compliance_monitor",
+        "purpose": "Monitor labor practices for ILO convention alignment",
+        "rules": "Freedom of association, forced labor prohibition, child labor elimination, non-discrimination",
+    },
+    "fair labor": {
+        "module_name": "fair_labor_compliance_monitor",
+        "purpose": "Enforce fair labor standards across operations",
+        "rules": "Minimum wage, overtime, working conditions, worker safety, equal pay",
     },
 }
 

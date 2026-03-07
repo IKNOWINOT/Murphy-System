@@ -110,6 +110,9 @@ _D1_TABLE: _PatternTable = _compile_table([
         r"\bhypothesis\b", r"\bexperiment\b", r"\bnovel\b",
         r"\bresearch\b", r"\binvestigate whether\b",
         r"\bcompare approaches\b",
+        # RM6 Exploratory trigger signals
+        r"\bdiscovery\b", r"\bunexplored\b",
+        r"\bnew approach\b", r"\barbitrage\b",
     ]),
     (5, [
         r"\bmodule\b", r"\bclass\b", r"\bfunction\b",
@@ -144,6 +147,9 @@ _D2_TABLE: _PatternTable = _compile_table([
     (6, [
         r"\bnovel architecture\b", r"\bnew paradigm\b",
         r"\bexperimental design\b", r"\bcustom framework\b",
+        # Utopia Map vocabulary
+        r"\bcircular supply chain\b", r"\bregenerative\b",
+        r"\bwaste recovery\b", r"\bnet positive\b",
     ]),
     # Level 5 is checked programmatically (>5 named components).
     (4, [
@@ -235,6 +241,9 @@ _D5_TABLE: _PatternTable = _compile_table([
         r"\btest plan\b", r"\bqa\b", r"\bmonitoring\b",
         r"\balerting\b", r"\bobservability\b", r"\bdashboard\b",
         r"\bcoverage\b",
+        # Environmental performance signals
+        r"\benvironmental performance\b", r"\bnet positive impact\b",
+        r"\bsocial impact\b", r"\bcarbon neutral\b",
     ]),
     (4, [
         r"\blatency\b", r"\bthroughput\b", r"\buptime\b",

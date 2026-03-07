@@ -547,7 +547,7 @@ librarian.import_knowledge("backup.json")
 
 ## License
 
-Apache License 2.0 - See LICENSE.md for details.
+BSL 1.1 (converts to Apache 2.0 after four years) - See LICENSE.md for details.
 
 ## Support
 

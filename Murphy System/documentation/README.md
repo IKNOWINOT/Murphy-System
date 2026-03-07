@@ -198,7 +198,7 @@ The Murphy System Runtime is designed to support enterprise-scale organizations 
 | Small | 30 | 0.002s | <2s | ✅ 1000x faster |
 | Medium | 100 | 0.005s | <5s | ✅ 1000x faster |
 | Large | 500 | 0.020s | <15s | ✅ 750x faster |
-| Enterprise | 1000 | 0.027s | <30s | ✅ 1100x faster |
+| Enterprise | 1000 | 0.027s | <30s | ✅ Sub-second at scale |
 
 ### Memory Performance
 

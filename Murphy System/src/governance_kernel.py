@@ -75,6 +75,18 @@ class GovernanceKernel:
     _MAX_EXECUTIONS = 10_000
     _RETENTION_FRACTION = 10  # keep 1/N entries on trim
 
+    # Profit Allocation Tiers — defines allocation percentages per revenue tier
+    PROFIT_ALLOCATION_TIERS: List[Dict[str, Any]] = [
+        {"tier": "seed", "revenue_min": 0, "revenue_max": 100_000,
+         "reinvestment_pct": 70, "operations_pct": 20, "reserve_pct": 10},
+        {"tier": "growth", "revenue_min": 100_001, "revenue_max": 500_000,
+         "reinvestment_pct": 50, "operations_pct": 30, "reserve_pct": 20},
+        {"tier": "scale", "revenue_min": 500_001, "revenue_max": 2_000_000,
+         "reinvestment_pct": 40, "operations_pct": 35, "reserve_pct": 25},
+        {"tier": "mature", "revenue_min": 2_000_001, "revenue_max": float("inf"),
+         "reinvestment_pct": 30, "operations_pct": 40, "reserve_pct": 30},
+    ]
+
     def __init__(self, strict_mode: bool = False) -> None:
         self._lock = threading.Lock()
         self._strict_mode = strict_mode
@@ -440,6 +452,109 @@ class GovernanceKernel:
             "total_executions": total_executions,
             "department_ids": department_ids,
         }
+
+    # ------------------------------------------------------------------
+    # Profit Allocation
+    # ------------------------------------------------------------------
+
+    def set_profit_allocation(
+        self,
+        department_id: str,
+        revenue: float,
+    ) -> Dict[str, Any]:
+        """Determine profit allocation based on revenue tier.
+
+        Integrates with the existing BudgetTracker when a budget is set
+        for the given department.
+
+        Args:
+            department_id: Department to allocate profits for.
+            revenue: Current revenue amount.
+
+        Returns:
+            Dict with tier info and allocated amounts.
+        """
+        with self._lock:
+            tier_info: Optional[Dict[str, Any]] = None
+            for tier in self.PROFIT_ALLOCATION_TIERS:
+                if tier["revenue_min"] <= revenue <= tier["revenue_max"]:
+                    tier_info = tier
+                    break
+
+            if tier_info is None:
+                tier_info = self.PROFIT_ALLOCATION_TIERS[-1]
+
+            reinvestment = round(revenue * tier_info["reinvestment_pct"] / 100, 2)
+            operations = round(revenue * tier_info["operations_pct"] / 100, 2)
+            reserve = round(revenue * tier_info["reserve_pct"] / 100, 2)
+
+            # If a budget tracker exists, update it with the operations allocation
+            budget = self._budgets.get(department_id)
+            if budget is not None:
+                budget.total_budget += operations
+
+        logger.info(
+            "Profit allocation for %s (tier=%s): reinvest=%.2f ops=%.2f reserve=%.2f",
+            department_id, tier_info["tier"], reinvestment, operations, reserve,
+        )
+        return {
+            "department_id": department_id,
+            "tier": tier_info["tier"],
+            "revenue": revenue,
+            "reinvestment": reinvestment,
+            "operations": operations,
+            "reserve": reserve,
+        }
+
+    # ------------------------------------------------------------------
+    # Environmental Governance
+    # ------------------------------------------------------------------
+
+    def enforce_environmental_review(
+        self,
+        module_name: str,
+        domain: str,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> EnforcementResult:
+        """Enforce mandatory sustainability review for environmental domain modules.
+
+        Args:
+            module_name: Name of the module being reviewed.
+            domain: Regulatory domain the module operates in.
+            context: Optional additional context.
+
+        Returns:
+            EnforcementResult indicating whether the review passed.
+        """
+        context = context or {}
+
+        with self._lock:
+            if domain.lower() in ("environmental", "energy", "social_impact"):
+                has_sustainability_flag = context.get("sustainability_reviewed", False)
+                if not has_sustainability_flag:
+                    result = EnforcementResult(
+                        action=EnforcementAction.ESCALATE,
+                        reason=(
+                            f"Module '{module_name}' operates in '{domain}' domain; "
+                            "mandatory sustainability review not completed"
+                        ),
+                        enforced_by="governance_kernel.environmental_review",
+                        metadata={"module_name": module_name, "domain": domain},
+                    )
+                    self._emit_audit(
+                        "system", "environmental", module_name, 0.0, result, context,
+                    )
+                    return result
+
+            result = EnforcementResult(
+                action=EnforcementAction.ALLOW,
+                reason="Environmental governance check passed",
+                enforced_by="governance_kernel.environmental_review",
+                metadata={"module_name": module_name, "domain": domain},
+            )
+            self._emit_audit("system", "environmental", module_name, 0.0, result, context)
+
+        return result
 
     # ------------------------------------------------------------------
     # Internal helpers

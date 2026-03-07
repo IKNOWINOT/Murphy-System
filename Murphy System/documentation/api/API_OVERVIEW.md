@@ -390,7 +390,7 @@ Authorization: Bearer YOUR_API_KEY
   "system_state": {
     "total_cost": 28000,
     "timeline": 160,
-    "hipaa_compliant": true,
+    "hipaa_aligned": true,
     "security_audit_passed": true
   }
 }
