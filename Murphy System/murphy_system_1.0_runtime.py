@@ -13561,7 +13561,7 @@ class MurphySystem:
             'description': 'Universal AI Automation System',
             'owner': 'Inoni Limited Liability Company',
             'creator': 'Corey Post',
-            'license': 'Apache License 2.0',
+            'license': 'BSL 1.1 (Business Source License)',
             'capabilities': [
                 'Universal Automation (factory, content, data, system, agent, business)',
                 'Self-Integration (GitHub, APIs, hardware)',

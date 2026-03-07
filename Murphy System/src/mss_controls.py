@@ -199,9 +199,10 @@ class MSSController:
                         return "blocked"
                     if action_value == "escalate":
                         return "conditional"
-            except Exception:
+            except Exception as exc:
                 logger.warning(
-                    "Governance enforcement failed; defaulting to approved",
+                    "Governance enforcement failed; defaulting to approved: %s",
+                    exc,
                     exc_info=True,
                 )
 

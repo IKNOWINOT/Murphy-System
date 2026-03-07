@@ -67,7 +67,7 @@ class RSCClientAdapter:
                     else:
                         score = float(score_info)
                     status["stability_score"] = score
-                except Exception:
+                except Exception as exc:
                     status["stability_score"] = 1.0
             self._last_status = status
             return status
@@ -138,7 +138,7 @@ def create_rsc_adapter(
             return RSCClientAdapter(controller=ctrl)
         except ImportError:
             logger.info("RSC module not available — using default adapter.")
-        except Exception:
-            logger.exception("Failed to auto-discover RSC — using default adapter.")
+        except Exception as exc:
+            logger.exception("Failed to auto-discover RSC — using default adapter: %s", exc)
 
     return RSCClientAdapter()

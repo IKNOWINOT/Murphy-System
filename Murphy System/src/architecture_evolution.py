@@ -376,10 +376,10 @@ class ArchitectureEvolutionEngine:
                                     ),
                                 )
                             )
-            except Exception:
+            except Exception as exc:
                 logger.warning(
                     "capability_map.get_gap_analysis() unavailable; "
-                    "falling back to internal gaps",
+                    "falling back to internal gaps: %s", exc,
                 )
 
         if not gaps:
@@ -398,10 +398,10 @@ class ArchitectureEvolutionEngine:
                     for mod, deps in raw.items():
                         if isinstance(deps, list):
                             graph[str(mod)] = [str(d) for d in deps]
-            except Exception:
+            except Exception as exc:
                 logger.warning(
                     "capability_map.get_dependency_graph() unavailable; "
-                    "falling back to internal modules",
+                    "falling back to internal modules: %s", exc,
                 )
 
         if not graph:

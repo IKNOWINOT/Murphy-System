@@ -89,8 +89,8 @@ class AionMindKernel:
             count = load_bot_capabilities_into_registry(self._registry)
             if count:
                 logger.info("Auto-bridged %d bot capabilities.", count)
-        except Exception:
-            logger.debug("Bot capability bridge unavailable — skipped.", exc_info=True)
+        except Exception as exc:
+            logger.debug("Bot capability bridge unavailable — skipped: %s", exc, exc_info=True)
 
     @staticmethod
     def _try_discover_rsc() -> Optional[Any]:
@@ -99,8 +99,8 @@ class AionMindKernel:
             from aionmind.rsc_client_adapter import create_rsc_adapter
             adapter = create_rsc_adapter(auto_discover=True)
             return adapter
-        except Exception:
-            logger.debug("RSC auto-discovery unavailable.", exc_info=True)
+        except Exception as exc:
+            logger.debug("RSC auto-discovery unavailable: %s", exc, exc_info=True)
             return None
 
     # ── accessors ─────────────────────────────────────────────────
