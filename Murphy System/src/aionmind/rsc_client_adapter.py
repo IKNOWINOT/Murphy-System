@@ -68,6 +68,7 @@ class RSCClientAdapter:
                         score = float(score_info)
                     status["stability_score"] = score
                 except Exception as exc:
+                    logger.debug("RSC stability score parse failed: %s", exc)
                     status["stability_score"] = 1.0
             self._last_status = status
             return status

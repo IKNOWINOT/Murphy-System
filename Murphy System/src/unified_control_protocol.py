@@ -416,7 +416,7 @@ class UnifiedControlProtocol:
                         action_id, "SEE", state, f"es={evolution_score:.4f}",
                     )
                 except Exception as exc:
-                    self._log_step(action_id, "SEE", state, "skipped")
+                    self._log_step(action_id, "SEE", state, f"skipped: {exc}")
 
             # ---- SSE (Strategic Simulation) ----
             simulation_risk = 0.0
@@ -434,7 +434,7 @@ class UnifiedControlProtocol:
                         f"risk={simulation_risk:.4f}",
                     )
                 except Exception as exc:
-                    self._log_step(action_id, "SSE", state, "skipped")
+                    self._log_step(action_id, "SSE", state, f"skipped: {exc}")
 
             state = "simulated"
             self._log_step(action_id, "state_transition", state)
@@ -462,7 +462,7 @@ class UnifiedControlProtocol:
                     )
                 except Exception as exc:
                     governance_status = "allow"
-                    self._log_step(action_id, "PGE", state, "default_allow")
+                    self._log_step(action_id, "PGE", state, f"default_allow: {exc}")
 
             state = "governed"
             self._log_step(action_id, "state_transition", state)
@@ -498,7 +498,7 @@ class UnifiedControlProtocol:
                         action_id, "MSS", state, f"operator={operator}",
                     )
                 except Exception as exc:
-                    self._log_step(action_id, "MSS", state, "skipped")
+                    self._log_step(action_id, "MSS", state, f"skipped: {exc}")
 
             state = "executed"
             self._log_step(action_id, "state_transition", state)
