@@ -28,19 +28,19 @@
 **Diagnosis**:
 ```bash
 python --version
-# Should be 3.11 or higher
+# Should be 3.10 or higher
 ```
 
 **Solutions**:
 
-1. **Install Python 3.11+**:
+1. **Install Python 3.10+**:
    ```bash
    # Linux
    sudo apt-get update
-   sudo apt-get install python3.11
+   sudo apt-get install python3.10
 
    # macOS
-   brew install python@3.11
+   brew install python@3.10
 
    # Windows
    # Download from https://www.python.org/downloads/
@@ -81,7 +81,7 @@ pip list | grep -E "rich|prompt-toolkit|pyyaml"
 
 2. **Reinstall Dependencies**:
    ```bash
-   pip install --force-reinstall -r requirements.txt
+   pip install --force-reinstall -r requirements_murphy_1.0.txt
    ```
 
 3. **Install Manually**:
@@ -108,12 +108,12 @@ pip list | grep -E "rich|prompt-toolkit|pyyaml"
    ```bash
    python -m venv venv
    source venv/bin/activate
-   pip install -r requirements.txt
+   pip install -r requirements_murphy_1.0.txt
    ```
 
 2. **User Installation**:
    ```bash
-   pip install --user -r requirements.txt
+   pip install --user -r requirements_murphy_1.0.txt
    ```
 
 3. **Fix Permissions** (Linux/macOS):

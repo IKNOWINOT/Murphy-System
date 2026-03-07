@@ -8,7 +8,7 @@
 
 Before you begin, ensure you have:
 
-- **Python 3.11+** installed
+- **Python 3.10+** installed
 - **4GB RAM** minimum (8GB recommended)
 - **500MB disk space** available
 - **Git** (optional, for cloning the repository)
@@ -25,7 +25,7 @@ git clone <repository-url>
 cd murphy-system-runtime
 
 # Install dependencies
-pip install -r requirements.txt
+pip install -r requirements_murphy_1.0.txt
 ```
 
 ### Option B: From Package
@@ -36,7 +36,7 @@ unzip murphy_system_runtime.zip
 cd murphy_system_runtime
 
 # Install dependencies
-pip install -r requirements.txt
+pip install -r requirements_murphy_1.0.txt
 ```
 
 ### Dependencies Required

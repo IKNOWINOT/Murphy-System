@@ -1,7 +1,7 @@
 """
-Sourcerior Class — Monk/Mage Hybrid Elemental Pet Class
+Sorceror Class — Monk/Mage Hybrid Elemental Pet Class
 
-Implements the Sourcerior class design described in the SOURCERIOR_CLASS_DESIGN.md
+Implements the Sorceror class design described in the SORCEROR_CLASS_DESIGN.md
 document and referenced by §2 (Core Ability Categories), §2.2 (Proc-Based DPS),
 §2.3 (Pet System), §2.10 (Discipline of Rumblecrush), and §2.11 (Lord of the
 Maelstrom) of the Experimental EverQuest Modification Plan.
@@ -39,8 +39,8 @@ WEAPON_RESTRICTIONS = ("1H slashing", "1H piercing", "staves")
 
 
 @dataclass
-class SourceriorConfig:
-    """Static class configuration for the Sourcerior."""
+class SorcerorConfig:
+    """Static class configuration for the Sorceror."""
 
     eligible_races: tuple[str, ...] = ELIGIBLE_RACES
     armor_restrictions: tuple[str, ...] = ARMOR_RESTRICTIONS
@@ -52,7 +52,7 @@ class SourceriorConfig:
 # ---------------------------------------------------------------------------
 
 class ElementType(Enum):
-    """The four elemental attunements a Sourcerior can channel."""
+    """The four elemental attunements a Sorceror can channel."""
 
     EARTH = "earth"
     AIR = "air"
@@ -80,8 +80,8 @@ class PetDefinition:
 # ---------------------------------------------------------------------------
 
 @dataclass
-class SourceriorAbility:
-    """A Sourcerior class ability or spell."""
+class SorcerorAbility:
+    """A Sorceror class ability or spell."""
 
     name: str
     level_requirement: int
@@ -204,7 +204,7 @@ DISCIPLINE_RUMBLECRUSH = Discipline(
     duration_seconds=180.0,
     description=(
         "Avoidance tanking disc. Pets gain Defensive-like mitigation; "
-        "Sourcerior cycles pets to absorb hits. Every proc costs mana."
+        "Sorceror cycles pets to absorb hits. Every proc costs mana."
     ),
     is_raid_drop=False,
 )
@@ -224,23 +224,23 @@ LORD_OF_THE_MAELSTROM = Discipline(
 # Core Abilities
 # ---------------------------------------------------------------------------
 
-SOURCERIOR_ABILITIES: List[SourceriorAbility] = [
-    SourceriorAbility("Hand-to-Hand", 1, 0, 0.0, "Base melee skill, scales with level"),
-    SourceriorAbility("Tiger Claw", 4, 10, 6.0, "Fast melee strike, chance to proc fire damage", ElementType.FIRE),
-    SourceriorAbility("Round Kick", 8, 0, 8.0, "Moderate damage kick"),
-    SourceriorAbility("Dual Wield", 13, 0, 0.0, "Can wield two one-handed weapons"),
-    SourceriorAbility("Eagle Strike", 15, 15, 6.0, "Fast double-strike with proc chance"),
-    SourceriorAbility("Double Attack", 16, 0, 0.0, "Chance to strike twice per round"),
-    SourceriorAbility("Flame Blink I", 17, 40, 90.0, "Blink 30 units, release 1 elemental", ElementType.FIRE),
-    SourceriorAbility("Flying Kick", 20, 0, 10.0, "High-damage gap closer"),
-    SourceriorAbility("Daze of Embers", 20, 80, 30.0, "AE mez 3 targets 12s", ElementType.FIRE),
-    SourceriorAbility("Dragon Punch", 25, 20, 10.0, "Heavy single-target strike"),
-    SourceriorAbility("Riposte", 25, 0, 0.0, "Counter-attack on successful parry"),
-    SourceriorAbility("Flame Stupor", 34, 120, 30.0, "AE mez 4 targets 18s", ElementType.FIRE),
-    SourceriorAbility("Flame Blink II", 35, 60, 75.0, "Blink 40 units, release 2 elementals", ElementType.FIRE),
-    SourceriorAbility("Triple Attack", 46, 0, 0.0, "Chance to strike three times per round"),
-    SourceriorAbility("Inferno Trance", 48, 160, 30.0, "AE mez 5 targets 24s", ElementType.FIRE),
-    SourceriorAbility("Flame Blink III", 50, 80, 60.0, "Blink 50 units, release 3 elementals", ElementType.FIRE),
+SORCEROR_ABILITIES: List[SorcerorAbility] = [
+    SorcerorAbility("Hand-to-Hand", 1, 0, 0.0, "Base melee skill, scales with level"),
+    SorcerorAbility("Tiger Claw", 4, 10, 6.0, "Fast melee strike, chance to proc fire damage", ElementType.FIRE),
+    SorcerorAbility("Round Kick", 8, 0, 8.0, "Moderate damage kick"),
+    SorcerorAbility("Dual Wield", 13, 0, 0.0, "Can wield two one-handed weapons"),
+    SorcerorAbility("Eagle Strike", 15, 15, 6.0, "Fast double-strike with proc chance"),
+    SorcerorAbility("Double Attack", 16, 0, 0.0, "Chance to strike twice per round"),
+    SorcerorAbility("Flame Blink I", 17, 40, 90.0, "Blink 30 units, release 1 elemental", ElementType.FIRE),
+    SorcerorAbility("Flying Kick", 20, 0, 10.0, "High-damage gap closer"),
+    SorcerorAbility("Daze of Embers", 20, 80, 30.0, "AE mez 3 targets 12s", ElementType.FIRE),
+    SorcerorAbility("Dragon Punch", 25, 20, 10.0, "Heavy single-target strike"),
+    SorcerorAbility("Riposte", 25, 0, 0.0, "Counter-attack on successful parry"),
+    SorcerorAbility("Flame Stupor", 34, 120, 30.0, "AE mez 4 targets 18s", ElementType.FIRE),
+    SorcerorAbility("Flame Blink II", 35, 60, 75.0, "Blink 40 units, release 2 elementals", ElementType.FIRE),
+    SorcerorAbility("Triple Attack", 46, 0, 0.0, "Chance to strike three times per round"),
+    SorcerorAbility("Inferno Trance", 48, 160, 30.0, "AE mez 5 targets 24s", ElementType.FIRE),
+    SorcerorAbility("Flame Blink III", 50, 80, 60.0, "Blink 50 units, release 3 elementals", ElementType.FIRE),
 ]
 
 # ---------------------------------------------------------------------------
@@ -248,8 +248,8 @@ SOURCERIOR_ABILITIES: List[SourceriorAbility] = [
 # ---------------------------------------------------------------------------
 
 @dataclass
-class SourceriorState:
-    """Mutable runtime state of a Sourcerior character."""
+class SorcerorState:
+    """Mutable runtime state of a Sorceror character."""
 
     active_element: Optional[ElementType] = None
     active_pets: List[PetDefinition] = field(default_factory=list)
@@ -263,10 +263,10 @@ class SourceriorState:
 # Pet Summoning Helpers
 # ---------------------------------------------------------------------------
 
-def can_summon_pet(state: SourceriorState, pet: PetDefinition) -> bool:
+def can_summon_pet(state: SorcerorState, pet: PetDefinition) -> bool:
     """Check whether a pet can be summoned given the single-element rule.
 
-    §2.3: All active pets must share one element unless the Sourcerior
+    §2.3: All active pets must share one element unless the Sorceror
     has acquired Lord of the Maelstrom.
     """
     if state.has_lord_of_maelstrom:
@@ -276,7 +276,7 @@ def can_summon_pet(state: SourceriorState, pet: PetDefinition) -> bool:
     return state.active_element == pet.element
 
 
-def switch_element(state: SourceriorState, new_element: ElementType) -> SourceriorState:
+def switch_element(state: SorcerorState, new_element: ElementType) -> SorcerorState:
     """Dismiss all pets and switch the active element.
 
     §2.3: Summoning a pet of a different element dismisses all existing pets.
