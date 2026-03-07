@@ -753,7 +753,7 @@ Murphy includes built-in self-improvement infrastructure:
 - ❌ Modify source code (requires human review via code proposals)
 - ⚠️ Complex emergent bugs require manual diagnosis
 
-See [`docs/SELF_FIX_LOOP.md`](docs/SELF_FIX_LOOP.md) for full documentation on the autonomous self-fix loop.
+See [`docs/SELF_FIX_LOOP.md`](<Murphy System/docs/SELF_FIX_LOOP.md>) for full documentation on the autonomous self-fix loop.
 
 File an issue or submit a patch — Murphy's learning loop will incorporate the
 feedback into its operational models.

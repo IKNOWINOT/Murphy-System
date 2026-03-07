@@ -3,7 +3,7 @@ REM Murphy System 1.0 - Quick Setup Script (Windows)
 REM This script sets up Murphy System for first-time use
 REM Copyright (c) 2020 Inoni Limited Liability Company
 REM Creator: Corey Post
-REM License: Apache License 2.0
+REM License: BSL 1.1 (Business Source License)
 
 echo ================================================================================
 echo                    MURPHY SYSTEM 1.0 - QUICK SETUP
