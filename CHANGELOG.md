@@ -8,6 +8,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Stream 5: Documentation, README, and Assessment Sync** — Full documentation audit and update:
+  - Root `README.md` updated with `## API Endpoints` table and `## Configuration` environment-variable reference
+  - `Murphy System/full_system_assessment.md` created with updated maturity score (31 → 78/100), module inventory, resolved gaps, and Phase 2 recommendations
+  - `Murphy System/documentation/api/AUTHENTICATION.md` already reflects implemented auth — confirmed accurate
+  - `Murphy System/tests/test_documentation.py` added — validates README sections, CHANGELOG format, env-var documentation, and API endpoint presence
+  - `CHANGELOG.md` updated with Stream 1–5 entries
+- **Stream 4: CI/CD Hardening** — Automated test pipeline improvements:
+  - GitHub Actions workflow added/updated for automated test execution on push and pull request
+  - `python -m pytest --timeout=60 -v --tb=short` enforced as canonical test command
+  - Dependencies pinned in `requirements_murphy_1.0.txt`
+  - CI gap CI-001 resolved
+- **Stream 3: Module Integration** — Module compiler and subsystem wiring:
+  - Module Compiler API wired to runtime (`/api/module-compiler/*` endpoints)
+  - MSS Controller (Magnify/Simplify/Solidify pipeline) integrated
+  - AionMind cognitive kernel mounted at `/api/aionmind/*`
+  - GAP-001 (subsystem initialisation), GAP-003 (compute plane), GAP-004 (image generation) all resolved
+- **Stream 2: Security Hardening** — Centralised security layer applied to all API servers:
+  - `src/flask_security.py` and `src/fastapi_security.py` enforce API key auth, CORS origin allowlist, rate limiting, input sanitisation, and security headers
+  - `MURPHY_ENV`, `MURPHY_API_KEYS`, `MURPHY_CORS_ORIGINS` environment variables documented
+  - Security plane modules activated: `authorization_enhancer`, `log_sanitizer`, `bot_resource_quotas`, `swarm_communication_monitor`, `bot_identity_verifier`, `bot_anomaly_detector`, `security_dashboard`
+  - SEC-001 through SEC-004 resolved
+- **Stream 1: LLM Pipeline Validation** — LLM integration validated end-to-end:
+  - Groq Mixtral/Llama/Gemma integration in `src/llm_controller.py`
+  - Local onboard LLM fallback — no API key required for basic operation
+  - `src/safe_llm_wrapper.py` validation and sanitisation layer
+  - GAP-002 (LLM features unavailable without API key) resolved
+  - `GROQ_API_KEY` and `MURPHY_LLM_PROVIDER` environment variables documented
 - **Round 45 AionMind gap closure** — 5 architectural gaps closed with 43 new tests:
   - **Gap 1 (Medium):** Bot inventory → AionMind capability bridge — `bot_capability_bridge.py` auto-registers 20+ bot capabilities into CapabilityRegistry at startup
   - **Gap 2 (Medium):** Live RSC wiring — `rsc_client_adapter.py` wraps in-process RSC or HTTP client and auto-injects into StabilityIntegration
