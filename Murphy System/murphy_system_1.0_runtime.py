@@ -13856,6 +13856,15 @@ def create_app() -> FastAPI:
     except ImportError:
         _perm_execute = _noop_dep
         _perm_configure = _noop_dep
+    # ── Integration Bus — wires src/ modules into the runtime ────────
+    _integration_bus = None
+    try:
+        from src.integration_bus import IntegrationBus
+        _integration_bus = IntegrationBus()
+        _integration_bus.initialize()
+        logger.info("IntegrationBus initialised: %s", _integration_bus.get_status())
+    except Exception as _ib_exc:
+        logger.warning("IntegrationBus not available — endpoints use legacy paths: %s", _ib_exc)
 
     # ==================== CORE ENDPOINTS ====================
 
@@ -13891,6 +13900,26 @@ def create_app() -> FastAPI:
             except Exception as _exc:
                 logger.debug("AionMind pipeline fallback: %s", _exc)
 
+        # Route through IntegrationBus (DomainEngine → SwarmSystem → FeedbackIntegrator)
+        if _integration_bus is not None:
+            try:
+                bus_result = _integration_bus.process("execute", {
+                    "task_description": task_description,
+                    "task_type": task_type,
+                    "parameters": data.get("parameters"),
+                })
+                if bus_result.get("bus_routed"):
+                    legacy_result = await murphy.execute_task(
+                        task_description=task_description,
+                        task_type=task_type,
+                        parameters=data.get('parameters'),
+                        session_id=data.get('session_id'),
+                    )
+                    legacy_result["bus"] = bus_result
+                    return JSONResponse(legacy_result)
+            except Exception as _ib_exc:
+                logger.debug("IntegrationBus execute fallback: %s", _ib_exc)
+
         # Legacy path
         result = await murphy.execute_task(
             task_description=task_description,
@@ -13902,11 +13931,34 @@ def create_app() -> FastAPI:
 
     @app.post("/api/chat")
     async def chat(request: Request):
-        """Chat endpoint for terminal UIs"""
+        """Chat endpoint for terminal UIs — routed through IntegrationBus when available."""
         data = await request.json()
+        message = data.get("message", "")
+        session_id = data.get("session_id")
+
+        # Route through IntegrationBus (LLMIntegrationLayer → LLMController → LLMOutputValidator)
+        if _integration_bus is not None:
+            try:
+                bus_result = _integration_bus.process("chat", {
+                    "message": message,
+                    "domain": data.get("domain", "general"),
+                    "context": data.get("context"),
+                })
+                if bus_result.get("response"):
+                    legacy = murphy.handle_chat(
+                        message=message,
+                        session_id=session_id,
+                        use_mfgc=data.get("use_mfgc", False),
+                    )
+                    legacy["bus"] = bus_result
+                    return JSONResponse(legacy)
+            except Exception as _bus_exc:
+                logger.debug("IntegrationBus chat fallback: %s", _bus_exc)
+
+        # Legacy path
         result = murphy.handle_chat(
-            message=data.get("message", ""),
-            session_id=data.get("session_id"),
+            message=message,
+            session_id=session_id,
             use_mfgc=data.get("use_mfgc", False)
         )
         return JSONResponse(result)
@@ -14425,6 +14477,39 @@ def create_app() -> FastAPI:
     async def list_modules():
         """List all modules"""
         return JSONResponse(murphy.list_modules())
+
+    @app.get("/api/modules/{name}/status")
+    async def get_module_status(name: str):
+        """Get status for a single module by name."""
+        modules = murphy.list_modules()
+        for mod in modules:
+            if mod.get("name") == name:
+                return JSONResponse({"success": True, "module": mod})
+        if _integration_bus is not None:
+            bus_status = _integration_bus.get_status()
+            if name in bus_status.get("modules", {}):
+                return JSONResponse({
+                    "success": True,
+                    "module": {
+                        "name": name,
+                        "status": "wired" if bus_status["modules"][name] else "unavailable",
+                    },
+                })
+        return JSONResponse({"success": False, "error": f"Module '{name}' not found"}, status_code=404)
+
+    @app.post("/api/feedback")
+    async def submit_feedback(request: Request):
+        """Accept and process explicit feedback signals (thumbs up/down, corrections)."""
+        data = await request.json()
+        if _integration_bus is not None:
+            result = _integration_bus.submit_feedback(data)
+        else:
+            result = {
+                "success": True,
+                "message": "Feedback received (integration bus not available)",
+                "bus_routed": False,
+            }
+        return JSONResponse(result)
 
     @app.get("/api/diagnostics/activation")
     async def activation_audit():
