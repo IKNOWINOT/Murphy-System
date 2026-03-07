@@ -15089,6 +15089,72 @@ def create_app() -> FastAPI:
         quality = _mss_controller._iqe.assess(text)
         return JSONResponse({"success": True, "quality": _asdict(quality)})
 
+    # ==================== UCP & Graph API ====================
+    _ucp_instance = None
+    _cge_instance = None
+    try:
+        from concept_graph_engine import ConceptGraphEngine
+        from unified_control_protocol import UnifiedControlProtocol
+        _cge_instance = ConceptGraphEngine()
+        _ucp_instance = UnifiedControlProtocol()
+        logger.info("UCP and CGE initialized successfully")
+    except Exception as exc:
+        logger.warning("UCP/CGE initialization failed: %s", exc)
+
+    @app.post("/api/ucp/execute")
+    async def ucp_execute(request: Request):
+        """Execute the Unified Control Protocol pipeline."""
+        if _ucp_instance is None:
+            return JSONResponse({"success": False, "error": "UCP not available"}, status_code=503)
+        data = await request.json()
+        text = data.get("text", "")
+        operator = data.get("operator", "magnify")
+        if not text:
+            return JSONResponse({"success": False, "error": "text is required"}, status_code=400)
+        if operator not in ("magnify", "simplify", "solidify"):
+            return JSONResponse({"success": False, "error": "operator must be magnify, simplify, or solidify"}, status_code=400)
+        from dataclasses import asdict as _asdict
+        result = _ucp_instance.execute(text, operator=operator)
+        return JSONResponse({"success": True, "result": _asdict(result)})
+
+    @app.get("/api/ucp/health")
+    async def ucp_health():
+        """Return system health dashboard from UCP."""
+        if _ucp_instance is None:
+            return JSONResponse({"success": False, "error": "UCP not available"}, status_code=503)
+        health = _ucp_instance.get_system_health()
+        return JSONResponse({"success": True, "health": health})
+
+    @app.post("/api/graph/query")
+    async def graph_query(request: Request):
+        """Query the Concept Graph Engine."""
+        if _cge_instance is None:
+            return JSONResponse({"success": False, "error": "CGE not available"}, status_code=503)
+        data = await request.json()
+        query_type = data.get("query_type", "")
+        query_map = {
+            "missing_deps": _cge_instance.find_missing_dependencies,
+            "regulatory_gaps": _cge_instance.find_regulatory_gaps,
+            "redundant": _cge_instance.find_redundant_modules,
+            "opportunities": _cge_instance.detect_cross_domain_opportunities,
+        }
+        if query_type not in query_map:
+            return JSONResponse(
+                {"success": False, "error": f"query_type must be one of: {list(query_map.keys())}"},
+                status_code=400,
+            )
+        results = query_map[query_type]()
+        return JSONResponse({"success": True, "query_type": query_type, "results": results})
+
+    @app.get("/api/graph/health")
+    async def graph_health():
+        """Return graph health metrics from the Concept Graph Engine."""
+        if _cge_instance is None:
+            return JSONResponse({"success": False, "error": "CGE not available"}, status_code=503)
+        from dataclasses import asdict as _asdict
+        health = _cge_instance.compute_graph_health()
+        return JSONResponse({"success": True, "health": _asdict(health)})
+
     return app
 
 
