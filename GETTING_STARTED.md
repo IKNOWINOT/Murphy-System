@@ -94,7 +94,7 @@ python murphy_system_1.0_runtime.py
 
 Murphy System is a universal AI automation platform with:
 
-- **625 source modules** across 56 packages covering control theory, orchestration, governance, telemetry, and more.
+- **649 source modules** across 56 packages covering control theory, orchestration, governance, telemetry, and more.
 - **8,200+ automated tests** spanning unit, integration, gap-closure, and end-to-end suites.
 - **8 web interfaces** for dashboards, monitoring, and administration.
 - **REST API** with FastAPI for programmatic access to all capabilities.
@@ -214,7 +214,7 @@ Murphy ships with several interface layers. All are available out of the box onc
 
 All HTML files are located inside the `Murphy System/` directory. Open them in any browser while the backend is running.
 
-Under the hood: 625 source modules across 56 packages, 118 gap-closure tests, and 90 audit categories all at zero. Project configuration (pytest, mypy, ruff) lives in `pyproject.toml`.
+Under the hood: 649 source modules across 56 packages, 118 gap-closure tests, and 90 audit categories all at zero. Project configuration (pytest, mypy, ruff) lives in `pyproject.toml`.
 
 ---
 

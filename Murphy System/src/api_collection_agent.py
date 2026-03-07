@@ -49,6 +49,7 @@ _MAX_AUDIT = 10_000
 
 class APIMethod(str, Enum):
     """HTTP method enum for outbound API collection requests."""
+    GET = "GET"
     POST = "POST"
     PUT = "PUT"
     PATCH = "PATCH"
@@ -65,6 +66,7 @@ class FieldSource(str, Enum):
 
 class RequestStatus(str, Enum):
     """Lifecycle status of an API request managed by the collection agent."""
+    DRAFT = "draft"            # being assembled
     PENDING_APPROVAL = "pending_approval"
     APPROVED = "approved"
     REJECTED = "rejected"
