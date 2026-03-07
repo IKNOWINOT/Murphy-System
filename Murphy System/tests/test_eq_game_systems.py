@@ -2,7 +2,7 @@
 Tests for the 5 game-system EQ modules.
 
 Validates:
-  - Sourcerior class (sourcerior_class.py)
+  - Sorceror class (sorceror_class.py)
   - Duel controller (duel_controller.py)
   - Tower of the Unmaker zone (tower_zone.py)
   - Remake system (remake_system.py)
@@ -11,7 +11,7 @@ Validates:
 
 import pytest
 
-from src.eq.sourcerior_class import (
+from src.eq.sorceror_class import (
     AIR_PROCS,
     DISCIPLINE_RUMBLECRUSH,
     EARTH_PROCS,
@@ -20,9 +20,9 @@ from src.eq.sourcerior_class import (
     LORD_OF_THE_MAELSTROM,
     PetDefinition,
     ProcEffect,
-    SOURCERIOR_ABILITIES,
-    SourceriorConfig,
-    SourceriorState,
+    SORCEROR_ABILITIES,
+    SorcerorConfig,
+    SorcerorState,
     WATER_PROCS,
     can_summon_pet,
     switch_element,
@@ -55,13 +55,13 @@ from src.eq.card_system import CardCollection, CardOfUnmaking
 
 
 # ===================================================================
-# Sourcerior Class Tests
+# Sorceror Class Tests
 # ===================================================================
 
-class TestSourceriorClass:
+class TestSorcerorClass:
 
     def test_config_eligible_races(self):
-        cfg = SourceriorConfig()
+        cfg = SorcerorConfig()
         assert "Dark Elf" in cfg.eligible_races
         assert "Erudite" in cfg.eligible_races
         assert "Human" in cfg.eligible_races
@@ -69,12 +69,12 @@ class TestSourceriorClass:
         assert "Gnome" in cfg.eligible_races
 
     def test_config_armor_restrictions(self):
-        cfg = SourceriorConfig()
+        cfg = SorcerorConfig()
         assert "cloth" in cfg.armor_restrictions
         assert "leather" in cfg.armor_restrictions
 
     def test_config_weapon_restrictions(self):
-        cfg = SourceriorConfig()
+        cfg = SorcerorConfig()
         assert "1H slashing" in cfg.weapon_restrictions
         assert "1H piercing" in cfg.weapon_restrictions
         assert "staves" in cfg.weapon_restrictions
@@ -108,8 +108,8 @@ class TestSourceriorClass:
                 assert p.level_requirement > 0
                 assert p.proc_chance > 0
 
-    def test_sourcerior_abilities_exist(self):
-        assert len(SOURCERIOR_ABILITIES) >= 5
+    def test_sorceror_abilities_exist(self):
+        assert len(SORCEROR_ABILITIES) >= 5
 
     def test_rumblecrush_discipline(self):
         assert DISCIPLINE_RUMBLECRUSH.name == "Discipline of Rumblecrush"
@@ -121,28 +121,28 @@ class TestSourceriorClass:
         assert LORD_OF_THE_MAELSTROM.level_requirement == 60
 
     def test_can_summon_pet_same_element(self):
-        state = SourceriorState(active_element=ElementType.FIRE)
+        state = SorcerorState(active_element=ElementType.FIRE)
         pet = PetDefinition(element=ElementType.FIRE, level=10, hp=100, damage=20, name="Fire Pet")
         assert can_summon_pet(state, pet) is True
 
     def test_cannot_summon_pet_different_element_with_active_pets(self):
         fire_pet = PetDefinition(element=ElementType.FIRE, level=10, hp=100, damage=20, name="Fire Pet")
-        state = SourceriorState(active_element=ElementType.FIRE, active_pets=[fire_pet])
+        state = SorcerorState(active_element=ElementType.FIRE, active_pets=[fire_pet])
         water_pet = PetDefinition(element=ElementType.WATER, level=10, hp=100, damage=20, name="Water Pet")
         assert can_summon_pet(state, water_pet) is False
 
     def test_can_summon_any_element_with_maelstrom(self):
-        state = SourceriorState(active_element=ElementType.FIRE, has_lord_of_maelstrom=True)
+        state = SorcerorState(active_element=ElementType.FIRE, has_lord_of_maelstrom=True)
         pet = PetDefinition(element=ElementType.WATER, level=10, hp=100, damage=20, name="Water Pet")
         assert can_summon_pet(state, pet) is True
 
     def test_can_summon_pet_no_active_element(self):
-        state = SourceriorState(active_element=None)
+        state = SorcerorState(active_element=None)
         pet = PetDefinition(element=ElementType.EARTH, level=10, hp=100, damage=20, name="Earth Pet")
         assert can_summon_pet(state, pet) is True
 
     def test_switch_element_dismisses_pets(self):
-        state = SourceriorState(
+        state = SorcerorState(
             active_element=ElementType.FIRE,
             active_pets=[PetDefinition(element=ElementType.FIRE, level=10, hp=100, damage=20, name="p")],
         )

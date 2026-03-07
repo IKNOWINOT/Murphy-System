@@ -24,7 +24,7 @@
 | Unified Control Protocol | ✅ New | 10-engine pipeline, 7 states, rollback support |
 | Session Context Manager | ✅ New | Per-session locking, expiry, RM0–RM6 tracking |
 | UI / Landing Page | ⚠️ Partial | Landing page, terminal UIs exist; dashboard incomplete |
-| Documentation | ⚠️ Partial | API docs, architecture docs present; some gaps remain |
+| Documentation | ✅ Complete | API docs, architecture docs, deployment guides, testing guide complete |
 
 ## Regulatory Alignment
 

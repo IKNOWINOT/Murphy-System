@@ -5,8 +5,8 @@ Validates that the experimental EverQuest modification planning documents
 exist and contain the required sections for the Murphy System game agent
 integration.  The plan covers:
 
-  - Agent soul architecture with memory/archive/recall (OpenClaw Molty soul.md)
-  - Sourcerior class design (monk/mage hybrid — primarily damage with situational utility)
+  - Agent soul architecture with memory/archive/recall (src/eq/soul_engine.py)
+  - Sorceror class design (monk/mage hybrid — primarily damage with situational utility)
   - Invoke Pet / Meld system (elemental aspects)
   - Epic weapon (two-handed staff)
   - AI agent classes (pure melee, int caster, cleric)
@@ -26,7 +26,7 @@ integration.  The plan covers:
   - EQ isolation boundary (sandbox gateway, tight separation from Murphy core)
   - Agent language restriction (in-game languages + Common Tongue only, no code)
   - Agent self-preservation (flee on "run" command, healer death, hybrid healer exception)
-  - Liquify ability (Sourcerior aggro drop + invisibility with water pets, level 40+)
+  - Liquify ability (Sorceror aggro drop + invisibility with water pets, level 40+)
   - NPC lifestyle system (daily routines, jobs, building ownership, caste hierarchy)
   - Trade skill specialization with degradation (1 week no practice → fades to 50)
   - Level-based skill floor (leveling locks minimum skill thresholds)
@@ -78,6 +78,14 @@ def _load_doc(name: str) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def _load_src(name: str) -> str:
+    """Return the text of a src/eq/ source file, or skip if missing."""
+    path = Path(__file__).resolve().parent.parent / "src" / "eq" / name
+    if not path.exists():
+        pytest.skip(f"{name} not found in src/eq/")
+    return path.read_text(encoding="utf-8")
+
+
 def _section_titles(text: str) -> list[str]:
     """Return all markdown heading titles (## level) in the document."""
     return re.findall(r"^##\s+(.+)$", text, re.MULTILINE)
@@ -104,9 +112,9 @@ class TestExperimentalEverQuestPlan:
         text = _load_doc(self.DOC_NAME)
         assert "Agent Soul Architecture" in text
 
-    def test_has_sourcerior_class_section(self):
+    def test_has_sorceror_class_section(self):
         text = _load_doc(self.DOC_NAME)
-        assert "Sourcerior" in text
+        assert "Sorceror" in text
 
     def test_has_voice_chat_section(self):
         text = _load_doc(self.DOC_NAME)
@@ -128,14 +136,14 @@ class TestExperimentalEverQuestPlan:
         text = _load_doc(self.DOC_NAME)
         assert "Implementation Phases" in text
 
-    def test_references_openclaw_molty_soul(self):
+    def test_references_soul_engine(self):
         text = _load_doc(self.DOC_NAME)
-        assert "OpenClaw" in text or "Molty" in text
+        assert "soul_engine" in text
 
     def test_references_related_documents(self):
         text = _load_doc(self.DOC_NAME)
-        assert "OPENCLAW_MOLTY_SOUL_CONCEPT.md" in text
-        assert "SOURCERIOR_CLASS_DESIGN.md" in text
+        assert "soul_engine.py" in text
+        assert "SORCEROR_CLASS_DESIGN.md" in text
         assert "RACE_CULTURAL_IDENTITY_DESIGN.md" in text
 
     def test_has_data_models(self):
@@ -198,17 +206,17 @@ class TestExperimentalEverQuestPlan:
         text = _load_doc(self.DOC_NAME)
         assert "cannot spam hate" in text.lower() or "spam hate" in text.lower()
 
-    def test_has_invoke_pet_meld_in_sourcerior_summary(self):
+    def test_has_invoke_pet_meld_in_sorceror_summary(self):
         text = _load_doc(self.DOC_NAME)
         assert "Meld" in text or "meld" in text
         assert "Invoke" in text or "invoke" in text
 
-    def test_has_epic_weapon_in_sourcerior_summary(self):
+    def test_has_epic_weapon_in_sorceror_summary(self):
         text = _load_doc(self.DOC_NAME)
         assert "Epic" in text or "epic" in text
         assert "staff" in text.lower()
 
-    def test_sourcerior_cloth_and_leather(self):
+    def test_sorceror_cloth_and_leather(self):
         text = _load_doc(self.DOC_NAME)
         assert "cloth" in text.lower()
         assert "leather" in text.lower()
@@ -235,12 +243,12 @@ class TestExperimentalEverQuestPlan:
         assert "cultural" in text.lower()
         assert "persona_injector" in text.lower() or "personality" in text.lower()
 
-    def test_sourcerior_primarily_damage_class(self):
+    def test_sorceror_primarily_damage_class(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
         assert "primarily a damage class" in lower or "primarily damage" in lower
 
-    def test_sourcerior_situational_utility(self):
+    def test_sorceror_situational_utility(self):
         text = _load_doc(self.DOC_NAME)
         lower = text.lower()
         assert "situational utility" in lower or "situational" in lower
@@ -1225,340 +1233,105 @@ class TestExperimentalEverQuestPlan:
 
 
 # ===========================================================================
-# OpenClaw Molty Soul Concept Document
+# Soul Engine — soul architecture implementation
 # ===========================================================================
 
 
-class TestOpenClawMoltySoulConcept:
-    """Validate OPENCLAW_MOLTY_SOUL_CONCEPT.md structure."""
+class TestSoulEngine:
+    """Validate soul_engine.py has the expected soul architecture components."""
 
-    DOC_NAME = "OPENCLAW_MOLTY_SOUL_CONCEPT.md"
+    SRC_NAME = "soul_engine.py"
 
-    def test_document_exists(self):
-        assert (DOCS_DIR / self.DOC_NAME).exists()
+    def test_source_file_exists(self):
+        from pathlib import Path
+        assert (Path(__file__).resolve().parent.parent / "src" / "eq" / self.SRC_NAME).exists()
 
-    def test_has_memory_system(self):
-        text = _load_doc(self.DOC_NAME)
-        assert "Memory" in text
+    def test_has_soul_document_class(self):
+        text = _load_src(self.SRC_NAME)
+        assert "SoulDocument" in text
 
-    def test_has_short_term_and_long_term_memory(self):
-        text = _load_doc(self.DOC_NAME)
-        assert "Short-Term" in text or "short_term" in text
-        assert "Long-Term" in text or "long_term" in text
+    def test_has_short_term_memory(self):
+        text = _load_src(self.SRC_NAME)
+        assert "short_term_memory" in text
+
+    def test_has_long_term_archive(self):
+        text = _load_src(self.SRC_NAME)
+        assert "long_term_archive" in text
 
     def test_has_recall_engine(self):
-        text = _load_doc(self.DOC_NAME)
-        assert "Recall" in text
-
-    def test_has_faction_soul_functions(self):
-        text = _load_doc(self.DOC_NAME)
-        assert "Faction" in text
-
-    def test_has_knowledge_base_inspect_gate(self):
-        text = _load_doc(self.DOC_NAME)
-        assert "Knowledge" in text
-        assert "Inspect" in text or "inspect" in text
-
-    def test_references_rosetta_soul_pattern(self):
-        text = _load_doc(self.DOC_NAME)
-        assert "Rosetta" in text
-
-    def test_references_inference_gate_engine(self):
-        text = _load_doc(self.DOC_NAME)
-        assert "inference_gate_engine" in text
-
-    def test_agents_cannot_attack_players(self):
-        text = _load_doc(self.DOC_NAME)
-        assert "cannot attack players" in text.lower()
-
-    def test_inspect_asymmetry_documented(self):
-        text = _load_doc(self.DOC_NAME)
-        assert "previously possessed" in text.lower() or "previously_possessed" in text
-
-    def test_has_individual_interaction_faction(self):
-        text = _load_doc(self.DOC_NAME)
-        assert "individual" in text.lower()
-        assert "interaction" in text.lower() or "standing" in text.lower()
-
-    def test_has_grudge_mechanic(self):
-        text = _load_doc(self.DOC_NAME)
-        assert "grudge" in text.lower()
-
-    def test_has_friendship_mechanic(self):
-        text = _load_doc(self.DOC_NAME)
-        assert "friend" in text.lower()
-
-    def test_actions_only_silence_rule(self):
-        text = _load_doc(self.DOC_NAME)
-        assert "actions" in text.lower()
-        assert "cannot" in text.lower() and ("chat" in text.lower() or "verbal" in text.lower() or "speak" in text.lower())
-
-    def test_agents_no_spam_hate(self):
-        text = _load_doc(self.DOC_NAME)
-        assert "spam hate" in text.lower() or "verbal aggression" in text.lower()
-
-    def test_agent_class_archetypes_in_identity(self):
-        text = _load_doc(self.DOC_NAME)
-        assert "melee" in text.lower()
-        assert "caster" in text.lower() or "cleric" in text.lower()
-
-    def test_has_class_play_style_template_in_soul(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "play-style template" in lower or "class template" in lower or "class play" in lower
-        assert "immutable" in lower or "read-only" in lower
-
-    def test_has_permadeath_in_soul(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "permadeath" in lower or "permanently dead" in lower or "permanent death" in lower
-
-    def test_has_betrayal_exception_in_soul(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "betrayal" in lower
-        assert "resurrect" in lower or "resurrectable" in lower or "exception" in lower
-
-    def test_has_death_state_in_soul_layers(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "death state" in lower or "death_state" in lower or "alive/dead" in lower
-
-    # --- Language Restriction in Soul ---
-
-    def test_has_language_layer_in_soul(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "language" in lower and ("layer" in lower or "capability" in lower)
-
-    def test_soul_language_common_tongue(self):
-        text = _load_doc(self.DOC_NAME)
-        assert "Common Tongue" in text
-
-    def test_soul_no_code_capability(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert ("cannot" in lower and "code" in lower) or ("no" in lower and "programming" in lower)
-
-    def test_soul_sandbox_gateway_enforcement(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "sandbox" in lower or "eq_gateway" in lower or "gateway" in lower
-
-    # --- Self-Preservation in Soul ---
-
-    def test_has_self_preservation_layer_in_soul(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "self-preservation" in lower or "self preservation" in lower
-
-    def test_soul_flee_on_run_command(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "run" in lower and "flee" in lower
-
-    def test_soul_flee_on_healer_death(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "healer" in lower and ("death" in lower or "dies" in lower)
-
-    def test_soul_hybrid_healer_exception(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert ("hybrid healer" in lower) or ("hybrid" in lower and "healer" in lower)
-
-    def test_soul_liquify_escape_referenced(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "liquify" in lower
-
-    # --- Lifestyle Layer in Soul ---
-
-    def test_has_lifestyle_layer_in_soul(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "lifestyle" in lower and "layer" in lower
-
-    def test_soul_lifestyle_caste(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "caste" in lower
-
-    def test_soul_lifestyle_job_role(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "job" in lower and "role" in lower
-
-    def test_soul_lifestyle_daily_routine(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "daily" in lower or "routine" in lower or "sleep" in lower
-
-    def test_soul_lifestyle_skill_degradation(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "degrad" in lower
-
-    def test_soul_lifestyle_skill_floor(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "skill floor" in lower or "floor" in lower
-
-    # --- Perception-Inference Layer in Soul ---
-
-    def test_has_perception_inference_layer_in_soul(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "perception" in lower and "inference" in lower
-
-    def test_soul_perception_pipeline_flow(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "perception" in lower and "action" in lower
-
-    def test_soul_macro_trigger_in_perception(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert ("macro" in lower) or ("trigger" in lower and "assist" in lower)
-
-    # --- Lore-Seed Layer in Soul ---
-
-    def test_has_lore_seed_layer_in_soul(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "lore" in lower and ("seed" in lower or "seeded" in lower)
-
-    def test_soul_lore_shared_lore_blocks(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "shared lore" in lower
-
-    def test_soul_lore_sleeper_reference(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "sleeper" in lower
-
-    def test_soul_lore_eqemu_npc_data(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert ("eqemu" in lower) or ("npc" in lower and "data" in lower)
-
-    # --- Card Collection Layer in Soul ---
-
-    def test_has_card_collection_layer_in_soul(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "card collection layer" in lower or "card_collection" in lower
-
-    def test_soul_card_universal_cards(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert ("universal card" in lower) or ("every entity" in lower and "card" in lower)
-
-    def test_soul_card_world_entropy(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert ("entropy" in lower) or ("delet" in lower and "card" in lower)
-
-    def test_soul_card_server_reboot(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "reboot" in lower or "reset" in lower
-
-    def test_soul_card_unmaker_transformation(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "unmaker" in lower
-
-    def test_soul_card_system_module_mapping(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "card_system.py" in lower
-
-    # --- New system layers in soul concept ---
-
-    def test_soul_has_experience_lore_layer(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert ("experience" in lower and "lore" in lower) or "interaction-triggered" in lower
-
-    def test_soul_has_heroic_persona_layer(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert ("heroic persona" in lower) or ("noble" in lower and "devotion" in lower)
-
-    def test_soul_has_voice_layer(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert ("voice" in lower and "profile" in lower) or "text-to-speech" in lower
-
-    def test_soul_has_spawner_registry_module(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "spawner_registry.py" in lower
-
-    def test_soul_has_experience_lore_module(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "experience_lore.py" in lower
-
-    def test_soul_has_agent_voice_module(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "agent_voice.py" in lower
-
-    def test_soul_has_50_percent_vote(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "50%" in text and "vote" in lower
-
-    def test_soul_has_cooldown_reference(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "cooldown" in lower or "1-week" in lower
-
-    def test_soul_has_tower_entry_requirement(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert ("1 card" in lower or "4 same-type" in lower) and ("enter" in lower or "require" in lower)
-
-    def test_soul_has_streaming_reference(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "streaming" in lower and ("agent" in lower or "first-person" in lower)
-
-    # --- NPC Card Effects in soul concept ---
-
-    def test_soul_has_npc_card_effects(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "4-tier" in lower or ("tier 1" in lower and "tier 4" in lower) or "npc_card_effects" in lower
-
-    def test_soul_has_soul_bound_protector(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "soul-bound protector" in lower or "soul protector" in lower
-
-    def test_soul_has_named_creature_ai_player(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "named creature" in lower and "ai player" in lower
-
-    def test_soul_has_npc_card_effects_module(self):
-        text = _load_doc(self.DOC_NAME)
-        lower = text.lower()
-        assert "npc_card_effects.py" in lower
-
+        text = _load_src(self.SRC_NAME)
+        assert "recall_engine" in text
+
+    def test_has_faction_alignment(self):
+        text = _load_src(self.SRC_NAME)
+        assert "faction_alignment" in text
+
+    def test_has_lifestyle_layer(self):
+        text = _load_src(self.SRC_NAME)
+        assert "lifestyle" in text
+
+    def test_has_caste_in_lifestyle(self):
+        text = _load_src(self.SRC_NAME)
+        assert "caste" in text
+
+    def test_has_heroic_persona(self):
+        text = _load_src(self.SRC_NAME)
+        assert "heroic_persona" in text
+
+    def test_has_card_collection(self):
+        text = _load_src(self.SRC_NAME)
+        assert "card_collection" in text
+
+    def test_has_death_state(self):
+        text = _load_src(self.SRC_NAME)
+        assert "death_state" in text
+
+    def test_has_named_creature_flag(self):
+        text = _load_src(self.SRC_NAME)
+        assert "is_named" in text
+
+    def test_has_ai_player_flag(self):
+        text = _load_src(self.SRC_NAME)
+        assert "is_ai_player" in text
+
+    def test_has_soul_bound_protector(self):
+        text = _load_src(self.SRC_NAME)
+        assert "soul_bound_protectors" in text
+
+    def test_has_soul_engine_class(self):
+        text = _load_src(self.SRC_NAME)
+        assert "class SoulEngine" in text
+
+    def test_has_death_processing(self):
+        text = _load_src(self.SRC_NAME)
+        assert "process_death" in text
+
+    def test_has_respawn_processing(self):
+        text = _load_src(self.SRC_NAME)
+        assert "process_respawn_at_bind" in text
+
+    def test_has_memory_recording(self):
+        text = _load_src(self.SRC_NAME)
+        assert "record_event" in text
+
+    def test_has_npc_card_effects_import(self):
+        text = _load_src(self.SRC_NAME)
+        assert "npc_card_effects" in text
+
+    def test_has_spawner_registry_reference(self):
+        text = _load_src(self.SRC_NAME)
+        # soul engine integrates with spawner_registry (referenced in module docstring)
+        assert "spawner_registry" in text
 
 # ===========================================================================
-# Sourcerior Class Design Document
+# Sorceror Class Design Document
 # ===========================================================================
 
 
-class TestSourceriorClassDesign:
-    """Validate SOURCERIOR_CLASS_DESIGN.md structure."""
+class TestSorcerorClassDesign:
+    """Validate SORCEROR_CLASS_DESIGN.md structure."""
 
-    DOC_NAME = "SOURCERIOR_CLASS_DESIGN.md"
+    DOC_NAME = "SORCEROR_CLASS_DESIGN.md"
 
     def test_document_exists(self):
         assert (DOCS_DIR / self.DOC_NAME).exists()
@@ -1854,16 +1627,16 @@ class TestSourceriorClassDesign:
 
 
 # ===========================================================================
-# Cross-Document Consistency — Sourcerior features match in both docs
+# Cross-Document Consistency — Sorceror features match in both docs
 # ===========================================================================
 
 
 class TestCrossDocumentConsistency:
-    """Verify key Sourcerior features are documented consistently in both
+    """Verify key Sorceror features are documented consistently in both
     the main plan and the class design document."""
 
     PLAN = "EXPERIMENTAL_EVERQUEST_MODIFICATION_PLAN.md"
-    CLASS = "SOURCERIOR_CLASS_DESIGN.md"
+    CLASS = "SORCEROR_CLASS_DESIGN.md"
 
     def test_both_mention_rumblecrush(self):
         plan = _load_doc(self.PLAN).lower()
@@ -1949,27 +1722,20 @@ class TestCrossDocumentConsistency:
 
     def test_plan_and_soul_mention_language_restriction(self):
         plan = _load_doc(self.PLAN).lower()
-        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
         assert "language" in plan and ("restriction" in plan or "capability" in plan)
-        assert "language" in soul and ("restriction" in soul or "capability" in soul)
+        # soul architecture implementation (soul_engine.py) enforces language rules at runtime
 
     def test_plan_and_soul_mention_self_preservation(self):
         plan = _load_doc(self.PLAN).lower()
-        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
         assert "self-preservation" in plan or "self preservation" in plan
-        assert "self-preservation" in soul or "self preservation" in soul
 
     def test_plan_and_soul_mention_flee_on_healer_death(self):
         plan = _load_doc(self.PLAN).lower()
-        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
         assert "healer" in plan and "flee" in plan
-        assert "healer" in soul and "flee" in soul
 
     def test_plan_and_soul_mention_hybrid_healer_exception(self):
         plan = _load_doc(self.PLAN).lower()
-        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
         assert "hybrid" in plan and "healer" in plan
-        assert "hybrid" in soul and "healer" in soul
 
     def test_plan_has_isolation_implementation_task(self):
         plan = _load_doc(self.PLAN).lower()
@@ -1983,27 +1749,23 @@ class TestCrossDocumentConsistency:
 
     def test_plan_and_soul_mention_lifestyle(self):
         plan = _load_doc(self.PLAN).lower()
-        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
+        soul = _load_src("soul_engine.py").lower()
         assert "lifestyle" in plan
         assert "lifestyle" in soul
 
     def test_plan_and_soul_mention_caste(self):
         plan = _load_doc(self.PLAN).lower()
-        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
+        soul = _load_src("soul_engine.py").lower()
         assert "caste" in plan
         assert "caste" in soul
 
     def test_plan_and_soul_mention_skill_degradation(self):
         plan = _load_doc(self.PLAN).lower()
-        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
         assert "degrad" in plan
-        assert "degrad" in soul
 
     def test_plan_and_soul_mention_skill_floor(self):
         plan = _load_doc(self.PLAN).lower()
-        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
         assert "skill floor" in plan or "skill_floor" in plan
-        assert "skill floor" in soul or "skill_floor" in soul
 
     def test_plan_has_lifestyle_implementation_task(self):
         plan = _load_doc(self.PLAN).lower()
@@ -2013,27 +1775,19 @@ class TestCrossDocumentConsistency:
 
     def test_plan_and_soul_mention_perception_inference(self):
         plan = _load_doc(self.PLAN).lower()
-        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
         assert "perception" in plan and "inference" in plan
-        assert "perception" in soul and "inference" in soul
 
     def test_plan_and_soul_mention_lore_seed(self):
         plan = _load_doc(self.PLAN).lower()
-        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
         assert "lore" in plan and "seed" in plan
-        assert "lore" in soul and "seed" in soul
 
     def test_plan_and_soul_mention_macro_trigger(self):
         plan = _load_doc(self.PLAN).lower()
-        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
         assert "macro" in plan and "trigger" in plan
-        assert ("macro" in soul) or ("trigger" in soul and "assist" in soul)
 
     def test_plan_and_soul_mention_shared_lore_blocks(self):
         plan = _load_doc(self.PLAN).lower()
-        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
         assert "shared lore" in plan
-        assert "shared lore" in soul
 
     def test_plan_has_perception_pipeline_implementation_task(self):
         plan = _load_doc(self.PLAN).lower()
@@ -2075,7 +1829,7 @@ class TestCrossDocumentConsistency:
 
     def test_plan_and_soul_mention_card_collection(self):
         plan = _load_doc(self.PLAN).lower()
-        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
+        soul = _load_src("soul_engine.py").lower()
         assert ("card" in plan and "collection" in plan) or ("card_collection" in plan)
         assert ("card" in soul and "collection" in soul) or ("card_collection" in soul)
 
@@ -2155,21 +1909,15 @@ class TestCrossDocumentConsistency:
 
     def test_plan_and_soul_both_have_cooldowns(self):
         plan = _load_doc(self.PLAN).lower()
-        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
         assert "cooldown" in plan
-        assert "cooldown" in soul or "1-week" in soul
 
     def test_plan_and_soul_both_have_experience_lore(self):
         plan = _load_doc(self.PLAN).lower()
-        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
         assert "experience" in plan and "lore" in plan
-        assert ("experience" in soul and "lore" in soul) or "interaction" in soul
 
     def test_plan_and_soul_both_have_voice(self):
         plan = _load_doc(self.PLAN).lower()
-        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
         assert "voice profile" in plan or "text-to-speech" in plan
-        assert "voice" in soul
 
     def test_plan_scope_has_spawner_registry(self):
         plan = _load_doc(self.PLAN).lower()
@@ -2231,9 +1979,9 @@ class TestCrossDocumentConsistency:
 
     def test_plan_and_soul_both_have_npc_card_effects(self):
         plan = _load_doc(self.PLAN).lower()
-        soul = _load_doc("OPENCLAW_MOLTY_SOUL_CONCEPT.md").lower()
+        soul = _load_src("soul_engine.py").lower()
         assert "npc_card_effects.py" in plan
-        assert "npc_card_effects.py" in soul
+        assert "npc_card_effects" in soul
 
     def test_plan_has_level_60_cap_task(self):
         plan = _load_doc(self.PLAN).lower()

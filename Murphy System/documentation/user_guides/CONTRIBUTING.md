@@ -20,7 +20,7 @@ Thank you for your interest in contributing to the Murphy System Runtime! This g
 
 ### Prerequisites
 
-- Python 3.11 or higher
+- Python 3.10 or higher
 - Git
 - Virtual environment (recommended)
 - Text editor or IDE (VS Code, PyCharm, etc.)

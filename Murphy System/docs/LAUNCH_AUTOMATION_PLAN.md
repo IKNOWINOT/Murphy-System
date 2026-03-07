@@ -42,8 +42,8 @@ This document defines the strategy to use **Murphy System to automate its own la
 
 | Requirement | Detail |
 |-------------|--------|
-| **Python** | 3.11+ |
-| **Dependencies** | 100+ packages via `requirements.txt` |
+| **Python** | 3.10+ |
+| **Dependencies** | 100+ packages via `requirements_murphy_1.0.txt` |
 | **Configuration** | `.env` file created from `.env.example` |
 | **RAM** | 4 GB minimum (8 GB recommended) |
 | **Disk** | 500 MB free space |
@@ -52,7 +52,7 @@ This document defines the strategy to use **Murphy System to automate its own la
 
 ```bash
 # Step 1 — Install dependencies
-pip install -r requirements.txt
+pip install -r requirements_murphy_1.0.txt
 
 # Step 2 — Create environment config
 cp "Murphy System/.env.example" "Murphy System/.env"
@@ -305,7 +305,7 @@ Immediate actions to begin execution:
 
 ```bash
 # 1. Install dependencies
-pip install -r requirements.txt
+pip install -r requirements_murphy_1.0.txt
 
 # 2. Create environment configuration
 cp "Murphy System/.env.example" "Murphy System/.env"

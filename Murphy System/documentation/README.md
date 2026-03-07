@@ -95,7 +95,7 @@ Learn how to perform common operations:
 
 ### Prerequisites
 
-- Python 3.11+
+- Python 3.10+
 - 4GB RAM minimum (8GB recommended)
 - 500MB disk space
 

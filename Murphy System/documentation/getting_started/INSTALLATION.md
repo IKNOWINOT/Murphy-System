@@ -22,7 +22,7 @@
 ### Minimum Requirements
 
 - **Operating System**: Linux, macOS, or Windows 10+
-- **Python Version**: 3.11 or higher
+- **Python Version**: 3.10 or higher
 - **RAM**: 4GB minimum
 - **Disk Space**: 500MB free space
 - **CPU**: 2 cores minimum
@@ -30,7 +30,7 @@
 ### Recommended Requirements
 
 - **Operating System**: Linux (Ubuntu 20.04+ recommended)
-- **Python Version**: 3.11 or 3.12
+- **Python Version**: 3.10 or 3.12
 - **RAM**: 8GB or more
 - **Disk Space**: 2GB free space
 - **CPU**: 4 cores or more
@@ -38,7 +38,7 @@
 ### Enterprise Requirements
 
 - **Operating System**: Linux (Ubuntu 22.04+ recommended)
-- **Python Version**: 3.11 or 3.12
+- **Python Version**: 3.10 or 3.12
 - **RAM**: 32GB or more
 - **Disk Space**: 5GB free space
 - **CPU**: 16 cores or more
@@ -107,10 +107,10 @@ pip install --upgrade pip
 
 ```bash
 # Install all required dependencies
-pip install -r requirements.txt
+pip install -r requirements_murphy_1.0.txt
 ```
 
-If `requirements.txt` is not available, install dependencies manually:
+If `requirements_murphy_1.0.txt` is not available, install dependencies manually:
 
 ```bash
 # Core dependencies
@@ -169,7 +169,7 @@ pip install --upgrade pip
 
 ```bash
 # Install all required dependencies
-pip install -r requirements.txt
+pip install -r requirements_murphy_1.0.txt
 ```
 
 ### Step 5: Verify Installation
@@ -386,12 +386,12 @@ curl -X POST http://localhost:8052/api/gates/create \
 # Check Python version
 python --version
 
-# Install Python 3.11+ if needed
+# Install Python 3.10+ if needed
 # Linux
-sudo apt-get install python3.11
+sudo apt-get install python3.10
 
 # macOS
-brew install python@3.11
+brew install python@3.10
 
 # Windows
 # Download from https://www.python.org/downloads/
@@ -408,7 +408,7 @@ python -m venv venv
 source venv/bin/activate
 
 # Or use user installation
-pip install --user -r requirements.txt
+pip install --user -r requirements_murphy_1.0.txt
 ```
 
 ### Issue: Port Already in Use
@@ -437,7 +437,7 @@ python demo/api_server_v2.py --port 8053
 pip install --upgrade pip
 
 # Reinstall dependencies
-pip install --force-reinstall -r requirements.txt
+pip install --force-reinstall -r requirements_murphy_1.0.txt
 
 # Or install manually
 pip install rich prompt-toolkit pyyaml networkx cryptography numpy
