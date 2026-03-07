@@ -40,6 +40,7 @@ _MAX_REVIEWS = 10_000
 
 class AutomationCategory(str, Enum):
     """Category labels for marketplace automation listings."""
+    SCHEDULE = "schedule"
     TRIGGER_EVENT = "trigger_event"
     API_CALL = "api_call"
     FILE_OPERATION = "file_operation"
@@ -53,11 +54,15 @@ class AutomationCategory(str, Enum):
 
 class OwnerType(str, Enum):
     """Ownership scope for a marketplace automation listing."""
+    USER = "user"               # shadow automation — belongs to the individual
     ORGANIZATION = "organization"  # org-chart automation — belongs to the org
 
 
 class ListingStatus(str, Enum):
     """Publication lifecycle status for a marketplace listing."""
+    DRAFT = "draft"
+    PUBLISHED = "published"
+    DEPRECATED = "deprecated"
     REMOVED = "removed"
 
 

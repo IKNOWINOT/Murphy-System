@@ -75,6 +75,7 @@ _FOUNDER_ROLE = "founder_admin"
 
 # Default public hostname for the Cloudflare tunnel
 _DEFAULT_TUNNEL_NAME = "murphy-system"
+_CONNECTIVITY_TEST_HOST = "one.one.one.one"  # Cloudflare DNS — used for internet probe only
 _DEFAULT_SUBDOMAIN = "murphy"
 
 
@@ -85,6 +86,7 @@ _DEFAULT_SUBDOMAIN = "murphy"
 
 class DeployStatus(str, Enum):
     """Overall Cloudflare deployment pipeline status."""
+    NOT_STARTED = "not_started"
     PROBING = "probing"
     PLANNING = "planning"
     AWAITING_APPROVAL = "awaiting_approval"
@@ -97,6 +99,7 @@ class DeployStatus(str, Enum):
 
 class CloudflareStepType(str, Enum):
     """Individual step types in the Cloudflare tunnel deployment sequence."""
+    INSTALL_CLOUDFLARED = "install_cloudflared"
     LOGIN_CLOUDFLARE = "login_cloudflare"
     CREATE_TUNNEL = "create_tunnel"
     WRITE_TUNNEL_CONFIG = "write_tunnel_config"
@@ -344,7 +347,7 @@ class CloudflareDeployProbe:
 
     def _check_internet(self, r: DeployProbeReport) -> None:
         try:
-            sock = socket.create_connection(("1.1.1.1", 443), timeout=5)
+            sock = socket.create_connection((_CONNECTIVITY_TEST_HOST, 443), timeout=5)
             sock.close()
             r.internet_available = True
         except OSError:

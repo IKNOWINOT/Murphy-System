@@ -134,6 +134,9 @@ class ActionType(str, Enum):
 
 class TaskStatus(str, Enum):
     """Execution lifecycle status for a native automation task."""
+    PENDING = "pending"
+    RUNNING = "running"
+    PASSED = "passed"
     FAILED = "failed"
     SKIPPED = "skipped"
 

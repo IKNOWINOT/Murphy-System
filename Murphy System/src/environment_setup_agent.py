@@ -63,6 +63,7 @@ _MAX_AUDIT_LOG = 5_000
 
 class RiskLevel(str, Enum):
     """Risk level classification for environment setup steps."""
+    LOW = "low"           # create directory, create file
     MEDIUM = "medium"     # install Python package, create venv
     HIGH = "high"         # modify env vars, install system packages
     CRITICAL = "critical" # open firewall port, modify system settings
@@ -70,6 +71,9 @@ class RiskLevel(str, Enum):
 
 class StepStatus(str, Enum):
     """Approval status of an environment setup step requiring elevated risk."""
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
     EXECUTED = "executed"
     FAILED = "failed"
     SKIPPED = "skipped"
