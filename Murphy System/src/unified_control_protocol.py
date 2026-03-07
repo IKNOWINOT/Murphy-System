@@ -396,8 +396,8 @@ class UnifiedControlProtocol:
                     )
                     try:
                         self._cge.add_node(cid, "concept", concept)
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        logger.debug("CGE add_node skipped: %s", exc)
                 self._log_step(action_id, "CGE", state, "graph_updated")
 
             state = "translated"
@@ -620,8 +620,8 @@ class UnifiedControlProtocol:
                         0.0,
                         1.0 - float(indicators.complexity_growth) / 6.0,
                     )
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.debug("Architecture health probe failed: %s", exc)
 
             # Governance compliance from PGE
             if self._gov is not None:
@@ -631,8 +631,8 @@ class UnifiedControlProtocol:
                     health["governance_compliance"] = (
                         1.0 if total > 0 else 0.0
                     )
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.debug("Governance compliance probe failed: %s", exc)
 
             # Average CQI across cached actions
             recent_cqi = [
@@ -655,8 +655,8 @@ class UnifiedControlProtocol:
                         "estimated_complexity": "low",
                     })
                     health["simulation_risk"] = float(sim.overall_score)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.debug("Simulation risk probe failed: %s", exc)
 
             return health
 
