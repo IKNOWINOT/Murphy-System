@@ -630,6 +630,31 @@ class LLMController:
 
         return aggregated
 
+    def refresh_availability(self) -> None:
+        """Re-check environment variables and update model availability.
+
+        Call this after a key is added or changed at runtime (e.g. via
+        ``/api/llm/configure``) so Groq models are marked available without
+        requiring an application restart.
+        """
+        groq_available = os.environ.get("GROQ_API_KEY") is not None
+        for model_type, info in self.models.items():
+            if model_type in (LLMModel.GROQ_MIXTRAL, LLMModel.GROQ_LLAMA, LLMModel.GROQ_GEMMA):
+                info.available = groq_available
+
+    def reconfigure(self, api_key: str) -> None:
+        """Update the Groq API key in the environment and refresh availability.
+
+        This is the single call that hot-reloads a new key without restarting
+        the application.  It updates ``os.environ`` directly so that every
+        subsequent ``_query_groq_*`` call picks up the new value.
+
+        Args:
+            api_key: The new Groq API key (must start with ``gsk_``).
+        """
+        os.environ["GROQ_API_KEY"] = api_key
+        self.refresh_availability()
+
     def get_statistics(self) -> Dict[str, Any]:
         """Get usage statistics"""
         return {
