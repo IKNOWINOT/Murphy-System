@@ -9,9 +9,12 @@
 #   bash /path/to/Murphy-System/setup_and_start.sh
 #
 # Copyright © 2020 Inoni Limited Liability Company
-# Creator: Corey Post | License: Apache License 2.0
+# Creator: Corey Post | License: BSL 1.1
 # ============================================================================
-set -euo pipefail
+# NOTE: We intentionally do NOT use `set -euo pipefail` here.
+# On Windows/MINGW64 (Git Bash), pip writes warnings to stderr which causes
+# `pipefail` to treat them as errors, silently killing the script after Step 2.
+# All critical failures are caught with explicit `|| fail "..."` guards instead.
 
 # ---- colors ----------------------------------------------------------------
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
@@ -104,7 +107,8 @@ elif [ -f "$VENV_DIR/Scripts/activate" ]; then
 else
     fail "Cannot find venv activate script in '$VENV_DIR'."
 fi
-pip install --upgrade pip -q 2>/dev/null
+pip --version >/dev/null 2>&1 || fail "venv activation failed — pip not found in venv"
+pip install --upgrade pip -q 2>/dev/null || true
 ok "Virtual environment ready and activated"
 
 # ---- step 3: install dependencies ------------------------------------------
@@ -141,7 +145,8 @@ MURPHY_ENV=development
 MURPHY_PORT=${MURPHY_PORT}
 
 # LLM provider — set to 'groq', 'openai', or 'anthropic' once you add a key below
-MURPHY_LLM_PROVIDER=
+# Defaults to 'local' (onboard LLM, no API key required)
+MURPHY_LLM_PROVIDER=local
 
 # The onboard LLM works without any API key.
 # Add an external key below for enhanced quality (optional).
@@ -172,6 +177,16 @@ echo -e "  ${BOLD}Health:${NC}      ${BLUE}http://localhost:${MURPHY_PORT}/api/h
 echo -e "  ${BOLD}Status:${NC}      ${BLUE}http://localhost:${MURPHY_PORT}/api/status${NC}"
 echo ""
 
+# Determine actual Architect Terminal URL (absolute file path)
+TERMINAL_HTML="$MURPHY_DIR/terminal_architect.html"
+if [ -f "$TERMINAL_HTML" ]; then
+    # Encode spaces for display; other special characters are rare in typical
+    # repository paths and the URL is informational only (not machine-processed).
+    TERMINAL_URL="file://$(printf '%s' "$TERMINAL_HTML" | sed 's| |%20|g')"
+else
+    TERMINAL_URL="http://localhost:${MURPHY_PORT}/docs"
+fi
+
 # Offer choice: backend server vs terminal UI
 if [ -f "$MURPHY_DIR/murphy_terminal.py" ]; then
     echo -e "${CYAN}How would you like to start Murphy?${NC}"
@@ -187,6 +202,23 @@ fi
 echo ""
 cd "$MURPHY_DIR"
 
+# Helper: health-check retry loop — waits up to 30 seconds for backend to be ready
+_wait_for_backend() {
+    local port="$1"
+    local retries=10
+    local delay=3
+    info "Waiting for backend on port ${port}…"
+    for i in $(seq 1 $retries); do
+        if curl -sf "http://localhost:${port}/api/health" >/dev/null 2>&1; then
+            ok "Backend is up at http://localhost:${port}"
+            return 0
+        fi
+        sleep "$delay"
+    done
+    warn "Backend did not respond within $((retries * delay))s — it may still be starting up"
+    return 1
+}
+
 case "$LAUNCH_CHOICE" in
     2)
         echo -e "${CYAN}🚀 Launching Murphy Terminal UI…${NC}"
@@ -197,9 +229,12 @@ case "$LAUNCH_CHOICE" in
     *)
         echo -e "${CYAN}🚀 Starting Murphy System backend on port ${MURPHY_PORT}…${NC}"
         echo -e "${GREEN}${BOLD}→ Open the Architect Terminal in your browser:${NC}"
-        echo -e "  ${BLUE}Murphy System/terminal_architect.html${NC}"
+        echo -e "  ${BLUE}${TERMINAL_URL}${NC}"
         echo -e "${YELLOW}Press Ctrl+C to stop${NC}"
         echo ""
-        $PY murphy_system_1.0_runtime.py
+        $PY murphy_system_1.0_runtime.py &
+        _BACKEND_PID=$!
+        _wait_for_backend "${MURPHY_PORT}" || true
+        wait "$_BACKEND_PID"
         ;;
 esac
