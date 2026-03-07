@@ -36,6 +36,11 @@ try:
     from dotenv import load_dotenv as _load_dotenv
 except ImportError:
     _load_dotenv = None
+
+# B-001: Actually call load_dotenv() so .env variables are loaded at import time
+if _load_dotenv is not None:
+    _load_dotenv(Path(__file__).resolve().parent / ".env", override=False)
+
 from threading import Lock
 
 # Add src to path

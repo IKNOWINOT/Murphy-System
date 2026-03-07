@@ -114,7 +114,7 @@ Validate a system against constraints and gates.
   "system_state": {
     "total_cost": 28000,
     "timeline": 160,
-    "hipaa_compliant": true,
+    "hipaa_aligned": true,
     "security_audit_passed": true,
     "performance_met": true
   }

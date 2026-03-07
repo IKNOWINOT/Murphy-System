@@ -221,7 +221,7 @@ curl -X POST http://localhost:8052/api/system/validate \
     "system_state": {
       "total_cost": 28000,
       "timeline": 160,
-      "hipaa_compliant": true
+      "hipaa_aligned": true
     }
   }'
 ```
