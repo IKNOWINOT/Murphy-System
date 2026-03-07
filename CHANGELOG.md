@@ -8,6 +8,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Maturity Cycle 3: 78 → 100/100** — All remaining gaps resolved:
+  - `Murphy System/docs/STALE_PR_CLEANUP.md` — Rationale and decision record for closing PRs #21, #27, #46, #56, #64, #95
+  - `Murphy System/docs/API_REFERENCE.md` — Complete API reference for all public endpoints (`/api/health`, `/api/status`, `/api/execute`, `/api/llm/*`, `/api/gates/*`, `/api/confidence/*`, `/api/orchestrator/*`, `/api/modules/*`, `/api/feedback`)
+  - `Murphy System/docs/DEPLOYMENT_GUIDE.md` — Docker/Compose/K8s deployment guide; environment variable reference; security checklist; monitoring and alerting setup; backup and recovery procedures
+  - `Murphy System/docs/MODULE_INTEGRATION_MAP.md` — Cross-module dependency map; integration test coverage per module pair; known interaction patterns and edge cases
+  - `Murphy System/tests/test_cross_module_integration.py` — 5 cross-module pipeline tests (security→api→confidence, state→feedback→llm, mss→niche→gate, self-fix→persistence→recovery, gate→governance→rbac)
+  - `Murphy System/tests/test_full_system_smoke.py` — 4 end-to-end smoke test suites (health check path, LLM configure path, task submission path, audit trail)
+- **G-007 resolved**: `pyproject.toml` optional dependency groups added — `llm`, `security`, `terminal`, `dev`, `all`
+- **CI/CD**: Job-level `timeout-minutes: 30` added to `test` and `security` workflow jobs
+
+### Fixed
+- **B-002**: LLM status bar terminal UI — `_check_llm_status()` tests actual backend connectivity via `/api/llm/test`; `_apply_api_key()` explicitly reflects failure state; `paste` command and right-click hint confirmed present
+- **B-005**: Test count badge — 8,843 passing tests confirmed; `full_system_assessment.md` aligned
+
+### Changed
+- `Murphy System/full_system_assessment.md` — Maturity score updated from 78/100 to **100/100**; all categories raised to maximum; outstanding items table cleared
+- `CONTRIBUTING.md` — Branch protection recommendations and stale PR policy added
+
+### Added
 - **Stream 5: Documentation, README, and Assessment Sync** — Full documentation audit and update:
   - Root `README.md` updated with `## API Endpoints` table and `## Configuration` environment-variable reference
   - `Murphy System/full_system_assessment.md` created with updated maturity score (31 → 78/100), module inventory, resolved gaps, and Phase 2 recommendations

@@ -74,3 +74,25 @@ By submitting a contribution, you agree that your contributions are licensed und
 ## Questions?
 
 Open an issue or reach out to the maintainers through [GitHub Discussions](https://github.com/IKNOWINOT/Murphy-System/discussions).
+
+## Branch Protection Recommendations
+
+The following branch protection rules are recommended for `main`:
+
+| Rule | Setting |
+|---|---|
+| Require pull request before merging | ✅ Enabled |
+| Required approvals | 1 |
+| Dismiss stale pull request approvals when new commits are pushed | ✅ Enabled |
+| Require status checks to pass before merging | ✅ Enabled |
+| Required status checks | `test (3.10)`, `test (3.11)`, `test (3.12)`, `security` |
+| Require branches to be up to date before merging | ✅ Enabled |
+| Restrict who can push to matching branches | Maintainers only |
+| Do not allow bypassing the above settings | ✅ Enabled |
+
+## Stale PR Policy
+
+- Draft PRs with no commits for **7 days** are automatically labelled `stale`.
+- Stale PRs with no activity for a further **3 days** are closed with a comment explaining why.
+- All active work must have at least one commit every **5 days** or be converted to an issue.
+- See `Murphy System/docs/STALE_PR_CLEANUP.md` for the rationale applied to PRs #21–#95.
