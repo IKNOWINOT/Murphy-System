@@ -48,7 +48,7 @@ _MAX_AUDIT = 10_000
 
 
 class APIMethod(str, Enum):
-    GET = "GET"
+    """HTTP method enum for outbound API collection requests."""
     POST = "POST"
     PUT = "PUT"
     PATCH = "PATCH"
@@ -64,7 +64,7 @@ class FieldSource(str, Enum):
 
 
 class RequestStatus(str, Enum):
-    DRAFT = "draft"            # being assembled
+    """Lifecycle status of an API request managed by the collection agent."""
     PENDING_APPROVAL = "pending_approval"
     APPROVED = "approved"
     REJECTED = "rejected"
@@ -256,8 +256,8 @@ class APIPreFiller:
                 for part in parts:
                     val = val[part]
                 return val
-            except (KeyError, TypeError):
-                pass
+            except (KeyError, TypeError) as exc:
+                logging.getLogger(__name__).debug("Context path lookup failed for %r: %s", field_name, exc)
 
         # 3. Alias lookup
         for canonical, aliases in self._ALIASES.items():

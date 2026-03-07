@@ -62,16 +62,14 @@ _MAX_AUDIT_LOG = 5_000
 
 
 class RiskLevel(str, Enum):
-    LOW = "low"           # create directory, create file
+    """Risk level classification for environment setup steps."""
     MEDIUM = "medium"     # install Python package, create venv
     HIGH = "high"         # modify env vars, install system packages
     CRITICAL = "critical" # open firewall port, modify system settings
 
 
 class StepStatus(str, Enum):
-    PENDING = "pending"
-    APPROVED = "approved"
-    REJECTED = "rejected"
+    """Approval status of an environment setup step requiring elevated risk."""
     EXECUTED = "executed"
     FAILED = "failed"
     SKIPPED = "skipped"
@@ -282,7 +280,7 @@ class EnvironmentProbe:
             # Use a simple heuristic: read /proc/meminfo on Linux
             meminfo_path = "/proc/meminfo"
             if os.path.exists(meminfo_path):
-                with open(meminfo_path) as f:
+                with open(meminfo_path, encoding="utf-8") as f:
                     for line in f:
                         if line.startswith("MemTotal:"):
                             kb = int(line.split()[1])
