@@ -287,7 +287,7 @@ class KnowledgeBase:
 
                 # Remove cross-references
                 if entry_id in self.cross_references:
-                    del self.cross_references[from_id]
+                    del self.cross_references[entry_id]
 
                 self.stats['total_entries'] = len(self.knowledge_store)
                 self.stats['last_updated'] = datetime.now(timezone.utc).isoformat()

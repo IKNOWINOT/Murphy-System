@@ -12,9 +12,12 @@ CRITICAL: Adapters are EXECUTION TARGETS only. They:
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Any
+from typing import TYPE_CHECKING, Dict, List, Optional, Any
 from enum import Enum
 import time
+
+if TYPE_CHECKING:
+    from .execution_packet_extension import DeviceExecutionPacket
 
 import logging
 
