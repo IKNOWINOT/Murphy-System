@@ -510,6 +510,28 @@ class DataArchiveManager:
 
         return [r.to_dict() for r in matching]
 
+    def get_published_runs(self) -> List[Dict[str, Any]]:
+        """Return all agent run recordings that have been published to YouTube.
+
+        Each entry includes the archive record metadata and the YouTube video URL.
+        Records are ordered chronologically by when they were externalized.
+        """
+        with self._lock:
+            refs = [r for r in self._external_refs if r.platform == "youtube"]
+            records_by_id = {r.record_id: r for r in self._records}
+
+        results = []
+        for ref in sorted(refs, key=lambda r: r.created_at):
+            entry = ref.to_dict()
+            linked_records = []
+            for rec_id in ref.archive_record_ids:
+                rec = records_by_id.get(rec_id)
+                if rec:
+                    linked_records.append(rec.to_dict())
+            entry["linked_records"] = linked_records
+            results.append(entry)
+        return results
+
     # ------------------------------------------------------------------
     # Candidates for externalization
     # ------------------------------------------------------------------

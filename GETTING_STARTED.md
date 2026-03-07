@@ -723,3 +723,181 @@ The valuation model works as follows:
 - **Read the docs** — See the [User Manual](<Murphy System/USER_MANUAL.md>) and [API Documentation](<Murphy System/API_DOCUMENTATION.md>) for detailed guides.
 - **Run the tests** — Execute `pytest` from the `Murphy System/` directory to verify your installation (8,200+ tests including 118 gap-closure regression tests).
 - **Contribute** — Read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on submitting changes.
+
+
+---
+
+## 15. Agent Run Publishing — YouTube Pipeline
+
+Murphy System can automatically record successful agent runs and publish them to YouTube on "The Murphy System" channel. Every upload is content-reviewed for secrets/PII, HITL-gated for approval, and narrated by **MercyAnnouncer** — an open-source TTS announcer personality with Melissa McCarthy–level unhinged enthusiasm.
+
+### Pipeline Overview
+
+```
+AgentRunRecorder → UploadContentReviewer → (HITL approval) → VideoPackager → AnnouncerVoiceEngine → YouTubeUploader → DataArchiveManager
+```
+
+### Quick Start
+
+```python
+from agent_run_recorder import AgentRunRecorder, STATUS_SUCCESS
+from video_packager import VideoPackager
+from youtube_metadata_generator import YouTubeMetadataGenerator
+from upload_content_reviewer import UploadContentReviewer
+from announcer_voice_engine import AnnouncerVoiceEngine
+from youtube_uploader import YouTubeUploader
+from data_archive_manager import DataArchiveManager
+
+# 1. Record a successful run
+recorder = AgentRunRecorder(system_version="1.0")
+recording = recorder.record_run(
+    task_description="Deploy payment gateway to production",
+    task_type="infrastructure",
+    status=STATUS_SUCCESS,
+    confidence_score=0.92,
+    steps=[...],
+    modules_used=["deploy_engine", "health_check"],
+    duration_seconds=142.0,
+)
+
+# 2. Check if publishable (confidence >= 70%)
+if recording.is_publishable():
+
+    # 3. Content review — blocks secrets/PII before upload
+    reviewer = UploadContentReviewer()
+    review = reviewer.review(recording, auto_redact=True)
+    if not review.is_safe:
+        print("Blocked:", [f.description for f in review.findings])
+        exit()
+
+    # 4. Package into video (ffmpeg → Pillow GIF → static fallback)
+    packager = VideoPackager()
+    package = packager.package(recording)
+
+    # 5. Generate MercyAnnouncer narration (open-source TTS)
+    voice_engine = AnnouncerVoiceEngine()
+    audio = voice_engine.narrate(recording)
+    print("Script hook:", audio.script.hook)
+
+    # 6. Generate YouTube metadata (title, description, thumbnail, tags)
+    gen = YouTubeMetadataGenerator()
+    metadata = gen.generate(recording, chapters=package.chapters)
+
+    # 7. Upload (OAuth2 with auto-refresh; degrades to local save if unavailable)
+    uploader = YouTubeUploader()
+    result = uploader.upload_video(package.video_path or package.summary_path, metadata)
+
+    # 8. Archive the external reference
+    archive = DataArchiveManager()
+    if result.video_url:
+        archive.externalize_to_platform(
+            record_ids=[recording.run_id],
+            platform="youtube",
+            url=result.video_url,
+            title=metadata.title,
+        )
+
+    # 9. List all published runs
+    published = archive.get_published_runs()
+```
+
+### First-Time YouTube Setup
+
+```python
+from youtube_channel_bootstrap import YouTubeChannelBootstrap
+
+bootstrap = YouTubeChannelBootstrap()
+status = bootstrap.check_youtube_setup()
+
+if not status["ready"]:
+    print(bootstrap.get_setup_instructions())
+else:
+    bootstrap.verify_channel_access()
+```
+
+Or use CLI commands:
+
+```bash
+murphy youtube status      # Check setup
+murphy youtube connect     # Run OAuth2 flow
+murphy youtube settings    # View/update settings
+murphy recordings          # List publishable runs
+murphy publish <run_id>    # Trigger full upload pipeline
+```
+
+### MercyAnnouncer — The Voice of Murphy
+
+MercyAnnouncer is the open-source TTS persona that narrates every agent run. She has Melissa McCarthy–level energy: genuinely hyped about success, brutally honest about failure, and always entertaining.
+
+**TTS backend priority (all open-source, no API keys):**
+1. `pyttsx3` — cross-platform, fully offline
+2. `espeak`/`espeak-ng` — system TTS
+3. Text fallback — writes script to `.txt` file (always available)
+
+**Example output:**
+
+```
+=== HOOK ===
+OH. OH WE ARE STARTING. Welcome, welcome, WELCOME to what is about to be an
+absolute JOURNEY. Murphy System just tackled 'Deploy payment gateway to production'.
+End result? 92% confidence. We're going to walk through every single step. TOGETHER.
+
+=== CONFIDENCE UPDATE ===
+NINETY. TWO. PERCENT. Do you understand what that MEANS?! I'M GOING TO NEED A MOMENT.
+
+=== RESULT ===
+AND THAT IS A WRAP! STATUS: SUCCESS COMPLETED! CONFIDENCE: 92%! DURATION: 2m 22s!
+Murphy did THAT!
+
+=== CALL TO ACTION ===
+Subscribe to the channel. Murphy's not done. I'm not done. NONE OF US ARE DONE.
+```
+
+### Video Package Modes
+
+| Mode | Requires | Output |
+|---|---|---|
+| **A — ffmpeg** | `ffmpeg` + Pillow | MP4 video with branded frames |
+| **B — Pillow** | Pillow | Animated GIF |
+| **C — Static** | Nothing | Branded thumbnail PNG + summary JSON/MD |
+
+### Content Safety
+
+Every recording is scanned for 15 pattern types before upload:
+
+- API keys (Groq `gsk_*`, OpenAI `sk-*`, AWS `AKIA*`, Slack `xoxb-*`, Bearer tokens)
+- PII (email addresses, phone numbers, SSN patterns)
+- Database URLs (PostgreSQL, Redis, MongoDB)
+- Private key blocks
+- Internal file paths
+
+Set `auto_redact=True` to automatically replace findings with `[REDACTED]` and re-verify.
+
+### Archive Integration
+
+After upload, use the existing `DataArchiveManager` to link the YouTube URL to archive records:
+
+```python
+# Returns all published runs with their YouTube URLs
+published = archive.get_published_runs()
+# [{"platform": "youtube", "url": "https://youtube.com/watch?v=...", ...}]
+
+# Find runs published in a date range
+refs = archive.find_externalized_for_period(start="2024-01-01", end="2024-12-31")
+```
+
+See §12 (Data Archive) for full details on the external content library system.
+
+### API Endpoints
+
+| Endpoint | Method | Purpose |
+|---|---|---|
+| `/api/recordings` | GET | List recorded runs (filters: status, min\_confidence, publishable\_only) |
+| `/api/recordings/{run_id}` | GET | Get recording details |
+| `/api/recordings/{run_id}/publish` | POST | Trigger full upload pipeline |
+| `/api/recordings/{run_id}/review` | GET | Get content review results |
+| `/api/youtube/status` | GET | Channel status, quota, recent uploads |
+| `/api/youtube/connect` | POST | Initiate OAuth2 flow |
+| `/api/youtube/settings` | GET/PUT | Publishing settings (auto-approve threshold, default privacy) |
+
+See [API_DOCUMENTATION.md](<Murphy System/API_DOCUMENTATION.md>) for full details.
