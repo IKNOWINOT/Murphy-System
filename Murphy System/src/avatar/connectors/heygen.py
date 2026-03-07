@@ -14,7 +14,7 @@ _UNAVAILABLE_RESPONSE: Dict[str, str] = {
     "status": "unavailable",
     "reason": "API key not configured",
 }
-_TIMEOUT = 30
+_TIMEOUT = 5
 
 
 class HeyGenConnector:
