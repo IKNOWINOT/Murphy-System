@@ -140,6 +140,20 @@ except ImportError as e:
     print(f"Warning: Adapter runtime not available: {e}")
     AdapterRuntime = None
 
+# MSS Controls & Intelligence Layer
+try:
+    from src.resolution_scoring import ResolutionDetectionEngine
+    from src.information_density import InformationDensityEngine
+    from src.structural_coherence import StructuralCoherenceEngine
+    from src.information_quality import InformationQualityEngine
+    from src.concept_translation import ConceptTranslationEngine
+    from src.simulation_engine import StrategicSimulationEngine
+    from src.mss_controls import MSSController
+    _mss_available = True
+except ImportError as e:
+    print(f"Warning: MSS controls not available: {e}")
+    _mss_available = False
+
 # Org Chart System
 try:
     from src.organization_chart_system import OrganizationChart
@@ -15004,6 +15018,76 @@ def create_app() -> FastAPI:
         if _credential_system is None:
             return JSONResponse({"success": False, "error": "Credential system not available"}, status_code=503)
         return JSONResponse({"success": True, "metrics": _credential_system.get_optimal_automation_metrics()})
+
+    # ==================== MSS Controls API ====================
+    _mss_controller = None
+    if _mss_available:
+        try:
+            _rde = ResolutionDetectionEngine()
+            _ide = InformationDensityEngine()
+            _sce = StructuralCoherenceEngine()
+            _iqe = InformationQualityEngine(_rde, _ide, _sce)
+            _cte = ConceptTranslationEngine()
+            _sim = StrategicSimulationEngine()
+            _mss_controller = MSSController(_iqe, _cte, _sim)
+            logger.info("MSS Controls initialized successfully")
+        except Exception as exc:
+            logger.warning("MSS Controls initialization failed: %s", exc)
+
+    @app.post("/api/mss/magnify")
+    async def mss_magnify(request: Request):
+        """Magnify — increase resolution of input text."""
+        if _mss_controller is None:
+            return JSONResponse({"success": False, "error": "MSS controls not available"}, status_code=503)
+        data = await request.json()
+        text = data.get("text", "")
+        context = data.get("context")
+        if not text:
+            return JSONResponse({"success": False, "error": "text is required"}, status_code=400)
+        from dataclasses import asdict as _asdict
+        result = _mss_controller.magnify(text, context)
+        return JSONResponse({"success": True, "result": _asdict(result)})
+
+    @app.post("/api/mss/simplify")
+    async def mss_simplify(request: Request):
+        """Simplify — decrease resolution of input text."""
+        if _mss_controller is None:
+            return JSONResponse({"success": False, "error": "MSS controls not available"}, status_code=503)
+        data = await request.json()
+        text = data.get("text", "")
+        context = data.get("context")
+        if not text:
+            return JSONResponse({"success": False, "error": "text is required"}, status_code=400)
+        from dataclasses import asdict as _asdict
+        result = _mss_controller.simplify(text, context)
+        return JSONResponse({"success": True, "result": _asdict(result)})
+
+    @app.post("/api/mss/solidify")
+    async def mss_solidify(request: Request):
+        """Solidify — convert input text to implementation plan."""
+        if _mss_controller is None:
+            return JSONResponse({"success": False, "error": "MSS controls not available"}, status_code=503)
+        data = await request.json()
+        text = data.get("text", "")
+        context = data.get("context")
+        if not text:
+            return JSONResponse({"success": False, "error": "text is required"}, status_code=400)
+        from dataclasses import asdict as _asdict
+        result = _mss_controller.solidify(text, context)
+        return JSONResponse({"success": True, "result": _asdict(result)})
+
+    @app.post("/api/mss/score")
+    async def mss_score(request: Request):
+        """Score input text quality — returns InformationQuality assessment."""
+        if _mss_controller is None:
+            return JSONResponse({"success": False, "error": "MSS controls not available"}, status_code=503)
+        data = await request.json()
+        text = data.get("text", "")
+        if not text:
+            return JSONResponse({"success": False, "error": "text is required"}, status_code=400)
+        from dataclasses import asdict as _asdict
+        quality = _mss_controller._iqe.assess(text)
+        return JSONResponse({"success": True, "quality": _asdict(quality)})
 
     return app
 
