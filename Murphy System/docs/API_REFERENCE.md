@@ -16,7 +16,7 @@ issued by the auth subsystem (`src/flask_security.py` / `src/fastapi_security.py
 Authorization: Bearer <your-token>
 ```
 
-Rate limiting: 100 requests/minute per IP for anonymous; 1 000 requests/minute
+Rate limiting: 100 requests/minute per IP for anonymous; 1,000 requests/minute
 for authenticated users (configurable via `MURPHY_RATE_LIMIT` env var).
 
 ---
