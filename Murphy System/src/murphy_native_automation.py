@@ -75,7 +75,7 @@ _GHOST_RUNNER_PATH = os.path.join(
 
 
 class TaskType(str, Enum):
-    # UI / E2E
+    """High-level task category for native Murphy automation tasks."""
     VERIFY_UI_LOADED = "verify_ui_loaded"
     ASSERT_ELEMENT = "assert_element"
     SIMULATE_ERROR = "simulate_error"
@@ -97,7 +97,7 @@ class TaskType(str, Enum):
 
 
 class ActionType(str, Enum):
-    # ── UITestingFramework actions ──────────────────────────────────────────
+    """Atomic action type dispatched by the native automation runner."""
     NAVIGATE = "navigate"               # E2ETestHarness.load_page
     ASSERT_VISIBLE = "assert_visible"   # E2ETestHarness.assert_element_exists
     WAIT_FOR_SELECTOR = "wait_for_selector"
@@ -133,9 +133,7 @@ class ActionType(str, Enum):
 
 
 class TaskStatus(str, Enum):
-    PENDING = "pending"
-    RUNNING = "running"
-    PASSED = "passed"
+    """Execution lifecycle status for a native automation task."""
     FAILED = "failed"
     SKIPPED = "skipped"
 

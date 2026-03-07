@@ -39,7 +39,7 @@ _MAX_REVIEWS = 10_000
 
 
 class AutomationCategory(str, Enum):
-    SCHEDULE = "schedule"
+    """Category labels for marketplace automation listings."""
     TRIGGER_EVENT = "trigger_event"
     API_CALL = "api_call"
     FILE_OPERATION = "file_operation"
@@ -52,14 +52,12 @@ class AutomationCategory(str, Enum):
 
 
 class OwnerType(str, Enum):
-    USER = "user"               # shadow automation — belongs to the individual
+    """Ownership scope for a marketplace automation listing."""
     ORGANIZATION = "organization"  # org-chart automation — belongs to the org
 
 
 class ListingStatus(str, Enum):
-    DRAFT = "draft"
-    PUBLISHED = "published"
-    DEPRECATED = "deprecated"
+    """Publication lifecycle status for a marketplace listing."""
     REMOVED = "removed"
 
 
@@ -318,7 +316,7 @@ class AutomationMarketplace:
 
             # Recalculate average
             all_ratings = [r.rating for r in reviews_list]
-            listing.average_rating = sum(all_ratings) / len(all_ratings)
+            listing.average_rating = sum(all_ratings) / (len(all_ratings) or 1)
             listing.review_count = len(reviews_list)
             listing.updated_at = datetime.now(timezone.utc).isoformat()
             self._audit("add_review", listing_id, {

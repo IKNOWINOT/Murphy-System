@@ -43,14 +43,14 @@ _MAX_SUGGESTIONS = 5_000
 
 
 class SuggestionState(str, Enum):
-    PENDING = "pending"     # shown in overlay, awaiting user action
+    """Lifecycle state of a UI suggestion shown in the highlight overlay."""
     ACCEPTED = "accepted"   # user accepted via right-click
     IGNORED = "ignored"     # user dismissed via right-click
     EXPIRED = "expired"     # no longer relevant
 
 
 class SuggestionCategory(str, Enum):
-    AUTOMATION = "automation"           # "automate this repeated action"
+    """Category of automation suggestion surfaced by the highlight overlay."""
     API_CALL = "api_call"               # "fill and submit this API request"
     WORKFLOW = "workflow"               # "build a workflow from this pattern"
     DOCUMENTATION = "documentation"    # "document this process"

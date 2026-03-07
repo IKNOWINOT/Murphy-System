@@ -84,7 +84,7 @@ _DEFAULT_SUBDOMAIN = "murphy"
 
 
 class DeployStatus(str, Enum):
-    NOT_STARTED = "not_started"
+    """Overall Cloudflare deployment pipeline status."""
     PROBING = "probing"
     PLANNING = "planning"
     AWAITING_APPROVAL = "awaiting_approval"
@@ -96,7 +96,7 @@ class DeployStatus(str, Enum):
 
 
 class CloudflareStepType(str, Enum):
-    INSTALL_CLOUDFLARED = "install_cloudflared"
+    """Individual step types in the Cloudflare tunnel deployment sequence."""
     LOGIN_CLOUDFLARE = "login_cloudflare"
     CREATE_TUNNEL = "create_tunnel"
     WRITE_TUNNEL_CONFIG = "write_tunnel_config"
