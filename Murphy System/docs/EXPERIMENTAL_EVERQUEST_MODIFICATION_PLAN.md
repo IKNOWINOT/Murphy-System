@@ -4,13 +4,13 @@
 **Version:** 3.0.0
 **Date:** 2026-03-01
 **Status:** Experimental / Draft
-**Codename:** Project Sourcerior
+**Codename:** Project Sorceror
 
 ---
 
 ## 1. Executive Summary
 
-This document defines the complete plan for an **experimental modification of EverQuest** powered by the Murphy System's multi-Rosetta soul architecture. The modification introduces Murphy-driven AI agents as in-game NPCs with persistent souls, a novel hybrid class called the **Sourcerior** (monk/mage hybrid — primarily a damage class with situational utility), integrated voice chat with raid-leader moderation, a faction-based agent warfare system, and a player-vs-agent duel-and-loot mechanic. The entire experience is designed to be **streamed live**.
+This document defines the complete plan for an **experimental modification of EverQuest** powered by the Murphy System's multi-Rosetta soul architecture. The modification introduces Murphy-driven AI agents as in-game NPCs with persistent souls, a novel hybrid class called the **Sorceror** (monk/mage hybrid — primarily a damage class with situational utility), integrated voice chat with raid-leader moderation, a faction-based agent warfare system, and a player-vs-agent duel-and-loot mechanic. The entire experience is designed to be **streamed live**.
 
 The server is a **Planes of Power progression server** with leveling that mirrors the **original EverQuest experience** — same XP rates, hell levels, death penalties, and zone progression — built into the Planes of Power ending as the culmination of the journey. A universal **Remake System** allows any class that maxes out level, AA, and skills to "remake" with a 1% permanent increase in stat and skill caps, starting again slightly stronger.
 
@@ -20,7 +20,7 @@ When **towns are conquered** through faction warfare, it is the **leadership and
 
 NPCs live full daily lives through an **NPC lifestyle system**: they sleep, work jobs (smithing, merchant, brewing, guarding), and adventure when off-duty. Town buildings are owned by NPC characters — the smith who runs the forge is a real agent with a soul document, not a static game construct. NPCs follow a **caste system** (royals, nobles, commoners, dhampirs, servants) and their trade skills **degrade without practice** — one week of inactivity fades skill toward 50, while leveling up locks a permanent **skill floor** preventing full decay.
 
-The agent soul system follows the **OpenClaw Molty soul.md** pattern (see `OPENCLAW_MOLTY_SOUL_CONCEPT.md`) where each agent's Rosetta state document acts as its persistent soul — driving memory, recall, faction loyalty, combat decisions, and social interactions.
+The agent soul system is implemented in `src/eq/soul_engine.py`, where each agent's Rosetta state document acts as its persistent soul — driving memory, recall, faction loyalty, combat decisions, and social interactions.
 
 Agent behavior is powered by a **macro-trigger system** modeled on classic EQ bot patterns (`/assist`, `/follow`, `/attack`, `/cast`) and a **rapid perception-inference-action pipeline** that scans game state every ~250ms, evaluates against the soul document, and writes decisions back to the agent's mind. All agent souls are **lore-seeded** from the EQEmu NPC database — every existing NPC, mob, and raid boss serves as a foundation for agent identity. **The Sleeper (Kerafyrm)** operates as a world-event agent restricted to level 60+ zones, with its storyline pre-seeded in all character memories. Awakening The Sleeper triggers **dragon /tell coordination** across factions, with hostile dragon factions temporarily cooperating to stop the raid unless already engaged elsewhere.
 
@@ -43,7 +43,7 @@ AI agents operate with **experience-based lore** — they only recall history wi
 | **Class Play-Style Templates** | Immutable how-to-play guides for each agent class archetype | Soul engine, server config |
 | **Agent Permadeath** | Permanent death for agents — no respawn unless betrayed by ally | Soul engine, death state tracking |
 | **Town Conquest** | Leadership and guards defend towns in faction warfare sieges | Faction system, permadeath, agent spawning |
-| **Sourcerior Class** | Monk/mage hybrid — primarily damage with situational utility | Game client modification, spell/ability tables |
+| **Sorceror Class** | Monk/mage hybrid — primarily damage with situational utility | Game client modification, spell/ability tables |
 | **Voice Chat Integration** | Group/raid toggle voice with admin moderation | WebRTC or Mumble protocol, Murphy admin controls |
 | **Faction Soul System** | Agent-to-agent warfare driven by faction standings | Soul engine, faction DB, event backbone |
 | **Individual Agent Faction** | Per-agent interaction-based reputation with players | Soul engine, interaction tracker |
@@ -67,8 +67,8 @@ AI agents operate with **experience-based lore** — they only recall history wi
 
 | Document | Purpose |
 |---|---|
-| `OPENCLAW_MOLTY_SOUL_CONCEPT.md` | Agent soul / memory / archive / recall architecture |
-| `SOURCERIOR_CLASS_DESIGN.md` | Full Sourcerior class ability and scaling design |
+| `src/eq/soul_engine.py` | Agent soul / memory / archive / recall architecture (actual implementation) |
+| `SORCEROR_CLASS_DESIGN.md` | Full Sorceror class ability and scaling design |
 | `RACE_CULTURAL_IDENTITY_DESIGN.md` | Race cultural identities, orc playable race, agent cultural personality |
 | `inference_gate_engine.py` | Existing multi-Rosetta soul pattern implementation |
 | `ROSETTA_STATE_MANAGEMENT_SYSTEM.md` | State management architecture reference |
@@ -81,7 +81,7 @@ AI agents operate with **experience-based lore** — they only recall history wi
 
 ### 3.1 Soul Document Structure
 
-Each Murphy agent in-game carries a **Rosetta soul document** — a persistent, structured state file that acts as the agent's memory, personality, and decision-making core. The soul document follows the OpenClaw Molty soul.md concept adapted for game NPCs.
+Each Murphy agent in-game carries a **Rosetta soul document** — a persistent, structured state file that acts as the agent's memory, personality, and decision-making core. The soul document architecture is implemented in `src/eq/soul_engine.py` and adapted for game NPCs.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -280,7 +280,7 @@ When a **town or city is conquered** through faction warfare, it is the **town l
 | **Guard Captain** | Commands the guard force. Coordinates defense positioning and rallies guards |
 | **Town Guards** | Standing military force of the town. These are the primary combatants in a siege |
 | **Elite Guards** | Stronger named guard agents with full soul documents — permadeath applies |
-| **Civilian NPCs** | Non-combatants — NPC characters who fill job roles (smiths, merchants, brewers, tailors — see section 3.11). They **do not fight** and are not targeted |
+| **Civilian NPCs** | Non-combatants — NPC characters who fill job roles (smiths, merchants, brewers, tailors — see section 3.10). They **do not fight** and are not targeted |
 
 **Conquest mechanics:**
 - Faction warfare can escalate to **town sieges** when one faction's agents amass enough force near an enemy town
@@ -318,7 +318,7 @@ Agents treat their life as if it is **their only life** (because it is — perma
 
 **Flee triggers:**
 - **"Run" command** — if any group member (player or agent) says or signals "run", the agent flees immediately
-- **Healer death** — if the group's dedicated healer (cleric archetype) dies, agents flee unless a **hybrid healer** (e.g., a Sourcerior with pet heals, a beastlord, or a druid) is still alive and actively sustaining the group
+- **Healer death** — if the group's dedicated healer (cleric archetype) dies, agents flee unless a **hybrid healer** (e.g., a Sorceror with pet heals, a beastlord, or a druid) is still alive and actively sustaining the group
 - **HP threshold** — agents begin evaluating flee at 20% HP if no healer is available
 - **Group wipe momentum** — if 3+ group members die in rapid succession, surviving agents flee
 
@@ -329,7 +329,7 @@ Agents treat their life as if it is **their only life** (because it is — perma
 
 **Flee behavior:**
 - Fleeing agents attempt to run to the nearest zone line or safe area
-- Sourceriors with **Liquify** active (water pets, level 40+) can use aggro drop + invisibility to escape cleanly (see `SOURCERIOR_CLASS_DESIGN.md` section 2.12)
+- Sorcerors with **Liquify** active (water pets, level 40+) can use aggro drop + invisibility to escape cleanly (see `SORCEROR_CLASS_DESIGN.md` section 2.12)
 - Fleeing agents remember the encounter and hold **grudges** against entities that caused the wipe
 - An agent that successfully flees retains its full soul document — memory, gear, and faction standing intact
 
@@ -531,7 +531,7 @@ Every existing EverQuest NPC, named mob, and raid boss serves as a **foundation 
 **How lore seeding works:**
 - At server initialization, the **lore import pipeline** reads the EQEmu database and lore sources
 - Each named NPC becomes the basis for an **agent soul document** — its name, faction, zone, level, and known relationships are pre-populated
-- NPCs that are merchants, guards, or quest givers are assigned appropriate **job roles** (section 3.11) based on their original function
+- NPCs that are merchants, guards, or quest givers are assigned appropriate **job roles** (section 3.10) based on their original function
 - Named mobs and raid bosses become **elite agents** with richer soul documents — deeper faction ties, more combat knowledge, and leadership caste assignments
 - Zone-specific NPCs receive **zone knowledge** pre-seeded in their long-term archive — they "know" their home zone from birth
 - Faction relationships from the original EQ faction system are mapped directly into the agent faction alignment layer
@@ -647,9 +647,9 @@ The leveling experience is designed to **mirror the original EverQuest progressi
 | **Luclin** | 65 | Luclin zones, Vex Thal, AAs introduced | 8 weeks |
 | **Planes of Power** | 65 | Planar progression, Plane of Time, full AA | Permanent |
 
-### 4.4 Sourcerior in Progression
+### 4.4 Sorceror in Progression
 
-The Sourcerior class is available from Classic era but its abilities scale through progression:
+The Sorceror class is available from Classic era but its abilities scale through progression:
 
 - **Classic**: Core melee, basic procs, 1–2 pets, first melds unlock
 - **Kunark**: Full proc set, 4 pets, all basic melds, epic quest begins
@@ -663,7 +663,7 @@ The Sourcerior class is available from Classic era but its abilities scale throu
 
 ### 5.1 Overview
 
-The **Remake System** is a universal prestige mechanic that applies to **every class** (including the Sourcerior and all AI agent classes). Once a character has maximized all progression milestones, they can "remake" — resetting to level 1 with a permanent **1% increase in all stat and skill caps**.
+The **Remake System** is a universal prestige mechanic that applies to **every class** (including the Sorceror and all AI agent classes). Once a character has maximized all progression milestones, they can "remake" — resetting to level 1 with a permanent **1% increase in all stat and skill caps**.
 
 ### 5.2 Remake Requirements
 
@@ -709,25 +709,25 @@ AI agents also participate in the Remake System:
 ### 5.6 Design Philosophy
 
 - **Slightly stronger each cycle**: The 1% increase is intentionally small — it rewards dedication without creating power gaps
-- **Applies to every class**: Monks, mages, clerics, bards, and the Sourcerior all benefit equally
+- **Applies to every class**: Monks, mages, clerics, bards, and the Sorceror all benefit equally
 - **Infinite ceiling**: There is no cap on remakes — a character can theoretically remake indefinitely
 - **Visible prestige**: The remake counter serves as a prestige indicator for both players and agents
 
 ---
 
-## 6. Sourcerior Class Design
+## 6. Sorceror Class Design
 
-> Full design specification: `SOURCERIOR_CLASS_DESIGN.md`
+> Full design specification: `SORCEROR_CLASS_DESIGN.md`
 
 ### 6.1 Class Identity
 
-The Sourcerior is a **monk/mage hybrid** — **primarily a damage class** with a wide range of **situational utility** and a unique **avoidance tanking** capability. The class favors proc-based damage over direct-cast nukes, summons up to 6 elementals of four types (earth, air, fire, water), and provides group utility through **bard proc line** effects. The Sourcerior can **meld with pets** for elemental aspect buffs, and wields a **two-handed staff** as its core weapon.
+The Sorceror is a **monk/mage hybrid** — **primarily a damage class** with a wide range of **situational utility** and a unique **avoidance tanking** capability. The class favors proc-based damage over direct-cast nukes, summons up to 6 elementals of four types (earth, air, fire, water), and provides group utility through **bard proc line** effects. The Sorceror can **meld with pets** for elemental aspect buffs, and wields a **two-handed staff** as its core weapon.
 
 **Eligible races:** Dark Elf, Erudite, Human, High Elf, Gnome (int caster races).
 
-The Sourcerior has **higher proc modifiers than any other class** — the slower the weapon, the better. **Discipline of Rumblecrush** enables emergency avoidance tanking for the same duration as a warrior's **Defensive Discipline** (~180s), with pets gaining Defensive-like mitigation. This burns mana per proc, making **beastlord** mana sustain essential.
+The Sorceror has **higher proc modifiers than any other class** — the slower the weapon, the better. **Discipline of Rumblecrush** enables emergency avoidance tanking for the same duration as a warrior's **Defensive Discipline** (~180s), with pets gaining Defensive-like mitigation. This burns mana per proc, making **beastlord** mana sustain essential.
 
-The **single-element rule** restricts pet groups to one element at a time unless the Sourcerior acquires **Lord of the Maelstrom** — a level 60 raid drop from the final Plane of Sky boss that permanently lifts the restriction.
+The **single-element rule** restricts pet groups to one element at a time unless the Sorceror acquires **Lord of the Maelstrom** — a level 60 raid drop from the final Plane of Sky boss that permanently lifts the restriction.
 
 ### 6.2 Core Mechanics Summary
 
@@ -749,11 +749,11 @@ The **single-element rule** restricts pet groups to one element at a time unless
 
 ### 6.3 Scaling Philosophy
 
-The Sourcerior scales between monk and mage power curves:
+The Sorceror scales between monk and mage power curves:
 - At low levels, plays mostly as a monk with minor pet summons
 - At mid levels, proc effects become meaningful and pet count increases
 - At high levels, the full 6-pet army with proc-based AE DPS and meld cycling is online
-- Bard proc lines of equivalent level should always be **stronger** than Sourcerior procs
+- Bard proc lines of equivalent level should always be **stronger** than Sorceror procs
 - The value is in the combination: melee DPS + pet DPS + meld aspects + proc utility
 - **Two-handed staves** are the core weapon — high base damage maximizes proc and meld scaling
 - Can also dual wield **1H slashing** and **1H piercing** weapons (no 1H blunt)
@@ -1655,7 +1655,7 @@ Every entity in the game has card effects **automatically generated** from an **
 
 | Modification | Description |
 |---|---|
-| **Sourcerior class** | New class entries in spell/ability tables, client UI |
+| **Sorceror class** | New class entries in spell/ability tables, client UI |
 | **Voice UI** | Push-to-talk keybind, voice indicators, toggle UI |
 | **Duel UI** | Challenge dialog, stake selection, outcome display |
 | **Agent indicators** | Visual markers for Murphy agents vs regular NPCs |
@@ -2104,9 +2104,9 @@ Every entity in the game has card effects **automatically generated** from an **
 - [x] Set up EQEmu development server with Planes of Power progression config
 - [x] Configure original EQ XP rates and leveling curve (hell levels, death penalty, corpse runs)
 - [x] Implement soul engine with memory/archive/recall
-- [x] Create Sourcerior class in spell/ability tables
-- [x] Configure Sourcerior eligible races (Dark Elf, Erudite, Human, High Elf, Gnome)
-- [x] Configure Sourcerior armor restrictions (cloth, leather, Fungi Tunic)
+- [x] Create Sorceror class in spell/ability tables
+- [x] Configure Sorceror eligible races (Dark Elf, Erudite, Human, High Elf, Gnome)
+- [x] Configure Sorceror armor restrictions (cloth, leather, Fungi Tunic)
 - [x] Implement AI agent class archetypes (pure melee, int caster, cleric)
 - [x] Define immutable class play-style templates for each agent archetype
 - [x] Basic agent spawning with soul documents
@@ -2119,7 +2119,7 @@ Every entity in the game has card effects **automatically generated** from an **
 
 ### Phase 2: Combat & Class (Weeks 5–8)
 
-- [x] Implement Sourcerior abilities (procs, pets, flame blink, sacrifice)
+- [x] Implement Sorceror abilities (procs, pets, flame blink, sacrifice)
 - [x] Implement Invoke Pet / Meld system (earth, air, fire, water aspects)
 - [x] Implement AE mez spells from enchanter category
 - [x] Implement bard proc line system (overhaste, ATK, AC, pet heal — weaker than bard equivalents)
@@ -2129,7 +2129,7 @@ Every entity in the game has card effects **automatically generated** from an **
 - [x] Implement Lord of the Maelstrom discipline (level 60 raid drop — lifts single-element restriction)
 - [x] Implement weapon restrictions (1H slashing, 1H piercing, staves only — no 1H blunt)
 - [x] Implement two-handed staff weapon class and epic quest framework
-- [x] Implement Sourcerior Liquify ability (aggro drop + invis with water pets, level 40+)
+- [x] Implement Sorceror Liquify ability (aggro drop + invis with water pets, level 40+)
 - [x] Implement agent permadeath system (death archival, soul removal)
 - [x] Implement betrayal detection and resurrection exception
 
@@ -2140,7 +2140,7 @@ Every entity in the game has card effects **automatically generated** from an **
 - [x] Implement grudge and friendship mechanics in soul documents
 - [x] Implement actions-only expression rule (no verbal agent responses)
 - [x] Implement agent self-preservation and flee behavior (flee on "run" command, healer death, group wipe)
-- [x] Implement flee exception for hybrid healer sustain (beastlord, druid, Sourcerior pet heals)
+- [x] Implement flee exception for hybrid healer sustain (beastlord, druid, Sorceror pet heals)
 - [x] Implement duel challenge and loot system
 - [x] Implement inspect asymmetry (agent knowledge base gating)
 - [x] Implement town conquest system (leadership and guards as defenders)
@@ -2273,7 +2273,7 @@ Every entity in the game has card effects **automatically generated** from an **
 | **Zone Selection** | Which zones to deploy agents in initially |
 | **Faction Design** | Number of factions, alignment distribution, territory map |
 | **Agent Count** | Target number of concurrent soul-bearing agents |
-| **Sourcerior Balance** | Target DPS range relative to monks and mages at each tier |
+| **Sorceror Balance** | Target DPS range relative to monks and mages at each tier |
 | **Voice Platform** | Self-hosted WebRTC vs Mumble vs Discord bridge |
 | **Stream Platform** | Twitch, YouTube, or multi-platform |
 | **Hardware Budget** | Server specs for game + Murphy + voice + stream |

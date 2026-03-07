@@ -196,7 +196,7 @@ Orcs are introduced as a **new playable race** with the following design:
 
 **Agent behavior:** Dwarf Murphy agents are loyal to their clan leader, tough in adversity, and organize in fast-moving war parties. They value proven strength and shared endurance.
 
-### 3.11 Ogre — Dictatorship with Rebellion
+### 3.10 Ogre — Dictatorship with Rebellion
 
 **Core philosophy:** *"The strong rule. But strength is contested."*
 
@@ -351,7 +351,7 @@ Orcs mirror **barbarian class availability**:
 | **Rogue** | Yes | Orc scouts and ambushers |
 | **Shaman** | Yes | Tribal spiritual leaders |
 | **Beastlord** | Yes | Beast-bonded orc warriors (Luclin era) |
-| **Sourcerior** | No | Not available to orcs |
+| **Sorceror** | No | Not available to orcs |
 
 ### 5.3 Orc Starting Faction
 

@@ -110,7 +110,7 @@ source venv/bin/activate  # Linux/macOS
 venv\Scripts\activate     # Windows
 
 # Install dependencies
-pip install -r requirements.txt
+pip install -r requirements_murphy_1.0.txt
 ```
 
 ### Step 2: Configure Development Settings
@@ -186,7 +186,7 @@ python -m venv venv
 source venv/bin/activate
 
 # Install dependencies
-pip install -r requirements.txt
+pip install -r requirements_murphy_1.0.txt
 ```
 
 ### Step 2: Configure Staging Settings
@@ -328,7 +328,7 @@ python -m venv venv
 source venv/bin/activate
 
 # Install dependencies
-pip install --no-cache-dir -r requirements.txt
+pip install --no-cache-dir -r requirements_murphy_1.0.txt
 ```
 
 ### Step 2: Configure Production Settings
@@ -764,7 +764,7 @@ git pull origin main
 
 # Update dependencies
 source venv/bin/activate
-pip install --upgrade -r requirements.txt
+pip install --upgrade -r requirements_murphy_1.0.txt
 
 # Run migrations (if needed)
 python scripts/migrate.py

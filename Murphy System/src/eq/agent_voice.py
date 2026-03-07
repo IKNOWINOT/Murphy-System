@@ -140,7 +140,7 @@ DEFAULT_VOICE_ROSTER: List[VoiceProfile] = [
         speed_modifier=0.9,
         description="Measured, scholarly erudite voice",
         suitable_races=["erudite"],
-        suitable_classes=["wizard", "enchanter", "necromancer", "sourcerior"],
+        suitable_classes=["wizard", "enchanter", "necromancer", "sorceror"],
     ),
     VoiceProfile(
         profile_id="barbarian_shaman",

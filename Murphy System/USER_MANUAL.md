@@ -42,7 +42,7 @@
 
 | Requirement | Version |
 |-------------|---------|
-| Python | 3.11+ |
+| Python | 3.10+ |
 | pip | Latest |
 | OS | Linux, macOS, or Windows |
 | RAM | 4 GB minimum, 8 GB recommended |

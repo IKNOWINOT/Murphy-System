@@ -450,7 +450,7 @@ All error codes in `error_codes` list must follow the format defined in `ErrorCo
 
 ## DEPENDENCY INSTALLATION
 
-Add to `requirements.txt` (or `requirements-robotics.txt`):
+Add to `requirements_murphy_1.0.txt` (or `requirements-robotics.txt`):
 
 ```
 # Boston Dynamics Spot
@@ -470,7 +470,7 @@ BAC0>=22.9.21
 asyncua>=1.0.5
 
 # DJI (FlightHub 2 REST — no special SDK needed, uses requests)
-# requests already in requirements.txt
+# requests already in requirements_murphy_1.0.txt
 
 # MQTT
 paho-mqtt>=1.6.1

@@ -10,10 +10,10 @@
 
 ## 🚀 Quick Start (5 Minutes)
 
-### Step 1: Install Python 3.11+
+### Step 1: Install Python 3.10+
 ```bash
 # Check Python version
-python3 --version  # Should be 3.11 or higher
+python3 --version  # Should be 3.10 or higher
 ```
 
 ### Step 2: Start Murphy
@@ -379,12 +379,12 @@ pip install -r requirements_murphy_1.0.txt
 
 ### Issue: Python version too old
 ```bash
-# Install Python 3.11+
+# Install Python 3.10+
 # Ubuntu/Debian
-sudo apt install python3.11
+sudo apt install python3.10
 
 # Mac
-brew install python@3.11
+brew install python@3.10
 
 # Windows
 # Download from python.org

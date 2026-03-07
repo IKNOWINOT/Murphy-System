@@ -1,8 +1,8 @@
 """
 Inference-Based Domain Gate Engine with Rosetta Form Schemas
 
-This module implements the "multi-Rosetta soul" pattern — similar to OpenClaw.ai's
-Molty soul.md, but each agent's soul is their Rosetta state document which drives:
+This module implements the "multi-Rosetta soul" pattern — each agent's soul is
+their Rosetta state document which drives:
 
   1. What information the agent needs (form schema)
   2. What gates apply to their domain (inferred, not hardcoded)
@@ -305,7 +305,7 @@ class RosettaFormSchema:
 
     Defines what information is needed when interacting with this agent,
     which fields are missing, and what questions to ask to fill them.
-    Like OpenClaw.ai's Molty soul.md, but driven by Rosetta state documents.
+    Soul architecture is implemented in ``src/eq/soul_engine.py``.
     """
     schema_id: str
     agent_id: str

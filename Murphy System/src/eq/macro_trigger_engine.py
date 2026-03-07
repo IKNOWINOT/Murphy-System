@@ -265,7 +265,7 @@ def _cleric_template() -> List[TriggerDefinition]:
 
 
 def _hybrid_template() -> List[TriggerDefinition]:
-    """Hybrid play-style template (paladin, ranger, SK, bard, sourcerior)."""
+    """Hybrid play-style template (paladin, ranger, SK, bard, sorceror)."""
     return [
         TriggerDefinition(
             trigger_type=TriggerType.ASSIST,
