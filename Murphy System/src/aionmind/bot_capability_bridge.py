@@ -126,8 +126,8 @@ def load_bot_capabilities_into_registry(
             cap = _convert_capability(cap_id, cap_info)
             registry.register(cap)
             count += 1
-        except Exception:
-            logger.exception("Failed to convert bot capability %s", cap_id)
+        except Exception as exc:
+            logger.exception("Failed to convert bot capability %s: %s", cap_id, exc)
 
     logger.info(
         "Bot capability bridge: registered %d / %d capabilities.",
