@@ -1320,7 +1320,7 @@ main();
                     "metadata": {
                         "generation_type": "explanation",
                         "topic": topic,
-                        "knowledge_base": true
+                        "knowledge_base": True
                     }
                 }
 

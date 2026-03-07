@@ -317,7 +317,8 @@ class CloudflareDeployProbe:
                 r.cloudflared_version = (
                     result.stdout.strip() or result.stderr.strip()
                 ).split("\n")[0]
-            except Exception:
+            except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
                 r.cloudflared_version = "unknown"
         else:
             r.cloudflared_installed = False
@@ -356,7 +357,8 @@ class CloudflareDeployProbe:
             )
             with urllib.request.urlopen(req, timeout=5) as resp:
                 r.local_backend_running = resp.status == 200
-        except Exception:
+        except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             r.local_backend_running = False
 
     def _check_python_env(self, r: DeployProbeReport) -> None:
@@ -625,7 +627,8 @@ class DeployVerifier:
             req = urllib.request.Request(url, headers={"Accept": "application/json"})
             with urllib.request.urlopen(req, timeout=15) as resp:
                 return resp.status == 200
-        except Exception:
+        except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
             return False
 
 

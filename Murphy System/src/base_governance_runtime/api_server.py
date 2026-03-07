@@ -11,6 +11,8 @@ import logging
 
 from .governance_runtime_complete import GovernanceRuntime, RuntimeConfig
 
+logger = logging.getLogger(__name__)
+
 
 class GovernanceAPI:
     """REST API for governance operations"""
