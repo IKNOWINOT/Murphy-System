@@ -84,6 +84,8 @@ class ShadowAgentIntegration:
         self._shadow_agents: Dict[str, ShadowAgent] = {}
         self._bindings: Dict[str, ShadowBinding] = {}
         self._audit_log: List[Dict[str, Any]] = []
+        # Per-agent learning data: agent_id → {"observations": [...], "proposals": [...]}
+        self._learning_data: Dict[str, Dict[str, List[Dict[str, Any]]]] = {}
 
     # ------------------------------------------------------------------
     # Account management
@@ -336,6 +338,155 @@ class ShadowAgentIntegration:
             "revoked_shadows": revoked,
             "total_bindings": total_bindings,
             "total_audit_entries": total_audit_entries,
+        }
+
+    # ------------------------------------------------------------------
+    # Shadow agent learning (Part 5 — Shadow Agent Learning Integration)
+    # ------------------------------------------------------------------
+
+    def observe_action(
+        self,
+        agent_id: str,
+        action_type: str,
+        action_data: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Record what the user/shadow did for pattern learning.
+
+        Observations are appended to the shadow agent's learning log and
+        used later by ``propose_automation`` to surface repeated patterns.
+        """
+        with self._lock:
+            agent = self._shadow_agents.get(agent_id)
+            if agent is None:
+                return {"error": "shadow_agent_not_found"}
+
+            entry: Dict[str, Any] = {
+                "observation_id": uuid.uuid4().hex[:10],
+                "action_type": action_type,
+                "action_data": action_data,
+                "observed_at": datetime.now(timezone.utc).isoformat(),
+            }
+
+            learning = self._learning_data.setdefault(agent_id, {"observations": [], "proposals": []})
+            capped_append(learning["observations"], entry, max_size=1_000)
+            self._emit_audit("observe_action", {"agent_id": agent_id, "action_type": action_type})
+
+        logger.debug("Shadow agent %s observed action: %s", agent_id, action_type)
+        return entry
+
+    def ask_clarifying_question(
+        self,
+        agent_id: str,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Generate a clarifying question about recently observed patterns.
+
+        Returns a question dict with ``question_id``, ``question``, and
+        ``context_summary``.  In production this would call an LLM; here
+        we apply rule-based logic based on observation frequency.
+        """
+        with self._lock:
+            agent = self._shadow_agents.get(agent_id)
+            if agent is None:
+                return {"error": "shadow_agent_not_found"}
+
+            learning = self._learning_data.get(agent_id, {"observations": [], "proposals": []})
+            observations = learning.get("observations", [])
+
+        # Count action type frequencies
+        freq: Dict[str, int] = {}
+        for obs in observations[-50:]:
+            at = obs.get("action_type", "unknown")
+            freq[at] = freq.get(at, 0) + 1
+
+        if not freq:
+            question = "What tasks do you spend the most time on each day?"
+        else:
+            top_action = max(freq, key=lambda k: freq[k])
+            count = freq[top_action]
+            question = (
+                f"I've noticed you've performed '{top_action}' {count} time(s) recently. "
+                f"Would you like me to automate this for you?"
+            )
+
+        result = {
+            "question_id": uuid.uuid4().hex[:10],
+            "agent_id": agent_id,
+            "question": question,
+            "context_summary": {"top_actions": freq},
+            "asked_at": datetime.now(timezone.utc).isoformat(),
+        }
+        logger.debug("Shadow agent %s generated question: %s", agent_id, question)
+        return result
+
+    def propose_automation(
+        self,
+        agent_id: str,
+        pattern: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Turn a repeated pattern into an actionable automation proposal.
+
+        All proposals require HITL approval before execution (``approved``
+        defaults to False).  The proposal is saved to the learning data.
+        """
+        with self._lock:
+            agent = self._shadow_agents.get(agent_id)
+            if agent is None:
+                return {"error": "shadow_agent_not_found"}
+
+            learning = self._learning_data.setdefault(agent_id, {"observations": [], "proposals": []})
+            observations = learning.get("observations", [])
+
+        # Build a proposal from recent observations or an explicit pattern
+        if pattern is None:
+            freq: Dict[str, int] = {}
+            for obs in observations[-100:]:
+                at = obs.get("action_type", "unknown")
+                freq[at] = freq.get(at, 0) + 1
+            top_action = max(freq, key=lambda k: freq[k]) if freq else "unknown"
+            pattern = {"action_type": top_action, "frequency": freq.get(top_action, 0)}
+
+        proposal: Dict[str, Any] = {
+            "proposal_id": uuid.uuid4().hex[:12],
+            "agent_id": agent_id,
+            "description": (
+                f"Automate '{pattern.get('action_type', 'unknown')}' "
+                f"(observed {pattern.get('frequency', 0)} times)"
+            ),
+            "pattern": pattern,
+            "approved": False,     # HITL required before execution
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+        with self._lock:
+            capped_append(learning["proposals"], proposal, max_size=200)
+            self._emit_audit("propose_automation", {"agent_id": agent_id, "proposal_id": proposal["proposal_id"]})
+
+        logger.info("Shadow agent %s proposed automation: %s", agent_id, proposal["description"])
+        return proposal
+
+    def get_learning_summary(self, agent_id: str) -> Dict[str, Any]:
+        """Return a summary of what the shadow agent has learned so far."""
+        with self._lock:
+            agent = self._shadow_agents.get(agent_id)
+            if agent is None:
+                return {"error": "shadow_agent_not_found"}
+            learning = self._learning_data.get(agent_id, {"observations": [], "proposals": []})
+            observations = list(learning.get("observations", []))
+            proposals = list(learning.get("proposals", []))
+
+        freq: Dict[str, int] = {}
+        for obs in observations:
+            at = obs.get("action_type", "unknown")
+            freq[at] = freq.get(at, 0) + 1
+
+        return {
+            "agent_id": agent_id,
+            "total_observations": len(observations),
+            "action_frequency": freq,
+            "total_proposals": len(proposals),
+            "pending_proposals": sum(1 for p in proposals if not p.get("approved")),
+            "approved_proposals": sum(1 for p in proposals if p.get("approved")),
         }
 
     # ------------------------------------------------------------------
