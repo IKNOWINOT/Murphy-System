@@ -78,7 +78,7 @@ YouTube does NOT allow programmatic channel creation.
 
 Or in Python:
   status = bootstrap.check_youtube_setup()
-  print(status)
+  logger.info("Setup status: %s", status)
 
 ---
 *For support: {github_url}*
@@ -100,7 +100,7 @@ class YouTubeChannelBootstrap:
         bootstrap = YouTubeChannelBootstrap()
         status = bootstrap.check_youtube_setup()
         if not status["ready"]:
-            print(bootstrap.get_setup_instructions())
+            logger.info(bootstrap.get_setup_instructions())
         else:
             bootstrap.verify_channel_access()
     """

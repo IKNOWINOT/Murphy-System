@@ -286,8 +286,9 @@ class FounderGate:
 class CloudflareDeployProbe:
     """Probes the environment for Cloudflare deployment readiness."""
 
-    def __init__(self, backend_port: int = 8000) -> None:
+    def __init__(self, backend_port: int = 8000, local_host: str = "127.0.0.1") -> None:
         self._port = backend_port
+        self._local_host = local_host
 
     def probe(self) -> DeployProbeReport:
         report = DeployProbeReport(
@@ -352,7 +353,7 @@ class CloudflareDeployProbe:
     def _check_local_backend(self, r: DeployProbeReport) -> None:
         try:
             req = urllib.request.Request(
-                f"http://127.0.0.1:{self._port}/api/health",
+                f"http://{self._local_host}:{self._port}/api/health",
                 headers={"Accept": "application/json"},
             )
             with urllib.request.urlopen(req, timeout=5) as resp:
