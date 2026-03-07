@@ -14029,9 +14029,25 @@ def create_app() -> FastAPI:
         if env_var and api_key:
             os.environ[env_var] = api_key
         os.environ["MURPHY_LLM_PROVIDER"] = provider
+        # Persist key to .env so it survives restarts
+        _env_file = Path(__file__).resolve().parent / ".env"
+        try:
+            from src.env_manager import write_env_key as _write_env_key
+            if env_var and api_key:
+                _write_env_key(str(_env_file), env_var, api_key)
+            _write_env_key(str(_env_file), "MURPHY_LLM_PROVIDER", provider)
+        except Exception as _exc:
+            logger.warning("Could not persist LLM config to .env: %s", _exc)
         # Re-read .env so any manually edited values also take effect
         if _load_dotenv is not None:
-            _load_dotenv(Path(__file__).resolve().parent / ".env", override=True)
+            _load_dotenv(_env_file, override=True)
+        # Refresh LLMController model availability without restart
+        try:
+            from src.llm_controller import LLMController as _LLMController
+            if isinstance(getattr(murphy, "_llm_controller", None), _LLMController):
+                murphy._llm_controller.refresh_availability()
+        except Exception as _exc:
+            logger.debug("LLMController refresh_availability skipped: %s", _exc)
         return JSONResponse({"success": True, **murphy._get_llm_status()})
 
     @app.post("/api/llm/test")
@@ -14050,6 +14066,13 @@ def create_app() -> FastAPI:
         """Re-read .env and reinitialise LLM config — called on terminal reconnect."""
         if _load_dotenv is not None:
             _load_dotenv(Path(__file__).resolve().parent / ".env", override=True)
+        # Refresh LLMController model availability after env reload
+        try:
+            from src.llm_controller import LLMController as _LLMController
+            if isinstance(getattr(murphy, "_llm_controller", None), _LLMController):
+                murphy._llm_controller.refresh_availability()
+        except Exception as _exc:
+            logger.debug("LLMController refresh_availability skipped: %s", _exc)
         return JSONResponse({"success": True, **murphy._get_llm_status()})
 
     @app.get("/api/librarian/api-links")

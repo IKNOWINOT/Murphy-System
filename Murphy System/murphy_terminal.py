@@ -656,6 +656,7 @@ INTENT_PATTERNS: list[tuple[re.Pattern, str]] = [
     (re.compile(r"^(account|sign.?up|sign.?in|get started|account flow)\b", re.I), "intent_account"),
     (re.compile(r"\b(links|urls|dashboards)\b", re.I), "intent_links"),
     (re.compile(r"\b(plan|planning|two.?plane|execution plan)\b", re.I), "intent_plan"),
+    (re.compile(r"^paste\b", re.I), "intent_paste"),
     (re.compile(r"^magnify\b", re.I), "intent_magnify"),
     (re.compile(r"^simplify\b", re.I), "intent_simplify"),
     (re.compile(r"^solidify\b", re.I), "intent_solidify"),
@@ -719,6 +720,7 @@ and run end-to-end workflows with minimal manual effort.
   • Terminal (Web)   : [link=http://localhost:8000/terminal]http://localhost:8000/terminal[/link]
 
 [dim]Type any question in natural language — Murphy will respond conversationally.[/dim]
+[dim]Tip: Use right-click to paste, or type [green]paste[/green] to paste from clipboard.[/dim]
 """
 
 DASHBOARD_LINKS: list[dict[str, str]] = [
@@ -809,13 +811,36 @@ class StatusBar(Static):
     connected = reactive(False)
     api_url = reactive("")
     llm_enabled = reactive(False)
+    llm_warning = reactive(False)
 
     def render(self) -> str:
-        llm = "[green]LLM: On[/green]" if self.llm_enabled else "[yellow]LLM: Off[/yellow]"
+        if self.llm_enabled:
+            llm = "[green]LLM: On ✓[/green]"
+        elif self.llm_warning:
+            llm = "[yellow]LLM: ⚠[/yellow]"
+        else:
+            llm = "[yellow]LLM: Off[/yellow]"
         if self.connected:
             return f"[bold green]● Connected[/bold green]  {llm}"
         return f"[bold red]● Disconnected[/bold red]  {llm}"
 
+
+class MurphyInput(Input):
+    """Input subclass that intercepts Ctrl+V at the widget level.
+
+    On Windows, the ``Input`` widget can consume ``ctrl+v`` before the
+    app-level binding fires.  Overriding ``on_key`` here ensures paste works
+    regardless of platform.
+    """
+
+    def on_key(self, event: events.Key) -> None:
+        """Intercept Ctrl+V and route it to the app-level paste action."""
+        if event.key == "ctrl+v":
+            app = self.app
+            if hasattr(app, "action_paste_clipboard"):
+                app.action_paste_clipboard()
+            event.prevent_default()
+            event.stop()
 
 # ---------------------------------------------------------------------------
 # Main Application
@@ -914,7 +939,7 @@ class MurphyTerminalApp(App):
                     "[dim]exit[/dim]\n",
                     id="sidebar-hints",
                 )
-        yield Input(placeholder="Type a message…", id="user-input")
+        yield MurphyInput(placeholder="Type a message…", id="user-input")
         yield Footer()
 
     # -- lifecycle --
@@ -1003,6 +1028,11 @@ class MurphyTerminalApp(App):
 
         Uses the ``/api/llm/test`` endpoint so the status bar reflects
         actual auth state, not merely whether an env var is set.
+
+        States:
+        - Off (``llm_enabled=False``, ``llm_warning=False``): no key configured.
+        - ⚠  (``llm_enabled=False``, ``llm_warning=True``):  key set but auth failed.
+        - On ✓ (``llm_enabled=True``, ``llm_warning=False``): key authenticates.
         """
         status_bar = self.query_one(StatusBar)
         try:
@@ -1014,18 +1044,21 @@ class MurphyTerminalApp(App):
                 test_result = self.client.llm_test()
                 if test_result.get("success"):
                     status_bar.llm_enabled = True
+                    status_bar.llm_warning = False
                     model = data.get("model") or "default"
                     self._write_system(f"LLM enabled — provider=[cyan]{provider}[/cyan] model=[cyan]{model}[/cyan]")
                 else:
                     status_bar.llm_enabled = False
+                    status_bar.llm_warning = True
                     error = test_result.get("error", "auth failed")
                     self._write_system(
-                        f"[yellow]LLM key set but auth failed ({error})[/yellow] — "
+                        f"[yellow]⚠️ LLM key saved but authentication failed ({error})[/yellow] — "
                         "running in deterministic mode. "
                         "Type [green]set key groq <your-key>[/green] to update."
                     )
             else:
                 status_bar.llm_enabled = False
+                status_bar.llm_warning = False
                 error = data.get("error", "not configured")
                 self._write_system(
                     f"[yellow]LLM not configured ({error})[/yellow] — "
@@ -1034,6 +1067,7 @@ class MurphyTerminalApp(App):
                 )
         except Exception:
             status_bar.llm_enabled = False
+            status_bar.llm_warning = False
 
     @staticmethod
     def _is_real_key(value: Optional[str]) -> bool:
@@ -1521,11 +1555,12 @@ class MurphyTerminalApp(App):
 
         API keys and short commands are always single-line.  Silently ignores
         errors so that clipboard/paste failures never crash the app.
+        Whitespace and newlines are stripped so pasted keys are clean.
         """
         first_line = text.strip().splitlines()[0].strip() if text.strip() else ""
         if first_line:
             try:
-                input_widget = self.query_one("#user-input", Input)
+                input_widget = self.query_one("#user-input", MurphyInput)
                 input_widget.insert_text_at_cursor(first_line)
             except Exception:
                 pass
@@ -1557,6 +1592,22 @@ class MurphyTerminalApp(App):
         if event.text:
             self._insert_text_into_input(event.text)
             event.stop()
+
+    def intent_paste(self, _msg: str) -> None:
+        """Text command: typing 'paste' reads clipboard and inserts its content.
+
+        This is a keyboard-independent fallback that works on any platform
+        where clipboard APIs may not be accessible via Ctrl+V.
+        """
+        text = self._read_clipboard()
+        if text:
+            self._insert_text_into_input(text)
+            self._write_system("Clipboard contents pasted into input.")
+        else:
+            self._write_system(
+                "Clipboard is empty or unavailable. "
+                "Try right-click → paste in your terminal emulator."
+            )
 
     # -- connectivity intents --
 
