@@ -39,6 +39,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from thread_safe_operations import capped_append
+from setup_retry_amplifier import SetupRetryAmplifier
 
 logger = logging.getLogger(__name__)
 
@@ -658,9 +659,16 @@ class EnvironmentSetupAgent:
         return plan
 
     def execute_and_verify(self, plan: SetupPlan) -> SetupResult:
-        """Execute approved steps and verify health, retrying up to max_attempts."""
+        """Execute approved steps and verify health, retrying up to max_attempts.
+
+        Every 3rd retry triggers the MMSMMS amplification cadence to generate
+        a qualitatively different fix strategy instead of retrying the same
+        approach.
+        """
         result = SetupResult()
         attempt = 0
+        amplifier = SetupRetryAmplifier(audit_log=self._audit_log)
+        previous_plans: List[SetupPlan] = [plan]
 
         while attempt < self.max_attempts:
             attempt += 1
@@ -692,11 +700,31 @@ class EnvironmentSetupAgent:
                 result.success = True
                 break
 
-            # Generate a new plan for remaining issues and get approval
+            # ---- MMSMMS cadence every 3rd retry ----
+            if attempt % 3 == 0:
+                amplified_plan = amplifier.amplify_failure(
+                    report=fresh_report,
+                    issues=issues,
+                    attempt=attempt,
+                    previous_plans=previous_plans,
+                )
+                if amplified_plan is not None and amplified_plan.steps:
+                    self.hitl_gate.approve_all(amplified_plan)
+                    previous_plans.append(amplified_plan)
+                    plan = amplified_plan
+                    self._log("mmsmms_amplified", {
+                        "attempt": attempt,
+                        "issues": issues,
+                        "new_steps": len(amplified_plan.steps),
+                    })
+                    continue
+
+            # Normal retry: re-probe and re-plan
             retry_plan = self.planner.generate(fresh_report)
             if not retry_plan.steps:
                 break
             self.hitl_gate.approve_all(retry_plan)
+            previous_plans.append(retry_plan)
             plan = retry_plan
 
         if not result.success:
