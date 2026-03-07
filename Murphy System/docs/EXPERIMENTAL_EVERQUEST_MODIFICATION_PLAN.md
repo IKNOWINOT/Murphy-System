@@ -333,11 +333,11 @@ Agents treat their life as if it is **their only life** (because it is — perma
 - Fleeing agents remember the encounter and hold **grudges** against entities that caused the wipe
 - An agent that successfully flees retains its full soul document — memory, gear, and faction standing intact
 
-### 3.10 NPC Lifestyle System — Daily Routines, Jobs, and Skill Degradation
+### 3.11 NPC Lifestyle System — Daily Routines, Jobs, and Skill Degradation
 
 AI agents are not static quest givers or permanent merchants — they are **living characters** with daily routines, jobs, sleep cycles, and trade skills that degrade when not practiced. Instead of traditional EverQuest merchants standing in place forever, NPCs fill those roles as **characters who work those jobs** and then adventure when off-duty.
 
-#### 3.10.1 Daily Routine Cycle
+#### 3.11.1 Daily Routine Cycle
 
 Every NPC agent follows a **daily routine** tied to the game world's day/night cycle:
 
@@ -351,7 +351,7 @@ Every NPC agent follows a **daily routine** tied to the game world's day/night c
 - During sleep, agents are physically present in their bed location but do not respond to interaction
 - Work and adventure schedules vary by personality — a dedicated smith may work 14-hour shifts, while a restless warrior adventures more
 
-#### 3.10.2 Building Ownership and Job Roles
+#### 3.11.2 Building Ownership and Job Roles
 
 Town buildings (shops, forges, taverns) are **owned by NPC characters** — not abstract game constructs. The NPC who works the forge owns or leases the building, and their trade skill determines the quality of what they can produce or sell.
 
@@ -374,7 +374,7 @@ Town buildings (shops, forges, taverns) are **owned by NPC characters** — not 
 - If the NPC who runs a shop **dies** (permadeath), that shop goes vacant until another NPC or the faction assigns a replacement
 - Building ownership is tracked in the soul document — an NPC knows they own or lease their workspace
 
-#### 3.10.3 Caste System — Vampire Academy Class Hierarchy
+#### 3.11.3 Caste System — Vampire Academy Class Hierarchy
 
 NPC society follows a structured **caste system** inspired by class-hierarchy fiction (similar to *Vampire Academy*). Each NPC's caste determines their social standing, job access, and behavioral expectations within their faction:
 
@@ -391,7 +391,7 @@ NPC society follows a structured **caste system** inspired by class-hierarchy fi
 - **Caste affects behavior**: Royals expect deference, Nobles manage shops and guards, Commoners work steadily, Dhampirs split time between jobs and adventure, Servants defer to all others
 - Caste is stored in the soul document `lifestyle.caste` field
 
-#### 3.10.4 Trade Skill Specialization and Mastery
+#### 3.11.4 Trade Skill Specialization and Mastery
 
 AI NPCs can achieve **maximum skill level** in their primary trade — unlike players who spread skill points across many trades, NPCs specialize deeply. A dedicated smith NPC can reach max Blacksmithing and produce the highest-quality items.
 
@@ -401,7 +401,7 @@ AI NPCs can achieve **maximum skill level** in their primary trade — unlike pl
 - An NPC actively working their trade skill during work shifts gains skill points at an accelerated rate
 - NPCs may have **secondary skills** at lower proficiency, but their primary trade is always strongest
 
-#### 3.10.5 Skill Degradation — Use It or Lose It
+#### 3.11.5 Skill Degradation — Use It or Lose It
 
 Trade skills **degrade over time** when not actively practiced. An NPC who stops working their trade will see their skill level fade back toward a baseline.
 
@@ -421,7 +421,7 @@ Trade skills **degrade over time** when not actively practiced. An NPC who stops
 | 5 | ~121 | Approaching baseline |
 | 7 | 50 | Reached untrained baseline |
 
-#### 3.10.6 Level-Based Skill Floor — Leveling Locks Minimum Thresholds
+#### 3.11.6 Level-Based Skill Floor — Leveling Locks Minimum Thresholds
 
 When an NPC **levels up**, it permanently locks a **minimum skill floor** for their primary trade skill. This floor prevents degradation from dropping the skill below a certain point, rewarding the NPC's growth with lasting competence.
 
