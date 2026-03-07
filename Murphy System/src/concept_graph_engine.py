@@ -302,7 +302,7 @@ class ConceptGraphEngine:
         existing = set(nodes_snapshot.keys())
         all_referenced = referenced | existing
         node_coverage = (
-            len(existing & all_referenced) / len(all_referenced)
+            len(existing & all_referenced) / (len(all_referenced) or 1)
             if all_referenced else 1.0
         )
 
@@ -317,8 +317,7 @@ class ConceptGraphEngine:
                 if etype == EDGE_DEPENDS_ON
             }
             dependency_completeness = (
-                len([m for m in modules if m in has_dep]) / len(modules)
-                if len(modules) > 0 else 1.0
+                len([m for m in modules if m in has_dep]) / (len(modules) or 1)
             )
         else:
             dependency_completeness = 1.0
@@ -330,8 +329,7 @@ class ConceptGraphEngine:
                 if etype == EDGE_REGULATED_BY
             }
             regulatory_coverage = (
-                len([m for m in modules if m in has_reg]) / len(modules)
-                if len(modules) > 0 else 1.0
+                len([m for m in modules if m in has_reg]) / (len(modules) or 1)
             )
         else:
             regulatory_coverage = 1.0
