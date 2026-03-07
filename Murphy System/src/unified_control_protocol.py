@@ -195,8 +195,8 @@ class UnifiedControlProtocol:
                 self._iqe = InformationQualityEngine(
                     self._rde, self._ide, self._sce,
                 )
-            except Exception:
-                logger.warning("CQI engine initialization failed", exc_info=True)
+            except Exception as exc:
+                logger.warning("CQI engine initialization failed: %s", exc, exc_info=True)
 
         self._cte = self._safe_init("CTE", ConceptTranslationEngine)
         self._cge = self._safe_init("CGE", ConceptGraphEngine)
@@ -216,8 +216,8 @@ class UnifiedControlProtocol:
                     sim=self._sse,
                     gov=self._gov,
                 )
-            except Exception:
-                logger.warning("MSS engine initialization failed", exc_info=True)
+            except Exception as exc:
+                logger.warning("MSS engine initialization failed: %s", exc, exc_info=True)
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -231,9 +231,9 @@ class UnifiedControlProtocol:
             return None
         try:
             return cls()
-        except Exception:
+        except Exception as exc:
             logger.warning(
-                "%s engine initialization failed", label, exc_info=True,
+                "%s engine initialization failed: %s", label, exc, exc_info=True,
             )
             return None
 
@@ -415,7 +415,7 @@ class UnifiedControlProtocol:
                     self._log_step(
                         action_id, "SEE", state, f"es={evolution_score:.4f}",
                     )
-                except Exception:
+                except Exception as exc:
                     self._log_step(action_id, "SEE", state, "skipped")
 
             # ---- SSE (Strategic Simulation) ----
@@ -433,7 +433,7 @@ class UnifiedControlProtocol:
                         action_id, "SSE", state,
                         f"risk={simulation_risk:.4f}",
                     )
-                except Exception:
+                except Exception as exc:
                     self._log_step(action_id, "SSE", state, "skipped")
 
             state = "simulated"
@@ -460,7 +460,7 @@ class UnifiedControlProtocol:
                         action_id, "PGE", state,
                         f"status={governance_status}",
                     )
-                except Exception:
+                except Exception as exc:
                     governance_status = "allow"
                     self._log_step(action_id, "PGE", state, "default_allow")
 
@@ -497,7 +497,7 @@ class UnifiedControlProtocol:
                     self._log_step(
                         action_id, "MSS", state, f"operator={operator}",
                     )
-                except Exception:
+                except Exception as exc:
                     self._log_step(action_id, "MSS", state, "skipped")
 
             state = "executed"

@@ -2,7 +2,7 @@
 REM Murphy System 1.0 - Startup Script (Windows)
 REM Copyright (C) 2020 Inoni Limited Liability Company
 REM Creator: Corey Post
-REM License: Apache License 2.0
+REM License: BSL 1.1 (Business Source License)
 
 echo ================================================================================
 echo                        MURPHY SYSTEM 1.0 - STARTUP

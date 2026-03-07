@@ -318,6 +318,7 @@ class ConceptGraphEngine:
             }
             dependency_completeness = (
                 len([m for m in modules if m in has_dep]) / len(modules)
+                if len(modules) > 0 else 1.0
             )
         else:
             dependency_completeness = 1.0
@@ -330,6 +331,7 @@ class ConceptGraphEngine:
             }
             regulatory_coverage = (
                 len([m for m in modules if m in has_reg]) / len(modules)
+                if len(modules) > 0 else 1.0
             )
         else:
             regulatory_coverage = 1.0

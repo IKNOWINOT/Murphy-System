@@ -94,6 +94,7 @@ class TestNoProductionAsserts:
     def test_data_split_raises_on_bad_ratios(self):
         """Train/val/test ratios not summing to 1 raise ValueError."""
         pytest.importorskip("torch")
+        pytest.importorskip("torch_geometric")
         from neuro_symbolic_models.data import TrainingDataManager
 
         mgr = TrainingDataManager()
