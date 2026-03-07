@@ -19,6 +19,8 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
+from thread_safe_operations import capped_append
+
 logger = logging.getLogger(__name__)
 
 
@@ -164,7 +166,7 @@ class ArchitectureEvolutionEngine:
         """
         with self._lock:
             if domain not in self._compliance_domains:
-                self._compliance_domains.append(domain)
+                capped_append(self._compliance_domains, domain)
         logger.debug("Registered compliance domain: %s", domain)
 
     # ------------------------------------------------------------------
