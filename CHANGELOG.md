@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **legal: docs** — Created `PRIVACY.md` documenting data collection practices
 - **legal: test** — Created `tests/test_legal_compliance.py` with 18 checks covering dependency licenses, license headers, API key security, trademark naming, data privacy, and export control
 
+### Security
+- **security: SEC-001** — Wired `configure_secure_app()` into `repair_api_endpoints.create_standalone_app()` so standalone repair server has authentication, CORS allowlist, and rate limiting
+- **security: SEC-004** — Added security middleware requirement documentation to `create_graphql_blueprint()` and `mount_viewport_api()` docstrings
+- **security: API-004** — Removed hardcoded fallback master key `"murphy-dev-key-change-me"` from `credential_vault.py`; production now raises `ValueError` if `MURPHY_CREDENTIAL_MASTER_KEY` is not set
+- **test:** Added 6 security wiring tests: standalone repair app security, credential vault master key enforcement, blueprint security docstring verification
+
 ### Added
 - **feat:** MCO-001 — Multi-Cloud Orchestrator (`src/multi_cloud_orchestrator.py`) with AWS/GCP/Azure/custom cloud provider management, cross-cloud deployment orchestration, failover strategies (active-passive/active-active/round-robin/cost-based/latency-based), resource synchronisation, cost tracking and summarisation, health monitoring, credentials stored as SecureKeyManager references only, and Flask Blueprint with 22 endpoints (142 tests)
 - **feat:** AUD-001 — Immutable Audit Logging System (`src/audit_logging_system.py`) with SHA-256 hash-chain integrity verification, 11 action types, 7 categories, structured query engine, retention policies, PII redaction, and Flask Blueprint with 13 endpoints (52 tests)

@@ -1,0 +1,7 @@
+<!-- favicon.svg — Murphy System Favicon
+   © 2020 Inoni Limited Liability Company by Corey Post
+   License: BSL 1.1 -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="4" fill="#0C1017"/>
+  <path d="M6 24V8l10 10L26 8v16" stroke="#00D4AA" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

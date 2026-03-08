@@ -650,3 +650,109 @@ class TestRBACEnforcement:
         assert "_perm_configure" in src, (
             "/api/llm/configure must use _perm_configure RBAC dependency"
         )
+
+
+# ---------------------------------------------------------------------------
+# Task 6 — Repair API standalone app has security middleware
+# ---------------------------------------------------------------------------
+
+
+class TestRepairAPIStandaloneSecurity:
+    """Verify create_standalone_app applies configure_secure_app."""
+
+    def test_standalone_app_source_has_security_call(self):
+        """repair_api_endpoints.create_standalone_app must wire security."""
+        src_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "src", "repair_api_endpoints.py",
+        )
+        with open(src_path, encoding="utf-8") as fh:
+            src = fh.read()
+        assert "configure_secure_app" in src, (
+            "create_standalone_app must call configure_secure_app"
+        )
+
+    def test_standalone_app_callable(self):
+        """create_standalone_app returns a Flask app with security."""
+        try:
+            from src.repair_api_endpoints import create_standalone_app
+            app = create_standalone_app()
+            if app is not None:
+                # App was created — verify it has before_request hooks
+                assert len(app.before_request_funcs.get(None, [])) > 0, (
+                    "Standalone repair app must have before_request hooks "
+                    "from security middleware"
+                )
+        except ImportError:
+            pytest.skip("repair_api_endpoints not importable")
+
+
+# ---------------------------------------------------------------------------
+# Task 7 — Credential vault rejects missing master key in production
+# ---------------------------------------------------------------------------
+
+
+class TestCredentialVaultMasterKey:
+    """Verify credential vault does not use a hardcoded fallback key."""
+
+    def test_no_hardcoded_default_key(self):
+        """credential_vault.py must not contain a hardcoded fallback key."""
+        vault_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "src", "account_management", "credential_vault.py",
+        )
+        with open(vault_path, encoding="utf-8") as fh:
+            src = fh.read()
+        assert "murphy-dev-key-change-me" not in src, (
+            "Hardcoded default master key must be removed — "
+            "use MURPHY_CREDENTIAL_MASTER_KEY env var"
+        )
+
+    @patch.dict(os.environ, {"MURPHY_ENV": "production"}, clear=False)
+    def test_production_raises_without_master_key(self):
+        """In production, missing master key must raise ValueError."""
+        try:
+            from src.account_management.credential_vault import CredentialVault
+        except ImportError:
+            pytest.skip("credential_vault not importable")
+
+        # Remove env var if present so vault has no key
+        env_copy = os.environ.copy()
+        env_copy.pop("MURPHY_CREDENTIAL_MASTER_KEY", None)
+        with patch.dict(os.environ, env_copy, clear=True):
+            os.environ["MURPHY_ENV"] = "production"
+            with pytest.raises(ValueError, match="MURPHY_CREDENTIAL_MASTER_KEY"):
+                CredentialVault()
+
+
+# ---------------------------------------------------------------------------
+# Task 8 — Blueprint/router docstrings note security requirement
+# ---------------------------------------------------------------------------
+
+
+class TestBlueprintSecurityDocstrings:
+    """Verify blueprints document the requirement for security middleware."""
+
+    def test_graphql_blueprint_notes_security(self):
+        """create_graphql_blueprint docstring must mention security."""
+        src_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "src", "graphql_api_layer.py",
+        )
+        with open(src_path, encoding="utf-8") as fh:
+            src = fh.read()
+        assert "configure_secure_app" in src, (
+            "create_graphql_blueprint must document security requirement"
+        )
+
+    def test_viewport_mount_notes_security(self):
+        """mount_viewport_api docstring must mention security."""
+        src_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "src", "artifact_viewport_api.py",
+        )
+        with open(src_path, encoding="utf-8") as fh:
+            src = fh.read()
+        assert "configure_secure_app" in src, (
+            "mount_viewport_api must document security requirement"
+        )
