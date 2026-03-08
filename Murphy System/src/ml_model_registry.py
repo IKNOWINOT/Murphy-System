@@ -66,6 +66,11 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _enum_val(v: Any) -> str:
+    """Return the string value whether *v* is an Enum or already a str."""
+    return v.value if hasattr(v, "value") else str(v)
+
+
 # -- Enums ------------------------------------------------------------------
 
 class ModelStatus(str, Enum):
@@ -102,8 +107,8 @@ class ModelVersion:
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to plain dict."""
         d = asdict(self)
-        d["framework"] = self.framework.value
-        d["status"] = self.status.value
+        d["framework"] = _enum_val(self.framework)
+        d["status"] = _enum_val(self.status)
         return d
 
 
@@ -124,8 +129,8 @@ class Model:
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to plain dict."""
         d = asdict(self)
-        d["framework"] = self.framework.value
-        d["status"] = self.status.value
+        d["framework"] = _enum_val(self.framework)
+        d["status"] = _enum_val(self.status)
         d["versions"] = [v.to_dict() for v in self.versions]
         return d
 
@@ -144,7 +149,7 @@ class DeploymentRecord:
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to plain dict."""
         d = asdict(self)
-        d["target"] = self.target.value
+        d["target"] = _enum_val(self.target)
         return d
 
 
@@ -223,9 +228,9 @@ class MLModelRegistry:
                        owner: Optional[str], tag: Optional[str]) -> List[Model]:
         out: List[Model] = []
         for m in self._models.values():
-            if status and m.status.value != status:
+            if status and _enum_val(m.status) != status:
                 continue
-            if framework and m.framework.value != framework:
+            if framework and _enum_val(m.framework) != framework:
                 continue
             if owner and m.owner != owner:
                 continue
@@ -314,7 +319,7 @@ class MLModelRegistry:
                 return []
             if not status:
                 return list(m.versions)
-            return [v for v in m.versions if v.status.value == status]
+            return [v for v in m.versions if _enum_val(v.status) == status]
 
     def promote_version(self, model_id: str, version_id: str) -> bool:
         """Promote a version to active, demoting all others to inactive."""
@@ -473,8 +478,8 @@ class MLModelRegistry:
             total_versions = sum(len(m.versions) for m in self._models.values())
             status_counts: Dict[str, int] = {}
             for m in self._models.values():
-                status_counts[m.status.value] = (
-                    status_counts.get(m.status.value, 0) + 1)
+                sv = _enum_val(m.status)
+                status_counts[sv] = status_counts.get(sv, 0) + 1
             deploy_counts: Dict[str, int] = {}
             for d in self._deployments.values():
                 deploy_counts[d.status] = deploy_counts.get(d.status, 0) + 1
