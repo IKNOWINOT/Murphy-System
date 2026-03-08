@@ -65,7 +65,10 @@ class TestPyprojectCompleteness:
     """pyproject.toml has all required sections."""
 
     def test_required_sections(self):
-        import tomllib
+        try:
+            import tomllib
+        except ImportError:
+            import tomli as tomllib  # type: ignore[no-redef]
 
         pyproj_path = os.path.join(PROJECT_ROOT, "pyproject.toml")
         with open(pyproj_path, "rb") as f:

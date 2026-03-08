@@ -178,3 +178,4 @@ notebook>=7.0.0
 
 # Linux
 # python-systemd>=235  # Linux only
+tomli>=2.0.0;python_version<'3.11'
