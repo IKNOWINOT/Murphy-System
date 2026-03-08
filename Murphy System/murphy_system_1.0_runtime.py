@@ -14030,17 +14030,17 @@ def create_app() -> FastAPI:
             os.environ[env_var] = api_key
         os.environ["MURPHY_LLM_PROVIDER"] = provider
         # Persist key to .env so it survives restarts
-        _env_file = Path(__file__).resolve().parent / ".env"
+        _env_path = Path(__file__).resolve().parent / ".env"
         try:
             from src.env_manager import write_env_key as _write_env_key
             if env_var and api_key:
-                _write_env_key(str(_env_file), env_var, api_key)
-            _write_env_key(str(_env_file), "MURPHY_LLM_PROVIDER", provider)
+                _write_env_key(str(_env_path), env_var, api_key)
+            _write_env_key(str(_env_path), "MURPHY_LLM_PROVIDER", provider)
         except Exception as _exc:
             logger.warning("Could not persist LLM config to .env: %s", _exc)
         # Re-read .env so any manually edited values also take effect
         if _load_dotenv is not None:
-            _load_dotenv(_env_file, override=True)
+            _load_dotenv(_env_path, override=True)
         # Refresh LLMController model availability without restart
         try:
             from src.llm_controller import LLMController as _LLMController

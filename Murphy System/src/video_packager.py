@@ -64,7 +64,7 @@ _FRAME_RATE = 30
 # ---------------------------------------------------------------------------
 
 class VideoMode:
-    FFMPEG = "ffmpeg_composition"
+    """Output rendering mode identifiers for the video packager."""
     PILLOW = "pillow_frame_stitch"
     STATIC = "static_package"
 

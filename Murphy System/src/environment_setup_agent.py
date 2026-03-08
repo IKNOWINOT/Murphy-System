@@ -62,6 +62,7 @@ _MAX_AUDIT_LOG = 5_000
 
 
 class RiskLevel(str, Enum):
+    """Risk level classification for environment setup steps."""
     LOW = "low"           # create directory, create file
     MEDIUM = "medium"     # install Python package, create venv
     HIGH = "high"         # modify env vars, install system packages
@@ -69,6 +70,7 @@ class RiskLevel(str, Enum):
 
 
 class StepStatus(str, Enum):
+    """Approval status of an environment setup step requiring elevated risk."""
     PENDING = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
@@ -282,7 +284,7 @@ class EnvironmentProbe:
             # Use a simple heuristic: read /proc/meminfo on Linux
             meminfo_path = "/proc/meminfo"
             if os.path.exists(meminfo_path):
-                with open(meminfo_path) as f:
+                with open(meminfo_path, encoding="utf-8") as f:
                     for line in f:
                         if line.startswith("MemTotal:"):
                             kb = int(line.split()[1])
@@ -301,9 +303,10 @@ class EnvironmentProbe:
 
     @staticmethod
     def _is_port_free(port: int) -> bool:
+        bind_host = "127.0.0.1"
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             try:
-                s.bind(("127.0.0.1", port))
+                s.bind((bind_host, port))
                 return True
             except OSError:
                 return False
