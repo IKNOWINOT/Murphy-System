@@ -27,7 +27,7 @@ import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 try:
     from flask import Blueprint, jsonify, request
@@ -197,16 +197,17 @@ class MLModelRegistry:
     # -- Model CRUD ---------------------------------------------------------
 
     def register_model(self, name: str, description: str, owner: str,
-                       framework: ModelFramework,
+                       framework: Union[str, ModelFramework],
                        tags: Optional[List[str]] = None) -> Model:
         """Register a new model in the registry."""
+        fw = ModelFramework(framework) if not isinstance(framework, ModelFramework) else framework
         with self._lock:
             if len(self._models) >= self._max_models:
                 oldest = self._model_order[0]
                 del self._models[oldest]
                 self._model_order.pop(0)
             m = Model(name=name, description=description, owner=owner,
-                      framework=framework, tags=tags or [])
+                      framework=fw, tags=tags or [])
             self._models[m.model_id] = m
             _capped(self._model_order, m.model_id, self._max_models)
             return m
@@ -272,12 +273,13 @@ class MLModelRegistry:
     # -- Version management -------------------------------------------------
 
     def add_version(self, model_id: str, version_number: str,
-                    framework: ModelFramework, artifact_path: str,
+                    framework: Union[str, ModelFramework], artifact_path: str,
                     metrics: Optional[Dict[str, float]] = None,
                     parameters: Optional[Dict[str, Any]] = None,
                     description: str = "",
                     tags: Optional[List[str]] = None) -> Optional[ModelVersion]:
         """Add a new version to an existing model."""
+        fw = ModelFramework(framework) if not isinstance(framework, ModelFramework) else framework
         with self._lock:
             m = self._models.get(model_id)
             if not m:
@@ -286,7 +288,7 @@ class MLModelRegistry:
                 m.versions.pop(0)
             v = ModelVersion(
                 model_id=model_id, version_number=version_number,
-                framework=framework, artifact_path=artifact_path,
+                framework=fw, artifact_path=artifact_path,
                 metrics=metrics or {}, parameters=parameters or {},
                 description=description, tags=tags or [],
             )
@@ -353,17 +355,18 @@ class MLModelRegistry:
     # -- Deployment ---------------------------------------------------------
 
     def deploy_model(self, model_id: str, version_id: str,
-                     target: DeploymentTarget,
+                     target: Union[str, DeploymentTarget],
                      configuration: Optional[Dict[str, Any]] = None
                      ) -> Optional[DeploymentRecord]:
         """Create a deployment record for a model version."""
+        tgt = DeploymentTarget(target) if not isinstance(target, DeploymentTarget) else target
         with self._lock:
             m = self._models.get(model_id)
             if not m or not self._find_version(m, version_id):
                 return None
             rec = DeploymentRecord(
                 model_id=model_id, version_id=version_id,
-                target=target, configuration=configuration or {},
+                target=tgt, configuration=configuration or {},
             )
             self._deployments[rec.deployment_id] = rec
             _capped(self._deploy_order, rec.deployment_id, 10_000)
