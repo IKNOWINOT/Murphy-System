@@ -238,6 +238,7 @@
             border-color: #ffff00;
             animation: mss-pulse 1s ease-in-out infinite;
         }
+
         @keyframes mss-pulse {
             0%, 100% { box-shadow: 0 0 5px rgba(255, 255, 0, 0.3); }
             50% { box-shadow: 0 0 15px rgba(255, 255, 0, 0.6); }
@@ -291,6 +292,10 @@
             color: #ffff00;
         }
         .collapsible-details .agent-step.done {
+            color: #00ff41;
+            top: -5px;
+            right: -5px;
+            font-size: 10px;
             color: #00ff41;
         }
 
@@ -1247,6 +1252,17 @@
                 addLine(`[MSS ${operator.toUpperCase()}] Transforming prompt...`, 'system');
             }
 
+                addLine('✗ Type a prompt first, then click ' + operator.toUpperCase() + ' to transform it', 'warning');
+                return;
+            }
+
+            // Show what we're doing in the terminal (but DON'T clear the input)
+            addLine(`[MSS ${operator.toUpperCase()}] Transforming prompt...`, 'system');
+
+            // Disable buttons while processing
+            document.querySelectorAll('.mss-btn').forEach(b => b.disabled = true);
+            messageInput.classList.add('mss-processing');
+
             try {
                 // For solidify, also query the librarian for system-wide context
                 let librarianContext = null;
@@ -1288,6 +1304,7 @@
                     const r = data.result;
 
                     // Extract a readable string from the output dict so the user can review/edit it
+                    // Extract the transformed text from the result output
                     let transformedText = '';
                     if (typeof r.output === 'string') {
                         transformedText = r.output;
@@ -1298,6 +1315,12 @@
                             .map(([k, v]) => {
                                 const label = k.replace(/_/g, ' ');
                                 if (Array.isArray(v)) return `${label}: ${v.join('; ')}`;
+                            .filter(([k, v]) => v && (typeof v === 'string' || (Array.isArray(v) && v.length > 0)))
+                            .map(([k, v]) => {
+                                const label = k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                                if (Array.isArray(v)) {
+                                    return `${label}: ${v.join('; ')}`;
+                                }
                                 return `${label}: ${v}`;
                             })
                             .join('. ');
@@ -1353,6 +1376,25 @@
                     } else {
                         addLine(`✓ ${operator.toUpperCase()} applied — review prompt in input box, then press EXECUTE`, 'success');
                     }
+                    if (!transformedText) {
+                        addLine(`⚠ ${operator.toUpperCase()} produced no text output — prompt unchanged`, 'warning');
+                    } else {
+                        // REPLACE the input box text with the transformed version
+                        messageInput.value = transformedText;
+                        addLine(`✓ ${operator.toUpperCase()} applied — prompt updated in input box. Review and press EXECUTE.`, 'success');
+                        const appliedBtn = document.querySelector(`.mss-${operator}`);
+                        if (appliedBtn) appliedBtn.classList.add('applied');
+                    }
+
+                    // Update the resolution indicator
+                    const iq = r.input_quality || {};
+                    document.getElementById('resolution-panel').innerHTML =
+                        `<span style="color:#00ff41">Resolution:</span> ${iq.resolution_level || '—'} ` +
+                        `<span style="color:#666">(RS ${(iq.resolution_score||0).toFixed(1)})</span> | ` +
+                        `<span style="color:#00ff41">Density:</span> ${(iq.density_index||0).toFixed(2)} | ` +
+                        `<span style="color:#00ff41">Coherence:</span> ${(iq.coherence_score||0).toFixed(1)} | ` +
+                        `<span style="color:#00ff41">CQI:</span> ${(iq.cqi||0).toFixed(1)} | ` +
+                        `<span style="color:#00ffff">${operator.toUpperCase()} → ${r.target_rm || '—'}</span>`;
 
                 } else {
                     addLine(`✗ ${operator.toUpperCase()} failed: ${data.error || 'Unknown error'}`, 'error');
@@ -1362,6 +1404,7 @@
             }
 
             // Re-enable buttons and remove processing state
+            // Re-enable buttons
             document.querySelectorAll('.mss-btn').forEach(b => b.disabled = false);
             messageInput.classList.remove('mss-processing');
             messageInput.focus();
