@@ -328,6 +328,10 @@ def register_repair_api(app: Any) -> None:
 def create_standalone_app() -> Optional[Any]:
     """Create a standalone Flask app exposing only the repair API.
 
+    The returned app has security middleware applied (authentication,
+    CORS allowlist, rate limiting, security headers) via
+    ``configure_secure_app``.
+
     Returns:
         A Flask app, or None if Flask is not available.
     """
@@ -337,6 +341,17 @@ def create_standalone_app() -> Optional[Any]:
 
     app = Flask(__name__)
     register_repair_api(app)
+
+    # SEC-001/SEC-002/SEC-004: Apply security middleware (auth, CORS, rate-limit)
+    try:
+        from flask_security import configure_secure_app
+        configure_secure_app(app, service_name="repair-api")
+    except Exception as exc:  # noqa: BLE001
+        logger.error(
+            "SECURITY: Failed to apply authentication/CORS/rate-limiting "
+            "middleware: %s — API running WITHOUT security controls", exc,
+        )
+
     return app
 
 

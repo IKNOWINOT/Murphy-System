@@ -673,7 +673,14 @@ def register_murphy_queries(reg: SchemaRegistry) -> None:
 
 def create_graphql_blueprint(
         registry: Optional[SchemaRegistry] = None):
-    """Build a Flask Blueprint exposing /graphql endpoints."""
+    """Build a Flask Blueprint exposing /graphql endpoints.
+
+    .. important::
+        The parent Flask app **must** have security middleware applied
+        via ``flask_security.configure_secure_app(app)`` before
+        registering this blueprint.  Authentication, CORS, and
+        rate-limiting are inherited from the host application.
+    """
     try:
         from flask import Blueprint, Response, jsonify, request
     except ImportError as exc:

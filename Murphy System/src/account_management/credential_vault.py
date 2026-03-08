@@ -101,9 +101,30 @@ class CredentialVault:
         master_key: Optional[str] = None,
     ) -> None:
         self._lock = threading.Lock()
-        self._master_key = master_key or os.environ.get(
-            "MURPHY_CREDENTIAL_MASTER_KEY", "murphy-dev-key-change-me"
+        resolved_key = master_key or os.environ.get(
+            "MURPHY_CREDENTIAL_MASTER_KEY", ""
         )
+        if not resolved_key:
+            murphy_env = os.environ.get("MURPHY_ENV", "development")
+            if murphy_env not in ("development", "test", "testing"):
+                raise ValueError(
+                    "MURPHY_CREDENTIAL_MASTER_KEY environment variable must be "
+                    "set in production. Generate one with: "
+                    "python -c \"from cryptography.fernet import Fernet; "
+                    "print(Fernet.generate_key().decode())\""
+                )
+            # Development/test only — ephemeral key per process invocation.
+            # NOT safe for production — credentials won't survive restarts.
+            if _HAS_FERNET:
+                resolved_key = Fernet.generate_key().decode()
+            else:
+                resolved_key = base64.urlsafe_b64encode(os.urandom(32)).decode()
+            logger.warning(
+                "Using ephemeral dev master key — credentials will not "
+                "persist across restarts. Set MURPHY_CREDENTIAL_MASTER_KEY "
+                "for persistent storage."
+            )
+        self._master_key = resolved_key
         self._credentials: Dict[str, StoredCredential] = {}
         # Index: account_id → list of credential_ids
         self._account_index: Dict[str, List[str]] = {}
