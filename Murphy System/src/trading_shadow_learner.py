@@ -233,12 +233,12 @@ class PatternMemoryStore:
         Promote *pattern_id* to PROMOTED status.
 
         Only promoted patterns are returned by ``get_pattern_hints()``.
-        A human must explicitly call this — promotion cannot happen automatically.
+        A human must explicitly call this -- promotion cannot happen automatically.
         """
         return self._update_status(pattern_id, PatternStatus.PROMOTED, notes)
 
     def reject_pattern(self, pattern_id: str, notes: str = "") -> bool:
-        """Mark *pattern_id* as REJECTED (noise — do not use as hint)."""
+        """Mark *pattern_id* as REJECTED (noise -- do not use as hint)."""
         return self._update_status(pattern_id, PatternStatus.REJECTED, notes)
 
     def get_pattern_hints(
@@ -428,7 +428,7 @@ class ShadowBot:
             elif signal.action in (SignalAction.SELL, SignalAction.CLOSE_LONG) and self._paper_position > 0.0:
                 proceeds  = price * self._paper_position * (1 - fee_rate)
                 pnl       = proceeds - self._entry_price * self._paper_position
-                pnl_pct   = pnl / (self._entry_price * self._paper_position or 1)
+                pnl_pct   = pnl / ((self._entry_price * self._paper_position) or 1)
                 self._paper_usd      += proceeds
                 trade = ShadowTrade(
                     trade_id    = str(uuid.uuid4()),
@@ -496,7 +496,11 @@ class ShadowBot:
                 for t in trade_list:
                     for k, v in t.indicators.items():
                         merged.setdefault(k, []).append(v)
-                return {k: sum(vs) / (len(vs) or 1) for k, vs in merged.items()}
+                return {
+                    k: sum(vs) / len(vs)
+                    for k, vs in merged.items()
+                    if vs  # only include keys with at least one value
+                }
 
             strategy_id = getattr(self.strategy, "strategy_id", "unknown")
 
