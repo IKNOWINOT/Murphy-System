@@ -18,6 +18,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **feat:** `src/websocket_event_server.py` — Real-time WebSocket Event Streaming Server (WES-001): EventBus pub-sub with channel isolation, subscriber lifecycle with heartbeat TTL, EventFilter (channel/type/severity), ConnectionManager with auto-expire, Flask REST + SSE endpoints, user-agent workflow support for non-technical operators, Wingman pair validation gate, Causality Sandbox gating
+- **test:** `tests/test_websocket_event_server.py` — 34 tests covering data models, event filters, channel history, connection management, EventBus pub/sub, Flask API endpoints (subscribe/publish/poll/history/channels/stats/unsubscribe), input validation, thread safety, Wingman gate, Sandbox gate, user-agent lifecycle workflows
 - **feat:** `src/digital_twin_engine.py` — Digital Twin Simulation Engine (DTE-001): model physical/logical systems, z-score anomaly detection, failure prediction, what-if scenario simulation, TwinRegistry fleet management, Wingman pair validation gate, Causality Sandbox gating
 - **feat:** `src/federated_learning_coordinator.py` — Federated Learning Coordinator (FLC-001): train models across distributed Murphy instances without sharing raw data; FedAvg/Median aggregation, differential-privacy noise injection, gradient clipping, Wingman pair validation gate, Causality Sandbox gating
 - **feat:** `src/backup_disaster_recovery.py` — Automated Backup & Disaster Recovery System (BDR-001): BackupManager with create/list/restore/delete/expire/verify, LocalStorageBackend, SHA-256 integrity checks, bundle serialisation, Wingman pair validation gate, Causality Sandbox gating

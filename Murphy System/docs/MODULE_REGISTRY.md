@@ -260,6 +260,14 @@ See [WINGMAN_PROTOCOL.md](WINGMAN_PROTOCOL.md) for full architecture documentati
 
 ---
 
+## Real-time Event Streaming
+
+| Module | Path | Description | Status | Key Dependencies |
+|--------|------|-------------|--------|-----------------|
+| `websocket_event_server.py` | `src/websocket_event_server.py` | Real-time event streaming server with pub-sub EventBus, channel-based isolation, subscriber lifecycle with heartbeat TTL, Flask REST + SSE endpoints, user-agent workflow support, Wingman + Sandbox gating | ✅ | — |
+
+---
+
 ## Digital Twin Simulation
 
 | Module | Path | Description | Status | Key Dependencies |
