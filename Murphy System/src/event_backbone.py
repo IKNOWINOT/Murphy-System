@@ -44,6 +44,12 @@ class EventType(Enum):
     SELF_FIX_VERIFIED = "self_fix_verified"
     SELF_FIX_COMPLETED = "self_fix_completed"
     SELF_FIX_ROLLED_BACK = "self_fix_rolled_back"
+    FLEET_RECONCILIATION_STARTED = "fleet_reconciliation_started"
+    FLEET_BOT_SPAWNED = "fleet_bot_spawned"
+    FLEET_BOT_DESPAWNED = "fleet_bot_despawned"
+    FLEET_BOT_UPDATED = "fleet_bot_updated"
+    FLEET_RECONCILED = "fleet_reconciled"
+    FLEET_DRIFT_DETECTED = "fleet_drift_detected"
 
 
 @dataclass
