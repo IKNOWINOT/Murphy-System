@@ -108,6 +108,11 @@ def collect_metrics_snapshot() -> np.ndarray:
 
     If ``psutil`` is unavailable all values are 0 with ``partial=True``.
     """
+    # Normalisation reference values
+    _DISK_IO_REF_BYTES = 500 * 1024 * 1024   # 500 MB/s throughput baseline
+    _NET_IO_REF_BYTES = 1024 * 1024 * 1024   # 1 GB cumulative traffic baseline
+    _MAX_EXPECTED_PIDS = 1000                 # upper bound for process-count normalisation
+
     result = np.zeros(10, dtype=float)
 
     if _psutil is None:
@@ -127,24 +132,21 @@ def collect_metrics_snapshot() -> np.ndarray:
     try:
         disk_io = _psutil.disk_io_counters()
         if disk_io is not None:
-            # Normalise against a reference of 500 MB/s
-            ref = 500 * 1024 * 1024
-            result[4] = float(np.clip(disk_io.read_bytes / ref, 0.0, 1.0))
-            result[5] = float(np.clip(disk_io.write_bytes / ref, 0.0, 1.0))
+            result[4] = float(np.clip(disk_io.read_bytes / _DISK_IO_REF_BYTES, 0.0, 1.0))
+            result[5] = float(np.clip(disk_io.write_bytes / _DISK_IO_REF_BYTES, 0.0, 1.0))
     except Exception:
         pass
 
     try:
         net_io = _psutil.net_io_counters()
         if net_io is not None:
-            ref = 1024 * 1024 * 1024  # 1 GB
-            result[6] = float(np.clip(net_io.bytes_sent / ref, 0.0, 1.0))
-            result[7] = float(np.clip(net_io.bytes_recv / ref, 0.0, 1.0))
+            result[6] = float(np.clip(net_io.bytes_sent / _NET_IO_REF_BYTES, 0.0, 1.0))
+            result[7] = float(np.clip(net_io.bytes_recv / _NET_IO_REF_BYTES, 0.0, 1.0))
     except Exception:
         pass
 
     try:
-        result[8] = float(np.clip(len(_psutil.pids()) / 1000.0, 0.0, 1.0))
+        result[8] = float(np.clip(len(_psutil.pids()) / _MAX_EXPECTED_PIDS, 0.0, 1.0))
     except Exception:
         pass
 

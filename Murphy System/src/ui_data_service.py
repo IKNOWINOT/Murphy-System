@@ -64,6 +64,26 @@ class UIDataService:
     Both System and Human interfaces consume from here
     """
 
+    # ── Module-level constants for phase FSM ───────────────────────────────
+    _DTYPE_MAP: Dict[str, Any] = {
+        'int': int,
+        'float': (int, float),
+        'str': str,
+        'bool': bool,
+        'list': list,
+        'dict': dict,
+    }
+
+    _PHASE_TRANSITIONS: Dict[str, List[str]] = {
+        "Expand":    ["Type", "Constrain"],
+        "Type":      ["Enumerate", "Constrain"],
+        "Enumerate": ["Constrain"],
+        "Constrain": ["Collapse", "Expand"],
+        "Collapse":  ["Bind", "Constrain"],
+        "Bind":      ["Execute", "Collapse"],
+        "Execute":   ["Complete", "Bind"],
+    }
+
     def __init__(self, mfgc_system):
         self.system = mfgc_system
         self.event_log = []
@@ -102,15 +122,7 @@ class UIDataService:
             actual_value = var_info.get('value')
             if declared_dtype is None:
                 continue
-            _dtype_map = {
-                'int': int,
-                'float': (int, float),
-                'str': str,
-                'bool': bool,
-                'list': list,
-                'dict': dict,
-            }
-            expected_type = _dtype_map.get(str(declared_dtype).lower())
+            expected_type = self._DTYPE_MAP.get(str(declared_dtype).lower())
             if expected_type is None:
                 continue
             if actual_value is not None and not isinstance(actual_value, expected_type):
@@ -129,16 +141,7 @@ class UIDataService:
 
         # ── Enumerate phase: list valid next states from current phase ──────
         current_phase = self._get_phase_name(confidence)
-        _transitions: Dict[str, List[str]] = {
-            "Expand":    ["Type", "Constrain"],
-            "Type":      ["Enumerate", "Constrain"],
-            "Enumerate": ["Constrain"],
-            "Constrain": ["Collapse", "Expand"],
-            "Collapse":  ["Bind", "Constrain"],
-            "Bind":      ["Execute", "Collapse"],
-            "Execute":   ["Complete", "Bind"],
-        }
-        valid_next_states = _transitions.get(current_phase, [])
+        valid_next_states = self._PHASE_TRANSITIONS.get(current_phase, [])
         enumerate_results: Dict[str, Any] = {
             "current_state": current_phase,
             "valid_transitions": valid_next_states,
@@ -151,7 +154,7 @@ class UIDataService:
                     "allowed": confidence < 0.3,
                     "phase_name": "Expand",
                     "status": "active" if current_phase == "Expand" else "inactive",
-                    "next_phases": _transitions.get("Expand", []),
+                    "next_phases": self._PHASE_TRANSITIONS.get("Expand", []),
                 },
                 "Type": {
                     "allowed": True,
@@ -159,38 +162,38 @@ class UIDataService:
                     "status": type_phase_status,
                     "results": type_results,
                     "errors": type_errors,
-                    "next_phases": _transitions.get("Type", []),
+                    "next_phases": self._PHASE_TRANSITIONS.get("Type", []),
                 },
                 "Enumerate": {
                     "allowed": True,
                     "phase_name": "Enumerate",
                     "status": "pass",
                     "results": enumerate_results,
-                    "next_phases": _transitions.get("Enumerate", []),
+                    "next_phases": self._PHASE_TRANSITIONS.get("Enumerate", []),
                 },
                 "Constrain": {
                     "allowed": 0.3 <= confidence < 0.7,
                     "phase_name": "Constrain",
                     "status": "active" if current_phase == "Constrain" else "inactive",
-                    "next_phases": _transitions.get("Constrain", []),
+                    "next_phases": self._PHASE_TRANSITIONS.get("Constrain", []),
                 },
                 "Collapse": {
                     "allowed": 0.7 <= confidence < 0.82,
                     "phase_name": "Collapse",
                     "status": "active" if current_phase == "Collapse" else "inactive",
-                    "next_phases": _transitions.get("Collapse", []),
+                    "next_phases": self._PHASE_TRANSITIONS.get("Collapse", []),
                 },
                 "Bind": {
                     "allowed": 0.82 <= confidence < 0.88,
                     "phase_name": "Bind",
                     "status": "active" if current_phase == "Bind" else "inactive",
-                    "next_phases": _transitions.get("Bind", []),
+                    "next_phases": self._PHASE_TRANSITIONS.get("Bind", []),
                 },
                 "Execute": {
                     "allowed": confidence >= 0.88,
                     "phase_name": "Execute",
                     "status": "active" if current_phase == "Execute" else "inactive",
-                    "next_phases": _transitions.get("Execute", []),
+                    "next_phases": self._PHASE_TRANSITIONS.get("Execute", []),
                 },
             },
             "thresholds": {
@@ -206,13 +209,13 @@ class UIDataService:
                 "status": type_phase_status,
                 "results": type_results,
                 "errors": type_errors,
-                "next_phases": _transitions.get("Type", []),
+                "next_phases": self._PHASE_TRANSITIONS.get("Type", []),
             },
             "enumerate_phase": {
                 "phase_name": "Enumerate",
                 "status": "pass",
                 "results": enumerate_results,
-                "next_phases": _transitions.get("Enumerate", []),
+                "next_phases": self._PHASE_TRANSITIONS.get("Enumerate", []),
             },
         }
 

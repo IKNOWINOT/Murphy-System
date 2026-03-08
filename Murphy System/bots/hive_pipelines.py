@@ -16,6 +16,8 @@ except ImportError:  # pragma: no cover - optional dependency
     RubixCubeBot = None  # type: ignore
 
 _DEFAULT_LOG_PATH = os.environ.get("TASK_TIMING_LOG", "logs/task_timing_log.json")
+# Minimum sample size required for a meaningful EWMA estimate.
+# With fewer points the average is too noisy to be useful.
 _MIN_HISTORY_POINTS = 3
 _EWMA_ALPHA = 0.3  # weight for the most-recent observation
 
