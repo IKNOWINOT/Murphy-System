@@ -534,6 +534,47 @@ class GeographicLoadBalancer:
             dep.updated_at = _now()
         return dep
 
+    # -- ML feedback loop (G-004) ------------------------------------------
+
+    def record_outcome(
+        self, region_id: str, latency_ms: float,
+        success: bool = True, learning_rate: float = 0.05,
+    ) -> Optional[Region]:
+        """Record a request outcome and adjust routing weights via feedback.
+
+        The learning loop nudges ``capacity_weight`` up for good outcomes
+        (low latency + success) and down for bad outcomes.  This wires the
+        ML feedback signal directly into the routing weights — closing G-004.
+        """
+        with self._lock:
+            region = self._regions.get(region_id)
+            if region is None:
+                return None
+            signal = self._compute_feedback(
+                latency_ms, success, region.avg_latency_ms,
+            )
+            region.capacity_weight = max(
+                0.1, region.capacity_weight + learning_rate * signal,
+            )
+            region.updated_at = _now()
+            return region
+
+    @staticmethod
+    def _compute_feedback(
+        latency_ms: float, success: bool, baseline_ms: float,
+    ) -> float:
+        """Pure function: compute a feedback signal in [-1, 1]."""
+        if not success:
+            return -1.0
+        if baseline_ms <= 0:
+            return 0.5
+        ratio = latency_ms / max(baseline_ms, 1.0)
+        if ratio < 0.8:
+            return 1.0
+        if ratio < 1.2:
+            return 0.2
+        return -0.5
+
     def get_stats(self) -> Dict[str, Any]:
         """Return summary statistics."""
         with self._lock:
