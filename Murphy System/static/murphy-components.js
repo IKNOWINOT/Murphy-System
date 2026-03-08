@@ -501,7 +501,7 @@ class MurphyToast {
 
     const iconName = this._iconMap[type] || 'info';
     toast.innerHTML = `
-      <svg width="16" height="16" style="flex-shrink:0;margin-top:1px;"><use href="murphy-icons.svg#${iconName}"/></svg>
+      <svg width="16" height="16" style="flex-shrink:0;margin-top:1px;"><use href="static/murphy-icons.svg#${iconName}"/></svg>
       <span style="flex:1;">${this._escapeHtml(message)}</span>
       <button style="background:none;border:none;color:inherit;cursor:pointer;font-size:14px;line-height:1;padding:0;" aria-label="Close">&times;</button>`;
 
@@ -1571,7 +1571,7 @@ class MurphyLibrarianChat {
     this._btn.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:600;width:56px;height:56px;'
       + 'border-radius:50%;border:none;cursor:pointer;background:#0d9488;color:#fff;box-shadow:0 4px 16px rgba(0,0,0,.4);'
       + 'display:flex;align-items:center;justify-content:center;transition:transform .15s;';
-    this._btn.innerHTML = '<svg width="24" height="24"><use href="murphy-icons.svg#chat"/></svg>';
+    this._btn.innerHTML = '<svg width="24" height="24"><use href="static/murphy-icons.svg#chat"/></svg>';
     this._btn.addEventListener('click', () => this._toggle());
     document.body.appendChild(this._btn);
   }
