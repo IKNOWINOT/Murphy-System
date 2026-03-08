@@ -8,7 +8,10 @@ from typing import Any, Dict
 logger = logging.getLogger(__name__)
 
 from .jsonbot_schema import validate_json
-from .visualization_bot import VisualizationBot
+try:
+    from .visualization_bot import VisualizationBot
+except Exception:  # pragma: no cover - optional dependency (matplotlib)
+    VisualizationBot = None  # type: ignore
 from .simulation_sandbox import simulate
 try:
     from .analysisbot import AnalysisBot as EngineeringBot  # Import with alias

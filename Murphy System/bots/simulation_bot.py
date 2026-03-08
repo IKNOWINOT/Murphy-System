@@ -2,16 +2,93 @@
 from __future__ import annotations
 
 import json
-import random
+import math
 from datetime import datetime, timezone
 from pathlib import Path
 import json as _json
+from typing import List
 
 from .cache_manager import get_cache, set_cache
 from .gpt_oss_runner import GPTOSSRunner
 
+try:
+    from scipy.integrate import solve_ivp as _solve_ivp  # type: ignore
+except Exception:  # pragma: no cover - optional dep
+    _solve_ivp = None  # type: ignore
+
 LOG_DIR = Path("logs")
 LOG_DIR.mkdir(exist_ok=True)
+
+
+def _spring_mass_damper(
+    k: float, m: float, c: float, x0: float, v0: float,
+    t_end: float = 5.0, dt: float = 0.01,
+) -> dict:
+    """Solve a spring-mass-damper system: m*x'' + c*x' + k*x = 0.
+
+    Uses scipy.integrate.solve_ivp (RK45) when available, otherwise falls
+    back to a simple Euler integrator.
+
+    Args:
+        k: Spring stiffness (N/m).
+        m: Mass (kg).
+        c: Damping coefficient (N·s/m).
+        x0: Initial displacement (m).
+        v0: Initial velocity (m/s).
+        t_end: Simulation end time (s).
+        dt: Time-step for Euler fallback (s).
+
+    Returns:
+        dict with ``displacement``, ``stress``, ``time_steps``, ``solver``,
+        ``confidence``.
+    """
+    if m <= 0:
+        m = 1e-9
+
+    def ode(t: float, y: list) -> list:
+        x, v = y
+        dxdt = v
+        dvdt = -(k / m) * x - (c / m) * v
+        return [dxdt, dvdt]
+
+    n_points = max(10, int(t_end / dt) + 1)
+    t_eval = [i * dt for i in range(n_points)]
+    solver_name = "euler"
+
+    if _solve_ivp is not None:
+        try:
+            sol = _solve_ivp(ode, [0.0, t_end], [x0, v0], t_eval=t_eval, method="RK45", dense_output=False)
+            displ = [float(x) for x in sol.y[0]]
+            time_steps = [float(t) for t in sol.t]
+            solver_name = "scipy_rk45"
+        except Exception:
+            displ = None
+    else:
+        displ = None
+
+    if displ is None:
+        # Euler fallback
+        x, v = x0, v0
+        displ = []
+        time_steps_euler = []
+        for t in t_eval:
+            displ.append(x)
+            time_steps_euler.append(t)
+            ax = -(k / m) * x - (c / m) * v
+            x = x + v * dt
+            v = v + ax * dt
+        time_steps = time_steps_euler
+
+    # Stress proportional to spring force: σ ∝ k * displacement
+    stress = [abs(k * d) for d in displ]
+
+    return {
+        "displacement": displ,
+        "stress": stress,
+        "time_steps": time_steps,
+        "solver": solver_name,
+        "confidence": 0.9,
+    }
 
 
 class SimulationBot:
@@ -19,28 +96,64 @@ class SimulationBot:
         self.runner = GPTOSSRunner(model_path=model_path)
 
     def run_simulation(self, task_json: dict) -> dict:
-        """Simulate engineering task and store results with caching."""
+        """Simulate engineering task and store results with caching.
+
+        Supported simulation types (key ``simulation_type`` in task_json):
+        - ``spring_mass_damper``: Uses input_parameters keys ``k``, ``m``, ``c``,
+          ``x0``, ``v0``, ``t_end``, ``dt``.
+
+        Falls back to a structured unsupported-type response for unknown types.
+        """
         key = "sim_" + _json.dumps(task_json, sort_keys=True)
         cached = get_cache(key)
         if cached:
             return cached
 
-        # fallback placeholder results
-        result = {
-            "task_id": task_json["task_id"],
-            "bot_tested": task_json.get("target_bot", "unknown"),
-            "input_parameters": task_json.get("input_parameters", {}),
-            "results": {
-                "max_stress": round(random.uniform(110, 130), 2),
-                "deformation": f"{round(random.uniform(1.2, 2.5), 2)}mm",
-                "safety_factor": round(random.uniform(1.0, 2.0), 2),
-            },
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        }
+        sim_type = task_json.get("simulation_type", "").lower()
+        params = task_json.get("input_parameters", {})
+        timestamp = datetime.now(timezone.utc).isoformat()
+        task_id = task_json.get("task_id", "unknown")
 
-        out_path = LOG_DIR / f"simulation_{task_json['task_id']}.json"
-        with out_path.open("w", encoding="utf-8") as f:
-            json.dump(result, f, indent=2)
+        if sim_type in ("spring_mass_damper", "spring_mass", "spring-mass-damper"):
+            sim_result = _spring_mass_damper(
+                k=float(params.get("k", 10.0)),
+                m=float(params.get("m", 1.0)),
+                c=float(params.get("c", 0.5)),
+                x0=float(params.get("x0", 1.0)),
+                v0=float(params.get("v0", 0.0)),
+                t_end=float(params.get("t_end", 5.0)),
+                dt=float(params.get("dt", 0.01)),
+            )
+            result = {
+                "task_id": task_id,
+                "bot_tested": task_json.get("target_bot", "unknown"),
+                "input_parameters": params,
+                "results": sim_result,
+                "timestamp": timestamp,
+            }
+        else:
+            # Unsupported simulation type — structured fallback, NOT random
+            result = {
+                "task_id": task_id,
+                "bot_tested": task_json.get("target_bot", "unknown"),
+                "input_parameters": params,
+                "results": {
+                    "displacement": [],
+                    "stress": [],
+                    "time_steps": [],
+                    "solver": "none",
+                    "confidence": 0,
+                    "note": "unsupported simulation type — random approximation",
+                },
+                "timestamp": timestamp,
+            }
+
+        try:
+            out_path = LOG_DIR / f"simulation_{task_id}.json"
+            with out_path.open("w", encoding="utf-8") as f:
+                json.dump(result, f, indent=2)
+        except Exception:
+            pass
 
         set_cache(key, result)
         return result
