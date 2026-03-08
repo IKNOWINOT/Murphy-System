@@ -17,6 +17,12 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **feat:** `src/backup_disaster_recovery.py` — Automated Backup & Disaster Recovery System (BDR-001): BackupManager with create/list/restore/delete/expire/verify, LocalStorageBackend, SHA-256 integrity checks, bundle serialisation, Wingman pair validation gate, Causality Sandbox gating
+- **feat:** `src/startup_validator.py` — Boot-time startup validation: env vars, file existence, port availability, dependency importability (SV-001)
+- **test:** `tests/test_backup_disaster_recovery.py` — 33 tests covering data models, storage CRUD, bundle round-trip, backup lifecycle, restore with checksum validation, retention expiry, thread safety, Wingman gate, Sandbox gate
+- **test:** `tests/test_performance_reliability.py` — 34 tests for graceful shutdown, health checks, startup validation, circuit breakers, connection pooling
+
 ### Changed
 - **refactor:** Converted 12 `raise NotImplementedError` stubs in 6 abstract base classes to proper `abc.ABC` + `@abstractmethod` patterns:
   - `command_system.py` — `CommandModule.execute()`
