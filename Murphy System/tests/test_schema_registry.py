@@ -57,6 +57,9 @@ def _make_artifact(artifact_type: ArtifactType, artifact_id: str = "a1") -> Simp
     )
 
 
+_FIXED_TIMESTAMP = datetime(2024, 1, 1, tzinfo=timezone.utc)
+
+
 def _make_handoff(
     from_role: str,
     to_role: str,
@@ -68,7 +71,7 @@ def _make_handoff(
         from_role=from_role,
         to_role=to_role,
         artifact=_make_artifact(artifact_type),
-        timestamp=datetime.now(timezone.utc),
+        timestamp=_FIXED_TIMESTAMP,
     )
 
 
