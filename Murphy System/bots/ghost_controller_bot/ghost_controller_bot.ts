@@ -49,7 +49,7 @@ export async function run(rawInput: unknown, ctx: Ctx = {}): Promise<Output> {
   const app = 'Unknown';
   const automation = { title:`Automation for ${app}`, steps:[{ id:'s1', action:'focus_app', args:{ app } }], triggers:['on_hotkey:Ctrl+Shift+G'], replay_notes:['Verify locators'] };
   const microtasks = toMicroTasks(automation);
-  const validation = validateMicroTasks(microtasks, true);
+  const validation = await validateMicroTasks(microtasks, true);
   const live_reports:any[] = [];
 
   const attention = { idle_events: 0, avg_idle_s: 0, context_switches: 0, top_apps:[{app,seconds:0}], keystroke_rate_hz: 0 };

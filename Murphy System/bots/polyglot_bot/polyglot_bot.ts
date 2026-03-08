@@ -68,7 +68,7 @@ export async function run(raw: unknown, ctx: Ctx = {}): Promise<Output> {
     for (const b of blocks){
       const segs = segmentMixed(redact(b||''));
       for (const s of segs){
-        const t = translateBlock(s.text, params.source_lang||'auto', params.target_lang||'en', style, glossary, noTranslate);
+        const t = await translateBlock(s.text, params.source_lang||'auto', params.target_lang||'en', style, glossary, noTranslate);
         translations.push({ original: s.text, ...t });
       }
     }
