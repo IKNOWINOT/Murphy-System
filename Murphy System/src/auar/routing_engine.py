@@ -9,7 +9,7 @@ reliability, compliance, and tenant-specific policies.
 Supports A/B testing via strategy weights, circuit-breaker logic for
 unhealthy providers, and deterministic fallback chains.
 
-Copyright 2024 Inoni LLC – Apache License 2.0
+Copyright 2024 Inoni LLC – BSL-1.1
 """
 
 import logging

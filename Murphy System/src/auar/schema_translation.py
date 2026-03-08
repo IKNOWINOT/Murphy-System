@@ -8,7 +8,7 @@ canonical format and individual provider-specific schemas.
 Supports bidirectional translation (request → provider, provider →
 response), type coercion, default injection, and field renaming.
 
-Copyright 2024 Inoni LLC – Apache License 2.0
+Copyright 2024 Inoni LLC – BSL-1.1
 """
 
 import copy

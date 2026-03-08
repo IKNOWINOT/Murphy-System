@@ -8,7 +8,7 @@ enforcement, and cost attribution for the AUAR pipeline.
 Designed for OpenTelemetry-compatible export; the in-memory
 implementation provides the same contract for testing and offline use.
 
-Copyright 2024 Inoni LLC – Apache License 2.0
+Copyright 2024 Inoni LLC – BSL-1.1
 """
 
 import logging

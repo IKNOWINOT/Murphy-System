@@ -30,6 +30,28 @@ from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
+
+# ---------------------------------------------------------------------------
+# PII Redaction Helpers
+# ---------------------------------------------------------------------------
+
+def _redact_email(email: str) -> str:
+    """Redact email for safe logging: u***@domain.com."""
+    if not email or "@" not in email:
+        return "[REDACTED_EMAIL]"
+    local, domain = email.split("@", 1)
+    return f"{local[:1]}***@{domain}"
+
+
+def _redact_ip(ip: str) -> str:
+    """Redact IP address for safe logging: 192.168.xxx.xxx."""
+    if not ip:
+        return "[REDACTED_IP]"
+    parts = ip.split(".")
+    if len(parts) == 4:
+        return f"{parts[0]}.{parts[1]}.xxx.xxx"
+    return "[REDACTED_IP]"
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
@@ -306,9 +328,9 @@ class SignupGateway:
                 self._orgs[org_id].member_ids.append(profile.user_id)
 
             self._profiles[profile.user_id] = profile
-            self._audit("signup", profile.user_id, {"email": profile.email, "role": role})
+            self._audit("signup", profile.user_id, {"email": _redact_email(profile.email), "role": role})
 
-        logger.info("Signup: user_id=%s email=%s role=%s", profile.user_id, profile.email, role)
+        logger.info("Signup: user_id=%s email=%s role=%s", profile.user_id, _redact_email(profile.email), role)
         return profile
 
     # ------------------------------------------------------------------
@@ -365,7 +387,7 @@ class SignupGateway:
             profile.eula_accepted_at = record.accepted_at
             profile.updated_at = record.accepted_at
             self._eula_records[user_id] = record
-            self._audit("accept_eula", user_id, {"version": EULA_VERSION, "ip": ip_address})
+            self._audit("accept_eula", user_id, {"version": EULA_VERSION, "ip": _redact_ip(ip_address)})
 
         logger.info("EULA accepted: user_id=%s version=%s", user_id, EULA_VERSION)
         return record
