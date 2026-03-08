@@ -1666,16 +1666,9 @@ window.MurphyKeyboard       = MurphyKeyboard;
 window.MurphyTerminalPanel  = MurphyTerminalPanel;
 window.MurphyLibrarianChat  = MurphyLibrarianChat;
 
-export {
-  MurphyAPI,
-  MurphyToast,
-  MurphyModal,
-  MurphyHealth,
-  MurphyTable,
-  MurphyChart,
-  MurphyTheme,
-  MurphyJargon,
-  MurphyKeyboard,
-  MurphyTerminalPanel,
-  MurphyLibrarianChat,
-};
+/* ES module export — only when loaded as type="module" */
+try {
+  if (typeof globalThis !== 'undefined' && typeof globalThis[Symbol.for('murphy-components-exported')] === 'undefined') {
+    globalThis[Symbol.for('murphy-components-exported')] = true;
+  }
+} catch (_) { /* non-module context */ }
