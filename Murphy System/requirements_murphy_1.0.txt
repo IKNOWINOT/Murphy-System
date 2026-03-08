@@ -141,6 +141,19 @@ zstandard>=0.22.0
 # System Monitoring
 psutil>=5.9.6
 
+# ==================== Crypto Trading ====================
+# Coinbase Advanced Trade REST + WebSocket
+websocket-client>=1.6.0
+# Multi-exchange abstraction (optional CCXT integration)
+# ccxt>=4.2.0
+# EVM wallet signing (optional — required for SoftwareWallet.sign_transaction)
+# web3>=6.11.0
+# Bitcoin wallet utilities (optional)
+# bitcoin-utils>=0.6.0
+# Hardware wallet support (optional)
+# ledgerblue>=0.1.48
+# trezor>=0.13.0
+
 # ==================== Development Dependencies ====================
 ipython>=8.17.0
 jupyter>=1.0.0
