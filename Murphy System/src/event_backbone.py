@@ -48,6 +48,10 @@ class EventType(Enum):
     CHAOS_EXPERIMENT_COMPLETED = "chaos_experiment_completed"
     CHAOS_SCORECARD_GENERATED = "chaos_scorecard_generated"
     CHAOS_GAPS_SUBMITTED = "chaos_gaps_submitted"
+    PREDICTION_GENERATED = "prediction_generated"
+    PREDICTION_PREEMPTED = "prediction_preempted"
+    PREDICTION_MATERIALIZED = "prediction_materialized"
+    PREDICTION_FALSE_POSITIVE = "prediction_false_positive"
 
 
 @dataclass
