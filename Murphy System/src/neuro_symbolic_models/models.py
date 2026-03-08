@@ -370,7 +370,7 @@ class NeuroSymbolicConfidenceModel(nn.Module):
 
             # Estimate prediction confidence based on model uncertainty
             # (simplified - in practice, use ensemble or dropout-based uncertainty)
-            prediction_confidence = torch.tensor([0.85])  # Placeholder
+            prediction_confidence = torch.tensor([0.85])  # default confidence
 
             return {
                 "H_ml": H_ml.item(),

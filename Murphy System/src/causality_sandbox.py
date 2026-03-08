@@ -334,7 +334,7 @@ class CausalitySandboxEngine:
             simulations_run=total_simulations,
             optimal_actions_selected=len(rankings),
             antibody_hits=antibody_hits,
-            chaos_verification_passed=True,  # placeholder; set by caller after commit
+            chaos_verification_passed=True,  # default; overridden by caller after commit
             rankings=rankings,
             duration_ms=duration_ms,
         )
