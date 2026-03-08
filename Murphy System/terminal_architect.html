@@ -1,2105 +1,750 @@
+<!--
+  Murphy System — Architect Terminal
+  © 2020 Inoni Limited Liability Company by Corey Post
+  License: BSL 1.1 (Business Source License 1.1)
+  See LICENSE file in repository root for full terms.
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>☠ MURPHY SYSTEM - ARCHITECT TERMINAL ☠</title>
-    <style>
-        :root { --neon-green: #00FF00; }
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Courier New', monospace;
-            background-color: #0a0a0a;
-            color: #00ff41;
-            overflow: hidden;
-            height: 100vh;
-        }
-
-        /* Header */
-        .header {
-            background-color: #0a0a0a;
-            border-bottom: 2px solid #00ff41;
-            box-shadow: 0 2px 10px rgba(0, 255, 65, 0.3);
-            padding: 10px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .header-title {
-            font-size: 22px;
-            font-weight: bold;
-            letter-spacing: 3px;
-            color: #00ff41;
-        }
-
-        .header-subtitle {
-            font-size: 11px;
-            color: #00cc33;
-            margin-top: 3px;
-            letter-spacing: 2px;
-        }
-
-        .header-controls {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-        }
-
-        .header-btn {
-            background-color: #0a0a0a;
-            border: 1px solid #00ff41;
-            color: #00ff41;
-            padding: 5px 15px;
-            font-family: 'Courier New', monospace;
-            font-size: 11px;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .header-btn:hover {
-            background-color: #00ff41;
-            color: #0a0a0a;
-        }
-
-        .header-btn.active {
-            background-color: #00ff41;
-            color: #0a0a0a;
-        }
-
-        /* Main Container */
-        .container {
-            display: flex;
-            height: calc(100vh - 80px);
-        }
-
-        /* Left Panel - Terminal */
-        .terminal-panel {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            border-right: 2px solid #00ff41;
-        }
-
-        .terminal-output {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            background-color: #0a0a0a;
-            font-size: 13px;
-            line-height: 1.5;
-        }
-
-        .terminal-output::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .terminal-output::-webkit-scrollbar-track {
-            background: #0a0a0a;
-        }
-
-        .terminal-output::-webkit-scrollbar-thumb {
-            background: #00ff41;
-            border-radius: 4px;
-        }
-
-        .terminal-line {
-            margin-bottom: 6px;
-            animation: fadeIn 0.2s ease-in;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .terminal-line.user {
-            color: #00ffff;
-        }
-
-        .terminal-line.system {
-            color: #00ff41;
-        }
-
-        .terminal-line.error {
-            color: #ff0000;
-        }
-
-        .terminal-line.warning {
-            color: #ffcc00;
-        }
-
-        .terminal-line.info {
-            color: #0088ff;
-        }
-
-        .terminal-line.mfgc {
-            color: #ff00ff;
-        }
-
-        .terminal-input-container {
-            padding: 15px 20px;
-            border-top: 2px solid #00ff41;
-            background-color: #0a0a0a;
-        }
-
-        .terminal-input-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .terminal-prompt {
-            color: #00ff41;
-            font-weight: bold;
-            font-size: 13px;
-        }
-
-        #messageInput {
-            flex: 1;
-            background-color: #0a0a0a;
-            border: none;
-            color: #00ffff;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            padding: 8px;
-            outline: none;
-            border-bottom: 1px solid #00ff41;
-        }
-
-        #messageInput::placeholder {
-            color: #00ff41;
-            opacity: 0.5;
-        }
-
-        .send-button {
-            background-color: #00ff41;
-            color: #0a0a0a;
-            border: none;
-            padding: 8px 20px;
-            font-family: 'Courier New', monospace;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .send-button:hover {
-            background-color: #00CC00;
-        }
-
-        .send-button.loading {
-            opacity: 0.6;
-            cursor: wait;
-        }
-
-        /* MSS Controls */
-        .mss-controls {
-            display: flex;
-            gap: 8px;
-            padding: 8px 20px 0 20px;
-        }
-        .mss-btn {
-            font-family: 'Courier New', monospace;
-            font-size: 11px;
-            font-weight: bold;
-            padding: 4px 14px;
-            border: 1px solid #00ff41;
-            cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: background-color 0.2s;
-            background-color: #0a0a0a;
-            color: #00ff41;
-        }
-        .mss-btn:hover { background-color: #1a1a2e; }
-        .mss-simplify { border-color: #00ccff; color: #00ccff; }
-        .mss-magnify { border-color: #ffcc00; color: #ffcc00; }
-        .mss-solidify { border-color: #ff4444; color: #ff4444; }
-        .resolution-indicator {
-            padding: 4px 20px;
-            font-size: 11px;
-            color: #00cc33;
-            font-family: 'Courier New', monospace;
-            letter-spacing: 1px;
-        }
-
-        /* MSS processing state */
-        #messageInput.mss-processing {
-            border-color: #ffff00;
-            animation: mss-pulse 1s ease-in-out infinite;
-        }
-
-        @keyframes mss-pulse {
-            0%, 100% { box-shadow: 0 0 5px rgba(255, 255, 0, 0.3); }
-            50% { box-shadow: 0 0 15px rgba(255, 255, 0, 0.6); }
-        }
-
-        /* MSS applied badge */
-        .mss-btn.applied {
-            border-width: 2px;
-            position: relative;
-        }
-        .mss-btn.applied::after {
-            content: '✓';
-            position: absolute;
-            top: -6px;
-            right: -6px;
-            font-size: 10px;
-            color: #00ff41;
-            background: #0a0a0a;
-            border-radius: 50%;
-            width: 14px;
-            height: 14px;
-            line-height: 14px;
-            text-align: center;
-        }
-
-        /* Collapsible agent chain */
-        .collapsible-header {
-            cursor: pointer;
-            color: #00ff41;
-        }
-        .collapsible-header:hover {
-            color: #00ffff;
-        }
-        .collapse-arrow {
-            display: inline-block;
-            width: 16px;
-            transition: transform 0.2s;
-        }
-        .collapsible-details {
-            padding-left: 24px;
-            color: #666;
-            font-size: 12px;
-            line-height: 1.6;
-            border-left: 1px solid #333;
-            margin-left: 6px;
-        }
-        .collapsible-details .agent-step {
-            color: #00ff41;
-        }
-        .collapsible-details .agent-step.active {
-            color: #ffff00;
-        }
-        .collapsible-details .agent-step.done {
-            color: #00ff41;
-            top: -5px;
-            right: -5px;
-            font-size: 10px;
-            color: #00ff41;
-        }
-
-        /* Focus-visible styles for keyboard navigation */
-        .header-btn:focus-visible,
-        .send-button:focus-visible,
-        .tab:focus-visible,
-        .config-toggle:focus-visible,
-        .config-select:focus-visible,
-        #messageInput:focus-visible {
-            outline: 2px solid #00ffff;
-            outline-offset: 2px;
-        }
-
-        /* Right Panel - System State */
-        .state-panel {
-            width: 500px;
-            display: flex;
-            flex-direction: column;
-            background-color: #0a0a0a;
-            overflow-y: auto;
-        }
-
-        .state-section {
-            border-bottom: 1px solid #00ff41;
-            padding: 15px;
-        }
-
-        .state-section-title {
-            font-size: 11px;
-            font-weight: bold;
-            margin-bottom: 12px;
-            color: #00ff41;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            border-bottom: 1px solid #003300;
-            padding-bottom: 5px;
-        }
-
-        /* MFGC Phase Display */
-        .mfgc-phases {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 10px;
-            background-color: #001100;
-            padding: 10px;
-            border: 1px solid #00ff41;
-        }
-
-        .phase-node {
-            text-align: center;
-            font-size: 9px;
-            color: #006600;
-            padding: 5px;
-            transition: all 0.3s;
-            cursor: pointer;
-        }
-
-        .phase-node.current {
-            color: #00ff41;
-            font-weight: bold;
-            background-color: #003300;
-        }
-
-        .phase-node.completed {
-            color: #00cc33;
-        }
-
-        .phase-name {
-            text-transform: uppercase;
-            font-size: 8px;
-            margin-bottom: 3px;
-        }
-
-        /* Metrics Grid */
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .metric-card {
-            background-color: #001100;
-            border: 1px solid #00ff41;
-            padding: 10px;
-        }
-
-        .metric-label {
-            font-size: 9px;
-            color: #00cc33;
-            margin-bottom: 5px;
-            text-transform: uppercase;
-        }
-
-        .metric-value {
-            font-size: 16px;
-            font-weight: bold;
-            color: #00ff41;
-        }
-
-        .metric-sub {
-            font-size: 9px;
-            color: #006600;
-            margin-top: 3px;
-        }
-
-        /* Confidence Bar */
-        .confidence-container {
-            margin-top: 10px;
-        }
-
-        .confidence-bar {
-            width: 100%;
-            height: 20px;
-            background-color: #001100;
-            border: 1px solid #00ff41;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .confidence-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #ff0000, #ffcc00, #00ff41);
-            transition: width 0.5s ease;
-        }
-
-        .confidence-labels {
-            display: flex;
-            justify-content: space-between;
-            font-size: 9px;
-            color: #006600;
-            margin-top: 3px;
-        }
-
-        /* Murphy Index */
-        .murphy-display {
-            background-color: #001100;
-            border: 1px solid #00ff41;
-            padding: 12px;
-            margin-top: 10px;
-        }
-
-        .murphy-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .murphy-value {
-            font-size: 24px;
-            font-weight: bold;
-            color: #00ff41;
-        }
-
-        .murphy-status {
-            font-size: 10px;
-            padding: 2px 8px;
-            background-color: #00ff41;
-            color: #0a0a0a;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-
-        .murphy-status.high {
-            background-color: #ff0000;
-            color: #FFFFFF;
-        }
-
-        .murphy-status.medium {
-            background-color: #ffcc00;
-            color: #0a0a0a;
-        }
-
-        /* Gates Display */
-        .gates-list {
-            background-color: #001100;
-            border: 1px solid #00ff41;
-            padding: 10px;
-            margin-top: 10px;
-            max-height: 150px;
-            overflow-y: auto;
-        }
-
-        .gate-item {
-            font-size: 10px;
-            padding: 5px;
-            margin-bottom: 5px;
-            border-bottom: 1px solid #003300;
-            display: grid;
-            /* Layout: icon | gate name | detail | status, with reason row below. */
-            grid-template-columns: auto 1fr auto auto;
-            grid-template-areas:
-                "icon type detail status"
-                "reason reason reason reason";
-            column-gap: 8px;
-            row-gap: 2px;
-            align-items: center;
-        }
-
-        .gate-item:last-child {
-            border-bottom: none;
-        }
-
-        .gate-icon {
-            color: #00ff41;
-            grid-area: icon;
-        }
-
-        .gate-type {
-            color: #00ffff;
-            font-weight: bold;
-            grid-area: type;
-        }
-
-        .gate-status {
-            font-size: 8px;
-            padding: 2px 6px;
-            border-radius: 2px;
-            grid-area: status;
-        }
-
-        .gate-status.active {
-            background-color: #00ff41;
-            color: #0a0a0a;
-        }
-
-        .gate-status.triggered {
-            background-color: #ff0000;
-            color: #FFFFFF;
-        }
-
-        .gate-detail {
-            font-size: 8px;
-            color: #00cc33;
-            grid-area: detail;
-        }
-
-        .gate-reason {
-            grid-column: 1 / -1;
-            grid-area: reason;
-            font-size: 8px;
-            color: #00cc33;
-            margin-left: 18px;
-        }
-
-        .data-source {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 10px;
-            color: #00cc33;
-        }
-
-        .data-status {
-            padding: 2px 6px;
-            border: 1px solid #00ff41;
-            font-size: 9px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .data-status.online {
-            background-color: #00ff41;
-            color: #0a0a0a;
-        }
-
-        .data-status.offline {
-            background-color: #330000;
-            color: #ff0000;
-            border-color: #ff0000;
-        }
-
-        .preview-output {
-            font-size: 9px;
-            color: #00ff41;
-            line-height: 1.4;
-            white-space: pre-wrap;
-            max-height: 240px;
-            overflow-y: auto;
-            background-color: #0a0a0a;
-            border: 1px solid #003300;
-            padding: 8px;
-        }
-
-        /* Configuration Panel */
-        .config-panel {
-            background-color: #001100;
-            border: 1px solid #00ff41;
-            padding: 12px;
-            margin-top: 10px;
-        }
-
-        .config-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-            font-size: 10px;
-        }
-
-        .config-label {
-            color: #00cc33;
-        }
-
-        .config-value {
-            color: #00ffff;
-        }
-
-        .config-select {
-            background-color: #0a0a0a;
-            border: 1px solid #00ff41;
-            color: #00ff41;
-            padding: 3px 8px;
-            font-family: 'Courier New', monospace;
-            font-size: 9px;
-            cursor: pointer;
-        }
-
-        .config-toggle {
-            background-color: #0a0a0a;
-            border: 1px solid #00ff41;
-            color: #00ff41;
-            padding: 3px 12px;
-            font-family: 'Courier New', monospace;
-            font-size: 9px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .config-toggle.active {
-            background-color: #00ff41;
-            color: #0a0a0a;
-        }
-
-        /* Event Log */
-        .event-log {
-            background-color: #001100;
-            border: 1px solid #00ff41;
-            padding: 10px;
-            margin-top: 10px;
-            max-height: 200px;
-            overflow-y: auto;
-            font-size: 9px;
-        }
-
-        .event-item {
-            margin-bottom: 5px;
-            padding: 3px;
-            border-left: 2px solid #00ff41;
-            padding-left: 5px;
-        }
-
-        .event-time {
-            color: #006600;
-            font-size: 8px;
-        }
-
-        .event-message {
-            color: #00cc33;
-            margin-top: 2px;
-        }
-
-        /* Tabs */
-        .tabs {
-            display: flex;
-            background-color: #0a0a0a;
-            border-bottom: 1px solid #00ff41;
-        }
-
-        .tab {
-            flex: 1;
-            padding: 8px 12px;
-            font-size: 10px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            border-right: 1px solid #00ff41;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .tab:hover {
-            background-color: #003300;
-        }
-
-        .tab.active {
-            background-color: #00ff41;
-            color: #0a0a0a;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-        /* ── Color Key Legend ────────────────────────────── */
-        .color-key {
-            display: flex;
-            gap: 14px;
-            padding: 4px 15px;
-            background: #0a0a0a;
-            border-bottom: 1px solid #333;
-            font-size: 11px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-        .color-key-label {
-            color: #666;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-right: 4px;
-        }
-        .color-key-item {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .color-key-swatch {
-            width: 10px;
-            height: 10px;
-            border-radius: 2px;
-            display: inline-block;
-        }
-
-        /* ── Skip to content (a11y) ────────────────────── */
-        .skip-link {
-            position: absolute;
-            top: -100%;
-            left: 0;
-            background: #00ff41;
-            color: #0a0a0a;
-            padding: 8px 16px;
-            z-index: 10000;
-            font-weight: bold;
-        }
-        .skip-link:focus {
-            top: 0;
-        }
-
-        /* ── Responsive ────────────────────────────── */
-        @media (max-width: 900px) {
-            .state-panel {
-                width: 320px;
-            }
-            .header-title {
-                font-size: 16px;
-                letter-spacing: 1px;
-            }
-            .header-subtitle {
-                display: none;
-            }
-        }
-        @media (max-width: 700px) {
-            .container {
-                flex-direction: column;
-            }
-            .state-panel {
-                width: 100%;
-                max-height: 40vh;
-                border-top: 2px solid #00ff41;
-            }
-            .terminal-panel {
-                border-right: none;
-                min-height: 50vh;
-            }
-            .header {
-                flex-direction: column;
-                gap: 8px;
-                padding: 8px 12px;
-            }
-            .header-controls {
-                flex-wrap: wrap;
-                gap: 8px;
-                justify-content: center;
-            }
-            .header-title {
-                font-size: 14px;
-                letter-spacing: 1px;
-                text-align: center;
-            }
-            .color-key {
-                justify-content: center;
-            }
-            .mfgc-phases {
-                flex-wrap: wrap;
-                gap: 4px;
-            }
-            .metrics-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-            .tabs {
-                flex-wrap: wrap;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — Architect Terminal</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
 </head>
-<body>
-    <a class="skip-link" href="#messageInput">Skip to terminal input</a>
-    <div class="header" role="banner">
-        <div>
-            <div class="header-title">☠ MURPHY SYSTEM - ARCHITECT TERMINAL ☠</div>
-            <div class="header-subtitle">Advanced Interface for System Architecture & Control</div>
-        </div>
-        <div class="header-controls">
-            <div class="data-source">
-                <span>API</span>
-                <span class="data-status offline" id="apiStatus">OFFLINE</span>
-            </div>
-            <button class="header-btn" onclick="toggleMFGC()" id="mfgcToggle" aria-label="Toggle MFGC control">MFGC: OFF</button>
-            <button class="header-btn" onclick="setupProfile('production')" aria-label="Switch to Production profile">PROD</button>
-            <button class="header-btn" onclick="setupProfile('certification')" aria-label="Switch to Certification profile">CERT</button>
-            <button class="header-btn" onclick="setupProfile('development')" aria-label="Switch to Development profile">DEV</button>
-            <button class="header-btn" onclick="toggleTerminal()" aria-label="Toggle terminal visibility">TERM</button>
-        </div>
-    </div>
-    <div class="color-key">
-        <span class="color-key-label">Color Key:</span>
-        <span class="color-key-item"><span class="color-key-swatch" style="background:#00ff41"></span><span style="color:#00ff41">System / Success</span></span>
-        <span class="color-key-item"><span class="color-key-swatch" style="background:#00ffff"></span><span style="color:#00ffff">User Input</span></span>
-        <span class="color-key-item"><span class="color-key-swatch" style="background:#0088ff"></span><span style="color:#0088ff">Info</span></span>
-        <span class="color-key-item"><span class="color-key-swatch" style="background:#ffcc00"></span><span style="color:#ffcc00">Warning</span></span>
-        <span class="color-key-item"><span class="color-key-swatch" style="background:#ff0000"></span><span style="color:#ff0000">Error</span></span>
-        <span class="color-key-item"><span class="color-key-swatch" style="background:#ff00ff"></span><span style="color:#ff00ff">MFGC Data</span></span>
-    </div>
+<body style="--accent: #00D4AA;">
 
-    <div class="container">
-        <!-- Terminal Panel -->
-        <div class="terminal-panel" role="main">
-            <div class="terminal-output" id="terminalOutput" role="log" aria-live="polite" aria-label="Terminal output">
-                <div class="terminal-line system" style="white-space:pre; line-height:1.15; font-size:0.85em;">
-╔════════════════════════════════════════════════════════════════════════╗
-║ ███╗   ███╗██╗   ██╗██████╗ ██████╗ ██╗  ██╗██╗   ██╗                  ║
-║ ████╗ ████║██║   ██║██╔══██╗██╔══██╗██║  ██║╚██╗ ██╔╝                  ║
-║ ██╔████╔██║██║   ██║██████╔╝██████╔╝███████║ ╚████╔╝                   ║
-║ ██║╚██╔╝██║██║   ██║██╔══██╗██╔═══╝ ██╔══██║  ╚██╔╝                    ║
-║ ██║ ╚═╝ ██║╚██████╔╝██║  ██║██║     ██║  ██║   ██║                     ║
-║ ╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝  ╚═╝   ╚═╝                     ║
-║                                                                        ║
-║ ███████╗██╗   ██╗███████╗████████╗███████╗███╗   ███╗                  ║
-║ ██╔════╝╚██╗ ██╔╝██╔════╝╚══██╔══╝██╔════╝████╗ ████║                  ║
-║ ███████╗ ╚████╔╝ ███████╗   ██║   █████╗  ██╔████╔██║                  ║
-║ ╚════██║  ╚██╔╝  ╚════██║   ██║   ██╔══╝  ██║╚██╔╝██║                  ║
-║ ███████║   ██║   ███████║   ██║   ███████╗██║ ╚═╝ ██║                  ║
-║ ╚══════╝   ╚═╝   ╚══════╝   ╚═╝   ╚══════╝╚═╝     ╚═╝                  ║
-║                                                                        ║
-║  Architect Terminal  |  MFGC 7-Phase Control                           ║
-║  Production / Certification / Development                              ║
-╚════════════════════════════════════════════════════════════════════════╝
-                </div>
-            </div>
-            <div class="terminal-input-container">
-                <div class="terminal-input-wrapper">
-                    <span class="terminal-prompt" id="promptLabel">murphy:architect$</span>
-                    <input type="text" id="messageInput" placeholder="Enter command or system instruction..." autocomplete="off" aria-label="Terminal command input">
-                    <button class="send-button" id="sendButton" aria-label="Execute command">EXECUTE</button>
-                </div>
-                <div class="mss-controls">
-                    <button class="mss-btn mss-simplify" onclick="mssTransform('simplify')">Simplify</button>
-                    <button class="mss-btn mss-magnify" onclick="mssTransform('magnify')">Magnify</button>
-                    <button class="mss-btn mss-solidify" onclick="mssTransform('solidify')">Solidify</button>
-                </div>
-                <div class="resolution-indicator" id="resolution-panel"></div>
-            </div>
-        </div>
+<!-- Skip link for accessibility -->
+<a href="#content" class="murphy-skip-link">Skip to content</a>
 
-        <!-- State Panel -->
-        <div class="state-panel">
-            <!-- Data Source -->
-            <div class="state-section">
-                <div class="state-section-title">LIVE DATA SOURCE</div>
-                <div class="config-panel">
-                    <div class="config-row">
-                        <span class="config-label">Connection</span>
-                        <span class="config-value" id="apiStatusDetail">OFFLINE</span>
-                    </div>
-                    <div class="config-row">
-                        <span class="config-label">Last Update</span>
-                        <span class="config-value" id="lastUpdate">--</span>
-                    </div>
-                    <div class="config-row">
-                        <span class="config-label">Document</span>
-                        <span class="config-value" id="lastDoc">--</span>
-                    </div>
-                </div>
-            </div>
-            <!-- MFGC Control -->
-            <div class="state-section">
-                <div class="state-section-title">MFGC 7-PHASE CONTROL</div>
-                
-                <div class="mfgc-phases" id="mfgcPhases">
-                    <div class="phase-node" data-phase="expand">
-                        <div class="phase-name">EXPAND</div>
-                        <div>0.3</div>
-                    </div>
-                    <div class="phase-node" data-phase="type">
-                        <div class="phase-name">TYPE</div>
-                        <div>0.5</div>
-                    </div>
-                    <div class="phase-node" data-phase="enumerate">
-                        <div class="phase-name">ENUM</div>
-                        <div>0.6</div>
-                    </div>
-                    <div class="phase-node" data-phase="constrain">
-                        <div class="phase-name">CONSTR</div>
-                        <div>0.65</div>
-                    </div>
-                    <div class="phase-node" data-phase="collapse">
-                        <div class="phase-name">COLLAPSE</div>
-                        <div>0.7</div>
-                    </div>
-                    <div class="phase-node" data-phase="bind">
-                        <div class="phase-name">BIND</div>
-                        <div>0.75</div>
-                    </div>
-                    <div class="phase-node" data-phase="execute">
-                        <div class="phase-name">EXEC</div>
-                        <div>0.85</div>
-                    </div>
-                </div>
+<!-- ============================================================
+     SIDEBAR
+     ============================================================ -->
+<nav class="murphy-sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
+  <div class="murphy-sidebar-logo">
+    <svg width="24" height="24"><use href="static/murphy-icons.svg#icon-shield"></use></svg>
+    <span>Architect</span>
+  </div>
 
-                <div class="metrics-grid">
-                    <div class="metric-card">
-                        <div class="metric-label">Current Phase</div>
-                        <div class="metric-value" id="currentPhase">IDLE</div>
-                        <div class="metric-sub" id="phaseProgress">0/7</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-label">Confidence</div>
-                        <div class="metric-value" id="currentConfidence">--</div>
-                        <div class="metric-sub" id="confidenceTrend">→ --</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-label">Authority</div>
-                        <div class="metric-value" id="currentAuthority">--</div>
-                        <div class="metric-sub">Level</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-label">Execution Time</div>
-                        <div class="metric-value" id="executionTime">--</div>
-                        <div class="metric-sub">Seconds</div>
-                    </div>
-                </div>
+  <div class="murphy-sidebar-nav" id="sidebar-nav">
+    <!-- Overview -->
+    <div class="murphy-sidebar-section" aria-label="Overview">Overview</div>
+    <a href="#dashboard" class="murphy-sidebar-item" data-view="dashboard" aria-label="Dashboard">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-dashboard"></use></svg>
+      <span>Dashboard</span>
+    </a>
+    <a href="#status" class="murphy-sidebar-item" data-view="status" aria-label="System Status">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-activity"></use></svg>
+      <span>Status</span>
+    </a>
 
-                <div class="confidence-container">
-                    <div class="metric-label">Confidence Trajectory</div>
-                    <div class="confidence-bar">
-                        <div class="confidence-fill" id="confidenceFill" style="width: 0%"></div>
-                    </div>
-                    <div class="confidence-labels">
-                        <span>0.0</span>
-                        <span>0.5</span>
-                        <span>1.0</span>
-                    </div>
-                </div>
-            </div>
+    <!-- Operations -->
+    <div class="murphy-sidebar-section" aria-label="Operations">Operations</div>
+    <a href="#execute" class="murphy-sidebar-item" data-view="execute" aria-label="Execute">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-terminal"></use></svg>
+      <span>Execute</span>
+    </a>
+    <a href="#gates" class="murphy-sidebar-item" data-view="gates" aria-label="Gates MFGC">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-shield"></use></svg>
+      <span>Gates (MFGC)</span>
+    </a>
+    <a href="#causality" class="murphy-sidebar-item" data-view="causality" aria-label="Causality">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-git-branch"></use></svg>
+      <span>Causality</span>
+    </a>
 
-            <!-- Murphy Index -->
-            <div class="state-section">
-                <div class="state-section-title">MURPHY INDEX</div>
-                
-                <div class="murphy-display">
-                    <div class="murphy-header">
-                        <div>
-                            <div class="metric-label">Current Index</div>
-                            <div class="murphy-value" id="murphyValue">0.000</div>
-                        </div>
-                        <div class="murphy-status" id="murphyStatus">LOW</div>
-                    </div>
-                    <div class="metric-label">Risk Threshold: <span id="murphyThreshold">0.300</span></div>
-                    <div class="metric-sub" style="margin-top: 5px;">
-                        Gates Generated: <span id="gatesGenerated">0</span>
-                    </div>
-                </div>
-            </div>
+    <!-- Safety & Quality -->
+    <div class="murphy-sidebar-section" aria-label="Safety and Quality">Safety &amp; Quality</div>
+    <a href="#safety" class="murphy-sidebar-item" data-view="safety" aria-label="Safety">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-alert"></use></svg>
+      <span>Safety</span>
+    </a>
+    <a href="#heatmap" class="murphy-sidebar-item" data-view="heatmap" aria-label="Heatmap">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-layers"></use></svg>
+      <span>Heatmap</span>
+    </a>
+    <a href="#wingman" class="murphy-sidebar-item" data-view="wingman" aria-label="Wingman">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-zap"></use></svg>
+      <span>Wingman</span>
+    </a>
+    <a href="#corrections" class="murphy-sidebar-item" data-view="corrections" aria-label="Corrections">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-refresh"></use></svg>
+      <span>Corrections</span>
+    </a>
 
-            <!-- Tabs -->
-            <div class="state-section">
-                <div class="tabs">
-                    <div class="tab active" onclick="switchTab('gates')">GATES</div>
-                    <div class="tab" onclick="switchTab('blocks')">BLOCKS</div>
-                    <div class="tab" onclick="switchTab('preview')">PREVIEW</div>
-                    <div class="tab" onclick="switchTab('librarian')">LIBRARIAN</div>
-                    <div class="tab" onclick="switchTab('config')">CONFIG</div>
-                    <div class="tab" onclick="switchTab('events')">EVENTS</div>
-                </div>
+    <!-- Intelligence -->
+    <div class="murphy-sidebar-section" aria-label="Intelligence">Intelligence</div>
+    <a href="#librarian" class="murphy-sidebar-item" data-view="librarian" aria-label="Librarian">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-search"></use></svg>
+      <span>Librarian</span>
+    </a>
 
-                <!-- Gates Tab -->
-                <div class="tab-content active" id="gatesTab">
-                    <div class="state-section-title">ACTIVE GATES</div>
-                    <div style="margin-bottom: 10px;">
-                        <button class="config-toggle" onclick="updateGatePolicy()">Update Gates</button>
-                    </div>
-                    <div class="gates-list" id="gatesList">
-                        <div class="gate-item">
-                            <span class="gate-icon">●</span>
-                            <span class="gate-type">No active gates</span>
-                        </div>
-                    </div>
-                </div>
+    <!-- External Links -->
+    <div class="murphy-sidebar-section" aria-label="External Links">External Links</div>
+    <a href="workflow_canvas.html" class="murphy-sidebar-item" aria-label="Workflow Canvas">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-topology"></use></svg>
+      <span>Workflow Canvas</span>
+    </a>
+    <a href="system_visualizer.html" class="murphy-sidebar-item" aria-label="System Topology">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-code"></use></svg>
+      <span>System Topology</span>
+    </a>
+  </div>
 
-                <!-- Blocks Tab -->
-                <div class="tab-content" id="blocksTab">
-                    <div class="state-section-title">BLOCK COMMAND TREE</div>
-                    <div style="margin-bottom: 10px;">
-                        <button class="config-toggle" onclick="runBlockCommand('magnify')">Magnify</button>
-                        <button class="config-toggle" onclick="runBlockCommand('simplify')">Simplify</button>
-                        <button class="config-toggle" onclick="runBlockCommand('solidify')">Solidify</button>
-                    </div>
-                    <div class="gates-list" id="blocksList">
-                        <div class="gate-item">
-                            <span class="gate-icon">●</span>
-                            <span class="gate-type">No block tree loaded</span>
-                        </div>
-                    </div>
-                </div>
+  <div class="murphy-sidebar-footer">
+    <span class="text-xs text-muted">Murphy System v2</span>
+  </div>
+</nav>
 
-                <!-- Preview Tab -->
-                <div class="tab-content" id="previewTab">
-                    <div class="state-section-title">ACTIVATION PREVIEW (LIVE)</div>
-                    <div class="preview-output" id="activationPreview">No activation preview loaded.</div>
-                </div>
+<!-- ============================================================
+     MAIN CONTENT AREA
+     ============================================================ -->
+<main id="content" role="main" aria-label="Main content" aria-live="polite"
+      style="margin-left: var(--sidebar-width); margin-top: var(--topbar-height); padding: var(--space-5); min-height: calc(100vh - var(--topbar-height)); transition: margin-left 0.2s ease;">
+</main>
 
-                <!-- Librarian Tab -->
-                <div class="tab-content" id="librarianTab">
-                    <div class="state-section-title">LIBRARIAN CONTEXT (LIVE)</div>
-                    <div class="preview-output" id="librarianPreview">No librarian context loaded.</div>
-                </div>
 
-                <!-- Config Tab -->
-                <div class="tab-content" id="configTab">
-                    <div class="state-section-title">MFGC CONFIGURATION</div>
-                    <div class="config-panel">
-                        <div class="config-row">
-                            <span class="config-label">Enabled</span>
-                            <button class="config-toggle" id="configEnabled" onclick="toggleConfig('enabled')">OFF</button>
-                        </div>
-                        <div class="config-row">
-                            <span class="config-label">Murphy Threshold</span>
-                            <span class="config-value" id="configThreshold">0.300</span>
-                        </div>
-                        <div class="config-row">
-                            <span class="config-label">Confidence Mode</span>
-                            <select class="config-select" id="configConfidenceMode" onchange="updateConfig()">
-                                <option value="phase_locked">Phase-Locked</option>
-                                <option value="strict">Strict</option>
-                                <option value="relaxed">Relaxed</option>
-                            </select>
-                        </div>
-                        <div class="config-row">
-                            <span class="config-label">Authority Mode</span>
-                            <select class="config-select" id="configAuthorityMode" onchange="updateConfig()">
-                                <option value="standard">Standard</option>
-                                <option value="strict">Strict</option>
-                                <option value="permissive">Permissive</option>
-                            </select>
-                        </div>
-                        <div class="config-row">
-                            <span class="config-label">Gate Synthesis</span>
-                            <button class="config-toggle active" id="configGateSynthesis" onclick="toggleConfig('gate_synthesis')">ON</button>
-                        </div>
-                        <div class="config-row">
-                            <span class="config-label">Emergency Gates</span>
-                            <button class="config-toggle active" id="configEmergencyGates" onclick="toggleConfig('emergency_gates')">ON</button>
-                        </div>
-                        <div class="config-row">
-                            <span class="config-label">Audit Trail</span>
-                            <button class="config-toggle active" id="configAuditTrail" onclick="toggleConfig('audit_trail')">ON</button>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Events Tab -->
-                <div class="tab-content" id="eventsTab">
-                    <div class="state-section-title">EVENT LOG</div>
-                    <div class="event-log" id="eventLog">
-                        <div class="event-item">
-                            <div class="event-time">00:00:00</div>
-                            <div class="event-message">System initialized</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+<script src="static/murphy-components.js"></script>
+<script>
+(function () {
+  'use strict';
 
-            <!-- Statistics -->
-            <div class="state-section">
-                <div class="state-section-title">EXECUTION STATISTICS</div>
-                <div class="metrics-grid">
-                    <div class="metric-card">
-                        <div class="metric-label">Total Executions</div>
-                        <div class="metric-value" id="totalExecutions">0</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-label">Success Rate</div>
-                        <div class="metric-value" id="successRate">--%</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-label">Avg Execution Time</div>
-                        <div class="metric-value" id="avgExecutionTime">--s</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-label">Total Gates</div>
-                        <div class="metric-value" id="totalGates">0</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+  /* ===========================================================
+     1. SHARED COMPONENT INITIALIZATION
+     =========================================================== */
+  var api       = new MurphyAPI('/api');
+  var health    = new MurphyHealth(api);
+  var theme     = new MurphyTheme();
+  var keyboard  = new MurphyKeyboard();
+  var jargon    = new MurphyJargon();
+  var librarian = new MurphyLibrarianChat(api);
+  var toast     = new MurphyToast();
 
-    <script>
-        // Configuration
-        function resolveApiBase() {
-            const params = new URLSearchParams(window.location.search);
-            const overridePort = params.get('apiPort');
-            if (window.location.hostname === 'localhost') {
-                const port = overridePort || '8000';
-                return `http://localhost:${port}/api`;
-            }
-            return `${window.location.origin}/api`;
-        }
+  theme.init();
+  keyboard.init();
+  jargon.init();
+  health.start(15000);
 
-        const API_BASE_URL = resolveApiBase();
-        let mfgcEnabled = false;
-        let currentConfig = {
-            enabled: false,
-            murphy_threshold: 0.3,
-            confidence_mode: 'phase_locked',
-            authority_mode: 'standard',
-            gate_synthesis: true,
-            emergency_gates: true,
-            audit_trail: true
-        };
-        let lastDocId = null;
-        let lastGateSnapshot = [];
-        let lastActivationPreview = null;
+  /* ===========================================================
+     2. HELPERS — HTML generation utilities
+     =========================================================== */
+  function esc(s) {
+    var d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
+  }
 
-        // DOM Elements
-        const terminalOutput = document.getElementById('terminalOutput');
-        const messageInput = document.getElementById('messageInput');
-        const sendButton = document.getElementById('sendButton');
+  function icon(name, size) {
+    size = size || 18;
+    return '<svg width="' + size + '" height="' + size + '"><use href="static/murphy-icons.svg#icon-' + esc(name) + '"></use></svg>';
+  }
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            messageInput.disabled = false;
-            messageInput.focus();
-            loadConfig();
-            checkApiConnection();
-            setInterval(updateStats, 5000);
+  function badge(text, variant) {
+    variant = variant || 'neutral';
+    return '<span class="murphy-badge murphy-badge-' + esc(variant) + '">' + esc(text) + '</span>';
+  }
+
+  function skeletonCards(n) {
+    var h = '';
+    for (var i = 0; i < (n || 4); i++) {
+      h += '<div class="murphy-skeleton-card murphy-skeleton"></div>';
+    }
+    return '<div class="grid gap-4" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr));">' + h + '</div>';
+  }
+
+  function skeletonRows(n) {
+    var h = '';
+    for (var i = 0; i < (n || 6); i++) {
+      h += '<div class="murphy-skeleton murphy-skeleton-text"></div>';
+    }
+    return '<div class="flex flex-col gap-3 p-4">' + h + '</div>';
+  }
+
+  function emptyState(title, msg) {
+    return '<div class="murphy-empty-state">' +
+      '<div class="murphy-empty-state-icon">' + icon('search', 48) + '</div>' +
+      '<div class="murphy-empty-state-title">' + esc(title) + '</div>' +
+      '<div class="murphy-empty-state-message">' + esc(msg) + '</div>' +
+      '</div>';
+  }
+
+  function errorCard(message, retryHash) {
+    var rh = esc(retryHash || '');
+    return '<div class="murphy-card">' +
+      '<div class="murphy-card-body flex flex-col items-center gap-4 p-6">' +
+      '<div class="text-danger text-lg font-bold">' + icon('alert', 32) + ' Error</div>' +
+      '<p class="text-secondary text-sm">' + esc(message) + '</p>' +
+      '<button class="murphy-btn murphy-btn-primary" onclick="location.hash=\'' + rh + '\';navigate(\'' + rh.replace('#', '') + '\');">Retry</button>' +
+      '</div></div>';
+  }
+
+  function statCard(label, value, trendDir, trendText) {
+    var tc = trendDir === 'up' ? 'murphy-stat-card-trend-up' : (trendDir === 'down' ? 'murphy-stat-card-trend-down' : '');
+    var th = trendText ? '<div class="murphy-stat-card-trend ' + tc + '">' + esc(trendText) + '</div>' : '';
+    return '<div class="murphy-stat-card">' +
+      '<div class="murphy-stat-card-label">' + esc(label) + '</div>' +
+      '<div class="murphy-stat-card-value">' + esc(value) + '</div>' +
+      th +
+      '</div>';
+  }
+
+  function gateIndicator(name, state, cssClass) {
+    var oc = (state === 'open' || state === true) ? 'open' : 'closed';
+    return '<div class="murphy-gate-indicator murphy-gate-indicator-' + esc(cssClass) + ' murphy-gate-indicator-' + oc + '" title="' + esc(name) + ': ' + oc + '">' +
+      '<div class="murphy-gate-indicator-hex">' + esc(name.charAt(0)) + '</div>' +
+      '<span class="text-xs">' + esc(name) + '</span>' +
+      '</div>';
+  }
+
+  function tableHTML(columns, rows) {
+    var h = '<div class="murphy-table murphy-table-striped"><div class="murphy-table-header">';
+    columns.forEach(function (c) { h += '<div>' + esc(c.label) + '</div>'; });
+    h += '</div>';
+    if (!rows || rows.length === 0) {
+      h += '<div class="p-6 text-center text-muted text-sm">No data available</div>';
+    } else {
+      rows.forEach(function (row) {
+        h += '<div class="murphy-table-row">';
+        columns.forEach(function (c) {
+          var val = row[c.key];
+          h += '<div>' + (c.render ? c.render(val, row) : esc(val)) + '</div>';
         });
-
-        // Check API connection on page load
-        async function checkApiConnection() {
-            try {
-                const response = await fetch(`${API_BASE_URL}/health`);
-                if (response.ok) {
-                    updateDataSource(true, null);
-                    addLine('✓ Connected to Murphy System backend', 'system');
-                }
-            } catch (e) {
-                updateDataSource(false, null);
-                addLine('✗ Cannot reach Murphy System backend. Ensure the runtime is started.', 'error');
-            }
-        }
-
-        // Add line to terminal
-        function addLine(message, type = 'system') {
-            const line = document.createElement('div');
-            line.className = `terminal-line ${type}`;
-            line.innerHTML = message;
-            terminalOutput.appendChild(line);
-            terminalOutput.scrollTop = terminalOutput.scrollHeight;
-        }
-
-        // MSS Transform helper: build a collapsible agent-chain entry in the terminal
-        function addCollapsibleLine(header, initialDetails) {
-            const container = document.createElement('div');
-            container.className = 'terminal-line system';
-
-            const headerEl = document.createElement('div');
-            headerEl.className = 'collapsible-header';
-            headerEl.innerHTML = `<span class="collapse-arrow">▶</span> ${header}`;
-
-            const detailsEl = document.createElement('div');
-            detailsEl.className = 'collapsible-details';
-            detailsEl.style.display = 'none';
-            if (initialDetails) detailsEl.innerHTML = initialDetails;
-
-            headerEl.onclick = () => {
-                const arrow = headerEl.querySelector('.collapse-arrow');
-                if (detailsEl.style.display === 'none') {
-                    detailsEl.style.display = 'block';
-                    arrow.textContent = '▼';
-                } else {
-                    detailsEl.style.display = 'none';
-                    arrow.textContent = '▶';
-                }
-            };
-
-            container.appendChild(headerEl);
-            container.appendChild(detailsEl);
-            terminalOutput.appendChild(container);
-            terminalOutput.scrollTop = terminalOutput.scrollHeight;
-            return container;
-        }
-
-        function addAgentStep(container, text) {
-            if (!container) return;
-            const details = container.querySelector('.collapsible-details');
-            if (!details) return;
-            const step = document.createElement('div');
-            step.className = 'agent-step active';
-            step.textContent = `├─ ${text}`;
-            details.appendChild(step);
-        }
-
-        function updateAgentStep(container, text, status) {
-            if (!container) return;
-            const details = container.querySelector('.collapsible-details');
-            if (!details) return;
-            const steps = details.querySelectorAll('.agent-step');
-            const last = steps[steps.length - 1];
-            if (last) {
-                last.className = `agent-step ${status}`;
-                if (status === 'done') {
-                    last.textContent = last.textContent.replace('├─', '├─ ✓');
-                }
-            }
-        }
-
-        // MSS Transform
-        async function mssTransform(operator) {
-            const text = messageInput.value.trim();
-            if (!text) {
-                addLine(`✗ Type a prompt first, then click ${operator.toUpperCase()} to transform it`, 'warning');
-                return;
-            }
-
-            // Disable buttons and show processing state
-            document.querySelectorAll('.mss-btn').forEach(b => b.disabled = true);
-            messageInput.classList.add('mss-processing');
-
-            // For SOLIDIFY, show collapsible agent chain; otherwise a simple status line
-            let agentChainEl = null;
-            if (operator === 'solidify') {
-                agentChainEl = addCollapsibleLine(
-                    'SOLIDIFY — Librarian processing...',
-                    '<div class="agent-step active">├─ Querying system knowledge base...</div>'
-                );
-            } else {
-                addLine(`[MSS ${operator.toUpperCase()}] Transforming prompt...`, 'system');
-            }
-
-                addLine('✗ Type a prompt first, then click ' + operator.toUpperCase() + ' to transform it', 'warning');
-                return;
-            }
-
-            // Show what we're doing in the terminal (but DON'T clear the input)
-            addLine(`[MSS ${operator.toUpperCase()}] Transforming prompt...`, 'system');
-
-            // Disable buttons while processing
-            document.querySelectorAll('.mss-btn').forEach(b => b.disabled = true);
-            messageInput.classList.add('mss-processing');
-
-            try {
-                // For solidify, also query the librarian for system-wide context
-                let librarianContext = null;
-                if (operator === 'solidify') {
-                    try {
-                        updateAgentStep(agentChainEl, 'Querying system knowledge base...', 'done');
-                        addAgentStep(agentChainEl, 'Analyzing domain and intent...');
-
-                        const libResp = await fetch(`${API_BASE_URL}/librarian/query`, {
-                            method: 'POST',
-                            headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({query: text})
-                        });
-                        if (libResp.ok) {
-                            librarianContext = await libResp.json();
-                            updateAgentStep(agentChainEl, 'Analyzing domain and intent...', 'done');
-                            addAgentStep(agentChainEl, 'Assigning agents...');
-                        }
-                    } catch(e) {
-                        // Librarian is optional — log the failure in the agent chain so users know
-                        if (agentChainEl) addAgentStep(agentChainEl, `⚠ Librarian unavailable: ${e.message}`);
-                    }
-                }
-
-                // Advance agent chain before the MSS call
-                if (operator === 'solidify' && agentChainEl) {
-                    updateAgentStep(agentChainEl, 'Assigning agents...', 'done');
-                    addAgentStep(agentChainEl, 'Running MSS solidify pipeline...');
-                }
-
-                const resp = await fetch(`${API_BASE_URL}/mss/${operator}`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({text: text})
-                });
-                const data = await resp.json();
-
-                if (data.success) {
-                    const r = data.result;
-
-                    // Extract a readable string from the output dict so the user can review/edit it
-                    // Extract the transformed text from the result output
-                    let transformedText = '';
-                    if (typeof r.output === 'string') {
-                        transformedText = r.output;
-                    } else if (r.output) {
-                        transformedText = Object.entries(r.output)
-                            .filter(([k, v]) => v && k !== 'resolution_progression' &&
-                                    (typeof v === 'string' || (Array.isArray(v) && v.length > 0)))
-                            .map(([k, v]) => {
-                                const label = k.replace(/_/g, ' ');
-                                if (Array.isArray(v)) return `${label}: ${v.join('; ')}`;
-                            .filter(([k, v]) => v && (typeof v === 'string' || (Array.isArray(v) && v.length > 0)))
-                            .map(([k, v]) => {
-                                const label = k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-                                if (Array.isArray(v)) {
-                                    return `${label}: ${v.join('; ')}`;
-                                }
-                                return `${label}: ${v}`;
-                            })
-                            .join('. ');
-                    }
-
-                    // Put transformed text back into the input box (don't clear it)
-                    if (transformedText) {
-                        messageInput.value = transformedText;
-                    } else {
-                        addLine(`⚠ ${operator.toUpperCase()} produced no text output — prompt unchanged`, 'warning');
-                    }
-
-                    // Update the resolution panel with quality metrics
-                    const iq = r.input_quality || {};
-                    document.getElementById('resolution-panel').innerHTML =
-                        `Resolution: ${iq.resolution_level || '—'} (RS ${(iq.resolution_score||0).toFixed(1)}) | ` +
-                        `Density: ${(iq.density_index||0).toFixed(2)} | ` +
-                        `Coherence: ${(iq.coherence_score||0).toFixed(1)} | ` +
-                        `CQI: ${(iq.cqi||0).toFixed(1)} | ` +
-                        `${operator.toUpperCase()} → ${r.target_rm || '—'}`;
-
-                    // Mark the clicked button with a ✓ badge
-                    const btn = document.querySelector(`.mss-${operator}`);
-                    if (btn) btn.classList.add('applied');
-
-                    // Finalise the SOLIDIFY agent chain and update the Librarian tab
-                    if (operator === 'solidify' && agentChainEl) {
-                        updateAgentStep(agentChainEl, 'Running MSS solidify pipeline...', 'done');
-                        addAgentStep(agentChainEl, 'Applying governance gates...');
-                        updateAgentStep(agentChainEl, 'Applying governance gates...', 'done');
-                        addAgentStep(agentChainEl, `Locked actionable prompt ✓ (${r.governance_status || 'approved'})`);
-                        updateAgentStep(agentChainEl, null, 'done');
-
-                        // Compose a rich context object for the Librarian tab
-                        const libCtx = {
-                            mode: 'solidify',
-                            input: text,
-                            solidified_preview: (transformedText || '').substring(0, 300),
-                            governance: r.governance_status,
-                            target_rm: r.target_rm,
-                            quality: iq,
-                            librarian_knowledge: librarianContext,
-                            timestamp: new Date().toISOString()
-                        };
-                        updateLibrarianContext(libCtx);
-                        switchTab('librarian');
-
-                        // Update the collapsible header to show completion
-                        const headerEl = agentChainEl.querySelector('.collapsible-header');
-                        if (headerEl) {
-                            headerEl.innerHTML = `<span class="collapse-arrow">▶</span> SOLIDIFY — Complete ✓ (${r.governance_status || 'approved'})`;
-                        }
-                    } else {
-                        addLine(`✓ ${operator.toUpperCase()} applied — review prompt in input box, then press EXECUTE`, 'success');
-                    }
-                    if (!transformedText) {
-                        addLine(`⚠ ${operator.toUpperCase()} produced no text output — prompt unchanged`, 'warning');
-                    } else {
-                        // REPLACE the input box text with the transformed version
-                        messageInput.value = transformedText;
-                        addLine(`✓ ${operator.toUpperCase()} applied — prompt updated in input box. Review and press EXECUTE.`, 'success');
-                        const appliedBtn = document.querySelector(`.mss-${operator}`);
-                        if (appliedBtn) appliedBtn.classList.add('applied');
-                    }
-
-                    // Update the resolution indicator
-                    const iq = r.input_quality || {};
-                    document.getElementById('resolution-panel').innerHTML =
-                        `<span style="color:#00ff41">Resolution:</span> ${iq.resolution_level || '—'} ` +
-                        `<span style="color:#666">(RS ${(iq.resolution_score||0).toFixed(1)})</span> | ` +
-                        `<span style="color:#00ff41">Density:</span> ${(iq.density_index||0).toFixed(2)} | ` +
-                        `<span style="color:#00ff41">Coherence:</span> ${(iq.coherence_score||0).toFixed(1)} | ` +
-                        `<span style="color:#00ff41">CQI:</span> ${(iq.cqi||0).toFixed(1)} | ` +
-                        `<span style="color:#00ffff">${operator.toUpperCase()} → ${r.target_rm || '—'}</span>`;
-
-                } else {
-                    addLine(`✗ ${operator.toUpperCase()} failed: ${data.error || 'Unknown error'}`, 'error');
-                }
-            } catch(e) {
-                addLine(`✗ MSS error: ${e.message}`, 'error');
-            }
-
-            // Re-enable buttons and remove processing state
-            // Re-enable buttons
-            document.querySelectorAll('.mss-btn').forEach(b => b.disabled = false);
-            messageInput.classList.remove('mss-processing');
-            messageInput.focus();
-        }
-
-        // Send message
-        async function sendMessage() {
-            const message = messageInput.value.trim();
-            if (!message) return;
-
-            addLine(`murphy:architect$ ${message}`, 'user');
-            messageInput.value = '';
-            messageInput.disabled = true;
-            sendButton.disabled = true;
-            sendButton.textContent = 'RUNNING…';
-            sendButton.classList.add('loading');
-
-            try {
-                // Check if command
-                if (message.startsWith('/')) {
-                    await handleCommand(message);
-                    return;
-                }
-
-                const startTime = Date.now();
-
-                // Send to API
-                const response = await fetch(`${API_BASE_URL}/chat`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        message: message,
-                        use_mfgc: mfgcEnabled,
-                        parameters: {}
-                    })
-                });
-
-                const result = await response.json();
-                const executionTime = (Date.now() - startTime) / 1000;
-
-                // Display result
-                // Treat any response with a message field as valid, even without explicit success flag
-                const responseText = result.message || result.response || result.reply_text;
-                if (result.success || responseText) {
-                    if (!result.success && responseText) {
-                        // Librarian/freeform response without explicit success flag
-                        addLine(`✓ ${responseText}`, 'system');
-                        const librarianContext = {
-                            mode: 'direct_response',
-                            input: message,
-                            response_preview: responseText.substring(0, 200),
-                            timestamp: new Date().toISOString()
-                        };
-                        updateLibrarianContext(librarianContext);
-                        updateDataSource(true, result.doc_id || null);
-                    } else if (result.mfgc_control && result.data) {
-                        const data = result.data;
-                        addLine(`✓ [MFGC COMPLETE]`, 'mfgc');
-                        addLine(`  Final Phase: ${(data.final_phase || 'unknown').toUpperCase()}`, 'info');
-                        addLine(`  Confidence: ${data.final_confidence != null ? (data.final_confidence * 100).toFixed(1) : 'N/A'}%`, 'info');
-                        addLine(`  Authority: ${data.final_authority != null ? (data.final_authority * 100).toFixed(1) : 'N/A'}%`, 'info');
-                        addLine(`  Murphy Index: ${data.murphy_index != null ? data.murphy_index.toFixed(3) : 'N/A'}`, 'info');
-                        addLine(`  Gates Generated: ${data.total_gates != null ? data.total_gates : 0}`, 'info');
-                        addLine(`  Execution Time: ${data.execution_time != null ? data.execution_time.toFixed(3) + 's' : 'N/A'}`, 'info');
-
-                        if (data.system_state) updatePhaseDisplay(data.system_state);
-                        if (data.murphy_index != null) updateMurphyDisplay(data.murphy_index);
-                        if (Array.isArray(data.gates_generated)) updateGatesDisplay(data.gates_generated);
-                        if (data.confidence_trajectory) updateConfidenceDisplay(data.confidence_trajectory);
-                        if (data.execution_time != null || data.phases_completed) updateMetrics(data);
-
-                        // Update librarian context from MFGC data
-                        const librarianContext = {
-                            current_phase: data.final_phase,
-                            confidence: data.final_confidence,
-                            murphy_index: data.murphy_index,
-                            gates: data.gates_generated,
-                            input: message,
-                            timestamp: new Date().toISOString()
-                        };
-                        updateLibrarianContext(librarianContext);
-                    } else if (!result.mfgc_control) {
-                        addLine(`✓ ${result.message}`, 'system');
-
-                        // Update librarian context for direct responses
-                        if (result.message) {
-                            const librarianContext = {
-                                mode: 'direct_response',
-                                input: message,
-                                response_preview: result.message.substring(0, 200),
-                                timestamp: new Date().toISOString()
-                            };
-                            updateLibrarianContext(librarianContext);
-                        }
-                    }
-                    if (result.doc_id) {
-                        lastDocId = result.doc_id;
-                        if (result.block_tree) {
-                            updateBlockTree(result.block_tree);
-                        }
-                    }
-                    if (Array.isArray(result.gates)) {
-                        lastGateSnapshot = result.gates;
-                        updateGatesDisplay(lastGateSnapshot);
-                    }
-                    if (result.activation_preview) {
-                        lastActivationPreview = result.activation_preview;
-                        updateActivationPreview(lastActivationPreview);
-                        updateLibrarianContext(lastActivationPreview.librarian_context);
-                    }
-                    updateDataSource(true, result.doc_id);
-                } else {
-                    addLine(`✗ Error: ${result.error || 'Unknown error (no details returned)'}`, 'error');
-                    updateDataSource(false, null);
-                }
-
-            } catch (error) {
-                addLine(`✗ Connection error: ${error.message}`, 'error');
-                updateDataSource(false, null);
-            }
-
-            messageInput.disabled = false;
-            sendButton.disabled = false;
-            sendButton.textContent = 'EXECUTE';
-            sendButton.classList.remove('loading');
-            messageInput.focus();
-        }
-
-        // Handle commands
-        async function handleCommand(command) {
-            const parts = command.split(' ');
-            const cmd = parts[0].toLowerCase();
-            const args = parts.slice(1);
-
-            switch (cmd) {
-                case '/help':
-                    addLine('═══════════════════════════════════════════════════════════════════', 'system');
-                    addLine('ARCHITECT TERMINAL COMMANDS:', 'system');
-                    addLine('  /help          - Show this help', 'system');
-                    addLine('  /status        - Show detailed system status', 'system');
-                    addLine('  /mfgc on/off   - Toggle MFGC control', 'system');
-                    addLine('  /setup <type>  - Setup system profile (prod/cert/dev)', 'system');
-                    addLine('  /config        - Show current configuration', 'system');
-                    addLine('  /phases        - Show phase details', 'system');
-                    addLine('  /gates         - Show active gates', 'system');
-                    addLine('  /updategates   - Update gate policy for active document', 'system');
-                    addLine('  /blocks        - Show block command tree', 'system');
-                    addLine('  /preview       - Show activation preview payload', 'system');
-                    addLine('  /librarian     - Show librarian context payload', 'system');
-                    addLine('  /magnify       - Magnify current block tree (optional domain)', 'system');
-                    addLine('  /simplify      - Simplify current block tree', 'system');
-                    addLine('  /solidify      - Solidify current block tree', 'system');
-                    addLine('  /stats         - Show execution statistics', 'system');
-                    addLine('  /events        - Show event log', 'system');
-                    addLine('  /clear         - Clear terminal', 'system');
-                    addLine('═══════════════════════════════════════════════════════════════════', 'system');
-                    break;
-
-                case '/status':
-                    await fetchStatus();
-                    break;
-
-                case '/config':
-                    addLine('── MFGC CONFIGURATION ──', 'system');
-                    addLine(`  Enabled: ${currentConfig.enabled}`, 'system');
-                    addLine(`  Murphy Threshold: ${currentConfig.murphy_threshold}`, 'system');
-                    addLine(`  Confidence Mode: ${currentConfig.confidence_mode}`, 'system');
-                    addLine(`  Authority Mode: ${currentConfig.authority_mode}`, 'system');
-                    addLine(`  Gate Synthesis: ${currentConfig.gate_synthesis}`, 'system');
-                    addLine(`  Emergency Gates: ${currentConfig.emergency_gates}`, 'system');
-                    addLine(`  Audit Trail: ${currentConfig.audit_trail}`, 'system');
-                    break;
-
-                case '/phases':
-                    addLine('── 7-PHASE EXECUTION ──', 'system');
-                    addLine('  EXPAND (0.3)    → Expand problem space', 'system');
-                    addLine('  TYPE (0.5)      → Type categorization', 'system');
-                    addLine('  ENUMERATE (0.6) → Enumerate solutions', 'system');
-                    addLine('  CONSTRAIN (0.65)→ Apply constraints', 'system');
-                    addLine('  COLLAPSE (0.7)  → Collapse to optimal', 'system');
-                    addLine('  BIND (0.75)     → Bind components', 'system');
-                    addLine('  EXECUTE (0.85)  → Execute solution', 'system');
-                    break;
-
-                case '/gates':
-                    await fetchGates();
-                    break;
-
-                case '/updategates':
-                    await updateGatePolicy();
-                    break;
-
-                case '/blocks':
-                    await fetchBlocks();
-                    break;
-
-                case '/preview':
-                    switchTab('preview');
-                    break;
-
-                case '/librarian':
-                    switchTab('librarian');
-                    break;
-
-                case '/magnify':
-                    await runBlockCommand('magnify', args[0]);
-                    break;
-
-                case '/simplify':
-                    await runBlockCommand('simplify');
-                    break;
-
-                case '/solidify':
-                    await runBlockCommand('solidify');
-                    break;
-
-                case '/events':
-                    switchTab('events');
-                    break;
-
-                case '/clear':
-                    terminalOutput.innerHTML = '';
-                    break;
-
-                default:
-                    addLine(`Unknown command: ${cmd}`, 'warning');
-                    addLine('Type /help for available commands', 'info');
-            }
-
-            messageInput.disabled = false;
-            sendButton.disabled = false;
-            messageInput.focus();
-        }
-
-        // Toggle MFGC
-        function toggleMFGC() {
-            mfgcEnabled = !mfgcEnabled;
-            const toggle = document.getElementById('mfgcToggle');
-            toggle.textContent = `MFGC: ${mfgcEnabled ? 'ON' : 'OFF'}`;
-            toggle.className = mfgcEnabled ? 'header-btn active' : 'header-btn';
-            addLine(`✓ MFGC control ${mfgcEnabled ? 'ENABLED' : 'DISABLED'}`, 'system');
-            updateConfigDisplay();
-        }
-
-        // Setup profile
-        async function setupProfile(profile) {
-            try {
-                const response = await fetch(`${API_BASE_URL}/mfgc/setup/${profile}`, {
-                    method: 'POST'
-                });
-                const result = await response.json();
-                
-                if (result.success) {
-                    addLine(`✓ System configured for ${profile.toUpperCase()} profile`, 'system');
-                    await loadConfig();
-                } else {
-                    addLine(`✗ Failed to setup ${profile} profile: ${result.error}`, 'error');
-                }
-            } catch (error) {
-                addLine(`✗ Error setting up profile: ${error.message}`, 'error');
-            }
-        }
-
-        // Fetch status
-        async function fetchStatus() {
-            try {
-                const response = await fetch(`${API_BASE_URL}/mfgc/state`);
-                const result = await response.json();
-                
-                if (result.success) {
-                    const state = result.state;
-                    addLine('── SYSTEM STATUS ──', 'system');
-                    addLine(`  MFGC Enabled: ${state.mfgc_config.enabled}`, 'system');
-                    addLine(`  Murphy Threshold: ${state.mfgc_config.murphy_threshold}`, 'system');
-                    addLine(`  Total Executions: ${state.mfgc_statistics.total_executions}`, 'system');
-                    addLine(`  Success Rate: ${state.mfgc_statistics.success_rate}`, 'system');
-                    addLine(`  Avg Execution Time: ${state.mfgc_statistics.average_execution_time}`, 'system');
-                    updateDataSource(true, lastDocId);
-                }
-            } catch (error) {
-                addLine(`✗ Error fetching status: ${error.message}`, 'error');
-                updateDataSource(false, null);
-            }
-        }
-
-        // Fetch gates
-        async function fetchGates() {
-            addLine('── ACTIVE GATES ──', 'system');
-            if (lastGateSnapshot.length) {
-                updateGatesDisplay(lastGateSnapshot);
-                switchTab('gates');
-                return;
-            }
-            addLine('  No active gates (execute a task to generate gates)', 'info');
-        }
-
-        async function fetchBlocks() {
-            if (!lastDocId) {
-                addLine('  No block tree available yet. Execute a task first.', 'warning');
-                return;
-            }
-            try {
-                const response = await fetch(`${API_BASE_URL}/documents/${lastDocId}/blocks`);
-                const result = await response.json();
-                if (result.success) {
-                    updateBlockTree(result.block_tree);
-                    switchTab('blocks');
-                }
-            } catch (error) {
-                addLine(`✗ Error fetching blocks: ${error.message}`, 'error');
-            }
-        }
-
-        async function runBlockCommand(action, domain) {
-            if (!lastDocId) {
-                addLine('  No block tree available yet. Execute a task first.', 'warning');
-                return;
-            }
-            let payload = {};
-            if (action === 'magnify') {
-                payload.domain = domain || 'automation';
-            }
-            try {
-                const response = await fetch(`${API_BASE_URL}/documents/${lastDocId}/${action}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const result = await response.json();
-                if (result.success) {
-                    lastDocId = result.doc_id || lastDocId;
-                    updateBlockTree(result.block_tree);
-                    if (Array.isArray(result.gates)) {
-                        lastGateSnapshot = result.gates;
-                        updateGatesDisplay(lastGateSnapshot);
-                    }
-                    if (result.activation_preview) {
-                        lastActivationPreview = result.activation_preview;
-                        updateActivationPreview(lastActivationPreview);
-                        updateLibrarianContext(lastActivationPreview.librarian_context);
-                    }
-                } else {
-                    addLine(`✗ Block command failed: ${result.error}`, 'error');
-                }
-            } catch (error) {
-                addLine(`✗ Block command error: ${error.message}`, 'error');
-            }
-        }
-
-        // Load config
-        async function loadConfig() {
-            try {
-                const response = await fetch(`${API_BASE_URL}/mfgc/config`);
-                const result = await response.json();
-                
-                if (result.success) {
-                    currentConfig = result.config;
-                    updateConfigDisplay();
-                }
-            } catch (error) {
-                console.error('Error loading config:', error);
-            }
-        }
-
-        // Update config
-        async function updateConfig() {
-            currentConfig.confidence_mode = document.getElementById('configConfidenceMode').value;
-            currentConfig.authority_mode = document.getElementById('configAuthorityMode').value;
-            
-            try {
-                const response = await fetch(`${API_BASE_URL}/mfgc/config`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(currentConfig)
-                });
-                const result = await response.json();
-                
-                if (result.success) {
-                    addLine('✓ Configuration updated', 'system');
-                    updateConfigDisplay();
-                }
-            } catch (error) {
-                addLine(`✗ Error updating config: ${error.message}`, 'error');
-            }
-        }
-
-        // Toggle config option
-        function toggleConfig(option) {
-            currentConfig[option] = !currentConfig[option];
-            // Convert snake_case to PascalCase for element ID
-            const idSuffix = option.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('');
-            const btn = document.getElementById(`config${idSuffix}`);
-            if (btn) {
-                btn.textContent = currentConfig[option] ? 'ON' : 'OFF';
-                btn.className = currentConfig[option] ? 'config-toggle active' : 'config-toggle';
-            }
-            updateConfig();
-        }
-
-        // Update config display
-        function updateConfigDisplay() {
-            document.getElementById('configEnabled').textContent = currentConfig.enabled ? 'ON' : 'OFF';
-            document.getElementById('configEnabled').className = currentConfig.enabled ? 'config-toggle active' : 'config-toggle';
-            document.getElementById('configThreshold').textContent = currentConfig.murphy_threshold.toFixed(3);
-            document.getElementById('murphyThreshold').textContent = currentConfig.murphy_threshold.toFixed(3);
-            document.getElementById('configConfidenceMode').value = currentConfig.confidence_mode;
-            document.getElementById('configAuthorityMode').value = currentConfig.authority_mode;
-            const toggleIds = {
-                gate_synthesis: 'configGateSynthesis',
-                emergency_gates: 'configEmergencyGates',
-                audit_trail: 'configAuditTrail'
-            };
-            for (const [key, id] of Object.entries(toggleIds)) {
-                const btn = document.getElementById(id);
-                if (btn) {
-                    btn.textContent = currentConfig[key] ? 'ON' : 'OFF';
-                    btn.className = currentConfig[key] ? 'config-toggle active' : 'config-toggle';
-                }
-            }
-        }
-
-        // Switch tab
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
-            document.querySelector(`.tab[onclick="switchTab('${tabName}')"]`).classList.add('active');
-            document.getElementById(`${tabName}Tab`).classList.add('active');
-        }
-
-        // Update phase display
-        function updatePhaseDisplay(systemState) {
-            const phase = systemState.phase || 'unknown';
-            document.getElementById('currentPhase').textContent = phase.toUpperCase();
-            document.getElementById('currentConfidence').textContent = systemState.confidence != null ? (systemState.confidence * 100).toFixed(1) + '%' : 'N/A';
-            document.getElementById('currentAuthority').textContent = systemState.authority != null ? (systemState.authority * 100).toFixed(1) + '%' : 'N/A';
-            
-            // Update phase nodes
-            const phases = ['expand', 'type', 'enumerate', 'constrain', 'collapse', 'bind', 'execute'];
-            const currentPhaseIndex = phases.indexOf(phase);
-            
-            document.querySelectorAll('.phase-node').forEach((node, index) => {
-                node.classList.remove('current', 'completed');
-                if (index === currentPhaseIndex) {
-                    node.classList.add('current');
-                } else if (index < currentPhaseIndex) {
-                    node.classList.add('completed');
-                }
-            });
-        }
-
-        // Update Murphy display
-        function updateMurphyDisplay(murphyIndex) {
-            document.getElementById('murphyValue').textContent = murphyIndex.toFixed(3);
-            
-            const status = document.getElementById('murphyStatus');
-            if (murphyIndex > 0.7) {
-                status.textContent = 'HIGH';
-                status.className = 'murphy-status high';
-            } else if (murphyIndex > 0.4) {
-                status.textContent = 'MEDIUM';
-                status.className = 'murphy-status medium';
-            } else {
-                status.textContent = 'LOW';
-                status.className = 'murphy-status';
-            }
-        }
-
-        function formatGateDetail(gate) {
-            if (!gate || typeof gate !== 'object') {
-                return '';
-            }
-            const detailParts = [];
-            if (gate.threshold !== undefined) {
-                detailParts.push(`${(gate.threshold * 100).toFixed(0)}%`);
-            }
-            if (gate.stage) {
-                detailParts.push(gate.stage);
-            }
-            return detailParts.length ? ` · ${detailParts.join(' · ')}` : '';
-        }
-
-        // Update gates display
-        function updateGatesDisplay(gates) {
-            const gatesList = document.getElementById('gatesList');
-            if (gates.length === 0) {
-                gatesList.innerHTML = `
-                    <div class="gate-item">
-                        <span class="gate-icon">●</span>
-                        <span class="gate-type">No active gates</span>
-                    </div>
-                `;
-            } else {
-                gatesList.innerHTML = gates.map((gate) => {
-                    const isObject = gate && typeof gate === 'object';
-                    const gateName = isObject ? (gate.name || gate.id || 'Gate') : gate;
-                    const gateStatus = isObject ? (gate.status || 'active') : 'active';
-                    const detail = formatGateDetail(gate);
-                    const reason = isObject && gate.reason
-                        ? `<span class="gate-reason">${gate.reason}</span>`
-                        : '';
-                    const statusClass = gateStatus === 'blocked' ? 'triggered' : 'active';
-                    return `
-                        <div class="gate-item">
-                            <span class="gate-icon">●</span>
-                            <span class="gate-type">${gateName}</span>
-                            <span class="gate-detail">${detail}</span>
-                            <span class="gate-status ${statusClass}">${gateStatus.toUpperCase()}</span>
-                            ${reason}
-                        </div>
-                    `;
-                }).join('');
-            }
-            document.getElementById('gatesGenerated').textContent = gates.length;
-        }
-
-        function renderJson(payload) {
-            if (!payload) {
-                return 'No data available.';
-            }
-            return JSON.stringify(payload, null, 2);
-        }
-
-        function updateActivationPreview(preview) {
-            const panel = document.getElementById('activationPreview');
-            panel.textContent = renderJson(preview);
-        }
-
-        function updateLibrarianContext(context) {
-            const panel = document.getElementById('librarianPreview');
-            panel.textContent = renderJson(context);
-        }
-
-        function updateDataSource(isOnline, docId) {
-            const status = document.getElementById('apiStatus');
-            const detail = document.getElementById('apiStatusDetail');
-            const lastUpdate = document.getElementById('lastUpdate');
-            const lastDoc = document.getElementById('lastDoc');
-            const timestamp = new Date().toLocaleTimeString();
-
-            status.textContent = isOnline ? 'ONLINE' : 'OFFLINE';
-            status.className = `data-status ${isOnline ? 'online' : 'offline'}`;
-            detail.textContent = isOnline ? 'ONLINE' : 'OFFLINE';
-            lastUpdate.textContent = isOnline ? timestamp : '--';
-            lastDoc.textContent = isOnline && docId ? docId : '--';
-        }
-
-        async function updateGatePolicy() {
-            if (!lastDocId) {
-                addLine('  No document loaded yet. Execute a task first.', 'warning');
-                return;
-            }
-            const defaultPayload = {
-                confidence: 0.7,
-                gates: lastGateSnapshot.map((gate) => ({
-                    name: gate.name || gate.id || 'Gate',
-                    threshold: gate.threshold ?? 0.7
-                }))
-            };
-            const input = prompt('Update gate policy (JSON):', JSON.stringify(defaultPayload, null, 2));
-            if (!input) return;
-            try {
-                const payload = JSON.parse(input);
-                const response = await fetch(`${API_BASE_URL}/documents/${lastDocId}/gates`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const result = await response.json();
-                if (result.success) {
-                    lastGateSnapshot = result.gates || [];
-                    updateGatesDisplay(lastGateSnapshot);
-                    updateActivationPreview(result.activation_preview);
-                    updateLibrarianContext(result.activation_preview?.librarian_context);
-                    addLine('✓ Gate policy updated', 'system');
-                    switchTab('gates');
-                } else {
-                    addLine(`✗ Gate update failed: ${result.error}`, 'error');
-                }
-            } catch (error) {
-                addLine(`✗ Gate update error: ${error.message}`, 'error');
-            }
-        }
-
-        function updateBlockTree(blockTree) {
-            const blocksList = document.getElementById('blocksList');
-            blocksList.innerHTML = '';
-            if (!blockTree) {
-                blocksList.innerHTML = `
-                    <div class="gate-item">
-                        <span class="gate-icon">●</span>
-                        <span class="gate-type">No block tree available</span>
-                    </div>
-                `;
-                return;
-            }
-            appendBlockNode(blocksList, blockTree, 0);
-        }
-
-        function appendBlockNode(container, node, depth) {
-            const item = document.createElement('div');
-            item.className = 'gate-item';
-            item.style.marginLeft = `${depth * 12}px`;
-            const statusLabel = (node.status || 'pending').toUpperCase();
-            const statusClass = node.status === 'blocked'
-                ? 'triggered'
-                : node.status === 'completed'
-                    ? 'active'
-                    : 'active';
-            const icon = document.createElement('span');
-            icon.className = 'gate-icon';
-            icon.textContent = '●';
-
-            const type = document.createElement('span');
-            type.className = 'gate-type';
-            type.textContent = node.label || node.action || node.id;
-
-            const status = document.createElement('span');
-            status.className = `gate-status ${statusClass}`;
-            status.textContent = statusLabel;
-
-            item.appendChild(icon);
-            item.appendChild(type);
-            item.appendChild(status);
-            if (['magnify', 'simplify', 'solidify'].includes(node.action)) {
-                const btn = document.createElement('button');
-                btn.className = 'config-toggle';
-                btn.style.marginLeft = '8px';
-                btn.textContent = node.action.toUpperCase();
-                btn.onclick = () => runBlockCommand(node.action);
-                item.appendChild(btn);
-            }
-            container.appendChild(item);
-            if (node.children && node.children.length) {
-                node.children.forEach(child => appendBlockNode(container, child, depth + 1));
-            }
-        }
-
-        // Update confidence display
-        function updateConfidenceDisplay(trajectory) {
-            if (trajectory && trajectory.length > 0) {
-                const lastConfidence = trajectory[trajectory.length - 1];
-                document.getElementById('confidenceFill').style.width = (lastConfidence * 100) + '%';
-                
-                // Calculate trend
-                if (trajectory.length > 1) {
-                    const first = trajectory[0];
-                    const last = trajectory[trajectory.length - 1];
-                    const trend = last > first ? '↑' : (last < first ? '↓' : '→');
-                    document.getElementById('confidenceTrend').textContent = `${trend} ${((last - first) * 100).toFixed(1)}%`;
-                }
-            }
-        }
-
-        // Update metrics
-        function updateMetrics(data) {
-            if (data.execution_time != null) {
-                document.getElementById('executionTime').textContent = data.execution_time.toFixed(3) + 's';
-            }
-            const completed = data.phases_completed || [];
-            document.getElementById('phaseProgress').textContent = `${completed.length}/7`;
-        }
-
-        // Update stats
-        async function updateStats() {
-            try {
-                const response = await fetch(`${API_BASE_URL}/mfgc/state`);
-                const result = await response.json();
-                
-                if (result.success && result.state.mfgc_statistics) {
-                    const stats = result.state.mfgc_statistics;
-                    document.getElementById('totalExecutions').textContent = stats.total_executions;
-                    document.getElementById('successRate').textContent = stats.success_rate;
-                    document.getElementById('avgExecutionTime').textContent = stats.average_execution_time;
-                }
-            } catch (error) {
-                // Ignore errors for periodic updates
-            }
-        }
-
-        // Toggle terminal visibility
-        function toggleTerminal() {
-            const panel = document.querySelector('.terminal-panel');
-            panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
-        }
-
-        // Event listeners
-        messageInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendMessage();
+        h += '</div>';
+      });
+    }
+    h += '</div>';
+    return h;
+  }
+
+  function sectionHeader(title, subtitle) {
+    return '<div class="flex items-center justify-between mb-4">' +
+      '<div>' +
+      '<h2 class="text-xl font-bold">' + esc(title) + '</h2>' +
+      (subtitle ? '<p class="text-sm text-secondary">' + esc(subtitle) + '</p>' : '') +
+      '</div></div>';
+  }
+
+  function cardWrap(headerHtml, bodyHtml, footerHtml) {
+    var h = '<div class="murphy-card">';
+    if (headerHtml) h += '<div class="murphy-card-header">' + headerHtml + '</div>';
+    h += '<div class="murphy-card-body">' + bodyHtml + '</div>';
+    if (footerHtml) h += '<div class="murphy-card-footer">' + footerHtml + '</div>';
+    h += '</div>';
+    return h;
+  }
+
+  /* ===========================================================
+     3. SIDEBAR TOGGLE & MOBILE HANDLING
+     =========================================================== */
+  var sidebar   = document.getElementById('sidebar');
+  var contentEl = document.getElementById('content');
+
+  document.getElementById('btn-sidebar-toggle').addEventListener('click', function () {
+    if (window.innerWidth <= 640) {
+      sidebar.classList.toggle('murphy-sidebar-open');
+    } else {
+      sidebar.classList.toggle('murphy-sidebar-collapsed');
+      contentEl.style.marginLeft = sidebar.classList.contains('murphy-sidebar-collapsed')
+        ? '56px'
+        : 'var(--sidebar-width)';
+    }
+  });
+
+  sidebar.addEventListener('click', function (e) {
+    if (e.target.closest('.murphy-sidebar-item') && window.innerWidth <= 640) {
+      sidebar.classList.remove('murphy-sidebar-open');
+    }
+  });
+
+  /* ===========================================================
+     4. THEME TOGGLE
+     =========================================================== */
+  var themeIcon = document.getElementById('theme-icon');
+
+  function updateThemeIcon() {
+    var useEl = themeIcon.querySelector('use');
+    useEl.setAttribute('href', 'static/murphy-icons.svg#icon-' + (theme.get() === 'dark' ? 'moon' : 'sun'));
+  }
+
+  theme.onChange(updateThemeIcon);
+  updateThemeIcon();
+
+  document.getElementById('btn-theme-toggle').addEventListener('click', function () {
+    theme.toggle();
+  });
+
+  /* ===========================================================
+     5. KEYBOARD SHORTCUTS
+     =========================================================== */
+  keyboard.register('ctrl+k', function () {
+    document.getElementById('topbar-search').focus();
+  }, 'Focus search');
+
+  keyboard.register('ctrl+/', function () {
+    keyboard.showHelp();
+  }, 'Show keyboard shortcuts');
+
+  keyboard.register('ctrl+b', function () {
+    document.getElementById('btn-sidebar-toggle').click();
+  }, 'Toggle sidebar');
+
+  /* ===========================================================
+     6. TOPBAR SEARCH — sidebar navigation filter
+     =========================================================== */
+  var searchInput = document.getElementById('topbar-search');
+
+  searchInput.addEventListener('input', function () {
+    var q = this.value.trim().toLowerCase();
+    sidebar.querySelectorAll('.murphy-sidebar-item[data-view]').forEach(function (item) {
+      item.style.display = (!q || (item.textContent || '').toLowerCase().indexOf(q) !== -1) ? '' : 'none';
+    });
+  });
+
+  searchInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      this.value = '';
+      this.dispatchEvent(new Event('input'));
+      this.blur();
+    }
+    if (e.key === 'Enter') {
+      var visible = sidebar.querySelectorAll('.murphy-sidebar-item[data-view]:not([style*="display: none"])');
+      if (visible.length === 1) {
+        visible[0].click();
+        this.value = '';
+        this.dispatchEvent(new Event('input'));
+        this.blur();
+      }
+    }
+  });
+
+  /* ===========================================================
+     7. HASH ROUTER
+     =========================================================== */
+  var currentView = '';
+
+  var views = {
+    dashboard:   renderDashboard,
+    status:      renderStatus,
+    execute:     renderExecute,
+    gates:       renderGates,
+    causality:   renderCausality,
+    safety:      renderSafety,
+    heatmap:     renderHeatmap,
+    wingman:     renderWingman,
+    corrections: renderCorrections,
+    librarian:   renderLibrarian
+  };
+
+  /* Exposed on window so the retry button can call it */
+  window.navigate = navigate;
+
+  function navigate(hash) {
+    hash = hash || 'dashboard';
+    if (!views[hash]) hash = 'dashboard';
+    currentView = hash;
+
+    sidebar.querySelectorAll('.murphy-sidebar-item').forEach(function (el) {
+      el.classList.toggle('murphy-sidebar-item-active', el.getAttribute('data-view') === hash);
+    });
+
+    librarian.setContext('terminal_architect#' + hash);
+    views[hash]();
+    setTimeout(function () { jargon.autoScan(); }, 200);
+  }
+
+  window.addEventListener('hashchange', function () {
+    navigate(location.hash.slice(1));
+  });
+
+  /* ===========================================================
+     8. VIEW: DASHBOARD
+     =========================================================== */
+  async function renderDashboard() {
+    contentEl.innerHTML = sectionHeader('Dashboard', 'System overview and quick actions') + skeletonCards(4);
+    try {
+      var res   = await api.get('/status');
+      var gRes  = await api.get('/mfgc/state');
+      var data  = (res && res.data)  || res  || {};
+      var gates = (gRes && gRes.data) || gRes || {};
+
+      var activeWf  = data.active_workflows  != null ? data.active_workflows : '\u2014';
+      var hitlPend  = data.hitl_pending      != null ? data.hitl_pending     : '\u2014';
+      var healthPct = data.health            != null ? data.health + '%'     : '\u2014';
+      var agentCnt  = data.active_agents     != null ? data.active_agents    : '\u2014';
+
+      var html = sectionHeader('Dashboard', 'System overview and quick actions');
+
+      html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">';
+      html += statCard('Active Workflows', activeWf);
+      html += statCard('HITL Pending', hitlPend, hitlPend > 5 ? 'up' : null, hitlPend > 5 ? 'Attention' : '');
+      html += statCard('System Health', healthPct);
+      html += statCard('Active Agents', agentCnt);
+      html += '</div>';
+
+      var gateNames = [
+        { key: 'executive',  label: 'Executive',  css: 'executive'  },
+        { key: 'operations', label: 'Operations', css: 'operations' },
+        { key: 'qa',         label: 'QA',         css: 'qa'         },
+        { key: 'hitl',       label: 'HITL',       css: 'hitl'       },
+        { key: 'compliance', label: 'Compliance', css: 'compliance' },
+        { key: 'budget',     label: 'Budget',     css: 'budget'     }
+      ];
+
+      html += '<div class="murphy-card mb-6"><div class="murphy-card-header">MFGC Gate Status</div>';
+      html += '<div class="murphy-card-body"><div class="flex flex-wrap gap-4">';
+      gateNames.forEach(function (g) {
+        var s = gates[g.key] || gates[g.label] || 'closed';
+        html += gateIndicator(g.label, s, g.css);
+      });
+      html += '</div></div></div>';
+
+      var events = data.recent_events || data.events || [];
+      if (events.length) {
+        html += cardWrap('Recent Activity',
+          '<div class="flex flex-col gap-2">' +
+          events.slice(0, 10).map(function (ev) {
+            var ts = ev.timestamp || ev.time || '';
+            return '<div class="flex items-center gap-3 py-1 text-sm">' +
+              '<span class="text-muted text-xs" style="min-width:100px;">' + esc(ts) + '</span>' +
+              '<span>' + esc(ev.message || ev.description || ev.event || JSON.stringify(ev)) + '</span>' +
+              '</div>';
+          }).join('') +
+          '</div>'
+        );
+      }
+
+      html += '<div class="flex flex-wrap gap-3 mt-6">';
+      html += '<a href="#workflows" class="murphy-btn murphy-btn-primary">' + icon('workflow') + ' New Workflow</a>';
+      html += '<a href="#execute" class="murphy-btn murphy-btn-secondary">' + icon('terminal') + ' Run Command</a>';
+      html += '<a href="#chat" class="murphy-btn murphy-btn-secondary">' + icon('message-circle') + ' Open Chat</a>';
+      html += '</div>';
+
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('Dashboard') + errorCard(e.message, '#dashboard');
+    }
+  }
+
+  /* ===========================================================
+     9. VIEW: STATUS
+     =========================================================== */
+  async function renderStatus() {
+    contentEl.innerHTML = sectionHeader('System Status') + skeletonRows(6);
+    try {
+      var res  = await api.get('/status');
+      var hRes = await api.get('/health');
+      var data  = (res  && res.data)  || res  || {};
+      var hData = (hRes && hRes.data) || hRes || {};
+
+      var html = sectionHeader('System Status', 'Health and module information');
+
+      html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">';
+      html += statCard('Overall Health', (hData.health || data.health || '\u2014') + '%');
+      html += statCard('Uptime', hData.uptime || data.uptime || '\u2014');
+      html += statCard('API Latency', (hData.latency_ms || data.latency_ms || '\u2014') + ' ms');
+      html += '</div>';
+
+      var modules = data.modules || hData.modules || [];
+      if (modules.length) {
+        html += cardWrap('Modules', tableHTML(
+          [
+            { key: 'name', label: 'Module' },
+            { key: 'status', label: 'Status', render: function (v) { return badge(v || 'unknown', v === 'running' || v === 'healthy' ? 'success' : (v === 'error' ? 'danger' : 'warning')); } },
+            { key: 'version', label: 'Version' }
+          ],
+          modules
+        ));
+      } else {
+        html += emptyState('No Modules', 'Module status data is not available.');
+      }
+
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('System Status') + errorCard(e.message, '#status');
+    }
+  }
+
+  /* ===========================================================
+     10. VIEW: EXECUTE
+     =========================================================== */
+  async function renderExecute() {
+    var html = sectionHeader('Execute', 'Run commands against the system');
+    html += '<div class="murphy-card mb-4"><div class="murphy-card-body">';
+    html += '<label class="murphy-label" for="exec-cmd">Command</label>';
+    html += '<div class="flex gap-3">';
+    html += '<input type="text" class="murphy-input flex-1" id="exec-cmd" placeholder="Enter command\u2026" autocomplete="off">';
+    html += '<button class="murphy-btn murphy-btn-primary" id="exec-run">' + icon('play') + ' Run</button>';
+    html += '</div></div></div>';
+    html += '<div class="murphy-card"><div class="murphy-card-header">Output</div>';
+    html += '<div class="murphy-card-body"><pre id="exec-output" class="murphy-terminal-output" style="min-height:200px;max-height:500px;overflow:auto;white-space:pre-wrap;">Ready.</pre>';
+    html += '</div></div>';
+
+    contentEl.innerHTML = html;
+
+    var cmdInput = document.getElementById('exec-cmd');
+    var outputEl = document.getElementById('exec-output');
+    var runBtn   = document.getElementById('exec-run');
+
+    async function runCommand() {
+      var cmd = cmdInput.value.trim();
+      if (!cmd) return;
+      outputEl.textContent = 'Executing\u2026';
+      runBtn.classList.add('murphy-btn-loading');
+      try {
+        var res = await api.post('/execute', { command: cmd });
+        var d = (res && res.data) || res || {};
+        outputEl.textContent = d.output || d.result || JSON.stringify(d, null, 2);
+      } catch (e) {
+        outputEl.textContent = 'Error: ' + e.message;
+      }
+      runBtn.classList.remove('murphy-btn-loading');
+    }
+
+    runBtn.addEventListener('click', runCommand);
+    cmdInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') runCommand(); });
+    cmdInput.focus();
+  }
+
+  /* ===========================================================
+     11. VIEW: GATES (MFGC)
+     =========================================================== */
+  async function renderGates() {
+    contentEl.innerHTML = sectionHeader('Gates (MFGC)') + skeletonCards(6);
+    try {
+      var res  = await api.get('/mfgc/state');
+      var data = (res && res.data) || res || {};
+      var html = sectionHeader('Gates (MFGC)', 'Murphy Flow Gate Controller \u2014 6 governance gates');
+
+      var gateList = [
+        { key: 'executive',  label: 'Executive',  css: 'executive',  desc: 'Strategic decision authority' },
+        { key: 'operations', label: 'Operations', css: 'operations', desc: 'Operational readiness' },
+        { key: 'qa',         label: 'QA',         css: 'qa',         desc: 'Quality assurance checks' },
+        { key: 'hitl',       label: 'HITL',       css: 'hitl',       desc: 'Human-in-the-loop approval' },
+        { key: 'compliance', label: 'Compliance', css: 'compliance', desc: 'Regulatory compliance' },
+        { key: 'budget',     label: 'Budget',     css: 'budget',     desc: 'Budget authorization' }
+      ];
+
+      html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr));">';
+      gateList.forEach(function (g) {
+        var s = data[g.key] || data[g.label] || 'closed';
+        var isOpen = s === 'open' || s === true;
+        html += '<div class="murphy-card">' +
+          '<div class="murphy-card-body flex items-center gap-4">' +
+          gateIndicator(g.label, s, g.css) +
+          '<div class="flex-1">' +
+          '<div class="font-bold">' + esc(g.label) + ' ' + badge(isOpen ? 'Open' : 'Closed', isOpen ? 'success' : 'danger') + '</div>' +
+          '<p class="text-sm text-secondary mt-1">' + esc(g.desc) + '</p>' +
+          '</div></div></div>';
+      });
+      html += '</div>';
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('Gates (MFGC)') + errorCard(e.message, '#gates');
+    }
+  }
+
+  /* ===========================================================
+     12. VIEW: CAUSALITY
+     =========================================================== */
+  async function renderCausality() {
+    contentEl.innerHTML = sectionHeader('Causality') + skeletonRows(6);
+    try {
+      var res  = await api.get('/causality/analysis');
+      var data = (res && res.data) || res || {};
+      var items = data.chains || data.analyses || data.items || (Array.isArray(data) ? data : []);
+      var html = sectionHeader('Causality', 'Causality engine analysis');
+
+      if (!items.length) {
+        html += emptyState('No Causality Data', 'No causal analysis available.');
+      } else {
+        html += tableHTML(
+          [
+            { key: 'cause',      label: 'Cause' },
+            { key: 'effect',     label: 'Effect' },
+            { key: 'confidence', label: 'Confidence', render: function (v) { return badge((v || 0) + '%', v >= 80 ? 'success' : (v >= 50 ? 'warning' : 'danger')); } },
+            { key: 'timestamp',  label: 'Time' }
+          ],
+          items
+        );
+      }
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('Causality') + errorCard(e.message, '#causality');
+    }
+  }
+
+  /* ===========================================================
+     13. VIEW: SAFETY
+     =========================================================== */
+  async function renderSafety() {
+    contentEl.innerHTML = sectionHeader('Safety') + skeletonRows(4);
+    try {
+      var res    = await api.get('/safety/status');
+      var data   = (res && res.data) || res || {};
+      var alerts = data.alerts || data.issues || (Array.isArray(data) ? data : []);
+      var html   = sectionHeader('Safety', 'Safety monitoring and alerts');
+
+      html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">';
+      html += statCard('Safety Score', (data.score || data.safety_score || '\u2014') + '%');
+      html += statCard('Open Alerts', alerts.length);
+      html += statCard('Last Check', data.last_check || '\u2014');
+      html += '</div>';
+
+      if (alerts.length) {
+        html += cardWrap('Active Alerts', tableHTML(
+          [
+            { key: 'severity',  label: 'Severity', render: function (v) { return badge(v || 'info', v === 'critical' || v === 'high' ? 'danger' : (v === 'medium' ? 'warning' : 'info')); } },
+            { key: 'message',   label: 'Message' },
+            { key: 'timestamp', label: 'Time' }
+          ],
+          alerts
+        ));
+      }
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('Safety') + errorCard(e.message, '#safety');
+    }
+  }
+
+  /* ===========================================================
+     14. VIEW: HEATMAP
+     =========================================================== */
+  async function renderHeatmap() {
+    contentEl.innerHTML = sectionHeader('Heatmap') + skeletonCards(1);
+    try {
+      var res  = await api.get('/heatmap/data');
+      var data = (res && res.data) || res || {};
+      var entries = data.entries || data.cells || data.data || (Array.isArray(data) ? data : []);
+      var html = sectionHeader('Heatmap', 'Activity heatmap visualization');
+
+      if (!entries.length) {
+        html += emptyState('No Heatmap Data', 'Not enough activity data to generate a heatmap.');
+      } else {
+        html += '<div class="murphy-card"><div class="murphy-card-body">';
+        html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(28px,1fr));gap:3px;">';
+        var maxV = data.max || 100;
+        entries.forEach(function (cell) {
+          var intensity = cell.value || cell.count || 0;
+          var opacity = Math.max(0.08, Math.min(1, intensity / maxV));
+          html += '<div title="' + esc((cell.label || '') + ': ' + intensity) + '" style="width:28px;height:28px;border-radius:4px;background:rgba(139,108,231,' + opacity + ');"></div>';
         });
+        html += '</div></div></div>';
+      }
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('Heatmap') + errorCard(e.message, '#heatmap');
+    }
+  }
 
-        sendButton.addEventListener('click', sendMessage);
+  /* ===========================================================
+     15. VIEW: WINGMAN
+     =========================================================== */
+  async function renderWingman() {
+    contentEl.innerHTML = sectionHeader('Wingman') + skeletonRows(4);
+    try {
+      var res   = await api.get('/wingman/suggestions');
+      var items = (res && res.data) || (Array.isArray(res) ? res : []);
+      var html  = sectionHeader('Wingman', 'AI assistant suggestions');
 
-        // Message input always enabled
-        messageInput.disabled = false;
-    </script>
+      if (!items.length) {
+        html += emptyState('No Suggestions', 'Wingman has no suggestions right now.');
+      } else {
+        html += '<div class="grid gap-4" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr));">';
+        items.forEach(function (s) {
+          html += cardWrap(
+            '<div class="flex items-center gap-2">' + icon('zap') + ' <span class="font-bold">' + esc(s.title || 'Suggestion') + '</span></div>',
+            '<p class="text-sm text-secondary">' + esc(s.description || s.suggestion || s.text || '') + '</p>' +
+            (s.action ? '<div class="mt-3"><button class="murphy-btn murphy-btn-sm murphy-btn-secondary">' + esc(s.action) + '</button></div>' : '')
+          );
+        });
+        html += '</div>';
+      }
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('Wingman') + errorCard(e.message, '#wingman');
+    }
+  }
+
+  /* ===========================================================
+     16. VIEW: CORRECTIONS
+     =========================================================== */
+  async function renderCorrections() {
+    contentEl.innerHTML = sectionHeader('Corrections') + skeletonRows(6);
+    try {
+      var res   = await api.get('/corrections/list');
+      var items = (res && res.data) || (Array.isArray(res) ? res : []);
+      var html  = sectionHeader('Corrections', 'Correction tracking and history');
+
+      if (!items.length) {
+        html += emptyState('No Corrections', 'No corrections have been recorded.');
+      } else {
+        html += tableHTML(
+          [
+            { key: 'id',          label: 'ID' },
+            { key: 'type',        label: 'Type' },
+            { key: 'description', label: 'Description' },
+            { key: 'status',      label: 'Status', render: function (v) { return badge(v || 'pending', v === 'resolved' ? 'success' : (v === 'in_progress' ? 'warning' : 'neutral')); } },
+            { key: 'created',     label: 'Created' }
+          ],
+          items
+        );
+      }
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('Corrections') + errorCard(e.message, '#corrections');
+    }
+  }
+
+  /* ===========================================================
+     17. VIEW: LIBRARIAN
+     =========================================================== */
+  async function renderLibrarian() {
+    var html = sectionHeader('Librarian', 'Knowledge base search');
+    html += '<div class="murphy-card mb-4"><div class="murphy-card-body">';
+    html += '<label class="murphy-label" for="lib-query">Ask the Librarian</label>';
+    html += '<div class="flex gap-3">';
+    html += '<input type="text" class="murphy-input flex-1" id="lib-query" placeholder="Ask a question\u2026" autocomplete="off">';
+    html += '<button class="murphy-btn murphy-btn-primary" id="lib-ask">' + icon('search') + ' Ask</button>';
+    html += '</div></div></div>';
+    html += '<div id="lib-results"></div>';
+    contentEl.innerHTML = html;
+
+    var queryInput = document.getElementById('lib-query');
+    var resultsEl  = document.getElementById('lib-results');
+    var askBtn     = document.getElementById('lib-ask');
+
+    async function doAsk() {
+      var q = queryInput.value.trim();
+      if (!q) return;
+      resultsEl.innerHTML = skeletonRows(4);
+      askBtn.classList.add('murphy-btn-loading');
+      try {
+        var res = await api.post('/librarian/ask', { question: q });
+        var d = (res && res.data) || res || {};
+        var answer = d.answer || d.response || JSON.stringify(d, null, 2);
+        resultsEl.innerHTML = cardWrap('Answer', '<div class="text-sm" style="white-space:pre-wrap;">' + esc(answer) + '</div>');
+      } catch (e) {
+        resultsEl.innerHTML = errorCard(e.message, '#librarian');
+      }
+      askBtn.classList.remove('murphy-btn-loading');
+    }
+
+    askBtn.addEventListener('click', doAsk);
+    queryInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') doAsk(); });
+    queryInput.focus();
+  }
+
+  /* ===========================================================
+     18. BOOT — initial navigation
+     =========================================================== */
+  navigate(location.hash.slice(1) || 'dashboard');
+
+})();
+</script>
 </body>
 </html>
