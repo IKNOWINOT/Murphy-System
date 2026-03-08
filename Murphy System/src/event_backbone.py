@@ -44,6 +44,10 @@ class EventType(Enum):
     SELF_FIX_VERIFIED = "self_fix_verified"
     SELF_FIX_COMPLETED = "self_fix_completed"
     SELF_FIX_ROLLED_BACK = "self_fix_rolled_back"
+    CHAOS_EXPERIMENT_STARTED = "chaos_experiment_started"
+    CHAOS_EXPERIMENT_COMPLETED = "chaos_experiment_completed"
+    CHAOS_SCORECARD_GENERATED = "chaos_scorecard_generated"
+    CHAOS_GAPS_SUBMITTED = "chaos_gaps_submitted"
 
 
 @dataclass
