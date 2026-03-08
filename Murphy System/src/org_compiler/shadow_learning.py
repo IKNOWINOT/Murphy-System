@@ -1,7 +1,15 @@
 """
-Shadow Learning System
+Personal Assistant Builder — Shadow Learning System
 
-Observation-only agents that learn how work is done and propose automation templates.
+YOUR assistant, built by YOU. This system observes your own workflow patterns
+(task assignments, approvals, handoffs) and proposes automation templates
+that you review and approve. Think of it as your "shadow" — a personal
+apprentice that watches how you work and offers to handle the repetitive
+parts, but only with your explicit permission.
+
+The name "shadow" reflects the apprenticeship model: your assistant shadows
+you to learn, just like a new team member would. It never acts autonomously
+and all proposals require your signoff.
 
 CRITICAL SAFETY CONSTRAINTS:
 - Shadow agents can ONLY observe (no execution rights)
@@ -33,13 +41,17 @@ logger = logging.getLogger(__name__)
 
 class TelemetryCollector:
     """
-    Collects telemetry from work events
+    Collects telemetry about your own work events to build your personal assistant.
+
+    This is not surveillance of others — it records your own activity so that
+    your shadow assistant can learn your patterns and propose time-saving
+    automations for your review.
 
     Observes:
-    - Task assignments
-    - Approvals
-    - Handoffs
-    - Failure handling
+    - Task assignments (yours)
+    - Approvals (yours)
+    - Handoffs (yours)
+    - Failure handling (yours)
     """
 
     def __init__(self):
@@ -94,7 +106,7 @@ class TelemetryCollector:
 
 class PatternRecognitionEngine:
     """
-    Recognizes patterns in work telemetry
+    Recognizes patterns in your workflow telemetry to identify tasks your assistant could handle.
 
     Identifies:
     - Repetitive tasks
@@ -295,7 +307,13 @@ class RiskAnalyzer:
 
 class ShadowLearningAgent:
     """
-    Shadow learning agent that observes work and proposes automation
+    Your shadow assistant — OBSERVATION-ONLY. It watches how you work and proposes
+    ways to automate repetitive tasks, but it can never execute, modify, or control
+    anything without your explicit approval.
+
+    Think of it as a new team member shadowing you to learn the ropes. Once it has
+    observed enough of your workflow, it drafts an automation proposal for you to
+    review. You decide what gets approved and what stays manual.
 
     CRITICAL: This agent is OBSERVATION-ONLY. It cannot execute, modify, or control anything.
     All proposals are sandbox-only artifacts with zero execution rights.

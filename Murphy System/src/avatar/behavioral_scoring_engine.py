@@ -1,4 +1,21 @@
-"""Scores user behavior based on interaction patterns."""
+"""
+Avatar Interaction Quality Scorer
+
+Measures how well the Murphy avatar is performing for each user by analyzing
+interaction quality signals. This is NOT a user profiling or surveillance tool —
+it scores the AVATAR's effectiveness, not the user's behavior.
+
+Inputs:
+  - Interaction count: How much the user has engaged with their avatar
+  - Feedback history: User-provided ratings of avatar responses
+
+Outputs:
+  - Quality score (0.0-1.0): Higher = avatar is serving this user well
+  - Used to adapt avatar behavior to better serve the user
+
+The score helps Murphy improve its own service quality. Users can view,
+reset, or opt out of scoring at any time.
+"""
 
 from threading import Lock
 from typing import Any, Dict
@@ -11,14 +28,21 @@ logger = logging.getLogger(__name__)
 
 
 class BehavioralScoringEngine:
-    """Scores user behavior based on interaction patterns."""
+    """
+    Avatar Interaction Quality Engine.
+
+    Measures how well the Murphy avatar is serving each user — this scores
+    AVATAR quality, not user worth or behavior. A higher score means the
+    avatar is responding well to this user's needs; a lower score is a
+    signal for the avatar to adapt and improve.
+    """
 
     def __init__(self) -> None:
         self._scores: Dict[str, float] = {}
         self._lock = Lock()
 
     def calculate_score(self, adaptation: UserAdaptation) -> float:
-        """Calculate behavioral score (0.0-1.0) based on interaction history."""
+        """Calculate avatar quality score based on user interaction and feedback history."""
         base = min(adaptation.interaction_count / 10.0, 1.0)
         positive_feedback = sum(
             1 for f in adaptation.feedback_history if f.get("rating", 0) > 3
@@ -38,7 +62,7 @@ class BehavioralScoringEngine:
         return score
 
     def update_score(self, user_id: str, delta: float) -> float:
-        """Adjust a user's behavioral score."""
+        """Adjust avatar quality score for a user."""
         with self._lock:
             current = self._scores.get(user_id, 0.5)
             new_score = max(0.0, min(1.0, current + delta))
@@ -46,7 +70,7 @@ class BehavioralScoringEngine:
             return new_score
 
     def get_score(self, user_id: str) -> float:
-        """Get a user's behavioral score."""
+        """Get avatar quality score for a user."""
         with self._lock:
             return self._scores.get(user_id, 0.5)
 
