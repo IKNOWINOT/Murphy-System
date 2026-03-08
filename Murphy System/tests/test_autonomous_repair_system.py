@@ -471,8 +471,6 @@ class TestRepairCycle:
 
     def test_repair_cycle_no_concurrent_runs(self, repair_system):
         """Concurrent repair cycles raise RuntimeError."""
-        import threading
-
         errors: list = []
 
         def _run() -> None:
@@ -499,7 +497,7 @@ class TestRepairCycle:
         """get_health returns a dict with expected keys."""
         health = repair_system.get_health()
         assert "status" in health
-        assert "repair_system" not in health or True
+        assert "proposals_generated" in health
 
     def test_get_immune_memory_list(self, repair_system):
         """get_immune_memory returns a list."""

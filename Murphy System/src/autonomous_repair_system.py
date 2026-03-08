@@ -493,8 +493,8 @@ class PredictiveDiagnosisLayer:
             return 0.0
         xs = [h[0] for h in history]
         ys = [float(h[1]) for h in history]
-        x_mean = sum(xs) / (n or 1)
-        y_mean = sum(ys) / (n or 1)
+        x_mean = sum(xs) / n
+        y_mean = sum(ys) / n
         numerator = sum((xs[i] - x_mean) * (ys[i] - y_mean) for i in range(n))
         denominator = sum((xs[i] - x_mean) ** 2 for i in range(n))
         if denominator == 0.0:
@@ -707,7 +707,9 @@ class TerminologyLockOnEngine:
         if n == 1:
             return 1.0
         counts = [len(v) for v in entry.module_usages.values()]
-        total = sum(counts) or 1
+        total = sum(counts)
+        if total == 0:
+            return 1.0
         proportions = [c / total for c in counts]
         entropy = -sum(p * math.log(p + 1e-9) for p in proportions if p > 0)
         max_entropy = math.log(n + 1e-9)
