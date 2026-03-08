@@ -1805,3 +1805,57 @@ The **Autonomous Self-Fix Loop** (`src/self_fix_loop.py`) closes the remediation
 4. **Rollback on failure** — every `FixPlan` carries `rollback_steps`; on test failure, all steps are reversed.
 5. **Full audit trail** — every plan, execution, test, and report is persisted and published as events.
 6. **Code proposals require human approval** — source files are never touched autonomously.
+
+---
+
+## Murphy Immune Engine (ARCH-014)
+
+**Module:** `src/murphy_immune_engine.py`  
+**Tests:** `tests/test_murphy_immune_engine.py`  
+**Docs:** `docs/IMMUNE_ENGINE.md`
+
+Next-generation autonomous self-coding system that wraps and extends all existing self-healing components.
+
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                      MURPHY IMMUNE ENGINE  (ARCH-014)                        │
+│                                                                              │
+│  DesiredStateReconciler ──▶ PredictiveFailureAnalyzer ──▶ ImmunityMemory    │
+│          ↓                          ↓                          ↓             │
+│  CascadeAnalyzer ◄──────── MurphyImmuneEngine ──────▶ ChaosHardenedValidator│
+│          ↓                          ↓                                        │
+│  SelfFixLoop (ARCH-005)      EventBackbone / PersistenceManager              │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Integration Points
+
+| Component | Integration |
+|---|---|
+| `SelfFixLoop` (ARCH-005) | Delegates `diagnose()`, `plan()`, `execute()`, `test()`, `rollback()` |
+| `SelfImprovementEngine` (ARCH-001) | Injected into `SelfFixLoop` |
+| `SelfHealingCoordinator` (OBS-004) | State queried by `DesiredStateReconciler` |
+| `BugPatternDetector` (DEV-004) | Patterns fed to `PredictiveFailureAnalyzer` |
+| `EventBackbone` | Publishes 7 new event types |
+| `PersistenceManager` | Stores `ImmuneReport` per cycle |
+| `FailureInjectionPipeline` | Used by `ChaosHardenedValidator` |
+
+### Novel Capabilities
+
+| Capability | Component |
+|---|---|
+| Kubernetes-style desired-state reconciliation | `DesiredStateReconciler` |
+| Statistical predictive failure analysis | `PredictiveFailureAnalyzer` |
+| Biological immune memory (instant replay) | `ImmunityMemory` |
+| Chaos-hardened fix validation | `ChaosHardenedValidator` |
+| Cascade-aware fix planning | `CascadeAnalyzer` |
+
+### Safety Invariants
+
+1. **Never modifies source files on disk.**
+2. **Bounded by max_iterations** (default 20).
+3. **Mutex enforcement** — `RuntimeError` if cycle already running.
+4. **Rollback on test failure.**
+5. **Chaos validation required** before ImmunityMemory promotion.
+6. **Cascade check required** before ImmunityMemory promotion.
+7. **Full audit trail** via EventBackbone + PersistenceManager.
