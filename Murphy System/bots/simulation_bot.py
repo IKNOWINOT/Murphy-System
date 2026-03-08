@@ -143,7 +143,7 @@ class SimulationBot:
                     "time_steps": [],
                     "solver": "none",
                     "confidence": 0,
-                    "note": "unsupported simulation type — random approximation",
+                    "note": "unsupported simulation type — returning zero-valued fallback",
                 },
                 "timestamp": timestamp,
             }
