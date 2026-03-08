@@ -214,7 +214,7 @@ class BaseWallet(ABC):
     # ---- overridable internals -------------------------------------------
 
     @abstractmethod
-    def _do_sync(self) -> bool:  # noqa: PLR6301
+    def _do_sync(self) -> bool:
         """Refresh wallet balances.  Subclasses must override."""
         ...
 

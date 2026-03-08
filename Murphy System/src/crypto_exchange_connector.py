@@ -228,22 +228,22 @@ class ExchangeConnector(ABC):
     # ---- overridable internals -------------------------------------------
 
     @abstractmethod
-    def _place_order(self, req: OrderRequest) -> OrderResult:  # noqa: PLR6301
+    def _place_order(self, req: OrderRequest) -> OrderResult:
         """Place an order on the exchange.  Subclasses must override."""
         ...
 
     @abstractmethod
-    def _fetch_ticker(self, pair: str) -> Ticker:  # noqa: PLR6301
+    def _fetch_ticker(self, pair: str) -> Ticker:
         """Fetch the latest ticker for *pair*.  Subclasses must override."""
         ...
 
     @abstractmethod
-    def _fetch_balances(self) -> List[Balance]:  # noqa: PLR6301
+    def _fetch_balances(self) -> List[Balance]:
         """Fetch account balances.  Subclasses must override."""
         ...
 
     @abstractmethod
-    def _probe(self) -> bool:  # noqa: PLR6301
+    def _probe(self) -> bool:
         """Lightweight health probe.  Subclasses must override."""
         ...
 
