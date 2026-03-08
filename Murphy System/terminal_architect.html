@@ -233,6 +233,29 @@
             letter-spacing: 1px;
         }
 
+        #messageInput.mss-processing {
+            border-color: #ffff00;
+            animation: mss-pulse 1s ease-in-out infinite;
+        }
+
+        @keyframes mss-pulse {
+            0%, 100% { box-shadow: 0 0 5px rgba(255, 255, 0, 0.3); }
+            50% { box-shadow: 0 0 15px rgba(255, 255, 0, 0.6); }
+        }
+
+        .mss-btn.applied {
+            border-width: 2px;
+            position: relative;
+        }
+        .mss-btn.applied::after {
+            content: '✓';
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            font-size: 10px;
+            color: #00ff41;
+        }
+
         /* Focus-visible styles for keyboard navigation */
         .header-btn:focus-visible,
         .send-button:focus-visible,
@@ -1110,24 +1133,77 @@
         // MSS Transform
         async function mssTransform(operator) {
             const text = messageInput.value.trim();
-            if (!text) { addLine('✗ Enter text before applying MSS transform', 'error'); return; }
-            addLine(`murphy:architect$ [MSS ${operator.toUpperCase()}] ${text}`, 'user');
-            messageInput.value = '';
+            if (!text) {
+                addLine('✗ Type a prompt first, then click ' + operator.toUpperCase() + ' to transform it', 'warning');
+                return;
+            }
+
+            // Show what we're doing in the terminal (but DON'T clear the input)
+            addLine(`[MSS ${operator.toUpperCase()}] Transforming prompt...`, 'system');
+
+            // Disable buttons while processing
+            document.querySelectorAll('.mss-btn').forEach(b => b.disabled = true);
+            messageInput.classList.add('mss-processing');
+
             try {
                 const resp = await fetch(`${API_BASE_URL}/mss/${operator}`, {
-                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({text: text})
                 });
                 const data = await resp.json();
+
                 if (data.success) {
                     const r = data.result;
+
+                    // Extract the transformed text from the result output
+                    let transformedText = '';
+                    if (typeof r.output === 'string') {
+                        transformedText = r.output;
+                    } else if (r.output) {
+                        transformedText = Object.entries(r.output)
+                            .filter(([k, v]) => v && (typeof v === 'string' || (Array.isArray(v) && v.length > 0)))
+                            .map(([k, v]) => {
+                                const label = k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                                if (Array.isArray(v)) {
+                                    return `${label}: ${v.join('; ')}`;
+                                }
+                                return `${label}: ${v}`;
+                            })
+                            .join('. ');
+                    }
+
+                    if (!transformedText) {
+                        addLine(`⚠ ${operator.toUpperCase()} produced no text output — prompt unchanged`, 'warning');
+                    } else {
+                        // REPLACE the input box text with the transformed version
+                        messageInput.value = transformedText;
+                        addLine(`✓ ${operator.toUpperCase()} applied — prompt updated in input box. Review and press EXECUTE.`, 'success');
+                        const appliedBtn = document.querySelector(`.mss-${operator}`);
+                        if (appliedBtn) appliedBtn.classList.add('applied');
+                    }
+
+                    // Update the resolution indicator
                     const iq = r.input_quality || {};
-                    document.getElementById('resolution-panel').textContent =
-                        `Resolution: ${iq.resolution_level || '—'} (RS ${(iq.resolution_score||0).toFixed(1)}) | Density: ${(iq.density_index||0).toFixed(2)} | Coherence: ${(iq.coherence_score||0).toFixed(1)} | CQI: ${(iq.cqi||0).toFixed(1)}`;
-                    addLine(`✓ ${operator.toUpperCase()} → ${r.target_rm} | Status: ${r.governance_status}`, 'success');
-                    addLine(JSON.stringify(r.output, null, 2), 'system');
-                } else { addLine(`✗ ${data.error}`, 'error'); }
-            } catch(e) { addLine(`✗ MSS error: ${e.message}`, 'error'); }
+                    document.getElementById('resolution-panel').innerHTML =
+                        `<span style="color:#00ff41">Resolution:</span> ${iq.resolution_level || '—'} ` +
+                        `<span style="color:#666">(RS ${(iq.resolution_score||0).toFixed(1)})</span> | ` +
+                        `<span style="color:#00ff41">Density:</span> ${(iq.density_index||0).toFixed(2)} | ` +
+                        `<span style="color:#00ff41">Coherence:</span> ${(iq.coherence_score||0).toFixed(1)} | ` +
+                        `<span style="color:#00ff41">CQI:</span> ${(iq.cqi||0).toFixed(1)} | ` +
+                        `<span style="color:#00ffff">${operator.toUpperCase()} → ${r.target_rm || '—'}</span>`;
+
+                } else {
+                    addLine(`✗ ${operator.toUpperCase()} failed: ${data.error || 'Unknown error'}`, 'error');
+                }
+            } catch(e) {
+                addLine(`✗ MSS error: ${e.message}`, 'error');
+            }
+
+            // Re-enable buttons
+            document.querySelectorAll('.mss-btn').forEach(b => b.disabled = false);
+            messageInput.classList.remove('mss-processing');
+            messageInput.focus();
         }
 
         // Send message
