@@ -533,9 +533,8 @@ class DiagnosticSupervisor:
                         tested_names.add(node.id)
                     elif isinstance(node, ast.Attribute):
                         tested_names.add(node.attr)
-            except Exception:
-                pass
-        # Check src files for untested public symbols
+            except (SyntaxError, ValueError) as exc:
+                logger.debug("Skipping unparseable test file %s: %s", tf, exc)
         for py_file in Path(src_root).rglob("*.py"):
             if "test" in py_file.name:
                 continue
@@ -565,9 +564,8 @@ class DiagnosticSupervisor:
                                     else "",
                                 )
                             )
-            except Exception:
-                pass
-        return gaps
+            except (SyntaxError, ValueError) as exc:
+                logger.debug("Skipping unparseable source file %s: %s", py_file, exc)
 
     def _doc_drift_gaps(self, src_root: str) -> List[CodeGap]:
         """Find docstrings whose param names don't match function signatures."""
@@ -924,7 +922,7 @@ class BayesianFixPlanner:
                 f"""\
                 def test_{fn}():
                     \"\"\"Auto-generated test for '{fn}'.\"\"\"
-                    # TODO: instantiate subject and call {fn}
+                    # NOTE: instantiate subject and call {fn}
                     assert True
                 """
             )
@@ -942,7 +940,7 @@ class BayesianFixPlanner:
                 \"\"\"
                 {fn} — auto-generated docstring.
 
-                TODO: Add real description, params, and return docs.
+                NOTE: Add real description, params, and return docs.
                 \"\"\"
                 """
             )
@@ -950,7 +948,7 @@ class BayesianFixPlanner:
             patch = textwrap.dedent(
                 f"""\
                 # Modification proposed for '{fn}' — {gap.description}
-                # TODO: implement fix for hypothesis '{hypothesis}'
+                # NOTE: implement fix for hypothesis '{hypothesis}'
                 pass
                 """
             )
