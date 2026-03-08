@@ -206,6 +206,13 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Wired `SecurityContext` into Deployment YAML at both pod-level and container-level
 - Added `register_pdb`, `register_network_policy`, `generate_pdb_yaml`, `generate_network_policy_yaml` to `KubernetesManager`
 
+#### feat: Compliance-as-Code Engine (CCE-001) — P8 #29
+- New module `src/compliance_as_code_engine.py` (774 lines) — encode regulatory requirements as testable rules, continuous compliance checking
+- 5 dataclass models, 5 enums, 17 REST API endpoints, Wingman + Sandbox gates
+- AST-validated safe expression evaluator (no builtins, no imports, no arbitrary calls)
+- Supports GDPR, HIPAA, SOC2, PCI-DSS, ISO 27001, CCPA frameworks
+- 87 tests in `tests/test_compliance_as_code_engine.py`
+
 ---
 
 [Unreleased]: https://github.com/Murphy-System/Murphy-System/compare/v1.0.0...HEAD
