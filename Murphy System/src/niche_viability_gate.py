@@ -2416,7 +2416,7 @@ class CredentialNegotiationEngine:
             f"Deliverables as specified: {task_description}",
             "Payment on gate-verified completion only (not on submission)",
             "All work must meet acceptance criteria before payment releases",
-            f"Timeline as agreed — no unilateral extensions",
+            "Timeline as agreed \u2014 no unilateral extensions",
             f"Credential verification required: {required_credential.issuing_body}",
             "Non-disclosure of Inoni's internal systems and processes",
         ]

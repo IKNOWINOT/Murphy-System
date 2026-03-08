@@ -614,17 +614,17 @@ class EUAGenerator:
     ) -> str:
         """Render the complete agreement as a text document."""
         lines: List[str] = [
-            f"END USER AGREEMENT",
+            "END USER AGREEMENT",
             f"{'=' * 60}",
             f"Entity: {inoni_entity_name}",
-            f"Powered by: Murphy System",
-            f"Operated by: Inoni Limited Liability Company",
-            f"License: BSL 1.1",
-            f"",
-            f"This End User Agreement ('Agreement') governs your use of the services",
+            "Powered by: Murphy System",
+            "Operated by: Inoni Limited Liability Company",
+            "License: BSL 1.1",
+            "",
+            "This End User Agreement ('Agreement') governs your use of the services",
             f"provided by {inoni_entity_name}, powered by Murphy System and operated",
-            f"by Inoni Limited Liability Company ('Inoni').",
-            f"",
+            "by Inoni Limited Liability Company ('Inoni').",
+            "",
         ]
 
         for section in sections:
@@ -632,14 +632,14 @@ class EUAGenerator:
                 f"{section.title}",
                 f"{'-' * len(section.title)}",
                 section.body,
-                f"",
+                "",
             ])
 
         lines.extend([
-            f"RISK TRANSFER CLAUSES",
+            "RISK TRANSFER CLAUSES",
             f"{'=' * 40}",
-            f"The following risk transfer clauses are binding upon HITL approval:",
-            f"",
+            "The following risk transfer clauses are binding upon HITL approval:",
+            "",
         ])
         for clause in risk_clauses:
             lines.extend([
@@ -648,13 +648,13 @@ class EUAGenerator:
                 f"From: {clause.from_party} → To: {clause.to_party}",
                 f"Trigger: {clause.trigger}",
                 clause.text,
-                f"",
+                "",
             ])
 
         lines.extend([
-            f"AUTOMATION REQUIREMENTS",
+            "AUTOMATION REQUIREMENTS",
             f"{'=' * 40}",
-            f"",
+            "",
         ])
         for req in automation_requirements:
             oversight = "HITL required" if req.human_oversight_required else "Autonomous"
@@ -662,14 +662,14 @@ class EUAGenerator:
                 f"[{oversight}] {req.description}",
                 f"  Failure: {req.failure_mode}",
                 f"  Recovery: {req.recovery_action}",
-                f"",
+                "",
             ])
 
         lines.extend([
             f"{'=' * 60}",
-            f"BY APPROVING ANY HITL REQUEST ASSOCIATED WITH THIS AGREEMENT,",
-            f"YOU ACCEPT ALL TERMS, RISK TRANSFER CLAUSES, AND AUTOMATION",
-            f"REQUIREMENTS DESCRIBED HEREIN.",
+            "BY APPROVING ANY HITL REQUEST ASSOCIATED WITH THIS AGREEMENT,",
+            "YOU ACCEPT ALL TERMS, RISK TRANSFER CLAUSES, AND AUTOMATION",
+            "REQUIREMENTS DESCRIBED HEREIN.",
             f"{'=' * 60}",
         ])
 
