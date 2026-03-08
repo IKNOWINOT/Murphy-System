@@ -15601,6 +15601,260 @@ def create_app() -> FastAPI:
             pass
         return JSONResponse({"success": True})
 
+    # ── Golden Path Engine ────────────────────────────────────────────
+    try:
+        from src.golden_path_engine import GoldenPathEngine as _GoldenPathEngine
+        _gpe = _GoldenPathEngine()
+    except Exception:  # noqa: BLE001
+        _gpe = None
+
+    @app.get("/api/golden-path")
+    async def get_golden_path(request: Request):
+        """Return prioritised recommendations for the current user."""
+        user_role = request.headers.get("X-User-Role", "VIEWER")
+        system_state: dict = {}
+        try:
+            state_obj = getattr(murphy, "system_state", None)
+            if callable(state_obj):
+                system_state = state_obj() or {}
+            elif isinstance(state_obj, dict):
+                system_state = state_obj
+        except Exception:  # noqa: BLE001
+            pass
+        if _gpe is None:
+            return JSONResponse({"recommendations": [], "error": "golden_path_engine unavailable"})
+        recs = _gpe.get_recommendations(user_role, system_state)
+        return JSONResponse({"recommendations": recs, "count": len(recs)})
+
+    @app.get("/api/golden-path/{workflow_id}")
+    async def get_critical_path(workflow_id: str):
+        """Return the critical path for a specific workflow."""
+        if _gpe is None:
+            return JSONResponse({"critical_path": [], "error": "golden_path_engine unavailable"})
+        path = _gpe.get_critical_path(workflow_id)
+        return JSONResponse({"workflow_id": workflow_id, "critical_path": path})
+
+    # ── Orchestrator ──────────────────────────────────────────────────
+    @app.get("/api/orchestrator/overview")
+    async def orchestrator_overview():
+        """Full business flow snapshot: inbound, processing, outbound, summary."""
+        workflows = []
+        try:
+            wf_store = getattr(murphy, "workflows", None)
+            if isinstance(wf_store, dict):
+                workflows = list(wf_store.values())
+            elif isinstance(wf_store, list):
+                workflows = wf_store
+        except Exception:  # noqa: BLE001
+            pass
+
+        active = [w for w in workflows if isinstance(w, dict) and w.get("status") == "running"]
+        stuck  = [w for w in workflows if isinstance(w, dict) and w.get("status") == "stuck"]
+
+        return JSONResponse({
+            "inbound": {
+                "sources": ["API Request", "Email", "Webhook", "Manual", "Scheduled", "Import"],
+                "active_count": len(active),
+            },
+            "processing": {
+                "active_workflows": active,
+                "workflow_count": len(active),
+            },
+            "outbound": {
+                "types": ["Proposals", "Reports", "Management Reports", "Deliverables"],
+            },
+            "summary": {
+                "active_workflows": len(active),
+                "stuck_workflows": len(stuck),
+                "hitl_pending": 0,
+                "total_workflows": len(workflows),
+            },
+            "standards": {
+                "mfgc_enabled": True,
+                "hipaa_aligned": False,
+                "soc2_aligned": False,
+                "iso27001_aligned": False,
+                "gdpr_aligned": False,
+            },
+        })
+
+    @app.get("/api/orchestrator/flows")
+    async def orchestrator_flows():
+        """All active information flows."""
+        return JSONResponse({"flows": [], "count": 0})
+
+    # ── Org Chart ─────────────────────────────────────────────────────
+    @app.get("/api/orgchart/live")
+    async def orgchart_live():
+        """Live agent org chart with statuses."""
+        agents = []
+        try:
+            agent_store = getattr(murphy, "agents", None)
+            if isinstance(agent_store, dict):
+                agents = [{"id": k, **v} for k, v in agent_store.items()]
+            elif isinstance(agent_store, list):
+                agents = agent_store
+        except Exception:  # noqa: BLE001
+            pass
+        return JSONResponse({"agents": agents, "count": len(agents)})
+
+    @app.get("/api/orgchart/{task_id}")
+    async def orgchart_for_task(task_id: str):
+        """Generate org chart for a specific task."""
+        return JSONResponse({
+            "task_id": task_id,
+            "center": {"id": task_id, "type": "task", "label": task_id},
+            "agents": [],
+        })
+
+    @app.post("/api/orgchart/save")
+    async def orgchart_save(request: Request):
+        """Save an org chart as an ongoing function/template."""
+        data = await request.json()
+        saved_id = str(__import__("uuid").uuid4())
+        return JSONResponse({"success": True, "id": saved_id, "data": data})
+
+    # ── Integrations ──────────────────────────────────────────────────
+    @app.get("/api/integrations")
+    async def integrations_catalog():
+        """Available integrations catalog."""
+        catalog = [
+            {"id": "groq",        "name": "Groq",        "type": "llm",       "icon": "⚡", "description": "Ultra-fast LLM inference via Groq API"},
+            {"id": "openai",      "name": "OpenAI",      "type": "llm",       "icon": "◎", "description": "GPT-4 and OpenAI model suite"},
+            {"id": "stripe",      "name": "Stripe",      "type": "payments",  "icon": "💳", "description": "Payment processing and billing"},
+            {"id": "cloudflare",  "name": "Cloudflare",  "type": "network",   "icon": "☁", "description": "CDN, DNS, and security gateway"},
+            {"id": "twilio",      "name": "Twilio",      "type": "comms",     "icon": "📞", "description": "SMS, voice, and messaging APIs"},
+            {"id": "email_smtp",  "name": "SMTP Email",  "type": "email",     "icon": "✉", "description": "Outbound email via SMTP"},
+            {"id": "webhook_in",  "name": "Webhook In",  "type": "webhook",   "icon": "⬇", "description": "Receive inbound webhooks"},
+            {"id": "webhook_out", "name": "Webhook Out", "type": "webhook",   "icon": "⬆", "description": "Send outbound webhooks"},
+            {"id": "postgres",    "name": "PostgreSQL",  "type": "database",  "icon": "🗄", "description": "Relational database"},
+            {"id": "redis",       "name": "Redis",       "type": "cache",     "icon": "⚙", "description": "In-memory cache and queue"},
+            {"id": "slack",       "name": "Slack",       "type": "comms",     "icon": "💬", "description": "Team messaging and notifications"},
+            {"id": "github",      "name": "GitHub",      "type": "devops",    "icon": "⬡", "description": "Source control and CI/CD"},
+        ]
+        return JSONResponse({"integrations": catalog, "count": len(catalog)})
+
+    @app.post("/api/integrations/wire")
+    async def integrations_wire(request: Request):
+        """Wire an integration (Librarian-assisted)."""
+        data = await request.json()
+        integration_id = data.get("integration_id", "")
+        wiring_id = str(__import__("uuid").uuid4())
+        return JSONResponse({
+            "success": True,
+            "wiring_id": wiring_id,
+            "integration_id": integration_id,
+            "status": "pending_credentials",
+            "librarian_message": (
+                f"Detected integration: {integration_id}. "
+                "Please provide the required credentials to complete wiring."
+            ),
+        })
+
+    @app.get("/api/integrations/active")
+    async def integrations_active():
+        """Currently active integrations."""
+        try:
+            engine = getattr(murphy, "integration_engine", None)
+            if engine and hasattr(engine, "list_active"):
+                return JSONResponse({"active": engine.list_active()})
+        except Exception:  # noqa: BLE001
+            pass
+        return JSONResponse({"active": [], "count": 0})
+
+    # ── Profiles (config-as-sessions) ─────────────────────────────────
+    @app.get("/api/profiles")
+    async def profiles_list():
+        """List all automation profiles."""
+        try:
+            wiz = getattr(murphy, "setup_wizard", None)
+            if wiz and hasattr(wiz, "get_preset_profiles"):
+                presets = wiz.get_preset_profiles()
+                return JSONResponse({"profiles": presets, "count": len(presets)})
+        except Exception:  # noqa: BLE001
+            pass
+        return JSONResponse({"profiles": [], "count": 0})
+
+    @app.post("/api/profiles")
+    async def profiles_create(request: Request):
+        """Create a new automation profile."""
+        data = await request.json()
+        profile_id = str(__import__("uuid").uuid4())
+        return JSONResponse({"success": True, "id": profile_id, "profile": data})
+
+    @app.get("/api/profiles/{profile_id}")
+    async def profiles_get(profile_id: str):
+        """Get profile details."""
+        return JSONResponse({"id": profile_id, "found": False, "profile": {}})
+
+    @app.put("/api/profiles/{profile_id}")
+    async def profiles_update(profile_id: str, request: Request):
+        """Update a profile."""
+        data = await request.json()
+        return JSONResponse({"success": True, "id": profile_id, "profile": data})
+
+    @app.post("/api/profiles/{profile_id}/activate")
+    async def profiles_activate(profile_id: str):
+        """Activate a profile."""
+        return JSONResponse({"success": True, "id": profile_id, "status": "active"})
+
+    # ── Role-based access ─────────────────────────────────────────────
+    @app.get("/api/auth/role")
+    async def auth_role(request: Request):
+        """Get the current user's role."""
+        role = request.headers.get("X-User-Role", "VIEWER")
+        return JSONResponse({"role": role})
+
+    @app.get("/api/auth/permissions")
+    async def auth_permissions(request: Request):
+        """Get permissions for the current user's role."""
+        role = request.headers.get("X-User-Role", "VIEWER")
+        if _gpe is not None:
+            perms = list(_gpe.get_permissions(role))
+        else:
+            perms = ["view_assigned"]
+        return JSONResponse({"role": role, "permissions": perms})
+
+    # ── Information flow views ────────────────────────────────────────
+    @app.get("/api/flows/inbound")
+    async def flows_inbound():
+        """What's coming in (by department/integration)."""
+        return JSONResponse({
+            "flows": [
+                {"department": "Sales",       "source": "API",     "count": 0, "status": "active"},
+                {"department": "Operations",  "source": "Email",   "count": 0, "status": "active"},
+                {"department": "Compliance",  "source": "Webhook", "count": 0, "status": "active"},
+                {"department": "Finance",     "source": "Manual",  "count": 0, "status": "active"},
+            ]
+        })
+
+    @app.get("/api/flows/processing")
+    async def flows_processing():
+        """What's being processed (agents/workflows)."""
+        return JSONResponse({"workflows": [], "agents": [], "count": 0})
+
+    @app.get("/api/flows/outbound")
+    async def flows_outbound():
+        """What's going out (by type/standard/client)."""
+        return JSONResponse({
+            "flows": [
+                {"type": "Proposals",          "count": 0, "status": "ready"},
+                {"type": "Reports",            "count": 0, "status": "ready"},
+                {"type": "Management Reports", "count": 0, "status": "ready"},
+                {"type": "Deliverables",       "count": 0, "status": "ready"},
+            ]
+        })
+
+    @app.get("/api/flows/state")
+    async def flows_state():
+        """Collective state update of all information flows."""
+        return JSONResponse({
+            "inbound":    {"active": True,  "count": 0},
+            "processing": {"active": False, "count": 0},
+            "outbound":   {"active": False, "count": 0},
+            "timestamp":  __import__("datetime").datetime.utcnow().isoformat(),
+        })
+
     return app
 
 

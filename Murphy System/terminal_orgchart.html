@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>☠ MURPHY SYSTEM - ORG CHART ☠</title>
+<link rel="stylesheet" href="static/murphy-theme.css">
+<style>
+body { display:flex; flex-direction:column; height:100vh; overflow:hidden; }
+.app-layout { display:flex; flex:1; overflow:hidden; }
+.main-content { flex:1; display:flex; flex-direction:column; overflow:hidden; padding:16px 20px 40px; }
+
+/* Mode switcher */
+.mode-tabs { display:flex; gap:4px; margin-bottom:12px; }
+.mode-tab {
+  padding:6px 18px;
+  font-size:10px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  cursor:pointer;
+  border:1px solid var(--border-dim);
+  color:var(--text-dim);
+  border-radius:2px;
+  background:transparent;
+  font-family:var(--font-mono);
+  transition:all .15s;
+}
+.mode-tab.active {
+  border-color:var(--border);
+  color:var(--text-primary);
+  background:rgba(0,255,65,.07);
+}
+
+/* Org canvas */
+.org-wrap { flex:1; position:relative; overflow:hidden; }
+#org-svg {
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  pointer-events:none;
+}
+#org-container {
+  position:relative;
+  width:100%; height:100%;
+  overflow:auto;
+  min-height:500px;
+}
+
+/* Node detail panel */
+.node-detail {
+  width:260px;
+  min-width:260px;
+  background:var(--bg-secondary);
+  border-left:1px solid var(--border-dim);
+  padding:16px;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.detail-section { margin-bottom:10px; }
+.detail-section-title {
+  font-size:9px;
+  letter-spacing:2px;
+  color:var(--text-dim);
+  text-transform:uppercase;
+  margin-bottom:6px;
+}
+
+/* Prompt input */
+.prompt-row {
+  display:flex;
+  gap:8px;
+  margin-bottom:12px;
+  align-items:center;
+}
+.prompt-row input { flex:1; }
+
+/* Legend */
+.legend {
+  display:flex;
+  gap:14px;
+  align-items:center;
+  margin-bottom:10px;
+  font-size:10px;
+  color:var(--text-dim);
+}
+.legend-item { display:flex; align-items:center; gap:4px; }
+.legend-dot {
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  border:2px solid;
+}
+</style>
+</head>
+<body>
+
+<murphy-header title="MURPHY SYSTEM - ORG CHART" subtitle="AGENT ORGANISATION & CAPABILITY VIEW" api-url="/api"></murphy-header>
+
+<div class="app-layout">
+  <murphy-sidebar active="ORG CHART"></murphy-sidebar>
+
+  <div class="main-content">
+
+    <!-- Mode tabs + save/load -->
+    <div class="flex items-center justify-between mb-12">
+      <div class="mode-tabs">
+        <button class="mode-tab active" id="tab-static" onclick="switchMode('static')">
+          ◈ CAPABILITY MAP (STATIC)
+        </button>
+        <button class="mode-tab" id="tab-live" onclick="switchMode('live')">
+          ● LIVE VIEW
+        </button>
+      </div>
+      <div class="flex gap-8">
+        <button class="btn" onclick="saveOrgChart()">⊞ SAVE VIEW</button>
+        <button class="btn btn-primary" onclick="refreshOrgChart()">↺ REFRESH</button>
+      </div>
+    </div>
+
+    <!-- Prompt row (static mode) -->
+    <div class="prompt-row" id="prompt-row">
+      <input type="text" id="prompt-input" placeholder='e.g. "Show me the automation team for patient intake"' />
+      <button class="btn btn-gold" onclick="generateOrgChart()">★ GENERATE</button>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend">
+      <span class="legend-item">
+        <span class="legend-dot" style="border-color:var(--accent-cyan);"></span>CENTER / TASK
+      </span>
+      <span class="legend-item">
+        <span class="legend-dot" style="border-color:rgba(0,255,65,.5);"></span>ACTIVE
+      </span>
+      <span class="legend-item">
+        <span class="legend-dot" style="border-color:rgba(255,170,0,.7);"></span>IDLE
+      </span>
+      <span class="legend-item">
+        <span class="legend-dot" style="border-color:rgba(255,68,68,.8);"></span>STUCK / ERROR
+      </span>
+    </div>
+
+    <!-- Org chart + detail panel -->
+    <div class="flex gap-12" style="flex:1; min-height:0;">
+      <div class="org-wrap" id="org-wrap">
+        <div id="org-container">
+          <svg id="org-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+          <!-- Nodes injected here by JS -->
+        </div>
+        <div id="empty-state" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;">
+          <div style="text-align:center;color:var(--text-dim);">
+            <div style="font-size:32px;margin-bottom:12px;">✦</div>
+            <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;">
+              Enter a task description above to generate an org chart,<br>or switch to Live View to see running agents.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Node detail panel -->
+      <div class="node-detail" id="node-detail">
+        <div style="font-size:11px;color:var(--text-dim);letter-spacing:1px;">
+          Click any node to see details.
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<murphy-status-bar api-url="/api"></murphy-status-bar>
+<murphy-command-palette></murphy-command-palette>
+
+<script src="static/murphy-components.js"></script>
+<script>
+const API = '/api';
+let currentMode = 'static';
+let nodes = [];
+let selectedNodeId = null;
+let liveTimer = null;
+
+/* ── Layout helpers ──────────────────────────────────────────── */
+function layoutCircle(centerX, centerY, radius, count) {
+  // Returns [{x,y}] for count nodes on a circle, plus center
+  const positions = [{ x: centerX, y: centerY }];
+  for (let i = 0; i < count; i++) {
+    const angle = (2 * Math.PI * i) / count - Math.PI / 2;
+    positions.push({
+      x: centerX + radius * Math.cos(angle),
+      y: centerY + radius * Math.sin(angle),
+    });
+  }
+  return positions;
+}
+
+/* ── Switch mode ─────────────────────────────────────────────── */
+function switchMode(mode) {
+  currentMode = mode;
+  document.getElementById('tab-static').classList.toggle('active', mode === 'static');
+  document.getElementById('tab-live').classList.toggle('active', mode === 'live');
+  document.getElementById('prompt-row').style.display = mode === 'static' ? 'flex' : 'none';
+
+  clearInterval(liveTimer);
+  if (mode === 'live') {
+    loadLiveAgents();
+    liveTimer = setInterval(loadLiveAgents, 8000);
+  } else {
+    clearCanvas();
+  }
+}
+
+/* ── Generate org chart from prompt ─────────────────────────── */
+function generateOrgChart() {
+  const prompt = document.getElementById('prompt-input').value.trim();
+  if (!prompt) return;
+
+  // Build a sample org chart around the described task
+  const taskLabel = prompt.length > 30 ? prompt.slice(0, 30) + '…' : prompt;
+  const agentTemplates = [
+    { role:'Intake Agent',     caps:['form_intake','validate_input'], tools:['form_handler'], color:'ok' },
+    { role:'Router Agent',     caps:['intent_routing','classify'],    tools:['command_system'], color:'ok' },
+    { role:'Librarian Agent',  caps:['knowledge_lookup','wiring'],    tools:['librarian'], color:'ok' },
+    { role:'QC Agent',         caps:['quality_check','gate_control'], tools:['mfgc','confidence_engine'], color:'ok' },
+    { role:'Delivery Agent',   caps:['report_gen','send_output'],     tools:['email','webhook'], color:'ok' },
+    { role:'Monitor Agent',    caps:['telemetry','alerting'],         tools:['telemetry_system'], color:'warn' },
+  ];
+
+  const positions = layoutCircle(420, 240, 190, agentTemplates.length);
+  nodes = [
+    {
+      id: 'center',
+      role: taskLabel,
+      type: 'task',
+      status: 'center',
+      caps: [],
+      tools: [],
+      apis: [],
+      x: positions[0].x - 70,
+      y: positions[0].y - 35,
+    },
+    ...agentTemplates.map((t, i) => ({
+      id: `agent-${i}`,
+      role: t.role,
+      type: 'agent',
+      status: t.color,
+      caps: t.caps,
+      tools: t.tools,
+      apis: [],
+      x: positions[i + 1].x - 70,
+      y: positions[i + 1].y - 35,
+    })),
+  ];
+
+  document.getElementById('empty-state').style.display = 'none';
+  renderNodes(nodes);
+}
+
+/* ── Load live agents ────────────────────────────────────────── */
+async function loadLiveAgents() {
+  try {
+    const r = await fetch(`${API}/orgchart/live`);
+    const d = await r.json();
+    const agentList = d.agents || [];
+    document.getElementById('empty-state').style.display = agentList.length ? 'none' : 'flex';
+
+    if (!agentList.length) { clearCanvas(); return; }
+
+    const positions = layoutCircle(420, 240, 190, agentList.length);
+    nodes = agentList.map((a, i) => ({
+      id: a.id || `agent-${i}`,
+      role: a.role || a.name || `Agent ${i}`,
+      type: 'agent',
+      status: a.status === 'running' ? 'ok' : a.status === 'stuck' ? 'error' : 'warn',
+      caps: a.capabilities || [],
+      tools: a.tools || [],
+      apis: a.apis || [],
+      x: positions[i].x - 70,
+      y: positions[i].y - 35,
+    }));
+
+    renderNodes(nodes);
+  } catch (err) {
+    console.warn('Live agents load failed:', err);
+  }
+}
+
+/* ── Render nodes + SVG edges ───────────────────────────────── */
+function renderNodes(nodeList) {
+  const container = document.getElementById('org-container');
+  // Remove old nodes
+  container.querySelectorAll('.org-node').forEach(n => n.remove());
+
+  const svg = document.getElementById('org-svg');
+  svg.innerHTML = '';
+
+  // Draw edges from center to others
+  const center = nodeList.find(n => n.id === 'center') || nodeList[0];
+  if (!center) return;
+
+  nodeList.forEach(n => {
+    if (n.id === center.id) return;
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    const cx = center.x + 70, cy = center.y + 35;
+    const nx = n.x + 70,     ny = n.y + 35;
+    line.setAttribute('x1', cx); line.setAttribute('y1', cy);
+    line.setAttribute('x2', nx); line.setAttribute('y2', ny);
+    line.setAttribute('stroke', 'rgba(0,255,65,0.15)');
+    line.setAttribute('stroke-width', '1.5');
+    svg.appendChild(line);
+  });
+
+  // Draw nodes
+  nodeList.forEach(n => {
+    const div = document.createElement('div');
+    div.className = `org-node node-${n.status}${n.id === center.id ? ' node-center' : ''}${n.id === selectedNodeId ? ' selected' : ''}`;
+    div.id = `org-node-${n.id}`;
+    div.style.left = n.x + 'px';
+    div.style.top  = n.y + 'px';
+    div.innerHTML  = `
+      <div class="org-node-id">${n.id}</div>
+      <div class="org-node-role">${n.role}</div>
+      <div class="org-node-caps">${(n.caps || []).slice(0,2).join(' · ') || '—'}</div>
+    `;
+    div.addEventListener('click', () => selectNode(n));
+    container.appendChild(div);
+  });
+}
+
+/* ── Select node ─────────────────────────────────────────────── */
+function selectNode(node) {
+  selectedNodeId = node.id;
+  document.querySelectorAll('.org-node').forEach(el => el.classList.remove('selected'));
+  const el = document.getElementById(`org-node-${node.id}`);
+  if (el) el.classList.add('selected');
+
+  const detail = document.getElementById('node-detail');
+  detail.innerHTML = `
+    <div>
+      <div class="detail-section-title">NODE</div>
+      <div style="font-size:13px;color:var(--text-primary);margin-bottom:4px;">${node.role}</div>
+      <div style="font-size:10px;color:var(--text-dim);">ID: ${node.id}</div>
+    </div>
+    <div>
+      <div class="detail-section-title">STATUS</div>
+      <span class="status-pill status-${node.status === 'ok' ? 'running' : node.status === 'error' ? 'error' : 'warning'}">
+        ${node.status === 'ok' ? '● ACTIVE' : node.status === 'error' ? '✕ STUCK' : '○ IDLE'}
+      </span>
+    </div>
+    ${node.caps && node.caps.length ? `
+    <div>
+      <div class="detail-section-title">CAPABILITIES</div>
+      ${node.caps.map(c => `<div style="font-size:10px;color:var(--text-secondary);margin-bottom:3px;">· ${c}</div>`).join('')}
+    </div>` : ''}
+    ${node.tools && node.tools.length ? `
+    <div>
+      <div class="detail-section-title">TOOLS</div>
+      ${node.tools.map(t => `<div style="font-size:10px;color:var(--accent-cyan);margin-bottom:3px;">⬡ ${t}</div>`).join('')}
+    </div>` : ''}
+    ${node.apis && node.apis.length ? `
+    <div>
+      <div class="detail-section-title">APIS</div>
+      ${node.apis.map(a => `<div style="font-size:10px;color:var(--text-secondary);margin-bottom:3px;">↔ ${a}</div>`).join('')}
+    </div>` : ''}
+    ${node.status === 'error' ? `
+    <div style="margin-top:auto;">
+      <button class="btn btn-gold" onclick="approveHitl('${node.id}')">⚑ REVIEW ISSUE</button>
+    </div>` : ''}
+  `;
+}
+
+/* ── Save org chart ──────────────────────────────────────────── */
+async function saveOrgChart() {
+  if (!nodes.length) { alert('No org chart to save.'); return; }
+  const prompt = document.getElementById('prompt-input').value || 'Org Chart';
+  try {
+    const r = await fetch(`${API}/orgchart/save`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: prompt, nodes, mode: currentMode }),
+    });
+    const d = await r.json();
+    alert(`Org chart saved (ID: ${d.id})`);
+  } catch { alert('Save failed.'); }
+}
+
+/* ── Refresh ─────────────────────────────────────────────────── */
+function refreshOrgChart() {
+  if (currentMode === 'live') loadLiveAgents();
+  else generateOrgChart();
+}
+
+/* ── HITL approve ────────────────────────────────────────────── */
+function approveHitl(nodeId) {
+  window.location.href = `/terminal_orchestrator.html#hitl`;
+}
+
+/* ── Clear canvas ────────────────────────────────────────────── */
+function clearCanvas() {
+  const container = document.getElementById('org-container');
+  container.querySelectorAll('.org-node').forEach(n => n.remove());
+  document.getElementById('org-svg').innerHTML = '';
+}
+
+/* ── Boot ────────────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  // nothing to pre-load in static mode
+});
+</script>
+</body>
+</html>
