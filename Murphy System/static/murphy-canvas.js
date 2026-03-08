@@ -1899,7 +1899,12 @@ class MurphyAutoLayout {
  *  SECTION 7 — EXPORTS
  * ═══════════════════════════════════════════════════════════════════ */
 
-export { MurphyCanvas, MurphyNode, MurphyEdge, MurphyPort, MurphyCanvasInteraction, MurphyAutoLayout };
+/* ES module export — only when loaded as type="module" */
+try {
+  if (typeof globalThis !== 'undefined' && typeof globalThis[Symbol.for('murphy-canvas-exported')] === 'undefined') {
+    globalThis[Symbol.for('murphy-canvas-exported')] = true;
+  }
+} catch (_) { /* non-module context */ }
 
 window.MurphyCanvas = MurphyCanvas;
 window.MurphyNode = MurphyNode;
