@@ -265,31 +265,221 @@ class DomainGateGenerator:
         self.function_registry = self._initialize_function_registry()
 
     def _initialize_function_registry(self) -> Dict[str, Callable]:
-        """Initialize registry of wired functions"""
-        # In production, these would be actual function references
-        # For now, we provide function signatures
+        """Initialize registry of validation functions."""
         return {
-            "validate_code_review": lambda data: self._mock_validate("code_review", data),
-            "validate_test_coverage": lambda data: self._mock_validate("test_coverage", data),
-            "validate_documentation": lambda data: self._mock_validate("documentation", data),
-            "validate_security_scan": lambda data: self._mock_validate("security_scan", data),
-            "validate_performance": lambda data: self._mock_validate("performance", data),
-            "validate_compliance_gdpr": lambda data: self._mock_validate("gdpr_compliance", data),
-            "validate_compliance_hipaa": lambda data: self._mock_validate("hipaa_compliance", data),
-            "validate_scalability": lambda data: self._mock_validate("scalability", data),
-            "validate_availability": lambda data: self._mock_validate("availability", data),
-            "validate_backup": lambda data: self._mock_validate("backup", data)
+            "validate_code_review": self._validate_code_review,
+            "validate_test_coverage": self._validate_test_coverage,
+            "validate_documentation": self._validate_documentation,
+            "validate_security_scan": self._validate_security_scan,
+            "validate_performance": self._validate_performance,
+            "validate_compliance_gdpr": self._validate_compliance_gdpr,
+            "validate_compliance_hipaa": self._validate_compliance_hipaa,
+            "validate_scalability": self._validate_scalability,
+            "validate_availability": self._validate_availability,
+            "validate_backup": self._validate_backup,
         }
 
-    def _mock_validate(self, validation_type: str, data: Dict) -> Dict[str, Any]:
-        """Mock validation function (would be real implementations)"""
+    def _build_result(self, validation_type: str, passed: bool, score: float, details: str) -> Dict[str, Any]:
+        """Build a standardised validation result dict."""
         return {
             "validation_type": validation_type,
-            "passed": True,
-            "score": 0.95,
-            "details": f"Mock validation for {validation_type}",
-            "timestamp": datetime.now().isoformat()
+            "passed": passed,
+            "score": score,
+            "details": details,
+            "timestamp": datetime.now().isoformat(),
         }
+
+    def _validate_code_review(self, data: Dict) -> Dict[str, Any]:
+        """Validate that a code review has been completed with sufficient approvals."""
+        vtype = "code_review"
+        try:
+            reviewers = data.get("reviewers", [])
+            approvals = data.get("approvals", 0)
+            comments_resolved = data.get("comments_resolved", False)
+            if not reviewers or approvals < 1 or not comments_resolved:
+                issues = []
+                if not reviewers:
+                    issues.append("no reviewers listed")
+                if approvals < 1:
+                    issues.append(f"approvals={approvals} (need ≥1)")
+                if not comments_resolved:
+                    issues.append("unresolved comments")
+                return self._build_result(vtype, False, 0.2, "; ".join(issues))
+            score = min(1.0, 0.7 + 0.1 * min(approvals, 3))
+            return self._build_result(vtype, True, score, f"{approvals} approval(s), all comments resolved")
+        except Exception as exc:
+            logger.warning("validate_code_review error: %s", exc)
+            return self._build_result(vtype, False, 0.0, f"validation error: {exc}")
+
+    def _validate_test_coverage(self, data: Dict, threshold: float = 80.0) -> Dict[str, Any]:
+        """Validate that test coverage meets the required threshold."""
+        vtype = "test_coverage"
+        try:
+            coverage = data.get("coverage_percent")
+            if coverage is None:
+                return self._build_result(vtype, False, 0.0, "coverage_percent not provided")
+            coverage = float(coverage)
+            passed = coverage >= threshold
+            score = min(1.0, coverage / 100.0) if passed else max(0.0, coverage / 100.0 * 0.5)
+            detail = f"coverage={coverage:.1f}% (threshold={threshold:.1f}%)"
+            return self._build_result(vtype, passed, score, detail)
+        except Exception as exc:
+            logger.warning("validate_test_coverage error: %s", exc)
+            return self._build_result(vtype, False, 0.0, f"validation error: {exc}")
+
+    def _validate_documentation(self, data: Dict) -> Dict[str, Any]:
+        """Validate that documentation files are present and README exists."""
+        vtype = "documentation"
+        try:
+            doc_files = data.get("doc_files_present", [])
+            has_readme = data.get("has_readme", False)
+            if not doc_files or not has_readme:
+                issues = []
+                if not doc_files:
+                    issues.append("no documentation files present")
+                if not has_readme:
+                    issues.append("README missing")
+                return self._build_result(vtype, False, 0.2, "; ".join(issues))
+            score = min(1.0, 0.75 + 0.05 * min(len(doc_files), 5))
+            return self._build_result(vtype, True, score, f"{len(doc_files)} doc file(s) present, README exists")
+        except Exception as exc:
+            logger.warning("validate_documentation error: %s", exc)
+            return self._build_result(vtype, False, 0.0, f"validation error: {exc}")
+
+    def _validate_security_scan(self, data: Dict, high_threshold: int = 5) -> Dict[str, Any]:
+        """Validate that security scan shows zero critical vulnerabilities."""
+        vtype = "security_scan"
+        try:
+            critical = data.get("critical_vulnerabilities")
+            high = data.get("high_vulnerabilities")
+            if critical is None or high is None:
+                return self._build_result(vtype, False, 0.0, "scan results not provided")
+            critical = int(critical)
+            high = int(high)
+            if critical > 0 or high > high_threshold:
+                issues = []
+                if critical > 0:
+                    issues.append(f"{critical} critical vulnerability(ies)")
+                if high > high_threshold:
+                    issues.append(f"{high} high vulnerability(ies) (threshold={high_threshold})")
+                return self._build_result(vtype, False, 0.1, "; ".join(issues))
+            score = 1.0 - (high * 0.05)
+            score = max(0.85, score)
+            return self._build_result(vtype, True, score, f"0 critical, {high} high vulnerability(ies)")
+        except Exception as exc:
+            logger.warning("validate_security_scan error: %s", exc)
+            return self._build_result(vtype, False, 0.0, f"validation error: {exc}")
+
+    def _validate_performance(self, data: Dict, latency_threshold_ms: float = 500.0, error_rate_threshold: float = 0.01) -> Dict[str, Any]:
+        """Validate that performance metrics are within acceptable bounds."""
+        vtype = "performance"
+        try:
+            p99 = data.get("p99_latency_ms")
+            error_rate = data.get("error_rate")
+            if p99 is None or error_rate is None:
+                return self._build_result(vtype, False, 0.0, "performance metrics not provided")
+            p99 = float(p99)
+            error_rate = float(error_rate)
+            if p99 > latency_threshold_ms or error_rate >= error_rate_threshold:
+                issues = []
+                if p99 > latency_threshold_ms:
+                    issues.append(f"p99={p99}ms exceeds {latency_threshold_ms}ms")
+                if error_rate >= error_rate_threshold:
+                    issues.append(f"error_rate={error_rate:.3f} exceeds {error_rate_threshold}")
+                return self._build_result(vtype, False, 0.2, "; ".join(issues))
+            latency_score = max(0.0, 1.0 - p99 / latency_threshold_ms)
+            error_score = max(0.0, 1.0 - error_rate / error_rate_threshold)
+            score = 0.5 + 0.25 * latency_score + 0.25 * error_score
+            return self._build_result(vtype, True, min(1.0, score), f"p99={p99}ms, error_rate={error_rate:.4f}")
+        except Exception as exc:
+            logger.warning("validate_performance error: %s", exc)
+            return self._build_result(vtype, False, 0.0, f"validation error: {exc}")
+
+    def _validate_compliance_gdpr(self, data: Dict) -> Dict[str, Any]:
+        """Validate required GDPR compliance controls are present."""
+        vtype = "gdpr_compliance"
+        required_fields = ["data_inventory", "consent_mechanism", "dpo_assigned"]
+        try:
+            missing = [f for f in required_fields if not data.get(f)]
+            if missing:
+                return self._build_result(vtype, False, 0.2, f"missing GDPR controls: {', '.join(missing)}")
+            score = 1.0 - (len(missing) * 0.15)
+            return self._build_result(vtype, True, min(1.0, score), "all required GDPR controls present")
+        except Exception as exc:
+            logger.warning("validate_compliance_gdpr error: %s", exc)
+            return self._build_result(vtype, False, 0.0, f"validation error: {exc}")
+
+    def _validate_compliance_hipaa(self, data: Dict) -> Dict[str, Any]:
+        """Validate required HIPAA compliance controls are present."""
+        vtype = "hipaa_compliance"
+        required_fields = ["encryption_at_rest", "access_controls", "audit_logging", "baa_signed"]
+        try:
+            missing = [f for f in required_fields if not data.get(f)]
+            if missing:
+                return self._build_result(vtype, False, 0.2, f"missing HIPAA controls: {', '.join(missing)}")
+            return self._build_result(vtype, True, 0.95, "all required HIPAA controls present")
+        except Exception as exc:
+            logger.warning("validate_compliance_hipaa error: %s", exc)
+            return self._build_result(vtype, False, 0.0, f"validation error: {exc}")
+
+    def _validate_scalability(self, data: Dict, threshold: int = 1000) -> Dict[str, Any]:
+        """Validate that the system can handle the required concurrent user load."""
+        vtype = "scalability"
+        try:
+            max_users = data.get("max_concurrent_users")
+            if max_users is None:
+                return self._build_result(vtype, False, 0.0, "max_concurrent_users not provided")
+            max_users = int(max_users)
+            if max_users < threshold:
+                return self._build_result(vtype, False, 0.3, f"max_concurrent_users={max_users} below threshold={threshold}")
+            score = min(1.0, 0.85 + 0.15 * min(max_users / threshold, 1.0))
+            return self._build_result(vtype, True, score, f"max_concurrent_users={max_users} (threshold={threshold})")
+        except Exception as exc:
+            logger.warning("validate_scalability error: %s", exc)
+            return self._build_result(vtype, False, 0.0, f"validation error: {exc}")
+
+    def _validate_availability(self, data: Dict) -> Dict[str, Any]:
+        """Validate that system uptime meets the 99.5% availability target."""
+        vtype = "availability"
+        try:
+            uptime = data.get("uptime_percent")
+            if uptime is None:
+                return self._build_result(vtype, False, 0.0, "uptime_percent not provided")
+            uptime = float(uptime)
+            if uptime < 99.5:
+                return self._build_result(vtype, False, 0.3, f"uptime={uptime:.3f}% below 99.5% target")
+            score = min(1.0, 0.85 + (uptime - 99.5) / 10.0)
+            return self._build_result(vtype, True, score, f"uptime={uptime:.3f}%")
+        except Exception as exc:
+            logger.warning("validate_availability error: %s", exc)
+            return self._build_result(vtype, False, 0.0, f"validation error: {exc}")
+
+    def _validate_backup(self, data: Dict) -> Dict[str, Any]:
+        """Validate that backups are taken at least daily and restores have been tested."""
+        vtype = "backup"
+        try:
+            freq = data.get("backup_frequency_hours")
+            tested = data.get("restore_tested")
+            if freq is None or tested is None:
+                missing = []
+                if freq is None:
+                    missing.append("backup_frequency_hours")
+                if tested is None:
+                    missing.append("restore_tested")
+                return self._build_result(vtype, False, 0.0, f"missing fields: {', '.join(missing)}")
+            freq = float(freq)
+            if freq > 24 or not tested:
+                issues = []
+                if freq > 24:
+                    issues.append(f"backup_frequency_hours={freq} exceeds 24h limit")
+                if not tested:
+                    issues.append("restore not tested")
+                return self._build_result(vtype, False, 0.2, "; ".join(issues))
+            score = min(1.0, 0.85 + (24.0 - freq) / 48.0)
+            return self._build_result(vtype, True, score, f"backup every {freq}h, restore tested")
+        except Exception as exc:
+            logger.warning("validate_backup error: %s", exc)
+            return self._build_result(vtype, False, 0.0, f"validation error: {exc}")
 
     def generate_gate(
         self,

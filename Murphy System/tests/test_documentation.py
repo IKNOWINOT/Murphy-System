@@ -28,7 +28,7 @@ SRC_ROOT = os.path.join(MURPHY_ROOT, "src")
 
 README_PATH = os.path.join(REPO_ROOT, "README.md")
 CHANGELOG_PATH = os.path.join(REPO_ROOT, "CHANGELOG.md")
-ASSESSMENT_PATH = os.path.join(MURPHY_ROOT, "full_system_assessment.md")
+ASSESSMENT_PATH = os.path.join(MURPHY_ROOT, "docs", "archive", "internal", "full_system_assessment.md")
 AUTH_DOC_PATH = os.path.join(MURPHY_ROOT, "documentation", "api", "AUTHENTICATION.md")
 ENDPOINTS_DOC_PATH = os.path.join(MURPHY_ROOT, "documentation", "api", "ENDPOINTS.md")
 

@@ -113,6 +113,15 @@ POST /abort/<id> → checks caller == execution_owners[packet_id]
 3. ~~**API-002**: Replace placeholder credential verifiers with real API integrations~~ — ✅ Resolved (pluggable adapter architecture in place)
 4. **ARCH-006**: Move to Redis-backed rate limiting for multi-process deployments — 1 day (optional enhancement, not a launch blocker)
 
+## Infrastructure Gap Tracking
+
+| ID | Description | Status | Notes |
+|----|-------------|--------|-------|
+| **INFRA-001** | Redis-backed rate limiting | DEFERRED | Not a launch blocker; in-memory rate limiting is sufficient for single-process deployments. Revisit when horizontal scaling is required. |
+| **INFRA-002** | Post-quantum cryptography (liboqs) | DEFERRED | HMAC-SHA256 authenticated encryption is hardened and production-ready. PQC (liboqs) is a future roadmap item — no current threat vectors require it. |
+| **INFRA-003** | Compliance certification — SOC 2 65%, ISO 27001 56.2%, HIPAA 75% | IN PROGRESS | Controls are implemented and aligned. Formal attestation requires engagement with an external auditor and is tracked separately. |
+| **INFRA-004** | EU AI Act conformity — 3/9 compliant, 5 partial, 1 gap | IN PROGRESS | Assessment complete (see `strategic/STRATEGIC_EXECUTION_REPORT.md`). Remaining gaps require domain model work (healthcare, finance, manufacturing). |
+
 ---
 
 ## Files Modified in This Hardening Pass
