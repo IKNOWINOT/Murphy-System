@@ -104,7 +104,10 @@ class PipelineStage:
     depends_on: List[str] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
-        d = asdict(self); d["stage_type"] = self.stage_type.value; return d
+        """Serialize to plain dict."""
+        d = asdict(self)
+        d["stage_type"] = self.stage_type.value
+        return d
 
 
 @dataclass
@@ -145,7 +148,9 @@ class StageResult:
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to plain dict."""
-        d = asdict(self); d["status"] = self.status.value; return d
+        d = asdict(self)
+        d["status"] = self.status.value
+        return d
 
 @dataclass
 class PipelineRun:
@@ -270,8 +275,8 @@ class DataPipelineOrchestrator:
 
     def update_pipeline(self, pipeline_id: str, **kwargs: Any) -> Optional[DataPipeline]:
         """Update mutable fields on a pipeline."""
-        allowed = {"name", "description", "schedule_type", "schedule_config",
-                    "tags", "owner", "max_concurrent_runs"}
+        allowed = {"name", "description", "stages", "schedule_type",
+                    "schedule_config", "tags", "owner", "max_concurrent_runs"}
         with self._lock:
             pipe = self._pipelines.get(pipeline_id)
             if not pipe:
@@ -461,38 +466,32 @@ class DataPipelineOrchestrator:
         stage_stats: Dict[str, Dict[str, int]] = {}
         for r in runs:
             for sid, sr in r.stage_results.items():
-                entry = stage_stats.setdefault(sid, {"succeeded": 0, "failed": 0,
-                                                      "total_records": 0})
+                entry = stage_stats.setdefault(
+                    sid, {"succeeded": 0, "failed": 0, "total_records": 0})
                 if isinstance(sr, StageResult):
                     if sr.status == RunStatus.succeeded:
                         entry["succeeded"] += 1
                     else:
                         entry["failed"] += 1
                     entry["total_records"] += sr.records_processed
-        return {
-            "pipeline_id": pipeline_id, "total_runs": len(runs),
-            "succeeded": len(succeeded), "failed": len(failed),
-            "avg_duration_seconds": round(avg_dur, 3),
-            "stage_breakdown": stage_stats,
-        }
+        return {"pipeline_id": pipeline_id, "total_runs": len(runs),
+                "succeeded": len(succeeded), "failed": len(failed),
+                "avg_duration_seconds": round(avg_dur, 3),
+                "stage_breakdown": stage_stats}
 
     def get_global_stats(self) -> Dict[str, Any]:
         """Return aggregate statistics across all pipelines."""
         with self._lock:
             total_pipes = len(self._pipelines)
-            statuses = {}
+            statuses: Dict[str, int] = {}
             for p in self._pipelines.values():
                 statuses[p.status.value] = statuses.get(p.status.value, 0) + 1
             total_runs = len(self._runs)
-            run_statuses = {}
+            run_statuses: Dict[str, int] = {}
             for r in self._runs.values():
                 run_statuses[r.status.value] = run_statuses.get(r.status.value, 0) + 1
-        return {
-            "total_pipelines": total_pipes,
-            "pipeline_statuses": statuses,
-            "total_runs": total_runs,
-            "run_statuses": run_statuses,
-        }
+        return {"total_pipelines": total_pipes, "pipeline_statuses": statuses,
+                "total_runs": total_runs, "run_statuses": run_statuses}
 
     # -- Private helpers ---------------------------------------------------
 
