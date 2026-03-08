@@ -15285,6 +15285,138 @@ def create_app() -> FastAPI:
         health = _cge_instance.compute_graph_health()
         return JSONResponse({"success": True, "health": _asdict(health)})
 
+    # ==================== COST DASHBOARD ====================
+
+    _cost_kernel = murphy.governance_kernel if hasattr(murphy, "governance_kernel") else None
+
+    @app.get("/api/costs/summary")
+    async def costs_summary():
+        """Return total system spend, total budget, and utilisation % across all departments."""
+        if _cost_kernel is None:
+            return JSONResponse({"success": False, "error": "Governance kernel not available"}, status_code=503)
+        all_budgets = _cost_kernel.get_budget_status()
+        total_budget = sum(v["total_budget"] for v in all_budgets.values())
+        total_spent = sum(v["spent"] for v in all_budgets.values())
+        total_pending = sum(v["pending"] for v in all_budgets.values())
+        utilisation_pct = round((total_spent / total_budget * 100) if total_budget > 0 else 0.0, 2)
+        return JSONResponse({
+            "success": True,
+            "summary": {
+                "total_budget": total_budget,
+                "spent": total_spent,
+                "pending": total_pending,
+                "remaining": total_budget - total_spent - total_pending,
+                "utilisation_pct": utilisation_pct,
+                "department_count": len(all_budgets),
+            },
+        })
+
+    @app.get("/api/costs/by-department")
+    async def costs_by_department():
+        """Return per-department cost breakdown."""
+        if _cost_kernel is None:
+            return JSONResponse({"success": False, "error": "Governance kernel not available"}, status_code=503)
+        all_budgets = _cost_kernel.get_budget_status()
+        departments = []
+        for dept_id, budget in all_budgets.items():
+            total = budget["total_budget"]
+            spent = budget["spent"]
+            utilisation_pct = round((spent / total * 100) if total > 0 else 0.0, 2)
+            departments.append({
+                "department_id": dept_id,
+                "total_budget": total,
+                "spent": spent,
+                "pending": budget["pending"],
+                "remaining": budget["remaining"],
+                "limit_per_task": budget["limit_per_task"],
+                "utilisation_pct": utilisation_pct,
+            })
+        return JSONResponse({"success": True, "departments": departments})
+
+    @app.get("/api/costs/by-project")
+    async def costs_by_project():
+        """Return per-project cost breakdown."""
+        if _cost_kernel is None:
+            return JSONResponse({"success": False, "error": "Governance kernel not available"}, status_code=503)
+        by_project = _cost_kernel.get_costs_by_project()
+        return JSONResponse({"success": True, "projects": list(by_project.values())})
+
+    @app.get("/api/costs/by-bot")
+    async def costs_by_bot():
+        """Return per-bot/agent cost breakdown."""
+        if _cost_kernel is None:
+            return JSONResponse({"success": False, "error": "Governance kernel not available"}, status_code=503)
+        by_caller = _cost_kernel.get_costs_by_caller()
+        return JSONResponse({"success": True, "bots": list(by_caller.values())})
+
+    @app.post("/api/costs/assign")
+    async def costs_assign(request: Request):
+        """Assign a cost event to a department and/or project."""
+        if _cost_kernel is None:
+            return JSONResponse({"success": False, "error": "Governance kernel not available"}, status_code=503)
+        data = await request.json()
+        caller_id = data.get("caller_id")
+        tool_name = data.get("tool_name")
+        cost = data.get("cost")
+        if not caller_id or not tool_name or cost is None:
+            return JSONResponse(
+                {"success": False, "error": "caller_id, tool_name and cost are required"},
+                status_code=400,
+            )
+        try:
+            cost_val = float(cost)
+        except (TypeError, ValueError):
+            return JSONResponse(
+                {"success": False, "error": "cost must be a valid number"},
+                status_code=400,
+            )
+        if cost_val < 0:
+            return JSONResponse(
+                {"success": False, "error": "cost must be non-negative"},
+                status_code=400,
+            )
+        _cost_kernel.record_execution(
+            caller_id=str(caller_id),
+            tool_name=str(tool_name),
+            cost=cost_val,
+            success=True,
+            department_id=data.get("department_id") or None,
+            project_id=data.get("project_id") or None,
+        )
+        return JSONResponse({"success": True})
+
+    @app.patch("/api/costs/budget")
+    async def costs_set_budget(request: Request):
+        """Set or update a department budget."""
+        if _cost_kernel is None:
+            return JSONResponse({"success": False, "error": "Governance kernel not available"}, status_code=503)
+        data = await request.json()
+        department_id = data.get("department_id")
+        total_budget = data.get("total_budget")
+        if not department_id or total_budget is None:
+            return JSONResponse(
+                {"success": False, "error": "department_id and total_budget are required"},
+                status_code=400,
+            )
+        try:
+            budget_val = float(total_budget)
+        except (TypeError, ValueError):
+            return JSONResponse(
+                {"success": False, "error": "total_budget must be a valid number"},
+                status_code=400,
+            )
+        if budget_val < 0:
+            return JSONResponse(
+                {"success": False, "error": "total_budget must be non-negative"},
+                status_code=400,
+            )
+        _cost_kernel.set_budget(
+            department_id=str(department_id),
+            total_budget=budget_val,
+            limit_per_task=float(data.get("limit_per_task", 0.0)),
+        )
+        return JSONResponse({"success": True, "department_id": department_id})
+
     return app
 
 
