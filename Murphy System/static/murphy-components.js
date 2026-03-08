@@ -412,9 +412,10 @@ class MurphyAPI {
 
     let lastError = null;
     for (let attempt = 0; attempt <= this._maxRetries; attempt++) {
+      let timeoutId;
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), opts.timeout || this._timeout);
+        timeoutId = setTimeout(() => controller.abort(), opts.timeout || this._timeout);
         fetchOpts.signal = controller.signal;
 
         const response = await fetch(url, fetchOpts);
@@ -446,6 +447,7 @@ class MurphyAPI {
         return { ok: true, data, error: null, status: response.status };
 
       } catch (err) {
+        clearTimeout(timeoutId);
         lastError = err.name === 'AbortError' ? 'Request timed out' : err.message;
         this._recordFailure();
         if (attempt < this._maxRetries) {
@@ -1186,6 +1188,7 @@ class MurphyTheme {
  */
 class MurphyJargon {
   constructor() {
+    this._regex = null;
     this._terms = {
       'MFGC': 'Murphy Flow Graph Compiler — compiles high-level plans into executable DAGs.',
       'HITL': 'Human-In-The-Loop — a checkpoint where a human must approve or guide the next step.',
@@ -1235,13 +1238,13 @@ class MurphyJargon {
    * Automatically scan text content for known jargon terms and wrap matches in tooltip spans.
    */
   autoScan() {
-    const termKeys = Object.keys(this._terms).sort((a, b) => b.length - a.length);
-    const regex = new RegExp(`\\b(${termKeys.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`, 'g');
+    const regex = this._getRegex();
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
       acceptNode: (node) => {
         if (node.parentElement && (node.parentElement.closest('.murphy-jargon-tip') || node.parentElement.tagName === 'SCRIPT' || node.parentElement.tagName === 'STYLE')) {
           return NodeFilter.FILTER_REJECT;
         }
+        regex.lastIndex = 0;
         return regex.test(node.textContent) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
       }
     });
@@ -1251,7 +1254,6 @@ class MurphyJargon {
     while ((current = walker.nextNode())) nodes.push(current);
 
     for (const textNode of nodes) {
-      regex.lastIndex = 0;
       const frag = document.createDocumentFragment();
       let lastIdx = 0;
       let match;
@@ -1274,6 +1276,14 @@ class MurphyJargon {
       }
       textNode.parentNode.replaceChild(frag, textNode);
     }
+  }
+
+  _getRegex() {
+    if (!this._regex) {
+      const termKeys = Object.keys(this._terms).sort((a, b) => b.length - a.length);
+      this._regex = new RegExp(`\\b(${termKeys.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`, 'g');
+    }
+    return this._regex;
   }
 
   _attachTooltip(el, text) {
