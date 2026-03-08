@@ -1,4 +1,17 @@
 import { describe, it, expect, vi } from 'vitest';
+
+// Mock external dependencies that don't exist in test environment
+vi.mock('../_base/bot_base', () => ({
+  withBotBase: (_opts: any, fn: any) => fn,
+}));
+vi.mock('../../orchestration/experience/golden_paths', () => ({
+  select_path: vi.fn(async () => null),
+  record_path: vi.fn(async () => {}),
+}));
+vi.mock('../../observability/emit', () => ({
+  emit: vi.fn(async () => {}),
+}));
+
 import { run } from '../triage_bot';
 
 function fakeDB() {
@@ -19,6 +32,10 @@ function fakeDB() {
         args: [] as any[],
         bind: (...args: any[]) => { api.args = args; return api; },
         first: async () => {
+          if (/FROM budgets/.test(sql)) return rows.budgets[0];
+          return null;
+        },
+        get: async () => {
           if (/FROM budgets/.test(sql)) return rows.budgets[0];
           return null;
         },

@@ -21,7 +21,7 @@ export const run = withBotBase({ name: BOT_NAME, cost_budget_ref: 0.01, latency_
     };
   }
   const input = v.value;
-  const weights = loadKaiaWeights(ctx) || kaiaMix();
+const weights = await loadKaiaWeights(ctx) || kaiaMix();
 
   // 1) (Optional) Memory lookups could be added here via ../../memory/ltm_adapter
 
@@ -114,9 +114,31 @@ async function rollcallCandidates(ctx: Ctx, cands: {bot_name:string,intents:stri
   return results;
 }
 
-function loadKaiaWeights(ctx: Ctx): KaiaMixMeta | null {
-  // Placeholder: prefer learned weights in bot_capabilities.stats_json under key 'kaia_mix.triage'
-  return null;
+let _kaiaWeightsCacheEntry: { value: KaiaMixMeta | null; ts: number } | null = null;
+const KAIA_WEIGHTS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+export function _resetKaiaWeightsCache() { _kaiaWeightsCacheEntry = null; }
+
+async function loadKaiaWeights(ctx: Ctx): Promise<KaiaMixMeta | null> {
+  const now = Date.now();
+  if (_kaiaWeightsCacheEntry && (now - _kaiaWeightsCacheEntry.ts) < KAIA_WEIGHTS_CACHE_TTL_MS) {
+    return _kaiaWeightsCacheEntry.value;
+  }
+  let result: KaiaMixMeta | null = null;
+  try {
+    const db = ctx.env?.CLOCKWORK_DB;
+    if (!db) { _kaiaWeightsCacheEntry = { value: null, ts: now }; return null; }
+    const row: any = await db.prepare("SELECT stats_json FROM bot_capabilities WHERE bot_name = ?").bind('triage_bot').first();
+    if (row?.stats_json) {
+      const stats = safeJSON(row.stats_json, {});
+      const km = stats?.['kaia_mix.triage'] ?? stats?.kaia_mix?.triage ?? null;
+      if (km && typeof km === 'object' && typeof km.veritas === 'number' && typeof km.vallon === 'number' && typeof km.kiren === 'number') {
+        result = km as KaiaMixMeta;
+      }
+    }
+  } catch { result = null; }
+  _kaiaWeightsCacheEntry = { value: result, ts: now };
+  return result;
 }
 
 function jaccard(a: string[] = [], b: string[] = []): number {
