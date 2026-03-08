@@ -695,7 +695,7 @@ def create_graphql_blueprint(
                             "code": "MISSING_QUERY"}), 400
         op = QueryParser.parse(query_text, variables)
         result = executor.execute(op)
-        status = 200 if not result.get("errors") else 200
+        status = 200
         return jsonify(result), status
 
     @bp.route("/graphql/schema", methods=["GET"])
