@@ -44,6 +44,7 @@ class SafeLLMWrapper:
     def __init__(self, llm_backend=None):
         """Initialize safe wrapper"""
         self.llm_backend = llm_backend
+        self._current_prompt: str = ""  # Set before each gate evaluation
         self.safety_gates = self._initialize_gates()
         self.max_response_length = 500  # Prevent unbounded generation
         self.verification_sources = {
@@ -82,7 +83,7 @@ class SafeLLMWrapper:
             ),
             SafetyGate(
                 name="relevance_check",
-                check_fn=lambda text: True,  # Placeholder
+                check_fn=self._check_relevance,
                 severity=0.4,
                 description="Response must be relevant"
             )
@@ -135,6 +136,56 @@ class SafeLLMWrapper:
         if len(sentences) > 5:
             avg_length = sum(len(s.split()) for s in sentences) / len(sentences)
             if avg_length < 3:  # Too fragmented
+                return False
+
+        return True
+
+    # Common English stopwords to ignore when computing token overlap
+    _STOPWORDS = frozenset({
+        "a", "an", "the", "and", "or", "but", "in", "on", "at", "to", "for",
+        "of", "with", "is", "it", "be", "as", "by", "this", "that", "are",
+        "was", "were", "will", "would", "can", "could", "have", "has", "had",
+        "do", "does", "did", "not", "from", "i", "you", "he", "she", "we",
+        "they", "me", "him", "her", "us", "them", "my", "your", "his",
+        "their", "its", "our", "if", "so", "no", "up", "out", "about",
+        "what", "which", "who", "how", "all", "more", "just", "then",
+    })
+
+    @staticmethod
+    def _tokenize(text: str):
+        """Extract significant lowercase tokens from text, stripping punctuation."""
+        tokens = re.sub(r'[^a-z0-9\s]', ' ', text.lower()).split()
+        return {t for t in tokens if len(t) > 1 and t not in SafeLLMWrapper._STOPWORDS}
+
+    def _check_relevance(self, response: str) -> bool:
+        """
+        Deterministic, O(n) relevance check based on Jaccard similarity.
+        Uses the prompt stored in self._current_prompt for comparison.
+        Returns False if the response appears completely off-topic.
+        """
+        prompt = self._current_prompt
+        if not prompt or not response:
+            return True
+
+        prompt_tokens = self._tokenize(prompt)
+        response_tokens = self._tokenize(response)
+
+        if not prompt_tokens or not response_tokens:
+            return True
+
+        intersection = prompt_tokens & response_tokens
+        union = prompt_tokens | response_tokens
+        jaccard = len(intersection) / (len(union) or 1)
+
+        # Rule 1: Completely off-topic — very low overlap on a substantial response
+        if jaccard < 0.05 and len(response) > 50:
+            return False
+
+        # Rule 2: Response is much longer than prompt and shares very little
+        if len(response) > 5 * len(prompt):
+            # Check what fraction of prompt tokens appear in the response
+            prompt_coverage = len(intersection) / (len(prompt_tokens) or 1)
+            if prompt_coverage < 0.1:
                 return False
 
         return True
@@ -198,6 +249,7 @@ class SafeLLMWrapper:
             raw_response = raw_response[:self.max_response_length] + "..."
 
         # Run safety gates
+        self._current_prompt = prompt
         gates_passed = []
         gates_failed = []
         murphy_risk = 0.0
