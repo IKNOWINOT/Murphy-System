@@ -888,6 +888,7 @@ const State = {
   nodes: [],          // { id, type, name, desc, x, y, color, icon, config:{} }
   connections: [],    // { id, from, to }
   selectedId: null,
+  selectedConnId: null,
   connectingFromId: null,
   nextId: 1,
   dragOffsetX: 0,
@@ -1253,11 +1254,32 @@ const App = {
 
       path.addEventListener('click', e => {
         e.stopPropagation();
-        // Highlight clicked connection
-        document.querySelectorAll('.conn-line').forEach(l => l.classList.remove('selected-line'));
+        // Highlight clicked connection; deselect any node
+        document.querySelectorAll('.conn-line').forEach(l => {
+          l.classList.remove('selected-line');
+          l.setAttribute('marker-end', 'url(#arrow-head)');
+        });
         path.classList.add('selected-line');
         path.setAttribute('marker-end', 'url(#arrow-head-sel)');
+        State.selectedConnId = conn.id;
+        State.selectedId = null;
+        document.querySelectorAll('.canvas-node').forEach(el => el.classList.remove('selected'));
         this.showConnectionProps(conn);
+      });
+
+      path.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        // Select the connection first
+        document.querySelectorAll('.conn-line').forEach(l => {
+          l.classList.remove('selected-line');
+          l.setAttribute('marker-end', 'url(#arrow-head)');
+        });
+        path.classList.add('selected-line');
+        path.setAttribute('marker-end', 'url(#arrow-head-sel)');
+        State.selectedConnId = conn.id;
+        this.showConnectionProps(conn);
+        App._showConnCtxMenu(e.clientX, e.clientY, conn.id);
       });
 
       g.appendChild(path);
@@ -1362,13 +1384,23 @@ const App = {
         <ul class="connections-list">
           ${connIn.map(c => {
             const fn = State.nodes.find(n => n.id === c.from);
-            return `<li><span style="color:var(--teal);">← IN</span> <span>${fn ? fn.name : c.from}</span>
-              <button style="margin-left:auto;background:none;border:none;color:var(--red);cursor:pointer;font-size:10px;" onclick="App.deleteConn('${c.id}')">✕</button></li>`;
+            return `<li data-conn-id="${c.id}"
+              onmouseenter="App._highlightConnLine('${c.id}', true)"
+              onmouseleave="App._highlightConnLine('${c.id}', false)"
+              style="cursor:pointer;"
+              onclick="App.showConnectionProps(State.connections.find(x=>x.id==='${c.id}'))">
+              <span style="color:var(--teal);">← IN</span> <span>${fn ? fn.name : c.from}</span>
+              <button style="margin-left:auto;background:none;border:none;color:var(--red);cursor:pointer;font-size:10px;" onclick="event.stopPropagation();App.deleteConn('${c.id}')">✕</button></li>`;
           }).join('')}
           ${connOut.map(c => {
             const tn = State.nodes.find(n => n.id === c.to);
-            return `<li><span style="color:var(--green);">→ OUT</span> <span>${tn ? tn.name : c.to}</span>
-              <button style="margin-left:auto;background:none;border:none;color:var(--red);cursor:pointer;font-size:10px;" onclick="App.deleteConn('${c.id}')">✕</button></li>`;
+            return `<li data-conn-id="${c.id}"
+              onmouseenter="App._highlightConnLine('${c.id}', true)"
+              onmouseleave="App._highlightConnLine('${c.id}', false)"
+              style="cursor:pointer;"
+              onclick="App.showConnectionProps(State.connections.find(x=>x.id==='${c.id}'))">
+              <span style="color:var(--green);">→ OUT</span> <span>${tn ? tn.name : c.to}</span>
+              <button style="margin-left:auto;background:none;border:none;color:var(--red);cursor:pointer;font-size:10px;" onclick="event.stopPropagation();App.deleteConn('${c.id}')">✕</button></li>`;
           }).join('')}
           ${(connIn.length + connOut.length === 0) ? '<li style="color:var(--text-dim);">No connections</li>' : ''}
         </ul>
@@ -1725,6 +1757,47 @@ const App = {
     App._toastTimer = setTimeout(() => t.classList.remove('show'), duration || 2200);
   },
 
+  /* ---- HIGHLIGHT CONNECTION LINE ON HOVER ---- */
+  _highlightConnLine(connId, highlight) {
+    const path = document.querySelector(`[data-conn="${connId}"]`);
+    if (!path) return;
+    if (highlight) {
+      path.style.stroke = '#ff8800';
+      path.style.strokeWidth = '2.5';
+    } else {
+      path.style.stroke = '';
+      path.style.strokeWidth = '';
+    }
+  },
+
+  /* ---- CONNECTION CONTEXT MENU ---- */
+  _showConnCtxMenu(x, y, connId) {
+    let menu = document.getElementById('conn-ctx-menu');
+    if (!menu) {
+      menu = document.createElement('div');
+      menu.id = 'conn-ctx-menu';
+      menu.style.cssText = `
+        position:fixed;z-index:9000;background:#111;border:1px solid #2a2a2a;
+        border-radius:2px;min-width:160px;box-shadow:0 8px 24px rgba(0,0,0,.6);
+        font-family:var(--font);font-size:11px;
+      `;
+      document.body.appendChild(menu);
+      document.addEventListener('click', () => {
+        const m = document.getElementById('conn-ctx-menu');
+        if (m) m.style.display = 'none';
+      });
+    }
+    menu.innerHTML = `
+      <div style="padding:8px 14px;cursor:pointer;color:#00cc33;transition:background .1s;"
+           onmouseover="this.style.background='rgba(0,255,65,.08)'"
+           onmouseout="this.style.background=''"
+           onclick="App.deleteConn('${connId}')">✕ Remove Connection</div>
+    `;
+    menu.style.display = 'block';
+    menu.style.left = x + 'px';
+    menu.style.top  = y + 'px';
+  },
+
   /* ---- ESCAPE HTML ---- */
   _esc(str) {
     return String(str)
@@ -1743,14 +1816,23 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     App.cancelConnect();
     App.selectNode(null);
+    State.selectedConnId = null;
+    document.querySelectorAll('.conn-line').forEach(l => {
+      l.classList.remove('selected-line');
+      l.setAttribute('marker-end', 'url(#arrow-head)');
+    });
     $('modal-overlay').classList.remove('active');
   }
-  // Delete: remove selected node
+  // Delete: remove selected connection first, then selected node
   if ((e.key === 'Delete' || e.key === 'Backspace') &&
-      State.selectedId &&
       e.target.tagName !== 'INPUT' &&
       e.target.tagName !== 'TEXTAREA') {
-    App.deleteNode(State.selectedId);
+    if (State.selectedConnId) {
+      App.deleteConn(State.selectedConnId);
+      State.selectedConnId = null;
+    } else if (State.selectedId) {
+      App.deleteNode(State.selectedId);
+    }
   }
   // Ctrl+S: save
   if (e.ctrlKey && e.key === 's') {

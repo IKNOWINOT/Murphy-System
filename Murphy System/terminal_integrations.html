@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>☠ MURPHY SYSTEM - INTEGRATION WIRING ☠</title>
+<link rel="stylesheet" href="static/murphy-theme.css">
+<style>
+body { display:flex; flex-direction:column; height:100vh; overflow:hidden; }
+.app-layout { display:flex; flex:1; overflow:hidden; }
+.main-content { flex:1; display:flex; flex-direction:column; overflow:hidden; padding:16px 20px 40px; }
+
+/* Three-column layout */
+.wiring-layout {
+  display:grid;
+  grid-template-columns:230px 1fr 260px;
+  gap:12px;
+  flex:1;
+  min-height:0;
+}
+
+/* Left panel - available integrations */
+.catalog-panel {
+  background:var(--bg-secondary);
+  border:1px solid var(--border-dim);
+  border-radius:var(--panel-radius);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+
+.catalog-search {
+  padding:10px;
+  border-bottom:1px solid var(--border-dim);
+}
+.catalog-search input { font-size:11px; }
+
+.catalog-list {
+  overflow-y:auto;
+  flex:1;
+  padding:8px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.catalog-item {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 10px;
+  border:1px solid var(--border-dim);
+  border-radius:2px;
+  cursor:pointer;
+  transition:all .15s;
+  background:var(--bg-panel);
+  user-select:none;
+}
+.catalog-item:hover {
+  border-color:var(--text-secondary);
+  background:rgba(0,255,65,.04);
+}
+.catalog-item .ci-icon { font-size:16px; }
+.catalog-item .ci-info {}
+.catalog-item .ci-name { font-size:11px; color:var(--text-primary); }
+.catalog-item .ci-type { font-size:9px; color:var(--text-dim); letter-spacing:1px; text-transform:uppercase; }
+
+/* Center canvas */
+.canvas-panel {
+  position:relative;
+  background:var(--bg-panel);
+  border:1px solid var(--border-dim);
+  border-radius:var(--panel-radius);
+  overflow:hidden;
+}
+
+.canvas-bg-grid {
+  position:absolute; inset:0;
+  background-image:
+    linear-gradient(rgba(0,255,65,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,65,.04) 1px, transparent 1px);
+  background-size:40px 40px;
+  pointer-events:none;
+}
+
+.canvas-drop-zone {
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  pointer-events:none;
+}
+
+.canvas-drop-hint {
+  text-align:center;
+  color:var(--text-dim);
+  font-size:11px;
+  letter-spacing:1px;
+  transition:opacity .2s;
+}
+
+#canvas-nodes { position:absolute; inset:0; }
+
+/* Wired integration node on canvas */
+.wire-node {
+  position:absolute;
+  width:160px;
+  background:var(--bg-secondary);
+  border:1px solid var(--border-dim);
+  border-radius:4px;
+  padding:10px 12px;
+  cursor:move;
+  user-select:none;
+  transition:border-color .15s, box-shadow .15s;
+}
+.wire-node:hover, .wire-node.selected {
+  border-color:var(--border);
+  box-shadow:var(--green-glow);
+}
+.wire-node.wire-node-gold { border-color:var(--accent-gold); box-shadow:var(--gold-glow); animation:golden-pulse 2.4s ease-in-out infinite; }
+.wire-node-icon  { font-size:18px; margin-bottom:4px; }
+.wire-node-name  { font-size:11px; color:var(--text-primary); letter-spacing:1px; }
+.wire-node-status { font-size:9px; color:var(--text-dim); margin-top:2px; letter-spacing:1px; }
+.wire-node-remove {
+  position:absolute;
+  top:4px; right:6px;
+  font-size:10px;
+  color:var(--text-dim);
+  cursor:pointer;
+  padding:2px;
+}
+.wire-node-remove:hover { color:var(--accent-red); }
+
+/* Right panel - Librarian assistant + properties */
+.assistant-panel {
+  background:var(--bg-secondary);
+  border:1px solid var(--border-dim);
+  border-radius:var(--panel-radius);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+
+.assistant-messages {
+  flex:1;
+  overflow-y:auto;
+  padding:12px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.msg {
+  padding:8px 10px;
+  border-radius:2px;
+  font-size:11px;
+  line-height:1.5;
+}
+.msg-librarian {
+  background:rgba(0,255,65,.05);
+  border:1px solid rgba(0,255,65,.15);
+  color:var(--text-secondary);
+}
+.msg-user {
+  background:rgba(0,255,255,.04);
+  border:1px solid rgba(0,255,255,.15);
+  color:var(--accent-cyan);
+  align-self:flex-end;
+  max-width:85%;
+}
+.msg-system {
+  background:rgba(255,215,0,.05);
+  border:1px solid rgba(255,215,0,.2);
+  color:var(--accent-gold);
+}
+
+.assistant-input-row {
+  padding:8px;
+  border-top:1px solid var(--border-dim);
+  display:flex;
+  gap:6px;
+}
+.assistant-input-row input { font-size:11px; flex:1; }
+.assistant-input-row button { padding:6px 10px; }
+
+/* Credentials modal */
+.cred-overlay {
+  display:none;
+  position:fixed; inset:0;
+  background:rgba(0,0,0,.7);
+  z-index:9000;
+  align-items:center;
+  justify-content:center;
+}
+.cred-overlay.active { display:flex; }
+.cred-modal {
+  width:360px;
+  background:var(--bg-secondary);
+  border:1px solid var(--border);
+  border-radius:4px;
+  padding:20px;
+}
+.cred-modal h3 { font-size:13px; letter-spacing:2px; margin-bottom:16px; color:var(--text-primary); }
+.cred-field { margin-bottom:12px; }
+.cred-field label { font-size:10px; letter-spacing:1px; color:var(--text-dim); display:block; margin-bottom:4px; text-transform:uppercase; }
+.cred-buttons { display:flex; gap:8px; margin-top:16px; justify-content:flex-end; }
+</style>
+</head>
+<body>
+
+<murphy-header title="MURPHY SYSTEM - INTEGRATION WIRING" subtitle="LIBRARIAN-ASSISTED INTEGRATION PANEL" api-url="/api"></murphy-header>
+
+<div class="app-layout">
+  <murphy-sidebar active="INTEGRATIONS"></murphy-sidebar>
+
+  <div class="main-content">
+
+    <div class="flex items-center justify-between mb-12">
+      <div style="font-size:10px;color:var(--text-dim);letter-spacing:1px;">
+        Drag integrations onto the canvas · Librarian auto-wires · Approve to go live
+      </div>
+      <div class="flex gap-8">
+        <span class="status-pill status-idle" id="active-count">0 active</span>
+        <button class="btn btn-primary" onclick="refreshActive()">↺ REFRESH</button>
+      </div>
+    </div>
+
+    <div class="wiring-layout">
+
+      <!-- Left: integration catalog -->
+      <div class="catalog-panel">
+        <div style="padding:10px 12px;font-size:9px;letter-spacing:2px;color:var(--text-dim);border-bottom:1px solid var(--border-dim);">
+          AVAILABLE INTEGRATIONS
+        </div>
+        <div class="catalog-search">
+          <input type="text" id="catalog-search" placeholder="Search integrations…" oninput="filterCatalog(this.value)">
+        </div>
+        <div class="catalog-list" id="catalog-list">
+          <div style="font-size:11px;color:var(--text-dim);padding:8px;">Loading…</div>
+        </div>
+      </div>
+
+      <!-- Center: wiring canvas -->
+      <div class="canvas-panel"
+           id="canvas-panel"
+           ondragover="e => e.preventDefault()"
+           ondrop="handleDrop(event)">
+        <div class="canvas-bg-grid"></div>
+        <div class="canvas-drop-zone" id="drop-hint">
+          <div class="canvas-drop-hint" id="drop-hint-text">
+            <div style="font-size:28px;margin-bottom:10px;">⬢</div>
+            Drop integrations here<br>to wire them into Murphy
+          </div>
+        </div>
+        <div id="canvas-nodes"></div>
+      </div>
+
+      <!-- Right: Librarian assistant -->
+      <div class="assistant-panel">
+        <div style="padding:10px 12px;font-size:9px;letter-spacing:2px;color:var(--text-secondary);border-bottom:1px solid var(--border-dim);">
+          ◈ LIBRARIAN ASSISTANT
+        </div>
+        <div class="assistant-messages" id="assistant-messages">
+          <div class="msg msg-librarian">
+            Hello. I'm the Murphy Librarian. Drop any integration onto the canvas and I'll auto-detect it, request credentials if needed, show you how it connects to existing workflows, and propose the wiring. You approve — then it's live.
+          </div>
+        </div>
+        <div class="assistant-input-row">
+          <input type="text" id="assistant-input" placeholder="Ask the Librarian anything…" onkeydown="if(event.key==='Enter')sendMessage()">
+          <button class="btn btn-primary" onclick="sendMessage()">→</button>
+        </div>
+      </div>
+
+    </div><!-- /wiring-layout -->
+  </div><!-- /main-content -->
+</div><!-- /app-layout -->
+
+<murphy-status-bar api-url="/api"></murphy-status-bar>
+<murphy-command-palette></murphy-command-palette>
+
+<!-- Credentials modal -->
+<div class="cred-overlay" id="cred-overlay">
+  <div class="cred-modal">
+    <h3 id="cred-title">CREDENTIALS</h3>
+    <div id="cred-fields"></div>
+    <div class="cred-buttons">
+      <button class="btn" onclick="closeCred()">CANCEL</button>
+      <button class="btn btn-gold" onclick="submitCred()">★ WIRE IT</button>
+    </div>
+  </div>
+</div>
+
+<script src="static/murphy-components.js"></script>
+<script>
+const API = '/api';
+let catalog = [];
+let canvasNodes = [];
+let dragIntegration = null;
+let pendingWiring = null;
+
+/* ── Load catalog ───────────────────────────────────────────── */
+async function loadCatalog() {
+  try {
+    const r = await fetch(`${API}/integrations`);
+    const d = await r.json();
+    catalog = d.integrations || [];
+    renderCatalog(catalog);
+  } catch { renderCatalog([]); }
+}
+
+function renderCatalog(items) {
+  const list = document.getElementById('catalog-list');
+  if (!items.length) {
+    list.innerHTML = '<div style="font-size:11px;color:var(--text-dim);padding:8px;">No integrations found.</div>';
+    return;
+  }
+  list.innerHTML = items.map(i => `
+    <div class="catalog-item" draggable="true"
+         ondragstart="startDrag(event, '${i.id}')"
+         onclick="dropIntegration('${i.id}')">
+      <span class="ci-icon">${i.icon || '⬡'}</span>
+      <div class="ci-info">
+        <div class="ci-name">${i.name}</div>
+        <div class="ci-type">${i.type}</div>
+      </div>
+    </div>`).join('');
+}
+
+function filterCatalog(q) {
+  const lq = q.toLowerCase();
+  renderCatalog(catalog.filter(i =>
+    i.name.toLowerCase().includes(lq) || i.type.toLowerCase().includes(lq)
+  ));
+}
+
+/* ── Drag & drop ────────────────────────────────────────────── */
+function startDrag(e, id) {
+  dragIntegration = id;
+  e.dataTransfer.setData('text/plain', id);
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  const id = e.dataTransfer.getData('text/plain') || dragIntegration;
+  if (id) dropIntegration(id);
+}
+
+// Allow canvas to receive drops
+document.addEventListener('DOMContentLoaded', () => {
+  const canvas = document.getElementById('canvas-panel');
+  canvas.addEventListener('dragover', e => e.preventDefault());
+  canvas.addEventListener('drop', handleDrop);
+});
+
+/* ── Drop integration onto canvas ───────────────────────────── */
+function dropIntegration(id) {
+  const item = catalog.find(i => i.id === id);
+  if (!item) return;
+
+  const already = canvasNodes.find(n => n.id === id);
+  if (already) { librarianSay(`${item.name} is already on the canvas.`); return; }
+
+  document.getElementById('drop-hint').style.display = 'none';
+
+  // Place node
+  const x = 40 + (canvasNodes.length % 3) * 190;
+  const y = 40 + Math.floor(canvasNodes.length / 3) * 130;
+
+  canvasNodes.push({ ...item, x, y, status: 'pending' });
+  renderCanvasNodes();
+
+  // Librarian detects and proposes wiring
+  librarianDetect(item);
+}
+
+/* ── Render canvas nodes ────────────────────────────────────── */
+function renderCanvasNodes() {
+  const area = document.getElementById('canvas-nodes');
+  area.innerHTML = canvasNodes.map(n => `
+    <div class="wire-node${n.status === 'wired' ? '' : ' wire-node-gold'}"
+         id="wn-${n.id}"
+         style="left:${n.x}px;top:${n.y}px;">
+      <span class="wire-node-remove" onclick="removeNode('${n.id}')">✕</span>
+      <div class="wire-node-icon">${n.icon || '⬡'}</div>
+      <div class="wire-node-name">${n.name}</div>
+      <div class="wire-node-status">${n.status === 'wired' ? '● WIRED' : '○ PENDING'}</div>
+    </div>`).join('');
+}
+
+function removeNode(id) {
+  canvasNodes = canvasNodes.filter(n => n.id !== id);
+  renderCanvasNodes();
+  if (!canvasNodes.length) document.getElementById('drop-hint').style.display = 'flex';
+}
+
+/* ── Librarian detect & propose ─────────────────────────────── */
+function librarianDetect(item) {
+  librarianSay(`Detected: **${item.name}** (${item.type}). ${item.description}`);
+  setTimeout(() => {
+    if (needsCredentials(item)) {
+      librarianSay(`${item.name} requires credentials. I'll open the credentials form now. Review the proposed wiring and approve to go live.`);
+      setTimeout(() => openCred(item), 600);
+    } else {
+      librarianSay(`${item.name} does not require credentials. Proposing wiring — see the gold glow. Click APPROVE WIRING below to activate.`);
+      proposeWiring(item);
+    }
+  }, 700);
+}
+
+function needsCredentials(item) {
+  return ['llm', 'payments', 'comms', 'email'].includes(item.type);
+}
+
+/* ── Credentials modal ──────────────────────────────────────── */
+function openCred(item) {
+  pendingWiring = item;
+  document.getElementById('cred-title').textContent = `CREDENTIALS — ${item.name.toUpperCase()}`;
+
+  const fields = credentialFields(item);
+  document.getElementById('cred-fields').innerHTML = fields.map(f => `
+    <div class="cred-field">
+      <label>${f.label}</label>
+      <input type="${f.secret ? 'password' : 'text'}" id="cred-${f.key}" placeholder="${f.placeholder || ''}">
+    </div>`).join('');
+
+  document.getElementById('cred-overlay').classList.add('active');
+}
+
+function credentialFields(item) {
+  const map = {
+    llm:      [{ key:'api_key', label:'API KEY', secret:true, placeholder:'sk-...' }],
+    payments: [{ key:'api_key', label:'SECRET KEY', secret:true, placeholder:'sk_live_...' }, { key:'webhook_secret', label:'WEBHOOK SECRET', secret:true }],
+    comms:    [{ key:'account_sid', label:'ACCOUNT SID', placeholder:'AC...' }, { key:'auth_token', label:'AUTH TOKEN', secret:true }],
+    email:    [{ key:'host', label:'SMTP HOST', placeholder:'smtp.example.com' }, { key:'user', label:'USERNAME', placeholder:'user@example.com' }, { key:'pass', label:'PASSWORD', secret:true }],
+  };
+  return map[item.type] || [{ key:'api_key', label:'API KEY', secret:true }];
+}
+
+function closeCred() {
+  document.getElementById('cred-overlay').classList.remove('active');
+  pendingWiring = null;
+}
+
+async function submitCred() {
+  if (!pendingWiring) return;
+  librarianSay(`Credentials received for ${pendingWiring.name}. Proposing wiring…`);
+  closeCred();
+  proposeWiring(pendingWiring);
+}
+
+/* ── Propose wiring ─────────────────────────────────────────── */
+function proposeWiring(item) {
+  librarianSay(`★ WIRING PROPOSAL — ${item.name}:\n· Connects to Murphy runtime via ${item.type} adapter\n· Data flows: inbound → ${item.name} → Murphy processing → outbound\n· No existing conflicts detected.\n\nApprove to activate.`, 'system');
+
+  // Add approve button
+  const msgs = document.getElementById('assistant-messages');
+  const btn = document.createElement('div');
+  btn.style.cssText = 'padding:6px 0;';
+  btn.innerHTML = `<button class="btn btn-gold" onclick="approveWiring('${item.id}')">★ APPROVE WIRING — ${item.name}</button>`;
+  msgs.appendChild(btn);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+/* ── Approve wiring ─────────────────────────────────────────── */
+async function approveWiring(id) {
+  try {
+    const r = await fetch(`${API}/integrations/wire`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ integration_id: id }),
+    });
+    const d = await r.json();
+    const node = canvasNodes.find(n => n.id === id);
+    if (node) node.status = 'wired';
+    renderCanvasNodes();
+    librarianSay(`✓ ${catalog.find(i => i.id === id)?.name || id} is now LIVE. Wiring ID: ${d.wiring_id || 'ok'}`);
+    updateActiveCount();
+  } catch { librarianSay('Wiring failed — check API connection.'); }
+}
+
+/* ── Send message to Librarian ──────────────────────────────── */
+async function sendMessage() {
+  const input = document.getElementById('assistant-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  addMessage(msg, 'user');
+
+  try {
+    const r = await fetch(`${API}/librarian/ask`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg, context: 'integrations' }),
+    });
+    const d = await r.json();
+    librarianSay(d.response || d.answer || 'Let me look into that…');
+  } catch {
+    librarianSay('I\'m not able to reach the backend right now. Check that the Murphy runtime is running.');
+  }
+}
+
+function librarianSay(text, type) {
+  addMessage(text, type || 'librarian');
+}
+
+function addMessage(text, role) {
+  const msgs = document.getElementById('assistant-messages');
+  const div = document.createElement('div');
+  div.className = `msg msg-${role}`;
+  div.textContent = text;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+/* ── Active count ────────────────────────────────────────────── */
+async function updateActiveCount() {
+  try {
+    const r = await fetch(`${API}/integrations/active`);
+    const d = await r.json();
+    const c = (d.active || []).length;
+    const el = document.getElementById('active-count');
+    if (el) { el.textContent = `${c} active`; el.className = c ? 'status-pill status-running' : 'status-pill status-idle'; }
+  } catch {}
+}
+
+function refreshActive() {
+  loadCatalog();
+  updateActiveCount();
+}
+
+/* ── Boot ────────────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  loadCatalog();
+  updateActiveCount();
+});
+</script>
+</body>
+</html>
