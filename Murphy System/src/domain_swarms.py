@@ -3,6 +3,7 @@ Domain-Specific Swarm Generators
 Specialized swarms for different problem domains
 """
 
+from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional
 from mfgc_core import Phase
 
@@ -11,24 +12,26 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class DomainSwarmGenerator:
+class DomainSwarmGenerator(ABC):
     """Base class for domain-specific swarm generation"""
 
     def __init__(self, domain_name: str):
         self.domain_name = domain_name
 
+    @abstractmethod
     def generate_candidates(self,
                           task: str,
                           phase: Phase,
                           context: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Generate domain-specific candidates"""
-        raise NotImplementedError
+        """Generate domain-specific candidates."""
+        ...
 
+    @abstractmethod
     def generate_gates(self,
                       candidates: List[Dict[str, Any]],
                       context: Dict[str, Any]) -> List[str]:
-        """Generate domain-specific gates"""
-        raise NotImplementedError
+        """Generate domain-specific gates."""
+        ...
 
 
 class SoftwareEngineeringSwarm(DomainSwarmGenerator):

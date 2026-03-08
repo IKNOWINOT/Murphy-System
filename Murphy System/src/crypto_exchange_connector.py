@@ -22,6 +22,7 @@ import logging
 import threading
 import time
 import uuid
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -152,7 +153,7 @@ class Balance:
 # Per-exchange connectors
 # ---------------------------------------------------------------------------
 
-class ExchangeConnector:
+class ExchangeConnector(ABC):
     """
     Abstract base for a single exchange.  Subclasses or the generic
     ``_CCXTExchangeConnector`` override ``_fetch_ticker``,
@@ -226,17 +227,25 @@ class ExchangeConnector:
 
     # ---- overridable internals -------------------------------------------
 
+    @abstractmethod
     def _place_order(self, req: OrderRequest) -> OrderResult:  # noqa: PLR6301
-        raise NotImplementedError
+        """Place an order on the exchange.  Subclasses must override."""
+        ...
 
+    @abstractmethod
     def _fetch_ticker(self, pair: str) -> Ticker:  # noqa: PLR6301
-        raise NotImplementedError
+        """Fetch the latest ticker for *pair*.  Subclasses must override."""
+        ...
 
+    @abstractmethod
     def _fetch_balances(self) -> List[Balance]:  # noqa: PLR6301
-        raise NotImplementedError
+        """Fetch account balances.  Subclasses must override."""
+        ...
 
+    @abstractmethod
     def _probe(self) -> bool:  # noqa: PLR6301
-        raise NotImplementedError
+        """Lightweight health probe.  Subclasses must override."""
+        ...
 
 
 class CoinbaseExchangeConnector(ExchangeConnector):
