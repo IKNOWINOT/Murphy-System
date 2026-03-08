@@ -345,6 +345,7 @@ class CredentialVerificationResult(BaseModel):
     )
     complaints: List[ComplaintRecord] = Field(default_factory=list)
     verification_notes: str = Field(default="")
+    confidence: float = Field(default=1.0, ge=0.0, le=1.0)
     verified_at: datetime = Field(default_factory=_utcnow)
 
 
