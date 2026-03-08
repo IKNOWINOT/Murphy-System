@@ -275,10 +275,12 @@ class WorkspaceManager:
     def create_workspace(self, config: TenantConfig) -> str:
         """Create a new tenant workspace and return its *tenant_id*.
 
+        If *config.tenant_id* is empty, a random UUID hex is generated.
         Raises ``ValueError`` if the tenant_id is already registered.
         """
         with self._lock:
-            tid = config.tenant_id
+            tid = config.tenant_id or uuid.uuid4().hex
+            config.tenant_id = tid
             if tid in self._workspaces:
                 raise ValueError(f"Workspace {tid} already exists")
             self._workspaces[tid] = config
