@@ -243,6 +243,15 @@ See [WINGMAN_PROTOCOL.md](WINGMAN_PROTOCOL.md) for full architecture documentati
 
 ---
 
+## Backup & Disaster Recovery
+
+| Module | Path | Description | Status | Key Dependencies |
+|--------|------|-------------|--------|-----------------|
+| `backup_disaster_recovery.py` | `src/backup_disaster_recovery.py` | Automated snapshot/restore to S3-compatible storage; SHA-256 integrity, retention, Wingman + Sandbox gating | ✅ | — |
+| `startup_validator.py` | `src/startup_validator.py` | Boot-time validation of env vars, files, ports, and dependencies | ✅ | — |
+
+---
+
 ## Issue #136 Subsystems (In Progress)
 
 These seven subsystems are being added under issue #136. Files marked 🔄 are
