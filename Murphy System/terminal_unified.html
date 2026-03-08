@@ -1,0 +1,2140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>☠ MURPHY SYSTEM — UNIFIED COMMAND CENTER ☠</title>
+    <style>
+        /* ============================================================
+           BASE / RESET
+        ============================================================ */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:         #0a0a0a;
+            --bg2:        #111111;
+            --bg3:        #181818;
+            --green:      #00ff41;
+            --green-dim:  #00cc33;
+            --cyan:       #00ffff;
+            --red:        #ff3333;
+            --yellow:     #ffcc00;
+            --gold:       #ffd700;
+            --blue:       #0088ff;
+            --magenta:    #ff00ff;
+            --white:      #e0e0e0;
+            --sidebar-w:  220px;
+            --header-h:   54px;
+        }
+
+        html, body {
+            height: 100%;
+            background: var(--bg);
+            color: var(--green);
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
+        }
+
+        /* ============================================================
+           SCROLLBARS
+        ============================================================ */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--green-dim); border-radius: 3px; }
+
+        /* ============================================================
+           TOOLTIP
+        ============================================================ */
+        [data-tip] { position: relative; cursor: default; }
+        [data-tip]::after {
+            content: attr(data-tip);
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 6px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1a1a1a;
+            border: 1px solid var(--gold);
+            color: var(--white);
+            font-size: 11px;
+            line-height: 1.5;
+            padding: 8px 12px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            max-width: 300px;
+            z-index: 9999;
+            box-shadow: 0 0 10px rgba(255,215,0,0.4);
+            pointer-events: none;
+        }
+        [data-tip]:hover::after { display: block; }
+
+        /* Gold glow — system recommendation */
+        .gold-glow {
+            border-color: var(--gold) !important;
+            box-shadow: 0 0 8px rgba(255,215,0,0.5);
+            animation: goldPulse 2s ease-in-out infinite;
+        }
+        @keyframes goldPulse {
+            0%,100% { box-shadow: 0 0 6px rgba(255,215,0,0.4); }
+            50%      { box-shadow: 0 0 14px rgba(255,215,0,0.8); }
+        }
+
+        /* ============================================================
+           LAYOUT
+        ============================================================ */
+        #app {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* ---- HEADER ---- */
+        #header {
+            height: var(--header-h);
+            background: var(--bg);
+            border-bottom: 2px solid var(--green);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 16px;
+            flex-shrink: 0;
+            box-shadow: 0 2px 10px rgba(0,255,65,0.3);
+        }
+        #header .logo {
+            font-size: 18px;
+            font-weight: bold;
+            letter-spacing: 3px;
+            white-space: nowrap;
+        }
+        #header .logo span { color: var(--red); }
+        #header .subtitle {
+            font-size: 10px;
+            color: var(--green-dim);
+            letter-spacing: 2px;
+        }
+        #api-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            margin-left: auto;
+        }
+        #api-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: var(--red);
+            transition: background .3s;
+        }
+        #api-dot.online { background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+        /* ---- BODY (sidebar + content) ---- */
+        #body {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* ---- SIDEBAR ---- */
+        #sidebar {
+            width: var(--sidebar-w);
+            background: var(--bg2);
+            border-right: 1px solid var(--green-dim);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            overflow-y: auto;
+        }
+        .nav-section {
+            padding: 10px 12px 4px;
+            font-size: 9px;
+            color: var(--green-dim);
+            letter-spacing: 2px;
+            border-top: 1px solid #1e1e1e;
+        }
+        .nav-btn {
+            display: block;
+            width: 100%;
+            background: none;
+            border: none;
+            color: var(--green);
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            text-align: left;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: background .15s, color .15s;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .nav-btn:hover { background: #1a2a1a; color: var(--cyan); }
+        .nav-btn.active { background: #002200; color: var(--green); border-left: 3px solid var(--green); }
+
+        .sidebar-meta {
+            margin-top: auto;
+            padding: 10px 12px;
+            font-size: 10px;
+            color: var(--green-dim);
+            border-top: 1px solid #1e1e1e;
+            line-height: 1.8;
+        }
+        .sidebar-meta .key { color: var(--cyan); }
+        .sidebar-meta .val { color: var(--green); }
+
+        /* ---- MAIN CONTENT ---- */
+        #content {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel { display: none; flex: 1; overflow: hidden; }
+        .panel.active { display: flex; flex-direction: column; }
+
+        /* ---- PANEL HEADER ---- */
+        .panel-header {
+            padding: 10px 20px;
+            border-bottom: 1px solid var(--green-dim);
+            background: var(--bg2);
+            font-size: 13px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .panel-header .ph-title { color: var(--green); }
+        .panel-header .ph-sub { font-size: 10px; color: var(--green-dim); font-weight: normal; letter-spacing: 1px; }
+
+        /* ---- TABS (sub-panels) ---- */
+        .subtabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 1px solid var(--green-dim);
+            background: var(--bg2);
+            flex-shrink: 0;
+        }
+        .subtab-btn {
+            background: none;
+            border: none;
+            border-right: 1px solid #1e1e1e;
+            color: var(--green-dim);
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: background .15s, color .15s;
+            letter-spacing: 1px;
+        }
+        .subtab-btn:hover { background: #1a2a1a; color: var(--cyan); }
+        .subtab-btn.active { background: #001a00; color: var(--green); border-bottom: 2px solid var(--green); }
+
+        .subpanel { display: none; flex: 1; overflow-y: auto; padding: 16px; }
+        .subpanel.active { display: block; }
+
+        /* ---- COMMON COMPONENTS ---- */
+        .card {
+            background: var(--bg3);
+            border: 1px solid var(--green-dim);
+            border-radius: 2px;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+        .card-title {
+            font-size: 11px;
+            color: var(--cyan);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #1e1e1e;
+            padding-bottom: 6px;
+        }
+
+        .btn {
+            background: var(--bg);
+            border: 1px solid var(--green);
+            color: var(--green);
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            padding: 6px 14px;
+            cursor: pointer;
+            transition: background .15s, color .15s;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .btn:hover { background: var(--green); color: var(--bg); }
+        .btn:active { background: var(--green-dim); }
+        .btn-sm { padding: 4px 10px; font-size: 10px; }
+        .btn-cyan { border-color: var(--cyan); color: var(--cyan); }
+        .btn-cyan:hover { background: var(--cyan); color: var(--bg); }
+        .btn-red { border-color: var(--red); color: var(--red); }
+        .btn-red:hover { background: var(--red); color: var(--bg); }
+        .btn-gold { border-color: var(--gold); color: var(--gold); }
+        .btn-gold:hover { background: var(--gold); color: var(--bg); }
+        .btn-group { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+
+        .status-dot {
+            display: inline-block;
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+        .dot-green { background: var(--green); box-shadow: 0 0 4px var(--green); }
+        .dot-yellow { background: var(--yellow); box-shadow: 0 0 4px var(--yellow); }
+        .dot-red { background: var(--red); box-shadow: 0 0 4px var(--red); }
+        .dot-cyan { background: var(--cyan); box-shadow: 0 0 4px var(--cyan); }
+        .dot-grey { background: #555; }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            font-size: 10px;
+            border-radius: 2px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .badge-green { background: #002200; color: var(--green); border: 1px solid var(--green-dim); }
+        .badge-yellow { background: #2a2000; color: var(--yellow); border: 1px solid #aa8800; }
+        .badge-red { background: #2a0000; color: var(--red); border: 1px solid #880000; }
+        .badge-cyan { background: #001a2a; color: var(--cyan); border: 1px solid #006688; }
+        .badge-gold { background: #2a2000; color: var(--gold); border: 1px solid #997700; }
+
+        label { font-size: 11px; color: var(--green-dim); display: block; margin-bottom: 3px; }
+        input[type=text], input[type=number], select, textarea {
+            background: var(--bg);
+            border: 1px solid var(--green-dim);
+            color: var(--cyan);
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 6px 10px;
+            width: 100%;
+            outline: none;
+            transition: border-color .2s;
+            margin-bottom: 10px;
+        }
+        input[type=text]:focus, input[type=number]:focus, select:focus, textarea:focus {
+            border-color: var(--green);
+        }
+        select option { background: var(--bg2); color: var(--green); }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+        .metric-card {
+            background: var(--bg2);
+            border: 1px solid var(--green-dim);
+            padding: 10px 14px;
+            text-align: center;
+        }
+        .metric-label { font-size: 9px; color: var(--green-dim); letter-spacing: 2px; text-transform: uppercase; }
+        .metric-value { font-size: 22px; color: var(--green); font-weight: bold; margin-top: 4px; }
+        .metric-unit { font-size: 10px; color: var(--green-dim); }
+
+        table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        th {
+            text-align: left;
+            padding: 6px 10px;
+            border-bottom: 1px solid var(--green-dim);
+            color: var(--cyan);
+            font-size: 10px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            background: var(--bg2);
+        }
+        td {
+            padding: 6px 10px;
+            border-bottom: 1px solid #1a1a1a;
+            color: var(--green);
+            vertical-align: middle;
+        }
+        tr:hover td { background: #0d1a0d; }
+
+        .progress-bar { background: #1a1a1a; height: 6px; border-radius: 3px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--green); transition: width .3s; border-radius: 3px; }
+
+        pre, .json-editor {
+            background: var(--bg);
+            border: 1px solid var(--green-dim);
+            color: var(--cyan);
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            padding: 10px;
+            overflow: auto;
+            max-height: 200px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        /* ============================================================
+           PANEL 1 — ONBOARD & CONFIG
+        ============================================================ */
+        #wizard-progress { margin-bottom: 14px; }
+        #wizard-steps { display: flex; gap: 4px; margin-bottom: 6px; flex-wrap: wrap; }
+        .wstep {
+            flex: 1; min-width: 60px; height: 4px;
+            background: #1a1a1a; border-radius: 2px;
+            transition: background .3s;
+        }
+        .wstep.done { background: var(--green); }
+        .wstep.active { background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+        #wizard-q { font-size: 14px; color: var(--cyan); margin-bottom: 12px; line-height: 1.5; }
+        #wizard-opts { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+        .wopt {
+            background: var(--bg2);
+            border: 1px solid var(--green-dim);
+            color: var(--green);
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 8px 14px;
+            cursor: pointer;
+            transition: background .15s, color .15s;
+            text-align: left;
+        }
+        .wopt:hover { background: #1a2a1a; color: var(--cyan); border-color: var(--cyan); }
+        .wopt.selected { background: #002200; border-color: var(--green); }
+
+        /* ============================================================
+           PANEL 2 — TERMINAL / CHAT
+        ============================================================ */
+        #panel-terminal {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        #terminal-body {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        #terminal-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        #terminal-output {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 20px;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        .t-line { margin-bottom: 4px; animation: fadeIn .1s; }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(3px); } to { opacity:1; transform:none; } }
+        .t-system { color: var(--green); }
+        .t-user   { color: var(--cyan); }
+        .t-error  { color: var(--red); }
+        .t-warn   { color: var(--yellow); }
+        .t-info   { color: var(--blue); }
+        .t-mfgc   { color: var(--magenta); }
+
+        #terminal-input-area {
+            border-top: 1px solid var(--green-dim);
+            padding: 10px 14px;
+            background: var(--bg);
+            flex-shrink: 0;
+        }
+        .mss-bar { display: flex; gap: 8px; margin-bottom: 8px; }
+        .mss-btn {
+            background: var(--bg2);
+            border: 1px solid var(--green-dim);
+            color: var(--green-dim);
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            padding: 4px 12px;
+            cursor: pointer;
+            transition: all .15s;
+            letter-spacing: 1px;
+        }
+        .mss-btn:hover { border-color: var(--cyan); color: var(--cyan); background: #001a2a; }
+        .mss-btn.mss-simplify:hover { border-color: var(--yellow); color: var(--yellow); background: #1a1500; }
+        .mss-btn.mss-solidify:hover { border-color: var(--gold); color: var(--gold); background: #1a1500; }
+        #t-input-row { display: flex; align-items: center; gap: 8px; }
+        #t-prompt { color: var(--green); font-weight: bold; white-space: nowrap; }
+        #t-input {
+            flex: 1;
+            background: none;
+            border: none;
+            border-bottom: 1px solid var(--green);
+            color: var(--cyan);
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 4px 6px;
+            outline: none;
+        }
+        #t-input::placeholder { color: rgba(0,255,65,.35); }
+        .t-mode-toggle {
+            display: flex;
+            gap: 4px;
+        }
+        .mode-btn {
+            background: none;
+            border: 1px solid #333;
+            color: #555;
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            padding: 3px 8px;
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .mode-btn.active { border-color: var(--cyan); color: var(--cyan); background: #001a2a; }
+
+        /* MFGC Sidebar */
+        #mfgc-sidebar {
+            width: 200px;
+            border-left: 1px solid var(--green-dim);
+            background: var(--bg2);
+            overflow-y: auto;
+            padding: 10px;
+            flex-shrink: 0;
+            transition: width .3s;
+        }
+        #mfgc-sidebar.collapsed { width: 0; overflow: hidden; padding: 0; }
+        .mfgc-title {
+            font-size: 9px;
+            letter-spacing: 2px;
+            color: var(--cyan);
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #1e1e1e;
+        }
+        .phase-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 6px;
+            font-size: 10px;
+        }
+        .phase-num { color: var(--green-dim); width: 16px; }
+        .phase-name { flex: 1; color: var(--green); }
+        .phase-bar { flex: 1; }
+        .mi-score { font-size: 28px; color: var(--gold); text-align: center; margin: 8px 0; font-weight: bold; }
+        .mi-label { font-size: 9px; color: var(--green-dim); text-align: center; letter-spacing: 2px; }
+
+        /* ============================================================
+           PANEL 3 — WORKFLOWS & AGENTS
+        ============================================================ */
+        /* Workflow canvas */
+        #wf-canvas-wrap {
+            position: relative;
+            background: #050a05;
+            border: 1px solid var(--green-dim);
+            border-radius: 2px;
+            overflow: hidden;
+            height: 340px;
+        }
+        #wf-canvas { width: 100%; height: 100%; }
+        .wf-toolbar { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; align-items: center; }
+        .node-palette { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+        .palette-node {
+            background: var(--bg2);
+            border: 1px solid var(--green-dim);
+            color: var(--green);
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            padding: 4px 10px;
+            cursor: grab;
+            transition: all .15s;
+            border-radius: 2px;
+        }
+        .palette-node:hover { border-color: var(--cyan); color: var(--cyan); }
+        .palette-node.gate { border-color: var(--gold); color: var(--gold); }
+        .palette-node.agent-node { border-color: var(--magenta); color: var(--magenta); }
+        .palette-node.solidify-block { border-color: var(--green); color: var(--green); background: #002200; }
+        .palette-node.librarian { border-color: var(--cyan); color: var(--cyan); }
+
+        /* Agent org chart */
+        #agent-org { display: flex; flex-wrap: wrap; gap: 14px; padding: 10px; }
+        .agent-card {
+            background: var(--bg2);
+            border: 1px solid var(--green-dim);
+            padding: 12px;
+            width: 200px;
+            cursor: pointer;
+            transition: border-color .15s;
+            border-radius: 2px;
+        }
+        .agent-card:hover { border-color: var(--cyan); }
+        .agent-card.active-state { border-color: var(--green); }
+        .agent-card.idle-state { border-color: #333; }
+        .agent-card.stuck-state { border-color: var(--red); }
+        .agent-id { font-size: 12px; color: var(--cyan); margin-bottom: 4px; font-weight: bold; }
+        .agent-role { font-size: 10px; color: var(--green-dim); margin-bottom: 6px; }
+        .agent-caps { font-size: 10px; color: var(--green); line-height: 1.5; }
+        .agent-task { font-size: 10px; color: var(--yellow); margin-top: 6px; }
+
+        /* Live process monitor */
+        .process-row {
+            background: var(--bg2);
+            border: 1px solid var(--green-dim);
+            padding: 10px 14px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: border-color .15s;
+            border-radius: 2px;
+        }
+        .process-row:hover { border-color: var(--cyan); }
+        .process-row.running { border-left: 3px solid var(--green); }
+        .process-row.paused { border-left: 3px solid var(--yellow); }
+        .process-row.stuck { border-left: 3px solid var(--red); }
+        .process-row.complete { border-left: 3px solid #333; opacity: .6; }
+        .process-meta { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; font-size: 11px; }
+        .process-name { font-weight: bold; color: var(--cyan); flex: 1; }
+        .process-detail { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid #1e1e1e; font-size: 11px; }
+        .process-detail.open { display: block; }
+        .hitl-actions { display: flex; gap: 8px; margin-top: 8px; }
+
+        /* ============================================================
+           PANEL 4 — REPORTS
+        ============================================================ */
+        .filter-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; align-items: flex-end; }
+        .filter-row label { margin-bottom: 2px; }
+        .filter-row select, .filter-row input { margin-bottom: 0; }
+
+        /* ============================================================
+           PANEL 5 — PRODUCTION & QC
+        ============================================================ */
+        .prod-item {
+            background: var(--bg2);
+            border: 1px solid var(--green-dim);
+            padding: 10px 14px;
+            margin-bottom: 8px;
+            border-radius: 2px;
+        }
+        .prod-meta { display: flex; align-items: center; gap: 12px; font-size: 11px; margin-bottom: 6px; }
+        .prod-name { color: var(--cyan); flex: 1; }
+        .qc-item { background: var(--bg2); border: 1px solid var(--green-dim); padding: 12px; margin-bottom: 10px; border-radius: 2px; }
+        .qc-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .qc-col pre { height: 120px; }
+        .qc-actions { display: flex; gap: 8px; margin-top: 8px; }
+
+        .standards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 10px; }
+        .std-toggle {
+            background: var(--bg2);
+            border: 1px solid #333;
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: border-color .15s;
+            border-radius: 2px;
+        }
+        .std-toggle.on { border-color: var(--green); }
+        .std-toggle:hover { border-color: var(--cyan); }
+        .std-name { font-size: 12px; font-weight: bold; }
+        .std-desc { font-size: 10px; color: var(--green-dim); margin-top: 3px; }
+        .toggle-switch {
+            width: 36px; height: 18px;
+            background: #333;
+            border-radius: 9px;
+            position: relative;
+            flex-shrink: 0;
+            transition: background .2s;
+        }
+        .toggle-switch.on { background: var(--green); }
+        .toggle-knob {
+            width: 14px; height: 14px;
+            background: var(--bg);
+            border-radius: 50%;
+            position: absolute;
+            top: 2px; left: 2px;
+            transition: transform .2s;
+        }
+        .toggle-switch.on .toggle-knob { transform: translateX(18px); }
+
+        /* ============================================================
+           PANEL 6 — DELIVERABLES & HITL
+        ============================================================ */
+        .deliverable-row {
+            background: var(--bg2);
+            border: 1px solid var(--green-dim);
+            padding: 10px 14px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            border-radius: 2px;
+            transition: border-color .15s;
+        }
+        .deliverable-row:hover { border-color: var(--cyan); }
+        .deliv-meta { display: flex; align-items: center; gap: 12px; font-size: 11px; margin-bottom: 6px; }
+        .deliv-name { color: var(--cyan); flex: 1; font-weight: bold; }
+        .req-map { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 11px; }
+        .req-item { display: flex; align-items: center; gap: 6px; padding: 4px 0; border-bottom: 1px solid #1e1e1e; }
+        .req-check { font-size: 14px; }
+
+        /* ============================================================
+           TOAST
+        ============================================================ */
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--bg2);
+            border: 1px solid var(--green);
+            color: var(--green);
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 10px 16px;
+            z-index: 10000;
+            display: none;
+            max-width: 320px;
+        }
+        #toast.err { border-color: var(--red); color: var(--red); }
+        #toast.warn { border-color: var(--yellow); color: var(--yellow); }
+
+        /* ============================================================
+           SPINNER / LOADING
+        ============================================================ */
+        .spinner {
+            display: inline-block;
+            width: 12px; height: 12px;
+            border: 2px solid var(--green-dim);
+            border-top-color: var(--green);
+            border-radius: 50%;
+            animation: spin .6s linear infinite;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+<div id="app">
+
+    <!-- ============================================================
+         HEADER
+    ============================================================ -->
+    <header id="header">
+        <div>
+            <div class="logo">☠ MURPHY<span>SYSTEM</span> ☠</div>
+            <div class="subtitle">UNIFIED COMMAND CENTER — v1.0</div>
+        </div>
+        <div id="api-status"
+             data-tip="Murphy System backend status.&#10;Green = API online on configured port.&#10;Red = Unreachable — start murphy_system_1.0_runtime.py">
+            <div id="api-dot"></div>
+            <span id="api-label">CONNECTING…</span>
+        </div>
+    </header>
+
+    <!-- ============================================================
+         BODY
+    ============================================================ -->
+    <div id="body">
+
+        <!-- ---- SIDEBAR ---- -->
+        <nav id="sidebar">
+            <div class="nav-section">PANELS</div>
+            <button class="nav-btn active" onclick="switchPanel('onboard')" id="nav-onboard">⚙ ONBOARD &amp; CONFIG</button>
+            <button class="nav-btn" onclick="switchPanel('terminal')" id="nav-terminal">⌨ TERMINAL / CHAT</button>
+            <button class="nav-btn" onclick="switchPanel('workflows')" id="nav-workflows">⚡ WORKFLOWS &amp; AGENTS</button>
+            <button class="nav-btn" onclick="switchPanel('reports')" id="nav-reports">📊 REPORTS &amp; PM</button>
+            <button class="nav-btn" onclick="switchPanel('production')" id="nav-production">🏭 PRODUCTION &amp; QC</button>
+            <button class="nav-btn" onclick="switchPanel('deliverables')" id="nav-deliverables">📦 DELIVERABLES &amp; HITL</button>
+
+            <div class="nav-section">SESSION</div>
+            <div style="padding:6px 14px;font-size:10px;color:var(--green-dim)">
+                <div>User: <span id="sb-user" style="color:var(--cyan)">operator</span></div>
+                <div>Workflows: <span id="sb-wf-count" style="color:var(--green)">0</span></div>
+                <div>Alerts: <span id="sb-alerts" style="color:var(--yellow)">0</span></div>
+            </div>
+
+            <div class="sidebar-meta">
+                <div><span class="key">OS:</span> <span class="val" id="sb-os">—</span></div>
+                <div><span class="key">Python:</span> <span class="val" id="sb-py">—</span></div>
+                <div><span class="key">LLM:</span> <span class="val" id="sb-llm">—</span></div>
+                <div><span class="key">Uptime:</span> <span class="val" id="sb-uptime">—</span></div>
+            </div>
+        </nav>
+
+        <!-- ---- MAIN CONTENT ---- -->
+        <main id="content">
+
+            <!-- =====================================================
+                 PANEL 1: ONBOARD & CONFIG
+            ====================================================== -->
+            <div class="panel active" id="panel-onboard">
+                <div class="panel-header">
+                    <span class="ph-title">⚙ ONBOARD &amp; CONFIG</span>
+                    <span class="ph-sub">SETUP WIZARD · CONFIG MANAGER · SYSTEM STATUS</span>
+                </div>
+                <div class="subtabs">
+                    <button class="subtab-btn active" onclick="switchSub('onboard','wizard')">WIZARD</button>
+                    <button class="subtab-btn" onclick="switchSub('onboard','config')">CONFIG</button>
+                    <button class="subtab-btn" onclick="switchSub('onboard','status')">SYSTEM STATUS</button>
+                </div>
+
+                <!-- Wizard -->
+                <div class="subpanel active" id="sub-onboard-wizard">
+                    <div class="card">
+                        <div class="card-title"
+                             data-tip="Onboarding Wizard: Answer a few questions to configure&#10;the Murphy System for your organisation.&#10;Each answer updates system configuration automatically.">
+                            ONBOARDING WIZARD
+                        </div>
+                        <div id="wizard-progress">
+                            <div id="wizard-steps"></div>
+                            <div style="font-size:10px;color:var(--green-dim)" id="wizard-pct">Step 0 of 0</div>
+                        </div>
+                        <div id="wizard-q">Loading questions…</div>
+                        <div id="wizard-opts"></div>
+                        <div class="btn-group">
+                            <button class="btn btn-sm" onclick="wizardBack()">← BACK</button>
+                            <button class="btn btn-sm btn-cyan" onclick="wizardSkip()">SKIP →</button>
+                            <button class="btn btn-sm" id="wizard-complete-btn" style="display:none" onclick="wizardComplete()">✓ COMPLETE</button>
+                        </div>
+                        <div id="wizard-status" style="font-size:11px;color:var(--green-dim);margin-top:6px"></div>
+                    </div>
+                </div>
+
+                <!-- Config -->
+                <div class="subpanel" id="sub-onboard-config">
+                    <div class="card gold-glow"
+                         data-tip="MFGC = Murphy Field Gate Control.&#10;The system's 7-phase quality pipeline.&#10;Adjust thresholds to tune automation behaviour.&#10;System recommends: start with default values.">
+                        <div class="card-title">MFGC SETTINGS</div>
+                        <div class="grid-2">
+                            <div>
+                                <label data-tip="murphy_threshold: minimum confidence score&#10;required for automated gate passage (0.0–1.0).">MURPHY THRESHOLD</label>
+                                <input type="number" id="cfg-threshold" min="0" max="1" step="0.05" value="0.7">
+                            </div>
+                            <div>
+                                <label data-tip="confidence_mode: how the system calculates&#10;confidence. 'strict' requires all signals.&#10;'relaxed' allows partial signals.">CONFIDENCE MODE</label>
+                                <select id="cfg-conf-mode">
+                                    <option>strict</option>
+                                    <option>relaxed</option>
+                                    <option>adaptive</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label data-tip="authority_mode: governs who can approve&#10;gate transitions. 'human' requires HITL.&#10;'auto' allows autonomous approval.">AUTHORITY MODE</label>
+                                <select id="cfg-auth-mode">
+                                    <option>human</option>
+                                    <option>auto</option>
+                                    <option>hybrid</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label data-tip="gate_synthesis: whether the system can&#10;auto-generate new gates based on task context.">GATE SYNTHESIS</label>
+                                <select id="cfg-gate-synth">
+                                    <option>enabled</option>
+                                    <option>disabled</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn btn-sm" onclick="loadConfig()">↓ LOAD CONFIG</button>
+                            <button class="btn btn-sm btn-cyan" onclick="saveConfig()">↑ SAVE CONFIG</button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">LLM SETTINGS</div>
+                        <div id="llm-status-panel" style="font-size:11px;color:var(--green-dim)">Loading LLM status…</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">RAW CONFIG (JSON)</div>
+                        <textarea id="raw-config" rows="8" style="width:100%;height:160px;resize:vertical" spellcheck="false"></textarea>
+                        <div class="btn-group" style="margin-top:6px">
+                            <button class="btn btn-sm" onclick="applyRawConfig()">APPLY JSON</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Status -->
+                <div class="subpanel" id="sub-onboard-status">
+                    <div class="grid-3" id="status-metrics" style="margin-bottom:14px">
+                        <div class="metric-card" data-tip="Total API requests processed this session.">
+                            <div class="metric-label">REQUESTS</div>
+                            <div class="metric-value" id="sm-requests">—</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">UPTIME</div>
+                            <div class="metric-value" id="sm-uptime">—</div>
+                            <div class="metric-unit">SECONDS</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">MODULES</div>
+                            <div class="metric-value" id="sm-modules">—</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">CONNECTED MODULES</div>
+                        <div id="modules-list" style="font-size:11px;color:var(--green-dim)">Loading…</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">ACTIVE SESSIONS</div>
+                        <div id="sessions-list" style="font-size:11px;color:var(--green-dim)">Loading…</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- =====================================================
+                 PANEL 2: TERMINAL / CHAT
+            ====================================================== -->
+            <div class="panel" id="panel-terminal">
+                <div class="panel-header" style="justify-content:space-between">
+                    <div>
+                        <span class="ph-title">⌨ TERMINAL / CHAT</span>
+                        <span class="ph-sub" style="margin-left:12px">MURPHY · LIBRARIAN · MSS</span>
+                    </div>
+                    <div style="display:flex;gap:8px;align-items:center">
+                        <div class="t-mode-toggle">
+                            <button class="mode-btn active" id="mode-cmd" onclick="setMode('cmd')"
+                                    data-tip="Command mode: use /help, /status, /phases, etc.">CMD</button>
+                            <button class="mode-btn" id="mode-chat" onclick="setMode('chat')"
+                                    data-tip="Natural language chat mode. Talk to Murphy freely.">CHAT</button>
+                            <button class="mode-btn" id="mode-lib" onclick="setMode('lib')"
+                                    data-tip="Librarian mode: query the Murphy knowledge base directly.">LIBRARIAN</button>
+                        </div>
+                        <button class="btn btn-sm" onclick="toggleMFGC()"
+                                data-tip="MFGC = Murphy Field Gate Control.&#10;7-phase quality pipeline sidebar.&#10;Shows confidence trajectory and gate status.">MFGC ▶</button>
+                    </div>
+                </div>
+                <div id="terminal-body">
+                    <div id="terminal-main">
+                        <div id="terminal-output"></div>
+                        <div id="terminal-input-area">
+                            <div class="mss-bar">
+                                <span style="font-size:10px;color:var(--green-dim);letter-spacing:1px;margin-right:4px">MSS:</span>
+                                <button class="mss-btn mss-simplify" onclick="mssAction('simplify')"
+                                        data-tip="SIMPLIFY: Reduce the resolution of your current prompt.&#10;Removes complexity while preserving meaning.&#10;Use when you need a clearer, shorter version.">
+                                    SIMPLIFY
+                                </button>
+                                <button class="mss-btn" onclick="mssAction('magnify')"
+                                        data-tip="MAGNIFY: Increase the resolution of your current prompt.&#10;Expands detail, depth, and context.&#10;Use when you need a more comprehensive version.">
+                                    MAGNIFY
+                                </button>
+                                <button class="mss-btn mss-solidify gold-glow" onclick="mssAction('solidify')"
+                                        data-tip="SOLIDIFY: Convert your current prompt into a locked&#10;implementation plan. Output becomes a SOLIDIFY_BLOCK —&#10;a governance-approved, immutable execution unit.&#10;System recommends: solidify decisions before sending to workflow.">
+                                    SOLIDIFY
+                                </button>
+                            </div>
+                            <div id="t-input-row">
+                                <span id="t-prompt">MURPHY ➜</span>
+                                <input type="text" id="t-input" placeholder="Type a command or message…" autocomplete="off"
+                                       onkeydown="if(event.key==='Enter')sendTerminal()">
+                                <button class="btn btn-sm" onclick="sendTerminal()">SEND</button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- MFGC Sidebar -->
+                    <div id="mfgc-sidebar">
+                        <div class="mfgc-title"
+                             data-tip="MFGC = Murphy Field Gate Control.&#10;A 7-phase quality and governance pipeline.&#10;Each phase is a confidence gate.&#10;Murphy Index = overall system health score.">
+                            MFGC
+                        </div>
+                        <div class="mi-score" id="mfgc-mi">—</div>
+                        <div class="mi-label">MURPHY INDEX</div>
+                        <div style="margin-top:12px;margin-bottom:6px;font-size:9px;color:var(--green-dim);letter-spacing:1px">7-PHASE STATUS</div>
+                        <div id="mfgc-phases"></div>
+                        <div style="margin-top:10px;font-size:9px;color:var(--green-dim)">
+                            <div>Confidence: <span id="mfgc-conf" style="color:var(--green)">—</span></div>
+                            <div>Gate: <span id="mfgc-gate" style="color:var(--cyan)">—</span></div>
+                            <div>Authority: <span id="mfgc-auth" style="color:var(--yellow)">—</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- =====================================================
+                 PANEL 3: WORKFLOWS & AGENTS
+            ====================================================== -->
+            <div class="panel" id="panel-workflows">
+                <div class="panel-header">
+                    <span class="ph-title">⚡ WORKFLOWS &amp; AGENTS</span>
+                    <span class="ph-sub">BUILDER · ORG CHART · LIVE MONITOR</span>
+                </div>
+                <div class="subtabs">
+                    <button class="subtab-btn active" onclick="switchSub('workflows','builder')">WORKFLOW BUILDER</button>
+                    <button class="subtab-btn" onclick="switchSub('workflows','orgchart')">AGENT ORG CHART</button>
+                    <button class="subtab-btn" onclick="switchSub('workflows','monitor')">LIVE MONITOR</button>
+                </div>
+
+                <!-- Builder -->
+                <div class="subpanel active" id="sub-workflows-builder">
+                    <div class="wf-toolbar">
+                        <button class="btn btn-sm" onclick="wfNew()">+ NEW WORKFLOW</button>
+                        <button class="btn btn-sm btn-cyan" onclick="wfLoad()">LOAD WORKFLOWS</button>
+                        <button class="btn btn-sm" onclick="wfSave()">SAVE WORKFLOW</button>
+                        <button class="btn btn-sm btn-gold gold-glow" onclick="wfFromSolidify()"
+                                data-tip="Generate from Solidify: takes the last Solidify output&#10;from the Terminal panel and auto-generates a workflow.&#10;System recommends: Solidify your task first, then click here.">
+                            GENERATE FROM SOLIDIFY
+                        </button>
+                        <input type="text" id="wf-name" placeholder="Workflow name…" style="width:160px;margin:0">
+                    </div>
+                    <div class="card-title" style="margin-bottom:6px">NODE PALETTE
+                        <span style="font-size:9px;color:var(--green-dim);margin-left:8px">drag to canvas (click to add)</span>
+                    </div>
+                    <div class="node-palette">
+                        <span class="palette-node" onclick="wfAddNode('TRIGGER')" data-tip="TRIGGER: Starts a workflow. Can be time-based, event-based, or manual.">TRIGGER</span>
+                        <span class="palette-node" onclick="wfAddNode('ACTION')" data-tip="ACTION: Executes a task or API call.">ACTION</span>
+                        <span class="palette-node" onclick="wfAddNode('CONDITION')" data-tip="CONDITION: Branches the workflow based on a condition.">CONDITION</span>
+                        <span class="palette-node" onclick="wfAddNode('TRANSFORM')" data-tip="TRANSFORM: Modifies data as it flows through the workflow.">TRANSFORM</span>
+                        <span class="palette-node" onclick="wfAddNode('CONNECTOR')" data-tip="CONNECTOR: Connects to an external system or API.">CONNECTOR</span>
+                        <span class="palette-node" onclick="wfAddNode('OUTPUT')" data-tip="OUTPUT: Sends data to a destination (email, file, API, etc.).">OUTPUT</span>
+                        <span class="palette-node gate" onclick="wfAddNode('GATE')"
+                              data-tip="GATE: A Murphy Field Gate Control checkpoint.&#10;Maps to one of the 7 MFGC phases.&#10;Workflow pauses here until gate conditions are met.">GATE</span>
+                        <span class="palette-node agent-node" onclick="wfAddNode('AGENT')"
+                              data-tip="AGENT: Assigns a Murphy agent to this workflow step.&#10;Agent monitors, executes, and reports on this step.">AGENT</span>
+                        <span class="palette-node solidify-block" onclick="wfAddNode('SOLIDIFY_BLOCK')"
+                              data-tip="SOLIDIFY_BLOCK: A locked, governance-approved execution unit.&#10;Generated by the Solidify MSS operator.&#10;Cannot be modified once locked.">SOLIDIFY_BLOCK</span>
+                        <span class="palette-node librarian" onclick="wfAddNode('LIBRARIAN_QUERY')"
+                              data-tip="LIBRARIAN_QUERY: Queries the Murphy knowledge base&#10;as part of the workflow. Returns structured knowledge.">LIBRARIAN_QUERY</span>
+                    </div>
+                    <div id="wf-canvas-wrap">
+                        <canvas id="wf-canvas"></canvas>
+                    </div>
+                    <div id="wf-node-list" style="margin-top:10px;font-size:11px"></div>
+                </div>
+
+                <!-- Org Chart -->
+                <div class="subpanel" id="sub-workflows-orgchart">
+                    <div class="btn-group">
+                        <button class="btn btn-sm" onclick="loadAgents()">↻ REFRESH AGENTS</button>
+                        <button class="btn btn-sm btn-cyan" onclick="toggleShadow()"
+                                data-tip="Shadow Agents: assign an observer agent to any workflow step.&#10;Shadow agents monitor without executing.&#10;Useful for compliance and audit trails.">SHADOW AGENTS</button>
+                    </div>
+                    <div id="agent-org">
+                        <div style="color:var(--green-dim);font-size:11px">Loading agents…</div>
+                    </div>
+                    <div id="agent-detail" style="display:none" class="card">
+                        <div class="card-title">AGENT DETAIL</div>
+                        <div id="agent-detail-content" style="font-size:11px"></div>
+                    </div>
+                </div>
+
+                <!-- Live Monitor -->
+                <div class="subpanel" id="sub-workflows-monitor">
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+                        <span style="font-size:11px;color:var(--green-dim)">Auto-refresh every 5s</span>
+                        <div class="btn-group" style="margin:0">
+                            <button class="btn btn-sm" onclick="loadWorkflowMonitor()">↻ REFRESH NOW</button>
+                        </div>
+                        <span id="monitor-last" style="font-size:10px;color:var(--green-dim);margin-left:auto"></span>
+                    </div>
+                    <div id="process-list">
+                        <div style="color:var(--green-dim);font-size:11px">Loading processes…</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- =====================================================
+                 PANEL 4: REPORTS & PM
+            ====================================================== -->
+            <div class="panel" id="panel-reports">
+                <div class="panel-header">
+                    <span class="ph-title">📊 REPORTS &amp; PROJECT MANAGEMENT</span>
+                    <span class="ph-sub">TASK TRACKER · COST DASHBOARD · ONBOARDING PROGRESS</span>
+                </div>
+                <div class="subtabs">
+                    <button class="subtab-btn active" onclick="switchSub('reports','tasks')">TASK TRACKER</button>
+                    <button class="subtab-btn" onclick="switchSub('reports','costs')">COST DASHBOARD</button>
+                    <button class="subtab-btn" onclick="switchSub('reports','progress')">ONBOARDING PROGRESS</button>
+                </div>
+
+                <!-- Tasks -->
+                <div class="subpanel active" id="sub-reports-tasks">
+                    <div class="filter-row">
+                        <div>
+                            <label>STATUS</label>
+                            <select id="task-filter-status" onchange="loadTasks()">
+                                <option value="">ALL</option>
+                                <option>pending</option>
+                                <option>running</option>
+                                <option>complete</option>
+                                <option>error</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>SECTION</label>
+                            <select id="task-filter-section" onchange="loadTasks()">
+                                <option value="">ALL</option>
+                                <option>onboarding</option>
+                                <option>production</option>
+                                <option>delivery</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-sm" onclick="loadTasks()" style="align-self:flex-end">↻ REFRESH</button>
+                    </div>
+                    <div style="overflow-x:auto">
+                        <table id="task-table">
+                            <thead>
+                                <tr>
+                                    <th>TASK ID</th>
+                                    <th>SECTION</th>
+                                    <th>ASSIGNEE</th>
+                                    <th>STATUS</th>
+                                    <th>CREATED</th>
+                                    <th>UPDATED</th>
+                                </tr>
+                            </thead>
+                            <tbody id="task-tbody">
+                                <tr><td colspan="6" style="color:var(--green-dim)">Loading tasks…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Costs -->
+                <div class="subpanel" id="sub-reports-costs">
+                    <div class="grid-3" style="margin-bottom:14px" id="cost-metrics">
+                        <div class="metric-card">
+                            <div class="metric-label">TOTAL SPENT</div>
+                            <div class="metric-value" id="cost-spent">—</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">TOTAL BUDGET</div>
+                            <div class="metric-value" id="cost-budget">—</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">UTILISATION</div>
+                            <div class="metric-value" id="cost-util">—</div>
+                            <div class="metric-unit">%</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">COSTS BY DEPARTMENT</div>
+                        <div style="overflow-x:auto">
+                            <table>
+                                <thead>
+                                    <tr><th>DEPT</th><th>BUDGET</th><th>SPENT</th><th>REMAINING</th><th>UTILISATION</th></tr>
+                                </thead>
+                                <tbody id="cost-dept-tbody">
+                                    <tr><td colspan="5" style="color:var(--green-dim)">Loading…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="btn-group" style="margin-top:8px">
+                        <button class="btn btn-sm" onclick="loadCosts()">↻ REFRESH COSTS</button>
+                    </div>
+                </div>
+
+                <!-- Onboarding Progress -->
+                <div class="subpanel" id="sub-reports-progress">
+                    <div class="card">
+                        <div class="card-title">ONBOARDING STATUS</div>
+                        <div id="onboarding-progress-content" style="font-size:11px;color:var(--green-dim)">Loading…</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">RECOMMENDED NEXT STEPS</div>
+                        <div id="next-steps" style="font-size:11px;color:var(--yellow)">Loading…</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- =====================================================
+                 PANEL 5: PRODUCTION & QC
+            ====================================================== -->
+            <div class="panel" id="panel-production">
+                <div class="panel-header">
+                    <span class="ph-title">🏭 PRODUCTION &amp; QC</span>
+                    <span class="ph-sub">PRODUCTION QUEUE · QC REVIEW · STANDARDS</span>
+                </div>
+                <div class="subtabs">
+                    <button class="subtab-btn active" onclick="switchSub('production','queue')">PRODUCTION QUEUE</button>
+                    <button class="subtab-btn" onclick="switchSub('production','qc')">QC REVIEW</button>
+                    <button class="subtab-btn" onclick="switchSub('production','standards')">STANDARDS &amp; COMPLIANCE</button>
+                </div>
+
+                <!-- Production Queue -->
+                <div class="subpanel active" id="sub-production-queue">
+                    <div class="btn-group">
+                        <button class="btn btn-sm" onclick="loadProductionQueue()">↻ REFRESH</button>
+                    </div>
+                    <div id="prod-queue-list">
+                        <div style="color:var(--green-dim);font-size:11px">Loading production queue…</div>
+                    </div>
+                </div>
+
+                <!-- QC Review -->
+                <div class="subpanel" id="sub-production-qc">
+                    <div id="qc-list">
+                        <div style="color:var(--green-dim);font-size:11px">No items pending QC review.</div>
+                    </div>
+                </div>
+
+                <!-- Standards -->
+                <div class="subpanel" id="sub-production-standards">
+                    <div style="font-size:11px;color:var(--green-dim);margin-bottom:12px">
+                        Active standards raise MFGC gate thresholds and add compliance checks.
+                        <span class="badge badge-gold" style="margin-left:8px"
+                              data-tip="System recommends reviewing your regulatory obligations before enabling standards.&#10;Each standard increases gate strictness.">SYSTEM RECOMMENDATION ACTIVE</span>
+                    </div>
+                    <div class="standards-grid" id="standards-grid"></div>
+                </div>
+            </div>
+
+            <!-- =====================================================
+                 PANEL 6: DELIVERABLES & HITL
+            ====================================================== -->
+            <div class="panel" id="panel-deliverables">
+                <div class="panel-header">
+                    <span class="ph-title">📦 DELIVERABLES &amp; HITL</span>
+                    <span class="ph-sub">OUTBOUND QUEUE · HUMAN REVIEW · REQUIREMENTS MAPPING</span>
+                </div>
+                <div class="subtabs">
+                    <button class="subtab-btn active" onclick="switchSub('deliverables','outbound')">OUTBOUND QUEUE</button>
+                    <button class="subtab-btn" onclick="switchSub('deliverables','review')">HUMAN REVIEW</button>
+                    <button class="subtab-btn" onclick="switchSub('deliverables','reqmap')">REQUIREMENTS MAP</button>
+                </div>
+
+                <!-- Outbound Queue -->
+                <div class="subpanel active" id="sub-deliverables-outbound">
+                    <div class="btn-group">
+                        <button class="btn btn-sm" onclick="loadDeliverables()">↻ REFRESH</button>
+                    </div>
+                    <div id="outbound-list">
+                        <div style="color:var(--green-dim);font-size:11px">Loading deliverables…</div>
+                    </div>
+                </div>
+
+                <!-- Human Review -->
+                <div class="subpanel" id="sub-deliverables-review">
+                    <div id="hitl-review-list">
+                        <div style="color:var(--green-dim);font-size:11px">Loading HITL queue…</div>
+                    </div>
+                </div>
+
+                <!-- Requirements Map -->
+                <div class="subpanel" id="sub-deliverables-reqmap">
+                    <div id="req-map-content">
+                        <div style="color:var(--green-dim);font-size:11px">Select a deliverable to see requirements mapping.</div>
+                    </div>
+                </div>
+            </div>
+
+        </main><!-- #content -->
+    </div><!-- #body -->
+</div><!-- #app -->
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// =============================================================
+// CONFIG & API
+// =============================================================
+function resolveApiBase() {
+    const params = new URLSearchParams(window.location.search);
+    const port = params.get('port') || params.get('apiPort') || '8087';
+    if (window.location.protocol === 'file:' ||
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1') {
+        return `http://localhost:${port}/api`;
+    }
+    return `${window.location.origin}/api`;
+}
+const API = resolveApiBase();
+
+// =============================================================
+// TOAST
+// =============================================================
+let _toastTimer = null;
+function toast(msg, type = '') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = type;
+    el.style.display = 'block';
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => { el.style.display = 'none'; }, 3000);
+}
+
+// =============================================================
+// API HELPER
+// =============================================================
+async function apiGet(path) {
+    const r = await fetch(API + path);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+}
+async function apiPost(path, body) {
+    const r = await fetch(API + path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+}
+
+// =============================================================
+// NAVIGATION
+// =============================================================
+const PANELS = ['onboard', 'terminal', 'workflows', 'reports', 'production', 'deliverables'];
+let activePanel = 'onboard';
+
+function switchPanel(id) {
+    PANELS.forEach(p => {
+        document.getElementById('panel-' + p).classList.remove('active');
+        document.getElementById('nav-' + p).classList.remove('active');
+    });
+    document.getElementById('panel-' + id).classList.add('active');
+    document.getElementById('nav-' + id).classList.add('active');
+    activePanel = id;
+    onPanelActivate(id);
+}
+
+function onPanelActivate(id) {
+    if (id === 'onboard')      { loadConfig(); loadSystemStatus(); loadWizard(); }
+    if (id === 'terminal')     { termInit(); }
+    if (id === 'workflows')    { loadAgents(); loadWorkflowMonitor(); }
+    if (id === 'reports')      { loadTasks(); loadCosts(); loadOnboardingProgress(); }
+    if (id === 'production')   { loadProductionQueue(); }
+    if (id === 'deliverables') { loadDeliverables(); loadHITL(); }
+}
+
+// Sub-tabs
+function switchSub(panel, sub) {
+    const container = document.getElementById('panel-' + panel);
+    container.querySelectorAll('.subpanel').forEach(el => el.classList.remove('active'));
+    container.querySelectorAll('.subtab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('sub-' + panel + '-' + sub).classList.add('active');
+    // find matching button
+    container.querySelectorAll('.subtab-btn').forEach(btn => {
+        if (btn.textContent.trim().toLowerCase().includes(sub.toLowerCase().replace(/_/g,' '))) {
+            btn.classList.add('active');
+        }
+    });
+}
+
+// =============================================================
+// HEALTH / TELEMETRY (sidebar + header dot)
+// =============================================================
+async function checkHealth() {
+    try {
+        const data = await apiGet('/health');
+        document.getElementById('api-dot').classList.add('online');
+        document.getElementById('api-label').textContent = 'API ONLINE';
+    } catch (_) {
+        document.getElementById('api-dot').classList.remove('online');
+        document.getElementById('api-label').textContent = 'API OFFLINE';
+    }
+}
+
+async function loadTelemetry() {
+    try {
+        const { telemetry } = await apiGet('/telemetry');
+        document.getElementById('sb-os').textContent = telemetry.os || '—';
+        document.getElementById('sb-py').textContent = telemetry.python_version || '—';
+        document.getElementById('sb-llm').textContent = telemetry.llm_status || '—';
+        document.getElementById('sb-uptime').textContent = Math.round(telemetry.uptime_seconds || 0) + 's';
+        document.getElementById('sm-uptime').textContent = Math.round(telemetry.uptime_seconds || 0);
+        document.getElementById('sm-modules').textContent = telemetry.modules_loaded || '—';
+    } catch (_) {}
+}
+
+// =============================================================
+// PANEL 1: ONBOARD & CONFIG
+// =============================================================
+
+// --- Wizard ---
+let wizardQs = [];
+let wizardIdx = 0;
+let wizardAnswers = {};
+
+async function loadWizard() {
+    try {
+        const data = await apiGet('/onboarding/wizard/questions');
+        wizardQs = data.questions || [];
+        renderWizardStep();
+    } catch (_) {
+        document.getElementById('wizard-q').textContent = 'Could not load wizard (API offline).';
+    }
+}
+
+function renderWizardStep() {
+    const steps = document.getElementById('wizard-steps');
+    const pct = document.getElementById('wizard-pct');
+    const qEl = document.getElementById('wizard-q');
+    const optsEl = document.getElementById('wizard-opts');
+    const complBtn = document.getElementById('wizard-complete-btn');
+
+    steps.innerHTML = wizardQs.map((_, i) => {
+        let cls = 'wstep';
+        if (i < wizardIdx) cls += ' done';
+        if (i === wizardIdx) cls += ' active';
+        return `<div class="${cls}"></div>`;
+    }).join('');
+    pct.textContent = `Step ${Math.min(wizardIdx + 1, wizardQs.length)} of ${wizardQs.length}`;
+
+    if (wizardIdx >= wizardQs.length) {
+        qEl.textContent = '✓ Wizard complete. All answers have been submitted.';
+        optsEl.innerHTML = '';
+        complBtn.style.display = 'inline-block';
+        return;
+    }
+    complBtn.style.display = 'none';
+    const q = wizardQs[wizardIdx];
+    qEl.textContent = q.question || q.label || JSON.stringify(q);
+    optsEl.innerHTML = (q.options || []).map((o, i) => {
+        const val = typeof o === 'string' ? o : (o.value || o.label || JSON.stringify(o));
+        const lbl = typeof o === 'string' ? o : (o.label || o.value || JSON.stringify(o));
+        const sel = wizardAnswers[wizardIdx] === val ? ' selected' : '';
+        return `<button class="wopt${sel}" onclick="wizardSelect(${i}, '${val.replace(/'/g,"\\'")}')">▸ ${lbl}</button>`;
+    }).join('');
+    if (!q.options || q.options.length === 0) {
+        optsEl.innerHTML = `<input type="text" id="wizard-text-input" placeholder="Enter your answer…" value="${wizardAnswers[wizardIdx] || ''}">`;
+    }
+}
+
+async function wizardSelect(i, val) {
+    wizardAnswers[wizardIdx] = val;
+    document.getElementById('wizard-status').textContent = '';
+    try {
+        await apiPost('/onboarding/wizard/answer', {
+            question_index: wizardIdx,
+            answer: val,
+        });
+    } catch (_) { /* proceed even if offline */ }
+    wizardIdx++;
+    renderWizardStep();
+}
+
+function wizardBack() {
+    if (wizardIdx > 0) { wizardIdx--; renderWizardStep(); }
+}
+
+function wizardSkip() {
+    if (wizardIdx < wizardQs.length) { wizardIdx++; renderWizardStep(); }
+}
+
+async function wizardComplete() {
+    document.getElementById('wizard-status').textContent = '✓ Configuration saved.';
+    toast('Onboarding complete!');
+}
+
+// --- Config ---
+async function loadConfig() {
+    try {
+        const data = await apiGet('/config');
+        const cfg = data.config || {};
+        const mfgc = cfg.mfgc || {};
+        const el = (id) => document.getElementById(id);
+        el('cfg-threshold').value = mfgc.murphy_threshold ?? 0.7;
+        el('cfg-conf-mode').value = mfgc.confidence_mode || 'strict';
+        el('cfg-auth-mode').value = mfgc.authority_mode || 'human';
+        el('cfg-gate-synth').value = mfgc.gate_synthesis || 'enabled';
+        el('raw-config').value = JSON.stringify(cfg, null, 2);
+    } catch (_) {}
+
+    // LLM status
+    try {
+        const data = await apiGet('/llm/status');
+        const panel = document.getElementById('llm-status-panel');
+        panel.innerHTML = Object.entries(data)
+            .filter(([k]) => k !== 'success')
+            .map(([k, v]) => `<div><span style="color:var(--cyan)">${k}:</span> ${JSON.stringify(v)}</div>`)
+            .join('') || 'No LLM data.';
+    } catch (_) {
+        document.getElementById('llm-status-panel').textContent = 'LLM status unavailable.';
+    }
+}
+
+async function saveConfig() {
+    const mfgc = {
+        murphy_threshold: parseFloat(document.getElementById('cfg-threshold').value),
+        confidence_mode: document.getElementById('cfg-conf-mode').value,
+        authority_mode: document.getElementById('cfg-auth-mode').value,
+        gate_synthesis: document.getElementById('cfg-gate-synth').value,
+    };
+    try {
+        await apiPost('/config', { mfgc });
+        toast('Config saved.');
+    } catch (_) {
+        toast('Save failed (API offline).', 'err');
+    }
+}
+
+async function applyRawConfig() {
+    try {
+        const cfg = JSON.parse(document.getElementById('raw-config').value);
+        await apiPost('/config', cfg);
+        toast('Raw config applied.');
+    } catch (e) {
+        toast('Error: ' + e.message, 'err');
+    }
+}
+
+// --- System Status ---
+async function loadSystemStatus() {
+    await loadTelemetry();
+    try {
+        const data = await apiGet('/status');
+        const modules = data.modules || data.loaded_modules || {};
+        const list = document.getElementById('modules-list');
+        list.innerHTML = (Array.isArray(modules) ? modules : Object.keys(modules))
+            .map(m => `<div><span class="status-dot dot-green"></span>${m}</div>`)
+            .join('') || 'No modules reported.';
+        document.getElementById('sm-requests').textContent = data.request_count ?? '—';
+        const sessions = data.sessions || {};
+        document.getElementById('sessions-list').textContent =
+            JSON.stringify(sessions, null, 2) || 'No session data.';
+    } catch (_) {
+        document.getElementById('modules-list').textContent = 'Status unavailable.';
+    }
+}
+
+// =============================================================
+// PANEL 2: TERMINAL / CHAT
+// =============================================================
+let termMode = 'cmd';
+let termHistory = [];
+let histIdx = -1;
+let mfgcVisible = true;
+let lastSolidifyOutput = '';
+
+function termInit() {
+    const out = document.getElementById('terminal-output');
+    if (out.childElementCount === 0) {
+        termLog('MURPHY SYSTEM v1.0 — UNIFIED TERMINAL', 'system');
+        termLog('Type /help for commands. Use MSS buttons to transform prompts.', 'system');
+        termLog('──────────────────────────────────────────────────', 'system');
+        refreshMFGC();
+    }
+    document.getElementById('t-input').focus();
+}
+
+function termLog(msg, cls = 'system') {
+    const out = document.getElementById('terminal-output');
+    const div = document.createElement('div');
+    div.className = 't-line t-' + cls;
+    div.textContent = (cls === 'user' ? '> ' : '☠ ') + msg;
+    out.appendChild(div);
+    out.scrollTop = out.scrollHeight;
+}
+
+function setMode(mode) {
+    termMode = mode;
+    const labels = { cmd: 'MURPHY ➜', chat: 'CHAT ➜', lib: 'LIBRARIAN ➜' };
+    document.getElementById('t-prompt').textContent = labels[mode] || 'MURPHY ➜';
+    ['cmd', 'chat', 'lib'].forEach(m => {
+        document.getElementById('mode-' + m).classList.toggle('active', m === mode);
+    });
+    termLog(`Mode switched to: ${mode.toUpperCase()}`, 'info');
+}
+
+function toggleMFGC() {
+    mfgcVisible = !mfgcVisible;
+    document.getElementById('mfgc-sidebar').classList.toggle('collapsed', !mfgcVisible);
+}
+
+async function sendTerminal() {
+    const input = document.getElementById('t-input');
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    termHistory.unshift(text);
+    histIdx = -1;
+    termLog(text, 'user');
+
+    // Built-in commands
+    if (text.startsWith('/')) {
+        await handleCommand(text);
+        return;
+    }
+
+    // Route based on mode
+    try {
+        let endpoint = '/chat';
+        let body = { message: text };
+        if (termMode === 'lib') {
+            endpoint = '/librarian/ask';
+            body = { question: text };
+        }
+        const data = await apiPost(endpoint, body);
+        const reply = data.response || data.answer || data.message || JSON.stringify(data);
+        termLog(reply, 'system');
+        refreshMFGC();
+    } catch (e) {
+        termLog('Error: ' + e.message, 'error');
+    }
+}
+
+async function handleCommand(cmd) {
+    const parts = cmd.split(' ');
+    const c = parts[0].toLowerCase();
+    if (c === '/help') {
+        termLog('/help — show commands', 'info');
+        termLog('/status — system status', 'info');
+        termLog('/phases — MFGC phase status', 'info');
+        termLog('/clear — clear terminal', 'info');
+        termLog('/mode cmd|chat|lib — switch mode', 'info');
+        return;
+    }
+    if (c === '/clear') {
+        document.getElementById('terminal-output').innerHTML = '';
+        return;
+    }
+    if (c === '/status') {
+        try {
+            const d = await apiGet('/status');
+            termLog(JSON.stringify(d, null, 2), 'info');
+        } catch (e) { termLog('Error: ' + e.message, 'error'); }
+        return;
+    }
+    if (c === '/phases') {
+        await refreshMFGC();
+        return;
+    }
+    if (c === '/mode' && parts[1]) {
+        setMode(parts[1]);
+        return;
+    }
+    termLog('Unknown command. Type /help.', 'warn');
+}
+
+async function mssAction(action) {
+    const input = document.getElementById('t-input');
+    const text = input.value.trim();
+    if (!text) {
+        toast('Enter text first, then click an MSS button.', 'warn');
+        return;
+    }
+    termLog(`MSS ${action.toUpperCase()}: "${text}"`, 'user');
+    try {
+        const data = await apiPost('/mss/' + action, { text });
+        const result = data.result || {};
+        const out = result.output_text || result.text || result.solidified_text || JSON.stringify(result);
+        input.value = out;
+        termLog(`${action.toUpperCase()} → ${out}`, 'system');
+        if (action === 'solidify') {
+            lastSolidifyOutput = out;
+            termLog('SOLIDIFY_BLOCK created. Use "Generate from Solidify" in Workflows panel.', 'mfgc');
+        }
+    } catch (e) {
+        termLog('MSS Error: ' + e.message, 'error');
+    }
+}
+
+async function refreshMFGC() {
+    try {
+        const data = await apiGet('/mfgc/state');
+        const state = data.state || {};
+        const phasesEl = document.getElementById('mfgc-phases');
+        const phaseNames = ['Intake','Validate','Correct','Learn','Generate','Review','Deliver'];
+        const phases = state.phases || phaseNames.map((n, i) => ({ name: n, score: 0, status: 'idle' }));
+        phasesEl.innerHTML = phases.map((p, i) => {
+            const score = (p.score || 0) * 100;
+            const col = score >= 70 ? 'var(--green)' : score >= 40 ? 'var(--yellow)' : 'var(--red)';
+            return `<div class="phase-row">
+                <span class="phase-num">${i + 1}</span>
+                <span class="phase-name">${p.name || phaseNames[i]}</span>
+                <div class="progress-bar phase-bar">
+                    <div class="progress-fill" style="width:${score}%;background:${col}"></div>
+                </div>
+            </div>`;
+        }).join('');
+        const mi = state.murphy_index || state.overall_score || 0;
+        document.getElementById('mfgc-mi').textContent = (mi * 100).toFixed(0);
+        document.getElementById('mfgc-conf').textContent = (state.confidence || 0).toFixed(2);
+        document.getElementById('mfgc-gate').textContent = state.current_gate || '—';
+        document.getElementById('mfgc-auth').textContent = state.authority_mode || '—';
+    } catch (_) {}
+}
+
+// Keyboard history
+document.addEventListener('DOMContentLoaded', () => {
+    const inp = document.getElementById('t-input');
+    if (inp) {
+        inp.addEventListener('keydown', e => {
+            if (e.key === 'ArrowUp') {
+                histIdx = Math.min(histIdx + 1, termHistory.length - 1);
+                inp.value = termHistory[histIdx] || '';
+            }
+            if (e.key === 'ArrowDown') {
+                histIdx = Math.max(histIdx - 1, -1);
+                inp.value = histIdx >= 0 ? termHistory[histIdx] : '';
+            }
+        });
+    }
+});
+
+// =============================================================
+// PANEL 3: WORKFLOWS & AGENTS
+// =============================================================
+
+// ---- Workflow Canvas (simple node-list based) ----
+let wfNodes = [];
+let wfCanvas = null;
+let wfCtx = null;
+
+function wfNew() {
+    wfNodes = [];
+    document.getElementById('wf-name').value = '';
+    renderWFCanvas();
+    toast('New workflow started.');
+}
+
+function wfAddNode(type) {
+    const id = type + '_' + Date.now();
+    const colors = {
+        TRIGGER: '#00ff41', ACTION: '#00ffff', CONDITION: '#ffcc00',
+        TRANSFORM: '#ff88ff', CONNECTOR: '#88aaff', OUTPUT: '#ff8844',
+        GATE: '#ffd700', AGENT: '#ff00ff', SOLIDIFY_BLOCK: '#00cc33',
+        LIBRARIAN_QUERY: '#00cccc',
+    };
+    wfNodes.push({
+        id, type,
+        label: type,
+        x: 50 + (wfNodes.length % 6) * 120,
+        y: 40 + Math.floor(wfNodes.length / 6) * 80,
+        color: colors[type] || '#00ff41',
+        status: 'idle',
+        confidence: null,
+        agent: null,
+    });
+    renderWFCanvas();
+    renderWFNodeList();
+}
+
+function renderWFCanvas() {
+    const wrap = document.getElementById('wf-canvas-wrap');
+    if (!wfCanvas) {
+        wfCanvas = document.getElementById('wf-canvas');
+        wfCtx = wfCanvas.getContext('2d');
+    }
+    wfCanvas.width = wrap.clientWidth;
+    wfCanvas.height = wrap.clientHeight;
+    const ctx = wfCtx;
+    ctx.clearRect(0, 0, wfCanvas.width, wfCanvas.height);
+
+    // Grid
+    ctx.strokeStyle = '#0d1a0d';
+    ctx.lineWidth = 1;
+    for (let x = 0; x < wfCanvas.width; x += 40) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, wfCanvas.height); ctx.stroke();
+    }
+    for (let y = 0; y < wfCanvas.height; y += 40) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(wfCanvas.width, y); ctx.stroke();
+    }
+
+    // Draw connections (sequential)
+    for (let i = 1; i < wfNodes.length; i++) {
+        const a = wfNodes[i - 1], b = wfNodes[i];
+        ctx.strokeStyle = '#00cc33';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(a.x + 50, a.y + 18);
+        ctx.lineTo(b.x, b.y + 18);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // Arrow
+        ctx.fillStyle = '#00cc33';
+        ctx.beginPath();
+        ctx.moveTo(b.x, b.y + 18);
+        ctx.lineTo(b.x - 8, b.y + 13);
+        ctx.lineTo(b.x - 8, b.y + 23);
+        ctx.fill();
+    }
+
+    // Draw nodes
+    wfNodes.forEach(n => {
+        const w = 100, h = 36;
+        ctx.fillStyle = '#111';
+        ctx.strokeStyle = n.color;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.rect(n.x, n.y, w, h);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = n.color;
+        ctx.font = '10px Courier New';
+        ctx.fillText(n.type, n.x + 6, n.y + 14);
+        ctx.fillStyle = '#888';
+        ctx.font = '9px Courier New';
+        ctx.fillText(n.id.slice(-6), n.x + 6, n.y + 27);
+    });
+}
+
+function renderWFNodeList() {
+    const el = document.getElementById('wf-node-list');
+    el.innerHTML = wfNodes.length === 0
+        ? '<span style="color:var(--green-dim)">No nodes. Click palette items to add.</span>'
+        : wfNodes.map((n, i) =>
+            `<span class="badge badge-${n.type === 'GATE' ? 'gold' : n.type === 'AGENT' ? 'cyan' : 'green'}" style="margin-right:6px;margin-bottom:4px;cursor:pointer" onclick="wfRemoveNode(${i})" title="Click to remove">${n.type}</span>`
+          ).join('');
+}
+
+function wfRemoveNode(idx) {
+    wfNodes.splice(idx, 1);
+    renderWFCanvas();
+    renderWFNodeList();
+}
+
+async function wfLoad() {
+    try {
+        const data = await apiGet('/workflows');
+        const wfs = data.workflows || [];
+        if (wfs.length === 0) { toast('No saved workflows.'); return; }
+        const latest = wfs[wfs.length - 1];
+        document.getElementById('wf-name').value = latest.name || '';
+        wfNodes = latest.nodes || [];
+        renderWFCanvas();
+        renderWFNodeList();
+        toast(`Loaded: ${latest.name}`);
+    } catch (e) {
+        toast('Load failed: ' + e.message, 'err');
+    }
+}
+
+async function wfSave() {
+    const name = document.getElementById('wf-name').value.trim() || 'Untitled';
+    try {
+        await apiPost('/workflows', { name, nodes: wfNodes });
+        toast('Workflow saved: ' + name);
+        updateSidebarCounts();
+    } catch (e) {
+        toast('Save failed: ' + e.message, 'err');
+    }
+}
+
+function wfFromSolidify() {
+    if (!lastSolidifyOutput) {
+        toast('No Solidify output yet. Go to Terminal panel, enter text, click SOLIDIFY.', 'warn');
+        return;
+    }
+    wfNew();
+    wfAddNode('TRIGGER');
+    wfAddNode('SOLIDIFY_BLOCK');
+    wfAddNode('GATE');
+    wfAddNode('ACTION');
+    wfAddNode('OUTPUT');
+    document.getElementById('wf-name').value = 'From Solidify';
+    toast('Workflow generated from Solidify output.');
+}
+
+// ---- Agents ----
+async function loadAgents() {
+    try {
+        const data = await apiGet('/agents');
+        const agents = data.agents || [];
+        const el = document.getElementById('agent-org');
+        el.innerHTML = agents.map(a => {
+            const stateCls = a.status === 'active' ? 'active-state' : a.status === 'stuck' ? 'stuck-state' : 'idle-state';
+            const dotCls = a.status === 'active' ? 'dot-green' : a.status === 'stuck' ? 'dot-red' : 'dot-grey';
+            const caps = (a.capabilities || []).slice(0, 3).join(', ');
+            return `<div class="agent-card ${stateCls}" onclick="showAgentDetail('${a.id}')">
+                <div class="agent-id"><span class="status-dot ${dotCls}"></span>${a.id}</div>
+                <div class="agent-role">${a.role || '—'}</div>
+                <div class="agent-caps">${caps || 'No capabilities listed'}</div>
+                ${a.current_task ? `<div class="agent-task">▶ ${a.current_task}</div>` : ''}
+            </div>`;
+        }).join('') || '<div style="color:var(--green-dim);font-size:11px">No agents active.</div>';
+    } catch (e) {
+        document.getElementById('agent-org').innerHTML = `<div style="color:var(--red);font-size:11px">Error loading agents: ${e.message}</div>`;
+    }
+}
+
+async function showAgentDetail(id) {
+    try {
+        const data = await apiGet('/agents/' + id);
+        const a = data.agent || {};
+        document.getElementById('agent-detail').style.display = 'block';
+        document.getElementById('agent-detail-content').innerHTML = `
+            <div><b style="color:var(--cyan)">${a.id}</b> — ${a.role}</div>
+            <div style="margin-top:6px">Capabilities: ${(a.capabilities || []).join(', ') || '—'}</div>
+            <div>Status: <span class="badge badge-${a.status === 'active' ? 'green' : 'yellow'}">${a.status || '—'}</span></div>
+            <div>Current task: ${a.current_task || 'None'}</div>
+            <div style="margin-top:8px;color:var(--green-dim);font-size:10px">Activity log:</div>
+            <pre>${JSON.stringify(a.activity_log || [], null, 2)}</pre>
+            <pre style="margin-top:6px">${JSON.stringify(a.metrics || {}, null, 2)}</pre>
+        `;
+    } catch (_) {}
+}
+
+function toggleShadow() {
+    toast('Shadow agent assignment: click an agent card to assign.', 'warn');
+}
+
+// ---- Live Monitor ----
+async function loadWorkflowMonitor() {
+    document.getElementById('monitor-last').textContent = 'Updated: ' + new Date().toLocaleTimeString();
+    try {
+        const data = await apiGet('/workflows');
+        const wfs = data.workflows || [];
+        const el = document.getElementById('process-list');
+        if (wfs.length === 0) {
+            el.innerHTML = '<div style="color:var(--green-dim);font-size:11px">No running workflows.</div>';
+            return;
+        }
+        el.innerHTML = wfs.map(w => {
+            const st = w.status || 'idle';
+            const stClass = st === 'running' ? 'running' : st === 'paused' ? 'paused' : st === 'stuck' ? 'stuck' : st === 'complete' ? 'complete' : '';
+            const stBadge = st === 'running' ? 'badge-green' : st === 'paused' ? 'badge-yellow' : st === 'stuck' ? 'badge-red' : 'badge-cyan';
+            const progress = w.progress || 0;
+            return `<div class="process-row ${stClass}" onclick="toggleProcessDetail(this)">
+                <div class="process-meta">
+                    <span class="process-name">${w.name}</span>
+                    <span class="badge ${stBadge}">${st.toUpperCase()}</span>
+                    <span style="color:var(--green-dim);font-size:10px">${w.id ? w.id.slice(-8) : '—'}</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width:${progress}%"></div>
+                </div>
+                <div class="process-detail">
+                    <div>Started: ${w.created_at || '—'}</div>
+                    <div>Nodes: ${(w.nodes || []).length}</div>
+                    ${st === 'stuck' ? `<div class="hitl-actions">
+                        <button class="btn btn-sm" onclick="hitlAction('approve','${w.id}')">✓ APPROVE</button>
+                        <button class="btn btn-sm btn-cyan" onclick="hitlAction('retry','${w.id}')">↻ RETRY</button>
+                        <button class="btn btn-sm btn-red" onclick="hitlAction('escalate','${w.id}')">↑ ESCALATE</button>
+                        <button class="btn btn-sm btn-gold" onclick="hitlAction('override','${w.id}')">⊘ OVERRIDE</button>
+                    </div>` : ''}
+                </div>
+            </div>`;
+        }).join('');
+    } catch (e) {
+        document.getElementById('process-list').innerHTML = `<div style="color:var(--red);font-size:11px">Error: ${e.message}</div>`;
+    }
+}
+
+function toggleProcessDetail(row) {
+    row.querySelector('.process-detail').classList.toggle('open');
+}
+
+async function hitlAction(action, wfId) {
+    try {
+        await apiPost('/hitl/interventions/' + wfId + '/respond', { status: action });
+        toast('HITL action: ' + action);
+        loadWorkflowMonitor();
+    } catch (e) {
+        toast('Error: ' + e.message, 'err');
+    }
+}
+
+// =============================================================
+// PANEL 4: REPORTS
+// =============================================================
+async function loadTasks() {
+    const status = document.getElementById('task-filter-status').value;
+    const section = document.getElementById('task-filter-section').value;
+    try {
+        const data = await apiGet('/tasks');
+        let tasks = data.tasks || [];
+        if (status) tasks = tasks.filter(t => t.status === status);
+        if (section) tasks = tasks.filter(t => t.section === section);
+        const tbody = document.getElementById('task-tbody');
+        tbody.innerHTML = tasks.length === 0
+            ? '<tr><td colspan="6" style="color:var(--green-dim)">No tasks found.</td></tr>'
+            : tasks.map(t => `<tr>
+                <td>${t.id || '—'}</td>
+                <td>${t.section || '—'}</td>
+                <td>${t.assignee || '—'}</td>
+                <td><span class="badge badge-${t.status === 'complete' ? 'green' : t.status === 'error' ? 'red' : 'yellow'}">${t.status || '—'}</span></td>
+                <td>${t.created_at ? t.created_at.slice(0,10) : '—'}</td>
+                <td>${t.updated_at ? t.updated_at.slice(0,10) : '—'}</td>
+            </tr>`).join('');
+    } catch (e) {
+        document.getElementById('task-tbody').innerHTML = `<tr><td colspan="6" style="color:var(--red)">Error: ${e.message}</td></tr>`;
+    }
+}
+
+async function loadCosts() {
+    try {
+        const [summary, depts] = await Promise.all([
+            apiGet('/costs/summary'),
+            apiGet('/costs/by-department'),
+        ]);
+        const s = summary.summary || {};
+        document.getElementById('cost-spent').textContent = '$' + (s.spent || 0).toFixed(2);
+        document.getElementById('cost-budget').textContent = '$' + (s.total_budget || 0).toFixed(2);
+        document.getElementById('cost-util').textContent = (s.utilisation_pct || 0).toFixed(1);
+        const tbody = document.getElementById('cost-dept-tbody');
+        tbody.innerHTML = (depts.departments || []).map(d =>
+            `<tr>
+                <td>${d.department_id}</td>
+                <td>$${(d.total_budget || 0).toFixed(2)}</td>
+                <td>$${(d.spent || 0).toFixed(2)}</td>
+                <td>$${(d.remaining || 0).toFixed(2)}</td>
+                <td>${(d.utilisation_pct || 0).toFixed(1)}%</td>
+            </tr>`
+        ).join('') || '<tr><td colspan="5" style="color:var(--green-dim)">No departments.</td></tr>';
+    } catch (e) {
+        toast('Costs unavailable.', 'warn');
+    }
+}
+
+async function loadOnboardingProgress() {
+    try {
+        const data = await apiGet('/onboarding/wizard/summary');
+        const el = document.getElementById('onboarding-progress-content');
+        const missing = data.missing_fields || [];
+        el.innerHTML = `<div>Completion: <span style="color:var(--green)">${data.completion_pct || 0}%</span></div>
+            <div style="margin-top:8px">Profile: <pre>${JSON.stringify(data.profile || {}, null, 2)}</pre></div>`;
+        document.getElementById('next-steps').innerHTML = missing.length > 0
+            ? missing.map(f => `<div>▸ Complete field: <span style="color:var(--cyan)">${f}</span></div>`).join('')
+            : '<div style="color:var(--green)">✓ All fields complete.</div>';
+    } catch (_) {
+        document.getElementById('onboarding-progress-content').textContent = 'Could not load onboarding summary.';
+        document.getElementById('next-steps').textContent = 'Onboarding data unavailable.';
+    }
+}
+
+// =============================================================
+// PANEL 5: PRODUCTION & QC
+// =============================================================
+async function loadProductionQueue() {
+    try {
+        const data = await apiGet('/production/queue');
+        const items = data.items || [];
+        const el = document.getElementById('prod-queue-list');
+        el.innerHTML = items.length === 0
+            ? '<div style="color:var(--green-dim);font-size:11px">No items in production queue.</div>'
+            : items.map(item => `<div class="prod-item">
+                <div class="prod-meta">
+                    <span class="prod-name">${item.name || item.id || '—'}</span>
+                    <span class="badge badge-cyan">${item.type || 'item'}</span>
+                    <span style="color:var(--green-dim);font-size:10px">Phase: ${item.mfgc_phase || '—'}</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width:${(item.progress || 0)}%"></div>
+                </div>
+                <div style="font-size:10px;color:var(--green-dim);margin-top:4px">
+                    Confidence: ${item.confidence || '—'} | Agent: ${item.agent || '—'}
+                </div>
+            </div>`).join('');
+    } catch (e) {
+        document.getElementById('prod-queue-list').innerHTML = `<div style="color:var(--red);font-size:11px">Error: ${e.message}</div>`;
+    }
+}
+
+// Standards
+const STANDARDS = [
+    { id: 'hipaa', name: 'HIPAA', desc: 'Health data privacy. Adds PHI handling gates.', tooltip: 'HIPAA: Health Insurance Portability and Accountability Act.\nApplies to health-related data. Murphy adds PHI (Protected Health Information) gates\nto all workflows touching medical records or patient data.\nSystem enforces: access control, audit logging, data minimisation.' },
+    { id: 'soc2', name: 'SOC 2', desc: 'Security, availability, confidentiality controls.', tooltip: 'SOC 2: Service Organisation Control Type 2.\nApplies to SaaS companies handling customer data.\nMurphy adds security gate checks for availability, confidentiality,\nprocessing integrity, and privacy controls.' },
+    { id: 'iso27001', name: 'ISO 27001', desc: 'Information security management.', tooltip: 'ISO 27001: Information Security Management System standard.\nAdds risk assessment gates and controls aligned to Annex A.\nMurphy tracks asset management, access control, cryptography, incident response.' },
+    { id: 'gdpr', name: 'GDPR', desc: 'EU data protection and privacy.', tooltip: 'GDPR: General Data Protection Regulation (EU).\nApplies when processing personal data of EU residents.\nMurphy adds consent tracking, data subject rights, and cross-border transfer gates.\nNote: Murphy uses "aligned" not "compliant" — no formal attestation.' },
+    { id: 'pci_dss', name: 'PCI DSS', desc: 'Payment card data security.', tooltip: 'PCI DSS: Payment Card Industry Data Security Standard.\nApplies when processing card payment data.\nMurphy adds cardholder data environment gates and encryption checks.' },
+    { id: 'osha', name: 'OSHA', desc: 'Workplace safety standards.', tooltip: 'OSHA: Occupational Safety and Health Administration standards.\nApplies to physical workplace automation workflows.\nMurphy adds safety review gates for any process with physical outputs.' },
+];
+
+let activeStandards = new Set();
+
+function renderStandards() {
+    document.getElementById('standards-grid').innerHTML = STANDARDS.map(s => `
+        <div class="std-toggle ${activeStandards.has(s.id) ? 'on' : ''}"
+             data-tip="${s.tooltip}"
+             onclick="toggleStandard('${s.id}', this)">
+            <div class="toggle-switch ${activeStandards.has(s.id) ? 'on' : ''}">
+                <div class="toggle-knob"></div>
+            </div>
+            <div>
+                <div class="std-name">${s.name}</div>
+                <div class="std-desc">${s.desc}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function toggleStandard(id, el) {
+    if (activeStandards.has(id)) {
+        activeStandards.delete(id);
+        el.classList.remove('on');
+        el.querySelector('.toggle-switch').classList.remove('on');
+    } else {
+        activeStandards.add(id);
+        el.classList.add('on');
+        el.querySelector('.toggle-switch').classList.add('on');
+    }
+    toast(id.toUpperCase() + ' ' + (activeStandards.has(id) ? 'enabled' : 'disabled'));
+}
+
+// =============================================================
+// PANEL 6: DELIVERABLES & HITL
+// =============================================================
+async function loadDeliverables() {
+    try {
+        const data = await apiGet('/deliverables');
+        const items = data.deliverables || [];
+        const el = document.getElementById('outbound-list');
+        el.innerHTML = items.length === 0
+            ? '<div style="color:var(--green-dim);font-size:11px">No outbound deliverables.</div>'
+            : items.map(d => `<div class="deliverable-row">
+                <div class="deliv-meta">
+                    <span class="deliv-name">${d.name || d.id || '—'}</span>
+                    <span class="badge badge-${d.status === 'approved' ? 'green' : d.status === 'review' ? 'yellow' : 'cyan'}">${d.status || 'draft'}</span>
+                    <span style="color:var(--green-dim);font-size:10px">${d.type || '—'}</span>
+                </div>
+                <div style="font-size:10px;color:var(--green-dim)">
+                    Recipient: ${d.recipient || '—'} | Confidence: ${d.confidence || '—'}
+                </div>
+            </div>`).join('');
+    } catch (e) {
+        document.getElementById('outbound-list').innerHTML = `<div style="color:var(--red);font-size:11px">Error: ${e.message}</div>`;
+    }
+}
+
+async function loadHITL() {
+    try {
+        const data = await apiGet('/hitl/interventions/pending');
+        const items = data.interventions || [];
+        const el = document.getElementById('hitl-review-list');
+        el.innerHTML = items.length === 0
+            ? '<div style="color:var(--green-dim);font-size:11px">No items pending human review.</div>'
+            : items.map(item => `<div class="qc-item">
+                <div style="font-size:12px;color:var(--cyan);margin-bottom:6px">${item.id || '—'}: ${item.description || item.type || '—'}</div>
+                <pre style="height:80px">${JSON.stringify(item.data || item, null, 2)}</pre>
+                <div class="qc-actions">
+                    <button class="btn btn-sm" onclick="hitlRespond('${item.id}','approve')">✓ APPROVE</button>
+                    <button class="btn btn-sm btn-cyan" onclick="hitlRespond('${item.id}','edit')">✎ EDIT</button>
+                    <button class="btn btn-sm btn-red" onclick="hitlRespond('${item.id}','reject')">✕ REJECT</button>
+                </div>
+            </div>`).join('');
+    } catch (_) {
+        document.getElementById('hitl-review-list').innerHTML = '<div style="color:var(--green-dim);font-size:11px">HITL queue unavailable.</div>';
+    }
+}
+
+async function hitlRespond(id, action) {
+    try {
+        await apiPost('/hitl/interventions/' + id + '/respond', { status: action });
+        toast('HITL ' + action + ' sent.');
+        loadHITL();
+    } catch (e) {
+        toast('Error: ' + e.message, 'err');
+    }
+}
+
+// =============================================================
+// SIDEBAR COUNTERS
+// =============================================================
+async function updateSidebarCounts() {
+    try {
+        const wf = await apiGet('/workflows');
+        document.getElementById('sb-wf-count').textContent = wf.count || 0;
+    } catch (_) {}
+    try {
+        const hitl = await apiGet('/hitl/interventions/pending');
+        document.getElementById('sb-alerts').textContent = hitl.count || 0;
+    } catch (_) {}
+}
+
+// =============================================================
+// INIT
+// =============================================================
+document.addEventListener('DOMContentLoaded', async () => {
+    // Initial health check
+    await checkHealth();
+    await loadTelemetry();
+    updateSidebarCounts();
+
+    // Load panel 1 on start
+    onPanelActivate('onboard');
+    renderStandards();
+    renderWFCanvas();
+
+    // Polling
+    setInterval(checkHealth, 15000);
+    setInterval(loadTelemetry, 30000);
+    setInterval(updateSidebarCounts, 30000);
+    setInterval(() => {
+        if (activePanel === 'workflows') loadWorkflowMonitor();
+        if (activePanel === 'terminal') refreshMFGC();
+    }, 5000);
+});
+</script>
+</body>
+</html>
