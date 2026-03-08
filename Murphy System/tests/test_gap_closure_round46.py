@@ -8,7 +8,7 @@ Validates all nine new crypto trading modules introduced in this round:
                   (ExchangeRegistry, PaperExchangeConnector, ExchangeOrchestrator)
   Gap 3 (High):   CryptoWalletManager — wallet types, portfolio snapshot
   Gap 4 (High):   MarketDataFeed — candle cache, technical indicators
-  Gap 5 (High):   TradingStrategyEngine — all 6 strategies + backtester
+  Gap 5 (High):   TradingStrategyEngine — all 7 strategies + backtester
   Gap 6 (High):   TradingBotLifecycle — ManagedBot state machine, BotLifecycleManager
   Gap 7 (Critical): TradingHITLGateway — approval routing, audit log,
                     auto-approve in supervised mode, manual queue
@@ -436,7 +436,7 @@ class TestGap4_MarketDataFeed:
 # ===========================================================================
 
 class TestGap5_TradingStrategyEngine:
-    """Verify all 6 strategies and the backtester."""
+    """Verify all 7 strategies and the backtester."""
 
     def _make_indicators(self, rsi=50.0, macd_hist=0.001, ema9=50_000.0, vwap=49_500.0,
                          bb_upper=51_000.0, bb_lower=49_000.0, bb_mid=50_000.0):
