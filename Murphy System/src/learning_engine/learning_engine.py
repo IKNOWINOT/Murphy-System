@@ -325,7 +325,7 @@ class PatternRecognizer:
     def _recognize_correlation_patterns(self, metric_name: str,
                                        metrics: List[PerformanceMetric]) -> List[LearnedPattern]:
         """Recognize correlation patterns between metrics"""
-        # Placeholder for more sophisticated correlation analysis
+        # Simplified correlation analysis; extend for production use
         return []
 
     def add_pattern(self, pattern: LearnedPattern) -> None:

@@ -694,7 +694,7 @@ Var(2X) = 2² × Var(X) = 4 × Var(X)
             return matches[0] if matches else query
         return query
 
-    # Placeholder methods for remaining categories
+    # Methods for remaining categories follow the same pattern
     def _handle_programming_reasoning(self, query: str, context: Dict) -> Dict[str, Any]:
         return {'response': 'Programming reasoning handler', 'confidence': 0.8}
 

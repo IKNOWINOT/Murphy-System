@@ -143,6 +143,7 @@ class UserProfile:
     )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Return a plain-dict representation of the signup request."""
         return {
             "user_id": self.user_id,
             "email": self.email,
@@ -181,6 +182,7 @@ class Organization:
     )
 
     def to_dict(self) -> Dict[str, Any]:
+        """Return a plain-dict representation of the organisation record."""
         return {
             "org_id": self.org_id,
             "name": self.name,
@@ -204,6 +206,7 @@ class EulaRecord:
     user_agent: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
+        """Return a plain-dict representation of the EULA acceptance record."""
         return {
             "record_id": self.record_id,
             "user_id": self.user_id,

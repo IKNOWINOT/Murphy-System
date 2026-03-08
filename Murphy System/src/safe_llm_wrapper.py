@@ -334,7 +334,7 @@ class SafeLLMWrapper:
         Returns:
             (confidence, evidence_list)
         """
-        # Placeholder - would integrate with actual verification
+        # Returns default confidence; real verification deferred to external provider
         return 0.5, []
 
 

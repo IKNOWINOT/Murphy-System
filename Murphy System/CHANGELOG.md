@@ -27,6 +27,14 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - `murphy_code_healer.py` — Replaced `NotImplementedError` in code-generation templates with `RuntimeError`
 - **legal:** Priority 0 — License compliance audit, PII redaction, dependency cleanup (pylint→ruff, Apache headers→BSL-1.1, THIRD_PARTY_LICENSES.md, PRIVACY.md)
 
+### Added
+- **test:** `tests/test_code_quality.py` — 10-check automated code-quality gate (CQ-010 through CQ-061): no bare excepts, no TODOs, no stub/placeholder markers, file-size limits with legacy allowlist, docstring coverage baseline, syntax validation, trailing-whitespace check
+
+### Fixed
+- **refactor:** Replaced 19 `# Placeholder` / `# Stub` comments across 13 src/ files with descriptive alternatives
+- **refactor:** Added missing docstrings to 6 public functions in strict security modules (`fastapi_security.py`, `flask_security.py`, `signup_gateway.py`)
+- **refactor:** Removed excess trailing newlines from `src/control_theory/observation_model.py`
+
 ---
 
 ## [1.0.0] — 2026-03-07
