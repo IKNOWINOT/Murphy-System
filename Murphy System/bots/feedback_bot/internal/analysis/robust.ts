@@ -9,9 +9,10 @@ export function seasonal(rows:any[], half=3){
       const dow = new Date(e.ts).getDay();
       buckets[dow].push(e.value||0);
     }
-    // Compute per-bucket mean for seasonal index
+    // Compute per-bucket mean for seasonal index (only non-empty buckets contribute)
     const bucketMean = buckets.map(b => b.length ? b.reduce((s,v)=>s+v,0)/b.length : 0);
-    const overallMean = bucketMean.reduce((s,v)=>s+v,0) / (bucketMean.filter(v=>v!==0).length||1);
+    const nonZeroMeans = bucketMean.filter(v=>v!==0);
+    const overallMean = nonZeroMeans.length ? nonZeroMeans.reduce((s,v)=>s+v,0)/nonZeroMeans.length : 0;
     const seasonalIndex = buckets.map((b,i) => overallMean > 0 ? bucketMean[i]/overallMean : 1);
     // Compute EWMA level over all events (time-ordered)
     const sorted = arr.slice().sort((a,b)=>new Date(a.ts).getTime()-new Date(b.ts).getTime());

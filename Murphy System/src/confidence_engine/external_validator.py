@@ -205,11 +205,16 @@ class DataSourceValidator(ExternalValidator):
                         async with session.head(source, timeout=aiohttp.ClientTimeout(total=3)) as resp:
                             return resp.status < 500
                 except ImportError:
-                    # Fallback to urllib
+                    # Fallback to urllib — run in executor to avoid blocking the event loop
+                    import asyncio
                     import urllib.request
-                    req = urllib.request.Request(source, method="HEAD")
-                    with urllib.request.urlopen(req, timeout=3) as resp:
-                        return resp.status < 500
+
+                    def _head_request():
+                        req = urllib.request.Request(source, method="HEAD")
+                        with urllib.request.urlopen(req, timeout=3) as resp:
+                            return resp.status < 500
+
+                    return await asyncio.to_thread(_head_request)
 
             elif source_type == "database":
                 # Basic connection string format validation
@@ -299,8 +304,10 @@ class DomainExpertValidator(ExternalValidator):
 
             keywords = domain_keywords.get(domain_norm, [])
             if keywords:
+                import re as _re
                 query_lower = query.lower()
-                matches = sum(1 for kw in keywords if kw in query_lower)
+                # Use word-boundary matching to avoid false positives (e.g. 'code' in 'decode')
+                matches = sum(1 for kw in keywords if _re.search(r'\b' + _re.escape(kw) + r'\b', query_lower))
                 # Each keyword match adjusts score by +0.03, up to +0.15
                 adjustment = min(matches * 0.03, 0.15)
                 # If none of the domain keywords appear, penalise slightly
