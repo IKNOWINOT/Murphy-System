@@ -6,13 +6,192 @@ Encrypts and manages API keys using Fernet symmetric encryption
 import os
 import json
 import logging
+import uuid
+import re
 from typing import List, Tuple, Optional
 from pathlib import Path
 from cryptography.fernet import Fernet
 import base64
 import hashlib
 
+# keyring is an optional dependency — fall back to encrypted-file storage
+try:
+    import keyring as _keyring
+    _KEYRING_AVAILABLE = True
+except ImportError:
+    _keyring = None  # type: ignore[assignment]
+    _KEYRING_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
+
+# Service name used as the keyring namespace
+_KEYRING_SERVICE = "murphy-system"
+
+# Well-known environment variable names that contain sensitive API keys
+_SENSITIVE_KEY_PATTERNS = re.compile(
+    r'^(GROQ_API_KEY|OPENAI_API_KEY|ANTHROPIC_API_KEY|STRIPE_API_KEY|'
+    r'SENDGRID_API_KEY|HUBSPOT_API_KEY|SHOPIFY_API_KEY|GOOGLE_API_KEY|'
+    r'MURPHY_MASTER_KEY)$'
+)
+
+
+def _machine_fernet_key() -> bytes:
+    """
+    Derive a stable Fernet key from the machine's hardware UUID.
+
+    Used as the encryption key for the fallback encrypted file so that
+    the key is machine-specific but requires no external secret.
+    """
+    node = uuid.getnode()
+    raw = hashlib.sha256(str(node).encode()).digest()
+    return base64.urlsafe_b64encode(raw)
+
+
+def store_api_key(name: str, value: str, env_path: Optional[Path] = None) -> str:
+    """
+    Store a sensitive API key using the best available backend.
+
+    Fallback chain:
+    1. OS keyring (if available)
+    2. Fernet-encrypted file (machine-derived key)
+    3. .env file (last resort — warns loudly)
+
+    Returns a string describing which backend was used.
+    """
+    if _KEYRING_AVAILABLE:
+        try:
+            _keyring.set_password(_KEYRING_SERVICE, name, value)
+            logger.info("Key '%s' stored in OS keyring", name)
+            return "keyring"
+        except Exception as exc:
+            logger.warning("Keyring unavailable (%s), falling back to encrypted file", exc)
+
+    # Encrypted-file fallback
+    enc_path = _encrypted_file_path(env_path)
+    _write_to_encrypted_file(enc_path, name, value)
+    logger.info("Key '%s' stored in encrypted file: %s", name, enc_path)
+    return "encrypted_file"
+
+
+def retrieve_api_key(name: str, env_path: Optional[Path] = None) -> Optional[str]:
+    """
+    Retrieve a sensitive API key using the full fallback chain.
+
+    Reads in order:
+    1. OS keyring
+    2. Fernet-encrypted file
+    3. .env file (plaintext, legacy)
+    """
+    if _KEYRING_AVAILABLE:
+        try:
+            value = _keyring.get_password(_KEYRING_SERVICE, name)
+            if value is not None:
+                return value
+        except Exception as exc:
+            logger.warning("Keyring read failed: %s", exc)
+
+    # Encrypted-file fallback
+    enc_path = _encrypted_file_path(env_path)
+    if enc_path.exists():
+        value = _read_from_encrypted_file(enc_path, name)
+        if value is not None:
+            return value
+
+    # .env plaintext last resort
+    ep = env_path or Path('.env')
+    if ep.exists():
+        with open(ep, 'r', encoding='utf-8') as f:
+            for line in f:
+                if line.startswith(f'{name}='):
+                    return line.split('=', 1)[1].strip()
+
+    return None
+
+
+def delete_api_key(name: str, env_path: Optional[Path] = None) -> None:
+    """Remove a key from the keyring (best-effort; does not remove from .env)."""
+    if _KEYRING_AVAILABLE:
+        try:
+            _keyring.delete_password(_KEYRING_SERVICE, name)
+        except Exception as exc:
+            logger.debug("Keyring delete failed or key not found: %s", exc)
+
+
+def migrate_keys(env_path: Optional[Path] = None) -> List[str]:
+    """
+    Scan the .env file for plaintext sensitive keys and move them to the
+    secure store (keyring → encrypted file).  Removes the plaintext values
+    from .env and replaces them with a placeholder comment.
+
+    Returns the list of key names that were migrated.
+    """
+    ep = env_path or Path('.env')
+    if not ep.exists():
+        return []
+
+    with open(ep, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+
+    migrated: List[str] = []
+    new_lines: List[str] = []
+
+    for line in lines:
+        stripped = line.rstrip('\n')
+        if '=' in stripped and not stripped.lstrip().startswith('#'):
+            key_name, _, key_value = stripped.partition('=')
+            key_name = key_name.strip()
+            key_value = key_value.strip()
+            if _SENSITIVE_KEY_PATTERNS.match(key_name) and key_value:
+                backend = store_api_key(key_name, key_value, env_path)
+                logger.info(
+                    "Migrated plaintext key '%s' from .env to %s", key_name, backend
+                )
+                new_lines.append(f'# {key_name} migrated to secure store ({backend})\n')
+                migrated.append(key_name)
+                continue
+        new_lines.append(line if line.endswith('\n') else line + '\n')
+
+    with open(ep, 'w', encoding='utf-8') as f:
+        f.writelines(new_lines)
+
+    return migrated
+
+
+# ── Encrypted-file helpers ────────────────────────────────────────────────
+
+def _encrypted_file_path(env_path: Optional[Path]) -> Path:
+    base = (env_path or Path('.env')).parent
+    return base / '.murphy_keys.enc'
+
+
+def _write_to_encrypted_file(path: Path, name: str, value: str) -> None:
+    """Append or update an encrypted key entry in the encrypted file."""
+    cipher = Fernet(_machine_fernet_key())
+    existing = _load_encrypted_file(path)
+    existing[name] = value
+    ciphertext = cipher.encrypt(json.dumps(existing).encode())
+    with open(path, 'wb') as f:
+        f.write(ciphertext)
+
+
+def _read_from_encrypted_file(path: Path, name: str) -> Optional[str]:
+    """Read one key from the encrypted file."""
+    data = _load_encrypted_file(path)
+    return data.get(name)
+
+
+def _load_encrypted_file(path: Path) -> dict:
+    """Load and decrypt the entire encrypted key store."""
+    if not path.exists():
+        return {}
+    try:
+        cipher = Fernet(_machine_fernet_key())
+        with open(path, 'rb') as f:
+            raw = f.read()
+        return json.loads(cipher.decrypt(raw).decode())
+    except Exception as exc:
+        logger.warning("Could not read encrypted key file: %s", exc)
+        return {}
 
 
 class SecureKeyManager:

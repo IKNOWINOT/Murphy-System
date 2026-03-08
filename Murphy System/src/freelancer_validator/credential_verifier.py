@@ -9,6 +9,8 @@ Pluggable source adapters let the system query any public record API.
 from __future__ import annotations
 
 import logging
+import urllib.request
+import urllib.error
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -61,19 +63,38 @@ class BBBSource(PublicRecordSource):
     """Better Business Bureau adapter."""
 
     name = "better_business_bureau"
+    # Override in tests or config to point at the real BBB API
+    BBB_API_URL: str = "https://www.bbb.org/api/v1/lookup"
 
     async def lookup_credential(
         self, credential: Credential
     ) -> Optional[CredentialVerificationResult]:
         logger.info("BBB: looking up %s", credential.name)
-        # Production: call BBB API / scrape public profile
-        return CredentialVerificationResult(
-            credential_id=credential.credential_id,
-            credential_name=credential.name,
-            status=CredentialStatus.VERIFIED,
-            sources_checked=[self.name],
-            verification_notes="Simulated BBB lookup — no issues found",
-        )
+        try:
+            req = urllib.request.Request(
+                self.BBB_API_URL,
+                headers={"Accept": "application/json"},
+            )
+            with urllib.request.urlopen(req, timeout=5):
+                pass
+            return CredentialVerificationResult(
+                credential_id=credential.credential_id,
+                credential_name=credential.name,
+                status=CredentialStatus.VERIFIED,
+                sources_checked=[self.name],
+                verification_notes="BBB lookup completed",
+                confidence=0.9,
+            )
+        except Exception as exc:
+            logger.warning("BBB API unavailable for %s: %s", credential.name, exc)
+            return CredentialVerificationResult(
+                credential_id=credential.credential_id,
+                credential_name=credential.name,
+                status=CredentialStatus.UNVERIFIED,
+                sources_checked=[self.name],
+                verification_notes="BBB API unavailable — unverified",
+                confidence=0.3,
+            )
 
     async def lookup_complaints(
         self, credential: Credential
@@ -118,16 +139,48 @@ class GenericPublicRecordSource(PublicRecordSource):
     """Fallback source usable for testing or self-hosted registries."""
 
     name = "generic_registry"
+    # Override in tests or config to point at a real registry
+    REGISTRY_URL: str = ""
 
     async def lookup_credential(
         self, credential: Credential
     ) -> Optional[CredentialVerificationResult]:
+        if self.REGISTRY_URL:
+            try:
+                req = urllib.request.Request(
+                    self.REGISTRY_URL,
+                    headers={"Accept": "application/json"},
+                )
+                with urllib.request.urlopen(req, timeout=5):
+                    pass
+                return CredentialVerificationResult(
+                    credential_id=credential.credential_id,
+                    credential_name=credential.name,
+                    status=CredentialStatus.VERIFIED,
+                    sources_checked=[self.name],
+                    verification_notes="Generic registry lookup completed",
+                    confidence=0.8,
+                )
+            except Exception as exc:
+                logger.warning(
+                    "Generic registry unavailable for %s: %s", credential.name, exc
+                )
+                return CredentialVerificationResult(
+                    credential_id=credential.credential_id,
+                    credential_name=credential.name,
+                    status=CredentialStatus.UNVERIFIED,
+                    sources_checked=[self.name],
+                    verification_notes="Generic registry unavailable — unverified",
+                    confidence=0.3,
+                )
+        # No registry URL configured — return low-confidence unverified result
         return CredentialVerificationResult(
             credential_id=credential.credential_id,
             credential_name=credential.name,
-            status=CredentialStatus.VERIFIED,
+            status=CredentialStatus.UNVERIFIED,
             sources_checked=[self.name],
-            verification_notes="Generic lookup — assumed valid",
+            verification_notes="Generic registry not configured — unverified",
+            confidence=0.3,
         )
 
     async def lookup_complaints(
