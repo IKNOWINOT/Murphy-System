@@ -1173,3 +1173,156 @@ Request a wallet transfer (always requires HITL approval).
 ---
 
 *Copyright © 2020 Inoni Limited Liability Company | Creator: Corey Post | License: BSL 1.1*
+
+---
+
+## Shadow Learning System
+
+> Shadow bots run paper simulations against live prices 24/7.  
+> **No real money is ever used.**  
+> Winning weekly patterns are saved for human review before being promoted to influence future strategy hints.
+
+### Real-Money Safety Rule
+
+All real bots (`dry_run=false`) are **permanently forced to `MANUAL` mode** regardless of the `hitl_mode` setting.  
+This is enforced unconditionally in the `TradingHITLGateway` — no configuration or API can override it.
+
+---
+
+### `POST /api/trading/shadow/bots`
+
+Register a new shadow (paper-only) bot.
+
+**Auth:** Required  
+**Body:**
+```json
+{
+  "strategy_id": "momentum_btc",
+  "pair": "BTC/USDT",
+  "exchange_id": "paper",
+  "initial_paper_usd": 10000.0
+}
+```
+**Response 201:** `{ "bot_id": "uuid", "initial_paper_usd": 10000.0 }`
+
+---
+
+### `GET /api/trading/shadow/bots`
+
+List all shadow bots and their current-week performance.
+
+**Auth:** Required  
+**Response 200:**
+```json
+[
+  {
+    "bot_id": "uuid",
+    "pair": "BTC/USDT",
+    "strategy_id": "momentum_btc",
+    "start_equity": 10000.0,
+    "current_equity": 10340.0,
+    "gain_pct": 0.034,
+    "total_sells": 8,
+    "wins": 6,
+    "win_rate": 0.75,
+    "pct_complete": 0.65
+  }
+]
+```
+
+---
+
+### `POST /api/trading/shadow/check_week`
+
+Trigger a manual week-end evaluation for all shadow bots whose week window has elapsed.
+
+**Auth:** Required (admin)  
+**Response 200:**
+```json
+{
+  "evaluated": 3,
+  "winning_weeks_saved": 2,
+  "pattern_ids": ["uuid1", "uuid2"]
+}
+```
+
+---
+
+### `GET /api/trading/shadow/patterns`
+
+List saved winning-week patterns.
+
+**Auth:** Required  
+**Query:** `?status=pending|reviewed|promoted|rejected&strategy_id=…&pair=…`  
+**Response 200:**
+```json
+[
+  {
+    "pattern_id": "uuid",
+    "strategy_id": "momentum_btc",
+    "pair": "BTC/USDT",
+    "week_start": "2026-03-01T00:00:00Z",
+    "week_end": "2026-03-08T00:00:00Z",
+    "gain_pct": 0.034,
+    "win_rate": 0.75,
+    "total_trades": 8,
+    "status": "pending",
+    "avg_winning_indicators": { "rsi_14": 31.2, "macd_hist": 0.0021 }
+  }
+]
+```
+
+---
+
+### `POST /api/trading/shadow/patterns/{pattern_id}/review`
+
+Mark a pattern as reviewed (human has looked at it).
+
+**Auth:** Required  
+**Body:** `{ "notes": "Win rate consistent with expectations" }`  
+**Response 200:** `{ "pattern_id": "uuid", "status": "reviewed" }`
+
+---
+
+### `POST /api/trading/shadow/patterns/{pattern_id}/promote`
+
+Promote a pattern — its indicator averages will bias future strategy hints.
+
+**Auth:** Required (senior)  
+**Body:** `{ "notes": "Promote for next week's BTC/USDT trading" }`  
+**Response 200:** `{ "pattern_id": "uuid", "status": "promoted" }`
+
+---
+
+### `POST /api/trading/shadow/patterns/{pattern_id}/reject`
+
+Reject a pattern as noise (it will not be promoted).
+
+**Auth:** Required  
+**Body:** `{ "notes": "Anomalous week, not representative" }`  
+**Response 200:** `{ "pattern_id": "uuid", "status": "rejected" }`
+
+---
+
+### `GET /api/trading/shadow/hints`
+
+Retrieve promoted pattern hints for a given strategy and pair.
+
+**Auth:** Required  
+**Query:** `?strategy_id=momentum_btc&pair=BTC/USDT`  
+**Response 200:**
+```json
+[
+  {
+    "pattern_id": "uuid",
+    "week_start": "2026-03-01",
+    "gain_pct": 0.034,
+    "win_rate": 0.75,
+    "indicators": { "rsi_14": 31.2, "macd_hist": 0.0021, "ema_9": 49500 }
+  }
+]
+```
+
+---
+
+*Copyright © 2020 Inoni Limited Liability Company | Creator: Corey Post | License: BSL 1.1*
