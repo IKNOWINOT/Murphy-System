@@ -42,7 +42,7 @@
 │           ▼                                              ▼              │
 │  ┌─────────────────┐    ┌──────────────────┐    ┌───────────────────┐  │
 │  │ HealerSupervisor │    │  Golden Path       │    │ EventBackbone    │  │
-│  │ (Erlang OTP)     │    │  Recorder          │    │ Integration      │  │
+│  │ (Supervision)    │    │  Recorder          │    │ Integration      │  │
 │  │ • one_for_one    │    │  • Pattern Store   │    │ • Full Audit     │  │
 │  │ • one_for_all    │    │  • Replay Engine   │    │ • Observability  │  │
 │  │ • Restart Budget │    │  • Cross-Gap       │    │ • Metrics        │  │
@@ -119,7 +119,7 @@ plan = planner.create_plan(gap, context)
 # plan.patch_type        — add_guard | add_test | refactor | ...
 ```
 
-### 4. PatchGenerator — SWE-Agent + Governance Pattern
+### 4. PatchGenerator — Confidence-Gated Governance
 
 Generates unified diffs and `CodeProposal` objects:
 
@@ -131,15 +131,15 @@ Generates unified diffs and `CodeProposal` objects:
 - Auto-generates adversarial test alongside the fix test
 - Full audit trail in `CodeProposal.audit_trail`
 
-### 5. ReconciliationController — Kubernetes-Style
+### 5. ReconciliationController — Desired-State Loop
 
 Desired state: *zero known gaps, all tests passing, all docs current.*
 
 - Compares observed state (from `DiagnosticSupervisor`) against desired state
 - Exponential backoff for repeated failures: `delay = min(2ⁿ, 300s)`
-- Leader election: only one reconcile may run at a time (mutex)
+- Leader-election guard: only one reconcile may run at a time (mutex)
 
-### 6. HealerSupervisor — Erlang OTP Pattern
+### 6. HealerSupervisor — Worker Supervision
 
 Supervision tree for healing workers:
 
@@ -150,7 +150,7 @@ Supervision tree for healing workers:
 
 Each worker has a restart budget: max 5 restarts in 60 seconds.
 
-### 7. HealerChaosRunner — Netflix Chaos Pattern
+### 7. HealerChaosRunner — Failure Injection &amp; Resilience Verification
 
 Integrates with `SyntheticFailureGenerator`:
 - Injects failure scenarios against the patched code
