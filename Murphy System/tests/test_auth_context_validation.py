@@ -134,28 +134,38 @@ class TestLocationValidation:
 # ---------------------------------------------------------------------------
 
 class TestNetworkClassification:
+    def _cv_with_private_networks(self):
+        """Return a verifier with an explicit private_networks list for CIDR-based testing."""
+        from security_plane.authentication import ContextualVerifier
+        return ContextualVerifier(private_networks=[
+            "10.", "172.16.", "172.17.", "172.18.", "172.19.",
+            "172.20.", "172.21.", "172.22.", "172.23.", "172.24.",
+            "172.25.", "172.26.", "172.27.", "172.28.", "172.29.",
+            "172.30.", "172.31.", "192.168.", "127.",
+        ])
+
     def test_private_192168_no_penalty(self):
-        cv = _get_contextual_verifier()
+        cv = self._cv_with_private_networks()
         result = cv.verify_context("user1", "business_hours", network="192.168.1.10")
         assert result.confidence == pytest.approx(1.0, abs=0.01)
 
     def test_private_10_no_penalty(self):
-        cv = _get_contextual_verifier()
+        cv = self._cv_with_private_networks()
         result = cv.verify_context("user1", "business_hours", network="10.0.0.5")
         assert result.confidence == pytest.approx(1.0, abs=0.01)
 
     def test_private_172_no_penalty(self):
-        cv = _get_contextual_verifier()
+        cv = self._cv_with_private_networks()
         result = cv.verify_context("user1", "business_hours", network="172.16.0.1")
         assert result.confidence == pytest.approx(1.0, abs=0.01)
 
     def test_loopback_no_penalty(self):
-        cv = _get_contextual_verifier()
+        cv = self._cv_with_private_networks()
         result = cv.verify_context("user1", "business_hours", network="127.0.0.1")
         assert result.confidence == pytest.approx(1.0, abs=0.01)
 
     def test_public_ip_reduces_confidence(self):
-        cv = _get_contextual_verifier()
+        cv = self._cv_with_private_networks()
         result = cv.verify_context("user1", "business_hours", network="8.8.8.8")
         assert result.confidence < 1.0
         assert any("public" in a.lower() or "external" in a.lower() for a in result.anomalies)
@@ -163,6 +173,18 @@ class TestNetworkClassification:
     def test_no_network_no_penalty(self):
         cv = _get_contextual_verifier()
         result = cv.verify_context("user1", "business_hours", network=None)
+        assert result.confidence == pytest.approx(1.0, abs=0.01)
+
+    def test_heuristic_public_prefix_reduces_confidence(self):
+        """Without a custom registry, only 'public'-prefixed networks are flagged."""
+        cv = _get_contextual_verifier()
+        result = cv.verify_context("user1", "business_hours", network="public-wifi")
+        assert result.confidence < 1.0
+
+    def test_heuristic_other_network_no_penalty(self):
+        """Without a custom registry, non-'public' network names don't trigger penalty."""
+        cv = _get_contextual_verifier()
+        result = cv.verify_context("user1", "business_hours", network="corporate")
         assert result.confidence == pytest.approx(1.0, abs=0.01)
 
 
@@ -198,7 +220,13 @@ class TestDeviceValidation:
 
 class TestCompoundContext:
     def test_multiple_anomalies_compound_reduction(self):
-        cv = _get_contextual_verifier(known_locations={"home"})
+        from security_plane.authentication import ContextualVerifier
+        cv = ContextualVerifier(
+            known_locations={"home"},
+            private_networks=[
+                "10.", "172.16.", "192.168.", "127.",
+            ],
+        )
         result = cv.verify_context(
             "user1",
             "after_hours",
