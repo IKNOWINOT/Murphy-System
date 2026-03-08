@@ -1080,8 +1080,23 @@
             messageInput.disabled = false;
             messageInput.focus();
             loadConfig();
+            checkApiConnection();
             setInterval(updateStats, 5000);
         });
+
+        // Check API connection on page load
+        async function checkApiConnection() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`);
+                if (response.ok) {
+                    updateDataSource(true, null);
+                    addLine('✓ Connected to Murphy System backend', 'system');
+                }
+            } catch (e) {
+                updateDataSource(false, null);
+                addLine('✗ Cannot reach Murphy System backend. Ensure the runtime is started.', 'error');
+            }
+        }
 
         // Add line to terminal
         function addLine(message, type = 'system') {
@@ -1152,24 +1167,45 @@
 
                 // Display result
                 if (result.success) {
-                    if (result.mfgc_control) {
+                    if (result.mfgc_control && result.data) {
                         const data = result.data;
                         addLine(`✓ [MFGC COMPLETE]`, 'mfgc');
-                        addLine(`  Final Phase: ${data.final_phase.toUpperCase()}`, 'info');
-                        addLine(`  Confidence: ${(data.final_confidence * 100).toFixed(1)}%`, 'info');
-                        addLine(`  Authority: ${(data.final_authority * 100).toFixed(1)}%`, 'info');
-                        addLine(`  Murphy Index: ${data.murphy_index.toFixed(3)}`, 'info');
-                        addLine(`  Gates Generated: ${data.total_gates}`, 'info');
-                        addLine(`  Execution Time: ${data.execution_time.toFixed(3)}s`, 'info');
-                        
-                        // Update phase display
-                        updatePhaseDisplay(data.system_state);
-                        updateMurphyDisplay(data.murphy_index);
-                        updateGatesDisplay(data.gates_generated);
-                        updateConfidenceDisplay(data.confidence_trajectory);
-                        updateMetrics(data);
-                    } else {
+                        addLine(`  Final Phase: ${(data.final_phase || 'unknown').toUpperCase()}`, 'info');
+                        addLine(`  Confidence: ${data.final_confidence != null ? (data.final_confidence * 100).toFixed(1) : 'N/A'}%`, 'info');
+                        addLine(`  Authority: ${data.final_authority != null ? (data.final_authority * 100).toFixed(1) : 'N/A'}%`, 'info');
+                        addLine(`  Murphy Index: ${data.murphy_index != null ? data.murphy_index.toFixed(3) : 'N/A'}`, 'info');
+                        addLine(`  Gates Generated: ${data.total_gates != null ? data.total_gates : 0}`, 'info');
+                        addLine(`  Execution Time: ${data.execution_time != null ? data.execution_time.toFixed(3) + 's' : 'N/A'}`, 'info');
+
+                        if (data.system_state) updatePhaseDisplay(data.system_state);
+                        if (data.murphy_index != null) updateMurphyDisplay(data.murphy_index);
+                        if (Array.isArray(data.gates_generated)) updateGatesDisplay(data.gates_generated);
+                        if (data.confidence_trajectory) updateConfidenceDisplay(data.confidence_trajectory);
+                        if (data.execution_time != null || data.phases_completed) updateMetrics(data);
+
+                        // Update librarian context from MFGC data
+                        const librarianContext = {
+                            current_phase: data.final_phase,
+                            confidence: data.final_confidence,
+                            murphy_index: data.murphy_index,
+                            gates: data.gates_generated,
+                            input: message,
+                            timestamp: new Date().toISOString()
+                        };
+                        updateLibrarianContext(librarianContext);
+                    } else if (!result.mfgc_control) {
                         addLine(`✓ ${result.message}`, 'system');
+
+                        // Update librarian context for direct responses
+                        if (result.message) {
+                            const librarianContext = {
+                                mode: 'direct_response',
+                                input: message,
+                                response_preview: result.message.substring(0, 200),
+                                timestamp: new Date().toISOString()
+                            };
+                            updateLibrarianContext(librarianContext);
+                        }
                     }
                     if (result.doc_id) {
                         lastDocId = result.doc_id;
@@ -1188,7 +1224,7 @@
                     }
                     updateDataSource(true, result.doc_id);
                 } else {
-                    addLine(`✗ Error: ${result.error}`, 'error');
+                    addLine(`✗ Error: ${result.error || 'Unknown error (no details returned)'}`, 'error');
                     updateDataSource(false, null);
                 }
 
@@ -1465,9 +1501,13 @@
         // Toggle config option
         function toggleConfig(option) {
             currentConfig[option] = !currentConfig[option];
-            const btn = document.getElementById(`config${option.charAt(0).toUpperCase() + option.slice(1)}`);
-            btn.textContent = currentConfig[option] ? 'ON' : 'OFF';
-            btn.className = currentConfig[option] ? 'config-toggle active' : 'config-toggle';
+            // Convert snake_case to PascalCase for element ID
+            const idSuffix = option.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('');
+            const btn = document.getElementById(`config${idSuffix}`);
+            if (btn) {
+                btn.textContent = currentConfig[option] ? 'ON' : 'OFF';
+                btn.className = currentConfig[option] ? 'config-toggle active' : 'config-toggle';
+            }
             updateConfig();
         }
 
@@ -1492,10 +1532,10 @@
 
         // Update phase display
         function updatePhaseDisplay(systemState) {
-            const phase = systemState.phase;
+            const phase = systemState.phase || 'unknown';
             document.getElementById('currentPhase').textContent = phase.toUpperCase();
-            document.getElementById('currentConfidence').textContent = (systemState.confidence * 100).toFixed(1) + '%';
-            document.getElementById('currentAuthority').textContent = (systemState.authority * 100).toFixed(1) + '%';
+            document.getElementById('currentConfidence').textContent = systemState.confidence != null ? (systemState.confidence * 100).toFixed(1) + '%' : 'N/A';
+            document.getElementById('currentAuthority').textContent = systemState.authority != null ? (systemState.authority * 100).toFixed(1) + '%' : 'N/A';
             
             // Update phase nodes
             const phases = ['expand', 'type', 'enumerate', 'constrain', 'collapse', 'bind', 'execute'];
@@ -1716,8 +1756,11 @@
 
         // Update metrics
         function updateMetrics(data) {
-            document.getElementById('executionTime').textContent = data.execution_time.toFixed(3) + 's';
-            document.getElementById('phaseProgress').textContent = `${data.phases_completed.length}/7`;
+            if (data.execution_time != null) {
+                document.getElementById('executionTime').textContent = data.execution_time.toFixed(3) + 's';
+            }
+            const completed = data.phases_completed || [];
+            document.getElementById('phaseProgress').textContent = `${completed.length}/7`;
         }
 
         // Update stats
