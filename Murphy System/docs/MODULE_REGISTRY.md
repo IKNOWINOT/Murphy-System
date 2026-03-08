@@ -252,6 +252,14 @@ See [WINGMAN_PROTOCOL.md](WINGMAN_PROTOCOL.md) for full architecture documentati
 
 ---
 
+## Federated Learning
+
+| Module | Path | Description | Status | Key Dependencies |
+|--------|------|-------------|--------|-----------------|
+| `federated_learning_coordinator.py` | `src/federated_learning_coordinator.py` | Train models across distributed Murphy instances without sharing raw data; FedAvg/Median aggregation, differential-privacy noise, Wingman + Sandbox gating | ✅ | — |
+
+---
+
 ## Issue #136 Subsystems (In Progress)
 
 These seven subsystems are being added under issue #136. Files marked 🔄 are
