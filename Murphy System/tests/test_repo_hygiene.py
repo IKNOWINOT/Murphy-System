@@ -22,7 +22,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 REPO_ROOT = PROJECT_ROOT.parent  # one level above "Murphy System/"
 
 
-class TestRepohygiene:
+class TestRepoHygiene:
     def test_vscode_in_gitignore(self):
         gitignore = REPO_ROOT / ".gitignore"
         assert gitignore.exists(), ".gitignore not found at repo root"

@@ -740,12 +740,14 @@ class ContextualVerifier:
         private_networks: Optional[list] = None,
     ):
         self._verifications: List[ContextualVerification] = []
-        # Registry of trusted location identifiers
-        self._known_locations: set = known_locations or set()
-        # Map of device_id -> fingerprint metadata (truthy value = trusted)
-        self._known_devices: dict = known_devices or {}
-        # List of known private CIDR prefixes (dotted-decimal prefix strings)
-        self._private_networks: list = private_networks or [
+        # Registry of trusted location identifiers (None = not configured)
+        self._known_locations: Optional[set] = known_locations
+        # Map of device_id -> fingerprint metadata (None = not configured)
+        self._known_devices: Optional[dict] = known_devices
+        # List of known private CIDR prefixes — None means "not configured, use heuristic"
+        self._private_networks: Optional[list] = private_networks
+        # Default CIDR prefixes used when a custom list is explicitly provided
+        self._default_private_prefixes: list = [
             "10.", "172.16.", "172.17.", "172.18.", "172.19.",
             "172.20.", "172.21.", "172.22.", "172.23.", "172.24.",
             "172.25.", "172.26.", "172.27.", "172.28.", "172.29.",
@@ -754,15 +756,20 @@ class ContextualVerifier:
 
     def register_location(self, location_id: str) -> None:
         """Add a location identifier to the trusted-locations registry."""
+        if self._known_locations is None:
+            self._known_locations = set()
         self._known_locations.add(location_id)
 
     def register_device(self, device_id: str, fingerprint: dict) -> None:
         """Add a device to the known-device fingerprint store."""
+        if self._known_devices is None:
+            self._known_devices = {}
         self._known_devices[device_id] = fingerprint
 
     def _is_private_network(self, network: str) -> bool:
         """Return True if the network identifier matches a private IP range prefix."""
-        return any(network.startswith(prefix) for prefix in self._private_networks)
+        prefixes = self._private_networks if self._private_networks is not None else self._default_private_prefixes
+        return any(network.startswith(prefix) for prefix in prefixes)
 
     def verify_context(
         self,
@@ -792,30 +799,36 @@ class ContextualVerifier:
 
         # Check location against known-locations registry
         if location is not None:
-            if self._known_locations and location not in self._known_locations:
+            if self._known_locations is not None and location not in self._known_locations:
                 anomalies.append(f"Authentication from unknown location: {location}")
                 confidence *= 0.7
-            elif not self._known_locations and location.startswith("unknown"):
+            elif self._known_locations is None and location.startswith("unknown"):
                 # Fallback heuristic when no registry is configured
                 anomalies.append("Authentication from unknown location")
                 confidence *= 0.7
 
         # Check device against fingerprint store
         if device_id is not None:
-            if self._known_devices and device_id not in self._known_devices:
+            if self._known_devices is not None and device_id not in self._known_devices:
                 anomalies.append(f"Authentication from unrecognised device: {device_id}")
                 confidence *= 0.8
-            elif not self._known_devices and device_id.startswith("new"):
+            elif self._known_devices is None and device_id.startswith("new"):
                 # Fallback heuristic when no device store is configured
                 anomalies.append("Authentication from new device")
                 confidence *= 0.8
 
         # Check network — private ranges are trusted; public ranges reduce confidence
         if network is not None:
-            if self._is_private_network(network):
-                pass  # private network — no penalty
-            else:
-                anomalies.append(f"Authentication from public/external network: {network}")
+            if self._private_networks is not None:
+                # Custom registry in use — use CIDR prefix matching
+                if self._is_private_network(network):
+                    pass  # private network — no penalty
+                else:
+                    anomalies.append(f"Authentication from public/external network: {network}")
+                    confidence *= 0.9
+            elif network.startswith("public"):
+                # Fallback heuristic when no custom registry configured
+                anomalies.append("Authentication from public network")
                 confidence *= 0.9
 
         verified = confidence >= 0.7

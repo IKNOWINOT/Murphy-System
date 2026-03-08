@@ -33,8 +33,9 @@ export function withBotBase(_opts: any, fn: Function): Function {
         if (stored != null) {
           currentCost = parseFloat(stored) || 0;
         }
-      } catch (_e) {
+      } catch (kvErr) {
         // KV unavailable — proceed without cost tracking
+        void kvErr;
       }
     }
 
