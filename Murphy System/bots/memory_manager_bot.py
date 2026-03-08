@@ -60,23 +60,68 @@ class MemoryManagerBot:
         self.id_to_text: Dict[int, str] = {}
         self.enc_key = encryption_key
         self.context_window = context_window
+        self.archived_memories: Dict[int, bytes] = {}
         self._ensure_db()
         self._load_index()
 
-    def ttl_check(self, threshold: float = 0.3) -> None:
-        """Flush STM to LTM when adaptive retention below ``threshold``."""
+    def ttl_check(self, threshold: float = 0.3) -> dict:
+        """Flush STM to LTM when adaptive retention is below ``threshold``.
+
+        Expired entries are:
+        1. Compressed with ``zlib``.
+        2. Moved to an ``archived_memories`` dict keyed by memory id.
+        3. Removed from the active memory store (and FAISS index when present).
+
+        Returns:
+            dict with keys ``archived`` (int), ``total_checked`` (int),
+            ``bytes_saved`` (int).
+        """
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        cursor.execute('SELECT id, last_accessed, access_count FROM memories')
+        cursor.execute('SELECT id, text, last_accessed, access_count, compressed FROM memories WHERE is_deleted = 0')
         to_archive: list[int] = []
-        for mem_id, last_accessed, acc in cursor.fetchall():
+        row_data: dict[int, tuple] = {}
+        for row in cursor.fetchall():
+            mem_id, text, last_accessed, acc, compressed = row
             retain = adaptive_decay(last_accessed, acc)
             if retain < threshold:
                 to_archive.append(mem_id)
+                row_data[mem_id] = (text, compressed)
         conn.close()
-        # Placeholder: actual archive step would compress or export
+
+        archived_count = 0
+        bytes_saved = 0
         for m in to_archive:
-            pass
+            text, compressed = row_data[m]
+            try:
+                raw = text.encode("utf-8") if isinstance(text, str) else text
+                original_size = len(raw)
+                if not compressed:
+                    compressed_blob = zlib.compress(raw)
+                else:
+                    compressed_blob = raw
+                compressed_size = len(compressed_blob)
+                bytes_saved += max(0, original_size - compressed_size)
+
+                self.archived_memories[m] = compressed_blob
+
+                conn2 = sqlite3.connect(DB_PATH)
+                conn2.execute('UPDATE memories SET is_deleted = 1 WHERE id = ?', (m,))
+                conn2.commit()
+                conn2.close()
+
+                self.id_to_text.pop(m, None)
+                if self.index is not None:
+                    try:
+                        self.index.remove_ids(np.array([m], dtype='int64'))
+                    except Exception:
+                        pass
+
+                archived_count += 1
+            except Exception:
+                pass
+
+        return {"archived": archived_count, "total_checked": len(to_archive), "bytes_saved": bytes_saved}
 
     def _load_index(self) -> None:
         """Load existing memories into the ANN index."""
