@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **legal: test** — Created `tests/test_legal_compliance.py` with 18 checks covering dependency licenses, license headers, API key security, trademark naming, data privacy, and export control
 
 ### Added
+- **feat:** WHK-001 — Outbound Webhook Dispatcher (`src/webhook_dispatcher.py`) with HMAC-SHA256 signing, exponential-backoff retry, delivery-history tracking, and Flask Blueprint with 13 endpoints (59 tests)
 - **Maturity Cycle 3: 78 → 100/100** — All remaining gaps resolved:
   - `Murphy System/docs/STALE_PR_CLEANUP.md` — Rationale and decision record for closing PRs #21, #27, #46, #56, #64, #95
   - `Murphy System/docs/API_REFERENCE.md` — Complete API reference for all public endpoints (`/api/health`, `/api/status`, `/api/execute`, `/api/llm/*`, `/api/gates/*`, `/api/confidence/*`, `/api/orchestrator/*`, `/api/modules/*`, `/api/feedback`)
