@@ -87,19 +87,111 @@ class UIDataService:
         return asdict(snapshot)
 
     def get_phase_fsm(self) -> Dict[str, Any]:
-        """Get phase FSM state"""
+        """Get phase FSM state including Type and Enumerate phase implementations."""
         state = self.system.get_system_state()
         confidence = state.get('confidence', 0.5)
+        state_vars = state.get('variables', {})
+
+        # ── Type phase: validate declared types of state variables ─────────
+        type_results: Dict[str, Any] = {}
+        type_errors: List[str] = []
+        for var_name, var_info in state_vars.items():
+            if not isinstance(var_info, dict):
+                continue
+            declared_dtype = var_info.get('dtype')
+            actual_value = var_info.get('value')
+            if declared_dtype is None:
+                continue
+            _dtype_map = {
+                'int': int,
+                'float': (int, float),
+                'str': str,
+                'bool': bool,
+                'list': list,
+                'dict': dict,
+            }
+            expected_type = _dtype_map.get(str(declared_dtype).lower())
+            if expected_type is None:
+                continue
+            if actual_value is not None and not isinstance(actual_value, expected_type):
+                error_msg = (
+                    f"{var_name}: expected {declared_dtype}, "
+                    f"got {type(actual_value).__name__}"
+                )
+                type_errors.append(error_msg)
+            type_results[var_name] = {
+                "declared": declared_dtype,
+                "actual": type(actual_value).__name__ if actual_value is not None else "None",
+                "valid": not any(e.startswith(var_name + ":") for e in type_errors),
+            }
+
+        type_phase_status = "pass" if not type_errors else "fail"
+
+        # ── Enumerate phase: list valid next states from current phase ──────
+        current_phase = self._get_phase_name(confidence)
+        _transitions: Dict[str, List[str]] = {
+            "Expand":    ["Type", "Constrain"],
+            "Type":      ["Enumerate", "Constrain"],
+            "Enumerate": ["Constrain"],
+            "Constrain": ["Collapse", "Expand"],
+            "Collapse":  ["Bind", "Constrain"],
+            "Bind":      ["Execute", "Collapse"],
+            "Execute":   ["Complete", "Bind"],
+        }
+        valid_next_states = _transitions.get(current_phase, [])
+        enumerate_results: Dict[str, Any] = {
+            "current_state": current_phase,
+            "valid_transitions": valid_next_states,
+            "transition_count": len(valid_next_states),
+        }
 
         return {
             "fsm": {
-                "Expand": {"allowed": confidence < 0.3},
-                "Type": {"allowed": False},  # Not implemented yet
-                "Enumerate": {"allowed": False},  # Not implemented yet
-                "Constrain": {"allowed": 0.3 <= confidence < 0.7},
-                "Collapse": {"allowed": 0.7 <= confidence < 0.82},
-                "Bind": {"allowed": 0.82 <= confidence < 0.88},
-                "Execute": {"allowed": confidence >= 0.88}
+                "Expand": {
+                    "allowed": confidence < 0.3,
+                    "phase_name": "Expand",
+                    "status": "active" if current_phase == "Expand" else "inactive",
+                    "next_phases": _transitions.get("Expand", []),
+                },
+                "Type": {
+                    "allowed": True,
+                    "phase_name": "Type",
+                    "status": type_phase_status,
+                    "results": type_results,
+                    "errors": type_errors,
+                    "next_phases": _transitions.get("Type", []),
+                },
+                "Enumerate": {
+                    "allowed": True,
+                    "phase_name": "Enumerate",
+                    "status": "pass",
+                    "results": enumerate_results,
+                    "next_phases": _transitions.get("Enumerate", []),
+                },
+                "Constrain": {
+                    "allowed": 0.3 <= confidence < 0.7,
+                    "phase_name": "Constrain",
+                    "status": "active" if current_phase == "Constrain" else "inactive",
+                    "next_phases": _transitions.get("Constrain", []),
+                },
+                "Collapse": {
+                    "allowed": 0.7 <= confidence < 0.82,
+                    "phase_name": "Collapse",
+                    "status": "active" if current_phase == "Collapse" else "inactive",
+                    "next_phases": _transitions.get("Collapse", []),
+                },
+                "Bind": {
+                    "allowed": 0.82 <= confidence < 0.88,
+                    "phase_name": "Bind",
+                    "status": "active" if current_phase == "Bind" else "inactive",
+                    "next_phases": _transitions.get("Bind", []),
+                },
+                "Execute": {
+                    "allowed": confidence >= 0.88,
+                    "phase_name": "Execute",
+                    "status": "active" if current_phase == "Execute" else "inactive",
+                    "next_phases": _transitions.get("Execute", []),
+                },
             },
             "thresholds": {
                 "Expand": 0.0,
@@ -108,7 +200,20 @@ class UIDataService:
                 "Bind": 0.82,
                 "Execute": 0.88
             },
-            "current_phase": self._get_phase_name(confidence)
+            "current_phase": current_phase,
+            "type_phase": {
+                "phase_name": "Type",
+                "status": type_phase_status,
+                "results": type_results,
+                "errors": type_errors,
+                "next_phases": _transitions.get("Type", []),
+            },
+            "enumerate_phase": {
+                "phase_name": "Enumerate",
+                "status": "pass",
+                "results": enumerate_results,
+                "next_phases": _transitions.get("Enumerate", []),
+            },
         }
 
     def get_gate_graph(self) -> Dict[str, Any]:
