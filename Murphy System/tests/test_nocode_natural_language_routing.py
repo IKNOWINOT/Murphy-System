@@ -86,14 +86,14 @@ class TestSugarSkullFraming:
         """terminal_integrated.html has ☠ skull framing."""
         html = _read_terminal_html()
         assert '☠' in html, "Should contain ☠ skull character"
-        assert '💀' in html, "Should contain 💀 skull emoji"
+        assert '☠' in html, "Should contain ☠ skull emoji"
 
     def test_help_text_has_skull_labels(self):
-        """Help text uses 💀 section labels."""
+        """Help text uses ☠ section labels."""
         html = _read_terminal_html()
-        assert '💀 SYSTEM' in html
-        assert '💀 TASK EXECUTION' in html
-        assert '💀 NO-CODE ONBOARDING' in html
+        assert '☠ SYSTEM' in html
+        assert '☠ TASK EXECUTION' in html
+        assert '☠ NO-CODE ONBOARDING' in html
 
     def test_enhanced_terminal_has_skull_banner(self):
         """terminal_enhanced.html has skull framing."""
@@ -103,7 +103,7 @@ class TestSugarSkullFraming:
         with open(path, 'r', encoding='utf-8') as f:
             html = f.read()
         assert '☠' in html
-        assert '💀' in html
+        assert '☠' in html
 
     def test_architect_terminal_has_skull_banner(self):
         """terminal_architect.html has skull framing."""
@@ -113,7 +113,7 @@ class TestSugarSkullFraming:
         with open(path, 'r', encoding='utf-8') as f:
             html = f.read()
         assert '☠' in html
-        assert '💀' in html
+        assert '☠' in html
 
     def test_worker_terminal_has_skull_banner(self):
         """terminal_worker.html has skull framing."""
@@ -123,7 +123,7 @@ class TestSugarSkullFraming:
         with open(path, 'r', encoding='utf-8') as f:
             html = f.read()
         assert '☠' in html
-        assert '💀' in html
+        assert '☠' in html
 
     def test_runtime_startup_has_skull_banner(self):
         """murphy_system_1.0_runtime.py main() has skull framing."""
@@ -133,7 +133,7 @@ class TestSugarSkullFraming:
         with open(path, 'r', encoding='utf-8') as f:
             content = f.read()
         assert '☠' in content
-        assert '💀' in content
+        assert '☠' in content
 
     def test_startup_script_has_skull_banner(self):
         """start_murphy_1.0.sh has skull framing."""
@@ -143,7 +143,7 @@ class TestSugarSkullFraming:
         with open(path, 'r', encoding='utf-8') as f:
             content = f.read()
         assert '☠' in content
-        assert '💀' in content
+        assert '☠' in content
 
 
 # ---------------------------------------------------------------------------

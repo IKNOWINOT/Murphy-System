@@ -142,7 +142,7 @@ def render_banner(
     for bl in big_lines:
         lines.append(f"{g}║{r} {b}{c}{bl}{r}")
     lines.append(f"{g}║{r}")
-    lines.append(f"{g}║{r}  {y}💀  {subtitle}  💀{r}")
+    lines.append(f"{g}║{r}  {y}☠  {subtitle}  ☠{r}")
     lines.append(f"{g}║{r}  {d}☠   Murphy System {version}  ·  Confidence-Gated Execution   ☠{r}")
     lines.append(bottom)
     lines.append("")
@@ -166,7 +166,7 @@ def render_section(title: str, *, color: bool = True) -> str:
     pad = 60 - len(title) - 4
     left = pad // 2
     right = pad - left
-    return f"{g}☠{'═' * left} {y}💀 {title} 💀{g} {'═' * right}☠{r}"
+    return f"{g}☠{'═' * left} {y}☠ {title} ☠{g} {'═' * right}☠{r}"
 
 
 # ---------------------------------------------------------------------------
@@ -201,7 +201,7 @@ def render_panel(
         60,
     )
     top = f"{b}{g}╔{'═' * (content_width + 2)}╗{r}"
-    ttl = f"{b}{g}║{r} 💀 {c}{title}{r}{' ' * (content_width - len(title) - 3)}{b}{g}║{r}"
+    ttl = f"{b}{g}║{r} ☠ {c}{title}{r}{' ' * (content_width - len(title) - 3)}{b}{g}║{r}"
     mid = f"{b}{g}╠{'═' * (content_width + 2)}╣{r}"
     bot = f"{b}{g}╚{'═' * (content_width + 2)}╝{r}"
 

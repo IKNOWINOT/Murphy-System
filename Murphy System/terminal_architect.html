@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>☠ MURPHY SYSTEM - ARCHITECT TERMINAL 💀</title>
+    <title>☠ MURPHY SYSTEM - ARCHITECT TERMINAL ☠</title>
     <style>
         :root { --neon-green: #00FF00; }
         * {
@@ -233,6 +233,7 @@
             letter-spacing: 1px;
         }
 
+        /* MSS processing state */
         #messageInput.mss-processing {
             border-color: #ffff00;
             animation: mss-pulse 1s ease-in-out infinite;
@@ -243,6 +244,7 @@
             50% { box-shadow: 0 0 15px rgba(255, 255, 0, 0.6); }
         }
 
+        /* MSS applied badge */
         .mss-btn.applied {
             border-width: 2px;
             position: relative;
@@ -250,6 +252,47 @@
         .mss-btn.applied::after {
             content: '✓';
             position: absolute;
+            top: -6px;
+            right: -6px;
+            font-size: 10px;
+            color: #00ff41;
+            background: #0a0a0a;
+            border-radius: 50%;
+            width: 14px;
+            height: 14px;
+            line-height: 14px;
+            text-align: center;
+        }
+
+        /* Collapsible agent chain */
+        .collapsible-header {
+            cursor: pointer;
+            color: #00ff41;
+        }
+        .collapsible-header:hover {
+            color: #00ffff;
+        }
+        .collapse-arrow {
+            display: inline-block;
+            width: 16px;
+            transition: transform 0.2s;
+        }
+        .collapsible-details {
+            padding-left: 24px;
+            color: #666;
+            font-size: 12px;
+            line-height: 1.6;
+            border-left: 1px solid #333;
+            margin-left: 6px;
+        }
+        .collapsible-details .agent-step {
+            color: #00ff41;
+        }
+        .collapsible-details .agent-step.active {
+            color: #ffff00;
+        }
+        .collapsible-details .agent-step.done {
+            color: #00ff41;
             top: -5px;
             right: -5px;
             font-size: 10px;
@@ -1130,10 +1173,85 @@
             terminalOutput.scrollTop = terminalOutput.scrollHeight;
         }
 
+        // MSS Transform helper: build a collapsible agent-chain entry in the terminal
+        function addCollapsibleLine(header, initialDetails) {
+            const container = document.createElement('div');
+            container.className = 'terminal-line system';
+
+            const headerEl = document.createElement('div');
+            headerEl.className = 'collapsible-header';
+            headerEl.innerHTML = `<span class="collapse-arrow">▶</span> ${header}`;
+
+            const detailsEl = document.createElement('div');
+            detailsEl.className = 'collapsible-details';
+            detailsEl.style.display = 'none';
+            if (initialDetails) detailsEl.innerHTML = initialDetails;
+
+            headerEl.onclick = () => {
+                const arrow = headerEl.querySelector('.collapse-arrow');
+                if (detailsEl.style.display === 'none') {
+                    detailsEl.style.display = 'block';
+                    arrow.textContent = '▼';
+                } else {
+                    detailsEl.style.display = 'none';
+                    arrow.textContent = '▶';
+                }
+            };
+
+            container.appendChild(headerEl);
+            container.appendChild(detailsEl);
+            terminalOutput.appendChild(container);
+            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+            return container;
+        }
+
+        function addAgentStep(container, text) {
+            if (!container) return;
+            const details = container.querySelector('.collapsible-details');
+            if (!details) return;
+            const step = document.createElement('div');
+            step.className = 'agent-step active';
+            step.textContent = `├─ ${text}`;
+            details.appendChild(step);
+        }
+
+        function updateAgentStep(container, text, status) {
+            if (!container) return;
+            const details = container.querySelector('.collapsible-details');
+            if (!details) return;
+            const steps = details.querySelectorAll('.agent-step');
+            const last = steps[steps.length - 1];
+            if (last) {
+                last.className = `agent-step ${status}`;
+                if (status === 'done') {
+                    last.textContent = last.textContent.replace('├─', '├─ ✓');
+                }
+            }
+        }
+
         // MSS Transform
         async function mssTransform(operator) {
             const text = messageInput.value.trim();
             if (!text) {
+                addLine(`✗ Type a prompt first, then click ${operator.toUpperCase()} to transform it`, 'warning');
+                return;
+            }
+
+            // Disable buttons and show processing state
+            document.querySelectorAll('.mss-btn').forEach(b => b.disabled = true);
+            messageInput.classList.add('mss-processing');
+
+            // For SOLIDIFY, show collapsible agent chain; otherwise a simple status line
+            let agentChainEl = null;
+            if (operator === 'solidify') {
+                agentChainEl = addCollapsibleLine(
+                    'SOLIDIFY — Librarian processing...',
+                    '<div class="agent-step active">├─ Querying system knowledge base...</div>'
+                );
+            } else {
+                addLine(`[MSS ${operator.toUpperCase()}] Transforming prompt...`, 'system');
+            }
+
                 addLine('✗ Type a prompt first, then click ' + operator.toUpperCase() + ' to transform it', 'warning');
                 return;
             }
@@ -1146,6 +1264,35 @@
             messageInput.classList.add('mss-processing');
 
             try {
+                // For solidify, also query the librarian for system-wide context
+                let librarianContext = null;
+                if (operator === 'solidify') {
+                    try {
+                        updateAgentStep(agentChainEl, 'Querying system knowledge base...', 'done');
+                        addAgentStep(agentChainEl, 'Analyzing domain and intent...');
+
+                        const libResp = await fetch(`${API_BASE_URL}/librarian/query`, {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({query: text})
+                        });
+                        if (libResp.ok) {
+                            librarianContext = await libResp.json();
+                            updateAgentStep(agentChainEl, 'Analyzing domain and intent...', 'done');
+                            addAgentStep(agentChainEl, 'Assigning agents...');
+                        }
+                    } catch(e) {
+                        // Librarian is optional — log the failure in the agent chain so users know
+                        if (agentChainEl) addAgentStep(agentChainEl, `⚠ Librarian unavailable: ${e.message}`);
+                    }
+                }
+
+                // Advance agent chain before the MSS call
+                if (operator === 'solidify' && agentChainEl) {
+                    updateAgentStep(agentChainEl, 'Assigning agents...', 'done');
+                    addAgentStep(agentChainEl, 'Running MSS solidify pipeline...');
+                }
+
                 const resp = await fetch(`${API_BASE_URL}/mss/${operator}`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
@@ -1156,12 +1303,18 @@
                 if (data.success) {
                     const r = data.result;
 
+                    // Extract a readable string from the output dict so the user can review/edit it
                     // Extract the transformed text from the result output
                     let transformedText = '';
                     if (typeof r.output === 'string') {
                         transformedText = r.output;
                     } else if (r.output) {
                         transformedText = Object.entries(r.output)
+                            .filter(([k, v]) => v && k !== 'resolution_progression' &&
+                                    (typeof v === 'string' || (Array.isArray(v) && v.length > 0)))
+                            .map(([k, v]) => {
+                                const label = k.replace(/_/g, ' ');
+                                if (Array.isArray(v)) return `${label}: ${v.join('; ')}`;
                             .filter(([k, v]) => v && (typeof v === 'string' || (Array.isArray(v) && v.length > 0)))
                             .map(([k, v]) => {
                                 const label = k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -1173,6 +1326,56 @@
                             .join('. ');
                     }
 
+                    // Put transformed text back into the input box (don't clear it)
+                    if (transformedText) {
+                        messageInput.value = transformedText;
+                    } else {
+                        addLine(`⚠ ${operator.toUpperCase()} produced no text output — prompt unchanged`, 'warning');
+                    }
+
+                    // Update the resolution panel with quality metrics
+                    const iq = r.input_quality || {};
+                    document.getElementById('resolution-panel').innerHTML =
+                        `Resolution: ${iq.resolution_level || '—'} (RS ${(iq.resolution_score||0).toFixed(1)}) | ` +
+                        `Density: ${(iq.density_index||0).toFixed(2)} | ` +
+                        `Coherence: ${(iq.coherence_score||0).toFixed(1)} | ` +
+                        `CQI: ${(iq.cqi||0).toFixed(1)} | ` +
+                        `${operator.toUpperCase()} → ${r.target_rm || '—'}`;
+
+                    // Mark the clicked button with a ✓ badge
+                    const btn = document.querySelector(`.mss-${operator}`);
+                    if (btn) btn.classList.add('applied');
+
+                    // Finalise the SOLIDIFY agent chain and update the Librarian tab
+                    if (operator === 'solidify' && agentChainEl) {
+                        updateAgentStep(agentChainEl, 'Running MSS solidify pipeline...', 'done');
+                        addAgentStep(agentChainEl, 'Applying governance gates...');
+                        updateAgentStep(agentChainEl, 'Applying governance gates...', 'done');
+                        addAgentStep(agentChainEl, `Locked actionable prompt ✓ (${r.governance_status || 'approved'})`);
+                        updateAgentStep(agentChainEl, null, 'done');
+
+                        // Compose a rich context object for the Librarian tab
+                        const libCtx = {
+                            mode: 'solidify',
+                            input: text,
+                            solidified_preview: (transformedText || '').substring(0, 300),
+                            governance: r.governance_status,
+                            target_rm: r.target_rm,
+                            quality: iq,
+                            librarian_knowledge: librarianContext,
+                            timestamp: new Date().toISOString()
+                        };
+                        updateLibrarianContext(libCtx);
+                        switchTab('librarian');
+
+                        // Update the collapsible header to show completion
+                        const headerEl = agentChainEl.querySelector('.collapsible-header');
+                        if (headerEl) {
+                            headerEl.innerHTML = `<span class="collapse-arrow">▶</span> SOLIDIFY — Complete ✓ (${r.governance_status || 'approved'})`;
+                        }
+                    } else {
+                        addLine(`✓ ${operator.toUpperCase()} applied — review prompt in input box, then press EXECUTE`, 'success');
+                    }
                     if (!transformedText) {
                         addLine(`⚠ ${operator.toUpperCase()} produced no text output — prompt unchanged`, 'warning');
                     } else {
@@ -1200,6 +1403,7 @@
                 addLine(`✗ MSS error: ${e.message}`, 'error');
             }
 
+            // Re-enable buttons and remove processing state
             // Re-enable buttons
             document.querySelectorAll('.mss-btn').forEach(b => b.disabled = false);
             messageInput.classList.remove('mss-processing');
