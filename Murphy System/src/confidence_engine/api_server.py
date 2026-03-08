@@ -4,11 +4,11 @@ REST API for confidence, risk, and authority computation
 """
 
 from flask import Flask, request, jsonify
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 import logging
 import os
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from confidence_engine.models import (
     ArtifactNode,
@@ -55,6 +55,8 @@ _tenant_lock = threading.Lock()
 _tenant_graphs: Dict[str, ArtifactGraph] = {}
 _tenant_trust_models: Dict[str, TrustModel] = {}
 _tenant_evidence: Dict[str, List[VerificationEvidence]] = {}
+_tenant_last_access: Dict[str, datetime] = {}
+_TENANT_TTL_SECONDS = 3600  # 1 hour — evict idle tenants
 
 
 def _get_tenant_id() -> str:
@@ -65,6 +67,38 @@ def _get_tenant_id() -> str:
     backward compatibility during migration.
     """
     return request.headers.get('X-Tenant-ID', 'default')
+
+
+def _require_tenant_id():
+    """
+    Require X-Tenant-ID header; return (tenant_id, None) on success or
+    (None, 401-response) when the header is absent.
+    """
+    tenant_id = request.headers.get('X-Tenant-ID')
+    if not tenant_id:
+        return None, (jsonify({'error': 'X-Tenant-ID header required'}), 401)
+    _tenant_last_access[tenant_id] = datetime.now(tz=timezone.utc)
+    return tenant_id, None
+
+
+def evict_idle_tenants() -> int:
+    """
+    Evict tenant state that has been idle for longer than _TENANT_TTL_SECONDS.
+
+    Returns the number of tenants evicted.
+    """
+    with _tenant_lock:
+        now = datetime.now(tz=timezone.utc)
+        idle = [
+            tid for tid, last in _tenant_last_access.items()
+            if (now - last).total_seconds() > _TENANT_TTL_SECONDS
+        ]
+        for tid in idle:
+            _tenant_graphs.pop(tid, None)
+            _tenant_trust_models.pop(tid, None)
+            _tenant_evidence.pop(tid, None)
+            del _tenant_last_access[tid]
+    return len(idle)
 
 
 def _get_tenant_graph(tenant_id: str) -> ArtifactGraph:
@@ -89,6 +123,19 @@ def _get_tenant_evidence(tenant_id: str) -> List[VerificationEvidence]:
         if tenant_id not in _tenant_evidence:
             _tenant_evidence[tenant_id] = []
         return _tenant_evidence[tenant_id]
+
+
+@app.before_request
+def _enforce_tenant_id():
+    """Require X-Tenant-ID header on all non-health API endpoints."""
+    if request.method == 'OPTIONS':
+        return None
+    path = request.path.rstrip('/')
+    if path in ('/health', '/healthz', '/ready', '/metrics'):
+        return None
+    if not request.headers.get('X-Tenant-ID'):
+        return jsonify({'error': 'X-Tenant-ID header required'}), 401
+    return None
 
 
 # ============================================================================

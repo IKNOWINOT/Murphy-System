@@ -3,14 +3,17 @@ Credential Verification System
 Manages credential validation, expiry tracking, and refresh mechanisms.
 """
 
+import base64
+import json
 import logging
+import urllib.request
+import urllib.error
 logger = logging.getLogger(__name__)
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pydantic import BaseModel, Field
 import hashlib
-import json
 
 
 class CredentialType(str, Enum):
@@ -255,24 +258,94 @@ class CredentialVerifier:
             return len(credential.credential_value) > 0
 
     async def _verify_api_key(self, credential: Credential) -> bool:
-        """Verify API key."""
-        # Placeholder - implement actual API key verification
-        return len(credential.credential_value) >= 20
+        """
+        Verify API key.
+
+        Format gate: key must be at least 20 characters.
+        Network gate: attempts a lightweight validation call; on auth failure
+        returns False; on network error treats the key as tentatively valid.
+        """
+        if len(credential.credential_value) < 20:
+            return False
+        # Attempt network validation if a provider endpoint is configured
+        provider_url = credential.metadata.get('validation_url')
+        if provider_url:
+            try:
+                req = urllib.request.Request(
+                    provider_url,
+                    headers={'Authorization': f'Bearer {credential.credential_value}'},
+                )
+                with urllib.request.urlopen(req, timeout=5) as resp:
+                    return resp.status < 400
+            except urllib.error.HTTPError as exc:
+                if exc.code in (401, 403):
+                    logger.debug("API key auth rejected by provider: %s", exc)
+                    return False
+                # Other HTTP error — treat as network problem, tentatively valid
+                logger.debug("Provider returned unexpected HTTP status: %s", exc)
+                return True
+            except Exception as exc:
+                # Network error — unverified but not definitively invalid
+                logger.debug("Network error during API key validation (unverified): %s", exc)
+                return True
+        return True
 
     async def _verify_oauth_token(self, credential: Credential) -> bool:
-        """Verify OAuth token."""
-        # Placeholder - implement actual OAuth token verification
-        return len(credential.credential_value) >= 40
+        """
+        Verify OAuth / JWT token.
+
+        Decodes the token without signature verification to check the expiry
+        claim.  Returns False if the token is expired, True otherwise.
+        """
+        token = credential.credential_value
+        parts = token.split('.')
+        if len(parts) != 3:
+            return False
+        try:
+            # Pad base64url payload segment and decode
+            payload_b64 = parts[1]
+            padding = 4 - len(payload_b64) % 4
+            if padding != 4:
+                payload_b64 += '=' * padding
+            payload = json.loads(base64.urlsafe_b64decode(payload_b64))
+            exp = payload.get('exp')
+            if exp is not None:
+                exp_dt = datetime.fromtimestamp(exp, tz=timezone.utc)
+                if exp_dt < datetime.now(tz=timezone.utc):
+                    logger.debug("OAuth token expired at %s", exp_dt)
+                    return False
+        except Exception as exc:
+            logger.debug("Could not decode token payload: %s", exc)
+            # Cannot parse — treat as structurally invalid
+            return False
+        return True
 
     async def _verify_jwt_token(self, credential: Credential) -> bool:
-        """Verify JWT token."""
-        # Placeholder - implement actual JWT verification
+        """
+        Verify JWT token structure and expiry.
+
+        Checks that the token has three dot-separated base64url segments and
+        that the exp claim (if present) is in the future.
+        """
         try:
-            # In production, use PyJWT to decode and verify
             parts = credential.credential_value.split('.')
-            return len(parts) == 3
+            if len(parts) != 3:
+                return False
+            # Validate payload contains valid JSON with optional exp check
+            payload_b64 = parts[1]
+            padding = 4 - len(payload_b64) % 4
+            if padding != 4:
+                payload_b64 += '=' * padding
+            payload = json.loads(base64.urlsafe_b64decode(payload_b64))
+            exp = payload.get('exp')
+            if exp is not None:
+                exp_dt = datetime.fromtimestamp(exp, tz=timezone.utc)
+                if exp_dt < datetime.now(tz=timezone.utc):
+                    logger.debug("JWT expired at %s", exp_dt)
+                    return False
+            return True
         except Exception as exc:
-            logger.debug("Suppressed exception: %s", exc)
+            logger.debug("JWT structure validation failed: %s", exc)
             return False
 
     def _update_credential_status(self, credential_id: str, status: CredentialStatus):

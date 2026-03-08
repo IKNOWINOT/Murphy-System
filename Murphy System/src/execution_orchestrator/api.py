@@ -389,8 +389,12 @@ def _check_ownership(packet_id: str):
     """
     Check if the caller owns the execution.
 
+    Admins (X-Role: admin) bypass the ownership check.
     Returns None if authorized, or a (response, status_code) tuple if denied.
     """
+    # Admin users may manage any execution
+    if request.headers.get('X-Role') == 'admin':
+        return None
     caller = _get_caller_identity()
     owner = execution_owners.get(packet_id, '')
     if owner and caller != owner:
