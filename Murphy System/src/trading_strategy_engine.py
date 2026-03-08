@@ -5,7 +5,7 @@
 Trading Strategy Engine — Murphy System
 
 Provides a pluggable strategy library and a lightweight backtesting engine,
-combining best elements of freqtrade's strategy API, Jesse's signal model,
+combining best elements of Freqtrade's strategy API, Jesse's signal model,
 and Hummingbot's market-making patterns.
 
 Included strategies:
