@@ -17,8 +17,15 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Added
-- *(no unreleased changes yet)*
+### Changed
+- **refactor:** Converted 12 `raise NotImplementedError` stubs in 6 abstract base classes to proper `abc.ABC` + `@abstractmethod` patterns:
+  - `command_system.py` — `CommandModule.execute()`
+  - `crypto_exchange_connector.py` — `ExchangeConnector._place_order()`, `_fetch_ticker()`, `_fetch_balances()`, `_probe()`
+  - `crypto_wallet_manager.py` — `BaseWallet._do_sync()`
+  - `domain_swarms.py` — `DomainSwarmGenerator.generate_candidates()`, `generate_gates()`
+  - `learning_engine/model_architecture.py` — `ShadowAgentModel.train()`, `predict()`
+  - `murphy_code_healer.py` — Replaced `NotImplementedError` in code-generation templates with `RuntimeError`
+- **legal:** Priority 0 — License compliance audit, PII redaction, dependency cleanup (pylint→ruff, Apache headers→BSL-1.1, THIRD_PARTY_LICENSES.md, PRIVACY.md)
 
 ---
 

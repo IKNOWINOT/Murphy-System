@@ -4,6 +4,7 @@ Shadow Agent Model Architecture
 This module defines the hybrid decision tree/neural network model architecture.
 """
 
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -195,7 +196,7 @@ class ModelMetadata:
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
-class ShadowAgentModel:
+class ShadowAgentModel(ABC):
     """
     Base class for shadow-agent learning models.
 
@@ -214,13 +215,15 @@ class ShadowAgentModel:
     # Training & Prediction — subclasses MUST override train/predict
     # ------------------------------------------------------------------
 
+    @abstractmethod
     def train(self, X_train, y_train, X_val=None, y_val=None):
         """Train the model.  Subclasses must override."""
-        raise NotImplementedError("Subclasses must implement train()")
+        ...
 
+    @abstractmethod
     def predict(self, X):
         """Return predictions for *X*.  Subclasses must override."""
-        raise NotImplementedError("Subclasses must implement predict()")
+        ...
 
     def predict_proba(self, X):
         """
