@@ -94,11 +94,12 @@ class BotInventoryLibrary:
     Manages spawning, despawning, and lifecycle of system agents
     """
 
-    def __init__(self):
+    def __init__(self, heartbeat_monitor=None):
         self.bots: Dict[str, BotAgent] = {}
         self.bot_templates: Dict[str, Dict] = self._load_bot_templates()
         self.spawn_count = 0
         self.despawn_count = 0
+        self._heartbeat_monitor = heartbeat_monitor
 
         # Register all system capabilities
         self.capability_registry = self._initialize_capability_registry()
@@ -436,6 +437,18 @@ class BotInventoryLibrary:
         bot.status = BotStatus.ACTIVE
 
         self.bots[agent_id] = bot
+
+        # Auto-register with heartbeat monitor if wired
+        if self._heartbeat_monitor is not None:
+            try:
+                self._heartbeat_monitor.register_bot(agent_id)
+            except Exception as exc:
+                logger.warning(
+                    "spawn_bot: failed to register bot %s with heartbeat monitor: %s",
+                    agent_id,
+                    exc,
+                )
+
         return bot
 
     def despawn_bot(self, agent_id: str) -> bool:
@@ -462,6 +475,17 @@ class BotInventoryLibrary:
 
         # Remove from active bots
         del self.bots[agent_id]
+
+        # Deregister from heartbeat monitor if wired
+        if self._heartbeat_monitor is not None:
+            try:
+                self._heartbeat_monitor.deregister_bot(agent_id)
+            except Exception as exc:
+                logger.warning(
+                    "despawn_bot: failed to deregister bot %s from heartbeat monitor: %s",
+                    agent_id,
+                    exc,
+                )
 
         self.despawn_count += 1
         return True
