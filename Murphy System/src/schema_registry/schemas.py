@@ -4,9 +4,12 @@ Schema Registry Data Models
 Data models for bot I/O schema contracts derived from org chart artifacts.
 """
 
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
