@@ -129,10 +129,50 @@ export async function run(raw: unknown, ctx: Ctx = {}): Promise<Output> {
     return OutputSchema.parse(out);
   }
 
-  // EVAL OFFLINE (stub: returns trivial CI)
+  // EVAL OFFLINE: query real A/B test data from D1, compute CI from actual results
   if (input.task==='eval_offline'){
-    const pA=0.6,nA=100,pB=0.64,nB=100; const [lo,hi]=wilson(pB,nB);
-    const out: Output = { result:{ report:{ pass_rate_B_ci:[lo,hi], uplift: pB-pA } }, confidence:0.85, notes:[], meta:{ budget:{cost_usd:0.0003,tier,pool:'mini'}, gp:{hit:false}, stability:{S:1,action:'continue'}, kaiaMix: KAIA_MIX } as any };
+    const exp_id = params.exp_id;
+    let report: any;
+    const notes: string[] = [];
+
+    if (ctx.db && exp_id) {
+      try {
+        const res = await ctx.db.prepare('SELECT arm_id, passed, reward FROM opt_runs WHERE exp_id = ?').bind(exp_id).all();
+        const rows: any[] = (res?.results || res || []);
+        const armA = rows.filter((r:any) => r.arm_id === 'A');
+        const armB = rows.filter((r:any) => r.arm_id === 'B');
+
+        if (armA.length > 0 || armB.length > 0) {
+          const nA = armA.length || 1;
+          const nB = armB.length || 1;
+          const pA = armA.length > 0 ? armA.filter((r:any) => r.passed).length / nA : 0;
+          const pB = armB.length > 0 ? armB.filter((r:any) => r.passed).length / nB : 0;
+          const [loA, hiA] = wilson(pA, nA);
+          const [loB, hiB] = wilson(pB, nB);
+          report = { pass_rate_A: pA, pass_rate_A_ci: [loA, hiA], n_A: nA, pass_rate_B: pB, pass_rate_B_ci: [loB, hiB], n_B: nB, uplift: pB - pA };
+        } else {
+          // No data in DB: use defaults with warning
+          const pA=0.6,nA=100,pB=0.64,nB=100;
+          const [lo,hi]=wilson(pB,nB);
+          report = { pass_rate_B_ci:[lo,hi], uplift: pB-pA, warning: 'no_data_using_defaults' };
+          notes.push('no_data_using_defaults');
+        }
+      } catch {
+        // DB error: fall back to defaults
+        const pA=0.6,nA=100,pB=0.64,nB=100;
+        const [lo,hi]=wilson(pB,nB);
+        report = { pass_rate_B_ci:[lo,hi], uplift: pB-pA, warning: 'no_data_using_defaults' };
+        notes.push('no_data_using_defaults');
+      }
+    } else {
+      // No DB or no exp_id: fall back to defaults
+      const pA=0.6,nA=100,pB=0.64,nB=100;
+      const [lo,hi]=wilson(pB,nB);
+      report = { pass_rate_B_ci:[lo,hi], uplift: pB-pA, warning: 'no_data_using_defaults' };
+      notes.push('no_data_using_defaults');
+    }
+
+    const out: Output = { result:{ report }, confidence:0.85, notes, meta:{ budget:{cost_usd:0.0003,tier,pool:'free'}, gp:{hit:false}, stability:{S:1,action:'continue'}, kaiaMix: KAIA_MIX } as any };
     return OutputSchema.parse(out);
   }
 
