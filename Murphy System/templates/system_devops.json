@@ -1,0 +1,59 @@
+{
+  "template_id": "system_devops_v1",
+  "name": "DevOps Automation Workflow",
+  "description": "CI/CD and infrastructure automation workflow covering code analysis, container builds, deployment orchestration, and incident alerting.",
+  "version": "1.0.0",
+  "author": "Murphy System",
+  "tags": ["devops", "ci-cd", "deployment", "docker", "monitoring", "alerting"],
+  "category": "SYSTEM",
+  "flow_json": {
+    "nodes": [
+      {
+        "id": "code_trigger",
+        "type": "trigger",
+        "label": "Git Push Trigger",
+        "description": "Listens for push or pull-request events on configured branches via webhook.",
+        "config": { "provider": "github", "branches": ["main", "release/*"], "events": ["push", "pull_request"] }
+      },
+      {
+        "id": "code_analysis",
+        "type": "agent",
+        "label": "Code Analysis Agent",
+        "description": "Runs static analysis, security scanning, and test coverage checks.",
+        "config": { "tools": ["ruff", "bandit", "pytest-cov"], "fail_threshold": 80 }
+      },
+      {
+        "id": "container_build",
+        "type": "action",
+        "label": "Container Build & Push",
+        "description": "Builds Docker image, tags with commit SHA, and pushes to container registry.",
+        "config": { "registry": "ghcr.io", "platform": "linux/amd64,linux/arm64" }
+      },
+      {
+        "id": "deploy_orchestrator",
+        "type": "agent",
+        "label": "Deploy Orchestrator",
+        "description": "Executes rolling deployment to target environment with health-check gating.",
+        "config": { "strategy": "rolling", "environment": "production", "health_check_retries": 5 }
+      },
+      {
+        "id": "incident_alert",
+        "type": "output",
+        "label": "Incident Alerting",
+        "description": "Sends deployment status and any failure details to Slack and PagerDuty.",
+        "config": { "channels": ["slack", "pagerduty"], "on_failure_only": false }
+      }
+    ],
+    "edges": [
+      { "id": "e1", "source": "code_trigger", "target": "code_analysis" },
+      { "id": "e2", "source": "code_analysis", "target": "container_build", "label": "passed" },
+      { "id": "e3", "source": "container_build", "target": "deploy_orchestrator" },
+      { "id": "e4", "source": "deploy_orchestrator", "target": "incident_alert" }
+    ]
+  },
+  "requirements": ["docker", "httpx", "pyyaml", "slack-sdk"],
+  "rating": 4.5,
+  "downloads": 0,
+  "created_at": "2024-01-01T00:00:00+00:00",
+  "updated_at": "2024-01-01T00:00:00+00:00"
+}
