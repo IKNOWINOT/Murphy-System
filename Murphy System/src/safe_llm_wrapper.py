@@ -183,11 +183,10 @@ class SafeLLMWrapper:
 
         # Rule 2: Response is much longer than prompt and shares very little
         if len(response) > 5 * len(prompt):
-            extra_tokens = response_tokens - prompt_tokens
-            if extra_tokens:
-                extra_overlap = len(prompt_tokens & extra_tokens) / (len(extra_tokens) or 1)
-                if extra_overlap < 0.1:
-                    return False
+            # Check what fraction of prompt tokens appear in the response
+            prompt_coverage = len(intersection) / (len(prompt_tokens) or 1)
+            if prompt_coverage < 0.1:
+                return False
 
         return True
 

@@ -11,7 +11,7 @@ export async function proposeFromFeedback(_db:any, _ctx:any){
     const rows: any[] = result?.results || [];
     const proposals: any[] = [];
     for (const row of rows){
-      const confidence = Math.min(0.9, 0.5 + Math.abs(row.avg_score) * 0.2 + Math.min(row.count, 20) * 0.01);
+      const confidence = Math.min(0.9, 0.5 + (-row.avg_score) * 0.2 + Math.min(row.count, 20) * 0.01);
       proposals.push({
         target_bot: row.bot,
         area: row.area,

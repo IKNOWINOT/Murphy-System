@@ -152,9 +152,10 @@ export async function run(raw: unknown, ctx: Ctx = {}): Promise<Output> {
     for (const r of rows){
       const meta = r.meta_json ? JSON.parse(r.meta_json) : {};
       if (!meta.compressed && r.text && r.text.length > 200){
-        // Basic compression: deduplicate repeated whitespace and truncate to summary
-        const compressedText = r.text.replace(/\s+/g, ' ').trim().slice(0, Math.ceil(r.text.length * 0.7));
-        await entries.upsertEntry(ctx.db!, { id:r.id, tenant, text:compressedText, trust:r.trust||1, last_accessed:r.last_accessed||nowIso(), access_count:r.access_count||0, status:'active', compressed:1, created_ts:nowIso(), updated_ts:nowIso(), meta:{ ...meta, compressed:true } });
+        // Basic compression: deduplicate repeated whitespace first, then truncate to 70%
+        const deduped = r.text.replace(/\s+/g, ' ').trim();
+        const compressedText = deduped.slice(0, Math.ceil(deduped.length * 0.7));
+        await entries.upsertEntry(ctx.db!, { id:r.id, tenant, text:compressedText, trust:r.trust||1, last_accessed:r.last_accessed||nowIso(), access_count:r.access_count||0, status:'active', compressed:1, created_ts:r.created_ts||nowIso(), updated_ts:nowIso(), meta:{ ...meta, compressed:true } });
         compressed++;
       }
     }

@@ -483,7 +483,10 @@ class ModelValidator:
                     )
                     # Use H (primary output) as confidence predictions
                     preds = H.cpu().numpy().flatten()
-                    targets = batch.y.cpu().numpy().flatten() if hasattr(batch, 'y') else np.zeros_like(preds)
+                    if not hasattr(batch, 'y') or batch.y is None:
+                        # Skip batches without ground truth labels
+                        continue
+                    targets = batch.y.cpu().numpy().flatten()
                     # Correctness: prediction is "correct" if it's on the right side of 0.5
                     correct = ((preds >= 0.5) == (targets >= 0.5)).astype(float)
                     all_confidences.extend(preds.tolist())
@@ -494,7 +497,6 @@ class ModelValidator:
 
             confidences = np.array(all_confidences)
             correctness = np.array(all_correctness)
-
             # Bucket into 10 equal-width bins by predicted confidence
             n_bins = 10
             ece = 0.0
