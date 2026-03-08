@@ -55,10 +55,10 @@ Murphy System is **aligned with** (not formally attested to) the following frame
 
 | ID | Gap | Priority | Actionable Path |
 |----|-----|----------|-----------------|
-| G-004 | Full ML feedback loop not wired | Medium | Connect learning engine outcome tracker to routing weights |
+| ~~G-004~~ | ~~Full ML feedback loop not wired~~ | ~~Medium~~ | ✅ **RESOLVED** — `record_outcome()` added to `GeographicLoadBalancer`, wiring feedback signals into `capacity_weight` via configurable learning rate |
 | G-005 | Dashboard UI incomplete | Medium | Complete React/terminal dashboard with live metrics |
 | G-006 | Formal security pen-test | High | Engage third-party security firm for penetration testing |
-| G-008 | Production deployment hardening | Medium | Complete k8s manifests, add health check probes |
+| ~~G-008~~ | ~~Production deployment hardening~~ | ~~Medium~~ | ✅ **RESOLVED** — `SecurityContext`, `PodDisruptionBudget`, `NetworkPolicy` added to `kubernetes_deployment.py` with YAML rendering |
 
 ## Infrastructure Deferred Items
 

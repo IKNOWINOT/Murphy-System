@@ -137,7 +137,7 @@ It is maintained as part of the iterative **DIAGNOSE → PLAN → IMPLEMENT → 
 | G-R04 | System health generator (critical-first ordering) | Feature work not yet started | Agent |
 | G-R05 | `install.sh` one-line installer (404 noted in docs) | Script doesn't exist yet | Corey Post |
 | G-R06 | Formal security pen-test | External engagement required | Corey Post |
-| G-R07 | Full ML feedback loop wired (G-004 from STATUS.md) | Requires live training data pipeline | Agent + Corey Post |
+| G-R07 | Full ML feedback loop wired (G-004 from STATUS.md) | ✅ **RESOLVED** — `record_outcome()` added to `GeographicLoadBalancer` | Agent |
 | G-R08 | Dashboard UI incomplete (G-005 from STATUS.md) | UI development work | Agent |
 | G-R09 | API credentials for integration testing | Corey Post must provide API keys when prompted | Corey Post |
 | G-R10 | `pyproject.toml` audit gap G-007 | Configuration alignment | Agent |

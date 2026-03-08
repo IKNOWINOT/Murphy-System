@@ -114,6 +114,48 @@ class ContainerSpec:
 
 
 @dataclass
+class SecurityContext:
+    """Pod-level security context for production hardening (G-008)."""
+    run_as_non_root: bool = True
+    run_as_user: int = 1000
+    run_as_group: int = 1000
+    read_only_root_filesystem: bool = True
+    allow_privilege_escalation: bool = False
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialise to plain dict."""
+        return asdict(self)
+
+
+@dataclass
+class PodDisruptionBudget:
+    """PodDisruptionBudget for production hardening (G-008)."""
+    name: str
+    namespace: str = "default"
+    min_available: Optional[int] = 1
+    max_unavailable: Optional[int] = None
+    selector: Dict[str, str] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialise to plain dict."""
+        return asdict(self)
+
+
+@dataclass
+class NetworkPolicy:
+    """Kubernetes NetworkPolicy for production hardening (G-008)."""
+    name: str
+    namespace: str = "default"
+    pod_selector: Dict[str, str] = field(default_factory=dict)
+    ingress_ports: List[int] = field(default_factory=list)
+    egress_ports: List[int] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialise to plain dict."""
+        return asdict(self)
+
+
+@dataclass
 class ResourceRequirements:
     """CPU and memory resource requests/limits."""
     cpu_request: str = "100m"
@@ -147,6 +189,7 @@ class K8sDeployment:
     annotations: Dict[str, str] = field(default_factory=dict)
     service_account: str = ""
     node_selector: Dict[str, str] = field(default_factory=dict)
+    security_context: Optional[SecurityContext] = None
     created_at: str = field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat(),
     )
@@ -306,6 +349,8 @@ class KubernetesManager:
         self._ingresses: Dict[str, K8sIngress] = {}
         self._namespaces: Dict[str, K8sNamespace] = {}
         self._charts: Dict[str, HelmChart] = {}
+        self._pdbs: Dict[str, PodDisruptionBudget] = {}
+        self._network_policies: Dict[str, NetworkPolicy] = {}
 
     # -- Deployment CRUD ---------------------------------------------------
 
@@ -501,6 +546,54 @@ class KubernetesManager:
             return None
         return _render_chart_yaml(chart)
 
+    # -- PDB / NetworkPolicy (G-008 hardening) ----------------------------
+
+    def register_pdb(self, pdb: PodDisruptionBudget) -> str:
+        """Register a PodDisruptionBudget. Returns its name."""
+        with self._lock:
+            self._pdbs[pdb.name] = pdb
+            return pdb.name
+
+    def get_pdb(self, name: str) -> Optional[PodDisruptionBudget]:
+        """Retrieve a PDB by name."""
+        with self._lock:
+            return self._pdbs.get(name)
+
+    def list_pdbs(self) -> List[PodDisruptionBudget]:
+        """List all registered PDBs."""
+        with self._lock:
+            return list(self._pdbs.values())
+
+    def register_network_policy(self, np: NetworkPolicy) -> str:
+        """Register a NetworkPolicy. Returns its name."""
+        with self._lock:
+            self._network_policies[np.name] = np
+            return np.name
+
+    def get_network_policy(self, name: str) -> Optional[NetworkPolicy]:
+        """Retrieve a NetworkPolicy by name."""
+        with self._lock:
+            return self._network_policies.get(name)
+
+    def list_network_policies(self) -> List[NetworkPolicy]:
+        """List all registered NetworkPolicies."""
+        with self._lock:
+            return list(self._network_policies.values())
+
+    def generate_pdb_yaml(self, name: str) -> Optional[str]:
+        """Generate a YAML-like PDB manifest for *name*."""
+        pdb = self.get_pdb(name)
+        if pdb is None:
+            return None
+        return _render_pdb(pdb)
+
+    def generate_network_policy_yaml(self, name: str) -> Optional[str]:
+        """Generate a YAML-like NetworkPolicy manifest for *name*."""
+        np = self.get_network_policy(name)
+        if np is None:
+            return None
+        return _render_network_policy(np)
+
     # -- Stats -------------------------------------------------------------
 
     def resource_stats(self) -> Dict[str, Any]:
@@ -515,6 +608,8 @@ class KubernetesManager:
                 "ingresses": len(self._ingresses),
                 "namespaces": len(self._namespaces),
                 "charts": len(self._charts),
+                "pdbs": len(self._pdbs),
+                "network_policies": len(self._network_policies),
             }
 # -- YAML rendering helpers (pure string formatting, no yaml lib) ----------
 
@@ -541,6 +636,12 @@ def _render_deployment(dep: K8sDeployment) -> str:
     if dep.node_selector:
         L.append("      nodeSelector:")
         L.extend(f"        {k}: {v}" for k, v in dep.node_selector.items())
+    if dep.security_context:
+        sc = dep.security_context
+        L += ["      securityContext:",
+              f"        runAsNonRoot: {str(sc.run_as_non_root).lower()}",
+              f"        runAsUser: {sc.run_as_user}",
+              f"        runAsGroup: {sc.run_as_group}"]
     L.append("      containers:")
     for c in dep.containers:
         L += [f"      - name: {c.name}", f"        image: {c.image}:{c.tag}"]
@@ -565,6 +666,11 @@ def _render_deployment(dep: K8sDeployment) -> str:
     if dep.readiness_probe:
         L.append("        readinessProbe:")
         L.append(_render_probe(dep.readiness_probe, 10))
+    if dep.security_context:
+        sc = dep.security_context
+        L += ["        securityContext:",
+              f"          readOnlyRootFilesystem: {str(sc.read_only_root_filesystem).lower()}",
+              f"          allowPrivilegeEscalation: {str(sc.allow_privilege_escalation).lower()}"]
     return "\n".join(L) + "\n"
 
 def _render_service(svc: K8sService) -> str:
@@ -597,6 +703,38 @@ def _render_chart_yaml(chart: HelmChart) -> str:
     return "\n".join(["apiVersion: v2", f"name: {chart.name}", f"version: {chart.version}",
                       f"appVersion: {chart.app_version}", f'description: "{chart.description}"',
                       "type: application"]) + "\n"
+
+def _render_pdb(pdb: PodDisruptionBudget) -> str:
+    """Render a PodDisruptionBudget YAML manifest (G-008)."""
+    L = ["apiVersion: policy/v1", "kind: PodDisruptionBudget", "metadata:",
+         f"  name: {pdb.name}", f"  namespace: {pdb.namespace}", "spec:"]
+    if pdb.min_available is not None:
+        L.append(f"  minAvailable: {pdb.min_available}")
+    elif pdb.max_unavailable is not None:
+        L.append(f"  maxUnavailable: {pdb.max_unavailable}")
+    if pdb.selector:
+        L += ["  selector:", "    matchLabels:"]
+        L.extend(f"      {k}: {v}" for k, v in pdb.selector.items())
+    return "\n".join(L) + "\n"
+
+def _render_network_policy(np: NetworkPolicy) -> str:
+    """Render a NetworkPolicy YAML manifest (G-008)."""
+    L = ["apiVersion: networking.k8s.io/v1", "kind: NetworkPolicy", "metadata:",
+         f"  name: {np.name}", f"  namespace: {np.namespace}", "spec:"]
+    if np.pod_selector:
+        L += ["  podSelector:", "    matchLabels:"]
+        L.extend(f"      {k}: {v}" for k, v in np.pod_selector.items())
+    else:
+        L.append("  podSelector: {}")
+    if np.ingress_ports:
+        L += ["  ingress:", "  - ports:"]
+        for p in np.ingress_ports:
+            L.append(f"    - port: {p}")
+    if np.egress_ports:
+        L += ["  egress:", "  - ports:"]
+        for p in np.egress_ports:
+            L.append(f"    - port: {p}")
+    return "\n".join(L) + "\n"
 
 
 # ---------------------------------------------------------------------------

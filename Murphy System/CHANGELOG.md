@@ -182,10 +182,29 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 | ID | Description |
 |----|-------------|
-| G-004 | Full ML feedback loop not yet wired to routing weights |
+| ~~G-004~~ | ~~Full ML feedback loop not yet wired to routing weights~~ — **RESOLVED** 2026-03-08: `record_outcome()` method added to `GeographicLoadBalancer` wiring feedback signals into `capacity_weight` |
 | G-005 | Dashboard UI incomplete |
 | G-006 | Formal third-party penetration test pending |
-| G-008 | Kubernetes manifests not yet hardened for production |
+| ~~G-008~~ | ~~Kubernetes manifests not yet hardened for production~~ — **RESOLVED** 2026-03-08: `SecurityContext`, `PodDisruptionBudget`, `NetworkPolicy` dataclasses added to `kubernetes_deployment.py` with full YAML rendering |
+
+### 2026-03-08
+
+#### feat: Cost Optimization Advisor (COA-001) — P8 #28
+- New module `src/cost_optimization_advisor.py` (762 lines) — analyze cloud spend, recommend rightsizing, spot instance opportunities
+- 6 dataclass models, 5 enums, 17 REST API endpoints, Wingman + Sandbox gates
+- 97 tests in `tests/test_cost_optimization_advisor.py`
+
+#### fix: G-004 — ML feedback loop wired to routing weights
+- Added `record_outcome()` and `_compute_feedback()` to `GeographicLoadBalancer`
+- Request outcomes (latency + success/failure) now adjust region `capacity_weight` via configurable learning rate
+- Positive outcomes for low-latency requests increase weight; failures decrease weight
+
+#### fix: G-008 — Kubernetes manifests hardened for production
+- Added `SecurityContext` dataclass (runAsNonRoot, runAsUser, runAsGroup, readOnlyRootFilesystem, allowPrivilegeEscalation)
+- Added `PodDisruptionBudget` dataclass with YAML rendering (`_render_pdb`)
+- Added `NetworkPolicy` dataclass with YAML rendering (`_render_network_policy`)
+- Wired `SecurityContext` into Deployment YAML at both pod-level and container-level
+- Added `register_pdb`, `register_network_policy`, `generate_pdb_yaml`, `generate_network_policy_yaml` to `KubernetesManager`
 
 ---
 
