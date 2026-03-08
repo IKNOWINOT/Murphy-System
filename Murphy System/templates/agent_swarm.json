@@ -1,0 +1,59 @@
+{
+  "template_id": "agent_swarm_v1",
+  "name": "Multi-Agent Swarm Coordination",
+  "description": "Hierarchical agent swarm pattern with a coordinator dispatching subtasks to specialist agents, synthesizing results, and publishing a unified response.",
+  "version": "1.0.0",
+  "author": "Murphy System",
+  "tags": ["agents", "swarm", "multi-agent", "coordinator", "parallelism"],
+  "category": "AGENT",
+  "flow_json": {
+    "nodes": [
+      {
+        "id": "task_intake",
+        "type": "trigger",
+        "label": "Task Intake",
+        "description": "Receives high-level goal or task from user, API, or upstream workflow.",
+        "config": { "input_schema": "task_schema.json", "timeout_seconds": 300 }
+      },
+      {
+        "id": "coordinator",
+        "type": "agent",
+        "label": "Swarm Coordinator",
+        "description": "Decomposes the goal into subtasks and dispatches them to specialist agents in parallel.",
+        "config": { "model": "gpt-4o", "max_agents": 5, "dispatch_strategy": "parallel" }
+      },
+      {
+        "id": "specialist_pool",
+        "type": "agent",
+        "label": "Specialist Agent Pool",
+        "description": "Pool of domain-specific agents (research, code, analysis, writing) that execute assigned subtasks.",
+        "config": { "agents": ["researcher", "coder", "analyst", "writer"], "model": "gpt-4o-mini" }
+      },
+      {
+        "id": "synthesizer",
+        "type": "agent",
+        "label": "Result Synthesizer",
+        "description": "Merges outputs from all specialist agents into a coherent, unified response.",
+        "config": { "model": "gpt-4o", "merge_strategy": "structured_summary" }
+      },
+      {
+        "id": "response_output",
+        "type": "output",
+        "label": "Response Output",
+        "description": "Delivers synthesized result to the requesting system or user channel.",
+        "config": { "delivery": ["api_response", "webhook", "websocket"] }
+      }
+    ],
+    "edges": [
+      { "id": "e1", "source": "task_intake", "target": "coordinator" },
+      { "id": "e2", "source": "coordinator", "target": "specialist_pool", "label": "dispatch" },
+      { "id": "e3", "source": "specialist_pool", "target": "synthesizer", "label": "results" },
+      { "id": "e4", "source": "synthesizer", "target": "response_output" }
+    ]
+  },
+  "requirements": ["openai", "asyncio", "httpx"],
+  "rating": 4.5,
+  "downloads": 0,
+  "created_at": "2024-01-01T00:00:00+00:00",
+  "updated_at": "2024-01-01T00:00:00+00:00"
+}
