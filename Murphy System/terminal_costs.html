@@ -1,669 +1,666 @@
+<!--
+  Murphy System — Finance Terminal
+  © 2020 Inoni Limited Liability Company by Corey Post
+  License: BSL 1.1 (Business Source License 1.1)
+  See LICENSE file in repository root for full terms.
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>☠ MURPHY SYSTEM - COST DASHBOARD ☠</title>
-    <style>
-        :root { --neon-green: #00FF41; }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: 'Courier New', monospace;
-            background-color: #0a0a0a;
-            color: #00ff41;
-            min-height: 100vh;
-        }
-
-        /* Header */
-        .header {
-            background-color: #0a0a0a;
-            border-bottom: 2px solid #00ff41;
-            box-shadow: 0 2px 10px rgba(0, 255, 65, 0.3);
-            padding: 10px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .header-title {
-            font-size: 22px;
-            font-weight: bold;
-            letter-spacing: 3px;
-            color: #00ff41;
-        }
-
-        .header-subtitle {
-            font-size: 11px;
-            color: #00cc33;
-            margin-top: 3px;
-            letter-spacing: 2px;
-        }
-
-        .header-controls {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-        }
-
-        .header-btn {
-            background-color: #0a0a0a;
-            border: 1px solid #00ff41;
-            color: #00ff41;
-            padding: 5px 15px;
-            font-family: 'Courier New', monospace;
-            font-size: 11px;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .header-btn:hover {
-            background-color: #00ff41;
-            color: #0a0a0a;
-        }
-
-        .status-indicator {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background-color: #00ff41;
-            margin-right: 6px;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
-        }
-
-        /* Main content */
-        .main-content {
-            padding: 20px;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        /* Section */
-        .section {
-            border: 1px solid #00ff41;
-            margin-bottom: 20px;
-            background-color: #050505;
-        }
-
-        .section-header {
-            background-color: #001a00;
-            border-bottom: 1px solid #00ff41;
-            padding: 8px 16px;
-            font-size: 13px;
-            font-weight: bold;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            color: #00ff41;
-        }
-
-        .section-body {
-            padding: 16px;
-        }
-
-        /* Summary panel */
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 16px;
-        }
-
-        .stat-card {
-            border: 1px solid #003300;
-            background-color: #020a02;
-            padding: 12px 16px;
-        }
-
-        .stat-label {
-            font-size: 10px;
-            color: #00cc33;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            margin-bottom: 6px;
-        }
-
-        .stat-value {
-            font-size: 22px;
-            font-weight: bold;
-            color: #00ff41;
-        }
-
-        .stat-value.warn { color: #ffaa00; }
-        .stat-value.danger { color: #ff4444; }
-
-        /* Progress bar */
-        .progress-container {
-            margin-top: 16px;
-        }
-
-        .progress-label {
-            display: flex;
-            justify-content: space-between;
-            font-size: 11px;
-            color: #00cc33;
-            margin-bottom: 4px;
-        }
-
-        .progress-bar-outer {
-            background-color: #001a00;
-            border: 1px solid #003300;
-            height: 16px;
-            width: 100%;
-        }
-
-        .progress-bar-inner {
-            height: 100%;
-            background-color: #00ff41;
-            transition: width 0.4s ease;
-        }
-
-        .progress-bar-inner.warn { background-color: #ffaa00; }
-        .progress-bar-inner.danger { background-color: #ff4444; }
-
-        /* Tables */
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 12px;
-        }
-
-        .data-table th {
-            border-bottom: 1px solid #00ff41;
-            padding: 6px 10px;
-            text-align: left;
-            font-size: 10px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            color: #00cc33;
-        }
-
-        .data-table td {
-            padding: 8px 10px;
-            border-bottom: 1px solid #001a00;
-            color: #00ff41;
-        }
-
-        .data-table tr:last-child td {
-            border-bottom: none;
-        }
-
-        .data-table tr:hover td {
-            background-color: #001a00;
-        }
-
-        .bar-cell {
-            min-width: 140px;
-        }
-
-        .inline-bar-outer {
-            background-color: #001a00;
-            border: 1px solid #003300;
-            height: 10px;
-            width: 100%;
-        }
-
-        .inline-bar-inner {
-            height: 100%;
-            background-color: #00ff41;
-            transition: width 0.4s ease;
-        }
-
-        .inline-bar-inner.warn { background-color: #ffaa00; }
-        .inline-bar-inner.danger { background-color: #ff4444; }
-
-        /* Forms */
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 12px;
-            align-items: end;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .form-label {
-            font-size: 10px;
-            color: #00cc33;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-
-        .form-input {
-            background-color: #020a02;
-            border: 1px solid #003300;
-            color: #00ff41;
-            padding: 6px 10px;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            outline: none;
-        }
-
-        .form-input:focus { border-color: #00ff41; }
-
-        .form-btn {
-            background-color: #0a0a0a;
-            border: 1px solid #00ff41;
-            color: #00ff41;
-            padding: 8px 20px;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: all 0.2s;
-            align-self: flex-end;
-        }
-
-        .form-btn:hover {
-            background-color: #00ff41;
-            color: #0a0a0a;
-        }
-
-        /* Toast */
-        .toast {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background-color: #001a00;
-            border: 1px solid #00ff41;
-            color: #00ff41;
-            padding: 10px 20px;
-            font-size: 12px;
-            letter-spacing: 1px;
-            opacity: 0;
-            transition: opacity 0.3s;
-            z-index: 200;
-        }
-
-        .toast.visible { opacity: 1; }
-        .toast.error { border-color: #ff4444; color: #ff4444; }
-
-        /* Utility */
-        .muted { color: #004d00; font-style: italic; }
-        .refresh-ts {
-            font-size: 10px;
-            color: #004d00;
-            letter-spacing: 1px;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — Finance Terminal</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
 </head>
-<body>
+<body style="--accent: #FF6B6B;">
 
-<div class="header">
-    <div>
-        <div class="header-title">☠ MURPHY SYSTEM — COST DASHBOARD ☠</div>
-        <div class="header-subtitle">BUDGET TRACKING / DEPARTMENT / PROJECT / BOT</div>
+<!-- Skip link for accessibility -->
+<a href="#content" class="murphy-skip-link">Skip to content</a>
+
+<!-- ============================================================
+     SIDEBAR
+     ============================================================ -->
+<nav class="murphy-sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
+  <div class="murphy-sidebar-logo">
+    <svg width="24" height="24"><use href="static/murphy-icons.svg#icon-dollar-sign"></use></svg>
+    <span>Finance</span>
+  </div>
+
+  <div class="murphy-sidebar-nav" id="sidebar-nav">
+    <!-- Overview -->
+    <div class="murphy-sidebar-section" aria-label="Overview">Overview</div>
+    <a href="#dashboard" class="murphy-sidebar-item" data-view="dashboard" aria-label="Dashboard">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-dashboard"></use></svg>
+      <span>Dashboard</span>
+    </a>
+    <a href="#status" class="murphy-sidebar-item" data-view="status" aria-label="System Status">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-activity"></use></svg>
+      <span>Status</span>
+    </a>
+
+    <!-- Budget -->
+    <div class="murphy-sidebar-section" aria-label="Budget">Budget</div>
+    <a href="#efficiency" class="murphy-sidebar-item" data-view="efficiency" aria-label="Efficiency">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-chart"></use></svg>
+      <span>Efficiency</span>
+    </a>
+    <a href="#supply" class="murphy-sidebar-item" data-view="supply" aria-label="Supply Chain">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-globe"></use></svg>
+      <span>Supply Chain</span>
+    </a>
+    <a href="#costs" class="murphy-sidebar-item" data-view="costs" aria-label="Costs">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-dollar-sign"></use></svg>
+      <span>Costs</span>
+    </a>
+
+    <!-- Governance -->
+    <div class="murphy-sidebar-section" aria-label="Governance">Governance</div>
+    <a href="#gates" class="murphy-sidebar-item" data-view="gates" aria-label="Gates MFGC">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-shield"></use></svg>
+      <span>Gates (MFGC)</span>
+    </a>
+
+    <!-- Intelligence -->
+    <div class="murphy-sidebar-section" aria-label="Intelligence">Intelligence</div>
+    <a href="#librarian" class="murphy-sidebar-item" data-view="librarian" aria-label="Librarian">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-search"></use></svg>
+      <span>Librarian</span>
+    </a>
+
+    <!-- External Links -->
+    <div class="murphy-sidebar-section" aria-label="External Links">External Links</div>
+    <a href="workflow_canvas.html" class="murphy-sidebar-item" target="_blank" rel="noopener" aria-label="Workflow Canvas (opens in new tab)">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-topology"></use></svg>
+      <span>Workflow Canvas</span>
+    </a>
+    <a href="system_visualizer.html" class="murphy-sidebar-item" target="_blank" rel="noopener" aria-label="System Topology (opens in new tab)">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-code"></use></svg>
+      <span>System Topology</span>
+    </a>
+  </div>
+
+  <div class="murphy-sidebar-footer">
+    <span class="text-xs text-muted">Murphy System v2</span>
+  </div>
+</nav>
+
+<!-- ============================================================
+     TOPBAR
+     ============================================================ -->
+<header class="murphy-topbar" role="banner" aria-label="Top bar">
+  <div class="murphy-topbar-left">
+    <button class="murphy-btn murphy-btn-icon" id="btn-sidebar-toggle" aria-label="Toggle sidebar" title="Toggle sidebar">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-menu"></use></svg>
+    </button>
+    <h1 class="murphy-topbar-title">Finance Terminal</h1>
+  </div>
+  <div class="murphy-topbar-right">
+    <div class="relative" id="topbar-search-wrapper">
+      <input type="search" class="murphy-input" id="topbar-search" placeholder="Search… (Ctrl+K)" aria-label="Search" autocomplete="off">
     </div>
-    <div class="header-controls">
-        <span class="refresh-ts" id="refreshTs">LAST REFRESH: —</span>
-        <button class="header-btn" onclick="refreshAll()">↻ REFRESH</button>
-    </div>
-</div>
+    <button class="murphy-btn murphy-btn-icon" id="btn-theme-toggle" aria-label="Toggle theme" title="Toggle theme">
+      <svg width="18" height="18" id="theme-icon"><use href="static/murphy-icons.svg#icon-moon"></use></svg>
+    </button>
+    <button class="murphy-btn murphy-btn-icon" id="btn-notifications" aria-label="Notifications" title="Notifications">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-bell"></use></svg>
+    </button>
+  </div>
+</header>
 
-<div class="main-content">
+<!-- ============================================================
+     MAIN CONTENT AREA
+     ============================================================ -->
+<main id="content" role="main" aria-label="Main content" aria-live="polite"
+      style="margin-left: var(--sidebar-width); margin-top: var(--topbar-height); padding: var(--space-5); min-height: calc(100vh - var(--topbar-height)); transition: margin-left 0.2s ease;">
+</main>
 
-    <!-- Summary Panel -->
-    <div class="section">
-        <div class="section-header">▸ SYSTEM COST SUMMARY</div>
-        <div class="section-body">
-            <div class="summary-grid" id="summaryGrid">
-                <div class="stat-card">
-                    <div class="stat-label">Total Budget</div>
-                    <div class="stat-value" id="statTotalBudget">—</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Total Spent</div>
-                    <div class="stat-value" id="statSpent">—</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Pending</div>
-                    <div class="stat-value" id="statPending">—</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Remaining</div>
-                    <div class="stat-value" id="statRemaining">—</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Utilisation</div>
-                    <div class="stat-value" id="statUtil">—</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Departments</div>
-                    <div class="stat-value" id="statDepts">—</div>
-                </div>
-            </div>
-            <div class="progress-container">
-                <div class="progress-label">
-                    <span>SPEND VS BUDGET</span>
-                    <span id="progressLabel">0%</span>
-                </div>
-                <div class="progress-bar-outer">
-                    <div class="progress-bar-inner" id="summaryBar" style="width:0%"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Department Table -->
-    <div class="section">
-        <div class="section-header">▸ BY DEPARTMENT</div>
-        <div class="section-body">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Department</th>
-                        <th>Budget</th>
-                        <th>Spent</th>
-                        <th>Pending</th>
-                        <th>Remaining</th>
-                        <th>Limit/Task</th>
-                        <th class="bar-cell">Utilisation</th>
-                    </tr>
-                </thead>
-                <tbody id="deptTableBody">
-                    <tr><td colspan="7" class="muted">Loading…</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Project Table -->
-    <div class="section">
-        <div class="section-header">▸ BY PROJECT</div>
-        <div class="section-body">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Project</th>
-                        <th>Total Cost</th>
-                        <th>Executions</th>
-                    </tr>
-                </thead>
-                <tbody id="projectTableBody">
-                    <tr><td colspan="3" class="muted">Loading…</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Bot Table -->
-    <div class="section">
-        <div class="section-header">▸ BY BOT / AGENT</div>
-        <div class="section-body">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Bot / Agent</th>
-                        <th>Total Cost</th>
-                        <th>Executions</th>
-                    </tr>
-                </thead>
-                <tbody id="botTableBody">
-                    <tr><td colspan="3" class="muted">Loading…</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Budget Management Form -->
-    <div class="section">
-        <div class="section-header">▸ SET / UPDATE DEPARTMENT BUDGET</div>
-        <div class="section-body">
-            <div class="form-grid">
-                <div class="form-group">
-                    <label class="form-label">Department ID</label>
-                    <input class="form-input" id="budgetDeptId" type="text" placeholder="e.g. engineering">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Total Budget ($)</label>
-                    <input class="form-input" id="budgetTotal" type="number" min="0" step="0.01" placeholder="1000.00">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Limit Per Task ($)</label>
-                    <input class="form-input" id="budgetLimitPerTask" type="number" min="0" step="0.01" placeholder="50.00">
-                </div>
-                <button class="form-btn" onclick="submitBudget()">SET BUDGET</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Cost Assignment Form -->
-    <div class="section">
-        <div class="section-header">▸ ASSIGN COST EVENT</div>
-        <div class="section-body">
-            <div class="form-grid">
-                <div class="form-group">
-                    <label class="form-label">Caller / Bot ID</label>
-                    <input class="form-input" id="assignCallerId" type="text" placeholder="e.g. bot-alpha">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Tool Name</label>
-                    <input class="form-input" id="assignToolName" type="text" placeholder="e.g. web_search">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Cost ($)</label>
-                    <input class="form-input" id="assignCost" type="number" min="0" step="0.0001" placeholder="0.05">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Department ID (optional)</label>
-                    <input class="form-input" id="assignDeptId" type="text" placeholder="e.g. engineering">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Project ID (optional)</label>
-                    <input class="form-input" id="assignProjectId" type="text" placeholder="e.g. proj-001">
-                </div>
-                <button class="form-btn" onclick="submitAssign()">ASSIGN COST</button>
-            </div>
-        </div>
-    </div>
-
-</div>
-
-<div class="toast" id="toast"></div>
-
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+<script src="static/murphy-components.js"></script>
 <script>
-    // Resolve API base URL — supports ?apiPort= override
-    function resolveApiBase() {
-        const params = new URLSearchParams(window.location.search);
-        const overridePort = params.get('apiPort');
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            const port = overridePort || '8000';
-            return `http://${window.location.hostname}:${port}/api`;
-        }
-        return `${window.location.origin}/api`;
+(function () {
+  'use strict';
+
+  /* ===========================================================
+     1. SHARED COMPONENT INITIALIZATION
+     =========================================================== */
+  var api       = new MurphyAPI('/api');
+  var health    = new MurphyHealth(api);
+  var theme     = new MurphyTheme();
+  var keyboard  = new MurphyKeyboard();
+  var jargon    = new MurphyJargon();
+  var librarian = new MurphyLibrarianChat(api);
+  var toast     = new MurphyToast();
+
+  theme.init();
+  keyboard.init();
+  jargon.init();
+  health.start(15000);
+
+  /* ===========================================================
+     2. HELPERS — HTML generation utilities
+     =========================================================== */
+  function esc(s) {
+    var d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
+  }
+
+  function icon(name, size) {
+    size = size || 18;
+    return '<svg width="' + size + '" height="' + size + '"><use href="static/murphy-icons.svg#icon-' + esc(name) + '"></use></svg>';
+  }
+
+  function badge(text, variant) {
+    variant = variant || 'neutral';
+    return '<span class="murphy-badge murphy-badge-' + esc(variant) + '">' + esc(text) + '</span>';
+  }
+
+  function skeletonCards(n) {
+    var h = '';
+    for (var i = 0; i < (n || 4); i++) {
+      h += '<div class="murphy-skeleton-card murphy-skeleton"></div>';
     }
+    return '<div class="grid gap-4" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr));">' + h + '</div>';
+  }
 
-    const API_BASE = resolveApiBase();
-
-    function fmt(n) {
-        if (n === undefined || n === null) return '—';
-        return '$' + Number(n).toFixed(2);
+  function skeletonRows(n) {
+    var h = '';
+    for (var i = 0; i < (n || 6); i++) {
+      h += '<div class="murphy-skeleton murphy-skeleton-text"></div>';
     }
+    return '<div class="flex flex-col gap-3 p-4">' + h + '</div>';
+  }
 
-    function pct(n) {
-        if (n === undefined || n === null) return '—';
-        return Number(n).toFixed(1) + '%';
-    }
+  function emptyState(title, msg) {
+    return '<div class="murphy-empty-state">' +
+      '<div class="murphy-empty-state-icon">' + icon('search', 48) + '</div>' +
+      '<div class="murphy-empty-state-title">' + esc(title) + '</div>' +
+      '<div class="murphy-empty-state-message">' + esc(msg) + '</div>' +
+      '</div>';
+  }
 
-    function barClass(utilPct) {
-        if (utilPct >= 90) return 'danger';
-        if (utilPct >= 70) return 'warn';
-        return '';
-    }
+  function errorCard(message, retryHash) {
+    var rh = esc(retryHash || '');
+    return '<div class="murphy-card">' +
+      '<div class="murphy-card-body flex flex-col items-center gap-4 p-6">' +
+      '<div class="text-danger text-lg font-bold">' + icon('alert', 32) + ' Error</div>' +
+      '<p class="text-secondary text-sm">' + esc(message) + '</p>' +
+      '<button class="murphy-btn murphy-btn-primary" onclick="location.hash=\'' + rh + '\';navigate(\'' + rh.replace('#', '') + '\');">Retry</button>' +
+      '</div></div>';
+  }
 
-    // --- Toast ---
-    let _toastTimer = null;
-    function showToast(msg, isError) {
-        const el = document.getElementById('toast');
-        el.textContent = msg;
-        el.className = 'toast visible' + (isError ? ' error' : '');
-        clearTimeout(_toastTimer);
-        _toastTimer = setTimeout(() => { el.className = 'toast'; }, 3000);
-    }
+  function statCard(label, value, trendDir, trendText) {
+    var tc = trendDir === 'up' ? 'murphy-stat-card-trend-up' : (trendDir === 'down' ? 'murphy-stat-card-trend-down' : '');
+    var th = trendText ? '<div class="murphy-stat-card-trend ' + tc + '">' + esc(trendText) + '</div>' : '';
+    return '<div class="murphy-stat-card">' +
+      '<div class="murphy-stat-card-label">' + esc(label) + '</div>' +
+      '<div class="murphy-stat-card-value">' + esc(value) + '</div>' +
+      th +
+      '</div>';
+  }
 
-    // --- Fetch helpers ---
-    async function fetchSummary() {
-        const r = await fetch(`${API_BASE}/costs/summary`);
-        const d = await r.json();
-        if (!d.success) return;
-        const s = d.summary;
-        document.getElementById('statTotalBudget').textContent = fmt(s.total_budget);
-        document.getElementById('statSpent').textContent = fmt(s.spent);
-        document.getElementById('statPending').textContent = fmt(s.pending);
-        document.getElementById('statRemaining').textContent = fmt(s.remaining);
-        document.getElementById('statDepts').textContent = s.department_count;
+  function gateIndicator(name, state, cssClass) {
+    var oc = (state === 'open' || state === true) ? 'open' : 'closed';
+    return '<div class="murphy-gate-indicator murphy-gate-indicator-' + esc(cssClass) + ' murphy-gate-indicator-' + oc + '" title="' + esc(name) + ': ' + oc + '">' +
+      '<div class="murphy-gate-indicator-hex">' + esc(name.charAt(0)) + '</div>' +
+      '<span class="text-xs">' + esc(name) + '</span>' +
+      '</div>';
+  }
 
-        const u = s.utilisation_pct || 0;
-        const uEl = document.getElementById('statUtil');
-        uEl.textContent = pct(u);
-        uEl.className = 'stat-value ' + barClass(u);
-
-        const bar = document.getElementById('summaryBar');
-        bar.style.width = Math.min(u, 100) + '%';
-        bar.className = 'progress-bar-inner ' + barClass(u);
-        document.getElementById('progressLabel').textContent = pct(u);
-    }
-
-    async function fetchDepartments() {
-        const r = await fetch(`${API_BASE}/costs/by-department`);
-        const d = await r.json();
-        const tbody = document.getElementById('deptTableBody');
-        if (!d.success || !d.departments.length) {
-            tbody.innerHTML = '<tr><td colspan="7" class="muted">No departments found.</td></tr>';
-            return;
-        }
-        tbody.innerHTML = d.departments.map(dept => {
-            const u = dept.utilisation_pct || 0;
-            const cls = barClass(u);
-            return `<tr>
-                <td>${dept.department_id}</td>
-                <td>${fmt(dept.total_budget)}</td>
-                <td>${fmt(dept.spent)}</td>
-                <td>${fmt(dept.pending)}</td>
-                <td>${fmt(dept.remaining)}</td>
-                <td>${fmt(dept.limit_per_task)}</td>
-                <td class="bar-cell">
-                    <div style="display:flex;align-items:center;gap:8px;">
-                        <div class="inline-bar-outer" style="flex:1">
-                            <div class="inline-bar-inner ${cls}" style="width:${Math.min(u,100)}%"></div>
-                        </div>
-                        <span style="font-size:10px;min-width:36px">${pct(u)}</span>
-                    </div>
-                </td>
-            </tr>`;
-        }).join('');
-    }
-
-    async function fetchProjects() {
-        const r = await fetch(`${API_BASE}/costs/by-project`);
-        const d = await r.json();
-        const tbody = document.getElementById('projectTableBody');
-        if (!d.success || !d.projects.length) {
-            tbody.innerHTML = '<tr><td colspan="3" class="muted">No project records.</td></tr>';
-            return;
-        }
-        tbody.innerHTML = d.projects.map(p => `<tr>
-            <td>${p.project_id}</td>
-            <td>${fmt(p.total_cost)}</td>
-            <td>${p.execution_count}</td>
-        </tr>`).join('');
-    }
-
-    async function fetchBots() {
-        const r = await fetch(`${API_BASE}/costs/by-bot`);
-        const d = await r.json();
-        const tbody = document.getElementById('botTableBody');
-        if (!d.success || !d.bots.length) {
-            tbody.innerHTML = '<tr><td colspan="3" class="muted">No bot records.</td></tr>';
-            return;
-        }
-        tbody.innerHTML = d.bots.map(b => `<tr>
-            <td>${b.caller_id}</td>
-            <td>${fmt(b.total_cost)}</td>
-            <td>${b.execution_count}</td>
-        </tr>`).join('');
-    }
-
-    async function refreshAll() {
-        try {
-            await Promise.all([fetchSummary(), fetchDepartments(), fetchProjects(), fetchBots()]);
-            document.getElementById('refreshTs').textContent =
-                'LAST REFRESH: ' + new Date().toLocaleTimeString();
-        } catch (err) {
-            showToast('ERROR: ' + err.message, true);
-        }
-    }
-
-    // --- Form submissions ---
-    async function submitBudget() {
-        const deptId = document.getElementById('budgetDeptId').value.trim();
-        const total = parseFloat(document.getElementById('budgetTotal').value);
-        const limitPt = parseFloat(document.getElementById('budgetLimitPerTask').value || '0');
-        if (!deptId || isNaN(total) || total < 0) {
-            showToast('DEPARTMENT ID AND A NON-NEGATIVE TOTAL BUDGET REQUIRED', true);
-            return;
-        }
-        const r = await fetch(`${API_BASE}/costs/budget`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ department_id: deptId, total_budget: total, limit_per_task: limitPt }),
+  function tableHTML(columns, rows) {
+    var h = '<div class="murphy-table murphy-table-striped"><div class="murphy-table-header">';
+    columns.forEach(function (c) { h += '<div>' + esc(c.label) + '</div>'; });
+    h += '</div>';
+    if (!rows || rows.length === 0) {
+      h += '<div class="p-6 text-center text-muted text-sm">No data available</div>';
+    } else {
+      rows.forEach(function (row) {
+        h += '<div class="murphy-table-row">';
+        columns.forEach(function (c) {
+          var val = row[c.key];
+          h += '<div>' + (c.render ? c.render(val, row) : esc(val)) + '</div>';
         });
-        const d = await r.json();
-        if (d.success) {
-            showToast('BUDGET UPDATED: ' + deptId);
-            refreshAll();
-        } else {
-            showToast('ERROR: ' + (d.error || 'unknown'), true);
-        }
+        h += '</div>';
+      });
     }
+    h += '</div>';
+    return h;
+  }
 
-    async function submitAssign() {
-        const callerId = document.getElementById('assignCallerId').value.trim();
-        const toolName = document.getElementById('assignToolName').value.trim();
-        const cost = parseFloat(document.getElementById('assignCost').value);
-        const deptId = document.getElementById('assignDeptId').value.trim() || undefined;
-        const projId = document.getElementById('assignProjectId').value.trim() || undefined;
-        if (!callerId || !toolName || isNaN(cost) || cost < 0) {
-            showToast('CALLER ID, TOOL NAME AND NON-NEGATIVE COST REQUIRED', true);
-            return;
-        }
-        const payload = { caller_id: callerId, tool_name: toolName, cost };
-        if (deptId) payload.department_id = deptId;
-        if (projId) payload.project_id = projId;
-        const r = await fetch(`${API_BASE}/costs/assign`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-        });
-        const d = await r.json();
-        if (d.success) {
-            showToast('COST ASSIGNED');
-            refreshAll();
-        } else {
-            showToast('ERROR: ' + (d.error || 'unknown'), true);
-        }
+  function sectionHeader(title, subtitle) {
+    return '<div class="flex items-center justify-between mb-4">' +
+      '<div>' +
+      '<h2 class="text-xl font-bold">' + esc(title) + '</h2>' +
+      (subtitle ? '<p class="text-sm text-secondary">' + esc(subtitle) + '</p>' : '') +
+      '</div></div>';
+  }
+
+  function cardWrap(headerHtml, bodyHtml, footerHtml) {
+    var h = '<div class="murphy-card">';
+    if (headerHtml) h += '<div class="murphy-card-header">' + headerHtml + '</div>';
+    h += '<div class="murphy-card-body">' + bodyHtml + '</div>';
+    if (footerHtml) h += '<div class="murphy-card-footer">' + footerHtml + '</div>';
+    h += '</div>';
+    return h;
+  }
+
+  /* ===========================================================
+     3. SIDEBAR TOGGLE & MOBILE HANDLING
+     =========================================================== */
+  var sidebar   = document.getElementById('sidebar');
+  var contentEl = document.getElementById('content');
+
+  document.getElementById('btn-sidebar-toggle').addEventListener('click', function () {
+    if (window.innerWidth <= 640) {
+      sidebar.classList.toggle('murphy-sidebar-open');
+    } else {
+      sidebar.classList.toggle('murphy-sidebar-collapsed');
+      contentEl.style.marginLeft = sidebar.classList.contains('murphy-sidebar-collapsed')
+        ? '56px'
+        : 'var(--sidebar-width)';
     }
+  });
 
-    // --- Boot ---
-    document.addEventListener('DOMContentLoaded', () => {
-        refreshAll();
-        // Auto-refresh every 30 seconds
-        setInterval(refreshAll, 30000);
+  sidebar.addEventListener('click', function (e) {
+    if (e.target.closest('.murphy-sidebar-item') && window.innerWidth <= 640) {
+      sidebar.classList.remove('murphy-sidebar-open');
+    }
+  });
+
+  /* ===========================================================
+     4. THEME TOGGLE
+     =========================================================== */
+  var themeIcon = document.getElementById('theme-icon');
+
+  function updateThemeIcon() {
+    var useEl = themeIcon.querySelector('use');
+    useEl.setAttribute('href', 'static/murphy-icons.svg#icon-' + (theme.get() === 'dark' ? 'moon' : 'sun'));
+  }
+
+  theme.onChange(updateThemeIcon);
+  updateThemeIcon();
+
+  document.getElementById('btn-theme-toggle').addEventListener('click', function () {
+    theme.toggle();
+  });
+
+  /* ===========================================================
+     5. KEYBOARD SHORTCUTS
+     =========================================================== */
+  keyboard.register('ctrl+k', function () {
+    document.getElementById('topbar-search').focus();
+  }, 'Focus search');
+
+  keyboard.register('ctrl+/', function () {
+    keyboard.showHelp();
+  }, 'Show keyboard shortcuts');
+
+  keyboard.register('ctrl+b', function () {
+    document.getElementById('btn-sidebar-toggle').click();
+  }, 'Toggle sidebar');
+
+  /* ===========================================================
+     6. TOPBAR SEARCH — sidebar navigation filter
+     =========================================================== */
+  var searchInput = document.getElementById('topbar-search');
+
+  searchInput.addEventListener('input', function () {
+    var q = this.value.trim().toLowerCase();
+    sidebar.querySelectorAll('.murphy-sidebar-item[data-view]').forEach(function (item) {
+      item.style.display = (!q || (item.textContent || '').toLowerCase().indexOf(q) !== -1) ? '' : 'none';
     });
+  });
+
+  searchInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      this.value = '';
+      this.dispatchEvent(new Event('input'));
+      this.blur();
+    }
+    if (e.key === 'Enter') {
+      var visible = sidebar.querySelectorAll('.murphy-sidebar-item[data-view]:not([style*="display: none"])');
+      if (visible.length === 1) {
+        visible[0].click();
+        this.value = '';
+        this.dispatchEvent(new Event('input'));
+        this.blur();
+      }
+    }
+  });
+
+  /* ===========================================================
+     7. HASH ROUTER
+     =========================================================== */
+  var currentView = '';
+
+  var views = {
+    dashboard:  renderDashboard,
+    status:     renderStatus,
+    efficiency: renderEfficiency,
+    supply:     renderSupply,
+    costs:      renderCosts,
+    gates:      renderGates,
+    librarian:  renderLibrarian
+  };
+
+  /* Exposed on window so the retry button can call it */
+  window.navigate = navigate;
+
+  function navigate(hash) {
+    hash = hash || 'dashboard';
+    if (!views[hash]) hash = 'dashboard';
+    currentView = hash;
+
+    sidebar.querySelectorAll('.murphy-sidebar-item').forEach(function (el) {
+      el.classList.toggle('murphy-sidebar-item-active', el.getAttribute('data-view') === hash);
+    });
+
+    librarian.setContext('terminal_costs#' + hash);
+    views[hash]();
+    setTimeout(function () { jargon.autoScan(); }, 200);
+  }
+
+  window.addEventListener('hashchange', function () {
+    navigate(location.hash.slice(1));
+  });
+
+  /* ===========================================================
+     8. VIEW: DASHBOARD
+     =========================================================== */
+  async function renderDashboard() {
+    contentEl.innerHTML = sectionHeader('Dashboard', 'System overview and quick actions') + skeletonCards(4);
+    try {
+      var res   = await api.get('/status');
+      var gRes  = await api.get('/mfgc/state');
+      var data  = (res && res.data)  || res  || {};
+      var gates = (gRes && gRes.data) || gRes || {};
+
+      var activeWf  = data.active_workflows  != null ? data.active_workflows : '\u2014';
+      var hitlPend  = data.hitl_pending      != null ? data.hitl_pending     : '\u2014';
+      var healthPct = data.health            != null ? data.health + '%'     : '\u2014';
+      var agentCnt  = data.active_agents     != null ? data.active_agents    : '\u2014';
+
+      var html = sectionHeader('Dashboard', 'System overview and quick actions');
+
+      html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">';
+      html += statCard('Active Workflows', activeWf);
+      html += statCard('HITL Pending', hitlPend, hitlPend > 5 ? 'up' : null, hitlPend > 5 ? 'Attention' : '');
+      html += statCard('System Health', healthPct);
+      html += statCard('Active Agents', agentCnt);
+      html += '</div>';
+
+      var gateNames = [
+        { key: 'executive',  label: 'Executive',  css: 'executive'  },
+        { key: 'operations', label: 'Operations', css: 'operations' },
+        { key: 'qa',         label: 'QA',         css: 'qa'         },
+        { key: 'hitl',       label: 'HITL',       css: 'hitl'       },
+        { key: 'compliance', label: 'Compliance', css: 'compliance' },
+        { key: 'budget',     label: 'Budget',     css: 'budget'     }
+      ];
+
+      html += '<div class="murphy-card mb-6"><div class="murphy-card-header">MFGC Gate Status</div>';
+      html += '<div class="murphy-card-body"><div class="flex flex-wrap gap-4">';
+      gateNames.forEach(function (g) {
+        var s = gates[g.key] || gates[g.label] || 'closed';
+        html += gateIndicator(g.label, s, g.css);
+      });
+      html += '</div></div></div>';
+
+      var events = data.recent_events || data.events || [];
+      if (events.length) {
+        html += cardWrap('Recent Activity',
+          '<div class="flex flex-col gap-2">' +
+          events.slice(0, 10).map(function (ev) {
+            var ts = ev.timestamp || ev.time || '';
+            return '<div class="flex items-center gap-3 py-1 text-sm">' +
+              '<span class="text-muted text-xs" style="min-width:100px;">' + esc(ts) + '</span>' +
+              '<span>' + esc(ev.message || ev.description || ev.event || JSON.stringify(ev)) + '</span>' +
+              '</div>';
+          }).join('') +
+          '</div>'
+        );
+      }
+
+      html += '<div class="flex flex-wrap gap-3 mt-6">';
+      html += '<a href="#costs" class="murphy-btn murphy-btn-primary">' + icon('dollar-sign') + ' View Costs</a>';
+      html += '<a href="#efficiency" class="murphy-btn murphy-btn-secondary">' + icon('chart') + ' Efficiency</a>';
+      html += '<a href="#supply" class="murphy-btn murphy-btn-secondary">' + icon('globe') + ' Supply Chain</a>';
+      html += '</div>';
+
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('Dashboard') + errorCard(e.message, '#dashboard');
+    }
+  }
+
+  /* ===========================================================
+     9. VIEW: STATUS
+     =========================================================== */
+  async function renderStatus() {
+    contentEl.innerHTML = sectionHeader('System Status') + skeletonRows(6);
+    try {
+      var res  = await api.get('/status');
+      var hRes = await api.get('/health');
+      var data  = (res  && res.data)  || res  || {};
+      var hData = (hRes && hRes.data) || hRes || {};
+
+      var html = sectionHeader('System Status', 'Health and module information');
+
+      html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">';
+      html += statCard('Overall Health', (hData.health || data.health || '\u2014') + '%');
+      html += statCard('Uptime', hData.uptime || data.uptime || '\u2014');
+      html += statCard('API Latency', (hData.latency_ms || data.latency_ms || '\u2014') + ' ms');
+      html += '</div>';
+
+      var modules = data.modules || hData.modules || [];
+      if (modules.length) {
+        html += cardWrap('Modules', tableHTML(
+          [
+            { key: 'name', label: 'Module' },
+            { key: 'status', label: 'Status', render: function (v) { return badge(v || 'unknown', v === 'running' || v === 'healthy' ? 'success' : (v === 'error' ? 'danger' : 'warning')); } },
+            { key: 'version', label: 'Version' }
+          ],
+          modules
+        ));
+      } else {
+        html += emptyState('No Modules', 'Module status data is not available.');
+      }
+
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('System Status') + errorCard(e.message, '#status');
+    }
+  }
+
+  /* ===========================================================
+     10. VIEW: EFFICIENCY
+     =========================================================== */
+  async function renderEfficiency() {
+    contentEl.innerHTML = sectionHeader('Efficiency') + skeletonCards(4);
+    try {
+      var res  = await api.get('/efficiency/metrics');
+      var data = (res && res.data) || res || {};
+      var html = sectionHeader('Efficiency', 'Performance metrics');
+
+      html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">';
+      html += statCard('Throughput', data.throughput || '\u2014');
+      html += statCard('Avg Latency', (data.avg_latency || data.latency || '\u2014') + ' ms');
+      html += statCard('Error Rate', (data.error_rate || '\u2014') + '%');
+      html += statCard('Utilization', (data.utilization || '\u2014') + '%');
+      html += '</div>';
+
+      var breakdown = data.breakdown || data.details || [];
+      if (breakdown.length) {
+        html += cardWrap('Metric Breakdown', tableHTML(
+          [
+            { key: 'metric', label: 'Metric' },
+            { key: 'value',  label: 'Value' },
+            { key: 'trend',  label: 'Trend', render: function (v) { return badge(v || 'stable', v === 'up' || v === 'improving' ? 'success' : (v === 'down' || v === 'degrading' ? 'danger' : 'neutral')); } }
+          ],
+          breakdown
+        ));
+      }
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('Efficiency') + errorCard(e.message, '#efficiency');
+    }
+  }
+
+  /* ===========================================================
+     11. VIEW: SUPPLY
+     =========================================================== */
+  async function renderSupply() {
+    contentEl.innerHTML = sectionHeader('Supply') + skeletonRows(6);
+    try {
+      var res   = await api.get('/supply/status');
+      var data  = (res && res.data) || res || {};
+      var items = data.items || data.resources || (Array.isArray(data) ? data : []);
+      var html  = sectionHeader('Supply', 'Supply chain status');
+
+      html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">';
+      html += statCard('Total Resources', data.total || items.length);
+      html += statCard('Available', data.available || '\u2014');
+      html += statCard('Pending', data.pending || '\u2014');
+      html += '</div>';
+
+      if (!items.length) {
+        html += emptyState('No Supply Data', 'Supply chain data is not available.');
+      } else {
+        html += tableHTML(
+          [
+            { key: 'name',     label: 'Resource' },
+            { key: 'status',   label: 'Status', render: function (v) { return badge(v || 'unknown', v === 'available' ? 'success' : (v === 'low' ? 'warning' : 'neutral')); } },
+            { key: 'quantity', label: 'Quantity' },
+            { key: 'updated',  label: 'Updated' }
+          ],
+          items
+        );
+      }
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('Supply') + errorCard(e.message, '#supply');
+    }
+  }
+
+  /* ===========================================================
+     12. VIEW: COSTS
+     =========================================================== */
+  async function renderCosts() {
+    contentEl.innerHTML = sectionHeader('Costs') + skeletonCards(4);
+    try {
+      var res   = await api.get('/efficiency/costs');
+      var data  = (res && res.data) || res || {};
+      var items = data.items || data.line_items || (Array.isArray(data) ? data : []);
+      var html  = sectionHeader('Costs', 'Budget and spending overview');
+
+      html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">';
+      html += statCard('Total Spend', data.total || data.total_spend || '\u2014');
+      html += statCard('Budget', data.budget || '\u2014');
+      html += statCard('Remaining', data.remaining || '\u2014');
+      html += '</div>';
+
+      if (items.length) {
+        html += cardWrap('Cost Breakdown', tableHTML(
+          [
+            { key: 'category', label: 'Category' },
+            { key: 'amount',   label: 'Amount' },
+            { key: 'percent',  label: '% of Total' }
+          ],
+          items
+        ));
+      }
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('Costs') + errorCard(e.message, '#costs');
+    }
+  }
+
+  /* ===========================================================
+     13. VIEW: GATES (MFGC)
+     =========================================================== */
+  async function renderGates() {
+    contentEl.innerHTML = sectionHeader('Gates (MFGC)') + skeletonCards(6);
+    try {
+      var res  = await api.get('/mfgc/state');
+      var data = (res && res.data) || res || {};
+      var html = sectionHeader('Gates (MFGC)', 'Murphy Flow Gate Controller \u2014 6 governance gates');
+
+      var gateList = [
+        { key: 'executive',  label: 'Executive',  css: 'executive',  desc: 'Strategic decision authority' },
+        { key: 'operations', label: 'Operations', css: 'operations', desc: 'Operational readiness' },
+        { key: 'qa',         label: 'QA',         css: 'qa',         desc: 'Quality assurance checks' },
+        { key: 'hitl',       label: 'HITL',       css: 'hitl',       desc: 'Human-in-the-loop approval' },
+        { key: 'compliance', label: 'Compliance', css: 'compliance', desc: 'Regulatory compliance' },
+        { key: 'budget',     label: 'Budget',     css: 'budget',     desc: 'Budget authorization' }
+      ];
+
+      html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr));">';
+      gateList.forEach(function (g) {
+        var s = data[g.key] || data[g.label] || 'closed';
+        var isOpen = s === 'open' || s === true;
+        html += '<div class="murphy-card">' +
+          '<div class="murphy-card-body flex items-center gap-4">' +
+          gateIndicator(g.label, s, g.css) +
+          '<div class="flex-1">' +
+          '<div class="font-bold">' + esc(g.label) + ' ' + badge(isOpen ? 'Open' : 'Closed', isOpen ? 'success' : 'danger') + '</div>' +
+          '<p class="text-sm text-secondary mt-1">' + esc(g.desc) + '</p>' +
+          '</div></div></div>';
+      });
+      html += '</div>';
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('Gates (MFGC)') + errorCard(e.message, '#gates');
+    }
+  }
+
+  /* ===========================================================
+     14. VIEW: LIBRARIAN
+     =========================================================== */
+  async function renderLibrarian() {
+    var html = sectionHeader('Librarian', 'Knowledge base search');
+    html += '<div class="murphy-card mb-4"><div class="murphy-card-body">';
+    html += '<label class="murphy-label" for="lib-query">Ask the Librarian</label>';
+    html += '<div class="flex gap-3">';
+    html += '<input type="text" class="murphy-input flex-1" id="lib-query" placeholder="Ask a question\u2026" autocomplete="off">';
+    html += '<button class="murphy-btn murphy-btn-primary" id="lib-ask">' + icon('search') + ' Ask</button>';
+    html += '</div></div></div>';
+    html += '<div id="lib-results"></div>';
+    contentEl.innerHTML = html;
+
+    var queryInput = document.getElementById('lib-query');
+    var resultsEl  = document.getElementById('lib-results');
+    var askBtn     = document.getElementById('lib-ask');
+
+    async function doAsk() {
+      var q = queryInput.value.trim();
+      if (!q) return;
+      resultsEl.innerHTML = skeletonRows(4);
+      askBtn.classList.add('murphy-btn-loading');
+      try {
+        var res = await api.post('/librarian/ask', { question: q });
+        var d = (res && res.data) || res || {};
+        var answer = d.answer || d.response || JSON.stringify(d, null, 2);
+        resultsEl.innerHTML = cardWrap('Answer', '<div class="text-sm" style="white-space:pre-wrap;">' + esc(answer) + '</div>');
+      } catch (e) {
+        resultsEl.innerHTML = errorCard(e.message, '#librarian');
+      }
+      askBtn.classList.remove('murphy-btn-loading');
+    }
+
+    askBtn.addEventListener('click', doAsk);
+    queryInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') doAsk(); });
+    queryInput.focus();
+  }
+
+  /* ===========================================================
+     15. BOOT — initial navigation
+     =========================================================== */
+  navigate(location.hash.slice(1) || 'dashboard');
+
+})();
 </script>
 </body>
 </html>
