@@ -129,11 +129,26 @@ class CredentialValidator(ExternalValidator):
     async def _check_credential(self, credential: str, cred_type: str, service: str) -> bool:
         """
         Check if credential is valid.
-        Override this method to implement actual credential checking.
+        Validates minimum length, non-whitespace, alphanumeric content, and
+        rejects obvious test/placeholder patterns.
         """
-        # Placeholder implementation
-        # In production, this would make actual API calls
-        return len(credential) > 10  # Simple validation
+        try:
+            if len(credential) <= 10:
+                return False
+            if credential.strip() == "":
+                return False
+            # Must contain at least one alphanumeric character
+            if not any(c.isalnum() for c in credential):
+                return False
+            # Reject obvious test/placeholder patterns (case-insensitive)
+            lower = credential.lower()
+            for pattern in ("test", "xxx", "placeholder", "dummy", "example", "changeme"):
+                if pattern in lower:
+                    return False
+            return True
+        except Exception as exc:
+            logger.debug("Credential check failed: %s", exc)
+            return False
 
 
 class DataSourceValidator(ExternalValidator):
@@ -178,10 +193,43 @@ class DataSourceValidator(ExternalValidator):
     async def _check_data_source(self, source: str, source_type: str) -> bool:
         """
         Check if data source is available.
-        Override this method to implement actual source checking.
+        Dispatches by source_type: api/url, database, file.
+        Returns False for unknown types or on any exception.
         """
-        # Placeholder implementation
-        return True
+        try:
+            if source_type in ("api", "url"):
+                # Attempt async HEAD request with a 3-second timeout
+                try:
+                    import aiohttp
+                    async with aiohttp.ClientSession() as session:
+                        async with session.head(source, timeout=aiohttp.ClientTimeout(total=3)) as resp:
+                            return resp.status < 500
+                except ImportError:
+                    # Fallback to urllib
+                    import urllib.request
+                    req = urllib.request.Request(source, method="HEAD")
+                    with urllib.request.urlopen(req, timeout=3) as resp:
+                        return resp.status < 500
+
+            elif source_type == "database":
+                # Basic connection string format validation
+                if not source:
+                    return False
+                # Must contain common delimiters used in connection strings
+                has_delimiters = any(d in source for d in ("://", "@", ";", "="))
+                return has_delimiters
+
+            elif source_type == "file":
+                import os
+                return os.path.exists(source)
+
+            else:
+                # Unknown source type — do not trust
+                return False
+
+        except Exception as exc:
+            logger.debug("Data source check failed: %s", exc)
+            return False
 
 
 class DomainExpertValidator(ExternalValidator):
@@ -225,12 +273,46 @@ class DomainExpertValidator(ExternalValidator):
 
     async def _query_expert_system(self, query: str, domain: str) -> float:
         """
-        Query domain expert system.
-        Override this method to implement actual expert system queries.
+        Query domain expert system using keyword-based confidence lookup.
+        Known domains receive a base score; unknown domains get 0.5.
+        Domain-specific keyword matches adjust the score up or down.
         """
-        # Placeholder implementation
-        # In production, this would query knowledge bases, expert systems, etc.
-        return 0.8
+        try:
+            domain_keywords: Dict[str, List[str]] = {
+                "general": ["information", "data", "analysis", "result", "overview"],
+                "software": ["code", "software", "program", "function", "algorithm",
+                             "api", "library", "framework", "debug", "deploy"],
+                "data": ["dataset", "database", "query", "schema", "table",
+                         "pipeline", "etl", "analytics", "statistics", "model"],
+                "security": ["vulnerability", "exploit", "authentication", "encryption",
+                              "token", "firewall", "threat", "audit", "compliance", "access"],
+            }
+            base_scores: Dict[str, float] = {
+                "general": 0.65,
+                "software": 0.70,
+                "data": 0.70,
+                "security": 0.72,
+            }
+
+            domain_norm = domain.lower().strip()
+            base = base_scores.get(domain_norm, 0.5)
+
+            keywords = domain_keywords.get(domain_norm, [])
+            if keywords:
+                query_lower = query.lower()
+                matches = sum(1 for kw in keywords if kw in query_lower)
+                # Each keyword match adjusts score by +0.03, up to +0.15
+                adjustment = min(matches * 0.03, 0.15)
+                # If none of the domain keywords appear, penalise slightly
+                if matches == 0:
+                    adjustment = -0.1
+                base = max(0.0, min(1.0, base + adjustment))
+
+            return round(base, 4)
+
+        except Exception as exc:
+            logger.debug("Expert system query failed: %s", exc)
+            return 0.5
 
 
 class ExternalValidationService:

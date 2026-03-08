@@ -467,20 +467,96 @@ class ModelValidator:
         model: NeuroSymbolicConfidenceModel,
         test_loader: DataLoader
     ) -> float:
-        """Check prediction calibration."""
-        # Simplified calibration check
-        # In practice, use proper calibration metrics (ECE, MCE)
-        return 0.85  # Placeholder
+        """Check prediction calibration using Expected Calibration Error (ECE)."""
+        try:
+            all_confidences = []
+            all_correctness = []
+
+            with torch.no_grad():
+                for batch in test_loader:
+                    batch = batch.to(self.device)
+                    H, D, R = model(
+                        batch.x,
+                        batch.edge_index,
+                        batch.symbolic_features,
+                        batch.batch
+                    )
+                    # Use H (primary output) as confidence predictions
+                    preds = H.cpu().numpy().flatten()
+                    targets = batch.y.cpu().numpy().flatten() if hasattr(batch, 'y') else np.zeros_like(preds)
+                    # Correctness: prediction is "correct" if it's on the right side of 0.5
+                    correct = ((preds >= 0.5) == (targets >= 0.5)).astype(float)
+                    all_confidences.extend(preds.tolist())
+                    all_correctness.extend(correct.tolist())
+
+            if not all_confidences:
+                return 0.5
+
+            confidences = np.array(all_confidences)
+            correctness = np.array(all_correctness)
+
+            # Bucket into 10 equal-width bins by predicted confidence
+            n_bins = 10
+            ece = 0.0
+            n_total = len(confidences)
+            for b in range(n_bins):
+                lo = b / n_bins
+                hi = (b + 1) / n_bins
+                mask = (confidences >= lo) & (confidences < hi)
+                if b == n_bins - 1:
+                    mask = (confidences >= lo) & (confidences <= hi)
+                n_bin = mask.sum()
+                if n_bin == 0:
+                    continue
+                avg_conf = confidences[mask].mean()
+                avg_acc = correctness[mask].mean()
+                ece += (n_bin / n_total) * abs(avg_acc - avg_conf)
+
+            return float(np.clip(1.0 - ece, 0.0, 1.0))
+
+        except Exception as exc:
+            logger.warning("Calibration check failed: %s", exc)
+            return 0.5
 
     def _check_robustness(
         self,
         model: NeuroSymbolicConfidenceModel,
         test_loader: DataLoader
     ) -> float:
-        """Check robustness to perturbations."""
-        # Simplified robustness check
-        # In practice, test with adversarial perturbations
-        return 0.80  # Placeholder
+        """Check robustness by applying small Gaussian noise and measuring output deviation."""
+        try:
+            sigma = 0.1
+            deviations = []
+
+            with torch.no_grad():
+                for batch in test_loader:
+                    batch = batch.to(self.device)
+                    H_orig, _, _ = model(
+                        batch.x,
+                        batch.edge_index,
+                        batch.symbolic_features,
+                        batch.batch
+                    )
+                    # Add Gaussian noise to input features
+                    noisy_x = batch.x + torch.randn_like(batch.x) * sigma
+                    H_noisy, _, _ = model(
+                        noisy_x,
+                        batch.edge_index,
+                        batch.symbolic_features,
+                        batch.batch
+                    )
+                    deviation = torch.abs(H_orig - H_noisy).mean().item()
+                    deviations.append(deviation)
+
+            if not deviations:
+                return 0.5
+
+            mean_deviation = float(np.mean(deviations))
+            return float(np.clip(1.0 - mean_deviation, 0.0, 1.0))
+
+        except Exception as exc:
+            logger.warning("Robustness check failed: %s", exc)
+            return 0.5
 
     def _check_inference_speed(
         self,
@@ -544,7 +620,7 @@ class ModelValidator:
         # In practice, test with invalid inputs
 
         # Test 4: Adversarial robustness
-        adversarial_robustness = 0.85  # Placeholder
+        adversarial_robustness = self._check_robustness(model, test_loader)
 
         passed = (
             authority_independent and
