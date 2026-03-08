@@ -74,6 +74,12 @@ def mount_viewport_api(app, viewport: ArtifactViewport, content_resolver=None):
     """
     Mount the viewport blueprint onto a Flask app.
 
+    .. important::
+        The parent ``app`` **must** already have security middleware applied
+        via ``flask_security.configure_secure_app(app)`` before mounting.
+        The blueprint inherits authentication, CORS, and rate-limiting
+        from the host application.
+
     Args:
         app: Flask application
         viewport: ArtifactViewport service instance
