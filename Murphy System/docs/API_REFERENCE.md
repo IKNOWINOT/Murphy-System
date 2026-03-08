@@ -1184,7 +1184,7 @@ Request a wallet transfer (always requires HITL approval).
 
 ### Real-Money Safety Rule
 
-All real bots (`dry_run=false`) are **permanently forced to `MANUAL` mode** regardless of the `hitl_mode` setting.  
+All real bots (`dry_run=False`) are **permanently forced to `MANUAL` mode** regardless of the `hitl_mode` setting.  
 This is enforced unconditionally in the `TradingHITLGateway` — no configuration or API can override it.
 
 ---
