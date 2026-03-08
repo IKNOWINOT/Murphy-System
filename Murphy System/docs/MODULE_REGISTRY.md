@@ -260,6 +260,14 @@ See [WINGMAN_PROTOCOL.md](WINGMAN_PROTOCOL.md) for full architecture documentati
 
 ---
 
+## Digital Twin Simulation
+
+| Module | Path | Description | Status | Key Dependencies |
+|--------|------|-------------|--------|-----------------|
+| `digital_twin_engine.py` | `src/digital_twin_engine.py` | Model physical/logical systems as digital twins; z-score anomaly detection, failure prediction, what-if scenario simulation, fleet registry, Wingman + Sandbox gating | ✅ | — |
+
+---
+
 ## Issue #136 Subsystems (In Progress)
 
 These seven subsystems are being added under issue #136. Files marked 🔄 are
