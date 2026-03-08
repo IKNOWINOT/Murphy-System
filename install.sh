@@ -9,7 +9,7 @@
 #   curl -fsSL https://raw.githubusercontent.com/IKNOWINOT/Murphy-System/main/install.sh | bash -s -- /opt/murphy
 #
 # Copyright © 2020 Inoni Limited Liability Company
-# Creator: Corey Post | License: Apache License 2.0
+# Creator: Corey Post | License: BSL-1.1
 # ============================================================================
 # ============================================================================
 # SECURITY NOTE: Always inspect scripts before piping to bash.

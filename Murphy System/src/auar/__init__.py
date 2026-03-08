@@ -10,7 +10,7 @@ interprets intent using hybrid LLM + deterministic approaches, maps
 requests to abstract capabilities, and routes to optimal downstream
 provider APIs with automatic schema translation.
 
-Copyright 2024 Inoni LLC – Apache License 2.0
+Copyright 2024 Inoni LLC – BSL-1.1
 """
 
 __version__ = "0.1.0"

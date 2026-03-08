@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Legal
+- **legal: 0A** — Replaced `pylint` (GPL-2.0) with `ruff` (MIT) in `requirements_murphy_1.0.txt` to resolve copyleft incompatibility with BSL 1.1
+- **legal: 0B** — Updated 14 file headers from "Apache License 2.0" to "BSL-1.1" for consistency (requirements_murphy_1.0.txt, Dockerfile, docker-compose.yml, install.sh, murphy CLI, 9 AUAR module files)
+- **legal: 0E** — Redacted PII in signup_gateway.py (email in logs/audit) and comms/connectors.py (phone number in Twilio SMS log) using `_redact_email()` and `_redact_ip()` helpers
+- **legal: 0E** — Redacted IP address in EULA audit log entries
+- **legal: docs** — Created `THIRD_PARTY_LICENSES.md` documenting all dependency licenses
+- **legal: docs** — Created `PRIVACY.md` documenting data collection practices
+- **legal: test** — Created `tests/test_legal_compliance.py` with 18 checks covering dependency licenses, license headers, API key security, trademark naming, data privacy, and export control
+
 ### Added
 - **Maturity Cycle 3: 78 → 100/100** — All remaining gaps resolved:
   - `Murphy System/docs/STALE_PR_CLEANUP.md` — Rationale and decision record for closing PRs #21, #27, #46, #56, #64, #95

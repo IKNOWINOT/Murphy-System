@@ -2,7 +2,7 @@
 # Multi-stage build for minimal image size
 #
 # Copyright © 2020 Inoni Limited Liability Company
-# License: Apache License 2.0
+# License: BSL-1.1
 
 # ---------------------------------------------------------------------------
 # Stage 1: Install Python dependencies in an isolated layer

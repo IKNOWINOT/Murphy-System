@@ -12,7 +12,7 @@ Graph structure (in-memory, production would use Neo4j):
 Capability taxonomy:  Domain → Category → Capability → Variant
     Example: Communication → Email → send_email → [SendGrid, Mailgun, SES]
 
-Copyright 2024 Inoni LLC – Apache License 2.0
+Copyright 2024 Inoni LLC – BSL-1.1
 """
 
 import logging
