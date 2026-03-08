@@ -680,6 +680,53 @@ class SystemLibrarian:
         entries = [r.__dict__ if hasattr(r, '__dict__') else str(r) for r in results]
         return {"issue": issue, "suggestions": entries if entries else ["Check system logs for more details."]}
 
+    def add_knowledge_entry(self, entry: Dict[str, Any]) -> "SystemKnowledge":
+        """Add a single knowledge entry to the knowledge base.
+
+        Args:
+            entry: Dict with keys ``category``, ``topic``, ``description``,
+                   ``related_modules``, ``related_functions``, ``references``.
+
+        Returns:
+            The newly created SystemKnowledge object.
+        """
+        self.knowledge_count += 1
+        knowledge = SystemKnowledge(
+            knowledge_id=f"know_{self.knowledge_count}",
+            category=entry.get("category", "general"),
+            topic=entry.get("topic", ""),
+            description=entry.get("description", ""),
+            related_modules=entry.get("related_modules", []),
+            related_functions=entry.get("related_functions", []),
+            references=entry.get("references", []),
+            created_at=datetime.now().isoformat(),
+        )
+        self.knowledge_base[knowledge.knowledge_id] = knowledge
+        return knowledge
+
+    def register_schema_knowledge(self, registry: Any) -> int:
+        """Index all registered schemas from a SchemaRegistry into the knowledge base.
+
+        Args:
+            registry: A SchemaRegistry instance whose ``schemas`` dict will be
+                      indexed.
+
+        Returns:
+            Number of knowledge entries added.
+        """
+        count = 0
+        for key, schema in registry.schemas.items():
+            self.add_knowledge_entry({
+                "category": "schema_contract",
+                "topic": f"Schema: {schema.artifact_name} ({schema.direction})",
+                "description": f"I/O schema for {schema.artifact_name}",
+                "related_modules": [key.split(":")[0]],  # bot_name
+                "related_functions": [],
+                "references": [f"schema:{key}"],
+            })
+            count += 1
+        return count
+
 
 if __name__ == "__main__":
     # Test system librarian
