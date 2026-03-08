@@ -735,7 +735,7 @@
     <a class="skip-link" href="#messageInput">Skip to terminal input</a>
     <div class="header" role="banner">
         <div>
-            <div class="header-title">☠ MURPHY SYSTEM - ARCHITECT TERMINAL 💀</div>
+            <div class="header-title">☠ MURPHY SYSTEM - ARCHITECT TERMINAL ☠</div>
             <div class="header-subtitle">Advanced Interface for System Architecture & Control</div>
         </div>
         <div class="header-controls">
@@ -1166,8 +1166,21 @@
                 const executionTime = (Date.now() - startTime) / 1000;
 
                 // Display result
-                if (result.success) {
-                    if (result.mfgc_control && result.data) {
+                // Treat any response with a message field as valid, even without explicit success flag
+                const responseText = result.message || result.response || result.reply_text;
+                if (result.success || responseText) {
+                    if (!result.success && responseText) {
+                        // Librarian/freeform response without explicit success flag
+                        addLine(`✓ ${responseText}`, 'system');
+                        const librarianContext = {
+                            mode: 'direct_response',
+                            input: message,
+                            response_preview: responseText.substring(0, 200),
+                            timestamp: new Date().toISOString()
+                        };
+                        updateLibrarianContext(librarianContext);
+                        updateDataSource(true, result.doc_id || null);
+                    } else if (result.mfgc_control && result.data) {
                         const data = result.data;
                         addLine(`✓ [MFGC COMPLETE]`, 'mfgc');
                         addLine(`  Final Phase: ${(data.final_phase || 'unknown').toUpperCase()}`, 'info');
@@ -1519,6 +1532,18 @@
             document.getElementById('murphyThreshold').textContent = currentConfig.murphy_threshold.toFixed(3);
             document.getElementById('configConfidenceMode').value = currentConfig.confidence_mode;
             document.getElementById('configAuthorityMode').value = currentConfig.authority_mode;
+            const toggleIds = {
+                gate_synthesis: 'configGateSynthesis',
+                emergency_gates: 'configEmergencyGates',
+                audit_trail: 'configAuditTrail'
+            };
+            for (const [key, id] of Object.entries(toggleIds)) {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.textContent = currentConfig[key] ? 'ON' : 'OFF';
+                    btn.className = currentConfig[key] ? 'config-toggle active' : 'config-toggle';
+                }
+            }
         }
 
         // Switch tab
