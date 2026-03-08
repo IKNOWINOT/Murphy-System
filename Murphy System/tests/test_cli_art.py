@@ -70,7 +70,7 @@ class TestRenderBanner:
     def test_contains_skull_frame(self):
         banner = render_banner(color=False)
         assert "☠" in banner
-        assert "💀" in banner
+        assert "☠" in banner
 
     def test_contains_title(self):
         banner = render_banner(title="MURPHY", color=False)
@@ -112,7 +112,7 @@ class TestRenderBannerPlain:
     def test_has_skull_symbols(self):
         result = render_banner_plain()
         assert "☠" in result
-        assert "💀" in result
+        assert "☠" in result
 
 
 # ---------------------------------------------------------------------------
@@ -129,7 +129,7 @@ class TestRenderSection:
     def test_skull_frame(self):
         result = render_section("QUESTIONS", color=False)
         assert "☠" in result
-        assert "💀" in result
+        assert "☠" in result
         assert "═" in result
 
     def test_color_version_has_ansi(self):
@@ -163,7 +163,7 @@ class TestRenderPanel:
 
     def test_skull_in_title_row(self):
         result = render_panel("TITLE", ["body"], color=False)
-        assert "💀" in result
+        assert "☠" in result
 
     def test_empty_body(self):
         result = render_panel("EMPTY", [], color=False)
