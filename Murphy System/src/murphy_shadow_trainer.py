@@ -322,7 +322,7 @@ class ExplorationLoop:
                 cost_after=0.0,
                 computed_reward=-1.0,
             )
-            _ = str(exc)
+            signal.task_id = f"error:{exc.__class__.__name__}:{exc}"
 
         reward = self._updater.compute_reward(signal)
         signal.computed_reward = reward
@@ -358,7 +358,7 @@ class ExplorationLoop:
         all_experiences: List[Experience] = []
         evaluations: List[Dict] = []
 
-        for episode_num in range(self._max_episodes):
+        for _ in range(self._max_episodes):
             episode_id = str(uuid.uuid4())
             eps = self.run_episode(episode_id, available_actions, task_runner)
             all_experiences.extend(eps)
@@ -383,8 +383,6 @@ class ExplorationLoop:
                 )
                 evaluation = self._evaluator.compare(exp.action, primary, dummy_signal)
                 evaluations.append(evaluation)
-
-            _ = episode_num
 
         rewards = [e.reward for e in all_experiences]
         avg_reward = sum(rewards) / (len(rewards) or 1)
