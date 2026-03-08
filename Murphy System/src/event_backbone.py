@@ -50,6 +50,10 @@ class EventType(Enum):
     FLEET_BOT_UPDATED = "fleet_bot_updated"
     FLEET_RECONCILED = "fleet_reconciled"
     FLEET_DRIFT_DETECTED = "fleet_drift_detected"
+    PREDICTION_GENERATED = "prediction_generated"
+    PREDICTION_PREEMPTED = "prediction_preempted"
+    PREDICTION_MATERIALIZED = "prediction_materialized"
+    PREDICTION_FALSE_POSITIVE = "prediction_false_positive"
 
 
 @dataclass
