@@ -66,6 +66,7 @@ _MAX_AUDIO_HISTORY = 500
 
 class TTSBackend:
     """Available text-to-speech backend identifiers."""
+    PYTTSX3 = "pyttsx3"
     ESPEAK = "espeak"
     TEXT = "text"
 
