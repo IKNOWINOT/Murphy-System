@@ -281,6 +281,7 @@ See [WINGMAN_PROTOCOL.md](WINGMAN_PROTOCOL.md) for full architecture documentati
 | Module | Path | Description | Status | Key Dependencies |
 |--------|------|-------------|--------|-----------------|
 | `prometheus_metrics_exporter.py` | `src/prometheus_metrics_exporter.py` | Full Prometheus text exposition + JSON metrics API; Counter/Gauge/Histogram/Summary metric types, LabelSet dimensions, CollectorRegistry, built-in Murphy system metrics, Flask blueprint with /metrics + /api/metrics/json + /api/metrics/families + /api/metrics/register + /api/metrics/health endpoints, Wingman + Sandbox gating | ✅ | — |
+| `graphql_api_layer.py` | `src/graphql_api_layer.py` | Lightweight stdlib-only GraphQL execution engine; ObjectType/InputType/EnumType schema definitions, resolver registry, query parser (shorthand + named queries + mutations + aliases + arguments), AST executor with introspection (__schema/__type), Flask blueprint with POST /graphql + GET /graphql/schema + /graphql/types + /graphql/health, Murphy REST wrapper types (HealthCheck/Metric/Module), Wingman + Sandbox gating | ✅ | — |
 
 ---
 
