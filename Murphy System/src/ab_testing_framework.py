@@ -99,7 +99,9 @@ class Variant:
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to plain dict."""
-        d = asdict(self); d["type"] = self.type.value; return d
+        d = asdict(self)
+        d["type"] = self.type.value
+        return d
 
 @dataclass
 class MetricDefinition:
@@ -112,7 +114,9 @@ class MetricDefinition:
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to plain dict."""
-        d = asdict(self); d["type"] = self.type.value; return d
+        d = asdict(self)
+        d["type"] = self.type.value
+        return d
 
 @dataclass
 class ExperimentResult:
@@ -127,7 +131,9 @@ class ExperimentResult:
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to plain dict."""
-        d = asdict(self); d["confidence_interval"] = list(self.confidence_interval); return d
+        d = asdict(self)
+        d["confidence_interval"] = list(self.confidence_interval)
+        return d
 
 @dataclass
 class Experiment:
@@ -219,11 +225,14 @@ class ABTestingEngine:
         significance_threshold: float = 0.05,
     ) -> Experiment:
         """Create a new experiment in *draft* status."""
+        traffic_pct = max(0.0, min(traffic_percentage, 1.0))
+        if traffic_pct != traffic_percentage:
+            logger.warning("traffic_percentage clamped from %s to %s", traffic_percentage, traffic_pct)
         exp = Experiment(
             name=name, description=description,
             variants=variants or [], metrics=metrics or [],
             allocation_strategy=allocation_strategy,
-            traffic_percentage=max(0.0, min(traffic_percentage, 1.0)),
+            traffic_percentage=traffic_pct,
             owner=owner, tags=tags or [],
             auto_promote=auto_promote, significance_threshold=significance_threshold,
         )
@@ -390,7 +399,8 @@ class ABTestingEngine:
         """Return (lower, upper) confidence interval using z-approximation."""
         if n < 2 or std == 0.0:
             return (mean, mean)
-        z = 1.96 if confidence == 0.95 else 2.576
+        z_map = {0.90: 1.645, 0.95: 1.96, 0.99: 2.576}
+        z = z_map.get(confidence, 1.96)
         margin = z * (std / math.sqrt(n))
         return (mean - margin, mean + margin)
 
