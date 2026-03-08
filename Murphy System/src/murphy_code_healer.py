@@ -304,9 +304,9 @@ class GoldenPath:
 class DiagnosticSupervisor:
     """Aggregates gap signals from all Murphy subsystems.
 
-    Implements the Immune System Pattern: continuously scans for anomalies
-    from static analysis, test coverage, documentation drift, bug patterns,
-    improvement backlogs, and healing failure history.
+    Continuously scans for anomalies from static analysis, test coverage,
+    documentation drift, bug patterns, improvement backlogs, and healing
+    failure history.
     """
 
     def __init__(
@@ -1133,12 +1133,13 @@ class PatchGenerator:
 
 
 class ReconciliationController:
-    """Kubernetes-style reconciliation loop.
+    """Desired-state reconciliation loop.
 
     Desired state: zero known gaps, all tests passing, all docs current.
     Continuously compares observed state against desired state and triggers
     the fix pipeline when drift is detected.  Uses exponential backoff for
-    repeated failures on the same gap.  Implements leader election via mutex.
+    repeated failures on the same gap.  Implements a leader-election guard
+    (only one controller active at a time) using the shared mutex pattern.
     """
 
     def __init__(
@@ -1232,7 +1233,7 @@ class ReconciliationController:
 
 
 # ---------------------------------------------------------------------------
-# 6. HealerSupervisor (Erlang OTP pattern)
+# 6. HealerSupervisor
 # ---------------------------------------------------------------------------
 
 
@@ -1248,7 +1249,7 @@ class _WorkerRecord:
 
 
 class HealerSupervisor:
-    """Erlang-style supervision tree for healing workers.
+    """Worker supervision tree for healing processes.
 
     Strategies:
       one_for_one   — restart only the failed worker
