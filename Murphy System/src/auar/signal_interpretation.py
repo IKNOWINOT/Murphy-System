@@ -15,7 +15,7 @@ Thresholds:
     0.60–0.85 → validation pass
     <0.60  → clarification required
 
-Copyright 2024 Inoni LLC – Apache License 2.0
+Copyright 2024 Inoni LLC – BSL-1.1
 """
 
 import logging

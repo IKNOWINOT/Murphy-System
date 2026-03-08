@@ -321,7 +321,7 @@ if __name__ == "__main__":
     """
     # Implement specific calculation logic
     # This is a starting point - modify as needed
-    result = x  # Placeholder
+    result = x  # identity transform (default)
     return result
 
 

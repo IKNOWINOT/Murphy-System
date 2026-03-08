@@ -5,7 +5,7 @@
 #   docker compose up -d
 #
 # Copyright © 2020 Inoni Limited Liability Company
-# License: Apache License 2.0
+# License: BSL-1.1
 
 services:
   # ── Murphy API (main application) ──────────────────────────────────────

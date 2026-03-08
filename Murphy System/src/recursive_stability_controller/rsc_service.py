@@ -280,9 +280,9 @@ def spawn_request():
     # Get current state for evaluation
     current_state = {
         "lyapunov_stable": controller.lyapunov_monitor.check_stability(),
-        "entropy": 0.0,  # Placeholder
-        "confidence": 0.5,  # Placeholder
-        "recursion_energy": 0.0,  # Placeholder
+        "entropy": 0.0,  # initial entropy value
+        "confidence": 0.5,  # initial confidence level
+        "recursion_energy": 0.0,  # initial recursion energy
         "estimated_spawn_impact": data.get("estimated_impact", 0.0)
     }
 

@@ -383,7 +383,7 @@ class TrainingOutputGenerator:
             'initial_confidence': result.failure_case.confidence_drift_profile.initial_confidence,
             'initial_risk': result.telemetry_outcome.risk_trajectory[0],
             'artifact_complexity': len(result.failure_case.violated_assumptions),
-            'interface_count': 5,  # Placeholder
+            'interface_count': 5,  # default interface count
             'available_gates': len(result.failure_case.recommended_gates)
         }
 

@@ -443,5 +443,3 @@ class AdaptiveObserver:
                 remaining.remove(best)
 
         return observations
-
-

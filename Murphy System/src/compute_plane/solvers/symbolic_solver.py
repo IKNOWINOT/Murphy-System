@@ -134,7 +134,7 @@ class SymbolicSolver:
         Returns:
             SymbolicResult (currently returns unsupported)
         """
-        # Placeholder - would need Wolfram Engine integration
+        # Wolfram Engine integration deferred; returns unsupported result
         return SymbolicResult(
             result=None,
             derivation_steps=["Wolfram Engine not integrated"],

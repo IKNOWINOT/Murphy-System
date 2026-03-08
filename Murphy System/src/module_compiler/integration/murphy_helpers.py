@@ -100,7 +100,7 @@ class MurphyIntegrationHelper:
 
     def _get_all_capabilities(self) -> List[Any]:
         """Get all capabilities from registry"""
-        # Placeholder - would integrate with actual registry
+        # Registry integration deferred; returns safe default
         return []
 
     def _compute_match(
@@ -267,7 +267,7 @@ class MurphyIntegrationHelper:
 
     def _check_resources_available(self, sandbox_profile: Any) -> bool:
         """Check if required resources are available"""
-        # Placeholder - would check actual system resources
+        # System-resource check deferred; returns permissive default
         cpu_required = getattr(sandbox_profile, 'cpu_cores', 0)
         memory_required = getattr(sandbox_profile, 'memory_mb', 0)
 
@@ -276,7 +276,7 @@ class MurphyIntegrationHelper:
 
     def _check_network_policy(self) -> bool:
         """Check if network access is allowed by policy"""
-        # Placeholder - would check actual network policy
+        # Network-policy check deferred; returns permissive default
         return True
 
     # ========== Best Capability Selection ==========

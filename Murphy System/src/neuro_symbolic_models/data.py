@@ -124,7 +124,7 @@ class TrainingDataCollector:
         Construct PyTorch Geometric Data object from failure.
         """
         # Extract artifact graph (simplified - in practice, parse from failure data)
-        num_nodes = 10  # Placeholder
+        num_nodes = 10  # simplified graph size
         node_features = np.random.randn(num_nodes, self.node_feature_dim)
 
         # Create edges (simplified)

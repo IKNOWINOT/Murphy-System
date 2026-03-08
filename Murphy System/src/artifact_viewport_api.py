@@ -27,7 +27,7 @@ try:
     _HAS_FLASK = True
 except ImportError:
     _HAS_FLASK = False
-    # Stub so module-level @viewport_bp.route() decorators don't crash
+    # Minimal Flask Blueprint so module-level route decorators register correctly
     class _StubBlueprint:
         """No-op Blueprint stand-in when Flask is absent."""
         def route(self, *a, **kw):

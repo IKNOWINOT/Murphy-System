@@ -7,7 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Legal
+- **legal: 0A** — Replaced `pylint` (GPL-2.0) with `ruff` (MIT) in `requirements_murphy_1.0.txt` to resolve copyleft incompatibility with BSL 1.1
+- **legal: 0B** — Updated 14 file headers from "Apache License 2.0" to "BSL-1.1" for consistency (requirements_murphy_1.0.txt, Dockerfile, docker-compose.yml, install.sh, murphy CLI, 9 AUAR module files)
+- **legal: 0E** — Redacted PII in signup_gateway.py (email in logs/audit) and comms/connectors.py (phone number in Twilio SMS log) using `_redact_email()` and `_redact_ip()` helpers
+- **legal: 0E** — Redacted IP address in EULA audit log entries
+- **legal: docs** — Created `THIRD_PARTY_LICENSES.md` documenting all dependency licenses
+- **legal: docs** — Created `PRIVACY.md` documenting data collection practices
+- **legal: test** — Created `tests/test_legal_compliance.py` with 18 checks covering dependency licenses, license headers, API key security, trademark naming, data privacy, and export control
+
 ### Added
+- **feat:** MCO-001 — Multi-Cloud Orchestrator (`src/multi_cloud_orchestrator.py`) with AWS/GCP/Azure/custom cloud provider management, cross-cloud deployment orchestration, failover strategies (active-passive/active-active/round-robin/cost-based/latency-based), resource synchronisation, cost tracking and summarisation, health monitoring, credentials stored as SecureKeyManager references only, and Flask Blueprint with 22 endpoints (142 tests)
+- **feat:** AUD-001 — Immutable Audit Logging System (`src/audit_logging_system.py`) with SHA-256 hash-chain integrity verification, 11 action types, 7 categories, structured query engine, retention policies, PII redaction, and Flask Blueprint with 13 endpoints (52 tests)
+- **feat:** NTF-001 — Multi-channel Notification System (`src/notification_system.py`) with email/Slack/Discord/Teams/webhook channels, template engine, priority routing, rate limiting, quiet hours, and Flask Blueprint with 15 endpoints (56 tests)
+- **feat:** WHK-001 — Outbound Webhook Dispatcher (`src/webhook_dispatcher.py`) with HMAC-SHA256 signing, exponential-backoff retry, delivery-history tracking, and Flask Blueprint with 13 endpoints (59 tests)
 - **Maturity Cycle 3: 78 → 100/100** — All remaining gaps resolved:
   - `Murphy System/docs/STALE_PR_CLEANUP.md` — Rationale and decision record for closing PRs #21, #27, #46, #56, #64, #95
   - `Murphy System/docs/API_REFERENCE.md` — Complete API reference for all public endpoints (`/api/health`, `/api/status`, `/api/execute`, `/api/llm/*`, `/api/gates/*`, `/api/confidence/*`, `/api/orchestrator/*`, `/api/modules/*`, `/api/feedback`)

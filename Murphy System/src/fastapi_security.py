@@ -99,6 +99,7 @@ class _FastAPIRateLimiter:
         self._last_cleanup: float = time.monotonic()
 
     def check(self, client_id: str) -> Dict[str, Any]:
+        """Check whether *client_id* has a rate-limit token available."""
         now = time.monotonic()
 
         # Periodic stale-bucket cleanup (CWE-400 mitigation)
@@ -197,6 +198,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         self.service_name = service_name
 
     async def dispatch(self, request: Request, call_next):
+        """Process an incoming request through auth, rate-limit, and header pipelines."""
         # Skip auth for health endpoints and OPTIONS (CORS preflight)
         if request.method == "OPTIONS":
             response = await call_next(request)

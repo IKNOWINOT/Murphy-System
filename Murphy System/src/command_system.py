@@ -3,6 +3,7 @@ Modular Command System
 Implements chainable commands with deterministic execution
 """
 
+from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Optional, Tuple
 import re
 import json
@@ -36,7 +37,7 @@ class CommandResult:
         return json.dumps(self.to_dict(), indent=2)
 
 
-class CommandModule:
+class CommandModule(ABC):
     """Base class for all command modules"""
 
     def __init__(self, name: str, version: str = "1.0"):
@@ -45,9 +46,10 @@ class CommandModule:
         self.temp_dir = Path("/tmp/agent_temp")
         self.temp_dir.mkdir(exist_ok=True)
 
+    @abstractmethod
     def execute(self, input_data: Any, options: Dict[str, Any]) -> CommandResult:
-        """Execute the command - must be implemented by subclasses"""
-        raise NotImplementedError
+        """Execute the command - must be implemented by subclasses."""
+        ...
 
     def verify(self, result: CommandResult) -> bool:
         """Verify the result - can be overridden"""

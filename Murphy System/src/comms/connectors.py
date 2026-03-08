@@ -576,7 +576,7 @@ class SMSConnector(BaseConnector):
             if resp.status_code in (200, 201):
                 self._increment_message_count()
                 packet.sent_at = datetime.now(timezone.utc)
-                logger.info("Twilio SMS sent to %s (sid=%s)", to_number, resp.json().get("sid"))
+                logger.info("Twilio SMS sent (sid=%s)", resp.json().get("sid"))
                 return True
             logger.error("Twilio error %s: %s", resp.status_code, resp.text[:200])
             return False

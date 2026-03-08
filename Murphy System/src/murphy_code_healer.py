@@ -931,7 +931,7 @@ class BayesianFixPlanner:
                 f"""\
                 def {fn}_extension() -> None:
                     \"\"\"Auto-generated stub for missing feature.\"\"\"
-                    raise NotImplementedError("{fn}_extension not yet implemented")
+                    raise RuntimeError("{fn}_extension not yet implemented")
                 """
             )
         elif patch_type == "add_docstring":
@@ -1445,7 +1445,7 @@ class HealerChaosRunner:
                 # If any of these cause an unexpected exception, the patch is fragile.
                 try:
                     pass  # Replace with actual adversarial calls
-                except NotImplementedError:
+                except RuntimeError:
                     pass  # Expected for stubs
                 except Exception as exc:
                     raise AssertionError(

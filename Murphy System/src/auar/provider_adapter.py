@@ -9,7 +9,7 @@ logic, and connection management for a specific provider.
 Supported auth methods: API Key, Bearer Token, OAuth2, Basic, HMAC.
 Supported protocols: REST (JSON), GraphQL, gRPC (stub), SOAP (stub).
 
-Copyright 2024 Inoni LLC – Apache License 2.0
+Copyright 2024 Inoni LLC – BSL-1.1
 """
 
 import logging

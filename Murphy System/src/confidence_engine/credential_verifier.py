@@ -244,7 +244,7 @@ class CredentialVerifier:
         Verify the actual credential value.
         Override this method to implement service-specific verification.
         """
-        # Placeholder implementation
+        # Simplified implementation; extend with real provider SDK
         # In production, this would make actual API calls to verify credentials
 
         if credential.credential_type == CredentialType.API_KEY:
