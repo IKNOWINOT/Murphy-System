@@ -524,7 +524,7 @@ class OrgChartOrchestrator:
                 department=sequence.owner_id,
             )
             if hasattr(result, "action"):
-                from src.governance_kernel import EnforcementAction
+                from governance_kernel import EnforcementAction
                 if result.action == EnforcementAction.DENY:
                     return False, result.reason
             return True, ""
