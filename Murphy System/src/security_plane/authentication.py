@@ -733,8 +733,43 @@ class ContextualVerifier:
     Context factors: time, location, device, network, task.
     """
 
-    def __init__(self):
+    def __init__(
+        self,
+        known_locations: Optional[set] = None,
+        known_devices: Optional[dict] = None,
+        private_networks: Optional[list] = None,
+    ):
         self._verifications: List[ContextualVerification] = []
+        # Registry of trusted location identifiers (None = not configured)
+        self._known_locations: Optional[set] = known_locations
+        # Map of device_id -> fingerprint metadata (None = not configured)
+        self._known_devices: Optional[dict] = known_devices
+        # List of known private CIDR prefixes — None means "not configured, use heuristic"
+        self._private_networks: Optional[list] = private_networks
+        # Default CIDR prefixes used when a custom list is explicitly provided
+        self._default_private_prefixes: list = [
+            "10.", "172.16.", "172.17.", "172.18.", "172.19.",
+            "172.20.", "172.21.", "172.22.", "172.23.", "172.24.",
+            "172.25.", "172.26.", "172.27.", "172.28.", "172.29.",
+            "172.30.", "172.31.", "192.168.", "127.",
+        ]
+
+    def register_location(self, location_id: str) -> None:
+        """Add a location identifier to the trusted-locations registry."""
+        if self._known_locations is None:
+            self._known_locations = set()
+        self._known_locations.add(location_id)
+
+    def register_device(self, device_id: str, fingerprint: dict) -> None:
+        """Add a device to the known-device fingerprint store."""
+        if self._known_devices is None:
+            self._known_devices = {}
+        self._known_devices[device_id] = fingerprint
+
+    def _is_private_network(self, network: str) -> bool:
+        """Return True if the network identifier matches a private IP range prefix."""
+        prefixes = self._private_networks if self._private_networks is not None else self._default_private_prefixes
+        return any(network.startswith(prefix) for prefix in prefixes)
 
     def verify_context(
         self,
@@ -762,20 +797,39 @@ class ContextualVerifier:
             anomalies.append("Authentication during weekend")
             confidence *= 0.9
 
-        # Check location (simulated)
-        if location and location.startswith("unknown"):
-            anomalies.append("Authentication from unknown location")
-            confidence *= 0.7
+        # Check location against known-locations registry
+        if location is not None:
+            if self._known_locations is not None and location not in self._known_locations:
+                anomalies.append(f"Authentication from unknown location: {location}")
+                confidence *= 0.7
+            elif self._known_locations is None and location.startswith("unknown"):
+                # Fallback heuristic when no registry is configured
+                anomalies.append("Authentication from unknown location")
+                confidence *= 0.7
 
-        # Check device (simulated)
-        if device_id and device_id.startswith("new"):
-            anomalies.append("Authentication from new device")
-            confidence *= 0.8
+        # Check device against fingerprint store
+        if device_id is not None:
+            if self._known_devices is not None and device_id not in self._known_devices:
+                anomalies.append(f"Authentication from unrecognised device: {device_id}")
+                confidence *= 0.8
+            elif self._known_devices is None and device_id.startswith("new"):
+                # Fallback heuristic when no device store is configured
+                anomalies.append("Authentication from new device")
+                confidence *= 0.8
 
-        # Check network (simulated)
-        if network and network.startswith("public"):
-            anomalies.append("Authentication from public network")
-            confidence *= 0.9
+        # Check network — private ranges are trusted; public ranges reduce confidence
+        if network is not None:
+            if self._private_networks is not None:
+                # Custom registry in use — use CIDR prefix matching
+                if self._is_private_network(network):
+                    pass  # private network — no penalty
+                else:
+                    anomalies.append(f"Authentication from public/external network: {network}")
+                    confidence *= 0.9
+            elif network.startswith("public"):
+                # Fallback heuristic when no custom registry configured
+                anomalies.append("Authentication from public network")
+                confidence *= 0.9
 
         verified = confidence >= 0.7
 
@@ -875,19 +929,44 @@ class IntentConfirmer:
 
     def _compute_semantic_match(self, description: str, understanding: str) -> float:
         """
-        Compute semantic match between description and user understanding.
+        Compute semantic match between description and user understanding using
+        TF-IDF weighted cosine similarity.
 
-        In production: Use NLP/embedding similarity.
+        Returns a score in [0.0, 1.0] — higher is a closer match.
         """
-        # Simulated semantic matching
-        # In production: Use proper NLP models
-        desc_words = set(description.lower().split())
-        understand_words = set(understanding.lower().split())
+        import math
 
-        if not desc_words or not understand_words:
+        def tokenize(text: str) -> List[str]:
+            return text.lower().split()
+
+        desc_tokens = tokenize(description)
+        under_tokens = tokenize(understanding)
+
+        if not desc_tokens or not under_tokens:
             return 0.0
 
-        intersection = desc_words & understand_words
-        union = desc_words | understand_words
+        corpus = [desc_tokens, under_tokens]
+        vocab = set(desc_tokens) | set(under_tokens)
 
-        return len(intersection) / (len(union) or 1) if union else 0.0
+        def term_freq(tokens: List[str], term: str) -> float:
+            count = tokens.count(term)
+            return count / (len(tokens) or 1)
+
+        def inv_doc_freq(term: str) -> float:
+            docs_containing = sum(1 for doc in corpus if term in doc)
+            return math.log((1 + len(corpus)) / (1 + docs_containing)) + 1.0
+
+        def tfidf_vector(tokens: List[str]) -> Dict[str, float]:
+            return {term: term_freq(tokens, term) * inv_doc_freq(term) for term in vocab}
+
+        vec_desc = tfidf_vector(desc_tokens)
+        vec_under = tfidf_vector(under_tokens)
+
+        dot = sum(vec_desc[t] * vec_under[t] for t in vocab)
+        norm_d = math.sqrt(sum(v * v for v in vec_desc.values()))
+        norm_u = math.sqrt(sum(v * v for v in vec_under.values()))
+
+        if norm_d == 0.0 or norm_u == 0.0:
+            return 0.0
+
+        return dot / (norm_d * norm_u)

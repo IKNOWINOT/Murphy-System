@@ -181,7 +181,7 @@ class WorkflowDAGEngine:
             self._executions[exec_id] = execution
         return exec_id
 
-    def execute_workflow(self, execution_id: str) -> Dict[str, Any]:
+    def execute_workflow(self, execution_id: str, strict_mode: bool = False) -> Dict[str, Any]:
         execution = self._executions.get(execution_id)
         if not execution:
             return {"error": "Execution not found", "execution_id": execution_id}
@@ -243,13 +243,20 @@ class WorkflowDAGEngine:
                     step_exec.error = str(exc)
                     step_exec.status = StepStatus.FAILED
             else:
-                # Default simulation
-                step_exec.result = {
-                    "action": step_def.action,
-                    "step_id": step_id,
-                    "simulated": True,
-                }
-                step_exec.status = StepStatus.COMPLETED
+                if strict_mode:
+                    step_exec.error = f"No handler registered for action '{step_def.action}' (strict_mode)"
+                    step_exec.status = StepStatus.FAILED
+                else:
+                    logger.warning(
+                        "No handler registered for action '%s' — executing in simulation mode",
+                        step_def.action,
+                    )
+                    step_exec.result = {
+                        "action": step_def.action,
+                        "step_id": step_id,
+                        "simulated": True,
+                    }
+                    step_exec.status = StepStatus.COMPLETED
 
             step_exec.end_time = time.time()
             results[step_id] = {
@@ -403,6 +410,15 @@ class WorkflowDAGEngine:
             groups[level].append(sid)
 
         return [groups[l] for l in sorted(groups.keys())]
+
+    def list_unhandled_actions(self) -> List[str]:
+        """Return a sorted list of actions referenced in registered workflows but lacking a handler."""
+        unhandled: Set[str] = set()
+        for workflow in self._workflows.values():
+            for step in workflow.steps:
+                if step.action not in self._step_handlers:
+                    unhandled.add(step.action)
+        return sorted(unhandled)
 
     def list_workflows(self) -> List[Dict[str, Any]]:
         return [

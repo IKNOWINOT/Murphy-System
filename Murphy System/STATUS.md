@@ -57,3 +57,12 @@ Murphy System is **aligned with** (not formally attested to) the following frame
 | G-005 | Dashboard UI incomplete | Medium | Complete React/terminal dashboard with live metrics |
 | G-006 | Formal security pen-test | High | Engage third-party security firm for penetration testing |
 | G-008 | Production deployment hardening | Medium | Complete k8s manifests, add health check probes |
+
+## Infrastructure Deferred Items
+
+| ID | Description | Status |
+|----|-------------|--------|
+| INFRA-001 | Redis-backed rate limiting | DEFERRED — in-memory sufficient for single-process |
+| INFRA-002 | Post-quantum cryptography (liboqs) | DEFERRED — HMAC-SHA256 hardened; PQC is future roadmap |
+| INFRA-003 | SOC 2 / ISO 27001 / HIPAA formal attestation | IN PROGRESS — requires external auditor |
+| INFRA-004 | EU AI Act full conformity | IN PROGRESS — 3/9 compliant, 5 partial |
