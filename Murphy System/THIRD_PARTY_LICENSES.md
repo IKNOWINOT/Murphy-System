@@ -65,8 +65,10 @@ PSF, MPL 2.0) that are compatible with BSL 1.1 distribution.
 |---------|---------|-----|
 | scikit-learn | BSD-3-Clause | https://github.com/scikit-learn/scikit-learn/blob/main/COPYING |
 | torch | BSD-3-Clause | https://github.com/pytorch/pytorch/blob/main/LICENSE |
+| torch-geometric | MIT | https://github.com/pyg-team/pytorch_geometric/blob/master/LICENSE |
 | transformers | Apache-2.0 | https://github.com/huggingface/transformers/blob/main/LICENSE |
 | sentencepiece | Apache-2.0 | https://github.com/google/sentencepiece/blob/master/LICENSE |
+| tensorboard | Apache-2.0 | https://github.com/tensorflow/tensorboard/blob/master/LICENSE |
 
 ## NLP
 
@@ -224,6 +226,13 @@ PSF, MPL 2.0) that are compatible with BSL 1.1 distribution.
 | notebook | BSD-3-Clause | https://github.com/jupyter/notebook/blob/main/LICENSE |
 | websocket-client | Apache-2.0 | https://github.com/websocket-client/websocket-client/blob/master/LICENSE |
 | tomli | MIT | https://github.com/hukkin/tomli/blob/master/LICENSE |
+
+## Node.js Dependencies (bots/)
+
+| Package | License | URL |
+|---------|---------|-----|
+| vitest | MIT | https://github.com/vitest-dev/vitest/blob/main/LICENSE |
+| zod | MIT | https://github.com/colinhacks/zod/blob/main/LICENSE |
 
 ---
 
