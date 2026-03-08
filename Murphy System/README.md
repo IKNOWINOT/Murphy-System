@@ -1,7 +1,7 @@
 # Murphy System — Runtime Directory
 
 This is the primary runtime directory for the Murphy System. It contains the
-FastAPI server, 649 source modules across 56 packages in `src/`, web interfaces,
+FastAPI server, 650+ source modules across 56 packages in `src/`, web interfaces,
 tests, and deployment configuration.
 
 ---
@@ -45,6 +45,13 @@ All endpoints are prefixed with `/api`.
 | **HITL** | `/api/hitl/*` | Human-in-the-loop checkpoints and approvals |
 | **MFGC** | `/api/mfgc/*` | Murphy Formula / Gate / Confidence scoring |
 | **Corrections** | `/api/corrections/*` | Correction capture and learning |
+| **Wingman Protocol** | `/api/wingman/*` | Executor/validator pairing, runbooks, validation history |
+| **Causality Sandbox** | `/api/causality/*` | Causal simulation, what-if scenario cycles |
+| **HITL Graduation** | `/api/hitl-graduation/*` | Human-in-the-loop graduation pipeline — register, evaluate, graduate, rollback |
+| **Functionality Heatmap** | `/api/heatmap/*` | Activity recording, cold/hot-spot analysis, coverage dashboard |
+| **Safety Orchestrator** | `/api/safety/*` | Safety checks, compliance reports, safety dashboard |
+| **Efficiency Orchestrator** | `/api/efficiency/*` | Efficiency readings, scoring, optimisation recommendations |
+| **Supply Orchestrator** | `/api/supply/*` | Inventory registration, usage tracking, reorder management |
 
 Full auto-generated docs: **http://localhost:8000/docs**
 
@@ -64,6 +71,10 @@ Eight static HTML files are served by the runtime or a local HTTP server:
 | `terminal_enhanced.html` | Enhanced terminal with extra tooling |
 | `terminal_integrated.html` | Integrated terminal view |
 | `terminal_worker.html` | Worker-role terminal |
+| `terminal_costs.html` | Cost tracking and budget terminal |
+| `terminal_orgchart.html` | Org chart / hierarchy terminal |
+| `terminal_unified.html` | Unified multi-role terminal |
+| `terminal_integrations.html` | Integrations management terminal |
 
 ---
 

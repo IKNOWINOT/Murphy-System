@@ -1,6 +1,6 @@
 # Murphy System — Gap Analysis
 
-**Last Updated:** 2026-03-02
+**Last Updated:** 2026-03-08
 **Comparison Baseline:** [Launch Automation Plan](LAUNCH_AUTOMATION_PLAN.md) + [Operations Testing Plan](OPERATIONS_TESTING_PLAN.md)
 **Repository:** IKNOWINOT/Murphy-System
 **Runtime Directory:** `Murphy System/`
@@ -196,11 +196,46 @@ These areas have **zero gap** between plan and reality:
 
 ---
 
+## 6. Issue #136 Subsystems — Implementation Tracking
+
+Seven new subsystems are being added in parallel under issue #136. The table below
+tracks their implementation status as of 2026-03-08.
+
+| Subsystem | Module File | Status | Notes |
+|-----------|-------------|--------|-------|
+| Drawing Engine | `murphy_drawing_engine.py` | 🔄 In Progress | Vector/raster canvas for workflow diagrams |
+| Credential Gate | `murphy_credential_gate.py` | 🔄 In Progress | Zero-trust credential validation at every gate boundary |
+| Sensor Fusion | `murphy_sensor_fusion.py` | 🔄 In Progress | Multi-source signal merging for autonomous decision-making |
+| Osmosis Engine | `murphy_osmosis_engine.py` | 🔄 In Progress | Passive knowledge absorption and cross-domain synthesis |
+| Autonomous Perception | `murphy_autonomous_perception.py` | 🔄 In Progress | Environment awareness and contextual state inference |
+| Wingman Evolution | `murphy_wingman_evolution.py` | 🔄 In Progress | Adaptive learning for wingman validation rules |
+| Engineering Toolbox | `murphy_engineering_toolbox.py` | 🔄 In Progress | Developer utilities: schema scaffolding, stub generation, diff tools |
+
+### 6.1 Recently Added Engines and Orchestrators
+
+The following modules were added in the 2026-03-07/08 wave and are now operational:
+
+| Module | Status | Description |
+|--------|--------|-------------|
+| `wingman_protocol.py` | ✅ Operational | Executor/validator pairing with runbooks and full history |
+| `causality_sandbox.py` | ✅ Operational | Causal simulation and what-if scenario cycles |
+| `hitl_graduation_engine.py` | ✅ Operational | Structured human-to-automation handoff pipeline |
+| `golden_path_bridge.py` | ✅ Operational | Golden-path memory capture and replay |
+| `telemetry_adapter.py` | ✅ Operational | Telemetry data collection, analysis, and learning |
+| `secure_key_manager.py` | ✅ Operational | Fernet-encrypted API key storage |
+| `functionality_heatmap.py` | 📋 Planned | Activity recording, cold/hot-spot analysis |
+| `agentic_onboarding_engine.py` | 📋 Planned | Autonomous onboarding with adaptive path selection |
+| `safety_orchestrator.py` | 📋 Planned | Safety checks and compliance dashboard |
+| `efficiency_orchestrator.py` | 📋 Planned | Efficiency scoring and optimisation |
+| `supply_orchestrator.py` | 📋 Planned | Inventory, usage, receipts, and reorder management |
+
+---
+
 **Document Version:** 3.0
-**Last Updated:** 2026-03-02
+**Last Updated:** 2026-03-08
 
 ---
 
 **Copyright © 2020 Inoni Limited Liability Company**
-**Licensed under the Apache License, Version 2.0**
 **Creator: Corey Post**
+**License: BSL 1.1**

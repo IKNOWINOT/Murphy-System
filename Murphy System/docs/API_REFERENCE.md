@@ -429,4 +429,900 @@ Submit a feedback signal to improve confidence calibration.
 
 ---
 
+## Wingman Protocol Endpoints
+
+### `POST /api/wingman/pairs`
+
+Create a new executor/validator pair.
+
+**Auth:** Required  
+**Content-Type:** `application/json`
+
+**Request Body**
+```json
+{
+  "subject": "invoice-processing",
+  "executor_id": "agent-001",
+  "validator_id": "agent-002",
+  "runbook_id": "runbook-finance-v1"
+}
+```
+
+**Response 201**
+```json
+{ "pair_id": "uuid-v4", "subject": "invoice-processing", "created_at": "2026-03-08T08:00:00Z" }
+```
+
+---
+
+### `POST /api/wingman/validate`
+
+Run validation for a given pair against an output payload.
+
+**Auth:** Required
+
+**Request Body**
+```json
+{ "pair_id": "uuid-v4", "output": { "data": "..." }, "context": {} }
+```
+
+**Response 200**
+```json
+{
+  "passed": true,
+  "blocked": false,
+  "warnings": [],
+  "results": [
+    { "rule_id": "r-001", "passed": true, "severity": "block", "message": "Output present" }
+  ]
+}
+```
+
+---
+
+### `GET /api/wingman/pairs/{pair_id}/status`
+
+Get current status and recent history for a pair.
+
+**Auth:** Required
+
+**Response 200**
+```json
+{ "pair_id": "uuid-v4", "subject": "invoice-processing", "history_count": 42 }
+```
+
+---
+
+## Causality Sandbox Endpoints
+
+### `POST /api/causality/cycle`
+
+Submit a what-if scenario for causal simulation.
+
+**Auth:** Required  
+**Content-Type:** `application/json`
+
+**Request Body**
+```json
+{ "scenario": "What happens if throughput drops 20%?", "context": {}, "depth": 3 }
+```
+
+**Response 200**
+```json
+{
+  "cycle_id": "uuid-v4",
+  "root_cause": "Throughput reduction",
+  "causal_chain": ["queue_depth_increases", "latency_spikes", "timeout_rate_rises"],
+  "confidence": 0.87
+}
+```
+
+---
+
+### `GET /api/causality/results/{cycle_id}`
+
+Retrieve simulation results for a completed cycle.
+
+**Auth:** Required
+
+**Response 200**
+```json
+{ "cycle_id": "uuid-v4", "status": "complete", "summary": "...", "confidence": 0.87 }
+```
+
+---
+
+## HITL Graduation Endpoints
+
+### `POST /api/hitl-graduation/register`
+
+Register a task or workflow item for HITL graduation evaluation.
+
+**Auth:** Required  
+**Content-Type:** `application/json`
+
+**Request Body**
+```json
+{ "item_id": "task-001", "category": "invoice-approval", "metadata": {} }
+```
+
+**Response 201**
+```json
+{ "item_id": "task-001", "graduation_status": "pending", "registered_at": "2026-03-08T08:00:00Z" }
+```
+
+---
+
+### `POST /api/hitl-graduation/evaluate/{item_id}`
+
+Trigger evaluation of a registered item against graduation criteria.
+
+**Auth:** Required
+
+**Response 200**
+```json
+{ "item_id": "task-001", "score": 0.91, "criteria_met": true, "ready_for_graduation": true }
+```
+
+---
+
+### `POST /api/hitl-graduation/graduate/{item_id}`
+
+Graduate an item from human oversight to automated handling.
+
+**Auth:** Required
+
+**Response 200**
+```json
+{ "item_id": "task-001", "graduation_status": "graduated", "graduated_at": "2026-03-08T08:05:00Z" }
+```
+
+---
+
+### `POST /api/hitl-graduation/rollback/{item_id}`
+
+Rollback a graduated item back to human oversight.
+
+**Auth:** Required
+
+**Request Body**
+```json
+{ "reason": "Confidence threshold dropped below 0.80" }
+```
+
+**Response 200**
+```json
+{ "item_id": "task-001", "graduation_status": "rolled_back", "reason": "Confidence threshold dropped below 0.80" }
+```
+
+---
+
+### `GET /api/hitl-graduation/dashboard`
+
+Overview of all registered items, graduation rates, and recent activity.
+
+**Auth:** Required
+
+**Response 200**
+```json
+{
+  "total": 120, "graduated": 88, "pending": 20, "rolled_back": 12,
+  "graduation_rate": 0.73
+}
+```
+
+---
+
+## Functionality Heatmap Endpoints
+
+### `POST /api/heatmap/activity`
+
+Record an activity event for heatmap tracking.
+
+**Auth:** Required  
+**Content-Type:** `application/json`
+
+**Request Body**
+```json
+{ "module": "invoice_processor", "function": "parse_invoice", "duration_ms": 42 }
+```
+
+**Response 200**
+```json
+{ "recorded": true }
+```
+
+---
+
+### `GET /api/heatmap`
+
+Retrieve the full functionality heatmap.
+
+**Auth:** Required
+
+**Response 200**
+```json
+{
+  "generated_at": "2026-03-08T08:00:00Z",
+  "modules": [
+    { "module": "invoice_processor", "call_count": 5421, "avg_duration_ms": 38, "temperature": "hot" }
+  ]
+}
+```
+
+---
+
+### `GET /api/heatmap/cold-spots`
+
+List modules with low or zero activity (coverage gaps).
+
+**Auth:** Required
+
+**Response 200**
+```json
+{ "cold_spots": [{ "module": "archive_exporter", "call_count": 0, "last_called": null }] }
+```
+
+---
+
+### `GET /api/heatmap/hot-spots`
+
+List the most actively used modules.
+
+**Auth:** Required
+
+**Response 200**
+```json
+{ "hot_spots": [{ "module": "invoice_processor", "call_count": 5421 }] }
+```
+
+---
+
+### `GET /api/heatmap/coverage`
+
+Return overall module coverage metrics.
+
+**Auth:** Required
+
+**Response 200**
+```json
+{ "total_modules": 650, "active_modules": 498, "coverage_pct": 76.6 }
+```
+
+---
+
+## Safety Orchestrator Endpoints
+
+### `POST /api/safety/check`
+
+Run a safety check against a proposed action or payload.
+
+**Auth:** Required  
+**Content-Type:** `application/json`
+
+**Request Body**
+```json
+{ "action": "deploy_to_production", "payload": {}, "context": {} }
+```
+
+**Response 200**
+```json
+{ "safe": true, "checks_passed": 12, "checks_failed": 0, "report": [] }
+```
+
+---
+
+### `GET /api/safety/dashboard`
+
+Safety posture overview: recent checks, failure rates, compliance status.
+
+**Auth:** Required
+
+**Response 200**
+```json
+{ "checks_today": 482, "failures_today": 3, "failure_rate": 0.006, "status": "green" }
+```
+
+---
+
+### `GET /api/safety/compliance`
+
+Compliance summary across configured frameworks.
+
+**Auth:** Required
+
+**Response 200**
+```json
+{
+  "frameworks": ["gdpr", "soc2", "hipaa", "pci_dss"],
+  "aligned": ["gdpr", "soc2"],
+  "gaps": ["hipaa", "pci_dss"]
+}
+```
+
+---
+
+## Efficiency Orchestrator Endpoints
+
+### `POST /api/efficiency/readings`
+
+Record an efficiency reading for a module or pipeline stage.
+
+**Auth:** Required  
+**Content-Type:** `application/json`
+
+**Request Body**
+```json
+{ "module": "invoice_processor", "metric": "throughput", "value": 120.5, "unit": "tasks/min" }
+```
+
+**Response 200**
+```json
+{ "recorded": true }
+```
+
+---
+
+### `GET /api/efficiency/scores`
+
+Retrieve efficiency scores for all tracked modules.
+
+**Auth:** Required
+
+**Response 200**
+```json
+{
+  "scores": [
+    { "module": "invoice_processor", "score": 0.91, "trend": "improving" }
+  ]
+}
+```
+
+---
+
+### `GET /api/efficiency/optimisations`
+
+Get recommended optimisation actions based on current efficiency data.
+
+**Auth:** Required
+
+**Response 200**
+```json
+{
+  "recommendations": [
+    { "module": "archive_exporter", "recommendation": "Enable async processing", "estimated_gain": 0.25 }
+  ]
+}
+```
+
+---
+
+## Supply Orchestrator Endpoints
+
+### `POST /api/supply/register`
+
+Register a supply item (hardware, software license, API quota, etc.).
+
+**Auth:** Required  
+**Content-Type:** `application/json`
+
+**Request Body**
+```json
+{ "item_id": "gpu-node-01", "category": "compute", "quantity": 4, "unit": "nodes" }
+```
+
+**Response 201**
+```json
+{ "item_id": "gpu-node-01", "registered": true }
+```
+
+---
+
+### `POST /api/supply/usage`
+
+Record usage of a supply item.
+
+**Auth:** Required
+
+**Request Body**
+```json
+{ "item_id": "gpu-node-01", "quantity_used": 1, "task_id": "task-001" }
+```
+
+**Response 200**
+```json
+{ "recorded": true, "remaining": 3 }
+```
+
+---
+
+### `POST /api/supply/receipts`
+
+Record receipt of new supply stock.
+
+**Auth:** Required
+
+**Request Body**
+```json
+{ "item_id": "gpu-node-01", "quantity_received": 2, "received_at": "2026-03-08T08:00:00Z" }
+```
+
+**Response 200**
+```json
+{ "recorded": true, "new_total": 5 }
+```
+
+---
+
+### `GET /api/supply/reorder`
+
+List items that have fallen below their reorder threshold.
+
+**Auth:** Required
+
+**Response 200**
+```json
+{ "reorder_needed": [{ "item_id": "api-quota-groq", "current": 500, "threshold": 1000 }] }
+```
+
+---
+
+### `GET /api/supply/dashboard`
+
+Supply chain overview: inventory levels, recent transactions, reorder alerts.
+
+**Auth:** Required
+
+**Response 200**
+```json
+{
+  "total_items": 38,
+  "below_threshold": 2,
+  "recent_transactions": 14,
+  "status": "yellow"
+}
+```
+
+---
+
+*Copyright © 2020 Inoni Limited Liability Company | Creator: Corey Post | License: BSL 1.1*
+
+---
+
+## Crypto Trading Subsystem
+
+> All trading and transfer operations require HITL (Human-in-the-Loop) approval by default.
+> Bots start in `MANUAL` mode; auto-approval requires explicit graduation to `SUPERVISED` or `AUTOMATED`.
+
+---
+
+### `POST /api/trading/bots`
+
+Create a new trading bot.
+
+**Auth:** Required  
+**Body:**
+```json
+{
+  "exchange_id": "coinbase",
+  "pair": "BTC/USDT",
+  "strategy_id": "momentum_btc",
+  "hitl_mode": "manual",
+  "stake_amount_usd": 500,
+  "stop_loss_pct": 0.03,
+  "take_profit_pct": 0.05,
+  "dry_run": true
+}
+```
+**Response 201:** `{ "bot_id": "uuid", "status": "created", "hitl_mode": "manual" }`
+
+---
+
+### `POST /api/trading/bots/{bot_id}/start`
+
+Start a bot's tick loop.
+
+**Auth:** Required  
+**Response 200:** `{ "bot_id": "uuid", "status": "running" }`
+
+---
+
+### `POST /api/trading/bots/{bot_id}/pause`
+
+Pause a running bot (preserves open position).
+
+**Response 200:** `{ "bot_id": "uuid", "status": "paused" }`
+
+---
+
+### `POST /api/trading/bots/{bot_id}/stop`
+
+Gracefully stop a bot.
+
+**Response 200:** `{ "bot_id": "uuid", "status": "stopped" }`
+
+---
+
+### `POST /api/trading/emergency_stop`
+
+Emergency stop all running bots.
+
+**Auth:** Required  
+**Response 200:** `{ "stopped_count": 3 }`
+
+---
+
+### `GET /api/trading/bots/dashboard`
+
+Live summary of all bots, P&L, and status.
+
+**Response 200:**
+```json
+{
+  "total_bots": 3,
+  "running": 2,
+  "paused": 0,
+  "stopped": 1,
+  "total_pnl_usd": 142.50,
+  "bots": [...]
+}
+```
+
+---
+
+### `GET /api/trading/hitl/pending`
+
+List all trades awaiting human approval.
+
+**Auth:** Required  
+**Response 200:**
+```json
+[
+  {
+    "request_id": "uuid",
+    "bot_id": "uuid",
+    "pair": "BTC/USDT",
+    "action": "buy",
+    "confidence": 0.87,
+    "murphy_index": 0.04,
+    "suggested_price": 50000,
+    "suggested_size": 0.01,
+    "reasoning": "momentum rsi=28.3 macd_hist=0.002",
+    "hitl_mode": "manual",
+    "created_at": "2026-03-08T09:00:00Z"
+  }
+]
+```
+
+---
+
+### `POST /api/trading/hitl/{request_id}/approve`
+
+Approve a pending trade.
+
+**Auth:** Required  
+**Body:** `{ "approver": "trader_alice", "notes": "looks good" }`  
+**Response 200:** `{ "placed": true, "request_id": "uuid" }`
+
+---
+
+### `POST /api/trading/hitl/{request_id}/reject`
+
+Reject a pending trade.
+
+**Auth:** Required  
+**Body:** `{ "approver": "trader_bob", "notes": "price too high" }`  
+**Response 200:** `{ "rejected": true }`
+
+---
+
+### `POST /api/trading/hitl/{request_id}/modify`
+
+Modify and approve a pending trade with adjusted parameters.
+
+**Auth:** Required  
+**Body:**
+```json
+{
+  "approver": "trader_carol",
+  "new_size": 0.005,
+  "new_price": 49800,
+  "new_stop": 48500
+}
+```
+**Response 200:** `{ "placed": true }`
+
+---
+
+### `GET /api/trading/hitl/audit`
+
+Retrieve the immutable HITL decision audit log.
+
+**Auth:** Required (admin)  
+**Query:** `?limit=500`  
+**Response 200:** `[ { "audit_id": "uuid", "decision": "approved", "auto": false, "confidence": 0.87, ... } ]`
+
+---
+
+### `GET /api/trading/portfolio`
+
+Full portfolio snapshot with risk metrics.
+
+**Auth:** Required  
+**Response 200:**
+```json
+{
+  "snapshot_id": "uuid",
+  "total_value_usd": 15430.22,
+  "cash_usd": 8200.00,
+  "invested_usd": 7000.00,
+  "unrealized_pnl": 230.22,
+  "realized_pnl": 1142.50,
+  "open_positions": [...],
+  "risk_metrics": {
+    "total_trades": 87,
+    "win_rate": 0.61,
+    "profit_factor": 1.82,
+    "max_drawdown": 0.08,
+    "sharpe_ratio": 1.34
+  }
+}
+```
+
+---
+
+### `GET /api/trading/risk/summary`
+
+Current risk manager state including circuit breakers.
+
+**Auth:** Required  
+**Response 200:**
+```json
+{
+  "open_circuit_breakers": 0,
+  "daily_loss_usd": 45.20,
+  "daily_loss_limit_usd": 500,
+  "open_trades": 2,
+  "consecutive_losses": 0,
+  "sizing_method": "percent_risk"
+}
+```
+
+---
+
+### `POST /api/trading/risk/reset_breakers`
+
+Manually reset open circuit breakers (requires senior approval).
+
+**Auth:** Required (admin)  
+**Response 200:** `{ "resolved_count": 1 }`
+
+---
+
+### `GET /api/trading/market/{exchange}/{pair}/candles`
+
+OHLCV candle history for a pair.
+
+**Auth:** Required  
+**Query:** `?granularity=ONE_HOUR&limit=200`  
+**Response 200:** `{ "candles": [{ "open_time": 1700000000, "open": 50000, "high": 51000, ... }] }`
+
+---
+
+### `GET /api/trading/market/{exchange}/{pair}/indicators`
+
+Computed technical indicators for a pair.
+
+**Auth:** Required  
+**Response 200:**
+```json
+{
+  "pair": "BTC/USDT",
+  "rsi_14": 42.3,
+  "macd": 123.4,
+  "macd_signal": 118.2,
+  "bb_upper": 52000,
+  "bb_mid": 50000,
+  "bb_lower": 48000,
+  "ema_9": 50200,
+  "ema_21": 49800,
+  "vwap": 49950,
+  "atr_14": 850
+}
+```
+
+---
+
+### `GET /api/trading/wallets`
+
+List all registered wallets with balances.
+
+**Auth:** Required  
+**Response 200:**
+```json
+{
+  "total_usd": 18500.0,
+  "wallet_count": 3,
+  "assets": [
+    { "symbol": "BTC", "total_balance": 0.15, "total_usd": 7500 },
+    { "symbol": "ETH", "total_balance": 2.0,  "total_usd": 5000 }
+  ]
+}
+```
+
+---
+
+### `POST /api/trading/wallets/transfer`
+
+Request a wallet transfer (always requires HITL approval).
+
+**Auth:** Required  
+**Body:**
+```json
+{
+  "from_wallet_id": "sw::ethereum::0xdead",
+  "to_address": "0xrecipient",
+  "asset": "ETH",
+  "amount": 0.5,
+  "chain": "ethereum",
+  "notes": "payment to vendor"
+}
+```
+**Response 202:** `{ "queued": true, "request_id": "uuid", "requires_approval": true }`
+
+---
+
+*Copyright © 2020 Inoni Limited Liability Company | Creator: Corey Post | License: BSL 1.1*
+
+---
+
+## Shadow Learning System
+
+> Shadow bots run paper simulations against live prices 24/7.  
+> **No real money is ever used.**  
+> Winning weekly patterns are saved for human review before being promoted to influence future strategy hints.
+
+### Real-Money Safety Rule
+
+All real bots (`dry_run=False`) are **permanently forced to `MANUAL` mode** regardless of the `hitl_mode` setting.  
+This is enforced unconditionally in the `TradingHITLGateway` — no configuration or API can override it.
+
+---
+
+### `POST /api/trading/shadow/bots`
+
+Register a new shadow (paper-only) bot.
+
+**Auth:** Required  
+**Body:**
+```json
+{
+  "strategy_id": "momentum_btc",
+  "pair": "BTC/USDT",
+  "exchange_id": "paper",
+  "initial_paper_usd": 10000.0
+}
+```
+**Response 201:** `{ "bot_id": "uuid", "initial_paper_usd": 10000.0 }`
+
+---
+
+### `GET /api/trading/shadow/bots`
+
+List all shadow bots and their current-week performance.
+
+**Auth:** Required  
+**Response 200:**
+```json
+[
+  {
+    "bot_id": "uuid",
+    "pair": "BTC/USDT",
+    "strategy_id": "momentum_btc",
+    "start_equity": 10000.0,
+    "current_equity": 10340.0,
+    "gain_pct": 0.034,
+    "total_sells": 8,
+    "wins": 6,
+    "win_rate": 0.75,
+    "pct_complete": 0.65
+  }
+]
+```
+
+---
+
+### `POST /api/trading/shadow/check_week`
+
+Trigger a manual week-end evaluation for all shadow bots whose week window has elapsed.
+
+**Auth:** Required (admin)  
+**Response 200:**
+```json
+{
+  "evaluated": 3,
+  "winning_weeks_saved": 2,
+  "pattern_ids": ["uuid1", "uuid2"]
+}
+```
+
+---
+
+### `GET /api/trading/shadow/patterns`
+
+List saved winning-week patterns.
+
+**Auth:** Required  
+**Query:** `?status=pending|reviewed|promoted|rejected&strategy_id=…&pair=…`  
+**Response 200:**
+```json
+[
+  {
+    "pattern_id": "uuid",
+    "strategy_id": "momentum_btc",
+    "pair": "BTC/USDT",
+    "week_start": "2026-03-01T00:00:00Z",
+    "week_end": "2026-03-08T00:00:00Z",
+    "gain_pct": 0.034,
+    "win_rate": 0.75,
+    "total_trades": 8,
+    "status": "pending",
+    "avg_winning_indicators": { "rsi_14": 31.2, "macd_hist": 0.0021 }
+  }
+]
+```
+
+---
+
+### `POST /api/trading/shadow/patterns/{pattern_id}/review`
+
+Mark a pattern as reviewed (human has looked at it).
+
+**Auth:** Required  
+**Body:** `{ "notes": "Win rate consistent with expectations" }`  
+**Response 200:** `{ "pattern_id": "uuid", "status": "reviewed" }`
+
+---
+
+### `POST /api/trading/shadow/patterns/{pattern_id}/promote`
+
+Promote a pattern — its indicator averages will bias future strategy hints.
+
+**Auth:** Required (senior)  
+**Body:** `{ "notes": "Promote for next week's BTC/USDT trading" }`  
+**Response 200:** `{ "pattern_id": "uuid", "status": "promoted" }`
+
+---
+
+### `POST /api/trading/shadow/patterns/{pattern_id}/reject`
+
+Reject a pattern as noise (it will not be promoted).
+
+**Auth:** Required  
+**Body:** `{ "notes": "Anomalous week, not representative" }`  
+**Response 200:** `{ "pattern_id": "uuid", "status": "rejected" }`
+
+---
+
+### `GET /api/trading/shadow/hints`
+
+Retrieve promoted pattern hints for a given strategy and pair.
+
+**Auth:** Required  
+**Query:** `?strategy_id=momentum_btc&pair=BTC/USDT`  
+**Response 200:**
+```json
+[
+  {
+    "pattern_id": "uuid",
+    "week_start": "2026-03-01",
+    "gain_pct": 0.034,
+    "win_rate": 0.75,
+    "indicators": { "rsi_14": 31.2, "macd_hist": 0.0021, "ema_9": 49500 }
+  }
+]
+```
+
+---
+
 *Copyright © 2020 Inoni Limited Liability Company | Creator: Corey Post | License: BSL 1.1*

@@ -1,3 +1,6 @@
+# Copyright © 2020 Inoni Limited Liability Company
+# Creator: Corey Post
+# License: BSL 1.1
 """
 Secure API Key Manager
 Encrypts and manages API keys using Fernet symmetric encryption

@@ -1,3 +1,6 @@
+# Copyright © 2020 Inoni Limited Liability Company
+# Creator: Corey Post
+# License: BSL 1.1
 """
 Telemetry Learning Adapter for Murphy System Runtime
 Provides telemetry data collection, analysis, and learning capabilities
