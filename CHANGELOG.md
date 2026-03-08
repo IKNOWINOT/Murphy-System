@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **legal: test** — Created `tests/test_legal_compliance.py` with 18 checks covering dependency licenses, license headers, API key security, trademark naming, data privacy, and export control
 
 ### Added
+- **feat:** AUD-001 — Immutable Audit Logging System (`src/audit_logging_system.py`) with SHA-256 hash-chain integrity verification, 11 action types, 7 categories, structured query engine, retention policies, PII redaction, and Flask Blueprint with 13 endpoints (52 tests)
+- **feat:** NTF-001 — Multi-channel Notification System (`src/notification_system.py`) with email/Slack/Discord/Teams/webhook channels, template engine, priority routing, rate limiting, quiet hours, and Flask Blueprint with 15 endpoints (56 tests)
 - **feat:** WHK-001 — Outbound Webhook Dispatcher (`src/webhook_dispatcher.py`) with HMAC-SHA256 signing, exponential-backoff retry, delivery-history tracking, and Flask Blueprint with 13 endpoints (59 tests)
 - **Maturity Cycle 3: 78 → 100/100** — All remaining gaps resolved:
   - `Murphy System/docs/STALE_PR_CLEANUP.md` — Rationale and decision record for closing PRs #21, #27, #46, #56, #64, #95
