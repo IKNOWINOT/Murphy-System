@@ -23,6 +23,7 @@ from __future__ import annotations
 import logging
 import threading
 import uuid
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -137,7 +138,7 @@ class WalletSummary:
 # Wallet base and concrete types
 # ---------------------------------------------------------------------------
 
-class BaseWallet:
+class BaseWallet(ABC):
     """Abstract wallet.  Subclasses implement ``sync()`` and ``transfer()``."""
 
     def __init__(
@@ -212,8 +213,10 @@ class BaseWallet:
 
     # ---- overridable internals -------------------------------------------
 
-    def _do_sync(self) -> bool:  # noqa: PLR6301
-        raise NotImplementedError
+    @abstractmethod
+    def _do_sync(self) -> bool:
+        """Refresh wallet balances.  Subclasses must override."""
+        ...
 
     def _record_tx(self, tx: WalletTransaction) -> None:
         with self._lock:

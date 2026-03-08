@@ -544,7 +544,7 @@ class AdvancedSwarmGenerator:
         context: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Apply a creative strategy to generate solution"""
-        # Placeholder - would use LLM or rule-based generation
+        # LLM/rule-based generation deferred; returns static default
         return {
             'strategy': strategy,
             'approach': f"Apply {strategy} to: {task}",

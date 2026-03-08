@@ -95,7 +95,7 @@ class ModuleGenerator:
             List of command dictionaries
         """
 
-        # Placeholder commands
+        # Default command templates
         commands = [
             {
                 'name': 'execute',

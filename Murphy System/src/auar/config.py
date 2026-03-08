@@ -12,7 +12,7 @@ Usage::
     config = AUARConfig.from_dict({...})    # load from a plain dict
     config = AUARConfig.defaults()          # all defaults
 
-Copyright 2024 Inoni LLC – Apache License 2.0
+Copyright 2024 Inoni LLC – BSL-1.1
 """
 
 import logging

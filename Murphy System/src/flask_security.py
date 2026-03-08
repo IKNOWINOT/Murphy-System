@@ -132,6 +132,7 @@ class _FlaskRateLimiter:
         self._buckets: Dict[str, Dict[str, Any]] = {}
 
     def check(self, client_id: str) -> Dict[str, Any]:
+        """Check whether *client_id* has a rate-limit token available."""
         import time
         now = time.monotonic()
         if client_id not in self._buckets:

@@ -10,7 +10,7 @@ an epsilon-greedy exploration strategy for gradual rollout.
 The model is intentionally lightweight (no external ML framework
 required) to meet the P99 < 50ms routing latency target.
 
-Copyright 2024 Inoni LLC – Apache License 2.0
+Copyright 2024 Inoni LLC – BSL-1.1
 """
 
 import logging

@@ -20,7 +20,7 @@ in the technical proposal:
 The pipeline also supports automatic fallback: if the primary provider
 fails, the next fallback candidate is tried transparently.
 
-Copyright 2024 Inoni LLC – Apache License 2.0
+Copyright 2024 Inoni LLC – BSL-1.1
 """
 
 import logging
