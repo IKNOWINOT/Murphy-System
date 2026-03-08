@@ -276,6 +276,14 @@ See [WINGMAN_PROTOCOL.md](WINGMAN_PROTOCOL.md) for full architecture documentati
 
 ---
 
+## Prometheus / OpenTelemetry Metrics Exporter
+
+| Module | Path | Description | Status | Key Dependencies |
+|--------|------|-------------|--------|-----------------|
+| `prometheus_metrics_exporter.py` | `src/prometheus_metrics_exporter.py` | Full Prometheus text exposition + JSON metrics API; Counter/Gauge/Histogram/Summary metric types, LabelSet dimensions, CollectorRegistry, built-in Murphy system metrics, Flask blueprint with /metrics + /api/metrics/json + /api/metrics/families + /api/metrics/register + /api/metrics/health endpoints, Wingman + Sandbox gating | ✅ | — |
+
+---
+
 ## Issue #136 Subsystems (In Progress)
 
 These seven subsystems are being added under issue #136. Files marked 🔄 are
