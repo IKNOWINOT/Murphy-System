@@ -44,6 +44,11 @@ class EventType(Enum):
     SELF_FIX_VERIFIED = "self_fix_verified"
     SELF_FIX_COMPLETED = "self_fix_completed"
     SELF_FIX_ROLLED_BACK = "self_fix_rolled_back"
+    SUPERVISOR_CHILD_STARTED = "supervisor_child_started"
+    SUPERVISOR_CHILD_STOPPED = "supervisor_child_stopped"
+    SUPERVISOR_CHILD_RESTARTED = "supervisor_child_restarted"
+    SUPERVISOR_CHILD_ESCALATED = "supervisor_child_escalated"
+    SUPERVISOR_CRITICAL = "supervisor_critical"
 
 
 @dataclass
