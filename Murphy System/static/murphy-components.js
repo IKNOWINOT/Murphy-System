@@ -1,7 +1,25 @@
-/* murphy-components.js — Murphy System Shared Web Components
+/* murphy-components.js — Murphy System Shared Web Components & Modules
  * © 2020 Inoni Limited Liability Company by Corey Post
  * License: BSL 1.1
+ *
+ * Licensed under the Business Source License 1.1 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://mariadb.com/bsl11/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
+
+/* ═══════════════════════════════════════════════════════════════════
+ *  SECTION 1 — WEB COMPONENTS
+ * ═══════════════════════════════════════════════════════════════════ */
+
 
 /* ── MurphyHeader ─────────────────────────────────────────────── */
 class MurphyHeader extends HTMLElement {
@@ -276,3 +294,1378 @@ class MurphyTooltip extends HTMLElement {
   }
 }
 customElements.define('murphy-tooltip', MurphyTooltip);
+
+
+/* ═══════════════════════════════════════════════════════════════════
+ *  SECTION 2 — UTILITY MODULES
+ * ═══════════════════════════════════════════════════════════════════ */
+
+
+/* ── MurphyAPI ────────────────────────────────────────────────── */
+
+/**
+ * HTTP client for the Murphy API with retry logic and circuit breaker.
+ */
+class MurphyAPI {
+  /** @param {string} [baseUrl='/api'] Root URL for all API requests. */
+  constructor(baseUrl = '/api') {
+    this._baseUrl = baseUrl.replace(/\/+$/, '');
+    this._maxRetries = 3;
+    this._timeout = 10000;
+    this._cbFailures = 0;
+    this._cbThreshold = 5;
+    this._cbCooldown = 30000;
+    this._cbOpenedAt = 0;
+    this._cbState = 'closed'; // closed | open | half-open
+  }
+
+  /**
+   * Perform a GET request.
+   * @param {string} path   API path (e.g. '/health').
+   * @param {object} [opts] Additional fetch options.
+   * @returns {Promise<{ok:boolean, data:*, error:string|null, status:number}>}
+   */
+  async get(path, opts = {}) {
+    return this._request('GET', path, undefined, opts);
+  }
+
+  /**
+   * Perform a POST request.
+   * @param {string} path   API path.
+   * @param {*}      body   JSON-serialisable body.
+   * @param {object} [opts] Additional fetch options.
+   * @returns {Promise<{ok:boolean, data:*, error:string|null, status:number}>}
+   */
+  async post(path, body, opts = {}) {
+    return this._request('POST', path, body, opts);
+  }
+
+  /**
+   * Perform a PUT request.
+   * @param {string} path   API path.
+   * @param {*}      body   JSON-serialisable body.
+   * @param {object} [opts] Additional fetch options.
+   * @returns {Promise<{ok:boolean, data:*, error:string|null, status:number}>}
+   */
+  async put(path, body, opts = {}) {
+    return this._request('PUT', path, body, opts);
+  }
+
+  /**
+   * Perform a DELETE request.
+   * @param {string} path   API path.
+   * @param {object} [opts] Additional fetch options.
+   * @returns {Promise<{ok:boolean, data:*, error:string|null, status:number}>}
+   */
+  async delete(path, opts = {}) {
+    return this._request('DELETE', path, undefined, opts);
+  }
+
+  /* ── internals ────────────────────────────────────────────── */
+
+  _buildHeaders() {
+    const headers = { 'Content-Type': 'application/json' };
+    try {
+      const key = localStorage.getItem('murphy_api_key');
+      if (key) headers['X-API-Key'] = key;
+    } catch { /* localStorage unavailable */ }
+    return headers;
+  }
+
+  _checkCircuit() {
+    if (this._cbState === 'closed') return true;
+    if (this._cbState === 'open') {
+      if (Date.now() - this._cbOpenedAt >= this._cbCooldown) {
+        this._cbState = 'half-open';
+        return true;
+      }
+      return false;
+    }
+    return true; // half-open allows one request
+  }
+
+  _recordSuccess() {
+    this._cbFailures = 0;
+    this._cbState = 'closed';
+  }
+
+  _recordFailure() {
+    this._cbFailures += 1;
+    if (this._cbFailures >= this._cbThreshold) {
+      this._cbState = 'open';
+      this._cbOpenedAt = Date.now();
+    }
+  }
+
+  async _request(method, path, body, opts) {
+    if (!this._checkCircuit()) {
+      return { ok: false, data: null, error: 'Circuit breaker is open — too many consecutive failures', status: 0 };
+    }
+
+    const url = `${this._baseUrl}${path}`;
+    const fetchOpts = {
+      method,
+      headers: { ...this._buildHeaders(), ...(opts.headers || {}) },
+      ...opts,
+    };
+    if (body !== undefined) fetchOpts.body = JSON.stringify(body);
+
+    let lastError = null;
+    for (let attempt = 0; attempt <= this._maxRetries; attempt++) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), opts.timeout || this._timeout);
+        fetchOpts.signal = controller.signal;
+
+        const response = await fetch(url, fetchOpts);
+        clearTimeout(timeoutId);
+
+        if (response.status >= 500) {
+          lastError = `Server error ${response.status}`;
+          this._recordFailure();
+          if (attempt < this._maxRetries) {
+            await this._backoff(attempt);
+            continue;
+          }
+          return { ok: false, data: null, error: lastError, status: response.status };
+        }
+
+        this._recordSuccess();
+
+        let data = null;
+        const ct = response.headers.get('content-type') || '';
+        if (ct.includes('application/json')) {
+          data = await response.json();
+        } else {
+          data = await response.text();
+        }
+
+        if (!response.ok) {
+          return { ok: false, data, error: data?.error || data?.message || `HTTP ${response.status}`, status: response.status };
+        }
+        return { ok: true, data, error: null, status: response.status };
+
+      } catch (err) {
+        lastError = err.name === 'AbortError' ? 'Request timed out' : err.message;
+        this._recordFailure();
+        if (attempt < this._maxRetries) {
+          await this._backoff(attempt);
+          continue;
+        }
+      }
+    }
+    return { ok: false, data: null, error: lastError, status: 0 };
+  }
+
+  _backoff(attempt) {
+    const ms = Math.min(1000 * Math.pow(2, attempt), 8000);
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+}
+
+
+/* ── MurphyToast ──────────────────────────────────────────────── */
+
+/**
+ * Singleton toast notification manager.
+ */
+class MurphyToast {
+  constructor() {
+    if (MurphyToast._instance) return MurphyToast._instance;
+    MurphyToast._instance = this;
+    this._container = null;
+    this._iconMap = {
+      success: 'check',
+      warning: 'alert',
+      danger:  'x',
+      info:    'info',
+    };
+  }
+
+  /**
+   * Display a toast notification.
+   * @param {string} message          Text to show.
+   * @param {'success'|'warning'|'danger'|'info'} [type='info'] Visual style.
+   * @param {number} [duration=4000]  Auto-dismiss time in ms.
+   */
+  show(message, type = 'info', duration = 4000) {
+    this._ensureContainer();
+    const toast = document.createElement('div');
+    toast.className = `murphy-toast murphy-toast-${type}`;
+    toast.style.cssText = 'display:flex;align-items:flex-start;gap:8px;padding:10px 14px;margin-bottom:8px;'
+      + 'border-radius:4px;font-size:12px;line-height:1.5;color:#fff;min-width:240px;max-width:380px;'
+      + 'box-shadow:0 4px 12px rgba(0,0,0,.4);animation:murphyToastSlideIn .25s ease-out;'
+      + 'background:' + this._bgColor(type) + ';';
+
+    const iconName = this._iconMap[type] || 'info';
+    toast.innerHTML = `
+      <svg width="16" height="16" style="flex-shrink:0;margin-top:1px;"><use href="murphy-icons.svg#${iconName}"/></svg>
+      <span style="flex:1;">${this._escapeHtml(message)}</span>
+      <button style="background:none;border:none;color:inherit;cursor:pointer;font-size:14px;line-height:1;padding:0;" aria-label="Close">&times;</button>`;
+
+    toast.querySelector('button').addEventListener('click', () => this._dismiss(toast));
+    this._container.appendChild(toast);
+
+    if (duration > 0) {
+      setTimeout(() => this._dismiss(toast), duration);
+    }
+  }
+
+  _bgColor(type) {
+    const map = { success: '#1a7a3a', warning: '#a06a00', danger: '#a02020', info: '#1a5a8a' };
+    return map[type] || map.info;
+  }
+
+  _dismiss(el) {
+    if (!el || !el.parentNode) return;
+    el.style.animation = 'murphyToastSlideOut .2s ease-in forwards';
+    el.addEventListener('animationend', () => el.remove(), { once: true });
+  }
+
+  _ensureContainer() {
+    if (this._container && document.body.contains(this._container)) return;
+    this._container = document.createElement('div');
+    this._container.className = 'murphy-toast-container';
+    this._container.style.cssText = 'position:fixed;top:16px;right:16px;z-index:700;display:flex;flex-direction:column;pointer-events:auto;';
+    document.body.appendChild(this._container);
+
+    if (!document.getElementById('murphy-toast-keyframes')) {
+      const style = document.createElement('style');
+      style.id = 'murphy-toast-keyframes';
+      style.textContent = `
+        @keyframes murphyToastSlideIn { from { transform:translateX(110%); opacity:0; } to { transform:translateX(0); opacity:1; } }
+        @keyframes murphyToastSlideOut { from { transform:translateX(0); opacity:1; } to { transform:translateX(110%); opacity:0; } }`;
+      document.head.appendChild(style);
+    }
+  }
+
+  _escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+}
+
+
+/* ── MurphyModal ──────────────────────────────────────────────── */
+
+/**
+ * Programmatic modal dialog with focus trap.
+ */
+class MurphyModal {
+  /**
+   * Show a modal dialog.
+   * @param {object}   config
+   * @param {string}   config.title          Modal heading text.
+   * @param {string}   config.body           HTML string for the body.
+   * @param {Array<{label:string, variant:string, onClick:function}>} [config.actions] Footer buttons.
+   * @param {function} [config.onClose]      Called when modal is dismissed.
+   * @returns {function} close — call to programmatically close the modal.
+   */
+  show({ title, body, actions = [], onClose }) {
+    const backdrop = document.createElement('div');
+    backdrop.className = 'murphy-modal-backdrop';
+    backdrop.style.cssText = 'position:fixed;inset:0;z-index:800;background:rgba(0,0,0,.55);'
+      + 'display:flex;align-items:center;justify-content:center;animation:murphyModalFadeIn .2s ease-out;';
+
+    const modal = document.createElement('div');
+    modal.className = 'murphy-modal';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', title);
+    modal.style.cssText = 'background:var(--bg-secondary, #1a1a2e);border:1px solid var(--border-dim, #333);'
+      + 'border-radius:6px;min-width:360px;max-width:560px;max-height:80vh;display:flex;flex-direction:column;'
+      + 'box-shadow:0 8px 32px rgba(0,0,0,.5);animation:murphyModalFadeIn .2s ease-out;';
+
+    const headerHtml = `<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border-dim,#333);">
+      <span style="font-weight:600;font-size:14px;color:var(--text-primary,#eee);">${this._escapeHtml(title)}</span>
+      <button class="murphy-modal-close" style="background:none;border:none;color:var(--text-secondary,#aaa);cursor:pointer;font-size:18px;line-height:1;" aria-label="Close">&times;</button>
+    </div>`;
+
+    const bodyHtml = `<div style="padding:18px;overflow-y:auto;flex:1;font-size:13px;line-height:1.6;color:var(--text-secondary,#ccc);">${body}</div>`;
+
+    let footerHtml = '';
+    if (actions.length) {
+      const btns = actions.map(a => {
+        const variant = a.variant || 'default';
+        return `<button class="murphy-modal-btn murphy-modal-btn-${variant}" data-variant="${variant}">${this._escapeHtml(a.label)}</button>`;
+      }).join('');
+      footerHtml = `<div style="padding:12px 18px;border-top:1px solid var(--border-dim,#333);display:flex;gap:8px;justify-content:flex-end;">${btns}</div>`;
+    }
+
+    modal.innerHTML = headerHtml + bodyHtml + footerHtml;
+    backdrop.appendChild(modal);
+    document.body.appendChild(backdrop);
+
+    this._injectKeyframes();
+
+    const close = () => {
+      backdrop.style.animation = 'murphyModalFadeOut .15s ease-in forwards';
+      backdrop.addEventListener('animationend', () => {
+        backdrop.remove();
+        if (typeof onClose === 'function') onClose();
+      }, { once: true });
+    };
+
+    modal.querySelector('.murphy-modal-close').addEventListener('click', close);
+    backdrop.addEventListener('click', e => { if (e.target === backdrop) close(); });
+
+    const escHandler = e => {
+      if (e.key === 'Escape') { close(); document.removeEventListener('keydown', escHandler); }
+    };
+    document.addEventListener('keydown', escHandler);
+
+    actions.forEach((a, i) => {
+      const btn = modal.querySelectorAll('.murphy-modal-btn')[i];
+      if (btn && typeof a.onClick === 'function') {
+        btn.addEventListener('click', () => a.onClick(close));
+      }
+    });
+
+    this._trapFocus(modal);
+
+    const firstFocusable = modal.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    if (firstFocusable) firstFocusable.focus();
+
+    return close;
+  }
+
+  _trapFocus(el) {
+    const handler = e => {
+      if (e.key !== 'Tab') return;
+      const focusable = el.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last  = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+      } else {
+        if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    };
+    el.addEventListener('keydown', handler);
+  }
+
+  _escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  _injectKeyframes() {
+    if (document.getElementById('murphy-modal-keyframes')) return;
+    const style = document.createElement('style');
+    style.id = 'murphy-modal-keyframes';
+    style.textContent = `
+      @keyframes murphyModalFadeIn { from { opacity:0; transform:scale(.95); } to { opacity:1; transform:scale(1); } }
+      @keyframes murphyModalFadeOut { from { opacity:1; transform:scale(1); } to { opacity:0; transform:scale(.95); } }
+      .murphy-modal-btn { padding:6px 16px;border-radius:3px;border:1px solid var(--border-dim,#444);background:var(--bg-tertiary,#222);color:var(--text-primary,#eee);cursor:pointer;font-size:12px; }
+      .murphy-modal-btn-primary { background:var(--accent,#00b4d8);border-color:var(--accent,#00b4d8);color:#000; }
+      .murphy-modal-btn-danger { background:#a02020;border-color:#a02020; }
+      .murphy-modal-btn:hover { filter:brightness(1.15); }`;
+    document.head.appendChild(style);
+  }
+}
+
+
+/* ── MurphyHealth ─────────────────────────────────────────────── */
+
+/**
+ * Polls the system health endpoint and manages an offline banner.
+ */
+class MurphyHealth {
+  /**
+   * @param {MurphyAPI} api An initialised MurphyAPI instance.
+   */
+  constructor(api) {
+    this._api = api;
+    this._interval = null;
+    this._callbacks = [];
+    this._banner = null;
+    this._lastOnline = true;
+  }
+
+  /**
+   * Start periodic health polling.
+   * @param {number} [interval=15000] Poll interval in ms.
+   */
+  start(interval = 15000) {
+    this.stop();
+    this._poll();
+    this._interval = setInterval(() => this._poll(), interval);
+  }
+
+  /**
+   * Stop health polling.
+   */
+  stop() {
+    if (this._interval) {
+      clearInterval(this._interval);
+      this._interval = null;
+    }
+  }
+
+  /**
+   * Register a callback to receive health updates.
+   * @param {function} callback Receives a health data object.
+   */
+  onUpdate(callback) {
+    if (typeof callback === 'function') this._callbacks.push(callback);
+  }
+
+  async _poll() {
+    const result = await this._api.get('/health');
+    if (result.ok) {
+      const data = typeof result.data === 'object' ? result.data : { status: 'online' };
+      if (!data.status) data.status = 'online';
+      this._emit(data);
+      this._setOnline(true);
+    } else {
+      this._emit({ status: 'offline', error: result.error });
+      this._setOnline(false);
+    }
+  }
+
+  _emit(data) {
+    for (const cb of this._callbacks) {
+      try { cb(data); } catch { /* consumer error */ }
+    }
+  }
+
+  _setOnline(online) {
+    if (online === this._lastOnline) return;
+    this._lastOnline = online;
+    if (!online) {
+      this._showBanner();
+    } else {
+      this._hideBanner();
+    }
+  }
+
+  _showBanner() {
+    if (this._banner && document.body.contains(this._banner)) return;
+    this._banner = document.createElement('div');
+    this._banner.className = 'murphy-offline-banner';
+    this._banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:900;background:#a02020;color:#fff;'
+      + 'text-align:center;padding:8px;font-size:12px;font-weight:600;letter-spacing:1px;';
+    this._banner.textContent = '⚠ MURPHY SYSTEM OFFLINE — Reconnecting…';
+    document.body.prepend(this._banner);
+  }
+
+  _hideBanner() {
+    if (this._banner && this._banner.parentNode) {
+      this._banner.remove();
+      this._banner = null;
+    }
+  }
+}
+
+
+/* ── MurphyTable ──────────────────────────────────────────────── */
+
+/**
+ * Sortable, searchable, paginated data table.
+ */
+class MurphyTable {
+  /**
+   * @param {HTMLElement} container  DOM element to render into.
+   * @param {object}      config
+   * @param {Array<{key:string, label:string, sortable?:boolean, render?:function}>} config.columns
+   * @param {Array<object>} [config.data=[]]      Initial data rows.
+   * @param {boolean}       [config.searchable=true]
+   * @param {boolean}       [config.sortable=true]
+   * @param {number}        [config.pageSize=20]
+   */
+  constructor(container, { columns, data = [], searchable = true, sortable = true, pageSize = 20 }) {
+    this._container = container;
+    this._columns   = columns;
+    this._allData   = data;
+    this._searchable = searchable;
+    this._sortable  = sortable;
+    this._pageSize  = pageSize;
+    this._searchTerm = '';
+    this._sortKey   = null;
+    this._sortDir   = 'asc';
+    this._page      = 0;
+  }
+
+  /**
+   * Replace table data and re-render.
+   * @param {Array<object>} data New rows.
+   */
+  setData(data) {
+    this._allData = data;
+    this._page = 0;
+    this.render();
+  }
+
+  /**
+   * Render the table into the container element.
+   */
+  render() {
+    const filtered = this._filtered();
+    const sorted   = this._sorted(filtered);
+    const totalPages = Math.max(1, Math.ceil(sorted.length / this._pageSize));
+    if (this._page >= totalPages) this._page = totalPages - 1;
+    const pageRows = sorted.slice(this._page * this._pageSize, (this._page + 1) * this._pageSize);
+
+    let html = '';
+
+    if (this._searchable) {
+      html += `<div style="margin-bottom:8px;">
+        <input type="text" class="murphy-table-search" placeholder="Search…" value="${this._escapeAttr(this._searchTerm)}"
+          style="width:100%;padding:6px 10px;background:var(--bg-secondary,#1a1a2e);color:var(--text-primary,#eee);border:1px solid var(--border-dim,#333);border-radius:3px;font-size:12px;">
+      </div>`;
+    }
+
+    html += '<table class="murphy-table" style="width:100%;border-collapse:collapse;font-size:12px;">';
+    html += '<thead><tr>';
+    for (const col of this._columns) {
+      const canSort = this._sortable && col.sortable !== false;
+      let arrow = '';
+      if (canSort && this._sortKey === col.key) {
+        arrow = this._sortDir === 'asc' ? ' ▲' : ' ▼';
+      }
+      const cursor = canSort ? 'cursor:pointer;' : '';
+      html += `<th data-key="${col.key}" style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border-dim,#333);color:var(--text-dim,#888);font-size:10px;letter-spacing:1px;${cursor}user-select:none;">${this._escapeHtml(col.label)}${arrow}</th>`;
+    }
+    html += '</tr></thead><tbody>';
+
+    for (const row of pageRows) {
+      html += '<tr>';
+      for (const col of this._columns) {
+        const val = typeof col.render === 'function' ? col.render(row[col.key], row) : this._escapeHtml(String(row[col.key] ?? ''));
+        html += `<td style="padding:6px 10px;border-bottom:1px solid var(--border-dim,#222);color:var(--text-secondary,#ccc);">${val}</td>`;
+      }
+      html += '</tr>';
+    }
+
+    if (pageRows.length === 0) {
+      html += `<tr><td colspan="${this._columns.length}" style="padding:20px;text-align:center;color:var(--text-dim,#666);">No data</td></tr>`;
+    }
+
+    html += '</tbody></table>';
+
+    if (totalPages > 1) {
+      html += '<div style="display:flex;justify-content:center;gap:4px;margin-top:10px;">';
+      for (let p = 0; p < totalPages; p++) {
+        const active = p === this._page ? 'background:var(--accent,#00b4d8);color:#000;' : 'background:var(--bg-tertiary,#222);color:var(--text-secondary,#ccc);';
+        html += `<button class="murphy-table-page" data-page="${p}" style="padding:4px 10px;border:1px solid var(--border-dim,#333);border-radius:2px;cursor:pointer;font-size:11px;${active}">${p + 1}</button>`;
+      }
+      html += '</div>';
+    }
+
+    this._container.innerHTML = html;
+    this._bind();
+  }
+
+  _bind() {
+    const searchInput = this._container.querySelector('.murphy-table-search');
+    if (searchInput) {
+      searchInput.addEventListener('input', e => {
+        this._searchTerm = e.target.value;
+        this._page = 0;
+        this.render();
+      });
+    }
+    this._container.querySelectorAll('th[data-key]').forEach(th => {
+      const col = this._columns.find(c => c.key === th.dataset.key);
+      if (!col || !this._sortable || col.sortable === false) return;
+      th.addEventListener('click', () => {
+        if (this._sortKey === col.key) {
+          this._sortDir = this._sortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+          this._sortKey = col.key;
+          this._sortDir = 'asc';
+        }
+        this.render();
+      });
+    });
+    this._container.querySelectorAll('.murphy-table-page').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this._page = parseInt(btn.dataset.page, 10);
+        this.render();
+      });
+    });
+  }
+
+  _filtered() {
+    if (!this._searchTerm) return this._allData;
+    const term = this._searchTerm.toLowerCase();
+    return this._allData.filter(row =>
+      this._columns.some(col => String(row[col.key] ?? '').toLowerCase().includes(term))
+    );
+  }
+
+  _sorted(data) {
+    if (!this._sortKey) return data;
+    const dir = this._sortDir === 'asc' ? 1 : -1;
+    const key = this._sortKey;
+    return [...data].sort((a, b) => {
+      const va = a[key] ?? '';
+      const vb = b[key] ?? '';
+      if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir;
+      return String(va).localeCompare(String(vb)) * dir;
+    });
+  }
+
+  _escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  _escapeAttr(str) {
+    return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+}
+
+
+/* ── MurphyChart ──────────────────────────────────────────────── */
+
+/**
+ * Lightweight Canvas-based chart renderer.
+ */
+class MurphyChart {
+  /**
+   * @param {HTMLCanvasElement} canvas  Target canvas element.
+   * @param {'sparkline'|'gauge'|'bar'|'timeline'} type Chart type.
+   * @param {object} [options={}]       Rendering options (color, lineWidth, max, labels, etc.).
+   */
+  constructor(canvas, type, options = {}) {
+    this._canvas  = canvas;
+    this._ctx     = canvas.getContext('2d');
+    this._type    = type;
+    this._opts    = Object.assign({
+      color: '#00b4d8',
+      bgColor: 'rgba(0,180,216,0.12)',
+      lineWidth: 2,
+      max: 100,
+      labels: [],
+      fontColor: '#aaa',
+      fontSize: 10,
+    }, options);
+    this._data = [];
+  }
+
+  /**
+   * Update chart data and redraw.
+   * @param {Array<number|{value:number, label?:string, time?:number, color?:string}>} data
+   */
+  update(data) {
+    this._data = data;
+    this._draw();
+  }
+
+  _draw() {
+    const ctx = this._ctx;
+    const w = this._canvas.width;
+    const h = this._canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    switch (this._type) {
+      case 'sparkline': this._drawSparkline(ctx, w, h); break;
+      case 'gauge':     this._drawGauge(ctx, w, h);     break;
+      case 'bar':       this._drawBar(ctx, w, h);       break;
+      case 'timeline':  this._drawTimeline(ctx, w, h);  break;
+    }
+  }
+
+  _drawSparkline(ctx, w, h) {
+    const values = this._data.map(d => typeof d === 'number' ? d : d.value);
+    if (values.length < 2) return;
+    const max = this._opts.max || Math.max(...values, 1);
+    const step = w / (values.length - 1);
+    const pad = 4;
+    const usableH = h - pad * 2;
+
+    const points = values.map((v, i) => ({
+      x: i * step,
+      y: pad + usableH - (v / max) * usableH,
+    }));
+
+    // filled area
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, h);
+    for (const p of points) ctx.lineTo(p.x, p.y);
+    ctx.lineTo(points[points.length - 1].x, h);
+    ctx.closePath();
+    ctx.fillStyle = this._opts.bgColor;
+    ctx.fill();
+
+    // line
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+    ctx.strokeStyle = this._opts.color;
+    ctx.lineWidth = this._opts.lineWidth;
+    ctx.stroke();
+  }
+
+  _drawGauge(ctx, w, h) {
+    const value = typeof this._data[0] === 'number' ? this._data[0] : (this._data[0]?.value ?? 0);
+    const max   = this._opts.max || 100;
+    const pct   = Math.min(value / max, 1);
+    const cx    = w / 2;
+    const cy    = h * 0.6;
+    const r     = Math.min(cx, cy) - 8;
+    const startAngle = Math.PI;
+    const endAngle   = 2 * Math.PI;
+
+    // background arc
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, startAngle, endAngle);
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 10;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    // value arc
+    const gaugeEnd = startAngle + pct * Math.PI;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, startAngle, gaugeEnd);
+    ctx.strokeStyle = pct < 0.5 ? '#1a7a3a' : pct < 0.8 ? '#a06a00' : '#a02020';
+    ctx.lineWidth = 10;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    // label
+    ctx.fillStyle = this._opts.fontColor;
+    ctx.font = `bold ${Math.round(r * 0.4)}px monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`${Math.round(pct * 100)}%`, cx, cy - 4);
+  }
+
+  _drawBar(ctx, w, h) {
+    const items = this._data.map(d => typeof d === 'number' ? { value: d, label: '' } : d);
+    if (!items.length) return;
+    const max = this._opts.max || Math.max(...items.map(i => i.value), 1);
+    const barW = Math.max(8, (w / items.length) * 0.6);
+    const gap  = (w - barW * items.length) / (items.length + 1);
+    const labelH = 18;
+    const usableH = h - labelH;
+
+    items.forEach((item, i) => {
+      const x = gap + i * (barW + gap);
+      const barH = (item.value / max) * (usableH - 4);
+      ctx.fillStyle = item.color || this._opts.color;
+      ctx.fillRect(x, usableH - barH, barW, barH);
+
+      if (item.label) {
+        ctx.fillStyle = this._opts.fontColor;
+        ctx.font = `${this._opts.fontSize}px monospace`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(item.label, x + barW / 2, usableH + 2);
+      }
+    });
+  }
+
+  _drawTimeline(ctx, w, h) {
+    const items = this._data.map(d => typeof d === 'object' ? d : { value: d });
+    if (!items.length) return;
+
+    const cy   = h / 2;
+    const padX = 20;
+    const lineW = w - padX * 2;
+
+    // horizontal line
+    ctx.beginPath();
+    ctx.moveTo(padX, cy);
+    ctx.lineTo(padX + lineW, cy);
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    const step = items.length > 1 ? lineW / (items.length - 1) : 0;
+    items.forEach((item, i) => {
+      const x = padX + i * step;
+
+      // dot
+      ctx.beginPath();
+      ctx.arc(x, cy, 5, 0, Math.PI * 2);
+      ctx.fillStyle = item.color || this._opts.color;
+      ctx.fill();
+
+      // label below
+      if (item.label) {
+        ctx.fillStyle = this._opts.fontColor;
+        ctx.font = `${this._opts.fontSize}px monospace`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(item.label, x, cy + 10);
+      }
+    });
+  }
+}
+
+
+/* ── MurphyTheme ──────────────────────────────────────────────── */
+
+/**
+ * Singleton theme manager — dark (default) and light.
+ */
+class MurphyTheme {
+  constructor() {
+    if (MurphyTheme._instance) return MurphyTheme._instance;
+    MurphyTheme._instance = this;
+    this._theme = 'dark';
+    this._callbacks = [];
+  }
+
+  /**
+   * Initialise theme from localStorage or system preference and apply to body.
+   */
+  init() {
+    const stored = this._readStorage();
+    if (stored) {
+      this._theme = stored;
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+      this._theme = 'light';
+    } else {
+      this._theme = 'dark';
+    }
+    this._apply();
+  }
+
+  /**
+   * Toggle between dark and light themes.
+   */
+  toggle() {
+    this._theme = this._theme === 'dark' ? 'light' : 'dark';
+    this._apply();
+    this._persist();
+    this._notify();
+  }
+
+  /**
+   * Get the current theme name.
+   * @returns {'dark'|'light'}
+   */
+  get() {
+    return this._theme;
+  }
+
+  /**
+   * Register a callback for theme changes.
+   * @param {function} callback Receives the new theme string.
+   */
+  onChange(callback) {
+    if (typeof callback === 'function') this._callbacks.push(callback);
+  }
+
+  _apply() {
+    if (this._theme === 'light') {
+      document.body.classList.add('murphy-light');
+    } else {
+      document.body.classList.remove('murphy-light');
+    }
+  }
+
+  _persist() {
+    try { localStorage.setItem('murphy_theme', this._theme); } catch { /* storage unavailable */ }
+  }
+
+  _readStorage() {
+    try { return localStorage.getItem('murphy_theme'); } catch { return null; }
+  }
+
+  _notify() {
+    for (const cb of this._callbacks) {
+      try { cb(this._theme); } catch { /* consumer error */ }
+    }
+  }
+}
+
+
+/* ── MurphyJargon ─────────────────────────────────────────────── */
+
+/**
+ * Glossary of Murphy-specific terms with hover tooltips.
+ */
+class MurphyJargon {
+  constructor() {
+    this._terms = {
+      'MFGC': 'Murphy Flow Graph Compiler — compiles high-level plans into executable DAGs.',
+      'HITL': 'Human-In-The-Loop — a checkpoint where a human must approve or guide the next step.',
+      'Gate': 'A decision point in a workflow that blocks progress until conditions are met.',
+      'Swarm': 'A group of agents collaborating in parallel on a shared objective.',
+      'Wingman': 'An AI assistant that pairs with a human operator to co-pilot tasks.',
+      'Causality Engine': 'The subsystem that tracks cause-and-effect relationships across events.',
+      'Confidence Engine': 'Scores how certain the system is about a recommended action.',
+      'Orchestrator': 'The central controller that schedules and routes work across agents.',
+      'Architect': 'The planning module that designs solutions before workers execute.',
+      'Worker': 'An execution agent that carries out a discrete unit of work.',
+      'DAG': 'Directed Acyclic Graph — the execution plan structure used by MFGC.',
+      'Flow Graph': 'A visual representation of a workflow as connected nodes and edges.',
+      'Gap Closure': 'The process of identifying and filling missing capabilities in the system.',
+      'Librarian': 'An AI module that retrieves and summarises knowledge from the document store.',
+      'Terminal': 'The browser-based command interface for interacting with Murphy subsystems.',
+      'Insight': 'An observation surfaced by the Causality or Confidence engines.',
+      'Integration': 'A connector between Murphy and an external service or API.',
+      'Playbook': 'A reusable, parameterised sequence of actions for a common scenario.',
+      'Sentinel': 'A background monitor that watches for anomalies and triggers alerts.',
+      'Rollback': 'Reverting a workflow or action to a previous known-good state.',
+      'Quorum': 'The minimum number of agent votes needed to approve a swarm decision.',
+      'Persona': 'A role-based configuration that shapes how an agent behaves and communicates.',
+      'Dispatch': 'The act of assigning a task from the orchestrator to a worker.',
+      'Telemetry': 'System-wide metrics and traces used for observability and debugging.',
+      'Canary': 'A test deployment sent to a small subset before full rollout.',
+      'Circuit Breaker': 'A fault-tolerance pattern that stops calls to a failing service.',
+      'Backpressure': 'A flow-control mechanism that slows input when downstream is overloaded.',
+      'Capability Map': 'A registry of skills and tools available to each agent.',
+      'Cost Guard': 'A policy that caps spending on API calls or compute per workflow.',
+    };
+  }
+
+  /**
+   * Scan DOM for elements with `data-jargon` attribute and attach hover tooltips.
+   */
+  init() {
+    document.querySelectorAll('[data-jargon]').forEach(el => {
+      const key = el.getAttribute('data-jargon');
+      const def = this._terms[key];
+      if (!def) return;
+      this._attachTooltip(el, `${key}: ${def}`);
+    });
+  }
+
+  /**
+   * Automatically scan text content for known jargon terms and wrap matches in tooltip spans.
+   */
+  autoScan() {
+    const termKeys = Object.keys(this._terms).sort((a, b) => b.length - a.length);
+    const regex = new RegExp(`\\b(${termKeys.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`, 'g');
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+      acceptNode: (node) => {
+        if (node.parentElement && (node.parentElement.closest('.murphy-jargon-tip') || node.parentElement.tagName === 'SCRIPT' || node.parentElement.tagName === 'STYLE')) {
+          return NodeFilter.FILTER_REJECT;
+        }
+        return regex.test(node.textContent) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      }
+    });
+
+    const nodes = [];
+    let current;
+    while ((current = walker.nextNode())) nodes.push(current);
+
+    for (const textNode of nodes) {
+      regex.lastIndex = 0;
+      const frag = document.createDocumentFragment();
+      let lastIdx = 0;
+      let match;
+      const text = textNode.textContent;
+      regex.lastIndex = 0;
+      while ((match = regex.exec(text)) !== null) {
+        if (match.index > lastIdx) {
+          frag.appendChild(document.createTextNode(text.slice(lastIdx, match.index)));
+        }
+        const span = document.createElement('span');
+        span.className = 'murphy-jargon-tip';
+        span.textContent = match[0];
+        span.style.cssText = 'border-bottom:1px dotted var(--text-dim,#666);cursor:help;position:relative;';
+        this._attachTooltip(span, `${match[0]}: ${this._terms[match[0]]}`);
+        frag.appendChild(span);
+        lastIdx = regex.lastIndex;
+      }
+      if (lastIdx < text.length) {
+        frag.appendChild(document.createTextNode(text.slice(lastIdx)));
+      }
+      textNode.parentNode.replaceChild(frag, textNode);
+    }
+  }
+
+  _attachTooltip(el, text) {
+    el.style.position = el.style.position || 'relative';
+    const tip = document.createElement('div');
+    tip.className = 'murphy-jargon-tooltip';
+    tip.textContent = text;
+    tip.style.cssText = 'display:none;position:absolute;bottom:calc(100% + 6px);left:0;min-width:200px;max-width:320px;'
+      + 'background:var(--bg-secondary,#1a1a2e);border:1px solid var(--border-dim,#333);border-radius:3px;'
+      + 'padding:8px 10px;font-size:11px;line-height:1.5;color:var(--text-secondary,#ccc);z-index:950;'
+      + 'white-space:normal;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,.4);';
+    el.appendChild(tip);
+    el.addEventListener('mouseenter', () => { tip.style.display = 'block'; });
+    el.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+  }
+}
+
+
+/* ── MurphyKeyboard ───────────────────────────────────────────── */
+
+/**
+ * Global keyboard shortcut manager.
+ */
+class MurphyKeyboard {
+  constructor() {
+    this._bindings = [];
+    this._listening = false;
+  }
+
+  /**
+   * Register a keyboard shortcut.
+   * @param {string}   shortcut    e.g. 'ctrl+k', 'ctrl+/', 'escape'.
+   * @param {function} callback    Invoked when shortcut fires.
+   * @param {string}   description Human-readable description.
+   */
+  register(shortcut, callback, description) {
+    this._bindings.push({
+      shortcut: shortcut.toLowerCase(),
+      callback,
+      description: description || shortcut,
+      parsed: this._parse(shortcut),
+    });
+  }
+
+  /**
+   * Attach the global keydown listener. Call once after registering shortcuts.
+   */
+  init() {
+    if (this._listening) return;
+    this._listening = true;
+    document.addEventListener('keydown', e => this._handle(e));
+  }
+
+  /**
+   * Display a modal listing all registered shortcuts.
+   */
+  showHelp() {
+    const rows = this._bindings.map(b =>
+      `<tr>
+        <td style="padding:4px 12px 4px 0;"><kbd style="background:var(--bg-tertiary,#222);padding:2px 8px;border-radius:3px;font-size:11px;border:1px solid var(--border-dim,#444);">${this._escapeHtml(b.shortcut)}</kbd></td>
+        <td style="padding:4px 0;font-size:12px;color:var(--text-secondary,#ccc);">${this._escapeHtml(b.description)}</td>
+      </tr>`
+    ).join('');
+    const body = `<table style="width:100%;">${rows}</table>`;
+    const modal = new MurphyModal();
+    modal.show({ title: 'Keyboard Shortcuts', body, actions: [{ label: 'Close', variant: 'default', onClick: (close) => close() }] });
+  }
+
+  _parse(shortcut) {
+    const parts = shortcut.toLowerCase().split('+').map(s => s.trim());
+    return {
+      ctrl:  parts.includes('ctrl') || parts.includes('control'),
+      meta:  parts.includes('meta') || parts.includes('cmd'),
+      shift: parts.includes('shift'),
+      alt:   parts.includes('alt'),
+      key:   parts.filter(p => !['ctrl', 'control', 'meta', 'cmd', 'shift', 'alt'].includes(p))[0] || '',
+    };
+  }
+
+  _handle(e) {
+    for (const binding of this._bindings) {
+      const p = binding.parsed;
+      const ctrlMatch = p.ctrl ? (e.ctrlKey || e.metaKey) : (!e.ctrlKey && !e.metaKey);
+      const shiftMatch = p.shift ? e.shiftKey : !e.shiftKey;
+      const altMatch = p.alt ? e.altKey : !e.altKey;
+      const keyMatch = e.key.toLowerCase() === p.key || e.code.toLowerCase() === p.key;
+
+      if (ctrlMatch && shiftMatch && altMatch && keyMatch) {
+        e.preventDefault();
+        binding.callback(e);
+        return;
+      }
+    }
+  }
+
+  _escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+}
+
+
+/* ── MurphyTerminalPanel ──────────────────────────────────────── */
+
+/**
+ * In-browser terminal emulator panel with command history.
+ */
+class MurphyTerminalPanel {
+  /**
+   * @param {HTMLElement} container    DOM element to render into.
+   * @param {object}      config
+   * @param {string}      config.apiEndpoint  URL to POST commands to.
+   * @param {string}      [config.prompt='murphy>'] Prompt prefix.
+   * @param {function}    [config.onCommand]  Optional hook called with each command string.
+   */
+  constructor(container, { apiEndpoint, prompt = 'murphy>', onCommand }) {
+    this._container   = container;
+    this._apiEndpoint = apiEndpoint;
+    this._prompt      = prompt;
+    this._onCommand   = onCommand;
+    this._history     = [];
+    this._historyIdx  = -1;
+    this._render();
+  }
+
+  /**
+   * Execute a command by posting to the API endpoint and displaying the response.
+   * @param {string} command Command string.
+   */
+  async execute(command) {
+    const trimmed = command.trim();
+    if (!trimmed) return;
+    this._history.push(trimmed);
+    this._historyIdx = this._history.length;
+    this.appendOutput(`${this._prompt} ${trimmed}`, 'term-cmd');
+    if (typeof this._onCommand === 'function') this._onCommand(trimmed);
+
+    try {
+      const res = await fetch(this._apiEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command: trimmed }),
+        signal: AbortSignal.timeout(15000),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        this.appendOutput(data.output ?? JSON.stringify(data, null, 2), 'term-success');
+      } else {
+        this.appendOutput(data.error ?? `Error ${res.status}`, 'term-error');
+      }
+    } catch (err) {
+      this.appendOutput(`Network error: ${err.message}`, 'term-error');
+    }
+  }
+
+  /**
+   * Append a line of text to the terminal output area.
+   * @param {string} text      Content to display.
+   * @param {string} [className=''] Optional CSS class (term-success, term-error, term-cmd).
+   */
+  appendOutput(text, className = '') {
+    const output = this._container.querySelector('.murphy-terminal-output');
+    if (!output) return;
+    const line = document.createElement('div');
+    line.className = `murphy-terminal-line ${className}`;
+    line.style.cssText = 'padding:2px 0;white-space:pre-wrap;word-break:break-word;';
+    if (className === 'term-error') line.style.color = '#e04040';
+    else if (className === 'term-success') line.style.color = '#40c060';
+    else if (className === 'term-cmd') line.style.color = 'var(--accent,#00b4d8)';
+    line.textContent = text;
+    output.appendChild(line);
+    output.scrollTop = output.scrollHeight;
+  }
+
+  /**
+   * Clear all terminal output.
+   */
+  clear() {
+    const output = this._container.querySelector('.murphy-terminal-output');
+    if (output) output.innerHTML = '';
+  }
+
+  _render() {
+    this._container.innerHTML = `
+      <div class="murphy-terminal-panel" style="display:flex;flex-direction:column;height:100%;background:var(--bg-primary,#0d0d1a);border:1px solid var(--border-dim,#333);border-radius:4px;overflow:hidden;font-family:monospace;">
+        <div style="display:flex;align-items:center;gap:6px;padding:8px 12px;background:var(--bg-secondary,#1a1a2e);border-bottom:1px solid var(--border-dim,#333);">
+          <span style="width:10px;height:10px;border-radius:50%;background:#e04040;"></span>
+          <span style="width:10px;height:10px;border-radius:50%;background:#e0a020;"></span>
+          <span style="width:10px;height:10px;border-radius:50%;background:#40c060;"></span>
+          <span style="flex:1;text-align:center;font-size:10px;color:var(--text-dim,#666);">MURPHY TERMINAL</span>
+        </div>
+        <div class="murphy-terminal-output" style="flex:1;overflow-y:auto;padding:10px 12px;font-size:12px;line-height:1.6;color:var(--text-secondary,#ccc);"></div>
+        <div style="display:flex;align-items:center;padding:6px 12px;border-top:1px solid var(--border-dim,#333);background:var(--bg-secondary,#1a1a2e);">
+          <span style="color:var(--accent,#00b4d8);font-size:12px;margin-right:6px;">${this._escapeHtml(this._prompt)}</span>
+          <input type="text" class="murphy-terminal-input" style="flex:1;background:transparent;border:none;outline:none;color:var(--text-primary,#eee);font-family:monospace;font-size:12px;" autocomplete="off" spellcheck="false">
+        </div>
+      </div>`;
+
+    const input = this._container.querySelector('.murphy-terminal-input');
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        this.execute(input.value);
+        input.value = '';
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (this._historyIdx > 0) {
+          this._historyIdx -= 1;
+          input.value = this._history[this._historyIdx] || '';
+        }
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (this._historyIdx < this._history.length - 1) {
+          this._historyIdx += 1;
+          input.value = this._history[this._historyIdx] || '';
+        } else {
+          this._historyIdx = this._history.length;
+          input.value = '';
+        }
+      }
+    });
+  }
+
+  _escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+}
+
+
+/* ── MurphyLibrarianChat ──────────────────────────────────────── */
+
+/**
+ * Floating chat panel for the Murphy Librarian AI assistant.
+ */
+class MurphyLibrarianChat {
+  /**
+   * @param {MurphyAPI} api An initialised MurphyAPI instance.
+   */
+  constructor(api) {
+    this._api     = api;
+    this._context = '';
+    this._open    = false;
+    this._history = this._loadHistory();
+    this._createButton();
+    this._createPanel();
+  }
+
+  /**
+   * Send a message to the Librarian and display the response.
+   * @param {string} message User message text.
+   */
+  async send(message) {
+    const trimmed = message.trim();
+    if (!trimmed) return;
+    this._addBubble(trimmed, 'user');
+    this._history.push({ role: 'user', text: trimmed });
+    this._saveHistory();
+
+    const result = await this._api.post('/librarian/ask', { query: trimmed, context: this._context });
+    if (result.ok) {
+      const reply = result.data?.answer ?? result.data?.response ?? (typeof result.data === 'string' ? result.data : JSON.stringify(result.data));
+      this._addBubble(reply, 'assistant');
+      this._history.push({ role: 'assistant', text: reply });
+    } else {
+      this._addBubble(`Error: ${result.error || 'Unable to reach Librarian'}`, 'assistant');
+      this._history.push({ role: 'assistant', text: `Error: ${result.error}` });
+    }
+    this._saveHistory();
+  }
+
+  /**
+   * Update the current page context sent with queries.
+   * @param {string} context Identifier for the current view.
+   */
+  setContext(context) {
+    this._context = context;
+  }
+
+  _createButton() {
+    this._btn = document.createElement('button');
+    this._btn.className = 'murphy-chat-fab';
+    this._btn.setAttribute('aria-label', 'Open Murphy Librarian');
+    this._btn.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:600;width:56px;height:56px;'
+      + 'border-radius:50%;border:none;cursor:pointer;background:#0d9488;color:#fff;box-shadow:0 4px 16px rgba(0,0,0,.4);'
+      + 'display:flex;align-items:center;justify-content:center;transition:transform .15s;';
+    this._btn.innerHTML = '<svg width="24" height="24"><use href="murphy-icons.svg#chat"/></svg>';
+    this._btn.addEventListener('click', () => this._toggle());
+    document.body.appendChild(this._btn);
+  }
+
+  _createPanel() {
+    this._panel = document.createElement('div');
+    this._panel.className = 'murphy-chat-panel';
+    this._panel.style.cssText = 'position:fixed;top:0;right:-360px;z-index:650;width:350px;height:100%;'
+      + 'background:var(--bg-primary,#0d0d1a);border-left:1px solid var(--border-dim,#333);'
+      + 'display:flex;flex-direction:column;transition:right .25s ease;box-shadow:-4px 0 24px rgba(0,0,0,.4);';
+
+    this._panel.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border-dim,#333);background:var(--bg-secondary,#1a1a2e);">
+        <span style="font-weight:600;font-size:13px;color:var(--text-primary,#eee);letter-spacing:1px;">MURPHY LIBRARIAN</span>
+        <button class="murphy-chat-close" style="background:none;border:none;color:var(--text-secondary,#aaa);cursor:pointer;font-size:18px;" aria-label="Close">&times;</button>
+      </div>
+      <div class="murphy-chat-messages" style="flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px;"></div>
+      <div style="padding:10px 14px;border-top:1px solid var(--border-dim,#333);display:flex;gap:8px;">
+        <input type="text" class="murphy-chat-input" placeholder="Ask the Librarian…"
+          style="flex:1;padding:8px 10px;background:var(--bg-secondary,#1a1a2e);color:var(--text-primary,#eee);border:1px solid var(--border-dim,#333);border-radius:3px;font-size:12px;outline:none;" autocomplete="off">
+        <button class="murphy-chat-send" style="padding:6px 14px;background:#0d9488;color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:12px;">Send</button>
+      </div>`;
+
+    this._panel.querySelector('.murphy-chat-close').addEventListener('click', () => this._toggle());
+
+    const input   = this._panel.querySelector('.murphy-chat-input');
+    const sendBtn = this._panel.querySelector('.murphy-chat-send');
+    sendBtn.addEventListener('click', () => { this.send(input.value); input.value = ''; });
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { this.send(input.value); input.value = ''; }
+    });
+
+    document.body.appendChild(this._panel);
+
+    this._restoreBubbles();
+  }
+
+  _toggle() {
+    this._open = !this._open;
+    this._panel.style.right = this._open ? '0' : '-360px';
+    this._btn.style.transform = this._open ? 'scale(0.85)' : 'scale(1)';
+    if (this._open) {
+      const input = this._panel.querySelector('.murphy-chat-input');
+      if (input) setTimeout(() => input.focus(), 260);
+    }
+  }
+
+  _addBubble(text, role) {
+    const messages = this._panel.querySelector('.murphy-chat-messages');
+    if (!messages) return;
+    const bubble = document.createElement('div');
+    bubble.className = `murphy-chat-bubble murphy-chat-${role}`;
+    const align = role === 'user' ? 'align-self:flex-end;background:#0d9488;' : 'align-self:flex-start;background:var(--bg-secondary,#1a1a2e);border:1px solid var(--border-dim,#333);';
+    bubble.style.cssText = `max-width:85%;padding:8px 12px;border-radius:8px;font-size:12px;line-height:1.5;color:var(--text-primary,#eee);${align}word-wrap:break-word;`;
+    bubble.textContent = text;
+    messages.appendChild(bubble);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  _restoreBubbles() {
+    for (const msg of this._history) {
+      this._addBubble(msg.text, msg.role);
+    }
+  }
+
+  _loadHistory() {
+    try {
+      const raw = sessionStorage.getItem('murphy_chat_history');
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  }
+
+  _saveHistory() {
+    try { sessionStorage.setItem('murphy_chat_history', JSON.stringify(this._history)); } catch { /* storage unavailable */ }
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+ *  SECTION 3 — EXPORTS & GLOBALS
+ * ═══════════════════════════════════════════════════════════════════ */
+
+window.MurphyAPI            = MurphyAPI;
+window.MurphyToast          = MurphyToast;
+window.MurphyModal          = MurphyModal;
+window.MurphyHealth         = MurphyHealth;
+window.MurphyTable          = MurphyTable;
+window.MurphyChart          = MurphyChart;
+window.MurphyTheme          = MurphyTheme;
+window.MurphyJargon         = MurphyJargon;
+window.MurphyKeyboard       = MurphyKeyboard;
+window.MurphyTerminalPanel  = MurphyTerminalPanel;
+window.MurphyLibrarianChat  = MurphyLibrarianChat;
+
+export {
+  MurphyAPI,
+  MurphyToast,
+  MurphyModal,
+  MurphyHealth,
+  MurphyTable,
+  MurphyChart,
+  MurphyTheme,
+  MurphyJargon,
+  MurphyKeyboard,
+  MurphyTerminalPanel,
+  MurphyLibrarianChat,
+};
