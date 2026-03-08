@@ -786,6 +786,7 @@ Murphy includes built-in self-improvement infrastructure:
 | **Self-Healing Coordinator** | `src/self_healing_coordinator.py` | Coordinates automated remediation across subsystems |
 | **Self-Fix Loop** | `src/self_fix_loop.py` | **NEW** — Autonomous closed-loop: diagnose → plan → execute → test → verify → repeat |
 | **Synthetic Failure Generator** | `src/synthetic_failure_generator/` | Creates controlled failures to test recovery paths |
+| **Murphy Immune Engine** | `src/murphy_immune_engine.py` | **NEW** — 11-phase immune cycle: reconcile → predict → diagnose → recall → plan → execute → test → harden → cascade-check → memorize → report |
 
 **Can Murphy fix itself?** Yes — for runtime-adjustable issues:
 - ✅ Detect recurring error patterns and suggest fixes
