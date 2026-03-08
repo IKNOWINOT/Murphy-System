@@ -24,6 +24,7 @@
 | Unified Control Protocol | ✅ New | 10-engine pipeline, 7 states, rollback support |
 | Session Context Manager | ✅ New | Per-session locking, expiry, RM0–RM6 tracking |
 | **Crypto Trading Subsystem** | ✅ **New** | Coinbase v3, multi-exchange, HITL-gated bots, 6 strategies, risk manager |
+| **Shadow Learning System** | ✅ **New** | Paper bots practice vs live prices; winning weeks save patterns; human reviews before promoting |
 | UI / Landing Page | ⚠️ Partial | Landing page, terminal UIs exist; dashboard incomplete |
 | Documentation | ✅ Complete | API docs, architecture docs, deployment guides, testing guide complete |
 
@@ -46,9 +47,9 @@ Murphy System is **aligned with** (not formally attested to) the following frame
 
 ## Test Coverage
 
-- **Total test files**: 260+
+- **Total test files**: 265+
 - **CI configuration**: `python -m pytest --timeout=60 -v --tb=short`
-- **Key test suites**: concept graph engine (48), unified control protocol (62), session context (37), crypto trading system (102)
+- **Key test suites**: concept graph engine (48), unified control protocol (62), session context (37), crypto trading system (102), shadow learning + real-money guard (48)
 
 ## Known Gaps
 

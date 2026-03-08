@@ -233,6 +233,25 @@ class TradingHITLGateway:
             murphy_index    = murphy_index,
         )
 
+        # ── REAL-MONEY SAFETY LOCK ──────────────────────────────────────────
+        # Real trades (dry_run=False) MUST always route through human approval.
+        # Supervised / automated modes are only permitted for paper/shadow bots.
+        # This override cannot be bypassed — it is enforced here unconditionally.
+        if not request.dry_run:
+            raw_mode = (
+                request.hitl_mode.value
+                if hasattr(request.hitl_mode, "value")
+                else str(request.hitl_mode)
+            ).lower()
+            if raw_mode != "manual":
+                logger.warning(
+                    "HITL SAFETY LOCK: real-money trade from bot %s was '%s' mode "
+                    "— forced to MANUAL. Only paper/shadow bots may auto-trade.",
+                    bot_id, raw_mode,
+                )
+                request.hitl_mode = "manual"
+        # ─────────────────────────────────────────────────────────────────────
+
         # Governance check
         gov_ok = self._governance_check(bot_id, config)
         if not gov_ok:
