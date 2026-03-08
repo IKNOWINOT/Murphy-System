@@ -370,7 +370,11 @@ class ImmuneMemorySystem:
         set1 = set(tokens1)
         set2 = set(tokens2)
         union = set1 | set2
-        jaccard = len(set1 & set2) / (len(union) or 1)
+        # Two empty token sets are considered identical (jaccard = 1.0)
+        if not union:
+            jaccard = 1.0
+        else:
+            jaccard = len(set1 & set2) / (len(union) or 1)
         category_score = 1.0 if (category1 and category1 == category2) else 0.0
         return sig_score * 0.4 + jaccard * 0.4 + category_score * 0.2
 
