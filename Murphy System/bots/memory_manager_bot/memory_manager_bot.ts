@@ -115,15 +115,99 @@ export async function run(raw: unknown, ctx: Ctx = {}): Promise<Output> {
     return OutputSchema.parse(out);
   }
 
-  // PRUNE / COMPRESS / STATS (stubs)
-  if (input.task==='prune' || input.task==='compress' || input.task==='stats'){
-    const out: Output = { result:{ memories:[], stats:{ ok:true } }, confidence:0.9, notes:[], meta:{ budget:{cost_usd:0,tier,pool:'mini'}, gp:{hit:false}, stability:{S:1, action:'continue'}, kaiaMix: { veritas:0.45, kiren:0.35, vallon:0.2 } } as any };
+  // PRUNE
+  if (input.task==='prune'){
+    if (!ctx.db) {
+      const out: Output = { result:{ memories:[], pruned_count:0 }, confidence:0.5, notes:['no_db'], meta:{ budget:{cost_usd:0,tier,pool:'mini'}, gp:{hit:false}, stability:{S:1, action:'continue'}, kaiaMix: KAIA_MIX } as any };
+      return OutputSchema.parse(out);
+    }
+    const threshold = (input.params as any)?.threshold ?? 0.25;
+    const rows = await entries.scanTenant(ctx.db!, tenant, 10000);
+    const nowSec = Date.now() / 1000;
+    let pruned = 0;
+    for (const r of rows){
+      const ageSec = nowSec - (r.last_accessed ? Date.parse(r.last_accessed)/1000 : 0);
+      const halfLife = 30 * 24 * 3600; // 30-day half-life
+      const decay = Math.pow(0.5, ageSec / halfLife);
+      const accessBoost = Math.log1p(r.access_count||0) * 0.05;
+      const score = Math.min(1, (r.trust||1) * decay * (1 + accessBoost));
+      if (score < threshold){
+        await entries.softDelete(ctx.db!, r.id);
+        pruned++;
+      }
+    }
+    await emit('mm.prune', { tenant, pruned }, ctx);
+    const out: Output = { result:{ memories:[], pruned_count:pruned }, confidence:0.9, notes:[], meta:{ budget:{cost_usd:0,tier,pool:'mini'}, gp:{hit:false}, stability:{S:1, action:'continue'}, kaiaMix: KAIA_MIX } as any };
     return OutputSchema.parse(out);
   }
 
-  // EXPORT / IMPORT (stubs)
-  if (input.task==='export' || input.task==='import'){
-    const out: Output = { result:{ memories:[] }, confidence:0.9, notes:['todo'], meta:{ budget:{cost_usd:0,tier,pool:'mini'}, gp:{hit:false}, stability:{S:1, action:'continue'}, kaiaMix: { veritas:0.45, kiren:0.35, vallon:0.2 } } as any };
+  // COMPRESS
+  if (input.task==='compress'){
+    if (!ctx.db) {
+      const out: Output = { result:{ memories:[], compressed_count:0 }, confidence:0.5, notes:['no_db'], meta:{ budget:{cost_usd:0,tier,pool:'mini'}, gp:{hit:false}, stability:{S:1, action:'continue'}, kaiaMix: KAIA_MIX } as any };
+      return OutputSchema.parse(out);
+    }
+    const rows = await entries.scanTenant(ctx.db!, tenant, 10000);
+    let compressed = 0;
+    for (const r of rows){
+      const meta = r.meta_json ? JSON.parse(r.meta_json) : {};
+      if (!meta.compressed && r.text && r.text.length > 200){
+        // Basic compression: deduplicate repeated whitespace and truncate to summary
+        const compressedText = r.text.replace(/\s+/g, ' ').trim().slice(0, Math.ceil(r.text.length * 0.7));
+        await entries.upsertEntry(ctx.db!, { id:r.id, tenant, text:compressedText, trust:r.trust||1, last_accessed:r.last_accessed||nowIso(), access_count:r.access_count||0, status:'active', compressed:1, created_ts:nowIso(), updated_ts:nowIso(), meta:{ ...meta, compressed:true } });
+        compressed++;
+      }
+    }
+    await emit('mm.compress', { tenant, compressed }, ctx);
+    const out: Output = { result:{ memories:[], compressed_count:compressed }, confidence:0.9, notes:[], meta:{ budget:{cost_usd:0,tier,pool:'mini'}, gp:{hit:false}, stability:{S:1, action:'continue'}, kaiaMix: KAIA_MIX } as any };
+    return OutputSchema.parse(out);
+  }
+
+  // STATS
+  if (input.task==='stats'){
+    if (!ctx.db) {
+      const out: Output = { result:{ memories:[], stats:{ total_count:0, active_count:0, deleted_count:0, compressed_count:0, avg_trust:0 } }, confidence:0.5, notes:['no_db'], meta:{ budget:{cost_usd:0,tier,pool:'mini'}, gp:{hit:false}, stability:{S:1, action:'continue'}, kaiaMix: KAIA_MIX } as any };
+      return OutputSchema.parse(out);
+    }
+    await ctx.db.prepare(`CREATE TABLE IF NOT EXISTS mem_entries (id TEXT PRIMARY KEY, tenant TEXT, text TEXT, trust REAL, last_accessed TEXT, access_count INT, status TEXT, ttl_seconds INT, compressed INT, enc INT, meta_json TEXT, created_ts TEXT, updated_ts TEXT)`).run();
+    const agg = await ctx.db.prepare(
+      `SELECT COUNT(*) as total_count, SUM(CASE WHEN status='active' THEN 1 ELSE 0 END) as active_count, SUM(CASE WHEN status='deleted' THEN 1 ELSE 0 END) as deleted_count, SUM(CASE WHEN compressed=1 THEN 1 ELSE 0 END) as compressed_count, AVG(trust) as avg_trust FROM mem_entries WHERE tenant=?`
+    ).bind(tenant).get<any>();
+    const s = agg || {};
+    const statsObj = { total_count: s.total_count||0, active_count: s.active_count||0, deleted_count: s.deleted_count||0, compressed_count: s.compressed_count||0, avg_trust: +(s.avg_trust||0).toFixed(3) };
+    const out: Output = { result:{ memories:[], stats: statsObj }, confidence:0.9, notes:[], meta:{ budget:{cost_usd:0,tier,pool:'mini'}, gp:{hit:false}, stability:{S:1, action:'continue'}, kaiaMix: KAIA_MIX } as any };
+    return OutputSchema.parse(out);
+  }
+
+  // EXPORT
+  if (input.task==='export'){
+    if (!ctx.db) {
+      const out: Output = { result:{ memories:[] }, confidence:0.5, notes:['no_db'], meta:{ budget:{cost_usd:0,tier,pool:'mini'}, gp:{hit:false}, stability:{S:1, action:'continue'}, kaiaMix: KAIA_MIX } as any };
+      return OutputSchema.parse(out);
+    }
+    const rows = await entries.scanTenant(ctx.db!, tenant, 10000);
+    const exported = rows.map(r => ({ id:r.id, text:r.text, trust:r.trust, last_accessed:r.last_accessed, access_count:r.access_count }));
+    const out: Output = { result:{ memories: exported }, confidence:0.9, notes:[], meta:{ budget:{cost_usd:0,tier,pool:'mini'}, gp:{hit:false}, stability:{S:1, action:'continue'}, kaiaMix: KAIA_MIX } as any };
+    return OutputSchema.parse(out);
+  }
+
+  // IMPORT
+  if (input.task==='import'){
+    if (!ctx.db) {
+      const out: Output = { result:{ memories:[], imported_count:0, skipped_count:0 }, confidence:0.5, notes:['no_db'], meta:{ budget:{cost_usd:0,tier,pool:'mini'}, gp:{hit:false}, stability:{S:1, action:'continue'}, kaiaMix: KAIA_MIX } as any };
+      return OutputSchema.parse(out);
+    }
+    const importEntries: any[] = (input.params as any)?.entries || [];
+    let imported = 0; let skipped = 0;
+    for (const e of importEntries){
+      if (!e || !e.id || typeof e.text !== 'string'){ skipped++; continue; }
+      try {
+        await entries.upsertEntry(ctx.db!, { id: e.id, tenant, text: redact(e.text), trust: e.trust??1.0, last_accessed: e.last_accessed||nowIso(), access_count: e.access_count||0, status:'active', created_ts: e.created_ts||nowIso(), updated_ts: nowIso() });
+        imported++;
+      } catch { skipped++; }
+    }
+    await emit('mm.import', { tenant, imported, skipped }, ctx);
+    const out: Output = { result:{ memories:[], imported_count:imported, skipped_count:skipped }, confidence:0.9, notes:[], meta:{ budget:{cost_usd:0,tier,pool:'mini'}, gp:{hit:false}, stability:{S:1, action:'continue'}, kaiaMix: KAIA_MIX } as any };
     return OutputSchema.parse(out);
   }
 
