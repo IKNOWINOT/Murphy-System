@@ -165,7 +165,7 @@ def test_cicd_003_get_pipeline_by_id():
         "CICD-003", "get_pipeline returns correct pipeline",
         p.pipeline_id, fetched.pipeline_id if fetched else None,
         cause="Pipeline exists in store", effect="Exact pipeline returned by ID lookup",
-        lesson="Use dict lookup for O(1), retrieval",
+        lesson="Use dict lookup for O(1) retrieval",
     )
     assert ok
 
@@ -419,7 +419,7 @@ def test_cicd_019_register_artifact():
     run = mgr.trigger_run(p.pipeline_id, TriggerType.PUSH, "sha", "ci")
     art = mgr.register_artifact(
         run_id=run.run_id, name="app.tar.gz", artifact_type="binary",
-        size_bytes=1024000, checksum="abc123def456",
+        size_bytes=1024000, checksum_sha256="abc123def456",
         storage_path="/artifacts/app.tar.gz",
         metadata={"version": "1.0.0"},
     )

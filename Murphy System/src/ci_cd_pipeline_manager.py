@@ -467,7 +467,7 @@ class PipelineManager:
         name: str,
         artifact_type: str,
         size_bytes: int,
-        checksum: str,
+        checksum_sha256: str,
         storage_path: str,
         metadata: Optional[Dict[str, str]] = None,
     ) -> BuildArtifact:
@@ -484,7 +484,7 @@ class PipelineManager:
                 name=name,
                 artifact_type=artifact_type,
                 size_bytes=size_bytes,
-                checksum_sha256=checksum,
+                checksum_sha256=checksum_sha256,
                 storage_path=storage_path,
                 created_at=self._now(),
                 metadata=dict(metadata or {}),
@@ -781,7 +781,7 @@ def create_cicd_api(
                 name=body.get("name", ""),
                 artifact_type=body.get("artifact_type", ""),
                 size_bytes=int(body.get("size_bytes", 0)),
-                checksum=body.get("checksum_sha256", ""),
+                checksum_sha256=body.get("checksum_sha256", ""),
                 storage_path=body.get("storage_path", ""),
                 metadata=body.get("metadata"),
             )
