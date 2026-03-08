@@ -327,7 +327,7 @@ class WorkspaceManager:
 
     def _set_state(self, tenant_id: str, state: WorkspaceState,
                    reason: str = "") -> bool:
-        """Transition workspace to *state* (caller must NOT hold lock)."""
+        """Transition workspace to *state*; acquires lock internally."""
         with self._lock:
             ws = self._workspaces.get(tenant_id)
             if ws is None:
@@ -530,14 +530,20 @@ class WorkspaceManager:
             if ws is None:
                 return {"valid": False, "errors": ["workspace_not_found"]}
             errors: List[str] = []
+            checks = 0
+            checks += 1
             if not ws.name:
                 errors.append("name_empty")
+            checks += 1
             if ws.max_storage_mb <= 0:
                 errors.append("invalid_storage_limit")
+            checks += 1
             if ws.max_api_calls <= 0:
                 errors.append("invalid_api_calls_limit")
+            checks += 1
             if ws.max_members <= 0:
                 errors.append("invalid_members_limit")
+            checks += 1
             members = self._members.get(tenant_id, {})
             has_owner = any(
                 m.role == TenantRole.OWNER for m in members.values()
@@ -547,7 +553,7 @@ class WorkspaceManager:
             return {
                 "valid": len(errors) == 0,
                 "tenant_id": tenant_id,
-                "checks_run": 5,
+                "checks_run": checks,
                 "errors": errors,
             }
 
