@@ -690,7 +690,7 @@ def detect_intent(message: str) -> Optional[str]:
 
 WELCOME_TEXT = """\
 [bold cyan]╔══════════════════════════════════════════════════════════════╗
-║              💀  Murphy System Terminal  💀                  ║
+║              ☠  Murphy System Terminal  ☠                  ║
 ║                  Natural Language Interface                   ║
 ╚══════════════════════════════════════════════════════════════╝[/bold cyan]
 
@@ -1372,7 +1372,7 @@ class MurphyTerminalApp(App):
         )
 
     def intent_exit(self, _msg: str) -> None:
-        self._write_murphy("Goodbye! 💀")
+        self._write_murphy("Goodbye! ☠")
         self.exit()
 
     def intent_corrections(self, _msg: str) -> None:

@@ -15443,20 +15443,20 @@ def main():
         from src.cli_art import render_panel
         print(render_panel("STARTUP", [
             f"☠ Starting Murphy System v1.0 on port {port}",
-            f"  💀 API Docs:     http://localhost:{port}/docs",
-            f"  💀 Health:       http://localhost:{port}/api/health",
-            f"  💀 Status:       http://localhost:{port}/api/status",
-            f"  💀 Onboarding:   http://localhost:{port}/api/onboarding/wizard/questions",
-            f"  💀 Info:         http://localhost:{port}/api/info",
+            f"  ☠ API Docs:     http://localhost:{port}/docs",
+            f"  ☠ Health:       http://localhost:{port}/api/health",
+            f"  ☠ Status:       http://localhost:{port}/api/status",
+            f"  ☠ Onboarding:   http://localhost:{port}/api/onboarding/wizard/questions",
+            f"  ☠ Info:         http://localhost:{port}/api/info",
         ]))
         print()
     except Exception:
         print(f"\n☠ Starting Murphy System v1.0 on port {port}...")
-        print(f"  💀 API Docs:     http://localhost:{port}/docs")
-        print(f"  💀 Health:       http://localhost:{port}/api/health")
-        print(f"  💀 Status:       http://localhost:{port}/api/status")
-        print(f"  💀 Onboarding:   http://localhost:{port}/api/onboarding/wizard/questions")
-        print(f"  💀 Info:         http://localhost:{port}/api/info\n")
+        print(f"  ☠ API Docs:     http://localhost:{port}/docs")
+        print(f"  ☠ Health:       http://localhost:{port}/api/health")
+        print(f"  ☠ Status:       http://localhost:{port}/api/status")
+        print(f"  ☠ Onboarding:   http://localhost:{port}/api/onboarding/wizard/questions")
+        print(f"  ☠ Info:         http://localhost:{port}/api/info\n")
 
     uvicorn.run(app, host="0.0.0.0", port=port)
 
