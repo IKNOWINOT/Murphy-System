@@ -277,6 +277,9 @@ class DataPipelineOrchestrator:
         """Update mutable fields on a pipeline."""
         allowed = {"name", "description", "stages", "schedule_type",
                     "schedule_config", "tags", "owner", "max_concurrent_runs"}
+        # Accept the create_pipeline shorthand too
+        if "max_concurrent" in kwargs:
+            kwargs["max_concurrent_runs"] = kwargs.pop("max_concurrent")
         with self._lock:
             pipe = self._pipelines.get(pipeline_id)
             if not pipe:
@@ -718,7 +721,6 @@ def _register_pipeline_routes(bp: Any, engine: DataPipelineOrchestrator) -> None
         stats = engine.get_pipeline_stats(pid)
         return jsonify(stats) if stats else _api_404()
 
-
 def _register_run_routes(bp: Any, engine: DataPipelineOrchestrator) -> None:
     """Attach run-level routes to *bp*."""
 
@@ -746,7 +748,6 @@ def _register_run_routes(bp: Any, engine: DataPipelineOrchestrator) -> None:
         if engine.cancel_run(rid):
             return jsonify({"cancelled": True})
         return jsonify({"error": "Cannot cancel run", "code": "DPO_STATE"}), 409
-
 
 def _register_quality_routes(bp: Any, engine: DataPipelineOrchestrator) -> None:
     """Attach quality-check routes to *bp*."""
