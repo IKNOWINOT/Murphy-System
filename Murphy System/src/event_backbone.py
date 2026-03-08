@@ -48,6 +48,16 @@ class EventType(Enum):
     BOT_HEARTBEAT_MISSED = "bot_heartbeat_missed"
     BOT_HEARTBEAT_RECOVERY_STARTED = "bot_heartbeat_recovery_started"
     BOT_HEARTBEAT_RECOVERED = "bot_heartbeat_recovered"
+    FLEET_RECONCILIATION_STARTED = "fleet_reconciliation_started"
+    FLEET_BOT_SPAWNED = "fleet_bot_spawned"
+    FLEET_BOT_DESPAWNED = "fleet_bot_despawned"
+    FLEET_BOT_UPDATED = "fleet_bot_updated"
+    FLEET_RECONCILED = "fleet_reconciled"
+    FLEET_DRIFT_DETECTED = "fleet_drift_detected"
+    PREDICTION_GENERATED = "prediction_generated"
+    PREDICTION_PREEMPTED = "prediction_preempted"
+    PREDICTION_MATERIALIZED = "prediction_materialized"
+    PREDICTION_FALSE_POSITIVE = "prediction_false_positive"
 
 
 @dataclass
