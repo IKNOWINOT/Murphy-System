@@ -12,7 +12,7 @@
 > developed and maintained by a **single developer** ([@IKNOWINOT](https://github.com/IKNOWINOT)).
 > While the architecture is comprehensive and the test suite covers thousands of
 > functions, **not everything works as intended**. Emergent bugs are still being
-> discovered and classified across the 595+ module surface area.
+> discovered and classified across the 625+ module surface area.
 >
 > **What this means for you:**
 >
@@ -148,7 +148,7 @@ Murphy-System/
 └── Murphy System/                      ← ACTIVE SYSTEM
     ├── murphy                          ← CLI tool (start/stop/status/…)
     ├── murphy_system_1.0_runtime.py    ← Single production runtime
-    ├── src/                            ← 595 production modules
+    ├── src/                            ← 625+ production modules
     ├── tests/                          ← 371 test files (8,800+ tests)
     ├── bots/                           ← 104 bot modules
     ├── documentation/                  ← Structured API/user docs
@@ -736,7 +736,7 @@ See [LICENSE](LICENSE) for details.
 
 | Metric | Value |
 | --- | --- |
-| **Source Files** | 595 Python modules |
+| **Source Files** | 625+ Python modules |
 | **Source Lines** | 218,497 |
 | **Classes** | 2,487 |
 | **Functions / Methods** | 8,472 |
