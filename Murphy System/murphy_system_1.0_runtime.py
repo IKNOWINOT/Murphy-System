@@ -27,6 +27,7 @@ from dataclasses import asdict, is_dataclass
 from datetime import datetime, timedelta, timezone
 import logging
 import asyncio
+import platform
 import time
 import re
 import math
@@ -15434,7 +15435,7 @@ def create_app() -> FastAPI:
     async def save_workflow(request: Request):
         """Save a workflow."""
         data = await request.json()
-        workflow_id = data.get("id") or str(uuid4())
+        workflow_id = data.get("id") if data.get("id") is not None else str(uuid4())
         workflow = {
             "id": workflow_id,
             "name": data.get("name", "Untitled Workflow"),
@@ -15558,7 +15559,6 @@ def create_app() -> FastAPI:
     @app.get("/api/telemetry")
     async def telemetry():
         """Return OS info, runtime version, and system capabilities."""
-        import platform
         return JSONResponse({
             "success": True,
             "telemetry": {

@@ -897,7 +897,7 @@
                         <div id="terminal-input-area">
                             <div class="mss-bar">
                                 <span style="font-size:10px;color:var(--green-dim);letter-spacing:1px;margin-right:4px">MSS:</span>
-                                <button class="mss-btn gold-glow" onclick="mssAction('simplify')"
+                                <button class="mss-btn mss-simplify" onclick="mssAction('simplify')"
                                         data-tip="SIMPLIFY: Reduce the resolution of your current prompt.&#10;Removes complexity while preserving meaning.&#10;Use when you need a clearer, shorter version.">
                                     SIMPLIFY
                                 </button>
@@ -905,8 +905,8 @@
                                         data-tip="MAGNIFY: Increase the resolution of your current prompt.&#10;Expands detail, depth, and context.&#10;Use when you need a more comprehensive version.">
                                     MAGNIFY
                                 </button>
-                                <button class="mss-btn mss-solidify" onclick="mssAction('solidify')"
-                                        data-tip="SOLIDIFY: Convert your current prompt into a locked&#10;implementation plan. Output becomes a SOLIDIFY_BLOCK —&#10;a governance-approved, immutable execution unit.">
+                                <button class="mss-btn mss-solidify gold-glow" onclick="mssAction('solidify')"
+                                        data-tip="SOLIDIFY: Convert your current prompt into a locked&#10;implementation plan. Output becomes a SOLIDIFY_BLOCK —&#10;a governance-approved, immutable execution unit.&#10;System recommends: solidify decisions before sending to workflow.">
                                     SOLIDIFY
                                 </button>
                             </div>
