@@ -44,6 +44,10 @@ class EventType(Enum):
     SELF_FIX_VERIFIED = "self_fix_verified"
     SELF_FIX_COMPLETED = "self_fix_completed"
     SELF_FIX_ROLLED_BACK = "self_fix_rolled_back"
+    PREDICTION_GENERATED = "prediction_generated"
+    PREDICTION_PREEMPTED = "prediction_preempted"
+    PREDICTION_MATERIALIZED = "prediction_materialized"
+    PREDICTION_FALSE_POSITIVE = "prediction_false_positive"
 
 
 @dataclass
