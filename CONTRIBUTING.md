@@ -6,6 +6,22 @@ Thank you for your interest in contributing to Murphy System! This document prov
 
 By participating in this project, you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md).
 
+## Architecture Overview
+
+Murphy System has grown to **650+ source modules** across 56 packages. Key subsystems include:
+
+- **Core Runtime** — FastAPI server, config, command system
+- **Self-Healing** — `self_fix_loop.py`, `causality_sandbox.py`, `murphy_code_healer.py`
+- **Wingman Protocol** — `wingman_protocol.py` (executor/validator pairing for every task)
+- **HITL Graduation** — `hitl_graduation_engine.py` (human-to-automation handoff pipeline)
+- **Security** — `secure_key_manager.py`, `flask_security.py`, `fastapi_security.py`
+- **Bridges & Adapters** — `golden_path_bridge.py`, `telemetry_adapter.py`
+- **Confidence & Gates** — `confidence_engine/`, `gate_synthesis/`
+- **Orchestrators** — `campaign_orchestrator.py`; `safety_orchestrator.py`, `efficiency_orchestrator.py`, `supply_orchestrator.py` (planned)
+- **Issue #136 subsystems** (in progress) — Drawing Engine, Credential Gate, Sensor Fusion, Osmosis Engine, Autonomous Perception, Wingman Evolution, Engineering Toolbox
+
+See [`Murphy System/docs/MODULE_REGISTRY.md`](Murphy%20System/docs/MODULE_REGISTRY.md) for the full module index.
+
 ## How to Contribute
 
 ### Reporting Bugs

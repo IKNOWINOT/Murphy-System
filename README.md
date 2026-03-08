@@ -2,7 +2,7 @@
 
 **Universal AI Automation System**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/IKNOWINOT/Murphy-System) [![License](https://img.shields.io/badge/license-BSL%201.1-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.10+-yellow.svg)](https://www.python.org/) [![Tests](https://img.shields.io/badge/tests-8843%20passing-brightgreen.svg)](#-test-status)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/IKNOWINOT/Murphy-System) [![License](https://img.shields.io/badge/license-BSL%201.1-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.10+-yellow.svg)](https://www.python.org/) [![Tests](https://img.shields.io/badge/tests-8900%2B%20passing-brightgreen.svg)](#-test-status)
 
 ---
 
@@ -12,7 +12,7 @@
 > developed and maintained by a **single developer** ([@IKNOWINOT](https://github.com/IKNOWINOT)).
 > While the architecture is comprehensive and the test suite covers thousands of
 > functions, **not everything works as intended**. Emergent bugs are still being
-> discovered and classified across the 625+ module surface area.
+> discovered and classified across the 650+ module surface area.
 >
 > **What this means for you:**
 >
@@ -52,7 +52,13 @@ Murphy is a **complete, operational AI automation system** that can automate any
 ✅ **Self-Improvement** - Learns from corrections, trains shadow agent  
 ✅ **Self-Operation** - Runs Inoni LLC autonomously  
 ✅ **Human-in-the-Loop** - Safety approval for all integrations  
+✅ **Wingman Protocol** - Executor/validator pairing for every task  
+✅ **Causality Sandbox** - What-if scenario simulation and causal reasoning  
+✅ **HITL Graduation** - Structured human-to-automation handoff pipeline  
+✅ **Orchestrators** - Safety, efficiency, and supply chain orchestration  
 ✅ **Deployment References** - Legacy Docker/Kubernetes examples available in archives (security hardening required)
+
+> **Coming in #136:** Drawing Engine, Credential Gate, Sensor Fusion, Osmosis Engine, Autonomous Perception, Wingman Evolution, Engineering Toolbox
 
 ---
 
