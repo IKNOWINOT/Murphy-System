@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>☠ MURPHY SYSTEM - COST DASHBOARD 💀</title>
+    <style>
+        :root { --neon-green: #00FF41; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #0a0a0a;
+            color: #00ff41;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background-color: #0a0a0a;
+            border-bottom: 2px solid #00ff41;
+            box-shadow: 0 2px 10px rgba(0, 255, 65, 0.3);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-title {
+            font-size: 22px;
+            font-weight: bold;
+            letter-spacing: 3px;
+            color: #00ff41;
+        }
+
+        .header-subtitle {
+            font-size: 11px;
+            color: #00cc33;
+            margin-top: 3px;
+            letter-spacing: 2px;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .header-btn {
+            background-color: #0a0a0a;
+            border: 1px solid #00ff41;
+            color: #00ff41;
+            padding: 5px 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .header-btn:hover {
+            background-color: #00ff41;
+            color: #0a0a0a;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #00ff41;
+            margin-right: 6px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* Main content */
+        .main-content {
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Section */
+        .section {
+            border: 1px solid #00ff41;
+            margin-bottom: 20px;
+            background-color: #050505;
+        }
+
+        .section-header {
+            background-color: #001a00;
+            border-bottom: 1px solid #00ff41;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #00ff41;
+        }
+
+        .section-body {
+            padding: 16px;
+        }
+
+        /* Summary panel */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 16px;
+        }
+
+        .stat-card {
+            border: 1px solid #003300;
+            background-color: #020a02;
+            padding: 12px 16px;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: #00cc33;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .stat-value {
+            font-size: 22px;
+            font-weight: bold;
+            color: #00ff41;
+        }
+
+        .stat-value.warn { color: #ffaa00; }
+        .stat-value.danger { color: #ff4444; }
+
+        /* Progress bar */
+        .progress-container {
+            margin-top: 16px;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #00cc33;
+            margin-bottom: 4px;
+        }
+
+        .progress-bar-outer {
+            background-color: #001a00;
+            border: 1px solid #003300;
+            height: 16px;
+            width: 100%;
+        }
+
+        .progress-bar-inner {
+            height: 100%;
+            background-color: #00ff41;
+            transition: width 0.4s ease;
+        }
+
+        .progress-bar-inner.warn { background-color: #ffaa00; }
+        .progress-bar-inner.danger { background-color: #ff4444; }
+
+        /* Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .data-table th {
+            border-bottom: 1px solid #00ff41;
+            padding: 6px 10px;
+            text-align: left;
+            font-size: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #00cc33;
+        }
+
+        .data-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #001a00;
+            color: #00ff41;
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .data-table tr:hover td {
+            background-color: #001a00;
+        }
+
+        .bar-cell {
+            min-width: 140px;
+        }
+
+        .inline-bar-outer {
+            background-color: #001a00;
+            border: 1px solid #003300;
+            height: 10px;
+            width: 100%;
+        }
+
+        .inline-bar-inner {
+            height: 100%;
+            background-color: #00ff41;
+            transition: width 0.4s ease;
+        }
+
+        .inline-bar-inner.warn { background-color: #ffaa00; }
+        .inline-bar-inner.danger { background-color: #ff4444; }
+
+        /* Forms */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            align-items: end;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .form-label {
+            font-size: 10px;
+            color: #00cc33;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .form-input {
+            background-color: #020a02;
+            border: 1px solid #003300;
+            color: #00ff41;
+            padding: 6px 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            outline: none;
+        }
+
+        .form-input:focus { border-color: #00ff41; }
+
+        .form-btn {
+            background-color: #0a0a0a;
+            border: 1px solid #00ff41;
+            color: #00ff41;
+            padding: 8px 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+            align-self: flex-end;
+        }
+
+        .form-btn:hover {
+            background-color: #00ff41;
+            color: #0a0a0a;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #001a00;
+            border: 1px solid #00ff41;
+            color: #00ff41;
+            padding: 10px 20px;
+            font-size: 12px;
+            letter-spacing: 1px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 200;
+        }
+
+        .toast.visible { opacity: 1; }
+        .toast.error { border-color: #ff4444; color: #ff4444; }
+
+        /* Utility */
+        .muted { color: #004d00; font-style: italic; }
+        .refresh-ts {
+            font-size: 10px;
+            color: #004d00;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div>
+        <div class="header-title">☠ MURPHY SYSTEM — COST DASHBOARD 💀</div>
+        <div class="header-subtitle">BUDGET TRACKING / DEPARTMENT / PROJECT / BOT</div>
+    </div>
+    <div class="header-controls">
+        <span class="refresh-ts" id="refreshTs">LAST REFRESH: —</span>
+        <button class="header-btn" onclick="refreshAll()">↻ REFRESH</button>
+    </div>
+</div>
+
+<div class="main-content">
+
+    <!-- Summary Panel -->
+    <div class="section">
+        <div class="section-header">▸ SYSTEM COST SUMMARY</div>
+        <div class="section-body">
+            <div class="summary-grid" id="summaryGrid">
+                <div class="stat-card">
+                    <div class="stat-label">Total Budget</div>
+                    <div class="stat-value" id="statTotalBudget">—</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Spent</div>
+                    <div class="stat-value" id="statSpent">—</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Pending</div>
+                    <div class="stat-value" id="statPending">—</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Remaining</div>
+                    <div class="stat-value" id="statRemaining">—</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Utilisation</div>
+                    <div class="stat-value" id="statUtil">—</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Departments</div>
+                    <div class="stat-value" id="statDepts">—</div>
+                </div>
+            </div>
+            <div class="progress-container">
+                <div class="progress-label">
+                    <span>SPEND VS BUDGET</span>
+                    <span id="progressLabel">0%</span>
+                </div>
+                <div class="progress-bar-outer">
+                    <div class="progress-bar-inner" id="summaryBar" style="width:0%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Department Table -->
+    <div class="section">
+        <div class="section-header">▸ BY DEPARTMENT</div>
+        <div class="section-body">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Department</th>
+                        <th>Budget</th>
+                        <th>Spent</th>
+                        <th>Pending</th>
+                        <th>Remaining</th>
+                        <th>Limit/Task</th>
+                        <th class="bar-cell">Utilisation</th>
+                    </tr>
+                </thead>
+                <tbody id="deptTableBody">
+                    <tr><td colspan="7" class="muted">Loading…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Project Table -->
+    <div class="section">
+        <div class="section-header">▸ BY PROJECT</div>
+        <div class="section-body">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Project</th>
+                        <th>Total Cost</th>
+                        <th>Executions</th>
+                    </tr>
+                </thead>
+                <tbody id="projectTableBody">
+                    <tr><td colspan="3" class="muted">Loading…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Bot Table -->
+    <div class="section">
+        <div class="section-header">▸ BY BOT / AGENT</div>
+        <div class="section-body">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Bot / Agent</th>
+                        <th>Total Cost</th>
+                        <th>Executions</th>
+                    </tr>
+                </thead>
+                <tbody id="botTableBody">
+                    <tr><td colspan="3" class="muted">Loading…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Budget Management Form -->
+    <div class="section">
+        <div class="section-header">▸ SET / UPDATE DEPARTMENT BUDGET</div>
+        <div class="section-body">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Department ID</label>
+                    <input class="form-input" id="budgetDeptId" type="text" placeholder="e.g. engineering">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Total Budget ($)</label>
+                    <input class="form-input" id="budgetTotal" type="number" min="0" step="0.01" placeholder="1000.00">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Limit Per Task ($)</label>
+                    <input class="form-input" id="budgetLimitPerTask" type="number" min="0" step="0.01" placeholder="50.00">
+                </div>
+                <button class="form-btn" onclick="submitBudget()">SET BUDGET</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cost Assignment Form -->
+    <div class="section">
+        <div class="section-header">▸ ASSIGN COST EVENT</div>
+        <div class="section-body">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Caller / Bot ID</label>
+                    <input class="form-input" id="assignCallerId" type="text" placeholder="e.g. bot-alpha">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Tool Name</label>
+                    <input class="form-input" id="assignToolName" type="text" placeholder="e.g. web_search">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Cost ($)</label>
+                    <input class="form-input" id="assignCost" type="number" min="0" step="0.0001" placeholder="0.05">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Department ID (optional)</label>
+                    <input class="form-input" id="assignDeptId" type="text" placeholder="e.g. engineering">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Project ID (optional)</label>
+                    <input class="form-input" id="assignProjectId" type="text" placeholder="e.g. proj-001">
+                </div>
+                <button class="form-btn" onclick="submitAssign()">ASSIGN COST</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+    // Resolve API base URL — supports ?apiPort= override
+    function resolveApiBase() {
+        const params = new URLSearchParams(window.location.search);
+        const overridePort = params.get('apiPort');
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            const port = overridePort || '8000';
+            return `http://${window.location.hostname}:${port}/api`;
+        }
+        return `${window.location.origin}/api`;
+    }
+
+    const API_BASE = resolveApiBase();
+
+    function fmt(n) {
+        if (n === undefined || n === null) return '—';
+        return '$' + Number(n).toFixed(2);
+    }
+
+    function pct(n) {
+        if (n === undefined || n === null) return '—';
+        return Number(n).toFixed(1) + '%';
+    }
+
+    function barClass(utilPct) {
+        if (utilPct >= 90) return 'danger';
+        if (utilPct >= 70) return 'warn';
+        return '';
+    }
+
+    // --- Toast ---
+    let _toastTimer = null;
+    function showToast(msg, isError) {
+        const el = document.getElementById('toast');
+        el.textContent = msg;
+        el.className = 'toast visible' + (isError ? ' error' : '');
+        clearTimeout(_toastTimer);
+        _toastTimer = setTimeout(() => { el.className = 'toast'; }, 3000);
+    }
+
+    // --- Fetch helpers ---
+    async function fetchSummary() {
+        const r = await fetch(`${API_BASE}/costs/summary`);
+        const d = await r.json();
+        if (!d.success) return;
+        const s = d.summary;
+        document.getElementById('statTotalBudget').textContent = fmt(s.total_budget);
+        document.getElementById('statSpent').textContent = fmt(s.spent);
+        document.getElementById('statPending').textContent = fmt(s.pending);
+        document.getElementById('statRemaining').textContent = fmt(s.remaining);
+        document.getElementById('statDepts').textContent = s.department_count;
+
+        const u = s.utilisation_pct || 0;
+        const uEl = document.getElementById('statUtil');
+        uEl.textContent = pct(u);
+        uEl.className = 'stat-value ' + barClass(u);
+
+        const bar = document.getElementById('summaryBar');
+        bar.style.width = Math.min(u, 100) + '%';
+        bar.className = 'progress-bar-inner ' + barClass(u);
+        document.getElementById('progressLabel').textContent = pct(u);
+    }
+
+    async function fetchDepartments() {
+        const r = await fetch(`${API_BASE}/costs/by-department`);
+        const d = await r.json();
+        const tbody = document.getElementById('deptTableBody');
+        if (!d.success || !d.departments.length) {
+            tbody.innerHTML = '<tr><td colspan="7" class="muted">No departments found.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = d.departments.map(dept => {
+            const u = dept.utilisation_pct || 0;
+            const cls = barClass(u);
+            return `<tr>
+                <td>${dept.department_id}</td>
+                <td>${fmt(dept.total_budget)}</td>
+                <td>${fmt(dept.spent)}</td>
+                <td>${fmt(dept.pending)}</td>
+                <td>${fmt(dept.remaining)}</td>
+                <td>${fmt(dept.limit_per_task)}</td>
+                <td class="bar-cell">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <div class="inline-bar-outer" style="flex:1">
+                            <div class="inline-bar-inner ${cls}" style="width:${Math.min(u,100)}%"></div>
+                        </div>
+                        <span style="font-size:10px;min-width:36px">${pct(u)}</span>
+                    </div>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    async function fetchProjects() {
+        const r = await fetch(`${API_BASE}/costs/by-project`);
+        const d = await r.json();
+        const tbody = document.getElementById('projectTableBody');
+        if (!d.success || !d.projects.length) {
+            tbody.innerHTML = '<tr><td colspan="3" class="muted">No project records.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = d.projects.map(p => `<tr>
+            <td>${p.project_id}</td>
+            <td>${fmt(p.total_cost)}</td>
+            <td>${p.execution_count}</td>
+        </tr>`).join('');
+    }
+
+    async function fetchBots() {
+        const r = await fetch(`${API_BASE}/costs/by-bot`);
+        const d = await r.json();
+        const tbody = document.getElementById('botTableBody');
+        if (!d.success || !d.bots.length) {
+            tbody.innerHTML = '<tr><td colspan="3" class="muted">No bot records.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = d.bots.map(b => `<tr>
+            <td>${b.caller_id}</td>
+            <td>${fmt(b.total_cost)}</td>
+            <td>${b.execution_count}</td>
+        </tr>`).join('');
+    }
+
+    async function refreshAll() {
+        try {
+            await Promise.all([fetchSummary(), fetchDepartments(), fetchProjects(), fetchBots()]);
+            document.getElementById('refreshTs').textContent =
+                'LAST REFRESH: ' + new Date().toLocaleTimeString();
+        } catch (err) {
+            showToast('ERROR: ' + err.message, true);
+        }
+    }
+
+    // --- Form submissions ---
+    async function submitBudget() {
+        const deptId = document.getElementById('budgetDeptId').value.trim();
+        const total = parseFloat(document.getElementById('budgetTotal').value);
+        const limitPt = parseFloat(document.getElementById('budgetLimitPerTask').value || '0');
+        if (!deptId || isNaN(total) || total < 0) {
+            showToast('DEPARTMENT ID AND A NON-NEGATIVE TOTAL BUDGET REQUIRED', true);
+            return;
+        }
+        const r = await fetch(`${API_BASE}/costs/budget`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ department_id: deptId, total_budget: total, limit_per_task: limitPt }),
+        });
+        const d = await r.json();
+        if (d.success) {
+            showToast('BUDGET UPDATED: ' + deptId);
+            refreshAll();
+        } else {
+            showToast('ERROR: ' + (d.error || 'unknown'), true);
+        }
+    }
+
+    async function submitAssign() {
+        const callerId = document.getElementById('assignCallerId').value.trim();
+        const toolName = document.getElementById('assignToolName').value.trim();
+        const cost = parseFloat(document.getElementById('assignCost').value);
+        const deptId = document.getElementById('assignDeptId').value.trim() || undefined;
+        const projId = document.getElementById('assignProjectId').value.trim() || undefined;
+        if (!callerId || !toolName || isNaN(cost) || cost < 0) {
+            showToast('CALLER ID, TOOL NAME AND NON-NEGATIVE COST REQUIRED', true);
+            return;
+        }
+        const payload = { caller_id: callerId, tool_name: toolName, cost };
+        if (deptId) payload.department_id = deptId;
+        if (projId) payload.project_id = projId;
+        const r = await fetch(`${API_BASE}/costs/assign`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        const d = await r.json();
+        if (d.success) {
+            showToast('COST ASSIGNED');
+            refreshAll();
+        } else {
+            showToast('ERROR: ' + (d.error || 'unknown'), true);
+        }
+    }
+
+    // --- Boot ---
+    document.addEventListener('DOMContentLoaded', () => {
+        refreshAll();
+        // Auto-refresh every 30 seconds
+        setInterval(refreshAll, 30000);
+    });
+</script>
+</body>
+</html>

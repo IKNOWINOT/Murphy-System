@@ -217,6 +217,7 @@ class GovernanceKernel:
         cost: float,
         success: bool,
         department_id: Optional[str] = None,
+        project_id: Optional[str] = None,
     ) -> None:
         """Record a completed tool execution for budget and audit purposes.
 
@@ -229,6 +230,8 @@ class GovernanceKernel:
                 When provided the cost is applied to the matching department
                 budget.  When *None* (legacy callers) the first budget with
                 sufficient pending amount is used as a fallback.
+            project_id: Optional project identifier for project-level cost
+                aggregation.  Not required for budget debiting.
         """
         with self._lock:
             if len(self._executions) >= self._MAX_EXECUTIONS:
@@ -240,6 +243,7 @@ class GovernanceKernel:
                 "cost": cost,
                 "success": success,
                 "department_id": department_id,
+                "project_id": project_id,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
             self._executions.append(record)
@@ -452,6 +456,46 @@ class GovernanceKernel:
             "total_executions": total_executions,
             "department_ids": department_ids,
         }
+
+    # ------------------------------------------------------------------
+    # Cost aggregation helpers
+    # ------------------------------------------------------------------
+
+    def get_costs_by_project(self) -> Dict[str, Any]:
+        """Return execution costs aggregated by project_id.
+
+        Returns a mapping of ``project_id -> {total_cost, execution_count}``.
+        Executions without a ``project_id`` are grouped under the key
+        ``"__unassigned__"``.
+        """
+        with self._lock:
+            executions = list(self._executions)
+
+        result: Dict[str, Dict[str, Any]] = {}
+        for rec in executions:
+            pid = rec.get("project_id") or "__unassigned__"
+            if pid not in result:
+                result[pid] = {"project_id": pid, "total_cost": 0.0, "execution_count": 0}
+            result[pid]["total_cost"] += rec.get("cost", 0.0)
+            result[pid]["execution_count"] += 1
+        return result
+
+    def get_costs_by_caller(self) -> Dict[str, Any]:
+        """Return execution costs aggregated by caller_id (bot/agent).
+
+        Returns a mapping of ``caller_id -> {total_cost, execution_count}``.
+        """
+        with self._lock:
+            executions = list(self._executions)
+
+        result: Dict[str, Dict[str, Any]] = {}
+        for rec in executions:
+            cid = rec.get("caller_id") or "__unknown__"
+            if cid not in result:
+                result[cid] = {"caller_id": cid, "total_cost": 0.0, "execution_count": 0}
+            result[cid]["total_cost"] += rec.get("cost", 0.0)
+            result[cid]["execution_count"] += 1
+        return result
 
     # ------------------------------------------------------------------
     # Profit Allocation
