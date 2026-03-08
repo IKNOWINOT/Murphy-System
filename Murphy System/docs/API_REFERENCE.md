@@ -886,3 +886,290 @@ Supply chain overview: inventory levels, recent transactions, reorder alerts.
 ---
 
 *Copyright © 2020 Inoni Limited Liability Company | Creator: Corey Post | License: BSL 1.1*
+
+---
+
+## Crypto Trading Subsystem
+
+> All trading and transfer operations require HITL (Human-in-the-Loop) approval by default.
+> Bots start in `MANUAL` mode; auto-approval requires explicit graduation to `SUPERVISED` or `AUTOMATED`.
+
+---
+
+### `POST /api/trading/bots`
+
+Create a new trading bot.
+
+**Auth:** Required  
+**Body:**
+```json
+{
+  "exchange_id": "coinbase",
+  "pair": "BTC/USDT",
+  "strategy_id": "momentum_btc",
+  "hitl_mode": "manual",
+  "stake_amount_usd": 500,
+  "stop_loss_pct": 0.03,
+  "take_profit_pct": 0.05,
+  "dry_run": true
+}
+```
+**Response 201:** `{ "bot_id": "uuid", "status": "created", "hitl_mode": "manual" }`
+
+---
+
+### `POST /api/trading/bots/{bot_id}/start`
+
+Start a bot's tick loop.
+
+**Auth:** Required  
+**Response 200:** `{ "bot_id": "uuid", "status": "running" }`
+
+---
+
+### `POST /api/trading/bots/{bot_id}/pause`
+
+Pause a running bot (preserves open position).
+
+**Response 200:** `{ "bot_id": "uuid", "status": "paused" }`
+
+---
+
+### `POST /api/trading/bots/{bot_id}/stop`
+
+Gracefully stop a bot.
+
+**Response 200:** `{ "bot_id": "uuid", "status": "stopped" }`
+
+---
+
+### `POST /api/trading/emergency_stop`
+
+Emergency stop all running bots.
+
+**Auth:** Required  
+**Response 200:** `{ "stopped_count": 3 }`
+
+---
+
+### `GET /api/trading/bots/dashboard`
+
+Live summary of all bots, P&L, and status.
+
+**Response 200:**
+```json
+{
+  "total_bots": 3,
+  "running": 2,
+  "paused": 0,
+  "stopped": 1,
+  "total_pnl_usd": 142.50,
+  "bots": [...]
+}
+```
+
+---
+
+### `GET /api/trading/hitl/pending`
+
+List all trades awaiting human approval.
+
+**Auth:** Required  
+**Response 200:**
+```json
+[
+  {
+    "request_id": "uuid",
+    "bot_id": "uuid",
+    "pair": "BTC/USDT",
+    "action": "buy",
+    "confidence": 0.87,
+    "murphy_index": 0.04,
+    "suggested_price": 50000,
+    "suggested_size": 0.01,
+    "reasoning": "momentum rsi=28.3 macd_hist=0.002",
+    "hitl_mode": "manual",
+    "created_at": "2026-03-08T09:00:00Z"
+  }
+]
+```
+
+---
+
+### `POST /api/trading/hitl/{request_id}/approve`
+
+Approve a pending trade.
+
+**Auth:** Required  
+**Body:** `{ "approver": "trader_alice", "notes": "looks good" }`  
+**Response 200:** `{ "placed": true, "request_id": "uuid" }`
+
+---
+
+### `POST /api/trading/hitl/{request_id}/reject`
+
+Reject a pending trade.
+
+**Auth:** Required  
+**Body:** `{ "approver": "trader_bob", "notes": "price too high" }`  
+**Response 200:** `{ "rejected": true }`
+
+---
+
+### `POST /api/trading/hitl/{request_id}/modify`
+
+Modify and approve a pending trade with adjusted parameters.
+
+**Auth:** Required  
+**Body:**
+```json
+{
+  "approver": "trader_carol",
+  "new_size": 0.005,
+  "new_price": 49800,
+  "new_stop": 48500
+}
+```
+**Response 200:** `{ "placed": true }`
+
+---
+
+### `GET /api/trading/hitl/audit`
+
+Retrieve the immutable HITL decision audit log.
+
+**Auth:** Required (admin)  
+**Query:** `?limit=500`  
+**Response 200:** `[ { "audit_id": "uuid", "decision": "approved", "auto": false, "confidence": 0.87, ... } ]`
+
+---
+
+### `GET /api/trading/portfolio`
+
+Full portfolio snapshot with risk metrics.
+
+**Auth:** Required  
+**Response 200:**
+```json
+{
+  "snapshot_id": "uuid",
+  "total_value_usd": 15430.22,
+  "cash_usd": 8200.00,
+  "invested_usd": 7000.00,
+  "unrealized_pnl": 230.22,
+  "realized_pnl": 1142.50,
+  "open_positions": [...],
+  "risk_metrics": {
+    "total_trades": 87,
+    "win_rate": 0.61,
+    "profit_factor": 1.82,
+    "max_drawdown": 0.08,
+    "sharpe_ratio": 1.34
+  }
+}
+```
+
+---
+
+### `GET /api/trading/risk/summary`
+
+Current risk manager state including circuit breakers.
+
+**Auth:** Required  
+**Response 200:**
+```json
+{
+  "open_circuit_breakers": 0,
+  "daily_loss_usd": 45.20,
+  "daily_loss_limit_usd": 500,
+  "open_trades": 2,
+  "consecutive_losses": 0,
+  "sizing_method": "percent_risk"
+}
+```
+
+---
+
+### `POST /api/trading/risk/reset_breakers`
+
+Manually reset open circuit breakers (requires senior approval).
+
+**Auth:** Required (admin)  
+**Response 200:** `{ "resolved_count": 1 }`
+
+---
+
+### `GET /api/trading/market/{exchange}/{pair}/candles`
+
+OHLCV candle history for a pair.
+
+**Auth:** Required  
+**Query:** `?granularity=ONE_HOUR&limit=200`  
+**Response 200:** `{ "candles": [{ "open_time": 1700000000, "open": 50000, "high": 51000, ... }] }`
+
+---
+
+### `GET /api/trading/market/{exchange}/{pair}/indicators`
+
+Computed technical indicators for a pair.
+
+**Auth:** Required  
+**Response 200:**
+```json
+{
+  "pair": "BTC/USDT",
+  "rsi_14": 42.3,
+  "macd": 123.4,
+  "macd_signal": 118.2,
+  "bb_upper": 52000,
+  "bb_mid": 50000,
+  "bb_lower": 48000,
+  "ema_9": 50200,
+  "ema_21": 49800,
+  "vwap": 49950,
+  "atr_14": 850
+}
+```
+
+---
+
+### `GET /api/trading/wallets`
+
+List all registered wallets with balances.
+
+**Auth:** Required  
+**Response 200:**
+```json
+{
+  "total_usd": 18500.0,
+  "wallet_count": 3,
+  "assets": [
+    { "symbol": "BTC", "total_balance": 0.15, "total_usd": 7500 },
+    { "symbol": "ETH", "total_balance": 2.0,  "total_usd": 5000 }
+  ]
+}
+```
+
+---
+
+### `POST /api/trading/wallets/transfer`
+
+Request a wallet transfer (always requires HITL approval).
+
+**Auth:** Required  
+**Body:**
+```json
+{
+  "from_wallet_id": "sw::ethereum::0xdead",
+  "to_address": "0xrecipient",
+  "asset": "ETH",
+  "amount": 0.5,
+  "chain": "ethereum",
+  "notes": "payment to vendor"
+}
+```
+**Response 202:** `{ "queued": true, "request_id": "uuid", "requires_approval": true }`
+
+---
+
+*Copyright © 2020 Inoni Limited Liability Company | Creator: Corey Post | License: BSL 1.1*
