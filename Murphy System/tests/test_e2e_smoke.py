@@ -168,20 +168,36 @@ class TestHealthEndpointSmoke:
 
     def test_health_endpoint_defined(self) -> None:
         """The runtime should define /api/health."""
-        runtime_path = os.path.join(
-            os.path.dirname(__file__), "..", "murphy_system_1.0_runtime.py"
+        # INC-13: Runtime refactored into src/runtime/ package
+        app_path = os.path.join(
+            os.path.dirname(__file__), "..", "src", "runtime", "app.py"
         )
-        with open(runtime_path, "r") as f:
-            content = f.read()
+        if os.path.isfile(app_path):
+            with open(app_path, "r") as f:
+                content = f.read()
+        else:
+            runtime_path = os.path.join(
+                os.path.dirname(__file__), "..", "murphy_system_1.0_runtime.py"
+            )
+            with open(runtime_path, "r") as f:
+                content = f.read()
         assert "/api/health" in content, "Runtime must define /api/health endpoint"
 
     def test_status_endpoint_defined(self) -> None:
         """The runtime should define /api/status."""
-        runtime_path = os.path.join(
-            os.path.dirname(__file__), "..", "murphy_system_1.0_runtime.py"
+        # INC-13: Runtime refactored into src/runtime/ package
+        app_path = os.path.join(
+            os.path.dirname(__file__), "..", "src", "runtime", "app.py"
         )
-        with open(runtime_path, "r") as f:
-            content = f.read()
+        if os.path.isfile(app_path):
+            with open(app_path, "r") as f:
+                content = f.read()
+        else:
+            runtime_path = os.path.join(
+                os.path.dirname(__file__), "..", "murphy_system_1.0_runtime.py"
+            )
+            with open(runtime_path, "r") as f:
+                content = f.read()
         assert "/api/status" in content, "Runtime must define /api/status endpoint"
 
 
