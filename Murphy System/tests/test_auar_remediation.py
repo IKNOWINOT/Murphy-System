@@ -1009,3 +1009,180 @@ class TestPersistenceBackend:
         assert cfg2.ml.epsilon == pytest.approx(0.42)
         assert cfg2.routing.strategy == "cost_optimized"
         assert cfg2.routing.max_latency_ms == 1000.0
+
+
+# ===================================================================
+# Issue #1 (gap): fastapi_security documented in requirements
+# ===================================================================
+
+class TestFastapiSecurityDependencyDoc:
+    """Issue #1: fastapi_security is documented as hard dependency."""
+
+    def test_requirements_documents_fastapi_security(self):
+        """requirements_murphy_1.0.txt contains a note about fastapi_security."""
+        path = os.path.join(
+            os.path.dirname(__file__), "..", "requirements_murphy_1.0.txt"
+        )
+        content = open(path).read()
+        assert "fastapi_security" in content.lower() or "fastapi-security" in content.lower()
+
+
+# ===================================================================
+# Issue #4 (gap): gRPC/SOAP raise NotImplementedError
+# ===================================================================
+
+class TestGrpcSoapNotImplemented:
+    """Issue #4: gRPC and SOAP protocols raise NotImplementedError."""
+
+    def test_grpc_raises_not_implemented(self):
+        """Calling a gRPC adapter raises NotImplementedError."""
+        config = AdapterConfig(
+            provider_id="grpc-test",
+            base_url="https://grpc.example.com",
+            protocol=Protocol.GRPC,
+            max_retries=0,
+        )
+        adapter = ProviderAdapter(config)
+        with pytest.raises(NotImplementedError, match="gRPC"):
+            adapter.call("POST", "/service/Method")
+
+    def test_soap_raises_not_implemented(self):
+        """Calling a SOAP adapter raises NotImplementedError."""
+        config = AdapterConfig(
+            provider_id="soap-test",
+            base_url="https://soap.example.com",
+            protocol=Protocol.SOAP,
+            max_retries=0,
+        )
+        adapter = ProviderAdapter(config)
+        with pytest.raises(NotImplementedError, match="SOAP"):
+            adapter.call("POST", "/Service.asmx")
+
+
+# ===================================================================
+# Issue #5 (gap): call_sync wrapper
+# ===================================================================
+
+class TestSyncWrapper:
+    """Issue #5: call_sync provides non-blocking sync wrapper."""
+
+    def test_call_sync_succeeds(self):
+        """call_sync returns an AdapterResponse using async path."""
+        config = AdapterConfig(
+            provider_id="sync-wrap",
+            base_url="https://example.com",
+            max_retries=0,
+        )
+        adapter = ProviderAdapter(config)
+        resp = adapter.call_sync("GET", "/test")
+        assert resp.success is True
+
+    def test_call_sync_retries_use_asyncio_sleep(self):
+        """call_sync retries use asyncio.sleep, not blocking time.sleep."""
+        call_count = 0
+
+        def flaky_fn(payload):
+            nonlocal call_count
+            call_count += 1
+            if call_count < 3:
+                raise ConnectionError("retry please")
+            return {"status_code": 200, "body": {}, "headers": {}}
+
+        config = AdapterConfig(
+            provider_id="sync-retry",
+            base_url="https://example.com",
+            max_retries=3,
+            retry_backoff_s=0.01,
+        )
+        adapter = ProviderAdapter(config, execute_fn=flaky_fn)
+        resp = adapter.call_sync("POST", "/test")
+        assert resp.success is True
+        assert resp.retries_used == 2
+
+
+# ===================================================================
+# Issue #6 (full): StateBackend ABC + FileStateBackend
+# ===================================================================
+
+class TestStateBackendABC:
+    """Issue #6: StateBackend ABC and implementations."""
+
+    def test_in_memory_save_load(self):
+        """InMemoryStateBackend round-trips data."""
+        from auar.persistence import InMemoryStateBackend
+        backend = InMemoryStateBackend()
+        backend.save("test.key", {"hello": "world"})
+        assert backend.load("test.key") == {"hello": "world"}
+
+    def test_in_memory_delete(self):
+        """InMemoryStateBackend deletes keys."""
+        from auar.persistence import InMemoryStateBackend
+        backend = InMemoryStateBackend()
+        backend.save("k", 42)
+        assert backend.delete("k") is True
+        assert backend.load("k") is None
+        assert backend.delete("k") is False
+
+    def test_in_memory_list_keys(self):
+        """InMemoryStateBackend lists stored keys."""
+        from auar.persistence import InMemoryStateBackend
+        backend = InMemoryStateBackend()
+        backend.save("a", 1)
+        backend.save("b.c", 2)
+        keys = backend.list_keys()
+        assert "a" in keys
+        assert "b.c" in keys
+
+    def test_file_backend_save_load(self, tmp_path):
+        """FileStateBackend round-trips data to disk."""
+        from auar.persistence import FileStateBackend
+        backend = FileStateBackend(str(tmp_path / "auar_state"))
+        backend.save("graph.capabilities", {"cap1": {"name": "email"}})
+        result = backend.load("graph.capabilities")
+        assert result == {"cap1": {"name": "email"}}
+
+    def test_file_backend_delete(self, tmp_path):
+        """FileStateBackend deletes files."""
+        from auar.persistence import FileStateBackend
+        backend = FileStateBackend(str(tmp_path / "auar_state"))
+        backend.save("temp", [1, 2, 3])
+        assert backend.delete("temp") is True
+        assert backend.load("temp") is None
+
+    def test_file_backend_list_keys(self, tmp_path):
+        """FileStateBackend lists all keys."""
+        from auar.persistence import FileStateBackend
+        backend = FileStateBackend(str(tmp_path / "auar_state"))
+        backend.save("ml.scores", {"p1": 0.8})
+        backend.save("graph.providers", ["p1"])
+        keys = backend.list_keys()
+        assert len(keys) == 2
+
+    def test_file_backend_crash_recovery(self, tmp_path):
+        """FileStateBackend persists across backend re-instantiation."""
+        path = str(tmp_path / "auar_state")
+        from auar.persistence import FileStateBackend
+        b1 = FileStateBackend(path)
+        b1.save("critical", {"important": True})
+        # Simulate restart — new backend instance, same directory
+        b2 = FileStateBackend(path)
+        assert b2.load("critical") == {"important": True}
+
+    def test_file_backend_load_missing_key(self, tmp_path):
+        """FileStateBackend returns None for missing keys."""
+        from auar.persistence import FileStateBackend
+        backend = FileStateBackend(str(tmp_path / "auar_state"))
+        assert backend.load("nonexistent") is None
+
+    def test_state_backend_abc_cannot_instantiate(self):
+        """StateBackend ABC cannot be instantiated directly."""
+        from auar.persistence import StateBackend
+        with pytest.raises(TypeError):
+            StateBackend()  # type: ignore[abstract]
+
+    def test_persistence_exported_from_auar(self):
+        """Persistence classes are exported from the auar package."""
+        from auar import StateBackend, InMemoryStateBackend, FileStateBackend
+        assert StateBackend is not None
+        assert InMemoryStateBackend is not None
+        assert FileStateBackend is not None

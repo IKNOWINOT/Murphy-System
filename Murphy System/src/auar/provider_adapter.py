@@ -197,7 +197,8 @@ class ProviderAdapter:
 
         For REST requests the payload is returned unchanged.  For
         GRAPHQL the body is wrapped in the standard ``{"query": …,
-        "variables": …}`` envelope.
+        "variables": …}`` envelope.  gRPC and SOAP are not yet
+        implemented and will raise :class:`NotImplementedError`.
         """
         protocol = self.config.protocol
         if protocol == Protocol.GRAPHQL:
@@ -205,7 +206,17 @@ class ProviderAdapter:
             query = body.pop("query", "")
             wrapped_body = {"query": query, "variables": body}
             return {**payload, "body": wrapped_body, "method": "POST"}
-        # REST (and stubs for gRPC/SOAP) — pass through
+        if protocol == Protocol.GRPC:
+            raise NotImplementedError(
+                "gRPC protocol support is not yet implemented. "
+                "Use REST or GraphQL, or provide a custom execute_fn."
+            )
+        if protocol == Protocol.SOAP:
+            raise NotImplementedError(
+                "SOAP protocol support is not yet implemented. "
+                "Use REST or GraphQL, or provide a custom execute_fn."
+            )
+        # REST — pass through
         return payload
 
     # -- Execution ----------------------------------------------------------
@@ -263,6 +274,33 @@ class ProviderAdapter:
         response = await self._async_execute_with_retries(request_payload)
         response.latency_ms = (time.monotonic() - start) * 1000
         return response
+
+    def call_sync(
+        self,
+        method: str,
+        path: str,
+        body: Optional[Dict[str, Any]] = None,
+        query_params: Optional[Dict[str, str]] = None,
+    ) -> AdapterResponse:
+        """Synchronous wrapper that runs the async call path.
+
+        Suitable for CLI or testing contexts where an event loop is not
+        already running.  Uses :func:`asyncio.run` so that retries use
+        ``asyncio.sleep`` instead of blocking ``time.sleep``.
+        """
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop and loop.is_running():
+            # Already inside an async context — fall back to the
+            # blocking call() to avoid nested event-loop errors.
+            return self.call(method, path, body, query_params)
+
+        return asyncio.run(
+            self.async_call(method, path, body, query_params)
+        )
 
     def _execute_with_retries(self, payload: Dict[str, Any]) -> AdapterResponse:
         last_error = ""
