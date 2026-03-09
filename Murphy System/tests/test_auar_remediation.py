@@ -1023,7 +1023,8 @@ class TestFastapiSecurityDependencyDoc:
         path = os.path.join(
             os.path.dirname(__file__), "..", "requirements_murphy_1.0.txt"
         )
-        content = open(path).read()
+        with open(path) as f:
+            content = f.read()
         assert "fastapi_security" in content.lower() or "fastapi-security" in content.lower()
 
 
