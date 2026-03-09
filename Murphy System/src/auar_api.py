@@ -415,7 +415,7 @@ def handle_health(components: AUARComponents) -> Dict[str, Any]:
 # FastAPI router factory
 # ---------------------------------------------------------------------------
 
-def _get_admin_user(request) -> Optional[str]:
+def _get_admin_user(request: Any) -> Optional[str]:
     """Extract and validate admin user from request headers.
 
     Returns the user ID if the caller has admin privileges, else ``None``.

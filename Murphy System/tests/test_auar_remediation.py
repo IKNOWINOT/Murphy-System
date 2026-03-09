@@ -339,8 +339,8 @@ class TestAsyncProviderCalls:
         """httpx execute factory creates a callable when httpx is installed."""
         config = AdapterConfig(base_url="https://example.com", timeout_s=5)
         factory = ProviderAdapter._httpx_execute_factory(config)
-        # httpx is installed, so factory should not be None
-        assert factory is not None or True  # passes either way
+        # httpx is installed in our test env
+        assert factory is not None
 
 
 # ===================================================================
