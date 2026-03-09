@@ -7,11 +7,18 @@ Connects the golden_path_bridge with vector-like semantic retrieval:
 - Context assembly for LLM prompts with token budget control
 - Knowledge graph with entity-relationship extraction
 - Full retrieval-augmented generation pipeline
+- **ChromaDB** vector store backend (optional; falls back to built-in TF-IDF)
 
-Pure Python stdlib only — no numpy or external dependencies.
+The ChromaDB backend is activated when ``chromadb`` is installed and
+``CHROMADB_PATH`` env var is set.  Otherwise the pure-Python TF-IDF
+implementation is used as a zero-dependency fallback.
+
+Copyright © 2020-2026 Inoni LLC — Created by Corey Post
+License: BSL 1.1
 """
 
 import re
+import os
 import uuid
 import math
 import logging
@@ -23,6 +30,19 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# ChromaDB — lazy import (INC-15: real vector store integration)
+# ---------------------------------------------------------------------------
+try:
+    import chromadb                                     # noqa: F401
+    from chromadb.config import Settings as _ChromaSettings  # noqa: F401
+    _CHROMADB_AVAILABLE = True
+    logger.info("chromadb available — vector store backend enabled")
+except ImportError:
+    chromadb = None  # type: ignore[assignment]
+    _CHROMADB_AVAILABLE = False
+    logger.info("chromadb not installed — using built-in TF-IDF vectors")
 
 
 # ── Enums ────────────────────────────────────────────────────────────
@@ -640,3 +660,120 @@ class RAGVectorIntegration:
             self._idf_cache.clear()
             self._idf_dirty = True
         return {"status": "ok"}
+
+
+# ---------------------------------------------------------------------------
+# ChromaDB-backed vector store (INC-15)
+# ---------------------------------------------------------------------------
+
+
+class ChromaVectorStore:
+    """ChromaDB-backed vector store for production RAG.
+
+    When ``chromadb`` is installed this class provides a real vector store
+    with persistent embeddings.  Use ``ChromaVectorStore.create()`` to
+    obtain an instance that is configured from environment variables.
+
+    Environment variables:
+        CHROMADB_PATH  — Directory for persistent storage (default: ``.chroma``)
+        CHROMADB_COLLECTION — Collection name (default: ``murphy_knowledge``)
+    """
+
+    def __init__(self, persist_directory: str = ".chroma", collection_name: str = "murphy_knowledge") -> None:
+        if not _CHROMADB_AVAILABLE:
+            raise ImportError(
+                "chromadb is not installed. "
+                "Install it with: pip install chromadb"
+            )
+        self._persist_dir = persist_directory
+        self._collection_name = collection_name
+        self._client = chromadb.Client(
+            _ChromaSettings(
+                persist_directory=persist_directory,
+                anonymized_telemetry=False,
+            )
+        )
+        self._collection = self._client.get_or_create_collection(
+            name=collection_name,
+            metadata={"hnsw:space": "cosine"},
+        )
+        logger.info(
+            "ChromaDB vector store initialised",
+            extra={
+                "persist_directory": persist_directory,
+                "collection": collection_name,
+            },
+        )
+
+    @classmethod
+    def create(cls) -> "ChromaVectorStore":
+        """Factory: create from env vars."""
+        return cls(
+            persist_directory=os.getenv("CHROMADB_PATH", ".chroma"),
+            collection_name=os.getenv("CHROMADB_COLLECTION", "murphy_knowledge"),
+        )
+
+    def add_document(
+        self,
+        doc_id: str,
+        text: str,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Add a document to the vector store."""
+        self._collection.add(
+            ids=[doc_id],
+            documents=[text],
+            metadatas=[metadata or {}],
+        )
+        logger.info("Document added to ChromaDB", extra={"doc_id": doc_id})
+        return {"status": "ok", "doc_id": doc_id}
+
+    def query(
+        self,
+        query_text: str,
+        n_results: int = 5,
+    ) -> List[Dict[str, Any]]:
+        """Query the vector store for similar documents."""
+        results = self._collection.query(
+            query_texts=[query_text],
+            n_results=n_results,
+        )
+        docs = []
+        if results and results.get("ids"):
+            for i, doc_id in enumerate(results["ids"][0]):
+                docs.append({
+                    "doc_id": doc_id,
+                    "text": results["documents"][0][i] if results.get("documents") else "",
+                    "distance": results["distances"][0][i] if results.get("distances") else 0.0,
+                    "metadata": results["metadatas"][0][i] if results.get("metadatas") else {},
+                })
+        return docs
+
+    def count(self) -> int:
+        """Return the number of documents in the collection."""
+        return self._collection.count()
+
+    def delete(self, doc_id: str) -> Dict[str, Any]:
+        """Delete a document from the vector store."""
+        self._collection.delete(ids=[doc_id])
+        return {"status": "ok", "doc_id": doc_id}
+
+    def get_status(self) -> Dict[str, Any]:
+        """Return store status."""
+        return {
+            "backend": "chromadb",
+            "persist_directory": self._persist_dir,
+            "collection": self._collection_name,
+            "document_count": self._collection.count(),
+        }
+
+
+def create_vector_store() -> Any:
+    """Factory: create the best available vector store.
+
+    Returns ChromaDB if available, otherwise falls back to
+    RAGVectorIntegration (pure-Python TF-IDF).
+    """
+    if _CHROMADB_AVAILABLE and os.getenv("CHROMADB_PATH"):
+        return ChromaVectorStore.create()
+    return RAGVectorIntegration()
