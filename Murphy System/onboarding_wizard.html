@@ -1,970 +1,785 @@
+<!--
+  Murphy System — Onboarding Wizard
+  © 2020 Inoni Limited Liability Company by Corey Post
+  License: BSL 1.1 (Business Source License 1.1)
+  See LICENSE file in repository root for full terms.
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Murphy System — No-Code Onboarding Wizard</title>
-    <style>
-        :root {
-            --bg: #0a0a0a;
-            --surface: #0f0f0f;
-            --border: #333;
-            --accent: #00ff41;
-            --accent-dim: #00cc33;
-            --text: #00ff41;
-            --text-dim: #888;
-            --error: #ff0000;
-            --warning: #ffcc00;
-            --info: #0088ff;
-            --cyan: #00ffff;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Courier New', monospace;
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .header {
-            width: 100%;
-            padding: 15px 40px;
-            background: var(--surface);
-            border-bottom: 2px solid var(--accent);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .header h1 { font-size: 1.2rem; color: var(--accent); }
-        .header .status { font-size: 0.85rem; color: var(--text-dim); }
-        .header .status.online { color: var(--accent); }
-
-        .container {
-            max-width: 800px;
-            width: 100%;
-            padding: 30px 20px;
-            flex: 1;
-        }
-
-        /* Progress bar */
-        .progress-bar {
-            width: 100%;
-            height: 12px;
-            background: var(--border);
-            border-radius: 6px;
-            margin-bottom: 30px;
-            overflow: hidden;
-        }
-        .progress-fill {
-            height: 100%;
-            background: var(--accent);
-            border-radius: 6px;
-            transition: width 0.4s ease;
-        }
-        .progress-text {
-            text-align: center;
-            color: var(--text-dim);
-            font-size: 0.85rem;
-            margin-bottom: 10px;
-        }
-
-        /* Welcome screen */
-        .welcome {
-            text-align: center;
-            padding: 60px 20px;
-        }
-        .welcome h2 { font-size: 2rem; color: var(--accent); margin-bottom: 16px; }
-        .welcome p { color: var(--text-dim); font-size: 1.1rem; margin-bottom: 30px; line-height: 1.6; }
-
-        /* Question card */
-        .question-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 5px;
-            padding: 30px;
-            margin-bottom: 20px;
-            transition: opacity 0.3s ease;
-        }
-        .question-card .q-number {
-            color: var(--accent);
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 8px;
-        }
-        .question-card h3 {
-            font-size: 1.3rem;
-            margin-bottom: 20px;
-            color: var(--text);
-        }
-
-        /* Input styles */
-        .text-input {
-            width: 100%;
-            padding: 12px 16px;
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 3px;
-            color: var(--text);
-            font-size: 1rem;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-        .text-input:focus { border-color: var(--accent); outline: 2px solid var(--accent); outline-offset: -2px; }
-
-        .option-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 10px;
-        }
-        .option-btn {
-            padding: 12px 16px;
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 3px;
-            color: var(--text);
-            font-size: 0.95rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-align: center;
-        }
-        .option-btn:hover { border-color: var(--accent); background: #001a00; }
-        .option-btn.selected {
-            border-color: var(--accent);
-            background: #002200;
-            color: var(--accent);
-        }
-
-        .bool-group { display: flex; gap: 12px; }
-        .bool-btn {
-            flex: 1;
-            padding: 14px;
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 3px;
-            color: var(--text);
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-align: center;
-        }
-        .bool-btn:hover { border-color: var(--accent); }
-        .bool-btn.selected {
-            border-color: var(--accent);
-            background: #002200;
-            color: var(--accent);
-        }
-
-        /* Navigation */
-        .nav-bar {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 20px;
-        }
-        .nav-btn {
-            padding: 12px 28px;
-            border-radius: 3px;
-            font-size: 1rem;
-            cursor: pointer;
-            border: none;
-            transition: all 0.2s;
-        }
-        .nav-btn.back {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            color: var(--text-dim);
-        }
-        .nav-btn.back:hover { border-color: var(--text-dim); color: var(--text); }
-        .nav-btn.next {
-            background: var(--accent);
-            color: #000;
-            font-weight: 600;
-        }
-        .nav-btn.next:hover { background: var(--accent-dim); }
-        .nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-        /* Error/validation */
-        .error-msg {
-            color: var(--error);
-            font-size: 0.9rem;
-            margin-top: 8px;
-            display: none;
-        }
-
-        /* Summary screen */
-        .summary { background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 30px; }
-        .summary h2 { color: var(--accent); margin-bottom: 20px; }
-        .summary-section { margin-bottom: 16px; }
-        .summary-section h4 { color: var(--accent); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
-        .summary-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); }
-        .summary-row .label { color: var(--text-dim); }
-        .summary-row .value { color: var(--text); }
-        .module-list, .bot-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-top: 6px;
-        }
-        .tag {
-            padding: 4px 10px;
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            font-size: 0.8rem;
-            color: var(--accent);
-        }
-
-        .validation-issues {
-            background: #1a1000;
-            border: 1px solid var(--warning);
-            border-radius: 3px;
-            padding: 16px;
-            margin-bottom: 16px;
-        }
-        .validation-issues h4 { color: var(--warning); margin-bottom: 8px; }
-        .validation-issues li { color: var(--warning); margin-left: 16px; font-size: 0.9rem; }
-
-        .success-banner {
-            text-align: center;
-            padding: 40px;
-            background: #002200;
-            border: 2px solid var(--accent);
-            border-radius: 5px;
-            margin-top: 20px;
-        }
-        .success-banner h2 { color: var(--accent); margin-bottom: 10px; }
-        .success-banner p { color: var(--text-dim); }
-
-        /* Onboarding tab */
-        .tab-bar {
-            display: flex;
-            gap: 0;
-            margin-bottom: 30px;
-            border-bottom: 1px solid var(--border);
-        }
-        .tab-btn {
-            padding: 12px 24px;
-            background: none;
-            border: none;
-            border-bottom: 2px solid transparent;
-            color: var(--text-dim);
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .tab-btn:hover { color: var(--text); }
-        .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-
-        /* Employee onboarding forms */
-        .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; color: var(--text-dim); font-size: 0.85rem; margin-bottom: 6px; }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-
-        .profile-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 5px;
-            padding: 20px;
-            margin-bottom: 12px;
-        }
-        .profile-card h4 { color: var(--accent); margin-bottom: 8px; }
-        .profile-card .meta { color: var(--text-dim); font-size: 0.85rem; }
-        .task-list { margin-top: 12px; }
-        .task-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 12px;
-            border-bottom: 1px solid var(--border);
-            font-size: 0.9rem;
-        }
-        .task-item .task-status {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            border: 2px solid var(--border);
-            cursor: pointer;
-            transition: all 0.2s;
-            flex-shrink: 0;
-        }
-        .task-item .task-status.completed {
-            background: var(--accent);
-            border-color: var(--accent);
-        }
-        .task-item .task-status.skipped {
-            background: var(--warning);
-            border-color: var(--warning);
-        }
-        .task-item .task-title { flex: 1; }
-        .task-item .task-category {
-            font-size: 0.75rem;
-            color: var(--text-dim);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .task-item .skip-btn {
-            font-size: 0.75rem;
-            color: var(--text-dim);
-            background: none;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            padding: 2px 8px;
-            cursor: pointer;
-        }
-        .task-item .skip-btn:hover { color: var(--warning); border-color: var(--warning); }
-
-        .progress-inline {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-top: 8px;
-        }
-        .progress-inline .bar {
-            flex: 1;
-            height: 4px;
-            background: var(--border);
-            border-radius: 2px;
-            overflow: hidden;
-        }
-        .progress-inline .bar .fill {
-            height: 100%;
-            background: var(--accent);
-            transition: width 0.3s;
-        }
-        .progress-inline .pct { color: var(--accent); font-size: 0.85rem; min-width: 45px; text-align: right; }
-
-        /* Responsive */
-        @media (max-width: 600px) {
-            .option-grid { grid-template-columns: 1fr; }
-            .form-row { grid-template-columns: 1fr; }
-            .tab-bar { flex-wrap: wrap; }
-            .tab-btn { flex: 1; min-width: 120px; text-align: center; font-size: 0.85rem; padding: 10px 12px; }
-            .header { flex-direction: column; gap: 6px; padding: 12px 16px; }
-            .header h1 { font-size: 1rem; text-align: center; }
-        }
-
-        /* Focus-visible (a11y) */
-        .nav-btn:focus-visible,
-        .option-btn:focus-visible,
-        .bool-btn:focus-visible,
-        .tab-btn:focus-visible,
-        .text-input:focus-visible,
-        .skip-btn:focus-visible {
-            outline: 2px solid var(--cyan);
-            outline-offset: 2px;
-        }
-
-        /* Skip to content (a11y) */
-        .skip-link {
-            position: absolute;
-            top: -100%;
-            left: 0;
-            background: var(--accent);
-            color: #000;
-            padding: 8px 16px;
-            z-index: 10000;
-            font-weight: bold;
-        }
-        .skip-link:focus { top: 0; }
-        /* ── Color Key Legend ────────────────────────────── */
-        .color-key {
-            display: flex;
-            gap: 14px;
-            padding: 4px 15px;
-            background: #111;
-            border-bottom: 1px solid #333;
-            font-size: 11px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-        .color-key-label {
-            color: #666;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-right: 4px;
-        }
-        .color-key-item {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .color-key-swatch {
-            width: 10px;
-            height: 10px;
-            border-radius: 2px;
-            display: inline-block;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — Welcome</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
 </head>
-<body>
-    <a class="skip-link" href="#wizardContent">Skip to content</a>
-    <div class="header" role="banner">
-        <h1>☠ Murphy System — No-Code Onboarding ☠</h1>
-        <div class="status" id="connStatus">Connecting...</div>
-    </div>
-    <div class="color-key">
-        <span class="color-key-label">Color Key:</span>
-        <span class="color-key-item"><span class="color-key-swatch" style="background:var(--accent)"></span><span style="color:var(--accent)">Success / Accent</span></span>
-        <span class="color-key-item"><span class="color-key-swatch" style="background:var(--info)"></span><span style="color:var(--info)">Info</span></span>
-        <span class="color-key-item"><span class="color-key-swatch" style="background:var(--warning)"></span><span style="color:var(--warning)">Warning</span></span>
-        <span class="color-key-item"><span class="color-key-swatch" style="background:var(--error)"></span><span style="color:var(--error)">Error</span></span>
-    </div>
+<body style="--accent: #FFD166;">
 
-    <div class="container" id="wizardContent" role="main">
-        <div class="tab-bar">
-            <button class="tab-btn active" onclick="switchTab('wizard')">System Setup Wizard</button>
-            <button class="tab-btn" onclick="switchTab('employees')">Employee Onboarding</button>
-        </div>
+<a class="murphy-skip-link" href="#wizard-content">Skip to content</a>
 
-        <!-- ============ SYSTEM SETUP WIZARD TAB ============ -->
-        <div class="tab-content active" id="tab-wizard">
-            <div id="wizardWelcome" class="welcome">
-                <h2>☠ Welcome to Murphy System</h2>
-                <p>This no-code wizard will configure your entire Murphy System in just a few steps.<br>
-                No coding required — describe what you need in plain English.<br>
-                Murphy interprets your intent, raises confidence with follow-up questions, and generates the configuration.</p>
-                <button class="nav-btn next" onclick="startWizard()">Start Setup →</button>
-            </div>
+<main id="wizard-content" role="main" style="max-width:680px;margin:0 auto;padding:2rem;">
 
-            <div id="wizardActive" style="display:none;">
-                <div class="progress-text" id="progressText">Question 1 of 12</div>
-                <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+  <!-- Murphy Logo -->
+  <div class="flex justify-center" style="margin-bottom:1.5rem;">
+    <svg width="48" height="48" aria-label="Murphy System logo">
+      <use href="static/murphy-icons.svg#icon-workflow"></use>
+    </svg>
+  </div>
 
-                <div class="question-card" id="questionCard">
-                    <div class="q-number" id="qNumber">Question 1</div>
-                    <h3 id="qText">Loading...</h3>
-                    <div id="qInput"></div>
-                    <div class="error-msg" id="qError" role="alert" aria-live="assertive"></div>
-                </div>
+  <!-- Step Indicator Dots -->
+  <nav aria-label="Onboarding progress" class="flex justify-center gap-2" style="margin-bottom:2rem;">
+    <span class="step-dot" data-step="1" role="img" aria-label="Step 1: Conversation"></span>
+    <span class="step-dot" data-step="2" role="img" aria-label="Step 2: Plan"></span>
+    <span class="step-dot" data-step="3" role="img" aria-label="Step 3: Connections"></span>
+    <span class="step-dot" data-step="4" role="img" aria-label="Step 4: Safety"></span>
+    <span class="step-dot" data-step="5" role="img" aria-label="Step 5: Ready"></span>
+  </nav>
 
-                <div class="nav-bar">
-                    <button class="nav-btn back" id="btnBack" onclick="prevQuestion()" disabled>← Back</button>
-                    <button class="nav-btn next" id="btnNext" onclick="nextQuestion()">Next →</button>
-                </div>
-            </div>
+  <!-- Dynamic Content Area -->
+  <div id="step-container" aria-live="polite"></div>
 
-            <div id="wizardSummary" style="display:none;"></div>
-        </div>
+</main>
 
-        <!-- ============ EMPLOYEE ONBOARDING TAB ============ -->
-        <div class="tab-content" id="tab-employees">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2 style="color: var(--accent);">Employee Onboarding</h2>
-                <button class="nav-btn next" onclick="showNewEmployeeForm()">+ New Employee</button>
-            </div>
+<script src="static/murphy-components.js"></script>
+<script>
+(function () {
+  'use strict';
 
-            <div id="newEmployeeForm" style="display: none;">
-                <div class="question-card">
-                    <h3>New Employee Onboarding</h3>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Employee Name *</label>
-                            <input type="text" class="text-input" id="empName" placeholder="Jane Smith">
-                        </div>
-                        <div class="form-group">
-                            <label>Role *</label>
-                            <input type="text" class="text-input" id="empRole" placeholder="Backend Engineer">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Department *</label>
-                            <select class="text-input" id="empDept">
-                                <option value="engineering">Engineering</option>
-                                <option value="support">Support</option>
-                                <option value="sales">Sales</option>
-                                <option value="marketing">Marketing</option>
-                                <option value="finance">Finance</option>
-                                <option value="hr">HR</option>
-                                <option value="other">Other</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Mentor (optional)</label>
-                            <input type="text" class="text-input" id="empMentor" placeholder="Senior team member">
-                        </div>
-                    </div>
-                    <div class="nav-bar">
-                        <button class="nav-btn back" onclick="hideNewEmployeeForm()">Cancel</button>
-                        <button class="nav-btn next" onclick="createEmployee()">Create Onboarding →</button>
-                    </div>
-                    <div class="error-msg" id="empError" role="alert" aria-live="assertive" style="display:none;"></div>
-                </div>
-            </div>
+  var api = new MurphyAPI('/api');
+  var theme = new MurphyTheme();
+  theme.init();
 
-            <div id="employeeList"></div>
-        </div>
-    </div>
+  // ── State ──────────────────────────────────────────────
+  var currentStep = 1;
+  var chatHistory = [];
+  var exchangeCount = 0;
+  var selectedModules = [];
+  var selectedIntegrations = [];
+  var credentials = {};
+  var safetyLevel = 3;
+  var recommendedTerminal = 'terminal_unified.html';
+  var librarianConfig = null;
 
-    <script>
-        // ============ Configuration ============
-        const API_PORTS = [8000, 8080, 5000];
-        let API_BASE = '';
-        let systemOnline = false;
+  // ── DOM refs ───────────────────────────────────────────
+  var container = document.getElementById('step-container');
+  var stepDots = document.querySelectorAll('.step-dot');
 
-        // ============ Setup Wizard State ============
-        let questions = [];
-        let currentQ = 0;
-        let answers = {};
+  // ── Safety level descriptions ──────────────────────────
+  var safetyLabels = [
+    '',
+    'Always ask me first — Murphy will confirm every action before executing.',
+    'Ask for important decisions — routine work proceeds, big calls need your OK.',
+    'Handle routine tasks, ask for complex ones — a balanced mix of speed and control.',
+    'Handle most things, alert me on changes — Murphy runs the show, you stay informed.',
+    'Full automation — Murphy handles everything and sends you reports.'
+  ];
 
-        // ============ API Resolution ============
-        async function resolveApiBase() {
-            for (const port of API_PORTS) {
-                try {
-                    const url = `http://localhost:${port}`;
-                    const controller = new AbortController();
-                    const timer = setTimeout(() => controller.abort(), 2000);
-                    const resp = await fetch(`${url}/api/health`, { signal: controller.signal });
-                    clearTimeout(timer);
-                    if (resp.ok) {
-                        API_BASE = url;
-                        systemOnline = true;
-                        document.getElementById('connStatus').textContent = `Online (port ${port})`;
-                        document.getElementById('connStatus').className = 'status online';
-                        return;
-                    }
-                } catch (_) {}
+  var safetyNames = [
+    '',
+    'Full HITL',
+    'Important Decisions',
+    'Balanced (Recommended)',
+    'Mostly Autonomous',
+    'Full Automation'
+  ];
+
+  // ── Helpers ────────────────────────────────────────────
+  function el(tag, attrs, children) {
+    var node = document.createElement(tag);
+    if (attrs) {
+      Object.keys(attrs).forEach(function (k) {
+        if (k === 'className') { node.className = attrs[k]; }
+        else if (k === 'textContent') { node.textContent = attrs[k]; }
+        else if (k === 'innerHTML') { node.innerHTML = attrs[k]; }
+        else if (k.slice(0, 2) === 'on') { node.addEventListener(k.slice(2).toLowerCase(), attrs[k]); }
+        else { node.setAttribute(k, attrs[k]); }
+      });
+    }
+    if (children) {
+      children.forEach(function (c) {
+        if (typeof c === 'string') { node.appendChild(document.createTextNode(c)); }
+        else if (c) { node.appendChild(c); }
+      });
+    }
+    return node;
+  }
+
+  function icon(name, size) {
+    var s = size || 20;
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', s);
+    svg.setAttribute('height', s);
+    svg.setAttribute('aria-hidden', 'true');
+    var use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+    use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'static/murphy-icons.svg#icon-' + name);
+    svg.appendChild(use);
+    return svg;
+  }
+
+  function clearContainer() {
+    container.innerHTML = '';
+  }
+
+  // ── Step dot updates ───────────────────────────────────
+  function updateDots() {
+    stepDots.forEach(function (dot) {
+      var s = parseInt(dot.getAttribute('data-step'), 10);
+      dot.classList.remove('step-dot-active', 'step-dot-done');
+      if (s === currentStep) { dot.classList.add('step-dot-active'); }
+      else if (s < currentStep) { dot.classList.add('step-dot-done'); }
+    });
+  }
+
+  // ── Navigation buttons ─────────────────────────────────
+  function navBar(opts) {
+    var bar = el('div', { className: 'flex justify-between items-center', style: 'margin-top:1.5rem;' });
+    if (opts.back) {
+      var backBtn = el('button', {
+        className: 'murphy-btn murphy-btn-ghost',
+        textContent: '← Back',
+        onClick: function () { goToStep(currentStep - 1); }
+      });
+      bar.appendChild(backBtn);
+    } else {
+      bar.appendChild(el('span'));
+    }
+    if (opts.next) {
+      var nextBtn = el('button', {
+        className: 'murphy-btn murphy-btn-primary',
+        textContent: opts.nextLabel || 'Continue →',
+        onClick: opts.next
+      });
+      if (opts.nextId) { nextBtn.id = opts.nextId; }
+      if (opts.nextDisabled) { nextBtn.disabled = true; }
+      bar.appendChild(nextBtn);
+    }
+    return bar;
+  }
+
+  // ── Go to step ─────────────────────────────────────────
+  function goToStep(step) {
+    if (step < 1 || step > 5) return;
+    currentStep = step;
+    updateDots();
+    renderStep(step);
+  }
+
+  // ── Step router ────────────────────────────────────────
+  function renderStep(step) {
+    clearContainer();
+    switch (step) {
+      case 1: renderConversation(); break;
+      case 2: renderPlan(); break;
+      case 3: renderConnections(); break;
+      case 4: renderSafety(); break;
+      case 5: renderReady(); break;
+    }
+  }
+
+  // ════════════════════════════════════════════════════════
+  //  STEP 1 — The Conversation
+  // ════════════════════════════════════════════════════════
+  function renderConversation() {
+    var wrapper = el('div', { className: 'flex flex-col', style: 'height:calc(100vh - 12rem);' });
+
+    // Chat area
+    var chatArea = el('div', { id: 'chat-area', className: 'flex-1', style: 'overflow-y:auto;padding-bottom:1rem;' });
+    wrapper.appendChild(chatArea);
+
+    // Render existing history
+    chatHistory.forEach(function (msg) {
+      chatArea.appendChild(chatBubble(msg.role, msg.content));
+    });
+
+    // Seed the greeting if first visit
+    if (chatHistory.length === 0) {
+      var greeting = "Hi! I'm Murphy's Librarian. Tell me about your business and what you'd like to automate — in your own words. No technical jargon needed.";
+      chatHistory.push({ role: 'assistant', content: greeting });
+      chatArea.appendChild(chatBubble('assistant', greeting));
+    }
+
+    // Input area
+    var inputRow = el('div', { className: 'flex gap-2 items-end', style: 'margin-top:auto;' });
+    var input = el('input', {
+      type: 'text',
+      className: 'murphy-input murphy-chat-input flex-1',
+      placeholder: 'Tell Murphy about your business…',
+      'aria-label': 'Chat message'
+    });
+    var sendBtn = el('button', {
+      className: 'murphy-btn murphy-btn-primary murphy-btn-icon',
+      'aria-label': 'Send message'
+    });
+    sendBtn.appendChild(icon('chat', 18));
+
+    function sendMessage() {
+      var text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+
+      chatHistory.push({ role: 'user', content: text });
+      chatArea.appendChild(chatBubble('user', text));
+      chatArea.scrollTop = chatArea.scrollHeight;
+
+      // Send to Librarian
+      var typingEl = chatBubble('assistant', '…');
+      typingEl.classList.add('murphy-animate-pulse');
+      chatArea.appendChild(typingEl);
+      chatArea.scrollTop = chatArea.scrollHeight;
+
+      api.post('/librarian/ask', { question: text, context: 'onboarding' })
+        .then(function (res) {
+          chatArea.removeChild(typingEl);
+          var reply = (res.ok && res.data && (res.data.answer || res.data.response || res.data.message))
+            ? (res.data.answer || res.data.response || res.data.message)
+            : null;
+
+          if (reply) {
+            chatHistory.push({ role: 'assistant', content: reply });
+            chatArea.appendChild(chatBubble('assistant', reply));
+
+            if (res.data.config) {
+              librarianConfig = res.data.config;
+              if (res.data.config.modules) selectedModules = res.data.config.modules;
+              if (res.data.config.integrations) selectedIntegrations = res.data.config.integrations;
+              if (res.data.config.recommended_terminal) recommendedTerminal = res.data.config.recommended_terminal;
             }
-            document.getElementById('connStatus').textContent = 'Offline — cannot reach backend (check runtime and CORS)';
-        }
+          } else {
+            var fallback = "I'm having trouble connecting right now, but you can continue and configure things manually.";
+            chatHistory.push({ role: 'assistant', content: fallback });
+            chatArea.appendChild(chatBubble('assistant', fallback));
+          }
 
-        // ============ Tab Switching ============
-        function switchTab(tab) {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            document.querySelector(`[onclick="switchTab('${tab}')"]`).classList.add('active');
-            document.getElementById(`tab-${tab}`).classList.add('active');
-            if (tab === 'employees') loadEmployees();
-        }
+          exchangeCount++;
+          updateContinueVisibility();
+          chatArea.scrollTop = chatArea.scrollHeight;
+        })
+        .catch(function () {
+          chatArea.removeChild(typingEl);
+          var errMsg = "Sorry, I couldn't reach the server. You can keep chatting or continue to set things up manually.";
+          chatHistory.push({ role: 'assistant', content: errMsg });
+          chatArea.appendChild(chatBubble('assistant', errMsg));
+          exchangeCount++;
+          updateContinueVisibility();
+          chatArea.scrollTop = chatArea.scrollHeight;
+        });
+    }
 
-        // ============ Setup Wizard ============
-        async function startWizard() {
-            if (!systemOnline) {
-                alert('Cannot reach Murphy System backend. Ensure the runtime is started and that CORS allows this origin.');
-                return;
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { sendMessage(); }
+    });
+    sendBtn.addEventListener('click', sendMessage);
+
+    inputRow.appendChild(input);
+    inputRow.appendChild(sendBtn);
+    wrapper.appendChild(inputRow);
+
+    // Continue button (hidden until enough exchanges)
+    var continueRow = el('div', {
+      id: 'continue-row',
+      className: 'flex justify-end',
+      style: 'margin-top:1rem;display:none;'
+    });
+    var continueBtn = el('button', {
+      className: 'murphy-btn murphy-btn-primary',
+      textContent: 'Continue to Plan →',
+      onClick: function () { goToStep(2); }
+    });
+    continueRow.appendChild(continueBtn);
+    wrapper.appendChild(continueRow);
+
+    container.appendChild(wrapper);
+
+    function updateContinueVisibility() {
+      if (exchangeCount >= 3) {
+        continueRow.style.display = 'flex';
+      }
+    }
+    updateContinueVisibility();
+
+    // Auto-focus input
+    input.focus();
+    chatArea.scrollTop = chatArea.scrollHeight;
+  }
+
+  function chatBubble(role, text) {
+    var bubbleClass = 'murphy-chat-bubble ' +
+      (role === 'user' ? 'murphy-chat-bubble-user' : 'murphy-chat-bubble-assistant');
+    var bubble = el('div', { className: bubbleClass });
+    bubble.textContent = text;
+    return bubble;
+  }
+
+  // ════════════════════════════════════════════════════════
+  //  STEP 2 — The Plan
+  // ════════════════════════════════════════════════════════
+  function renderPlan() {
+    var heading = el('h1', {
+      className: 'font-bold',
+      textContent: "Here's what I'll set up for you",
+      style: 'font-size:1.5rem;margin-bottom:1.5rem;'
+    });
+    container.appendChild(heading);
+
+    // Fallback defaults if librarian didn't provide config
+    if (selectedModules.length === 0) {
+      selectedModules = [
+        { id: 'task-engine', name: 'Task Engine', description: 'Core workflow and task management', enabled: true },
+        { id: 'librarian', name: 'Librarian', description: 'AI assistant for knowledge and queries', enabled: true },
+        { id: 'governance', name: 'Governance Gates', description: 'Approval and compliance controls', enabled: true }
+      ];
+    }
+    if (selectedIntegrations.length === 0) {
+      selectedIntegrations = [
+        { id: 'email', name: 'Email (SMTP)', description: 'Send and receive email', enabled: true },
+        { id: 'webhooks', name: 'Webhooks', description: 'Connect to external services', enabled: true }
+      ];
+    }
+
+    // Modules section
+    var modLabel = el('h2', {
+      className: 'font-medium',
+      textContent: 'Modules',
+      style: 'font-size:1.1rem;margin-bottom:0.75rem;'
+    });
+    container.appendChild(modLabel);
+
+    var modGrid = el('div', { className: 'grid gap-3', style: 'grid-template-columns:repeat(auto-fill,minmax(200px,1fr));margin-bottom:1.5rem;' });
+    selectedModules.forEach(function (mod, idx) {
+      modGrid.appendChild(planCard(mod, 'module', idx));
+    });
+    container.appendChild(modGrid);
+
+    // Integrations section
+    var intLabel = el('h2', {
+      className: 'font-medium',
+      textContent: 'Integrations',
+      style: 'font-size:1.1rem;margin-bottom:0.75rem;'
+    });
+    container.appendChild(intLabel);
+
+    var intGrid = el('div', { className: 'grid gap-3', style: 'grid-template-columns:repeat(auto-fill,minmax(200px,1fr));margin-bottom:1.5rem;' });
+    selectedIntegrations.forEach(function (integ, idx) {
+      intGrid.appendChild(planCard(integ, 'integration', idx));
+    });
+    container.appendChild(intGrid);
+
+    // "Anything else?" input
+    var extraRow = el('div', { className: 'flex gap-2', style: 'margin-bottom:1rem;' });
+    var extraInput = el('input', {
+      type: 'text',
+      className: 'murphy-input flex-1',
+      placeholder: 'Anything else you need?',
+      'aria-label': 'Additional requests'
+    });
+    var extraBtn = el('button', {
+      className: 'murphy-btn murphy-btn-secondary',
+      textContent: 'Ask Librarian',
+      onClick: function () {
+        var q = extraInput.value.trim();
+        if (!q) return;
+        extraInput.value = '';
+        api.post('/librarian/ask', { question: q, context: 'onboarding' })
+          .then(function (res) {
+            if (res.ok && res.data) {
+              if (res.data.config && res.data.config.modules) {
+                selectedModules = res.data.config.modules;
+                goToStep(2);
+              }
+              if (res.data.config && res.data.config.integrations) {
+                selectedIntegrations = res.data.config.integrations;
+                goToStep(2);
+              }
             }
-            try {
-                // Reset wizard state on server
-                await fetch(`${API_BASE}/api/onboarding/wizard/reset`, { method: 'POST' });
-                const resp = await fetch(`${API_BASE}/api/onboarding/wizard/questions`);
-                const data = await resp.json();
-                if (data.success) {
-                    questions = data.questions;
-                    currentQ = 0;
-                    answers = {};
-                    document.getElementById('wizardWelcome').style.display = 'none';
-                    document.getElementById('wizardActive').style.display = 'block';
-                    document.getElementById('wizardSummary').style.display = 'none';
-                    renderQuestion();
-                }
-            } catch (err) {
-                alert('Failed to load wizard: ' + err.message);
-            }
-        }
+          });
+      }
+    });
+    extraRow.appendChild(extraInput);
+    extraRow.appendChild(extraBtn);
+    container.appendChild(extraRow);
 
-        function renderQuestion() {
-            const q = questions[currentQ];
-            const total = questions.length;
+    // Navigation
+    container.appendChild(navBar({
+      back: true,
+      next: function () { goToStep(3); },
+      nextLabel: 'Looks good! →'
+    }));
+  }
 
-            document.getElementById('progressText').textContent = `Question ${currentQ + 1} of ${total}`;
-            document.getElementById('progressFill').style.width = `${((currentQ + 1) / total) * 100}%`;
-            document.getElementById('qNumber').textContent = `Question ${currentQ + 1}`;
-            document.getElementById('qText').textContent = q.text;
-            document.getElementById('qError').style.display = 'none';
+  function planCard(item, type, idx) {
+    var card = el('div', {
+      className: 'murphy-card',
+      role: 'button',
+      tabindex: '0',
+      'aria-pressed': item.enabled !== false ? 'true' : 'false',
+      style: item.enabled === false ? 'opacity:0.5;' : ''
+    });
 
-            const container = document.getElementById('qInput');
-            container.innerHTML = '';
+    var header = el('div', { className: 'murphy-card-header flex justify-between items-center' });
+    var nameEl = el('span', { className: 'font-bold', textContent: item.name });
+    var toggleEl = el('span', {
+      textContent: item.enabled !== false ? '✓' : '○',
+      style: 'cursor:pointer;font-size:1.2rem;'
+    });
+    header.appendChild(nameEl);
+    header.appendChild(toggleEl);
+    card.appendChild(header);
 
-            const savedAnswer = answers[q.id];
+    if (item.description) {
+      var body = el('div', { className: 'murphy-card-body' });
+      body.appendChild(el('p', { textContent: item.description, style: 'font-size:0.85rem;' }));
+      card.appendChild(body);
+    }
 
-            if (q.question_type === 'text') {
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.className = 'text-input';
-                input.placeholder = q.default || 'Type your answer...';
-                input.value = savedAnswer || '';
-                input.id = 'answerInput';
-                container.appendChild(input);
+    card.addEventListener('click', function () {
+      var list = type === 'module' ? selectedModules : selectedIntegrations;
+      list[idx].enabled = !(list[idx].enabled !== false);
+      goToStep(2);
+    });
 
-            } else if (q.question_type === 'choice') {
-                const grid = document.createElement('div');
-                grid.className = 'option-grid';
-                for (const opt of q.options) {
-                    const btn = document.createElement('button');
-                    btn.className = 'option-btn' + (savedAnswer === opt ? ' selected' : '');
-                    btn.textContent = opt;
-                    btn.onclick = () => {
-                        grid.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
-                        btn.classList.add('selected');
-                    };
-                    grid.appendChild(btn);
-                }
-                container.appendChild(grid);
+    card.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.click(); }
+    });
 
-            } else if (q.question_type === 'multi_choice') {
-                const grid = document.createElement('div');
-                grid.className = 'option-grid';
-                const selected = savedAnswer || [];
-                for (const opt of q.options) {
-                    const btn = document.createElement('button');
-                    btn.className = 'option-btn' + (selected.includes(opt) ? ' selected' : '');
-                    btn.textContent = opt;
-                    btn.onclick = () => btn.classList.toggle('selected');
-                    grid.appendChild(btn);
-                }
-                container.appendChild(grid);
+    return card;
+  }
 
-            } else if (q.question_type === 'boolean') {
-                const group = document.createElement('div');
-                group.className = 'bool-group';
-                for (const [label, val] of [['Yes', true], ['No', false]]) {
-                    const btn = document.createElement('button');
-                    btn.className = 'bool-btn' + (savedAnswer === val ? ' selected' : '');
-                    btn.textContent = label;
-                    btn.onclick = () => {
-                        group.querySelectorAll('.bool-btn').forEach(b => b.classList.remove('selected'));
-                        btn.classList.add('selected');
-                    };
-                    group.appendChild(btn);
-                }
-                container.appendChild(group);
-            }
+  // ════════════════════════════════════════════════════════
+  //  STEP 3 — Connections
+  // ════════════════════════════════════════════════════════
+  function renderConnections() {
+    var heading = el('h1', {
+      className: 'font-bold',
+      textContent: "Let's connect your tools",
+      style: 'font-size:1.5rem;margin-bottom:1.5rem;'
+    });
+    container.appendChild(heading);
 
-            document.getElementById('btnBack').disabled = currentQ === 0;
-            document.getElementById('btnNext').textContent = currentQ === total - 1 ? 'Finish ✓' : 'Next →';
-        }
+    var activeIntegrations = selectedIntegrations.filter(function (i) { return i.enabled !== false; });
 
-        function getCurrentAnswer() {
-            const q = questions[currentQ];
-            if (q.question_type === 'text') {
-                const input = document.getElementById('answerInput');
-                return input ? input.value : q.default;
-            } else if (q.question_type === 'choice') {
-                const selected = document.querySelector('#qInput .option-btn.selected');
-                return selected ? selected.textContent : q.default;
-            } else if (q.question_type === 'multi_choice') {
-                const selected = document.querySelectorAll('#qInput .option-btn.selected');
-                return Array.from(selected).map(b => b.textContent);
-            } else if (q.question_type === 'boolean') {
-                const selected = document.querySelector('#qInput .bool-btn.selected');
-                if (!selected) return q.default;
-                return selected.textContent === 'Yes';
-            }
-            return q.default;
-        }
+    if (activeIntegrations.length === 0) {
+      var empty = el('div', { className: 'murphy-empty-state' });
+      empty.appendChild(el('div', { className: 'murphy-empty-state-icon' }, [icon('check', 40)]));
+      empty.appendChild(el('p', { className: 'murphy-empty-state-title', textContent: 'No credentials needed' }));
+      empty.appendChild(el('p', { className: 'murphy-empty-state-message', textContent: "You're all set! No integrations require credentials." }));
+      container.appendChild(empty);
+    } else {
+      activeIntegrations.forEach(function (integ) {
+        container.appendChild(connectionCard(integ));
+      });
+    }
 
-        async function submitAnswer() {
-            const q = questions[currentQ];
-            const answer = getCurrentAnswer();
-            answers[q.id] = answer;
+    container.appendChild(navBar({
+      back: true,
+      next: function () { goToStep(4); },
+      nextLabel: 'Continue →'
+    }));
+  }
 
-            try {
-                const resp = await fetch(`${API_BASE}/api/onboarding/wizard/answer`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ question_id: q.id, answer }),
-                });
-                const data = await resp.json();
-                if (!data.success) {
-                    document.getElementById('qError').textContent = data.error || 'Invalid answer';
-                    document.getElementById('qError').style.display = 'block';
-                    return false;
-                }
-                return true;
-            } catch (err) {
-                document.getElementById('qError').textContent = 'Network error: ' + err.message;
-                document.getElementById('qError').style.display = 'block';
-                return false;
-            }
-        }
+  function connectionCard(integ) {
+    var card = el('div', { className: 'murphy-card', style: 'margin-bottom:1rem;' });
 
-        async function nextQuestion() {
-            const ok = await submitAnswer();
-            if (!ok) return;
+    var header = el('div', { className: 'murphy-card-header flex items-center gap-2' });
+    header.appendChild(icon('plug', 20));
+    header.appendChild(el('span', { className: 'font-bold', textContent: integ.name }));
+    card.appendChild(header);
 
-            if (currentQ < questions.length - 1) {
-                currentQ++;
+    var body = el('div', { className: 'murphy-card-body' });
 
-                // Skip robotics protocols (q7) if robotics disabled
-                if (questions[currentQ].id === 'q7' && answers['q6'] === false) {
-                    await fetch(`${API_BASE}/api/onboarding/wizard/answer`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ question_id: 'q7', answer: [] }),
-                    });
-                    answers['q7'] = [];
-                    currentQ++;
-                }
+    var hint = integ.credentialHint || ('API key or credentials for ' + integ.name);
+    body.appendChild(el('p', { textContent: hint, style: 'font-size:0.85rem;margin-bottom:0.75rem;' }));
 
-                renderQuestion();
+    // Password field with visibility toggle
+    var fieldRow = el('div', { className: 'flex gap-2 items-center' });
+    var field = el('input', {
+      type: 'password',
+      className: 'murphy-input flex-1',
+      placeholder: 'Enter credentials…',
+      'aria-label': integ.name + ' credentials',
+      autocomplete: 'off'
+    });
+
+    var toggleVis = el('button', {
+      className: 'murphy-btn murphy-btn-ghost murphy-btn-icon',
+      'aria-label': 'Toggle visibility',
+      onClick: function () {
+        var isHidden = field.type === 'password';
+        field.type = isHidden ? 'text' : 'password';
+        toggleVis.innerHTML = '';
+        toggleVis.appendChild(icon(isHidden ? 'unlock' : 'lock', 16));
+      }
+    });
+    toggleVis.appendChild(icon('lock', 16));
+
+    fieldRow.appendChild(field);
+    fieldRow.appendChild(toggleVis);
+    body.appendChild(fieldRow);
+
+    // Save / Skip row
+    var actionRow = el('div', { className: 'flex justify-between items-center', style: 'margin-top:0.75rem;' });
+
+    var saveBtn = el('button', {
+      className: 'murphy-btn murphy-btn-primary murphy-btn-sm',
+      textContent: 'Save',
+      onClick: function () {
+        var val = field.value.trim();
+        if (!val) return;
+        saveBtn.classList.add('murphy-btn-loading');
+        saveBtn.disabled = true;
+        api.post('/credentials/store', { integration: integ.id, credential: val })
+          .then(function (res) {
+            saveBtn.classList.remove('murphy-btn-loading');
+            saveBtn.disabled = false;
+            if (res.ok) {
+              credentials[integ.id] = true;
+              savedLabel.textContent = '✓ Saved';
+              savedLabel.style.display = 'inline';
+              field.value = '';
+              field.disabled = true;
             } else {
-                showSummary();
+              savedLabel.textContent = 'Error saving — try again';
+              savedLabel.style.display = 'inline';
             }
-        }
+          })
+          .catch(function () {
+            saveBtn.classList.remove('murphy-btn-loading');
+            saveBtn.disabled = false;
+            savedLabel.textContent = 'Connection error — try again';
+            savedLabel.style.display = 'inline';
+          });
+      }
+    });
 
-        function prevQuestion() {
-            if (currentQ > 0) {
-                currentQ--;
-                // Skip robotics protocols going back too
-                if (questions[currentQ].id === 'q7' && answers['q6'] === false) {
-                    currentQ--;
-                }
-                renderQuestion();
-            }
-        }
+    var skipLink = el('button', {
+      className: 'murphy-btn murphy-btn-ghost murphy-btn-sm',
+      textContent: 'Skip for now',
+      onClick: function () {
+        card.style.opacity = '0.5';
+        field.disabled = true;
+        saveBtn.disabled = true;
+        savedLabel.textContent = 'Skipped';
+        savedLabel.style.display = 'inline';
+      }
+    });
 
-        async function showSummary() {
-            document.getElementById('wizardActive').style.display = 'none';
-            const summaryDiv = document.getElementById('wizardSummary');
-            summaryDiv.style.display = 'block';
-            summaryDiv.innerHTML = '<p style="color: var(--text-dim);">Generating configuration...</p>';
+    var savedLabel = el('span', {
+      style: 'display:none;font-size:0.85rem;margin-left:0.5rem;'
+    });
 
-            try {
-                const resp = await fetch(`${API_BASE}/api/onboarding/wizard/generate-config`, { method: 'POST' });
-                const data = await resp.json();
+    actionRow.appendChild(el('div', { className: 'flex items-center gap-2' }, [saveBtn, savedLabel]));
+    actionRow.appendChild(skipLink);
+    body.appendChild(actionRow);
 
-                if (!data.success) {
-                    summaryDiv.innerHTML = `<div class="validation-issues"><h4>Error</h4><p>${data.error}</p></div>`;
-                    return;
-                }
+    card.appendChild(body);
+    return card;
+  }
 
-                const config = data.config;
-                const validation = data.validation;
-                let html = '<div class="summary">';
-                html += '<h2>✅ Configuration Complete</h2>';
+  // ════════════════════════════════════════════════════════
+  //  STEP 4 — Safety & Control
+  // ════════════════════════════════════════════════════════
+  function renderSafety() {
+    var heading = el('h1', {
+      className: 'font-bold',
+      textContent: 'How much should Murphy handle?',
+      style: 'font-size:1.5rem;margin-bottom:1.5rem;'
+    });
+    container.appendChild(heading);
 
-                if (!validation.valid) {
-                    html += '<div class="validation-issues"><h4>⚠ Validation Issues</h4><ul>';
-                    for (const issue of validation.issues) {
-                        html += `<li>${issue}</li>`;
-                    }
-                    html += '</ul></div>';
-                }
+    // Range slider
+    var sliderCard = el('div', { className: 'murphy-card' });
+    var sliderBody = el('div', { className: 'murphy-card-body' });
 
-                // Organization
-                html += '<div class="summary-section"><h4>Organization</h4>';
-                html += summaryRow('Name', config.organization.name || '(not set)');
-                html += summaryRow('Industry', config.organization.industry);
-                html += summaryRow('Size', config.organization.company_size);
-                html += '</div>';
+    var levelLabel = el('div', {
+      id: 'safety-level-name',
+      className: 'font-bold',
+      textContent: safetyNames[safetyLevel],
+      style: 'text-align:center;font-size:1.1rem;margin-bottom:1rem;'
+    });
+    sliderBody.appendChild(levelLabel);
 
-                // Automation
-                html += '<div class="summary-section"><h4>Automation</h4>';
-                html += summaryRow('Types', (config.automation.enabled_types || []).join(', ') || 'none');
-                html += summaryRow('Security', config.security.level);
-                html += summaryRow('Compliance', (config.security.compliance_frameworks || []).join(', ') || 'none');
-                html += '</div>';
+    var slider = el('input', {
+      type: 'range',
+      min: '1',
+      max: '5',
+      value: String(safetyLevel),
+      className: 'murphy-input',
+      'aria-label': 'Automation level',
+      'aria-valuemin': '1',
+      'aria-valuemax': '5',
+      'aria-valuenow': String(safetyLevel),
+      style: 'width:100%;cursor:pointer;'
+    });
+    sliderBody.appendChild(slider);
 
-                // Features
-                html += '<div class="summary-section"><h4>Features</h4>';
-                html += summaryRow('Robotics', config.robotics.enabled ? 'Enabled' : 'Disabled');
-                if (config.robotics.enabled) {
-                    html += summaryRow('Protocols', (config.robotics.protocols || []).join(', '));
-                }
-                html += summaryRow('Avatar', config.avatar.enabled ? 'Enabled' : 'Disabled');
-                html += summaryRow('LLM Provider', config.llm.provider);
-                html += summaryRow('Monitoring', config.monitoring.enabled ? 'Enabled' : 'Disabled');
-                html += summaryRow('Deployment', config.deployment.mode);
-                html += summaryRow('Sales Automation', config.sales_automation.enabled ? 'Enabled' : 'Disabled');
-                html += '</div>';
+    // Tick labels
+    var ticks = el('div', { className: 'flex justify-between', style: 'font-size:0.75rem;margin-top:0.25rem;' });
+    ticks.appendChild(el('span', { textContent: 'Ask me' }));
+    ticks.appendChild(el('span', { textContent: 'Balanced' }));
+    ticks.appendChild(el('span', { textContent: 'Automate' }));
+    sliderBody.appendChild(ticks);
 
-                // Modules
-                html += '<div class="summary-section"><h4>Enabled Modules (' + config.modules.length + ')</h4>';
-                html += '<div class="module-list">';
-                for (const mod of config.modules) {
-                    html += `<span class="tag">${mod}</span>`;
-                }
-                html += '</div></div>';
+    var description = el('p', {
+      id: 'safety-description',
+      textContent: safetyLabels[safetyLevel],
+      style: 'margin-top:1.25rem;font-size:0.9rem;text-align:center;'
+    });
+    sliderBody.appendChild(description);
 
-                // Bots
-                html += '<div class="summary-section"><h4>Recommended Bots (' + config.bots.length + ')</h4>';
-                html += '<div class="bot-list">';
-                for (const bot of config.bots) {
-                    html += `<span class="tag">${bot}</span>`;
-                }
-                html += '</div></div>';
+    slider.addEventListener('input', function () {
+      safetyLevel = parseInt(slider.value, 10);
+      slider.setAttribute('aria-valuenow', String(safetyLevel));
+      levelLabel.textContent = safetyNames[safetyLevel];
+      description.textContent = safetyLabels[safetyLevel];
+    });
 
-                html += '</div>';
+    sliderCard.appendChild(sliderBody);
+    container.appendChild(sliderCard);
 
-                // Actions
-                html += '<div class="success-banner">';
-                html += '<h2>🚀 Ready to Launch</h2>';
-                html += `<p>Your Murphy System is configured with ${config.modules.length} modules and ${config.bots.length} bots.</p>`;
-                html += '<div style="margin-top: 20px; display: flex; gap: 12px; justify-content: center;">';
-                html += '<button class="nav-btn next" onclick="downloadConfig()">Download Config</button>';
-                html += '<button class="nav-btn back" onclick="restartWizard()">Start Over</button>';
-                html += '</div></div>';
+    // Terminal / dashboard recommendation
+    var termCard = el('div', { className: 'murphy-card', style: 'margin-top:1.5rem;' });
+    var termBody = el('div', { className: 'murphy-card-body' });
 
-                summaryDiv.innerHTML = html;
-            } catch (err) {
-                summaryDiv.innerHTML = `<div class="validation-issues"><h4>Error</h4><p>${err.message}</p></div>`;
-            }
-        }
+    var recText = recommendedTerminal.indexOf('worker') > -1 ? 'Worker'
+      : recommendedTerminal.indexOf('manager') > -1 ? 'Manager'
+      : recommendedTerminal.indexOf('admin') > -1 ? 'Admin'
+      : 'Unified';
 
-        function summaryRow(label, value) {
-            return `<div class="summary-row"><span class="label">${label}</span><span class="value">${value}</span></div>`;
-        }
+    termBody.appendChild(el('p', {
+      className: 'font-medium',
+      textContent: "Based on our conversation, I'd recommend the " + recText + " dashboard as your home base.",
+      style: 'margin-bottom:1rem;'
+    }));
 
-        async function downloadConfig() {
-            try {
-                const resp = await fetch(`${API_BASE}/api/onboarding/wizard/generate-config`, { method: 'POST' });
-                const data = await resp.json();
-                if (data.success) {
-                    const blob = new Blob([JSON.stringify(data.config, null, 2)], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'murphy_config.json';
-                    a.click();
-                    URL.revokeObjectURL(url);
-                }
-            } catch (err) {
-                alert('Download failed: ' + err.message);
-            }
-        }
+    var dashboards = [
+      { value: 'terminal_unified.html', label: 'Unified Dashboard', desc: 'Full overview of everything' },
+      { value: 'terminal_worker.html', label: 'Worker Dashboard', desc: 'Task-focused view' },
+      { value: 'terminal_manager.html', label: 'Manager Dashboard', desc: 'Team and project oversight' },
+      { value: 'terminal_admin.html', label: 'Admin Dashboard', desc: 'System configuration and control' }
+    ];
 
-        function restartWizard() {
-            document.getElementById('wizardSummary').style.display = 'none';
-            document.getElementById('wizardWelcome').style.display = 'block';
-        }
+    dashboards.forEach(function (db) {
+      var radioRow = el('label', {
+        className: 'flex items-center gap-2',
+        style: 'cursor:pointer;padding:0.5rem 0;'
+      });
 
-        // ============ Employee Onboarding ============
-        function showNewEmployeeForm() {
-            document.getElementById('newEmployeeForm').style.display = 'block';
-        }
+      var radio = el('input', {
+        type: 'radio',
+        name: 'terminal-choice',
+        value: db.value
+      });
+      if (db.value === recommendedTerminal) { radio.checked = true; }
+      radio.addEventListener('change', function () {
+        recommendedTerminal = db.value;
+      });
 
-        function hideNewEmployeeForm() {
-            document.getElementById('newEmployeeForm').style.display = 'none';
-            document.getElementById('empError').style.display = 'none';
-        }
+      radioRow.appendChild(radio);
+      radioRow.appendChild(el('div', {}, [
+        el('span', { className: 'font-medium', textContent: db.label }),
+        el('span', { textContent: ' — ' + db.desc, style: 'font-size:0.85rem;' })
+      ]));
+      termBody.appendChild(radioRow);
+    });
 
-        async function createEmployee() {
-            if (!systemOnline) {
-                alert('Cannot reach Murphy System backend. Ensure the runtime is started and that CORS allows this origin.');
-                return;
-            }
-            const name = document.getElementById('empName').value.trim();
-            const role = document.getElementById('empRole').value.trim();
-            const dept = document.getElementById('empDept').value;
-            const mentor = document.getElementById('empMentor').value.trim();
+    termCard.appendChild(termBody);
+    container.appendChild(termCard);
 
-            if (!name || !role) {
-                document.getElementById('empError').textContent = 'Name and Role are required.';
-                document.getElementById('empError').style.display = 'block';
-                return;
-            }
+    container.appendChild(navBar({
+      back: true,
+      next: function () { goToStep(5); },
+      nextLabel: 'Continue →'
+    }));
+  }
 
-            try {
-                const resp = await fetch(`${API_BASE}/api/onboarding/employees`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ employee_name: name, role, department: dept, mentor }),
-                });
-                const data = await resp.json();
-                if (data.success) {
-                    hideNewEmployeeForm();
-                    document.getElementById('empName').value = '';
-                    document.getElementById('empRole').value = '';
-                    document.getElementById('empMentor').value = '';
-                    loadEmployees();
-                } else {
-                    document.getElementById('empError').textContent = data.error || 'Failed to create';
-                    document.getElementById('empError').style.display = 'block';
-                }
-            } catch (err) {
-                document.getElementById('empError').textContent = 'Network error: ' + err.message;
-                document.getElementById('empError').style.display = 'block';
-            }
-        }
+  // ════════════════════════════════════════════════════════
+  //  STEP 5 — Ready!
+  // ════════════════════════════════════════════════════════
+  function renderReady() {
+    var heading = el('h1', {
+      className: 'font-bold',
+      textContent: 'Murphy is ready!',
+      style: 'font-size:1.5rem;margin-bottom:1.5rem;text-align:center;'
+    });
+    container.appendChild(heading);
 
-        async function loadEmployees() {
-            if (!systemOnline) {
-                document.getElementById('employeeList').innerHTML =
-                    '<p style="color: var(--text-dim); text-align: center; padding: 40px;">Start Murphy System backend to manage employee onboarding.</p>';
-                return;
-            }
+    var readyIcon = el('div', { className: 'flex justify-center', style: 'margin-bottom:1.5rem;' });
+    readyIcon.appendChild(icon('check', 56));
+    container.appendChild(readyIcon);
 
-            try {
-                const resp = await fetch(`${API_BASE}/api/onboarding/employees`);
-                const data = await resp.json();
-                if (!data.success) return;
+    // Summary card
+    var summary = el('div', { className: 'murphy-card' });
+    var summaryBody = el('div', { className: 'murphy-card-body' });
 
-                const list = document.getElementById('employeeList');
-                if (data.profiles.length === 0) {
-                    list.innerHTML = '<p style="color: var(--text-dim); text-align: center; padding: 40px;">No onboarding profiles yet. Click "+ New Employee" to get started.</p>';
-                    return;
-                }
+    // Modules
+    var enabledMods = selectedModules.filter(function (m) { return m.enabled !== false; });
+    if (enabledMods.length) {
+      summaryBody.appendChild(el('p', { className: 'font-bold', textContent: 'Modules', style: 'margin-bottom:0.25rem;' }));
+      var modList = el('ul', { style: 'margin-bottom:1rem;padding-left:1.25rem;' });
+      enabledMods.forEach(function (m) {
+        modList.appendChild(el('li', { textContent: m.name }));
+      });
+      summaryBody.appendChild(modList);
+    }
 
-                let html = '';
-                for (const p of data.profiles) {
-                    html += `<div class="profile-card">`;
-                    html += `<div style="display: flex; justify-content: space-between; align-items: start;">`;
-                    html += `<div><h4>${esc(p.employee_name)}</h4>`;
-                    html += `<div class="meta">${esc(p.role)} · ${esc(p.department)} · Status: ${esc(p.status)}</div>`;
-                    if (p.mentor) html += `<div class="meta">Mentor: ${esc(p.mentor)}</div>`;
-                    html += `</div>`;
-                    html += `<div class="meta">${esc(p.start_date)}</div>`;
-                    html += `</div>`;
+    // Integrations
+    var enabledInts = selectedIntegrations.filter(function (i) { return i.enabled !== false; });
+    if (enabledInts.length) {
+      summaryBody.appendChild(el('p', { className: 'font-bold', textContent: 'Integrations', style: 'margin-bottom:0.25rem;' }));
+      var intList = el('ul', { style: 'margin-bottom:1rem;padding-left:1.25rem;' });
+      enabledInts.forEach(function (i) {
+        var status = credentials[i.id] ? ' (credentials saved)' : ' (no credentials yet)';
+        intList.appendChild(el('li', { textContent: i.name + status }));
+      });
+      summaryBody.appendChild(intList);
+    }
 
-                    // Progress
-                    html += `<div class="progress-inline">`;
-                    html += `<div class="bar"><div class="fill" style="width: ${p.progress_pct}%"></div></div>`;
-                    html += `<div class="pct">${p.progress_pct}%</div>`;
-                    html += `</div>`;
+    // Safety level
+    summaryBody.appendChild(el('p', { className: 'font-bold', textContent: 'Automation Level', style: 'margin-bottom:0.25rem;' }));
+    summaryBody.appendChild(el('p', { textContent: safetyNames[safetyLevel] + ' — ' + safetyLabels[safetyLevel], style: 'margin-bottom:1rem;font-size:0.9rem;' }));
 
-                    // Tasks
-                    html += `<div class="task-list">`;
-                    for (const t of p.tasks) {
-                        const statusClass = t.status === 'completed' ? 'completed' : t.status === 'skipped' ? 'skipped' : '';
-                        html += `<div class="task-item">`;
-                        html += `<div class="task-status ${statusClass}" onclick="completeTask('${p.profile_id}', '${t.task_id}')" title="Click to complete"></div>`;
-                        html += `<span class="task-title" style="${t.status !== 'pending' ? 'text-decoration: line-through; opacity: 0.5;' : ''}">${esc(t.title)}</span>`;
-                        html += `<span class="task-category">${esc(t.category)}</span>`;
-                        if (t.status === 'pending') {
-                            html += `<button class="skip-btn" onclick="skipTask('${p.profile_id}', '${t.task_id}')">Skip</button>`;
-                        }
-                        html += `</div>`;
-                    }
-                    html += `</div></div>`;
-                }
-                list.innerHTML = html;
-            } catch (err) {
-                document.getElementById('employeeList').innerHTML =
-                    `<p style="color: var(--error); text-align: center; padding: 20px;">Error loading profiles: ${err.message}</p>`;
-            }
-        }
+    // Dashboard
+    summaryBody.appendChild(el('p', { className: 'font-bold', textContent: 'Dashboard', style: 'margin-bottom:0.25rem;' }));
+    var termLabel = recommendedTerminal.replace('terminal_', '').replace('.html', '');
+    summaryBody.appendChild(el('p', { textContent: termLabel.charAt(0).toUpperCase() + termLabel.slice(1), style: 'font-size:0.9rem;' }));
 
-        async function completeTask(profileId, taskId) {
-            try {
-                await fetch(`${API_BASE}/api/onboarding/employees/${profileId}/tasks/${taskId}/complete`, { method: 'POST' });
-                loadEmployees();
-            } catch (err) {
-                alert('Error: ' + err.message);
-            }
-        }
+    summary.appendChild(summaryBody);
+    container.appendChild(summary);
 
-        async function skipTask(profileId, taskId) {
-            try {
-                await fetch(`${API_BASE}/api/onboarding/employees/${profileId}/tasks/${taskId}/skip`, { method: 'POST' });
-                loadEmployees();
-            } catch (err) {
-                alert('Error: ' + err.message);
-            }
-        }
+    // Submit config and go
+    var launchRow = el('div', { className: 'flex justify-center', style: 'margin-top:2rem;' });
+    var launchBtn = el('button', {
+      className: 'murphy-btn murphy-btn-primary murphy-btn-lg',
+      textContent: 'Go to your dashboard →',
+      onClick: function () {
+        launchBtn.classList.add('murphy-btn-loading');
+        launchBtn.disabled = true;
+        var config = {
+          modules: enabledMods.map(function (m) { return m.id; }),
+          integrations: enabledInts.map(function (i) { return i.id; }),
+          safety_level: safetyLevel,
+          terminal: recommendedTerminal,
+          chat_history: chatHistory
+        };
+        api.post('/onboarding/wizard/generate-config', config)
+          .then(function () {
+            window.location.href = recommendedTerminal;
+          })
+          .catch(function () {
+            window.location.href = recommendedTerminal;
+          });
+      }
+    });
+    launchRow.appendChild(launchBtn);
+    container.appendChild(launchRow);
 
-        function esc(s) {
-            const div = document.createElement('div');
-            div.textContent = s || '';
-            return div.innerHTML;
-        }
+    container.appendChild(navBar({ back: true }));
+  }
 
-        // ============ Init ============
-        resolveApiBase();
-    </script>
+  // ── Boot ───────────────────────────────────────────────
+  updateDots();
+  renderStep(1);
+})();
+</script>
+
 </body>
 </html>
