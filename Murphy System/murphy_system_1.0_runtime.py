@@ -15900,4 +15900,10 @@ def main():
 
 
 if __name__ == "__main__":
+    # INC-06 / H-01: Print feature-availability summary based on env vars
+    try:
+        from src.startup_feature_summary import print_feature_summary
+        print_feature_summary()
+    except Exception:
+        pass  # Non-critical — do not block startup
     main()
