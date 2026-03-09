@@ -1,698 +1,353 @@
+<!--
+  Murphy System — Landing Page
+  © 2020 Inoni Limited Liability Company by Corey Post
+  License: BSL 1.1 (Business Source License 1.1)
+  See LICENSE file in repository root for full terms.
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Murphy System — Automate Everything. Control Everything.</title>
-    <style>
-        :root {
-            --neon-green: #00ff41;
-            --neon-cyan: #00ffff;
-            --dark-bg: #0a0a0a;
-            --panel-bg: #111111;
-            --border-color: #333;
-            --text-dim: #aaa;
-            --text-bright: #b0ffb0;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: 'Courier New', monospace;
-            background-color: var(--dark-bg);
-            color: var(--neon-green);
-            line-height: 1.7;
-            overflow-x: hidden;
-        }
-
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: repeating-linear-gradient(
-                0deg, transparent, transparent 2px,
-                rgba(0, 255, 65, 0.015) 2px, rgba(0, 255, 65, 0.015) 4px
-            );
-            pointer-events: none;
-            z-index: 9999;
-        }
-
-        a { color: var(--neon-green); text-decoration: none; }
-        a:hover { text-decoration: underline; }
-
-        /* ── Hero ── */
-        .hero {
-            text-align: center;
-            padding: 100px 20px 80px;
-            position: relative;
-        }
-
-        .hero::after {
-            content: '';
-            position: absolute;
-            bottom: 0; left: 0;
-            width: 100%; height: 1px;
-            background: linear-gradient(90deg, transparent, var(--neon-green), transparent);
-            box-shadow: 0 0 12px var(--neon-green);
-        }
-
-        .hero h1 {
-            font-size: 3.5rem;
-            color: var(--neon-green);
-            text-shadow: 0 0 30px rgba(0,255,65,0.5), 0 0 60px rgba(0,255,65,0.2);
-            letter-spacing: 6px;
-            text-transform: uppercase;
-        }
-
-        .hero .subtitle {
-            font-size: 1.3rem;
-            color: var(--neon-cyan);
-            margin-top: 16px;
-            text-shadow: 0 0 10px rgba(0,229,255,0.3);
-            letter-spacing: 1px;
-        }
-
-        .hero .tagline {
-            font-size: 0.9rem;
-            color: var(--text-dim);
-            margin-top: 12px;
-        }
-
-        .hero-cta {
-            margin-top: 36px;
-            display: flex;
-            gap: 16px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            display: inline-block;
-            padding: 14px 36px;
-            border: 1px solid var(--neon-green);
-            border-radius: 4px;
-            color: var(--neon-green);
-            font-family: inherit;
-            font-size: 0.95rem;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            transition: all 0.3s;
-            cursor: pointer;
-            background: transparent;
-        }
-
-        .btn:hover {
-            background: rgba(0,255,65,0.12);
-            box-shadow: 0 0 20px rgba(0,255,65,0.3);
-            text-decoration: none;
-        }
-
-        .btn-primary {
-            background: rgba(0,255,65,0.1);
-            box-shadow: 0 0 12px rgba(0,255,65,0.15);
-        }
-
-        .btn-secondary {
-            border-color: var(--neon-cyan);
-            color: var(--neon-cyan);
-        }
-
-        .btn-secondary:hover {
-            background: rgba(0,229,255,0.1);
-            box-shadow: 0 0 20px rgba(0,229,255,0.25);
-        }
-
-        /* ── Stats Bar ── */
-        .stats-bar {
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 40px;
-            padding: 28px 20px;
-            background: var(--panel-bg);
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .stat-item { text-align: center; }
-
-        .stat-item .number {
-            font-size: 2rem;
-            color: var(--neon-cyan);
-            text-shadow: 0 0 10px rgba(0,229,255,0.4);
-        }
-
-        .stat-item .label {
-            font-size: 0.7rem;
-            color: var(--text-dim);
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-        }
-
-        /* ── Sections ── */
-        .section {
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 64px 24px;
-        }
-
-        .section + .section { border-top: 1px solid var(--border-color); }
-
-        .section-title {
-            font-size: 1.5rem;
-            color: var(--neon-cyan);
-            text-shadow: 0 0 10px rgba(0,229,255,0.3);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 12px;
-        }
-
-        .section-title::before { content: '▸ '; color: var(--neon-green); }
-
-        .section-subtitle {
-            font-size: 0.85rem;
-            color: var(--text-dim);
-            margin-bottom: 36px;
-        }
-
-        /* ── Value Props ── */
-        .value-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 24px;
-        }
-
-        .value-card {
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 28px 24px;
-            transition: border-color 0.3s, box-shadow 0.3s;
-        }
-
-        .value-card:hover {
-            border-color: var(--neon-green);
-            box-shadow: 0 0 18px rgba(0,255,65,0.1);
-        }
-
-        .value-card .icon {
-            font-size: 1.8rem;
-            margin-bottom: 12px;
-        }
-
-        .value-card h3 {
-            color: var(--neon-green);
-            font-size: 1rem;
-            margin-bottom: 8px;
-        }
-
-        .value-card p {
-            color: var(--text-dim);
-            font-size: 0.82rem;
-            line-height: 1.6;
-        }
-
-        /* ── Audience Grid ── */
-        .audience-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-        }
-
-        .audience-card {
-            background: var(--panel-bg);
-            border-left: 3px solid var(--neon-green);
-            padding: 20px 24px;
-            transition: border-color 0.3s;
-        }
-
-        .audience-card:hover { border-color: var(--neon-cyan); }
-
-        .audience-card h3 {
-            color: var(--neon-cyan);
-            font-size: 0.95rem;
-            margin-bottom: 6px;
-        }
-
-        .audience-card p {
-            color: var(--text-dim);
-            font-size: 0.8rem;
-            line-height: 1.5;
-        }
-
-        /* ── Steps ── */
-        .steps {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 28px;
-            counter-reset: step-counter;
-        }
-
-        .step {
-            text-align: center;
-            padding: 28px 20px;
-            counter-increment: step-counter;
-        }
-
-        .step::before {
-            content: counter(step-counter);
-            display: block;
-            width: 48px; height: 48px;
-            line-height: 48px;
-            margin: 0 auto 16px;
-            border: 2px solid var(--neon-cyan);
-            border-radius: 50%;
-            color: var(--neon-cyan);
-            font-size: 1.4rem;
-            text-shadow: 0 0 8px rgba(0,229,255,0.4);
-        }
-
-        .step h3 {
-            color: var(--neon-green);
-            font-size: 0.95rem;
-            margin-bottom: 8px;
-        }
-
-        .step p {
-            color: var(--text-dim);
-            font-size: 0.8rem;
-        }
-
-        /* ── Terminal Block ── */
-        .terminal-block {
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 24px;
-            font-size: 0.85rem;
-            overflow-x: auto;
-        }
-
-        .terminal-block .prompt { color: var(--neon-cyan); }
-        .terminal-block .cmd { color: var(--neon-green); margin-left: 8px; }
-        .terminal-block .comment { color: var(--text-dim); }
-        .terminal-block .line { padding: 2px 0; white-space: nowrap; }
-
-        /* ── Module Catalog (expandable) ── */
-        .module-toggle {
-            display: block;
-            width: 100%;
-            padding: 14px;
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            color: var(--neon-cyan);
-            font-family: inherit;
-            font-size: 0.9rem;
-            cursor: pointer;
-            text-align: center;
-            letter-spacing: 1px;
-            transition: all 0.3s;
-        }
-
-        .module-toggle:hover {
-            border-color: var(--neon-green);
-            box-shadow: 0 0 12px rgba(0,255,65,0.15);
-        }
-
-        .module-catalog {
-            display: none;
-            margin-top: 20px;
-        }
-
-        .module-catalog.open { display: block; }
-
-        .module-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-            gap: 12px;
-        }
-
-        .module-card {
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            padding: 14px;
-            transition: border-color 0.3s;
-        }
-
-        .module-card:hover {
-            border-color: var(--neon-green);
-        }
-
-        .module-card .module-name {
-            color: var(--neon-green);
-            font-size: 0.82rem;
-            font-weight: bold;
-        }
-
-        .module-card .module-desc {
-            color: var(--text-dim);
-            font-size: 0.72rem;
-            margin-top: 4px;
-        }
-
-        .module-card .module-caps {
-            margin-top: 6px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-        }
-
-        .module-card .cap-tag {
-            font-size: 0.62rem;
-            padding: 1px 6px;
-            border: 1px solid var(--border-color);
-            border-radius: 2px;
-            color: var(--text-bright);
-        }
-
-        /* ── Footer ── */
-        .footer {
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--text-dim);
-            font-size: 0.75rem;
-            border-top: 1px solid var(--border-color);
-        }
-
-        .footer-links {
-            display: flex;
-            justify-content: center;
-            gap: 24px;
-            margin-top: 12px;
-            flex-wrap: wrap;
-        }
-
-        .footer-links a {
-            color: var(--neon-green);
-            font-size: 0.8rem;
-            transition: color 0.2s;
-        }
-
-        .footer-links a:hover { color: var(--neon-cyan); }
-
-        /* ── Animations ── */
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
-
-        .pulse { animation: pulse 2.5s ease-in-out infinite; }
-
-        /* ── Responsive ── */
-        @media (max-width: 768px) {
-            .hero { padding: 60px 16px 50px; }
-            .hero h1 { font-size: 2rem; letter-spacing: 3px; }
-            .hero .subtitle { font-size: 1rem; }
-            .stats-bar { gap: 20px; }
-            .stat-item .number { font-size: 1.5rem; }
-            .section { padding: 40px 16px; }
-            .value-grid,
-            .audience-grid,
-            .steps,
-            .tier-grid,
-            .module-grid { grid-template-columns: 1fr; }
-        }
-        @media (max-width: 480px) {
-            .hero h1 { font-size: 1.5rem; letter-spacing: 2px; }
-            .hero .subtitle { font-size: 0.9rem; }
-            .hero .tagline { font-size: 0.8rem; }
-            .stats-bar { gap: 12px; padding: 18px 12px; }
-            .stat-item .number { font-size: 1.2rem; }
-            .stat-item .label { font-size: 0.65rem; }
-            .hero-cta { flex-direction: column; align-items: center; }
-            .btn { width: 100%; text-align: center; }
-        }
-
-        /* ── Skip-to-content (a11y) ── */
-        .skip-link {
-            position: absolute;
-            top: -100%;
-            left: 0;
-            background: var(--neon-green);
-            color: var(--dark-bg);
-            padding: 8px 16px;
-            z-index: 10000;
-            font-weight: bold;
-        }
-        .skip-link:focus {
-            top: 0;
-        }
-
-        /* ── Focus visible (a11y) ── */
-        .btn:focus-visible,
-        .module-toggle:focus-visible,
-        .footer-links a:focus-visible {
-            outline: 2px solid var(--neon-cyan);
-            outline-offset: 2px;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — Automate Everything</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
 </head>
-<body>
+<body class="murphy-no-sidebar">
 
-<a class="skip-link" href="#content">Skip to content</a>
+<!-- Skip link for accessibility -->
+<a href="#content" class="murphy-skip-link">Skip to content</a>
 
-<div style="display:flex; gap:14px; padding:4px 15px; background:#0f0f0f; border-bottom:1px solid #333; font-size:11px; flex-wrap:wrap; align-items:center; font-family:'Courier New',monospace;">
-    <span style="color:#666; font-weight:bold; text-transform:uppercase; letter-spacing:1px; margin-right:4px;">Color Key:</span>
-    <span style="display:flex; align-items:center; gap:4px;"><span style="width:10px; height:10px; border-radius:2px; display:inline-block; background:#00ff41;"></span><span style="color:#00ff41;">System / Success</span></span>
-    <span style="display:flex; align-items:center; gap:4px;"><span style="width:10px; height:10px; border-radius:2px; display:inline-block; background:#00ffff;"></span><span style="color:#00ffff;">Info</span></span>
-    <span style="display:flex; align-items:center; gap:4px;"><span style="width:10px; height:10px; border-radius:2px; display:inline-block; background:#ffcc00;"></span><span style="color:#ffcc00;">Warning</span></span>
-    <span style="display:flex; align-items:center; gap:4px;"><span style="width:10px; height:10px; border-radius:2px; display:inline-block; background:#ff0000;"></span><span style="color:#ff0000;">Error</span></span>
-</div>
-
-<!-- ═══════════════ HERO ═══════════════ -->
-<header class="hero">
-    <h1>Murphy System</h1>
-    <p class="subtitle">Automate Everything. Control Everything. From One Platform.</p>
-    <p class="tagline">Built by InonI LLC &mdash; the automation platform that runs itself.</p>
-    <div class="hero-cta">
-        <a href="terminal_integrated.html" class="btn btn-primary">Get Started</a>
-        <a href="README.md" class="btn btn-secondary">View Docs</a>
+<!-- ── Top Navigation Bar ── -->
+<nav class="murphy-topbar" role="navigation" aria-label="Main navigation">
+  <div class="murphy-topbar-left flex items-center gap-3">
+    <a href="murphy_landing_page.html" class="murphy-topbar-brand">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect width="32" height="32" rx="8" fill="var(--teal)"/>
+        <text x="16" y="22" text-anchor="middle" fill="#0C1017" font-size="18" font-weight="700" font-family="Inter, sans-serif">M</text>
+      </svg>
+      <span class="murphy-topbar-brand-name">Murphy System</span>
+    </a>
+    <div class="murphy-nav-links nav-links-desktop">
+      <a href="#features" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Features</a>
+      <a href="#how-it-works" class="murphy-btn murphy-btn-ghost murphy-btn-sm">How It Works</a>
+      <a href="#terminals" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Terminals</a>
     </div>
-</header>
+  </div>
+  <div class="murphy-topbar-right flex items-center gap-2">
+    <button class="murphy-btn murphy-btn-ghost murphy-btn-icon" id="theme-toggle-btn" aria-label="Toggle theme" title="Toggle theme">🌙</button>
+    <a href="onboarding_wizard.html" class="murphy-btn murphy-btn-primary murphy-btn-sm">Get Started</a>
+    <a href="terminal_unified.html" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Open Terminal</a>
+  </div>
+</nav>
 
-<!-- ═══════════════ STATS BAR ═══════════════ -->
-<div class="stats-bar">
-    <div class="stat-item"><div class="number pulse" id="statModules">&mdash;</div><div class="label">Modules</div></div>
-    <div class="stat-item"><div class="number pulse" id="statCapabilities">&mdash;</div><div class="label">Capabilities</div></div>
-    <div class="stat-item"><div class="number pulse" id="statConnectors">&mdash;</div><div class="label">Connectors</div></div>
-</div>
+<!-- ── Main Content ── -->
+<main id="content" role="main" aria-label="Main content" class="murphy-landing-content">
 
-<!-- ═══════════════ WHAT IT DOES ═══════════════ -->
-<main id="content">
-<div class="section">
-    <h2 class="section-title">What It Does</h2>
-    <p class="section-subtitle">Murphy isn't another task runner. It's a self-running automation control plane.</p>
-    <div class="value-grid">
-        <div class="value-card">
-            <div class="icon">&#9889;</div>
-            <h3>Self-Running Automation</h3>
-            <p>Murphy doesn't just automate tasks &mdash; it learns, adapts, and runs itself with confidence-gated execution. Every action is scored before it fires.</p>
-        </div>
-        <div class="value-card">
-            <div class="icon">&#128737;</div>
-            <h3>Human-in-the-Loop Safety</h3>
-            <p>Every critical decision passes through approval gates. Escalation paths, audit trails, and HITL controls keep you in command.</p>
-        </div>
-        <div class="value-card">
-            <div class="icon">&#128268;</div>
-            <h3><span id="moduleCountInline">45+</span> Modules, One Platform</h3>
-            <p>From HVAC and BAS to CRM, content creation, and manufacturing &mdash; every connector wired and ready to deploy.</p>
-        </div>
-        <div class="value-card">
-            <div class="icon">&#128274;</div>
-            <h3>Enterprise-Grade Compliance</h3>
-            <p>GDPR, SOC2, HIPAA, PCI-DSS &mdash; built in, not bolted on. Policy enforcement, RBAC, and full audit logging from day one.</p>
-        </div>
-    </div>
-</div>
-
-<!-- ═══════════════ WHO IT'S FOR ═══════════════ -->
-<div class="section">
-    <h2 class="section-title">Who It's For</h2>
-    <p class="section-subtitle">One platform, five industries, zero limits.</p>
-    <div class="audience-grid">
-        <div class="audience-card">
-            <h3>Building &amp; Facility Managers</h3>
-            <p>BACnet, Modbus, KNX, LonWorks, DALI, OPC UA &mdash; automate HVAC, lighting, and energy with connectors for Johnson Controls, Honeywell, Siemens, Trane, and Carrier.</p>
-        </div>
-        <div class="audience-card">
-            <h3>Manufacturing Operations</h3>
-            <p>ISA-95, OPC UA, MTConnect, PackML, MQTT/Sparkplug B &mdash; production line automation with 7-phase gate control and real-time telemetry.</p>
-        </div>
-        <div class="audience-card">
-            <h3>Business Automation Teams</h3>
-            <p>CRM, email, payments, project management &mdash; integrate QuickBooks, SAP, Dynamics 365, Jira, Slack, Teams, and 59+ enterprise connectors.</p>
-        </div>
-        <div class="audience-card">
-            <h3>Content Creators &amp; Streamers</h3>
-            <p>YouTube, Twitch, TikTok, Patreon, Kick, Rumble &mdash; scheduling, simulcasting, and monetization tracking across every platform.</p>
-        </div>
-        <div class="audience-card">
-            <h3>Software Teams</h3>
-            <p>CI/CD, monitoring, deployment automation &mdash; DAG workflow engine, API gateway, and self-healing endpoint management built in.</p>
-        </div>
-    </div>
-</div>
-
-<!-- ═══════════════ HOW IT WORKS ═══════════════ -->
-<div class="section">
-    <h2 class="section-title">How It Works</h2>
-    <p class="section-subtitle">Three steps from zero to fully automated.</p>
-    <div class="steps">
-        <div class="step">
-            <h3>Tell Murphy What You Need</h3>
-            <p>Natural language onboarding. Describe your workflows &mdash; Murphy builds the plan.</p>
-        </div>
-        <div class="step">
-            <h3>Murphy Builds Your Plan</h3>
-            <p>Confidence scoring on every action. Every automation step is evaluated before execution.</p>
-        </div>
-        <div class="step">
-            <h3>Watch It Run</h3>
-            <p>Intervene only when you want to. Human-in-the-loop controls let you approve, pause, or override at any point.</p>
-        </div>
-    </div>
-</div>
-
-<!-- ═══════════════ QUICK START ═══════════════ -->
-<div class="section">
-    <h2 class="section-title">Quick Start</h2>
-    <p class="section-subtitle">Up and running in under a minute.</p>
-    <div class="terminal-block">
-        <div class="line"><span class="prompt">$</span><span class="cmd">git clone https://github.com/IKNOWINOT/Murphy-System.git</span></div>
-        <div class="line"><span class="prompt">$</span><span class="cmd">cd Murphy-System/Murphy\ System</span></div>
-        <div class="line"><span class="prompt">$</span><span class="cmd">pip install -r requirements.txt</span></div>
-        <div class="line"><span class="prompt">$</span><span class="cmd">python murphy_system_1.0_runtime.py</span></div>
-    </div>
-</div>
-
-<!-- ═══════════════ LICENSE ═══════════════ -->
-<div class="section">
-    <h2 class="section-title">License</h2>
-    <p class="section-subtitle">Murphy is free to use under the Business Source License 1.1 (BSL 1.1).</p>
-    <p style="color:var(--text-dim);text-align:center;max-width:640px;margin:0 auto;">
-        Use it for personal, commercial, internal, or educational purposes.
-        The only restriction: you may not offer Murphy itself as a competing hosted service.
-        After four years, each version automatically converts to <strong style="color:var(--neon-cyan)">Apache 2.0</strong>.
-        See <a href="https://github.com/IKNOWINOT/Murphy-System/blob/main/LICENSE" style="color:var(--neon-cyan)">LICENSE</a> for details.
+  <!-- ── Hero Section ── -->
+  <section class="murphy-hero">
+    <h1 class="murphy-hero-title">
+      Automate Everything.<br>Control Everything.
+    </h1>
+    <p class="text-secondary murphy-hero-subtitle">
+      Murphy makes complex automation feel simple. From factory IoT to content delivery,
+      Murphy handles the complexity so you can focus on your business.
     </p>
-</div>
-
-<!-- ═══════════════ MODULE CATALOG ═══════════════ -->
-<div class="section">
-    <h2 class="section-title">Module Catalog</h2>
-    <p class="section-subtitle">Every module auto-wired with gate synthesis, event publishing, and persistence.</p>
-    <button class="module-toggle" id="moduleToggle" aria-expanded="false" aria-controls="moduleCatalog">Show All <span id="moduleCountBadge">0</span> Modules &#9662;</button>
-    <div class="module-catalog" id="moduleCatalog">
-        <div class="module-grid" id="moduleGrid"></div>
+    <div class="flex justify-center flex-wrap gap-3">
+      <a href="onboarding_wizard.html" class="murphy-btn murphy-btn-primary murphy-btn-lg">Get Started</a>
+      <a href="terminal_unified.html" class="murphy-btn murphy-btn-ghost murphy-btn-lg">Open Terminal</a>
     </div>
-</div>
+  </section>
+
+  <!-- ── Features Grid ── -->
+  <section id="features" class="murphy-section">
+    <h2 class="text-center murphy-section-title">What Murphy Can Do</h2>
+    <div class="murphy-card-grid">
+
+      <div class="murphy-card">
+        <div class="murphy-card-body">
+          <h3 class="murphy-card-heading">⚡ Smart Automation</h3>
+          <p class="text-secondary">Build workflows visually or describe them in plain English. Murphy's Librarian handles the rest.</p>
+        </div>
+      </div>
+
+      <div class="murphy-card">
+        <div class="murphy-card-body">
+          <h3 class="murphy-card-heading">🛡️ Six Safety Gates</h3>
+          <p class="text-secondary">Executive, Operations, QA, HITL, Compliance, and Budget gates ensure nothing goes wrong.</p>
+        </div>
+      </div>
+
+      <div class="murphy-card">
+        <div class="murphy-card-body">
+          <h3 class="murphy-card-heading">🌐 Works Everywhere</h3>
+          <p class="text-secondary">IoT, content, data pipelines, DevOps, sales, finance — one system for every industry.</p>
+        </div>
+      </div>
+
+      <div class="murphy-card">
+        <div class="murphy-card-body">
+          <h3 class="murphy-card-heading">📊 Live System View</h3>
+          <p class="text-secondary">See your entire architecture in real-time. Health, throughput, and connections at a glance.</p>
+        </div>
+      </div>
+
+      <div class="murphy-card">
+        <div class="murphy-card-body">
+          <h3 class="murphy-card-heading">👥 Role-Based Terminals</h3>
+          <p class="text-secondary">Each team member gets a tailored interface. From delivery workers to system architects.</p>
+        </div>
+      </div>
+
+      <div class="murphy-card">
+        <div class="murphy-card-body">
+          <h3 class="murphy-card-heading">💬 Conversational Setup</h3>
+          <p class="text-secondary">Tell Murphy what you need in plain English. The Librarian configures everything automatically.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── How It Works ── -->
+  <section id="how-it-works" class="murphy-section">
+    <h2 class="text-center murphy-section-title">How It Works</h2>
+    <div class="murphy-card-grid">
+
+      <div class="murphy-card">
+        <div class="murphy-card-body text-center">
+          <div class="murphy-step-number">1</div>
+          <h3 class="murphy-card-heading-sm">Describe Your Goal</h3>
+          <p class="text-secondary">Tell Murphy what you want to automate in plain English or use the visual workflow designer.</p>
+        </div>
+      </div>
+
+      <div class="murphy-card">
+        <div class="murphy-card-body text-center">
+          <div class="murphy-step-number">2</div>
+          <h3 class="murphy-card-heading-sm">Murphy Builds It</h3>
+          <p class="text-secondary">The Librarian configures modules, connections, safety gates, and role-based access automatically.</p>
+        </div>
+      </div>
+
+      <div class="murphy-card">
+        <div class="murphy-card-body text-center">
+          <div class="murphy-step-number">3</div>
+          <h3 class="murphy-card-heading-sm">Monitor &amp; Control</h3>
+          <p class="text-secondary">Watch everything run in real-time. Six safety gates keep you safe. Override anything, anytime.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── Live Stats Section ── -->
+  <section class="murphy-section">
+    <h2 class="text-center murphy-section-title">System Status</h2>
+    <div id="live-stats" class="murphy-stat-grid">
+      <p class="text-secondary text-center murphy-stat-grid-span">Loading system status…</p>
+    </div>
+  </section>
+
+  <!-- ── Terminal Showcase ── -->
+  <section id="terminals" class="murphy-section">
+    <h2 class="text-center murphy-section-title">Choose Your View</h2>
+    <div class="murphy-card-grid" id="terminal-grid">
+
+      <a href="terminal_unified.html" class="murphy-card murphy-terminal-link">
+        <div class="murphy-card-body murphy-terminal-link-body">
+          <span class="murphy-color-dot" data-color="var(--accent-violet)" aria-hidden="true"></span>
+          <div>
+            <h3>Unified Hub</h3>
+            <p class="text-secondary">Central command — all systems, one dashboard.</p>
+          </div>
+        </div>
+      </a>
+
+      <a href="terminal_architect.html" class="murphy-card murphy-terminal-link">
+        <div class="murphy-card-body murphy-terminal-link-body">
+          <span class="murphy-color-dot" data-color="var(--accent-teal)" aria-hidden="true"></span>
+          <div>
+            <h3>Architect</h3>
+            <p class="text-secondary">Design system topology and module connections.</p>
+          </div>
+        </div>
+      </a>
+
+      <a href="terminal_integrated.html" class="murphy-card murphy-terminal-link">
+        <div class="murphy-card-body murphy-terminal-link-body">
+          <span class="murphy-color-dot" data-color="var(--accent-blue)" aria-hidden="true"></span>
+          <div>
+            <h3>Operations</h3>
+            <p class="text-secondary">Monitor pipelines, queues, and workflow health.</p>
+          </div>
+        </div>
+      </a>
+
+      <a href="terminal_worker.html" class="murphy-card murphy-terminal-link">
+        <div class="murphy-card-body murphy-terminal-link-body">
+          <span class="murphy-color-dot" data-color="var(--accent-amber)" aria-hidden="true"></span>
+          <div>
+            <h3>Worker</h3>
+            <p class="text-secondary">Task-focused view for delivery and field teams.</p>
+          </div>
+        </div>
+      </a>
+
+      <a href="terminal_costs.html" class="murphy-card murphy-terminal-link">
+        <div class="murphy-card-body murphy-terminal-link-body">
+          <span class="murphy-color-dot" data-color="var(--accent-coral)" aria-hidden="true"></span>
+          <div>
+            <h3>Finance</h3>
+            <p class="text-secondary">Budget tracking, cost analysis, and spend alerts.</p>
+          </div>
+        </div>
+      </a>
+
+      <a href="terminal_orgchart.html" class="murphy-card murphy-terminal-link">
+        <div class="murphy-card-body murphy-terminal-link-body">
+          <span class="murphy-color-dot" data-color="var(--accent-green)" aria-hidden="true"></span>
+          <div>
+            <h3>HR / Admin</h3>
+            <p class="text-secondary">Team structure, roles, and access management.</p>
+          </div>
+        </div>
+      </a>
+
+      <a href="terminal_integrations.html" class="murphy-card murphy-terminal-link">
+        <div class="murphy-card-body murphy-terminal-link-body">
+          <span class="murphy-color-dot" data-color="var(--accent-sky)" aria-hidden="true"></span>
+          <div>
+            <h3>DevOps</h3>
+            <p class="text-secondary">Integrations, deployments, and CI/CD pipelines.</p>
+          </div>
+        </div>
+      </a>
+
+      <a href="terminal_enhanced.html" class="murphy-card murphy-terminal-link">
+        <div class="murphy-card-body murphy-terminal-link-body">
+          <span class="murphy-color-dot" data-color="var(--accent-pink)" aria-hidden="true"></span>
+          <div>
+            <h3>Power User</h3>
+            <p class="text-secondary">Advanced terminal with direct system access.</p>
+          </div>
+        </div>
+      </a>
+
+      <a href="workflow_canvas.html" class="murphy-card murphy-terminal-link">
+        <div class="murphy-card-body murphy-terminal-link-body">
+          <span class="murphy-color-dot" data-color="var(--accent-cyan)" aria-hidden="true"></span>
+          <div>
+            <h3>Workflow Designer</h3>
+            <p class="text-secondary">Drag-and-drop visual workflow builder.</p>
+          </div>
+        </div>
+      </a>
+
+      <a href="system_visualizer.html" class="murphy-card murphy-terminal-link">
+        <div class="murphy-card-body murphy-terminal-link-body">
+          <span class="murphy-color-dot" data-color="var(--accent-indigo)" aria-hidden="true"></span>
+          <div>
+            <h3>System Topology</h3>
+            <p class="text-secondary">Interactive map of modules and connections.</p>
+          </div>
+        </div>
+      </a>
+
+    </div>
+  </section>
+
 </main>
 
-<!-- ═══════════════ FOOTER ═══════════════ -->
-<footer class="footer" role="contentinfo">
-    <p>&copy; 2024&ndash;2026 Corey Post &mdash; InonI LLC. All rights reserved.</p>
-    <p style="margin-top: 4px;">Available under the Business Source License 1.1 (BSL 1.1). Converts to Apache 2.0 after four years.</p>
-    <div class="footer-links">
-        <a href="https://github.com/IKNOWINOT/Murphy-System">GitHub</a>
-        <a href="https://github.com/IKNOWINOT/Murphy-System/issues">Issues</a>
-        <a href="https://github.com/IKNOWINOT/Murphy-System/wiki">Wiki</a>
-    </div>
+<!-- ── Footer ── -->
+<footer class="murphy-footer">
+  <p class="text-secondary">© 2020 Inoni Limited Liability Company by Corey Post</p>
+  <p class="text-secondary murphy-footer-legal">Licensed under BSL 1.1</p>
+  <div class="flex justify-center flex-wrap gap-3">
+    <a href="https://github.com/Inoni-LLC/Murphy-System" class="murphy-btn murphy-btn-ghost murphy-btn-sm" target="_blank" rel="noopener">GitHub</a>
+    <a href="docs/" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Documentation</a>
+    <a href="onboarding_wizard.html" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Get Started</a>
+  </div>
 </footer>
 
-<!-- ═══════════════ JAVASCRIPT ═══════════════ -->
+<script src="static/murphy-components.js"></script>
 <script>
 (function () {
-    'use strict';
+  'use strict';
 
-    // ── MODULE_CATALOG (mirrors murphy_system_1.0_runtime.py) ──
-    var MODULE_CATALOG = [
-        { name: "module_manager", desc: "Dynamic module lifecycle management with hot-reload and dependency resolution", caps: ["hot_reload","dependency_resolution","versioning"] },
-        { name: "modular_runtime", desc: "Pluggable runtime with task routing, session management, and execution metrics", caps: ["task_routing","session_management","execution_metrics"] },
-        { name: "universal_control_plane", desc: "Central orchestration with swarm coordination, priority queuing, and circuit breakers", caps: ["orchestration","swarm_coordination","circuit_breakers"] },
-        { name: "inoni_business_automation", desc: "Domain-specific business workflow automation with approval chains", caps: ["workflow_automation","approval_chains","business_rules"] },
-        { name: "two_phase_orchestrator", desc: "Two-phase commit orchestrator for distributed transaction safety", caps: ["two_phase_commit","distributed_transactions"] },
-        { name: "form_intake", desc: "Structured data ingestion with dynamic form generation and validation", caps: ["form_generation","validation","data_ingestion"] },
-        { name: "confidence_engine", desc: "Statistical confidence scoring with Bayesian and ML-backed models", caps: ["confidence_scoring","bayesian_models","uncertainty_quantification"] },
-        { name: "execution_engine", desc: "Core task execution with dependency tracking and retry policies", caps: ["task_execution","retry_policies","dependency_tracking"] },
-        { name: "learning_engine", desc: "Adaptive learning from execution outcomes with model retraining", caps: ["adaptive_learning","model_retraining","outcome_analysis"] },
-        { name: "hitl_monitor", desc: "Human-in-the-loop monitoring with approval gates and escalation paths", caps: ["human_approval","escalation","audit_trail"] },
-        { name: "governance_framework", desc: "Policy enforcement with role-based access and compliance validation", caps: ["policy_enforcement","rbac","compliance"] },
-        { name: "telemetry_ingestion", desc: "Real-time telemetry collection with multi-format ingestion", caps: ["telemetry","real_time","multi_format"] },
-        { name: "mfgc_adapter", desc: "MFGC 7-phase manufacturing gate control adapter", caps: ["manufacturing","gate_control","7_phase"] },
-        { name: "system_integrator", desc: "Cross-module integration orchestration and dependency wiring", caps: ["integration","dependency_wiring"] },
-        { name: "gate_synthesis", desc: "Execution gate synthesis for quality/compliance checkpoints", caps: ["gate_blocking","checkpoint_validation"] },
-        { name: "true_swarm_system", desc: "Autonomous swarm intelligence with emergent task distribution", caps: ["swarm_intelligence","emergent_behavior","task_distribution"] },
-        { name: "domain_swarms", desc: "Domain-specialized swarm agents for targeted automation", caps: ["domain_agents","specialized_swarms"] },
-        { name: "system_librarian", desc: "Knowledge graph and documentation management", caps: ["knowledge_graph","documentation","search"] },
-        { name: "organization_chart_system", desc: "Hierarchical org chart with role enforcement", caps: ["org_chart","role_management","hierarchy"] },
-        { name: "compute_plane", desc: "Compute resource allocation and workload scheduling", caps: ["compute_allocation","workload_scheduling"] },
-        { name: "recursive_stability_controller", desc: "System stability monitoring with feedback loop dampening", caps: ["stability","feedback_loops","dampening"] },
-        { name: "integration_engine", desc: "External system integration with adapter pattern", caps: ["external_integration","adapter_pattern"] },
-        { name: "persistence_manager", desc: "Durable state persistence with checkpoint/resume", caps: ["persistence","checkpoint","resume"] },
-        { name: "event_backbone", desc: "Event-driven architecture backbone with pub/sub", caps: ["event_driven","pub_sub","event_sourcing"] },
-        { name: "delivery_adapters", desc: "Multi-channel delivery (email, SMS, webhook, Slack, Teams)", caps: ["email","sms","webhook","slack","teams"] },
-        { name: "compliance_engine", desc: "GDPR/SOC2/HIPAA/PCI-DSS compliance validation", caps: ["gdpr","soc2","hipaa","pci_dss"] },
-        { name: "governance_kernel", desc: "Core governance kernel with policy compilation", caps: ["policy_compilation","governance_core"] },
-        { name: "durable_swarm_orchestrator", desc: "Persistent swarm orchestration with failover", caps: ["persistent_swarms","failover"] },
-        { name: "golden_path_bridge", desc: "Golden-path execution bridge for deterministic workflows", caps: ["golden_path","deterministic_execution"] },
-        { name: "executive_planning_engine", desc: "Strategic planning with objective decomposition and KPI tracking", caps: ["strategic_planning","kpi_tracking","objective_decomposition"] },
-        { name: "platform_connector_framework", desc: "29 platform connectors including WhatsApp, Telegram, Signal, WeChat, LINE, KakaoTalk", caps: ["platform_connectors","messaging","social_media"] },
-        { name: "workflow_dag_engine", desc: "Directed acyclic graph workflow engine", caps: ["dag_workflows","parallel_execution","dependency_resolution"] },
-        { name: "api_gateway_adapter", desc: "API gateway with rate limiting and auth middleware", caps: ["api_gateway","rate_limiting","auth_middleware"] },
-        { name: "enterprise_integrations", desc: "59 enterprise connectors (QuickBooks, AutoCAD, Blender, SAP, Dynamics365)", caps: ["enterprise_connectors","erp","accounting","engineering"] },
-        { name: "building_automation_connectors", desc: "BACnet, Modbus, KNX, LonWorks, DALI, OPC UA + Johnson Controls, Honeywell, Siemens, Trane, Carrier", caps: ["bacnet","modbus","knx","building_automation"] },
-        { name: "manufacturing_automation_connectors", desc: "ISA-95, OPC UA, MTConnect, PackML, MQTT/Sparkplug B, IEC 61131", caps: ["isa95","opc_ua","mtconnect","manufacturing"] },
-        { name: "energy_management_connectors", desc: "GridPoint, Tridium Niagara, ABB Ability, Emerson Ovation, Enverus, Brainbox AI", caps: ["energy_management","grid","building_efficiency"] },
-        { name: "digital_asset_generator", desc: "Asset pipelines for Unreal Engine, Maya, Blender, Fortnite UEFN, Unity, Godot", caps: ["unreal","maya","blender","fortnite","unity","godot"] },
-        { name: "rosetta_stone_heartbeat", desc: "Organization-wide heartbeat sync from executive branch through all tiers", caps: ["heartbeat","org_sync","executive_directives"] },
-        { name: "content_creator_platform_modulator", desc: "YouTube, Twitch, OnlyFans, TikTok, Patreon, Kick, Rumble connectors", caps: ["youtube","twitch","tiktok","content_scheduling","monetization"] },
-        { name: "ml_strategy_engine", desc: "11 ML strategies: anomaly detection, forecasting, classification, clustering, Q-learning RL, A/B testing, ensemble, online learning", caps: ["anomaly_detection","forecasting","classification","clustering","reinforcement_learning"] },
-        { name: "agentic_api_provisioner", desc: "Self-provisioning API that autonomously generates endpoints from module introspection with OpenAPI specs, webhooks, and self-healing", caps: ["auto_provision","openapi","webhooks","self_healing"] },
-        { name: "video_streaming_connector", desc: "Twitch, YouTube Live, OBS, vMix, Restream, StreamYard, Streamlabs, Kick Live with simulcasting", caps: ["live_streaming","simulcast","obs","twitch","youtube_live"] },
-        { name: "remote_access_connector", desc: "TeamViewer, AnyDesk, RDP, VNC, SSH, Parsec, Chrome Remote Desktop, Guacamole, Splashtop", caps: ["remote_desktop","teamviewer","rdp","vnc","ssh"] },
-        { name: "ui_testing_framework", desc: "12 UI testing capabilities: visual regression, interactive components, E2E, performance, cross-browser, mobile gestures, dark mode, security, i18n", caps: ["visual_regression","e2e_testing","performance","security","i18n"] }
-    ];
+  var api = new MurphyAPI('/api');
+  var theme = new MurphyTheme();
+  theme.init();
 
-    // ── RENDER ──
+  /* Librarian Chat — floating help widget */
+  var librarian = new MurphyLibrarianChat(api);
 
-    function renderStats() {
-        var totalCaps = MODULE_CATALOG.reduce(function (sum, m) { return sum + m.caps.length; }, 0);
-        document.getElementById('statModules').textContent = MODULE_CATALOG.length;
-        document.getElementById('statCapabilities').textContent = totalCaps;
-        document.getElementById('statConnectors').textContent = '59+';
-        document.getElementById('moduleCountBadge').textContent = MODULE_CATALOG.length;
-        document.getElementById('moduleCountInline').textContent = MODULE_CATALOG.length + '+';
+  /* Health polling */
+  var health = new MurphyHealth(api);
+  health.start();
+
+  // Theme toggle
+  var toggleBtn = document.getElementById('theme-toggle-btn');
+  function updateThemeIcon() {
+    toggleBtn.textContent = theme.get() === 'dark' ? '🌙' : '☀️';
+  }
+  updateThemeIcon();
+  theme.onChange(updateThemeIcon);
+  toggleBtn.addEventListener('click', function () {
+    theme.toggle();
+  });
+
+  // Apply color-dot backgrounds from data attributes
+  document.querySelectorAll('.murphy-color-dot[data-color]').forEach(function (el) {
+    el.style.backgroundColor = el.getAttribute('data-color');
+  });
+
+  // Build a stat card element
+  function statCard(label, value, variant) {
+    var card = document.createElement('div');
+    card.className = 'murphy-stat-card';
+    var valEl = document.createElement('div');
+    valEl.className = 'murphy-stat-card-value';
+    valEl.textContent = value;
+    if (variant) valEl.style.color = variant;
+    var labEl = document.createElement('div');
+    labEl.className = 'murphy-stat-card-label';
+    labEl.textContent = label;
+    card.appendChild(valEl);
+    card.appendChild(labEl);
+    return card;
+  }
+
+  // Fetch and display live stats
+  async function loadStats() {
+    var container = document.getElementById('live-stats');
+    try {
+      var healthRes = await api.get('/health');
+      var h = healthRes.data || healthRes || {};
+
+      var statusRes = await api.get('/status');
+      var s = statusRes.data || statusRes || {};
+
+      container.innerHTML = '';
+
+      var healthStatus = h.status || s.status || 'unknown';
+      var healthColor = healthStatus === 'healthy' ? 'var(--success, #22C55E)' : 'var(--warning, #FFA63E)';
+      container.appendChild(statCard('System Health', healthStatus, healthColor));
+
+      var modules = s.active_modules != null ? s.active_modules : (h.active_modules != null ? h.active_modules : '—');
+      container.appendChild(statCard('Active Modules', String(modules)));
+
+      var uptime = s.uptime || h.uptime || '—';
+      container.appendChild(statCard('Uptime', String(uptime)));
+
+      var version = s.api_version || h.api_version || s.version || h.version || '—';
+      container.appendChild(statCard('API Version', String(version)));
+    } catch (e) {
+      container.innerHTML = '<p class="text-secondary text-center murphy-stat-grid-span">Backend offline — stats unavailable</p>';
     }
+  }
 
-    function renderModules() {
-        var grid = document.getElementById('moduleGrid');
-        grid.innerHTML = MODULE_CATALOG.map(function (m) {
-            return '<div class="module-card">' +
-                '<div class="module-name">' + m.name + '</div>' +
-                '<div class="module-desc">' + m.desc + '</div>' +
-                '<div class="module-caps">' +
-                    m.caps.slice(0, 5).map(function (c) { return '<span class="cap-tag">' + c + '</span>'; }).join('') +
-                '</div>' +
-            '</div>';
-        }).join('');
-    }
-
-    // ── MODULE TOGGLE ──
-    document.getElementById('moduleToggle').addEventListener('click', function () {
-        var catalog = document.getElementById('moduleCatalog');
-        var isOpen = catalog.classList.toggle('open');
-        this.setAttribute('aria-expanded', isOpen);
-        this.innerHTML = isOpen
-            ? 'Hide Module Catalog \u25B4'
-            : 'Show All ' + MODULE_CATALOG.length + ' Modules \u25BE';
-    });
-
-    // ── INIT ──
-    renderStats();
-    renderModules();
+  loadStats();
 })();
 </script>
 </body>
