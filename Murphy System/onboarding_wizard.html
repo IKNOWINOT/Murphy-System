@@ -544,7 +544,7 @@
           .catch(function () {
             saveBtn.classList.remove('murphy-btn-loading');
             saveBtn.disabled = false;
-            savedLabel.textContent = 'Connection error — try again';
+            savedLabel.textContent = 'Connection error (CORS/network) — try again';
             savedLabel.style.display = 'inline';
           });
       }
