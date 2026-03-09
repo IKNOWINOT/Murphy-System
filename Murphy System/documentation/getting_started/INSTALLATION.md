@@ -210,7 +210,7 @@ docker pull murphy-system-runtime:latest
 
 ```bash
 # Run the container
-docker run -d -p 8052:8052 --name murphy-system murphy-system-runtime:latest
+docker run -d -p 8000:8000 --name murphy-system murphy-system-runtime:latest
 ```
 
 ### Step 4: Verify Installation
@@ -220,7 +220,7 @@ docker run -d -p 8052:8052 --name murphy-system murphy-system-runtime:latest
 docker ps
 
 # Test the API
-curl http://localhost:8052/api/health
+curl http://localhost:8000/api/health
 ```
 
 ### Step 5: Stop the Container
@@ -255,12 +255,12 @@ Set environment variables as needed:
 
 ```bash
 # Linux/macOS
-export MURPHY_API_PORT=8052
+export MURPHY_API_PORT=8000
 export MURPHY_LOG_LEVEL=INFO
 export MURPHY_CACHE_ENABLED=true
 
 # Windows
-set MURPHY_API_PORT=8052
+set MURPHY_API_PORT=8000
 set MURPHY_LOG_LEVEL=INFO
 set MURPHY_CACHE_ENABLED=true
 ```
@@ -322,7 +322,7 @@ sudo systemctl status murphy-system
 python demo/api_server_v2.py
 
 # In another terminal, test health endpoint
-curl http://localhost:8052/api/health
+curl http://localhost:8000/api/health
 ```
 
 **Expected Response:**
@@ -338,7 +338,7 @@ curl http://localhost:8052/api/health
 
 ```bash
 # Test system building
-curl -X POST http://localhost:8052/api/chat \
+curl -X POST http://localhost:8000/api/chat \
   -H "Content-Type: application/json" \
   -d '{
     "message": "Build a simple web application"
@@ -349,7 +349,7 @@ curl -X POST http://localhost:8052/api/chat \
 
 ```bash
 # Test expert generation
-curl -X POST http://localhost:8052/api/experts/generate \
+curl -X POST http://localhost:8000/api/experts/generate \
   -H "Content-Type: application/json" \
   -d '{
     "description": "Need experts for a web app",
@@ -363,7 +363,7 @@ curl -X POST http://localhost:8052/api/experts/generate \
 
 ```bash
 # Test gate creation
-curl -X POST http://localhost:8052/api/gates/create \
+curl -X POST http://localhost:8000/api/gates/create \
   -H "Content-Type: application/json" \
   -d '{
     "description": "Create gates for a web app",
@@ -418,7 +418,7 @@ pip install --user -r requirements_murphy_1.0.txt
 **Solution:**
 ```bash
 # Find process using the port
-lsof -i :8052
+lsof -i :8000
 
 # Kill the process
 kill -9 <PID>
@@ -453,10 +453,10 @@ pip install rich prompt-toolkit pyyaml networkx cryptography numpy
 docker logs murphy-system
 
 # Check if port is available
-netstat -tuln | grep 8052
+netstat -tuln | grep 8000
 
 # Try running without detaching to see errors
-docker run -it -p 8052:8052 murphy-system-runtime:latest
+docker run -it -p 8000:8000 murphy-system-runtime:latest
 ```
 
 ### Issue: Slow Performance
