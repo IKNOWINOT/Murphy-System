@@ -13,7 +13,7 @@
 <link rel="icon" href="static/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="static/murphy-design-system.css">
 </head>
-<body style="--accent: #00D4AA; --sidebar-width: 0px;">
+<body class="murphy-no-sidebar">
 
 <header class="murphy-topbar" role="banner">
   <div class="murphy-topbar-left">
@@ -27,12 +27,11 @@
   </div>
 </header>
 
-<main id="content" role="main"
-      style="margin-left: var(--sidebar-width); margin-top: var(--topbar-height); padding: var(--space-5); min-height: calc(100vh - var(--topbar-height)); transition: margin-left 0.2s ease;">
+<main id="content" role="main" class="murphy-smoke-content">
 
-  <div id="summary" class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));"></div>
+  <div id="summary" class="grid gap-4 mb-6 murphy-smoke-summary"></div>
 
-  <div id="grid" class="grid gap-4" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));"></div>
+  <div id="grid" class="grid gap-4 murphy-smoke-grid"></div>
 
 </main>
 
@@ -75,6 +74,13 @@
   var api = new MurphyAPI(API_BASE);
   var theme = new MurphyTheme();
   theme.init();
+
+  /* Librarian Chat — floating help widget */
+  var librarian = new MurphyLibrarianChat(api);
+
+  /* Health polling */
+  var health = new MurphyHealth(api);
+  health.start();
 
   var themeIcon = document.getElementById('theme-icon');
   function updateThemeIcon() {
