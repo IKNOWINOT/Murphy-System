@@ -30,6 +30,10 @@ class RoutingConfig:
     circuit_breaker_threshold: int = 5
     circuit_breaker_recovery_s: float = 30.0
     ml_weight: float = 0.20
+    max_latency_ms: float = 500.0
+    max_cost: float = 0.10
+    half_open_required_successes: int = 3
+    half_open_traffic_ratio: float = 0.10
     weights: Dict[str, float] = field(default_factory=lambda: {
         "reliability": 0.35,
         "latency": 0.25,
@@ -46,6 +50,7 @@ class MLConfig:
     epsilon_decay: float = 0.995
     max_latency_ms: float = 500.0
     max_cost: float = 0.10
+    recency_decay: float = 0.99
     reward_weights: Dict[str, float] = field(default_factory=lambda: {
         "success": 0.50,
         "latency": 0.30,
@@ -115,6 +120,16 @@ class AUARConfig:
                 r.get("circuit_breaker_recovery_s", cfg.routing.circuit_breaker_recovery_s)
             )
             cfg.routing.ml_weight = float(r.get("ml_weight", cfg.routing.ml_weight))
+            cfg.routing.max_latency_ms = float(
+                r.get("max_latency_ms", cfg.routing.max_latency_ms)
+            )
+            cfg.routing.max_cost = float(r.get("max_cost", cfg.routing.max_cost))
+            cfg.routing.half_open_required_successes = int(
+                r.get("half_open_required_successes", cfg.routing.half_open_required_successes)
+            )
+            cfg.routing.half_open_traffic_ratio = float(
+                r.get("half_open_traffic_ratio", cfg.routing.half_open_traffic_ratio)
+            )
             if "weights" in r and isinstance(r["weights"], dict):
                 cfg.routing.weights.update(r["weights"])
 
@@ -191,6 +206,10 @@ class AUARConfig:
             routing["circuit_breaker_recovery_s"] = os.environ["AUAR_ROUTING_CB_RECOVERY"]
         if "AUAR_ROUTING_ML_WEIGHT" in os.environ:
             routing["ml_weight"] = os.environ["AUAR_ROUTING_ML_WEIGHT"]
+        if "AUAR_ROUTING_MAX_LATENCY_MS" in os.environ:
+            routing["max_latency_ms"] = os.environ["AUAR_ROUTING_MAX_LATENCY_MS"]
+        if "AUAR_ROUTING_MAX_COST" in os.environ:
+            routing["max_cost"] = os.environ["AUAR_ROUTING_MAX_COST"]
 
         # ML
         if "AUAR_ML_EPSILON" in os.environ:
@@ -234,6 +253,10 @@ class AUARConfig:
                 "circuit_breaker_threshold": self.routing.circuit_breaker_threshold,
                 "circuit_breaker_recovery_s": self.routing.circuit_breaker_recovery_s,
                 "ml_weight": self.routing.ml_weight,
+                "max_latency_ms": self.routing.max_latency_ms,
+                "max_cost": self.routing.max_cost,
+                "half_open_required_successes": self.routing.half_open_required_successes,
+                "half_open_traffic_ratio": self.routing.half_open_traffic_ratio,
                 "weights": dict(self.routing.weights),
             },
             "ml": {
