@@ -106,7 +106,7 @@ class ExecutionCompiler:
         ts = datetime.now(timezone.utc)
         nonce = str(uuid.uuid4())
         packet = {
-            "packet_id": f"exec_{hypothesis_id}_{ts.timestamp()}",
+            "packet_id": f"exec_{hypothesis_id}_{int(ts.timestamp())}",
             "hypothesis_id": hypothesis_id,
             "plan_summary": summary,
             "actions": actions,

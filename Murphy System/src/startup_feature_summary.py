@@ -83,10 +83,12 @@ def print_feature_summary() -> str:
         "├──────────────────────────────────────────────┤",
     ]
 
+    max_len = max(len(n) for n in statuses) if statuses else 20
+
     if enabled:
         for name in enabled:
             info = statuses[name]
-            lines.append(f"│  ✅ {name:<20s} ({info['env_var']})")
+            lines.append(f"│  ✅ {name:<{max_len}s} ({info['env_var']})")
     else:
         lines.append("│  (no optional features enabled)")
 
@@ -94,7 +96,7 @@ def print_feature_summary() -> str:
         lines.append("├──────────────────────────────────────────────┤")
         for name in disabled:
             info = statuses[name]
-            lines.append(f"│  ⬚  {name:<20s} ({info['env_var']})")
+            lines.append(f"│  ⬚  {name:<{max_len}s} ({info['env_var']})")
 
     lines.append("└──────────────────────────────────────────────┘")
     lines.append("")

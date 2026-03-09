@@ -250,7 +250,7 @@ class SMTPBackend(EmailBackend):
         msg["To"] = ", ".join(message.to)
         if message.cc:
             msg["Cc"] = ", ".join(message.cc)
-        msg["Message-ID"] = f"<{message.message_id}@murphy>"
+        msg["Message-ID"] = f"<{message.message_id}@{os.getenv('MESSAGE_ID_DOMAIN', 'murphy.local')}>"
 
         msg.attach(MIMEText(message.body, "plain"))
         if message.html_body:
