@@ -6,6 +6,11 @@ including OpenAI, Azure OpenAI, Groq, Ollama, vLLM, LiteLLM, and
 other compatible providers. Uses the ``openai`` Python SDK as the
 single client for all providers.
 
+When **no API keys** are configured, the provider automatically falls
+back to Murphy's **onboard LLM** (``EnhancedLocalLLM``), which works
+entirely offline with zero external dependencies.  This means Murphy
+always has a working LLM — no API key required for local development.
+
 Architecture decision (INC-01 / C-01):
     The ``openai`` Python package is the industry-standard SDK that speaks
     the OpenAI chat-completions wire format.  Every major LLM host now
@@ -45,6 +50,7 @@ class ProviderType(Enum):
     VLLM = "vllm"
     LITELLM = "litellm"
     CUSTOM = "custom"
+    ONBOARD = "onboard"
 
 
 @dataclass
@@ -189,7 +195,16 @@ class OpenAICompatibleProvider:
         self._circuit = _CircuitBreaker()
         self._client: Any = None  # lazily created
         self._async_client: Any = None  # lazily created
+        self._onboard_llm: Any = None  # lazily created onboard LLM
         self._available = True
+
+        # Onboard provider is always available — no API key needed
+        if config.provider_type == ProviderType.ONBOARD:
+            logger.info(
+                "Using onboard LLM — no API key required",
+                extra={"provider": "onboard"},
+            )
+            return
 
         # Validate API key presence for cloud providers
         cloud_providers = {
@@ -217,7 +232,7 @@ class OpenAICompatibleProvider:
             OPENAI_API_KEY          — API key
             OPENAI_BASE_URL         — Base URL override
             OPENAI_DEFAULT_MODEL    — Model name (default gpt-3.5-turbo)
-            OPENAI_PROVIDER_TYPE    — One of openai/groq/ollama/…
+            OPENAI_PROVIDER_TYPE    — One of openai/groq/ollama/onboard/…
             OPENAI_MAX_RETRIES      — SDK retry count
             OPENAI_TIMEOUT          — Per-request timeout in seconds
             OPENAI_TEMPERATURE      — Default temperature
@@ -225,17 +240,37 @@ class OpenAICompatibleProvider:
 
         For Groq-specific usage, ``GROQ_API_KEY`` is also accepted and
         takes precedence when the provider type is ``groq``.
+
+        **Default behaviour (no API keys):** When neither ``OPENAI_API_KEY``
+        nor ``GROQ_API_KEY`` is set and no explicit provider type is
+        configured, the provider automatically selects the **onboard LLM**
+        (``EnhancedLocalLLM``) so Murphy works out-of-the-box with zero
+        external dependencies.
         """
-        provider_type_str = os.getenv("OPENAI_PROVIDER_TYPE", "openai").lower()
+        provider_type_str = os.getenv("OPENAI_PROVIDER_TYPE", "").lower()
+
+        # Resolve API key — honour provider-specific env vars
+        api_key = os.getenv("OPENAI_API_KEY", "")
+        groq_key = os.getenv("GROQ_API_KEY", "")
+
+        # Auto-detect provider type when not explicitly set
+        if not provider_type_str:
+            if api_key:
+                provider_type_str = "openai"
+            elif groq_key:
+                provider_type_str = "groq"
+                api_key = groq_key
+            else:
+                # No API keys at all → use the onboard LLM
+                provider_type_str = "onboard"
+
         try:
             provider_type = ProviderType(provider_type_str)
         except ValueError:
             provider_type = ProviderType.CUSTOM
 
-        # Resolve API key — honour provider-specific env vars
-        api_key = os.getenv("OPENAI_API_KEY", "")
         if provider_type == ProviderType.GROQ:
-            api_key = os.getenv("GROQ_API_KEY", api_key)
+            api_key = groq_key or api_key
 
         # Resolve base URL — provider-specific defaults
         base_url = os.getenv("OPENAI_BASE_URL")
@@ -249,6 +284,8 @@ class OpenAICompatibleProvider:
             default_model = "mixtral-8x7b-32768"
         elif provider_type == ProviderType.OLLAMA and default_model == "gpt-3.5-turbo":
             default_model = "llama3"
+        elif provider_type == ProviderType.ONBOARD:
+            default_model = "murphy-onboard"
 
         config = ProviderConfig(
             provider_type=provider_type,
@@ -312,6 +349,126 @@ class OpenAICompatibleProvider:
                 self._available = False
         return self._async_client
 
+    def _get_onboard_llm(self) -> Any:
+        """Lazily create the onboard EnhancedLocalLLM instance.
+
+        The onboard LLM works entirely offline — no API keys, no network
+        calls.  It is the default when no cloud provider is configured.
+        """
+        if self._onboard_llm is None:
+            try:
+                from enhanced_local_llm import EnhancedLocalLLM
+                self._onboard_llm = EnhancedLocalLLM()
+                logger.info(
+                    "Onboard LLM initialised (EnhancedLocalLLM)",
+                    extra={"provider": "onboard"},
+                )
+            except ImportError:
+                try:
+                    from src.enhanced_local_llm import EnhancedLocalLLM
+                    self._onboard_llm = EnhancedLocalLLM()
+                    logger.info(
+                        "Onboard LLM initialised (src.EnhancedLocalLLM)",
+                        extra={"provider": "onboard"},
+                    )
+                except ImportError:
+                    logger.warning(
+                        "EnhancedLocalLLM not available — onboard mode degraded",
+                        extra={"provider": "onboard"},
+                    )
+                    self._onboard_llm = None
+        return self._onboard_llm
+
+    async def _query_onboard(
+        self,
+        messages: List[ChatMessage],
+        request_id: str,
+        temperature: Optional[float] = None,
+    ) -> CompletionResponse:
+        """Route a request through the onboard EnhancedLocalLLM.
+
+        Extracts the last user message and feeds it to the onboard LLM,
+        returning the result in the standard ``CompletionResponse`` format.
+
+        Args:
+            messages: Conversation messages.
+            request_id: Correlation ID.
+            temperature: Sampling temperature.
+
+        Returns:
+            A ``CompletionResponse`` from the onboard LLM.
+        """
+        onboard = self._get_onboard_llm()
+
+        # Extract user prompt (last user message)
+        user_prompt = ""
+        system_context = ""
+        for m in messages:
+            if m.role == "user":
+                user_prompt = m.content
+            elif m.role == "system":
+                system_context = m.content
+
+        if system_context and user_prompt:
+            full_prompt = f"{system_context}\n\n{user_prompt}"
+        else:
+            full_prompt = user_prompt or system_context or ""
+
+        if onboard is None:
+            # Degraded fallback when EnhancedLocalLLM isn't importable
+            return self._fallback_response(messages, request_id)
+
+        start = time.monotonic()
+        try:
+            resolved_temp = temperature if temperature is not None else self._config.temperature
+            result = onboard.query(
+                prompt=full_prompt,
+                provider="aristotle",
+                temperature=resolved_temp,
+            )
+            elapsed = time.monotonic() - start
+
+            content = result.get("response", "")
+            tokens_used = result.get("tokens_used", len(content.split()))
+            confidence = result.get("confidence", 0.0)
+
+            logger.info(
+                "Onboard LLM query succeeded",
+                extra={
+                    "request_id": request_id,
+                    "provider": "onboard",
+                    "tokens": tokens_used,
+                    "confidence": confidence,
+                    "latency": round(elapsed, 3),
+                },
+            )
+
+            return CompletionResponse(
+                content=content,
+                model="murphy-onboard",
+                provider="onboard",
+                tokens_prompt=len(full_prompt.split()),
+                tokens_completion=len(content.split()),
+                tokens_total=tokens_used,
+                latency_seconds=elapsed,
+                request_id=request_id,
+                raw_response=result.get("metadata", {}),
+            )
+
+        except Exception as exc:
+            elapsed = time.monotonic() - start
+            logger.error(
+                "Onboard LLM query failed: %s",
+                exc,
+                extra={
+                    "request_id": request_id,
+                    "provider": "onboard",
+                    "latency": round(elapsed, 3),
+                    "error": str(exc),
+                },
+            )
+            return self._fallback_response(messages, request_id)
+
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
@@ -356,19 +513,23 @@ class OpenAICompatibleProvider:
         """
         request_id = str(uuid.uuid4())
 
+        # Onboard LLM — always available, no API key needed
+        if self._config.provider_type == ProviderType.ONBOARD:
+            return await self._query_onboard(messages, request_id, temperature)
+
         if not self._available:
             logger.info(
-                "Provider not available, returning fallback",
+                "Provider not available, routing to onboard LLM",
                 extra={"request_id": request_id, "provider": self._config.provider_type.value},
             )
-            return self._fallback_response(messages, request_id)
+            return await self._query_onboard(messages, request_id, temperature)
 
         if not self._circuit.allow_request():
             logger.warning(
-                "Circuit breaker open — returning fallback",
+                "Circuit breaker open — routing to onboard LLM",
                 extra={"request_id": request_id},
             )
-            return self._fallback_response(messages, request_id)
+            return await self._query_onboard(messages, request_id, temperature)
 
         resolved_model = model or self._config.default_model
         resolved_temp = temperature if temperature is not None else self._config.temperature
@@ -380,7 +541,7 @@ class OpenAICompatibleProvider:
         try:
             client = self._get_async_client()
             if client is None:
-                return self._fallback_response(messages, request_id)
+                return await self._query_onboard(messages, request_id, temperature)
 
             response = await client.chat.completions.create(
                 model=resolved_model,
@@ -423,7 +584,7 @@ class OpenAICompatibleProvider:
             elapsed = time.monotonic() - start
             self._circuit.record_failure()
             logger.error(
-                "Chat completion failed: %s",
+                "Chat completion failed, falling back to onboard LLM: %s",
                 exc,
                 extra={
                     "request_id": request_id,
@@ -433,7 +594,7 @@ class OpenAICompatibleProvider:
                     "error": str(exc),
                 },
             )
-            return self._fallback_response(messages, request_id)
+            return await self._query_onboard(messages, request_id, temperature)
 
     def chat_completion_sync(
         self,
@@ -503,13 +664,15 @@ class OpenAICompatibleProvider:
 
     def get_status(self) -> Dict[str, Any]:
         """Return provider health / configuration summary."""
+        is_onboard = self._config.provider_type == ProviderType.ONBOARD
         return {
             "provider_type": self._config.provider_type.value,
             "available": self._available,
             "default_model": self._config.default_model,
-            "base_url": self._config.base_url or "(default)",
+            "base_url": self._config.base_url or ("(local)" if is_onboard else "(default)"),
             "circuit_state": self._circuit._state.value,
             "has_api_key": bool(self._config.api_key),
+            "onboard_active": is_onboard or not self._available,
         }
 
     # ------------------------------------------------------------------
