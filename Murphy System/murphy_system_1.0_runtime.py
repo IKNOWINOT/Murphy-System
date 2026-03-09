@@ -533,10 +533,14 @@ try:
     from fastapi import Depends, FastAPI, HTTPException, Request
     from fastapi.responses import JSONResponse
     from fastapi.middleware.cors import CORSMiddleware
-    import uvicorn
 except ImportError:
     print("Warning: FastAPI not installed. Install with: pip install fastapi uvicorn")
     FastAPI = None
+# REMEDIATION: R48-uvicorn — separate uvicorn import so missing uvicorn doesn't mask FastAPI
+try:
+    import uvicorn
+except ImportError:
+    uvicorn = None
 
 # Setup logging
 logging.basicConfig(
