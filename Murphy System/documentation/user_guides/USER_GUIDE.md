@@ -54,12 +54,12 @@ The Murphy System Runtime is a fully functional autonomous AI system that helps 
 
 2. **Test the System**:
    ```bash
-   curl http://localhost:8052/api/health
+   curl http://localhost:8000/api/health
    ```
 
 3. **Build Your First System**:
    ```bash
-   curl -X POST http://localhost:8052/api/chat \
+   curl -X POST http://localhost:8000/api/chat \
      -H "Content-Type: application/json" \
      -d '{"message": "Build a simple web application"}'
    ```
@@ -143,7 +143,7 @@ The system operates in 7 phases:
 Build a simple web application:
 
 ```bash
-curl -X POST http://localhost:8052/api/system/build \
+curl -X POST http://localhost:8000/api/system/build \
   -H "Content-Type: application/json" \
   -d '{
     "description": "Build a simple web application",
@@ -166,7 +166,7 @@ curl -X POST http://localhost:8052/api/system/build \
 Build a complex healthcare application:
 
 ```bash
-curl -X POST http://localhost:8052/api/system/build \
+curl -X POST http://localhost:8000/api/system/build \
   -H "Content-Type: application/json" \
   -d '{
     "description": "Build a healthcare application",
@@ -215,7 +215,7 @@ curl -X POST http://localhost:8052/api/system/build \
 After building, validate your system:
 
 ```bash
-curl -X POST http://localhost:8052/api/system/validate \
+curl -X POST http://localhost:8000/api/system/validate \
   -H "Content-Type: application/json" \
   -d '{
     "system_state": {
@@ -241,7 +241,7 @@ curl -X POST http://localhost:8052/api/system/validate \
 Generate a team of experts:
 
 ```bash
-curl -X POST http://localhost:8052/api/experts/generate \
+curl -X POST http://localhost:8000/api/experts/generate \
   -H "Content-Type: application/json" \
   -d '{
     "description": "Need experts for a fintech platform",
@@ -259,13 +259,13 @@ curl -X POST http://localhost:8052/api/experts/generate \
 Get all experts:
 
 ```bash
-curl http://localhost:8052/api/experts
+curl http://localhost:8000/api/experts
 ```
 
 Get a specific expert:
 
 ```bash
-curl http://localhost:8052/api/experts/exp_1
+curl http://localhost:8000/api/experts/exp_1
 ```
 
 ### Understanding Expert Specializations
@@ -285,7 +285,7 @@ Common expert types:
 Specify team size and specializations:
 
 ```bash
-curl -X POST http://localhost:8052/api/experts/generate \
+curl -X POST http://localhost:8000/api/experts/generate \
   -H "Content-Type: application/json" \
   -d '{
     "description": "Need a specialized team",
@@ -306,7 +306,7 @@ curl -X POST http://localhost:8052/api/experts/generate \
 Create safety gates:
 
 ```bash
-curl -X POST http://localhost:8052/api/gates/create \
+curl -X POST http://localhost:8000/api/gates/create \
   -H "Content-Type: application/json" \
   -d '{
     "description": "Create gates for a financial application",
@@ -334,13 +334,13 @@ curl -X POST http://localhost:8052/api/gates/create \
 Get all gates:
 
 ```bash
-curl http://localhost:8052/api/gates
+curl http://localhost:8000/api/gates
 ```
 
 Filter by type:
 
 ```bash
-curl http://localhost:8052/api/gates?type=regulatory
+curl http://localhost:8000/api/gates?type=regulatory
 ```
 
 ### Evaluating Gates
@@ -348,7 +348,7 @@ curl http://localhost:8052/api/gates?type=regulatory
 Evaluate a specific gate:
 
 ```bash
-curl -X POST http://localhost:8052/api/gates/gate_1/evaluate \
+curl -X POST http://localhost:8000/api/gates/gate_1/evaluate \
   -H "Content-Type: application/json" \
   -d '{
     "system_state": {
@@ -372,7 +372,7 @@ curl -X POST http://localhost:8052/api/gates/gate_1/evaluate \
 Add constraints to your system:
 
 ```bash
-curl -X POST http://localhost:8052/api/constraints/add \
+curl -X POST http://localhost:8000/api/constraints/add \
   -H "Content-Type: application/json" \
   -d '{
     "type": "budget",
@@ -397,7 +397,7 @@ curl -X POST http://localhost:8052/api/constraints/add \
 Get all constraints:
 
 ```bash
-curl http://localhost:8052/api/constraints
+curl http://localhost:8000/api/constraints
 ```
 
 ### Validating Constraints
@@ -405,7 +405,7 @@ curl http://localhost:8052/api/constraints
 Validate constraints:
 
 ```bash
-curl -X POST http://localhost:8052/api/constraints/constraint_1/validate \
+curl -X POST http://localhost:8000/api/constraints/constraint_1/validate \
   -H "Content-Type: application/json" \
   -d '{
     "system_state": {
@@ -423,7 +423,7 @@ curl -X POST http://localhost:8052/api/constraints/constraint_1/validate \
 Analyze a decision:
 
 ```bash
-curl -X POST http://localhost:8052/api/choices/analyze \
+curl -X POST http://localhost:8000/api/choices/analyze \
   -H "Content-Type: application/json" \
   -d '{
     "question": "Should I use React or Angular for my frontend?",
@@ -450,7 +450,7 @@ The system provides:
 Compare several options:
 
 ```bash
-curl -X POST http://localhost:8052/api/choices/compare \
+curl -X POST http://localhost:8000/api/choices/compare \
   -H "Content-Type: application/json" \
   -d '{
     "options": ["AWS", "GCP", "Azure"],
@@ -471,7 +471,7 @@ curl -X POST http://localhost:8052/api/choices/compare \
 Use the chat interface for natural language interaction:
 
 ```bash
-curl -X POST http://localhost:8052/api/chat \
+curl -X POST http://localhost:8000/api/chat \
   -H "Content-Type: application/json" \
   -d '{
     "message": "Build a healthcare app with HIPAA compliance"
@@ -483,7 +483,7 @@ curl -X POST http://localhost:8052/api/chat \
 Use session IDs to maintain conversation context:
 
 ```bash
-curl -X POST http://localhost:8052/api/chat \
+curl -X POST http://localhost:8000/api/chat \
   -H "Content-Type: application/json" \
   -d '{
     "message": "What about security?",
@@ -498,7 +498,7 @@ curl -X POST http://localhost:8052/api/chat \
 Retrieve conversation history:
 
 ```bash
-curl "http://localhost:8052/api/chat/history?session_id=session_1"
+curl "http://localhost:8000/api/chat/history?session_id=session_1"
 ```
 
 ---
@@ -525,7 +525,7 @@ Always mention:
 Always check for triggers after complex operations:
 
 ```bash
-curl http://localhost:8052/api/triggers
+curl http://localhost:8000/api/triggers
 ```
 
 ### 4. Validate Before Deployment
@@ -533,7 +533,7 @@ curl http://localhost:8052/api/triggers
 Always validate your system before deployment:
 
 ```bash
-curl -X POST http://localhost:8052/api/system/validate \
+curl -X POST http://localhost:8000/api/system/validate \
   -H "Content-Type: application/json" \
   -d '{"system_state": {...}}'
 ```
@@ -543,7 +543,7 @@ curl -X POST http://localhost:8052/api/system/validate \
 Regularly check system performance:
 
 ```bash
-curl http://localhost:8052/api/telemetry/metrics
+curl http://localhost:8000/api/telemetry/metrics
 ```
 
 ### 6. Review Recommendations
@@ -551,7 +551,7 @@ curl http://localhost:8052/api/telemetry/metrics
 Always review system recommendations:
 
 ```bash
-curl http://localhost:8052/api/recommendations
+curl http://localhost:8000/api/recommendations
 ```
 
 ---
@@ -590,7 +590,7 @@ curl http://localhost:8052/api/recommendations
 **Solution**:
 ```bash
 # Check if port is in use
-lsof -i :8052
+lsof -i :8000
 
 # Kill process using port
 kill -9 <PID>

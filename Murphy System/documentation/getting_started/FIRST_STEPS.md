@@ -44,7 +44,7 @@ You should see output like:
 
 ```
 Starting Murphy System Runtime API Server...
-Server running on http://localhost:8052
+Server running on http://localhost:8000
 Press Ctrl+C to stop
 ```
 
@@ -53,7 +53,7 @@ Press Ctrl+C to stop
 Open a new terminal and test the health endpoint:
 
 ```bash
-curl http://localhost:8052/api/health
+curl http://localhost:8000/api/health
 ```
 
 You should see a response like:
@@ -126,7 +126,7 @@ Let's build a simple web application together!
 ### Send a Build Request
 
 ```bash
-curl -X POST http://localhost:8052/api/chat \
+curl -X POST http://localhost:8000/api/chat \
   -H "Content-Type: application/json" \
   -d '{
     "message": "Build a simple web application for tracking workouts"
@@ -207,7 +207,7 @@ Let's create a specialized expert team for a more complex project.
 ### Generate Experts
 
 ```bash
-curl -X POST http://localhost:8052/api/experts/generate \
+curl -X POST http://localhost:8000/api/experts/generate \
   -H "Content-Type: application/json" \
   -d '{
     "description": "Need experts for a healthcare application",
@@ -279,7 +279,7 @@ Now let's create comprehensive safety gates for a financial system.
 ### Create Gates
 
 ```bash
-curl -X POST http://localhost:8052/api/gates/create \
+curl -X POST http://localhost:8000/api/gates/create \
   -H "Content-Type: application/json" \
   -d '{
     "description": "Create gates for a financial application",
@@ -371,7 +371,7 @@ Let's analyze a common technical decision.
 ### Analyze a Choice
 
 ```bash
-curl -X POST http://localhost:8052/api/choices/analyze \
+curl -X POST http://localhost:8000/api/choices/analyze \
   -H "Content-Type: application/json" \
   -d '{
     "question": "Should I use React or Angular for my frontend?",
@@ -453,7 +453,7 @@ Now let's validate a system design against all constraints and gates.
 ### Validate the System
 
 ```bash
-curl -X POST http://localhost:8052/api/system/validate \
+curl -X POST http://localhost:8000/api/system/validate \
   -H "Content-Type: application/json" \
   -d '{
     "system_state": {

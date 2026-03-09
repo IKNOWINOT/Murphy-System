@@ -158,10 +158,10 @@ python demo/api_server_v2.py --config config/config.yaml
 
 ```bash
 # Test health endpoint
-curl http://localhost:8052/api/health
+curl http://localhost:8000/api/health
 
 # Test system build
-curl -X POST http://localhost:8052/api/system/build \
+curl -X POST http://localhost:8000/api/system/build \
   -H "Content-Type: application/json" \
   -d '{"description": "Test system"}'
 ```
@@ -278,7 +278,7 @@ If using nginx, create `/etc/nginx/sites-available/murphy-staging`:
 
 ```nginx
 upstream murphy_staging {
-    server 127.0.0.1:8052;
+    server 127.0.0.1:8000;
 }
 
 server {
@@ -486,7 +486,7 @@ Create `/etc/nginx/sites-available/murphy-production`:
 
 ```nginx
 upstream murphy_production {
-    server 127.0.0.1:8052;
+    server 127.0.0.1:8000;
     keepalive 32;
 }
 
@@ -599,9 +599,9 @@ Configure load balancer:
 
 ```nginx
 upstream murphy_cluster {
-    server 10.0.1.10:8052;
-    server 10.0.1.11:8052;
-    server 10.0.1.12:8052;
+    server 10.0.1.10:8000;
+    server 10.0.1.11:8000;
+    server 10.0.1.12:8000;
 }
 ```
 
