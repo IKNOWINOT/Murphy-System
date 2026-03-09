@@ -195,12 +195,12 @@ class TestChatCompletion:
         p = OpenAICompatibleProvider(cfg)
         resp = await p.chat_completion(messages)
 
-        assert resp.provider == "fallback"
-        assert "unavailable" in resp.content.lower()
+        # With no API key, routes to onboard LLM (not a dead "fallback")
+        assert resp.provider == "onboard"
 
     @pytest.mark.asyncio
     async def test_fallback_on_exception(self, provider, messages) -> None:
-        """If the SDK raises, the provider should return a fallback."""
+        """If the SDK raises, the provider should fall back to onboard LLM."""
         fake_openai = _mock_openai_module()
         # Make create() raise
         fake_openai.AsyncOpenAI.return_value.chat.completions.create = AsyncMock(
@@ -210,7 +210,8 @@ class TestChatCompletion:
             provider._async_client = None
             resp = await provider.chat_completion(messages)
 
-        assert resp.provider == "fallback"
+        # Falls through to onboard LLM instead of dead fallback
+        assert resp.provider == "onboard"
 
     @pytest.mark.asyncio
     async def test_empty_messages(self, provider) -> None:
@@ -340,3 +341,103 @@ class TestLLMControllerIntegration:
         assert "openai_compatible_provider" in source, (
             "llm_controller.py must import openai_compatible_provider (INC-01)"
         )
+
+
+# ---------------------------------------------------------------------------
+# Onboard LLM tests — default when no API keys
+# ---------------------------------------------------------------------------
+
+
+class TestOnboardLLM:
+    """Verify the onboard LLM is used by default when no API keys are set."""
+
+    @pytest.mark.asyncio
+    async def test_from_env_defaults_to_onboard_no_keys(self) -> None:
+        """With no API keys in env, from_env() should select onboard provider."""
+        with patch.dict(os.environ, {}, clear=True):
+            provider = OpenAICompatibleProvider.from_env()
+        assert provider.provider_type == ProviderType.ONBOARD
+        assert provider.available is True
+        assert provider.default_model == "murphy-onboard"
+
+    @pytest.mark.asyncio
+    async def test_from_env_uses_openai_when_key_set(self) -> None:
+        """With OPENAI_API_KEY, from_env() should select openai."""
+        env = {"OPENAI_API_KEY": "sk-test-123"}
+        with patch.dict(os.environ, env, clear=True):
+            provider = OpenAICompatibleProvider.from_env()
+        assert provider.provider_type == ProviderType.OPENAI
+        assert provider._config.api_key == "sk-test-123"
+
+    @pytest.mark.asyncio
+    async def test_from_env_uses_groq_when_groq_key_set(self) -> None:
+        """With GROQ_API_KEY, from_env() should select groq."""
+        env = {"GROQ_API_KEY": "gsk_test456"}
+        with patch.dict(os.environ, env, clear=True):
+            provider = OpenAICompatibleProvider.from_env()
+        assert provider.provider_type == ProviderType.GROQ
+        assert provider._config.api_key == "gsk_test456"
+
+    @pytest.mark.asyncio
+    async def test_onboard_chat_completion_returns_response(self) -> None:
+        """Onboard provider returns a real response from EnhancedLocalLLM."""
+        cfg = ProviderConfig(provider_type=ProviderType.ONBOARD)
+        provider = OpenAICompatibleProvider(cfg)
+        messages = [
+            ChatMessage(role="user", content="What is 2 + 2?"),
+        ]
+        resp = await provider.chat_completion(messages)
+        assert isinstance(resp, CompletionResponse)
+        assert resp.provider == "onboard"
+        assert resp.model == "murphy-onboard"
+        assert len(resp.content) > 0
+        assert resp.tokens_total > 0
+
+    @pytest.mark.asyncio
+    async def test_onboard_with_system_message(self) -> None:
+        """Onboard provider handles system + user messages."""
+        cfg = ProviderConfig(provider_type=ProviderType.ONBOARD)
+        provider = OpenAICompatibleProvider(cfg)
+        messages = [
+            ChatMessage(role="system", content="You are a helpful assistant."),
+            ChatMessage(role="user", content="Explain gravity"),
+        ]
+        resp = await provider.chat_completion(messages)
+        assert isinstance(resp, CompletionResponse)
+        assert resp.provider == "onboard"
+        assert len(resp.content) > 0
+
+    @pytest.mark.asyncio
+    async def test_onboard_status_shows_active(self) -> None:
+        """get_status reflects onboard_active when using onboard provider."""
+        cfg = ProviderConfig(provider_type=ProviderType.ONBOARD)
+        provider = OpenAICompatibleProvider(cfg)
+        status = provider.get_status()
+        assert status["provider_type"] == "onboard"
+        assert status["available"] is True
+        assert status["onboard_active"] is True
+
+    @pytest.mark.asyncio
+    async def test_onboard_is_fallback_for_unavailable_cloud(self) -> None:
+        """When cloud provider has no key, onboard serves as fallback."""
+        cfg = ProviderConfig(provider_type=ProviderType.OPENAI, api_key="")
+        provider = OpenAICompatibleProvider(cfg)
+        assert provider.available is False
+
+        messages = [ChatMessage(role="user", content="Hello")]
+        resp = await provider.chat_completion(messages)
+        # Should route to onboard, not dead fallback
+        assert resp.provider == "onboard"
+        assert len(resp.content) > 0
+
+    def test_explicit_onboard_provider_type(self) -> None:
+        """ProviderType.ONBOARD enum exists and works."""
+        assert ProviderType.ONBOARD.value == "onboard"
+
+    @pytest.mark.asyncio
+    async def test_from_env_explicit_onboard(self) -> None:
+        """Explicit OPENAI_PROVIDER_TYPE=onboard selects onboard."""
+        env = {"OPENAI_PROVIDER_TYPE": "onboard"}
+        with patch.dict(os.environ, env, clear=True):
+            provider = OpenAICompatibleProvider.from_env()
+        assert provider.provider_type == ProviderType.ONBOARD

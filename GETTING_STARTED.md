@@ -554,7 +554,7 @@ brew install python@3.10
 Another process is using port 8000. Stop it or use a different port:
 
 ```bash
-python3 murphy_system_1.0_runtime.py --port 8001
+MURPHY_PORT=8001 bash setup_and_start.sh
 ```
 
 ### Health check returns connection refused
