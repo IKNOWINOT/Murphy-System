@@ -181,7 +181,7 @@ Murphy-System/
 
 **How to run:**
 ```bash
-cd "Murphy System" && ./start_murphy_1.0.sh
+bash setup_and_start.sh
 ```
 
 **Available endpoints:** `/api/health`, `/api/status`, `/api/info`, `/api/execute`, and automation endpoints under `/api/automation/...`
@@ -217,7 +217,7 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 
 | Domain | Location | Purpose | Entry Points |
 | --- | --- | --- | --- |
-| **Runtime API** | `Murphy System/murphy_system_1.0_runtime.py` | Runtime 1.0 API server | `Murphy System/start_murphy_1.0.sh`, `GET /api/status` |
+| **Runtime API** | `Murphy System/murphy_system_1.0_runtime.py` | Runtime 1.0 API server | `bash setup_and_start.sh`, `GET /api/status` |
 | **Role-based UIs** | `Murphy System/terminal_architect.html` | Architect planning + gate review UI | `python -m http.server 8090`, `?apiPort=8000` |
 | **Operations UI** | `Murphy System/terminal_integrated.html` | Operations execution UI | `python -m http.server 8090`, `?apiPort=8000` |
 | **Worker UI** | `Murphy System/terminal_worker.html` | Delivery worker UI | `python -m http.server 8090`, `?apiPort=8000` |
@@ -562,7 +562,7 @@ POST /api/integrations/add
 ### Local Development
 
 ```bash
-./start_murphy_1.0.sh
+bash setup_and_start.sh
 ```
 
 ### Containers & Kubernetes (Legacy Examples)
@@ -573,7 +573,7 @@ Container and Kubernetes deployment manifests are available as legacy reference 
 
 ## 🔌 API Endpoints
 
-The Murphy System Runtime exposes a FastAPI-based REST API. Start the server with `./start_murphy_1.0.sh`, then visit `http://localhost:8000/docs` for interactive documentation.
+The Murphy System Runtime exposes a FastAPI-based REST API. Start the server with `bash setup_and_start.sh`, then visit `http://localhost:8000/docs` for interactive documentation.
 
 | Method | Path | Auth Required | Description |
 | --- | --- | --- | --- |
@@ -817,8 +817,8 @@ feedback into its operational models.
 git clone https://github.com/IKNOWINOT/Murphy-System.git
 
 # 2. Start
-cd Murphy-System/Murphy\ System
-./start_murphy_1.0.sh
+cd Murphy-System
+bash setup_and_start.sh
 
 # 3. Use
 curl http://localhost:8000/api/status

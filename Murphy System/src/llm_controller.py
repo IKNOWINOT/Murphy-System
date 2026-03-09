@@ -4,6 +4,9 @@ Controls Groq API and onboard smaller LLMs
 Powers the neon terminal UI for system/module setup guidance
 
 Based on Recursive Language Models (RLM) pattern from 2512.24601v1.pdf
+
+Copyright © 2020-2026 Inoni LLC — Created by Corey Post
+License: BSL 1.1
 """
 
 import os
@@ -15,6 +18,16 @@ from enum import Enum
 import re
 from datetime import datetime
 import logging
+
+# INC-01 / C-01: Import the OpenAI-compatible provider (unified LLM gateway)
+from openai_compatible_provider import (  # noqa: F401
+    OpenAICompatibleProvider,
+    ProviderConfig,
+    ProviderType,
+    ChatMessage,
+    CompletionResponse,
+)
+
 logger = logging.getLogger(__name__)
 
 
