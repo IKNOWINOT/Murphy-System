@@ -1,5 +1,8 @@
 # Murphy System — Runtime Directory
 
+> **📖 Canonical documentation:** See the [root README](../README.md) for full
+> project documentation, architecture, and getting-started instructions.
+
 This is the primary runtime directory for the Murphy System. It contains the
 FastAPI server, 650+ source modules across 56 packages in `src/`, web interfaces,
 tests, and deployment configuration.
@@ -9,8 +12,7 @@ tests, and deployment configuration.
 ## Quick Start
 
 ```bash
-pip install -r requirements_murphy_1.0.txt   # install dependencies
-python murphy_system_1.0_runtime.py           # FastAPI server on :8000
+bash setup_and_start.sh                       # recommended: single canonical start
 curl http://localhost:8000/api/health          # verify it's running
 ```
 
