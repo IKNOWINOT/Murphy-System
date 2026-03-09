@@ -124,54 +124,10 @@ body.murphy-no-sidebar .murphy-topbar {
 }
 
 /* ============================================================
-   2. LIGHT THEME
+   2. DARK THEME (sole supported theme)
    ============================================================ */
-body.murphy-light {
-  --bg-base: #F4F6F8;
-  --bg-surface: #FFFFFF;
-  --bg-elevated: #FFFFFF;
-  --bg-input: #F0F2F5;
+/* Murphy System is dark-only. There is no light theme. Do not add body.murphy-light rules. */
 
-  --border-subtle: #E2E6EB;
-  --border-default: #CDD3DA;
-  --border-focus: #009E7E;
-
-  --text-primary: #1A2030;
-  --text-secondary: #5A6778;
-  --text-muted: #8A95A3;
-
-  --teal: #009E7E;
-  --teal-glow: rgba(0, 158, 126, 0.10);
-
-  --success: #16A34A;
-  --warning: #E8912E;
-  --danger: #DC2626;
-  --info: #2563EB;
-
-  --gate-executive: #C9A800;
-  --gate-operations: #009E7E;
-  --gate-qa: #7054C4;
-  --gate-hitl: #E8912E;
-  --gate-compliance: #DC2626;
-  --gate-budget: #2563EB;
-
-  --accent-gold: #C9A800;
-  --accent-teal: #009E7E;
-  --accent-pink: #C026D3;
-  --accent-blue: #2563EB;
-  --accent-amber: #E8912E;
-  --accent-coral: #DC4444;
-  --accent-green: #16A34A;
-  --accent-violet: #7054C4;
-  --accent-sky: #0284C7;
-  --accent-cyan: #0891B2;
-  --accent-indigo: #4F46E5;
-
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.10);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
-  --shadow-glow-teal: 0 0 20px rgba(0, 158, 126, 0.12);
-}
 
 /* ============================================================
    3. CSS RESET
