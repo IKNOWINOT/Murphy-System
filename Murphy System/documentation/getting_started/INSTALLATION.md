@@ -210,7 +210,7 @@ docker pull murphy-system-runtime:latest
 
 ```bash
 # Run the container
-docker run -d -p 8052:8000 --name murphy-system murphy-system-runtime:latest
+docker run -d -p 8000:8000 --name murphy-system murphy-system-runtime:latest
 ```
 
 ### Step 4: Verify Installation
@@ -453,10 +453,10 @@ pip install rich prompt-toolkit pyyaml networkx cryptography numpy
 docker logs murphy-system
 
 # Check if port is available
-netstat -tuln | grep 8052
+netstat -tuln | grep 8000
 
 # Try running without detaching to see errors
-docker run -it -p 8052:8000 murphy-system-runtime:latest
+docker run -it -p 8000:8000 murphy-system-runtime:latest
 ```
 
 ### Issue: Slow Performance

@@ -138,7 +138,7 @@ ps aux | grep api_server
 
 # Check port usage
 lsof -i :8000
-netstat -tuln | grep 8052
+netstat -tuln | grep 8000
 ```
 
 **Solutions**:
@@ -700,10 +700,10 @@ curl http://localhost:8000/api/telemetry/metrics?type=cache
 ps aux | grep api_server
 
 # Check if port is listening
-netstat -tuln | grep 8052
+netstat -tuln | grep 8000
 
 # Test connectivity
-telnet localhost 8052
+telnet localhost 8000
 ```
 
 **Solutions**:
@@ -719,14 +719,14 @@ telnet localhost 8052
    sudo ufw status
    
    # Allow port
-   sudo ufw allow 8052
+   sudo ufw allow 8000
    ```
 
 3. **Check Network**:
    ```bash
    # Test connectivity
    ping localhost
-   telnet localhost 8052
+   telnet localhost 8000
    ```
 
 4. **Check Reverse Proxy**:

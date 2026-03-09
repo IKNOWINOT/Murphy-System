@@ -22,7 +22,7 @@
 ### Start the API Server
 
 ```bash
-# Default port (8052)
+# Default port (8000)
 python demo/api_server_v2.py
 
 # Custom port
