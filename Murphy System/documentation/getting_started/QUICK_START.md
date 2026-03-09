@@ -431,7 +431,7 @@ curl -X POST http://localhost:8000/api/gates/create \
 
 ### Server Won't Start
 
-**Problem**: Port 8052 already in use
+**Problem**: Port 8000 already in use
 
 **Solution:**
 ```bash

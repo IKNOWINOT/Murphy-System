@@ -1,10 +1,9 @@
 # Getting Started with Murphy System
 
-> **This file will move to the repository root as part of the repo flattening described in
-> [`docs/FLATTENING_PLAN.md`](docs/FLATTENING_PLAN.md) (Phase 5).**
->
-> After the flatten is complete, the canonical copy will live at `/GETTING_STARTED.md`
-> (repository root). Until then, both files are kept identical.
+> **📖 Canonical documentation:** See the [root GETTING_STARTED.md](../GETTING_STARTED.md)
+> for the full getting-started guide.
+
+This file is kept for convenience. The canonical copy lives at the repository root.
 
 ---
 

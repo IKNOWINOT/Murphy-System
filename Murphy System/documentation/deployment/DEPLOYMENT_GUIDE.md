@@ -124,7 +124,7 @@ mode: development
 # Server Settings
 server:
   host: "localhost"
-  port: 8052
+  port: 8000
   workers: 1
 
 # Logging
@@ -200,7 +200,7 @@ mode: staging
 # Server Settings
 server:
   host: "0.0.0.0"
-  port: 8052
+  port: 8000
   workers: 4
 
 # Logging
@@ -342,7 +342,7 @@ mode: production
 # Server Settings
 server:
   host: "0.0.0.0"
-  port: 8052
+  port: 8000
   workers: 8
 
 # Logging
@@ -674,7 +674,7 @@ Set up comprehensive monitoring:
       "image": "your-registry/murphy-runtime:latest",
       "portMappings": [
         {
-          "containerPort": 8052,
+          "containerPort": 8000,
           "protocol": "tcp"
         }
       ]
@@ -705,7 +705,7 @@ az container create \
   --image your-registry/murphy-runtime:latest \
   --cpu 4 \
   --memory 8 \
-  --ports 8052
+  --ports 8000
 ```
 
 ---
@@ -790,7 +790,7 @@ sudo journalctl -u murphy-production -n 50
 python -c "import yaml; yaml.safe_load(open('config/config.yaml'))"
 
 # Check ports
-sudo netstat -tuln | grep 8052
+sudo netstat -tuln | grep 8000
 ```
 
 ### High Memory Usage
