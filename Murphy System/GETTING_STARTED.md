@@ -43,66 +43,55 @@ remote: Counting objects: 100% (1842/1842), done.
 Resolving deltas: 100% (1204/1204), done.
 ```
 
-Change into the application directory:
+Change into the repository root:
 
 ```
-$ cd "Murphy-System/Murphy System"
+$ cd Murphy-System
 ```
 
 ---
 
-## Step 2 — Configure Environment
+## Step 2 — Install and Start Murphy
 
-Copy the example environment file and open it in your editor:
-
-```
-$ cp .env.example .env
-```
-
-The only value you **must** set before first run is `MURPHY_API_KEY`.  Every
-other setting has a working default.
-
-Open `.env` and set:
-
-```
-MURPHY_API_KEY=your-secret-key-here
-```
-
-> **Tip:** Set `LLM_ENABLED=false` for the fastest cold start — Murphy runs
-> fully without an LLM, using rule-based routing only.
-
----
-
-## Step 3 — Install Dependencies
-
-```
-$ pip install -r requirements_murphy_1.0.txt
-Collecting fastapi>=0.110.0
-...
-Successfully installed fastapi-0.115.0 uvicorn-0.30.1 ...
-```
-
-All packages install cleanly.  No warnings about conflicts are expected.
-
----
-
-## Step 4 — Start Murphy
+From the repository root, run the setup script — it handles everything:
 
 ### Linux / macOS
 
 ```
-$ python3 murphy_system_1.0_runtime.py
-INFO:     Murphy System 1.0 starting...
-INFO:     Module registry: 610 modules loaded
-INFO:     Governance kernel: active
-INFO:     HITL gates: enabled
-INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+$ bash setup_and_start.sh
+✓  Python 3.10+ found
+✓  Virtual environment ready
+✓  All dependencies installed
+✓  Created default .env (onboard LLM active — no key required)
+✓  Runtime directories ready
 ```
 
 ### Windows
 
 ```
-> python murphy_system_1.0_runtime.py
+> setup_and_start.bat
+```
+
+`setup_and_start.sh` (and its Windows counterpart) performs all of the
+following automatically:
+
+1. Checks prerequisites (Python 3.10+, pip)
+2. Creates a virtual environment and installs all dependencies from
+   `requirements_murphy_1.0.txt`
+3. Auto-generates a `.env` with `MURPHY_LLM_PROVIDER=local` — the onboard
+   LLM works without any external API key
+4. Creates all runtime directories (logs, data, modules, sessions, etc.)
+5. Launches the Murphy backend server
+
+> **No API key required.** In development mode (`MURPHY_ENV=development`,
+> the default), no API key is needed. Murphy starts with its onboard LLM
+> by default. For enhanced quality, optionally add a Groq key later via
+> the terminal (`set key groq <your-key>`) or by editing `.env`.
+> In production mode, the system auto-generates keys via `SecureKeyManager`.
+
+Once the script completes, the backend server will be running:
+
+```
 INFO:     Murphy System 1.0 starting...
 INFO:     Module registry: 610 modules loaded
 INFO:     Governance kernel: active
@@ -114,7 +103,7 @@ Murphy is running.  Leave this terminal open.
 
 ---
 
-## Step 5 — Verify the Health Check
+## Step 3 — Verify the Health Check
 
 Open a second terminal and run:
 
@@ -127,12 +116,17 @@ $ curl http://localhost:8000/api/health
 
 ---
 
-## Step 6 — Authenticate
+## Step 4 — Authenticate (Production Only)
 
-Every endpoint except `/api/health` requires your API key.  Set it as a header:
+In development mode (`MURPHY_ENV=development`, the default), all endpoints
+are accessible without an API key.  You can skip this step while evaluating
+Murphy locally.
+
+For production deployments, the system auto-generates secure API keys via
+`SecureKeyManager`.  Use the key as a Bearer token:
 
 ```
-$ curl -H "Authorization: Bearer your-secret-key-here" \
+$ curl -H "Authorization: Bearer <your-generated-key>" \
        http://localhost:8000/api/status
 ```
 
@@ -142,7 +136,7 @@ Expected response (abbreviated):
 {
   "status": "operational",
   "modules_loaded": 610,
-  "llm_enabled": false,
+  "llm_provider": "local",
   "active_gates": ["security", "compliance", "governance"],
   "uptime_seconds": 23,
   "version": "1.0.0"
@@ -151,13 +145,12 @@ Expected response (abbreviated):
 
 ---
 
-## Step 7 — Execute Your First Task
+## Step 5 — Execute Your First Task
 
 ```
 $ curl -X POST http://localhost:8000/api/execute \
-       -H "Authorization: Bearer your-secret-key-here" \
        -H "Content-Type: application/json" \
-       -d '{"task": "summarise the key benefits of Murphy System", "use_llm": false}'
+       -d '{"task": "summarise the key benefits of Murphy System"}'
 ```
 
 Expected response:
@@ -229,13 +222,15 @@ python3 murphy_system_1.0_runtime.py --port 8001
 ### Health check returns connection refused
 
 Murphy is still starting up (usually < 5 seconds) or failed to start.  Check
-the server terminal for error messages.  Common cause: missing or invalid
-`MURPHY_API_KEY` in `.env`.
+the server terminal for error messages.  Common cause: a dependency failed to
+install — re-run `bash setup_and_start.sh` from the repository root.
 
 ### `401 Unauthorized` from the API
 
-The `Authorization: Bearer <key>` header is missing or the key does not match
-`MURPHY_API_KEY` in `.env`.  Copy the exact value — it is case-sensitive.
+In development mode (`MURPHY_ENV=development`), auth is disabled by default.
+If you are running in production mode, ensure you have a valid API key
+generated by `SecureKeyManager` and include it as
+`Authorization: Bearer <key>` in your request header.
 
 ### Gates reporting `"fail"` in execute response
 
