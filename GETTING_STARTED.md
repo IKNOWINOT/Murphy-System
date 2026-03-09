@@ -1,910 +1,574 @@
 # Getting Started with Murphy System
 
-A complete guide to installing, launching, and using Murphy System — from zero to the Architect Terminal in minutes.
+**License:** BSL 1.1 — *Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post*
 
 ---
 
-## ⚡ One-Line Install
+## What Murphy System Is
 
-> **Copy and paste this single command** into your terminal to install and start Murphy System.
-> No manual clone, no dependency juggling — one line does it all.
+Murphy System is a universal AI-governed automation platform that applies formal control theory — confidence scoring, safety gates, and human-in-the-loop checkpoints — to any operational domain.
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/IKNOWINOT/Murphy-System/main/install.sh | bash
-```
+It is not a simple API wrapper or task queue. It is a control plane.
 
-> ⚠️ **Note:** `install.sh` does not yet exist — the curl command above will return a **404**. This one-line installer is **coming soon**. In the meantime, use the manual setup path described below.
+Every action Murphy takes passes through a governance pipeline that scores confidence, validates against domain-specific safety gates, optionally routes to a human operator for approval, and records a cryptographic audit trail. The same architecture that governs a low-stakes content generation task also governs a high-stakes trading order or a Kubernetes deployment rollout.
 
-This works on **Linux and macOS** (including WSL on Windows). It will:
-
-1. Check prerequisites (Python 3.10+, pip, git)
-2. Clone the repository
-3. Create a virtual environment and install all dependencies
-4. Generate a default `.env` configuration
-5. Install the `murphy` CLI
-
-Once complete, start Murphy:
-
-```bash
-murphy start
-```
-
-> **No API key required** — the onboard LLM works out of the box.
+**Commercial goal:** Murphy System is designed to be licensed as a SaaS product under BSL 1.1. Operators embed it into their business operations as a supervised automation layer — not a black-box agent, but an AI executive assistant with verifiable decision provenance.
 
 ---
 
-## ✅ Windows (Git Bash / MINGW64) and All Platforms
+## The Real Architecture
 
-`setup_and_start.sh` now completes all 5 steps reliably on Windows Git Bash (MINGW64), macOS, and Linux.
-The script no longer uses `set -euo pipefail` — all pip operations are individually guarded to prevent
-MINGW64 stderr-as-error kills that previously caused silent exit after Step 2.
+### Core runtime
+
+The heart of Murphy System is `murphy_system_1.0_runtime.py` — a 700+ KB single Python file that implements the full server, orchestration layer, and control plane. It is large by design: the runtime is the integration surface. All domain logic lives in the module library (`src/`), which the runtime loads, governs, and orchestrates.
+
+### Two-phase execution model
+
+Every task moves through two phases:
+
+```
+Phase 1 — Generative Setup
+  - Librarian identifies which capabilities match the task
+  - Solution paths are ranked (Librarian score × historical performance)
+  - Gates pre-screen each path (budget, compliance, security)
+  - HITL checkpoint if confidence is below threshold or gate requires it
+
+Phase 2 — Production Execute
+  - Selected path executes via the Wingman Protocol (executor + validator pair)
+  - Confidence Engine monitors execution and raises alerts
+  - Audit trail written to BlockchainAuditTrail or local ledger
+  - Outcome fed back to FeedbackIntegrator for future routing improvement
+```
+
+### 600+ source modules
+
+`src/` contains over 600 Python modules across 50+ packages. A representative selection:
+
+**AI and LLM orchestration**
+- `llm_controller.py` — routes prompts to the configured LLM provider
+- `enhanced_local_llm.py` — onboard inference (no API key required)
+- `inference_gate_engine.py` — validates LLM outputs before use
+- `safe_llm_wrapper.py` — sanitisation and safety filters
+
+**Governance gates**
+- `governance_kernel.py` — master gate orchestrator
+- `gate_builder.py` — declarative gate composition
+- `gate_bypass_controller.py` — controlled bypass with audit trail
+- `authority_gate.py` — RBAC-based execution authority
+- `niche_viability_gate.py` — business viability pre-screening
+- `cost_explosion_gate.py` — budget runaway prevention
+
+**Business automation**
+- `inoni_business_automation.py` — end-to-end business process automation
+- `niche_business_generator.py` — domain-specific business workflow generation
+- `business_scaling_engine.py` — automated scaling decision-making
+- `sales_automation.py` — CRM and pipeline automation
+- `invoice_processing_pipeline.py` — accounts receivable automation
+
+**Trading and finance**
+- `trading_bot_engine.py` — strategy execution engine
+- `trading_strategy_engine.py` — multi-strategy portfolio management
+- `crypto_exchange_connector.py` — unified exchange interface
+- `coinbase_connector.py` — Coinbase-specific integration
+- `crypto_wallet_manager.py` — wallet and key management
+
+**Enterprise operations**
+- `kubernetes_deployment.py` — K8s cluster management
+- `docker_containerization.py` — container lifecycle management
+- `multi_cloud_orchestrator.py` — multi-provider cloud control
+- `ci_cd_pipeline_manager.py` — pipeline creation and monitoring
+
+**Compliance and security**
+- `compliance_engine.py` — multi-framework compliance checking
+- `compliance_as_code_engine.py` — policy-as-code enforcement
+- `rbac_governance.py` — role-based access control
+- `security_audit_scanner.py` — continuous security assessment
+- `blockchain_audit_trail.py` — immutable execution ledger
+
+**Robotics, IoT, and physical systems**
+- `murphy_sensor_fusion.py` — multi-sensor data fusion
+- `building_automation_connectors.py` — BACnet/Modbus connectors
+- `energy_management_connectors.py` — energy monitoring and control
+- `additive_manufacturing_connectors.py` — 3D printer fleet management
+
+**Self-healing and resilience**
+- `self_fix_loop.py` — autonomous error detection and repair
+- `autonomous_repair_system.py` — multi-layer fault recovery
+- `murphy_code_healer.py` — runtime code patch application
+- `self_healing_coordinator.py` — repair sequencing and prioritisation
+- `chaos_resilience_loop.py` — chaos engineering and blast radius control
+
+### Web interfaces
+
+Fourteen HTML interfaces are included:
+
+| Interface | Purpose |
+|---|---|
+| `terminal_unified.html` | Primary operator terminal |
+| `terminal_enhanced.html` | Extended view with module inspector |
+| `terminal_architect.html` | System architecture visualiser |
+| `terminal_integrations.html` | Integration status and connector management |
+| `murphy_landing_page.html` | Entry page with system overview |
+| `onboarding_wizard.html` | Guided first-run setup |
+| ...and more | Coverage, audit, analytics, canvas views |
+
+All interfaces share a single design system (`static/murphy-design-system.css`, `static/murphy-components.js`) with a dark-only theme (`#0C1017` base, teal/cyan accents). No light mode.
+
+---
+
+## Schedules, Conditions, and Domain Generative Gates
+
+This is the layer of Murphy System that makes it *proactive* rather than purely reactive. Three building blocks work together to allow you to define the rules of your domain — and have the system enforce and route around them automatically.
+
+### Schedules
+
+Tasks can be triggered on a schedule, not just by inbound API calls. The `AutomationScheduler` and `AutonomousScheduler` handle two scheduling modes:
+
+**Cron-based recurring tasks** — run at a fixed interval or time of day:
 
 ```bash
-bash setup_and_start.sh          # Linux / macOS / Windows Git Bash
+curl -X POST http://localhost:8000/api/schedule \
+     -H "Content-Type: application/json" \
+     -d '{
+       "project_id": "daily-invoice-reconciliation",
+       "task_description": "Reconcile outstanding invoices",
+       "task_type": "invoice_processing_pipeline",
+       "priority": "medium",
+       "cron_expression": "0 6 * * *",
+       "parameters": { "account": "AR", "currency": "USD" }
+     }'
 ```
+
+This registers a `ProjectSchedule` that fires every day at 06:00, passes through the Librarian for capability matching, and executes via the normal gate + Wingman pipeline.
+
+**Priority-queued one-time tasks** — submit tasks with explicit priorities so the scheduler dispatches them in order when capacity is available:
+
+```bash
+curl -X POST http://localhost:8000/api/schedule \
+     -H "Content-Type: application/json" \
+     -d '{
+       "project_id": "eod-trading-report",
+       "task_description": "Generate end-of-day trading summary",
+       "task_type": "trading_strategy_engine",
+       "priority": "high"
+     }'
+```
+
+**Condition-triggered tasks** — the `AlertRulesEngine` watches metric values and fires tasks when thresholds are crossed:
+
+```bash
+curl -X POST http://localhost:8000/api/rules \
+     -H "Content-Type: application/json" \
+     -d '{
+       "rule_id": "cpu-overload-scale-out",
+       "name": "Scale out when CPU > 85%",
+       "severity": "critical",
+       "metric": "cpu_utilization",
+       "comparator": "gt",
+       "threshold": 85,
+       "cooldown_seconds": 300,
+       "action": {
+         "task_type": "kubernetes_deployment",
+         "parameters": { "operation": "scale_out", "replicas_delta": 2 }
+       }
+     }'
+```
+
+When the metric crosses the threshold, the rule fires: the action task is submitted to the scheduler at `critical` priority, goes through the Librarian, passes gates, and executes. The `cooldown_seconds` field prevents the same rule from re-firing until the cooldown expires — preventing alert storms.
+
+The `GovernanceScheduler` wraps all scheduling decisions with governance enforcement: authority precedence (higher-authority tasks pre-empt lower), resource containment (no task can exceed its declared resource envelope), and dependency resolution (tasks with declared dependencies wait until their prerequisites complete).
+
+---
+
+### Conditions and Rules
+
+A **condition** is a predicate over a named parameter: `parameter operator expected_value`. Conditions are the atomic unit of decision logic throughout Murphy System.
+
+`GateCondition` examples:
+
+| `parameter` | `operator` | `expected_value` | Meaning |
+|---|---|---|---|
+| `confidence_score` | `>=` | `0.85` | Execution confidence must meet threshold |
+| `cost_estimate_usd` | `<=` | `500` | Task cost must stay under budget |
+| `compliance_domain` | `==` | `"healthcare"` | Task is in a healthcare context |
+| `change_type` | `in` | `["schema_drop", "data_delete"]` | Destructive change types |
+| `test_coverage_pct` | `>=` | `80` | Minimum test coverage |
+
+Conditions can be assembled into a **gate** declaratively:
+
+```bash
+curl -X POST http://localhost:8000/api/gates/define \
+     -H "Content-Type: application/json" \
+     -d '{
+       "name": "healthcare_compliance_gate",
+       "gate_type": "compliance",
+       "severity": "critical",
+       "conditions": [
+         {
+           "parameter": "compliance_domain",
+           "operator": "==",
+           "expected_value": "healthcare"
+         },
+         {
+           "parameter": "data_contains_phi",
+           "operator": "==",
+           "expected_value": true
+         }
+       ],
+       "wired_function": "validate_compliance_hipaa",
+       "fail_actions": [{ "action_type": "block", "target": "execution" }],
+       "pass_actions": [{ "action_type": "proceed", "target": "execution" }]
+     }'
+```
+
+This defines a gate that fires whenever PHI data is present in a healthcare context and invokes the `validate_compliance_hipaa` function. The gate is now live — every task that matches those conditions will be checked before execution.
+
+Conditions can also drive alert rules (metric threshold → task trigger), trigger conditions in the `macro_trigger_engine` (combat state or agent state predicates → behavior trigger), or serve as retry/escalation logic inside `GateAction` definitions.
+
+---
+
+### Domain Generative Gates
+
+Rather than defining every gate by hand, the `DomainGateGenerator` can **generate a complete gate specification for an entire domain from a requirements dict**. It pulls domain knowledge from the `LibrarianKnowledgeBase`, applies templates for best practices and regulatory standards, and returns a set of `DomainGate` objects fully wired to their validator functions.
+
+```bash
+curl -X POST http://localhost:8000/api/gates/generate \
+     -H "Content-Type: application/json" \
+     -d '{
+       "domain": "healthcare",
+       "complexity": "complex",
+       "regulatory_requirements": ["hipaa", "soc2"],
+       "security_focus": true,
+       "performance_requirements": {
+         "max_latency_ms": 200,
+         "max_error_rate": 0.001
+       }
+     }'
+```
+
+What happens internally:
+
+```
+DomainGateGenerator.generate_gates_for_system(requirements)
+  │
+  ├── LibrarianKnowledgeBase.get_gate_templates("healthcare")
+  │     Returns: HIPAA data handling, PHI access controls, audit logging,
+  │              breach notification, minimum necessary access, ...
+  │
+  ├── _generate_domain_specific_gates("healthcare", requirements)
+  │     Adds: PHI encryption gate, identity verification gate,
+  │           consent verification gate
+  │
+  ├── _generate_complexity_gates("complex", requirements)
+  │     Adds: integration testing gate, load testing gate,
+  │           dependency graph validation gate
+  │
+  ├── _generate_security_gates(requirements)
+  │     Adds: vulnerability scan gate, penetration test gate
+  │
+  └── _generate_performance_gates(requirements)
+        Adds: latency gate (≤200ms), error rate gate (≤0.1%)
+```
+
+The result is a complete domain specification — a set of named, typed, severity-ranked gates each wired to a validation function. This specification is then registered with the `GovernanceKernel` and becomes the live gate policy for any task operating in that domain.
+
+**The Librarian uses this specification when ranking solution paths.** If the Librarian sees that the active domain is `healthcare`, it filters the capability list using the generated gate specification: capabilities that structurally cannot satisfy the `hipaa` gate (e.g., a module that has no HIPAA compliance annotation) are ranked down or excluded entirely before the routing result is returned. The operator never sees a suggestion that would fail before it even starts.
+
+Supported domains for gate generation:
+- `software` — code review, test coverage, documentation, security scanning
+- `infrastructure` — change management, backup verification, availability, scalability
+- `data` — data quality, lineage, retention policy, access controls
+- `healthcare` — HIPAA, PHI handling, audit logging, consent
+- `finance` — PCI-DSS, AML, fraud detection, audit trail
+- `trading` — order validation, risk limits, market data integrity, circuit breakers
+- Any custom domain — define your own knowledge base entries and templates
+
+**The full pipeline:**
+
+```
+1. You define your domain requirements (regulatory, architectural, budget, performance)
+2. DomainGateGenerator generates the gate spec from LibrarianKnowledgeBase templates
+3. Gates are registered with GovernanceKernel — they are now live
+4. Schedules register recurring tasks (cron) or condition-triggered tasks (AlertRules)
+5. When a task arrives (scheduled or on-demand):
+     a. TaskRouter asks SystemLibrarian for capability matches
+     b. Librarian filters against the active gate spec for the domain
+     c. Only gate-compatible paths are returned as SolutionPaths
+     d. GovernanceKernel validates each path through the actual gates
+     e. Best approved path executes via Wingman Protocol
+6. Outcome recorded → FeedbackIntegrator → next routing improved
+```
+
+This is the closed loop: your domain rules produce gates → gates produce a specification → the Librarian tailors the automation to only what your rules allow.
+
+---
+
+## First-Class Concepts
+
+**The Librarian**
+The `SystemLibrarian` is the routing brain. It consumes the live `ModuleRegistry.get_capabilities()` feed and scores every registered capability against an incoming task. No capability can be invoked without passing through the Librarian's ranking (or an explicit HITL override). The Librarian works with the `librarian_bot` TypeScript semantic search service for higher-quality matching.
+
+**The Confidence Engine**
+The `ConfidenceEngine` assigns a numerical confidence score (0.0–1.0) to every proposed execution. Scores below a configurable threshold (`MURPHY_CONFIDENCE_THRESHOLD`, default 0.75) are automatically routed to the HITL queue rather than executed autonomously. The confidence score incorporates gate pre-screening, historical performance from the `FeedbackIntegrator`, and the Librarian's match quality.
+
+**The Gate System**
+Gates are composable validation checkpoints. Each gate checks a specific concern: budget (`cost_explosion_gate.py`), authority (`authority_gate.py`), compliance (`compliance_engine.py`), security (`security_audit_scanner.py`). The `GovernanceKernel` orchestrates gate execution and enforces the gate policy. Gates can return `pass`, `fail`, or `hitl_required`. A `fail` blocks execution immediately. A `hitl_required` suspends execution and routes to a human operator.
+
+**The Wingman Protocol**
+Every task that executes in production does so as a Wingman pair: an Executor module performs the action, and a Validator module independently verifies the result before the execution is marked complete. Neither half can mark success without the other. This prevents silent failures.
+
+**HITL Graduation Engine**
+The `HITLGraduationEngine` manages the human-to-automation handoff pipeline. Capabilities start supervised (every execution requires human approval). As a capability accumulates a successful track record (configurable success rate and minimum run count), the engine automatically graduates it to semi-autonomous or fully autonomous execution. Graduation can be revoked if the success rate drops.
+
+**The Solution Path Registry**
+When the Librarian finds multiple ways to complete a task, all alternatives are stored in the `SolutionPathRegistry`. This enables HITL operators to see all options ("I found 3 ways to do this"), the system to fall back to alternative paths if the primary fails, and the `FeedbackIntegrator` to learn which paths work best over time.
+
+---
+
+## Installation
+
+### Prerequisites
+
+| Requirement | Minimum | Notes |
+|---|---|---|
+| Python | 3.10+ | `python3 --version` must show ≥ 3.10 |
+| RAM | 4 GB | 8 GB recommended for LLM-enabled mode |
+| Disk | 2 GB free | For dependencies and logs |
+| OS | Linux, macOS, or Windows | All three are supported |
+
+### Clone and start
+
+```bash
+git clone https://github.com/IKNOWINOT/Murphy-System.git
+cd Murphy-System
+bash setup_and_start.sh
+```
+
+On Windows:
 
 ```cmd
-setup_and_start.bat              # Windows CMD / PowerShell
-```
-
-Both scripts will:
-
-1. Check prerequisites (Python 3.10+, pip)
-2. Create or reuse a virtual environment and activate it (with sanity check)
-3. Install all dependencies from `requirements_murphy_1.0.txt`
-4. Generate a default `.env` with `MURPHY_LLM_PROVIDER=local` (onboard LLM, no API key needed)
-5. Launch the backend and wait for it to be ready (health-check retry loop)
-
----
-
-## Alternative Installation Methods
-
-If you prefer not to pipe to bash, or you're on Windows without WSL, choose one of these options:
-
-### Clone & Run (all platforms)
-
-```bash
 git clone https://github.com/IKNOWINOT/Murphy-System.git
 cd Murphy-System
-bash setup_and_start.sh          # Linux / macOS
+setup_and_start.bat
 ```
 
-```cmd
-git clone https://github.com/IKNOWINOT/Murphy-System.git
-cd Murphy-System
-setup_and_start.bat              &REM Windows
+`setup_and_start.sh` handles everything:
+
+1. Checks Python 3.10+ and pip
+2. Creates a virtual environment and installs dependencies from `requirements_murphy_1.0.txt`
+3. Generates a default `.env` with `MURPHY_LLM_PROVIDER=local` (no API key required)
+4. Creates runtime directories (logs, data, modules, sessions)
+5. Starts the backend server
+
+Expected output:
+
 ```
-
-The script checks prerequisites (Python 3.10+), creates a virtual environment, installs dependencies, generates a `.env` configuration file, and starts the backend server. When prompted, choose option **1** (backend server).
-
-### Manual Setup
-
-```bash
-# Requires Python 3.10+
-git clone https://github.com/IKNOWINOT/Murphy-System.git
-cd Murphy-System
-pip install -r requirements.txt
-cd "Murphy System"
-python murphy_system_1.0_runtime.py
+INFO:     Murphy System 1.0 starting...
+INFO:     Module registry: 610 modules loaded
+INFO:     Governance kernel: active
+INFO:     HITL gates: enabled
+INFO:     Librarian: capability map loaded (610 capabilities)
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
 ```
 
 ---
 
-## What You Get
+## Verifying the Installation
 
-Murphy System is a universal AI automation platform with:
-
-- **649 source modules** across 56 packages covering control theory, orchestration, governance, telemetry, and more.
-- **8,200+ automated tests** spanning unit, integration, gap-closure, and end-to-end suites.
-- **8 web interfaces** for dashboards, monitoring, and administration.
-- **REST API** with FastAPI for programmatic access to all capabilities.
-- **Architect Terminal** — an interactive CLI for plan decomposition and supervised execution.
-- **Autonomy Toggle Training (ATT)** — Murphy automates extensively across all task types; ATT is the governance layer that calibrates *how much* autonomy each task class runs with. Low-risk, repetitive work executes fully autonomously and is trained toward even greater autonomy over time as operator confidence builds. High-risk actions — financial transactions, deployments, external API calls — pass through a Human-in-the-Loop (HITL) approval gate. Autonomy is toggled per task type and escalation tier, so the system scales from fully hands-off to human-supervised without applying a blanket policy in either direction.
-
----
-
-## 1. Quick Start
-
-### Step 1 — Verify the Backend is Running
-
-The REST API server starts on **http://localhost:8000**. Confirm it is running:
+### Health check
 
 ```bash
 curl http://localhost:8000/api/health
-# Expected: {"status":"healthy","version":"1.0.0"}
 ```
 
-### Step 2 — Open the Architect Terminal
+Expected:
 
-With the backend running, open the **Architect Terminal** in your browser:
+```json
+{
+  "status": "ok",
+  "version": "1.0.0",
+  "modules_loaded": 610,
+  "uptime_seconds": 4
+}
+```
+
+### Gate status
 
 ```bash
-# macOS
-open "Murphy System/terminal_architect.html"
-
-# Linux
-xdg-open "Murphy System/terminal_architect.html"
+curl http://localhost:8000/api/gates/status
 ```
 
-**Windows** — see the [Opening the HTML Terminal UI (Windows)](#opening-the-html-terminal-ui-windows) section below for the correct commands.
+Expected:
 
-The Architect Terminal connects to the backend at `http://localhost:8000` automatically. You can type natural-language commands directly in the terminal prompt — Murphy routes them through `/api/chat` and responds using the onboard knowledge system (no API keys required to start).
-
-#### Opening the HTML Terminal UI (Windows)
-
-> **Note:** The HTML UIs need the Murphy backend running on port 8000. Start it first with `setup_and_start.bat` or `python murphy_system_1.0_runtime.py` (see Step 1).
-
-**Recommended — serve via local HTTP server (works in all shells)**
-
-This is the most reliable method because it avoids browser restrictions on local `file://` URLs and correctly handles paths with spaces.
-
-1. Start a static file server from the repo root:
-
-   ```cmd
-   python -m http.server 8090
-   ```
-
-2. Open the Architect Terminal in your browser:
-
-   ```
-   http://localhost:8090/Murphy%20System/terminal_architect.html?apiPort=8000
-   ```
-
-   Other interfaces follow the same pattern — replace `terminal_architect.html` with the desired file name (e.g. `terminal_worker.html`, `terminal_integrated.html`).
-
----
-
-**Alternative — open the file directly (without a local server)**
-
-> ⚠️ **Git Bash (MINGW64) warning:** Running `start "Murphy System\terminal_architect.html"` inside Git Bash opens a *new terminal window* instead of your browser. Use one of the commands below instead.
-
-**From cmd.exe:**
-
-```cmd
-start "" "Murphy System\terminal_architect.html"
+```json
+{
+  "active_gates": [
+    {"name": "security",    "state": "armed"},
+    {"name": "compliance",  "state": "armed"},
+    {"name": "authority",   "state": "armed"},
+    {"name": "budget",      "state": "armed"},
+    {"name": "hitl",        "state": "armed"}
+  ],
+  "governance_mode": "strict"
+}
 ```
 
-**From Git Bash (MINGW64):**
+### Librarian query
+
+Ask the Librarian what capabilities match a task description:
 
 ```bash
-# Option 1 — delegate to cmd.exe
-cmd.exe /c start "" "Murphy System\\terminal_architect.html"
-
-# Option 2 — use explorer.exe
-explorer.exe "Murphy System\\terminal_architect.html"
+curl -X POST http://localhost:8000/api/librarian/query \
+     -H "Content-Type: application/json" \
+     -d '{"query": "generate an invoice for a consulting project"}'
 ```
 
----
+Expected:
 
-**That's it — you're running.** The Architect Terminal is the primary interface for designing, planning, and controlling Murphy System.
-
----
-
-## 2. The Architect Terminal
-
-The **Architect Terminal** (`terminal_architect.html`) is the main interface for Murphy System. It provides a full-featured terminal experience in your browser, connected to the backend API.
-
-**Key features:**
-
-- Natural-language chat routed through `/api/chat`
-- MFGC 7-phase progress tracking (EXPAND → TYPE → ENUM → CONSTRAIN → SPECIALIZE → OPERATIONALIZE → DEPLOY)
-- Murphy Index confidence metric with live updates
-- Gate tracking and block execution tree
-- Profile switching (DEV / CERT / PROD)
-- Document and workflow management
-
-**The backend must be running** for the Architect Terminal to work. All HTML-based UIs are static files that connect to `http://localhost:8000` — they are not served by the backend itself.
-
-### Other Interfaces
-
-Murphy ships with several interface layers. All are available out of the box once the backend is running.
-
-| Interface | Entry Point | Description |
-|-----------|-------------|-------------|
-| **Architect Terminal** | `terminal_architect.html` (open in browser) | Primary UI — system design, planning, and chat |
-| **REST API** | `murphy_system_1.0_runtime.py` (port 8000) | 70+ endpoints, Swagger docs at `/docs` |
-| **Worker Terminal** | `terminal_worker.html` (open in browser) | Task execution and monitoring |
-| **Integrated Terminal** | `terminal_integrated.html` (open in browser) | Combined architect + worker view |
-| **Enhanced Terminal** | `terminal_enhanced.html` (open in browser) | Advanced output formatting and extended commands |
-| **Landing Page** | `murphy_landing_page.html` (open in browser) | Dashboard — system overview and navigation |
-| **Onboarding Wizard** | `onboarding_wizard.html` (open in browser) | No-code setup wizard |
-| **Integrated Management** | `murphy_ui_integrated.html` (open in browser) | Unified admin panel |
-| **CLI Terminal** | `murphy_terminal.py` (run in shell) | Textual-based TUI (requires `textual` package) |
-| **Setup Wizard CLI** | Python one-liner (see §6) | Guided first-time configuration |
-
-All HTML files are located inside the `Murphy System/` directory. Open them in any browser while the backend is running.
-
-Under the hood: 649 source modules across 56 packages, 118 gap-closure tests, and 90 audit categories all at zero. Project configuration (pytest, mypy, ruff) lives in `pyproject.toml`.
-
----
-
-## 3. Using the REST API
-
-The FastAPI server exposes 70+ endpoints under `/api/`. Interactive documentation is available at **http://localhost:8000/docs** once the server is running.
-
-### Key Endpoints
-
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/api/health` | GET | Health check |
-| `/api/status` | GET | System status and loaded components |
-| `/api/execute` | POST | Execute a task |
-| `/api/chat` | POST | Conversational interface (same endpoint used by Architect Terminal) |
-| `/api/forms/*` | various | Dynamic form management |
-| `/api/onboarding/wizard/*` | various | Guided onboarding flow |
-| `/api/librarian/*` | various | Knowledge-base operations |
-| `/api/documents/*` | various | Document management |
-| `/api/integrations/*` | various | Third-party integrations |
-| `/api/llm/*` | various | LLM configuration and queries |
-
-### Examples
-
-**Check system status:**
-
-```bash
-curl http://localhost:8000/api/status
+```json
+{
+  "query": "generate an invoice for a consulting project",
+  "matches": [
+    {
+      "capability_id": "invoice_processing_pipeline",
+      "score": 0.94,
+      "cost_estimate": "low",
+      "determinism": "deterministic",
+      "match_reasons": ["domain:finance", "keyword:invoice", "keyword:generate"]
+    },
+    {
+      "capability_id": "niche_business_generator",
+      "score": 0.71,
+      "cost_estimate": "medium",
+      "determinism": "stochastic",
+      "match_reasons": ["domain:business", "keyword:generate"]
+    }
+  ]
+}
 ```
 
-**Execute a task:**
+### Execute a task
 
 ```bash
 curl -X POST http://localhost:8000/api/execute \
-  -H "Content-Type: application/json" \
-  -d '{"task_description": "Summarize quarterly sales data", "task_type": "query"}'
+     -H "Content-Type: application/json" \
+     -d '{
+       "task": "generate invoice",
+       "amount": 5000,
+       "client": "Acme Corp",
+       "description": "Q1 consulting services"
+     }'
 ```
 
-**Chat with Murphy (same as the Architect Terminal):**
+Expected:
+
+```json
+{
+  "success": true,
+  "task_id": "7f3a1b2c-...",
+  "solution_path": "invoice_processing_pipeline",
+  "confidence": 0.94,
+  "execution_time_ms": 312,
+  "gate_results": {
+    "security":   "pass",
+    "compliance": "pass",
+    "authority":  "pass",
+    "budget":     "pass"
+  },
+  "wingman": {
+    "executor": "invoice_processing_pipeline",
+    "validator": "invoice_validator",
+    "validator_result": "pass"
+  },
+  "audit_id": "a1b2c3d4-..."
+}
+```
+
+### Send a chat message
 
 ```bash
 curl -X POST http://localhost:8000/api/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message": "What integrations are available?"}'
+     -H "Content-Type: application/json" \
+     -d '{"message": "What capabilities do you have for finance automation?"}'
+```
+
+Expected:
+
+```json
+{
+  "response": "Murphy System includes the following finance automation capabilities: ...",
+  "capabilities_referenced": ["invoice_processing_pipeline", "sales_automation", "trading_bot_engine"],
+  "confidence": 0.88
+}
 ```
 
 ---
 
-## 4. Role-Based Web UIs
+## Authentication
 
-Murphy provides role-specific UIs so different team members see only what they need. Open any HTML file in a browser while the backend is running.
+In development mode (`MURPHY_ENV=development`, the default), all endpoints are accessible without an API key.
 
-### Terminals
-
-- **Architect Terminal** (`terminal_architect.html`) — Primary interface for system designers and tech leads. Gate review, system design commands, dependency graph visualization, and architecture planning. 30+ interactive functions.
-- **Worker Terminal** (`terminal_worker.html`) — For execution staff. Task execution, status monitoring, and delivery tracking. Streamlined 8-function interface.
-- **Integrated Terminal** (`terminal_integrated.html`) — Combines architect + worker views for power users who need both planning and execution in one window. 35+ functions.
-- **Enhanced Terminal** (`terminal_enhanced.html`) — Advanced output formatting, syntax highlighting, and extended command palette. 20+ functions.
-
-### Dashboards & Wizards
-
-- **Landing Page** (`murphy_landing_page.html`) — High-level control-plane dashboard showing system status, active workflows, and quick navigation to all other UIs.
-- **Integrated Management** (`murphy_ui_integrated.html`) — Unified admin panel for configuration, monitoring, and system management.
-- **Onboarding Wizard** (`onboarding_wizard.html`) — No-code setup wizard. Describe your business or use case in plain English, answer follow-up questions, and download a generated `murphy_config.json`.
-- **Integrated Terminal Management** (`murphy_ui_integrated_terminal.html`) — Unified terminal with integrated management controls.
-
----
-
-## 5. Using the CLI Terminal
-
-The Textual-based TUI (`murphy_terminal.py`) provides a natural-language conversational interface directly in your shell, without a browser.
+For production deployments, `SecureKeyManager` auto-generates API keys on first boot. Use as a Bearer token:
 
 ```bash
-cd "Murphy System"
-python murphy_terminal.py
-```
-
-The CLI terminal connects to the same backend API as the Architect Terminal. It requires the `textual` package:
-
-```bash
-pip install textual
+curl -H "Authorization: Bearer <your-generated-key>" \
+     http://localhost:8000/api/status
 ```
 
 ---
 
-## 6. Using the Setup Wizard
+## What to Explore Next
 
-For guided first-time configuration, run the CLI setup wizard from the `Murphy System/` directory:
-
-```bash
-cd "Murphy System"
-python -c "from src.setup_wizard import run_cli; run_cli()"
-```
-
-The wizard walks you through environment configuration, API key setup, and initial system preferences. You can answer in natural language — for example, type **"all of them"** to select every option, **"local for now"** to pick `local`, or **"not yet"** for a no. The wizard will extract the closest valid answer from your response; if it can't determine one, it falls back to the default.
-
----
-
-## 7. Use Cases
-
-Murphy System is a general-purpose automation platform. Here are concrete examples of how to use it:
-
-### Business Automation
-
-Automate sales pipelines, marketing campaigns, reporting workflows, and CRM integration.
-
-```bash
-# Create a sales pipeline automation
-curl -X POST http://localhost:8000/api/execute \
-  -H "Content-Type: application/json" \
-  -d '{"task_description": "Create a sales pipeline that tracks leads from first contact to close", "task_type": "workflow"}'
-```
-
-### Self-Integration
-
-Ingest and connect external repositories, APIs, and services through the integration engine.
-
-```bash
-# List available integrations
-curl http://localhost:8000/api/integrations/available
-
-# Connect a new data source
-curl -X POST http://localhost:8000/api/integrations/connect \
-  -H "Content-Type: application/json" \
-  -d '{"type": "api", "name": "My CRM", "endpoint": "https://api.example.com/v1"}'
-```
-
-### Content Creation
-
-Generate, review, and manage documents and knowledge-base articles using the LLM and librarian subsystems.
-
-```bash
-# Generate a document
-curl -X POST http://localhost:8000/api/execute \
-  -H "Content-Type: application/json" \
-  -d '{"task_description": "Write a project status report for Q1", "task_type": "content"}'
-```
-
-### Manufacturing & Operations
-
-Model production workflows, track execution, and automate operational tasks end-to-end.
-
-```bash
-# Execute a manufacturing workflow
-curl -X POST http://localhost:8000/api/execute \
-  -H "Content-Type: application/json" \
-  -d '{"task_description": "Run quality inspection on production batch #2847", "task_type": "operation"}'
-```
-
-Combine the REST API with the web dashboards and terminal UIs to build workflows tailored to your domain.
+| Resource | Purpose |
+|---|---|
+| `docs/LIBRARIAN_ROUTING_SPEC.md` | Technical spec for Librarian-driven task routing |
+| `docs/FLATTENING_PLAN.md` | Phased plan for upcoming structural improvements |
+| `Murphy System/docs/API_REFERENCE.md` | Complete API reference |
+| `Murphy System/docs/DESIGN_SYSTEM.md` | UI design system documentation |
+| `Murphy System/docs/WINGMAN_PROTOCOL.md` | Wingman executor/validator protocol |
+| `Murphy System/docs/MODULE_REGISTRY.md` | Full module capability registry |
+| `Murphy System/ARCHITECTURE_MAP.md` | System architecture overview |
+| `http://localhost:8000/docs` | Interactive Swagger UI (while server is running) |
+| `http://localhost:8000` | Murphy landing page |
 
 ---
 
-## 8. Troubleshooting
+## Troubleshooting
 
-### Port 8000 already in use
+### `python3 --version` shows 3.9 or lower
 
-Another process is occupying the default port. Either stop that process or set a different port:
-
-```bash
-MURPHY_PORT=7777 python murphy_system_1.0_runtime.py
-```
-
-### `ModuleNotFoundError` on startup
-
-Dependencies are missing. Install them from the repository root:
+Install Python 3.10 or later:
 
 ```bash
-pip install -r requirements.txt
+# Ubuntu / Debian
+sudo apt install python3.10
+
+# macOS (Homebrew)
+brew install python@3.10
+
+# Windows — download installer from python.org
 ```
 
-### Python version too old
+### `Address already in use` on port 8000
 
-Murphy requires **Python 3.10 or higher**. Check your version:
+Another process is using port 8000. Stop it or use a different port:
 
 ```bash
-python3 --version
+python3 murphy_system_1.0_runtime.py --port 8001
 ```
 
-Upgrade via your system package manager or download from [python.org](https://www.python.org/downloads/).
+### Health check returns connection refused
 
-### Terminal UI fails to launch
+Murphy is still starting (usually under 5 seconds) or failed to start. Check the server terminal for errors. Common cause: a dependency failed to install — re-run `bash setup_and_start.sh`.
 
-The `textual` package may not be installed:
+### Gates reporting `fail` in execute response
 
-```bash
-pip install textual
-```
+A governance gate blocked the request. Check the `gate_results` field for which gate failed. For local testing, you can temporarily set `GOVERNANCE_STRICT=false` in `.env`.
 
-### Quick diagnostic script
+### Librarian returns empty matches
 
-```bash
-cd "Murphy System"
-python3 -c "
-import sys
-print(f'Python: {sys.version}')
-for mod in ['fastapi', 'uvicorn', 'pydantic']:
-    try:
-        __import__(mod)
-        print(f'  ✓ {mod}')
-    except ImportError:
-        print(f'  ✗ {mod} — run: pip install {mod}')
-"
-```
-
-### Windows: `git pull` fails with "Your local changes would be overwritten"
-
-On Windows (Git Bash / MINGW64) you may see an error like:
-
-```
-error: Your local changes to the following files would be overwritten by merge:
-        Murphy System/bots/Engineering_bot.py
-        Murphy System/bots/Ghost_Controller_Bot.py
-Please commit your changes or stash them before you merge.
-```
-
-This is caused by a **case-sensitivity mismatch**. Windows file systems are
-case-insensitive, so `engineering_bot.py` and `Engineering_bot.py` refer to the
-same file. Git, however, tracks file names case-sensitively. When the two get
-out of sync, Git sees phantom local changes that block `pull`.
-
-**Quick fix — discard the conflicting local state and pull:**
-
-```bash
-# From the repository root:
-git checkout -- "Murphy System/bots/Engineering_bot.py" "Murphy System/bots/Ghost_Controller_Bot.py"
-git pull
-```
-
-If that doesn't work, reset the whole working tree (you will lose **all**
-uncommitted changes):
-
-```bash
-git checkout -- .
-git pull
-```
-
-**Prevent future occurrences:**
-
-```bash
-# Tell Git to track case changes even on case-insensitive file systems:
-git config core.ignorecase false
-
-# If a file still shows as modified with a different case, rename it
-# back to the correct lowercase name:
-git mv "Murphy System/bots/Engineering_bot.py" "Murphy System/bots/engineering_bot.py"
-git mv "Murphy System/bots/Ghost_Controller_Bot.py" "Murphy System/bots/ghost_controller_bot.py"
-git commit -m "fix: normalize file name casing"
-```
-
-> **Tip:** The repository ships a `.gitattributes` file that normalises line
-> endings across platforms. If you cloned before this file was added, run
-> `git rm --cached -r . && git reset --hard` once to let Git re-apply the
-> attributes.
+The module registry may not have loaded correctly. Check for errors in the server log with `INFO: Module registry:`. If the count is 0, ensure `src/` exists relative to the working directory.
 
 ---
 
-## 9. Screenshots — Current Build
-
-### Landing Page
-
-![Murphy System Landing Page](https://github.com/user-attachments/assets/f5364d3c-55ca-4c30-a2ac-1d14985c4142)
-
-### Onboarding Wizard
-
-![Onboarding Wizard](https://github.com/user-attachments/assets/dfe82ae2-20c3-4539-b6d2-11afca3215bb)
-
-### Architect Terminal
-
-![Architect Terminal](https://github.com/user-attachments/assets/0ea6c4fc-ea11-437e-be25-9e1780d4eafa)
-
-### Integrated Terminal
-
-![Integrated Terminal](https://github.com/user-attachments/assets/2778aba7-d442-4b91-b2c0-d8539751a1ee)
-
-### API Health & Status
-
-![API Health](https://github.com/user-attachments/assets/9e4f82c0-d256-4d93-9913-b59919d05d35)
-
-![API Status](https://github.com/user-attachments/assets/3f8968a7-0862-417c-9150-e918e6e3009a)
-
----
-
-## 10. Automation Loops & Repeating Cycles
-
-Murphy runs three continuous business automation cycles that repeat alongside all other automations.
-
-### 30-Day Traction Cycle
-
-Every 30 days, the system measures per-tier performance trends:
-
-- **Healthy** (≥3% conversion): Maintain current campaigns
-- **Low** (1–3%): Auto-adjust channels, demographics, and messaging
-- **Critical** (<1%): Propose paid advertising campaigns (requires founder HITL approval)
-
-```python
-from src.operations_cycle_engine import OperationsCycleEngine
-
-ops = OperationsCycleEngine()
-ops.start_traction_cycle()  # Auto-repeats every 30 days
-
-# Evaluate traction mid-cycle
-result = ops.evaluate_traction_cycle({
-    "pro": {"impressions": 10000, "leads": 500, "conversions": 20},
-    "enterprise": {"impressions": 2000, "leads": 50, "conversions": 3},
-})
-
-# Complete cycle → auto-starts next 30-day cycle
-ops.complete_traction_cycle()
-```
-
-### 60-Day R&D Sprint Cycle
-
-Every 60 days, the system builds everything queued during the cycle:
-
-1. Competitive intelligence detects capability gaps
-2. Gaps are routed to the R&D backlog with priority
-3. At cycle end, queued items are built as modules
-4. Remaining items carry over to the next 60-day cycle
-
-```python
-# Queue R&D items from competitive gap analysis
-from src.competitive_intelligence_engine import CompetitiveIntelligenceEngine
-
-ci = CompetitiveIntelligenceEngine()
-ci.load_default_landscape()
-ci.detect_gaps()
-rd_items = ci.route_gaps_to_rd()
-
-# Start R&D cycle with queued items
-ops.start_rd_cycle(queued_items=[item.to_dict() for item in rd_items[:5]])
-
-# At end of 60 days: build, gap-analyze, carry over remaining
-ops.complete_rd_cycle(built_modules=[
-    {"title": "visual_workflow", "status": "completed"},
-])
-```
-
-### Instant Disruption Response
-
-When something disrupts the industry, Murphy immediately:
-
-1. Reviews what's being created and identifies gaps
-2. Proposes non-plagiarized Murphy-native builds
-3. Routes through HITL founder approval before execution
-
-```python
-from src.operations_cycle_engine import DisruptionSeverity
-
-dr = ops.report_disruption(
-    "CompetitorX", "Launched autonomous workflow builder",
-    DisruptionSeverity.HIGH,
-    ["autonomous_workflow", "visual_builder", "multi_llm_routing"]
-)
-# dr.our_gaps = ["autonomous_workflow", "visual_builder"]
-# dr.status = AWAITING_APPROVAL  (founder HITL gate)
-
-ops.approve_disruption_response(dr.response_id, "corey_post_founder")
-```
-
----
-
-## 11. Marketing Campaigns & Competitive Intelligence
-
-### Adaptive Campaigns Per Tier
-
-Marketing agents run campaigns to fill every pricing tier. When traction is low, campaigns auto-adjust demographics and channels. Paid advertising requires founder approval.
-
-```python
-from src.adaptive_campaign_engine import AdaptiveCampaignEngine
-
-campaigns = AdaptiveCampaignEngine()
-campaigns.bootstrap_tier_campaigns()
-
-# Record performance and evaluate
-campaigns.record_performance("pro", impressions=5000, leads=200, conversions=8)
-result = campaigns.evaluate_and_act()
-# Auto-adjusts low-traction tiers, proposes paid ads for critical tiers
-```
-
-### Adversarial Marketing & Competitive Intelligence
-
-The system requests marketing information from competitors, builds competitive offering systems, identifies who they sell to and how, and routes capability gaps through R&D.
-
-```python
-from src.competitive_intelligence_engine import CompetitiveIntelligenceEngine
-
-ci = CompetitiveIntelligenceEngine()
-ci.load_default_landscape()  # Zapier, Make, n8n, UiPath, Power Automate
-
-report = ci.full_competitive_analysis()
-# report["summary"]["competitors_analyzed"] = 5
-# report["summary"]["capability_gaps"] = 46
-# report["summary"]["rd_items_created"] = 46
-# report["competitive_strategies"] = [per-competitor adversarial strategies]
-```
-
----
-
-## 12. Data Archive, Retrieval & External Content Libraries
-
-### Archiving Data
-
-All system data is archived chronologically with category classification and automatic metric routing.
-
-```python
-from src.data_archive_manager import DataArchiveManager, ArchiveCategory
-
-archive = DataArchiveManager()
-
-# Archive metric data → auto-routed to analytics
-archive.archive(
-    title="Daily page views",
-    data={"channel": "seo", "metric_name": "views", "value": 15000},
-    category=ArchiveCategory.METRIC,
-    tags=["seo", "daily"],
-)
-
-# Archive campaign results
-archive.archive(
-    title="Pro tier campaign Q1",
-    data={"campaign_id": "camp-001", "conversions": 42},
-    category=ArchiveCategory.CAMPAIGN,
-)
-```
-
-### Chronological Retrieval
-
-Retrieve data by time range, category, tags, or ID — always in chronological order.
-
-```python
-from datetime import datetime, timezone, timedelta
-
-now = datetime.now(timezone.utc)
-result = archive.retrieve_by_time_range(
-    start=(now - timedelta(days=30)).isoformat(),
-    end=now.isoformat(),
-    category=ArchiveCategory.METRIC,
-)
-# result["local_records"] = [...chronologically ordered records...]
-# result["external_refs"] = [...YouTube/Twitch VODs covering this period...]
-```
-
-### External Content Libraries (YouTube/Twitch VOD Storage)
-
-High-volume data (telemetry streams, session recordings, large logs) is externalized to free platforms like YouTube and Twitch as VODs. This avoids paid storage while keeping data accessible chronologically.
-
-```python
-# Find large records that should be externalized
-candidates = archive.get_externalization_candidates()
-
-# After uploading to YouTube/Twitch, record the reference
-archive.externalize_to_platform(
-    record_ids=[r["record_id"] for r in candidates],
-    platform="youtube",
-    url="https://youtube.com/watch?v=session_archive_week9",
-    title="Murphy Telemetry Archive — Week 9",
-)
-
-# Later: retrieve by time period (includes external VOD refs)
-now = datetime.now(timezone.utc)
-refs = archive.find_externalized_for_period(
-    start=(now - timedelta(days=30)).isoformat(),
-    end=now.isoformat(),
-)
-# refs = [{"platform": "youtube", "url": "...", "time_range_start": "...", ...}]
-```
-
-### Storage Summary
-
-```python
-summary = archive.get_storage_summary()
-# {
-#   "total_records": 18,
-#   "local_records": 15,
-#   "external_youtube": 2,
-#   "external_twitch": 1,
-#   "externalization_candidates": 3,
-# }
-```
-
----
-
-## 13. Ownership, Licensing & Data Valuation
-
-### Automation Ownership
-
-- **Shadow Automations** — personal automations, private workflows, personal productivity bots, and individual shadow-IT automations belong to **the user** who created them. The user retains full ownership of their shadow automation data and configurations.
-- **Corporate Chart Management Automations** — organizational automations tied to corporate hierarchy, org-chart management, team workflows, and enterprise process automations belong to **the organization** that deploys them.
-- **Both** categories are **licensed to Inoni LLC** for use within the Murphy System database. Inoni LLC holds a perpetual, non-exclusive license to utilize anonymized and aggregated patterns from both shadow and corporate automations to improve the Murphy System platform, train models, and enhance system intelligence.
-
-### Utility Packet Valuation Model
-
-All automation interactions are decomposed into **utility packets** — the smallest atomic micro-actions (a click, a field entry, a toggle, an approval, a route decision) performed in sequence. When these micro-actions are adopted in a specific order by specific people with specific credentials, they become **ultra-valuable behavioral data**.
-
-The valuation model works as follows:
-
-- **Average Threshold Pricing** — Murphy maintains an average value threshold across all utility packets. This baseline ensures that every utilized click, every human decision point, and every HITL interaction carries a minimum floor value. The threshold raises the value of *every* click that is utilized rather than letting high-volume low-quality interactions dilute the data.
-- **Per-Valuation HITL Costs** — every human-in-the-loop approval, review, or decision point has an associated per-valuation cost. This cost must be established based on:
-  1. **Enterprise service distribution costs** — the real cost of distributing enterprise-grade services and maintaining the infrastructure that supports HITL operations.
-  2. **Credential-matched gig routing (Fiverr connection model)** — HITL review tasks can be routed as gigs to qualified reviewers, built on a credentialed marketplace model. Each gig is constructed with specific credential requirements on a case-by-case basis. The system enforces domain expertise matching: a rocket design review must be routed to someone with aerospace or engineering credentials, not to an unrelated discipline. A financial audit review goes to a CPA, not a graphic designer. The credential gate ensures peer review integrity and justifies the per-valuation cost premium.
-- **Credential-Gated Peer Review** — the system enforces that HITL review assignments are matched to the reviewer's verified credentials and domain expertise. This is not a general-purpose gig marketplace — it is a precision-matched, case-by-case routing system where the complexity and risk of the task determines the credential bar required.
-
-> **Note:** The exact per-valuation cost number is TBD and will be established based on enterprise service distribution economics and the credentialed gig routing cost model. This section will be updated with specific pricing once the valuation framework is finalized.
-
----
-
-## 14. Next Steps
-
-- **Open the Architect Terminal** — Start the backend and open `terminal_architect.html` in your browser.
-- **Explore the API** — Browse all 70+ endpoints at http://localhost:8000/docs.
-- **Try the onboarding wizard** — Open `onboarding_wizard.html` or run the CLI wizard for guided setup.
-- **Read the docs** — See the [User Manual](<Murphy System/USER_MANUAL.md>) and [API Documentation](<Murphy System/API_DOCUMENTATION.md>) for detailed guides.
-- **Run the tests** — Execute `pytest` from the `Murphy System/` directory to verify your installation (8,200+ tests including 118 gap-closure regression tests).
-- **Contribute** — Read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on submitting changes.
-
-
----
-
-## 15. Agent Run Publishing — YouTube Pipeline
-
-Murphy System can automatically record successful agent runs and publish them to YouTube on "The Murphy System" channel. Every upload is content-reviewed for secrets/PII, HITL-gated for approval, and narrated by **MercyAnnouncer** — an open-source TTS announcer personality with Melissa McCarthy–level unhinged enthusiasm.
-
-### Pipeline Overview
-
-```
-AgentRunRecorder → UploadContentReviewer → (HITL approval) → VideoPackager → AnnouncerVoiceEngine → YouTubeUploader → DataArchiveManager
-```
-
-### Quick Start
-
-```python
-from agent_run_recorder import AgentRunRecorder, STATUS_SUCCESS
-from video_packager import VideoPackager
-from youtube_metadata_generator import YouTubeMetadataGenerator
-from upload_content_reviewer import UploadContentReviewer
-from announcer_voice_engine import AnnouncerVoiceEngine
-from youtube_uploader import YouTubeUploader
-from data_archive_manager import DataArchiveManager
-
-# 1. Record a successful run
-recorder = AgentRunRecorder(system_version="1.0")
-recording = recorder.record_run(
-    task_description="Deploy payment gateway to production",
-    task_type="infrastructure",
-    status=STATUS_SUCCESS,
-    confidence_score=0.92,
-    steps=[...],
-    modules_used=["deploy_engine", "health_check"],
-    duration_seconds=142.0,
-)
-
-# 2. Check if publishable (confidence >= 70%)
-if recording.is_publishable():
-
-    # 3. Content review — blocks secrets/PII before upload
-    reviewer = UploadContentReviewer()
-    review = reviewer.review(recording, auto_redact=True)
-    if not review.is_safe:
-        print("Blocked:", [f.description for f in review.findings])
-        exit()
-
-    # 4. Package into video (ffmpeg → Pillow GIF → static fallback)
-    packager = VideoPackager()
-    package = packager.package(recording)
-
-    # 5. Generate MercyAnnouncer narration (open-source TTS)
-    voice_engine = AnnouncerVoiceEngine()
-    audio = voice_engine.narrate(recording)
-    print("Script hook:", audio.script.hook)
-
-    # 6. Generate YouTube metadata (title, description, thumbnail, tags)
-    gen = YouTubeMetadataGenerator()
-    metadata = gen.generate(recording, chapters=package.chapters)
-
-    # 7. Upload (OAuth2 with auto-refresh; degrades to local save if unavailable)
-    uploader = YouTubeUploader()
-    result = uploader.upload_video(package.video_path or package.summary_path, metadata)
-
-    # 8. Archive the external reference
-    archive = DataArchiveManager()
-    if result.video_url:
-        archive.externalize_to_platform(
-            record_ids=[recording.run_id],
-            platform="youtube",
-            url=result.video_url,
-            title=metadata.title,
-        )
-
-    # 9. List all published runs
-    published = archive.get_published_runs()
-```
-
-### First-Time YouTube Setup
-
-```python
-from youtube_channel_bootstrap import YouTubeChannelBootstrap
-
-bootstrap = YouTubeChannelBootstrap()
-status = bootstrap.check_youtube_setup()
-
-if not status["ready"]:
-    print(bootstrap.get_setup_instructions())
-else:
-    bootstrap.verify_channel_access()
-```
-
-Or use CLI commands:
-
-```bash
-murphy youtube status      # Check setup
-murphy youtube connect     # Run OAuth2 flow
-murphy youtube settings    # View/update settings
-murphy recordings          # List publishable runs
-murphy publish <run_id>    # Trigger full upload pipeline
-```
-
-### MercyAnnouncer — The Voice of Murphy
-
-MercyAnnouncer is the open-source TTS persona that narrates every agent run. She has Melissa McCarthy–level energy: genuinely hyped about success, brutally honest about failure, and always entertaining.
-
-**TTS backend priority (all open-source, no API keys):**
-1. `pyttsx3` — cross-platform, fully offline
-2. `espeak`/`espeak-ng` — system TTS
-3. Text fallback — writes script to `.txt` file (always available)
-
-**Example output:**
-
-```
-=== HOOK ===
-OH. OH WE ARE STARTING. Welcome, welcome, WELCOME to what is about to be an
-absolute JOURNEY. Murphy System just tackled 'Deploy payment gateway to production'.
-End result? 92% confidence. We're going to walk through every single step. TOGETHER.
-
-=== CONFIDENCE UPDATE ===
-NINETY. TWO. PERCENT. Do you understand what that MEANS?! I'M GOING TO NEED A MOMENT.
-
-=== RESULT ===
-AND THAT IS A WRAP! STATUS: SUCCESS COMPLETED! CONFIDENCE: 92%! DURATION: 2m 22s!
-Murphy did THAT!
-
-=== CALL TO ACTION ===
-Subscribe to the channel. Murphy's not done. I'm not done. NONE OF US ARE DONE.
-```
-
-### Video Package Modes
-
-| Mode | Requires | Output |
-|---|---|---|
-| **A — ffmpeg** | `ffmpeg` + Pillow | MP4 video with branded frames |
-| **B — Pillow** | Pillow | Animated GIF |
-| **C — Static** | Nothing | Branded thumbnail PNG + summary JSON/MD |
-
-### Content Safety
-
-Every recording is scanned for 15 pattern types before upload:
-
-- API keys (Groq `gsk_*`, OpenAI `sk-*`, AWS `AKIA*`, Slack `xoxb-*`, Bearer tokens)
-- PII (email addresses, phone numbers, SSN patterns)
-- Database URLs (PostgreSQL, Redis, MongoDB)
-- Private key blocks
-- Internal file paths
-
-Set `auto_redact=True` to automatically replace findings with `[REDACTED]` and re-verify.
-
-### Archive Integration
-
-After upload, use the existing `DataArchiveManager` to link the YouTube URL to archive records:
-
-```python
-# Returns all published runs with their YouTube URLs
-published = archive.get_published_runs()
-# [{"platform": "youtube", "url": "https://youtube.com/watch?v=...", ...}]
-
-# Find runs published in a date range
-refs = archive.find_externalized_for_period(start="2024-01-01", end="2024-12-31")
-```
-
-See §12 (Data Archive) for full details on the external content library system.
-
-### API Endpoints
-
-| Endpoint | Method | Purpose |
-|---|---|---|
-| `/api/recordings` | GET | List recorded runs (filters: status, min\_confidence, publishable\_only) |
-| `/api/recordings/{run_id}` | GET | Get recording details |
-| `/api/recordings/{run_id}/publish` | POST | Trigger full upload pipeline |
-| `/api/recordings/{run_id}/review` | GET | Get content review results |
-| `/api/youtube/status` | GET | Channel status, quota, recent uploads |
-| `/api/youtube/connect` | POST | Initiate OAuth2 flow |
-| `/api/youtube/settings` | GET/PUT | Publishing settings (auto-approve threshold, default privacy) |
-
-See [API_DOCUMENTATION.md](<Murphy System/API_DOCUMENTATION.md>) for full details.
+*Murphy System v1.0 — BSL 1.1 — Inoni LLC*
