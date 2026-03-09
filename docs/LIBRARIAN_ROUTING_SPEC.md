@@ -990,7 +990,264 @@ class ModuleRegistry:
 
 ---
 
-## Migration from Hardcoded `IntegrationBus` to Dynamic Routing
+## Agent Domain Locking and the Activation Pipeline
+
+> **Everything described in this section already exists in the codebase. This section documents how the existing modules wire together to implement domain locking and the generated → tested → active → graduated lifecycle.**
+
+---
+
+### The Problem It Solves
+
+A plumbing company's agents must never generate content, automations, or gate functions about aerospace. A consulting firm's agents must never fire manufacturing-floor automations. The domain lock is the mechanism that makes each customer's Murphy deployment specific to their business and incapable of drifting outside it.
+
+---
+
+### Step 1 — Industry Classification (`InferenceDomainGateEngine`)
+
+`src/inference_gate_engine.py` — `InferenceDomainGateEngine`
+
+When a customer onboards, their business description is passed to `InferenceDomainGateEngine.infer()`. This runs the **Magnify → Simplify → Solidify** pipeline:
+
+```
+"We run a plumbing and drain cleaning business in Austin"
+        │
+        ▼
+InferenceDomainGateEngine.infer(description)
+        │
+        ├── MAGNIFY  — infer_industry() scores all INDUSTRY_KEYWORDS against description
+        │               → highest score wins: industry = "trade_services"
+        │
+        ├──          — map_org_positions("trade_services") — expands all plausible roles
+        │               → field_technician, dispatcher, estimator, office_manager, ...
+        │
+        ├──          — generate_inferred_gates(description, "trade_services", positions)
+        │               → safety gate (OSHA field safety)
+        │               → quality gate (job completion verification)
+        │               → authorization gate (work order approval)
+        │               → budget gate (materials cost control)
+        │               + trade_services domain standard gates
+        │
+        ├── SIMPLIFY — filter positions and gates to those relevant to the description
+        │
+        └── SOLIDIFY — produce InferenceResult (locked ground truth)
+                        → inferred_industry: "trade_services"
+                        → org_positions: [field_technician, dispatcher, estimator, ...]
+                        → inferred_gates: [safety_gate, quality_gate, ...]
+                        → form_schema: what information is still needed
+```
+
+`INDUSTRY_KEYWORDS` (in `inference_gate_engine.py`) is the classification table. It now includes:
+`technology`, `manufacturing`, `finance`, `healthcare`, `retail`, `energy`, `media`, `professional_services`, `trade_services`, `construction`, `logistics`, `real_estate`, `education`, `nonprofit`, `agriculture`, `restaurant` — matching the `BUSINESS_DEMOGRAPHICS` table in `agentic_onboarding_engine.py`. A business that matches no keyword falls to `"other"` but still gets standard domain gates.
+
+---
+
+### Step 2 — Locking Context into Rosetta (`RosettaAgentState`)
+
+`src/rosetta/rosetta_models.py` — `RosettaAgentState`  
+`src/rosetta/rosetta_manager.py` — `RosettaManager`
+
+The `InferenceResult` is written into the agent's `RosettaAgentState` — the persistent state document that travels with the agent:
+
+```python
+RosettaAgentState(
+    identity = Identity(
+        agent_id   = "acme-plumbing-ops",
+        name       = "Acme Plumbing Operations Agent",
+        # industry, niche, and goals stored in metadata
+    ),
+    agent_state = AgentState(
+        # current operational state
+    ),
+    workflow_patterns = [
+        # populated as the agent learns — see Step 5
+    ],
+    improvement_proposals = [
+        # shadow agent proposals waiting for operator review — see Step 5
+    ],
+)
+```
+
+`RosettaManager.save_state(state)` writes this to `.murphy_persistence/rosetta/<agent_id>.json`. Every subsequent call `RosettaManager.load_state(agent_id)` restores the locked context. The agent always knows it is a plumbing business agent. This persists across restarts.
+
+---
+
+### Step 3 — Enforcing the Domain Lock at Every LLM Call
+
+Two layers enforce that no LLM output escapes the customer's domain:
+
+**Layer A — Input lock: `PromptAmplifier.amplify_for_niche()`**  
+`src/prompt_amplifier.py`
+
+Before any LLM call is made for a customer agent, the raw prompt is passed through `amplify_for_niche(raw_prompt, niche_description)`. This prepends the niche context to the prompt so the LLM is always answering in the context of the specific business:
+
+```
+niche_description = "Plumbing and drain cleaning service business in Austin TX"
+raw_prompt        = "Write a follow-up message to a customer"
+
+→ amplified: "Plumbing and drain cleaning service business in Austin TX — Write a follow-up
+              message to a customer [+ magnified domain-specific components]"
+```
+
+The LLM sees the niche context first. It will write a plumbing follow-up, not a generic one, and certainly not an aerospace one.
+
+**Layer B — Output gate: `SafeLLMWrapper._check_relevance()`**  
+`src/safe_llm_wrapper.py`
+
+After the LLM responds, `_check_relevance()` computes Jaccard similarity between the prompt tokens and the response tokens. If similarity falls below 0.05 (5% overlap) on a response longer than 50 characters, the gate fails and the response is blocked:
+
+```python
+# Rule 1: Completely off-topic — very low overlap on a substantial response
+if jaccard < 0.05 and len(response) > 50:
+    return False  # gate fails → SafetyGate blocks output → fallback response used
+```
+
+A plumbing prompt that gets an aerospace response will have near-zero Jaccard overlap and will be caught here. The fallback response is returned instead and the failure is logged.
+
+---
+
+### Step 4 — Gate Lifecycle: Generated → Active → Retired
+
+`src/gate_synthesis/models.py` — `GateState`, `Gate`  
+`src/gate_synthesis/gate_lifecycle_manager.py` — `GateLifecycleManager`
+
+Every gate generated by `InferenceDomainGateEngine` (or `DomainGateGenerator`) enters the lifecycle at `PROPOSED` and must be explicitly activated before it enforces:
+
+```
+PROPOSED   Gate exists as an artifact. Not yet enforcing.
+    │      GateLifecycleManager.add_gate(gate) registers it.
+    ▼
+ACTIVE     GateLifecycleManager.activate_gate(gate_id) promotes it.
+    │      Gate is now live — its trigger_condition is evaluated on every
+    │      relevant task. enforcement_effect (block / require_evidence /
+    │      escalate) applies when the condition is met.
+    ▼
+SATISFIED  gate.check_retirement_conditions() returns True.
+    │      All RetirementCondition thresholds have been met
+    │      (e.g., N consecutive passes, or metric stabilised above threshold).
+    ▼
+RETIRED    GateLifecycleManager retires the gate.
+           Logged to retirement_log with timestamp and reason.
+           GovernanceKernel removes it from the active gate set.
+
+     (also: EXPIRED — gate reached its expires_at datetime without being satisfied)
+```
+
+For customer-specific business context gates, the operator reviews the generated gate set in the HITL terminal before any gate moves from `PROPOSED` to `ACTIVE`. `activate_all_proposed_gates()` is available for bulk activation after review.
+
+---
+
+### Step 5 — Automation Activation: Manual → Supervised → Automated
+
+`src/hitl_graduation_engine.py` — `HITLGraduationEngine`, `HITLRegistry`
+
+Once a gate is `ACTIVE` and its act-function begins routing tasks to capabilities, those capabilities start under manual oversight. `HITLRegistry` tracks each automation as an `HITLItem` with a `current_mode`:
+
+```
+manual       Every execution requires explicit operator approval.
+             Operator sees: "Ready to run 'send_job_estimate' — approve? [Y/N]"
+
+supervised   Executions run automatically but operator is notified of every result.
+             Operator sees: "Ran 'send_job_estimate' — result: sent to customer. [OK/Rollback]"
+
+automated    Executions run silently. Operator notified only on failure or anomaly.
+```
+
+`HITLGraduationEngine.evaluate_item()` computes a `graduation_score` from:
+- `success_rate` — fraction of executions with good outcomes
+- `risk_score` — potential blast radius if it goes wrong
+- `impact_score` — positive value delivered
+
+When `graduation_score >= SUPERVISED_THRESHOLD (0.60)`, `HITLGraduationEngine.recommend_mode()` recommends graduating from `manual` to `supervised`. The operator approves via `HITLRegistry.graduate_item(item_id, new_mode)`. Graduation to `automated` requires a higher threshold and always requires explicit operator approval — it is never automatic.
+
+`HITLRegistry.rollback_item()` reverts to the previous mode immediately if something goes wrong.
+
+---
+
+### Step 6 — Pattern Solidification: Shadow Learning → Workflow Patterns
+
+`src/org_compiler/shadow_learning.py` — `TelemetryCollector`, `ShadowLearner`  
+`src/trading_shadow_learner.py` — `PatternMemoryStore`, `WeeklyWinningPattern`  
+`src/rosetta/rosetta_models.py` — `WorkflowPattern`, `ImprovementProposal`  
+`src/rosetta/rosetta_manager.py` — `RosettaManager.update_state()`
+
+Shadow agents observe without acting. As the operator approves automations and tasks execute, the shadow layer records what happened:
+
+```
+TelemetryCollector.record_task_assignment(role, task, timestamp)
+TelemetryCollector.record_approval(role, approval_type, granted, timestamp)
+TelemetryCollector.record_handoff(handoff_event)
+```
+
+After each observation window, `ShadowLearner.observe_role()` analyses the recorded patterns and produces a `TemplateProposalArtifact` — a proposed automation template based on what the operator repeatedly did the same way. This maps to an `ImprovementProposal` in `RosettaAgentState`.
+
+The operator reviews proposals in the HITL panel. If approved, the proposal is promoted to a `WorkflowPattern` and written back via `RosettaManager.update_state()`:
+
+```python
+RosettaManager.update_state(agent_id, {
+    "workflow_patterns": [
+        {
+            "pattern_id":           "send-estimate-after-site-visit",
+            "name":                 "Send estimate within 2h of site visit",
+            "steps":                ["complete_site_visit", "generate_estimate", "send_estimate"],
+            "success_rate":         0.91,
+            "avg_duration_seconds": 420,
+            "usage_count":          17,
+        }
+    ]
+})
+```
+
+The `WorkflowPattern` is now part of the agent's permanent locked context. The Librarian can reference it when routing similar tasks — preferring this known-good pattern over an untested alternative. The `success_rate` and `usage_count` feed directly into `FeedbackIntegrator` weights for future routing decisions.
+
+---
+
+### The Full Domain-Locked Pipeline in One View
+
+```
+Customer description: "Plumbing and drain cleaning business in Austin TX"
+        │
+        ▼
+InferenceDomainGateEngine.infer()          ← MAGNIFY → SIMPLIFY → SOLIDIFY
+        │  industry = "trade_services"
+        │  gates: [safety, quality, authorization, budget, ...]
+        │  org_positions: [field_tech, dispatcher, estimator, ...]
+        ▼
+RosettaManager.save_state(RosettaAgentState)  ← agent context locked to disk
+        │
+        ▼
+GateLifecycleManager.add_gate() × N           ← gates registered as PROPOSED
+        │  operator reviews in HITL terminal
+        │  GateLifecycleManager.activate_gate() × N
+        ▼
+Gates: ACTIVE ── GovernanceKernel enforces them on every task
+        │
+        ▼
+PromptAmplifier.amplify_for_niche()           ← every LLM call scoped to plumbing
+SafeLLMWrapper._check_relevance()             ← every LLM output Jaccard-checked
+        │
+        ▼
+TaskRouter routes tasks through Librarian     ← only trade_services capabilities ranked
+        │  HTILRegistry tracks each automation as HITLItem (mode: manual)
+        ▼
+HITLGraduationEngine evaluates success        ← manual → supervised → automated
+        │  over time as operator approves executions
+        ▼
+TelemetryCollector / ShadowLearner observes   ← patterns extracted from operator actions
+        │  ImprovementProposal created
+        │  operator approves → WorkflowPattern
+        ▼
+RosettaManager.update_state()                 ← solidified pattern written back to Rosetta
+        │  WorkflowPattern.success_rate feeds FeedbackIntegrator
+        ▼
+Next routing cycle: Librarian prefers the     ← closed loop
+known-good WorkflowPattern for similar tasks
+```
+
+At no point in this pipeline does the plumbing company's agent have any awareness of or access to aerospace, finance, or any other domain. The domain lock is enforced at classification (Rosetta identity), at every LLM input (PromptAmplifier), at every LLM output (SafeLLMWrapper), and at routing time (Librarian gate pre-filter).
+
+---
+
+
 
 ### Current state
 
