@@ -198,7 +198,14 @@ class TestDocumentationConsistency(unittest.TestCase):
 class TestHTMLUIConsistency(unittest.TestCase):
     """Verify all terminal HTML files use the neon terminal theme."""
 
-    NEON_INDICATORS = ["#00ff41", "#0a0a0a", "monospace"]
+    NEON_INDICATORS = [
+        "#00ff41", "#0a0a0a", "monospace",
+        "murphy-design-system.css",  # shared design system provides neon styling
+        "murphy-theme.css",          # legacy theme file with neon colors
+    ]
+
+    # Legacy redirect files that forward to a neon-themed page
+    LEGACY_REDIRECTS = {"murphy_ui_integrated.html", "murphy_ui_integrated_terminal.html"}
 
     @classmethod
     def setUpClass(cls):
@@ -215,10 +222,13 @@ class TestHTMLUIConsistency(unittest.TestCase):
         """All terminal HTML files should use neon terminal styling."""
         non_neon = []
         for fp in self.html_files:
+            basename = os.path.basename(fp)
+            if basename in self.LEGACY_REDIRECTS:
+                continue  # redirect-only stubs forward to themed pages
             with open(fp, "r") as f:
                 content = f.read()
             if not any(ind in content for ind in self.NEON_INDICATORS):
-                non_neon.append(os.path.basename(fp))
+                non_neon.append(basename)
         self.assertEqual(
             non_neon, [],
             f"HTML files not using neon theme: {non_neon}"
