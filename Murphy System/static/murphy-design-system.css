@@ -114,6 +114,15 @@
   --topbar-height: 56px;
 }
 
+/* No-sidebar variant for landing page / onboarding */
+body.murphy-no-sidebar {
+  --sidebar-width: 0px;
+}
+
+body.murphy-no-sidebar .murphy-topbar {
+  left: 0;
+}
+
 /* ============================================================
    2. LIGHT THEME
    ============================================================ */
@@ -1830,4 +1839,156 @@ body.murphy-light .murphy-topbar {
   .murphy-stat-card-value {
     font-size: var(--text-xl);
   }
+}
+
+/* ============================================================
+   34. LANDING PAGE
+   ============================================================ */
+.murphy-landing-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-5);
+  padding-top: calc(var(--topbar-height, 56px) + var(--space-5));
+}
+
+.murphy-hero {
+  text-align: center;
+  padding: var(--space-8) var(--space-3) var(--space-7);
+}
+
+.murphy-hero-title {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 800;
+  line-height: 1.15;
+  margin-bottom: var(--space-4);
+}
+
+.murphy-hero-subtitle {
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  max-width: 700px;
+  margin: 0 auto var(--space-6);
+  line-height: 1.6;
+}
+
+.murphy-section {
+  padding: var(--space-7) 0;
+}
+
+.murphy-section-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: var(--space-5);
+}
+
+.murphy-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-4);
+}
+
+.murphy-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-4);
+}
+
+.murphy-card-heading {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.murphy-card-heading-sm {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.murphy-step-number {
+  font-size: 2rem;
+  margin-bottom: var(--space-3);
+}
+
+.murphy-terminal-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.murphy-terminal-link-body {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.murphy-color-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.murphy-terminal-link h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.murphy-terminal-link p {
+  font-size: 0.875rem;
+}
+
+.murphy-footer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-5);
+  border-top: 1px solid var(--border-default);
+  text-align: center;
+}
+
+.murphy-footer p {
+  margin-bottom: var(--space-2);
+}
+
+.murphy-footer .murphy-footer-legal {
+  font-size: 0.875rem;
+  margin-bottom: var(--space-3);
+}
+
+.murphy-topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: var(--text-primary);
+}
+
+.murphy-topbar-brand-name {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.murphy-nav-links {
+  display: flex;
+  gap: 0.75rem;
+  margin-left: var(--space-3);
+}
+
+.murphy-stat-grid-span {
+  grid-column: 1 / -1;
+}
+
+.murphy-smoke-content {
+  margin-left: var(--sidebar-width, 0px);
+  margin-top: var(--topbar-height, 56px);
+  padding: var(--space-5);
+  min-height: calc(100vh - var(--topbar-height, 56px));
+  transition: margin-left 0.2s ease;
+}
+
+.murphy-smoke-summary {
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+}
+
+.murphy-smoke-grid {
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 }
