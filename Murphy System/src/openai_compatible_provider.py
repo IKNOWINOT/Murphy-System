@@ -360,7 +360,7 @@ class OpenAICompatibleProvider:
                 from enhanced_local_llm import EnhancedLocalLLM
                 self._onboard_llm = EnhancedLocalLLM()
                 logger.info(
-                    "Onboard LLM initialised (EnhancedLocalLLM)",
+                    "Onboard LLM initialized (EnhancedLocalLLM)",
                     extra={"provider": "onboard"},
                 )
             except ImportError:
@@ -368,7 +368,7 @@ class OpenAICompatibleProvider:
                     from src.enhanced_local_llm import EnhancedLocalLLM
                     self._onboard_llm = EnhancedLocalLLM()
                     logger.info(
-                        "Onboard LLM initialised (src.EnhancedLocalLLM)",
+                        "Onboard LLM initialized (src.EnhancedLocalLLM)",
                         extra={"provider": "onboard"},
                     )
                 except ImportError:

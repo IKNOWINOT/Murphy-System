@@ -698,7 +698,7 @@ class ChromaVectorStore:
             metadata={"hnsw:space": "cosine"},
         )
         logger.info(
-            "ChromaDB vector store initialised",
+            "ChromaDB vector store initialized",
             extra={
                 "persist_directory": persist_directory,
                 "collection": collection_name,
