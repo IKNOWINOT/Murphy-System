@@ -15,6 +15,9 @@
 </head>
 <body style="--accent: #00D4AA; --sidebar-width: 0px;">
 
+<!-- Skip link for accessibility -->
+<a href="#content" class="murphy-skip-link">Skip to content</a>
+
 <!-- ── Top Navigation Bar ── -->
 <nav class="murphy-topbar" role="navigation" aria-label="Main navigation">
   <div class="murphy-topbar-left" style="display:flex;align-items:center;gap:1rem;">
@@ -39,7 +42,7 @@
 </nav>
 
 <!-- ── Main Content ── -->
-<main style="max-width:1200px;margin:0 auto;padding:2rem;padding-top:calc(var(--topbar-height, 56px) + 2rem);">
+<main id="content" role="main" aria-label="Main content" style="max-width:1200px;margin:0 auto;padding:2rem;padding-top:calc(var(--topbar-height, 56px) + 2rem);">
 
   <!-- ── Hero Section ── -->
   <section style="text-align:center;padding:4rem 1rem 3rem;">
