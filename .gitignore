@@ -98,3 +98,7 @@ Murphy System/archive/
 Murphy System/docs/storyline_test_results.json
 Murphy System/docs/storyline_test_results_phase2.json
 Murphy System/docs/storyline_test_results_phase3.json
+*.db
+*.db-wal
+*.db-shm
+.chroma/

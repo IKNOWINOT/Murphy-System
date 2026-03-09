@@ -343,7 +343,7 @@ def test_sit_sys_202_building_emergency_response():
         "Some emergency actions failed"
 
     # Step 3: Notify Emergency Personnel
-    from src.comms_system.connectors import EmailConnector, SlackConnector
+    from src.comms.connectors import TestEmailConnector as EmailConnector, TestSlackConnector as SlackConnector
 
     email = EmailConnector()
     slack = SlackConnector()
