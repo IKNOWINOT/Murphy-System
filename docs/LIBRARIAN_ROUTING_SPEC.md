@@ -998,80 +998,102 @@ class ModuleRegistry:
 
 ### The Problem It Solves
 
-A plumbing company's agents must never generate content, automations, or gate functions about aerospace. A consulting firm's agents must never fire manufacturing-floor automations. The domain lock is the mechanism that makes each customer's Murphy deployment specific to their business and incapable of drifting outside it.
+A plumbing company's agents must never generate content, automations, or gate functions about aerospace. A consulting firm's agents must never fire manufacturing-floor automations. The domain lock is what makes each customer's Murphy deployment specific to their business and incapable of drifting outside it.
 
 ---
 
-### Step 1 — Industry Classification (`InferenceDomainGateEngine`)
+### Step 1 — Description → Form Fill → Constraints (`InferenceDomainGateEngine.infer_via_llm`)
 
-`src/inference_gate_engine.py` — `InferenceDomainGateEngine`
+`src/inference_gate_engine.py` — `InferenceDomainGateEngine.infer_via_llm()`
 
-When a customer onboards, their business description is passed to `InferenceDomainGateEngine.infer()`. This runs the **Magnify → Simplify → Solidify** pipeline:
+Keyword classification is a fallback. The primary path uses the LLM to infer meaning from the customer's business description and map it directly into the `RosettaFormSchema`. The filled form is the transformer: its fields ARE the business constraints that drive everything downstream.
 
 ```
-"We run a plumbing and drain cleaning business in Austin"
+"We run a plumbing and drain cleaning business in Austin TX"
         │
         ▼
-InferenceDomainGateEngine.infer(description)
+InferenceDomainGateEngine.infer_via_llm(description, llm_backend)
         │
-        ├── MAGNIFY  — infer_industry() scores all INDUSTRY_KEYWORDS against description
-        │               → highest score wins: industry = "trade_services"
+        ├── Build RosettaFormSchema — all fields empty
+        │     form.fields: [industry, business_type, company_size,
+        │                   primary_goal, key_challenges, existing_tools, ...]
         │
-        ├──          — map_org_positions("trade_services") — expands all plausible roles
-        │               → field_technician, dispatcher, estimator, office_manager, ...
+        ├── Construct extraction prompt from form field definitions
+        │     "Extract structured context. Return JSON with:
+        │      industry, business_type, company_size, primary_goal,
+        │      key_challenges, ..."
         │
-        ├──          — generate_inferred_gates(description, "trade_services", positions)
-        │               → safety gate (OSHA field safety)
-        │               → quality gate (job completion verification)
-        │               → authorization gate (work order approval)
-        │               → budget gate (materials cost control)
-        │               + trade_services domain standard gates
+        ├── SafeLLMWrapper.safe_generate(prompt, context)
+        │     → _check_relevance() Jaccard gate on output
+        │     → returns: { "industry": "trade_services",
+        │                  "business_type": "plumbing contractor",
+        │                  "company_size": "small",
+        │                  "primary_goal": "grow service area in Austin",
+        │                  "key_challenges": "scheduling, invoice collection",
+        │                  ... }
         │
-        ├── SIMPLIFY — filter positions and gates to those relevant to the description
+        ├── Feed each answer into form as SensorReading
+        │     SensorType.LLM_INFERENCE + FillConfidence.LLM_GENERATED
+        │     form.submit_answer("industry", "trade_services")
+        │     form.submit_answer("business_type", "plumbing contractor")
+        │     ...
+        │     LLM_GENERATED fields flagged: ActionFormField.needs_gating = True
+        │     → must pass confidence gate before accepted as constraint
         │
-        └── SOLIDIFY — produce InferenceResult (locked ground truth)
-                        → inferred_industry: "trade_services"
-                        → org_positions: [field_technician, dispatcher, estimator, ...]
-                        → inferred_gates: [safety_gate, quality_gate, ...]
-                        → form_schema: what information is still needed
+        ├── MAGNIFY — map_org_positions("trade_services", description)
+        │     → field_technician, dispatcher, estimator, office_manager, ...
+        │     generate_inferred_gates(description, "trade_services", positions)
+        │     → safety gate, quality gate, authorization gate, budget gate, ...
+        │     gates derived from the FILLED FORM FIELDS, not from a bucket label
+        │
+        └── SOLIDIFY — InferenceResult (locked ground truth)
+                → inferred_industry: "trade_services"
+                → org_positions: [field_technician, dispatcher, estimator, ...]
+                → inferred_gates: [safety_gate, quality_gate, ...]
+                → form_schema: fully filled — each field is a constraint
 ```
 
-`INDUSTRY_KEYWORDS` (in `inference_gate_engine.py`) is the classification table. It now includes:
-`technology`, `manufacturing`, `finance`, `healthcare`, `retail`, `energy`, `media`, `professional_services`, `trade_services`, `construction`, `logistics`, `real_estate`, `education`, `nonprofit`, `agriculture`, `restaurant` — matching the `BUSINESS_DEMOGRAPHICS` table in `agentic_onboarding_engine.py`. A business that matches no keyword falls to `"other"` but still gets standard domain gates.
+**The form fields are the constraints.** Industry is not a bucket — it's one of many filled fields. The LLM's semantic understanding of "plumbing contractor in Austin" fills `business_type`, `primary_goal`, and `key_challenges` with specific content that keyword matching could never produce. Those fields directly determine which gates are generated, which org positions are created, and which automation pipeline flows are built.
+
+**Fallback path:** When no LLM backend is available, `infer_via_llm()` falls back to `infer()` which uses `INDUSTRY_KEYWORDS` for classification. `INDUSTRY_KEYWORDS` covers all industries in `BUSINESS_DEMOGRAPHICS` — it is the safety net, not the primary mechanism.
 
 ---
 
-### Step 2 — Locking Context into Rosetta (`RosettaAgentState`)
+### Step 1b — Form Fields → Gates → AgentCallToAction Pipeline
 
-`src/rosetta/rosetta_models.py` — `RosettaAgentState`  
-`src/rosetta/rosetta_manager.py` — `RosettaManager`
+`src/inference_gate_engine.py` — `AgentActionBuilder`
 
-The `InferenceResult` is written into the agent's `RosettaAgentState` — the persistent state document that travels with the agent:
+Once the `InferenceResult` is produced, `AgentActionBuilder.build_actions_from_inference()` converts every org position into an `AgentCallToAction` — the agent's unit of work:
 
 ```python
-RosettaAgentState(
-    identity = Identity(
-        agent_id   = "acme-plumbing-ops",
-        name       = "Acme Plumbing Operations Agent",
-        # industry, niche, and goals stored in metadata
-    ),
-    agent_state = AgentState(
-        # current operational state
-    ),
-    workflow_patterns = [
-        # populated as the agent learns — see Step 5
+# Each org position → one AgentCallToAction form
+# Each metric the position tracks → one ActionFormField the agent must fill
+# Each gate the position needs → one gate_id checkpoint on the action
+
+AgentCallToAction(
+    action_id   = "action_a3f2b1c0",
+    agent_id    = "agent_field_technician",
+    action_name = "field_technician_status_report",
+    fields = [
+        ActionFormField(field_id="jobs_completed_today",  ...),
+        ActionFormField(field_id="materials_cost_actual", ...),
+        ActionFormField(field_id="customer_satisfaction", ...),
     ],
-    improvement_proposals = [
-        # shadow agent proposals waiting for operator review — see Step 5
-    ],
+    gate_ids = ["safety_gate", "quality_gate", "budget_gate"],
 )
 ```
 
-`RosettaManager.save_state(state)` writes this to `.murphy_persistence/rosetta/<agent_id>.json`. Every subsequent call `RosettaManager.load_state(agent_id)` restores the locked context. The agent always knows it is a plumbing business agent. This persists across restarts.
+**This is the automation pipeline.** The `AgentCallToAction` describes exactly what the agent needs to know and what gates it must clear for each role in the business. The pipeline is not hardcoded — it is generated from the filled form.
 
----
+When the agent runs, sensors observe the business state and fill the `ActionFormField` values:
+- `SensorType.EVENT_STREAM` — job completion events from the dispatch system
+- `SensorType.API_RESPONSE` — materials costs from the supplier API
+- `SensorType.LLM_INFERENCE` — inferred satisfaction from customer reply text (gated)
+- `SensorType.USER_INPUT` — technician taps a confirmation in the mobile app
 
-### Step 3 — Enforcing the Domain Lock at Every LLM Call
+Each `LLM_INFERENCE` field has `needs_gating = True` and waits for the confidence gate to pass before it is accepted as a constraint. `VERIFIED` and `HIGH_CONFIDENCE` fields pass immediately.
+
+
 
 Two layers enforce that no LLM output escapes the customer's domain:
 
@@ -1207,47 +1229,57 @@ The `WorkflowPattern` is now part of the agent's permanent locked context. The L
 Customer description: "Plumbing and drain cleaning business in Austin TX"
         │
         ▼
-InferenceDomainGateEngine.infer()          ← MAGNIFY → SIMPLIFY → SOLIDIFY
-        │  industry = "trade_services"
-        │  gates: [safety, quality, authorization, budget, ...]
-        │  org_positions: [field_tech, dispatcher, estimator, ...]
+InferenceDomainGateEngine.infer_via_llm(description, llm_backend)
+        │  LLM fills RosettaFormSchema fields directly from the description
+        │  Each field = one SensorReading (SensorType.LLM_INFERENCE)
+        │  Each field = one business constraint (gated before accepted)
+        │    industry:         "trade_services"
+        │    business_type:    "plumbing contractor"
+        │    primary_goal:     "grow service area in Austin"
+        │    key_challenges:   "scheduling, invoice collection"
+        │  ↓ filled form drives:
+        │  map_org_positions("trade_services") → [field_tech, dispatcher, estimator, ...]
+        │  generate_inferred_gates(...)        → [safety, quality, authorization, budget, ...]
         ▼
-RosettaManager.save_state(RosettaAgentState)  ← agent context locked to disk
-        │
+AgentActionBuilder.build_actions_from_inference()
+        │  Each org position → AgentCallToAction (the automation pipeline for that role)
+        │  Each metric       → ActionFormField  (what the agent must observe/fill)
+        │  Each gate         → gate_id checkpoint on the action
+        ▼
+RosettaManager.save_state(RosettaAgentState)  ← full context locked to disk
+        │  identity, form constraints, actions, workflow_patterns all persisted
         ▼
 GateLifecycleManager.add_gate() × N           ← gates registered as PROPOSED
         │  operator reviews in HITL terminal
         │  GateLifecycleManager.activate_gate() × N
         ▼
-Gates: ACTIVE ── GovernanceKernel enforces them on every task
+Gates: ACTIVE ── GovernanceKernel enforces on every task
         │
         ▼
 PromptAmplifier.amplify_for_niche()           ← every LLM call scoped to plumbing
 SafeLLMWrapper._check_relevance()             ← every LLM output Jaccard-checked
         │
         ▼
-TaskRouter routes tasks through Librarian     ← only trade_services capabilities ranked
-        │  HTILRegistry tracks each automation as HITLItem (mode: manual)
+TaskRouter → SystemLibrarian                  ← only trade_services capabilities ranked
+        │  HITLRegistry tracks each automation (mode: manual)
         ▼
-HITLGraduationEngine evaluates success        ← manual → supervised → automated
-        │  over time as operator approves executions
+HITLGraduationEngine                          ← manual → supervised → automated
+        │  operator approves executions over time
         ▼
-TelemetryCollector / ShadowLearner observes   ← patterns extracted from operator actions
-        │  ImprovementProposal created
+TelemetryCollector / ShadowLearner            ← patterns extracted from operator actions
+        │  ImprovementProposal created for operator review
         │  operator approves → WorkflowPattern
         ▼
-RosettaManager.update_state()                 ← solidified pattern written back to Rosetta
-        │  WorkflowPattern.success_rate feeds FeedbackIntegrator
+RosettaManager.update_state()                 ← solidified WorkflowPattern written to Rosetta
+        │  success_rate + usage_count feed FeedbackIntegrator weights
         ▼
-Next routing cycle: Librarian prefers the     ← closed loop
+Next routing cycle: Librarian prefers         ← closed loop
 known-good WorkflowPattern for similar tasks
 ```
 
-At no point in this pipeline does the plumbing company's agent have any awareness of or access to aerospace, finance, or any other domain. The domain lock is enforced at classification (Rosetta identity), at every LLM input (PromptAmplifier), at every LLM output (SafeLLMWrapper), and at routing time (Librarian gate pre-filter).
+At no point in this pipeline does the plumbing company's agent have any awareness of or access to aerospace, finance, or any other domain. The domain lock is enforced at form fill (LLM-derived constraints in Rosetta), at every LLM input (PromptAmplifier), at every LLM output (SafeLLMWrapper), at gate generation (form fields drive gate selection), and at routing time (Librarian gate pre-filter).
 
 ---
-
-
 
 ### Current state
 

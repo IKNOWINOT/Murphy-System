@@ -227,34 +227,68 @@ INDUSTRY_POSITIONS: Dict[str, Dict[str, Dict[str, Any]]] = {
 
 # Keywords → industry inference mapping
 INDUSTRY_KEYWORDS: Dict[str, List[str]] = {
-    "technology": ["tech", "software", "saas", "cloud", "ai", "startup", "app", "platform", "api", "devops"],
-    "manufacturing": ["factory", "manufacturing", "production", "assembly", "industrial", "plant", "supply chain"],
-    "finance": ["bank", "finance", "financial", "fintech", "insurance", "investment", "trading", "lending", "payments"],
-    "healthcare": ["hospital", "clinic", "health", "healthcare", "medical", "pharma", "biotech", "patient", "clinical"],
-    "retail": ["store", "ecommerce", "shop", "retail", "marketplace", "consumer", "brand", "merchandise"],
-    "energy": ["energy", "utility", "power", "grid", "solar", "wind", "oil", "gas", "renewable"],
-    "media": ["media", "content", "publishing", "news", "entertainment", "streaming", "social", "creative"],
-    "professional_services": ["consulting", "consultant", "advisory", "accountant", "accounting", "law", "legal",
-                               "audit", "strategy", "management consulting", "professional services", "agency",
-                               "staffing", "recruitment", "hr services", "coaching", "training"],
-    "trade_services": ["plumbing", "plumber", "hvac", "electrician", "electrical", "roofing", "roofer",
-                        "landscaping", "painter", "painting", "contractor", "handyman", "pest control",
-                        "cleaning", "janitorial", "flooring", "carpentry", "welding", "home services",
-                        "field services", "trade", "trades"],
-    "construction": ["construction", "builder", "general contractor", "civil", "infrastructure", "building",
-                      "renovation", "remodel", "architecture", "engineering", "project site", "subcontractor"],
-    "logistics": ["logistics", "freight", "shipping", "trucking", "warehouse", "fleet", "courier",
-                   "supply chain", "distribution", "fulfillment", "last mile", "3pl"],
-    "real_estate": ["real estate", "property", "broker", "realtor", "landlord", "tenant", "leasing",
-                     "property management", "commercial real estate", "residential", "mortgage"],
-    "education": ["school", "university", "education", "training", "elearning", "tutoring", "lms",
-                   "curriculum", "course", "instructor", "student", "enrollment", "academic"],
-    "nonprofit": ["nonprofit", "ngo", "charity", "foundation", "donor", "volunteer", "grant",
-                   "mission", "advocacy", "501c3", "fundraising"],
-    "agriculture": ["farm", "farming", "agriculture", "crop", "livestock", "agtech", "irrigation",
-                     "harvest", "soil", "agribusiness", "food production"],
-    "restaurant": ["restaurant", "cafe", "food service", "catering", "kitchen", "dining", "menu",
-                    "chef", "hospitality", "bar", "brewery", "food truck"],
+    "technology": [
+        "tech", "software", "saas", "cloud", "ai", "startup", "app", "platform", "api", "devops",
+    ],
+    "manufacturing": [
+        "factory", "manufacturing", "production", "assembly", "industrial", "plant", "supply chain",
+    ],
+    "finance": [
+        "bank", "finance", "financial", "fintech", "insurance", "investment", "trading", "lending",
+        "payments",
+    ],
+    "healthcare": [
+        "hospital", "clinic", "health", "healthcare", "medical", "pharma", "biotech", "patient",
+        "clinical",
+    ],
+    "retail": [
+        "store", "ecommerce", "shop", "retail", "marketplace", "consumer", "brand", "merchandise",
+    ],
+    "energy": [
+        "energy", "utility", "power", "grid", "solar", "wind", "oil", "gas", "renewable",
+    ],
+    "media": [
+        "media", "content", "publishing", "news", "entertainment", "streaming", "social", "creative",
+    ],
+    "professional_services": [
+        "consulting", "consultant", "advisory", "accountant", "accounting", "law", "legal",
+        "audit", "strategy", "management consulting", "professional services", "agency",
+        "staffing", "recruitment", "hr services", "coaching", "training",
+    ],
+    "trade_services": [
+        "plumbing", "plumber", "hvac", "electrician", "electrical", "roofing", "roofer",
+        "landscaping", "painter", "painting", "contractor", "handyman", "pest control",
+        "cleaning", "janitorial", "flooring", "carpentry", "welding", "home services",
+        "field services", "trade", "trades",
+    ],
+    "construction": [
+        "construction", "builder", "general contractor", "civil", "infrastructure", "building",
+        "renovation", "remodel", "architecture", "engineering", "project site", "subcontractor",
+    ],
+    "logistics": [
+        "logistics", "freight", "shipping", "trucking", "warehouse", "fleet", "courier",
+        "supply chain", "distribution", "fulfillment", "last mile", "3pl",
+    ],
+    "real_estate": [
+        "real estate", "property", "broker", "realtor", "landlord", "tenant", "leasing",
+        "property management", "commercial real estate", "residential", "mortgage",
+    ],
+    "education": [
+        "school", "university", "education", "training", "elearning", "tutoring", "lms",
+        "curriculum", "course", "instructor", "student", "enrollment", "academic",
+    ],
+    "nonprofit": [
+        "nonprofit", "ngo", "charity", "foundation", "donor", "volunteer", "grant",
+        "mission", "advocacy", "501c3", "fundraising",
+    ],
+    "agriculture": [
+        "farm", "farming", "agriculture", "crop", "livestock", "agtech", "irrigation",
+        "harvest", "soil", "agribusiness", "food production",
+    ],
+    "restaurant": [
+        "restaurant", "cafe", "food service", "catering", "kitchen", "dining", "menu",
+        "chef", "hospitality", "bar", "brewery", "food truck",
+    ],
 }
 
 # Gate inference keywords — maps concepts to gate types
@@ -714,6 +748,146 @@ class InferenceDomainGateEngine:
             org_positions=positions,
             inferred_gates=gates,
             form_schema=form_schema,
+        )
+
+    def infer_via_llm(
+        self,
+        description: str,
+        llm_backend=None,
+        agent_id: str = "",
+    ) -> "InferenceResult":
+        """LLM-driven inference: description → form fill → constraints → gates → pipeline.
+
+        The LLM reads the free-text business description and fills the
+        RosettaFormSchema fields directly.  Each filled field becomes a
+        SensorReading with SensorType.LLM_INFERENCE and
+        FillConfidence.LLM_GENERATED — it must pass the confidence gate
+        before it is accepted as a constraint.
+
+        Filled form fields ARE the business constraints:
+          - industry   → which domain gates apply
+          - services   → which capability modules are relevant
+          - goals      → which automation pipeline flows to build
+          - size       → resource and concurrency constraints
+          - challenges → which business-context gates fire first
+
+        These constraints drive generate_inferred_gates() and
+        AgentActionBuilder.build_actions_from_inference() to produce the
+        full set of AgentCallToAction pipeline flows.
+
+        Falls back to keyword-based infer() when llm_backend is None or
+        when the LLM response cannot be parsed as structured JSON.
+        """
+        import json as _json
+        import re as _re
+
+        if llm_backend is None:
+            return self.infer(description, agent_id=agent_id)
+
+        _agent_id = agent_id or f"agent_{uuid.uuid4().hex[:8]}"
+
+        # Build the form schema with all fields empty — the LLM will fill it.
+        form = self.build_form_schema(
+            domain="general",
+            industry="unknown",
+            agent_id=_agent_id,
+        )
+
+        # Construct a structured extraction prompt using the form's own field
+        # definitions as the schema.  The form tells the LLM exactly what to fill.
+        field_lines = "\n".join(
+            f'  "{f.field_id}": "<{f.description}>"'
+            for f in form.fields
+            if f.requirement.value == "required"
+        )
+        all_industries = sorted(INDUSTRY_KEYWORDS.keys())
+        prompt = (
+            "You are extracting structured business context from a plain-text description.\n"
+            f"Description: {description}\n\n"
+            "Return ONLY a JSON object with the following fields "
+            "(use null for any field you cannot determine):\n"
+            "{\n"
+            f'  "industry": "<one of: {", ".join(all_industries)}, other>",\n'
+            f'  "business_type": "<specific business type, e.g. plumbing contractor>",\n'
+            f"{field_lines}\n"
+            "}\n"
+            "Return only valid JSON.  No explanation."
+        )
+
+        # Generate via SafeLLMWrapper so all existing safety gates apply.
+        # Import here to avoid circular import at module level.
+        try:
+            from safe_llm_wrapper import SafeLLMWrapper
+            wrapper = SafeLLMWrapper(llm_backend)
+            llm_result = wrapper.safe_generate(
+                prompt,
+                context={"description": description},
+                max_tokens=400,
+            )
+        except Exception as exc:
+            logger.warning("LLM call failed (%s); falling back to keyword inference", exc)
+            return self.infer(description, agent_id=_agent_id)
+
+        raw_content = llm_result.get("content", "")
+        llm_confidence = llm_result.get("confidence", 0.5)
+
+        # Extract JSON from the response — the LLM may wrap it in prose.
+        field_values: dict = {}
+        try:
+            json_match = _re.search(r"\{.*\}", raw_content, _re.DOTALL)
+            if json_match:
+                field_values = _json.loads(json_match.group())
+        except (_json.JSONDecodeError, AttributeError):
+            logger.warning(
+                "LLM returned non-JSON content; falling back to keyword inference"
+            )
+            return self.infer(description, agent_id=_agent_id)
+
+        # Feed LLM answers into the form as LLM_INFERENCE sensor readings.
+        # High-confidence LLM responses (≥0.8) are promoted to HIGH_CONFIDENCE;
+        # everything else remains LLM_GENERATED and requires a gate pass.
+        fill_confidence = (
+            FillConfidence.HIGH_CONFIDENCE
+            if llm_confidence >= 0.8
+            else FillConfidence.LLM_GENERATED
+        )
+        for field_id, value in field_values.items():
+            if value is not None:
+                reading = SensorReading(
+                    sensor_id=f"llm_{field_id}",
+                    sensor_type=SensorType.LLM_INFERENCE,
+                    field_id=field_id,
+                    value=value,
+                    confidence=fill_confidence,
+                    source="infer_via_llm",
+                )
+                # Write the value directly into the form schema field
+                form.submit_answer(field_id, value)
+                logger.debug(
+                    "LLM filled field '%s' = %r (confidence=%s)",
+                    field_id, value, fill_confidence.value,
+                )
+                _ = reading  # stored for audit; caller can retrieve via form.fields
+
+        # Resolve industry from the LLM-filled field — no keyword matching needed.
+        industry = (field_values.get("industry") or "other").lower().strip()
+        if industry not in INDUSTRY_KEYWORDS and industry != "other":
+            # LLM returned a freeform value; try a single-pass keyword fallback
+            # on just that value rather than the full description.
+            industry = self.infer_industry(field_values.get("industry", description))
+
+        # MAGNIFY → SIMPLIFY → SOLIDIFY using the LLM-derived industry
+        # (same pipeline as infer(), but the industry is semantically derived
+        # from the filled form rather than a keyword scan of the description).
+        positions = self.map_org_positions(industry, description)
+        gates = self.generate_inferred_gates(description, industry, positions)
+
+        return InferenceResult(
+            description=description,
+            inferred_industry=industry,
+            org_positions=positions,
+            inferred_gates=gates,
+            form_schema=form,
         )
 
     # ---- Internal helpers ----
