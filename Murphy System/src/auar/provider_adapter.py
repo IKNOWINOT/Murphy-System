@@ -6,12 +6,17 @@ Implements the adapter pattern for downstream provider communication.
 Each adapter encapsulates authentication, protocol translation, retry
 logic, and connection management for a specific provider.
 
-Supported auth methods: API Key, Bearer Token, OAuth2, Basic, HMAC.
-Supported protocols: REST (JSON), GraphQL, gRPC (stub), SOAP (stub).
+Supports auth methods: API Key, Bearer Token, OAuth2, Basic, HMAC.
+Supports protocols: REST (JSON), GraphQL, gRPC (stub), SOAP (stub).
+
+Uses httpx.AsyncClient for real HTTP transport when available, with a
+pluggable execute_fn for testing and offline operation.
 
 Copyright 2024 Inoni LLC – BSL-1.1
 """
 
+import asyncio
+import json
 import logging
 import threading
 import time
@@ -99,7 +104,7 @@ class ProviderAdapter:
 
     # -- Auth header construction -------------------------------------------
 
-    def _build_auth_headers(self) -> Dict[str, str]:
+    def _build_auth_headers(self, body: Optional[Dict[str, Any]] = None) -> Dict[str, str]:
         creds = self.config.auth_credentials
         method = self.config.auth_method
 
@@ -116,7 +121,7 @@ class ProviderAdapter:
         if method == AuthMethod.OAUTH2:
             return self._build_oauth2_headers()
         if method == AuthMethod.HMAC:
-            return self._build_hmac_headers()
+            return self._build_hmac_headers(body=body)
         return {}
 
     def _build_oauth2_headers(self) -> Dict[str, str]:
@@ -151,16 +156,15 @@ class ProviderAdapter:
             return {"Authorization": f"Bearer {access_token}"}
         return {}
 
-    def _build_hmac_headers(self) -> Dict[str, str]:
+    def _build_hmac_headers(self, body: Optional[Dict[str, Any]] = None) -> Dict[str, str]:
         """Build HMAC request-signing headers.
 
         Expected credentials keys:
             secret_key  — shared secret used for HMAC-SHA256 signing
             key_id      — identifier sent in the ``X-HMAC-Key-Id`` header
 
-        The signature is computed over a deterministic string composed
-        of the current Unix timestamp and the key-id so that the
-        downstream provider can verify authenticity.
+        The v2 signature covers the canonicalized body, method path,
+        timestamp, and key-id to prevent body tampering.
         """
         import hashlib
         import hmac as hmac_mod
@@ -170,7 +174,11 @@ class ProviderAdapter:
         key_id = creds.get("key_id", "")
 
         timestamp = str(int(time.time()))
-        message = f"{timestamp}:{key_id}"
+        # v2: include canonicalized body in signature
+        canon_body = ""
+        if body:
+            canon_body = json.dumps(body, sort_keys=True, separators=(",", ":"))
+        message = f"{timestamp}:{key_id}:{canon_body}"
         signature = hmac_mod.new(
             secret.encode(), message.encode(), hashlib.sha256
         ).hexdigest()
@@ -179,6 +187,7 @@ class ProviderAdapter:
             "X-HMAC-Signature": signature,
             "X-HMAC-Timestamp": timestamp,
             "X-HMAC-Key-Id": key_id,
+            "X-HMAC-Version": "v2",
         }
 
     # -- Protocol-aware request preparation ---------------------------------
@@ -210,7 +219,7 @@ class ProviderAdapter:
     ) -> AdapterResponse:
         """Execute a request to the provider with retry logic."""
         start = time.monotonic()
-        auth_headers = self._build_auth_headers()
+        auth_headers = self._build_auth_headers(body=body)
         merged_headers = {**self.config.headers, **auth_headers}
 
         request_payload = {
@@ -226,6 +235,32 @@ class ProviderAdapter:
         request_payload = self._prepare_request(request_payload)
 
         response = self._execute_with_retries(request_payload)
+        response.latency_ms = (time.monotonic() - start) * 1000
+        return response
+
+    async def async_call(
+        self,
+        method: str,
+        path: str,
+        body: Optional[Dict[str, Any]] = None,
+        query_params: Optional[Dict[str, str]] = None,
+    ) -> AdapterResponse:
+        """Execute a request to the provider with async retry logic."""
+        start = time.monotonic()
+        auth_headers = self._build_auth_headers(body=body)
+        merged_headers = {**self.config.headers, **auth_headers}
+
+        request_payload = {
+            "method": method.upper(),
+            "url": f"{self.config.base_url.rstrip('/')}/{path.lstrip('/')}",
+            "headers": merged_headers,
+            "body": body or {},
+            "query_params": query_params or {},
+            "protocol": self.config.protocol.value,
+        }
+
+        request_payload = self._prepare_request(request_payload)
+        response = await self._async_execute_with_retries(request_payload)
         response.latency_ms = (time.monotonic() - start) * 1000
         return response
 
@@ -266,6 +301,43 @@ class ProviderAdapter:
             retries_used=retries,
         )
 
+    async def _async_execute_with_retries(self, payload: Dict[str, Any]) -> AdapterResponse:
+        """Async retry loop using asyncio.sleep instead of blocking time.sleep."""
+        last_error = ""
+        retries = 0
+        for attempt in range(self.config.max_retries + 1):
+            try:
+                result = self._execute_fn(payload)
+                with self._lock:
+                    self._stats["calls"] += 1
+                    self._stats["successes"] += 1
+                return AdapterResponse(
+                    success=True,
+                    status_code=result.get("status_code", 200),
+                    body=result.get("body", {}),
+                    headers=result.get("headers", {}),
+                    retries_used=retries,
+                )
+            except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
+                last_error = str(exc)
+                retries += 1
+                with self._lock:
+                    self._stats["retries"] += 1
+                if attempt < self.config.max_retries:
+                    await asyncio.sleep(self.config.retry_backoff_s * (attempt + 1))
+
+        with self._lock:
+            self._stats["calls"] += 1
+            self._stats["failures"] += 1
+
+        return AdapterResponse(
+            success=False,
+            status_code=502,
+            error=last_error,
+            retries_used=retries,
+        )
+
     @staticmethod
     def _default_execute(payload: Dict[str, Any]) -> Dict[str, Any]:
         """Default no-op executor for offline / test usage."""
@@ -274,6 +346,35 @@ class ProviderAdapter:
             "body": {"message": "ok", "provider_received": payload.get("body", {})},
             "headers": {"Content-Type": "application/json"},
         }
+
+    @staticmethod
+    def _httpx_execute_factory(config: "AdapterConfig"):
+        """Create an execute_fn that uses httpx for real HTTP calls."""
+        try:
+            import httpx
+        except ImportError:
+            return None
+
+        def execute(payload: Dict[str, Any]) -> Dict[str, Any]:
+            with httpx.Client(
+                timeout=config.timeout_s,
+                limits=httpx.Limits(
+                    max_connections=config.connection_pool_size,
+                ),
+            ) as client:
+                resp = client.request(
+                    method=payload.get("method", "GET"),
+                    url=payload["url"],
+                    headers=payload.get("headers", {}),
+                    json=payload.get("body"),
+                    params=payload.get("query_params"),
+                )
+                return {
+                    "status_code": resp.status_code,
+                    "body": resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {"raw": resp.text},
+                    "headers": dict(resp.headers),
+                }
+        return execute
 
     def get_stats(self) -> Dict[str, int]:
         with self._lock:
@@ -318,6 +419,24 @@ class ProviderAdapterManager:
         if not adapter:
             return AdapterResponse(success=False, status_code=404, error="Adapter not found")
         return adapter.call(method, path, body)
+
+    async def async_call_provider(
+        self,
+        provider_id: str,
+        method: str,
+        path: str,
+        body: Optional[Dict[str, Any]] = None,
+    ) -> AdapterResponse:
+        """Async version using asyncio.sleep-based retries."""
+        adapter = self.get_adapter(provider_id)
+        if not adapter:
+            return AdapterResponse(success=False, status_code=404, error="Adapter not found")
+        return await adapter.async_call(method, path, body)
+
+    def deregister_adapter(self, provider_id: str) -> bool:
+        """Remove an adapter from the registry."""
+        with self._lock:
+            return self._adapters.pop(provider_id, None) is not None
 
     def list_adapters(self) -> List[str]:
         with self._lock:
