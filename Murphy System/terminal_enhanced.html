@@ -279,13 +279,14 @@
       var uptime        = data.uptime        != null ? data.uptime : '\u2014';
       var activeTasks   = data.active_tasks   != null ? data.active_tasks : '\u2014';
       var healthPct     = data.health         != null ? data.health + '%' : '\u2014';
+      var highLoad      = typeof activeTasks === 'number' && activeTasks > 10;
 
       var html = sectionHeader('Dashboard', 'System overview and quick actions');
 
       html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">';
       html += statCard('Modules Loaded', modulesLoaded);
       html += statCard('Uptime', uptime);
-      html += statCard('Active Tasks', activeTasks, activeTasks > 10 ? 'up' : null, activeTasks > 10 ? 'High load' : '');
+      html += statCard('Active Tasks', activeTasks, highLoad ? 'up' : null, highLoad ? 'High load' : '');
       html += statCard('System Health', healthPct);
       html += '</div>';
 
