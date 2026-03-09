@@ -1106,77 +1106,34 @@ class MurphyChart {
 /* ── MurphyTheme ──────────────────────────────────────────────── */
 
 /**
- * Singleton theme manager — dark (default) and light.
+ * Singleton theme manager — dark only.
+ * Murphy System uses a dark theme exclusively. There is no light mode.
  */
 class MurphyTheme {
   constructor() {
     if (MurphyTheme._instance) return MurphyTheme._instance;
     MurphyTheme._instance = this;
     this._theme = 'dark';
-    this._callbacks = [];
   }
 
   /**
-   * Initialise theme from localStorage or system preference and apply to body.
+   * Initialise theme and apply dark mode to body.
    */
   init() {
-    const stored = this._readStorage();
-    if (stored) {
-      this._theme = stored;
-    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-      this._theme = 'light';
-    } else {
-      this._theme = 'dark';
-    }
+    this._theme = 'dark';
     this._apply();
-  }
-
-  /**
-   * Toggle between dark and light themes.
-   */
-  toggle() {
-    this._theme = this._theme === 'dark' ? 'light' : 'dark';
-    this._apply();
-    this._persist();
-    this._notify();
   }
 
   /**
    * Get the current theme name.
-   * @returns {'dark'|'light'}
+   * @returns {'dark'}
    */
   get() {
     return this._theme;
   }
 
-  /**
-   * Register a callback for theme changes.
-   * @param {function} callback Receives the new theme string.
-   */
-  onChange(callback) {
-    if (typeof callback === 'function') this._callbacks.push(callback);
-  }
-
   _apply() {
-    if (this._theme === 'light') {
-      document.body.classList.add('murphy-light');
-    } else {
-      document.body.classList.remove('murphy-light');
-    }
-  }
-
-  _persist() {
-    try { localStorage.setItem('murphy_theme', this._theme); } catch { /* storage unavailable */ }
-  }
-
-  _readStorage() {
-    try { return localStorage.getItem('murphy_theme'); } catch { return null; }
-  }
-
-  _notify() {
-    for (const cb of this._callbacks) {
-      try { cb(this._theme); } catch { /* consumer error */ }
-    }
+    document.body.classList.remove('murphy-light');
   }
 }
 

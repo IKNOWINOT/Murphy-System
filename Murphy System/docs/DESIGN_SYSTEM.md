@@ -45,19 +45,13 @@ The Murphy Design System provides a unified visual language across all 14 interf
 | `--teal` | `#00D4AA` | Primary accent |
 | `--teal-glow` | `rgba(0,212,170,0.12)` | Subtle accent backgrounds |
 
-### Light Theme
+### Theme Policy — Dark Only
 
-Activated by adding `murphy-light` class to `<body>`. All tokens swap automatically:
+Murphy System uses a **dark theme exclusively**. There is no light theme and no theme toggle.
 
-| Token | Light Value |
-|-------|-------------|
-| `--bg-base` | `#F4F6F8` |
-| `--bg-surface` | `#FFFFFF` |
-| `--bg-elevated` | `#FFFFFF` |
-| `--bg-input` | `#F0F2F5` |
-| `--text-primary` | `#1A2030` |
-| `--text-secondary` | `#5A6778` |
-| `--teal` | `#009E7E` |
+**Rationale:** Operators stare at Murphy interfaces for extended periods. Black backgrounds with soft accent colors (teal, cyan, muted gold) reduce eye fatigue and create a calming, focused environment. White backgrounds are not appropriate for a system that runs continuously in an operations context.
+
+The `body.murphy-light` CSS class and the `MurphyTheme.toggle()` method are not supported. `MurphyTheme.init()` always applies the dark theme. Do not add light mode variants when building new interfaces.
 
 ### Semantic Colors
 
@@ -155,7 +149,7 @@ Fonts are loaded via Google Fonts. Both families support Latin Extended.
 ```
 
 - **Sidebar:** 240px wide, collapsible to 56px (icon-only). Fixed left.
-- **Topbar:** 56px height, fixed top. Contains breadcrumb, search, theme toggle, notifications.
+- **Topbar:** 56px height, fixed top. Contains breadcrumb, search, notifications.
 - **Content:** Scrollable main area. Centered `max-width: 1200px` for dashboard UIs, full-width for canvas UIs.
 - **Librarian Chat:** Floating button bottom-right on every page. Opens 350px slide-in panel.
 
@@ -476,9 +470,11 @@ Types: `sparkline`, `gauge`, `bar`, `timeline`.
 ### MurphyTheme
 
 ```javascript
-MurphyTheme.init(); // reads from localStorage or prefers-color-scheme
-MurphyTheme.toggle(); // switches dark ↔ light
+MurphyTheme.init(); // applies dark theme (only supported theme)
+MurphyTheme.get();  // always returns 'dark'
 ```
+
+Murphy System is dark-only. Do not call `MurphyTheme.toggle()` — the method is deprecated and will be removed. See the [Theme Policy](#theme-policy--dark-only) section above.
 
 ### MurphyJargon
 
