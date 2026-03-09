@@ -101,7 +101,7 @@ Authorization: Bearer YOUR_API_KEY
 #### Example
 
 ```bash
-curl -X POST http://localhost:8052/api/system/build \
+curl -X POST http://localhost:8000/api/system/build \
   -H "Authorization: Bearer your-api-key-here" \
   -H "Content-Type: application/json" \
   -d '{"description": "Build a system"}'
@@ -313,7 +313,7 @@ When the system detects a condition requiring human review, it creates triggers:
 ### Development
 
 ```
-http://localhost:8052
+http://localhost:8000
 ```
 
 ### Production

@@ -262,7 +262,7 @@ Complete API documentation:
 
 ```bash
 # Build a system
-curl -X POST http://localhost:8052/api/system/build \
+curl -X POST http://localhost:8000/api/system/build \
   -H "Content-Type: application/json" \
   -d '{
     "description": "Build a healthcare app",

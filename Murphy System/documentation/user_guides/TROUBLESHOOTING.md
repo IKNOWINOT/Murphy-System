@@ -137,7 +137,7 @@ pip list | grep -E "rich|prompt-toolkit|pyyaml"
 ps aux | grep api_server
 
 # Check port usage
-lsof -i :8052
+lsof -i :8000
 netstat -tuln | grep 8052
 ```
 
@@ -146,7 +146,7 @@ netstat -tuln | grep 8052
 1. **Kill Existing Process**:
    ```bash
    # Find process
-   lsof -i :8052
+   lsof -i :8000
 
    # Kill process
    kill -9 <PID>
@@ -279,7 +279,7 @@ top -p $(pgrep api_server)
 tail -f /var/log/murphy-production.log
 
 # Test with curl
-curl -v http://localhost:8052/api/health
+curl -v http://localhost:8000/api/health
 ```
 
 **Solutions**:
@@ -299,12 +299,12 @@ curl -v http://localhost:8052/api/health
    ```bash
    # Verify API key
    curl -H "Authorization: Bearer YOUR_API_KEY" \
-     http://localhost:8052/api/health
+     http://localhost:8000/api/health
    ```
 
 4. **Test with Simple Request**:
    ```bash
-   curl http://localhost:8052/api/health
+   curl http://localhost:8000/api/health
    ```
 
 ---
@@ -318,14 +318,14 @@ curl -v http://localhost:8052/api/health
 **Diagnosis**:
 ```bash
 # Check rate limit headers
-curl -I http://localhost:8052/api/health
+curl -I http://localhost:8000/api/health
 ```
 
 **Solutions**:
 
 1. **Check Rate Limit Headers**:
    ```bash
-   curl -I http://localhost:8052/api/health | grep -i rate
+   curl -I http://localhost:8000/api/health | grep -i rate
    ```
 
 2. **Wait and Retry**:
@@ -364,7 +364,7 @@ curl -I http://localhost:8052/api/health
 ```bash
 # Test with API key
 curl -H "Authorization: Bearer YOUR_API_KEY" \
-  http://localhost:8052/api/health
+  http://localhost:8000/api/health
 ```
 
 **Solutions**:
@@ -388,7 +388,7 @@ curl -H "Authorization: Bearer YOUR_API_KEY" \
    ```bash
    # Ensure API key has required scopes
    curl -H "Authorization: Bearer YOUR_API_KEY" \
-     http://localhost:8052/api/experts
+     http://localhost:8000/api/experts
    ```
 
 4. **Check API Key Expiration**:
@@ -413,7 +413,7 @@ curl -H "Authorization: Bearer YOUR_API_KEY" \
 **Diagnosis**:
 ```bash
 # Measure response time
-time curl http://localhost:8052/api/health
+time curl http://localhost:8000/api/health
 
 # Check system resources
 htop
@@ -557,7 +557,7 @@ cat config/config.yaml
    ```yaml
    # Check values are valid
    server:
-     port: 8052  # Must be 1-65535
+     port: 8000  # Must be 1-65535
      workers: 8  # Must be positive integer
    ```
 
@@ -651,7 +651,7 @@ psql -U murphy_user -d murphy_production -h localhost
 **Diagnosis**:
 ```bash
 # Check cache metrics
-curl http://localhost:8052/api/telemetry/metrics?type=cache
+curl http://localhost:8000/api/telemetry/metrics?type=cache
 ```
 
 **Solutions**:
@@ -681,7 +681,7 @@ curl http://localhost:8052/api/telemetry/metrics?type=cache
 4. **Monitor Cache Hit Rate**:
    ```bash
    # Check cache statistics
-   curl http://localhost:8052/api/telemetry/metrics
+   curl http://localhost:8000/api/telemetry/metrics
    ```
 
 ---
@@ -844,7 +844,7 @@ python demo/api_server_v2.py --log-level DEBUG
 
 ```bash
 # Verbose curl
-curl -v http://localhost:8052/api/health
+curl -v http://localhost:8000/api/health
 
 # Verbose Python
 python -v demo/api_server_v2.py
@@ -871,7 +871,7 @@ python -c "from src.system_integrator import SystemIntegrator; print('OK')"
 python -c "from src.database import Database; print('OK')"
 
 # Test API
-curl http://localhost:8052/api/health
+curl http://localhost:8000/api/health
 ```
 
 ---

@@ -35,25 +35,25 @@ python demo/api_server_v2.py --log-level DEBUG
 ### Check System Health
 
 ```bash
-curl http://localhost:8052/api/health
+curl http://localhost:8000/api/health
 ```
 
 ### Get System State
 
 ```bash
-curl http://localhost:8052/api/system/state
+curl http://localhost:8000/api/system/state
 ```
 
 ### Get Full System Report
 
 ```bash
-curl http://localhost:8052/api/system/report
+curl http://localhost:8000/api/system/report
 ```
 
 ### Build a Complete System
 
 ```bash
-curl -X POST http://localhost:8052/api/system/build \
+curl -X POST http://localhost:8000/api/system/build \
   -H "Content-Type: application/json" \
   -d '{
     "description": "Build a web application",
@@ -69,7 +69,7 @@ curl -X POST http://localhost:8052/api/system/build \
 ### Validate a System
 
 ```bash
-curl -X POST http://localhost:8052/api/system/validate \
+curl -X POST http://localhost:8000/api/system/validate \
   -H "Content-Type: application/json" \
   -d '{
     "system_state": {
@@ -87,7 +87,7 @@ curl -X POST http://localhost:8052/api/system/validate \
 ### Generate Experts
 
 ```bash
-curl -X POST http://localhost:8052/api/experts/generate \
+curl -X POST http://localhost:8000/api/experts/generate \
   -H "Content-Type: application/json" \
   -d '{
     "description": "Need experts for a fintech platform",
@@ -103,19 +103,19 @@ curl -X POST http://localhost:8052/api/experts/generate \
 ### Get All Experts
 
 ```bash
-curl http://localhost:8052/api/experts
+curl http://localhost:8000/api/experts
 ```
 
 ### Get Specific Expert
 
 ```bash
-curl http://localhost:8052/api/experts/{expert_id}
+curl http://localhost:8000/api/experts/{expert_id}
 ```
 
 ### Update Expert
 
 ```bash
-curl -X PUT http://localhost:8052/api/experts/{expert_id} \
+curl -X PUT http://localhost:8000/api/experts/{expert_id} \
   -H "Content-Type: application/json" \
   -d '{
     "specialization": "Updated specialization",
@@ -126,7 +126,7 @@ curl -X PUT http://localhost:8052/api/experts/{expert_id} \
 ### Delete Expert
 
 ```bash
-curl -X DELETE http://localhost:8052/api/experts/{expert_id}
+curl -X DELETE http://localhost:8000/api/experts/{expert_id}
 ```
 
 ---
@@ -136,7 +136,7 @@ curl -X DELETE http://localhost:8052/api/experts/{expert_id}
 ### Create Gates
 
 ```bash
-curl -X POST http://localhost:8052/api/gates/create \
+curl -X POST http://localhost:8000/api/gates/create \
   -H "Content-Type: application/json" \
   -d '{
     "description": "Create gates for a healthcare app",
@@ -152,19 +152,19 @@ curl -X POST http://localhost:8052/api/gates/create \
 ### Get All Gates
 
 ```bash
-curl http://localhost:8052/api/gates
+curl http://localhost:8000/api/gates
 ```
 
 ### Get Specific Gate
 
 ```bash
-curl http://localhost:8052/api/gates/{gate_id}
+curl http://localhost:8000/api/gates/{gate_id}
 ```
 
 ### Evaluate Gate
 
 ```bash
-curl -X POST http://localhost:8052/api/gates/{gate_id}/evaluate \
+curl -X POST http://localhost:8000/api/gates/{gate_id}/evaluate \
   -H "Content-Type: application/json" \
   -d '{
     "system_state": {
@@ -176,7 +176,7 @@ curl -X POST http://localhost:8052/api/gates/{gate_id}/evaluate \
 ### Delete Gate
 
 ```bash
-curl -X DELETE http://localhost:8052/api/gates/{gate_id}
+curl -X DELETE http://localhost:8000/api/gates/{gate_id}
 ```
 
 ---
@@ -186,7 +186,7 @@ curl -X DELETE http://localhost:8052/api/gates/{gate_id}
 ### Add Constraint
 
 ```bash
-curl -X POST http://localhost:8052/api/constraints/add \
+curl -X POST http://localhost:8000/api/constraints/add \
   -H "Content-Type: application/json" \
   -d '{
     "type": "budget",
@@ -202,19 +202,19 @@ curl -X POST http://localhost:8052/api/constraints/add \
 ### Get All Constraints
 
 ```bash
-curl http://localhost:8052/api/constraints
+curl http://localhost:8000/api/constraints
 ```
 
 ### Get Specific Constraint
 
 ```bash
-curl http://localhost:8052/api/constraints/{constraint_id}
+curl http://localhost:8000/api/constraints/{constraint_id}
 ```
 
 ### Validate Constraint
 
 ```bash
-curl -X POST http://localhost:8052/api/constraints/{constraint_id}/validate \
+curl -X POST http://localhost:8000/api/constraints/{constraint_id}/validate \
   -H "Content-Type: application/json" \
   -d '{
     "system_state": {
@@ -226,7 +226,7 @@ curl -X POST http://localhost:8052/api/constraints/{constraint_id}/validate \
 ### Delete Constraint
 
 ```bash
-curl -X DELETE http://localhost:8052/api/constraints/{constraint_id}
+curl -X DELETE http://localhost:8000/api/constraints/{constraint_id}
 ```
 
 ---
@@ -236,7 +236,7 @@ curl -X DELETE http://localhost:8052/api/constraints/{constraint_id}
 ### Validate Against All Constraints
 
 ```bash
-curl -X POST http://localhost:8052/api/constraints/validate \
+curl -X POST http://localhost:8000/api/constraints/validate \
   -H "Content-Type: application/json" \
   -d '{
     "system_state": {
@@ -250,7 +250,7 @@ curl -X POST http://localhost:8052/api/constraints/validate \
 ### Validate Against All Gates
 
 ```bash
-curl -X POST http://localhost:8052/api/gates/validate \
+curl -X POST http://localhost:8000/api/gates/validate \
   -H "Content-Type: application/json" \
   -d '{
     "system_state": {
@@ -262,7 +262,7 @@ curl -X POST http://localhost:8052/api/gates/validate \
 ### Get Validation Results
 
 ```bash
-curl http://localhost:8052/api/system/validation-results
+curl http://localhost:8000/api/system/validation-results
 ```
 
 ---
@@ -272,7 +272,7 @@ curl http://localhost:8052/api/system/validation-results
 ### Analyze a Choice
 
 ```bash
-curl -X POST http://localhost:8052/api/choices/analyze \
+curl -X POST http://localhost:8000/api/choices/analyze \
   -H "Content-Type: application/json" \
   -d '{
     "question": "Should I use React or Angular for my frontend?",
@@ -289,13 +289,13 @@ curl -X POST http://localhost:8052/api/choices/analyze \
 ### Get Analysis Results
 
 ```bash
-curl http://localhost:8052/api/choices/{analysis_id}
+curl http://localhost:8000/api/choices/{analysis_id}
 ```
 
 ### Compare Multiple Options
 
 ```bash
-curl -X POST http://localhost:8052/api/choices/compare \
+curl -X POST http://localhost:8000/api/choices/compare \
   -H "Content-Type: application/json" \
   -d '{
     "options": ["AWS", "GCP", "Azure"],
@@ -314,38 +314,38 @@ curl -X POST http://localhost:8052/api/choices/compare \
 ### Get All Recommendations
 
 ```bash
-curl http://localhost:8052/api/recommendations
+curl http://localhost:8000/api/recommendations
 ```
 
 ### Get Recommendations by Category
 
 ```bash
-curl http://localhost:8052/api/recommendations?category=architecture
+curl http://localhost:8000/api/recommendations?category=architecture
 ```
 
 ### Get System Report
 
 ```bash
-curl http://localhost:8052/api/system/report
+curl http://localhost:8000/api/system/report
 ```
 
 ### Get Performance Report
 
 ```bash
-curl http://localhost:8052/api/system/performance-report
+curl http://localhost:8000/api/system/performance-report
 ```
 
 ### Export Report
 
 ```bash
 # Export as JSON
-curl http://localhost:8052/api/system/report?format=json
+curl http://localhost:8000/api/system/report?format=json
 
 # Export as PDF
-curl http://localhost:8052/api/system/report?format=pdf
+curl http://localhost:8000/api/system/report?format=pdf
 
 # Export as Markdown
-curl http://localhost:8052/api/system/report?format=markdown
+curl http://localhost:8000/api/system/report?format=markdown
 ```
 
 ---
@@ -355,37 +355,37 @@ curl http://localhost:8052/api/system/report?format=markdown
 ### Get System Metrics
 
 ```bash
-curl http://localhost:8052/api/telemetry/metrics
+curl http://localhost:8000/api/telemetry/metrics
 ```
 
 ### Get Metrics by Type
 
 ```bash
-curl http://localhost:8052/api/telemetry/metrics?type=performance
+curl http://localhost:8000/api/telemetry/metrics?type=performance
 ```
 
 ### Get Metrics by Time Range
 
 ```bash
-curl http://localhost:8052/api/telemetry/metrics?start_time=2024-01-01&end_time=2024-12-31
+curl http://localhost:8000/api/telemetry/metrics?start_time=2024-01-01&end_time=2024-12-31
 ```
 
 ### Get LLM Statistics
 
 ```bash
-curl http://localhost:8052/api/llm/stats
+curl http://localhost:8000/api/llm/stats
 ```
 
 ### Get Active Sessions
 
 ```bash
-curl http://localhost:8052/api/sessions
+curl http://localhost:8000/api/sessions
 ```
 
 ### Get Pending Triggers
 
 ```bash
-curl http://localhost:8052/api/triggers
+curl http://localhost:8000/api/triggers
 ```
 
 ---
@@ -395,19 +395,19 @@ curl http://localhost:8052/api/triggers
 ### Get All Triggers
 
 ```bash
-curl http://localhost:8052/api/triggers
+curl http://localhost:8000/api/triggers
 ```
 
 ### Get Specific Trigger
 
 ```bash
-curl http://localhost:8052/api/triggers/{trigger_id}
+curl http://localhost:8000/api/triggers/{trigger_id}
 ```
 
 ### Resolve a Trigger
 
 ```bash
-curl -X POST http://localhost:8052/api/triggers/{trigger_id}/resolve \
+curl -X POST http://localhost:8000/api/triggers/{trigger_id}/resolve \
   -H "Content-Type: application/json" \
   -d '{
     "resolution": "Accept Aristotle",
@@ -418,7 +418,7 @@ curl -X POST http://localhost:8052/api/triggers/{trigger_id}/resolve \
 ### Escalate Trigger
 
 ```bash
-curl -X POST http://localhost:8052/api/triggers/{trigger_id}/escalate \
+curl -X POST http://localhost:8000/api/triggers/{trigger_id}/escalate \
   -H "Content-Type: application/json" \
   -d '{
     "escalation_level": "high",
@@ -433,7 +433,7 @@ curl -X POST http://localhost:8052/api/triggers/{trigger_id}/escalate \
 ### Send Message to System
 
 ```bash
-curl -X POST http://localhost:8052/api/chat \
+curl -X POST http://localhost:8000/api/chat \
   -H "Content-Type: application/json" \
   -d '{
     "message": "Build a mobile app for fitness tracking",
@@ -446,13 +446,13 @@ curl -X POST http://localhost:8052/api/chat \
 ### Get Chat History
 
 ```bash
-curl http://localhost:8052/api/chat/history?session_id={session_id}
+curl http://localhost:8000/api/chat/history?session_id={session_id}
 ```
 
 ### Clear Chat History
 
 ```bash
-curl -X DELETE http://localhost:8052/api/chat/history?session_id={session_id}
+curl -X DELETE http://localhost:8000/api/chat/history?session_id={session_id}
 ```
 
 ---
@@ -463,7 +463,7 @@ curl -X DELETE http://localhost:8052/api/chat/history?session_id={session_id}
 
 ```bash
 # 1. Build system
-BUILD_RESPONSE=$(curl -s -X POST http://localhost:8052/api/system/build \
+BUILD_RESPONSE=$(curl -s -X POST http://localhost:8000/api/system/build \
   -H "Content-Type: application/json" \
   -d '{
     "description": "Build a healthcare app",
@@ -478,10 +478,10 @@ BUILD_RESPONSE=$(curl -s -X POST http://localhost:8052/api/system/build \
 echo "$BUILD_RESPONSE"
 
 # 2. Check for triggers
-curl -s http://localhost:8052/api/triggers
+curl -s http://localhost:8000/api/triggers
 
 # 3. Validate system
-curl -s -X POST http://localhost:8052/api/system/validate \
+curl -s -X POST http://localhost:8000/api/system/validate \
   -H "Content-Type: application/json" \
   -d '{
     "system_state": {
@@ -491,14 +491,14 @@ curl -s -X POST http://localhost:8052/api/system/validate \
   }'
 
 # 4. Get report
-curl -s http://localhost:8052/api/system/report
+curl -s http://localhost:8000/api/system/report
 ```
 
 ### Workflow 2: Generate Experts and Add Constraints
 
 ```bash
 # 1. Generate experts
-curl -s -X POST http://localhost:8052/api/experts/generate \
+curl -s -X POST http://localhost:8000/api/experts/generate \
   -H "Content-Type: application/json" \
   -d '{
     "description": "Team for fintech platform",
@@ -513,7 +513,7 @@ curl -s -X POST http://localhost:8052/api/experts/generate \
 EXPERT_IDS=$(jq -r '.data.experts[].id' experts.json)
 
 # 3. Add budget constraint
-curl -s -X POST http://localhost:8052/api/constraints/add \
+curl -s -X POST http://localhost:8000/api/constraints/add \
   -H "Content-Type: application/json" \
   -d '{
     "type": "budget",
@@ -523,7 +523,7 @@ curl -s -X POST http://localhost:8052/api/constraints/add \
   }'
 
 # 4. Add timeline constraint
-curl -s -X POST http://localhost:8052/api/constraints/add \
+curl -s -X POST http://localhost:8000/api/constraints/add \
   -H "Content-Type: application/json" \
   -d '{
     "type": "timeline",
@@ -533,7 +533,7 @@ curl -s -X POST http://localhost:8052/api/constraints/add \
   }'
 
 # 5. Validate all constraints
-curl -s -X POST http://localhost:8052/api/constraints/validate \
+curl -s -X POST http://localhost:8000/api/constraints/validate \
   -H "Content-Type: application/json" \
   -d '{
     "system_state": {
@@ -547,7 +547,7 @@ curl -s -X POST http://localhost:8052/api/constraints/validate \
 
 ```bash
 # 1. Analyze choice
-curl -s -X POST http://localhost:8052/api/choices/analyze \
+curl -s -X POST http://localhost:8000/api/choices/analyze \
   -H "Content-Type: application/json" \
   -d '{
     "question": "Use microservices or monolith?",
@@ -564,7 +564,7 @@ RECOMMENDATION=$(jq -r '.data.recommendation' analysis.json)
 echo "Recommendation: $RECOMMENDATION"
 
 # 3. Create gates based on choice
-curl -s -X POST http://localhost:8052/api/gates/create \
+curl -s -X POST http://localhost:8000/api/gates/create \
   -H "Content-Type: application/json" \
   -d '{
     "description": "Gates for microservices architecture",
@@ -575,7 +575,7 @@ curl -s -X POST http://localhost:8052/api/gates/create \
   }'
 
 # 4. Validate gates
-curl -s -X POST http://localhost:8052/api/gates/validate \
+curl -s -X POST http://localhost:8000/api/gates/validate \
   -H "Content-Type: application/json" \
   -d '{
     "system_state": {
@@ -589,19 +589,19 @@ curl -s -X POST http://localhost:8052/api/gates/validate \
 
 ```bash
 # 1. Get system health
-curl -s http://localhost:8052/api/health
+curl -s http://localhost:8000/api/health
 
 # 2. Get performance metrics
-curl -s http://localhost:8052/api/telemetry/metrics?type=performance
+curl -s http://localhost:8000/api/telemetry/metrics?type=performance
 
 # 3. Get LLM statistics
-curl -s http://localhost:8052/api/llm/stats
+curl -s http://localhost:8000/api/llm/stats
 
 # 4. Get active sessions
-curl -s http://localhost:8052/api/sessions
+curl -s http://localhost:8000/api/sessions
 
 # 5. Check for pending triggers
-curl -s http://localhost:8052/api/triggers
+curl -s http://localhost:8000/api/triggers
 ```
 
 ---
@@ -612,14 +612,14 @@ curl -s http://localhost:8052/api/triggers
 
 ```bash
 # After any complex operation, check for triggers
-curl http://localhost:8052/api/triggers
+curl http://localhost:8000/api/triggers
 ```
 
 ### 2. Use Specific Parameters for Better Results
 
 ```bash
 # Good: Specific with constraints
-curl -X POST http://localhost:8052/api/experts/generate \
+curl -X POST http://localhost:8000/api/experts/generate \
   -H "Content-Type: application/json" \
   -d '{
     "description": "Healthcare app team",
@@ -639,7 +639,7 @@ curl -X POST http://localhost:8052/api/experts/generate \
 
 ```bash
 # Always validate before deploying to production
-curl -X POST http://localhost:8052/api/system/validate \
+curl -X POST http://localhost:8000/api/system/validate \
   -H "Content-Type: application/json" \
   -d '{
     "system_state": {
@@ -652,14 +652,14 @@ curl -X POST http://localhost:8052/api/system/validate \
 
 ```bash
 # Regular performance monitoring
-curl http://localhost:8052/api/telemetry/metrics?type=performance
+curl http://localhost:8000/api/telemetry/metrics?type=performance
 ```
 
 ### 5. Review Recommendations
 
 ```bash
 # Get and review all recommendations
-curl http://localhost:8052/api/recommendations
+curl http://localhost:8000/api/recommendations
 ```
 
 ---
@@ -670,7 +670,7 @@ curl http://localhost:8052/api/recommendations
 
 ```bash
 # Check response and handle errors
-RESPONSE=$(curl -s http://localhost:8052/api/health)
+RESPONSE=$(curl -s http://localhost:8000/api/health)
 SUCCESS=$(echo "$RESPONSE" | jq -r '.success')
 
 if [ "$SUCCESS" = "true" ]; then
@@ -686,7 +686,7 @@ fi
 ```bash
 # Retry mechanism with exponential backoff
 for i in {1..3}; do
-  RESPONSE=$(curl -s -X POST http://localhost:8052/api/experts/generate \
+  RESPONSE=$(curl -s -X POST http://localhost:8000/api/experts/generate \
     -H "Content-Type: application/json" \
     -d '{"description": "Test"}')
   

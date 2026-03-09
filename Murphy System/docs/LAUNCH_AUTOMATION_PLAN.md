@@ -62,7 +62,7 @@ cp "Murphy System/.env.example" "Murphy System/.env"
 python "Murphy System/start_murphy.py"
 
 # Step 4 — Verify running
-curl http://localhost:5000/health
+curl http://localhost:8000/health
 # Expected: {"status": "healthy"}
 ```
 
@@ -314,7 +314,7 @@ cp "Murphy System/.env.example" "Murphy System/.env"
 python "Murphy System/start_murphy.py"
 
 # 4. Verify system health
-curl http://localhost:5000/health
+curl http://localhost:8000/health
 
 # 5. Run first test workflow
 python "Murphy System/murphy_system_runtime.py" --workflow content-generation --dry-run
