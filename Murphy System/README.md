@@ -59,22 +59,34 @@ Full auto-generated docs: **http://localhost:8000/docs**
 
 ## Web Interfaces
 
-Eight static HTML files are served by the runtime or a local HTTP server:
+Fourteen web interfaces are served by the runtime, built on a shared design system (`static/murphy-design-system.css`, `static/murphy-components.js`, `static/murphy-canvas.js`).
 
-| File | Purpose |
-|---|---|
-| `onboarding_wizard.html` | Step-by-step new-user onboarding |
-| `murphy_landing_page.html` | Main landing / dashboard page |
-| `murphy_ui_integrated.html` | Integrated management UI |
-| `murphy_ui_integrated_terminal.html` | Terminal-style integrated UI |
-| `terminal_architect.html` | Architect-role terminal |
-| `terminal_enhanced.html` | Enhanced terminal with extra tooling |
-| `terminal_integrated.html` | Integrated terminal view |
-| `terminal_worker.html` | Worker-role terminal |
-| `terminal_costs.html` | Cost tracking and budget terminal |
-| `terminal_orgchart.html` | Org chart / hierarchy terminal |
-| `terminal_unified.html` | Unified multi-role terminal |
-| `terminal_integrations.html` | Integrations management terminal |
+| File | User / Role | Type | Accent |
+|---|---|---|---|
+| `murphy_landing_page.html` | Public front door | Landing page | Teal `#00D4AA` |
+| `onboarding_wizard.html` | New user (zero jargon) | Conversational (Librarian-powered) | Gold `#FFD166` |
+| `terminal_unified.html` | Admin / Multi-role hub | Dashboard + All views | Violet `#8B6CE7` |
+| `terminal_architect.html` | System Architect | Dashboard + Terminal | Teal `#00D4AA` |
+| `terminal_enhanced.html` | Power User | Dashboard + Terminal | Pink `#E879F9` |
+| `terminal_integrated.html` | Operations Manager | Dashboard | Blue `#3B9EFF` |
+| `terminal_worker.html` | Delivery Worker | Dashboard | Amber `#FFA63E` |
+| `terminal_costs.html` | Finance / Budget | Dashboard | Coral `#FF6B6B` |
+| `terminal_orgchart.html` | HR / Admin | Dashboard | Green `#22C55E` |
+| `terminal_integrations.html` | DevOps | Dashboard | Sky `#38BDF8` |
+| `workflow_canvas.html` | Workflow Designer | Graphical canvas + Terminal | Cyan `#22D3EE` |
+| `system_visualizer.html` | System Topology | Graphical canvas + Terminal | Indigo `#818CF8` |
+| `murphy-smoke-test.html` | Developer / QA | API smoke test | Teal `#00D4AA` |
+| `murphy_ui_integrated.html` | Legacy → redirects to `terminal_unified.html` | — | — |
+| `murphy_ui_integrated_terminal.html` | Legacy → redirects to `terminal_unified.html` | — | — |
+
+### Design System
+
+All interfaces share a unified design system:
+- **`static/murphy-design-system.css`** — CSS tokens, component classes, responsive breakpoints, dark/light themes, animations, accessibility
+- **`static/murphy-components.js`** — Reusable JS components: API client, sidebar, topbar, table, chart, toast, modal, health polling, theme toggle, jargon tooltips, keyboard shortcuts, terminal panel, Librarian chat widget
+- **`static/murphy-canvas.js`** — Canvas rendering engine for workflow and topology graphical UIs: nodes, edges, ports, pan/zoom, auto-layout
+- **`static/murphy-icons.svg`** — 42 SVG icons (24×24, 2px stroke)
+- See `docs/DESIGN_SYSTEM.md` for the complete design system reference.
 
 ---
 
@@ -149,5 +161,5 @@ Murphy System/
 ├── docker-compose.yml             # Multi-service orchestration
 ├── pyproject.toml                 # Tool configs (pytest, linters)
 ├── .env                           # Runtime environment variables
-└── *.html                         # 8 web interface files
+└── *.html                         # 14 web interface files + smoke test
 ```

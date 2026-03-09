@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### UI Completion (85% → 100%)
+- **ui: P0** — Design system foundation: `murphy-design-system.css` (45KB, all tokens + light theme + 24 component classes), `murphy-components.js` (64KB, 13 reusable components including MurphyAPI, MurphyLibrarianChat, MurphyTerminalPanel), `murphy-canvas.js` (65KB, canvas rendering engine with pan/zoom/nodes/edges/auto-layout), `murphy-icons.svg` (42 icons), `favicon.svg`, and `DESIGN_SYSTEM.md`
+- **ui: P1** — Rebuilt `terminal_unified.html` as admin hub with 27 sidebar nav items, hash routing, Librarian chat widget, theme toggle, and live API data for all 25+ endpoint groups
+- **ui: P2** — Created `workflow_canvas.html` (visual node-graph workflow designer with drag-and-drop, split-pane terminal, Cyan accent) and `system_visualizer.html` (live system topology with force-directed layout, health indicators, Indigo accent)
+- **ui: P3** — Rebuilt all 7 role terminals with shared design system: `terminal_architect.html` (Teal), `terminal_integrated.html` (Blue), `terminal_worker.html` (Amber), `terminal_costs.html` (Coral), `terminal_orgchart.html` (Green), `terminal_integrations.html` (Sky), `terminal_enhanced.html` (Pink)
+- **ui: P4** — Rebuilt `onboarding_wizard.html` as Librarian-powered 5-step conversational onboarding (Gold accent). Rebuilt `murphy_landing_page.html` as professional landing page (Teal accent). Converted legacy `murphy_ui_integrated.html` and `murphy_ui_integrated_terminal.html` to redirects
+- **ui: P5** — Cross-terminal verification: all 14 interfaces cross-linked, theme toggle on all, skip-to-content links, ARIA labels, prefers-reduced-motion, print styles, file size limits verified
+- **ui: P6** — Created `murphy-smoke-test.html` covering all 26 API endpoint groups with progressive testing, color-coded results, and latency tracking. Updated README UI completion 85% → 100%
+
 ### Legal
 - **legal: 0A** — Replaced `pylint` (GPL-2.0) with `ruff` (MIT) in `requirements_murphy_1.0.txt` to resolve copyleft incompatibility with BSL 1.1
 - **legal: 0B** — Updated 14 file headers from "Apache License 2.0" to "BSL-1.1" for consistency (requirements_murphy_1.0.txt, Dockerfile, docker-compose.yml, install.sh, murphy CLI, 9 AUAR module files)
