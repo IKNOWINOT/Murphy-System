@@ -2,19 +2,19 @@
 # Core dependencies for the system
 
 # LLM and ML
-transformers==4.30.0
-torch==2.0.0
-sentencepiece==0.1.99
+transformers==4.48.0
+torch==2.6.0
+sentencepiece==0.2.1
 
 # Data structures and utilities
 numpy==1.24.0
 networkx==3.1
 
 # Cryptography for execution packets
-cryptography==41.0.0
+cryptography==46.0.5
 
 # Web framework — REST API runtime
-fastapi==0.100.0
+fastapi==0.109.1
 uvicorn==0.23.0
 starlette==0.49.1
 
