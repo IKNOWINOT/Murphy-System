@@ -151,7 +151,6 @@ class MLOptimizer:
             ps.reward_sum += reward
 
             # Exponential recency weighting
-            decay_weight = self._recency_decay ** max(0, ps.total_calls - 1)
             ps.weighted_reward_sum = ps.weighted_reward_sum * self._recency_decay + reward
             ps.weight_sum = ps.weight_sum * self._recency_decay + 1.0
 
