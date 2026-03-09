@@ -9,7 +9,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Murphy System — Welcome</title>
+<title>Murphy System — No-Code Welcome</title>
 <link rel="icon" href="static/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="static/murphy-design-system.css">
 </head>
@@ -544,7 +544,7 @@
           .catch(function () {
             saveBtn.classList.remove('murphy-btn-loading');
             saveBtn.disabled = false;
-            savedLabel.textContent = 'Connection error — try again';
+            savedLabel.textContent = 'Connection error — check CORS settings and try again';
             savedLabel.style.display = 'inline';
           });
       }

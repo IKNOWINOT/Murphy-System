@@ -21,7 +21,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from .agent_persona_library import (
+# REMEDIATION: R48-relimport — convert relative to absolute imports for standalone module
+from agent_persona_library import (
     AGENT_ROSTER,
     INFLUENCE_FRAMEWORKS,
     AgentPersonaDefinition,
@@ -37,7 +38,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 try:
-    from .rosetta.rosetta_models import (
+    from rosetta.rosetta_models import (
         AgentType,
         EmployeeContract,
         IndustryTerminology,
@@ -62,15 +63,15 @@ except ImportError:  # pragma: no cover
     TermDefinition = None
 
 try:
-    from .rosetta.rosetta_document_builder import RosettaDocumentBuilder
+    from rosetta.rosetta_document_builder import RosettaDocumentBuilder
     _BUILDER_AVAILABLE = True
 except ImportError:  # pragma: no cover
     _BUILDER_AVAILABLE = False
     RosettaDocumentBuilder = None
 
 try:
-    from .avatar.persona_injector import PersonaInjector
-    from .avatar.avatar_models import AvatarProfile, AvatarVoice, AvatarStyle
+    from avatar.persona_injector import PersonaInjector
+    from avatar.avatar_models import AvatarProfile, AvatarVoice, AvatarStyle
     _PERSONA_AVAILABLE = True
 except ImportError:  # pragma: no cover
     _PERSONA_AVAILABLE = False
@@ -80,7 +81,7 @@ except ImportError:  # pragma: no cover
     AvatarStyle = None
 
 try:
-    from .alert_rules_engine import AlertRule, AlertSeverity, Comparator
+    from alert_rules_engine import AlertRule, AlertSeverity, Comparator
     _ALERTS_AVAILABLE = True
 except ImportError:  # pragma: no cover
     _ALERTS_AVAILABLE = False
