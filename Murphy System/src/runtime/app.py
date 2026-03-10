@@ -2094,6 +2094,111 @@ def create_app() -> FastAPI:
             "timestamp":  __import__("datetime").datetime.utcnow().isoformat(),
         })
 
+    # ==================== MFM (Murphy Foundation Model) Endpoints ====================
+
+    @app.get("/api/mfm/status")
+    async def mfm_status():
+        """MFM deployment status (shadow/canary/production/disabled)."""
+        import os as _os
+        mode = _os.environ.get("MFM_MODE", "disabled")
+        enabled = _os.environ.get("MFM_ENABLED", "false").lower() == "true"
+        return JSONResponse({
+            "enabled": enabled,
+            "mode": mode,
+            "base_model": _os.environ.get("MFM_BASE_MODEL", "microsoft/Phi-3-mini-4k-instruct"),
+            "device": _os.environ.get("MFM_DEVICE", "auto"),
+        })
+
+    @app.get("/api/mfm/metrics")
+    async def mfm_metrics():
+        """Training metrics and shadow comparison stats."""
+        try:
+            from murphy_foundation_model.shadow_deployment import ShadowDeployment, ShadowConfig
+            shadow = ShadowDeployment(mfm_service=None, config=ShadowConfig())
+            metrics = shadow.get_metrics()
+        except Exception:
+            metrics = {}
+        return JSONResponse({"metrics": metrics})
+
+    @app.get("/api/mfm/traces/stats")
+    async def mfm_traces_stats():
+        """Action trace collection statistics."""
+        try:
+            from murphy_foundation_model.action_trace_serializer import ActionTraceCollector
+            collector = ActionTraceCollector.get_instance()
+            stats = collector.get_stats()
+        except Exception:
+            stats = {"total_traces": 0, "error": "MFM trace collector not initialised"}
+        return JSONResponse(stats)
+
+    @app.post("/api/mfm/retrain")
+    async def mfm_retrain():
+        """Trigger manual retraining."""
+        try:
+            from murphy_foundation_model.self_improvement_loop import (
+                SelfImprovementLoop, SelfImprovementConfig,
+            )
+            loop = SelfImprovementLoop(config=SelfImprovementConfig())
+            result = loop.run_retraining_cycle()
+            return JSONResponse(result)
+        except Exception as exc:
+            return JSONResponse({"error": str(exc)}, status_code=500)
+
+    @app.post("/api/mfm/promote")
+    async def mfm_promote(request: Request):
+        """Promote shadow → canary → production."""
+        try:
+            from murphy_foundation_model.mfm_registry import MFMRegistry
+            body = await request.json()
+            version_id = body.get("version_id", "")
+            registry = MFMRegistry()
+            registry.promote(version_id)
+            version = registry.get_version(version_id)
+            return JSONResponse({
+                "promoted": True,
+                "version_id": version_id,
+                "new_status": version.status if version else "unknown",
+            })
+        except Exception as exc:
+            return JSONResponse({"error": str(exc)}, status_code=500)
+
+    @app.post("/api/mfm/rollback")
+    async def mfm_rollback():
+        """Rollback to previous MFM version."""
+        try:
+            from murphy_foundation_model.mfm_registry import MFMRegistry
+            registry = MFMRegistry()
+            registry.rollback()
+            current = registry.get_current_production()
+            return JSONResponse({
+                "rolled_back": True,
+                "current_version": current.version_str if current else None,
+            })
+        except Exception as exc:
+            return JSONResponse({"error": str(exc)}, status_code=500)
+
+    @app.get("/api/mfm/versions")
+    async def mfm_versions():
+        """List all MFM versions with metrics."""
+        try:
+            from murphy_foundation_model.mfm_registry import MFMRegistry
+            registry = MFMRegistry()
+            versions = registry.list_versions()
+            return JSONResponse({
+                "versions": [
+                    {
+                        "version_id": v.version_id,
+                        "version_str": v.version_str,
+                        "status": v.status,
+                        "created_at": v.created_at.isoformat() if v.created_at else None,
+                        "metrics": v.metrics,
+                    }
+                    for v in versions
+                ]
+            })
+        except Exception as exc:
+            return JSONResponse({"error": str(exc)}, status_code=500)
+
     return app
 
 
