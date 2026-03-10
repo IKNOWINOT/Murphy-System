@@ -2279,16 +2279,14 @@ def create_app() -> FastAPI:
     # ==================== READINESS SCANNER ====================
 
     @app.get("/api/readiness")
-    async def readiness_scan():
+    async def readiness_scan(request: Request):
         """Run the recursive readiness scanner and return the deployment report."""
         try:
             from src.readiness_scanner import ReadinessScanner
             scanner = ReadinessScanner()
-            # Use the server's own base URL for the health check
-            base_url = str(request.base_url).rstrip("/") if False else "http://localhost:8000"
+            base_url = str(request.base_url).rstrip("/")
             report = scanner.scan(base_url=base_url)
-            status_code = 200 if report.get("ready") else 200  # always 200; ready flag signals state
-            return JSONResponse(report, status_code=status_code)
+            return JSONResponse(report)
         except Exception as exc:
             return JSONResponse({"error": str(exc)}, status_code=500)
 

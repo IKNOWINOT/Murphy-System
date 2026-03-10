@@ -178,7 +178,7 @@ class ReadinessScanner:
             else:
                 _warn(
                     "account_management_oauth",
-                    f"Account management loaded but {configured} OAuth provider(s) configured. "
+                    f"Account management loaded but only {configured} OAuth provider(s) configured. "
                     "Set MURPHY_OAUTH_*_CLIENT_ID env vars to enable OAuth signup.",
                 )
         except Exception as exc:
