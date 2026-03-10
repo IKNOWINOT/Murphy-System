@@ -660,6 +660,10 @@ INTENT_PATTERNS: list[tuple[re.Pattern, str]] = [
     (re.compile(r"^magnify\b", re.I), "intent_magnify"),
     (re.compile(r"^simplify\b", re.I), "intent_simplify"),
     (re.compile(r"^solidify\b", re.I), "intent_solidify"),
+    # ── New feature toggles ──────────────────────────────────────────────
+    (re.compile(r"^(/toggle[_ ]?test[_ ]?mode|test[_ ]?mode)\b", re.I), "intent_toggle_test_mode"),
+    (re.compile(r"^(/toggle[_ ]?self[_ ]?learn|toggle[_ ]?self[_ ]?learn|self[_ ]?learn)\b", re.I), "intent_toggle_self_learning"),
+    (re.compile(r"^(readiness|ready|scan|pre.?flight|check)\b", re.I), "intent_readiness_scan"),
 ]
 
 # Patterns that indicate user frustration or feedback
@@ -1821,9 +1825,126 @@ class MurphyTerminalApp(App):
             "[green]Info[/green] → [green]Signup[/green] → "
             "[green]Verify[/green] → [green]Session[/green] → "
             "[green]Automation[/green]\n\n"
-            "[dim]Start with [green]start interview[/green] to begin the signup process.[/dim]"
+            "[dim]Start with [green]start interview[/green] to begin the signup process.[/dim]\n\n"
+            "[bold cyan]Required env vars for OAuth signup:[/bold cyan]\n"
+            "  [green]MURPHY_OAUTH_GOOGLE_CLIENT_ID[/green]=your-google-client-id\n"
+            "  [green]MURPHY_OAUTH_GOOGLE_SECRET[/green]=your-google-secret\n"
+            "  [green]MURPHY_OAUTH_MICROSOFT_CLIENT_ID[/green]=your-ms-client-id\n"
+            "  [green]MURPHY_OAUTH_META_CLIENT_ID[/green]=your-meta-client-id\n"
+            "  [green]MURPHY_OAUTH_REDIRECT_URI[/green]=http://localhost:8000/api/auth/callback\n\n"
+            "  Get Google credentials: "
+            "[link=https://console.cloud.google.com/apis/credentials]https://console.cloud.google.com/[/link]\n"
+            "  Get Microsoft credentials: "
+            "[link=https://entra.microsoft.com/]https://entra.microsoft.com/[/link]\n"
+            "  Get Meta credentials: "
+            "[link=https://developers.facebook.com/apps/]https://developers.facebook.com/apps/[/link]"
         )
         self._write_murphy("\n".join(lines))
+
+    def intent_toggle_test_mode(self, _msg: str) -> None:
+        """Toggle test mode on/off, showing current status and limits."""
+        try:
+            result = self.client._post("/api/test-mode/toggle", {})
+            active = result.get("active", False)
+            if active:
+                calls_rem = result.get("calls_remaining", "?")
+                secs_rem = result.get("seconds_remaining", "?")
+                keys = result.get("keys_count", 0)
+                self._write_murphy(
+                    "[bold green]🧪 Test Mode: ENABLED[/bold green]\n"
+                    f"   Call limit   : [cyan]{result.get('max_calls', '?')}[/cyan] "
+                    f"([cyan]{calls_rem}[/cyan] remaining)\n"
+                    f"   Time limit   : [cyan]{result.get('max_seconds', '?')}s[/cyan] "
+                    f"([cyan]{secs_rem:.0f}s[/cyan] remaining)\n"
+                    f"   Test keys    : [cyan]{keys}[/cyan] key(s) loaded\n\n"
+                    "[dim]💡 Best free key provider:[/dim]\n"
+                    "   [bold]Groq[/bold] — Free tier, generous limits, fast inference\n"
+                    "   Signup: [link=https://console.groq.com/keys]https://console.groq.com/keys[/link]\n"
+                    "   Then: [green]set key groq gsk_your_key[/green]\n\n"
+                    "[dim]Session ends automatically when call or time limit is reached.\n"
+                    "Run [green]test mode[/green] again to disable.[/dim]"
+                )
+            else:
+                calls_used = result.get("calls_used", 0)
+                self._write_murphy(
+                    "[bold yellow]🧪 Test Mode: DISABLED[/bold yellow]\n"
+                    f"   Calls used in last session: [cyan]{calls_used}[/cyan]\n\n"
+                    "[dim]Run [green]test mode[/green] to start a new session.[/dim]"
+                )
+        except Exception as exc:
+            self._write_murphy(f"[red]✗ test mode toggle error: {self._friendly_error(exc)}[/red]")
+
+    def intent_toggle_self_learning(self, _msg: str) -> None:
+        """Toggle self-learning on/off."""
+        try:
+            result = self.client._post("/api/learning/toggle", {})
+            enabled = result.get("self_learning_enabled", False)
+            skipped = result.get("skipped_operations", 0)
+            if enabled:
+                self._write_murphy(
+                    "[bold green]🧠 Self-Learning: ENABLED[/bold green]\n"
+                    "   Training data will now be collected and stored to disk.\n"
+                    f"   Operations skipped (while disabled): [cyan]{skipped:,}[/cyan]\n\n"
+                    "[dim]Run [green]self learn[/green] to disable and stop disk writes.[/dim]"
+                )
+            else:
+                self._write_murphy(
+                    "[bold yellow]🧠 Self-Learning: DISABLED[/bold yellow]\n"
+                    f"   Traces skipped: [cyan]{skipped:,}[/cyan] (no disk writes)\n\n"
+                    "[dim]Disk writes are avoided while learning is off.\n"
+                    "Run [green]self learn[/green] to enable when storage is available.[/dim]"
+                )
+        except Exception as exc:
+            self._write_murphy(f"[red]✗ self-learning toggle error: {self._friendly_error(exc)}[/red]")
+
+    def intent_readiness_scan(self, _msg: str) -> None:
+        """Run the recursive readiness scanner and display a formatted report."""
+        self._write_murphy("[dim]🔍 Running readiness scan…[/dim]")
+        try:
+            result = self.client._get("/api/readiness")
+            ready = result.get("ready", False)
+            score = result.get("score", "?")
+            passed = result.get("passed", [])
+            blockers = result.get("blockers", [])
+            warnings_list = result.get("warnings", [])
+
+            header = (
+                "[bold green]✅ READY FOR DEPLOYMENT[/bold green]"
+                if ready
+                else "[bold red]❌ NOT READY[/bold red]"
+            )
+            lines = [f"{header}  —  {score}\n"]
+
+            if blockers:
+                lines.append("[bold red]BLOCKERS (must fix):[/bold red]")
+                for b in blockers:
+                    fix = f"\n     Fix: [green]{b['fix']}[/green]" if b.get("fix") else ""
+                    lines.append(f"  ✗ [red]{b['check']}[/red] — {b.get('detail', '')}{fix}")
+
+            if warnings_list:
+                lines.append("\n[bold yellow]WARNINGS:[/bold yellow]")
+                for w in warnings_list:
+                    lines.append(f"  ⚠ [yellow]{w['check']}[/yellow] — {w.get('detail', '')}")
+
+            if passed:
+                lines.append(f"\n[bold green]PASSED ({len(passed)}):[/bold green]")
+                lines.append("  " + ", ".join(f"[green]{p}[/green]" for p in passed[:15]))
+                if len(passed) > 15:
+                    lines.append(f"  … and {len(passed) - 15} more")
+
+            strategy = result.get("api_key_strategy", {})
+            if strategy:
+                lines.append("\n[bold cyan]💡 Best bang-for-buck API key strategy:[/bold cyan]")
+                for p in strategy.get("providers", []):
+                    lines.append(
+                        f"  {p['rank']}. [bold]{p['name']}[/bold] — {p.get('models','')}\n"
+                        f"     {p.get('note','')}\n"
+                        f"     [link={p['url']}]{p['url']}[/link]"
+                    )
+
+            self._write_murphy("\n".join(lines))
+        except Exception as exc:
+            self._write_murphy(f"[red]✗ readiness scan error: {self._friendly_error(exc)}[/red]")
 
     def intent_api_keys(self, _msg: str) -> None:
         """Show API provider signup links for all supported integrations."""

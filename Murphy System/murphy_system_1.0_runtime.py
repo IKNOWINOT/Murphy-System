@@ -1,94 +1,27 @@
 """
-Murphy System 1.0 - Complete Runtime
+Murphy System 1.0 - Runtime Entry Point
 
-This is the main entry point for Murphy System 1.0, integrating:
-- Original Murphy Runtime (319 files)
-- Phase 1-5 Implementations (form intake, validation, correction, learning)
-- Universal Control Plane (modular engines)
-- Inoni Business Automation (5 engines)
-- Integration Engine (GitHub ingestion with HITL)
-- Two-Phase Orchestrator (generative setup → production execution)
+This module is the thin entry-point for the Murphy System 1.0 runtime.
+The implementation has been refactored into the ``src.runtime`` package
+(INC-13 / H-04 / L-02) for maintainability.
+
+Backward-compatible: all public symbols are re-exported from the
+runtime package so existing callers continue to work.
 
 Copyright © 2020 Inoni Limited Liability Company
 Creator: Corey Post
 License: BSL 1.1
 """
 
-import sys
-import os
-import json
-import importlib.util
-from copy import deepcopy
-from pathlib import Path
-from collections import deque
-from collections.abc import Mapping
-from typing import Dict, List, Optional, Any, Tuple, Literal, Set, TYPE_CHECKING
-from dataclasses import asdict, is_dataclass
-from datetime import datetime, timedelta, timezone
-import logging
-import asyncio
-import platform
-import time
-import re
-import math
-import numbers
-from uuid import uuid4
-try:
-    from dotenv import load_dotenv as _load_dotenv
-except ImportError:
-    _load_dotenv = None
+# Re-export everything from the runtime package for backward compatibility
+from src.runtime._deps import *  # noqa: F401,F403
+from src.runtime.living_document import LivingDocument  # noqa: F401
+from src.runtime.murphy_system_core import MurphySystem  # noqa: F401
+from src.runtime.app import create_app, main  # noqa: F401
 
-# B-001: Actually call load_dotenv() so .env variables are loaded at import time
-if _load_dotenv is not None:
-    _load_dotenv(Path(__file__).resolve().parent / ".env", override=False)
 
-from threading import Lock
-
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent))
-
-# Core imports
-from src.module_manager import module_manager
-from src.modular_runtime import ModularRuntime
-
-if TYPE_CHECKING:
-    from src.compute_plane.service import ComputeService as ComputeServiceType
-else:
-    ComputeServiceType = Any
-
-# Universal Control Plane
-try:
-    from universal_control_plane import UniversalControlPlane
-except ImportError as e:
-    print(f"⚠️  Warning: Could not import UniversalControlPlane: {e}")
-    UniversalControlPlane = None
-
-# Inoni Business Automation
-try:
-    from inoni_business_automation import InoniBusinessAutomation
-except ImportError as e:
-    print(f"⚠️  Warning: Could not import InoniBusinessAutomation: {e}")
-    InoniBusinessAutomation = None
-
-# Integration Engine
-try:
-    from src.integration_engine.unified_engine import UnifiedIntegrationEngine
-except ImportError as e:
-    print(f"⚠️  Warning: Could not import UnifiedIntegrationEngine: {e}")
-    print(f"   This may be due to missing dependencies. Please ensure all requirements are installed.")
-    UnifiedIntegrationEngine = None
-
-# Two-Phase Orchestrator
-try:
-    from two_phase_orchestrator import TwoPhaseOrchestrator
-except ImportError as e:
-    print(f"⚠️  Warning: Could not import TwoPhaseOrchestrator: {e}")
-    TwoPhaseOrchestrator = None
-
-# Phase 1-5 Components (optional - may not all be available)
-try:
-    from src.form_intake.handlers import FormHandlerRegistry as FormHandler
-except ImportError:
+if __name__ == "__main__":
+    # INC-06 / H-01: Print feature-availability summary based on env vars
     try:
         from src.form_intake.handlers import PlanUploadFormHandler as FormHandler
     except ImportError:
@@ -15871,37 +15804,8 @@ def main():
     try:
         from src.cli_art import render_banner, render_panel
         print(render_banner())
+        from src.startup_feature_summary import print_feature_summary
+        print_feature_summary()
     except Exception:
-        # Fallback if cli_art is unavailable
-        print("\n  ☠  Murphy System v1.0  ☠\n")
-
-    # Create FastAPI app
-    app = create_app()
-    
-    # Run server
-    port = int(os.getenv('PORT') or os.getenv('MURPHY_PORT') or 8000)
-
-    try:
-        from src.cli_art import render_panel
-        print(render_panel("STARTUP", [
-            f"☠ Starting Murphy System v1.0 on port {port}",
-            f"  ☠ API Docs:     http://localhost:{port}/docs",
-            f"  ☠ Health:       http://localhost:{port}/api/health",
-            f"  ☠ Status:       http://localhost:{port}/api/status",
-            f"  ☠ Onboarding:   http://localhost:{port}/api/onboarding/wizard/questions",
-            f"  ☠ Info:         http://localhost:{port}/api/info",
-        ]))
-        print()
-    except Exception:
-        print(f"\n☠ Starting Murphy System v1.0 on port {port}...")
-        print(f"  ☠ API Docs:     http://localhost:{port}/docs")
-        print(f"  ☠ Health:       http://localhost:{port}/api/health")
-        print(f"  ☠ Status:       http://localhost:{port}/api/status")
-        print(f"  ☠ Onboarding:   http://localhost:{port}/api/onboarding/wizard/questions")
-        print(f"  ☠ Info:         http://localhost:{port}/api/info\n")
-
-    uvicorn.run(app, host="0.0.0.0", port=port)
-
-
-if __name__ == "__main__":
+        pass  # Non-critical — do not block startup
     main()
