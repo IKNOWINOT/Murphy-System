@@ -696,6 +696,302 @@ def _make_mock_runner(key_value: str = "gsk_test_key_abc123") -> Any:
 
     mock_runner = MagicMock()
     mock_runner.execute_task = AsyncMock(return_value=mock_result_ok)
+    # execute_tasks_on_shared_page returns a list of TaskResults (one per task)
+    mock_runner.execute_tasks_on_shared_page = AsyncMock(
+        return_value=[mock_result_ok] * 5  # navigate + 2 scrolls + fill email + fill pwd
+    )
     mock_runner.close = AsyncMock()
     mock_runner._context = None
     return mock_runner
+
+
+# ---------------------------------------------------------------------------
+# harvest_all — Murphy HITL UI opening
+# ---------------------------------------------------------------------------
+
+class TestHarvestAllHITLUIOpening:
+    @pytest.mark.asyncio
+    async def test_hitl_ui_opened_when_interactive(self, harvester, cred_gate, monkeypatch):
+        """harvest_all() opens the Murphy HITL terminal URL in system browser."""
+        harvester._interactive = True
+        opened_urls: list = []
+        monkeypatch.setattr("webbrowser.open", lambda url: opened_urls.append(url) or True)
+
+        # Abort immediately after credential decline so the test stays fast
+        original_rc = cred_gate.request_credentials
+
+        def _decline(purpose, suggested_email=""):
+            req = original_rc(purpose=purpose, suggested_email=suggested_email)
+            cred_gate.decline(req.request_id)
+            return req
+
+        with patch.object(cred_gate, "request_credentials", side_effect=_decline):
+            with patch("asyncio.sleep", new_callable=AsyncMock):
+                await harvester.harvest_all()
+
+        murphy_ui_opened = any("localhost" in u and "terminal" in u for u in opened_urls)
+        assert murphy_ui_opened, (
+            f"Murphy HITL terminal URL not opened. Opened URLs: {opened_urls}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_hitl_ui_not_opened_when_non_interactive(self, harvester, cred_gate, monkeypatch):
+        """harvest_all() does NOT open browser UIs when interactive=False."""
+        harvester._interactive = False
+        opened_urls: list = []
+        monkeypatch.setattr("webbrowser.open", lambda url: opened_urls.append(url) or True)
+
+        original_rc = cred_gate.request_credentials
+
+        def _decline(purpose, suggested_email=""):
+            req = original_rc(purpose=purpose, suggested_email=suggested_email)
+            cred_gate.decline(req.request_id)
+            return req
+
+        with patch.object(cred_gate, "request_credentials", side_effect=_decline):
+            with patch("asyncio.sleep", new_callable=AsyncMock):
+                await harvester.harvest_all()
+
+        assert opened_urls == [], (
+            f"Browser should not open in non-interactive mode. Got: {opened_urls}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_hitl_ui_opens_before_credential_gate(
+        self, harvester, cred_gate, monkeypatch
+    ):
+        """The Murphy UI must open BEFORE the credential collection gate fires."""
+        harvester._interactive = True
+        event_log: list = []
+        monkeypatch.setattr(
+            "webbrowser.open",
+            lambda url: event_log.append(("browser_open", url)) or True,
+        )
+        original_rc = cred_gate.request_credentials
+
+        def _track_and_decline(purpose, suggested_email=""):
+            event_log.append(("credential_request",))
+            req = original_rc(purpose=purpose, suggested_email=suggested_email)
+            cred_gate.decline(req.request_id)
+            return req
+
+        with patch.object(cred_gate, "request_credentials", side_effect=_track_and_decline):
+            with patch("asyncio.sleep", new_callable=AsyncMock):
+                await harvester.harvest_all()
+
+        # Browser open must appear before credential_request in the log
+        types = [e[0] for e in event_log]
+        assert "browser_open" in types
+        assert "credential_request" in types
+        browser_idx = types.index("browser_open")
+        cred_idx = types.index("credential_request")
+        assert browser_idx < cred_idx, (
+            "Murphy HITL UI must open before the credential collection gate is shown"
+        )
+
+
+# ---------------------------------------------------------------------------
+# REST router
+# ---------------------------------------------------------------------------
+
+class TestKeyHarvesterRouter:
+    """Tests for create_key_harvester_router() using FastAPI TestClient."""
+
+    @pytest.fixture
+    def test_client(self):
+        pytest.importorskip("fastapi")
+        pytest.importorskip("httpx")
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+        from key_harvester import create_key_harvester_router, get_shared_gates
+        import key_harvester as kh
+
+        # Reset shared state for each test
+        kh._shared_tos_gate = None
+        kh._shared_credential_gate = None
+        kh._shared_harvester = None
+
+        app = FastAPI()
+        router = create_key_harvester_router()
+        assert router is not None
+        app.include_router(router)
+        return TestClient(app)
+
+    def test_status_endpoint_returns_200(self, test_client):
+        resp = test_client.get("/api/key-harvester/status")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["success"] is True
+        assert "harvest" in body
+        assert "providers_total" in body
+        assert body["providers_total"] == len(PROVIDER_RECIPES)
+
+    def test_pending_tos_empty_on_fresh_start(self, test_client):
+        resp = test_client.get("/api/key-harvester/pending-tos")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["success"] is True
+        assert body["count"] == 0
+
+    def test_pending_credentials_empty_on_fresh_start(self, test_client):
+        resp = test_client.get("/api/key-harvester/pending-credentials")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["success"] is True
+        assert body["count"] == 0
+
+    def test_tos_approve_unknown_id_returns_false(self, test_client):
+        resp = test_client.post(
+            "/api/key-harvester/tos/nonexistent/approve",
+            json={"approved_by": "test_user"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["success"] is False
+
+    def test_tos_reject_unknown_id_returns_false(self, test_client):
+        resp = test_client.post(
+            "/api/key-harvester/tos/nonexistent/reject",
+            json={"rejected_by": "test_user", "reason": "test"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["success"] is False
+
+    def test_tos_skip_unknown_id_returns_false(self, test_client):
+        resp = test_client.post("/api/key-harvester/tos/nonexistent/skip")
+        assert resp.status_code == 200
+        assert resp.json()["success"] is False
+
+    def test_credential_decline_unknown_id_returns_false(self, test_client):
+        resp = test_client.post("/api/key-harvester/credentials/nonexistent/decline")
+        assert resp.status_code == 200
+        assert resp.json()["success"] is False
+
+    def test_audit_log_empty_on_fresh_start(self, test_client):
+        resp = test_client.get("/api/key-harvester/audit-log")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["success"] is True
+        assert body["audit_log"] == []
+
+    def test_full_tos_approve_flow(self, test_client):
+        """Create a TOS request via gate, then approve it via REST endpoint."""
+        from key_harvester import get_shared_gates
+        tos_gate, _ = get_shared_gates()
+        req = tos_gate.request_approval("groq", screenshot_path="/tmp/test.png")
+
+        # Should now show up in pending-tos
+        resp = test_client.get("/api/key-harvester/pending-tos")
+        assert resp.json()["count"] == 1
+        assert resp.json()["requests"][0]["provider"] == "groq"
+
+        # Approve via REST
+        resp = test_client.post(
+            f"/api/key-harvester/tos/{req.request_id}/approve",
+            json={"approved_by": "test_approver"},
+        )
+        assert resp.json()["success"] is True
+
+        # Should now be removed from pending
+        resp = test_client.get("/api/key-harvester/pending-tos")
+        assert resp.json()["count"] == 0
+
+        # Audit log should have one entry
+        resp = test_client.get("/api/key-harvester/audit-log")
+        assert len(resp.json()["audit_log"]) == 1
+
+    def test_full_credential_provide_flow(self, test_client):
+        """Create a credential request via gate, then provide via REST."""
+        from key_harvester import get_shared_gates
+        _, cred_gate = get_shared_gates()
+        req = cred_gate.request_credentials(purpose="test")
+
+        resp = test_client.get("/api/key-harvester/pending-credentials")
+        assert resp.json()["count"] == 1
+
+        resp = test_client.post(
+            f"/api/key-harvester/credentials/{req.request_id}/provide",
+            json={"email": "user@example.com", "password": "TestPass1!"},
+        )
+        assert resp.json()["success"] is True
+
+        # Now pending count drops to 0
+        resp = test_client.get("/api/key-harvester/pending-credentials")
+        assert resp.json()["count"] == 0
+
+    def test_tos_message_included_in_pending_list(self, test_client):
+        """pending-tos should include the formatted message for the HITL UI."""
+        from key_harvester import get_shared_gates
+        tos_gate, _ = get_shared_gates()
+        tos_gate.request_approval("openai")
+
+        resp = test_client.get("/api/key-harvester/pending-tos")
+        items = resp.json()["requests"]
+        assert len(items) == 1
+        msg = items[0]["message"]
+        assert "openai" in msg.lower() or "OpenAI" in msg
+
+
+# ---------------------------------------------------------------------------
+# get_shared_gates()
+# ---------------------------------------------------------------------------
+
+class TestGetSharedGates:
+    def test_returns_same_instances_on_subsequent_calls(self):
+        import key_harvester as kh
+        kh._shared_tos_gate = None
+        kh._shared_credential_gate = None
+
+        from key_harvester import get_shared_gates
+        g1 = get_shared_gates()
+        g2 = get_shared_gates()
+        assert g1[0] is g2[0]
+        assert g1[1] is g2[1]
+
+    def test_returns_correct_types(self):
+        import key_harvester as kh
+        kh._shared_tos_gate = None
+        kh._shared_credential_gate = None
+
+        from key_harvester import get_shared_gates
+        tos_gate, cred_gate = get_shared_gates()
+        assert isinstance(tos_gate, TOSAcceptanceGate)
+        assert isinstance(cred_gate, UserCredentialGate)
+
+
+# ---------------------------------------------------------------------------
+# execute_tasks_on_shared_page integration (mock runner)
+# ---------------------------------------------------------------------------
+
+class TestSharedPageInSignupFlow:
+    @pytest.mark.asyncio
+    async def test_shared_page_called_when_playwright_available(
+        self, harvester, tos_gate, monkeypatch
+    ):
+        """When Playwright is available, _run_signup_flow uses shared page."""
+        harvester._user_email = "test@example.com"
+        harvester._user_password = "pwd123"
+
+        recipe = _RECIPE_MAP["groq"]
+        monkeypatch.delenv(recipe.env_var, raising=False)
+
+        original = tos_gate.request_approval
+
+        def patched_request(provider_key, screenshot_path=None):
+            req = original(provider_key, screenshot_path)
+            tos_gate.approve(req.request_id, approved_by="tester")
+            return req
+
+        mock_runner = _make_mock_runner(key_value="gsk_testkey_abc123456789xyz")
+        with patch.object(tos_gate, "request_approval", side_effect=patched_request):
+            with patch("key_harvester.PlaywrightTaskRunner", return_value=mock_runner):
+                with patch("key_harvester._HAS_PLAYWRIGHT", True):
+                    with patch("asyncio.sleep", new_callable=AsyncMock):
+                        await harvester._acquire_single(recipe)
+
+        # execute_tasks_on_shared_page was called (navigate + scroll + fill fields)
+        mock_runner.execute_tasks_on_shared_page.assert_called_once()
+        call_args = mock_runner.execute_tasks_on_shared_page.call_args[0][0]
+        # Should contain at least navigate + fill email + fill password
+        task_types = [type(t).__name__ for t in call_args]
+        assert "NavigateTask" in task_types
+        assert "FillTask" in task_types

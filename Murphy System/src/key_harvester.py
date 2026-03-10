@@ -58,6 +58,7 @@ try:
     from playwright_task_definitions import (
         BrowserConfig,
         ClickTask,
+        EvaluateTask,
         ExtractTask,
         FillTask,
         NavigateTask,
@@ -71,6 +72,7 @@ except ImportError:  # pragma: no cover
     _HAS_PLAYWRIGHT = False
     PlaywrightTaskRunner = None  # type: ignore[assignment,misc]
     BrowserConfig = None  # type: ignore[assignment,misc]
+    EvaluateTask = None  # type: ignore[assignment,misc]
 
 try:
     from secure_key_manager import store_api_key
@@ -100,6 +102,13 @@ from tos_acceptance_gate import (
     TOSAcceptanceStatus,
     UserCredentialGate,
 )
+
+# FastAPI Request type — imported at module level so it is resolvable from
+# __globals__ when FastAPI inspects handler annotations under PEP 563.
+try:
+    from fastapi import Request as _FastAPIRequest
+except ImportError:  # pragma: no cover
+    _FastAPIRequest = None  # type: ignore[assignment,misc]
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -882,9 +891,19 @@ class KeyHarvester:
         Email providers (SendGrid) are processed first so verification emails
         from subsequent providers can be received automatically.
 
+        If ``interactive=True``, the Murphy HITL terminal UI is opened in the
+        system browser before harvest begins so the user can see and respond to
+        credential and TOS approval requests without having to navigate manually.
+
         Returns:
             List of :class:`HarvestResult` for every provider.
         """
+        # Open the Murphy HITL terminal UI so the user can respond to gates
+        if self._interactive:
+            murphy_port = int(os.getenv("MURPHY_PORT", os.getenv("PORT", "8000")))
+            murphy_hitl_url = f"http://localhost:{murphy_port}/ui/terminal-integrated"
+            self._open_provider_ui(murphy_hitl_url, "Murphy HITL Terminal", "hitl-queue")
+
         # Step 0: collect credentials via HITL before any browser opens
         credentials_ok = await self._request_user_credentials()
         if not credentials_ok:
@@ -1036,38 +1055,65 @@ class KeyHarvester:
         runner: Any,
         recipe: ProviderRecipe,
     ) -> HarvestResult:
-        """Execute the full Playwright signup + key extraction flow."""
-        # --- navigate to signup page ----------------------------------------
-        nav = await runner.execute_task(NavigateTask(url=recipe.signup_url))
-        if nav.status != TaskStatus.COMPLETED:
-            return HarvestResult(
-                provider=recipe.name,
-                status=AcquisitionStatus.FAILED,
-                error=f"Navigation failed: {nav.error}",
-            )
+        """Execute the full Playwright signup + key extraction flow.
 
-        # Human pause after page load
-        await HumanSimulator.pause_after_page_load()
-        # Scroll via evaluate task — best-effort
-        await self._evaluate_safe(runner, "window.scrollBy(0, 200)")
-        await asyncio.sleep(random.uniform(0.3, 0.7))
-        await self._evaluate_safe(runner, "window.scrollTo(0, 0)")
-
-        # --- fill email / password ------------------------------------------
+        The navigate → scroll → fill-email → fill-password steps all run on a
+        SINGLE shared browser page so that form state persists across calls.
+        Post-submission steps (CAPTCHA check, email verify, key extraction)
+        each open a fresh page via the normal execute_task path.
+        """
         email_sel = recipe.signup_selectors.get("email", "input[name='email']")
         pwd_sel = recipe.signup_selectors.get("password", "input[name='password']")
-
         email_to_use = self._user_email or os.getenv("MURPHY_HARVEST_EMAIL", "")
         pwd_to_use = self._user_password or _random_password()
+        scroll_amount = random.randint(80, 400)
 
-        for sel, val in [(email_sel, email_to_use), (pwd_sel, pwd_to_use)]:
-            fill = await runner.execute_task(FillTask(selector=sel, value=val))
-            if fill.status != TaskStatus.COMPLETED:
-                logger.warning(
-                    "Provider '%s': FillTask failed for '%s': %s",
-                    recipe.name, sel, fill.error,
+        # Build the form-fill sequence — all on ONE shared page
+        form_tasks = []
+        if _HAS_PLAYWRIGHT and EvaluateTask is not None:
+            form_tasks = [
+                NavigateTask(url=recipe.signup_url),
+                EvaluateTask(f"window.scrollBy(0, {scroll_amount})"),
+                EvaluateTask("window.scrollTo(0, 0)"),
+                FillTask(selector=email_sel, value=email_to_use),
+                FillTask(selector=pwd_sel, value=pwd_to_use),
+            ]
+
+        if form_tasks:
+            form_results = await runner.execute_tasks_on_shared_page(form_tasks)
+            nav_result = form_results[0]
+            if nav_result.status != TaskStatus.COMPLETED:
+                return HarvestResult(
+                    provider=recipe.name,
+                    status=AcquisitionStatus.FAILED,
+                    error=f"Navigation failed: {nav_result.error}",
                 )
-            await HumanSimulator.pause_between_actions()
+            # Log any fill failures as warnings (don't abort — page may still work)
+            for res in form_results[3:]:  # skip nav + scroll results
+                if res.status != TaskStatus.COMPLETED:
+                    logger.warning(
+                        "Provider '%s': form task failed: %s", recipe.name, res.error
+                    )
+        else:
+            # Mock mode: individual tasks (page=None, always succeed)
+            nav = await runner.execute_task(NavigateTask(url=recipe.signup_url))
+            if nav.status != TaskStatus.COMPLETED:
+                return HarvestResult(
+                    provider=recipe.name,
+                    status=AcquisitionStatus.FAILED,
+                    error=f"Navigation failed: {nav.error}",
+                )
+            for sel, val in [(email_sel, email_to_use), (pwd_sel, pwd_to_use)]:
+                fill = await runner.execute_task(FillTask(selector=sel, value=val))
+                if fill.status != TaskStatus.COMPLETED:
+                    logger.warning(
+                        "Provider '%s': FillTask failed for '%s': %s",
+                        recipe.name, sel, fill.error,
+                    )
+
+        # Human pause after page load + form fill
+        await HumanSimulator.pause_after_page_load()
+        await HumanSimulator.pause_between_actions()
 
         # --- check for CAPTCHA before TOS gate ------------------------------
         captcha_type, captcha_strategy = await self._check_and_handle_captcha(
@@ -1361,10 +1407,261 @@ class KeyHarvester:
 
     @staticmethod
     async def _evaluate_safe(runner: Any, script: str) -> None:
-        """Best-effort page.evaluate() via ExtractTask — never raises."""
+        """Execute a JavaScript expression on the current page via EvaluateTask.
+
+        Silently skips if Playwright is unavailable (mock mode) or if the
+        EvaluateTask cannot be constructed.
+        """
+        if not _HAS_PLAYWRIGHT or EvaluateTask is None:
+            return
         try:
-            # Use a no-op ExtractTask as a proxy for JS; real scroll uses page.evaluate
-            # which requires direct page access.  In mock mode this is a no-op.
-            pass  # Runner exposes no direct evaluate endpoint in current API
+            await runner.execute_task(EvaluateTask(script))
         except Exception:  # noqa: BLE001
             pass
+
+
+# ---------------------------------------------------------------------------
+# Module-level shared gate instances
+# ---------------------------------------------------------------------------
+# These singletons are used by the REST API router so that the web UI can
+# drive the same gate objects that KeyHarvester uses internally.
+
+_shared_tos_gate: Optional[TOSAcceptanceGate] = None
+_shared_credential_gate: Optional[UserCredentialGate] = None
+_shared_harvester: Optional[KeyHarvester] = None
+
+
+def get_shared_gates() -> Tuple[TOSAcceptanceGate, UserCredentialGate]:
+    """Return (or lazily create) the module-level shared gate singletons.
+
+    The same instances are injected into KeyHarvester when the REST router
+    starts a harvest, so HITL responses from the web UI are seen by the
+    running harvest coroutine.
+    """
+    global _shared_tos_gate, _shared_credential_gate
+    if _shared_tos_gate is None:
+        _shared_tos_gate = TOSAcceptanceGate()
+        _shared_credential_gate = UserCredentialGate()
+    return _shared_tos_gate, _shared_credential_gate
+
+
+# ---------------------------------------------------------------------------
+# FastAPI REST router — /api/key-harvester/*
+# ---------------------------------------------------------------------------
+
+def create_key_harvester_router() -> Any:
+    """Create a FastAPI APIRouter that exposes the key harvester over HTTP.
+
+    Endpoints:
+
+    ``GET  /api/key-harvester/status``
+        Returns harvest run counts and gate states.
+
+    ``POST /api/key-harvester/start``
+        Launches harvest_all() in a background thread.  Accepts optional
+        ``imap_config`` body field.
+
+    ``GET  /api/key-harvester/pending-credentials``
+        Lists pending UserCredentialGate requests.
+
+    ``POST /api/key-harvester/credentials/{request_id}/provide``
+        Body: ``{"email": "…", "password": "…"}``.
+
+    ``POST /api/key-harvester/credentials/{request_id}/decline``
+        Declines a pending credential request.
+
+    ``GET  /api/key-harvester/pending-tos``
+        Lists pending TOS approval requests (with formatted message).
+
+    ``POST /api/key-harvester/tos/{request_id}/approve``
+        Body: ``{"approved_by": "…"}``.  Approves TOS — the human is the
+        legal accepting party.
+
+    ``POST /api/key-harvester/tos/{request_id}/reject``
+        Body: ``{"rejected_by": "…", "reason": "…"}``.
+
+    ``POST /api/key-harvester/tos/{request_id}/skip``
+        Skips a pending TOS request.
+
+    ``GET  /api/key-harvester/audit-log``
+        Returns the full TOS audit trail.
+
+    Returns:
+        A ``fastapi.APIRouter`` instance (or a stub object when FastAPI is not
+        installed).
+    """
+    try:
+        from fastapi import APIRouter  # noqa: PLC0415
+        from fastapi.responses import JSONResponse  # noqa: PLC0415
+    except ImportError:  # pragma: no cover
+        logger.warning("FastAPI not available — key harvester router not created.")
+        return None
+
+    # _FastAPIRequest is imported at module level (resolvable under PEP 563)
+    if _FastAPIRequest is None:  # pragma: no cover
+        logger.warning("FastAPI Request type not available — router not created.")
+        return None
+
+    router = APIRouter(prefix="/api/key-harvester", tags=["key-harvester"])
+
+    # ------------------------------------------------------------------ status
+    @router.get("/status")
+    async def kh_status():
+        tos_gate, cred_gate = get_shared_gates()
+        global _shared_harvester
+        harvest_status: Dict[str, Any] = {"total": 0, "completed": 0, "blocked": 0, "pending": 0, "skipped": 0}
+        if _shared_harvester is not None:
+            harvest_status = _shared_harvester.get_status()
+        return JSONResponse({
+            "success": True,
+            "harvest": harvest_status,
+            "pending_tos": len(tos_gate.get_pending()),
+            "pending_credentials": len(cred_gate.get_pending()),
+            "providers_total": len(PROVIDER_RECIPES),
+        })
+
+    # ------------------------------------------------------------------ start
+    @router.post("/start")
+    async def kh_start(request: _FastAPIRequest):
+        import asyncio as _asyncio  # noqa: PLC0415
+        global _shared_harvester
+        tos_gate, cred_gate = get_shared_gates()
+        body: Dict[str, Any] = {}
+        try:
+            body = await request.json()
+        except Exception:  # noqa: BLE001
+            pass
+        imap_cfg = body.get("imap_config")
+        interactive = bool(body.get("interactive", True))
+
+        _shared_harvester = KeyHarvester(
+            tos_gate=tos_gate,
+            credential_gate=cred_gate,
+            imap_config=imap_cfg,
+            interactive=interactive,
+        )
+
+        def _run() -> None:
+            loop = _asyncio.new_event_loop()
+            _asyncio.set_event_loop(loop)
+            try:
+                loop.run_until_complete(_shared_harvester.harvest_all())  # type: ignore[union-attr]
+            finally:
+                loop.close()
+
+        import threading as _threading  # noqa: PLC0415
+        thread = _threading.Thread(target=_run, daemon=True, name="KeyHarvesterThread")
+        thread.start()
+
+        return JSONResponse({
+            "success": True,
+            "message": "Key harvest started in background thread.",
+            "providers": [r.name for r in PROVIDER_RECIPES],
+        })
+
+    # ------------------------------------------------------------------ credentials
+    @router.get("/pending-credentials")
+    async def kh_pending_creds():
+        _, cred_gate = get_shared_gates()
+        pending = cred_gate.get_pending()
+        return JSONResponse({
+            "success": True,
+            "count": len(pending),
+            "requests": [
+                {
+                    "request_id": r.request_id,
+                    "purpose": r.purpose,
+                    "suggested_email": r.suggested_email,
+                    "status": r.status.value,
+                    "requested_at": r.requested_at,
+                    "message": cred_gate.format_request_message(r),
+                }
+                for r in pending
+            ],
+        })
+
+    @router.post("/credentials/{request_id}/provide")
+    async def kh_provide_creds(request_id: str, request: _FastAPIRequest):
+        _, cred_gate = get_shared_gates()
+        body: Dict[str, Any] = {}
+        try:
+            body = await request.json()
+        except Exception:  # noqa: BLE001
+            pass
+        email = body.get("email", "")
+        password = body.get("password", "")
+        ok = cred_gate.provide(request_id, email=email, password=password)
+        return JSONResponse({"success": ok, "request_id": request_id})
+
+    @router.post("/credentials/{request_id}/decline")
+    async def kh_decline_creds(request_id: str):
+        _, cred_gate = get_shared_gates()
+        ok = cred_gate.decline(request_id)
+        return JSONResponse({"success": ok, "request_id": request_id})
+
+    # ------------------------------------------------------------------ TOS
+    @router.get("/pending-tos")
+    async def kh_pending_tos():
+        tos_gate, _ = get_shared_gates()
+        pending = tos_gate.get_pending()
+        return JSONResponse({
+            "success": True,
+            "count": len(pending),
+            "requests": [
+                {
+                    "request_id": r.request_id,
+                    "provider": r.provider_key,
+                    "provider_name": r.provider_name,
+                    "tos_url": r.tos_url,
+                    "privacy_url": r.privacy_url,
+                    "acceptable_use_url": r.acceptable_use_url,
+                    "screenshot_path": r.screenshot_path,
+                    "status": r.status.value,
+                    "liability_note": r.liability_note,
+                    "message": tos_gate.format_approval_message(r),
+                }
+                for r in pending
+            ],
+        })
+
+    @router.post("/tos/{request_id}/approve")
+    async def kh_approve_tos(request_id: str, request: _FastAPIRequest):
+        tos_gate, _ = get_shared_gates()
+        body: Dict[str, Any] = {}
+        try:
+            body = await request.json()
+        except Exception:  # noqa: BLE001
+            pass
+        approved_by = body.get("approved_by", "web-ui")
+        ok = tos_gate.approve(request_id, approved_by=approved_by)
+        return JSONResponse({"success": ok, "request_id": request_id})
+
+    @router.post("/tos/{request_id}/reject")
+    async def kh_reject_tos(request_id: str, request: _FastAPIRequest):
+        tos_gate, _ = get_shared_gates()
+        body: Dict[str, Any] = {}
+        try:
+            body = await request.json()
+        except Exception:  # noqa: BLE001
+            pass
+        rejected_by = body.get("rejected_by", "web-ui")
+        reason = body.get("reason", "")
+        ok = tos_gate.reject(request_id, rejected_by=rejected_by, reason=reason)
+        return JSONResponse({"success": ok, "request_id": request_id})
+
+    @router.post("/tos/{request_id}/skip")
+    async def kh_skip_tos(request_id: str):
+        tos_gate, _ = get_shared_gates()
+        ok = tos_gate.skip(request_id)
+        return JSONResponse({"success": ok, "request_id": request_id})
+
+    # ------------------------------------------------------------------ audit
+    @router.get("/audit-log")
+    async def kh_audit_log():
+        tos_gate, _ = get_shared_gates()
+        return JSONResponse({
+            "success": True,
+            "audit_log": tos_gate.get_audit_log(),
+        })
+
+    return router

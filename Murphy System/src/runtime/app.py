@@ -2290,6 +2290,17 @@ def create_app() -> FastAPI:
         except Exception as exc:
             return JSONResponse({"error": str(exc)}, status_code=500)
 
+    # ==================== KEY HARVESTER ENDPOINTS ====================
+
+    try:
+        from key_harvester import create_key_harvester_router
+        _kh_router = create_key_harvester_router()
+        if _kh_router is not None:
+            app.include_router(_kh_router)
+            logger.info("Key harvester router registered at /api/key-harvester/*")
+    except Exception as _kh_exc:
+        logger.warning("Key harvester router not available: %s", _kh_exc)
+
     return app
 
 
