@@ -639,4 +639,6 @@ __all__ = [
     "ComputeServiceType", "MSSController", "_mss_available",
     # Form handling
     "FormHandler",
+    # dotenv
+    "_load_dotenv",
 ]

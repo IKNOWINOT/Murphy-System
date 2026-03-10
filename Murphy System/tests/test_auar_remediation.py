@@ -283,7 +283,7 @@ class TestAsyncProviderCalls:
             max_retries=0,
         )
         adapter = ProviderAdapter(config)
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             adapter.async_call("GET", "/test")
         )
         assert isinstance(result, AdapterResponse)
@@ -306,7 +306,7 @@ class TestAsyncProviderCalls:
             retry_backoff_s=0.01,
         )
         adapter = ProviderAdapter(config, execute_fn=failing_fn)
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             adapter.async_call("POST", "/test")
         )
         assert result.success is True
@@ -321,7 +321,7 @@ class TestAsyncProviderCalls:
             base_url="https://example.com",
             max_retries=0,
         ))
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             mgr.async_call_provider("p1", "GET", "/test")
         )
         assert result.success is True
@@ -329,7 +329,7 @@ class TestAsyncProviderCalls:
     def test_async_call_provider_not_found(self):
         """async_call_provider returns 404 for unknown provider."""
         mgr = ProviderAdapterManager()
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             mgr.async_call_provider("nonexistent", "GET", "/test")
         )
         assert result.success is False
