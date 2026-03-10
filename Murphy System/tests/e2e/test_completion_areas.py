@@ -208,6 +208,9 @@ class TestArea8TestCoverage(unittest.TestCase):
     def test_test_suite_exists_and_non_trivial(self):
         tests_dir = ROOT / "tests"
         test_files = list(tests_dir.glob("test_*.py"))
+        # The Murphy System test suite contains 371+ test files as documented in README.
+        # We check for at least 50 to allow for partial installs / CI environments
+        # where optional-dep test files may be excluded from collection.
         self.assertGreater(len(test_files), 50, "Expected at least 50 test files")
 
 

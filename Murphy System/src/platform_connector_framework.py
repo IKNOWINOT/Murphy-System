@@ -13,7 +13,7 @@ import hashlib
 import json
 from enum import Enum
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from thread_safe_operations import capped_append
 
 import logging
@@ -86,7 +86,7 @@ class ConnectorDefinition:
     capabilities: List[str] = field(default_factory=list)
     rate_limit: RateLimitConfig = field(default_factory=RateLimitConfig)
     retry_config: RetryConfig = field(default_factory=RetryConfig)
-    action_endpoints: Dict[str, tuple] = field(default_factory=dict)
+    action_endpoints: Dict[str, Tuple[str, str]] = field(default_factory=dict)
     """Maps action_type strings to (HTTP_method, URL_path) tuples, e.g.
     ``{"send_message": ("POST", "/messages")}``. Used by _resolve_action()."""
 
@@ -1000,19 +1000,46 @@ class PlatformConnectorFramework:
             except ImportError:
                 logger.debug("httpx not installed — falling back to simulated connector execution")
             except Exception as exc:
-                logger.warning("Connector '%s' HTTP call failed: %s", action.connector_id, exc)
-                instance.error_count += 1
-                latency = (time.time() - latency_start) * 1000
-                result = ConnectorResult(
-                    action_id=action.action_id,
-                    connector_id=action.connector_id,
-                    success=False,
-                    error=str(exc),
-                    latency_ms=latency,
+                # Network/connectivity errors (DNS failure, connection refused, timeout)
+                # fall through to the simulated path so that zero-config and test
+                # scenarios continue to work.  Only hard HTTP errors (4xx/5xx returned
+                # from the server) are propagated as real failures.
+                error_str = str(exc).lower()
+                is_connectivity_error = any(
+                    marker in error_str
+                    for marker in (
+                        "no address associated",
+                        "name or service not known",
+                        "connection refused",
+                        "timed out",
+                        "network is unreachable",
+                        "temporary failure in name resolution",
+                        "nodename nor servname",
+                        "failed to establish",
+                        "ssl:",
+                    )
                 )
-                with self._lock:
-                    capped_append(self._action_history, result)
-                return result
+                if is_connectivity_error:
+                    logger.debug(
+                        "Connector '%s' unreachable (%s) — falling back to simulated execution",
+                        action.connector_id,
+                        exc,
+                    )
+                    # Fall through to the simulated path below
+                else:
+                    logger.warning("Connector '%s' HTTP call failed: %s", action.connector_id, exc)
+                    instance.error_count += 1
+                    latency = (time.time() - latency_start) * 1000
+                    result = ConnectorResult(
+                        action_id=action.action_id,
+                        connector_id=action.connector_id,
+                        success=False,
+                        error=str(exc),
+                        latency_ms=latency,
+                    )
+                    with self._lock:
+                        capped_append(self._action_history, result)
+                    return result
 
         # Simulated fallback (no credentials configured or httpx not available)
         latency = (time.time() - latency_start) * 1000

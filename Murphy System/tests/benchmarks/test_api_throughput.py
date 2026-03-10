@@ -2,10 +2,14 @@
 API Throughput Benchmark Tests
 
 Tests that the Murphy System control plane can handle high-throughput
-in-process operations at >1000 ops/s, and provides the foundation
-for HTTP throughput testing when the server is running.
+in-process operations. The 1,000+ req/s target in the README refers to
+HTTP request throughput (measured by the Locust benchmark in
+locust_benchmark.py when the FastAPI server is running). In-process
+operations include orchestration overhead and run at 500+ ops/s on a
+single CPU core; the HTTP target is met through multi-worker uvicorn
+deployment (see documentation/deployment/SCALING.md).
 
-GAP 2 closure: validates performance claims with measured data.
+GAP 2 closure: validates in-process performance with measured data.
 """
 import sys
 import time
@@ -16,6 +20,9 @@ ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
+# In-process operations/s target (single core, no network I/O).
+# The documented 1,000+ req/s target applies to HTTP requests against
+# a running multi-worker uvicorn server (see locust_benchmark.py).
 IN_PROCESS_TARGET_OPS = 500
 
 
@@ -23,7 +30,7 @@ class TestControlPlaneThroughput(unittest.TestCase):
     """Verify in-process control plane throughput meets targets."""
 
     def test_ucp_create_automation_throughput(self):
-        """UniversalControlPlane.create_automation() must handle 1000 calls/s."""
+        """UniversalControlPlane.create_automation() must handle 500+ calls/s (in-process)."""
         from universal_control_plane import UniversalControlPlane
         ucp = UniversalControlPlane()
 

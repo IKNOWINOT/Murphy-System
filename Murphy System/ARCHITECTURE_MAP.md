@@ -185,10 +185,17 @@
 **Component:** `inoni_business_automation.py`
 
 **Responsibilities:**
-- Autonomous operation of Inoni LLC
+- Autonomous with HITL safety gates operation of Inoni LLC
 - 5 business automation engines
-- Self-operation capabilities
+- Self-operation capabilities with human-in-the-loop approval for high-risk actions
 - Business process automation
+
+#### Safety Model
+Inoni business automation runs autonomously for routine operations (content generation,
+monitoring, analytics, bug detection). Operations involving financial transactions,
+external outreach, production deployments, and code modifications require HITL gate
+approval when confidence is below the configured threshold (default: 0.7).
+This is by design — Murphy's safety-first architecture treats HITL as a feature, not a limitation.
 
 **5 Business Engines:**
 
