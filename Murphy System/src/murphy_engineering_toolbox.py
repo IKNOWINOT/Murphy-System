@@ -361,7 +361,7 @@ class PlumbingCalcs:
 
 @dataclass
 class CPMActivity:
-    """CPMActivity — c p m activity definition."""
+    """CPM activity node for critical-path scheduling."""
     activity_id: str
     name: str
     duration: float

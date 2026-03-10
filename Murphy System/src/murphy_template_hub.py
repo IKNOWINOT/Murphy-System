@@ -49,7 +49,7 @@ class Template(BaseModel):
 
 
 class TemplateSearchQuery(BaseModel):
-    """Query parameters for templatesearch search."""
+    """Query parameters for template search."""
     query: Optional[str] = None
     category: Optional[TemplateCategory] = None
     tags: List[str] = []
