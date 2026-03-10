@@ -7,14 +7,26 @@ This module provides:
 - Module/agent generation
 - Safety testing before commitment
 - Human-in-the-loop approval workflow
+- Sandbox Quarantine Protocol (Step 5.5)
 """
 
-from .unified_engine import UnifiedIntegrationEngine
-from .capability_extractor import CapabilityExtractor
-from .module_generator import ModuleGenerator
-from .agent_generator import AgentGenerator
+# Lightweight, always-available imports
 from .safety_tester import SafetyTester
 from .hitl_approval import HITLApprovalSystem
+from .sandbox_quarantine import SandboxQuarantine, QuarantineReport, ThreatFinding
+
+# Heavy imports (require optional deps like numpy, pydantic, etc.)
+# Wrapped so that the lightweight modules above can still be used in test contexts
+try:
+    from .unified_engine import UnifiedIntegrationEngine
+    from .capability_extractor import CapabilityExtractor
+    from .module_generator import ModuleGenerator
+    from .agent_generator import AgentGenerator
+except ImportError:
+    UnifiedIntegrationEngine = None  # type: ignore[assignment,misc]
+    CapabilityExtractor = None  # type: ignore[assignment,misc]
+    ModuleGenerator = None  # type: ignore[assignment,misc]
+    AgentGenerator = None  # type: ignore[assignment,misc]
 
 __all__ = [
     'UnifiedIntegrationEngine',
@@ -22,5 +34,8 @@ __all__ = [
     'ModuleGenerator',
     'AgentGenerator',
     'SafetyTester',
-    'HITLApprovalSystem'
+    'HITLApprovalSystem',
+    'SandboxQuarantine',
+    'QuarantineReport',
+    'ThreatFinding',
 ]
