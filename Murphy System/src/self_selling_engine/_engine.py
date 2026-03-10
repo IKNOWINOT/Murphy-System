@@ -901,7 +901,7 @@ class MurphySelfSellingEngine:
             from sales_automation import SalesAutomationEngine
             engine = SalesAutomationEngine()
             raw_leads = engine.generate_leads()
-        except Exception:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001
             raw_leads = []
 
         profiles: List[ProspectProfile] = []

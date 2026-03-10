@@ -233,7 +233,7 @@ class AuditLogger:
         if self._sink:
             try:
                 self._sink(entry)
-            except Exception:  # noqa: BLE001
+            except Exception as exc:  # noqa: BLE001
                 logger.warning("Audit sink failed for entry %s", entry.id)
         return entry
 

@@ -365,7 +365,7 @@ class ActivatedHeartbeatRunner:
         """Internal timer callback — runs tick and reschedules."""
         try:
             self.tick()
-        except Exception:
+        except Exception as exc:
             logger.exception("Tick failed")
         finally:
             with self._lock:
