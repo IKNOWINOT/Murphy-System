@@ -38,6 +38,7 @@ class LLMModel(Enum):
     GROQ_GEMMA = "groq_gemma"
     LOCAL_SMALL = "local_small"
     LOCAL_MEDIUM = "local_medium"
+    MFM = "mfm"  # Murphy Foundation Model — local, self-trained
 
 
 class ModelCapability(Enum):
@@ -177,6 +178,22 @@ class LLMController:
                 avg_latency=1.0,
                 confidence_threshold=0.80,
                 available=True
+            ),
+            LLMModel.MFM: LLMModelInfo(
+                name="Murphy Foundation Model",
+                model_type=LLMModel.MFM,
+                capabilities=[
+                    ModelCapability.CODE_GENERATION,
+                    ModelCapability.REASONING,
+                    ModelCapability.CONTEXT_PROCESSING,
+                    ModelCapability.SWARM_PLANNING,
+                    ModelCapability.SAFETY_ANALYSIS,
+                ],
+                max_context=4096,
+                cost_per_1k_tokens=0.0,
+                avg_latency=0.2,
+                confidence_threshold=0.80,
+                available=os.environ.get("MFM_MODE", "disabled") == "production"
             ),
         }
 
@@ -320,7 +337,9 @@ class LLMController:
         # Route to appropriate backend
         start_time = datetime.now()
 
-        if model == LLMModel.GROQ_MIXTRAL:
+        if model == LLMModel.MFM:
+            response = await self._query_mfm(request)
+        elif model == LLMModel.GROQ_MIXTRAL:
             response = await self._query_groq_mixtral(request)
         elif model == LLMModel.GROQ_LLAMA:
             response = await self._query_groq_llama(request)
@@ -345,6 +364,37 @@ class LLMController:
         response.latency = latency
 
         return response
+
+    async def _query_mfm(self, request: LLMRequest) -> LLMResponse:
+        """Query the Murphy Foundation Model (local, self-trained)."""
+        try:
+            from murphy_foundation_model.mfm_inference import MFMInferenceService, MFMInferenceConfig
+
+            config = MFMInferenceConfig()
+            service = MFMInferenceService(config=config)
+            if not service._model_loaded:
+                service.load_model()
+
+            result = service.predict(
+                world_state={"prompt": request.prompt, "context": request.context or ""},
+                intent=request.prompt,
+                constraints=[],
+                history=[],
+            )
+
+            content = json.dumps(result.get("action_plan", []), default=str)
+            return LLMResponse(
+                content=content,
+                model_used=LLMModel.MFM,
+                confidence=result.get("confidence", 0.0),
+                tokens_used=0,
+                cost=0.0,
+                latency=0.0,
+                metadata={"provider": "mfm", "model": "murphy_foundation_model"},
+            )
+        except Exception as exc:
+            logger.info("MFM query failed, falling back: %s", exc)
+            return await self._query_fallback(request)
 
     async def _query_groq_mixtral(self, request: LLMRequest) -> LLMResponse:
         """Query Groq Mixtral model"""

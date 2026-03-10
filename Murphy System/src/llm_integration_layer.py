@@ -20,6 +20,7 @@ class LLMProvider(Enum):
     ARISTOTLE = "aristotle"  # Deterministic, math/physics
     WULFRUM = "wulfrum"  # Fuzzy match, math validation
     GROQ = "groq"  # Generative, creative
+    MFM = "mfm"  # Murphy Foundation Model — local, self-trained
     AUTO = "auto"  # Automatic routing
 
 
