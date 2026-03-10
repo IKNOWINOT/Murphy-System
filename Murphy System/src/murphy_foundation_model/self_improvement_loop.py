@@ -90,6 +90,15 @@ class SelfImprovementLoop:
         -------
         dict with ``should_retrain`` (bool) and ``reasons`` (list[str]).
         """
+        try:
+            from src.self_learning_toggle import get_self_learning_toggle
+            slt = get_self_learning_toggle()
+            if not slt.is_enabled():
+                slt.increment_skipped()
+                return {"should_retrain": False, "reasons": ["self_learning_disabled"]}
+        except Exception:
+            pass  # toggle unavailable — allow normal evaluation
+
         reasons: List[str] = []
 
         # 1. Trace count
