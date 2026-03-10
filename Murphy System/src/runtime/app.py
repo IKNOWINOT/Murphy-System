@@ -2091,7 +2091,7 @@ def create_app() -> FastAPI:
             "inbound":    {"active": True,  "count": 0},
             "processing": {"active": False, "count": 0},
             "outbound":   {"active": False, "count": 0},
-            "timestamp":  __import__("datetime").datetime.utcnow().isoformat(),
+            "timestamp":  __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
         })
 
     # ==================== MFM (Murphy Foundation Model) Endpoints ====================

@@ -36,6 +36,25 @@ def _src_path() -> Path:
     return Path(__file__).resolve().parent.parent / "src"
 
 
+def _read_runtime_source() -> str:
+    """Read the full runtime source (thin wrapper + refactored modules).
+
+    After INC-13, the runtime was split into src/runtime/{_deps,app,murphy_system_core}.py.
+    """
+    root = Path(__file__).resolve().parent.parent
+    parts: list[str] = []
+    for rel in (
+        "murphy_system_1.0_runtime.py",
+        "src/runtime/_deps.py",
+        "src/runtime/app.py",
+        "src/runtime/murphy_system_core.py",
+    ):
+        p = root / rel
+        if p.is_file():
+            parts.append(p.read_text(encoding="utf-8"))
+    return "\n".join(parts)
+
+
 def _load_module_registry():
     src = _src_path()
     spec = importlib.util.spec_from_file_location(
@@ -324,34 +343,29 @@ class TestRuntimeEndpoints:
 
     def test_runtime_has_integration_bus_init(self):
         """Runtime source must reference IntegrationBus initialisation."""
-        runtime_file = Path(__file__).resolve().parent.parent / "murphy_system_1.0_runtime.py"
-        text = runtime_file.read_text(encoding="utf-8")
+        text = _read_runtime_source()
         assert "IntegrationBus" in text, "Runtime should reference IntegrationBus"
         assert "_integration_bus" in text, "Runtime should initialize _integration_bus"
 
     def test_runtime_has_api_modules_name_status_endpoint(self):
         """Runtime must define /api/modules/{name}/status."""
-        runtime_file = Path(__file__).resolve().parent.parent / "murphy_system_1.0_runtime.py"
-        text = runtime_file.read_text(encoding="utf-8")
+        text = _read_runtime_source()
         assert "/api/modules/{name}/status" in text
 
     def test_runtime_has_api_feedback_endpoint(self):
         """Runtime must define /api/feedback."""
-        runtime_file = Path(__file__).resolve().parent.parent / "murphy_system_1.0_runtime.py"
-        text = runtime_file.read_text(encoding="utf-8")
+        text = _read_runtime_source()
         assert "/api/feedback" in text
 
     def test_runtime_chat_routed_through_bus(self):
         """Runtime /api/chat handler must reference _integration_bus."""
-        runtime_file = Path(__file__).resolve().parent.parent / "murphy_system_1.0_runtime.py"
-        text = runtime_file.read_text(encoding="utf-8")
+        text = _read_runtime_source()
         # The chat endpoint should check for the bus
         assert '_integration_bus' in text
 
     def test_runtime_execute_routed_through_bus(self):
         """Runtime /api/execute handler must reference _integration_bus."""
-        runtime_file = Path(__file__).resolve().parent.parent / "murphy_system_1.0_runtime.py"
-        text = runtime_file.read_text(encoding="utf-8")
+        text = _read_runtime_source()
         assert '_integration_bus' in text
 
     def test_api_modules_returns_list(self):

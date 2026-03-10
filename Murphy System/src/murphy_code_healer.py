@@ -566,6 +566,7 @@ class DiagnosticSupervisor:
                             )
             except (SyntaxError, ValueError) as exc:
                 logger.debug("Skipping unparseable source file %s: %s", py_file, exc)
+        return gaps
 
     def _doc_drift_gaps(self, src_root: str) -> List[CodeGap]:
         """Find docstrings whose param names don't match function signatures."""
