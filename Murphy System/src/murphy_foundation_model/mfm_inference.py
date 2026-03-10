@@ -69,6 +69,11 @@ class MFMInferenceService:
 
     # -- public API ---------------------------------------------------------
 
+    @property
+    def is_loaded(self) -> bool:
+        """Whether the model is currently loaded and ready for inference."""
+        return self._loaded
+
     def load_model(self) -> bool:
         """Load the MFM model and tokenizer from the configured checkpoint.
 
