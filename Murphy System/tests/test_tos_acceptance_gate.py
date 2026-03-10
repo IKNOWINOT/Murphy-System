@@ -25,10 +25,13 @@ import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from tos_acceptance_gate import (
+    CredentialRequest,
+    CredentialRequestStatus,
     PROVIDER_TOS_REGISTRY,
     TOSAcceptanceGate,
     TOSAcceptanceStatus,
     TOSApprovalRequest,
+    UserCredentialGate,
     _DEFAULT_LIABILITY_NOTE,
 )
 
@@ -500,3 +503,185 @@ class TestLiabilityNote:
 
     def test_liability_note_mentions_legal(self):
         assert "legal" in _DEFAULT_LIABILITY_NOTE.lower()
+
+
+# ---------------------------------------------------------------------------
+# UserCredentialGate tests
+# ---------------------------------------------------------------------------
+
+class TestUserCredentialGateRequestCredentials:
+    def test_creates_pending_request(self):
+        gate = UserCredentialGate()
+        req = gate.request_credentials(purpose="test harvest")
+        assert req.status == CredentialRequestStatus.PENDING
+
+    def test_request_has_purpose(self):
+        gate = UserCredentialGate()
+        req = gate.request_credentials(purpose="key acquisition")
+        assert req.purpose == "key acquisition"
+
+    def test_request_stores_suggested_email(self):
+        gate = UserCredentialGate()
+        req = gate.request_credentials(purpose="test", suggested_email="a@b.com")
+        assert req.suggested_email == "a@b.com"
+
+    def test_request_has_unique_id(self):
+        gate = UserCredentialGate()
+        r1 = gate.request_credentials(purpose="t1")
+        r2 = gate.request_credentials(purpose="t2")
+        assert r1.request_id != r2.request_id
+
+    def test_request_appears_in_pending(self):
+        gate = UserCredentialGate()
+        req = gate.request_credentials(purpose="harvest")
+        assert any(r.request_id == req.request_id for r in gate.get_pending())
+
+
+class TestUserCredentialGateProvide:
+    def test_provide_transitions_to_provided(self):
+        gate = UserCredentialGate()
+        req = gate.request_credentials(purpose="test")
+        ok = gate.provide(req.request_id, email="u@example.com", password="secret123")
+        assert ok is True
+        with gate._lock:
+            assert gate._requests[req.request_id].status == CredentialRequestStatus.PROVIDED
+
+    def test_provide_sets_email(self):
+        gate = UserCredentialGate()
+        req = gate.request_credentials(purpose="test")
+        gate.provide(req.request_id, email="u@example.com", password="abc")
+        with gate._lock:
+            assert gate._requests[req.request_id].email == "u@example.com"
+
+    def test_provide_does_not_store_password_on_request(self):
+        gate = UserCredentialGate()
+        req = gate.request_credentials(purpose="test")
+        gate.provide(req.request_id, email="u@example.com", password="s3cr3t")
+        cred_req = gate._requests[req.request_id]
+        # Ensure password is NOT on the dataclass
+        assert not hasattr(cred_req, "password")
+        assert cred_req.password_set is True
+
+    def test_provide_unknown_id_returns_false(self):
+        gate = UserCredentialGate()
+        assert gate.provide("bad-id", email="x@x.com", password="y") is False
+
+    def test_provide_empty_email_returns_false(self):
+        gate = UserCredentialGate()
+        req = gate.request_credentials(purpose="test")
+        assert gate.provide(req.request_id, email="", password="abc") is False
+
+    def test_provide_empty_password_returns_false(self):
+        gate = UserCredentialGate()
+        req = gate.request_credentials(purpose="test")
+        assert gate.provide(req.request_id, email="x@x.com", password="") is False
+
+
+class TestUserCredentialGateGetCredentials:
+    def test_get_credentials_returns_email_and_password(self):
+        gate = UserCredentialGate()
+        req = gate.request_credentials(purpose="test")
+        gate.provide(req.request_id, email="u@example.com", password="s3cr3t")
+        creds = gate.get_credentials(req.request_id)
+        assert creds is not None
+        email, password = creds
+        assert email == "u@example.com"
+        assert password == "s3cr3t"
+
+    def test_get_credentials_clears_password_from_memory(self):
+        gate = UserCredentialGate()
+        req = gate.request_credentials(purpose="test")
+        gate.provide(req.request_id, email="u@example.com", password="s3cr3t")
+        gate.get_credentials(req.request_id)
+        # Password dict should be cleared after retrieval
+        with gate._lock:
+            assert req.request_id not in gate._passwords
+
+    def test_get_credentials_pending_request_returns_none(self):
+        gate = UserCredentialGate()
+        req = gate.request_credentials(purpose="test")
+        assert gate.get_credentials(req.request_id) is None
+
+    def test_get_credentials_unknown_id_returns_none(self):
+        gate = UserCredentialGate()
+        assert gate.get_credentials("nonexistent-id") is None
+
+
+class TestUserCredentialGateDecline:
+    def test_decline_transitions_to_declined(self):
+        gate = UserCredentialGate()
+        req = gate.request_credentials(purpose="test")
+        ok = gate.decline(req.request_id)
+        assert ok is True
+        with gate._lock:
+            assert gate._requests[req.request_id].status == CredentialRequestStatus.DECLINED
+
+    def test_decline_unknown_id_returns_false(self):
+        gate = UserCredentialGate()
+        assert gate.decline("bad-id") is False
+
+    def test_decline_removes_from_pending(self):
+        gate = UserCredentialGate()
+        req = gate.request_credentials(purpose="test")
+        gate.decline(req.request_id)
+        assert not any(r.request_id == req.request_id for r in gate.get_pending())
+
+
+class TestUserCredentialGateFormatMessage:
+    def test_format_message_returns_nonempty_string(self):
+        gate = UserCredentialGate()
+        req = gate.request_credentials(purpose="API key harvest")
+        msg = gate.format_request_message(req)
+        assert isinstance(msg, str) and len(msg) > 50
+
+    def test_format_message_contains_purpose(self):
+        gate = UserCredentialGate()
+        req = gate.request_credentials(purpose="harvest 15 providers")
+        msg = gate.format_request_message(req)
+        assert "harvest 15 providers" in msg
+
+    def test_format_message_contains_request_id(self):
+        gate = UserCredentialGate()
+        req = gate.request_credentials(purpose="test")
+        msg = gate.format_request_message(req)
+        assert req.request_id in msg
+
+    def test_format_message_contains_suggested_email(self):
+        gate = UserCredentialGate()
+        req = gate.request_credentials(purpose="test", suggested_email="me@example.com")
+        msg = gate.format_request_message(req)
+        assert "me@example.com" in msg
+
+    def test_format_message_mentions_password_security(self):
+        gate = UserCredentialGate()
+        req = gate.request_credentials(purpose="test")
+        msg = gate.format_request_message(req)
+        assert "password" in msg.lower()
+        # Must warn the user the password won't be stored on disk
+        assert "disk" in msg.lower() or "permanent" in msg.lower()
+
+
+class TestUserCredentialGateThreadSafety:
+    def test_concurrent_provide_calls(self):
+        """Multiple concurrent provide() calls must not corrupt internal state."""
+        gate = UserCredentialGate()
+        requests = [gate.request_credentials(purpose=f"t{i}") for i in range(20)]
+        errors = []
+
+        def do_provide(req):
+            try:
+                gate.provide(req.request_id, email=f"u{req.request_id[-4:]}@example.com", password="pwd123")
+            except Exception as exc:  # noqa: BLE001
+                errors.append(exc)
+
+        threads = [threading.Thread(target=do_provide, args=(r,)) for r in requests]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert not errors
+        # All should now be PROVIDED
+        with gate._lock:
+            for req in requests:
+                assert gate._requests[req.request_id].status == CredentialRequestStatus.PROVIDED
