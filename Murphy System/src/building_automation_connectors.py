@@ -74,7 +74,7 @@ class BuildingAutomationConnector:
         self.protocol = protocol
         self.system_category = system_category
         self.vendor = vendor
-        self.connection_config = dict(connection_config) if connection_config else {}
+        self.connection_config = dict(connection_config or {})
         self.capabilities = list(capabilities)
         self.metadata = dict(metadata) if metadata else {}
 
