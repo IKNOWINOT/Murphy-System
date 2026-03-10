@@ -57,7 +57,7 @@ class TrafficLightState(str, Enum):
 # ---------------------------------------------------------------------------
 
 class Vector3D(BaseModel):
-    """Vector3D — vector3 d definition."""
+    """3D vector with x, y, z components."""
     x: float = 0.0
     y: float = 0.0
     z: float = 0.0
@@ -81,7 +81,7 @@ class Vector3D(BaseModel):
 
 
 class BoundingBox3D(BaseModel):
-    """BoundingBox3D — bounding box3 d definition."""
+    """3D bounding box for detected objects."""
     center: Vector3D = Field(default_factory=Vector3D)
     length: float = 1.0
     width: float = 1.0
