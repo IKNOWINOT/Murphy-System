@@ -902,6 +902,7 @@ class MurphySelfSellingEngine:
             engine = SalesAutomationEngine()
             raw_leads = engine.generate_leads()
         except Exception as exc:  # noqa: BLE001
+            logger.debug("Lead generation failed: %s", exc)
             raw_leads = []
 
         profiles: List[ProspectProfile] = []

@@ -340,6 +340,7 @@ class CryptoPortfolioTracker:
                 c = _dt.fromisoformat(t.closed_at.replace("Z", "+00:00"))
                 return (c - o).total_seconds() / 3600.0
             except Exception as exc:
+                logger.debug("Duration calc failed: %s", exc)
                 return 0.0
 
         durations = [_hours(t) for t in trades]
