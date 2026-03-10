@@ -35,6 +35,10 @@ from thread_safe_operations import capped_append
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
+# Credential collection HITL gate — public surface used by KeyHarvester
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 
@@ -408,3 +412,208 @@ class TOSAcceptanceGate:
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "liability_note": req.liability_note,
         }
+
+
+# ---------------------------------------------------------------------------
+# User Credential Collection Gate
+# ---------------------------------------------------------------------------
+
+class CredentialRequestStatus(str, Enum):
+    """Lifecycle states for a user credential collection request."""
+
+    PENDING = "pending"
+    PROVIDED = "provided"
+    DECLINED = "declined"
+
+
+@dataclass
+class CredentialRequest:
+    """A HITL request that asks the user what signup credentials to use.
+
+    The password is NOT stored inside this object — it lives only in
+    ``UserCredentialGate._passwords`` (in-memory, cleared after first use).
+    """
+
+    request_id: str
+    purpose: str
+    suggested_email: str = ""
+    status: CredentialRequestStatus = CredentialRequestStatus.PENDING
+    email: Optional[str] = None
+    password_set: bool = False  # True once provide() is called
+    requested_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+    responded_at: Optional[str] = None
+
+
+class UserCredentialGate:
+    """HITL gate that collects signup credentials from the human operator
+    before any browser automation begins.
+
+    Murphy NEVER hard-codes or caches credentials permanently.  The password
+    is held in memory only for the duration of the harvest session and cleared
+    after each use.
+
+    Usage::
+
+        gate = UserCredentialGate()
+        req = gate.request_credentials(
+            purpose="API key acquisition for 15 providers",
+            suggested_email="you@example.com",
+        )
+        # --- HITL UI presents the request ---
+        gate.provide(req.request_id, email="you@example.com", password="s3cr3t")
+        email, password = gate.get_credentials(req.request_id)
+    """
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._requests: Dict[str, CredentialRequest] = {}
+        # Passwords stored separately — never embedded in CredentialRequest
+        self._passwords: Dict[str, str] = {}
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def request_credentials(
+        self,
+        purpose: str,
+        suggested_email: str = "",
+    ) -> CredentialRequest:
+        """Create a pending credential request and add it to the queue.
+
+        Args:
+            purpose: Human-readable description of why credentials are needed.
+            suggested_email: Pre-fill hint shown in the HITL message.
+
+        Returns:
+            Newly created :class:`CredentialRequest` (status=PENDING).
+        """
+        request_id = f"cred-{uuid.uuid4().hex[:16]}"
+        req = CredentialRequest(
+            request_id=request_id,
+            purpose=purpose,
+            suggested_email=suggested_email,
+        )
+        with self._lock:
+            self._requests[request_id] = req
+        logger.info("Credential request created (request_id=%s)", request_id)
+        return req
+
+    def provide(
+        self,
+        request_id: str,
+        email: str,
+        password: str,
+    ) -> bool:
+        """Supply credentials in response to a pending request.
+
+        The password is stored in a separate in-memory dict and never
+        written to disk, logs, or the :class:`CredentialRequest` object.
+
+        Args:
+            request_id: ID returned by :meth:`request_credentials`.
+            email: Email address the user wants to use for signups.
+            password: Password for signup automation (held in-memory only).
+
+        Returns:
+            ``True`` if the request was found and updated; ``False`` otherwise.
+        """
+        if not email or not password:
+            logger.warning(
+                "provide() called with empty email or password for request_id=%s",
+                request_id,
+            )
+            return False
+        with self._lock:
+            req = self._requests.get(request_id)
+            if req is None or req.status != CredentialRequestStatus.PENDING:
+                return False
+            req.status = CredentialRequestStatus.PROVIDED
+            req.email = email
+            req.password_set = True
+            req.responded_at = datetime.now(timezone.utc).isoformat()
+            self._passwords[request_id] = password
+        logger.info(
+            "Credentials provided for request_id=%s (email=%s)",
+            request_id,
+            email,
+        )
+        return True
+
+    def decline(self, request_id: str) -> bool:
+        """Human declines to provide credentials — harvest will not run.
+
+        Args:
+            request_id: ID returned by :meth:`request_credentials`.
+
+        Returns:
+            ``True`` if found and transitioned; ``False`` otherwise.
+        """
+        with self._lock:
+            req = self._requests.get(request_id)
+            if req is None or req.status != CredentialRequestStatus.PENDING:
+                return False
+            req.status = CredentialRequestStatus.DECLINED
+            req.responded_at = datetime.now(timezone.utc).isoformat()
+        logger.info("Credential request declined (request_id=%s)", request_id)
+        return True
+
+    def get_credentials(self, request_id: str) -> Optional[tuple]:
+        """Return ``(email, password)`` for a PROVIDED request, then clear
+        the in-memory password entry.
+
+        Returns ``None`` if the request is not in PROVIDED state.
+        """
+        with self._lock:
+            req = self._requests.get(request_id)
+            if req is None or req.status != CredentialRequestStatus.PROVIDED:
+                return None
+            email = req.email or ""
+            password = self._passwords.pop(request_id, "")
+        return (email, password)
+
+    def get_pending(self) -> List[CredentialRequest]:
+        """Return all requests currently in PENDING state."""
+        with self._lock:
+            return [
+                r for r in self._requests.values()
+                if r.status == CredentialRequestStatus.PENDING
+            ]
+
+    def format_request_message(self, req: CredentialRequest) -> str:
+        """Format a HITL queue message asking the user for signup credentials.
+
+        Args:
+            req: The :class:`CredentialRequest` to format.
+
+        Returns:
+            A multi-line string suitable for display in the HITL queue UI.
+        """
+        lines: List[str] = []
+        lines.append("╔" + "═" * 78 + "╗")
+        lines.append("║" + "  🔐 SIGNUP CREDENTIALS REQUIRED".center(78) + "║")
+        lines.append("╚" + "═" * 78 + "╝")
+        lines.append("")
+        lines.append(f"🆔 Request ID  : {req.request_id}")
+        lines.append(f"📋 Purpose     : {req.purpose}")
+        if req.suggested_email:
+            lines.append(f"📧 Suggested   : {req.suggested_email}")
+        lines.append("")
+        lines.append("Murphy will use your credentials ONLY to:")
+        lines.append("  ✅ Create free-tier accounts with API providers")
+        lines.append("  ✅ Receive and process account verification emails")
+        lines.append("  ✅ Extract API keys from provider dashboards")
+        lines.append("")
+        lines.append("Murphy will NOT:")
+        lines.append("  ❌ Store your password permanently on disk")
+        lines.append("  ❌ Share credentials with any third party")
+        lines.append("  ❌ Use credentials for any purpose beyond key acquisition")
+        lines.append("")
+        lines.append("─" * 80)
+        lines.append(
+            "Please respond via the HITL queue with your preferred email and password."
+        )
+        lines.append("─" * 80)
+        return "\n".join(lines)
