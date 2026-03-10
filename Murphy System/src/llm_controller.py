@@ -372,7 +372,7 @@ class LLMController:
 
             config = MFMInferenceConfig()
             service = MFMInferenceService(config=config)
-            if not service._model_loaded:
+            if not service.is_loaded:
                 service.load_model()
 
             result = service.predict(
