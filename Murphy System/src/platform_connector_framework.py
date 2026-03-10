@@ -86,7 +86,7 @@ class ConnectorDefinition:
     capabilities: List[str] = field(default_factory=list)
     rate_limit: RateLimitConfig = field(default_factory=RateLimitConfig)
     retry_config: RetryConfig = field(default_factory=RetryConfig)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    action_endpoints: Dict[str, tuple] = field(default_factory=dict)
 
 
 @dataclass
@@ -958,9 +958,62 @@ class PlatformConnectorFramework:
                     capped_append(self._action_history, result)
                 return result
 
-        # Simulate successful action execution
+        # Attempt real HTTP dispatch if credentials and base_url are available
         instance.request_count += 1
-        latency = (time.time() - start) * 1000
+        latency_start = time.time()
+
+        if instance.credentials and instance.definition.base_url:
+            try:
+                import httpx
+                auth_headers = self._build_auth_headers(instance)
+                method, path = self._resolve_action(instance.definition, action.action_type)
+                url = f"{instance.definition.base_url.rstrip('/')}{path}"
+                with httpx.Client(timeout=10.0) as client:
+                    response = client.request(
+                        method, url,
+                        headers=auth_headers,
+                        json=action.payload if action.payload else None,
+                        params={"resource": action.resource} if action.resource else None,
+                    )
+                latency = (time.time() - latency_start) * 1000
+                result = ConnectorResult(
+                    action_id=action.action_id,
+                    connector_id=action.connector_id,
+                    success=response.is_success,
+                    data={
+                        "resource": action.resource,
+                        "action_type": action.action_type,
+                        "platform": instance.definition.platform,
+                        "status_code": response.status_code,
+                        "body": response.text[:4096],
+                        "simulated": False,
+                    },
+                    latency_ms=latency,
+                )
+                if not response.is_success:
+                    result.error = f"HTTP {response.status_code}"
+                with self._lock:
+                    capped_append(self._action_history, result)
+                return result
+            except ImportError:
+                logger.debug("httpx not installed — falling back to simulated connector execution")
+            except Exception as exc:
+                logger.warning("Connector '%s' HTTP call failed: %s", action.connector_id, exc)
+                instance.error_count += 1
+                latency = (time.time() - latency_start) * 1000
+                result = ConnectorResult(
+                    action_id=action.action_id,
+                    connector_id=action.connector_id,
+                    success=False,
+                    error=str(exc),
+                    latency_ms=latency,
+                )
+                with self._lock:
+                    capped_append(self._action_history, result)
+                return result
+
+        # Simulated fallback (no credentials configured or httpx not available)
+        latency = (time.time() - latency_start) * 1000
         result = ConnectorResult(
             action_id=action.action_id,
             connector_id=action.connector_id,
@@ -970,12 +1023,75 @@ class PlatformConnectorFramework:
                 "action_type": action.action_type,
                 "platform": instance.definition.platform,
                 "payload_keys": list(action.payload.keys()) if action.payload else [],
+                "simulated": True,
             },
             latency_ms=latency,
         )
         with self._lock:
             capped_append(self._action_history, result)
         return result
+
+    def _build_auth_headers(self, instance) -> dict:
+        """Build HTTP Authorization headers from connector credentials and auth type."""
+        creds = instance.credentials or {}
+        auth_type = instance.definition.auth_type
+        # Normalise AuthType enum to string
+        auth_str = auth_type.value if hasattr(auth_type, "value") else str(auth_type)
+
+        if auth_str in ("oauth2", "token"):
+            token = creds.get("token") or creds.get("access_token") or creds.get("api_key", "")
+            return {"Authorization": f"Bearer {token}"}
+        elif auth_str == "basic":
+            import base64
+            username = creds.get("username", "")
+            password = creds.get("password", "")
+            encoded = base64.b64encode(f"{username}:{password}".encode()).decode()
+            return {"Authorization": f"Basic {encoded}"}
+        elif auth_str == "api_key":
+            header_name = creds.get("header_name", "X-API-Key")
+            api_key = creds.get("api_key", "")
+            return {header_name: api_key}
+        else:
+            token = creds.get("token") or creds.get("api_key", "")
+            if token:
+                return {"Authorization": f"Bearer {token}"}
+        return {}
+
+    def _resolve_action(self, definition, action_type: str):
+        """Resolve action type to (HTTP method, URL path) tuple.
+
+        Uses action_endpoints mapping from connector definition if available,
+        otherwise falls back to a sensible default based on action_type name.
+        """
+        endpoints = getattr(definition, "action_endpoints", {})
+        if action_type in endpoints:
+            return endpoints[action_type]
+
+        default_mappings = {
+            "send_message": ("POST", "/messages"),
+            "list_messages": ("GET", "/messages"),
+            "create_issue": ("POST", "/issues"),
+            "list_issues": ("GET", "/issues"),
+            "create_ticket": ("POST", "/tickets"),
+            "list_tickets": ("GET", "/tickets"),
+            "search": ("GET", "/search"),
+            "list_contacts": ("GET", "/contacts"),
+            "create_contact": ("POST", "/contacts"),
+            "list_pipelines": ("GET", "/pipelines"),
+            "create_invoice": ("POST", "/invoices"),
+            "list_customers": ("GET", "/customers"),
+            "list_projects": ("GET", "/projects"),
+            "create_task": ("POST", "/tasks"),
+            "list_tasks": ("GET", "/tasks"),
+            "create_release": ("POST", "/releases"),
+            "list_repos": ("GET", "/repos"),
+            "list_users": ("GET", "/users"),
+            "read": ("GET", "/"),
+            "write": ("POST", "/"),
+            "subscribe": ("POST", "/subscriptions"),
+            "execute": ("POST", "/execute"),
+        }
+        return default_mappings.get(action_type, ("POST", f"/{action_type}"))
 
     def health_check(self, connector_id: str) -> ConnectorHealth:
         instance = self._instances.get(connector_id)

@@ -160,10 +160,33 @@ class DeterministicRoutingEngine:
         tags: Optional[List[str]] = None,
         confidence: float = 0.5,
         context: Optional[Dict[str, Any]] = None,
+        runtime_config: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Determine routing for a task and record the decision."""
         tags = tags or []
         context = context or {}
+
+        # Apply runtime_config route override if present
+        if runtime_config is not None:
+            override_key = f"route:{task_type}"
+            if override_key in runtime_config:
+                override_route = runtime_config[override_key]
+                decision_dict = {
+                    "decision_id": self._gen_id("dec"),
+                    "task_type": task_type,
+                    "matched_policy": None,
+                    "route_type": override_route,
+                    "confidence": confidence,
+                    "reason": f"runtime_config override: {override_key}={override_route}",
+                    "guardrails_applied": ["timeout_enforcement"],
+                    "timestamp": self._now(),
+                    "status": "routed",
+                }
+                with self._lock:
+                    capped_append(self._decisions, decision_dict)
+                    self._route_counts[override_route] += 1
+                logger.debug("Routed task '%s' → %s (runtime_config override)", task_type, override_route)
+                return decision_dict
         with self._lock:
             matched = self._match_policy(task_type, tags)
             if matched:
