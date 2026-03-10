@@ -15,6 +15,21 @@
 </head>
 <body style="--accent: #00D4AA;">
 
+<!-- ╔══════════════════════════════════════════════════════════════╗
+     ║ ███╗   ███╗██╗   ██╗██████╗ ██████╗ ██╗  ██╗██╗   ██╗    ║
+     ║ ████╗ ████║██║   ██║██╔══██╗██╔══██╗██║  ██║╚██╗ ██╔╝    ║
+     ║ ██╔████╔██║██║   ██║██████╔╝██████╔╝███████║ ╚████╔╝     ║
+     ║ ██║╚██╔╝██║██║   ██║██╔══██╗██╔═══╝ ██╔══██║  ╚██╔╝      ║
+     ║ ██║ ╚═╝ ██║╚██████╔╝██║  ██║██║     ██║  ██║   ██║       ║
+     ║ ╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝  ╚═╝   ╚═╝       ║
+     ║ ███████╗██╗   ██╗███████╗████████╗███████╗███╗   ███╗    ║
+     ║ ██╔════╝╚██╗ ██╔╝██╔════╝╚══██╔══╝██╔════╝████╗ ████║    ║
+     ║ ███████╗ ╚████╔╝ ███████╗   ██║   █████╗  ██╔████╔██║    ║
+     ║ ╚════██║  ╚██╔╝  ╚════██║   ██║   ██╔══╝  ██║╚██╔╝██║    ║
+     ║ ███████║   ██║   ███████║   ██║   ███████╗██║ ╚═╝ ██║    ║
+     ║ ╚══════╝   ╚═╝   ╚══════╝   ╚═╝   ╚══════╝╚═╝     ╚═╝    ║
+     ╚══════════════════════════════════════════════════════════════╝ -->
+
 <!-- Skip link for accessibility -->
 <a href="#content" class="murphy-skip-link">Skip to content</a>
 
@@ -45,7 +60,7 @@
       <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-terminal"></use></svg>
       <span>Execute</span>
     </a>
-    <a href="#gates" class="murphy-sidebar-item" data-view="gates" aria-label="Gates MFGC">
+    <a href="#gates" class="murphy-sidebar-item" data-view="gates" aria-label="Toggle MFGC control">
       <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-shield"></use></svg>
       <span>Gates (MFGC)</span>
     </a>
@@ -477,11 +492,11 @@
     html += '<div class="murphy-card mb-4"><div class="murphy-card-body">';
     html += '<label class="murphy-label" for="exec-cmd">Command</label>';
     html += '<div class="flex gap-3">';
-    html += '<input type="text" class="murphy-input flex-1" id="exec-cmd" placeholder="Enter command\u2026" autocomplete="off">';
-    html += '<button class="murphy-btn murphy-btn-primary" id="exec-run">' + icon('play') + ' Run</button>';
+    html += '<input type="text" class="murphy-input flex-1" id="exec-cmd" placeholder="Enter command\u2026" autocomplete="off" aria-label="Terminal command input">';
+    html += '<button class="murphy-btn murphy-btn-primary" id="exec-run" aria-label="Execute command">' + icon('play') + ' Run</button>';
     html += '</div></div></div>';
     html += '<div class="murphy-card"><div class="murphy-card-header">Output</div>';
-    html += '<div class="murphy-card-body"><pre id="exec-output" class="murphy-terminal-output" style="min-height:200px;max-height:500px;overflow:auto;white-space:pre-wrap;">Ready.</pre>';
+    html += '<div class="murphy-card-body"><pre id="exec-output" class="murphy-terminal-output" role="log" style="min-height:200px;max-height:500px;overflow:auto;white-space:pre-wrap;">Ready.</pre>';
     html += '</div></div>';
 
     contentEl.innerHTML = html;

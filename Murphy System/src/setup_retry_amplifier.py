@@ -50,6 +50,7 @@ _MAX_AUDIT_LOG = 1_000
 
 class SetupAmplificationPhase(str, Enum):
     """Phases of the magnify/simplify amplification cycle for setup retry."""
+    MAGNIFY_EXPAND = "magnify_expand"       # Phase 1: expand context, gather OS state
     MAGNIFY_DEEPEN = "magnify_deepen"       # Phase 2: deepen to prerequisites / OS quirks
     SIMPLIFY_DISTILL = "simplify_distill"   # Phase 3: distil to single root cause
     MAGNIFY_SOLUTIONS = "magnify_solutions" # Phase 4: expand solution space given root cause
