@@ -194,6 +194,9 @@ class SelfFixLoop:
         report = loop.run_loop(max_iterations=10)
     """
 
+    #: Persistence document key used for runtime config storage/retrieval.
+    _RUNTIME_CONFIG_DOC_KEY = "self_fix_loop_runtime_config"
+
     def __init__(
         self,
         improvement_engine=None,
@@ -216,7 +219,7 @@ class SelfFixLoop:
         # Load persisted config if persistence manager is available
         if self._pm is not None:
             try:
-                saved = self._pm.load_document("self_fix_loop_runtime_config")
+                saved = self._pm.load_document(self._RUNTIME_CONFIG_DOC_KEY)
                 if saved and isinstance(saved, dict):
                     self._runtime_config = saved
                     logger.debug("Loaded %d runtime config entries from persistence", len(saved))
@@ -839,7 +842,7 @@ class SelfFixLoop:
         """Persist the current runtime config dict via the persistence manager."""
         if self._pm is not None:
             try:
-                self._pm.save_document("self_fix_loop_runtime_config", self._runtime_config)
+                self._pm.save_document(self._RUNTIME_CONFIG_DOC_KEY, self._runtime_config)
             except Exception as exc:
                 logger.debug("Could not persist runtime config: %s", exc)
 
