@@ -87,6 +87,8 @@ class ConnectorDefinition:
     rate_limit: RateLimitConfig = field(default_factory=RateLimitConfig)
     retry_config: RetryConfig = field(default_factory=RetryConfig)
     action_endpoints: Dict[str, tuple] = field(default_factory=dict)
+    """Maps action_type strings to (HTTP_method, URL_path) tuples, e.g.
+    ``{"send_message": ("POST", "/messages")}``. Used by _resolve_action()."""
 
 
 @dataclass
@@ -1035,7 +1037,7 @@ class PlatformConnectorFramework:
         """Build HTTP Authorization headers from connector credentials and auth type."""
         creds = instance.credentials or {}
         auth_type = instance.definition.auth_type
-        # Normalise AuthType enum to string
+        # Normalize AuthType enum to string
         auth_str = auth_type.value if hasattr(auth_type, "value") else str(auth_type)
 
         if auth_str in ("oauth2", "token"):
