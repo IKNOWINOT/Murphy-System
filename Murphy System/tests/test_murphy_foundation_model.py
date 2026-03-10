@@ -1,7 +1,7 @@
 # Copyright © 2020-2026 Inoni LLC — Created by Corey Post
 # License: BSL 1.1
 """
-Comprehensive test suite for the Murphy Foundation Model — Phase 1 modules.
+Comprehensive test suite for the Murphy Foundation Model — Phase 1 & 2 modules.
 
 Covers:
 - ActionTrace dataclass and serialization helpers

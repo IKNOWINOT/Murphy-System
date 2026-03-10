@@ -5,18 +5,20 @@ Murphy Foundation Model (MFM) Package
 
 A self-improving foundation model that learns from every action trace
 produced by the Murphy System.  Phase 1 delivers data collection,
-outcome labeling, and training-data pipeline modules.
+outcome labeling, and training-data pipeline modules.  Phase 2+
+provides tokenisation, model architecture, fine-tuning, RLEF,
+inference, shadow deployment, self-improvement, and model registry.
 
 Components
 ----------
 - ActionTraceCollector : Captures SENSE → THINK → ACT → LEARN traces
 - OutcomeLabeler       : Scores traces on quality, safety and calibration
 - TrainingDataPipeline : Converts labeled traces to instruction-tuning data
-- MFMTokenizer         : Tokeniser for structured action-trace inputs
-- MFMModel             : Lightweight transformer backbone (Phase 2+)
-- MFMTrainer           : Fine-tuning loop with RLEF hooks (Phase 2+)
+- MFMTokenizer         : Action-aware tokeniser with Murphy special tokens
+- MFMModel             : Transformer backbone with confidence/risk heads
+- MFMTrainer           : LoRA fine-tuning with multi-task loss
 - RLEFEngine           : Reinforcement Learning from Execution Feedback
-- MFMInference         : Inference API with confidence gating
+- MFMInferenceService  : Inference API with confidence gating
 - ShadowDeployment     : Shadow-mode deployment alongside live agents
 - SelfImprovementLoop  : Continuous improvement orchestrator
 - MFMRegistry          : Model versioning & artefact storage
