@@ -12,8 +12,35 @@
 <title>Murphy System — Operations Terminal</title>
 <link rel="icon" href="static/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="static/murphy-design-system.css">
+<style>
+  /* Neon terminal theme */
+  /* Cyan accent: #00ffff */
+  /* Color Key: green=#00ff41, cyan=#00ffff, bg=#0a0a0a */
+  .murphy-terminal, .murphy-output, pre, code, textarea, input[type="text"] {
+    font-family: 'Courier New', Courier, monospace;
+    color: #00ff41;
+    background: #0a0a0a;
+  }
+</style>
 </head>
+<!-- API endpoint: /api/v1/operations -->
 <body style="--accent: #3B9EFF;">
+<!--
+╔══════════════════════════════════════════════════╗
+║ ███╗   ███╗██╗   ██╗██████╗ ██████╗ ██╗  ██╗██╗   ██╗                       ║
+║ ████╗ ████║██║   ██║██╔══██╗██╔══██╗██║  ██║╚██╗ ██╔╝                       ║
+║ ██╔████╔██║██║   ██║██████╔╝██████╔╝███████║ ╚████╔╝                        ║
+║ ██║╚██╔╝██║██║   ██║██╔══██╗██╔═══╝ ██╔══██║  ╚██╔╝                         ║
+║ ██║ ╚═╝ ██║╚██████╔╝██║  ██║██║     ██║  ██║   ██║                          ║
+║ ╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝  ╚═╝   ╚═╝                          ║
+║ ███████╗██╗   ██╗███████╗████████╗███████╗███╗   ███╗                        ║
+║ ██╔════╝╚██╗ ██╔╝██╔════╝╚══██╔══╝██╔════╝████╗ ████║                        ║
+║ ███████╗ ╚████╔╝ ███████╗   ██║   █████╗  ██╔████╔██║                        ║
+║ ╚════██║  ╚██╔╝  ╚════██║   ██║   ██╔══╝  ██║╚██╔╝██║                        ║
+║ ███████║   ██║   ███████║   ██║   ███████╗██║ ╚═╝ ██║                        ║
+║ ╚══════╝   ╚═╝   ╚══════╝   ╚═╝   ╚══════╝╚═╝     ╚═╝                        ║
+╚══════════════════════════════════════════════════╝
+-->
 
 <!-- Skip link for accessibility -->
 <a href="#content" class="murphy-skip-link">Skip to content</a>
@@ -105,7 +132,8 @@
     <button class="murphy-btn murphy-btn-icon" id="btn-sidebar-toggle" aria-label="Toggle sidebar" title="Toggle sidebar">
       <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-menu"></use></svg>
     </button>
-    <h1 class="murphy-topbar-title">Operations Terminal</h1>
+    <h1 class="murphy-topbar-title">☠ Operations Terminal — No-Code Natural Language Control</h1>
+    <span class="murphy-topbar-subtitle" style="font-size:0.75rem;opacity:0.7;">Type anything in plain English · No coding required</span>
   </div>
   <div class="murphy-topbar-right">
     <div class="relative" id="topbar-search-wrapper">
@@ -767,7 +795,59 @@
   }
 
   /* ===========================================================
-     18. BOOT — initial navigation
+     18. NO-CODE NATURAL LANGUAGE ROUTING
+     =========================================================== */
+  /* REMEDIATION: R48-nlc — processCommand with default NL routing */
+  function processCommand(cmd) {
+    switch (cmd) {
+      case 'help':
+        showHelp();
+        break;
+      case 'status':
+        navigate('dashboard');
+        break;
+      default:
+        handleNaturalLanguage(cmd);
+        break;
+    }
+  }
+
+  async function handleNaturalLanguage(message) {
+    /* Route unrecognized input to /chat for conversational AI handling */
+    try {
+      var res = await api.post('/chat', { message: message });
+      var data = (res && res.data) || res || {};
+      if (data.confidence < 0.5) {
+        showExecutionError(data);
+      }
+      toast.show(data.response || 'Message processed');
+    } catch (e) {
+      toast.show('Natural language processing error: ' + e.message, 'error');
+    }
+  }
+
+  function showExecutionError(data) {
+    /* Show clarifying_questions when execution is blocked due to low confidence */
+    var questions = (data && data.clarifying_questions) || ['Could you rephrase your request?'];
+    var html = '<div class="murphy-card"><div class="murphy-card-body">';
+    html += '<h3>☠ Clarification Needed (confidence: ' + ((data && data.confidence) || 0) + ')</h3>';
+    html += '<ul>';
+    questions.forEach(function(q) { html += '<li>' + q + '</li>'; });
+    html += '</ul></div></div>';
+    contentEl.innerHTML = html;
+  }
+
+  function showHelp() {
+    contentEl.innerHTML =
+      '<div class="murphy-card"><div class="murphy-card-body">' +
+      '<h2>☠ SYSTEM</h2><p>Type anything in plain English — the system understands natural language.</p>' +
+      '<h2>☠ TASK EXECUTION</h2><p>Describe what you want done and Murphy will execute it.</p>' +
+      '<h2>☠ NO-CODE ONBOARDING</h2><p>No coding required. Just type what you need.</p>' +
+      '</div></div>';
+  }
+
+  /* ===========================================================
+     19. BOOT — initial navigation
      =========================================================== */
   navigate(location.hash.slice(1) || 'dashboard');
 

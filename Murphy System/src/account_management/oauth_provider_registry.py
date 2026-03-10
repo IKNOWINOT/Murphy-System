@@ -323,12 +323,17 @@ class OAuthProviderRegistry:
     ) -> OAuthToken:
         """Complete an OAuth flow after user authorization.
 
-        In a real deployment, this would exchange the authorization_code
-        for tokens via HTTP.  For testability, callers can pass
-        ``token_response`` and ``profile_response`` directly.
+        When ``token_response`` is *not* provided (i.e., a real production
+        flow), this method makes an actual HTTP POST to ``cfg.token_url`` to
+        exchange the authorization code for tokens, then fetches the user
+        profile from ``cfg.userinfo_url``.
+
+        For testability, callers may pass ``token_response`` and
+        ``profile_response`` directly to bypass the HTTP calls.
 
         Raises:
             ValueError: if the state is invalid/expired.
+            RuntimeError: if the HTTP token exchange fails.
         """
         with self._lock:
             pending = self._pending_states.pop(state, None)
@@ -342,10 +347,17 @@ class OAuthProviderRegistry:
         if cfg is None:
             raise ValueError(f"Provider {pending.provider.value} no longer registered")
 
-        # In production: exchange code at cfg.token_url with PKCE verifier
-        # For now, accept injected responses for testing
-        tok_resp = token_response or {}
-        profile_resp = profile_response or {}
+        if token_response is None:
+            # ── Real HTTP token exchange ────────────────────────────────
+            tok_resp, profile_resp = self._exchange_code_for_token(
+                cfg=cfg,
+                authorization_code=authorization_code,
+                code_verifier=pending.code_verifier,
+            )
+        else:
+            # ── Test / injected path ────────────────────────────────────
+            tok_resp = token_response
+            profile_resp = profile_response or {}
 
         # Normalize profile
         profile = {}
@@ -372,6 +384,64 @@ class OAuthProviderRegistry:
         )
         logger.info("OAuth flow completed for %s", pending.provider.value)
         return token
+
+    def _exchange_code_for_token(
+        self,
+        cfg: "OAuthProviderConfig",
+        authorization_code: str,
+        code_verifier: str,
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        """
+        Exchange an authorization code for tokens via HTTP POST, then
+        fetch the user profile.
+
+        Returns
+        -------
+        (tok_resp, profile_resp)
+        """
+        try:
+            import httpx
+        except ImportError:
+            raise RuntimeError(
+                "httpx is required for real OAuth token exchange. "
+                "Install it with: pip install httpx"
+            )
+
+        payload = {
+            "grant_type": "authorization_code",
+            "code": authorization_code,
+            "redirect_uri": cfg.redirect_uri,
+            "client_id": cfg.client_id,
+            "code_verifier": code_verifier,
+        }
+        if cfg.client_secret_encrypted:
+            payload["client_secret"] = cfg.client_secret_encrypted
+
+        with httpx.Client(timeout=15.0) as client:
+            token_resp = client.post(cfg.token_url, data=payload)
+            if token_resp.status_code != 200:
+                raise RuntimeError(
+                    f"Token exchange failed: HTTP {token_resp.status_code} — {token_resp.text[:200]}"
+                )
+            tok_resp = token_resp.json()
+
+            # Fetch user profile if a userinfo URL is configured
+            profile_resp: Dict[str, Any] = {}
+            if cfg.userinfo_url and tok_resp.get("access_token"):
+                info_resp = client.get(
+                    cfg.userinfo_url,
+                    headers={"Authorization": f"Bearer {tok_resp['access_token']}"},
+                )
+                if info_resp.status_code == 200:
+                    profile_resp = info_resp.json()
+                else:
+                    logger.warning(
+                        "Userinfo request returned HTTP %d for %s",
+                        info_resp.status_code,
+                        cfg.provider.value,
+                    )
+
+        return tok_resp, profile_resp
 
     def get_pending_state(self, state: str) -> Optional[PendingAuthState]:
         """Look up a pending auth state (for testing/debugging)."""

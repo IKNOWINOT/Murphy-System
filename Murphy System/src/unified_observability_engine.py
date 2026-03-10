@@ -607,7 +607,7 @@ class UnifiedObservabilityEngine:
         engine.record_metric("heartbeat.bots_healthy", 12.0,
                              tags={"component": "heartbeat"})
         score = engine.compute_health_score()
-        print(engine.generate_report())
+        report = engine.generate_report()  # noqa: T201
     """
 
     def __init__(

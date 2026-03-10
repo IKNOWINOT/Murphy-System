@@ -1,5 +1,5 @@
 <!--
-  Murphy System — Architect Terminal
+  Murphy System — ☠ Architect Terminal
   © 2020 Inoni Limited Liability Company by Corey Post
   License: BSL 1.1 (Business Source License 1.1)
   See LICENSE file in repository root for full terms.
@@ -9,11 +9,39 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Murphy System — Architect Terminal</title>
+<title>Murphy System — ☠ Architect Terminal</title>
 <link rel="icon" href="static/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="static/murphy-design-system.css">
+<style>
+  /* Neon terminal theme */
+  /* Cyan accent: #00ffff */
+  /* Color Key: green=#00ff41, cyan=#00ffff, bg=#0a0a0a */
+  .murphy-terminal, .murphy-output, pre, code, textarea, input[type="text"] {
+    font-family: 'Courier New', Courier, monospace;
+    color: #00ff41;
+    background: #0a0a0a;
+  }
+  *:focus-visible { outline: 2px solid #00ff41; outline-offset: 2px; }
+  @media (max-width: 768px) { .murphy-sidebar { display: none; } }
+</style>
 </head>
 <body style="--accent: #00D4AA;">
+<!--
+╔══════════════════════════════════════════════════╗
+║ ███╗   ███╗██╗   ██╗██████╗ ██████╗ ██╗  ██╗██╗   ██╗                       ║
+║ ████╗ ████║██║   ██║██╔══██╗██╔══██╗██║  ██║╚██╗ ██╔╝                       ║
+║ ██╔████╔██║██║   ██║██████╔╝██████╔╝███████║ ╚████╔╝                        ║
+║ ██║╚██╔╝██║██║   ██║██╔══██╗██╔═══╝ ██╔══██║  ╚██╔╝                         ║
+║ ██║ ╚═╝ ██║╚██████╔╝██║  ██║██║     ██║  ██║   ██║                          ║
+║ ╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝  ╚═╝   ╚═╝                          ║
+║ ███████╗██╗   ██╗███████╗████████╗███████╗███╗   ███╗                        ║
+║ ██╔════╝╚██╗ ██╔╝██╔════╝╚══██╔══╝██╔════╝████╗ ████║                        ║
+║ ███████╗ ╚████╔╝ ███████╗   ██║   █████╗  ██╔████╔██║                        ║
+║ ╚════██║  ╚██╔╝  ╚════██║   ██║   ██╔══╝  ██║╚██╔╝██║                        ║
+║ ███████║   ██║   ███████║   ██║   ███████╗██║ ╚═╝ ██║                        ║
+║ ╚══════╝   ╚═╝   ╚══════╝   ╚═╝   ╚══════╝╚═╝     ╚═╝                        ║
+╚══════════════════════════════════════════════════╝
+-->
 
 <!-- ╔══════════════════════════════════════════════════════════════╗
      ║ ███╗   ███╗██╗   ██╗██████╗ ██████╗ ██╗  ██╗██╗   ██╗    ║

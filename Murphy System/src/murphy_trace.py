@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 class SpanKind(str, Enum):
+    """SpanKind enumeration."""
     LLM = "llm"
     TOOL = "tool"
     RETRIEVAL = "retrieval"
@@ -46,6 +47,7 @@ class SpanKind(str, Enum):
 
 
 class LLMMetrics(BaseModel):
+    """Metrics container for llm measurement."""
     model: str
     provider: str
     tokens_in: int = 0
@@ -56,6 +58,7 @@ class LLMMetrics(BaseModel):
 
 
 class PromptVersion(BaseModel):
+    """PromptVersion — prompt version definition."""
     version_id: str
     template_name: str
     content: str
@@ -75,6 +78,7 @@ def _utcnow_iso() -> str:
 
 @dataclass
 class Span:
+    """Span — span definition."""
     span_id: str
     trace_id: str
     parent_span_id: Optional[str]
@@ -112,6 +116,7 @@ class Span:
 
 @dataclass
 class Trace:
+    """Trace — trace definition."""
     trace_id: str
     name: str
     started_at: str
@@ -161,6 +166,7 @@ class Trace:
 
 
 class TraceStore:
+    """TraceStore — trace store definition."""
     def __init__(self, traces_dir: Optional[str] = None) -> None:
         self._lock = threading.Lock()
         self._traces: Dict[str, Trace] = {}
@@ -227,6 +233,8 @@ class TraceStore:
 
 
 class TraceExporter:
+    """TraceExporter — trace exporter definition."""
+
     @staticmethod
     def to_json(trace: Trace) -> str:
         return json.dumps(trace.to_dict(), indent=2)
@@ -285,6 +293,7 @@ class TraceExporter:
 
 
 class TraceContext:
+    """TraceContext — trace context definition."""
     _local = threading.local()
 
     @classmethod

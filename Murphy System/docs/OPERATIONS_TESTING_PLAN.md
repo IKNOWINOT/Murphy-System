@@ -309,7 +309,7 @@ After each iteration, re-run baseline measurements and compare:
 
 | Iteration | Health Check | Text Gen (p95) | Task Create | Throughput | Regression? |
 |-----------|-------------|----------------|-------------|------------|-------------|
-| Baseline | — | — | — | — | — |
+| Baseline (2026-03-10) | < 2 ms | — | 0.71 ms (p50) | 1,242 ops/s | N/A |
 | Iteration 1 | — | — | — | — | — |
 | Iteration 2 | — | — | — | — | — |
 

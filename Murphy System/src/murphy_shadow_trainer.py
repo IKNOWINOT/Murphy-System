@@ -21,12 +21,14 @@ from pydantic import BaseModel
 
 
 class ExplorationStrategy(Enum):
+    """ExplorationStrategy enumeration."""
     EPSILON_GREEDY = "epsilon_greedy"
     UCB = "ucb"
     THOMPSON_SAMPLING = "thompson_sampling"
 
 
 class RewardSignal(BaseModel):
+    """RewardSignal — reward signal definition."""
     task_id: str
     action_taken: str
     task_success: bool
@@ -42,6 +44,7 @@ class RewardSignal(BaseModel):
 
 @dataclass
 class Experience:
+    """Experience — experience definition."""
     exp_id: str
     state: Dict[str, Any]
     action: str
@@ -52,6 +55,7 @@ class Experience:
 
 
 class ExperienceBuffer:
+    """ExperienceBuffer — experience buffer definition."""
     def __init__(self, max_size: int = 10000) -> None:
         self._max_size = max_size
         self._buffer: List[Experience] = []
@@ -78,6 +82,7 @@ class ExperienceBuffer:
 
 
 class ShadowPolicy:
+    """ShadowPolicy — shadow policy definition."""
     def __init__(self, policy_id: str = "default") -> None:
         self.policy_id = policy_id
         self.action_values: Dict[str, float] = {}
@@ -112,6 +117,7 @@ class ShadowPolicy:
 
 
 class PolicyUpdater:
+    """PolicyUpdater — policy updater definition."""
     def __init__(
         self,
         policy: ShadowPolicy,
@@ -164,6 +170,7 @@ class PolicyUpdater:
 
 
 class ExplorationAgent:
+    """ExplorationAgent — exploration agent definition."""
     def __init__(
         self,
         policy: ShadowPolicy,
@@ -229,6 +236,7 @@ class ExplorationAgent:
 
 
 class ShadowEvaluator:
+    """ShadowEvaluator — shadow evaluator definition."""
     def __init__(self) -> None:
         pass
 
@@ -282,6 +290,7 @@ class ShadowEvaluator:
 
 
 class ExplorationLoop:
+    """ExplorationLoop — exploration loop definition."""
     def __init__(
         self,
         agent: ExplorationAgent,

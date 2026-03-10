@@ -546,12 +546,22 @@ class TestUIProductionReadiness(unittest.TestCase):
 
     def test_architect_has_neon_theme(self):
         content = self._read_file("terminal_architect.html")
+        has_green = "#00ff41" in content.lower() or "#00ff00" in content.lower()
+        self.assertTrue(has_green,
+                       "Architect terminal missing neon green (#00ff41)")
         self.assertTrue(
             self._has_neon_theme(content),
             "Architect terminal missing neon/dark theme")
 
     def test_integrated_has_neon_theme(self):
         content = self._read_file("terminal_integrated.html")
+        has_green = "#00ff41" in content.lower() or "#00ff00" in content.lower()
+        self.assertTrue(has_green, "Integrated terminal missing neon green")
+
+    def test_worker_has_neon_theme(self):
+        content = self._read_file("terminal_worker.html")
+        has_green = "#00ff41" in content.lower() or "#00ff00" in content.lower()
+        self.assertTrue(has_green, "Worker terminal missing neon green")
         self.assertTrue(
             self._has_neon_theme(content),
             "Integrated terminal missing neon/dark theme")

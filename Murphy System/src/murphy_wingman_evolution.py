@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 class ValidationMetrics(BaseModel):
+    """Metrics container for validation measurement."""
     pair_id: str
     total_validations: int = 0
     approved_count: int = 0
@@ -58,6 +59,7 @@ class ValidationMetrics(BaseModel):
 
 
 class WingmanScorecard(BaseModel):
+    """WingmanScorecard — wingman scorecard definition."""
     pair_id: str
     precision: float = 0.0
     recall: float = 0.0
@@ -88,6 +90,7 @@ class WingmanScorecard(BaseModel):
 
 @dataclass
 class RunbookSuggestion:
+    """RunbookSuggestion — runbook suggestion definition."""
     suggestion_id: str
     pair_id: str
     rule_id: str
@@ -222,6 +225,7 @@ class AutoRunbookGenerator:
 
 @dataclass
 class CascadeStage:
+    """CascadeStage — cascade stage definition."""
     stage_id: str
     pair_id: str
     stage_name: str
