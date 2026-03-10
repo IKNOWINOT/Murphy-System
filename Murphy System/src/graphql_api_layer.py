@@ -419,11 +419,11 @@ def _parse_value(raw: str) -> Any:
     try:
         return int(raw)
     except ValueError:
-        pass
+        logger.debug("Cannot parse %r as int, trying float", raw)
     try:
         return float(raw)
     except ValueError:
-        pass
+        logger.debug("Cannot parse %r as float, returning as string", raw)
     return raw
 
 

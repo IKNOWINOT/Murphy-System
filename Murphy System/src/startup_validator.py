@@ -90,7 +90,7 @@ class StartupValidator:
         report = validator.validate()
         if not report.passed:
             for f in report.failures:
-                print(f"FAIL: {f.name} — {f.message}")
+                logger.error("FAIL: %s — %s", f.name, f.message)
     """
 
     def __init__(self) -> None:
@@ -181,7 +181,8 @@ class StartupValidator:
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                sock.bind(("127.0.0.1", port))
+                bind_host = "127.0.0.1"  # default localhost for port check
+                sock.bind((bind_host, port))
             return ValidationResult(
                 name=f"port:{port}",
                 passed=True,
