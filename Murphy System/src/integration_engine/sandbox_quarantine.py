@@ -19,8 +19,6 @@ Steps performed (all in the order described below):
 
 from __future__ import annotations
 
-import base64
-import copy
 import importlib
 import json
 import logging
@@ -29,7 +27,7 @@ import re
 import shutil
 import sys
 import tempfile
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -54,6 +52,7 @@ COPYLEFT_LICENSES: frozenset = frozenset({
 # ---------------------------------------------------------------------------
 # ThreatFinding dataclass
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class ThreatFinding:
@@ -785,9 +784,9 @@ class SandboxQuarantine:
                             "_quarantine_sandbox_module", str(entry_abs)
                         )
                         if spec and spec.loader:
-                            mod = importlib.util.module_from_spec(spec)
                             # Do NOT exec the module to avoid side effects —
-                            # just check the spec is valid
+                            # just check the spec can be created successfully
+                            importlib.util.module_from_spec(spec)
                             result["success"] = True
                             result["notes"].append(f"Entry point '{entry}' is importable")
                         else:

@@ -34,7 +34,7 @@ import logging
 import re
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, Generator, Iterator, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 logger = logging.getLogger("integration_engine.adapters.rynnbrain")
 
@@ -46,23 +46,24 @@ RYNNBRAIN_COMMIT = "4e694f27d5a23b3c3b487be1a97e708c15cb9fd4"
 RYNNBRAIN_HF_BASE = "Alibaba-DAMO-Academy"
 
 RYNNBRAIN_VARIANTS: Dict[str, str] = {
-    "2b":       f"{RYNNBRAIN_HF_BASE}/RynnBrain-2B",
-    "8b":       f"{RYNNBRAIN_HF_BASE}/RynnBrain-8B",
-    "30b":      f"{RYNNBRAIN_HF_BASE}/RynnBrain-30B-A3B",
-    "30b-moe":  f"{RYNNBRAIN_HF_BASE}/RynnBrain-30B-A3B",
-    "plan":     f"{RYNNBRAIN_HF_BASE}/RynnBrain-Plan",
-    "nav":      f"{RYNNBRAIN_HF_BASE}/RynnBrain-Nav",
-    "cop":      f"{RYNNBRAIN_HF_BASE}/RynnBrain-CoP",
+    "2b": f"{RYNNBRAIN_HF_BASE}/RynnBrain-2B",
+    "8b": f"{RYNNBRAIN_HF_BASE}/RynnBrain-8B",
+    "30b": f"{RYNNBRAIN_HF_BASE}/RynnBrain-30B-A3B",
+    "30b-moe": f"{RYNNBRAIN_HF_BASE}/RynnBrain-30B-A3B",
+    "plan": f"{RYNNBRAIN_HF_BASE}/RynnBrain-Plan",
+    "nav": f"{RYNNBRAIN_HF_BASE}/RynnBrain-Nav",
+    "cop": f"{RYNNBRAIN_HF_BASE}/RynnBrain-CoP",
 }
 
 # ---------------------------------------------------------------------------
 # Murphy internal types (lightweight stand-ins for the full Murphy types)
 # ---------------------------------------------------------------------------
 
+
 class TaskType(str, Enum):
-    GENERAL     = "general"
-    PLANNING    = "planning"
-    NAVIGATION  = "navigation"
+    GENERAL = "general"
+    PLANNING = "planning"
+    NAVIGATION = "navigation"
 
 
 @dataclass
