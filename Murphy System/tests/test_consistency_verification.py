@@ -15,9 +15,30 @@ sys.path.insert(0, ROOT)
 
 
 def _load_runtime_source():
-    """Load murphy_system_1.0_runtime.py as text."""
-    with open(os.path.join(ROOT, "murphy_system_1.0_runtime.py"), "r") as f:
-        return f.read()
+    """Load the full runtime source (wrapper + refactored modules).
+
+    After INC-13, the monolithic runtime was split into:
+      - murphy_system_1.0_runtime.py  (thin wrapper)
+      - src/runtime/_deps.py          (imports & MODULE_CATALOG)
+      - src/runtime/app.py            (FastAPI routes)
+      - src/runtime/murphy_system_core.py (MurphySystem class)
+    All four are concatenated for tests that grep the source.
+    """
+    parts: list[str] = []
+    for rel in (
+        "murphy_system_1.0_runtime.py",
+        os.path.join("src", "runtime", "_deps.py"),
+        os.path.join("src", "runtime", "app.py"),
+        os.path.join("src", "runtime", "murphy_system_core.py"),
+    ):
+        path = os.path.join(ROOT, rel)
+        if os.path.isfile(path):
+            try:
+                with open(path, "r") as f:
+                    parts.append(f.read())
+            except (OSError, UnicodeDecodeError):
+                pass
+    return "\n".join(parts)
 
 
 def _extract_catalog_entries(source):

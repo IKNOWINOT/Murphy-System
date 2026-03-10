@@ -236,7 +236,7 @@ class AlertRulesEngine:
 
             # Cooldown check
             with self._lock:
-                last = self._last_fired.get(rule.rule_id, 0.0)
+                last = self._last_fired.get(rule.rule_id, float('-inf'))
                 if now - last < rule.cooldown_seconds:
                     continue
                 self._last_fired[rule.rule_id] = now
