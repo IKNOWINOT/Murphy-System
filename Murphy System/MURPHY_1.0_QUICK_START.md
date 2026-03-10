@@ -43,7 +43,7 @@ Murphy is a **Universal AI Automation System** that can:
 - ✅ Automate **any business type** (factory, content, data, system, agent, business)
 - ✅ **Self-integrate** (GitHub repositories, APIs, hardware)
 - ✅ **Self-improve** (learns from corrections)
-- ✅ **Self-operate** (runs Inoni LLC autonomously)
+- ✅ **Self-operate** (runs Inoni LLC operations with autonomous execution and human-in-the-loop safety gates)
 - ✅ Maintain **safety** (human-in-the-loop approval)
 
 ---
