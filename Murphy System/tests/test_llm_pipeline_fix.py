@@ -19,6 +19,27 @@ import pytest
 # Ensure the parent directory (containing murphy_terminal.py) is on the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+
+def _read_runtime_files() -> str:
+    """Read the full runtime source after the INC-13 refactor.
+
+    Concatenates the thin wrapper and the refactored modules so that
+    tests greping for patterns can find content in any runtime file.
+    """
+    root = os.path.join(os.path.dirname(__file__), "..")
+    parts: list[str] = []
+    for rel in (
+        "murphy_system_1.0_runtime.py",
+        os.path.join("src", "runtime", "_deps.py"),
+        os.path.join("src", "runtime", "app.py"),
+        os.path.join("src", "runtime", "murphy_system_core.py"),
+    ):
+        path = os.path.join(root, rel)
+        if os.path.isfile(path):
+            with open(path, encoding="utf-8") as fh:
+                parts.append(fh.read())
+    return "\n".join(parts)
+
 try:
     import textual as _textual_mod
     _textual_available = True
@@ -55,9 +76,7 @@ class TestDotenvLoadedAtStartup:
 
     def test_load_dotenv_import_and_call_present(self):
         """Runtime imports dotenv AND calls it near the top of the module."""
-        runtime_path = os.path.join(os.path.dirname(__file__), "..", "murphy_system_1.0_runtime.py")
-        with open(runtime_path, encoding="utf-8") as fh:
-            content = fh.read()
+        content = _read_runtime_files()
         assert "from dotenv import load_dotenv" in content, \
             "load_dotenv not imported in runtime"
         import_idx = content.index("from dotenv import load_dotenv")
@@ -68,9 +87,7 @@ class TestDotenvLoadedAtStartup:
 
     def test_load_dotenv_uses_path_resolution(self):
         """Runtime resolves .env path relative to __file__."""
-        runtime_path = os.path.join(os.path.dirname(__file__), "..", "murphy_system_1.0_runtime.py")
-        with open(runtime_path, encoding="utf-8") as fh:
-            content = fh.read()
+        content = _read_runtime_files()
         assert "__file__" in content, "No __file__ reference found for path resolution"
         assert ".env" in content, ".env path string missing from runtime"
 
@@ -84,9 +101,7 @@ class TestConfigureEndpointPersistence:
 
     def test_configure_endpoint_writes_to_env_file(self):
         """The configure endpoint body calls write_env_key or env_manager."""
-        runtime_path = os.path.join(os.path.dirname(__file__), "..", "murphy_system_1.0_runtime.py")
-        with open(runtime_path, encoding="utf-8") as fh:
-            content = fh.read()
+        content = _read_runtime_files()
         configure_idx = content.index("async def llm_configure")
         # Find the next endpoint definition after llm_configure
         next_endpoint_match = re.search(r"@app\.(get|post|put|delete)\(", content[configure_idx + 1:])
@@ -99,9 +114,7 @@ class TestConfigureEndpointPersistence:
 
     def test_configure_endpoint_calls_refresh_availability(self):
         """The configure endpoint calls refresh_availability to update LLMController."""
-        runtime_path = os.path.join(os.path.dirname(__file__), "..", "murphy_system_1.0_runtime.py")
-        with open(runtime_path, encoding="utf-8") as fh:
-            content = fh.read()
+        content = _read_runtime_files()
         configure_idx = content.index("async def llm_configure")
         next_endpoint_match = re.search(r"@app\.(get|post|put|delete)\(", content[configure_idx + 1:])
         if next_endpoint_match:

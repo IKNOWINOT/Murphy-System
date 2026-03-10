@@ -288,14 +288,23 @@ class TestEndpointsInCode:
     """Endpoints documented in ENDPOINTS.md must have a matching route in the codebase."""
 
     def _runtime_text(self) -> str:
-        """Read the main runtime file which contains most route definitions."""
-        runtime = os.path.join(MURPHY_ROOT, "murphy_system_1.0_runtime.py")
-        if os.path.isfile(runtime):
-            try:
-                return _read(runtime)
-            except (OSError, UnicodeDecodeError):
-                return ""
-        return ""
+        """Read the main runtime files which contain route definitions.
+
+        After the INC-13 refactor, routes live in src/runtime/app.py rather
+        than the thin wrapper murphy_system_1.0_runtime.py.
+        """
+        parts: list[str] = []
+        for rel in (
+            "murphy_system_1.0_runtime.py",
+            os.path.join("src", "runtime", "app.py"),
+        ):
+            path = os.path.join(MURPHY_ROOT, rel)
+            if os.path.isfile(path):
+                try:
+                    parts.append(_read(path))
+                except (OSError, UnicodeDecodeError):
+                    pass
+        return "\n".join(parts)
 
     @pytest.fixture(scope="class")
     def runtime(self):

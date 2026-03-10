@@ -132,6 +132,10 @@ class TestCostsDashboardEndpoints(unittest.TestCase):
         except ImportError:
             raise unittest.SkipTest("fastapi not installed — skipping endpoint tests")
 
+        # Raise rate limit for test runs to avoid 429 errors
+        os.environ.setdefault("MURPHY_RATE_LIMIT_RPM", "10000")
+        os.environ.setdefault("MURPHY_RATE_LIMIT_BURST", "10000")
+
         import importlib.util as _ilu
         _rt_path = os.path.join(os.path.dirname(__file__), "..", "murphy_system_1.0_runtime.py")
         _spec = _ilu.spec_from_file_location("murphy_system_1_0_runtime", _rt_path)
