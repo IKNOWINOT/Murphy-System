@@ -36,7 +36,7 @@ try:
     _HAS_FLASK = True
 except ImportError:
     _HAS_FLASK = False
-    Blueprint = type("Blueprint", (), {"route": lambda *a, **k: lambda f: f})  # type: ignore[assignment,misc]
+    Blueprint = type("Blueprint", (), {"__init__": lambda self, *a, **k: None, "route": lambda *a, **k: lambda f: f})  # type: ignore[assignment,misc]
     def jsonify(*_a: Any, **_k: Any) -> dict:  # type: ignore[misc]
         return {}
     class _FakeReq:  # type: ignore[no-redef]
