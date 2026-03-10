@@ -170,16 +170,21 @@ class SelfImprovementLoop:
         # -- Step 4: Register -----------------------------------------------
         if self.registry is not None:
             try:
+                base_model_name = getattr(
+                    getattr(self.trainer, "model", None), "config", None
+                )
+                base_model_name = (
+                    getattr(base_model_name, "base_model", "unknown")
+                    if base_model_name is not None
+                    else "unknown"
+                )
+
                 from .mfm_registry import MFMModelVersion
 
                 version = MFMModelVersion(
                     version_id=version_id,
                     version_str=version_str,
-                    base_model=getattr(
-                        getattr(self.trainer, "model", None),
-                        "config",
-                        type("C", (), {"base_model": "unknown"})(),
-                    ).base_model,
+                    base_model=base_model_name,
                     training_config=train_result,
                     traces_used=len(traces),
                     created_at=datetime.now(timezone.utc).isoformat(),

@@ -165,7 +165,10 @@ class MFMTokenizer:
         if "intent" in trace_dict or "think" in trace_dict:
             parts.append(_PHASE_TOKENS["think"])
             think_data = trace_dict.get("think", trace_dict.get("intent", ""))
-            parts.append(json.dumps(think_data, default=str) if isinstance(think_data, dict) else str(think_data))
+            if isinstance(think_data, dict):
+                parts.append(json.dumps(think_data, default=str))
+            else:
+                parts.append(str(think_data))
 
         # -- ACT phase ------------------------------------------------------
         if "action_plan" in trace_dict or "act" in trace_dict:

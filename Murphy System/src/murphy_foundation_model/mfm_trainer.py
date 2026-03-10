@@ -345,7 +345,8 @@ class MFMTrainer:
             conf_head = getattr(self.model, "_confidence_head", None)
             if conf_head is not None:
                 conf_logits = conf_head(last_hidden)
-                conf_targets = (labels["confidence_labels"] * (conf_logits.shape[-1] - 1)).long()
+                clamped = labels["confidence_labels"].clamp(0.0, 1.0)
+                conf_targets = (clamped * (conf_logits.shape[-1] - 1)).long()
                 conf_loss = F.cross_entropy(conf_logits, conf_targets)
                 total_loss = total_loss + self.config.confidence_loss_weight * conf_loss
 
@@ -355,7 +356,8 @@ class MFMTrainer:
             risk_head = getattr(self.model, "_risk_head", None)
             if risk_head is not None:
                 risk_logits = risk_head(last_hidden)
-                risk_targets = (labels["risk_labels"] * (risk_logits.shape[-1] - 1)).long()
+                clamped = labels["risk_labels"].clamp(0.0, 1.0)
+                risk_targets = (clamped * (risk_logits.shape[-1] - 1)).long()
                 risk_loss = F.cross_entropy(risk_logits, risk_targets)
                 total_loss = total_loss + self.config.risk_loss_weight * risk_loss
 

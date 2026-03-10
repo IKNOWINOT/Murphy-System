@@ -148,10 +148,8 @@ class MFMInferenceService:
 
         # Apply temperature scaling to confidence
         if self.config.temperature != 1.0 and confidence > 0:
-            import math
-
-            scaled = math.exp(math.log(max(confidence, 1e-9)) / self.config.temperature)
-            confidence = max(0.0, min(1.0, scaled))
+            confidence = pow(confidence, 1.0 / self.config.temperature)
+            confidence = max(0.0, min(1.0, confidence))
 
         escalation_needed = result.get("escalation_needed", True)
 
