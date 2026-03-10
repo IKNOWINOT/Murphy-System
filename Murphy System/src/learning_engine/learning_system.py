@@ -43,6 +43,15 @@ class LearningSystem:
         Args:
             correction_data: Dictionary containing correction details
         """
+        try:
+            from src.self_learning_toggle import get_self_learning_toggle
+            slt = get_self_learning_toggle()
+            if not slt.is_enabled():
+                slt.increment_skipped()
+                return
+        except Exception:
+            pass  # toggle unavailable — allow learning to proceed
+
         entry = {
             'correction': correction_data,
             'received_at': datetime.now(timezone.utc).isoformat(),
