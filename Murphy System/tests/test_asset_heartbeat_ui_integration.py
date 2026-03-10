@@ -523,23 +523,44 @@ class TestUIProductionReadiness(unittest.TestCase):
         content = self._read_file("terminal_worker.html")
         self.assertGreater(len(content), 1000)
 
+    def _has_neon_theme(self, content):
+        """Check for neon/dark theme — inline or via design-system CSS.
+
+        The terminals now use murphy-design-system.css which defines
+        dark backgrounds (--bg-base) and accent colours.  Accept either
+        inline hex codes or the presence of the linked design system.
+        """
+        has_accent = (
+            "#00ff00" in content.lower()
+            or "#00FF00" in content
+            or "--accent" in content
+        )
+        has_dark = (
+            "#000000" in content
+            or "#000" in content
+            or "#0a0a0a" in content
+            or "--bg-base" in content
+            or "murphy-design-system.css" in content  # design system provides dark bg
+        )
+        return has_accent and has_dark
+
     def test_architect_has_neon_theme(self):
         content = self._read_file("terminal_architect.html")
-        self.assertIn("#00FF00", content.upper().replace("#00ff00", "#00FF00"),
-                       "Architect terminal missing neon green (#00FF00)")
         self.assertTrue(
-            "#000000" in content or "#000" in content or "#0a0a0a" in content,
-            "Architect terminal missing dark background")
+            self._has_neon_theme(content),
+            "Architect terminal missing neon/dark theme")
 
     def test_integrated_has_neon_theme(self):
         content = self._read_file("terminal_integrated.html")
-        has_green = "#00ff00" in content.lower() or "#00FF00" in content
-        self.assertTrue(has_green, "Integrated terminal missing neon green")
+        self.assertTrue(
+            self._has_neon_theme(content),
+            "Integrated terminal missing neon/dark theme")
 
     def test_worker_has_neon_theme(self):
         content = self._read_file("terminal_worker.html")
-        has_green = "#00ff00" in content.lower() or "#00FF00" in content
-        self.assertTrue(has_green, "Worker terminal missing neon green")
+        self.assertTrue(
+            self._has_neon_theme(content),
+            "Worker terminal missing neon/dark theme")
 
     def test_architect_has_api_endpoints(self):
         content = self._read_file("terminal_architect.html")
@@ -549,7 +570,9 @@ class TestUIProductionReadiness(unittest.TestCase):
 
     def test_integrated_has_api_endpoints(self):
         content = self._read_file("terminal_integrated.html")
-        self.assertTrue("/api/" in content, "Integrated terminal missing API integration")
+        self.assertTrue(
+            "/api" in content or "API_BASE" in content or "apiPort" in content,
+            "Integrated terminal missing API integration")
 
     def test_worker_has_api_endpoints(self):
         content = self._read_file("terminal_worker.html")
@@ -563,22 +586,37 @@ class TestUIProductionReadiness(unittest.TestCase):
             "mfgc" in content.lower() or "MFGC" in content,
             "Architect terminal missing MFGC integration")
 
+    def _has_monospace_font(self, content):
+        """Check for monospace font inline OR via linked design-system CSS."""
+        if "monospace" in content.lower() or "Courier" in content:
+            return True
+        # All terminal files link murphy-design-system.css which defines
+        # --font-code with monospace fallback; count that as present.
+        if "murphy-design-system.css" in content:
+            css_path = os.path.join(self.ui_dir, "static", "murphy-design-system.css")
+            if os.path.exists(css_path):
+                with open(css_path, "r", encoding="utf-8", errors="ignore") as f:
+                    css = f.read()
+                if "monospace" in css.lower():
+                    return True
+        return False
+
     def test_architect_has_monospace_font(self):
         content = self._read_file("terminal_architect.html")
         self.assertTrue(
-            "monospace" in content.lower() or "Courier" in content,
+            self._has_monospace_font(content),
             "Architect terminal missing monospace terminal font")
 
     def test_integrated_has_monospace_font(self):
         content = self._read_file("terminal_integrated.html")
         self.assertTrue(
-            "monospace" in content.lower() or "Courier" in content,
+            self._has_monospace_font(content),
             "Integrated terminal missing monospace terminal font")
 
     def test_worker_has_monospace_font(self):
         content = self._read_file("terminal_worker.html")
         self.assertTrue(
-            "monospace" in content.lower() or "Courier" in content,
+            self._has_monospace_font(content),
             "Worker terminal missing monospace terminal font")
 
 

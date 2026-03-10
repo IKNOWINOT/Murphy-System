@@ -22,6 +22,10 @@ pydantic-settings>=2.0.0
 python-multipart>=0.0.6
 flask>=3.0.0  # Recursive stability controller API
 flask-cors>=4.0.0
+# NOTE: src/fastapi_security.py (internal module) is a HARD dependency
+# for the AUAR secure app.  create_secure_auar_app() will raise
+# RuntimeError at startup if it cannot be imported — set
+# AUAR_ALLOW_INSECURE=true only for local development.
 
 # Async Support
 aiohttp>=3.9.0
