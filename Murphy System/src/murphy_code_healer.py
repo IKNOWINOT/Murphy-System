@@ -575,7 +575,8 @@ class DiagnosticSupervisor:
             try:
                 source = py_file.read_text(encoding="utf-8", errors="replace")
                 tree = ast.parse(source)
-            except Exception:
+            except Exception as exc:
+                logger.debug("Skipping %s: %s", py_file, type(exc).__name__)
                 continue
             for node in ast.walk(tree):
                 if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):

@@ -330,7 +330,7 @@ class MarketDataFeed:
             try:
                 callbacks.remove(callback)
             except ValueError:
-                pass
+                logger.debug("Callback not found in price_callbacks for %s", pair)
 
     # ---- internal -------------------------------------------------------
 

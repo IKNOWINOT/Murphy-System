@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 class Discipline(str, Enum):
+    """Discipline enumeration."""
     MECHANICAL = "mechanical"
     ELECTRICAL = "electrical"
     STRUCTURAL = "structural"
@@ -33,6 +34,7 @@ class Discipline(str, Enum):
 
 
 class SheetSize(str, Enum):
+    """SheetSize enumeration."""
     A0 = "A0"
     A1 = "A1"
     A2 = "A2"
@@ -51,6 +53,7 @@ class SheetSize(str, Enum):
 
 
 class ElementType(str, Enum):
+    """ElementType enumeration."""
     POINT = "point"
     LINE = "line"
     ARC = "arc"
@@ -68,6 +71,7 @@ class ElementType(str, Enum):
 
 
 class ConstraintType(str, Enum):
+    """ConstraintType enumeration."""
     COINCIDENT = "coincident"
     PARALLEL = "parallel"
     PERPENDICULAR = "perpendicular"
@@ -84,6 +88,7 @@ class ConstraintType(str, Enum):
 # ---------------------------------------------------------------------------
 
 class DrawingElement(BaseModel):
+    """DrawingElement — drawing element definition."""
     element_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     element_type: ElementType
     geometry: Dict[str, Any] = Field(default_factory=dict)
@@ -93,6 +98,7 @@ class DrawingElement(BaseModel):
 
 
 class TitleBlock(BaseModel):
+    """TitleBlock — title block definition."""
     company: str = ""
     project: str = ""
     drawing_number: str = ""
@@ -105,6 +111,7 @@ class TitleBlock(BaseModel):
 
 
 class DrawingSheet(BaseModel):
+    """DrawingSheet — drawing sheet definition."""
     sheet_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     size: SheetSize = SheetSize.ANSI_D
     title_block: TitleBlock = Field(default_factory=TitleBlock)
@@ -114,6 +121,7 @@ class DrawingSheet(BaseModel):
 
 
 class DrawingProject(BaseModel):
+    """DrawingProject — drawing project definition."""
     project_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
     discipline: Discipline = Discipline.MECHANICAL
@@ -125,6 +133,7 @@ class DrawingProject(BaseModel):
 
 
 class ParametricConstraint(BaseModel):
+    """ParametricConstraint — parametric constraint definition."""
     constraint_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     constraint_type: ConstraintType
     element_ids: List[str] = Field(default_factory=list)

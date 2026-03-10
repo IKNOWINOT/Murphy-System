@@ -233,8 +233,8 @@ class AuditLogger:
         if self._sink:
             try:
                 self._sink(entry)
-            except Exception:  # noqa: BLE001
-                logger.warning("Audit sink failed for entry %s", entry.id)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Audit sink failed for entry %s: %s", entry.id, type(exc).__name__)
         return entry
 
     def log_api_call(

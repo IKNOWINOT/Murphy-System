@@ -31,6 +31,7 @@ from .module_generator import ModuleGenerator
 from .agent_generator import AgentGenerator
 from .safety_tester import SafetyTester
 from .hitl_approval import HITLApprovalSystem, ApprovalRequest, ApprovalStatus
+from .sandbox_quarantine import SandboxQuarantine
 
 
 class IntegrationResult:
@@ -102,6 +103,7 @@ class UnifiedIntegrationEngine:
         self.agent_generator = AgentGenerator()
         self.safety_tester = SafetyTester()
         self.hitl_approval = HITLApprovalSystem()
+        self.sandbox_quarantine = SandboxQuarantine()
         self.integration_framework = IntegrationFramework()
 
         # Track pending integrations (not yet approved)
@@ -218,6 +220,39 @@ class UnifiedIntegrationEngine:
             logger.info(f"  - Warnings: {len(test_results['warnings'])}")
             logger.info(f"  - Safety score: {test_results['safety_score']:.2f}/1.0")
 
+            # Step 5.5: Sandbox Quarantine — runs between SafetyTester and HITL Approval
+            logger.info("\n🔒 Step 5.5: Running Sandbox Quarantine Protocol...")
+            repo_path = swisskiss_result.get('repo_path', '')
+            quarantine_report = self.sandbox_quarantine.quarantine(
+                repo_path=repo_path,
+                audit=audit,
+                module=module,
+            )
+
+            logger.info(f"  - Quarantine score: {quarantine_report.quarantine_score:.2f}/1.0")
+            logger.info(f"  - Threat findings: {len(quarantine_report.threat_findings)}")
+            logger.info(f"  - Auto-remediations: {len(quarantine_report.auto_remediations)}")
+            logger.info(f"  - License conflicts: {len(quarantine_report.license_conflicts)}")
+
+            if not quarantine_report.admitted:
+                logger.info(f"\n🚫 QUARANTINE REJECTED: {quarantine_report.rejection_reason}")
+                return IntegrationResult(
+                    success=False,
+                    module_name=module_name,
+                    errors=[quarantine_report.rejection_reason or "Quarantine rejected"],
+                    metadata={
+                        'status': 'quarantine_rejected',
+                        'quarantine_score': quarantine_report.quarantine_score,
+                        'rejection_reason': quarantine_report.rejection_reason,
+                        'quarantine_report': quarantine_report.to_dict(),
+                    }
+                )
+
+            if quarantine_report.quarantine_score < 0.7:
+                logger.info("  ⚠️  Quarantine score below 0.70 — HITL will receive highlighted warnings")
+            else:
+                logger.info("✓ Quarantine passed — proceeding to HITL")
+
             # Step 6: Create HITL approval request
             logger.info("\n👤 Step 6: Creating human approval request...")
 
@@ -238,7 +273,8 @@ class UnifiedIntegrationEngine:
                 'agent': agent,
                 'capabilities': capabilities,
                 'audit': audit,
-                'test_results': test_results
+                'test_results': test_results,
+                'quarantine_report': quarantine_report,
             }
 
             logger.info(f"✓ Approval request created: {approval_request.request_id}")
@@ -267,7 +303,10 @@ class UnifiedIntegrationEngine:
                         'status': 'pending_approval',
                         'approval_request_id': approval_request.request_id,
                         'safety_score': test_results['safety_score'],
-                        'critical_issues': test_results['critical_issues']
+                        'critical_issues': test_results['critical_issues'],
+                        'quarantine_score': quarantine_report.quarantine_score,
+                        'quarantine_warnings': quarantine_report.quarantine_score < 0.7,
+                        'quarantine_report': quarantine_report.to_dict(),
                     }
                 )
 

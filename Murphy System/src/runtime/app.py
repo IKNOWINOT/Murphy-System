@@ -2223,6 +2223,97 @@ def create_app() -> FastAPI:
             logger.exception("Failed to list MFM versions")
             return JSONResponse({"error": str(exc)}, status_code=500)
 
+    # ==================== TEST MODE ====================
+
+    @app.get("/api/test-mode/status")
+    async def test_mode_status():
+        """Return the current test-mode session status."""
+        try:
+            from src.test_mode_controller import get_test_mode_controller
+            ctrl = get_test_mode_controller()
+            return JSONResponse(ctrl.get_status())
+        except Exception as exc:
+            return JSONResponse({"error": str(exc)}, status_code=500)
+
+    @app.post("/api/test-mode/toggle")
+    async def test_mode_toggle():
+        """Toggle test mode on or off."""
+        try:
+            from src.test_mode_controller import get_test_mode_controller
+            ctrl = get_test_mode_controller()
+            status = ctrl.toggle()
+            return JSONResponse(status)
+        except Exception as exc:
+            return JSONResponse({"error": str(exc)}, status_code=500)
+
+    # ==================== SELF-LEARNING TOGGLE ====================
+
+    @app.get("/api/learning/status")
+    async def learning_status():
+        """Return the current self-learning toggle status."""
+        try:
+            from src.self_learning_toggle import get_self_learning_toggle
+            slt = get_self_learning_toggle()
+            return JSONResponse(slt.get_status())
+        except Exception as exc:
+            return JSONResponse({"error": str(exc)}, status_code=500)
+
+    @app.post("/api/learning/toggle")
+    async def learning_toggle():
+        """Toggle self-learning on or off."""
+        try:
+            from src.self_learning_toggle import get_self_learning_toggle
+            slt = get_self_learning_toggle()
+            status = slt.toggle()
+            return JSONResponse(status)
+        except Exception as exc:
+            return JSONResponse({"error": str(exc)}, status_code=500)
+
+    # ==================== OAUTH CALLBACK ====================
+
+    @app.get("/api/auth/callback")
+    async def oauth_callback(request: Request):
+        """Handle OAuth authorization code callback."""
+        try:
+            params = dict(request.query_params)
+            code = params.get("code", "")
+            state = params.get("state", "")
+            if not code or not state:
+                return JSONResponse(
+                    {"error": "Missing code or state parameter"},
+                    status_code=400,
+                )
+            from src.account_management.oauth_provider_registry import OAuthProviderRegistry
+            registry = OAuthProviderRegistry()
+            token = registry.complete_auth_flow(state, code)
+            return JSONResponse({
+                "success": True,
+                "provider": token.provider.value,
+                "token_type": token.token_type,
+                "has_refresh_token": bool(token.refresh_token),
+                "expires_at": token.expires_at,
+                "profile": token.raw_profile,
+                "message": "OAuth flow completed. Account linked successfully.",
+            })
+        except ValueError as exc:
+            return JSONResponse({"error": str(exc)}, status_code=400)
+        except Exception as exc:
+            return JSONResponse({"error": str(exc)}, status_code=500)
+
+    # ==================== READINESS SCANNER ====================
+
+    @app.get("/api/readiness")
+    async def readiness_scan(request: Request):
+        """Run the recursive readiness scanner and return the deployment report."""
+        try:
+            from src.readiness_scanner import ReadinessScanner
+            scanner = ReadinessScanner()
+            base_url = str(request.base_url).rstrip("/")
+            report = scanner.scan(base_url=base_url)
+            return JSONResponse(report)
+        except Exception as exc:
+            return JSONResponse({"error": str(exc)}, status_code=500)
+
     return app
 
 

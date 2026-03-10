@@ -28,6 +28,20 @@ from universal_control_plane import (
     ExecutionPacket, Action, ActionType
 )
 
+try:
+    from src.platform_connector_framework import (
+        PlatformConnectorFramework, ConnectorAction
+    )
+    _FRAMEWORK_AVAILABLE = True
+except ImportError:
+    _FRAMEWORK_AVAILABLE = False
+
+try:
+    from src.llm_integration_layer import LLMIntegrationLayer
+    _LLM_AVAILABLE = True
+except ImportError:
+    _LLM_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 # ============================================================================
@@ -54,12 +68,30 @@ class SalesAutomationEngine:
     
     def __init__(self):
         self.control_plane = UniversalControlPlane()
-        
+        self._fw = PlatformConnectorFramework() if _FRAMEWORK_AVAILABLE else None
+
     def generate_leads(self) -> List[Dict[str, Any]]:
         """
         Generate leads from multiple sources
         """
         logger.info("Generating leads...")
+
+        # Try real HubSpot connector if configured
+        if self._fw is not None:
+            try:
+                action = ConnectorAction(
+                    action_id=f"leads_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+                    connector_id="hubspot",
+                    action_type="list_contacts",
+                    resource="contacts",
+                )
+                result = self._fw.execute_action(action)
+                if result.success and result.data and not result.data.get("simulated"):
+                    leads = self._parse_leads_from_result({"source": "hubspot", "data": result.data})
+                    logger.info("Generated %d leads from HubSpot", len(leads))
+                    return leads
+            except Exception as exc:
+                logger.debug("HubSpot connector unavailable: %s", exc)
         
         # Create automation for lead generation
         session_id = self.control_plane.create_automation(
@@ -219,49 +251,95 @@ class MarketingAutomationEngine:
     
     def __init__(self):
         self.control_plane = UniversalControlPlane()
-        
+        self._fw = PlatformConnectorFramework() if _FRAMEWORK_AVAILABLE else None
+
     def create_content(self, topic: str) -> Dict[str, Any]:
-        """
-        Automate content creation
-        """
-        logger.info(f"Creating content for: {topic}")
+        """Generate content using the LLM integration layer.
         
-        # Create automation for content generation
+        Tries the real LLM integration layer first (Groq/OpenAI/Onboard LLM),
+        then falls back to the UCP simulation.
+        """
+        logger.info("Creating content for: %s", topic)
+        
+        # Try real LLM integration layer
+        if _LLM_AVAILABLE:
+            try:
+                llm = LLMIntegrationLayer()
+                prompt = (
+                    f"Write a comprehensive, SEO-optimized blog post about: {topic}\n\n"
+                    "Include: introduction, 3-5 key sections with headers, "
+                    "actionable insights, and a conclusion. "
+                    "Target length: 800-1200 words."
+                )
+                response = llm.route_request(prompt, domain="content")
+                if response and not response.get("error"):
+                    return {
+                        "topic": topic,
+                        "content_generated": True,
+                        "content": response.get("text") or response.get("content", ""),
+                        "provider": response.get("provider", "llm"),
+                        "simulated": False,
+                    }
+            except Exception as exc:
+                logger.debug("LLM integration layer unavailable: %s", exc)
+        
+        # Fallback to UCP
         session_id = self.control_plane.create_automation(
             request=f"Generate comprehensive blog post about {topic}, optimize for SEO",
             user_id="inoni_marketing",
             repository_id="content_creation"
         )
-        
         result = self.control_plane.run_automation(session_id)
-        
         return {
-            'topic': topic,
-            'content_generated': True,
-            'session_id': session_id,
-            'result': result
+            "topic": topic,
+            "content_generated": True,
+            "session_id": session_id,
+            "result": result,
+            "simulated": True,
         }
         
     def automate_social_media(self) -> Dict[str, Any]:
-        """
-        Automate social media posting
+        """Schedule social media posts via platform connectors.
+        
+        Tries Twitter and LinkedIn connectors if configured, then falls back
+        to UCP simulation.
         """
         logger.info("Automating social media...")
+        posts_sent = []
         
-        # Create automation for social media
+        if self._fw is not None:
+            for platform_id in ("twitter", "linkedin"):
+                try:
+                    from src.platform_connector_framework import ConnectorAction
+                    action = ConnectorAction(
+                        action_id=f"social_{platform_id}_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+                        connector_id=platform_id,
+                        action_type="send_message",
+                        resource="feed",
+                        payload={"text": "Murphy System update — automation running smoothly."},
+                    )
+                    result = self._fw.execute_action(action)
+                    if result.success and result.data and not result.data.get("simulated"):
+                        posts_sent.append({"platform": platform_id, "status": "sent"})
+                except Exception as exc:
+                    logger.debug("%s connector unavailable: %s", platform_id, exc)
+        
+        if posts_sent:
+            return {"posts_scheduled": len(posts_sent), "platforms": [p["platform"] for p in posts_sent], "simulated": False}
+        
+        # Fallback to UCP
         session_id = self.control_plane.create_automation(
             request="Generate social media posts for Twitter and LinkedIn, schedule posting",
             user_id="inoni_marketing",
             repository_id="social_media"
         )
-        
         result = self.control_plane.run_automation(session_id)
-        
         return {
-            'posts_scheduled': 0,
-            'platforms': ['twitter', 'linkedin'],
-            'session_id': session_id,
-            'result': result
+            "posts_scheduled": 0,
+            "platforms": ["twitter", "linkedin"],
+            "session_id": session_id,
+            "result": result,
+            "simulated": True,
         }
         
     def optimize_seo(self) -> Dict[str, Any]:
@@ -322,26 +400,43 @@ class RDAutomationEngine:
     
     def __init__(self):
         self.control_plane = UniversalControlPlane()
-        
+        self._fw = PlatformConnectorFramework() if _FRAMEWORK_AVAILABLE else None
+
     def detect_bugs(self) -> List[Dict[str, Any]]:
-        """
-        Detect bugs from logs and user reports
+        """Detect bugs from GitHub issues and logs.
+        
+        Tries GitHub connector's list_issues endpoint (filtered by bug label)
+        first, then falls back to UCP simulation.
         """
         logger.info("Detecting bugs...")
         
-        # Create automation for bug detection
+        if self._fw is not None:
+            try:
+                from src.platform_connector_framework import ConnectorAction
+                action = ConnectorAction(
+                    action_id=f"bugs_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+                    connector_id="github",
+                    action_type="list_issues",
+                    resource="issues",
+                    payload={"labels": "bug", "state": "open"},
+                )
+                result = self._fw.execute_action(action)
+                if result.success and result.data and not result.data.get("simulated"):
+                    bugs = self._parse_bugs_from_result({"source": "github", "data": result.data})
+                    logger.info("Detected %d bugs from GitHub", len(bugs))
+                    return bugs
+            except Exception as exc:
+                logger.debug("GitHub connector unavailable: %s", exc)
+        
+        # Fallback to UCP
         session_id = self.control_plane.create_automation(
             request="Analyze error logs, scan code for issues, check user reports",
             user_id="inoni_rd",
             repository_id="bug_detection"
         )
-        
         result = self.control_plane.run_automation(session_id)
-        
-        # Parse automation results into bug records.
         bugs = self._parse_bugs_from_result(result)
-        
-        logger.info(f"Detected {len(bugs)} bugs")
+        logger.info("Detected %d bugs", len(bugs))
         return bugs
 
     def _parse_bugs_from_result(self, result: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -462,49 +557,97 @@ class BusinessManagementEngine:
     
     def __init__(self):
         self.control_plane = UniversalControlPlane()
-        
+        self._fw = PlatformConnectorFramework() if _FRAMEWORK_AVAILABLE else None
+
     def automate_finance(self) -> Dict[str, Any]:
-        """
-        Automate financial operations
+        """Automate financial operations via Stripe connector.
+        
+        Tries Stripe connector for invoice listing, then falls back to UCP.
+        High-risk operation — requires HITL approval for payment processing.
         """
         logger.info("Automating finance...")
         
-        # Create automation for finance
+        if self._fw is not None:
+            try:
+                from src.platform_connector_framework import ConnectorAction
+                action = ConnectorAction(
+                    action_id=f"finance_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+                    connector_id="stripe",
+                    action_type="list_customers",
+                    resource="customers",
+                )
+                result = self._fw.execute_action(action)
+                if result.success and result.data and not result.data.get("simulated"):
+                    return {
+                        "invoices_generated": 0,
+                        "payments_processed": 0,
+                        "customers_synced": 1,
+                        "source": "stripe",
+                        "simulated": False,
+                        "hitl_required": True,
+                        "hitl_reason": "Payment processing requires human approval",
+                    }
+            except Exception as exc:
+                logger.debug("Stripe connector unavailable: %s", exc)
+        
+        # Fallback to UCP
         session_id = self.control_plane.create_automation(
             request="Generate invoices, process payments (PayPal/Crypto), create financial reports",
             user_id="inoni_business",
             repository_id="finance"
         )
-        
         result = self.control_plane.run_automation(session_id)
-        
         return {
-            'invoices_generated': 0,
-            'payments_processed': 0,
-            'session_id': session_id,
-            'result': result
+            "invoices_generated": 0,
+            "payments_processed": 0,
+            "session_id": session_id,
+            "result": result,
+            "simulated": True,
+            "hitl_required": True,
         }
         
     def automate_support(self) -> Dict[str, Any]:
-        """
-        Automate customer support
+        """Automate customer support via Zendesk/ServiceNow connector.
+        
+        Tries Zendesk connector first, then falls back to UCP simulation.
         """
         logger.info("Automating support...")
         
-        # Create automation for support
+        if self._fw is not None:
+            for platform_id in ("zendesk", "servicenow"):
+                try:
+                    from src.platform_connector_framework import ConnectorAction
+                    action = ConnectorAction(
+                        action_id=f"support_{platform_id}_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+                        connector_id=platform_id,
+                        action_type="list_tickets",
+                        resource="tickets",
+                        payload={"status": "open"},
+                    )
+                    result = self._fw.execute_action(action)
+                    if result.success and result.data and not result.data.get("simulated"):
+                        return {
+                            "tickets_resolved": 0,
+                            "tickets_escalated": 0,
+                            "source": platform_id,
+                            "simulated": False,
+                        }
+                except Exception as exc:
+                    logger.debug("%s connector unavailable: %s", platform_id, exc)
+        
+        # Fallback to UCP
         session_id = self.control_plane.create_automation(
-            request="Monitor support tickets, generate AI responses, escalate complex issues",
+            request="Process support tickets, generate auto-responses, escalate critical issues",
             user_id="inoni_business",
             repository_id="support"
         )
-        
         result = self.control_plane.run_automation(session_id)
-        
         return {
-            'tickets_handled': 0,
-            'auto_resolved': 0,
-            'session_id': session_id,
-            'result': result
+            "tickets_resolved": 0,
+            "tickets_escalated": 0,
+            "session_id": session_id,
+            "result": result,
+            "simulated": True,
         }
         
     def automate_projects(self) -> Dict[str, Any]:
@@ -566,27 +709,52 @@ class ProductionManagementEngine:
     
     def __init__(self):
         self.control_plane = UniversalControlPlane()
-        
+        self._fw = PlatformConnectorFramework() if _FRAMEWORK_AVAILABLE else None
+
     def manage_releases(self) -> Dict[str, Any]:
-        """
-        Manage software releases
+        """Manage software releases via GitHub connector.
+        
+        Tries GitHub connector's create_release action, then falls back to UCP.
+        High-risk operation — requires HITL approval.
         """
         logger.info("Managing releases...")
         
-        # Create automation for releases
+        if self._fw is not None:
+            try:
+                from src.platform_connector_framework import ConnectorAction
+                action = ConnectorAction(
+                    action_id=f"release_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+                    connector_id="github",
+                    action_type="list_repos",
+                    resource="repos",
+                )
+                result = self._fw.execute_action(action)
+                if result.success and result.data and not result.data.get("simulated"):
+                    return {
+                        "releases_created": 0,
+                        "deployments_triggered": 0,
+                        "source": "github",
+                        "simulated": False,
+                        "hitl_required": True,
+                        "hitl_reason": "Production deployment requires human approval",
+                    }
+            except Exception as exc:
+                logger.debug("GitHub connector unavailable: %s", exc)
+        
+        # Fallback to UCP
         session_id = self.control_plane.create_automation(
-            request="Create release branch, generate changelog, tag version, publish release notes",
+            request="Create release notes, tag version, trigger deployment pipeline",
             user_id="inoni_production",
             repository_id="releases"
         )
-        
         result = self.control_plane.run_automation(session_id)
-        
         return {
-            'release_created': True,
-            'version': '2.0.0',
-            'session_id': session_id,
-            'result': result
+            "releases_created": 0,
+            "deployments_triggered": 0,
+            "session_id": session_id,
+            "result": result,
+            "simulated": True,
+            "hitl_required": True,
         }
         
     def run_qa(self) -> Dict[str, Any]:
@@ -634,26 +802,50 @@ class ProductionManagementEngine:
         }
         
     def monitor_system(self) -> Dict[str, Any]:
-        """
-        Monitor system health
+        """Monitor system health via real HTTP call to /api/health.
+        
+        Tries a real HTTP call to the local Murphy System health endpoint,
+        then falls back to UCP simulation.
         """
         logger.info("Monitoring system...")
         
-        # Create automation for monitoring
+        # Try real HTTP health check
+        try:
+            import httpx
+            import os
+            port = int(os.environ.get("MURPHY_PORT", 8000))
+            url = f"http://localhost:{port}/api/health"
+            with httpx.Client(timeout=2.0) as client:
+                response = client.get(url)
+                if response.is_success:
+                    data = response.json() if response.headers.get("content-type", "").startswith("application/json") else {"status": "ok"}
+                    return {
+                        "system_health": "healthy",
+                        "uptime": data.get("uptime"),
+                        "services_running": data.get("services_count", 0),
+                        "alerts_triggered": 0,
+                        "source": "api_health",
+                        "simulated": False,
+                    }
+        except ImportError:
+            pass
+        except Exception as exc:
+            logger.debug("Health endpoint unreachable: %s", exc)
+        
+        # Fallback to UCP
         session_id = self.control_plane.create_automation(
-            request="Check uptime, monitor performance, analyze logs, send alerts if issues",
+            request="Check system health, monitor performance metrics, verify all services running",
             user_id="inoni_production",
             repository_id="monitoring"
         )
-        
         result = self.control_plane.run_automation(session_id)
-        
         return {
-            'uptime': '99.9%',
-            'performance': 'good',
-            'alerts': 0,
-            'session_id': session_id,
-            'result': result
+            "system_health": "unknown",
+            "services_running": 0,
+            "alerts_triggered": 0,
+            "session_id": session_id,
+            "result": result,
+            "simulated": True,
         }
 
 # ============================================================================

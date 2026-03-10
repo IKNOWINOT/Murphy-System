@@ -1174,7 +1174,8 @@ class LargeActionModel:
     ) -> ExecutionResult:
         """Execute each primitive in the approved sequence in DAG order."""
         sequence = agreement.approved_sequence
-        assert sequence is not None  # guarded by caller
+        if sequence is None:
+            raise ValueError("approved_sequence must not be None")
 
         completed: List[str] = []
         audit_entries: List[Dict[str, Any]] = []

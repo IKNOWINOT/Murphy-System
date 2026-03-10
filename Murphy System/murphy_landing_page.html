@@ -18,6 +18,15 @@
   .murphy-hero { padding: 2rem 1rem; }
   .murphy-card-grid { grid-template-columns: 1fr; }
 }
+  /* Neon terminal theme */
+  /* Color Key: green=#00ff41, cyan=#00ffff, bg=#0a0a0a */
+  .murphy-terminal, .murphy-output, pre, code, textarea, input[type="text"] {
+    font-family: 'Courier New', Courier, monospace;
+    color: #00ff41;
+    background: #0a0a0a;
+  }
+  *:focus-visible { outline: 2px solid #00ff41; outline-offset: 2px; }
+  @media (max-width: 480px) { .murphy-hero h1 { font-size: 1.5rem; } }
 </style>
 </head>
 <body class="murphy-no-sidebar">

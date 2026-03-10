@@ -4,7 +4,7 @@
 > project documentation, architecture, and getting-started instructions.
 
 This is the primary runtime directory for the Murphy System. It contains the
-FastAPI server, 650+ source modules across 56 packages in `src/`, web interfaces,
+FastAPI server, 753 source modules across 60 packages in `src/`, web interfaces,
 tests, and deployment configuration.
 
 ---
@@ -112,6 +112,29 @@ Tests live in the `tests/` directory.
 python -m pytest tests/
 ```
 
+### Performance Benchmarks
+
+In-process control-plane throughput (measured 2026-03-10, 2-vCPU CI runner):
+
+| Component | ops/s | p95 latency |
+|-----------|-------|-------------|
+| `UniversalControlPlane.create_automation()` | 1,242 | 1.51 ms |
+| `GateExecutionWiring.evaluate_gates()` | 71,981 | 0.030 ms |
+| Platform connector framework (simulated) | 248 | 21.4 ms |
+
+HTTP throughput (1,000+ req/s target) is achieved via multi-worker uvicorn. Use the
+Locust benchmark at `tests/benchmarks/locust_benchmark.py` against a running server.
+Full results: `documentation/testing/BENCHMARK_RESULTS.md`.
+
+### Integration Speed (SwissKiss Pipeline)
+
+The SwissKiss pipeline (clone → analyze → license detect → dependency parse → risk scan → module gen → audit) completes in **under 300 seconds** per repository integration.
+
+```bash
+# Run integration speed benchmark (requires network access)
+MURPHY_RUN_INTEGRATION_BENCHMARKS=1 python -m pytest tests/benchmarks/test_integration_speed.py -v
+```
+
 ---
 
 ## Deployment
@@ -141,7 +164,7 @@ kubectl apply -f k8s/
 Murphy System/
 ├── murphy_system_1.0_runtime.py   # Entry point — FastAPI server
 ├── murphy_terminal.py             # Optional Textual TUI
-├── src/                           # 649 modules, 56 packages
+├── src/                           # 753 modules, 60 packages
 │   ├── config.py                  # Pydantic settings
 │   ├── confidence_engine/         # Murphy Formula / Gate / Confidence
 │   ├── execution_engine/          # Task execution

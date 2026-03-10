@@ -19,7 +19,14 @@ logger = logging.getLogger(__name__)
 try:
     from ..mfgc_core import ConfidenceEngine as _CoreConfidenceEngine
 except ImportError:
-    from mfgc_core import ConfidenceEngine as _CoreConfidenceEngine
+    try:
+        from mfgc_core import ConfidenceEngine as _CoreConfidenceEngine
+    except ImportError:
+        # mfgc_core requires optional heavy dependencies (numpy, scipy).
+        # The ConfidenceEngine wrapper below is fully self-contained and does
+        # not delegate to _CoreConfidenceEngine at runtime, so a None stub is
+        # sufficient to keep the module importable without those deps.
+        _CoreConfidenceEngine = None  # type: ignore[assignment,misc]
 
 
 class MurphyIndexMode(Enum):
@@ -47,7 +54,7 @@ class ConfidenceEngine:
     """Wrapper around the core ConfidenceEngine with a simplified API for integration tests."""
 
     def __init__(self):
-        self._core = _CoreConfidenceEngine()
+        self._core = _CoreConfidenceEngine() if _CoreConfidenceEngine is not None else None
 
     def compute_confidence(self, artifacts):
         """Compute confidence from a list of artifact dicts.
