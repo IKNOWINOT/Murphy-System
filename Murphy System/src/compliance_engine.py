@@ -125,6 +125,8 @@ class ComplianceEngine:
 
         Returns a summary dict with overall status, per-requirement results,
         and counts of each status category.
+
+        Note: AUDIT STATUS: Not externally audited
         """
         session_id = deliverable.get("session_id", self._current_session)
         domain = deliverable.get("domain", "general")
@@ -202,7 +204,10 @@ class ComplianceEngine:
         reviewer: str,
         notes: str = "",
     ) -> bool:
-        """Record a HITL approval for a manual compliance check."""
+        """Record a HITL approval for a manual compliance check.
+
+        Note: AUDIT STATUS: Not externally audited
+        """
         with self._lock:
             if requirement_id not in self._requirements:
                 logger.warning("Requirement %s not found", requirement_id)
@@ -246,7 +251,10 @@ class ComplianceEngine:
         self,
         session_id: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Generate a compliance report for a session or all sessions."""
+        """Generate a compliance report for a session or all sessions.
+
+        Note: AUDIT STATUS: Not externally audited
+        """
         with self._lock:
             if session_id is not None:
                 results = list(self._results.get(session_id, []))
@@ -284,7 +292,10 @@ class ComplianceEngine:
     # ------------------------------------------------------------------
 
     def get_applicable_frameworks(self, domain: str) -> List[ComplianceFramework]:
-        """Return frameworks applicable to the given domain."""
+        """Return frameworks applicable to the given domain.
+
+        Note: AUDIT STATUS: Not externally audited
+        """
         return list(_DOMAIN_FRAMEWORK_MAP.get(domain, [ComplianceFramework.SOC2]))
 
     # ------------------------------------------------------------------
@@ -299,6 +310,8 @@ class ComplianceEngine:
 
         Returns a tuple of (ready, blockers) where blockers lists human-readable
         descriptions of any issues preventing release.
+
+        Note: AUDIT STATUS: Not externally audited
         """
         report = self.check_deliverable(deliverable)
         blockers: List[str] = []
@@ -355,7 +368,10 @@ class ComplianceEngine:
         req: ComplianceRequirement,
         deliverable: Dict[str, Any],
     ) -> ComplianceCheckResult:
-        """Evaluate a single requirement against a deliverable."""
+        """Evaluate a single requirement against a deliverable.
+
+        Note: AUDIT STATUS: Not externally audited
+        """
         if not req.auto_checkable:
             return ComplianceCheckResult(
                 requirement_id=req.requirement_id,
