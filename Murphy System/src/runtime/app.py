@@ -75,6 +75,15 @@ def create_app() -> FastAPI:
     except Exception as _aim_exc:
         logger.warning("AionMind kernel not available — endpoints use legacy path only: %s", _aim_exc)
     
+    # ── Board System (Phase 1 – Monday.com parity) ────────────────
+    try:
+        from board_system.api import create_board_router
+        _board_router = create_board_router()
+        app.include_router(_board_router)
+        logger.info("Board System API registered at /api/boards")
+    except Exception as _bs_exc:
+        logger.warning("Board System not available: %s", _bs_exc)
+
     # Register RBAC governance with security layer (SEC-005)
     rbac = getattr(murphy, 'rbac_governance', None)
     if rbac is not None:
