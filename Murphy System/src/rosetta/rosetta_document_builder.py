@@ -51,9 +51,9 @@ Usage::
     )
 
     # Read document before acting
-    print(doc.business_recommendation())
+    recommendation = doc.business_recommendation()
     for task in doc.next_tasks():
-        print(task.title, task.success_metric)
+        summary = (task.title, task.success_metric)  # noqa: T201
 """
 
 from __future__ import annotations
