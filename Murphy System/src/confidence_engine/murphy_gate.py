@@ -52,7 +52,8 @@ class MurphyGate:
         confidence: float,
         threshold: Optional[float] = None,
         phase: Optional[Phase] = None,
-        context: Optional[dict] = None
+        context: Optional[dict] = None,
+        runtime_config: Optional[dict] = None,
     ) -> GateResult:
         """
         Evaluate whether to proceed with execution
@@ -62,6 +63,9 @@ class MurphyGate:
             threshold: Custom threshold (optional, uses phase/default if not provided)
             phase: Current execution phase (optional, accepts Phase enum or string)
             context: Additional context for decision (optional)
+            runtime_config: Runtime config dict; if provided, overrides threshold via
+                ``confidence_threshold:{task_type}`` key where task_type comes from
+                ``context.get('task_type')``.
 
         Returns:
             GateResult with decision and rationale
@@ -75,6 +79,13 @@ class MurphyGate:
                     phase = Phase[phase.upper()]
                 except KeyError:
                     phase = None
+        # Apply runtime_config threshold override if provided
+        if runtime_config is not None and context is not None:
+            task_type = context.get("task_type")
+            if task_type:
+                config_key = f"confidence_threshold:{task_type}"
+                if config_key in runtime_config:
+                    threshold = float(runtime_config[config_key])
         # Determine effective threshold
         effective_threshold = self._determine_threshold(threshold, phase)
 

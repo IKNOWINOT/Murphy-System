@@ -62,19 +62,19 @@ class BuildingAutomationConnector:
 
     def __init__(
         self,
-        name: str,
         protocol: BuildingAutomationProtocol,
-        system_category: BuildingSystemCategory,
         vendor: str,
-        connection_config: Dict[str, Any],
         capabilities: List[str],
+        name: str = "",
+        system_category: Optional[BuildingSystemCategory] = None,
+        connection_config: Optional[Dict[str, Any]] = None,
         metadata: Optional[Dict[str, Any]] = None,
     ):
         self.name = name
         self.protocol = protocol
         self.system_category = system_category
         self.vendor = vendor
-        self.connection_config = dict(connection_config)
+        self.connection_config = dict(connection_config or {})
         self.capabilities = list(capabilities)
         self.metadata = dict(metadata) if metadata else {}
 
@@ -121,7 +121,12 @@ class BuildingAutomationConnector:
             }
 
     def execute_action(self, action_name: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Execute a named action against this connector."""
+        """Execute a named action against this connector.
+        
+        When credentials are configured and the appropriate protocol library
+        is installed, dispatches to the real protocol client. Falls back to
+        simulation when no credentials are available.
+        """
         params = params or {}
         with self._lock:
             if not self._enabled:
@@ -134,6 +139,14 @@ class BuildingAutomationConnector:
                 return self._action_result(action_name, False, error="Rate limit exceeded")
 
             self._request_count += 1
+
+            # Attempt real protocol dispatch if credentials are available
+            if self._credentials:
+                real_result = self._dispatch_protocol(action_name, params)
+                if real_result is not None:
+                    return real_result
+
+            # Simulated fallback
             result = self._action_result(
                 action_name,
                 True,
@@ -145,6 +158,59 @@ class BuildingAutomationConnector:
                     "simulated": True,
                 },
             )
+            capped_append(self._action_log, result)
+            return result
+
+    def _dispatch_protocol(self, action_name: str, params: dict) -> Optional[dict]:
+        """Dispatch to the real protocol client.
+        
+        Returns a result dict if the dispatch succeeded (or failed with a real
+        error), or None to signal that the caller should fall through to simulation.
+        """
+        try:
+            from src.protocols import (
+                MurphyBACnetClient, MurphyModbusClient,
+                MurphyOPCUAClient, MurphyKNXClient,
+            )
+        except ImportError:
+            return None
+
+        ip = self._credentials.get("ip", "")
+        port_str = self._credentials.get("port", "")
+
+        client = None
+        proto = self.protocol.value
+        if proto == "bacnet" and MurphyBACnetClient is not None:
+            port = int(port_str) if port_str else 47808
+            client = MurphyBACnetClient(ip, port=port)
+        elif proto == "modbus" and MurphyModbusClient is not None:
+            port = int(port_str) if port_str else 502
+            client = MurphyModbusClient(ip, port=port)
+        elif proto in ("opc_ua", "opcua") and MurphyOPCUAClient is not None:
+            url = self._credentials.get("url", f"opc.tcp://{ip}:{port_str or 4840}")
+            client = MurphyOPCUAClient(url)
+        elif proto == "knx" and MurphyKNXClient is not None:
+            port = int(port_str) if port_str else 3671
+            client = MurphyKNXClient(ip, port=port)
+
+        if client is None:
+            return None
+
+        try:
+            raw = client.execute(action_name, params)
+            if raw.get("simulated"):
+                # Protocol library not installed — fall through to simulation
+                return None
+            result = self._action_result(
+                action_name,
+                True,
+                data={**raw, "protocol": self.protocol.value, "vendor": self.vendor},
+            )
+            capped_append(self._action_log, result)
+            return result
+        except Exception as exc:
+            self._error_count += 1
+            result = self._action_result(action_name, False, error=str(exc))
             capped_append(self._action_log, result)
             return result
 
@@ -177,7 +243,7 @@ class BuildingAutomationConnector:
             return {
                 "name": self.name,
                 "protocol": self.protocol.value,
-                "system_category": self.system_category.value,
+                "system_category": self.system_category.value if self.system_category else None,
                 "vendor": self.vendor,
                 "connection_config": self.connection_config,
                 "capabilities": self.capabilities,
