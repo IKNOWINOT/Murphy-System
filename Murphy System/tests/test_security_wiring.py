@@ -31,6 +31,27 @@ import pytest
 flask = pytest.importorskip("flask", reason="Flask not installed")
 
 
+def _read_full_runtime() -> str:
+    """Read the full runtime source (thin wrapper + refactored modules).
+
+    After INC-13, the runtime was split into src/runtime/ package.
+    Tests that grep for patterns must read all runtime files.
+    """
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    parts: list[str] = []
+    for rel in (
+        "murphy_system_1.0_runtime.py",
+        os.path.join("src", "runtime", "_deps.py"),
+        os.path.join("src", "runtime", "app.py"),
+        os.path.join("src", "runtime", "murphy_system_core.py"),
+    ):
+        path = os.path.join(root, rel)
+        if os.path.isfile(path):
+            with open(path, encoding="utf-8") as fh:
+                parts.append(fh.read())
+    return "\n".join(parts)
+
+
 # ---------------------------------------------------------------------------
 # Task 1 — Security wiring coverage across all servers
 # ---------------------------------------------------------------------------
@@ -105,46 +126,26 @@ class TestSecurityWiringCoverage:
 
     def test_main_runtime_has_security(self):
         """murphy_system_1.0_runtime must wire configure_secure_fastapi."""
-        runtime_path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            "murphy_system_1.0_runtime.py",
-        )
-        with open(runtime_path, encoding="utf-8") as fh:
-            src = fh.read()
+        src = _read_full_runtime()
         assert "configure_secure_fastapi" in src, (
             "murphy_system_1.0_runtime.py must call configure_secure_fastapi()"
         )
 
     def test_main_runtime_wires_rbac(self):
         """murphy_system_1.0_runtime must register RBAC governance."""
-        runtime_path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            "murphy_system_1.0_runtime.py",
-        )
-        with open(runtime_path, encoding="utf-8") as fh:
-            src = fh.read()
+        src = _read_full_runtime()
         assert "register_rbac_governance" in src
 
     def test_main_runtime_wires_require_permission_on_execute(self):
         """The /api/execute endpoint must use require_permission dependency."""
-        runtime_path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            "murphy_system_1.0_runtime.py",
-        )
-        with open(runtime_path, encoding="utf-8") as fh:
-            src = fh.read()
+        src = _read_full_runtime()
         assert "require_permission" in src, (
             "murphy_system_1.0_runtime.py must use require_permission on sensitive endpoints"
         )
 
     def test_main_runtime_no_wildcard_cors_fallback(self):
         """Fallback CORS in runtime must not use wildcard origins."""
-        runtime_path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            "murphy_system_1.0_runtime.py",
-        )
-        with open(runtime_path, encoding="utf-8") as fh:
-            src = fh.read()
+        src = _read_full_runtime()
         # If wildcard exists, it must be inside a comment or string inside the fallback warning
         # The functional allow_origins must never be ["*"]
         assert 'allow_origins=["*"]' not in src, (
@@ -625,12 +626,7 @@ class TestRBACEnforcement:
 
     def test_runtime_execute_endpoint_uses_rbac_dependency(self):
         """The /api/execute route in the runtime must declare a RBAC dependency."""
-        runtime_path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            "murphy_system_1.0_runtime.py",
-        )
-        with open(runtime_path, encoding="utf-8") as fh:
-            src = fh.read()
+        src = _read_full_runtime()
 
         # The execute endpoint must use Depends with a permission dependency
         assert "_perm_execute" in src, (
@@ -640,12 +636,7 @@ class TestRBACEnforcement:
 
     def test_runtime_llm_configure_endpoint_uses_rbac_dependency(self):
         """The /api/llm/configure route must declare a RBAC dependency."""
-        runtime_path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            "murphy_system_1.0_runtime.py",
-        )
-        with open(runtime_path, encoding="utf-8") as fh:
-            src = fh.read()
+        src = _read_full_runtime()
 
         assert "_perm_configure" in src, (
             "/api/llm/configure must use _perm_configure RBAC dependency"
