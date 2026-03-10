@@ -381,6 +381,48 @@ class WaitTask(PlaywrightTask):
             )
 
 
+class EvaluateTask(PlaywrightTask):
+    """Execute a JavaScript expression on the page and return the result.
+
+    This is the primary mechanism for scroll simulation and other DOM
+    interactions that are not covered by Click/Fill/Extract.
+
+    Example::
+
+        EvaluateTask("window.scrollBy(0, 300)")
+        EvaluateTask("document.title")
+    """
+
+    def __init__(self, expression: str) -> None:
+        super().__init__(TaskType.EVALUATE)
+        self.expression = expression
+
+    async def execute(self, page: Any) -> TaskResult:
+        import time
+        start = time.monotonic()
+        try:
+            result_value: Any = None
+            if page is not None and _PLAYWRIGHT_AVAILABLE:
+                result_value = await page.evaluate(self.expression)
+            elapsed = (time.monotonic() - start) * 1000
+            return TaskResult(
+                task_id=self.task_id,
+                task_type=self.task_type,
+                status=TaskStatus.COMPLETED,
+                duration_ms=elapsed,
+                data={"result": result_value, "expression": self.expression},
+            )
+        except Exception as exc:
+            elapsed = (time.monotonic() - start) * 1000
+            return TaskResult(
+                task_id=self.task_id,
+                task_type=self.task_type,
+                status=TaskStatus.FAILED,
+                duration_ms=elapsed,
+                error=str(exc),
+            )
+
+
 class SequenceTask(PlaywrightTask):
     """Execute a sequence of tasks in order."""
 
@@ -476,7 +518,7 @@ class PlaywrightTaskRunner:
         return self._browser
 
     async def execute_task(self, task: PlaywrightTask) -> TaskResult:
-        """Execute a single automation task."""
+        """Execute a single automation task on a fresh page."""
         await self._ensure_browser()
 
         page = None
@@ -501,6 +543,57 @@ class PlaywrightTaskRunner:
                     await page.close()
                 except Exception:
                     pass
+
+    async def execute_tasks_on_shared_page(
+        self,
+        tasks: List[PlaywrightTask],
+    ) -> List[TaskResult]:
+        """Execute multiple tasks sequentially on a SINGLE persistent page.
+
+        Unlike :meth:`execute_task` (which creates a new page per call), this
+        method opens the page once and runs every task against it.  This is
+        required for multi-step form flows where state must persist across
+        tasks (navigation → fill email → fill password → click submit).
+
+        The page is closed automatically after all tasks complete or if any
+        unhandled exception propagates.  Individual task failures are returned
+        in the results list and do NOT abort the remaining tasks — the caller
+        is responsible for inspecting each result's status.
+
+        Args:
+            tasks: Ordered list of tasks to execute on the shared page.
+
+        Returns:
+            List of :class:`TaskResult` in the same order as *tasks*.
+        """
+        await self._ensure_browser()
+
+        page = None
+        if self._context is not None:
+            page = await self._context.new_page()
+
+        results: List[TaskResult] = []
+        try:
+            for task in tasks:
+                result = await task.execute(page)
+                logger.info(
+                    "Shared-page task executed",
+                    extra={
+                        "task_id": result.task_id,
+                        "type": result.task_type.value,
+                        "status": result.status.value,
+                        "duration_ms": round(result.duration_ms, 1),
+                    },
+                )
+                results.append(result)
+        finally:
+            if page is not None:
+                try:
+                    await page.close()
+                except Exception:
+                    pass
+
+        return results
 
     async def close(self) -> None:
         """Shut down the browser and playwright."""
