@@ -566,6 +566,7 @@ class DiagnosticSupervisor:
                             )
             except (SyntaxError, ValueError) as exc:
                 logger.debug("Skipping unparseable source file %s: %s", py_file, exc)
+        return gaps
 
     def _doc_drift_gaps(self, src_root: str) -> List[CodeGap]:
         """Find docstrings whose param names don't match function signatures."""
@@ -574,7 +575,8 @@ class DiagnosticSupervisor:
             try:
                 source = py_file.read_text(encoding="utf-8", errors="replace")
                 tree = ast.parse(source)
-            except Exception:
+            except Exception as exc:
+                logger.debug("Skipping %s: %s", py_file, type(exc).__name__)
                 continue
             for node in ast.walk(tree):
                 if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):

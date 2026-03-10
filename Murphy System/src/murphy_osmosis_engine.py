@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 class ImplementationStatus(str, Enum):
+    """ImplementationStatus enumeration."""
     OBSERVED = "observed"
     ANALYZING = "analyzing"
     SANDBOX_TESTING = "sandbox_testing"
@@ -37,6 +38,7 @@ class ImplementationStatus(str, Enum):
 # ---------------------------------------------------------------------------
 
 class SoftwareCapability(BaseModel):
+    """SoftwareCapability — software capability definition."""
     capability_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     source_software: str
     capability_name: str

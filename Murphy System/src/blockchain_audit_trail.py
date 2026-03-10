@@ -75,6 +75,7 @@ def _enum_val(v: Any) -> str:
 # -- Enums ------------------------------------------------------------------
 
 class EntryType(str, Enum):
+    """EntryType enumeration."""
     api_call = "api_call"
     admin_action = "admin_action"
     config_change = "config_change"
@@ -84,11 +85,13 @@ class EntryType(str, Enum):
 
 
 class BlockStatus(str, Enum):
+    """BlockStatus enumeration."""
     sealed = "sealed"
     pending = "pending"
 
 
 class ChainIntegrity(str, Enum):
+    """ChainIntegrity enumeration."""
     valid = "valid"
     broken = "broken"
     empty = "empty"

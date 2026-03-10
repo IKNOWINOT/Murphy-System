@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 class TemplateCategory(str, Enum):
+    """TemplateCategory enumeration."""
     FACTORY = "factory"
     CONTENT = "content"
     DATA = "data"
@@ -31,6 +32,7 @@ class TemplateCategory(str, Enum):
 
 
 class Template(BaseModel):
+    """Template — template definition."""
     template_id: str
     name: str
     description: str
@@ -47,6 +49,7 @@ class Template(BaseModel):
 
 
 class TemplateSearchQuery(BaseModel):
+    """Query parameters for template search."""
     query: Optional[str] = None
     category: Optional[TemplateCategory] = None
     tags: List[str] = []
@@ -55,6 +58,7 @@ class TemplateSearchQuery(BaseModel):
 
 
 class TemplateStore:
+    """TemplateStore — template store definition."""
     def __init__(self, templates_dir: Optional[str] = None) -> None:
         self._templates_dir = templates_dir
         self._store: Dict[str, Template] = {}
@@ -126,6 +130,7 @@ class TemplateStore:
 
 
 class TemplateRegistry:
+    """TemplateRegistry — template registry definition."""
     def __init__(self, store: TemplateStore) -> None:
         self._store = store
 
@@ -186,6 +191,7 @@ _FORBIDDEN_STRINGS = ["eval", "exec", "__import__", "subprocess", "os.system"]
 
 
 class TemplateValidator:
+    """TemplateValidator — template validator definition."""
     def validate(self, template: Template) -> List[str]:
         errors: List[str] = []
 
@@ -209,6 +215,7 @@ class TemplateValidator:
 
 
 class TemplateInstaller:
+    """TemplateInstaller — template installer definition."""
     def __init__(
         self, registry: TemplateRegistry, validator: TemplateValidator
     ) -> None:
@@ -241,6 +248,7 @@ class TemplateInstaller:
 
 
 class TemplateExporter:
+    """TemplateExporter — template exporter definition."""
     def export(self, template: Template) -> str:
         return template.model_dump_json(indent=2)
 

@@ -65,22 +65,27 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 class RegionStatus(str, Enum):
+    """RegionStatus enumeration."""
     active = "active"; degraded = "degraded"
     offline = "offline"; maintenance = "maintenance"
 
 class NodeStatus(str, Enum):
+    """NodeStatus enumeration."""
     healthy = "healthy"; degraded = "degraded"
     offline = "offline"; draining = "draining"
 
 class RoutingStrategy(str, Enum):
+    """RoutingStrategy enumeration."""
     latency_based = "latency_based"; geo_proximity = "geo_proximity"
     weighted_round_robin = "weighted_round_robin"; failover = "failover"
     capacity_based = "capacity_based"
 
 class DeploymentStrategy(str, Enum):
+    """DeploymentStrategy enumeration."""
     rolling = "rolling"; blue_green = "blue_green"; canary = "canary"
 
 class DeploymentStatus(str, Enum):
+    """DeploymentStatus enumeration."""
     pending = "pending"; deploying = "deploying"; active = "active"
     failed = "failed"; rolled_back = "rolled_back"
 

@@ -74,17 +74,21 @@ def _enum_val(v: Any) -> str:
 # -- Enums ------------------------------------------------------------------
 
 class ModelStatus(str, Enum):
+    """ModelStatus enumeration."""
     draft = "draft"; staging = "staging"; production = "production"
     archived = "archived"; deprecated = "deprecated"
 
 class ModelFramework(str, Enum):
+    """ModelFramework enumeration."""
     pytorch = "pytorch"; tensorflow = "tensorflow"; sklearn = "sklearn"
     onnx = "onnx"; custom = "custom"
 
 class DeploymentTarget(str, Enum):
+    """DeploymentTarget enumeration."""
     local = "local"; cloud = "cloud"; edge = "edge"; hybrid = "hybrid"
 
 class VersionStatus(str, Enum):
+    """VersionStatus enumeration."""
     active = "active"; inactive = "inactive"; rollback_target = "rollback_target"
 
 # -- Dataclasses ------------------------------------------------------------

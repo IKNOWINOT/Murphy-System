@@ -29,7 +29,7 @@ class TestSettingsDefaults(unittest.TestCase):
 
         env = {
             "API_HOST": "127.0.0.1",
-            "API_PORT": "8052",
+            "API_PORT": "8000",
         }
         env.update(env_overrides)
         for k, v in env.items():
@@ -60,7 +60,7 @@ class TestSettingsDefaults(unittest.TestCase):
 
     def test_default_api_port(self):
         s = self._make_settings()
-        self.assertEqual(s.api_port, 8052)
+        self.assertEqual(s.api_port, 8000)
 
     def test_default_confidence_threshold(self):
         s = self._make_settings()

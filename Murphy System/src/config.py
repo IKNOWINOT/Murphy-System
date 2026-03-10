@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     )
 
     api_port: int = Field(
-        default=8052,
+        default=8000,
         description="API server port"
     )
 
@@ -285,6 +285,7 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
+        extra="ignore",
     )
 
 
