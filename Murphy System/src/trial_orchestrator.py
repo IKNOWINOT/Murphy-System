@@ -516,5 +516,5 @@ class TrialOrchestrator:
             now = datetime.now(timezone.utc)
             delta = now - started
             return delta.total_seconds() / 3600.0
-        except Exception:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001
             return 0.0
