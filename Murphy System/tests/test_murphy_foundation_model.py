@@ -443,71 +443,169 @@ class TestTrainingDataPipeline:
 # Phase 2 stub imports
 # ---------------------------------------------------------------------------
 
-class TestPhase2Stubs:
-    """Verify that Phase 2 stubs import and instantiate without error."""
+class TestPhase2Implementations:
+    """Verify that Phase 2 implementations import, instantiate,
+    and provide correct behaviour without ML dependencies."""
 
     def test_mfm_tokenizer(self):
-        from murphy_foundation_model.mfm_tokenizer import MFMTokenizer
+        from murphy_foundation_model.mfm_tokenizer import (
+            MFMTokenizer,
+            SPECIAL_TOKENS,
+            discretize_score,
+        )
 
         tok = MFMTokenizer()
         ids = tok.encode("hello")
         assert tok.decode(ids) == "hello"
-        assert tok.vocab_size == 256
+        assert tok.vocab_size > 256
+        assert "<|sense|>" in tok.get_special_tokens()
+        assert "<|confidence:0.50|>" in SPECIAL_TOKENS.values()
+        assert "<|authority:system|>" in SPECIAL_TOKENS.values()
+        assert discretize_score(0.73) == 0.75
+
+    def test_mfm_tokenizer_encode_trace(self):
+        from murphy_foundation_model.mfm_tokenizer import MFMTokenizer
+
+        tok = MFMTokenizer()
+        trace = {
+            "world_state": {"temp": 22},
+            "intent": "turn on AC",
+            "action_plan": [{"type": "api_call", "target": "hvac"}],
+            "confidence": 0.85,
+            "murphy_index": 0.3,
+            "authority_level": "medium",
+            "gate_result": "gate_pass",
+        }
+        ids = tok.encode_trace(trace)
+        decoded = tok.decode(ids)
+        assert "<|sense|>" in decoded
+        assert "<|act|>" in decoded
 
     def test_mfm_model(self):
-        from murphy_foundation_model.mfm_model import MFMModel
+        from murphy_foundation_model.mfm_model import MFMModel, MFMConfig
 
-        model = MFMModel()
+        config = MFMConfig()
+        model = MFMModel(config)
         out = model.forward([1, 2, 3])
         assert "logits" in out
         assert model.parameter_count() == 0
+        plan = model.predict_action_plan({"a": 1}, "test")
+        assert plan["mode"] == "stub"
 
     def test_mfm_trainer(self):
-        from murphy_foundation_model.mfm_trainer import MFMTrainer
+        from murphy_foundation_model.mfm_trainer import (
+            MFMTrainer,
+            MFMTrainerConfig,
+        )
 
-        trainer = MFMTrainer()
-        assert trainer.train()["status"] == "stub"
+        trainer = MFMTrainer(config=MFMTrainerConfig())
+        # Without ML deps, train returns skipped
+        result = trainer.train(train_dataset=[])
+        assert result["status"] in ("skipped", "completed")
 
     def test_rlef_engine(self):
+        from murphy_foundation_model.rlef_engine import RLEFEngine, RLEFConfig
+
+        engine = RLEFEngine(config=RLEFConfig())
+        reward = engine.compute_reward(
+            {},
+            {
+                "success": 1.0,
+                "efficiency": 0.8,
+                "safety_score": 0.9,
+                "confidence_calibration": 0.7,
+                "human_agreement": 0.6,
+            },
+        )
+        assert 0 < reward <= 1
+
+    def test_rlef_preference_pairs(self):
         from murphy_foundation_model.rlef_engine import RLEFEngine
 
         engine = RLEFEngine()
-        assert engine.step()["status"] == "stub"
-        assert engine.compute_reward({"overall_quality": 0.8}) == 0.8
+        traces = [
+            {"intent": "test", "labels": {"success": 1.0, "efficiency": 0.8,
+             "safety_score": 0.9, "confidence_calibration": 0.7, "human_agreement": 0.6}},
+            {"intent": "test", "labels": {"success": 0.0, "efficiency": 0.2,
+             "safety_score": 0.5, "confidence_calibration": 0.3, "human_agreement": 0.2}},
+        ]
+        pairs = engine.create_preference_pairs(traces)
+        assert len(pairs) >= 1
+        assert pairs[0].chosen_reward > pairs[0].rejected_reward
 
     def test_mfm_inference(self):
-        from murphy_foundation_model.mfm_inference import MFMInference
+        from murphy_foundation_model.mfm_inference import MFMInferenceService
 
-        inf = MFMInference()
-        result = inf.predict({"x": 1}, "test")
-        assert result["gated"] is True
+        svc = MFMInferenceService()
+        result = svc.predict({"x": 1}, "test")
+        assert result.get("error") == "model_not_loaded"
+        status = svc.get_status()
+        assert status["loaded"] is False
 
     def test_shadow_deployment(self):
-        from murphy_foundation_model.shadow_deployment import ShadowDeployment
+        from murphy_foundation_model.shadow_deployment import (
+            ShadowDeployment,
+            ShadowConfig,
+        )
 
-        sd = ShadowDeployment()
+        sd = ShadowDeployment(config=ShadowConfig())
         assert not sd.is_active
         sd.start()
         assert sd.is_active
+        comp = sd.compare_outputs(
+            {"request_id": "r1"},
+            {"action_plan": [{"type": "api_call"}], "confidence": 0.8, "latency_ms": 50},
+            {"action_plan": [{"type": "api_call"}], "confidence": 0.75, "latency_ms": 200},
+        )
+        assert comp.action_similarity == 1.0
+        metrics = sd.get_metrics()
+        assert metrics["total_comparisons"] == 1
         sd.stop()
         assert not sd.is_active
 
     def test_self_improvement_loop(self):
         from murphy_foundation_model.self_improvement_loop import (
             SelfImprovementLoop,
+            SelfImprovementConfig,
         )
 
-        loop = SelfImprovementLoop()
-        result = loop.run_iteration()
-        assert result["iteration"] == 1
-        assert loop.current_iteration == 1
+        loop = SelfImprovementLoop(config=SelfImprovementConfig())
+        loop.record_trace()
+        assert loop.current_iteration == 0
+        status = loop.get_status()
+        assert status["traces_since_retrain"] == 1
 
     def test_mfm_registry(self):
-        from murphy_foundation_model.mfm_registry import MFMRegistry
+        import tempfile
+        import shutil
 
-        reg = MFMRegistry()
-        mid = reg.register("test_model", "0.1.0")
-        assert reg.get(mid) is not None
-        assert len(reg.list_models()) == 1
-        reg.promote(mid, "production")
-        assert reg.get(mid)["status"] == "production"
+        from murphy_foundation_model.mfm_registry import (
+            MFMRegistry,
+            MFMModelVersion,
+        )
+
+        tmpdir = tempfile.mkdtemp()
+        try:
+            reg = MFMRegistry(registry_dir=tmpdir)
+            v = MFMModelVersion(
+                version_id="v1",
+                version_str="v0.1",
+                base_model="test",
+                training_config={},
+                traces_used=100,
+                created_at="2024-01-01T00:00:00Z",
+                metrics={"accuracy": 0.9},
+                status="registered",
+                checkpoint_path="/tmp/test",
+            )
+            reg.register_version(v)
+            assert reg.get_version("v1") is not None
+            assert len(reg.list_versions()) == 1
+            reg.promote("v1")  # registered → shadow
+            assert reg.get_version("v1").status == "shadow"
+            reg.promote("v1")  # shadow → canary
+            reg.promote("v1")  # canary → production
+            assert reg.get_current_production().version_id == "v1"
+            assert len(reg.get_promotion_history()) == 3
+        finally:
+            shutil.rmtree(tmpdir)
