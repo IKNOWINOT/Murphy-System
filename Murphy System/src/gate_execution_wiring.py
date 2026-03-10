@@ -293,6 +293,8 @@ class GateExecutionWiring:
         Returns:
             Count of successfully loaded security modules.
         """
+        # _security_checks: List[Tuple[str, Type]] where each entry is
+        # (module_short_name, security_class)
         _security_checks: List[tuple] = []
 
         _module_pairs = [
