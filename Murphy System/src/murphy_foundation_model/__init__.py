@@ -42,15 +42,15 @@ from .training_data_pipeline import (
     TrainingDataPipeline,
 )
 
-# Phase 2+ stubs — available but lightweight
-from .mfm_tokenizer import MFMTokenizer
-from .mfm_model import MFMModel
-from .mfm_trainer import MFMTrainer
-from .rlef_engine import RLEFEngine
-from .mfm_inference import MFMInference
-from .shadow_deployment import ShadowDeployment
-from .self_improvement_loop import SelfImprovementLoop
-from .mfm_registry import MFMRegistry
+# Phase 2+ — full implementations
+from .mfm_tokenizer import MFMTokenizer, SPECIAL_TOKENS, discretize_score
+from .mfm_model import MFMModel, MFMConfig
+from .mfm_trainer import MFMTrainer, MFMTrainerConfig, load_training_data
+from .rlef_engine import RLEFEngine, RLEFConfig, PreferencePair
+from .mfm_inference import MFMInferenceService
+from .shadow_deployment import ShadowDeployment, ShadowConfig, ShadowComparison
+from .self_improvement_loop import SelfImprovementLoop, SelfImprovementConfig
+from .mfm_registry import MFMRegistry, MFMModelVersion
 
 __all__ = [
     # Phase 1 — data collection
@@ -66,13 +66,38 @@ __all__ = [
     # Phase 1 — pipeline
     "TrainingDataPipeline",
 
-    # Phase 2+ stubs
+    # Phase 2+ — tokenizer
     "MFMTokenizer",
+    "SPECIAL_TOKENS",
+    "discretize_score",
+
+    # Phase 2+ — model
     "MFMModel",
+    "MFMConfig",
+
+    # Phase 2+ — trainer
     "MFMTrainer",
+    "MFMTrainerConfig",
+    "load_training_data",
+
+    # Phase 2+ — RLEF
     "RLEFEngine",
-    "MFMInference",
+    "RLEFConfig",
+    "PreferencePair",
+
+    # Phase 2+ — inference
+    "MFMInferenceService",
+
+    # Phase 2+ — shadow deployment
     "ShadowDeployment",
+    "ShadowConfig",
+    "ShadowComparison",
+
+    # Phase 2+ — self-improvement
     "SelfImprovementLoop",
+    "SelfImprovementConfig",
+
+    # Phase 2+ — registry
     "MFMRegistry",
+    "MFMModelVersion",
 ]
