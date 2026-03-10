@@ -66,12 +66,12 @@ cd /workspace/demo
 python api_server_v2.py
 ```
 
-The server will start on `http://localhost:8052`
+The server will start on `http://localhost:8000`
 
 **Expected Output:**
 ```
 Starting Murphy System Runtime API Server...
-Server running on http://localhost:8052
+Server running on http://localhost:8000
 Press Ctrl+C to stop
 ```
 
@@ -82,7 +82,7 @@ Press Ctrl+C to stop
 Open a new terminal and test the health endpoint:
 
 ```bash
-curl http://localhost:8052/api/health
+curl http://localhost:8000/api/health
 ```
 
 **Expected Response:**
@@ -101,7 +101,7 @@ curl http://localhost:8052/api/health
 Use the chat API to build a system:
 
 ```bash
-curl -X POST http://localhost:8052/api/chat \
+curl -X POST http://localhost:8000/api/chat \
   -H "Content-Type: application/json" \
   -d '{
     "message": "Build a simple web application for tracking workouts"
@@ -123,7 +123,7 @@ curl -X POST http://localhost:8052/api/chat \
 ### Generate Experts
 
 ```bash
-curl -X POST http://localhost:8052/api/experts/generate \
+curl -X POST http://localhost:8000/api/experts/generate \
   -H "Content-Type: application/json" \
   -d '{
     "description": "Need experts for a mobile app",
@@ -137,7 +137,7 @@ curl -X POST http://localhost:8052/api/experts/generate \
 ### Create Safety Gates
 
 ```bash
-curl -X POST http://localhost:8052/api/gates/create \
+curl -X POST http://localhost:8000/api/gates/create \
   -H "Content-Type: application/json" \
   -d '{
     "description": "Create gates for a financial system",
@@ -152,7 +152,7 @@ curl -X POST http://localhost:8052/api/gates/create \
 ### Analyze a Choice
 
 ```bash
-curl -X POST http://localhost:8052/api/choices/analyze \
+curl -X POST http://localhost:8000/api/choices/analyze \
   -H "Content-Type: application/json" \
   -d '{
     "question": "Should I use React or Angular for my frontend?",
@@ -280,7 +280,7 @@ When Aristotle and Wulfrum disagree on math/physics validation, a trigger is cre
 ### Resolving a Trigger
 
 ```bash
-curl -X POST http://localhost:8052/api/triggers/trigger_1/resolve \
+curl -X POST http://localhost:8000/api/triggers/trigger_1/resolve \
   -H "Content-Type: application/json" \
   -d '{
     "resolution": "Accept Aristotle"
@@ -318,7 +318,7 @@ Let the system know what type of system:
 Always check for pending triggers after complex operations:
 
 ```bash
-curl http://localhost:8052/api/triggers
+curl http://localhost:8000/api/triggers
 ```
 
 ### 5. Review Recommendations
@@ -326,7 +326,7 @@ curl http://localhost:8052/api/triggers
 Get all recommendations and review them:
 
 ```bash
-curl http://localhost:8052/api/recommendations
+curl http://localhost:8000/api/recommendations
 ```
 
 ---
@@ -337,7 +337,7 @@ curl http://localhost:8052/api/recommendations
 
 ```bash
 # 1. Build system
-curl -X POST http://localhost:8052/api/system/build \
+curl -X POST http://localhost:8000/api/system/build \
   -H "Content-Type: application/json" \
   -d '{
     "description": "Build a healthcare app",
@@ -350,10 +350,10 @@ curl -X POST http://localhost:8052/api/system/build \
   }'
 
 # 2. Check for triggers
-curl http://localhost:8052/api/triggers
+curl http://localhost:8000/api/triggers
 
 # 3. Validate system
-curl -X POST http://localhost:8052/api/system/validate \
+curl -X POST http://localhost:8000/api/system/validate \
   -H "Content-Type: application/json" \
   -d '{
     "system_state": {
@@ -363,14 +363,14 @@ curl -X POST http://localhost:8052/api/system/validate \
   }'
 
 # 4. Get report
-curl http://localhost:8052/api/system/report
+curl http://localhost:8000/api/system/report
 ```
 
 ### Workflow 2: Expert Team Generation
 
 ```bash
 # 1. Generate team
-curl -X POST http://localhost:8052/api/experts/generate \
+curl -X POST http://localhost:8000/api/experts/generate \
   -H "Content-Type: application/json" \
   -d '{
     "description": "Team for fintech platform",
@@ -382,10 +382,10 @@ curl -X POST http://localhost:8052/api/experts/generate \
   }'
 
 # 2. Get all experts
-curl http://localhost:8052/api/experts
+curl http://localhost:8000/api/experts
 
 # 3. Add constraints
-curl -X POST http://localhost:8052/api/constraints/add \
+curl -X POST http://localhost:8000/api/constraints/add \
   -H "Content-Type: application/json" \
   -d '{
     "type": "budget",
@@ -399,7 +399,7 @@ curl -X POST http://localhost:8052/api/constraints/add \
 
 ```bash
 # 1. Analyze choice
-curl -X POST http://localhost:8052/api/choices/analyze \
+curl -X POST http://localhost:8000/api/choices/analyze \
   -H "Content-Type: application/json" \
   -d '{
     "question": "Use microservices or monolith?",
@@ -412,10 +412,10 @@ curl -X POST http://localhost:8052/api/choices/analyze \
   }'
 
 # 2. Get recommendations
-curl http://localhost:8052/api/recommendations
+curl http://localhost:8000/api/recommendations
 
 # 3. Create gates based on choice
-curl -X POST http://localhost:8052/api/gates/create \
+curl -X POST http://localhost:8000/api/gates/create \
   -H "Content-Type: application/json" \
   -d '{
     "description": "Gates for microservices architecture",
@@ -431,12 +431,12 @@ curl -X POST http://localhost:8052/api/gates/create \
 
 ### Server Won't Start
 
-**Problem**: Port 8052 already in use
+**Problem**: Port 8000 already in use
 
 **Solution:**
 ```bash
 # Find process using port
-lsof -i :8052
+lsof -i :8000
 
 # Kill the process
 kill -9 <PID>

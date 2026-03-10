@@ -197,6 +197,15 @@ class SelfImprovementEngine:
 
     def record_outcome(self, outcome: ExecutionOutcome) -> str:
         """Record an execution outcome and return its task_id."""
+        try:
+            from src.self_learning_toggle import get_self_learning_toggle
+            slt = get_self_learning_toggle()
+            if not slt.is_enabled():
+                slt.increment_skipped()
+                return outcome.task_id
+        except Exception:
+            pass  # toggle unavailable — allow recording
+
         with self._lock:
             if len(self._outcomes) >= self._MAX_OUTCOMES:
                 self._outcomes = self._outcomes[self._MAX_OUTCOMES // 10:]

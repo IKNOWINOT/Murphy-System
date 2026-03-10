@@ -830,3 +830,42 @@ class TicketConnector(BaseConnector):
         except Exception as exc:
             logger.exception("Zendesk send failed: %s", exc)
             return False
+
+
+# ---------------------------------------------------------------------------
+# Test-friendly connector wrappers (no-arg constructors for integration tests)
+# ---------------------------------------------------------------------------
+# These wrappers provide simplified connectors that can be instantiated
+# without a ConnectorConfig, returning deterministic results for testing.
+
+
+class TestEmailConnector:
+    """Test-friendly EmailConnector that works without SMTP configuration."""
+
+    def __init__(self, config: Any = None):
+        self._config = config
+
+    def send(self, to: Any = None, subject: Any = None, body: Any = None, **kwargs: Any) -> Dict[str, Any]:
+        """Send or simulate sending an email.  Accepts a notification dict."""
+        if isinstance(to, dict) and subject is None:
+            packet = to
+            to = packet.get("recipients", [])
+            subject = packet.get("message", "Notification")
+            body = packet.get("message", "")
+        return {"status": "sent", "to": to, "subject": subject}
+
+
+class TestSlackConnector:
+    """Test-friendly SlackConnector that works without Slack configuration."""
+
+    def __init__(self, config: Any = None):
+        self._config = config
+
+    def send(self, channel: Any = None, message: Any = None, **kwargs: Any) -> Dict[str, Any]:
+        """Send or simulate sending a Slack message.  Accepts a notification dict."""
+        if isinstance(channel, dict) and message is None:
+            packet = channel
+            channels = packet.get("channels", ["general"])
+            channel = channels[0] if isinstance(channels, list) else "general"
+            message = packet.get("message", "")
+        return {"status": "sent", "channel": channel}

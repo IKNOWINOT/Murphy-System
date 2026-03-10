@@ -1,10 +1,9 @@
 # Getting Started with Murphy System
 
-> **This file will move to the repository root as part of the repo flattening described in
-> [`docs/FLATTENING_PLAN.md`](docs/FLATTENING_PLAN.md) (Phase 5).**
->
-> After the flatten is complete, the canonical copy will live at `/GETTING_STARTED.md`
-> (repository root). Until then, both files are kept identical.
+> **📖 Canonical documentation:** See the [root GETTING_STARTED.md](../GETTING_STARTED.md)
+> for the full getting-started guide.
+
+This file is kept for convenience. The canonical copy lives at the repository root.
 
 ---
 
@@ -564,7 +563,7 @@ brew install python@3.10
 Another process is using port 8000. Stop it or use a different port:
 
 ```bash
-python3 murphy_system_1.0_runtime.py --port 8001
+MURPHY_PORT=8001 bash setup_and_start.sh
 ```
 
 ### Health check returns connection refused

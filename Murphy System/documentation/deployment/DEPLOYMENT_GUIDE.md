@@ -124,7 +124,7 @@ mode: development
 # Server Settings
 server:
   host: "localhost"
-  port: 8052
+  port: 8000
   workers: 1
 
 # Logging
@@ -158,10 +158,10 @@ python demo/api_server_v2.py --config config/config.yaml
 
 ```bash
 # Test health endpoint
-curl http://localhost:8052/api/health
+curl http://localhost:8000/api/health
 
 # Test system build
-curl -X POST http://localhost:8052/api/system/build \
+curl -X POST http://localhost:8000/api/system/build \
   -H "Content-Type: application/json" \
   -d '{"description": "Test system"}'
 ```
@@ -200,7 +200,7 @@ mode: staging
 # Server Settings
 server:
   host: "0.0.0.0"
-  port: 8052
+  port: 8000
   workers: 4
 
 # Logging
@@ -278,7 +278,7 @@ If using nginx, create `/etc/nginx/sites-available/murphy-staging`:
 
 ```nginx
 upstream murphy_staging {
-    server 127.0.0.1:8052;
+    server 127.0.0.1:8000;
 }
 
 server {
@@ -342,7 +342,7 @@ mode: production
 # Server Settings
 server:
   host: "0.0.0.0"
-  port: 8052
+  port: 8000
   workers: 8
 
 # Logging
@@ -486,7 +486,7 @@ Create `/etc/nginx/sites-available/murphy-production`:
 
 ```nginx
 upstream murphy_production {
-    server 127.0.0.1:8052;
+    server 127.0.0.1:8000;
     keepalive 32;
 }
 
@@ -599,9 +599,9 @@ Configure load balancer:
 
 ```nginx
 upstream murphy_cluster {
-    server 10.0.1.10:8052;
-    server 10.0.1.11:8052;
-    server 10.0.1.12:8052;
+    server 10.0.1.10:8000;
+    server 10.0.1.11:8000;
+    server 10.0.1.12:8000;
 }
 ```
 
@@ -674,7 +674,7 @@ Set up comprehensive monitoring:
       "image": "your-registry/murphy-runtime:latest",
       "portMappings": [
         {
-          "containerPort": 8052,
+          "containerPort": 8000,
           "protocol": "tcp"
         }
       ]
@@ -705,7 +705,7 @@ az container create \
   --image your-registry/murphy-runtime:latest \
   --cpu 4 \
   --memory 8 \
-  --ports 8052
+  --ports 8000
 ```
 
 ---
@@ -790,7 +790,7 @@ sudo journalctl -u murphy-production -n 50
 python -c "import yaml; yaml.safe_load(open('config/config.yaml'))"
 
 # Check ports
-sudo netstat -tuln | grep 8052
+sudo netstat -tuln | grep 8000
 ```
 
 ### High Memory Usage

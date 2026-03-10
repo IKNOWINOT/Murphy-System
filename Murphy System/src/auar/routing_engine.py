@@ -83,6 +83,9 @@ class _CircuitBreaker:
     last_failure_time: float = 0.0
     failure_threshold: int = 5
     recovery_timeout_s: float = 30.0
+    half_open_success_count: int = 0
+    half_open_required_successes: int = 3
+    half_open_traffic_ratio: float = 0.10
 
 
 # ---------------------------------------------------------------------------
@@ -115,6 +118,10 @@ class RoutingDecisionEngine:
         circuit_recovery_s: float = 30.0,
         ml_optimizer=None,
         ml_weight: float = 0.20,
+        max_latency_ms: float = 500.0,
+        max_cost: float = 0.10,
+        half_open_required_successes: int = 3,
+        half_open_traffic_ratio: float = 0.10,
     ):
         self._graph = capability_graph
         self._strategy = strategy
@@ -124,6 +131,10 @@ class RoutingDecisionEngine:
         self._cb_recovery_s = circuit_recovery_s
         self._ml_optimizer = ml_optimizer
         self._ml_weight = ml_weight
+        self._max_latency_ms = max_latency_ms
+        self._max_cost = max_cost
+        self._half_open_required = half_open_required_successes
+        self._half_open_ratio = half_open_traffic_ratio
         self._round_robin_idx: Dict[str, int] = {}
         self._tenant_configs: Dict[str, Dict[str, Any]] = {}
         self._lock = threading.Lock()
@@ -269,13 +280,13 @@ class RoutingDecisionEngine:
         # Reliability (success rate)
         reliability = mapping.performance.success_rate  # 0-1
 
-        # Latency (inverse, normalised to 0-1 assuming 500ms max)
+        # Latency (inverse, normalised using configurable ceiling)
         latency_raw = mapping.performance.avg_latency_ms
-        latency = max(0.0, 1.0 - latency_raw / 500.0)
+        latency = max(0.0, 1.0 - latency_raw / self._max_latency_ms)
 
-        # Cost (inverse, normalised to 0-1 assuming $0.10 max)
+        # Cost (inverse, normalised using configurable ceiling)
         cost_raw = mapping.cost_per_call
-        cost = max(0.0, 1.0 - cost_raw / 0.10) if cost_raw >= 0 else 1.0
+        cost = max(0.0, 1.0 - cost_raw / self._max_cost) if self._max_cost > 0 and cost_raw >= 0 else 1.0
 
         # Certification bonus
         cert_scores = {
@@ -302,6 +313,15 @@ class RoutingDecisionEngine:
             if cb.state == CircuitState.OPEN:
                 if time.monotonic() - cb.last_failure_time > cb.recovery_timeout_s:
                     cb.state = CircuitState.HALF_OPEN
+                    cb.half_open_success_count = 0
+                    # In HALF_OPEN: allow configurable % of traffic through
+                    if random.random() < cb.half_open_traffic_ratio:
+                        return False  # Allow this request
+                    return True
+                return True
+            if cb.state == CircuitState.HALF_OPEN:
+                # Allow configurable % of traffic through
+                if random.random() < cb.half_open_traffic_ratio:
                     return False
                 return True
         return False
@@ -314,22 +334,35 @@ class RoutingDecisionEngine:
                 _CircuitBreaker(
                     failure_threshold=self._cb_failure_threshold,
                     recovery_timeout_s=self._cb_recovery_s,
+                    half_open_required_successes=self._half_open_required,
+                    half_open_traffic_ratio=self._half_open_ratio,
                 ),
             )
             cb.failure_count += 1
             cb.last_failure_time = time.monotonic()
-            if cb.failure_count >= cb.failure_threshold:
+            if cb.state == CircuitState.HALF_OPEN:
+                # Failure in half-open → back to open
+                cb.state = CircuitState.OPEN
+                cb.half_open_success_count = 0
+            elif cb.failure_count >= cb.failure_threshold:
                 cb.state = CircuitState.OPEN
                 self._stats["circuit_trips"] += 1
                 logger.warning("Circuit OPEN for provider %s", provider_id)
 
     def record_success(self, provider_id: str) -> None:
-        """Reset circuit breaker on success."""
+        """Record success; require N consecutive successes in HALF_OPEN before closing."""
         with self._lock:
             cb = self._circuit_breakers.get(provider_id)
             if cb:
-                cb.state = CircuitState.CLOSED
-                cb.failure_count = 0
+                if cb.state == CircuitState.HALF_OPEN:
+                    cb.half_open_success_count += 1
+                    if cb.half_open_success_count >= cb.half_open_required_successes:
+                        cb.state = CircuitState.CLOSED
+                        cb.failure_count = 0
+                        cb.half_open_success_count = 0
+                else:
+                    cb.state = CircuitState.CLOSED
+                    cb.failure_count = 0
 
     def get_stats(self) -> Dict[str, Any]:
         with self._lock:

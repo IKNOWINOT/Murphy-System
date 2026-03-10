@@ -232,6 +232,47 @@ class Settings(BaseSettings):
     )
 
     # ============================================================================
+    # Test Mode Configuration
+    # ============================================================================
+
+    test_mode_enabled: bool = Field(
+        default=False,
+        description="Enable test mode — uses disposable test API keys with call/time limits"
+    )
+
+    test_mode_max_calls: int = Field(
+        default=50,
+        ge=1,
+        description="Maximum API calls allowed in a test session"
+    )
+
+    test_mode_max_seconds: int = Field(
+        default=300,
+        ge=1,
+        description="Maximum duration of a test session in seconds (default 5 minutes)"
+    )
+
+    test_mode_api_keys: str = Field(
+        default="",
+        description=(
+            "Comma-separated disposable test API keys. "
+            "These are visible in config since they are short-lived throwaway keys."
+        )
+    )
+
+    # ============================================================================
+    # Self-Learning Toggle
+    # ============================================================================
+
+    self_learning_enabled: bool = Field(
+        default=False,
+        description=(
+            "Master toggle for all self-learning subsystems. "
+            "When False, no training data is collected or stored to disk."
+        )
+    )
+
+    # ============================================================================
     # Environment Configuration
     # ============================================================================
 
