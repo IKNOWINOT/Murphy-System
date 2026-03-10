@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 class DataType(str, Enum):
+    """DataType enumeration."""
     NUMERIC = "numeric"
     BOOLEAN = "boolean"
     STRING = "string"
@@ -37,6 +38,7 @@ class DataType(str, Enum):
 
 
 class ReadingQuality(str, Enum):
+    """ReadingQuality enumeration."""
     GOOD = "good"
     UNCERTAIN = "uncertain"
     BAD = "bad"
@@ -44,6 +46,7 @@ class ReadingQuality(str, Enum):
 
 
 class FusionStrategy(str, Enum):
+    """FusionStrategy enumeration."""
     KALMAN_FILTER = "kalman_filter"
     WEIGHTED_AVERAGE = "weighted_average"
     MAJORITY_VOTE = "majority_vote"
@@ -53,6 +56,7 @@ class FusionStrategy(str, Enum):
 
 
 class AnomalyType(str, Enum):
+    """AnomalyType enumeration."""
     DISAGREEMENT = "disagreement"
     STUCK_SENSOR = "stuck_sensor"
     DRIFT = "drift"
@@ -65,6 +69,7 @@ class AnomalyType(str, Enum):
 # ---------------------------------------------------------------------------
 
 class SensorSource(BaseModel):
+    """SensorSource — sensor source definition."""
     source_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     protocol: str = "MQTT"
     address: str = ""
@@ -75,6 +80,7 @@ class SensorSource(BaseModel):
 
 
 class SensorReading(BaseModel):
+    """SensorReading — sensor reading definition."""
     source_id: str
     timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     value: Any = None
@@ -84,6 +90,7 @@ class SensorReading(BaseModel):
 
 
 class FusedState(BaseModel):
+    """FusedState — fused state definition."""
     fused_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     readings: Dict[str, Any] = Field(default_factory=dict)
@@ -95,6 +102,7 @@ class FusedState(BaseModel):
 
 @dataclass
 class AnomalyEvent:
+    """Event record for anomaly occurrences."""
     anomaly_id: str
     anomaly_type: AnomalyType
     source_id: str
@@ -274,6 +282,7 @@ class SensorFusionPipeline:
 # ---------------------------------------------------------------------------
 
 class SpatialMap(BaseModel):
+    """SpatialMap — spatial map definition."""
     map_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     coordinate_frame: str = "world"
     zones: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
@@ -294,6 +303,7 @@ class SpatialMap(BaseModel):
 
 
 class EnvironmentalModel(BaseModel):
+    """EnvironmentalModel — environmental model definition."""
     model_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     zones: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
 

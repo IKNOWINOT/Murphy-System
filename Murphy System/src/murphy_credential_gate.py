@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 class CredentialType(str, Enum):
+    """CredentialType enumeration."""
     PE = "PE"
     CPA = "CPA"
     RA = "RA"
@@ -43,6 +44,7 @@ class CredentialType(str, Enum):
 
 
 class CredentialStatus(str, Enum):
+    """CredentialStatus enumeration."""
     ACTIVE = "active"
     EXPIRED = "expired"
     SUSPENDED = "suspended"
@@ -50,6 +52,7 @@ class CredentialStatus(str, Enum):
 
 
 class ApprovalStatus(str, Enum):
+    """ApprovalStatus enumeration."""
     PENDING = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
@@ -61,6 +64,7 @@ class ApprovalStatus(str, Enum):
 # ---------------------------------------------------------------------------
 
 class ProfessionalCredential(BaseModel):
+    """ProfessionalCredential — professional credential definition."""
     credential_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     holder_name: str
     holder_email: str
@@ -75,6 +79,7 @@ class ProfessionalCredential(BaseModel):
 
 
 class EStamp(BaseModel):
+    """EStamp — e stamp definition."""
     stamp_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     credential_id: str
     document_hash: str
@@ -87,6 +92,7 @@ class EStamp(BaseModel):
 
 @dataclass
 class ApprovalRecord:
+    """ApprovalRecord — approval record definition."""
     approval_id: str
     document_id: str
     document_hash: str
@@ -345,6 +351,7 @@ class CredentialGatedApproval:
 
 @dataclass
 class WorkflowStep:
+    """WorkflowStep — workflow step definition."""
     step_id: str
     role: str
     required_credential_types: List[CredentialType]
