@@ -6,7 +6,9 @@ Wires the AUAR (Adaptive Universal API Router) pipeline into the
 Murphy System as a set of REST API endpoints.  This module provides:
 
   - POST /api/auar/route     — Execute a full AUAR pipeline request
-  - POST /api/auar/register  — Register a capability + provider
+  - POST /api/auar/register  — Register a capability + provider (admin only)
+  - DELETE /api/auar/provider/{id} — Deregister a provider (admin only)
+  - DELETE /api/auar/capability/{id} — Deregister a capability (admin only)
   - GET  /api/auar/stats     — System statistics (ML, routing, observability)
   - GET  /api/auar/health    — AUAR subsystem health check
 
@@ -15,14 +17,16 @@ Usage:
     auar_components = initialize_auar()
     app.include_router(create_auar_router(auar_components))
 
-Copyright 2024 Inoni LLC – Apache License 2.0
+Copyright 2024 Inoni LLC – BSL-1.1
 """
 
 import logging
-from typing import Any, Dict, Optional
+import os
+from typing import Any, Dict, List, Optional
 
 from auar import (
     AUARPipeline,
+    AUARConfig,
     AdapterConfig,
     AuthMethod,
     Capability,
@@ -39,6 +43,7 @@ from auar import (
     ProviderAdapterManager,
     RequestContext,
     RoutingDecisionEngine,
+    RoutingStrategy,
     SchemaMapping,
     SchemaTranslator,
     SignalInterpreter,
@@ -48,20 +53,103 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
+# Pydantic request/response models (Issue #3)
+# ---------------------------------------------------------------------------
+
+try:
+    from pydantic import BaseModel, Field, field_validator
+    _PYDANTIC_AVAILABLE = True
+except ImportError:
+    _PYDANTIC_AVAILABLE = False
+
+if _PYDANTIC_AVAILABLE:
+    class RouteRequest(BaseModel):
+        """Validated payload for POST /api/auar/route."""
+        capability: str = Field(..., min_length=1, max_length=256)
+        parameters: Dict[str, Any] = Field(default_factory=dict)
+        tenant_id: str = Field(default="", max_length=256)
+        user_id: str = Field(default="", max_length=256)
+
+    class CapabilityRegistration(BaseModel):
+        """Validated capability section of a registration payload."""
+        name: str = Field(..., min_length=1, max_length=256)
+        domain: str = Field(default="", max_length=256)
+        category: str = Field(default="", max_length=256)
+        required_params: List[str] = Field(default_factory=list)
+        semantic_tags: List[str] = Field(default_factory=list)
+
+    class ProviderRegistration(BaseModel):
+        """Validated provider section of a registration payload."""
+        name: str = Field(..., min_length=1, max_length=256)
+        base_url: str = Field(default="", max_length=2048)
+        auth_method: str = Field(default="api_key", max_length=64)
+        cost_per_call: float = Field(default=0.0, ge=0.0)
+        avg_latency_ms: float = Field(default=100.0, ge=0.0)
+        success_rate: float = Field(default=0.99, ge=0.0, le=1.0)
+        certification_level: str = Field(default="production", max_length=64)
+        auth_credentials: Dict[str, str] = Field(default_factory=dict)
+
+    class FieldMappingModel(BaseModel):
+        """Validated field mapping."""
+        source_field: str = Field(..., min_length=1, max_length=512)
+        target_field: str = Field(..., min_length=1, max_length=512)
+        transform: Optional[str] = None
+        default_value: Optional[Any] = None
+        required: bool = False
+
+    class SchemaMappingModel(BaseModel):
+        """Validated schema mapping."""
+        direction: str = Field(default="request", max_length=64)
+        field_mappings: List[FieldMappingModel] = Field(default_factory=list)
+        static_fields: Dict[str, Any] = Field(default_factory=dict)
+
+    class RegisterRequest(BaseModel):
+        """Validated payload for POST /api/auar/register."""
+        capability: Optional[CapabilityRegistration] = None
+        provider: Optional[ProviderRegistration] = None
+        schema_mappings: List[SchemaMappingModel] = Field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
 # Bootstrap helper
 # ---------------------------------------------------------------------------
 
 class AUARComponents:
     """Container for all initialised AUAR components."""
 
-    def __init__(self):
+    def __init__(self, config: Optional[AUARConfig] = None):
+        cfg = config or AUARConfig.from_env()
+        self.config = cfg
         self.graph = CapabilityGraph()
         self.interpreter = SignalInterpreter()
-        self.ml = MLOptimizer()
-        self.router = RoutingDecisionEngine(self.graph, ml_optimizer=self.ml)
+        self.ml = MLOptimizer(
+            epsilon=cfg.ml.epsilon,
+            epsilon_min=cfg.ml.epsilon_min,
+            epsilon_decay=cfg.ml.epsilon_decay,
+            max_latency_ms=cfg.ml.max_latency_ms,
+            max_cost=cfg.ml.max_cost,
+            reward_weights=dict(cfg.ml.reward_weights),
+        )
+        strategy = RoutingStrategy(cfg.routing.strategy)
+        self.router = RoutingDecisionEngine(
+            self.graph,
+            strategy=strategy,
+            weights=dict(cfg.routing.weights),
+            circuit_failure_threshold=cfg.routing.circuit_breaker_threshold,
+            circuit_recovery_s=cfg.routing.circuit_breaker_recovery_s,
+            ml_optimizer=self.ml,
+            ml_weight=cfg.routing.ml_weight,
+            max_latency_ms=cfg.routing.max_latency_ms,
+            max_cost=cfg.routing.max_cost,
+            half_open_required_successes=cfg.routing.half_open_required_successes,
+            half_open_traffic_ratio=cfg.routing.half_open_traffic_ratio,
+        )
         self.translator = SchemaTranslator()
         self.adapters = ProviderAdapterManager()
-        self.observability = ObservabilityLayer()
+        self.observability = ObservabilityLayer(
+            max_traces=cfg.observability.max_traces,
+            max_audit=cfg.observability.max_audit_entries,
+        )
         self.pipeline = AUARPipeline(
             interpreter=self.interpreter,
             graph=self.graph,
@@ -73,10 +161,18 @@ class AUARComponents:
         )
 
 
-def initialize_auar() -> AUARComponents:
-    """Create and return a fully wired AUAR subsystem."""
-    components = AUARComponents()
-    logger.info("AUAR subsystem initialised (FAPI v0.1.0)")
+def initialize_auar(config: Optional[AUARConfig] = None) -> AUARComponents:
+    """Create and return a fully wired AUAR subsystem.
+
+    If *config* is ``None``, configuration is loaded from ``AUAR_*``
+    environment variables via :meth:`AUARConfig.from_env`.
+    """
+    cfg = config or AUARConfig.from_env()
+    components = AUARComponents(config=cfg)
+    logger.info(
+        "AUAR subsystem initialised (FAPI v%s) — strategy=%s, epsilon=%.3f",
+        cfg.version, cfg.routing.strategy, cfg.ml.epsilon,
+    )
     return components
 
 
@@ -122,33 +218,17 @@ def handle_route(components: AUARComponents, body: Dict[str, Any]) -> Dict[str, 
     }
 
 
-def handle_register(components: AUARComponents, body: Dict[str, Any]) -> Dict[str, Any]:
+def handle_register(
+    components: AUARComponents,
+    body: Dict[str, Any],
+    *,
+    actor: str = "",
+    tenant_id: str = "",
+) -> Dict[str, Any]:
     """Register a capability and/or provider.
 
-    Expected body::
-
-        {
-            "capability": {
-                "name": "send_email",
-                "domain": "communication",
-                "category": "email",
-                "semantic_tags": ["email", "messaging"]
-            },
-            "provider": {
-                "name": "SendGrid",
-                "base_url": "https://api.sendgrid.com",
-                "auth_method": "api_key",
-                "cost_per_call": 0.001
-            },
-            "schema_mappings": [
-                {
-                    "direction": "request",
-                    "field_mappings": [
-                        {"source_field": "to", "target_field": "personalizations.to"}
-                    ]
-                }
-            ]
-        }
+    *actor* and *tenant_id* are used for audit logging when called via
+    the authenticated API endpoint.
     """
     result: Dict[str, Any] = {"registered": []}
 
@@ -172,6 +252,15 @@ def handle_register(components: AUARComponents, body: Dict[str, Any]) -> Dict[st
         )
         result["registered"].append(f"capability:{cap.name}")
         result["capability_id"] = cap_id
+
+        # Audit the registration action
+        components.observability.audit(
+            actor=actor or "system",
+            action="register_capability",
+            resource=f"capability:{cap.name}",
+            detail={"capability_id": cap_id, "domain": cap.domain},
+            tenant_id=tenant_id,
+        )
 
     prov_data = body.get("provider", {})
     if prov_data and prov_data.get("name"):
@@ -207,6 +296,15 @@ def handle_register(components: AUARComponents, body: Dict[str, Any]) -> Dict[st
         result["registered"].append(f"provider:{provider.name}")
         result["provider_id"] = provider.id
 
+        # Audit the registration action
+        components.observability.audit(
+            actor=actor or "system",
+            action="register_provider",
+            resource=f"provider:{provider.name}",
+            detail={"provider_id": provider.id, "base_url": provider.base_url},
+            tenant_id=tenant_id,
+        )
+
     # Register schema mappings
     for sm_data in body.get("schema_mappings", []):
         if prov_data and cap_data:
@@ -231,6 +329,59 @@ def handle_register(components: AUARComponents, body: Dict[str, Any]) -> Dict[st
             result["registered"].append(f"schema_mapping:{sm.direction}")
 
     return result
+
+
+def handle_deregister_provider(
+    components: AUARComponents,
+    provider_id: str,
+    *,
+    actor: str = "",
+    tenant_id: str = "",
+) -> Dict[str, Any]:
+    """Deregister a provider and cascade-remove related state."""
+    removed = components.graph.deregister_provider(provider_id)
+    if not removed:
+        return {"success": False, "error": f"Provider {provider_id} not found"}
+
+    # Cascade: remove adapter
+    components.adapters.deregister_adapter(provider_id)
+
+    # Cascade: remove schema mappings for this provider
+    components.translator.deregister_provider_mappings(provider_id)
+
+    # Audit
+    components.observability.audit(
+        actor=actor or "system",
+        action="deregister_provider",
+        resource=f"provider:{provider_id}",
+        tenant_id=tenant_id,
+    )
+    return {"success": True, "provider_id": provider_id}
+
+
+def handle_deregister_capability(
+    components: AUARComponents,
+    capability_name: str,
+    *,
+    actor: str = "",
+    tenant_id: str = "",
+) -> Dict[str, Any]:
+    """Deregister a capability and cascade-remove related state."""
+    removed = components.graph.deregister_capability(capability_name)
+    if not removed:
+        return {"success": False, "error": f"Capability {capability_name} not found"}
+
+    # Cascade: remove schema mappings for this capability
+    components.translator.deregister_capability_mappings(capability_name)
+
+    # Audit
+    components.observability.audit(
+        actor=actor or "system",
+        action="deregister_capability",
+        resource=f"capability:{capability_name}",
+        tenant_id=tenant_id,
+    )
+    return {"success": True, "capability_name": capability_name}
 
 
 def handle_stats(components: AUARComponents) -> Dict[str, Any]:
@@ -263,6 +414,19 @@ def handle_health(components: AUARComponents) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 # FastAPI router factory
 # ---------------------------------------------------------------------------
+
+def _get_admin_user(request: Any) -> Optional[str]:
+    """Extract and validate admin user from request headers.
+
+    Returns the user ID if the caller has admin privileges, else ``None``.
+    The ``X-User-Role`` header must be ``admin`` for write endpoints.
+    """
+    user_id = request.headers.get("x-user-id", "")
+    role = request.headers.get("x-user-role", "")
+    if role == "admin" and user_id:
+        return user_id
+    return None
+
 
 def create_auar_router(components: Optional[AUARComponents] = None):
     """Create a FastAPI ``APIRouter`` with AUAR endpoints.
@@ -300,17 +464,87 @@ def create_auar_router(components: Optional[AUARComponents] = None):
     @router.post("/route")
     async def route_request(request: Request) -> JSONResponse:
         """Execute a full AUAR pipeline request."""
-        body = await request.json()
+        if _PYDANTIC_AVAILABLE:
+            body = await request.json()
+            try:
+                validated = RouteRequest(**body)
+                body = validated.model_dump()
+            except Exception as exc:
+                return JSONResponse(
+                    content={"error": f"Validation error: {exc}"},
+                    status_code=422,
+                )
+        else:
+            body = await request.json()
         result = handle_route(components, body)
         status = 200 if result.get("success") else 422
         return JSONResponse(content=result, status_code=status)
 
     @router.post("/register")
     async def register_capability(request: Request) -> JSONResponse:
-        """Register a capability and/or provider."""
-        body = await request.json()
-        result = handle_register(components, body)
+        """Register a capability and/or provider (admin only)."""
+        admin_user = _get_admin_user(request)
+        if not admin_user:
+            components.observability.audit(
+                actor=request.headers.get("x-user-id", "anonymous"),
+                action="register_attempt_denied",
+                resource="auar_register",
+                outcome="denied",
+                tenant_id=request.headers.get("x-tenant-id", ""),
+            )
+            return JSONResponse(
+                content={"error": "Admin role required for registration"},
+                status_code=403,
+            )
+        if _PYDANTIC_AVAILABLE:
+            body = await request.json()
+            try:
+                validated = RegisterRequest(**body)
+                body = validated.model_dump(exclude_none=True)
+            except Exception as exc:
+                return JSONResponse(
+                    content={"error": f"Validation error: {exc}"},
+                    status_code=422,
+                )
+        else:
+            body = await request.json()
+        tenant_id = request.headers.get("x-tenant-id", "")
+        result = handle_register(
+            components, body, actor=admin_user, tenant_id=tenant_id,
+        )
         return JSONResponse(content=result, status_code=201)
+
+    @router.delete("/provider/{provider_id}")
+    async def deregister_provider(provider_id: str, request: Request) -> JSONResponse:
+        """Deregister a provider (admin only)."""
+        admin_user = _get_admin_user(request)
+        if not admin_user:
+            return JSONResponse(
+                content={"error": "Admin role required"},
+                status_code=403,
+            )
+        tenant_id = request.headers.get("x-tenant-id", "")
+        result = handle_deregister_provider(
+            components, provider_id, actor=admin_user, tenant_id=tenant_id,
+        )
+        status = 200 if result.get("success") else 404
+        return JSONResponse(content=result, status_code=status)
+
+    @router.delete("/capability/{capability_name}")
+    async def deregister_capability(capability_name: str, request: Request) -> JSONResponse:
+        """Deregister a capability (admin only)."""
+        admin_user = _get_admin_user(request)
+        if not admin_user:
+            return JSONResponse(
+                content={"error": "Admin role required"},
+                status_code=403,
+            )
+        tenant_id = request.headers.get("x-tenant-id", "")
+        result = handle_deregister_capability(
+            components, capability_name, actor=admin_user, tenant_id=tenant_id,
+        )
+        status = 200 if result.get("success") else 404
+        return JSONResponse(content=result, status_code=status)
 
     @router.get("/stats")
     async def get_stats() -> JSONResponse:
@@ -334,6 +568,8 @@ def create_secure_auar_app(components: Optional[AUARComponents] = None):
          (CORS, API-key auth, rate limiting, security headers).
       3. Mounts the AUAR router.
 
+    Raises ``RuntimeError`` if ``fastapi_security`` is not importable
+    unless the ``AUAR_ALLOW_INSECURE=true`` environment variable is set.
     Returns ``None`` if FastAPI is not installed.
     """
     try:
@@ -353,10 +589,19 @@ def create_secure_auar_app(components: Optional[AUARComponents] = None):
         from fastapi_security import configure_secure_fastapi
         configure_secure_fastapi(app, service_name="auar-api")
     except ImportError:
-        logger.warning(
-            "CRITICAL: fastapi_security not available — "
-            "AUAR app running WITHOUT authentication, CORS, or rate limiting."
-        )
+        allow_insecure = os.environ.get("AUAR_ALLOW_INSECURE", "").lower() == "true"
+        if allow_insecure:
+            logger.warning(
+                "╔══════════════════════════════════════════════════════════╗\n"
+                "║  WARNING: AUAR running WITHOUT security middleware!     ║\n"
+                "║  AUAR_ALLOW_INSECURE=true — for development only.      ║\n"
+                "╚══════════════════════════════════════════════════════════╝"
+            )
+        else:
+            raise RuntimeError(
+                "fastapi_security module is required but not installed. "
+                "Install it or set AUAR_ALLOW_INSECURE=true for development."
+            )
 
     app.include_router(router)
     return app

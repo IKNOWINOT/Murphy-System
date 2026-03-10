@@ -227,6 +227,33 @@ class AUARPipeline:
                     result.capability, pid, resp.body,
                 )
 
+                # Check translation success (Issue #12)
+                if not resp_translation.success:
+                    logger.warning(
+                        "Response translation failed for %s: %s",
+                        pid, resp_translation.errors,
+                    )
+                    if self._obs and trace:
+                        trans_span = self._obs.add_span(
+                            trace.trace_id, "response_translation_failure",
+                            attributes={
+                                "provider_id": pid,
+                                "errors": resp_translation.errors,
+                            },
+                        )
+                        self._obs.end_span(trans_span, status="error")
+                    result.success = False
+                    result.provider_id = pid
+                    result.provider_name = candidate.provider_name
+                    result.response_body = resp_translation.translated_data
+                    result.response_status = resp.status_code
+                    result.error = f"Response translation failed: {resp_translation.errors}"
+                    if self._obs and trace:
+                        self._obs.finish_trace(trace.trace_id, success=False)
+                        self._obs.increment("auar.requests.translation_failure")
+                    result.total_latency_ms = (time.monotonic() - start) * 1000
+                    return result
+
                 result.success = True
                 result.provider_id = pid
                 result.provider_name = candidate.provider_name

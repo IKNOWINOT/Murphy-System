@@ -113,6 +113,30 @@ class SchemaTranslator:
         with self._lock:
             self._custom_transforms[name] = fn
 
+    def deregister_provider_mappings(self, provider_id: str) -> int:
+        """Remove all schema mappings for a given provider. Returns count removed."""
+        removed = 0
+        with self._lock:
+            keys_to_remove = [
+                k for k in self._mappings if k[1] == provider_id
+            ]
+            for key in keys_to_remove:
+                del self._mappings[key]
+                removed += 1
+        return removed
+
+    def deregister_capability_mappings(self, capability_name: str) -> int:
+        """Remove all schema mappings for a given capability. Returns count removed."""
+        removed = 0
+        with self._lock:
+            keys_to_remove = [
+                k for k in self._mappings if k[0] == capability_name
+            ]
+            for key in keys_to_remove:
+                del self._mappings[key]
+                removed += 1
+        return removed
+
     # -- Translation --------------------------------------------------------
 
     def translate_request(

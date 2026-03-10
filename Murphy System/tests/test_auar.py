@@ -689,9 +689,10 @@ class TestMLOptimizer:
 
     def test_epsilon_decay(self):
         opt = MLOptimizer(epsilon=0.15, epsilon_decay=0.9)
-        initial = opt._epsilon
+        initial = opt._epsilon_initial
         opt.record(RoutingFeatures(capability_name="t", provider_id="p"))
-        assert opt._epsilon < initial
+        cap_eps = opt._capability_epsilon.get("t", initial)
+        assert cap_eps < initial
 
     def test_empty_candidates(self):
         opt = MLOptimizer()
@@ -1681,15 +1682,16 @@ class TestHMACAuth:
             auth_credentials={"secret_key": "test-secret", "key_id": "k1"},
         )
         adapter = ProviderAdapter(config)
-        h1 = adapter._build_auth_headers()
+        h1 = adapter._build_auth_headers(body=None)
         ts = h1["X-HMAC-Timestamp"]
 
-        # Manually compute expected signature
-        message = f"{ts}:k1"
+        # v2 message includes empty canonicalized body
+        message = f"{ts}:k1:"
         expected = hmac_mod.new(
             b"test-secret", message.encode(), hashlib.sha256
         ).hexdigest()
         assert h1["X-HMAC-Signature"] == expected
+        assert h1["X-HMAC-Version"] == "v2"
 
     def test_hmac_full_call(self):
         """HMAC adapter includes signing headers in downstream request."""

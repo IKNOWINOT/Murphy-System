@@ -74,6 +74,11 @@ from .config import (
     ObservabilityConfig,
     InterpreterConfig,
 )
+from .persistence import (
+    StateBackend,
+    InMemoryStateBackend,
+    FileStateBackend,
+)
 
 __all__ = [
     # Signal Interpretation
@@ -125,4 +130,8 @@ __all__ = [
     "MLConfig",
     "ObservabilityConfig",
     "InterpreterConfig",
+    # Persistence
+    "StateBackend",
+    "InMemoryStateBackend",
+    "FileStateBackend",
 ]
