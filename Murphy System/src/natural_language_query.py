@@ -425,8 +425,8 @@ class NLQueryEngine:
                     if "answer" in result_data:
                         answer_parts.append(str(result_data["answer"]))
                     best_source = best_source or src.name
-            except Exception:
-                logger.exception("Source %s failed for query", src.name)
+            except Exception as exc:
+                logger.exception("Source %s failed for query: %s", src.name, exc)
         if not combined_data:
             return self._handle_no_source(parsed)
         return QueryResult(

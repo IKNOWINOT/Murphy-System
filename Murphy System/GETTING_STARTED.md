@@ -51,7 +51,7 @@ Phase 2 — Production Execute
 
 ### 600+ source modules
 
-`src/` contains over 600 Python modules across 50+ packages. A representative selection:
+`src/` contains 753 Python modules across 60 packages. A representative selection:
 
 **AI and LLM orchestration**
 - `llm_controller.py` — routes prompts to the configured LLM provider
@@ -373,7 +373,7 @@ Expected output:
 
 ```
 INFO:     Murphy System 1.0 starting...
-INFO:     Module registry: 610 modules loaded
+INFO:     Module registry: 753 modules loaded
 INFO:     Governance kernel: active
 INFO:     HITL gates: enabled
 INFO:     Librarian: capability map loaded (610 capabilities)
@@ -396,7 +396,7 @@ Expected:
 {
   "status": "ok",
   "version": "1.0.0",
-  "modules_loaded": 610,
+  "modules_loaded": 753,
   "uptime_seconds": 4
 }
 ```
@@ -577,6 +577,13 @@ A governance gate blocked the request. Check the `gate_results` field for which 
 ### Librarian returns empty matches
 
 The module registry may not have loaded correctly. Check for errors in the server log with `INFO: Module registry:`. If the count is 0, ensure `src/` exists relative to the working directory.
+
+---
+
+## Test Suite
+
+The project includes 118 gap-closure test files and 14,800+ total tests.
+Run the full suite with `python -m pytest tests/ -v` from the `Murphy System/` directory.
 
 ---
 

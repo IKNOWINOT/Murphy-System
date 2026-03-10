@@ -4,7 +4,55 @@
 
 ---
 
-## What Murphy System Is
+## 1. Quick Start
+
+### Prerequisites
+
+| Requirement | Minimum | Notes |
+|---|---|---|
+| Python | 3.10+ | `python3 --version` must show ≥ 3.10 |
+| RAM | 4 GB | 8 GB recommended for LLM-enabled mode |
+| Disk | 2 GB free | For dependencies and logs |
+| OS | Linux, macOS, or Windows | All three are supported |
+
+### Clone and start
+
+```bash
+git clone https://github.com/IKNOWINOT/Murphy-System.git
+cd Murphy-System
+bash setup_and_start.sh
+```
+
+On Windows:
+
+```cmd
+git clone https://github.com/IKNOWINOT/Murphy-System.git
+cd Murphy-System
+setup_and_start.bat
+```
+
+`setup_and_start.sh` handles everything:
+
+1. Checks Python 3.10+ and pip
+2. Creates a virtual environment and installs dependencies from `requirements_murphy_1.0.txt`
+3. Generates a default `.env` with `MURPHY_LLM_PROVIDER=local` (no API key required)
+4. Creates runtime directories (logs, data, modules, sessions)
+5. Starts the backend server
+
+Expected output:
+
+```
+INFO:     Murphy System 1.0 starting...
+INFO:     Module registry: 753 modules loaded
+INFO:     Governance kernel: active
+INFO:     HITL gates: enabled
+INFO:     Librarian: capability map loaded (610 capabilities)
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+```
+
+---
+
+## 2. What You Get
 
 Murphy System is a universal AI-governed automation platform that applies formal control theory — confidence scoring, safety gates, and human-in-the-loop checkpoints — to any operational domain.
 
@@ -12,11 +60,19 @@ It is not a simple API wrapper or task queue. It is a control plane.
 
 Every action Murphy takes passes through a governance pipeline that scores confidence, validates against domain-specific safety gates, optionally routes to a human operator for approval, and records a cryptographic audit trail. The same architecture that governs a low-stakes content generation task also governs a high-stakes trading order or a Kubernetes deployment rollout.
 
+Out of the box you get:
+
+- **753 modules** across 60 packages — AI orchestration, governance gates, business automation, trading, enterprise ops, compliance, robotics, and self-healing
+- **90 audit categories** covering security, compliance, performance, data integrity, access control, financial, operational, and infrastructure concerns
+- A two-phase execution model (Generative Setup → Production Execute) with the Wingman Protocol
+- A full suite of web-based terminals and dashboards (see [§ 5. Terminal](#5-terminal))
+- A FastAPI-based REST API on port 8000 with interactive Swagger docs (see [§ 4. REST API](#4-rest-api))
+
 **Commercial goal:** Murphy System is designed to be licensed as a SaaS product under BSL 1.1. Operators embed it into their business operations as a supervised automation layer — not a black-box agent, but an AI executive assistant with verifiable decision provenance.
 
 ---
 
-## The Real Architecture
+## 3. The Real Architecture
 
 ### Core runtime
 
@@ -42,7 +98,7 @@ Phase 2 — Production Execute
 
 ### 600+ source modules
 
-`src/` contains over 600 Python modules across 50+ packages. A representative selection:
+`src/` contains 753 Python modules across 60 packages. A representative selection:
 
 **AI and LLM orchestration**
 - `llm_controller.py` — routes prompts to the configured LLM provider
@@ -98,25 +154,179 @@ Phase 2 — Production Execute
 - `self_healing_coordinator.py` — repair sequencing and prioritisation
 - `chaos_resilience_loop.py` — chaos engineering and blast radius control
 
-### Web interfaces
+---
 
-Fourteen HTML interfaces are included:
+## 4. REST API
 
-| Interface | Purpose |
-|---|---|
-| `terminal_unified.html` | Primary operator terminal |
-| `terminal_enhanced.html` | Extended view with module inspector |
-| `terminal_architect.html` | System architecture visualiser |
-| `terminal_integrations.html` | Integration status and connector management |
-| `murphy_landing_page.html` | Entry page with system overview |
-| `onboarding_wizard.html` | Guided first-run setup |
-| ...and more | Coverage, audit, analytics, canvas views |
+Murphy System exposes a FastAPI server on **port 8000**. All endpoints return JSON. While the server is running, interactive Swagger documentation is available at `http://localhost:8000/docs`.
 
-All interfaces share a single design system (`static/murphy-design-system.css`, `static/murphy-components.js`) with a dark-only theme (`#0C1017` base, teal/cyan accents). No light mode.
+### Health check
+
+```bash
+curl http://localhost:8000/api/health
+```
+
+Expected:
+
+```json
+{
+  "status": "ok",
+  "version": "1.0.0",
+  "modules_loaded": 753,
+  "uptime_seconds": 4
+}
+```
+
+### System status
+
+```bash
+curl http://localhost:8000/api/status
+```
+
+Returns runtime metrics including loaded module count, active gates, uptime, and resource usage.
+
+### Gate status
+
+```bash
+curl http://localhost:8000/api/gates/status
+```
+
+Expected:
+
+```json
+{
+  "active_gates": [
+    {"name": "security",    "state": "armed"},
+    {"name": "compliance",  "state": "armed"},
+    {"name": "authority",   "state": "armed"},
+    {"name": "budget",      "state": "armed"},
+    {"name": "hitl",        "state": "armed"}
+  ],
+  "governance_mode": "strict"
+}
+```
+
+### Librarian query
+
+Ask the Librarian what capabilities match a task description:
+
+```bash
+curl -X POST http://localhost:8000/api/librarian/query \
+     -H "Content-Type: application/json" \
+     -d '{"query": "generate an invoice for a consulting project"}'
+```
+
+Expected:
+
+```json
+{
+  "query": "generate an invoice for a consulting project",
+  "matches": [
+    {
+      "capability_id": "invoice_processing_pipeline",
+      "score": 0.94,
+      "cost_estimate": "low",
+      "determinism": "deterministic",
+      "match_reasons": ["domain:finance", "keyword:invoice", "keyword:generate"]
+    },
+    {
+      "capability_id": "niche_business_generator",
+      "score": 0.71,
+      "cost_estimate": "medium",
+      "determinism": "stochastic",
+      "match_reasons": ["domain:business", "keyword:generate"]
+    }
+  ]
+}
+```
+
+### Execute a task
+
+```bash
+curl -X POST http://localhost:8000/api/execute \
+     -H "Content-Type: application/json" \
+     -d '{
+       "task": "generate invoice",
+       "amount": 5000,
+       "client": "Acme Corp",
+       "description": "Q1 consulting services"
+     }'
+```
+
+Expected:
+
+```json
+{
+  "success": true,
+  "task_id": "7f3a1b2c-...",
+  "solution_path": "invoice_processing_pipeline",
+  "confidence": 0.94,
+  "execution_time_ms": 312,
+  "gate_results": {
+    "security":   "pass",
+    "compliance": "pass",
+    "authority":  "pass",
+    "budget":     "pass"
+  },
+  "wingman": {
+    "executor": "invoice_processing_pipeline",
+    "validator": "invoice_validator",
+    "validator_result": "pass"
+  },
+  "audit_id": "a1b2c3d4-..."
+}
+```
+
+### Send a chat message
+
+```bash
+curl -X POST http://localhost:8000/api/chat \
+     -H "Content-Type: application/json" \
+     -d '{"message": "What capabilities do you have for finance automation?"}'
+```
+
+Expected:
+
+```json
+{
+  "response": "Murphy System includes the following finance automation capabilities: ...",
+  "capabilities_referenced": ["invoice_processing_pipeline", "sales_automation", "trading_bot_engine"],
+  "confidence": 0.88
+}
+```
+
+### Additional endpoints
+
+| Endpoint | Method | Purpose |
+|---|---|---|
+| `/api/schedule` | POST | Register scheduled or one-time tasks |
+| `/api/rules` | POST | Create alert-based trigger rules |
+| `/api/gates/define` | POST | Declaratively define a governance gate |
+| `/api/gates/generate` | POST | Auto-generate domain gate specifications |
+| `/docs` | GET | Interactive Swagger UI |
 
 ---
 
-## Schedules, Conditions, and Domain Generative Gates
+## 5. Terminal
+
+Murphy System ships with a set of browser-based HTML interfaces. All interfaces share a single design system (`static/murphy-design-system.css`, `static/murphy-components.js`) with a dark-only theme (`#0C1017` base, teal/cyan accents). No light mode.
+
+Serve any interface by opening it directly or via the backend static route while the server is running on port 8000.
+
+| Interface | Purpose |
+|---|---|
+| `terminal_architect.html` | Architect terminal — system architecture visualiser and design workspace |
+| `terminal_integrated.html` | Integrated terminal — unified view combining operator controls and system status |
+| `terminal_enhanced.html` | Enhanced terminal — extended view with module inspector and diagnostics |
+| `terminal_worker.html` | Worker terminal — task-focused execution and monitoring console |
+| `murphy_ui_integrated.html` | Integrated UI — combined dashboard for governance, modules, and execution |
+| `murphy_ui_integrated_terminal.html` | Integrated terminal UI — full terminal experience embedded in the dashboard |
+| `onboarding_wizard.html` | Onboarding wizard — guided first-run setup and configuration |
+| `murphy_landing_page.html` | Landing page — entry page with system overview and navigation |
+
+---
+
+## 6. Schedules, Conditions, and Domain Generative Gates
 
 This is the layer of Murphy System that makes it *proactive* rather than purely reactive. Three building blocks work together to allow you to define the rules of your domain — and have the system enforce and route around them automatically.
 
@@ -303,7 +513,7 @@ This is the closed loop: your domain rules produce gates → gates produce a spe
 
 ---
 
-## First-Class Concepts
+## 7. First-Class Concepts
 
 **The Librarian**
 The `SystemLibrarian` is the routing brain. It consumes the live `ModuleRegistry.get_capabilities()` feed and scores every registered capability against an incoming task. No capability can be invoked without passing through the Librarian's ranking (or an explicit HITL override). The Librarian works with the `librarian_bot` TypeScript semantic search service for higher-quality matching.
@@ -325,186 +535,7 @@ When the Librarian finds multiple ways to complete a task, all alternatives are 
 
 ---
 
-## Installation
-
-### Prerequisites
-
-| Requirement | Minimum | Notes |
-|---|---|---|
-| Python | 3.10+ | `python3 --version` must show ≥ 3.10 |
-| RAM | 4 GB | 8 GB recommended for LLM-enabled mode |
-| Disk | 2 GB free | For dependencies and logs |
-| OS | Linux, macOS, or Windows | All three are supported |
-
-### Clone and start
-
-```bash
-git clone https://github.com/IKNOWINOT/Murphy-System.git
-cd Murphy-System
-bash setup_and_start.sh
-```
-
-On Windows:
-
-```cmd
-git clone https://github.com/IKNOWINOT/Murphy-System.git
-cd Murphy-System
-setup_and_start.bat
-```
-
-`setup_and_start.sh` handles everything:
-
-1. Checks Python 3.10+ and pip
-2. Creates a virtual environment and installs dependencies from `requirements_murphy_1.0.txt`
-3. Generates a default `.env` with `MURPHY_LLM_PROVIDER=local` (no API key required)
-4. Creates runtime directories (logs, data, modules, sessions)
-5. Starts the backend server
-
-Expected output:
-
-```
-INFO:     Murphy System 1.0 starting...
-INFO:     Module registry: 610 modules loaded
-INFO:     Governance kernel: active
-INFO:     HITL gates: enabled
-INFO:     Librarian: capability map loaded (610 capabilities)
-INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-```
-
----
-
-## Verifying the Installation
-
-### Health check
-
-```bash
-curl http://localhost:8000/api/health
-```
-
-Expected:
-
-```json
-{
-  "status": "ok",
-  "version": "1.0.0",
-  "modules_loaded": 610,
-  "uptime_seconds": 4
-}
-```
-
-### Gate status
-
-```bash
-curl http://localhost:8000/api/gates/status
-```
-
-Expected:
-
-```json
-{
-  "active_gates": [
-    {"name": "security",    "state": "armed"},
-    {"name": "compliance",  "state": "armed"},
-    {"name": "authority",   "state": "armed"},
-    {"name": "budget",      "state": "armed"},
-    {"name": "hitl",        "state": "armed"}
-  ],
-  "governance_mode": "strict"
-}
-```
-
-### Librarian query
-
-Ask the Librarian what capabilities match a task description:
-
-```bash
-curl -X POST http://localhost:8000/api/librarian/query \
-     -H "Content-Type: application/json" \
-     -d '{"query": "generate an invoice for a consulting project"}'
-```
-
-Expected:
-
-```json
-{
-  "query": "generate an invoice for a consulting project",
-  "matches": [
-    {
-      "capability_id": "invoice_processing_pipeline",
-      "score": 0.94,
-      "cost_estimate": "low",
-      "determinism": "deterministic",
-      "match_reasons": ["domain:finance", "keyword:invoice", "keyword:generate"]
-    },
-    {
-      "capability_id": "niche_business_generator",
-      "score": 0.71,
-      "cost_estimate": "medium",
-      "determinism": "stochastic",
-      "match_reasons": ["domain:business", "keyword:generate"]
-    }
-  ]
-}
-```
-
-### Execute a task
-
-```bash
-curl -X POST http://localhost:8000/api/execute \
-     -H "Content-Type: application/json" \
-     -d '{
-       "task": "generate invoice",
-       "amount": 5000,
-       "client": "Acme Corp",
-       "description": "Q1 consulting services"
-     }'
-```
-
-Expected:
-
-```json
-{
-  "success": true,
-  "task_id": "7f3a1b2c-...",
-  "solution_path": "invoice_processing_pipeline",
-  "confidence": 0.94,
-  "execution_time_ms": 312,
-  "gate_results": {
-    "security":   "pass",
-    "compliance": "pass",
-    "authority":  "pass",
-    "budget":     "pass"
-  },
-  "wingman": {
-    "executor": "invoice_processing_pipeline",
-    "validator": "invoice_validator",
-    "validator_result": "pass"
-  },
-  "audit_id": "a1b2c3d4-..."
-}
-```
-
-### Send a chat message
-
-```bash
-curl -X POST http://localhost:8000/api/chat \
-     -H "Content-Type: application/json" \
-     -d '{"message": "What capabilities do you have for finance automation?"}'
-```
-
-Expected:
-
-```json
-{
-  "response": "Murphy System includes the following finance automation capabilities: ...",
-  "capabilities_referenced": ["invoice_processing_pipeline", "sales_automation", "trading_bot_engine"],
-  "confidence": 0.88
-}
-```
-
----
-
-## Authentication
+## 8. Authentication
 
 In development mode (`MURPHY_ENV=development`, the default), all endpoints are accessible without an API key.
 
@@ -515,9 +546,7 @@ curl -H "Authorization: Bearer <your-generated-key>" \
      http://localhost:8000/api/status
 ```
 
----
-
-## What to Explore Next
+### What to explore next
 
 | Resource | Purpose |
 |---|---|
@@ -533,7 +562,7 @@ curl -H "Authorization: Bearer <your-generated-key>" \
 
 ---
 
-## Troubleshooting
+## 9. Troubleshooting
 
 ### `python3 --version` shows 3.9 or lower
 
@@ -568,6 +597,13 @@ A governance gate blocked the request. Check the `gate_results` field for which 
 ### Librarian returns empty matches
 
 The module registry may not have loaded correctly. Check for errors in the server log with `INFO: Module registry:`. If the count is 0, ensure `src/` exists relative to the working directory.
+
+---
+
+## 10. Test Suite
+
+The project includes 118 gap-closure test files and 14,800+ total tests.
+Run the full suite with `python -m pytest tests/ -v` from the `Murphy System/` directory.
 
 ---
 
