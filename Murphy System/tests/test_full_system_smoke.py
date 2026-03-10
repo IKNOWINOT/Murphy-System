@@ -72,6 +72,23 @@ def _main_class(mod: Any) -> Optional[Any]:
     return max(candidates, key=_method_count)
 
 
+def _read_full_runtime() -> str:
+    """Read concatenated runtime source (thin wrapper + refactored modules)."""
+    root = os.path.join(os.path.dirname(__file__), "..")
+    parts = []
+    for rel in (
+        "murphy_system_1.0_runtime.py",
+        os.path.join("src", "runtime", "_deps.py"),
+        os.path.join("src", "runtime", "app.py"),
+        os.path.join("src", "runtime", "murphy_system_core.py"),
+    ):
+        path = os.path.join(root, rel)
+        if os.path.isfile(path):
+            with open(path, encoding="utf-8") as fh:
+                parts.append(fh.read())
+    return "\n".join(parts)
+
+
 def _make_audit_id() -> str:
     return str(uuid.uuid4())
 
@@ -93,9 +110,7 @@ class TestSystemHealthSmoke:
 
     def test_runtime_defines_app_or_create_app(self) -> None:
         """The runtime must define an 'app' or 'create_app' symbol."""
-        runtime_path = os.path.join(os.path.dirname(__file__), "..", "murphy_system_1.0_runtime.py")
-        with open(runtime_path, encoding="utf-8") as f:
-            content = f.read()
+        content = _read_full_runtime()
         has_app = "app = " in content or "app=" in content
         has_create_app = "def create_app" in content or "create_app(" in content
         assert has_app or has_create_app, (
@@ -104,18 +119,14 @@ class TestSystemHealthSmoke:
 
     def test_health_endpoint_pattern_present(self) -> None:
         """A /api/health route must be registered in the runtime."""
-        runtime_path = os.path.join(os.path.dirname(__file__), "..", "murphy_system_1.0_runtime.py")
-        with open(runtime_path, encoding="utf-8") as f:
-            content = f.read()
+        content = _read_full_runtime()
         assert "/api/health" in content, (
             "No /api/health endpoint found in murphy_system_1.0_runtime.py"
         )
 
     def test_status_endpoint_pattern_present(self) -> None:
         """A /api/status route must be registered in the runtime."""
-        runtime_path = os.path.join(os.path.dirname(__file__), "..", "murphy_system_1.0_runtime.py")
-        with open(runtime_path, encoding="utf-8") as f:
-            content = f.read()
+        content = _read_full_runtime()
         assert "/api/status" in content, (
             "No /api/status endpoint found in murphy_system_1.0_runtime.py"
         )
@@ -254,9 +265,7 @@ class TestTaskSubmissionSmoke:
 
     def test_execute_endpoint_pattern_in_runtime(self) -> None:
         """A /api/execute route must be registered."""
-        runtime_path = os.path.join(os.path.dirname(__file__), "..", "murphy_system_1.0_runtime.py")
-        with open(runtime_path, encoding="utf-8") as f:
-            content = f.read()
+        content = _read_full_runtime()
         assert "/api/execute" in content or "execute" in content, (
             "No execute endpoint found in murphy_system_1.0_runtime.py"
         )

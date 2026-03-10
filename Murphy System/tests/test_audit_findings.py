@@ -25,8 +25,9 @@ class TestAuditB001LoadDotenv:
     """B-001: load_dotenv must be called after importing it."""
 
     def test_load_dotenv_called_at_import(self):
-        runtime_path = os.path.join(ROOT, "murphy_system_1.0_runtime.py")
-        with open(runtime_path, encoding="utf-8") as f:
+        # After INC-13 refactor, load_dotenv lives in src/runtime/_deps.py
+        deps_path = os.path.join(ROOT, "src", "runtime", "_deps.py")
+        with open(deps_path, encoding="utf-8") as f:
             content = f.read()
         # Must have the import AND a call BEFORE the main create_app
         assert "from dotenv import load_dotenv" in content

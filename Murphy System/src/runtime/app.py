@@ -2091,7 +2091,7 @@ def create_app() -> FastAPI:
             "inbound":    {"active": True,  "count": 0},
             "processing": {"active": False, "count": 0},
             "outbound":   {"active": False, "count": 0},
-            "timestamp":  __import__("datetime").datetime.utcnow().isoformat(),
+            "timestamp":  __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
         })
 
     # ==================== MFM (Murphy Foundation Model) Endpoints ====================
@@ -2116,8 +2116,12 @@ def create_app() -> FastAPI:
             from murphy_foundation_model.shadow_deployment import ShadowDeployment, ShadowConfig
             shadow = ShadowDeployment(mfm_service=None, config=ShadowConfig())
             metrics = shadow.get_metrics()
-        except Exception:
+        except ImportError:
+            logger.warning("MFM shadow_deployment module not available")
             metrics = {}
+        except (ValueError, RuntimeError) as exc:
+            logger.exception("Failed to retrieve MFM metrics")
+            metrics = {"error": str(exc)}
         return JSONResponse({"metrics": metrics})
 
     @app.get("/api/mfm/traces/stats")
@@ -2127,8 +2131,12 @@ def create_app() -> FastAPI:
             from murphy_foundation_model.action_trace_serializer import ActionTraceCollector
             collector = ActionTraceCollector.get_instance()
             stats = collector.get_stats()
-        except Exception:
+        except ImportError:
+            logger.warning("MFM action_trace_serializer module not available")
             stats = {"total_traces": 0, "error": "MFM trace collector not initialised"}
+        except (ValueError, RuntimeError) as exc:
+            logger.exception("Failed to retrieve MFM trace stats")
+            stats = {"total_traces": 0, "error": str(exc)}
         return JSONResponse(stats)
 
     @app.post("/api/mfm/retrain")
@@ -2141,7 +2149,11 @@ def create_app() -> FastAPI:
             loop = SelfImprovementLoop(config=SelfImprovementConfig())
             result = loop.run_retraining_cycle()
             return JSONResponse(result)
-        except Exception as exc:
+        except ImportError:
+            logger.warning("MFM self_improvement_loop module not available")
+            return JSONResponse({"error": "MFM retraining module not available"}, status_code=503)
+        except (ValueError, RuntimeError, OSError) as exc:
+            logger.exception("MFM retraining failed")
             return JSONResponse({"error": str(exc)}, status_code=500)
 
     @app.post("/api/mfm/promote")
@@ -2159,7 +2171,11 @@ def create_app() -> FastAPI:
                 "version_id": version_id,
                 "new_status": version.status if version else "unknown",
             })
-        except Exception as exc:
+        except ImportError:
+            logger.warning("MFM mfm_registry module not available")
+            return JSONResponse({"error": "MFM registry module not available"}, status_code=503)
+        except (KeyError, ValueError, RuntimeError) as exc:
+            logger.exception("MFM promotion failed")
             return JSONResponse({"error": str(exc)}, status_code=500)
 
     @app.post("/api/mfm/rollback")
@@ -2174,7 +2190,11 @@ def create_app() -> FastAPI:
                 "rolled_back": True,
                 "current_version": current.version_str if current else None,
             })
-        except Exception as exc:
+        except ImportError:
+            logger.warning("MFM mfm_registry module not available")
+            return JSONResponse({"error": "MFM registry module not available"}, status_code=503)
+        except (ValueError, RuntimeError) as exc:
+            logger.exception("MFM rollback failed")
             return JSONResponse({"error": str(exc)}, status_code=500)
 
     @app.get("/api/mfm/versions")
@@ -2196,7 +2216,11 @@ def create_app() -> FastAPI:
                     for v in versions
                 ]
             })
-        except Exception as exc:
+        except ImportError:
+            logger.warning("MFM mfm_registry module not available")
+            return JSONResponse({"error": "MFM registry module not available"}, status_code=503)
+        except (ValueError, RuntimeError) as exc:
+            logger.exception("Failed to list MFM versions")
             return JSONResponse({"error": str(exc)}, status_code=500)
 
     # ==================== TEST MODE ====================

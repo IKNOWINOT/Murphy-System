@@ -226,7 +226,7 @@ class TestConfidenceEngineCredentialVerifier:
         from src.confidence_engine.credential_verifier import CredentialVerifier, CredentialStore
         verifier = CredentialVerifier(CredentialStore())
         cred = self._make_cred("a" * 32, "api_key")
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             verifier._verify_api_key(cred)
         )
         assert result is True
@@ -236,7 +236,7 @@ class TestConfidenceEngineCredentialVerifier:
         from src.confidence_engine.credential_verifier import CredentialVerifier, CredentialStore
         verifier = CredentialVerifier(CredentialStore())
         cred = self._make_cred("short", "api_key")
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             verifier._verify_api_key(cred)
         )
         assert result is False
@@ -248,7 +248,7 @@ class TestConfidenceEngineCredentialVerifier:
         past_exp = int((datetime.now(tz=timezone.utc) - timedelta(hours=1)).timestamp())
         token = _make_jwt({"sub": "user", "exp": past_exp})
         cred = self._make_cred(token, "oauth_token")
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             verifier._verify_oauth_token(cred)
         )
         assert result is False
@@ -260,7 +260,7 @@ class TestConfidenceEngineCredentialVerifier:
         future_exp = int((datetime.now(tz=timezone.utc) + timedelta(hours=1)).timestamp())
         token = _make_jwt({"sub": "user", "exp": future_exp})
         cred = self._make_cred(token, "oauth_token")
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             verifier._verify_oauth_token(cred)
         )
         assert result is True
@@ -270,7 +270,7 @@ class TestConfidenceEngineCredentialVerifier:
         from src.confidence_engine.credential_verifier import CredentialVerifier, CredentialStore
         verifier = CredentialVerifier(CredentialStore())
         cred = self._make_cred("not.a.valid.jwt.token.extra", "jwt_token")
-        result = asyncio.get_event_loop().run_until_complete(
+        result = asyncio.run(
             verifier._verify_jwt_token(cred)
         )
         assert result is False
@@ -302,7 +302,7 @@ class TestFreelancerCredentialVerifier:
         cred = self._make_cred()
 
         with patch("urllib.request.urlopen", side_effect=TimeoutError("timeout")):
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 source.lookup_credential(cred)
             )
 
@@ -320,7 +320,7 @@ class TestFreelancerCredentialVerifier:
         cred = self._make_cred()
 
         with patch("urllib.request.urlopen", side_effect=TimeoutError("timeout")):
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 source.lookup_credential(cred)
             )
 
