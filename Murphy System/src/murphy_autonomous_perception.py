@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 class ObjectClass(str, Enum):
+    """ObjectClass enumeration."""
     VEHICLE = "vehicle"
     PEDESTRIAN = "pedestrian"
     CYCLIST = "cyclist"
@@ -36,6 +37,7 @@ class ObjectClass(str, Enum):
 
 
 class AutonomyAction(str, Enum):
+    """AutonomyAction enumeration."""
     PROCEED = "proceed"
     SLOW = "slow"
     STOP = "stop"
@@ -43,6 +45,7 @@ class AutonomyAction(str, Enum):
 
 
 class TrafficLightState(str, Enum):
+    """TrafficLightState enumeration."""
     RED = "red"
     YELLOW = "yellow"
     GREEN = "green"
@@ -54,6 +57,7 @@ class TrafficLightState(str, Enum):
 # ---------------------------------------------------------------------------
 
 class Vector3D(BaseModel):
+    """Vector3D — vector3 d definition."""
     x: float = 0.0
     y: float = 0.0
     z: float = 0.0
@@ -77,6 +81,7 @@ class Vector3D(BaseModel):
 
 
 class BoundingBox3D(BaseModel):
+    """BoundingBox3D — bounding box3 d definition."""
     center: Vector3D = Field(default_factory=Vector3D)
     length: float = 1.0
     width: float = 1.0
@@ -92,6 +97,7 @@ class BoundingBox3D(BaseModel):
 # ---------------------------------------------------------------------------
 
 class PerceptionObject(BaseModel):
+    """PerceptionObject — perception object definition."""
     object_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     object_class: ObjectClass
     position: Vector3D = Field(default_factory=Vector3D)
@@ -106,6 +112,7 @@ class PerceptionObject(BaseModel):
 
 
 class PerceptionFrame(BaseModel):
+    """PerceptionFrame — perception frame definition."""
     frame_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     objects: List[PerceptionObject] = Field(default_factory=list)
@@ -129,6 +136,7 @@ class PerceptionFrame(BaseModel):
 # ---------------------------------------------------------------------------
 
 class LaneModel(BaseModel):
+    """LaneModel — lane model definition."""
     lane_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     polyline: List[Vector3D] = Field(default_factory=list)
     lane_type: str = "normal"
@@ -144,6 +152,7 @@ class LaneModel(BaseModel):
 
 
 class DrivableArea(BaseModel):
+    """DrivableArea — drivable area definition."""
     area_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     boundary_polygon: List[Vector3D] = Field(default_factory=list)
 
@@ -239,6 +248,7 @@ class SafetyEnvelope:
 
 @dataclass
 class Track:
+    """Track — track definition."""
     track_id: str
     object_class: ObjectClass
     position: Vector3D
@@ -333,6 +343,7 @@ class ObjectTracker:
 
 @dataclass
 class AutonomyDecision:
+    """AutonomyDecision — autonomy decision definition."""
     decision_id: str
     action: AutonomyAction
     reason: str

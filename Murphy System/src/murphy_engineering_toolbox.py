@@ -112,6 +112,7 @@ class UnitConverter:
 
 @dataclass
 class BeamResult:
+    """Result container for beam computation."""
     max_deflection_m: float
     max_moment_Nm: float
     max_shear_N: float
@@ -194,6 +195,7 @@ class StructuralCalcs:
 
 @dataclass
 class HeatLoadResult:
+    """Result container for heatload computation."""
     sensible_load_W: float
     latent_load_W: float
     total_load_W: float
@@ -256,6 +258,7 @@ class HVACCalcs:
 
 @dataclass
 class ElectricalResult:
+    """Result container for electrical computation."""
     value: float
     unit: str
     description: str
@@ -358,6 +361,7 @@ class PlumbingCalcs:
 
 @dataclass
 class CPMActivity:
+    """CPMActivity — c p m activity definition."""
     activity_id: str
     name: str
     duration: float
