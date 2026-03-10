@@ -28,6 +28,20 @@ from universal_control_plane import (
     ExecutionPacket, Action, ActionType
 )
 
+try:
+    from src.platform_connector_framework import (
+        PlatformConnectorFramework, ConnectorAction
+    )
+    _FRAMEWORK_AVAILABLE = True
+except ImportError:
+    _FRAMEWORK_AVAILABLE = False
+
+try:
+    from src.llm_integration_layer import LLMIntegrationLayer
+    _LLM_AVAILABLE = True
+except ImportError:
+    _LLM_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 # ============================================================================
@@ -54,12 +68,30 @@ class SalesAutomationEngine:
     
     def __init__(self):
         self.control_plane = UniversalControlPlane()
-        
+        self._fw = PlatformConnectorFramework() if _FRAMEWORK_AVAILABLE else None
+
     def generate_leads(self) -> List[Dict[str, Any]]:
         """
         Generate leads from multiple sources
         """
         logger.info("Generating leads...")
+
+        # Try real HubSpot connector if configured
+        if self._fw is not None:
+            try:
+                action = ConnectorAction(
+                    action_id=f"leads_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+                    connector_id="hubspot",
+                    action_type="list_contacts",
+                    resource="contacts",
+                )
+                result = self._fw.execute_action(action)
+                if result.success and result.data and not result.data.get("simulated"):
+                    leads = self._parse_leads_from_result({"source": "hubspot", "data": result.data})
+                    logger.info("Generated %d leads from HubSpot", len(leads))
+                    return leads
+            except Exception as exc:
+                logger.debug("HubSpot connector unavailable: %s", exc)
         
         # Create automation for lead generation
         session_id = self.control_plane.create_automation(

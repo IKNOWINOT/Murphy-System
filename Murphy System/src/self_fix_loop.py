@@ -213,6 +213,15 @@ class SelfFixLoop:
 
         # Runtime config store (mutable at runtime, never touches disk source)
         self._runtime_config: Dict[str, Any] = {}
+        # Load persisted config if persistence manager is available
+        if self._pm is not None:
+            try:
+                saved = self._pm.load_document("self_fix_loop_runtime_config")
+                if saved and isinstance(saved, dict):
+                    self._runtime_config = saved
+                    logger.debug("Loaded %d runtime config entries from persistence", len(saved))
+            except Exception as exc:
+                logger.debug("Could not load persisted runtime config: %s", exc)
         # Registered recovery procedure IDs created by this loop
         self._registered_procedures: List[str] = []
 
@@ -541,6 +550,7 @@ class SelfFixLoop:
                 key = f"timeout_seconds:{target}"
                 current = self._runtime_config.get(key, 60)
                 self._runtime_config[key] = max(1, current + delta)
+                self._persist_runtime_config()
                 return {"success": True, "message": f"Adjusted timeout for '{target}' from {current} to {self._runtime_config[key]}"}
 
             elif action == "recalibrate_confidence":
@@ -550,22 +560,26 @@ class SelfFixLoop:
                     key = f"confidence_threshold:{target}"
                     old_val = self._runtime_config.get(key, 0.5)
                     self._runtime_config[key] = cal.get("calibrated_confidence", 0.5)
+                    self._persist_runtime_config()
                     return {"success": True, "message": f"Recalibrated confidence for '{target}': {old_val} → {self._runtime_config[key]}"}
                 return {"success": True, "message": f"Confidence recalibration noted for '{target}' (no engine attached)"}
 
             elif action == "restore_confidence":
                 key = f"confidence_threshold:{target}"
                 self._runtime_config[key] = 0.5
+                self._persist_runtime_config()
                 return {"success": True, "message": f"Restored confidence threshold for '{target}' to 0.5"}
 
             elif action == "apply_route_optimization":
                 key = f"route:{target}"
                 self._runtime_config[key] = step.get("recommended_route", "llm")
+                self._persist_runtime_config()
                 return {"success": True, "message": f"Route for '{target}' set to '{self._runtime_config[key]}'"}
 
             elif action == "restore_route":
                 key = f"route:{target}"
                 self._runtime_config[key] = "llm"
+                self._persist_runtime_config()
                 return {"success": True, "message": f"Route for '{target}' restored to 'llm'"}
 
             elif action == "register_recovery_procedure":
@@ -820,6 +834,14 @@ class SelfFixLoop:
                 self._pm.save_document(plan.plan_id, plan.to_dict())
             except Exception as exc:
                 logger.debug("Plan persistence skipped: %s", exc)
+
+    def _persist_runtime_config(self) -> None:
+        """Persist the current runtime config dict via the persistence manager."""
+        if self._pm is not None:
+            try:
+                self._pm.save_document("self_fix_loop_runtime_config", self._runtime_config)
+            except Exception as exc:
+                logger.debug("Could not persist runtime config: %s", exc)
 
     def _persist_execution(self, execution: FixExecution) -> None:
         if self._pm is not None:

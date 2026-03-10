@@ -378,10 +378,11 @@ class APIEngine(BaseEngine):
         stub = {
             'url': url,
             'method': method,
-            'status_code': 200,
+            'status_code': None,
             'response': {'message': 'OK', 'simulated': True},
             'timestamp': datetime.now().isoformat(),
             'source': 'stub',
+            'stub': True,
         }
         self._call_log.append(stub)
         return stub

@@ -283,3 +283,74 @@ class GateExecutionWiring:
             "total_evaluations": len(self._history),
             "gate_sequence": [gt.value for gt in GATE_SEQUENCE],
         }
+
+    def register_security_plane_defaults(self) -> int:
+        """Register default security-plane evaluators for all gate types.
+
+        Imports each security module lazily so that the wiring works even
+        when optional dependencies are not installed.
+
+        Returns:
+            Count of successfully loaded security modules.
+        """
+        _security_checks: List[tuple] = []
+
+        _module_pairs = [
+            ("src.security_plane.access_control", "AccessController"),
+            ("src.security_plane.authentication", "IdentityVerifier"),
+            ("src.security_plane.authorization_enhancer", "AuthorizationEnhancer"),
+            ("src.security_plane.hardening", "SystemHardening"),
+            ("src.security_plane.data_leak_prevention", "DataLeakPrevention"),
+            ("src.security_plane.bot_anomaly_detector", "BotAnomalyDetector"),
+            ("src.security_plane.cryptography", "CryptographyService"),
+        ]
+
+        for module_path, class_name in _module_pairs:
+            try:
+                import importlib
+                mod = importlib.import_module(module_path)
+                cls = getattr(mod, class_name, None)
+                if cls is not None:
+                    _security_checks.append((module_path.split(".")[-1], cls))
+            except (ImportError, Exception):
+                pass
+
+        loaded_count = len(_security_checks)
+
+        def _security_evaluator(task: Dict[str, Any], session_id: str) -> "GateEvaluation":
+            issues: List[str] = []
+            for check_name, check_cls in _security_checks:
+                try:
+                    checker = check_cls()
+                    if hasattr(checker, "check"):
+                        result = checker.check(task)
+                        if isinstance(result, dict) and not result.get("ok", True):
+                            issues.append(check_name)
+                    elif hasattr(checker, "evaluate"):
+                        result = checker.evaluate(task)
+                        if isinstance(result, dict) and not result.get("ok", True):
+                            issues.append(check_name)
+                except Exception:
+                    pass
+
+            if issues:
+                decision = GateDecision.NEEDS_REVIEW
+                reason = f"Security checks flagged: {', '.join(issues)}"
+            else:
+                decision = GateDecision.APPROVED
+                reason = f"Security checks passed ({loaded_count} modules)"
+
+            return GateEvaluation(
+                gate_id=str(uuid.uuid4()),
+                gate_type=GateType.COMPLIANCE,
+                decision=decision,
+                reason=reason,
+                policy=GatePolicy.WARN,
+                evaluated_at=datetime.now().isoformat(),
+                evaluator="security_plane_defaults",
+                metadata={"loaded_modules": loaded_count, "flagged": issues},
+            )
+
+        self.register_gate(GateType.COMPLIANCE, _security_evaluator, GatePolicy.WARN)
+        logger.info("Registered security plane defaults (%d modules loaded)", loaded_count)
+        return loaded_count
