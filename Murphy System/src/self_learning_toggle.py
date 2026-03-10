@@ -151,15 +151,9 @@ def get_self_learning_toggle() -> SelfLearningToggle:
                 elif env_val in ("1", "true", "yes", "on"):
                     enabled = True
                 else:
-                    # Fall back to config, but only if pydantic_settings is available
-                    try:
-                        from src.config import get_settings
-                        cfg = get_settings()
-                        # Use config value only if an env var was explicitly set for it
-                        # (i.e. SELF_LEARNING_ENABLED is in the environment).
-                        # If not set, default to True to preserve existing behavior.
-                        enabled = cfg.self_learning_enabled if env_val else True
-                    except Exception:
-                        enabled = True
+                    # No explicit env var set — default to True to preserve existing
+                    # behavior for systems that have not yet opted into the toggle.
+                    # Users explicitly disable learning via SELF_LEARNING_ENABLED=0.
+                    enabled = True
                 _toggle = SelfLearningToggle(enabled=enabled)
     return _toggle

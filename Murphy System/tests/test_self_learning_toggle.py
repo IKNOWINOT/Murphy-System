@@ -95,12 +95,14 @@ class TestStatus:
     def test_status_disabled_note(self):
         slt = SelfLearningToggle(enabled=False)
         status = slt.get_status()
-        assert "disabled" in status["note"].lower() or "off" in status["note"].lower() or "Learning disabled" in status["note"]
+        note_lower = status["note"].lower()
+        assert "disabled" in note_lower or "off" in note_lower or "learning disabled" in note_lower
 
     def test_status_enabled_note(self):
         slt = SelfLearningToggle(enabled=True)
         status = slt.get_status()
-        assert "active" in status["note"].lower() or "collected" in status["note"].lower()
+        note_lower = status["note"].lower()
+        assert "active" in note_lower or "collected" in note_lower
 
     def test_status_has_required_keys(self):
         slt = SelfLearningToggle()
