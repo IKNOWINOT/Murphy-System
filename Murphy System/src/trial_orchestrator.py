@@ -517,4 +517,5 @@ class TrialOrchestrator:
             delta = now - started
             return delta.total_seconds() / 3600.0
         except Exception as exc:  # noqa: BLE001
+            logger.debug("Elapsed calc failed: %s", exc)
             return 0.0

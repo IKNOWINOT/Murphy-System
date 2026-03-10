@@ -366,7 +366,7 @@ class ActivatedHeartbeatRunner:
         try:
             self.tick()
         except Exception as exc:
-            logger.exception("Tick failed")
+            logger.exception("Tick failed: %s", exc)
         finally:
             with self._lock:
                 if self._running:
