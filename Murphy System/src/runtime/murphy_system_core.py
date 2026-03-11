@@ -12009,17 +12009,21 @@ class MurphySystem:
     def _classify_nl_intent(self, message: str) -> str:
         """Lightweight NL intent classification (keyword heuristic)."""
         lower = message.lower()
+        import re as _re_intent
         if any(w in lower for w in ("api key", "api keys", "credentials", "get api", "signup", "sign up", "where do i get")):
             return "api_setup"
-        if any(w in lower for w in ("status", "how is", "running", "health")):
+        if any(w in lower for w in ("status", "how is", "health")):
             return "status_inquiry"
-        if any(w in lower for w in ("onboard", "start", "setup", "begin", "getting started")):
+        if any(w in lower for w in ("onboard", "setup", "begin", "getting started")):
             return "onboarding"
         if any(w in lower for w in ("integrate", "connect", "plugin", "service")):
             return "integration_discovery"
         if any(w in lower for w in ("plan", "automate", "workflow", "strategy")):
             return "plan_request"
-        if any(w in lower for w in ("execute", "run", "deploy", "launch")):
+        # "execute" and "deploy" as commands; "run" only at start of sentence
+        if any(w in lower for w in ("execute", "deploy", "launch")):
+            return "execution_request"
+        if _re_intent.match(r"^run\b", lower):
             return "execution_request"
         if any(w in lower for w in ("sell", "sales", "revenue", "leads", "pipeline")):
             return "plan_request"
@@ -12056,15 +12060,29 @@ class MurphySystem:
                             "You help teams automate operations, onboard users, "
                             "manage integrations, and run end-to-end workflows. "
                             "Be concise, friendly, and action-oriented.\n\n"
+                            "MFGC/5U FRAMEWORK: You use the Murphy Framework Gate Controls (MFGC) and "
+                            "5 Universals (5U) to evaluate readiness. You need to collect:\n"
+                            "- 5U-Identity: business name\n"
+                            "- 5U-Context: industry, location, timezone\n"
+                            "- 5U-Scale: team size\n"
+                            "- 5U-Temporal: frequency, timeline, timezone\n"
+                            "- 5U-Data: data sources\n"
+                            "- MFGC-Objective: business goal, automation goal, success metrics\n"
+                            "- MFGC-Constraint: pain points, budget\n"
+                            "- MFGC-Integration: current tools, email, banking, phone, calendar, productivity apps\n"
+                            "- MFGC-Governance: compliance needs, decision maker\n\n"
+                            "RESPONSE STYLE: When user shares information, reflect it back amplified "
+                            "(expand on what they said 3x — show deep understanding), then ask "
+                            "'does something like this sound close?' Always ask the next most important "
+                            "missing question. Never repeat the same response twice.\n\n"
                             "When users mention tools or services they use, recommend the specific "
                             "API keys they'll need and provide signup links. Known integrations:\n"
-                            # Limit to 10 entries to keep the system prompt concise for the LLM context window
                             + "\n".join(
                                 f"- {info['name']}: {info['url']} (env: {info['env_var']})"
                                 for info in list(self.API_PROVIDER_LINKS.values())[:10]
                             )
-                            + "\n\nGuide users through onboarding by asking about their business, "
-                            "then recommend integrations. Use 'start interview' to begin structured onboarding."
+                            + "\n\nAsk about their banking, phone carrier, email provider, "
+                            "productivity tools, and scheduling system to recommend integrations."
                         )},
                     ],
                 }
@@ -12089,12 +12107,27 @@ class MurphySystem:
         """Route a natural-language message through the Librarian + optional LLM.
 
         1. Classify the intent
-        2. Gather session / onboarding context for richer answers
-        3. Try LLM-backed response generation
-        4. Fall back to deterministic guidance if LLM is unavailable
+        2. Extract MFGC/5U dimensions from the user's message
+        3. Gather session / onboarding context for richer answers
+        4. Try LLM-backed response generation (with conversation profile)
+        5. Fall back to conversational deterministic guidance if LLM is unavailable
         """
         session_id = session_id or "default"
         nl_intent = self._classify_nl_intent(message)
+
+        # Extract MFGC/5U dimensions from the message (always, before LLM)
+        profile = self._get_onboarding_profile(session_id)
+        new_dims = self._extract_dimensions_from_message(message, profile)
+        if new_dims:
+            profile["collected"].update(new_dims)
+            session = self.chat_sessions.setdefault(session_id, {})
+            session.setdefault("answers", {}).update(new_dims)
+        # Store extracted dims for _deterministic_reply to use
+        profile["_last_extracted"] = new_dims
+        profile["exchange_count"] = profile.get("exchange_count", 0) + 1
+
+        # Score readiness
+        score = self._score_mfgc_readiness(profile)
 
         # Gather librarian context
         librarian = getattr(self, "librarian", None)
@@ -12105,12 +12138,28 @@ class MurphySystem:
             if topics:
                 context_parts.append(f"Knowledge-base topics: {', '.join(topics)}")
 
-        # Include onboarding context from session if available
+        # Include onboarding profile context
+        collected = profile.get("collected", {})
+        if collected:
+            context_parts.append(f"User profile: {json.dumps(collected)}")
+            context_parts.append(f"MFGC/5U readiness score: {score}%")
+            recs = self.infer_needed_integrations(collected)
+            if recs:
+                svc_names = [r["name"] for r in recs[:5]]
+                context_parts.append(f"Recommended integrations: {', '.join(svc_names)}")
+
+        # Include conversation history for context continuity
+        history = profile.get("history", [])
+        if history:
+            recent = history[-3:]  # Last 3 exchanges
+            hist_text = " | ".join(f"User: {h[0][:50]} → Murphy: {h[1][:50]}" for h in recent)
+            context_parts.append(f"Recent conversation: {hist_text}")
+
+        # Also include legacy answers for backward compatibility
         session = self.chat_sessions.get(session_id, {})
         answers = session.get("answers", {})
-        if answers:
+        if answers and not collected:
             context_parts.append(f"Onboarding answers: {json.dumps(answers)}")
-            # Infer integrations from answers
             recs = self.infer_needed_integrations(answers)
             if recs:
                 svc_names = [r["name"] for r in recs[:5]]
@@ -12119,6 +12168,8 @@ class MurphySystem:
         # Attempt LLM generation
         llm_text, llm_error = self._try_llm_generate(message, " | ".join(context_parts))
         if llm_text:
+            # Store in conversation history
+            profile.setdefault("history", []).append((message, llm_text[:100]))
             result: Dict[str, Any] = {
                 "success": True,
                 "session_id": session_id,
@@ -12127,12 +12178,17 @@ class MurphySystem:
                 "message": llm_text,
                 "intent": nl_intent,
                 "mode": "llm",
+                "mfgc_score": score,
                 "suggested_commands": self._suggest_commands(nl_intent),
             }
-            if answers:
-                recs = self.infer_needed_integrations(answers)
+            # Include integration recommendations from profile
+            all_answers = {**answers, **collected}
+            if all_answers:
+                recs = self.infer_needed_integrations(all_answers)
                 if recs:
                     result["recommended_integrations"] = recs
+            if score >= 85:
+                result["config"] = self._build_onboarding_config(profile)
             return result
 
         # LLM was attempted but failed (e.g. 401 Unauthorized)
@@ -12145,6 +12201,7 @@ class MurphySystem:
                 "message": "",
                 "intent": nl_intent,
                 "mode": "llm_error",
+                "mfgc_score": score,
                 "llm_error": llm_error,
                 "suggested_commands": self._suggest_commands(nl_intent),
             }
@@ -12169,13 +12226,49 @@ class MurphySystem:
             "message": fallback_reply,
             "intent": nl_intent,
             "mode": "onboard",
+            "mfgc_score": score,
             "suggested_commands": self._suggest_commands(nl_intent),
         }
-        if answers:
-            recs = self.infer_needed_integrations(answers)
+        # Store in conversation history
+        profile.setdefault("history", []).append((message, fallback_reply[:100]))
+        all_answers = {**answers, **collected}
+        if all_answers:
+            recs = self.infer_needed_integrations(all_answers)
             if recs:
                 result["recommended_integrations"] = recs
+        if score >= 85:
+            result["config"] = self._build_onboarding_config(profile)
         return result
+
+    def _build_onboarding_config(self, profile: Dict[str, Any]) -> Dict[str, Any]:
+        """Build a config object for the onboarding wizard from the profile."""
+        collected = profile.get("collected", {})
+        modules = ["task_engine", "librarian", "governance_gates"]
+        integrations = []
+
+        # Suggest integrations based on collected dimensions
+        if collected.get("email_provider"):
+            integrations.append({"name": "Email (SMTP)", "description": "Send and receive email"})
+        if collected.get("banking"):
+            integrations.append({"name": "Banking API", "description": "Payment and financial automation"})
+        if collected.get("productivity_apps"):
+            integrations.append({"name": "Webhooks", "description": "Connect to external services"})
+        if collected.get("schedule_system"):
+            integrations.append({"name": "Calendar", "description": "Schedule-based automation"})
+        if collected.get("phone_carrier"):
+            integrations.append({"name": "SMS/Notifications", "description": "Send SMS and push notifications"})
+
+        # Always include webhooks for general connectivity
+        if not any(i["name"] == "Webhooks" for i in integrations):
+            integrations.append({"name": "Webhooks", "description": "Connect to external services"})
+
+        return {
+            "modules": modules,
+            "integrations": integrations,
+            "recommended_terminal": "terminal_unified.html",
+            "mfgc_score": self._score_mfgc_readiness(profile),
+            "business_profile": collected,
+        }
 
     def _suggest_commands(self, nl_intent: str) -> List[str]:
         """Return suggested commands for a given NL intent."""
@@ -12190,24 +12283,232 @@ class MurphySystem:
         }
         return mapping.get(nl_intent, mapping["general"])
 
-    def _deterministic_reply(self, message: str, nl_intent: str, session_id: str = "default") -> str:
-        """Generate a helpful deterministic reply when LLM is unavailable.
+    # -- MFGC / 5U Onboarding Conversation Engine --------------------------------
 
-        When session context is available (user has started onboarding or
-        previously chatted), the Librarian uses that context to provide
-        more specific suggestions and follow-up questions rather than
-        generic guidance.
+    # The 5 Universals (5U) and MFGC dimensions that need to be satisfied
+    # before generating an effective automation plan.
+    _ONBOARDING_DIMENSIONS = {
+        "business_name":     {"weight": 8,  "question": "What's the name of your business?",  "category": "5U-Identity"},
+        "industry":          {"weight": 10, "question": "What industry do you operate in?",    "category": "5U-Context"},
+        "location":          {"weight": 7,  "question": "Where is your business located (city/state/country)?", "category": "5U-Context"},
+        "business_goal":     {"weight": 12, "question": "What's your primary business goal right now?", "category": "MFGC-Objective"},
+        "pain_points":       {"weight": 10, "question": "What are the biggest pain points in your current workflow?", "category": "MFGC-Constraint"},
+        "team_size":         {"weight": 5,  "question": "How many people are on your team?",  "category": "5U-Scale"},
+        "current_tools":     {"weight": 9,  "question": "What tools and software do you currently use (email, CRM, accounting, etc.)?", "category": "MFGC-Integration"},
+        "banking":           {"weight": 6,  "question": "Who do you bank with (for payment automation)?", "category": "MFGC-Integration"},
+        "email_provider":    {"weight": 6,  "question": "What email service do you use (Gmail, Outlook, etc.)?", "category": "MFGC-Integration"},
+        "phone_carrier":     {"weight": 4,  "question": "What's your phone carrier (for SMS/notification automation)?", "category": "MFGC-Integration"},
+        "schedule_system":   {"weight": 5,  "question": "How do you manage your schedule (Google Calendar, Outlook, etc.)?", "category": "MFGC-Integration"},
+        "productivity_apps": {"weight": 5,  "question": "What productivity tools does your team use (Slack, Teams, Notion, etc.)?", "category": "MFGC-Integration"},
+        "automation_goal":   {"weight": 12, "question": "What specific processes would you most like to automate?", "category": "MFGC-Objective"},
+        "frequency":         {"weight": 6,  "question": "How often do these processes run (daily, weekly, on-demand)?", "category": "5U-Temporal"},
+        "budget_range":      {"weight": 3,  "question": "Do you have a budget range in mind for automation tools?", "category": "MFGC-Constraint"},
+        "compliance_needs":  {"weight": 5,  "question": "Are there any regulatory or compliance requirements for your industry?", "category": "MFGC-Governance"},
+        "data_sources":      {"weight": 5,  "question": "What data sources feed into your daily operations?", "category": "5U-Data"},
+        "decision_maker":    {"weight": 4,  "question": "Who makes final decisions on new tools and processes?", "category": "MFGC-Governance"},
+        "timeline":          {"weight": 4,  "question": "What's your ideal timeline for getting automation running?", "category": "5U-Temporal"},
+        "success_metric":    {"weight": 8,  "question": "How will you measure success — what does a win look like?", "category": "MFGC-Objective"},
+        "timezone":          {"weight": 3,  "question": "What timezone do you operate in?", "category": "5U-Temporal"},
+    }
+
+    def _get_onboarding_profile(self, session_id: str) -> Dict[str, Any]:
+        """Get or create the onboarding profile for a conversation session."""
+        session = self.chat_sessions.setdefault(session_id, {})
+        if "_onboarding_profile" not in session:
+            session["_onboarding_profile"] = {
+                "collected": {},       # dimension → value
+                "history": [],         # list of (user_msg, assistant_msg)
+                "exchange_count": 0,
+            }
+        return session["_onboarding_profile"]
+
+    def _score_mfgc_readiness(self, profile: Dict[str, Any]) -> float:
+        """Score 0–100 how ready the profile is for plan generation.
+
+        Uses weighted dimensions: each collected dimension adds its weight
+        towards the total possible score.
         """
-        MAX_GOAL_DISPLAY_LENGTH = 80
+        collected = profile.get("collected", {})
+        total_weight = sum(d["weight"] for d in self._ONBOARDING_DIMENSIONS.values())
+        earned = sum(
+            self._ONBOARDING_DIMENSIONS[k]["weight"]
+            for k in collected
+            if k in self._ONBOARDING_DIMENSIONS
+        )
+        return round((earned / total_weight) * 100, 1) if total_weight else 0.0
 
-        # Gather session context for inference-based suggestions
+    def _extract_dimensions_from_message(self, message: str, profile: Dict[str, Any]) -> Dict[str, str]:
+        """Extract onboarding dimension values from a user message via inference.
+
+        Uses keyword heuristics to detect what business information the user
+        is sharing, mapping it to the appropriate MFGC/5U dimension.
+        """
+        lower = message.lower()
+        extracted: Dict[str, str] = {}
+
+        # Business name detection — quoted text or "I run/own X"
+        import re as _re
+        name_match = _re.search(r"(?:called|named|i run|i own|my (?:company|business|shop|store) is)\s+[\"']?([A-Z][A-Za-z0-9 &'.,-]+)", message)
+        if name_match and "business_name" not in profile.get("collected", {}):
+            extracted["business_name"] = name_match.group(1).strip().rstrip(".,")
+
+        # Industry detection
+        industries = {
+            "manufacturing": ["manufactur", "factory", "production", "fabricat"],
+            "retail": ["retail", "store", "shop", "e-commerce", "ecommerce", "selling"],
+            "healthcare": ["health", "medical", "clinic", "hospital", "patient"],
+            "finance": ["financ", "bank", "invest", "insurance", "accounting"],
+            "technology": ["tech", "software", "saas", "app", "develop"],
+            "real estate": ["real estate", "property", "housing", "rental"],
+            "food service": ["restaurant", "food", "catering", "cafe"],
+            "construction": ["construct", "building", "contractor"],
+            "consulting": ["consult", "advisory", "professional service"],
+            "education": ["school", "education", "teaching", "training", "university"],
+            "logistics": ["logistics", "shipping", "freight", "transport", "delivery"],
+            "marketing": ["marketing", "advertising", "agency", "media"],
+        }
+        if "industry" not in profile.get("collected", {}):
+            for industry, keywords in industries.items():
+                if any(kw in lower for kw in keywords):
+                    extracted["industry"] = industry
+                    break
+
+        # Location detection
+        location_match = _re.search(
+            r"(?:located in|based in|from|in)\s+([A-Z][A-Za-z ]+(?:,\s*[A-Z]{2})?)",
+            message,
+        )
+        if location_match and "location" not in profile.get("collected", {}):
+            extracted["location"] = location_match.group(1).strip()
+
+        # Team size
+        team_match = _re.search(r"(\d+)\s*(?:people|employees|team members|person team|staff)", lower)
+        if team_match and "team_size" not in profile.get("collected", {}):
+            extracted["team_size"] = team_match.group(1)
+
+        # Tools detection
+        tools_keywords = {
+            "current_tools": ["use", "using", "work with", "rely on"],
+            "email_provider": ["gmail", "outlook", "yahoo mail", "protonmail", "icloud"],
+            "banking": ["chase", "bank of america", "wells fargo", "citi", "capital one",
+                        "us bank", "td bank", "pnc", "truist", "mercury", "brex", "relay"],
+            "phone_carrier": ["verizon", "at&t", "t-mobile", "sprint", "mint mobile", "visible"],
+            "schedule_system": ["google calendar", "outlook calendar", "calendly", "acuity"],
+            "productivity_apps": ["slack", "teams", "notion", "asana", "trello", "monday",
+                                  "jira", "confluence", "basecamp", "clickup"],
+        }
+        for dim, keywords in tools_keywords.items():
+            if dim not in profile.get("collected", {}):
+                found = [kw for kw in keywords if kw in lower]
+                if found:
+                    extracted[dim] = ", ".join(found)
+
+        # Goal / pain point detection (longer phrases)
+        if len(message) > 30 and "business_goal" not in profile.get("collected", {}):
+            goal_indicators = ["want to", "need to", "looking to", "trying to",
+                               "goal is", "hope to", "would like"]
+            if any(gi in lower for gi in goal_indicators):
+                extracted["business_goal"] = message.strip()
+
+        if "pain" in lower or "problem" in lower or "struggle" in lower or "challenge" in lower:
+            if "pain_points" not in profile.get("collected", {}):
+                extracted["pain_points"] = message.strip()
+
+        # Automation goal
+        auto_indicators = ["automate", "automation", "streamline", "simplify"]
+        if any(ai in lower for ai in auto_indicators) and "automation_goal" not in profile.get("collected", {}):
+            extracted["automation_goal"] = message.strip()
+
+        # Frequency
+        freq_keywords = {"daily": "daily", "weekly": "weekly", "monthly": "monthly",
+                         "hourly": "hourly", "real-time": "real-time", "on demand": "on-demand"}
+        for fk, fv in freq_keywords.items():
+            if fk in lower and "frequency" not in profile.get("collected", {}):
+                extracted["frequency"] = fv
+                break
+
+        # Timezone
+        tz_match = _re.search(r"(eastern|pacific|central|mountain|gmt|utc|est|pst|cst|mst)", lower)
+        if tz_match and "timezone" not in profile.get("collected", {}):
+            extracted["timezone"] = tz_match.group(1).upper()
+
+        # Compliance / regulatory needs
+        compliance_kw = ["comply", "compliance", "regulation", "regulatory", "iso", "hipaa",
+                         "gdpr", "sox", "pci", "ferpa", "osha", "fda", "sec ", "finra"]
+        if any(ck in lower for ck in compliance_kw) and "compliance_needs" not in profile.get("collected", {}):
+            extracted["compliance_needs"] = message.strip()
+
+        # Decision maker
+        dm_kw = ["ceo", "cto", "cfo", "coo", "owner", "founder", "manager", "director",
+                 "decision", "final say", "approves", "sign off"]
+        if any(dk in lower for dk in dm_kw) and "decision_maker" not in profile.get("collected", {}):
+            extracted["decision_maker"] = message.strip()
+
+        # Budget
+        budget_match = _re.search(r"\$?\d[\d,]*(?:\.\d{2})?\s*(?:per |a |/)\s*(?:month|year|mo|yr|annual)", lower)
+        if not budget_match:
+            budget_match = _re.search(r"budget\s+(?:is\s+)?(?:about\s+|around\s+)?\$?\d", lower)
+        if budget_match and "budget_range" not in profile.get("collected", {}):
+            extracted["budget_range"] = message.strip()
+
+        # Timeline
+        timeline_kw = ["within", "by next", "asap", "as soon as", "this week", "this month",
+                       "next week", "next month", "in 2 weeks", "right away", "immediately"]
+        if any(tk in lower for tk in timeline_kw) and "timeline" not in profile.get("collected", {}):
+            extracted["timeline"] = message.strip()
+
+        # Data sources
+        data_kw = ["sensor", "database", "spreadsheet", "csv", "excel", "api feed",
+                   "data from", "data source", "erp", "iot", "pos ", "point of sale"]
+        if any(dk in lower for dk in data_kw) and "data_sources" not in profile.get("collected", {}):
+            extracted["data_sources"] = message.strip()
+
+        # Success metric
+        success_kw = ["success", "measure", "metric", "kpi", "outcome",
+                      "goal is to", "win looks like", "improve by", "reduce by", "save"]
+        if any(sk in lower for sk in success_kw) and "success_metric" not in profile.get("collected", {}):
+            extracted["success_metric"] = message.strip()
+
+        return extracted
+
+    def _next_onboarding_question(self, profile: Dict[str, Any]) -> Optional[str]:
+        """Pick the highest-weight unanswered dimension and return its question."""
+        collected = set(profile.get("collected", {}).keys())
+        candidates = [
+            (dim, info)
+            for dim, info in self._ONBOARDING_DIMENSIONS.items()
+            if dim not in collected
+        ]
+        if not candidates:
+            return None
+        # Sort by weight descending — ask the most important questions first
+        candidates.sort(key=lambda x: x[1]["weight"], reverse=True)
+        return candidates[0][1]["question"]
+
+    def _deterministic_reply(self, message: str, nl_intent: str, session_id: str = "default") -> str:
+        """Generate a context-aware conversational reply when LLM is unavailable.
+
+        Uses MFGC (Murphy Framework Gate Controls) and 5U (5 Universals)
+        scoring to drive the conversation.  Reflects user input back
+        amplified and asks targeted follow-up questions until the readiness
+        score reaches 85%, then transitions to plan generation.
+        """
+
+        # Gather session context
         session = self.chat_sessions.get(session_id, {})
         answers = session.get("answers", {})
-        context_suffix = ""
-        if answers:
-            # Build inference-based suggestions from collected data
-            context_suffix = self._build_inference_suggestions(answers, message)
+        profile = self._get_onboarding_profile(session_id)
 
+        # Check what dimensions were added in THIS exchange (set by librarian_ask)
+        new_dims = profile.pop("_last_extracted", {})
+
+        # Exchange count already incremented by librarian_ask
+        exchange_num = profile.get("exchange_count", 1)
+
+        # Score readiness
+        score = self._score_mfgc_readiness(profile)
+
+        # --- Handle specific intents that don't need conversational flow ---
         if nl_intent == "status_inquiry":
             st = self.get_system_status()
             reply = (
@@ -12218,7 +12519,6 @@ class MurphySystem:
             if answers:
                 recs = self.infer_needed_integrations(answers)
                 if recs:
-                    configured = [r["name"] for r in recs if os.environ.get(r["env_var"])]
                     missing = [r["name"] for r in recs if not os.environ.get(r["env_var"])]
                     if missing:
                         reply += (
@@ -12228,104 +12528,211 @@ class MurphySystem:
                         )
             return reply
 
-        if nl_intent == "onboarding":
-            return (
-                "It sounds like you'd like to get started! Type **start interview** "
-                "to begin the guided onboarding — I'll learn about your business needs "
-                "and recommend the best setup.\n\n"
-                "During onboarding I'll ask about your tools and goals, then recommend "
-                "exactly which integrations and API keys you'll need — with direct "
-                "signup links for each."
-            )
         if nl_intent == "api_setup":
             return self._format_api_links_reply(message)
-        if nl_intent == "integration_discovery":
-            reply = (
-                "I can help you explore integrations. Type **integrations** to see "
-                "available services, or **show modules** to browse the full module catalogue.\n\n"
-                "Type **api keys** to see direct signup links for supported services."
-            )
-            if answers:
-                recs = self.infer_needed_integrations(answers)
-                if recs:
-                    svc_names = [r["name"] for r in recs[:5]]
-                    reply += (
-                        f"\n\n🔎 *Based on your onboarding, I'd recommend starting with: "
-                        f"**{', '.join(svc_names)}**.*"
-                    )
-            return reply
-        if nl_intent == "plan_request":
-            reply = (
-                "I can help you build an automation plan! Here's how to get started:\n\n"
-                "1. Type **start interview** so I can learn about your business\n"
-                "2. I'll recommend integrations and the API keys you'll need\n"
-                "3. Then we'll build an execution plan together\n\n"
-                "Or type **plan** for an overview of the two-plane execution model."
-            )
-            if answers:
-                # Provide a more specific response since we know the user's goal
-                goal = answers.get("signup", "")
-                if goal:
-                    reply = (
-                        f"Based on your goal — *\"{goal[:MAX_GOAL_DISPLAY_LENGTH]}\"* — here's what I suggest:\n\n"
-                    )
-                    recs = self.infer_needed_integrations(answers)
-                    if recs:
-                        reply += "**Step 1 — Set up integrations:**\n"
-                        for r in recs[:4]:
-                            reply += f"  • **{r['name']}** — {r['reason']}\n"
-                        reply += "\n"
-                    reply += (
-                        "**Step 2 — Define your workflow:**\n"
-                        "  Describe the trigger → action → result you want automated.\n\n"
-                        "**Step 3 — Execute:**\n"
-                        "  Type **execute <your task>** and Murphy handles the rest.\n\n"
-                        "Would you like to start with step 1? Type **api keys** for signup links."
-                    )
-            return reply
-        if nl_intent == "execution_request":
-            reply = (
-                "Tell me what you'd like to run! Use **execute <task description>** "
-                "and I'll route it through the execution pipeline."
-            )
-            if answers:
-                goal = answers.get("signup", "")
-                if goal:
-                    reply += (
-                        f"\n\n🔎 *Based on your setup for \"{goal[:MAX_GOAL_DISPLAY_LENGTH]}\" — "
-                        "try describing a specific task, like:*\n"
-                    )
-                    combined = " ".join(str(v) for v in answers.values()).lower()
-                    if any(w in combined for w in ("sales", "leads", "pipeline")):
-                        reply += "  • `execute Score incoming leads and send follow-up emails`\n"
-                        reply += "  • `execute Generate weekly sales pipeline report`"
-                    elif any(w in combined for w in ("email", "marketing")):
-                        reply += "  • `execute Send welcome email to new signups`\n"
-                        reply += "  • `execute Generate email campaign for product launch`"
-                    elif any(w in combined for w in ("devops", "deploy", "code")):
-                        reply += "  • `execute Run CI pipeline and deploy to staging`\n"
-                        reply += "  • `execute Create release notes from recent commits`"
-                    else:
-                        reply += "  • `execute Generate a report on last week's activity`\n"
-                        reply += "  • `execute Automate daily status update notifications`"
-            return reply
 
-        # General / catch-all
+        # --- Conversational onboarding flow ---
+        # If user shared meaningful info, reflect it back amplified (magnify x3)
+        if new_dims and message.strip():
+            reply = self._build_reflection_reply(message, new_dims, profile, score)
+        elif score >= 85:
+            # Ready to generate plan
+            reply = self._build_readiness_reply(profile, score)
+        elif exchange_num <= 1:
+            # First interaction — warm greeting
+            reply = self._build_first_greeting(message, nl_intent, profile)
+        else:
+            # Continue the conversation — ask next question
+            reply = self._build_followup_reply(message, nl_intent, profile, score)
+
+        return reply
+
+    def _build_reflection_reply(self, message: str, new_dims: Dict[str, str],
+                                profile: Dict[str, Any], score: float) -> str:
+        """Reflect user input back amplified (magnify x3) and ask follow-up."""
+        parts: List[str] = []
+
+        # Amplify what was captured — expand the user's input 3x
+        if "business_name" in new_dims:
+            parts.append(
+                f"**{new_dims['business_name']}** — great name! I'm already thinking about "
+                f"how we can streamline operations for {new_dims['business_name']}. "
+                f"A tailored automation system for {new_dims['business_name']} could handle "
+                f"everything from client communications to internal workflows."
+            )
+        if "industry" in new_dims:
+            ind = new_dims["industry"]
+            parts.append(
+                f"So you're in **{ind}** — that's a sector where automation can make a huge impact. "
+                f"In {ind}, businesses typically see gains from automating repetitive tasks like "
+                f"reporting, client follow-ups, and compliance tracking. We'll want to look at "
+                f"{ind}-specific integrations and regulatory considerations."
+            )
+        if "business_goal" in new_dims:
+            goal = new_dims["business_goal"][:120]
+            parts.append(
+                f"Your goal: *\"{goal}\"* — that's exactly the kind of thing Murphy is built for. "
+                f"We can break this down into automated triggers, processing steps, and delivery "
+                f"actions. Think of it as: **detect → decide → act → verify** — each step "
+                f"governed by MFGC gates."
+            )
+        if "pain_points" in new_dims:
+            pain = new_dims["pain_points"][:120]
+            parts.append(
+                f"I hear you on the challenges: *\"{pain}\"*. These are common friction points "
+                f"that automation resolves really well. We'll design workflows that eliminate "
+                f"those bottlenecks and add observability so you can see exactly what's happening."
+            )
+        if "current_tools" in new_dims or "email_provider" in new_dims or "banking" in new_dims:
+            tools = ", ".join(v for k, v in new_dims.items() if k in (
+                "current_tools", "email_provider", "banking", "phone_carrier",
+                "schedule_system", "productivity_apps"))
+            parts.append(
+                f"Tools you're using: **{tools}** — perfect, I can map those to specific "
+                f"API integrations. Murphy connects to all of these and can orchestrate "
+                f"data flow between them automatically."
+            )
+        if "automation_goal" in new_dims:
+            auto = new_dims["automation_goal"][:120]
+            parts.append(
+                f"Automation target: *\"{auto}\"* — I can see a workflow taking shape already. "
+                f"We'll design this with safety gates at each stage so nothing runs without "
+                f"your approval until you're comfortable."
+            )
+        if "team_size" in new_dims:
+            size = new_dims["team_size"]
+            parts.append(
+                f"A team of **{size}** — that helps me calibrate the automation scope. "
+                f"With {size} people, we'll want role-based access and HITL (human-in-the-loop) "
+                f"gates for critical decisions."
+            )
+        if "location" in new_dims:
+            loc = new_dims["location"]
+            parts.append(
+                f"Based in **{loc}** — I'll factor in regional compliance requirements, "
+                f"timezone-aware scheduling, and any location-specific regulations "
+                f"that might affect your automation design."
+            )
+        # Catch-all for other dimensions
+        for dim, val in new_dims.items():
+            if dim not in ("business_name", "industry", "business_goal", "pain_points",
+                           "current_tools", "email_provider", "banking", "phone_carrier",
+                           "schedule_system", "productivity_apps", "automation_goal",
+                           "team_size", "location"):
+                parts.append(f"Noted: **{dim.replace('_', ' ').title()}** = {val}")
+
+        reply = "\n\n".join(parts)
+
+        # Add readiness score indicator
+        reply += f"\n\n📊 **MFGC/5U Readiness:** {score:.0f}%"
+        if score < 85:
+            reply += f" (need 85% to generate your automation plan)"
+            # Ask the next most important question
+            next_q = self._next_onboarding_question(profile)
+            if next_q:
+                reply += f"\n\n**Next up:** {next_q}"
+        else:
+            reply += " ✅ Ready to generate your plan!"
+
+        reply += "\n\nDoes this sound close to what you're describing? Tell me more or correct anything I got wrong."
+        return reply
+
+    def _build_readiness_reply(self, profile: Dict[str, Any], score: float) -> str:
+        """Generate a plan-ready summary when MFGC/5U score >= 85%."""
+        collected = profile.get("collected", {})
+        biz = collected.get("business_name", "your business")
+        industry = collected.get("industry", "your industry")
+        goal = collected.get("business_goal", collected.get("automation_goal", "your automation goals"))
+
         reply = (
-            "I'm Murphy — your professional automation assistant. "
-            "I can help with onboarding, integrations, execution plans, and more.\n\n"
+            f"📊 **MFGC/5U Readiness: {score:.0f}%** ✅\n\n"
+            f"Excellent! I have enough information to build a tailored automation plan for "
+            f"**{biz}** in **{industry}**.\n\n"
+            f"**Your profile summary:**\n"
         )
-        if context_suffix:
-            reply += context_suffix + "\n\n"
+        for dim, val in collected.items():
+            label = dim.replace("_", " ").title()
+            display = str(val)[:80]
+            reply += f"  • **{label}:** {display}\n"
+
         reply += (
-            "Try:\n"
-            "• **start interview** — guided onboarding (I'll learn your needs)\n"
-            "• **help** — see all commands\n"
-            "• **status** — system health\n"
-            "• **plan** — execution plan overview\n"
-            "• **api keys** — see API signup links for integrations\n\n"
-            "Or just describe what you'd like to accomplish and I'll guide you."
+            f"\nClick **Continue to Plan →** to see your recommended modules and integrations, "
+            f"or keep chatting to refine your setup."
         )
+        return reply
+
+    def _build_first_greeting(self, message: str, nl_intent: str,
+                              profile: Dict[str, Any]) -> str:
+        """Build the first greeting — warm, specific, not canned."""
+        score = self._score_mfgc_readiness(profile)
+
+        # If user already shared something useful in their first message
+        if profile.get("collected"):
+            return self._build_reflection_reply(
+                message,
+                profile["collected"],
+                profile,
+                score,
+            )
+
+        # Otherwise, give a warm personalized greeting
+        msg_lower = message.lower().strip()
+        if len(msg_lower) > 20:
+            # User wrote a substantial first message — acknowledge it
+            return (
+                f"Thanks for sharing that! Let me learn more about your business so I can "
+                f"build the perfect automation setup.\n\n"
+                f"You mentioned: *\"{message[:100]}\"* — that gives me a good starting point.\n\n"
+                f"📊 **MFGC/5U Readiness:** {score:.0f}% (need 85% to generate your plan)\n\n"
+                f"To get started: **What's the name of your business, and what industry are you in?**"
+            )
+
+        if nl_intent == "onboarding":
+            return (
+                "Great — let's get you set up! I'll ask a few questions to understand "
+                "your business, then build a tailored automation plan.\n\n"
+                f"📊 **MFGC/5U Readiness:** {score:.0f}%\n\n"
+                "**First question:** What's the name of your business, and what do you do?"
+            )
+
+        # Short generic greeting
+        return (
+            "Hi! I'm Murphy — I help businesses automate their operations. "
+            "Tell me about your business and what you'd like to automate, "
+            "and I'll build a custom plan for you.\n\n"
+            f"📊 **MFGC/5U Readiness:** {score:.0f}%\n\n"
+            "**To get started:** What's the name of your business and what industry are you in?"
+        )
+
+    def _build_followup_reply(self, message: str, nl_intent: str,
+                              profile: Dict[str, Any], score: float) -> str:
+        """Build a follow-up reply that asks the next important question."""
+        exchange = profile.get("exchange_count", 0)
+
+        # Acknowledge what the user said — never ignore their input
+        ack = ""
+        if len(message.strip()) > 5:
+            ack = f"Got it — *\"{message[:80]}\"*. "
+
+        # Pick the next question based on what's missing
+        next_q = self._next_onboarding_question(profile)
+
+        if next_q:
+            reply = (
+                f"{ack}Thanks for that information!\n\n"
+                f"📊 **MFGC/5U Readiness:** {score:.0f}%"
+            )
+            if score < 85:
+                missing_count = sum(
+                    1 for d in self._ONBOARDING_DIMENSIONS
+                    if d not in profile.get("collected", {})
+                )
+                reply += f" — {missing_count} more questions to go"
+            reply += f"\n\n**Next:** {next_q}"
+        else:
+            # All questions answered
+            reply = self._build_readiness_reply(profile, score)
+
         return reply
 
     def _build_inference_suggestions(self, answers: Dict[str, str], message: str) -> str:
