@@ -1,0 +1,55 @@
+name: Build & Deploy to Hetzner
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r "Murphy System/requirements.txt"
+      - run: python -m pytest "Murphy System/tests/" --timeout=300 -x -q
+
+  build-and-deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v5
+        with:
+          context: ./Murphy System
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/murphy-system:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/murphy-system:latest
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.HETZNER_KUBECONFIG }}" | base64 -d > ~/.kube/config
+      - name: Rolling update
+        run: |
+          kubectl set image deployment/murphy-api \
+            murphy-api=ghcr.io/${{ github.repository }}/murphy-system:${{ github.sha }} \
+            -n murphy-system
+          kubectl rollout status deployment/murphy-api -n murphy-system --timeout=300s
+      - name: Verify health
+        run: |
+          sleep 30
+          ENDPOINT=$(kubectl get ingress murphy-api -n murphy-system -o jsonpath='{.spec.rules[0].host}')
+          curl -sf "https://${ENDPOINT}/api/health" || echo "Warning: health check failed, verify manually"
