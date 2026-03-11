@@ -25,7 +25,7 @@ export async function ensureCrm(db:any) {
   `,`
     CREATE TABLE IF NOT EXISTS mailbox_state ( id TEXT PRIMARY KEY, cursor TEXT, updated_ts INTEGER );
   `];
-  for (const s of stmts) { try { await db.prepare(s).run(); } catch {} }
+  for (const s of stmts) { try { await db.prepare(s).run(); } catch (e) { console.warn('CRM schema init warning:', e); } }
 }
 
 export async function upsertContact(db:any, c:any) {
