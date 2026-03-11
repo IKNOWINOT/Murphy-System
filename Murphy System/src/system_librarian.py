@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
 from enum import Enum
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 import logging
@@ -62,7 +62,7 @@ class SystemKnowledge:
     related_functions: List[str]
     references: List[str]
     created_at: str
-    updated_at: str = field(default_factory=lambda: datetime.now().isoformat())
+    updated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
     def to_dict(self) -> Dict:
         return {
@@ -215,7 +215,7 @@ class SystemLibrarian:
                 related_modules=entry["related_modules"],
                 related_functions=entry["related_functions"],
                 references=entry["references"],
-                created_at=datetime.now().isoformat()
+                created_at=datetime.now(timezone.utc).isoformat()
             )
             self.knowledge_base[knowledge.knowledge_id] = knowledge
 
@@ -436,7 +436,7 @@ class SystemLibrarian:
         self.entry_count += 1
         entry = TranscriptEntry(
             entry_id=f"entry_{self.entry_count}",
-            timestamp=datetime.now().isoformat(),
+            timestamp=datetime.now(timezone.utc).isoformat(),
             module=module,
             action=action,
             details=details,
@@ -566,9 +566,9 @@ class SystemLibrarian:
             metadata={
                 "module": module_name,
                 "version": "1.0",
-                "generated_at": datetime.now().isoformat()
+                "generated_at": datetime.now(timezone.utc).isoformat()
             },
-            created_at=datetime.now().isoformat()
+            created_at=datetime.now(timezone.utc).isoformat()
         )
 
         self.documents[document.doc_id] = document
@@ -577,7 +577,7 @@ class SystemLibrarian:
     def generate_complete_transcript(self) -> GeneratedDocument:
         """Generate complete system transcript document"""
         content = "# Complete System Transcript\n\n"
-        content += f"Generated at: {datetime.now().isoformat()}\n\n"
+        content += f"Generated at: {datetime.now(timezone.utc).isoformat()}\n\n"
         content += f"Total entries: {len(self.transcripts)}\n\n"
 
         # Group by module
@@ -605,9 +605,9 @@ class SystemLibrarian:
             metadata={
                 "total_entries": len(self.transcripts),
                 "modules": list(by_module.keys()),
-                "generated_at": datetime.now().isoformat()
+                "generated_at": datetime.now(timezone.utc).isoformat()
             },
-            created_at=datetime.now().isoformat()
+            created_at=datetime.now(timezone.utc).isoformat()
         )
 
         self.documents[document.doc_id] = document
@@ -699,7 +699,7 @@ class SystemLibrarian:
             related_modules=entry.get("related_modules", []),
             related_functions=entry.get("related_functions", []),
             references=entry.get("references", []),
-            created_at=datetime.now().isoformat(),
+            created_at=datetime.now(timezone.utc).isoformat(),
         )
         self.knowledge_base[knowledge.knowledge_id] = knowledge
         return knowledge

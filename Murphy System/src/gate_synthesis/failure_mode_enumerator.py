@@ -5,7 +5,7 @@ Identifies potential failure modes for candidate future steps
 
 from typing import List, Dict, Any, Optional
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .models import (
     FailureMode,
@@ -393,6 +393,6 @@ class FailureModeEnumerator:
 
     def _generate_id(self, base: str) -> str:
         """Generate unique ID for failure mode"""
-        timestamp = datetime.now().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
         content = f"{base}_{timestamp}"
         return hashlib.sha256(content.encode()).hexdigest()[:16]

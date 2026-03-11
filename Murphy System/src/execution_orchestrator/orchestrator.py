@@ -6,7 +6,7 @@ signature validation, and replay-attack prevention.
 
 import uuid
 from typing import Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 import logging
 
@@ -119,7 +119,7 @@ class ExecutionOrchestrator:
             "provisioned_items": list(pd.get("equipment", {}).keys()) if isinstance(pd, dict) else [],
             "assigned_courses": len(pd.get("assignments", [])) if isinstance(pd, dict) else 0,
             "access_activated": True,
-            "activation_timestamp": datetime.now().isoformat(),
+            "activation_timestamp": datetime.now(timezone.utc).isoformat(),
             "emergency_mode": True,
             "lockdown_active": True,
             "systems_shutdown": len(pd.get("systems", [])) if isinstance(pd, dict) else 4,
@@ -192,7 +192,7 @@ class ExecutionOrchestrator:
             "hvac_shutdown", "elevator_recall", "emergency_lighting_activated",
             "public_address_broadcast", "system_diagnostics_run",
         ]
-        return [{"action": e, "workflow_id": str(workflow_id), "timestamp": datetime.now().isoformat()} for e in events]
+        return [{"action": e, "workflow_id": str(workflow_id), "timestamp": datetime.now(timezone.utc).isoformat()} for e in events]
 
     async def verify_audit_integrity(self, audit_data=None, **kwargs):
         """Verify audit trail integrity."""
@@ -225,7 +225,7 @@ class ExecutionOrchestrator:
                 "provisioned_items": list(packet.packet_data.get("equipment", {}).keys()) if isinstance(packet.packet_data, dict) else [],
                 "assigned_courses": len(packet.packet_data.get("assignments", [])) if isinstance(packet.packet_data, dict) else 0,
                 "access_activated": True,
-                "activation_timestamp": datetime.now().isoformat(),
+                "activation_timestamp": datetime.now(timezone.utc).isoformat(),
                 "emergency_mode": True,
                 "lockdown_active": True,
                 "systems_shutdown": len(packet.packet_data.get("systems", [])) if isinstance(packet.packet_data, dict) else 4,

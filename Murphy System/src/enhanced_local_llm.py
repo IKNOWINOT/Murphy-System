@@ -9,7 +9,7 @@ import math
 import json
 import operator
 from typing import Dict, Any, List, Tuple, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 logger = logging.getLogger(__name__)
 
@@ -52,7 +52,7 @@ class EnhancedLocalLLM:
         self.conversation_history.append({
             "role": "user",
             "content": prompt,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         })
 
         # Generate response based on provider
@@ -73,7 +73,7 @@ class EnhancedLocalLLM:
         self.conversation_history.append({
             "role": "assistant",
             "content": response['response'],
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         })
 
         return {

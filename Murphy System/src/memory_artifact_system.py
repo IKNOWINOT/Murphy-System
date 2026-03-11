@@ -10,7 +10,7 @@ Only verified artifacts may influence execution.
 from typing import Dict, Any, List, Optional, Set, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
-from datetime import datetime
+from datetime import datetime, timezone
 import hashlib
 import json
 
@@ -189,7 +189,7 @@ class SandboxMemory:
 
     def _expire_old(self):
         """Remove expired artifacts"""
-        current_time = datetime.now().timestamp()
+        current_time = datetime.now(timezone.utc).timestamp()
         expired = [
             aid for aid, artifact in self.artifacts.items()
             if current_time - artifact.timestamp > self.ttl_seconds
@@ -451,11 +451,11 @@ class ExecutionMemory:
 
         # Create record
         record = ExecutionRecord(
-            id=f"exec_{len(self.records)}_{datetime.now().timestamp()}",
+            id=f"exec_{len(self.records)}_{datetime.now(timezone.utc).timestamp()}",
             artifact_ids=artifact_ids,
             content=content,
             signature="",  # Will be computed
-            timestamp=datetime.now().timestamp(),
+            timestamp=datetime.now(timezone.utc).timestamp(),
             metadata=metadata or {}
         )
 
@@ -542,7 +542,7 @@ class VerificationInterfaceLayer:
             trust_weighted_score=trust_weight if not contradictions else trust_weight * 0.5,
             contradictions=contradictions,
             confidence_delta=confidence_delta,
-            timestamp=datetime.now().timestamp(),
+            timestamp=datetime.now(timezone.utc).timestamp(),
             evidence=evidence or {}
         )
 
@@ -602,7 +602,7 @@ class DeliverableCompiler:
         """
         deliverable = {
             'id': f"deliverable_{len(self.compiled_deliverables)}",
-            'timestamp': datetime.now().timestamp(),
+            'timestamp': datetime.now(timezone.utc).timestamp(),
             'artifacts': [a.to_dict() for a in bound_artifacts],
             'executions': [
                 {
@@ -676,7 +676,7 @@ class MemoryArtifactSystem:
                 'artifact_id': artifact_id,
                 'from': 'sandbox',
                 'to': 'working',
-                'timestamp': datetime.now().timestamp(),
+                'timestamp': datetime.now(timezone.utc).timestamp(),
                 'transition': 'draft_to_structured'
             })
 
@@ -709,7 +709,7 @@ class MemoryArtifactSystem:
             'artifact_id': artifact_id,
             'from': 'structured',
             'to': 'verified',
-            'timestamp': datetime.now().timestamp(),
+            'timestamp': datetime.now(timezone.utc).timestamp(),
             'transition': 'structured_to_verified',
             'verification': result.trust_weighted_score
         })
@@ -745,7 +745,7 @@ class MemoryArtifactSystem:
             'artifact_id': artifact_id,
             'from': 'verified',
             'to': 'bound',
-            'timestamp': datetime.now().timestamp(),
+            'timestamp': datetime.now(timezone.utc).timestamp(),
             'transition': 'verified_to_bound',
             'authority': authority
         })
@@ -792,7 +792,7 @@ class MemoryArtifactSystem:
                     'artifact_id': artifact_id,
                     'from': 'bound',
                     'to': 'executed',
-                    'timestamp': datetime.now().timestamp(),
+                    'timestamp': datetime.now(timezone.utc).timestamp(),
                     'transition': 'bound_to_executed',
                     'execution_id': record.id
                 })

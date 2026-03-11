@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Any, Callable, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 import logging
@@ -286,7 +286,7 @@ class DomainGateGenerator:
             "passed": passed,
             "score": score,
             "details": details,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
     def _validate_code_review(self, data: Dict) -> Dict[str, Any]:
@@ -511,7 +511,7 @@ class DomainGateGenerator:
         if gate_type is None:
             gate_type = GateType.SAFETY
         self.gate_count += 1
-        gate_id = f"gate_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{self.gate_count}"
+        gate_id = f"gate_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{self.gate_count}"
 
         # Auto-generate conditions if not provided
         if conditions is None:
@@ -1099,7 +1099,7 @@ class DomainGateGenerator:
             "passed": True,
             "conditions_results": [],
             "actions_taken": [],
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
 
         # Check conditions
@@ -1138,7 +1138,7 @@ class DomainGateGenerator:
             gate.metrics["passed"] += 1
         else:
             gate.metrics["failed"] += 1
-        gate.metrics["last_check"] = datetime.now().isoformat()
+        gate.metrics["last_check"] = datetime.now(timezone.utc).isoformat()
 
         return result
 

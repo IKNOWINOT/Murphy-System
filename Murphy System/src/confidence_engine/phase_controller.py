@@ -4,7 +4,7 @@ Controls phase transitions based on confidence thresholds
 """
 
 from typing import Dict, Any, List
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .models import Phase, ConfidenceState
 
@@ -93,7 +93,7 @@ class PhaseController:
     ) -> None:
         """Log phase transition"""
         self.phase_history.append({
-            'timestamp': datetime.now().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'from_phase': from_phase.value,
             'to_phase': to_phase.value,
             'confidence': confidence,

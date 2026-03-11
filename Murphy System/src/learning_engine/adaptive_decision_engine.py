@@ -13,7 +13,7 @@ import random
 import threading
 from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from collections import defaultdict
 import statistics
 
@@ -153,7 +153,7 @@ class PolicyManager:
             total_decisions=0,
             total_successes=0,
             average_utility=0.0,
-            last_updated=datetime.now()
+            last_updated=datetime.now(timezone.utc)
         )
 
         with self.lock:
@@ -189,7 +189,7 @@ class PolicyManager:
             # Decrease exploration rate over time
             policy.exploration_rate = max(0.01, policy.exploration_rate * 0.999)
 
-            policy.last_updated = datetime.now()
+            policy.last_updated = datetime.now(timezone.utc)
 
     def select_action(self, policy_id: str,
                      context: Optional[Dict[str, Any]] = None) -> Tuple[str, float]:
@@ -301,7 +301,7 @@ class AdaptiveDecisionEngine:
                 confidence=0.5,
                 utility_estimate=0.5,
                 rationale="Adaptation disabled, using default action",
-                timestamp=datetime.now(),
+                timestamp=datetime.now(timezone.utc),
                 policy_used="none"
             )
 
@@ -346,7 +346,7 @@ class AdaptiveDecisionEngine:
             confidence=confidence,
             utility_estimate=utility_estimate,
             rationale=rationale,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             policy_used=policy_id
         )
 
@@ -400,7 +400,7 @@ class AdaptiveDecisionEngine:
             success=success,
             confidence=confidence,
             utility=utility,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             context=context or {},
             metadata={}
         )

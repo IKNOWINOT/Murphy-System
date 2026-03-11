@@ -25,7 +25,7 @@ Endpoints:
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Any
 
 from .models import BaseScenario, FailureType
@@ -65,7 +65,7 @@ def health_check():
     return jsonify({
         'status': 'healthy',
         'service': 'synthetic_failure_generator',
-        'timestamp': datetime.now().isoformat(),
+        'timestamp': datetime.now(timezone.utc).isoformat(),
         'components': {
             'semantic_generator': 'operational',
             'control_generator': 'operational',

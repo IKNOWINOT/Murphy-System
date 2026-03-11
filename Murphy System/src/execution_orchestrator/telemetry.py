@@ -14,7 +14,7 @@ Design Principle: Complete observability of execution state
 """
 
 from typing import Dict, List, Optional, Callable
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 
 import logging
@@ -73,7 +73,7 @@ class TelemetryStreamer:
         # Create event
         event = TelemetryEvent(
             event_type=event_type,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             packet_id=packet_id,
             step_id=step_id,
             data=data,
@@ -102,7 +102,7 @@ class TelemetryStreamer:
             step_id=None,
             data={
                 'total_steps': total_steps,
-                'start_time': datetime.now().isoformat()
+                'start_time': datetime.now(timezone.utc).isoformat()
             },
             risk_score=risk_score,
             confidence_score=confidence_score
@@ -125,7 +125,7 @@ class TelemetryStreamer:
             data={
                 'step_index': step_index,
                 'step_type': step_type,
-                'start_time': datetime.now().isoformat()
+                'start_time': datetime.now(timezone.utc).isoformat()
             },
             risk_score=risk_score,
             confidence_score=confidence_score
@@ -250,7 +250,7 @@ class TelemetryStreamer:
             step_id=None,
             data={
                 'reason': reason,
-                'start_time': datetime.now().isoformat()
+                'start_time': datetime.now(timezone.utc).isoformat()
             },
             risk_score=risk_score,
             confidence_score=confidence_score
@@ -270,7 +270,7 @@ class TelemetryStreamer:
             step_id=None,
             data={
                 'success': success,
-                'end_time': datetime.now().isoformat()
+                'end_time': datetime.now(timezone.utc).isoformat()
             },
             risk_score=risk_score,
             confidence_score=confidence_score
@@ -290,7 +290,7 @@ class TelemetryStreamer:
             step_id=None,
             data={
                 'reason': reason,
-                'pause_time': datetime.now().isoformat()
+                'pause_time': datetime.now(timezone.utc).isoformat()
             },
             risk_score=risk_score,
             confidence_score=confidence_score
@@ -308,7 +308,7 @@ class TelemetryStreamer:
             event_type=TelemetryEventType.EXECUTION_RESUMED,
             step_id=None,
             data={
-                'resume_time': datetime.now().isoformat()
+                'resume_time': datetime.now(timezone.utc).isoformat()
             },
             risk_score=risk_score,
             confidence_score=confidence_score
@@ -330,7 +330,7 @@ class TelemetryStreamer:
             data={
                 'total_steps': total_steps,
                 'successful_steps': successful_steps,
-                'end_time': datetime.now().isoformat()
+                'end_time': datetime.now(timezone.utc).isoformat()
             },
             risk_score=risk_score,
             confidence_score=confidence_score
@@ -350,7 +350,7 @@ class TelemetryStreamer:
             step_id=None,
             data={
                 'error': error,
-                'end_time': datetime.now().isoformat()
+                'end_time': datetime.now(timezone.utc).isoformat()
             },
             risk_score=risk_score,
             confidence_score=confidence_score

@@ -12,7 +12,7 @@ Components:
 """
 
 from typing import Dict, List, Optional, Set
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass, field
 import logging
 
@@ -72,7 +72,7 @@ class AssumptionRegistry:
 
     def get_stale(self) -> List[AssumptionArtifact]:
         """Get all stale assumptions (past review date)."""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         return [
             a for a in self._assumptions.values()
             if a.status == AssumptionStatus.ACTIVE and a.next_review_date < now
@@ -264,7 +264,7 @@ class AssumptionBindingManager:
             hypothesis_id=hypothesis_id,
             execution_packet_id=None,
             is_critical=is_critical,
-            bound_at=datetime.now()
+            bound_at=datetime.now(timezone.utc)
         )
 
         self.registry.add_binding(binding)
@@ -282,7 +282,7 @@ class AssumptionBindingManager:
             hypothesis_id=None,
             execution_packet_id=execution_packet_id,
             is_critical=is_critical,
-            bound_at=datetime.now()
+            bound_at=datetime.now(timezone.utc)
         )
 
         self.registry.add_binding(binding)
@@ -395,7 +395,7 @@ class AssumptionLifecycleManager:
         self.registry.update_status(assumption_id, AssumptionStatus.VALIDATED)
 
         # Schedule next review
-        assumption.next_review_date = datetime.now() + self.default_review_interval
+        assumption.next_review_date = datetime.now(timezone.utc) + self.default_review_interval
 
         logger.info(f"Validated assumption {assumption_id}")
 

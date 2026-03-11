@@ -12,7 +12,7 @@ import time
 import threading
 from typing import Dict, List, Optional, Any, Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from collections import deque
 import json
@@ -127,7 +127,7 @@ class ApprovalQueue:
     def get_pending_requests(self) -> List[ApprovalRequest]:
         """Get all pending approval requests"""
         with self.lock:
-            now = datetime.now()
+            now = datetime.now(timezone.utc)
             pending = []
 
             for request in self.queue:
@@ -151,7 +151,7 @@ class ApprovalQueue:
 
             request.status = ApprovalStatus.APPROVED
             request.approved_by = approved_by
-            request.approved_at = datetime.now()
+            request.approved_at = datetime.now(timezone.utc)
             request.auto_approved = auto_approve
             request.auto_approve_reason = auto_approve_reason
 
@@ -168,14 +168,14 @@ class ApprovalQueue:
             request.status = ApprovalStatus.REJECTED
             request.rejection_reason = rejection_reason
             request.approved_by = rejected_by  # Use approved_by field for rejected_by
-            request.approved_at = datetime.now()
+            request.approved_at = datetime.now(timezone.utc)
 
             return True
 
     def cleanup_expired_requests(self) -> int:
         """Clean up expired requests"""
         with self.lock:
-            now = datetime.now()
+            now = datetime.now(timezone.utc)
             expired_count = 0
 
             for request in self.queue:
@@ -335,8 +335,8 @@ class HumanOversightSystem:
             description=description,
             risk_level=risk_level,
             details=details,
-            created_at=datetime.now(),
-            expires_at=datetime.now() + (timeout or self.approval_timeout),
+            created_at=datetime.now(timezone.utc),
+            expires_at=datetime.now(timezone.utc) + (timeout or self.approval_timeout),
             metadata=metadata or {}
         )
 
@@ -354,7 +354,7 @@ class HumanOversightSystem:
                 'risk_level': risk_level,
                 'description': description
             },
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             severity="info",
             source="system",
             requires_action=True
@@ -395,7 +395,7 @@ class HumanOversightSystem:
                 'risk_level': risk_level,
                 'reason': 'Below approval threshold'
             },
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             severity="info",
             source="automated",
             requires_action=False
@@ -425,13 +425,13 @@ class HumanOversightSystem:
                     'operation_type': request.operation_type,
                     'operation_id': request.operation_id
                 },
-                timestamp=datetime.now(),
+                timestamp=datetime.now(timezone.utc),
                 severity="info",
                 source="human",
                 requires_action=False,
                 action_taken="approved",
                 action_taken_by=approved_by,
-                action_taken_at=datetime.now()
+                action_taken_at=datetime.now(timezone.utc)
             )
             self.event_logger.log_event(event)
 
@@ -460,13 +460,13 @@ class HumanOversightSystem:
                     'operation_type': request.operation_type,
                     'operation_id': request.operation_id
                 },
-                timestamp=datetime.now(),
+                timestamp=datetime.now(timezone.utc),
                 severity="warning",
                 source="human",
                 requires_action=False,
                 action_taken="rejected",
                 action_taken_by=rejected_by,
-                action_taken_at=datetime.now()
+                action_taken_at=datetime.now(timezone.utc)
             )
             self.event_logger.log_event(event)
 
@@ -484,7 +484,7 @@ class HumanOversightSystem:
             target_operation_type=target_operation_type,
             reason=reason,
             intervenor=intervenor,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             original_action=original_action,
             modified_action=modified_action
         )
@@ -506,13 +506,13 @@ class HumanOversightSystem:
                 'reason': reason,
                 'intervenor': intervenor
             },
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             severity="warning",
             source="human",
             requires_action=False,
             action_taken=intervention_type,
             action_taken_by=intervenor,
-            action_taken_at=datetime.now()
+            action_taken_at=datetime.now(timezone.utc)
         )
         self.event_logger.log_event(event)
 
@@ -635,7 +635,7 @@ class HumanOversightSystem:
             events = all_events
 
         return {
-            'export_timestamp': datetime.now().isoformat(),
+            'export_timestamp': datetime.now(timezone.utc).isoformat(),
             'date_range': {
                 'start': start_date.isoformat() if start_date else None,
                 'end': end_date.isoformat() if end_date else None

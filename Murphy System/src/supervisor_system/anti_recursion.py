@@ -11,7 +11,7 @@ Components:
 
 from typing import Dict, List, Set, Optional, Tuple
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 from .schemas import (
@@ -92,7 +92,7 @@ class ValidationSourceTracker:
             assumption_id=assumption_id,
             validator_id=validator_id,
             validator_type=validator_type,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             blocked=blocked,
             block_reason=block_reason
         )

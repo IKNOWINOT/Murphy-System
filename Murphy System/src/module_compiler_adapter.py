@@ -13,7 +13,7 @@ Capabilities:
 """
 
 from typing import Dict, List, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 import logging
 logger = logging.getLogger(__name__)
@@ -434,7 +434,7 @@ class ModuleCompilerAdapter:
     def _log_analysis(self, source_path: str, spec: Any):
         """Log analysis for tracking"""
         self.analysis_history.append({
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "source_path": source_path,
             "module_id": spec.module_id,
             "module_name": os.path.basename(spec.source_path).replace('.py', ''),

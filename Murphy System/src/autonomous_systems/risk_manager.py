@@ -12,7 +12,7 @@ import time
 import threading
 from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from collections import defaultdict
 import statistics
@@ -123,7 +123,7 @@ class RiskAssessment:
         else:
             severity = RiskSeverity.NEGLIGIBLE
 
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         risk_factor = RiskFactor(
             factor_id=factor_id,
             factor_name=factor_name,
@@ -190,11 +190,11 @@ class RiskAssessment:
             if mitigation_actions is not None:
                 risk_factor.mitigation_actions = mitigation_actions
 
-            risk_factor.last_updated = datetime.now()
+            risk_factor.last_updated = datetime.now(timezone.utc)
 
             # Record update
             self.risk_history.append({
-                'timestamp': datetime.now(),
+                'timestamp': datetime.now(timezone.utc),
                 'action': 'risk_updated',
                 'risk_id': factor_id,
                 'new_risk_score': risk_factor.risk_score
@@ -287,7 +287,7 @@ class RiskMonitor:
                                 risk_factor_id=risk_factor.factor_id,
                                 severity=risk_factor.severity,
                                 message=rule['message'].format(factor_name=risk_factor.factor_name),
-                                triggered_at=datetime.now()
+                                triggered_at=datetime.now(timezone.utc)
                             )
                             self.alerts.append(alert)
                             new_alerts.append(alert)
@@ -301,7 +301,7 @@ class RiskMonitor:
                 if alert.alert_id == alert_id:
                     alert.acknowledged = True
                     alert.acknowledged_by = acknowledged_by
-                    alert.acknowledged_at = datetime.now()
+                    alert.acknowledged_at = datetime.now(timezone.utc)
                     return True
             return False
 
@@ -311,7 +311,7 @@ class RiskMonitor:
             for alert in self.alerts:
                 if alert.alert_id == alert_id:
                     alert.resolution = resolution
-                    alert.resolved_at = datetime.now()
+                    alert.resolved_at = datetime.now(timezone.utc)
                     return True
             return False
 
@@ -415,7 +415,7 @@ class MitigationPlanner:
                 if action.action_id == action_id:
                     action.status = "in_progress"
                     action.assigned_to = assigned_to
-                    action.started_at = datetime.now()
+                    action.started_at = datetime.now(timezone.utc)
                     return True
             return False
 
@@ -425,7 +425,7 @@ class MitigationPlanner:
             for action in self.mitigation_actions:
                 if action.action_id == action_id:
                     action.status = "completed"
-                    action.completed_at = datetime.now()
+                    action.completed_at = datetime.now(timezone.utc)
                     action.effectiveness = effectiveness
                     return True
             return False

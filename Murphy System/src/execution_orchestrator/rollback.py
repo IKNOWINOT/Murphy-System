@@ -16,7 +16,7 @@ Design Principle: Safe reversal of all executed steps
 import logging
 logger = logging.getLogger(__name__)
 from typing import Dict, List, Optional, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .models import StepResult, StepType
 
@@ -123,7 +123,7 @@ class RollbackEnforcer:
                         'step_id': step_id,
                         'action': rollback_step['rollback_action'],
                         'success': True,
-                        'timestamp': datetime.now().isoformat()
+                        'timestamp': datetime.now(timezone.utc).isoformat()
                     })
                 else:
                     errors.append(f"Rollback failed for step {step_id}: {error}")
@@ -132,7 +132,7 @@ class RollbackEnforcer:
                         'action': rollback_step['rollback_action'],
                         'success': False,
                         'error': error,
-                        'timestamp': datetime.now().isoformat()
+                        'timestamp': datetime.now(timezone.utc).isoformat()
                     })
             except Exception as exc:
                 logger.debug("Caught exception: %s", exc)
@@ -142,7 +142,7 @@ class RollbackEnforcer:
                     'action': rollback_step['rollback_action'],
                     'success': False,
                     'error': str(exc),
-                    'timestamp': datetime.now().isoformat()
+                    'timestamp': datetime.now(timezone.utc).isoformat()
                 })
 
         # Store rollback history

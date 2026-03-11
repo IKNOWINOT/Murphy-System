@@ -4,7 +4,7 @@ Seals execution packets with cryptographic signatures
 """
 
 from typing import Dict, Any, Tuple, List
-from datetime import datetime
+from datetime import datetime, timezone
 import hashlib
 import json
 
@@ -265,7 +265,7 @@ class PacketSealer:
             'signature': packet.signature,
             'scope_hash': packet.scope.calculate_hash(),
             'execution_result': execution_result,
-            'completed_at': datetime.now().isoformat(),
+            'completed_at': datetime.now(timezone.utc).isoformat(),
             'certificate_hash': None
         }
 

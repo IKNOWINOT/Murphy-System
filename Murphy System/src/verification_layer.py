@@ -14,7 +14,7 @@ try:
     import wikipedia
 except ImportError:
     wikipedia = None
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 try:
     from SPARQLWrapper import SPARQLWrapper, JSON
@@ -305,7 +305,7 @@ class VerificationOrchestrator:
             sources=sources,
             verified=verified,
             verification_method=method,
-            timestamp=datetime.now().isoformat()
+            timestamp=datetime.now(timezone.utc).isoformat()
         )
 
     def verify_calculation(self, expression: str) -> VerifiedFacts:
@@ -321,7 +321,7 @@ class VerificationOrchestrator:
                 sources=["calculation_engine"],
                 verified=True,
                 verification_method="deterministic_calculation",
-                timestamp=datetime.now().isoformat()
+                timestamp=datetime.now(timezone.utc).isoformat()
             )
 
         return VerifiedFacts(
@@ -330,5 +330,5 @@ class VerificationOrchestrator:
             sources=[],
             verified=False,
             verification_method="calculation_failed",
-            timestamp=datetime.now().isoformat()
+            timestamp=datetime.now(timezone.utc).isoformat()
         )

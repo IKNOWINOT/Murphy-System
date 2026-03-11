@@ -27,7 +27,7 @@ Security:
 from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
-from datetime import datetime
+from datetime import datetime, timezone
 import hashlib
 import json
 import logging
@@ -340,7 +340,7 @@ class ArtifactViewport:
             total_sections=len(section_index),
             section_index=section_index,
             checksum=checksum,
-            created_at=datetime.now().isoformat(),
+            created_at=datetime.now(timezone.utc).isoformat(),
             origin=origin,
         )
 
@@ -532,7 +532,7 @@ class ArtifactViewport:
     ):
         """Record viewport access for audit trail."""
         entry = {
-            'timestamp': datetime.now().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'artifact_id': artifact_id,
             'tenant_id': tenant_id,
             'origin': origin.value,

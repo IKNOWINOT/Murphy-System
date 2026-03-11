@@ -16,7 +16,7 @@ from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 # INC-01 / C-01: Import the OpenAI-compatible provider (unified LLM gateway)
@@ -335,7 +335,7 @@ class LLMController:
         self.confidence_history.append(confidence)
 
         # Route to appropriate backend
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
 
         if model == LLMModel.MFM:
             response = await self._query_mfm(request)
@@ -352,7 +352,7 @@ class LLMController:
         else:
             response = await self._query_fallback(request)
 
-        latency = (datetime.now() - start_time).total_seconds()
+        latency = (datetime.now(timezone.utc) - start_time).total_seconds()
 
         # Update tracking
         self.total_cost += response.cost

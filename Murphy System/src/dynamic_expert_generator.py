@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 import logging
 logger = logging.getLogger("dynamic_expert_generator")
@@ -212,7 +212,7 @@ class DynamicExpertGenerator:
         if domain is None:
             domain = "software"
         self.expert_count += 1
-        expert_id = f"expert_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{self.expert_count}"
+        expert_id = f"expert_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{self.expert_count}"
 
         # Map level string to enum
         level_enum = ExpertLevel(level.lower())

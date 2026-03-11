@@ -4,7 +4,7 @@ Creates immutable snapshots of execution scope
 """
 
 from typing import List, Dict, Any, Tuple, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import hashlib
 import json
 
@@ -89,7 +89,7 @@ class ScopeFreezer:
             constraints=constraints,
             parameters=parameters,
             interface_bindings=interface_bindings,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             frozen=False
         )
 

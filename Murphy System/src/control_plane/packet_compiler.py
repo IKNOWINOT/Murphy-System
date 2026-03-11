@@ -8,7 +8,7 @@ Converts verified, gated, high-confidence plans into immutable execution packets
 
 import uuid
 from typing import Dict, List, Any, Optional, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from .execution_packet import (
     ExecutionPacket, Action, Gate, SafetyConstraint,
@@ -146,7 +146,7 @@ class PacketCompiler:
             raise PacketCompilationError(error_msg)
 
         # Generate packet ID
-        packet_id = f"EP-{datetime.now().strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:8]}"
+        packet_id = f"EP-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:8]}"
 
         # Extract actions from task description (simplified for MVP)
         actions = self._extract_actions(task_description, confidence)
@@ -172,7 +172,7 @@ class PacketCompiler:
 
         # Add compilation log
         packet.compilation_log.append(
-            f"Compiled at {datetime.now().isoformat()} with confidence {confidence:.2f}"
+            f"Compiled at {datetime.now(timezone.utc).isoformat()} with confidence {confidence:.2f}"
         )
         packet.compilation_log.append(
             f"Murphy index: {murphy_index:.2f}"
@@ -302,7 +302,7 @@ class PacketCompiler:
     ):
         """Log compilation attempt for audit trail"""
         log_entry = {
-            'timestamp': datetime.now().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'success': success,
             'confidence': confidence,
             'murphy_index': murphy_index,

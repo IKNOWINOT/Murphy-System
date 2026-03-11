@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 import time
 import requests
 from typing import Dict, List, Optional, Any, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .models import StepResult, StepType
 
@@ -57,7 +57,7 @@ class StepwiseExecutor:
         Returns:
             StepResult with execution outcome
         """
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
         step_id = step.get('step_id', 'unknown')
         step_type_str = step.get('type', 'unknown')
 
@@ -87,7 +87,7 @@ class StepwiseExecutor:
             else:
                 raise ValueError(f"Unknown step type: {step_type_str}")
 
-            end_time = datetime.now()
+            end_time = datetime.now(timezone.utc)
             duration_ms = (end_time - start_time).total_seconds() * 1000
 
             return StepResult(
@@ -104,7 +104,7 @@ class StepwiseExecutor:
 
         except Exception as exc:
             logger.debug("Caught exception: %s", exc)
-            end_time = datetime.now()
+            end_time = datetime.now(timezone.utc)
             duration_ms = (end_time - start_time).total_seconds() * 1000
 
             return StepResult(
@@ -298,7 +298,7 @@ class StepwiseExecutor:
         return {
             'checkpoint_id': checkpoint_id,
             'state': state,
-            'timestamp': datetime.now().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         }
 
     def _is_llm_call(self, step: Dict) -> bool:
