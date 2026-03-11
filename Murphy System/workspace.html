@@ -646,6 +646,12 @@
   var userAvatar    = document.getElementById('user-avatar');
   var userNameEl    = document.getElementById('user-name');
 
+  // Delegated handler for retry buttons rendered inside channel views
+  mainEl.addEventListener('click', function (e) {
+    var btn = e.target.closest('.ws-retry-btn');
+    if (btn) navigate(btn.getAttribute('data-channel') || currentChannel);
+  });
+
   /* ===========================================================
      3. HTML HELPERS  (same patterns as terminal_unified.html)
      =========================================================== */
@@ -724,10 +730,11 @@
   }
 
   function errorCard(msg, retryChannel) {
+    var ch = esc(retryChannel || currentChannel);
     return '<div class="murphy-card"><div class="murphy-card-body flex flex-col items-center gap-4 p-6">' +
       '<div class="text-danger text-lg font-bold">' + icon('alert', 32) + ' Error</div>' +
       '<p class="text-secondary text-sm">' + esc(msg) + '</p>' +
-      '<button class="murphy-btn murphy-btn-primary" onclick="navigate(\'' + esc(retryChannel || currentChannel) + '\')">Retry</button>' +
+      '<button class="murphy-btn murphy-btn-primary ws-retry-btn" data-channel="' + ch + '">Retry</button>' +
       '</div></div>';
   }
 
@@ -815,13 +822,9 @@
   function navigate(chId) {
     chId = chId || 'system';
 
-    // Custom channels not in the built-in map
-    if (!channelViews[chId]) {
-      if (customChannels[chId]) {
-        chId = chId; // handled below
-      } else {
-        chId = 'system';
-      }
+    // Custom channels not in the built-in map — fall back to system only if truly unknown
+    if (!channelViews[chId] && !customChannels[chId]) {
+      chId = 'system';
     }
 
     currentChannel = chId;
@@ -964,7 +967,7 @@
 
       html += '<div class="grid-stat">';
       html += statCard('Total', items.length);
-      html += statCard('Running', running, running > 0 ? null : null, '');
+      html += statCard('Running', running, running > 0 ? 'up' : null, running > 0 ? 'In progress' : '');
       html += statCard('Failed', failed, failed > 0 ? 'up' : null, failed > 0 ? 'Needs attention' : '');
       html += '</div>';
 
@@ -1251,15 +1254,20 @@
       } catch (_) {}
 
       if (!chData || !chData.channel_name) {
-        // Fallback: derive slug from description
+        // Fallback: derive slug from description (only alphanumeric + hyphens)
         chData = {
-          channel_name: desc.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 32),
+          channel_name: desc.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 32),
           filter: { channels: ['custom'] },
           description: desc
         };
       }
 
-      var slug = chData.channel_name;
+      var slug = (chData.channel_name || '').replace(/[^a-z0-9-]/g, '').slice(0, 32);
+      if (!slug) {
+        createStatus.innerHTML = '<span class="text-warning">Could not generate a valid channel name. Please use letters and numbers in your description.</span>';
+        document.getElementById('btn-modal-create').disabled = false;
+        return;
+      }
 
       // Subscribe to the event bus
       var subRes = await api.post('/events/subscribe', {
@@ -1456,10 +1464,10 @@
   /* ===========================================================
      13. INIT
      ===================================================== */
-  // Wire up the MurphyLibrarianChat web component
-  if (typeof MurphyLibrarianChat === 'function' && !(librarianEl instanceof HTMLElement && librarianEl.shadowRoot)) {
-    // The murphy-librarian-chat custom element handles itself; just give it the api
-    if (librarianEl && librarianEl.init) librarianEl.init(api);
+  // Wire up the MurphyLibrarianChat web component if it exposes an init() method
+  // (the custom element normally self-initialises; this handles any manual init path)
+  if (librarianEl && typeof librarianEl.init === 'function') {
+    librarianEl.init(api);
   }
 
   // Start SSE (non-blocking)
