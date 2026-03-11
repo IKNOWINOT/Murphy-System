@@ -56,9 +56,9 @@ Comprehensive demonstration system with 6 demo types:
 
 - **/.vscode/launch.json** - Debug configurations
 - **/.vscode/tasks.json** - Task definitions
-- **/murphy_integrated/demo_murphy.py** - Demo orchestrator
-- **/murphy_integrated/DEMO_GUIDE.md** - Complete demo guide
-- **/murphy_integrated/start.sh** - Server startup script
+- **/Murphy System/demo_murphy.py** - Demo orchestrator
+- **/Murphy System/DEMO_GUIDE.md** - Complete demo guide
+- **/Murphy System/start.sh** - Server startup script
 
 ## Usage
 
@@ -79,7 +79,7 @@ Comprehensive demonstration system with 6 demo types:
 ### Method 3: Terminal
 
 1. **Ctrl+`** to open integrated terminal
-2. `cd "Murphy System/murphy_integrated"`
+2. `cd "Murphy System"`
 3. `python demo_murphy.py --demo quick`
 
 ## Features
@@ -117,7 +117,7 @@ Graceful handling of:
 
 ```bash
 # Install dependencies
-cd "Murphy System/murphy_integrated"
+cd "Murphy System"
 pip install -r requirements_murphy_1.0.txt
 ```
 
@@ -126,7 +126,7 @@ pip install -r requirements_murphy_1.0.txt
 For fastest demo experience, keep Murphy running in a separate terminal:
 
 ```bash
-cd "Murphy System/murphy_integrated"
+cd "Murphy System"
 ./start.sh
 ```
 
@@ -148,7 +148,7 @@ python demo_murphy.py --demo all
 
 ### Python Not Found
 
-Install Python 3.11+ and ensure it's in PATH.
+Install Python 3.10+ and ensure it's in PATH.
 
 ### Import Errors
 
