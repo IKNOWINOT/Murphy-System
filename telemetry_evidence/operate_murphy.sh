@@ -156,14 +156,61 @@ echo "  ✅ Environment snapshot saved"
 
 section "PHASE 1: COLD BOOT"
 
-echo "→ Starting Murphy System server..."
+echo "→ Starting Murphy System server (API + UI)..."
 cd "$MURPHY_DIR"
-python -c "
-import sys, os, uvicorn
-sys.path.insert(0, 'src')
-os.environ['MURPHY_PORT'] = '8000'
-from runtime.app import create_app
+python3 -c "
+import sys, os
+sys.path.insert(0, os.path.abspath('.'))
+sys.path.insert(0, os.path.join(os.path.abspath('.'), 'src'))
+os.environ.setdefault('MURPHY_PORT', '8000')
+os.environ.setdefault('MURPHY_ENV', 'development')
+os.environ.setdefault('LLM_PROVIDER', 'onboard')
+
+from src.runtime.app import create_app
+from starlette.staticfiles import StaticFiles
+from starlette.responses import FileResponse
+import uvicorn
+
 app = create_app()
+
+# Serve static assets at /static and /ui/static (relative paths from /ui/ routes)
+if os.path.isdir('static'):
+    app.mount('/static', StaticFiles(directory='static'), name='static')
+    app.mount('/ui/static', StaticFiles(directory='static'), name='ui_static')
+
+# Serve all HTML UI pages
+html_routes = {
+    '/': 'murphy_landing_page.html',
+    '/ui/landing': 'murphy_landing_page.html',
+    '/ui/terminal-unified': 'terminal_unified.html',
+    '/ui/terminal-integrated': 'terminal_integrated.html',
+    '/ui/terminal-architect': 'terminal_architect.html',
+    '/ui/terminal-enhanced': 'terminal_enhanced.html',
+    '/ui/terminal-costs': 'terminal_costs.html',
+    '/ui/terminal-orgchart': 'terminal_orgchart.html',
+    '/ui/terminal-integrations': 'terminal_integrations.html',
+    '/ui/terminal-orchestrator': 'terminal_orchestrator.html',
+    '/ui/onboarding': 'onboarding_wizard.html',
+    '/ui/workflow-canvas': 'workflow_canvas.html',
+    '/ui/system-visualizer': 'system_visualizer.html',
+    '/ui/dashboard': 'murphy_ui_integrated.html',
+    '/ui/smoke-test': 'murphy-smoke-test.html',
+}
+for route_path, filename in html_routes.items():
+    filepath = os.path.abspath(filename)
+    if os.path.isfile(filepath):
+        def make_handler(fp=filepath):
+            async def handler():
+                return FileResponse(fp, media_type='text/html')
+            return handler
+        app.add_api_route(route_path, make_handler(), methods=['GET'], include_in_schema=False)
+# Also serve HTML files by name under /ui/ for relative links between pages
+for hf in [f for f in os.listdir('.') if f.endswith('.html')]:
+    fp = os.path.abspath(hf)
+    try:
+        app.add_api_route(f'/ui/{hf}', (lambda fp=fp: (lambda: __import__(\"starlette.responses\", fromlist=[\"FileResponse\"]).FileResponse(fp, media_type=\"text/html\"))()) , methods=['GET'], include_in_schema=False)
+    except Exception:
+        pass
 uvicorn.run(app, host='0.0.0.0', port=8000, log_level='warning')
 " > "$EVIDENCE/02_boot/server.log" 2>&1 &
 SERVER_PID=$!
@@ -190,12 +237,19 @@ if ! $SERVER_READY; then
     pip install --quiet numpy networkx psutil 2>&1 | tail -3
     FIX_COUNT=$((FIX_COUNT+1))
 
-    # Retry
-    python -c "
-import sys, os, uvicorn
-sys.path.insert(0, 'src')
-from runtime.app import create_app
+    # Retry with same UI-enabled server
+    python3 -c "
+import sys, os
+sys.path.insert(0, os.path.abspath('.'))
+sys.path.insert(0, os.path.join(os.path.abspath('.'), 'src'))
+from src.runtime.app import create_app
+from starlette.responses import FileResponse
+import uvicorn
 app = create_app()
+if os.path.isdir('static'):
+    from starlette.staticfiles import StaticFiles
+    app.mount('/static', StaticFiles(directory='static'), name='static')
+    app.mount('/ui/static', StaticFiles(directory='static'), name='ui_static')
 uvicorn.run(app, host='0.0.0.0', port=8000, log_level='warning')
 " >> "$EVIDENCE/02_boot/server.log" 2>&1 &
     SERVER_PID=$!
