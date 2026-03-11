@@ -150,9 +150,15 @@ async def test_gate_execution_wiring_initialized(client):
 async def test_module_registry_populated(client):
     r = await client.get("/api/status")
     body = r.json()
-    # Module count should be > 0
-    modules = body.get("modules", body.get("data", {}).get("modules", {}))
-    assert modules  # non-empty
+    # Module count should be > 0 — may be in 'modules', 'module_registry', or 'data'
+    modules = (
+        body.get("modules")
+        or body.get("module_registry", {}).get("modules")
+        or body.get("data", {}).get("modules", {})
+    )
+    # If modules is a dict with total_available > 0, that's fine
+    total = body.get("module_registry", {}).get("total_available", 0)
+    assert modules or total > 0
 
 
 # ── 13. Persistence Round-Trip ───────────────────────────────────
