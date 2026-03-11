@@ -15,7 +15,7 @@ export async function updatePopularity(db:D1Database, id:string, inc:number){
 export async function scanByTags(db:D1Database, tags:string[], limit:number){
   const like = tags.map(()=>`tags_json LIKE ?`).join(' AND ');
   const args = tags.map(t=>`%${t}%`);
-  const q = await db.prepare(`SELECT id,title,tags_json,content_uri,meta_json,updated_ts FROM library_docs ${tags.length? 'WHERE '+like: ''} ORDER BY updated_ts DESC LIMIT ?`).bind(*args, limit).all<any>();
+  const q = await db.prepare(`SELECT id,title,tags_json,content_uri,meta_json,updated_ts FROM library_docs ${tags.length? 'WHERE '+like: ''} ORDER BY updated_ts DESC LIMIT ?`).bind(...args, limit).all<any>();
   return q.results || [];
 }
 export async function listAllTags(db:D1Database){
