@@ -19,7 +19,7 @@ import os
 import sys
 import datetime
 
-MAX_RETESTS = 20  # Maximum number of endpoints to re-test per run
+MAX_RETESTS = 20  # Cap re-tests per run to avoid runaway loops; failures beyond this are logged for manual review
 
 try:
     import requests
