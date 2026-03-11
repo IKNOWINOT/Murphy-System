@@ -2,7 +2,7 @@
 # Copyright © 2020 Inoni Limited Liability Company
 # Creator: Corey Post | License: BSL-1.1
 #
-# Use requirements.lock for reproducible production deployments.
+# Pin versions here for reproducible production deployments.
 
 # LLM and ML
 transformers>=4.48.0
