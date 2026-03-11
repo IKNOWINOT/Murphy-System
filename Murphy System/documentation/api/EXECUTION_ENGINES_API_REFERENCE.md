@@ -622,6 +622,30 @@ for integration in integrations:
 ### Overview
 Database connectors for SQL and NoSQL databases.
 
+The SQL connector supports a **live/stub mode** toggle via the `MURPHY_DB_MODE`
+environment variable:
+
+| Value | Behaviour |
+|-------|-----------|
+| `stub` (default) | Returns deterministic in-memory fixture data. No database required. Suitable for development and testing. |
+| `live` | Executes queries against a real database via SQLAlchemy. Requires a reachable database and `DATABASE_URL`-compatible connection string. |
+
+**Example:**
+```bash
+# Run with a real PostgreSQL database (connection_string passed to constructor)
+MURPHY_DB_MODE=live python app.py
+
+# In Python, pass the connection string directly to the constructor:
+connector = SQLDatabaseConnector(
+    connection_string="postgresql://user:pass@localhost/mydb",
+    database_type=DatabaseType.POSTGRESQL
+)
+connector.connect()  # establishes live SQLAlchemy engine
+
+# Run without any database (default, suitable for development)
+MURPHY_DB_MODE=stub python app.py
+```
+
 ### Classes
 
 #### `SQLDatabaseConnector`
