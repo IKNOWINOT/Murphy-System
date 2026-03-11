@@ -223,6 +223,8 @@
       apiEndpoint: '/api/workflow-terminal/execute',
       prompt: 'workflow>'
     });
+    /* Alias: canvas code uses terminal.output(), component exposes appendOutput() */
+    terminal.output = terminal.appendOutput.bind(terminal);
 
     /* ── Palette styling via JS (no <style> block) ──────── */
     function applyLayoutStyles() {
