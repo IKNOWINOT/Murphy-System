@@ -41,12 +41,12 @@ class ScalingBot:
             "bot_type": bot_type,
             "key_id": key_id,
         }
-        with open(LOG_FILE, "a") as f:
+        with open(LOG_FILE, "a", encoding="utf-8") as f:
             f.write(json.dumps(entry) + "\n")
         active_path = os.path.join("live", "active_instances.json")
         os.makedirs(os.path.dirname(active_path), exist_ok=True)
         try:
-            with open(active_path, "r") as af:
+            with open(active_path, "r", encoding="utf-8") as af:
                 data = json.load(af)
         except Exception as exc:
             logger.debug("Suppressed exception reading active instances: %s", exc)
@@ -55,7 +55,7 @@ class ScalingBot:
             data[bot_type] = key_id
         elif action == "scale_down":
             data.pop(bot_type, None)
-        with open(active_path, "w") as af:
+        with open(active_path, "w", encoding="utf-8") as af:
             json.dump(data, af, indent=2)
 
     def spawn_additional_instance(self, bot: str) -> None:
@@ -85,7 +85,9 @@ class ScalingBot:
         if not self.should_scale(bot_type, queue_depth, avg_latency):
             return {"status": "noop"}
         self.spawn_additional_instance(bot_type)
-        return {"status": "scaled", "instance": bot_type, "key": self.instances.get(bot_type)}
+        key_val = self.instances.get(bot_type, "")
+        redacted = f"{key_val[:4]}...REDACTED" if key_val else ""
+        return {"status": "scaled", "instance": bot_type, "key": redacted}
 
     def calculate_resource_score(self, cpu: float, memory: float, freq: float, success: float) -> float:
         return (cpu + memory) * freq * success
