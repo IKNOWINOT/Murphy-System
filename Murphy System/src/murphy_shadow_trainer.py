@@ -146,6 +146,10 @@ class PolicyUpdater:
             self.update_from_experience(exp)
         return len(batch)
 
+    def set_learning_rate(self, value: float) -> None:
+        """Set the learning rate directly (called by apply_dynamic_output)."""
+        self._learning_rate = max(0.0, min(1.0, float(value)))
+
     def compute_reward(self, signal: RewardSignal) -> float:
         success_reward = 1.0 if signal.task_success else -0.5
 
@@ -227,6 +231,10 @@ class ExplorationAgent:
             self._explore_steps += 1
         return chosen
 
+    def set_epsilon(self, value: float) -> None:
+        """Set the exploration epsilon directly (called by apply_dynamic_output)."""
+        self._epsilon = max(0.0, min(1.0, float(value)))
+
     def decay_epsilon(self, factor: float = 0.995) -> None:
         self._epsilon = max(0.01, self._epsilon * factor)
 
@@ -304,6 +312,22 @@ class ExplorationLoop:
         self._buffer = buffer
         self._evaluator = evaluator
         self._max_episodes = max_episodes
+
+    def apply_dynamic_output(self, output: Any) -> None:
+        """Apply a DynamicAssistOutput to the agent and updater.
+
+        Reads ``computed_epsilon`` and ``computed_learning_rate`` from *output*
+        and forwards them to the agent and updater respectively.  Accepts any
+        object with those attributes so callers are not hard-coupled to the
+        DynamicAssistEngine import.
+        """
+        epsilon = getattr(output, "computed_epsilon", None)
+        if epsilon is not None:
+            self._agent.set_epsilon(epsilon)
+
+        learning_rate = getattr(output, "computed_learning_rate", None)
+        if learning_rate is not None:
+            self._updater.set_learning_rate(learning_rate)
 
     def run_episode(
         self,

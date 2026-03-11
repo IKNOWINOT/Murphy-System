@@ -707,6 +707,12 @@ class IsolatedSession:
         # Universal engines (always loaded)
         self.scheduler = GovernanceScheduler()
         self.orchestrator = WorkflowOrchestrator()
+
+        # Shadow / dynamic assist modules — loaded for AGENT_REASONING sessions
+        self.dynamic_assist_engine = None
+        self.shadow_knostalgia_bridge = None
+        if control_type == ControlType.AGENT_REASONING:
+            self._load_agent_reasoning_modules()
         
         # Execution packet
         self.packet: Optional[ExecutionPacket] = None
@@ -724,6 +730,30 @@ class IsolatedSession:
             self.engines[engine.engine_type] = engine
             
         logger.info(f"Session {self.session_id}: Loaded {len(self.engines)} engines for {self.control_type.value}")
+
+    def _load_agent_reasoning_modules(self) -> None:
+        """Load DynamicAssistEngine and ShadowKnostalgiaBridge for AGENT_REASONING sessions.
+
+        Uses graceful import so the session always succeeds even when the PR #195
+        modules are unavailable.
+        """
+        try:
+            from src.dynamic_assist_engine import DynamicAssistEngine as _DAE
+            self.dynamic_assist_engine = _DAE()
+            logger.info("Session %s: DynamicAssistEngine loaded", self.session_id)
+        except Exception as exc:
+            logger.debug("Session %s: DynamicAssistEngine unavailable — %s", self.session_id, exc)
+
+        try:
+            from src.shadow_knostalgia_bridge import ShadowKnostalgiaBridge as _SKB
+            from src.kfactor_calculator import KFactorCalculator as _KFC
+            self.shadow_knostalgia_bridge = _SKB(
+                dynamic_assist_engine=self.dynamic_assist_engine,
+                kfactor_calculator=_KFC(),
+            )
+            logger.info("Session %s: ShadowKnostalgiaBridge loaded", self.session_id)
+        except Exception as exc:
+            logger.debug("Session %s: ShadowKnostalgiaBridge unavailable — %s", self.session_id, exc)
         
     def get_engine(self, engine_type: EngineType) -> Optional[BaseEngine]:
         """Get engine by type (only if loaded in this session)"""

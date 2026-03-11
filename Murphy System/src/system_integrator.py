@@ -192,6 +192,39 @@ class SystemIntegrator:
             self.librarian_adapter = None
             self.librarian_adapter_enabled = False
 
+        # Dynamic Assist Engine + KFactor Calculator (PR #195)
+        try:
+            from src.kfactor_calculator import KFactorCalculator
+            from src.dynamic_assist_engine import DynamicAssistEngine
+            self.kfactor_calculator = KFactorCalculator()
+            self.dynamic_assist_engine = DynamicAssistEngine()
+            self.dynamic_assist_enabled = True
+        except ImportError:
+            self.kfactor_calculator = None
+            self.dynamic_assist_engine = None
+            self.dynamic_assist_enabled = False
+
+        # Shadow-Knostalgia Bridge (PR #195)
+        try:
+            from src.shadow_knostalgia_bridge import ShadowKnostalgiaBridge
+            self.shadow_knostalgia_bridge = ShadowKnostalgiaBridge(
+                kfactor_calculator=self.kfactor_calculator,
+                dynamic_assist_engine=self.dynamic_assist_engine,
+            )
+            self.shadow_knostalgia_bridge_enabled = True
+        except ImportError:
+            self.shadow_knostalgia_bridge = None
+            self.shadow_knostalgia_bridge_enabled = False
+
+        # Onboarding Team Pipeline (PR #195)
+        try:
+            from src.onboarding_team_pipeline import OnboardingTeamPipeline
+            self.onboarding_team_pipeline = OnboardingTeamPipeline()
+            self.onboarding_team_pipeline_enabled = True
+        except ImportError:
+            self.onboarding_team_pipeline = None
+            self.onboarding_team_pipeline_enabled = False
+
         # System state
         self.experts: List[GeneratedExpert] = []
         self.gates: List[DomainGate] = []
@@ -1413,6 +1446,93 @@ class SystemIntegrator:
             }
 
         return self.librarian_adapter.get_librarian_statistics()
+
+    def evaluate_dynamic_assist_mode(
+        self,
+        recall_confidence: float = 0.5,
+        impact_weight: float = 0.5,
+        k_factor: float = 0.5,
+        risk_level: float = 0.3,
+        variation_frequency: float = 0.2,
+        novelty_rate: float = 0.1,
+    ) -> Dict[str, Any]:
+        """Evaluate the dynamic assist mode via the ShadowKnostalgiaBridge.
+
+        Calls ``shadow_knostalgia_bridge.compute_assist_mode()`` when available,
+        falling back gracefully when the bridge is not loaded.
+
+        Returns a dict with the computed autonomy parameters.
+        """
+        if not self.shadow_knostalgia_bridge_enabled or not self.shadow_knostalgia_bridge:
+            return {"success": False, "error": "ShadowKnostalgiaBridge not enabled"}
+
+        try:
+            output = self.shadow_knostalgia_bridge.compute_assist_mode(
+                recall_confidence=recall_confidence,
+                impact_weight=impact_weight,
+                risk_level=risk_level,
+                variation_frequency=variation_frequency,
+                novelty_rate=novelty_rate,
+            )
+            if output is None:
+                logger.warning(
+                    "SystemIntegrator.evaluate_dynamic_assist_mode: "
+                    "compute_assist_mode returned None"
+                )
+                return {"success": False, "error": "compute_assist_mode returned None"}
+            result: Dict[str, Any] = {"success": True}
+            for attr in (
+                "observe_only", "may_suggest", "may_execute", "requires_approval",
+                "computed_epsilon", "computed_learning_rate", "computed_confidence_threshold",
+            ):
+                if hasattr(output, attr):
+                    result[attr] = getattr(output, attr)
+            return result
+        except Exception as exc:
+            logger.warning("SystemIntegrator.evaluate_dynamic_assist_mode failed: %s", exc)
+            return {"success": False, "error": str(exc)}
+
+    def handle_team_discovery_message(self, message: str, business_context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Process a natural-language message to discover team members and generate Rosettas.
+
+        Flow:
+          1. extract_team_members(message)
+          2. generate_all_rosettas() for found members
+          3. build_hitl_summary() for HITL presentation
+          4. Return the summary dict (caller presents to human; on confirmation
+             call on_confirmed() with the results stored in the return value).
+
+        Returns a dict with keys:
+          - success (bool)
+          - members_found (int)
+          - hitl_summary (str)
+          - results (list) — the RosettaGenerationResult objects (opaque, pass back to on_confirmed)
+          - error (str, only on failure)
+        """
+        if not self.onboarding_team_pipeline_enabled or not self.onboarding_team_pipeline:
+            return {"success": False, "error": "OnboardingTeamPipeline not enabled"}
+
+        ctx: Dict[str, Any] = business_context or {}
+        try:
+            discovery = self.onboarding_team_pipeline.extract_team_members(message)
+            if not discovery.members:
+                return {
+                    "success": True,
+                    "members_found": 0,
+                    "hitl_summary": "No team members found in the message.",
+                    "results": [],
+                }
+            results = self.onboarding_team_pipeline.generate_all_rosettas(discovery, ctx)
+            summary = self.onboarding_team_pipeline.build_hitl_summary(results)
+            return {
+                "success": True,
+                "members_found": len(discovery.members),
+                "hitl_summary": summary,
+                "results": results,
+            }
+        except Exception as exc:
+            logger.warning("SystemIntegrator.handle_team_discovery_message failed: %s", exc)
+            return {"success": False, "error": str(exc)}
 
 
 if __name__ == "__main__":
