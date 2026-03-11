@@ -7,13 +7,14 @@ This module re-exports ``LocalInferenceEngine`` under the legacy alias
 so that existing import paths continue to work.
 """
 
-import warnings
+import warnings as _warnings
 
-warnings.warn(
+_warnings.warn(
     "mock_compatible_local_llm is deprecated — import from src.local_inference_engine instead.",
     DeprecationWarning,
     stacklevel=2,
 )
+del _warnings
 
 from src.local_inference_engine import LocalInferenceEngine as MockCompatibleLocalLLM  # noqa: F401
 

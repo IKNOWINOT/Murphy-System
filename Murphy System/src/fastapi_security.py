@@ -62,7 +62,7 @@ def validate_api_key(api_key: str) -> bool:
     configured_keys = get_configured_api_keys()
     if not configured_keys:
         murphy_env = os.environ.get("MURPHY_ENV", "development")
-        return murphy_env == "development"
+        return murphy_env in ("development", "test")
     return api_key in configured_keys
 
 
@@ -225,7 +225,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         api_key = _extract_api_key(request)
         if api_key is None:
             murphy_env = os.environ.get("MURPHY_ENV", "development")
-            if murphy_env != "development":
+            if murphy_env not in ("development", "test"):
                 logger.warning(f"[{self.service_name}] Missing API key from {client_ip}")
                 return JSONResponse(
                     status_code=401,
@@ -342,8 +342,8 @@ def require_permission(permission_name: str):
         user_id = request.headers.get("X-User-ID", "")
         if not user_id:
             murphy_env = os.environ.get("MURPHY_ENV", "development")
-            if murphy_env == "development":
-                return  # anonymous OK in dev
+            if murphy_env in ("development", "test"):
+                return  # anonymous OK in dev/test
             raise HTTPException(status_code=401, detail="X-User-ID header required")
 
         try:
