@@ -9,7 +9,7 @@ def load_ndjson(p):
             line=line.strip()
             if not line: continue
             try: arr.append(json.loads(line))
-            except: pass
+            except (json.JSONDecodeError, ValueError): pass
     return arr
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument('--events',default='queue.ndjson'); ap.add_argument('--runs',default='runs.ndjson'); ap.add_argument('--out',default='dashboard.html'); a=ap.parse_args()

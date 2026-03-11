@@ -28,6 +28,7 @@ from __future__ import annotations
 import logging
 import os
 import platform
+import shlex
 import shutil
 import socket
 import subprocess
@@ -581,8 +582,8 @@ class SetupExecutor:
         if step.command is None:
             return {"success": False, "error": "No command specified"}
         proc = subprocess.run(
-            step.command,
-            shell=True,
+            shlex.split(step.command),
+            shell=False,
             capture_output=True,
             text=True,
             timeout=300,

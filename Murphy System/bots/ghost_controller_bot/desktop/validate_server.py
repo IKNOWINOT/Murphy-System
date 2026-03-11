@@ -7,7 +7,7 @@ class H(BaseHTTPRequestHandler):
     def do_POST(self):
         n=int(self.headers.get('Content-Length','0')); body=self.rfile.read(n).decode('utf-8')
         try: data=json.loads(body or '{}')
-        except: data={ 'error':'bad_json' }
+        except (json.JSONDecodeError, ValueError): data={ 'error':'bad_json' }
         with open(OUT,'a',encoding='utf-8') as f: f.write(json.dumps(data)+'\n')
         self.send_response(200); self.end_headers(); self.wfile.write(b'{}')
 def main(): HTTPServer((HOST,PORT),H).serve_forever()
