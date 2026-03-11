@@ -12532,86 +12532,209 @@ class MurphySystem:
             return self._format_api_links_reply(message)
 
         # --- Conversational onboarding flow ---
-        # If user shared meaningful info, reflect it back amplified (magnify x3)
-        if new_dims and message.strip():
-            reply = self._build_reflection_reply(message, new_dims, profile, score)
+        # Detect HITL agreement — user confirms the magnified output
+        is_agreement = self._is_hitl_agreement(message)
+
+        if is_agreement and profile.get("_pending_magnified_doc_id"):
+            # User agreed — solidify the document automatically
+            reply = self._solidify_onboarding_doc(profile, score)
+        elif new_dims and message.strip():
+            # User shared new info → Magnify x3 via LivingDocument
+            reply = self._build_reflection_reply(message, new_dims, profile, score, session_id)
         elif score >= 85:
             # Ready to generate plan
             reply = self._build_readiness_reply(profile, score)
         elif exchange_num <= 1:
             # First interaction — warm greeting
-            reply = self._build_first_greeting(message, nl_intent, profile)
+            reply = self._build_first_greeting(message, nl_intent, profile, session_id)
         else:
             # Continue the conversation — ask next question
             reply = self._build_followup_reply(message, nl_intent, profile, score)
 
         return reply
 
+    def _is_hitl_agreement(self, message: str) -> bool:
+        """Detect if the user is agreeing / confirming (human-in-the-loop approval)."""
+        lower = message.lower().strip()
+        agreement_phrases = [
+            "yes", "yeah", "yep", "yup", "correct", "right", "exactly",
+            "that's right", "thats right", "that's correct", "sounds good",
+            "sounds close", "looks good", "looks right", "perfect",
+            "that works", "go ahead", "proceed", "confirm", "agreed",
+            "approve", "ok", "okay", "sure", "absolutely", "definitely",
+            "spot on", "nailed it", "good to go", "let's go", "lets go",
+            "do it", "lock it in", "solidify", "yes please",
+        ]
+        return any(phrase in lower for phrase in agreement_phrases)
+
+    def _magnify_user_input(self, text: str, profile: Dict[str, Any],
+                            session_id: str) -> Dict[str, Any]:
+        """Use LivingDocument.magnify() to expand user input — the Magnify x3 operator.
+
+        Creates or reuses a LivingDocument, calls magnify with the collected
+        domain context, and returns the magnified document state.
+        """
+        # Build domain from collected profile data
+        collected = profile.get("collected", {})
+        industry = collected.get("industry", "general")
+        biz_name = collected.get("business_name", "")
+        domain = f"{industry} — {biz_name}" if biz_name else industry
+
+        # Get or create the onboarding LivingDocument for this session
+        doc_id = profile.get("_pending_magnified_doc_id")
+        doc = self.living_documents.get(doc_id) if doc_id else None
+
+        if doc is None:
+            # Create a new LivingDocument from the user's input
+            title = biz_name or text[:60]
+            content = text
+            doc = self._create_document(
+                title=title,
+                content=content,
+                doc_type="onboarding_plan",
+                session_id=session_id,
+            )
+            profile["_pending_magnified_doc_id"] = doc.doc_id
+
+        # Apply Magnify — increases domain_depth and confidence
+        doc.magnify(domain)
+
+        return doc.to_dict()
+
+    def _solidify_onboarding_doc(self, profile: Dict[str, Any], score: float) -> str:
+        """Solidify the pending onboarding document after HITL agreement.
+
+        Locks the document, generates tasks, and transitions the onboarding
+        state to plan-ready.
+        """
+        doc_id = profile.get("_pending_magnified_doc_id")
+        doc = self.living_documents.get(doc_id) if doc_id else None
+
+        if doc is None:
+            return (
+                "I don't have a pending plan to solidify yet. "
+                "Tell me more about your business and goals first!"
+            )
+
+        # Solidify — locks the document, increases confidence
+        doc.solidify()
+        doc_state = doc.to_dict()
+
+        collected = profile.get("collected", {})
+        biz = collected.get("business_name", "your business")
+
+        reply = (
+            f"🔒 **Solidified!** Your onboarding plan for **{biz}** is now locked.\n\n"
+            f"**Document:** {doc_state.get('title', 'Onboarding Plan')}\n"
+            f"**State:** {doc_state.get('state', 'SOLIDIFIED')}\n"
+            f"**Confidence:** {doc_state.get('confidence', 0):.0%}\n"
+            f"**Domain Depth:** {doc_state.get('domain_depth', 0)}\n\n"
+        )
+
+        # Include the magnify history
+        history = doc_state.get("history", [])
+        magnify_count = sum(1 for h in history if h.get("action") == "magnify")
+        if magnify_count:
+            reply += f"📐 Applied **Magnify x{magnify_count}** during onboarding\n\n"
+
+        reply += f"📊 **MFGC/5U Readiness: {score:.0f}%**"
+        if score >= 85:
+            reply += " ✅ Ready to generate your automation plan!"
+            reply += (
+                "\n\nClick **Continue to Plan →** to see your recommended modules "
+                "and integrations, or keep chatting to refine."
+            )
+        else:
+            next_q = self._next_onboarding_question(profile)
+            if next_q:
+                reply += f"\n\n**Next:** {next_q}"
+
+        # Mark solidified so subsequent messages don't re-solidify
+        profile["_solidified"] = True
+
+        return reply
+
     def _build_reflection_reply(self, message: str, new_dims: Dict[str, str],
-                                profile: Dict[str, Any], score: float) -> str:
-        """Reflect user input back amplified (magnify x3) and ask follow-up."""
+                                profile: Dict[str, Any], score: float,
+                                session_id: str = "default") -> str:
+        """Use the Murphy System Magnify x3 operator to expand user input.
+
+        Creates a LivingDocument and applies magnify() to increase the
+        domain depth and resolution, then reflects the expanded result
+        back to the user for HITL confirmation.
+        """
+        # --- Apply Magnify x3 via LivingDocument ---
+        doc_state = self._magnify_user_input(message, profile, session_id)
+
         parts: List[str] = []
 
-        # Amplify what was captured — expand the user's input 3x
+        # Show magnification metadata
+        parts.append(
+            f"📐 **Magnify x{len(doc_state.get('history', []))}** applied — "
+            f"domain depth: {doc_state.get('domain_depth', 0)}, "
+            f"confidence: {doc_state.get('confidence', 0):.0%}"
+        )
+
+        # Now expand each captured dimension with industry-specific context
         if "business_name" in new_dims:
             parts.append(
-                f"**{new_dims['business_name']}** — great name! I'm already thinking about "
-                f"how we can streamline operations for {new_dims['business_name']}. "
-                f"A tailored automation system for {new_dims['business_name']} could handle "
-                f"everything from client communications to internal workflows."
+                f"**{new_dims['business_name']}** — I'm building a tailored automation system for "
+                f"{new_dims['business_name']}. This includes client communication pipelines, "
+                f"internal workflow orchestration, and cross-system data synchronization — all "
+                f"governed by MFGC gates with full observability."
             )
         if "industry" in new_dims:
             ind = new_dims["industry"]
             parts.append(
-                f"So you're in **{ind}** — that's a sector where automation can make a huge impact. "
-                f"In {ind}, businesses typically see gains from automating repetitive tasks like "
-                f"reporting, client follow-ups, and compliance tracking. We'll want to look at "
-                f"{ind}-specific integrations and regulatory considerations."
+                f"**{ind.title()}** sector — automation here typically covers: repetitive reporting, "
+                f"client follow-ups, compliance tracking, and supply chain coordination. "
+                f"I'll factor in {ind}-specific integrations, regulatory frameworks, and "
+                f"industry benchmarks for your automation design."
             )
         if "business_goal" in new_dims:
             goal = new_dims["business_goal"][:120]
             parts.append(
-                f"Your goal: *\"{goal}\"* — that's exactly the kind of thing Murphy is built for. "
-                f"We can break this down into automated triggers, processing steps, and delivery "
-                f"actions. Think of it as: **detect → decide → act → verify** — each step "
-                f"governed by MFGC gates."
+                f"Your goal: *\"{goal}\"* — breaking this down into the Murphy execution model: "
+                f"**detect → decide → act → verify**. Each stage has MFGC governance gates "
+                f"and HITL checkpoints. The Magnify operator has expanded this into concrete "
+                f"components, processes, and measurable outcomes."
             )
         if "pain_points" in new_dims:
             pain = new_dims["pain_points"][:120]
             parts.append(
-                f"I hear you on the challenges: *\"{pain}\"*. These are common friction points "
-                f"that automation resolves really well. We'll design workflows that eliminate "
-                f"those bottlenecks and add observability so you can see exactly what's happening."
+                f"Pain points: *\"{pain}\"* — these are high-priority automation targets. "
+                f"We'll design workflows that eliminate these bottlenecks, add real-time "
+                f"observability dashboards, and set up alerting so issues are caught early."
             )
         if "current_tools" in new_dims or "email_provider" in new_dims or "banking" in new_dims:
             tools = ", ".join(v for k, v in new_dims.items() if k in (
                 "current_tools", "email_provider", "banking", "phone_carrier",
                 "schedule_system", "productivity_apps"))
             parts.append(
-                f"Tools you're using: **{tools}** — perfect, I can map those to specific "
-                f"API integrations. Murphy connects to all of these and can orchestrate "
-                f"data flow between them automatically."
+                f"Integration targets: **{tools}** — mapping these to specific API connections. "
+                f"Murphy will orchestrate data flow between these systems automatically, "
+                f"with schema translation and error recovery at each hop."
             )
         if "automation_goal" in new_dims:
             auto = new_dims["automation_goal"][:120]
             parts.append(
-                f"Automation target: *\"{auto}\"* — I can see a workflow taking shape already. "
-                f"We'll design this with safety gates at each stage so nothing runs without "
-                f"your approval until you're comfortable."
+                f"Automation scope: *\"{auto}\"* — the Magnify operator has expanded this into "
+                f"trigger conditions, processing stages, delivery actions, and verification "
+                f"steps. Each stage has safety gates until you're comfortable with full autonomy."
             )
         if "team_size" in new_dims:
             size = new_dims["team_size"]
             parts.append(
-                f"A team of **{size}** — that helps me calibrate the automation scope. "
-                f"With {size} people, we'll want role-based access and HITL (human-in-the-loop) "
-                f"gates for critical decisions."
+                f"Team of **{size}** — calibrating automation scope for role-based access, "
+                f"HITL gates for critical decisions, and notification routing so the right "
+                f"person reviews the right action."
             )
         if "location" in new_dims:
             loc = new_dims["location"]
             parts.append(
-                f"Based in **{loc}** — I'll factor in regional compliance requirements, "
-                f"timezone-aware scheduling, and any location-specific regulations "
-                f"that might affect your automation design."
+                f"Based in **{loc}** — factoring in regional compliance, timezone-aware "
+                f"scheduling (suggested automation windows based on your business hours), "
+                f"and location-specific regulatory requirements."
             )
         # Catch-all for other dimensions
         for dim, val in new_dims.items():
@@ -12619,7 +12742,8 @@ class MurphySystem:
                            "current_tools", "email_provider", "banking", "phone_carrier",
                            "schedule_system", "productivity_apps", "automation_goal",
                            "team_size", "location"):
-                parts.append(f"Noted: **{dim.replace('_', ' ').title()}** = {val}")
+                label = dim.replace("_", " ").title()
+                parts.append(f"**{label}:** {val}")
 
         reply = "\n\n".join(parts)
 
@@ -12627,14 +12751,16 @@ class MurphySystem:
         reply += f"\n\n📊 **MFGC/5U Readiness:** {score:.0f}%"
         if score < 85:
             reply += f" (need 85% to generate your automation plan)"
-            # Ask the next most important question
             next_q = self._next_onboarding_question(profile)
             if next_q:
                 reply += f"\n\n**Next up:** {next_q}"
         else:
             reply += " ✅ Ready to generate your plan!"
 
-        reply += "\n\nDoes this sound close to what you're describing? Tell me more or correct anything I got wrong."
+        reply += (
+            "\n\n**Does this sound close?** Say **yes** to solidify this into your plan, "
+            "or tell me what to adjust."
+        )
         return reply
 
     def _build_readiness_reply(self, profile: Dict[str, Any], score: float) -> str:
@@ -12662,7 +12788,8 @@ class MurphySystem:
         return reply
 
     def _build_first_greeting(self, message: str, nl_intent: str,
-                              profile: Dict[str, Any]) -> str:
+                              profile: Dict[str, Any],
+                              session_id: str = "default") -> str:
         """Build the first greeting — warm, specific, not canned."""
         score = self._score_mfgc_readiness(profile)
 
@@ -12673,6 +12800,7 @@ class MurphySystem:
                 profile["collected"],
                 profile,
                 score,
+                session_id,
             )
 
         # Otherwise, give a warm personalized greeting
