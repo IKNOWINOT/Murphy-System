@@ -14,7 +14,7 @@ Design Principle: Continuous safety monitoring with automatic intervention
 """
 
 from typing import Dict, List, Optional, Callable
-from datetime import datetime
+from datetime import datetime, timezone
 
 import logging
 logger = logging.getLogger("execution_orchestrator.risk_monitor")
@@ -173,7 +173,7 @@ class RuntimeRiskMonitor:
                 reason=StopReason.RISK_THRESHOLD,
                 severity='critical',
                 message=f"Risk threshold breached: {safety_state.current_risk:.3f} > {safety_state.risk_threshold:.3f}",
-                timestamp=datetime.now(),
+                timestamp=datetime.now(timezone.utc),
                 requires_rollback=True
             )
             safety_state.stop_conditions.append(condition)
@@ -185,7 +185,7 @@ class RuntimeRiskMonitor:
                 reason=StopReason.CONFIDENCE_DROP,
                 severity='critical',
                 message=f"Confidence below threshold: {safety_state.current_confidence:.3f} < {safety_state.confidence_threshold:.3f}",
-                timestamp=datetime.now(),
+                timestamp=datetime.now(timezone.utc),
                 requires_rollback=True
             )
             safety_state.stop_conditions.append(condition)

@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Any, Tuple, Union
 from dataclasses import dataclass, field
 from enum import Enum
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 import requests
 import os
 import logging
@@ -78,7 +78,7 @@ class LLMResponse:
     confidence: float
     metadata: Dict[str, Any]
     validation: Optional[Dict[str, Any]] = None
-    timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
+    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
     def to_dict(self) -> Dict:
         return {
@@ -129,7 +129,7 @@ class HumanLoopTrigger:
     message: str
     context: Dict[str, Any]
     options: List[str] = field(default_factory=list)
-    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
     def to_dict(self) -> Dict:
         return {

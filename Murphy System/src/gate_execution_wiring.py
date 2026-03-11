@@ -9,7 +9,7 @@ subtasks.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Tuple
 import logging
@@ -153,7 +153,7 @@ class GateExecutionWiring:
                     decision=GateDecision.BLOCKED,
                     reason=f"Gate evaluator raised an exception: {exc}",
                     policy=policy,
-                    evaluated_at=datetime.now().isoformat(),
+                    evaluated_at=datetime.now(timezone.utc).isoformat(),
                     metadata={"error": str(exc)},
                 )
             evaluations.append(evaluation)
@@ -348,7 +348,7 @@ class GateExecutionWiring:
                 decision=decision,
                 reason=reason,
                 policy=GatePolicy.WARN,
-                evaluated_at=datetime.now().isoformat(),
+                evaluated_at=datetime.now(timezone.utc).isoformat(),
                 evaluator="security_plane_defaults",
                 metadata={"loaded_modules": loaded_count, "flagged": issues},
             )

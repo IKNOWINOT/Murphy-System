@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 import random
 
 import logging
@@ -382,7 +382,7 @@ class InquisitoryEngine:
             reasoning=reasoning,
             context=context or {},
             statistical_basis=statistical_basis,
-            created_at=datetime.now().isoformat()
+            created_at=datetime.now(timezone.utc).isoformat()
         )
 
         return recommendation

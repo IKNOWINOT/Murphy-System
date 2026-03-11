@@ -16,7 +16,7 @@ Design Principle: Cryptographically-sealed proof of execution
 import hashlib
 import json
 from typing import Dict, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .models import (
     CompletionCertificate,
@@ -87,7 +87,7 @@ class CompletionCertifier:
             execution_id=execution_id,
             status=execution_state.status,
             start_time=execution_state.start_time,
-            end_time=execution_state.end_time or datetime.now(),
+            end_time=execution_state.end_time or datetime.now(timezone.utc),
             total_steps=execution_state.total_steps,
             successful_steps=successful_steps,
             failed_steps=failed_steps,
@@ -178,7 +178,7 @@ class CompletionCertifier:
         """
         if packet_id in lock_registry:
             lock_registry[packet_id]['locked'] = False
-            lock_registry[packet_id]['released_at'] = datetime.now().isoformat()
+            lock_registry[packet_id]['released_at'] = datetime.now(timezone.utc).isoformat()
 
         return lock_registry
 
@@ -252,7 +252,7 @@ class CompletionCertifier:
             'failed_steps': failed_steps,
             'final_risk': final_risk,
             'final_confidence': final_confidence,
-            'timestamp': datetime.now().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         }
 
     def _generate_execution_id(self, execution_state: ExecutionState) -> str:

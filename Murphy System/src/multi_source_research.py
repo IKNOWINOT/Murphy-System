@@ -5,7 +5,7 @@ Compiles information from multiple sources, synthesizes, and generates coherent 
 
 from typing import List, Dict, Any, Optional
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import logging
@@ -21,7 +21,7 @@ class Source:
         self.source_type = source_type  # 'primary', 'secondary', 'tertiary'
         self.content = ""
         self.extracted_facts = []
-        self.timestamp = datetime.now().isoformat()
+        self.timestamp = datetime.now(timezone.utc).isoformat()
 
 
 class CompiledResearch:
@@ -33,7 +33,7 @@ class CompiledResearch:
         self.compiled_facts = []
         self.synthesis = ""
         self.confidence = 0.0
-        self.timestamp = datetime.now().isoformat()
+        self.timestamp = datetime.now(timezone.utc).isoformat()
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -110,7 +110,7 @@ class MultiSourceResearcher:
         }.get(depth, 3)
 
         # STEP 1: Query all available sources
-        logger.info(f"[Research] Querying {target_sources} sources for: {topic}")
+        logger.info("[Research] Querying %s sources for: %s", target_sources, topic)
 
         # Query Wikipedia
         if self.sources_config['wikipedia']['enabled']:
@@ -135,16 +135,16 @@ class MultiSourceResearcher:
 
         # Check if we have enough sources
         if len(compiled.sources) < min_sources:
-            logger.info(f"[Research] Warning: Only found {len(compiled.sources)} sources (minimum: {min_sources})")
+            logger.warning("[Research] Warning: Only found %d sources (minimum: %d)", len(compiled.sources), min_sources)
 
         # STEP 2: Extract facts from all sources
-        logger.info(f"[Research] Extracting facts from {len(compiled.sources)} sources")
+        logger.info("[Research] Extracting facts from %d sources", len(compiled.sources))
         for source in compiled.sources:
             facts = self._extract_facts(source.content, source.name)
             compiled.compiled_facts.extend(facts)
 
         # STEP 3: Synthesize information
-        logger.info(f"[Research] Synthesizing {len(compiled.compiled_facts)} facts")
+        logger.info("[Research] Synthesizing %d facts", len(compiled.compiled_facts))
         compiled.synthesis = self._synthesize(compiled)
 
         # STEP 4: Calculate confidence
@@ -153,7 +153,7 @@ class MultiSourceResearcher:
         # STEP 5: Save compiled research
         self._save_compiled(compiled)
 
-        logger.info(f"[Research] Complete. Confidence: {compiled.confidence:.1%}")
+        logger.info("[Research] Complete. Confidence: %.1f%%", compiled.confidence * 100)
 
         return compiled
 
@@ -191,7 +191,7 @@ class MultiSourceResearcher:
 
                 return source
         except Exception as exc:
-            logger.info(f"[Research] Wikipedia query failed: {exc}")
+            logger.error("[Research] Wikipedia query failed: %s", exc)
 
         return None
 
@@ -210,7 +210,7 @@ class MultiSourceResearcher:
             # For now, return empty list
             pass
         except Exception as exc:
-            logger.info(f"[Research] Web search failed: {exc}")
+            logger.error("[Research] Web search failed: %s", exc)
 
         return sources
 
@@ -320,13 +320,13 @@ class MultiSourceResearcher:
 
     def _save_compiled(self, compiled: CompiledResearch):
         """Save compiled research to temp file"""
-        filename = f"research_{compiled.topic.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        filename = f"research_{compiled.topic.replace(' ', '_')}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
         filepath = self.temp_dir / filename
 
         with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(compiled.to_dict(), f, indent=2)
 
-        logger.info(f"[Research] Saved to: {filepath}")
+        logger.info("[Research] Saved to: %s", filepath)
 
     def generate_response(self, compiled: CompiledResearch) -> str:
         """

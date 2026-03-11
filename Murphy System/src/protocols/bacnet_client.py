@@ -61,8 +61,8 @@ class MurphyBACnetClient:
         if self._bacnet is not None:
             try:
                 self._bacnet.disconnect()
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("BACnet disconnect error: %s", exc)
             self._bacnet = None
             self._connected = False
 

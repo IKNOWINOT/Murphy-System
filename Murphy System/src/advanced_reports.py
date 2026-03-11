@@ -12,7 +12,7 @@ try:
     from advanced_research import AdvancedResearchEngine, AdvancedResearchResult
 except ImportError:
     from src.advanced_research import AdvancedResearchEngine, AdvancedResearchResult
-from datetime import datetime
+from datetime import datetime, timezone
 
 import logging
 
@@ -82,7 +82,7 @@ class AdvancedReportGenerator:
             "topic": topic,
             "domain": domain if domain else "general",
             "is_advanced": is_advanced,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "verified": True
         }
 
@@ -96,7 +96,7 @@ class AdvancedReportGenerator:
         """Generate Markdown report"""
 
         report = f"# Research Report: {research.topic}\n\n"
-        report += f"**Generated**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+        report += f"**Generated**: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}\n"
 
         if is_advanced:
             report += f"**Domain**: {research.domain}\n"
@@ -149,7 +149,7 @@ class AdvancedReportGenerator:
         html += f"<title>Research Report: {research.topic}</title>\n"
         html += "</head>\n<body>\n"
         html += f"<h1>Research Report: {research.topic}</h1>\n"
-        html += f"<p>Generated: {datetime.now().strftime('%Y-%m-%d')}</p>\n"
+        html += f"<p>Generated: {datetime.now(timezone.utc).strftime('%Y-%m-%d')}</p>\n"
 
         if is_advanced:
             html += f"<p>Domain: {research.domain}</p>\n"
@@ -194,13 +194,13 @@ class AdvancedReportGenerator:
                 "domain": research.domain,
                 "confidence": research.confidence,
                 "mathematical_concepts": research.mathematical_concepts,
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             }
         else:
             data = {
                 "topic": research.topic,
                 "confidence": research.confidence,
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             }
 
         return json.dumps(data, indent=2)
@@ -216,7 +216,7 @@ class AdvancedReportGenerator:
 
         report = f"RESEARCH REPORT: {research.topic}\n"
         report += "=" * 70 + "\n\n"
-        report += f"Generated: {datetime.now().strftime('%Y-%m-%d')}\n"
+        report += f"Generated: {datetime.now(timezone.utc).strftime('%Y-%m-%d')}\n"
 
         if is_advanced:
             report += f"Domain: {research.domain}\n"

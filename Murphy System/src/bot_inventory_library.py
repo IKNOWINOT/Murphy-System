@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
 from enum import Enum
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 import logging
@@ -70,8 +70,8 @@ class BotAgent:
     expert_id: Optional[str] = None  # Links to DynamicExpertGenerator
     assigned_tasks: List[str] = field(default_factory=list)
     metrics: Dict[str, Any] = field(default_factory=dict)
-    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
-    last_active: str = field(default_factory=lambda: datetime.now().isoformat())
+    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    last_active: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
     def to_dict(self) -> Dict:
         return {
@@ -515,7 +515,7 @@ class BotInventoryLibrary:
             return False
 
         bot.assigned_tasks.append(task_id)
-        bot.last_active = datetime.now().isoformat()
+        bot.last_active = datetime.now(timezone.utc).isoformat()
         return True
 
     def complete_task(self, agent_id: str, task_id: str) -> bool:
@@ -526,7 +526,7 @@ class BotInventoryLibrary:
 
         if task_id in bot.assigned_tasks:
             bot.assigned_tasks.remove(task_id)
-            bot.last_active = datetime.now().isoformat()
+            bot.last_active = datetime.now(timezone.utc).isoformat()
             return True
 
         return False
@@ -536,7 +536,7 @@ class BotInventoryLibrary:
         bot = self.bots.get(agent_id)
         if bot:
             bot.metrics.update(metrics)
-            bot.last_active = datetime.now().isoformat()
+            bot.last_active = datetime.now(timezone.utc).isoformat()
 
     def get_capability_function(self, capability_name: str) -> Optional[Dict]:
         """Get capability function details"""

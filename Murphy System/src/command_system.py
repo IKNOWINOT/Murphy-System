@@ -8,7 +8,7 @@ from typing import Dict, Any, List, Optional, Tuple
 import re
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import logging
@@ -23,7 +23,7 @@ class CommandResult:
         self.success = success
         self.data = data
         self.metadata = metadata
-        self.timestamp = datetime.now().isoformat()
+        self.timestamp = datetime.now(timezone.utc).isoformat()
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -147,7 +147,7 @@ class ResearchCommand(CommandModule):
         # Build research data
         research_data = {
             'topic': topic,
-            'timestamp': datetime.now().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'depth': depth,
             'sources': [],
             'facts': [],
@@ -174,7 +174,7 @@ class ResearchCommand(CommandModule):
                     })
 
         # Save to temporary file
-        filename = f"research_{topic.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        filename = f"research_{topic.replace(' ', '_')}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
         filepath = self.save_temp_file(filename, research_data)
 
         return CommandResult(
@@ -405,7 +405,7 @@ class ChatCommand(CommandModule):
 
         # Store if requested
         if store:
-            filename = f"chat_{context_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+            filename = f"chat_{context_id}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.txt"
             self.save_temp_file(filename, response)
 
         return CommandResult(
@@ -445,14 +445,14 @@ class WhisperCommand(CommandModule):
         whisper_data = {
             'target': target,
             'message': message,
-            'timestamp': datetime.now().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         }
 
         self.messages.append(whisper_data)
 
         # Save to log if target is log
         if target == 'log':
-            filename = f"whisper_log_{datetime.now().strftime('%Y%m%d')}.json"
+            filename = f"whisper_log_{datetime.now(timezone.utc).strftime('%Y%m%d')}.json"
             logs = self.load_temp_file(filename) or []
             logs.append(whisper_data)
             self.save_temp_file(filename, logs)

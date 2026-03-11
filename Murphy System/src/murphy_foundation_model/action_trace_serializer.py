@@ -24,7 +24,7 @@ import os
 import sys
 import threading
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -205,7 +205,7 @@ class ActionTraceCollector:
                 file_date_str = filepath.stem.replace("traces_", "")
                 try:
                     file_date = datetime.strptime(file_date_str, "%Y-%m-%d")
-                    if (datetime.now() - file_date).days > since_days:
+                    if (datetime.now(timezone.utc) - file_date).days > since_days:
                         continue
                 except ValueError:
                     continue
@@ -221,7 +221,7 @@ class ActionTraceCollector:
 
         Returns the number of files compressed.
         """
-        cutoff = datetime.now() - timedelta(days=older_than_days)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=older_than_days)
         compressed = 0
         for filepath in list(self.trace_dir.glob("traces_*.jsonl")):
             file_date_str = filepath.stem.replace("traces_", "")
@@ -245,7 +245,7 @@ class ActionTraceCollector:
 
     def _get_current_file(self) -> Path:
         """Return the JSONL file path for today, rotating daily."""
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         if today != self._current_date:
             self._current_date = today
             self._current_file = self.trace_dir / f"traces_{today}.jsonl"
@@ -284,7 +284,7 @@ class ActionTraceCollector:
             payload = event.payload if hasattr(event, "payload") else {}
             trace = ActionTrace(
                 trace_id=getattr(event, "event_id", ""),
-                timestamp=getattr(event, "timestamp", datetime.now()),
+                timestamp=getattr(event, "timestamp", datetime.now(timezone.utc)),
                 world_state=payload.get("world_state", {}),
                 intent=payload.get("intent", ""),
                 constraints=payload.get("constraints", []),

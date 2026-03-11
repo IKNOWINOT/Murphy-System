@@ -15,7 +15,7 @@ Design Principle: Fail fast - catch issues before execution starts
 
 import hashlib
 from typing import Dict, List, Optional, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .models import InterfaceHealth, InterfaceStatus
 
@@ -221,7 +221,7 @@ class PreExecutionValidator:
         # Parse expiration time
         try:
             expiration_dt = datetime.fromisoformat(expiration_time)
-            return datetime.now() > expiration_dt
+            return datetime.now(timezone.utc) > expiration_dt
         except (ValueError, TypeError):
             return False
 

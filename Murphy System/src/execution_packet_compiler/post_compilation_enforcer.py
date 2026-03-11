@@ -4,7 +4,7 @@ Enforces rules after packet compilation
 """
 
 from typing import Dict, Any, List, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .models import ExecutionPacket, PacketState
 
@@ -47,12 +47,12 @@ class PostCompilationEnforcer:
         if packet.state != PacketState.SEALED:
             raise ValueError("Can only lock sealed packets")
 
-        lock_id = f"lock_{packet.packet_id}_{datetime.now().timestamp()}"
+        lock_id = f"lock_{packet.packet_id}_{datetime.now(timezone.utc).timestamp()}"
 
         self.compilation_locks[packet.packet_id] = {
             'lock_id': lock_id,
             'packet_id': packet.packet_id,
-            'locked_at': datetime.now().isoformat(),
+            'locked_at': datetime.now(timezone.utc).isoformat(),
             'generation_disabled': True,
             'gates_frozen': True,
             'artifacts_frozen': True
@@ -237,7 +237,7 @@ class PostCompilationEnforcer:
             return False
 
         lock = self.compilation_locks[packet_id]
-        lock['unlocked_at'] = datetime.now().isoformat()
+        lock['unlocked_at'] = datetime.now(timezone.utc).isoformat()
         lock['unlock_reason'] = reason
 
         # Remove lock

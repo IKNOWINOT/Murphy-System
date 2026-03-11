@@ -6,7 +6,7 @@ Evenly distributes API calls across multiple keys to maximize throughput
 import threading
 from typing import List, Optional
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import time
 
 import logging
@@ -69,7 +69,7 @@ class GroqKeyRotator:
                 if key_stats.is_active:
                     # Update usage
                     key_stats.total_calls += 1
-                    key_stats.last_used = datetime.now()
+                    key_stats.last_used = datetime.now(timezone.utc)
 
                     # Move to next key for next call
                     self.current_index = (self.current_index + 1) % len(self.keys)
@@ -88,7 +88,7 @@ class GroqKeyRotator:
             # Return first key
             key_stats = self.keys[0]
             key_stats.total_calls += 1
-            key_stats.last_used = datetime.now()
+            key_stats.last_used = datetime.now(timezone.utc)
             self.current_index = 1
             return (key_stats.name, key_stats.key)
 

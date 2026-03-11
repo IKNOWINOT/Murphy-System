@@ -13,7 +13,7 @@ import traceback
 from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass, field
 from contextlib import redirect_stdout, redirect_stderr
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 
 
@@ -120,7 +120,7 @@ class SafeREPL:
         Returns:
             REPLExecutionResult with execution details
         """
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
 
         # Capture output
         stdout_capture = io.StringIO()
@@ -190,7 +190,7 @@ class SafeREPL:
                 success=True,
                 output=output,
                 variables_created=variables_created,
-                execution_time=(datetime.now() - start_time).total_seconds()
+                execution_time=(datetime.now(timezone.utc) - start_time).total_seconds()
             )
 
         except Exception as exc:
@@ -202,7 +202,7 @@ class SafeREPL:
                 success=False,
                 output=error_output,
                 error=error_trace,
-                execution_time=(datetime.now() - start_time).total_seconds()
+                execution_time=(datetime.now(timezone.utc) - start_time).total_seconds()
             )
 
         self.execution_history.append(result)
@@ -216,7 +216,7 @@ class SafeREPL:
             value=value,
             type=var_type,
             size=self._estimate_size(value),
-            created_at=datetime.now()
+            created_at=datetime.now(timezone.utc)
         )
 
     def get_variable(self, name: str) -> Optional[Any]:
@@ -363,7 +363,7 @@ print(json.dumps(context_analysis, indent=2))
         """Generate a swarm proposal for a task"""
         proposal = {
             'task': task_description,
-            'created_at': datetime.now().isoformat(),
+            'created_at': datetime.now(timezone.utc).isoformat(),
             'context_analysis': self.analyze_context(self.get_context()),
             'proposal': self._create_proposal_structure(task_description)
         }

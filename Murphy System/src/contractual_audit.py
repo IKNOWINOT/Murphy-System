@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 import logging
@@ -206,7 +206,7 @@ class ContractualAuditSystem:
                         description=f"Agent {agent_id} task completion rate ({completion_rate:.2%}) below threshold ({threshold:.2%})",
                         affected_agents=[agent_id],
                         severity="high" if completion_rate < 0.5 else "medium",
-                        detected_at=datetime.now().isoformat(),
+                        detected_at=datetime.now(timezone.utc).isoformat(),
                         root_cause="Possible capability mismatch or resource constraint",
                         suggested_solution="Review agent capabilities and workload allocation"
                     )
@@ -226,7 +226,7 @@ class ContractualAuditSystem:
                     description=f"System coordination efficiency ({coord_efficiency:.2%}) below threshold ({threshold:.2%})",
                     affected_agents=[agent_id for agent_id in agent_metrics.keys()],
                     severity="high" if coord_efficiency < 0.6 else "medium",
-                    detected_at=datetime.now().isoformat(),
+                    detected_at=datetime.now(timezone.utc).isoformat(),
                     root_cause="Possible communication or workflow issues",
                     suggested_solution="Review inter-agent communication protocols"
                 )
@@ -247,7 +247,7 @@ class ContractualAuditSystem:
                         description=f"Agent {agent_id} communication frequency ({comm_freq}) below threshold ({threshold})",
                         affected_agents=[agent_id],
                         severity="medium",
-                        detected_at=datetime.now().isoformat(),
+                        detected_at=datetime.now(timezone.utc).isoformat(),
                         root_cause="Possible communication gap or isolation",
                         suggested_solution="Review agent communication protocols and workload"
                     )
@@ -317,7 +317,7 @@ class ContractualAuditSystem:
                             description=f"System capacity gap: {current_users} users vs required {required_users}",
                             affected_agents=[],
                             severity="high",
-                            detected_at=datetime.now().isoformat(),
+                            detected_at=datetime.now(timezone.utc).isoformat(),
                             root_cause="Insufficient resource allocation",
                             suggested_solution="Scale resources or optimize performance"
                         )
@@ -338,7 +338,7 @@ class ContractualAuditSystem:
                         description=f"Coordination gap between {agent_pair}: {interaction_rate:.2%} vs expected {expected_interaction['expected']:.2%}",
                         affected_agents=agent_pair.split("_"),
                         severity="medium",
-                        detected_at=datetime.now().isoformat(),
+                        detected_at=datetime.now(timezone.utc).isoformat(),
                         root_cause="Insufficient agent coordination",
                         suggested_solution="Enhance inter-agent communication protocols"
                     )
@@ -436,7 +436,7 @@ class ContractualAuditSystem:
             responsibilities=responsibilities,
             obligations=obligations,
             metrics=metrics,
-            created_at=datetime.now().isoformat(),
+            created_at=datetime.now(timezone.utc).isoformat(),
             status="active"
         )
 
@@ -549,7 +549,7 @@ class ContractualAuditSystem:
                 baseline_metrics=baseline,
                 current_metrics=current_metrics,
                 drift_description=drift_description,
-                detected_at=datetime.now().isoformat(),
+                detected_at=datetime.now(timezone.utc).isoformat(),
                 action_required=action_required
             )
 
@@ -574,7 +574,7 @@ class ContractualAuditSystem:
 
         drift = self.drifts[drift_id]
         drift.action_taken = action
-        drift.action_timestamp = datetime.now().isoformat()
+        drift.action_timestamp = datetime.now(timezone.utc).isoformat()
 
         # Update baseline if action was successful
         if action in ["recalibrate", "expand_knowledge"]:

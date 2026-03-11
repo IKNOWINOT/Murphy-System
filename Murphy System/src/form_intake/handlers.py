@@ -11,7 +11,7 @@ status without coupling to a database.
 """
 
 from typing import Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 import threading
 
@@ -37,7 +37,7 @@ _SUBMISSION_LEDGER: Dict[str, Dict[str, Any]] = {}
 def _record_submission(submission_id: str, form_type: str, initial_status: str,
                        data: Optional[Dict[str, Any]] = None) -> None:
     """Record a new submission in the ledger."""
-    now = datetime.now().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with _LEDGER_LOCK:
         _SUBMISSION_LEDGER[submission_id] = {
             'submission_id': submission_id,
@@ -73,7 +73,7 @@ def update_submission_status(submission_id: str, *,
                 entry['phases_completed'].append(phase)
         if error is not None:
             entry['error'] = error
-        entry['updated_at'] = datetime.now().isoformat()
+        entry['updated_at'] = datetime.now(timezone.utc).isoformat()
 
 
 def get_submission_status(submission_id: str) -> Optional[Dict[str, Any]]:
@@ -89,7 +89,7 @@ _submission_store: Dict[str, Dict[str, Any]] = {}
 
 def _record_submission_store(submission_id: str, form_type: str, extra: Optional[Dict[str, Any]] = None) -> None:
     """Record a new submission in the in-process store."""
-    now = datetime.now().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     _submission_store[submission_id] = {
         'status': 'queued',
         'form_type': form_type,
@@ -119,7 +119,7 @@ class FormSubmissionResult:
         self.message = message
         self.data = data or {}
         self.errors = errors or {}
-        self.timestamp = datetime.now()
+        self.timestamp = datetime.now(timezone.utc)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
@@ -197,7 +197,7 @@ class PlanUploadFormHandler:
 
     def _generate_submission_id(self, form: PlanUploadForm) -> str:
         """Generate unique submission ID"""
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         return f"plan_upload_{timestamp}"
 
 
@@ -267,7 +267,7 @@ class PlanGenerationFormHandler:
 
     def _generate_submission_id(self, form: PlanGenerationForm) -> str:
         """Generate unique submission ID"""
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         domain = form.domain.value
         return f"plan_gen_{domain}_{timestamp}"
 
@@ -333,7 +333,7 @@ class TaskExecutionFormHandler:
 
     def _generate_submission_id(self, form: TaskExecutionForm) -> str:
         """Generate unique submission ID"""
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         return f"task_exec_{form.task_id}_{timestamp}"
 
 
@@ -404,7 +404,7 @@ class ValidationFormHandler:
 
     def _generate_submission_id(self, form: ValidationForm) -> str:
         """Generate unique submission ID"""
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         return f"validation_{form.output_id}_{timestamp}"
 
 
@@ -470,7 +470,7 @@ class CorrectionFormHandler:
 
     def _generate_submission_id(self, form: CorrectionForm) -> str:
         """Generate unique submission ID"""
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         return f"correction_{form.output_id}_{timestamp}"
 
 

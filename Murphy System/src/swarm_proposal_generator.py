@@ -7,7 +7,7 @@ Tailored for Murphy System's safety gates and confidence engine
 import asyncio
 from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 import json
 
@@ -155,7 +155,7 @@ class SwarmProposalGenerator:
 
         # Create proposal
         proposal = SwarmProposal(
-            proposal_id=f"prop_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+            proposal_id=f"prop_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}",
             task_description=task_description,
             task_complexity=task_analysis['complexity'],
             swarm_type=swarm_type,
@@ -165,7 +165,7 @@ class SwarmProposalGenerator:
             resource_estimates=resource_estimates,
             cost_estimate=cost_estimate,
             confidence_estimate=confidence_estimate,
-            created_at=datetime.now(),
+            created_at=datetime.now(timezone.utc),
             metadata={
                 'task_analysis': task_analysis,
                 'context_provided': context is not None,

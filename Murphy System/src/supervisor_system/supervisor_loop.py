@@ -11,7 +11,7 @@ Components:
 """
 
 from typing import Dict, List, Optional, Callable
-from datetime import datetime
+from datetime import datetime, timezone
 from dataclasses import dataclass, field
 import logging
 import json
@@ -88,7 +88,7 @@ class SupervisorAuditLogger:
             supervisor_id=feedback.supervisor_id,
             action=action_taken,
             assumption_id=feedback.assumption_id,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             details=details
         )
 
@@ -431,7 +431,7 @@ class SupervisorInterface:
             feedback_type=feedback_type,
             supervisor_id=supervisor_id,
             supervisor_role=supervisor_role,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             rationale=rationale,
             corrections=corrections,
             required_evidence=required_evidence,

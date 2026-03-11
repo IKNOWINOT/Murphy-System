@@ -23,7 +23,7 @@ Components:
 
 from dataclasses import dataclass, field
 from typing import Optional, Dict, List, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 import hashlib
 import secrets
@@ -185,15 +185,15 @@ class AuthenticationSession:
 
     def is_expired(self) -> bool:
         """Check if session has expired."""
-        return datetime.now() > self.expires_at
+        return datetime.now(timezone.utc) > self.expires_at
 
     def is_idle(self, idle_timeout: timedelta = timedelta(minutes=15)) -> bool:
         """Check if session is idle."""
-        return datetime.now() - self.last_activity > idle_timeout
+        return datetime.now(timezone.utc) - self.last_activity > idle_timeout
 
     def refresh(self) -> None:
         """Refresh session activity."""
-        self.last_activity = datetime.now()
+        self.last_activity = datetime.now(timezone.utc)
 
 
 @dataclass
@@ -279,7 +279,7 @@ class HumanAuthenticator:
             public_key=public_key,
             device_id=device_id,
             device_name=device_name,
-            created_at=datetime.now(),
+            created_at=datetime.now(timezone.utc),
             expires_at=None,  # Passkeys don't expire
             active=True
         )
@@ -307,7 +307,7 @@ class HumanAuthenticator:
             credential_type=AuthenticationType.BIOMETRIC,
             credential_data_encrypted=biometric_template_encrypted,
             device_id=device_id,
-            created_at=datetime.now(),
+            created_at=datetime.now(timezone.utc),
             expires_at=None,  # Biometrics don't expire
             active=True
         )
@@ -348,7 +348,7 @@ class HumanAuthenticator:
             return False, None
 
         # Update credential
-        credential.last_used = datetime.now()
+        credential.last_used = datetime.now(timezone.utc)
         credential.use_count += 1
 
         # Create session
@@ -392,7 +392,7 @@ class HumanAuthenticator:
             return False, None
 
         # Update credential
-        credential.last_used = datetime.now()
+        credential.last_used = datetime.now(timezone.utc)
         credential.use_count += 1
 
         # Create session
@@ -416,7 +416,7 @@ class HumanAuthenticator:
         session_id = f"session-{secrets.token_hex(16)}"
         session_token = secrets.token_urlsafe(32)
 
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         expires = now + session_duration
 
         # Create trust score
@@ -461,7 +461,7 @@ class HumanAuthenticator:
             attempt_id=f"attempt-{secrets.token_hex(8)}",
             identity_id=identity_id,
             auth_type=auth_type,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             success=success,
             failure_reason=failure_reason
         )
@@ -513,7 +513,7 @@ class HumanAuthenticator:
 
         credential.active = False
         credential.revoked = True
-        credential.revoked_at = datetime.now()
+        credential.revoked_at = datetime.now(timezone.utc)
 
         return True
 
@@ -552,7 +552,7 @@ class MachineAuthenticator:
 
         credential_id = f"cert-{secrets.token_hex(16)}"
 
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         expires = now + certificate_duration
 
         credential = AuthenticationCredential(
@@ -588,7 +588,7 @@ class MachineAuthenticator:
             return False, None
 
         # Check expiry
-        if credential.expires_at and datetime.now() > credential.expires_at:
+        if credential.expires_at and datetime.now(timezone.utc) > credential.expires_at:
             return False, None
 
         # Verify certificate (simulated)
@@ -600,7 +600,7 @@ class MachineAuthenticator:
             return False, None
 
         # Update credential
-        credential.last_used = datetime.now()
+        credential.last_used = datetime.now(timezone.utc)
         credential.use_count += 1
 
         # Create session
@@ -623,7 +623,7 @@ class MachineAuthenticator:
         session_id = f"session-{secrets.token_hex(16)}"
         session_token = secrets.token_urlsafe(32)
 
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         expires = now + session_duration
 
         # Create trust score
@@ -677,7 +677,7 @@ class IdentityVerifier:
             identity_id=identity_id,
             identity_type=identity_type,
             display_name=display_name,
-            created_at=datetime.now(),
+            created_at=datetime.now(timezone.utc),
             allowed_auth_methods=allowed_auth_methods,
             active=True
         )
@@ -836,7 +836,7 @@ class ContextualVerifier:
         verification = ContextualVerification(
             verification_id=verification_id,
             identity_id=identity_id,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             time_of_day=time_of_day,
             location=location,
             device_id=device_id,
@@ -878,7 +878,7 @@ class IntentConfirmer:
         confirmation = IntentConfirmation(
             confirmation_id=confirmation_id,
             identity_id=identity_id,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             operation=operation,
             description=description,
             risk_level=risk_level,

@@ -473,6 +473,9 @@ def create_app() -> FastAPI:
         }
         env_var = provider_env_vars.get(provider)
         if env_var and api_key:
+            logger.warning(
+                "API key stored in process environment — use SecureKeyManager in production"
+            )
             os.environ[env_var] = api_key
         os.environ["MURPHY_LLM_PROVIDER"] = provider
         # Persist key to .env so it survives restarts

@@ -635,7 +635,7 @@ class FeedbackEntry:
         self.success = success
         self.confidence = confidence
         self.rating = rating
-        self.timestamp = timestamp or datetime.now()
+        self.timestamp = timestamp or datetime.now(timezone.utc)
         self.feedback_data = feedback_data or {}
         self.comments = comments
 
@@ -785,7 +785,7 @@ class OperationalFeedbackSystem:
             success=success,
             confidence=confidence,
             rating=rating,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             feedback_data=feedback_data or {},
             comments=comments
         )
@@ -810,7 +810,7 @@ class OperationalFeedbackSystem:
     def analyze_recent_feedback(self, time_period="hour"):
         delta_map = {"hour": timedelta(hours=1), "day": timedelta(days=1), "week": timedelta(weeks=1)}
         delta = delta_map.get(time_period, timedelta(hours=1))
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         entries = self.storage.get_entries_in_range(now - delta, now)
         return self.analyzer.analyze_feedback(entries)
 
