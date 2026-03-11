@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import psutil
 from typing import Dict
@@ -11,6 +12,7 @@ from .gpt_oss_runner import GPTOSSRunner  # Injected
 from .key_manager_bot import KeyManagerBot
 
 LOG_FILE = os.path.join("logs", "scaling_events.json")
+logger = logging.getLogger(__name__)
 
 
 def call_gpt_oss_instance(bot_name: str, message: str, model_path: str = "./models/gpt-oss-20b") -> dict:
@@ -20,8 +22,8 @@ def call_gpt_oss_instance(bot_name: str, message: str, model_path: str = "./mode
         response = json.loads(raw)
         response["bot"] = bot_name
         return response
-    except Exception as e:
-        return {"bot": bot_name, "decision": "noop", "error": str(e)}
+    except Exception as exc:
+        return {"bot": bot_name, "decision": "noop", "error": str(exc)}
 
 
 class ScalingBot:
@@ -46,7 +48,8 @@ class ScalingBot:
         try:
             with open(active_path, "r") as af:
                 data = json.load(af)
-        except Exception:
+        except Exception as exc:
+            logger.debug("Suppressed exception reading active instances: %s", exc)
             data = {}
         if action == "scale_up":
             data[bot_type] = key_id

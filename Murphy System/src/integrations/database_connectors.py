@@ -53,14 +53,14 @@ class DatabaseConnector:
                 if connection_success:
                     self.is_connected = True
                     self.last_connected_at = datetime.now(timezone.utc)
-                    logger.info(f"Connected to {self.database_type.value} database")
+                    logger.info("Connected to %s database", self.database_type.value)
                     return True
                 else:
-                    logger.error(f"Failed to connect to {self.database_type.value} database")
+                    logger.error("Failed to connect to %s database", self.database_type.value)
                     return False
 
             except Exception as exc:
-                logger.error(f"Error connecting to database: {exc}")
+                logger.error("Error connecting to database: %s", exc)
                 return False
 
     def disconnect(self) -> bool:
@@ -69,10 +69,10 @@ class DatabaseConnector:
             try:
                 self._close_connection()
                 self.is_connected = False
-                logger.info(f"Disconnected from {self.database_type.value} database")
+                logger.info("Disconnected from %s database", self.database_type.value)
                 return True
             except Exception as exc:
-                logger.error(f"Error disconnecting from database: {exc}")
+                logger.error("Error disconnecting from database: %s", exc)
                 return False
 
     def _establish_connection(self) -> bool:
