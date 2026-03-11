@@ -2,7 +2,7 @@
 
 **Universal AI Automation System**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/IKNOWINOT/Murphy-System) [![License](https://img.shields.io/badge/license-BSL%201.1-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.10+-yellow.svg)](https://www.python.org/) [![Tests](https://img.shields.io/badge/tests-8900%20passing-brightgreen.svg)](#-test-status)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/IKNOWINOT/Murphy-System) [![License](https://img.shields.io/badge/license-BSL%201.1-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.10+-yellow.svg)](https://www.python.org/) [![Tests](https://img.shields.io/badge/tests-8843%20passing-brightgreen.svg)](#-test-status)
 
 ---
 
@@ -12,7 +12,7 @@
 > developed and maintained by a **single developer** ([@IKNOWINOT](https://github.com/IKNOWINOT)).
 > While the architecture is comprehensive and the test suite covers thousands of
 > functions, **not everything works as intended**. Emergent bugs are still being
-> discovered and classified across the 650+ module surface area.
+> discovered and classified across the 750+ module surface area.
 >
 > **What this means for you:**
 >
@@ -26,8 +26,8 @@
 >   process improvement requests automatically, but this pipeline is still
 >   maturing. File issues or submit patches and the system's self-improvement
 >   loop will attempt to incorporate them.
-> - 📊 **Test coverage is extensive but not exhaustive** — 8,200+ core tests
->   (8,800+ total including optional suites) pass across 371 test files, yet
+> - 📊 **Test coverage is extensive but not exhaustive** — 8,800+ core tests
+>   (8,843 total including optional suites) pass across 371 test files, yet
 >   some Flask/Textual-dependent tests require optional dependencies and are
 >   skipped when those packages are absent.
 > - 🤝 **Contributions welcome** — see [CONTRIBUTING.md](CONTRIBUTING.md). Bug
@@ -56,7 +56,7 @@ Murphy is a **complete, operational AI automation system** that can automate any
 ✅ **Causality Sandbox** - What-if scenario simulation and causal reasoning  
 ✅ **HITL Graduation** - Structured human-to-automation handoff pipeline  
 ✅ **Orchestrators** - Safety, efficiency, and supply chain orchestration  
-✅ **Deployment References** - Legacy Docker/Kubernetes examples available in archives (security hardening required)
+✅ **Container Deployment** - Docker and Kubernetes configs included (security hardening required before production)
 
 > **Coming in #136:** Drawing Engine, Credential Gate, Sensor Fusion, Osmosis Engine, Autonomous Perception, Wingman Evolution, Engineering Toolbox
 
@@ -154,7 +154,7 @@ Murphy-System/
 └── Murphy System/                      ← ACTIVE SYSTEM
     ├── murphy                          ← CLI tool (start/stop/status/…)
     ├── murphy_system_1.0_runtime.py    ← Single production runtime
-    ├── src/                            ← 625+ production modules
+    ├── src/                            ← 750+ production modules
     ├── tests/                          ← 371 test files (8,800+ tests)
     ├── bots/                           ← 104 bot modules
     ├── documentation/                  ← Structured API/user docs
@@ -162,7 +162,7 @@ Murphy-System/
     ├── k8s/                            ← Kubernetes manifests
     ├── monitoring/                     ← Prometheus config
     ├── scripts/                        ← Operational scripts
-    ├── *.html                          ← 8 neon terminal UIs
+    ├── *.html                          ← 14 web interfaces (12 active + 2 legacy redirects)
     ├── USER_MANUAL.md                  ← Comprehensive user manual
     ├── BUSINESS_MODEL.md               ← Open-core editions
     ├── README.md, API_DOCUMENTATION.md, DEPLOYMENT_GUIDE.md
@@ -204,8 +204,8 @@ bash setup_and_start.sh
 - Cryptographic bot identity verification (HMAC-SHA256 signing)
 - Behavioral anomaly detection (z-score analysis, resource spikes, API patterns)
 - Unified security dashboard with event correlation and compliance reporting
-- 42 integrated modules, 8,800+ tests passing
-- Neon terminal UI across 8 HTML interfaces with consistent theme
+- 42 integrated modules, 8,843 tests passing
+- Neon terminal UI across 14 web interfaces with consistent theme
 
 **Architect UI:** serve `Murphy System/terminal_architect.html` with `python -m http.server 8090` and open `http://localhost:8090/Murphy%20System/terminal_architect.html?apiPort=8000`
 
@@ -565,9 +565,20 @@ POST /api/integrations/add
 bash setup_and_start.sh
 ```
 
-### Containers & Kubernetes (Legacy Examples)
+### Containers & Kubernetes
 
-Container and Kubernetes deployment manifests are available as legacy reference in the [murphy-system-archive](https://github.com/IKNOWINOT/murphy-system-archive) repository.
+`Dockerfile`, `docker-compose.yml`, and `k8s/` manifests are included in `Murphy System/` as active deployment options. Security hardening is required before production use.
+
+```bash
+# From the Murphy System/ directory
+docker build -t murphy-system .
+docker compose up -d
+
+# Kubernetes
+kubectl apply -f k8s/
+```
+
+> **Note:** Review and harden the container configuration before deploying to a production environment.
 
 ---
 
