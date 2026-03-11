@@ -211,17 +211,28 @@ class TestCIWorkflow:
 
     def test_ci_workflow_exists(self) -> None:
         """The GitHub Actions CI workflow must exist."""
+        # CI workflow lives at repository root .github/workflows/ci.yml
         ci_path = os.path.join(
+            os.path.dirname(__file__), "..", "..", ".github", "workflows", "ci.yml"
+        )
+        # Also accept the legacy inner path
+        ci_path_inner = os.path.join(
             os.path.dirname(__file__), "..", ".github", "workflows", "ci.yml"
         )
-        assert os.path.isfile(ci_path), ".github/workflows/ci.yml not found"
+        assert os.path.isfile(ci_path) or os.path.isfile(ci_path_inner), (
+            ".github/workflows/ci.yml not found (checked root and Murphy System/)"
+        )
 
     def test_ci_workflow_references_pytest(self) -> None:
         ci_path = os.path.join(
+            os.path.dirname(__file__), "..", "..", ".github", "workflows", "ci.yml"
+        )
+        ci_path_inner = os.path.join(
             os.path.dirname(__file__), "..", ".github", "workflows", "ci.yml"
         )
-        if not os.path.isfile(ci_path):
+        actual = ci_path if os.path.isfile(ci_path) else ci_path_inner
+        if not os.path.isfile(actual):
             pytest.skip("CI workflow not present")
-        with open(ci_path, "r") as f:
+        with open(actual, "r") as f:
             content = f.read()
         assert "pytest" in content, "CI workflow should run pytest"
