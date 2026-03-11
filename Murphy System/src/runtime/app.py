@@ -438,8 +438,10 @@ def create_app() -> FastAPI:
     async def librarian_ask(request: Request):
         """Route a natural-language message through the Librarian + optional LLM."""
         data = await request.json()
+        # Accept 'message', 'query', or 'question' — UI components use different names
+        message = data.get("message") or data.get("query") or data.get("question") or ""
         result = murphy.librarian_ask(
-            message=data.get("message", ""),
+            message=message,
             session_id=data.get("session_id"),
         )
         return JSONResponse(result)
@@ -1351,6 +1353,37 @@ def create_app() -> FastAPI:
         if _workflow_terminal is None:
             return JSONResponse({"success": False, "error": "Workflow terminal not available"}, status_code=503)
         return JSONResponse({"success": True, "sessions": _workflow_terminal.list_sessions()})
+
+    # ── Workflow-terminal convenience aliases used by workflow_canvas.html ──
+
+    @app.get("/api/workflow-terminal/list")
+    async def workflow_terminal_list():
+        """List saved workflows (alias used by workflow canvas UI)."""
+        return JSONResponse(list(_workflows_store.values()))
+
+    @app.post("/api/workflow-terminal/save")
+    async def workflow_terminal_save(request: Request):
+        """Save a workflow from the canvas UI."""
+        data = await request.json()
+        workflow_id = data.get("id") or str(uuid4())
+        workflow = {
+            "id": workflow_id,
+            "name": data.get("name", "Untitled Workflow"),
+            "nodes": data.get("nodes", []),
+            "edges": data.get("edges", []),
+            "connections": data.get("connections", []),
+            "updated": datetime.now(timezone.utc).isoformat(),
+        }
+        _workflows_store[workflow_id] = workflow
+        return JSONResponse({"ok": True, "id": workflow_id})
+
+    @app.get("/api/workflow-terminal/load")
+    async def workflow_terminal_load(id: str = ""):
+        """Load a single workflow by ID (used by workflow canvas UI)."""
+        wf = _workflows_store.get(id)
+        if not wf:
+            return JSONResponse({"ok": False, "error": "Not found"}, status_code=404)
+        return JSONResponse(wf)
 
     # ==================== AGENT MONITOR DASHBOARD ====================
 
