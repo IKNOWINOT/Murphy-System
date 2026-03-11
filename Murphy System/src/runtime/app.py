@@ -75,6 +75,114 @@ def create_app() -> FastAPI:
     except Exception as _aim_exc:
         logger.warning("AionMind kernel not available — endpoints use legacy path only: %s", _aim_exc)
     
+    # ── Board System (Phase 1 – Monday.com parity) ────────────────
+    try:
+        from board_system.api import create_board_router
+        _board_router = create_board_router()
+        app.include_router(_board_router)
+        logger.info("Board System API registered at /api/boards")
+    except Exception as _bs_exc:
+        logger.warning("Board System not available: %s", _bs_exc)
+
+    # ── Collaboration System (Phase 2 – Monday.com parity) ────────
+    try:
+        from collaboration.api import create_collaboration_router
+        _collab_router = create_collaboration_router()
+        app.include_router(_collab_router)
+        logger.info("Collaboration API registered at /api/collaboration")
+    except Exception as _co_exc:
+        logger.warning("Collaboration System not available: %s", _co_exc)
+
+    # ── Dashboards (Phase 3 – Monday.com parity) ───────────────────
+    try:
+        from dashboards.api import create_dashboard_router
+        _dash_router = create_dashboard_router()
+        app.include_router(_dash_router)
+        logger.info("Dashboards API registered at /api/dashboards")
+    except Exception as _da_exc:
+        logger.warning("Dashboards not available: %s", _da_exc)
+
+    # ── Portfolio Management (Phase 4 – Monday.com parity) ─────────
+    try:
+        from portfolio.api import create_portfolio_router
+        _port_router = create_portfolio_router()
+        app.include_router(_port_router)
+        logger.info("Portfolio API registered at /api/portfolio")
+    except Exception as _po_exc:
+        logger.warning("Portfolio Management not available: %s", _po_exc)
+
+    # ── Workdocs (Phase 5 – Monday.com parity) ────────────────────
+    try:
+        from workdocs.api import create_workdocs_router
+        _wd_router = create_workdocs_router()
+        app.include_router(_wd_router)
+        logger.info("Workdocs API registered at /api/workdocs")
+    except Exception as _wd_exc:
+        logger.warning("Workdocs not available: %s", _wd_exc)
+
+    # ── Time Tracking (Phase 6 – Monday.com parity) ────────────────
+    try:
+        from time_tracking.api import create_time_tracking_router
+        _tt_router = create_time_tracking_router()
+        app.include_router(_tt_router)
+        logger.info("Time Tracking API registered at /api/time-tracking")
+    except Exception as _tt_exc:
+        logger.warning("Time Tracking not available: %s", _tt_exc)
+
+    # ── Automations (Phase 7 – Monday.com parity) ──────────────────
+    try:
+        from automations.api import create_automations_router
+        _auto_router = create_automations_router()
+        app.include_router(_auto_router)
+        logger.info("Automations API registered at /api/automations")
+    except Exception as _auto_exc:
+        logger.warning("Automations not available: %s", _auto_exc)
+
+    # ── CRM Module (Phase 8 – Monday.com parity) ──────────────────
+    try:
+        from crm.api import create_crm_router
+        _crm_router = create_crm_router()
+        app.include_router(_crm_router)
+        logger.info("CRM API registered at /api/crm")
+    except Exception as _crm_exc:
+        logger.warning("CRM not available: %s", _crm_exc)
+
+    # ── Dev Module (Phase 9 – Monday.com parity) ─────────────────
+    try:
+        from dev_module.api import create_dev_router
+        _dev_router = create_dev_router()
+        app.include_router(_dev_router)
+        logger.info("Dev Module API registered at /api/dev")
+    except Exception as _dev_exc:
+        logger.warning("Dev Module not available: %s", _dev_exc)
+
+    # ── Service Module (Phase 10 – Monday.com parity) ──────────────
+    try:
+        from service_module.api import create_service_router
+        _svc_router = create_service_router()
+        app.include_router(_svc_router)
+        logger.info("Service Module API registered at /api/service")
+    except Exception as _svc_exc:
+        logger.warning("Service Module not available: %s", _svc_exc)
+
+    # ── Guest Collaboration (Phase 11 – Monday.com parity) ─────────
+    try:
+        from guest_collab.api import create_guest_router
+        _guest_router = create_guest_router()
+        app.include_router(_guest_router)
+        logger.info("Guest Collaboration API registered at /api/guest")
+    except Exception as _guest_exc:
+        logger.warning("Guest Collaboration not available: %s", _guest_exc)
+
+    # ── Mobile App Backend (Phase 12 – Monday.com parity) ──────────
+    try:
+        from mobile.api import create_mobile_router
+        _mobile_router = create_mobile_router()
+        app.include_router(_mobile_router)
+        logger.info("Mobile API registered at /api/mobile")
+    except Exception as _mobile_exc:
+        logger.warning("Mobile API not available: %s", _mobile_exc)
+
     # Register RBAC governance with security layer (SEC-005)
     rbac = getattr(murphy, 'rbac_governance', None)
     if rbac is not None:
