@@ -1,0 +1,2 @@
+HTTP 200
+{"enabled":true,"healthy":true,"mode":"onboard","llm_provider":"onboard"}

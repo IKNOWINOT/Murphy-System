@@ -1,0 +1,2 @@
+HTTP 200
+{"success":true,"summary":{"total_budget":0,"spent":0,"pending":0,"remaining":0,"utilisation_pct":0.0,"department_count":0}}

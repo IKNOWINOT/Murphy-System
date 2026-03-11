@@ -1,0 +1,2 @@
+HTTP 200
+{"success":true,"agents":[{"id":"system_monitor","role":"System Monitor","capabilities":["health_check","status_reporting"],"status":"active","current_task":null,"metrics":{}}],"count":1}

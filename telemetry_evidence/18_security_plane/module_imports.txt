@@ -1,0 +1,14 @@
+SEC-003: liboqs not available — using HMAC simulation for PQC
+SEC-003: liboqs not available — using HMAC simulation for PQC
+✅ OK  security_hardening_config
+✅ OK  security_plane.authorization_enhancer
+✅ OK  security_plane.log_sanitizer
+✅ OK  security_plane.bot_resource_quotas
+✅ OK  security_plane.bot_identity_verifier
+✅ OK  security_plane.bot_anomaly_detector
+✅ OK  security_plane.security_dashboard
+✅ OK  security_plane.swarm_communication_monitor
+✅ OK  security_plane.access_control
+✅ OK  security_plane.authentication
+✅ OK  security_plane.data_leak_prevention
+✅ OK  security_plane.middleware
