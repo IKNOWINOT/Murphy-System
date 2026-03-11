@@ -17,6 +17,7 @@ How to run, write, and maintain tests for the Murphy System.
 7. [CI Configuration](#7-ci-configuration)
 8. [Coverage](#8-coverage)
 9. [Troubleshooting](#9-troubleshooting)
+10. [Benchmarks and SLA Tests](#10-benchmarks-and-sla-tests)
 
 ---
 
@@ -461,8 +462,56 @@ python -c "from bots.my_module import MyClass"
 ## See Also
 
 - [Test Coverage Report](TEST_COVERAGE.md)
+- [Testing Standards](TESTING_STANDARDS.md) — IEEE 829/ISO 29119 classification, SLA policy, benchmark regression policy
+- [Benchmark Infrastructure](../../tests/benchmarks/README.md) — How to save and compare benchmarks
 - [CI Workflow](../../.github/workflows/ci.yml)
 - [Contributing Guide](../../CONTRIBUTING.md)
+
+---
+
+## 10. Benchmarks and SLA Tests
+
+The Murphy System includes two layers of production-quality performance validation
+in addition to the existing manual benchmarks:
+
+### Statistical Benchmarks (`tests/benchmarks/test_benchmark_statistical.py`)
+
+Uses `pytest-benchmark` for statistically rigorous microbenchmarks with automatic
+warm-up, stddev, and regression comparison.
+
+```bash
+# Run statistical benchmarks only
+pytest tests/benchmarks/test_benchmark_statistical.py --benchmark-only -v
+
+# Save a baseline for regression detection
+pytest tests/benchmarks/ --benchmark-only --benchmark-save=baseline
+
+# Fail the build on >10% regression
+pytest tests/benchmarks/ --benchmark-only \
+    --benchmark-compare=0001_baseline \
+    --benchmark-compare-fail=mean:10%
+```
+
+See `tests/benchmarks/README.md` for full instructions and the baseline policy.
+
+### SLA Enforcement Tests (`tests/sla/test_sla_enforcement.py`)
+
+Each README "Design Target" has a matching `@pytest.mark.sla` test that fails
+the build if the target is not met.
+
+```bash
+# Run SLA tests only
+pytest tests/sla/ -m sla -v
+```
+
+| SLA Test ID | Design Target | Threshold |
+|------------|---------------|-----------|
+| `SLA-API-001` | API throughput | ≥ 1,000 ops/s |
+| `SLA-GATE-001` | Gate evaluation | ≥ 50,000 ops/s |
+| `SLA-API-002` | API latency p95 | < 100 ms |
+| `SLA-TASK-001` | Task execution | ≥ 100 tasks/s |
+
+For the full testing standards, see [TESTING_STANDARDS.md](TESTING_STANDARDS.md).
 
 ---
 
