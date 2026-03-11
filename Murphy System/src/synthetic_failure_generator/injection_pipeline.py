@@ -12,7 +12,7 @@ Synthetic Execution Packets → Execution Simulator → Telemetry + Risk Outcome
 import random
 import hashlib
 from typing import Dict, List, Any, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .models import (
     BaseScenario,
@@ -213,7 +213,7 @@ class FailureInjectionPipeline:
             'expected_loss': failure_case.expected_loss,
             'murphy_probability': failure_case.murphy_probability,
             'is_synthetic': True,
-            'timestamp': datetime.now().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         }
 
         return packet
@@ -470,7 +470,7 @@ class FailureInjectionPipeline:
                 {
                     'event_type': 'step_complete' if step['success'] else 'step_failed',
                     'step_id': step['step_id'],
-                    'timestamp': datetime.now().isoformat()
+                    'timestamp': datetime.now(timezone.utc).isoformat()
                 }
                 for step in execution_steps
             ],
@@ -530,6 +530,6 @@ class FailureInjectionPipeline:
 
     def _generate_id(self, prefix: str) -> str:
         """Generate unique ID"""
-        timestamp = datetime.now().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
         data = f"{prefix}:{timestamp}:{random.random()}"
         return hashlib.sha256(data.encode()).hexdigest()[:16]

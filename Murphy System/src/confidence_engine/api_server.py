@@ -638,7 +638,7 @@ def get_complete_state():
 
         return jsonify({
             'success': True,
-            'timestamp': datetime.now().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'confidence_state': confidence_state.to_dict(),
             'murphy_index': murphy_index,
             'authority_state': authority_state.to_dict(),
@@ -665,7 +665,7 @@ def health_check():
     return jsonify({
         'status': 'healthy',
         'service': 'confidence-engine',
-        'timestamp': datetime.now().isoformat(),
+        'timestamp': datetime.now(timezone.utc).isoformat(),
         'components': {
             'graph_analyzer': 'operational',
             'confidence_calculator': 'operational',

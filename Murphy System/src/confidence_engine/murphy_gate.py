@@ -6,7 +6,7 @@ with execution based on confidence scores.
 """
 
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 from .murphy_models import GateAction, GateResult, Phase, UncertaintyScores
@@ -122,7 +122,7 @@ class MurphyGate:
             phase=phase,
             metadata={
                 'context': context or {},
-                'decision_time': datetime.now().isoformat()
+                'decision_time': datetime.now(timezone.utc).isoformat()
             }
         )
 

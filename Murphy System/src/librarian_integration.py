@@ -12,7 +12,7 @@ import json
 import threading
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 import hashlib
 
 import logging
@@ -73,11 +73,11 @@ class LibrarianStateManager:
 
             # Create state entry
             state_entry = StateEntry(
-                state_id=f"state_{len(self.states)}_{int(datetime.now().timestamp())}",
+                state_id=f"state_{len(self.states)}_{int(datetime.now(timezone.utc).timestamp())}",
                 state_key=state_key,
                 state_value=state_value,
                 state_type=state_type,
-                timestamp=datetime.now(),
+                timestamp=datetime.now(timezone.utc),
                 checksum=checksum,
                 metadata=metadata or {}
             )
@@ -241,7 +241,7 @@ class LibrarianSetupManager:
                           configuration: Dict[str, Any]) -> str:
         """Create a new setup configuration"""
         with self.lock:
-            config_id = f"config_{len(self.configurations)}_{int(datetime.now().timestamp())}"
+            config_id = f"config_{len(self.configurations)}_{int(datetime.now(timezone.utc).timestamp())}"
 
             setup_config = SetupConfiguration(
                 config_id=config_id,
@@ -249,8 +249,8 @@ class LibrarianSetupManager:
                 config_category=config_category,
                 configuration=configuration,
                 is_active=False,
-                created_at=datetime.now(),
-                updated_at=datetime.now(),
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc),
                 version=1
             )
 
@@ -280,7 +280,7 @@ class LibrarianSetupManager:
             if config_id in self.configurations:
                 config = self.configurations[config_id]
                 config.configuration = configuration
-                config.updated_at = datetime.now()
+                config.updated_at = datetime.now(timezone.utc)
                 config.version += 1
                 return True
         return False

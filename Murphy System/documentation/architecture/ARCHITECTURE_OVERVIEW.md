@@ -560,3 +560,26 @@ Result (Validation Report)
 **© 2025 Corey Post InonI LLC. All rights reserved.**  
 **Licensed under BSL 1.1 (converts to Apache 2.0 after 4 years)**  
 **Contact: corey.gfc@gmail.com**
+---
+
+## Known Technical Debt
+
+### Bot Shim Duplication (TD-001)
+
+**Severity:** Medium | **Created:** 2026-03-11
+
+The `bots/` directory contains 20+ Cloudflare Worker bots, each of which ships its own copy of the following shim files:
+
+| File | Purpose |
+|------|---------|
+| `internal/shim_quota.ts` | Per-key request quota tracking via KV |
+| `internal/shim_stability.ts` | Availability / health reporting |
+| `internal/shim_budget.ts` | Token-budget accounting |
+| `internal/metrics.ts` | Structured event emission |
+| `internal/db/audit.ts` or `events.ts` | D1 audit-event insertion |
+
+These files are nearly identical across all bots; any bug fix or improvement must be manually applied to every copy. Recent security fixes (e.g. adding `console.error` logging to the bare `catch{}` blocks in audit files — Issue 57) required touching all four `events.ts`/`audit.ts` files individually.
+
+**Recommended resolution:** Extract the shared shim logic into a private npm package (e.g. `@murphy/bot-shims`) and have each bot import from it. Until that refactor is complete, treat any change to one shim file as a signal to update all peer copies.
+
+**Tracking:** Issue 59 (Round 6 deep-scan gap closure)

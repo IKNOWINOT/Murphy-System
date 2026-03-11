@@ -13,7 +13,7 @@ import json
 import threading
 from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from collections import defaultdict, deque
 import statistics
 
@@ -73,7 +73,7 @@ class PerformanceTracker:
         metric = PerformanceMetric(
             metric_name=metric_name,
             value=value,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             context=context or {},
             metadata=metadata or {}
         )
@@ -363,7 +363,7 @@ class FeedbackCollector:
             'operation_id': operation_id,
             'success': success,
             'confidence': confidence,
-            'timestamp': datetime.now(),
+            'timestamp': datetime.now(timezone.utc),
             'feedback_data': feedback_data or {}
         }
 
@@ -492,7 +492,7 @@ class LearningEngine:
                         'average_confidence': avg_confidence,
                         'feedback_type': feedback_type
                     },
-                    timestamp=datetime.now()
+                    timestamp=datetime.now(timezone.utc)
                 )
                 insights.append(insight)
 
@@ -500,7 +500,7 @@ class LearningEngine:
         with self.lock:
             self.insights.extend(insights)
             self.learning_history.append({
-                'timestamp': datetime.now(),
+                'timestamp': datetime.now(timezone.utc),
                 'insights_generated': len(insights),
                 'total_insights': len(self.insights)
             })
@@ -524,7 +524,7 @@ class LearningEngine:
                     importance=0.8,
                     recommendation=f"Metric {metric_name} is increasing over time. Monitor for resource exhaustion.",
                     supporting_data=pattern.pattern_data,
-                    timestamp=datetime.now()
+                    timestamp=datetime.now(timezone.utc)
                 )
             elif trend == 'decreasing':
                 return LearningInsight(
@@ -534,7 +534,7 @@ class LearningEngine:
                     importance=0.6,
                     recommendation=f"Metric {metric_name} is decreasing over time. Check for degradation.",
                     supporting_data=pattern.pattern_data,
-                    timestamp=datetime.now()
+                    timestamp=datetime.now(timezone.utc)
                 )
 
         return None

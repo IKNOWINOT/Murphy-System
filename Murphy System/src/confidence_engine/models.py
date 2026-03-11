@@ -6,7 +6,7 @@ Defines artifact graphs, verification evidence, trust models, and state structur
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional, Set
 from enum import Enum
-from datetime import datetime
+from datetime import datetime, timezone
 import hashlib
 
 import logging
@@ -265,7 +265,7 @@ class SourceTrust:
             # Decrease trust
             self.trust_weight = max(0.0, self.trust_weight - 0.1)
 
-        self.last_updated = datetime.now()
+        self.last_updated = datetime.now(timezone.utc)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""

@@ -59,10 +59,10 @@ async def submit_plan_upload_form(form_data: Dict[str, Any]) -> JSONResponse:
             )
 
     except Exception as exc:
-        logger.error(f"Error in plan upload endpoint: {str(exc)}")
+        logger.error("Error in plan upload endpoint: %s", exc, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {str(exc)}"
+            detail="Internal server error"
         )
 
 
@@ -103,10 +103,10 @@ async def submit_plan_generation_form(form_data: Dict[str, Any]) -> JSONResponse
             )
 
     except Exception as exc:
-        logger.error(f"Error in plan generation endpoint: {str(exc)}")
+        logger.error("Error in plan generation endpoint: %s", exc, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {str(exc)}"
+            detail="Internal server error"
         )
 
 
@@ -144,10 +144,10 @@ async def submit_task_execution_form(form_data: Dict[str, Any]) -> JSONResponse:
             )
 
     except Exception as exc:
-        logger.error(f"Error in task execution endpoint: {str(exc)}")
+        logger.error("Error in task execution endpoint: %s", exc, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {str(exc)}"
+            detail="Internal server error"
         )
 
 
@@ -229,10 +229,10 @@ async def submit_correction_form(form_data: Dict[str, Any]) -> JSONResponse:
             )
 
     except Exception as exc:
-        logger.error(f"Error in correction endpoint: {str(exc)}")
+        logger.error("Error in correction endpoint: %s", exc, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {str(exc)}"
+            detail="Internal server error"
         )
 
 
@@ -281,10 +281,10 @@ async def get_submission_status(submission_id: str) -> JSONResponse:
         )
 
     except Exception as exc:
-        logger.error(f"Error getting submission status: {str(exc)}")
+        logger.error("Error getting submission status: %s", exc, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {str(exc)}"
+            detail="Internal server error"
         )
 
 
@@ -299,13 +299,13 @@ async def health_check() -> JSONResponse:
     - status: API status
     - timestamp: Current timestamp
     """
-    from datetime import datetime
+    from datetime import datetime, timezone
 
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={
             'status': 'healthy',
             'service': 'murphy-forms-api',
-            'timestamp': datetime.now().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         }
     )

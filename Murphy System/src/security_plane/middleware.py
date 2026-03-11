@@ -23,7 +23,7 @@ Security Guarantees:
 
 from dataclasses import dataclass, field
 from typing import Optional, Dict, Any, Callable, List
-from datetime import datetime
+from datetime import datetime, timezone
 import hashlib
 import hmac
 import secrets
@@ -190,7 +190,7 @@ class AuthenticationMiddleware:
                 identity_id=context.identity,
                 trust_level=TrustLevel.MEDIUM,
                 confidence=0.8,
-                computed_at=datetime.now(),
+                computed_at=datetime.now(timezone.utc),
                 cryptographic_proof_strength=0.9,
                 behavioral_consistency=0.8,
                 confidence_stability=0.8,
@@ -212,7 +212,7 @@ class AuthenticationMiddleware:
             if not context:
                 context = SecurityContext(
                     request_id=secrets.token_hex(16),
-                    timestamp=datetime.now()
+                    timestamp=datetime.now(timezone.utc)
                 )
                 kwargs['context'] = context
 
@@ -459,7 +459,7 @@ class AuditLoggingMiddleware:
         # Create audit log entry
         log_entry = AuditLogEntry(
             log_id=secrets.token_hex(16),
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             event_type="request",
             component=request_data.get('component', 'unknown'),
             operation=request_data.get('operation', 'unknown'),
@@ -492,7 +492,7 @@ class AuditLoggingMiddleware:
         # Create audit log entry
         log_entry = AuditLogEntry(
             log_id=secrets.token_hex(16),
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             event_type="response",
             component=response_data.get('component', 'unknown'),
             operation=response_data.get('operation', 'unknown'),
@@ -722,7 +722,7 @@ class SecurityMiddleware:
         # Create security context
         context = SecurityContext(
             request_id=secrets.token_hex(16),
-            timestamp=datetime.now()
+            timestamp=datetime.now(timezone.utc)
         )
 
         self.total_requests += 1

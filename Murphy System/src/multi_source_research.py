@@ -5,7 +5,7 @@ Compiles information from multiple sources, synthesizes, and generates coherent 
 
 from typing import List, Dict, Any, Optional
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import logging
@@ -21,7 +21,7 @@ class Source:
         self.source_type = source_type  # 'primary', 'secondary', 'tertiary'
         self.content = ""
         self.extracted_facts = []
-        self.timestamp = datetime.now().isoformat()
+        self.timestamp = datetime.now(timezone.utc).isoformat()
 
 
 class CompiledResearch:
@@ -33,7 +33,7 @@ class CompiledResearch:
         self.compiled_facts = []
         self.synthesis = ""
         self.confidence = 0.0
-        self.timestamp = datetime.now().isoformat()
+        self.timestamp = datetime.now(timezone.utc).isoformat()
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -320,7 +320,7 @@ class MultiSourceResearcher:
 
     def _save_compiled(self, compiled: CompiledResearch):
         """Save compiled research to temp file"""
-        filename = f"research_{compiled.topic.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        filename = f"research_{compiled.topic.replace(' ', '_')}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
         filepath = self.temp_dir / filename
 
         with open(filepath, 'w', encoding='utf-8') as f:

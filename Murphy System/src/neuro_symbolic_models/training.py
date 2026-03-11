@@ -12,7 +12,7 @@ from torch_geometric.loader import DataLoader
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 import numpy as np
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import os
 
@@ -267,7 +267,7 @@ class ModelTrainer:
                 val_loss=val_metrics["total_loss"],
                 train_metrics=train_metrics,
                 val_metrics=val_metrics,
-                timestamp=datetime.now().isoformat()
+                timestamp=datetime.now(timezone.utc).isoformat()
             )
             self.history.append(metrics)
 
@@ -417,7 +417,7 @@ class ModelValidator:
             inference_speed=inference_speed,
             safety=safety,
             approved=approved,
-            timestamp=datetime.now().isoformat()
+            timestamp=datetime.now(timezone.utc).isoformat()
         )
 
         logger.info(f"\nValidation {'APPROVED' if approved else 'REJECTED'}")

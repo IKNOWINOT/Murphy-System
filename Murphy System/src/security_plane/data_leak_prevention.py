@@ -20,7 +20,7 @@ CRITICAL CONSTRAINTS:
 from dataclasses import dataclass, field
 from typing import Dict, List, Set, Optional, Any
 from enum import Enum
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import hashlib
 import re
 import json
@@ -150,7 +150,7 @@ class SensitiveDataClassifier:
             categories=detected_categories,
             detected_patterns=detected_patterns,
             classification_confidence=max_confidence if detected_categories else 0.5,
-            classified_at=datetime.now(),
+            classified_at=datetime.now(timezone.utc),
             classified_by="SensitiveDataClassifier",
             encryption_required=sensitivity in [DataSensitivityLevel.SECRET, DataSensitivityLevel.TOP_SECRET],
             retention_days=retention_days,
@@ -218,7 +218,7 @@ class ExfiltrationDetector:
     ) -> DataTransfer:
         """Check if data transfer is authorized"""
         transfer_id = hashlib.sha256(
-            f"{data_id}{source}{destination}{datetime.now().isoformat()}".encode()
+            f"{data_id}{source}{destination}{datetime.now(timezone.utc).isoformat()}".encode()
         ).hexdigest()[:16]
 
         blocked = False
@@ -264,7 +264,7 @@ class ExfiltrationDetector:
             size_bytes=size_bytes,
             classification=classification,
             initiated_by=initiated_by,
-            initiated_at=datetime.now(),
+            initiated_at=datetime.now(timezone.utc),
             encrypted=encrypted,
             authorized=authorized,
             blocked=blocked,
@@ -276,7 +276,7 @@ class ExfiltrationDetector:
 
     def _get_recent_transfers(self, data_id: str, hours: int) -> List[DataTransfer]:
         """Get recent transfers for rate limiting"""
-        cutoff = datetime.now() - timedelta(hours=hours)
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
         return [
             t for t in self.transfer_history
             if t.data_id == data_id and t.initiated_at >= cutoff and not t.blocked
@@ -319,7 +319,7 @@ class EncryptionEnforcer:
                 encryption_in_transit_required=True,
                 encryption_algorithm="AES-256-GCM",
                 key_rotation_days=30,
-                created_at=datetime.now()
+                created_at=datetime.now(timezone.utc)
             ),
             DataSensitivityLevel.SECRET: EncryptionPolicy(
                 policy_id="secret_policy",
@@ -328,7 +328,7 @@ class EncryptionEnforcer:
                 encryption_in_transit_required=True,
                 encryption_algorithm="AES-256-GCM",
                 key_rotation_days=90,
-                created_at=datetime.now()
+                created_at=datetime.now(timezone.utc)
             ),
             DataSensitivityLevel.CONFIDENTIAL: EncryptionPolicy(
                 policy_id="confidential_policy",
@@ -337,7 +337,7 @@ class EncryptionEnforcer:
                 encryption_in_transit_required=True,
                 encryption_algorithm="AES-256-GCM",
                 key_rotation_days=180,
-                created_at=datetime.now()
+                created_at=datetime.now(timezone.utc)
             ),
             DataSensitivityLevel.INTERNAL: EncryptionPolicy(
                 policy_id="internal_policy",
@@ -346,7 +346,7 @@ class EncryptionEnforcer:
                 encryption_in_transit_required=True,
                 encryption_algorithm="AES-256-GCM",
                 key_rotation_days=365,
-                created_at=datetime.now()
+                created_at=datetime.now(timezone.utc)
             ),
             DataSensitivityLevel.PUBLIC: EncryptionPolicy(
                 policy_id="public_policy",
@@ -355,7 +355,7 @@ class EncryptionEnforcer:
                 encryption_in_transit_required=False,
                 encryption_algorithm="AES-256-GCM",
                 key_rotation_days=365,
-                created_at=datetime.now()
+                created_at=datetime.now(timezone.utc)
             ),
         }
 
@@ -435,7 +435,7 @@ class DataAccessLogger:
     ) -> DataAccessLog:
         """Log data access attempt"""
         log_id = hashlib.sha256(
-            f"{data_id}{accessed_by}{access_type}{datetime.now().isoformat()}".encode()
+            f"{data_id}{accessed_by}{access_type}{datetime.now(timezone.utc).isoformat()}".encode()
         ).hexdigest()[:16]
 
         log_entry = DataAccessLog(
@@ -444,7 +444,7 @@ class DataAccessLogger:
             classification=classification,
             accessed_by=accessed_by,
             access_type=access_type,
-            accessed_at=datetime.now(),
+            accessed_at=datetime.now(timezone.utc),
             source_ip=source_ip,
             user_agent=user_agent,
             authorized=authorized,
@@ -517,7 +517,7 @@ class DataRetentionManager:
                 auto_delete=True,
                 archive_before_delete=True,
                 legal_hold_override=True,
-                created_at=datetime.now()
+                created_at=datetime.now(timezone.utc)
             ),
             DataSensitivityLevel.SECRET: RetentionPolicy(
                 policy_id="secret_retention",
@@ -526,7 +526,7 @@ class DataRetentionManager:
                 auto_delete=True,
                 archive_before_delete=True,
                 legal_hold_override=True,
-                created_at=datetime.now()
+                created_at=datetime.now(timezone.utc)
             ),
             DataSensitivityLevel.CONFIDENTIAL: RetentionPolicy(
                 policy_id="confidential_retention",
@@ -535,7 +535,7 @@ class DataRetentionManager:
                 auto_delete=True,
                 archive_before_delete=True,
                 legal_hold_override=True,
-                created_at=datetime.now()
+                created_at=datetime.now(timezone.utc)
             ),
             DataSensitivityLevel.INTERNAL: RetentionPolicy(
                 policy_id="internal_retention",
@@ -544,7 +544,7 @@ class DataRetentionManager:
                 auto_delete=False,
                 archive_before_delete=False,
                 legal_hold_override=False,
-                created_at=datetime.now()
+                created_at=datetime.now(timezone.utc)
             ),
             DataSensitivityLevel.PUBLIC: RetentionPolicy(
                 policy_id="public_retention",
@@ -553,7 +553,7 @@ class DataRetentionManager:
                 auto_delete=False,
                 archive_before_delete=False,
                 legal_hold_override=False,
-                created_at=datetime.now()
+                created_at=datetime.now(timezone.utc)
             ),
         }
 
@@ -580,7 +580,7 @@ class DataRetentionManager:
         if policy.retention_days is None:
             return False, "Indefinite retention"
 
-        age_days = (datetime.now() - created_at).days
+        age_days = (datetime.now(timezone.utc) - created_at).days
         if age_days < policy.retention_days:
             return False, f"Retention period not expired ({age_days}/{policy.retention_days} days)"
 

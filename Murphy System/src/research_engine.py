@@ -76,13 +76,13 @@ class ResearchEngine:
         # Calculate overall confidence
         confidence = self._calculate_research_confidence(sources)
 
-        from datetime import datetime
+        from datetime import datetime, timezone
         return ResearchResult(
             topic=topic,
             sources=sources,
             synthesis=synthesis,
             confidence=confidence,
-            timestamp=datetime.now().isoformat()
+            timestamp=datetime.now(timezone.utc).isoformat()
         )
 
     def _find_related_topics(self, topic: str) -> List[str]:

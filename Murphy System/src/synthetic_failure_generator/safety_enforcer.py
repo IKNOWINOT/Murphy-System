@@ -12,7 +12,7 @@ Safety Rules:
 """
 
 from typing import Dict, List, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 import logging
 
@@ -263,7 +263,7 @@ class SafetyEnforcer:
             'violation_type': violation_type,
             'message': message,
             'context': context,
-            'timestamp': datetime.now().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         }
 
         self.safety_violations.append(violation)
