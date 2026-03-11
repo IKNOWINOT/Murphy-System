@@ -120,6 +120,12 @@ class CORSPolicy:
         allow_credentials: bool = False,
     ):
         self.allowed_origins: Set[str] = set(allowed_origins or [])
+        if "*" in self.allowed_origins:
+            import logging as _logging
+            _logging.getLogger(__name__).warning(
+                "CORSPolicy: wildcard '*' origin detected — this disables CORS protection. "
+                "Use explicit origins in production."
+            )
         self.allowed_methods: List[str] = allowed_methods or [
             "GET", "POST", "PUT", "DELETE", "OPTIONS"
         ]

@@ -233,9 +233,10 @@ class MemoryEfficientList:
             capped_append(self._data, item)
 
     def extend(self, items: List[Any]) -> None:
-        """Extend list."""
+        """Extend list with bounded growth."""
         with self._lock:
-            self._data.extend(items)
+            for item in items:
+                capped_append(self._data, item)
 
     def batch_iter(self, batch_size: int) -> Generator[List[Any], None, None]:
         """Iterate in batches."""
