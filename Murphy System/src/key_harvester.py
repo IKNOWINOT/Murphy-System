@@ -1508,7 +1508,6 @@ def create_key_harvester_router() -> Any:
     @router.get("/status")
     async def kh_status():
         tos_gate, cred_gate = get_shared_gates()
-        global _shared_harvester
         harvest_status: Dict[str, Any] = {"total": 0, "completed": 0, "blocked": 0, "pending": 0, "skipped": 0}
         if _shared_harvester is not None:
             harvest_status = _shared_harvester.get_status()
