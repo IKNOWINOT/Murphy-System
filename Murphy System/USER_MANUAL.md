@@ -123,7 +123,7 @@ Configuration is managed via environment variables or `src/config.py` (Pydantic 
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `MURPHY_HOST` | `0.0.0.0` | API bind address |
+| `MURPHY_HOST` | `127.0.0.1` | API bind address (use 0.0.0.0 to expose externally) |
 | `MURPHY_PORT` | `8000` | API port |
 | `MURPHY_DB_PATH` | `murphy.db` | SQLite database path |
 | `MURPHY_LLM_PROVIDER` | `groq` | LLM provider (groq, openai, local) |
