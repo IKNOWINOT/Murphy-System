@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 
 import logging
@@ -63,8 +63,8 @@ class Constraint:
     source: str = "user"  # user, system, regulatory, best_practice
     justification: str = ""
     jurisdiction: str = "GLOBAL"  # jurisdiction code (e.g. "US", "EU", "GLOBAL")
-    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
-    updated_at: str = field(default_factory=lambda: datetime.now().isoformat())
+    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
     def to_dict(self) -> Dict:
         d = {
@@ -498,7 +498,7 @@ class ConstraintSystem:
             }
 
             # Update timestamp
-            constraint.updated_at = datetime.now().isoformat()
+            constraint.updated_at = datetime.now(timezone.utc).isoformat()
 
         return results, warnings
 

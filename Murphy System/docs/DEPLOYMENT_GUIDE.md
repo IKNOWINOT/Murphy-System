@@ -132,7 +132,7 @@ server to refuse to start if unset.
 | `MURPHY_LOG_LEVEL` | ❌ | `INFO` | Log verbosity (`DEBUG`, `INFO`, `WARNING`, `ERROR`) |
 | `MURPHY_WORKERS` | ❌ | `4` | Number of Uvicorn worker processes |
 | `MURPHY_PORT` | ❌ | `8000` | Server listen port |
-| `MURPHY_HOST` | ❌ | `0.0.0.0` | Server listen address |
+| `MURPHY_HOST` | ❌ | `127.0.0.1` | Server listen address (use 0.0.0.0 to expose on all interfaces) |
 
 ### LLM Integration
 
