@@ -301,8 +301,8 @@ def run_phase2():
     if failed:
         print(f"  ⚠ {len(failed)} endpoints failed:")
         for f_item in failed[:10]:
-            print(f"    - {f_item.get('method', '?')} {f_item.get('endpoint', '?')}: "
-                  f"{f_item.get('status_code', f_item.get('error', 'unknown'))}")
+            status = f_item.get('status_code', f_item.get('error', 'unknown'))
+            print(f"    - {f_item.get('method', '?')} {f_item.get('endpoint', '?')}: {status}")
         if len(failed) > 10:
             print(f"    ... and {len(failed) - 10} more")
     print()
