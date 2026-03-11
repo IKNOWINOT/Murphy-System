@@ -639,6 +639,36 @@ class PostgreSQLConnectorPlugin(ConnectorPlugin):
         return {"connected": self._conn is not None, "dsn": self._dsn}
 ```
 
+> **⚠️ SQL Injection Warning — Dynamic Table and Column Names**
+>
+> The `_insert` helper above interpolates `table` and `columns` **directly into the SQL string** using
+> f-strings.  Row *values* are safely passed as parameterised arguments (`[row[c] for c in columns]`),
+> but the **table name** and **column names** are **not** parameterised — most database drivers do not
+> support bind parameters for identifiers.
+>
+> If `table` or any column name can be influenced by untrusted input (e.g. user-supplied plugin
+> configuration or API requests), this is a **SQL injection risk**.
+>
+> **Recommended mitigations:**
+>
+> 1. **Allowlist table and column names** against a hard-coded set of permitted identifiers before
+>    building the SQL string:
+>    ```python
+>    ALLOWED_TABLES = {"orders", "products", "audit_log"}
+>    ALLOWED_COLUMNS = {"id", "name", "created_at", "status"}
+>
+>    if table not in ALLOWED_TABLES:
+>        raise ExecutionError(f"Table '{table}' is not permitted.")
+>    for col in columns:
+>        if col not in ALLOWED_COLUMNS:
+>            raise ExecutionError(f"Column '{col}' is not permitted.")
+>    ```
+>
+> 2. **Validate identifiers** with a strict regex (e.g. `^[A-Za-z_][A-Za-z0-9_]{0,63}$`) before
+>    interpolation if a fixed allowlist is not practical.
+>
+> 3. **Never** build table or column names from raw user input without one of the above checks.
+
 ---
 
 ### Example 3: Custom ML Scorer Plugin
