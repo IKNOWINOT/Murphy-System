@@ -24,10 +24,10 @@ implementation module, acceptance criteria, and test suite.
 | 2 | Real-Time Collaboration | `src/collaboration/` | ✅ Complete |
 | 3 | Dashboards & Reporting | `src/dashboards/` | ✅ Complete |
 | 4 | Project Portfolio Management | `src/portfolio/` | ✅ Complete |
-| 5 | Collaborative Docs | `src/workdocs/` | ⬜ Planned |
-| 6 | Time Tracking & Reporting | `src/time_tracking/` | ⬜ Planned |
-| 7 | Advanced Automations | `src/automations/` | ⬜ Planned |
-| 8 | CRM Module | `src/crm/` | ⬜ Planned |
+| 5 | Collaborative Docs | `src/workdocs/` | ✅ Complete |
+| 6 | Time Tracking & Reporting | `src/time_tracking/` | ✅ Complete |
+| 7 | Advanced Automations | `src/automations/` | ✅ Complete |
+| 8 | CRM Module | `src/crm/` | ✅ Complete |
 | 9 | Dev Module | `src/dev_module/` | ⬜ Planned |
 | 10 | Service Module | `src/service_module/` | ⬜ Planned |
 | 11 | Guest / External Collaboration | `src/guest_collab/` | ⬜ Planned |
