@@ -25,7 +25,7 @@ import os
 import random
 from collections import defaultdict
 from dataclasses import asdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -113,7 +113,7 @@ class TrainingDataPipeline:
         self, traces: List[ActionTrace]
     ) -> List[ActionTrace]:
         """Drop traces older than *retention_days*."""
-        cutoff = datetime.now() - timedelta(days=self.retention_days)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=self.retention_days)
         return [t for t in traces if t.timestamp >= cutoff]
 
     def _label_traces(

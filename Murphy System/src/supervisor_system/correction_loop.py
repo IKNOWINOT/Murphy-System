@@ -12,7 +12,7 @@ Components:
 """
 
 from typing import Dict, List, Optional, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass
 import logging
 
@@ -85,17 +85,17 @@ class InvalidationDetector:
         # Check if telemetry contradicts assumption
         if confidence > 0.7:  # High confidence contradiction
             signal = InvalidationSignal(
-                signal_id=f"tel-{assumption_id}-{datetime.now().timestamp()}",
+                signal_id=f"tel-{assumption_id}-{datetime.now(timezone.utc).timestamp()}",
                 assumption_id=assumption_id,
                 source=InvalidationSource.TELEMETRY,
                 reason=f"Telemetry contradicts assumption: {telemetry_data.get('reason', 'unknown')}",
                 confidence=confidence,
                 severity="high" if confidence > 0.9 else "medium",
-                timestamp=datetime.now(),
+                timestamp=datetime.now(timezone.utc),
                 evidence=str(telemetry_data)
             )
 
-            logger.warning(f"Telemetry invalidation detected for {assumption_id}")
+            logger.warning("Telemetry invalidation detected for %s", assumption_id)
             return signal
 
         return None
@@ -112,17 +112,17 @@ class InvalidationDetector:
 
         if not verification_result.get("valid", True):
             signal = InvalidationSignal(
-                signal_id=f"det-{assumption_id}-{datetime.now().timestamp()}",
+                signal_id=f"det-{assumption_id}-{datetime.now(timezone.utc).timestamp()}",
                 assumption_id=assumption_id,
                 source=InvalidationSource.DETERMINISTIC,
                 reason=f"Deterministic verification failed: {verification_result.get('reason', 'unknown')}",
                 confidence=1.0,  # Deterministic is certain
                 severity="critical",
-                timestamp=datetime.now(),
+                timestamp=datetime.now(timezone.utc),
                 evidence=str(verification_result)
             )
 
-            logger.error(f"Deterministic invalidation detected for {assumption_id}")
+            logger.error("Deterministic invalidation detected for %s", assumption_id)
             return signal
 
         return None
@@ -134,18 +134,18 @@ class InvalidationDetector:
 
         for assumption in stale_assumptions:
             signal = InvalidationSignal(
-                signal_id=f"timeout-{assumption.assumption_id}-{datetime.now().timestamp()}",
+                signal_id=f"timeout-{assumption.assumption_id}-{datetime.now(timezone.utc).timestamp()}",
                 assumption_id=assumption.assumption_id,
                 source=InvalidationSource.TIMEOUT,
                 reason=f"Assumption review overdue since {assumption.next_review_date}",
                 confidence=0.8,  # High confidence that stale assumptions are risky
                 severity="medium",
-                timestamp=datetime.now()
+                timestamp=datetime.now(timezone.utc)
             )
             signals.append(signal)
 
         if signals:
-            logger.warning(f"Detected {len(signals)} stale assumptions")
+            logger.warning("Detected %d stale assumptions", len(signals))
 
         return signals
 
@@ -163,7 +163,7 @@ class InvalidationDetector:
             self.confidence_trends[artifact_id] = ConfidenceTrend(artifact_id=artifact_id)
 
         trend = self.confidence_trends[artifact_id]
-        trend.add_measurement(datetime.now(), confidence)
+        trend.add_measurement(datetime.now(timezone.utc), confidence)
 
         return trend.is_decreasing() or trend.is_volatile()
 
@@ -181,7 +181,7 @@ class InvalidationDetector:
             self.murphy_trends[artifact_id] = MurphyIndexTrend(artifact_id=artifact_id)
 
         trend = self.murphy_trends[artifact_id]
-        trend.add_measurement(datetime.now(), murphy_index)
+        trend.add_measurement(datetime.now(timezone.utc), murphy_index)
 
         return trend.is_increasing() or trend.exceeds_threshold()
 
@@ -221,11 +221,11 @@ class ConfidenceDecayer:
         new_confidence = current_confidence * decay_factor
 
         action = CorrectionAction(
-            action_id=f"decay-conf-{assumption_id}-{datetime.now().timestamp()}",
+            action_id=f"decay-conf-{assumption_id}-{datetime.now(timezone.utc).timestamp()}",
             assumption_id=assumption_id,
             action_type=CorrectionActionType.DROP_CONFIDENCE,
             triggered_by=signal.signal_id,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             rationale=f"Confidence decayed due to {signal.source.value} invalidation: {signal.reason}",
             confidence_before=current_confidence,
             confidence_after=new_confidence
@@ -281,11 +281,11 @@ class AuthorityDecayer:
         new_authority = self.authority_levels[new_level]
 
         action = CorrectionAction(
-            action_id=f"decay-auth-{assumption_id}-{datetime.now().timestamp()}",
+            action_id=f"decay-auth-{assumption_id}-{datetime.now(timezone.utc).timestamp()}",
             assumption_id=assumption_id,
             action_type=CorrectionActionType.DECAY_AUTHORITY,
             triggered_by=signal.signal_id,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             rationale=f"Authority decayed due to {signal.source.value} invalidation: {signal.reason}",
             authority_before=current_authority,
             authority_after=new_authority
@@ -344,11 +344,11 @@ class ExecutionFreezer:
                 self.frozen_artifacts[artifact_id].append(assumption_id)
 
         action = CorrectionAction(
-            action_id=f"freeze-{assumption_id}-{datetime.now().timestamp()}",
+            action_id=f"freeze-{assumption_id}-{datetime.now(timezone.utc).timestamp()}",
             assumption_id=assumption_id,
             action_type=CorrectionActionType.FREEZE_EXECUTION,
             triggered_by=signal.signal_id,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             rationale=f"Execution frozen due to critical assumption invalidation: {signal.reason}",
             execution_frozen=True,
             affected_artifacts=affected_artifacts
@@ -387,7 +387,7 @@ class ExecutionFreezer:
         # If no more blocking assumptions, remove from frozen dict
         if not self.frozen_artifacts[artifact_id]:
             del self.frozen_artifacts[artifact_id]
-            logger.info(f"Artifact {artifact_id} fully unfrozen")
+            logger.info("Artifact %s fully unfrozen", artifact_id)
             return True
 
         return False
@@ -474,14 +474,14 @@ class ReExpansionTrigger:
             return None
 
         action = CorrectionAction(
-            action_id=f"reexpand-{artifact_id}-{datetime.now().timestamp()}",
+            action_id=f"reexpand-{artifact_id}-{datetime.now(timezone.utc).timestamp()}",
             assumption_id="",  # Not specific to one assumption
             action_type=CorrectionActionType.TRIGGER_REEXPANSION,
             triggered_by="correction_complete",
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             rationale="Re-expansion triggered: all criteria met",
             affected_artifacts=[artifact_id]
         )
 
-        logger.info(f"Triggered re-expansion for {artifact_id}")
+        logger.info("Triggered re-expansion for %s", artifact_id)
         return action

@@ -73,8 +73,10 @@ class ConstraintInput(BaseModel):
         for pattern in sql_patterns:
             v = re.sub(pattern, '', v, flags=re.IGNORECASE)
 
-        # Remove path traversal
-        v = v.replace('../', '').replace('..\\', '')
+        # Remove path traversal sequences iteratively until stable
+        # to prevent double-encoding bypasses like '....//'' → '../'
+        while '../' in v or '..\\' in v:
+            v = v.replace('../', '').replace('..\\', '')
 
         return v.strip()
 

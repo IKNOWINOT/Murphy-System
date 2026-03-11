@@ -5,10 +5,11 @@ Maintains state and context throughout task execution.
 """
 
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from dataclasses import dataclass, field
 
 import logging
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +61,7 @@ class ExecutionContext:
     audit_trail: List[Dict[str, Any]] = field(default_factory=list)
 
     # Metadata
-    started_at: datetime = field(default_factory=datetime.now)
+    started_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     def update(self, phase_result: Dict[str, Any]):
@@ -75,26 +76,26 @@ class ExecutionContext:
             # Update confidence
             if 'confidence' in phase_result:
                 self.confidence = phase_result['confidence']
-                self.confidence_history.append({
+                capped_append(self.confidence_history, {
                     'phase': phase,
                     'confidence': phase_result['confidence'],
-                    'timestamp': datetime.now().isoformat()
+                    'timestamp': datetime.now(timezone.utc).isoformat()
                 })
 
             # Update risk
             if 'risk_score' in phase_result:
                 self.risk_score = phase_result['risk_score']
-                self.risk_history.append({
+                capped_append(self.risk_history, {
                     'phase': phase,
                     'risk_score': phase_result['risk_score'],
-                    'timestamp': datetime.now().isoformat()
+                    'timestamp': datetime.now(timezone.utc).isoformat()
                 })
 
             # Add to audit trail
-            self.audit_trail.append({
+            capped_append(self.audit_trail, {
                 'event': 'phase_completed',
                 'phase': phase,
-                'timestamp': datetime.now().isoformat(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'confidence': self.confidence,
                 'risk_score': self.risk_score
             })
@@ -103,21 +104,21 @@ class ExecutionContext:
         """Add an assumption"""
         if assumption not in self.assumptions:
             self.assumptions.append(assumption)
-            self.audit_trail.append({
+            capped_append(self.audit_trail, {
                 'event': 'assumption_added',
                 'assumption': assumption,
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             })
 
     def invalidate_assumption(self, assumption: str, reason: str):
         """Invalidate an assumption"""
         if assumption in self.assumptions and assumption not in self.invalidated_assumptions:
             self.invalidated_assumptions.append(assumption)
-            self.audit_trail.append({
+            capped_append(self.audit_trail, {
                 'event': 'assumption_invalidated',
                 'assumption': assumption,
                 'reason': reason,
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             })
 
     def add_human_intervention(self, intervention_type: str, details: Dict[str, Any]):
@@ -125,21 +126,21 @@ class ExecutionContext:
         intervention = {
             'type': intervention_type,
             'details': details,
-            'timestamp': datetime.now().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         }
         self.human_interventions.append(intervention)
-        self.audit_trail.append({
+        capped_append(self.audit_trail, {
             'event': 'human_intervention',
             'intervention': intervention,
-            'timestamp': datetime.now().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         })
 
     def log_event(self, event_type: str, details: Dict[str, Any]):
         """Log an event to audit trail"""
-        self.audit_trail.append({
+        capped_append(self.audit_trail, {
             'event': event_type,
             'details': details,
-            'timestamp': datetime.now().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         })
 
     def get_phase_output(self, phase: str) -> Optional[Dict[str, Any]]:

@@ -12,7 +12,7 @@ import time
 from dataclasses import dataclass, field, asdict
 from typing import List, Dict, Any, Optional
 from enum import Enum
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import logging
 
@@ -83,12 +83,12 @@ class TimeWindow:
 
     def is_valid(self) -> bool:
         """Check if current time is within window"""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         return self.valid_from <= now <= self.valid_until
 
     def time_remaining(self) -> float:
         """Seconds remaining in window"""
-        return (self.valid_until - datetime.now()).total_seconds()
+        return (self.valid_until - datetime.now(timezone.utc)).total_seconds()
 
 
 @dataclass
@@ -289,7 +289,7 @@ def create_simple_packet(
     """
 
     # Create time window
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     time_window = TimeWindow(
         valid_from=now,
         valid_until=now + timedelta(hours=validity_hours),

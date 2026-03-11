@@ -6,7 +6,7 @@ REST API for compiling sealed execution packets
 from flask import Flask, request, jsonify
 from typing import Dict, Any, List, Optional
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .models import (
     ExecutionPacket,
@@ -79,7 +79,7 @@ def compile_packet():
     try:
         data = request.json
 
-        packet_id = data.get('packet_id', f"packet_{datetime.now().timestamp()}")
+        packet_id = data.get('packet_id', f"packet_{datetime.now(timezone.utc).timestamp()}")
         parameters = data.get('parameters', {})
 
         # Step 1: Create and freeze scope
@@ -452,7 +452,7 @@ def health_check():
     return jsonify({
         'status': 'healthy',
         'service': 'execution-packet-compiler',
-        'timestamp': datetime.now().isoformat(),
+        'timestamp': datetime.now(timezone.utc).isoformat(),
         'components': {
             'scope_freezer': 'operational',
             'dependency_resolver': 'operational',

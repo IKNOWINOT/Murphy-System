@@ -18,6 +18,7 @@ Creator: Corey Post
 
 import os
 import re
+import hmac
 import time
 import logging
 from typing import List, Dict, Any, Optional
@@ -58,12 +59,14 @@ def get_configured_api_keys() -> List[str]:
 
 
 def validate_api_key(api_key: str) -> bool:
-    """Validate an API key against configured keys."""
+    """Validate an API key against configured keys using constant-time comparison
+    to prevent timing side-channel attacks (CWE-208).
+    """
     configured_keys = get_configured_api_keys()
     if not configured_keys:
         murphy_env = os.environ.get("MURPHY_ENV", "development")
         return murphy_env in ("development", "test")
-    return api_key in configured_keys
+    return any(hmac.compare_digest(api_key, key) for key in configured_keys)
 
 
 def _extract_api_key(request: Request) -> Optional[str]:

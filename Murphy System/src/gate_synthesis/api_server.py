@@ -6,7 +6,7 @@ REST API for dynamic gate generation and lifecycle management
 from flask import Flask, request, jsonify
 from typing import Dict, Any, List, Optional
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .models import (
     Gate,
@@ -177,8 +177,8 @@ def analyze_exposure():
         })
 
     except Exception as exc:
-        logger.error(f"Error analyzing exposure: {exc}")
-        return jsonify({'success': False, 'error': str(exc)}), 500
+        logger.error("Error analyzing exposure: %s", exc, exc_info=True)
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
 
 
 # ============================================================================
@@ -542,7 +542,7 @@ def health_check():
     return jsonify({
         'status': 'healthy',
         'service': 'gate-synthesis-engine',
-        'timestamp': datetime.now().isoformat(),
+        'timestamp': datetime.now(timezone.utc).isoformat(),
         'components': {
             'failure_mode_enumerator': 'operational',
             'murphy_estimator': 'operational',

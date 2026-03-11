@@ -13,7 +13,7 @@ import heapq
 import threading
 from typing import Dict, List, Optional, Any, Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from collections import deque
 import uuid
@@ -341,7 +341,7 @@ class AutonomousScheduler:
     def _start_task(self, task: Task) -> None:
         """Start executing a task"""
         task.status = TaskStatus.SCHEDULED
-        task.scheduled_at = datetime.now()
+        task.scheduled_at = datetime.now(timezone.utc)
 
         # Move to running tasks
         self.running_tasks[task.task_id] = task
@@ -357,7 +357,7 @@ class AutonomousScheduler:
     def _execute_task(self, task: Task) -> None:
         """Execute a task"""
         task.status = TaskStatus.RUNNING
-        task.started_at = datetime.now()
+        task.started_at = datetime.now(timezone.utc)
 
         try:
             # Execute task function
@@ -365,7 +365,7 @@ class AutonomousScheduler:
 
             # Record success
             task.status = TaskStatus.COMPLETED
-            task.completed_at = datetime.now()
+            task.completed_at = datetime.now(timezone.utc)
             task.result = result
 
             # Update metrics
@@ -391,7 +391,7 @@ class AutonomousScheduler:
             # Record failure
             logger.debug("Caught exception: %s", exc)
             task.status = TaskStatus.FAILED
-            task.completed_at = datetime.now()
+            task.completed_at = datetime.now(timezone.utc)
             task.error = str(exc)
 
             # Update metrics
@@ -414,7 +414,7 @@ class AutonomousScheduler:
 
     def _check_task_status(self) -> None:
         """Check status of running tasks and handle timeouts"""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
 
         with self.lock:
             # Check for tasks that have exceeded their deadline

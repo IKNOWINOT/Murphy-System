@@ -558,9 +558,21 @@ class PerformanceBenchmark:
         results = {}
 
         for name, func in implementations.items():
-            result = asyncio.run(
-                self.benchmark_function(name, func, iterations, test_data)
-            )
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+            if loop and loop.is_running():
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                    result = pool.submit(
+                        asyncio.run,
+                        self.benchmark_function(name, func, iterations, test_data)
+                    ).result()
+            else:
+                result = asyncio.run(
+                    self.benchmark_function(name, func, iterations, test_data)
+                )
             results[name] = result
 
         return results

@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 
 import logging
@@ -325,7 +325,7 @@ class DocumentProcessor:
             name=name,
             file_type=file_type,
             size=len(content),
-            uploaded_at=datetime.now().isoformat(),
+            uploaded_at=datetime.now(timezone.utc).isoformat(),
             document_type=DocumentType(document_type),
             status=DocumentStatus.PROCESSING,
             checksum=checksum

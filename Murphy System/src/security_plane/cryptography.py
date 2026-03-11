@@ -40,7 +40,7 @@ Key Rotation:
 
 from dataclasses import dataclass, field
 from typing import Optional, Tuple, Dict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import hashlib
 import secrets
 import hmac
@@ -106,7 +106,7 @@ class KeyPair:
 
     def is_expired(self) -> bool:
         """Check if key pair has expired."""
-        return datetime.now() > self.expires_at
+        return datetime.now(timezone.utc) > self.expires_at
 
 
 @dataclass
@@ -188,7 +188,7 @@ class ClassicalCryptography:
         Uses real ECDSA P-256 when the ``cryptography`` library is
         installed; falls back to HMAC-based simulation otherwise.
         """
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         expires = now + timedelta(minutes=10)  # Short-lived
 
         if _HAS_REAL_CLASSICAL:
@@ -268,7 +268,7 @@ class PostQuantumCryptography:
     @staticmethod
     def generate_keypair_kyber() -> KeyPair:
         """Generate Kyber key pair for key exchange."""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         expires = now + timedelta(minutes=10)
 
         if _HAS_REAL_PQC:
@@ -299,7 +299,7 @@ class PostQuantumCryptography:
     @staticmethod
     def generate_keypair_dilithium() -> KeyPair:
         """Generate Dilithium key pair for signatures."""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         expires = now + timedelta(minutes=10)
 
         if _HAS_REAL_PQC:
@@ -449,7 +449,7 @@ class KeyManager:
         if capabilities is None:
             capabilities = {"sign", "verify"}
 
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         expires = now + timedelta(minutes=10)
 
         if algorithm == CryptographicAlgorithm.HYBRID:
@@ -528,7 +528,7 @@ class KeyManager:
 
         # Mark old key as rotated
         old_key.rotated = True
-        old_key.rotation_scheduled_at = datetime.now()
+        old_key.rotation_scheduled_at = datetime.now(timezone.utc)
 
         # Generate new key
         new_key = self.generate_key(
@@ -606,7 +606,7 @@ class PacketSigner:
         nonce = CryptographicPrimitives.generate_nonce()
 
         # Create signature payload
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         time_window_start = now
         time_window_end = now + timedelta(minutes=time_window_minutes)
 
@@ -692,7 +692,7 @@ class PacketSigner:
             return VerificationResult(
                 valid=False,
                 algorithm=packet_signature.algorithm,
-                verified_at=datetime.now(),
+                verified_at=datetime.now(timezone.utc),
                 public_key=b"",
                 error_message="Packet signature expired or already used"
             )
@@ -708,7 +708,7 @@ class PacketSigner:
             return VerificationResult(
                 valid=False,
                 algorithm=packet_signature.algorithm,
-                verified_at=datetime.now(),
+                verified_at=datetime.now(timezone.utc),
                 public_key=b"",
                 error_message="Signing key not found"
             )
@@ -726,7 +726,7 @@ class PacketSigner:
             return VerificationResult(
                 valid=False,
                 algorithm=packet_signature.algorithm,
-                verified_at=datetime.now(),
+                verified_at=datetime.now(timezone.utc),
                 public_key=signing_key.public_key,
                 error_message="Keypairs not found"
             )
@@ -770,7 +770,7 @@ class PacketSigner:
             return VerificationResult(
                 valid=valid,
                 algorithm=packet_signature.algorithm,
-                verified_at=datetime.now(),
+                verified_at=datetime.now(timezone.utc),
                 public_key=signing_key.public_key,
                 error_message=None if valid else "Signature verification failed"
             )
@@ -780,7 +780,7 @@ class PacketSigner:
             return VerificationResult(
                 valid=False,
                 algorithm=packet_signature.algorithm,
-                verified_at=datetime.now(),
+                verified_at=datetime.now(timezone.utc),
                 public_key=signing_key.public_key,
                 error_message=f"Verification error: {str(exc)}"
             )

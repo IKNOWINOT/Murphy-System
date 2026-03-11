@@ -6,7 +6,7 @@ Defines execution packets, scopes, graphs, interfaces, and telemetry
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional, Set
 from enum import Enum
-from datetime import datetime
+from datetime import datetime, timezone
 import hashlib
 import json
 
@@ -499,7 +499,7 @@ class ExecutionPacket:
         self.phase = phase
 
         # Store timestamp BEFORE generating signature
-        self.signed_at = datetime.now()
+        self.signed_at = datetime.now(timezone.utc)
         self.sealed_at = self.signed_at
 
         # Generate signature
@@ -556,7 +556,7 @@ class ExecutionPacket:
         """
         self.state = PacketState.INVALIDATED
         self.metadata['invalidation_reason'] = reason
-        self.metadata['invalidated_at'] = datetime.now().isoformat()
+        self.metadata['invalidated_at'] = datetime.now(timezone.utc).isoformat()
 
     def can_execute(self) -> tuple[bool, List[str]]:
         """

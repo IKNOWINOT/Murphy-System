@@ -13,7 +13,7 @@ License: BSL 1.1
 """
 
 from typing import Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 import asyncio
 import sys
@@ -174,7 +174,7 @@ class IntegratedFormExecutor:
                 task_id=task.get('id'),
                 status=ExecutionStatus.COMPLETED,
                 output=result,
-                timestamp=datetime.now()
+                timestamp=datetime.now(timezone.utc)
             )
 
         except Exception as exc:
@@ -183,7 +183,7 @@ class IntegratedFormExecutor:
                 task_id=task.get('id'),
                 status=ExecutionStatus.FAILED,
                 error=str(exc),
-                timestamp=datetime.now()
+                timestamp=datetime.now(timezone.utc)
             )
 
     async def _execute_with_form_executor(
@@ -214,7 +214,7 @@ class IntegratedFormExecutor:
                 task_id=task.get('id'),
                 status=ExecutionStatus.FAILED,
                 error=str(exc),
-                timestamp=datetime.now()
+                timestamp=datetime.now(timezone.utc)
             )
 
     def _form_to_task(self, form_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -230,14 +230,14 @@ class IntegratedFormExecutor:
 
         # Extract task information from form
         task = {
-            'id': form_data.get('task_id', f"task_{datetime.now().timestamp()}"),
+            'id': form_data.get('task_id', f"task_{datetime.now(timezone.utc).timestamp()}"),
             'type': form_data.get('task_type', 'general'),
             'description': form_data.get('description', ''),
             'parameters': form_data.get('parameters', {}),
             'constraints': form_data.get('constraints', []),
             'priority': form_data.get('priority', 'normal'),
             'metadata': form_data.get('metadata', {}),
-            'timestamp': datetime.now()
+            'timestamp': datetime.now(timezone.utc)
         }
 
         return task

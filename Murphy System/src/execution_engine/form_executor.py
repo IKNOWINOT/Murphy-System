@@ -6,7 +6,7 @@ and human-in-the-loop checkpoints.
 """
 
 from typing import Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 import sys
 import os
@@ -107,7 +107,7 @@ class FormDrivenExecutor:
             task_id=context.task_id,
             execution_id=execution_id,
             status=ExecutionStatus.IN_PROGRESS,
-            started_at=datetime.now()
+            started_at=datetime.now(timezone.utc)
         )
 
         try:
@@ -164,7 +164,7 @@ class FormDrivenExecutor:
 
         finally:
             # Finalize result
-            result.completed_at = datetime.now()
+            result.completed_at = datetime.now(timezone.utc)
             result.total_duration_seconds = (
                 result.completed_at - result.started_at
             ).total_seconds()
@@ -434,6 +434,6 @@ class FormDrivenExecutor:
 
     def _generate_execution_id(self, task: Any) -> str:
         """Generate unique execution ID"""
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         task_id = getattr(task, 'task_id', 'unknown')
         return f"exec_{task_id}_{timestamp}"

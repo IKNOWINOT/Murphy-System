@@ -19,7 +19,7 @@ Endpoints:
 """
 
 from flask import Flask, request, jsonify
-from datetime import datetime
+from datetime import datetime, timezone
 import re
 import threading
 from typing import Dict, Optional
@@ -115,7 +115,7 @@ def health_check():
     return jsonify({
         'status': 'healthy',
         'service': 'execution_orchestrator',
-        'timestamp': datetime.now().isoformat(),
+        'timestamp': datetime.now(timezone.utc).isoformat(),
         'active_executions': len(executions),
         'components': {
             'validator': 'operational',
@@ -187,7 +187,7 @@ def execute_packet():
         status=ExecutionStatus.PENDING,
         current_step=0,
         total_steps=len(packet.get('execution_graph', {}).get('steps', [])),
-        start_time=datetime.now()
+        start_time=datetime.now(timezone.utc)
     )
 
     executions[packet_id] = execution_state
@@ -312,7 +312,7 @@ def _execute_packet_async(packet: Dict, execution_state: ExecutionState):
 
         # All steps completed successfully
         execution_state.status = ExecutionStatus.COMPLETED
-        execution_state.end_time = datetime.now()
+        execution_state.end_time = datetime.now(timezone.utc)
 
         # Get final metrics
         final_risk = risk_monitor.get_safety_state(packet_id).current_risk
@@ -343,7 +343,7 @@ def _execute_packet_async(packet: Dict, execution_state: ExecutionState):
         logger.debug("Caught exception: %s", exc)
         execution_state.status = ExecutionStatus.FAILED
         execution_state.error = str(exc)
-        execution_state.end_time = datetime.now()
+        execution_state.end_time = datetime.now(timezone.utc)
 
         telemetry.emit_execution_failed(
             packet_id,
@@ -518,7 +518,7 @@ def register_interface():
         is_available=bool(data.get('is_available', True)),
         response_time_ms=float(data.get('response_time_ms', 0.0)),
         error_rate=float(data.get('error_rate', 0.0)),
-        last_check=datetime.now()
+        last_check=datetime.now(timezone.utc)
     )
 
     validator.register_interface(health)
@@ -588,7 +588,7 @@ def abort_execution(packet_id: str):
 
     execution_state = executions[packet_id]
     execution_state.status = ExecutionStatus.ABORTED
-    execution_state.end_time = datetime.now()
+    execution_state.end_time = datetime.now(timezone.utc)
 
     return jsonify({
         'status': 'aborted',

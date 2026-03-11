@@ -4,7 +4,7 @@ Synthesizes gates based on failure modes and risk analysis
 """
 
 from typing import List, Dict, Any, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import hashlib
 
 from .models import (
@@ -209,7 +209,7 @@ class GateGenerator:
         ]
 
         priority = self._calculate_priority(murphy_probability, failure_mode.impact)
-        expires_at = datetime.now() + self.default_gate_duration
+        expires_at = datetime.now(timezone.utc) + self.default_gate_duration
 
         gate = Gate(
             id=gate_id,
@@ -263,7 +263,7 @@ class GateGenerator:
         ]
 
         priority = self._calculate_priority(murphy_probability, failure_mode.impact)
-        expires_at = datetime.now() + self.default_gate_duration
+        expires_at = datetime.now(timezone.utc) + self.default_gate_duration
 
         gate = Gate(
             id=gate_id,
@@ -323,7 +323,7 @@ class GateGenerator:
         ]
 
         priority = self._calculate_priority(murphy_probability, failure_mode.impact)
-        expires_at = datetime.now() + self.default_gate_duration
+        expires_at = datetime.now(timezone.utc) + self.default_gate_duration
 
         gate = Gate(
             id=gate_id,
@@ -373,7 +373,7 @@ class GateGenerator:
         priority = self._calculate_priority(murphy_probability, failure_mode.impact)
         priority = min(10, priority + 2)
 
-        expires_at = datetime.now() + self.default_gate_duration
+        expires_at = datetime.now(timezone.utc) + self.default_gate_duration
 
         gate = Gate(
             id=gate_id,
@@ -419,7 +419,7 @@ class GateGenerator:
         ]
 
         priority = self._calculate_priority(murphy_probability, failure_mode.impact)
-        expires_at = datetime.now() + self.default_gate_duration
+        expires_at = datetime.now(timezone.utc) + self.default_gate_duration
 
         gate = Gate(
             id=gate_id,
@@ -446,5 +446,5 @@ class GateGenerator:
 
     def _generate_gate_id(self, gate_type: str, failure_mode_id: str) -> str:
         """Generate unique gate ID"""
-        content = f"{gate_type}_{failure_mode_id}_{datetime.now().isoformat()}"
+        content = f"{gate_type}_{failure_mode_id}_{datetime.now(timezone.utc).isoformat()}"
         return hashlib.sha256(content.encode()).hexdigest()[:16]

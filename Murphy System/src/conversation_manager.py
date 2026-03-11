@@ -5,7 +5,7 @@ Integrates with MemoryArtifactSystem for important conversation preservation
 """
 
 from collections import deque
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
 import threading
@@ -38,11 +38,11 @@ class Conversation:
         msg = ConversationMessage(
             user_message=user_msg,
             bot_response=bot_msg,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             metadata=metadata or {}
         )
         self.messages.append(msg)
-        self.last_activity = datetime.now()
+        self.last_activity = datetime.now(timezone.utc)
 
     def get_recent_messages(self, count: int = 10) -> List[ConversationMessage]:
         """Get recent messages"""
@@ -99,7 +99,7 @@ class ConversationManager:
 
         self.conversations: Dict[str, Conversation] = {}
         self.lock = threading.Lock()
-        self.last_cleanup = datetime.now()
+        self.last_cleanup = datetime.now(timezone.utc)
 
         # Statistics
         self.stats = {
@@ -125,8 +125,8 @@ class ConversationManager:
                 conv = Conversation(
                     conversation_id=conversation_id,
                     messages=deque(maxlen=self.max_messages),
-                    created_at=datetime.now(),
-                    last_activity=datetime.now()
+                    created_at=datetime.now(timezone.utc),
+                    last_activity=datetime.now(timezone.utc)
                 )
                 self.conversations[conversation_id] = conv
                 self.stats['total_conversations'] += 1
@@ -154,7 +154,7 @@ class ConversationManager:
         self.stats['total_messages'] += 1
 
         # Periodic cleanup check
-        if (datetime.now() - self.last_cleanup).seconds > self.cleanup_interval:
+        if (datetime.now(timezone.utc) - self.last_cleanup).seconds > self.cleanup_interval:
             self.cleanup_old_conversations()
 
     def get_conversation_history(
@@ -196,7 +196,7 @@ class ConversationManager:
         Important conversations are archived to MemoryArtifactSystem before deletion.
         """
         with self.lock:
-            now = datetime.now()
+            now = datetime.now(timezone.utc)
             to_remove = []
 
             for conv_id, conv in self.conversations.items():
@@ -326,7 +326,7 @@ class ConversationManager:
                     for conv in self.conversations.values()
                 ],
                 'stats': self.stats,
-                'saved_at': datetime.now().isoformat()
+                'saved_at': datetime.now(timezone.utc).isoformat()
             }
 
             with open(filepath, 'w', encoding='utf-8') as f:

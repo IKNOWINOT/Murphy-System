@@ -6,7 +6,7 @@ Defines gates, risk vectors, exposure signals, and lifecycle management
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional, Set
 from enum import Enum
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import hashlib
 
 import logging
@@ -273,11 +273,11 @@ class Gate:
         """Activate the gate"""
         if self.state == GateState.PROPOSED:
             self.state = GateState.ACTIVE
-            self.activated_at = datetime.now()
+            self.activated_at = datetime.now(timezone.utc)
 
     def check_expiry(self) -> bool:
         """Check if gate has expired"""
-        if self.expires_at and datetime.now() > self.expires_at:
+        if self.expires_at and datetime.now(timezone.utc) > self.expires_at:
             self.state = GateState.EXPIRED
             return True
         return False
@@ -298,7 +298,7 @@ class Gate:
     def retire(self, reason: str = "") -> None:
         """Retire the gate"""
         self.state = GateState.RETIRED
-        self.retired_at = datetime.now()
+        self.retired_at = datetime.now(timezone.utc)
         if reason:
             self.metadata['retirement_reason'] = reason
 

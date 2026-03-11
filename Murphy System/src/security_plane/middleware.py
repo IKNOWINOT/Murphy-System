@@ -23,12 +23,13 @@ Security Guarantees:
 
 from dataclasses import dataclass, field
 from typing import Optional, Dict, Any, Callable, List
-from datetime import datetime
+from datetime import datetime, timezone
 import hashlib
 import hmac
 import secrets
 import time
 import functools
+from urllib.parse import urlparse
 
 # Import Security Plane components
 from src.security_plane.authentication import (
@@ -189,7 +190,7 @@ class AuthenticationMiddleware:
                 identity_id=context.identity,
                 trust_level=TrustLevel.MEDIUM,
                 confidence=0.8,
-                computed_at=datetime.now(),
+                computed_at=datetime.now(timezone.utc),
                 cryptographic_proof_strength=0.9,
                 behavioral_consistency=0.8,
                 confidence_stability=0.8,
@@ -211,7 +212,7 @@ class AuthenticationMiddleware:
             if not context:
                 context = SecurityContext(
                     request_id=secrets.token_hex(16),
-                    timestamp=datetime.now()
+                    timestamp=datetime.now(timezone.utc)
                 )
                 kwargs['context'] = context
 
@@ -458,7 +459,7 @@ class AuditLoggingMiddleware:
         # Create audit log entry
         log_entry = AuditLogEntry(
             log_id=secrets.token_hex(16),
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             event_type="request",
             component=request_data.get('component', 'unknown'),
             operation=request_data.get('operation', 'unknown'),
@@ -491,7 +492,7 @@ class AuditLoggingMiddleware:
         # Create audit log entry
         log_entry = AuditLogEntry(
             log_id=secrets.token_hex(16),
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             event_type="response",
             component=response_data.get('component', 'unknown'),
             operation=response_data.get('operation', 'unknown'),
@@ -631,15 +632,26 @@ class DLPMiddleware:
         return True
 
     def _is_trusted_destination(self, destination: str) -> bool:
-        """Check if destination is trusted"""
-        # Simplified - real implementation would check against whitelist
+        """Check if destination is trusted using proper URL parsing to prevent
+        substring bypass attacks (e.g. 'evil-localhost.attacker.com' matching
+        'localhost' via simple substring check).
+        """
         trusted_domains = [
             'localhost',
             '127.0.0.1',
             'murphy-system.internal'
         ]
-
-        return any(domain in destination for domain in trusted_domains)
+        try:
+            parsed = urlparse(
+                destination if '://' in destination else f'https://{destination}'
+            )
+            hostname = (parsed.hostname or '').lower()
+        except Exception:
+            return False
+        return hostname in trusted_domains or any(
+            hostname == domain or hostname.endswith('.' + domain)
+            for domain in trusted_domains
+        )
 
 
 # ============================================================================
@@ -710,7 +722,7 @@ class SecurityMiddleware:
         # Create security context
         context = SecurityContext(
             request_id=secrets.token_hex(16),
-            timestamp=datetime.now()
+            timestamp=datetime.now(timezone.utc)
         )
 
         self.total_requests += 1

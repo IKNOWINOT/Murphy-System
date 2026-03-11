@@ -8,7 +8,7 @@ Provides backend-to-frontend API layer for user interaction
 from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, field
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 import logging
 logger = logging.getLogger("system_integrator")
@@ -127,7 +127,7 @@ class SystemIntegrator:
     """
 
     def __init__(self):
-        self.system_id = f"murphy_system_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        self.system_id = f"murphy_system_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
         self.request_count = 0
 
         # Initialize all components
@@ -244,7 +244,7 @@ class SystemIntegrator:
             user_input=user_input,
             request_type="auto_detect",
             parameters=parameters or {},
-            timestamp=datetime.now().isoformat()
+            timestamp=datetime.now(timezone.utc).isoformat()
         )
         self.request_history.append(request)
 
@@ -292,7 +292,7 @@ class SystemIntegrator:
                 message=f"Error processing request: {str(exc)}",
                 warnings=[],
                 triggers=[],
-                timestamp=datetime.now().isoformat()
+                timestamp=datetime.now(timezone.utc).isoformat()
             )
 
     def _detect_request_type(self, user_input: str, parameters: Dict) -> str:
@@ -383,7 +383,7 @@ class SystemIntegrator:
             message=f"System built successfully with {len(experts)} experts and {len(gates)} gates",
             warnings=[],
             triggers=[],
-            timestamp=datetime.now().isoformat()
+            timestamp=datetime.now(timezone.utc).isoformat()
         )
 
     def _handle_generate_experts(self, request: UserRequest) -> SystemResponse:
@@ -429,7 +429,7 @@ class SystemIntegrator:
             message=message,
             warnings=[],
             triggers=[],
-            timestamp=datetime.now().isoformat()
+            timestamp=datetime.now(timezone.utc).isoformat()
         )
 
     def _handle_create_gates(self, request: UserRequest) -> SystemResponse:
@@ -458,7 +458,7 @@ class SystemIntegrator:
             message=f"Generated {len(gates)} domain gates",
             warnings=[],
             triggers=[],
-            timestamp=datetime.now().isoformat()
+            timestamp=datetime.now(timezone.utc).isoformat()
         )
 
     def _handle_add_constraints(self, request: UserRequest) -> SystemResponse:
@@ -501,7 +501,7 @@ class SystemIntegrator:
             message=f"Added constraint: {constraint.name}",
             warnings=[],
             triggers=[],
-            timestamp=datetime.now().isoformat()
+            timestamp=datetime.now(timezone.utc).isoformat()
         )
 
     def _handle_upload_document(self, request: UserRequest) -> SystemResponse:
@@ -529,7 +529,7 @@ class SystemIntegrator:
             message=f"Document processed: {metadata.name}",
             warnings=[],
             triggers=[],
-            timestamp=datetime.now().isoformat()
+            timestamp=datetime.now(timezone.utc).isoformat()
         )
 
     def _handle_analyze_choice(self, request: UserRequest) -> SystemResponse:
@@ -565,7 +565,7 @@ class SystemIntegrator:
             message=f"Choice analysis complete. Recommended: {recommendation.recommended_option}",
             warnings=[],
             triggers=[],
-            timestamp=datetime.now().isoformat()
+            timestamp=datetime.now(timezone.utc).isoformat()
         )
 
     def _handle_validate_system(self, request: UserRequest) -> SystemResponse:
@@ -599,7 +599,7 @@ class SystemIntegrator:
             message="System validation complete",
             warnings=warnings,
             triggers=[],
-            timestamp=datetime.now().isoformat()
+            timestamp=datetime.now(timezone.utc).isoformat()
         )
 
     def _handle_get_recommendations(self, request: UserRequest) -> SystemResponse:
@@ -617,7 +617,7 @@ class SystemIntegrator:
             message=f"Retrieved {len(self.recommendations)} recommendations",
             warnings=[],
             triggers=[],
-            timestamp=datetime.now().isoformat()
+            timestamp=datetime.now(timezone.utc).isoformat()
         )
 
     def _handle_chat(self, request: UserRequest) -> SystemResponse:
@@ -638,7 +638,7 @@ class SystemIntegrator:
             message=llm_response.response,
             warnings=[],
             triggers=[],
-            timestamp=datetime.now().isoformat()
+            timestamp=datetime.now(timezone.utc).isoformat()
         )
 
     def _handle_general_query(self, request: UserRequest) -> SystemResponse:
@@ -708,7 +708,7 @@ class SystemIntegrator:
         """Generate comprehensive system report"""
         report = {
             'system_id': self.system_id,
-            'timestamp': datetime.now().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'system_state': self.get_system_state().__dict__,
             'metrics': {
                 'total_requests': self.request_count,
@@ -977,7 +977,7 @@ class SystemIntegrator:
             constraints=self.constraint_system.constraints if hasattr(self.constraint_system, 'constraints') else {},
             requirements=self.requirements,
             recommendations=self.recommendations,
-            last_updated=datetime.now().isoformat(),
+            last_updated=datetime.now(timezone.utc).isoformat(),
             metrics={
                 "total_requests": self.request_count,
                 "total_experts": len(self.experts),

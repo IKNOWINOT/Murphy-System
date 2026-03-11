@@ -111,10 +111,10 @@ def create_api() -> Blueprint:
             }), 200
 
         except Exception as exc:
-            logger.debug("Caught exception: %s", exc)
+            logger.error("Caught exception: %s", exc, exc_info=True)
             return jsonify({
                 'status': 'error',
-                'message': str(exc)
+                'message': 'Internal server error'
             }), 500
 
 
@@ -189,10 +189,10 @@ def create_api() -> Blueprint:
             }), 200
 
         except Exception as exc:
-            logger.debug("Caught exception: %s", exc)
+            logger.error("Caught exception: %s", exc, exc_info=True)
             return jsonify({
                 'status': 'error',
-                'message': str(exc)
+                'message': 'Internal server error'
             }), 500
 
 
@@ -236,10 +236,10 @@ def create_api() -> Blueprint:
             }), 200
 
         except Exception as exc:
-            logger.debug("Caught exception: %s", exc)
+            logger.error("Caught exception: %s", exc, exc_info=True)
             return jsonify({
                 'status': 'error',
-                'message': str(exc)
+                'message': 'Internal server error'
             }), 500
 
 
@@ -271,10 +271,10 @@ def create_api() -> Blueprint:
             }), 200
 
         except Exception as exc:
-            logger.debug("Caught exception: %s", exc)
+            logger.error("Caught exception: %s", exc, exc_info=True)
             return jsonify({
                 'status': 'error',
-                'message': str(exc)
+                'message': 'Internal server error'
             }), 500
 
 
@@ -306,10 +306,10 @@ def create_api() -> Blueprint:
             }), 200
 
         except Exception as exc:
-            logger.debug("Caught exception: %s", exc)
+            logger.error("Caught exception: %s", exc, exc_info=True)
             return jsonify({
                 'status': 'error',
-                'message': str(exc)
+                'message': 'Internal server error'
             }), 500
 
 
@@ -351,10 +351,10 @@ def create_api() -> Blueprint:
             }), 200
 
         except Exception as exc:
-            logger.debug("Caught exception: %s", exc)
+            logger.error("Caught exception: %s", exc, exc_info=True)
             return jsonify({
                 'status': 'error',
-                'message': str(exc)
+                'message': 'Internal server error'
             }), 500
 
 
@@ -386,10 +386,10 @@ def create_api() -> Blueprint:
             }), 200
 
         except Exception as exc:
-            logger.debug("Caught exception: %s", exc)
+            logger.error("Caught exception: %s", exc, exc_info=True)
             return jsonify({
                 'status': 'error',
-                'message': str(exc)
+                'message': 'Internal server error'
             }), 500
 
 
@@ -415,10 +415,10 @@ def create_api() -> Blueprint:
             }), 200
 
         except Exception as exc:
-            logger.debug("Caught exception: %s", exc)
+            logger.error("Caught exception: %s", exc, exc_info=True)
             return jsonify({
                 'status': 'error',
-                'message': str(exc)
+                'message': 'Internal server error'
             }), 500
 
 
@@ -447,10 +447,10 @@ def create_api() -> Blueprint:
             }), 200
 
         except Exception as exc:
-            logger.debug("Caught exception: %s", exc)
+            logger.error("Caught exception: %s", exc, exc_info=True)
             return jsonify({
                 'status': 'unhealthy',
-                'error': str(exc)
+                'error': 'Internal server error'
             }), 500
 
 

@@ -80,14 +80,17 @@ Murphy System implements the following controls (see `docs/QA_AUDIT_REPORT.md` f
 
 | Control | Implementation |
 |---------|---------------|
-| Authentication | API key via `Authorization: Bearer` or `X-API-Key`; enforced in `src/fastapi_security.py` |
+| Authentication | API key via `Authorization: Bearer` or `X-API-Key`; enforced in `src/fastapi_security.py` and `src/flask_security.py` |
 | Authorization | Scope-based access; production mode requires `MURPHY_API_KEYS` |
 | CORS | Origin allowlist via `MURPHY_CORS_ORIGINS`; no wildcard `*` |
 | Rate limiting | Token-bucket per IP/key; configurable via env vars |
-| Input sanitization | Request body validation via Pydantic; additional sanitization in `src/fastapi_security.py` |
+| Input sanitization | Request body validation via Pydantic; iterative path-traversal stripping in `src/input_validation.py` (CWE-22 defence) |
 | Security headers | `X-Content-Type-Options`, `X-Frame-Options`, `Strict-Transport-Security` injected by middleware |
-| Secrets | API keys never logged; masked in `/api/llm/configure` responses |
+| Secrets | API keys never logged; masked in `/api/llm/configure` responses; warning emitted when key stored in `os.environ` |
 | Audit logging | Every task execution generates an immutable `audit_id` |
+| API key comparison | Constant-time `hmac.compare_digest` used in both Flask and FastAPI validators (CWE-208 defence) |
+| DLP trusted-destination | `security_plane/middleware.py` uses `urllib.parse.urlparse` for hostname extraction — substring attacks like `evil-localhost.attacker.com` are rejected (CWE-20 defence) |
+| Subprocess execution | All `subprocess.run` calls use `shell=False` + `shlex.split()` (CWE-78 defence) |
 
 ---
 

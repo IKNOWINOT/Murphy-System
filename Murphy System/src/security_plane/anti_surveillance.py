@@ -21,7 +21,7 @@ Security Guarantees:
 
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Set, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 import hashlib
 import secrets
@@ -389,7 +389,7 @@ class TrafficPaddingEngine:
         pattern = TrafficPattern(
             pattern_id=f"traffic_{secrets.token_hex(8)}",
             pattern_type=TrafficPatternType.CONSTANT_RATE,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             packet_count=len(all_packets),
             total_bytes=sum(len(p) for p in all_packets),
             duration_seconds=duration_seconds,
@@ -522,7 +522,7 @@ class ConstantTimeOperations:
         profile = TimingProfile(
             profile_id=f"timing_{secrets.token_hex(8)}",
             operation_name=operation_name,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             execution_time_ms=execution_time_ms,
             normalized_time_ms=target_time_ms,
             added_delay_ms=delay_ms,
@@ -681,7 +681,7 @@ class KAnonymityEngine:
         anonymity_set = AnonymitySet(
             set_id=f"anon_{secrets.token_hex(8)}",
             technique=AnonymizationTechnique.K_ANONYMITY,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             k_value=self.k,
             member_ids=member_ids,
             unlinkability_guaranteed=True,

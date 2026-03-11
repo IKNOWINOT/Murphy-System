@@ -13,7 +13,7 @@ CRITICAL SECURITY CONSTRAINTS:
 
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Set, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 import hashlib
 
@@ -99,12 +99,12 @@ class TrustScore:
 
     def is_expired(self, max_age_seconds: int = 3600) -> bool:
         """Check if trust score has expired."""
-        age = (datetime.now() - self.computed_at).total_seconds()
+        age = (datetime.now(timezone.utc) - self.computed_at).total_seconds()
         return age > max_age_seconds
 
     def compute_decayed_confidence(self) -> float:
         """Compute confidence after time-based decay."""
-        elapsed_hours = (datetime.now() - self.last_activity).total_seconds() / 3600
+        elapsed_hours = (datetime.now(timezone.utc) - self.last_activity).total_seconds() / 3600
         decayed = self.confidence * (1 - self.decay_rate) ** elapsed_hours
         return max(0.0, decayed)
 
@@ -215,7 +215,7 @@ class ExecutionPacketSignature:
 
     def is_valid(self) -> bool:
         """Check if signature is still valid."""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
 
         # Check time window
         if now < self.time_window_start or now > self.time_window_end:
@@ -233,7 +233,7 @@ class ExecutionPacketSignature:
             raise ValueError(f"Packet {self.packet_id} already used at {self.used_at}")
 
         self.used = True
-        self.used_at = datetime.now()
+        self.used_at = datetime.now(timezone.utc)
 
 
 @dataclass
@@ -344,11 +344,11 @@ class CryptographicKey:
 
     def is_expired(self) -> bool:
         """Check if key has expired."""
-        return datetime.now() > self.expires_at
+        return datetime.now(timezone.utc) > self.expires_at
 
     def time_until_expiry(self) -> timedelta:
         """Get time until key expires."""
-        return self.expires_at - datetime.now()
+        return self.expires_at - datetime.now(timezone.utc)
 
     def should_rotate(self, rotation_threshold: timedelta = timedelta(minutes=5)) -> bool:
         """Check if key should be rotated."""

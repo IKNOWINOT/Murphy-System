@@ -14,7 +14,7 @@ Failure Types:
 import random
 import hashlib
 from typing import Dict, List, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .models import (
     FailureCase,
@@ -373,6 +373,6 @@ class OrganizationalFailureGenerator:
 
     def _generate_failure_id(self, failure_type: str) -> str:
         """Generate unique failure ID"""
-        timestamp = datetime.now().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
         data = f"{failure_type}:{timestamp}:{random.random()}"
         return hashlib.sha256(data.encode()).hexdigest()[:16]

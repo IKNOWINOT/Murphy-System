@@ -244,9 +244,7 @@ class AutomationLoopConnector:
         )
 
         with self._lock:
-            self._cycle_history.append(result)
-            if len(self._cycle_history) > 100:
-                self._cycle_history = self._cycle_history[-100:]
+            capped_append(self._cycle_history, result, max_size=100)
 
         logger.info(
             "Automation loop cycle %s: outcomes=%d patterns=%d proposals=%d tasks=%d",
