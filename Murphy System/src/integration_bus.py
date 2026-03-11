@@ -66,6 +66,11 @@ class IntegrationBus:
         self._domain_engine: Optional[Any] = None
         self._swarm_system: Optional[Any] = None
         self._feedback_integrator: Optional[Any] = None
+        # New modules from PR #195
+        self._shadow_knostalgia_bridge: Optional[Any] = None
+        self._dynamic_assist_engine: Optional[Any] = None
+        self._kfactor_calculator: Optional[Any] = None
+        self._onboarding_team_pipeline: Optional[Any] = None
         self._initialized: bool = False
 
         # Load attempts so we don't keep retrying broken imports
@@ -84,13 +89,19 @@ class IntegrationBus:
         logger.info(
             "IntegrationBus initialised — llm_integration_layer=%s, "
             "llm_controller=%s, llm_output_validator=%s, "
-            "domain_engine=%s, swarm=%s, feedback_integrator=%s",
+            "domain_engine=%s, swarm=%s, feedback_integrator=%s, "
+            "shadow_knostalgia_bridge=%s, dynamic_assist_engine=%s, "
+            "kfactor_calculator=%s, onboarding_team_pipeline=%s",
             self._llm_integration_layer is not None,
             self._llm_controller is not None,
             self._llm_output_validator is not None,
             self._domain_engine is not None,
             self._swarm_system is not None,
             self._feedback_integrator is not None,
+            self._shadow_knostalgia_bridge is not None,
+            self._dynamic_assist_engine is not None,
+            self._kfactor_calculator is not None,
+            self._onboarding_team_pipeline is not None,
         )
 
     def _load_all(self) -> None:
@@ -100,6 +111,11 @@ class IntegrationBus:
         self._domain_engine = self._load_domain_engine()
         self._swarm_system = self._load_swarm_system()
         self._feedback_integrator = self._load_feedback_integrator()
+        # Load dependencies first so the bridge can reference them
+        self._dynamic_assist_engine = self._load_dynamic_assist_engine()
+        self._kfactor_calculator = self._load_kfactor_calculator()
+        self._shadow_knostalgia_bridge = self._load_shadow_knostalgia_bridge()
+        self._onboarding_team_pipeline = self._load_onboarding_team_pipeline()
 
     # ------------------------------------------------------------------
     # Module loaders
@@ -207,6 +223,76 @@ class IntegrationBus:
             return cls()
         except Exception as exc:
             logger.warning("IntegrationBus: failed to instantiate FeedbackIntegrator: %s", exc)
+            return None
+
+    def _load_shadow_knostalgia_bridge(self) -> Optional[Any]:
+        if self._load_attempted.get("shadow_knostalgia_bridge"):
+            return self._shadow_knostalgia_bridge
+        self._load_attempted["shadow_knostalgia_bridge"] = True
+        mod = _try_import("src.shadow_knostalgia_bridge")
+        if mod is None:
+            return None
+        cls = _safe_get_class(mod, "ShadowKnostalgiaBridge")
+        if cls is None:
+            return None
+        try:
+            # Use already-loaded dependencies if available; the constructor
+            # creates defaults (KFactorCalculator(), DynamicAssistEngine())
+            # when passed None, so it is safe to forward None here.
+            return cls(
+                kfactor_calculator=self._kfactor_calculator,
+                dynamic_assist_engine=self._dynamic_assist_engine,
+            )
+        except Exception as exc:
+            logger.warning("IntegrationBus: failed to instantiate ShadowKnostalgiaBridge: %s", exc)
+            return None
+
+    def _load_dynamic_assist_engine(self) -> Optional[Any]:
+        if self._load_attempted.get("dynamic_assist_engine"):
+            return self._dynamic_assist_engine
+        self._load_attempted["dynamic_assist_engine"] = True
+        mod = _try_import("src.dynamic_assist_engine")
+        if mod is None:
+            return None
+        cls = _safe_get_class(mod, "DynamicAssistEngine")
+        if cls is None:
+            return None
+        try:
+            return cls()
+        except Exception as exc:
+            logger.warning("IntegrationBus: failed to instantiate DynamicAssistEngine: %s", exc)
+            return None
+
+    def _load_kfactor_calculator(self) -> Optional[Any]:
+        if self._load_attempted.get("kfactor_calculator"):
+            return self._kfactor_calculator
+        self._load_attempted["kfactor_calculator"] = True
+        mod = _try_import("src.kfactor_calculator")
+        if mod is None:
+            return None
+        cls = _safe_get_class(mod, "KFactorCalculator")
+        if cls is None:
+            return None
+        try:
+            return cls()
+        except Exception as exc:
+            logger.warning("IntegrationBus: failed to instantiate KFactorCalculator: %s", exc)
+            return None
+
+    def _load_onboarding_team_pipeline(self) -> Optional[Any]:
+        if self._load_attempted.get("onboarding_team_pipeline"):
+            return self._onboarding_team_pipeline
+        self._load_attempted["onboarding_team_pipeline"] = True
+        mod = _try_import("src.onboarding_team_pipeline")
+        if mod is None:
+            return None
+        cls = _safe_get_class(mod, "OnboardingTeamPipeline")
+        if cls is None:
+            return None
+        try:
+            return cls()
+        except Exception as exc:
+            logger.warning("IntegrationBus: failed to instantiate OnboardingTeamPipeline: %s", exc)
             return None
 
     # ------------------------------------------------------------------
@@ -480,6 +566,10 @@ class IntegrationBus:
                 "domain_engine": self._domain_engine is not None,
                 "swarm_system": self._swarm_system is not None,
                 "feedback_integrator": self._feedback_integrator is not None,
+                "shadow_knostalgia_bridge": self._shadow_knostalgia_bridge is not None,
+                "dynamic_assist_engine": self._dynamic_assist_engine is not None,
+                "kfactor_calculator": self._kfactor_calculator is not None,
+                "onboarding_team_pipeline": self._onboarding_team_pipeline is not None,
             },
         }
 

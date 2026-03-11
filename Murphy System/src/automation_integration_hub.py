@@ -465,3 +465,68 @@ class AutomationIntegrationHub:
             self._backbone.publish_event(evt)
         except Exception as exc:
             logger.debug("EventBackbone publish skipped: %s", exc)
+
+    # ------------------------------------------------------------------
+    # New module registration helpers (PR #195)
+    # ------------------------------------------------------------------
+
+    def register_onboarding_pipeline(self, pipeline: Any) -> None:
+        """Register an OnboardingTeamPipeline instance as a handler for onboarding events.
+
+        The pipeline's ``extract_team_members`` method is invoked for every
+        ``ONBOARDING_TEAM_DISCOVERY`` event.  Uses graceful degradation — if the
+        pipeline is None (e.g. import failed upstream) the registration is skipped.
+        """
+        if pipeline is None:
+            logger.warning("AutomationIntegrationHub: OnboardingTeamPipeline is None, skipping registration")
+            return
+
+        def _handler(event_type: str, payload: Dict[str, Any]) -> None:
+            message = payload.get("message", "")
+            if message:
+                try:
+                    pipeline.extract_team_members(message)
+                except Exception as exc:
+                    logger.warning("OnboardingTeamPipeline handler error: %s", exc)
+
+        self.register_module(
+            design_label="BIZ-003-TEAM",
+            name="OnboardingTeamPipeline",
+            phase=ModulePhase.BUSINESS,
+            handler=_handler,
+            description="Extracts team members from NL and generates Rosetta docs + shadow agents",
+            event_types=["ONBOARDING_TEAM_DISCOVERY", "ONBOARDING_MESSAGE"],
+        )
+        logger.info("AutomationIntegrationHub: OnboardingTeamPipeline registered for onboarding events")
+
+    def register_shadow_bridge(self, bridge: Any) -> None:
+        """Register a ShadowKnostalgiaBridge instance as a handler for shadow observation events.
+
+        The bridge's ``record_observation`` method is invoked for every
+        ``SHADOW_OBSERVATION`` event payload that contains the required fields.
+        Uses graceful degradation — if the bridge is None the registration is skipped.
+        """
+        if bridge is None:
+            logger.warning("AutomationIntegrationHub: ShadowKnostalgiaBridge is None, skipping registration")
+            return
+
+        def _handler(event_type: str, payload: Dict[str, Any]) -> None:
+            try:
+                bridge.record_observation(
+                    shadow_agent_id=payload.get("shadow_agent_id", "unknown"),
+                    process_name=payload.get("process_name", "unknown"),
+                    action_observed=payload.get("action_observed", ""),
+                    variation_from_norm=bool(payload.get("variation_from_norm", False)),
+                )
+            except Exception as exc:
+                logger.warning("ShadowKnostalgiaBridge handler error: %s", exc)
+
+        self.register_module(
+            design_label="SHADOW-OBS-001",
+            name="ShadowKnostalgiaBridge",
+            phase=ModulePhase.INTEGRATION,
+            handler=_handler,
+            description="Bridges shadow observations with knostalgia memory",
+            event_types=["SHADOW_OBSERVATION", "SHADOW_AGENT_EVENT"],
+        )
+        logger.info("AutomationIntegrationHub: ShadowKnostalgiaBridge registered for shadow events")
