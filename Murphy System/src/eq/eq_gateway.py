@@ -110,9 +110,10 @@ class EQGateway:
         """
         lower = content.lower()
 
-        # Check for blocked terms
+        # Check for blocked terms using word-boundary matching to prevent
+        # substring false-positives (e.g. "classic" containing "class")
         for term in self._blocked_terms:
-            if term in lower:
+            if re.search(r'\b' + re.escape(term) + r'\b', lower):
                 return False, f"blocked_term:{term}"
 
         # Check for code patterns

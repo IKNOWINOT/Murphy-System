@@ -4,7 +4,7 @@ Manages gate activation, persistence, retirement, and conflict resolution
 """
 
 from typing import List, Dict, Any, Optional, Set
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .models import (
     Gate,
@@ -15,6 +15,7 @@ from .models import (
 )
 
 import logging
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -47,8 +48,8 @@ class GateLifecycleManager:
         """
         self.registry.add_gate(gate)
 
-        self.activation_log.append({
-            'timestamp': datetime.now().isoformat(),
+        capped_append(self.activation_log, {
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'action': 'gate_added',
             'gate_id': gate.id,
             'category': gate.category.value,
@@ -75,8 +76,8 @@ class GateLifecycleManager:
 
         gate.activate()
 
-        self.activation_log.append({
-            'timestamp': datetime.now().isoformat(),
+        capped_append(self.activation_log, {
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'action': 'gate_activated',
             'gate_id': gate.id,
             'category': gate.category.value
@@ -154,8 +155,8 @@ class GateLifecycleManager:
 
         gate.retire(reason)
 
-        self.retirement_log.append({
-            'timestamp': datetime.now().isoformat(),
+        capped_append(self.retirement_log, {
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'action': 'gate_retired',
             'gate_id': gate.id,
             'category': gate.category.value,
@@ -174,8 +175,8 @@ class GateLifecycleManager:
         expired_ids = self.registry.retire_expired_gates()
 
         for gate_id in expired_ids:
-            self.retirement_log.append({
-                'timestamp': datetime.now().isoformat(),
+            capped_append(self.retirement_log, {
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'action': 'gate_expired',
                 'gate_id': gate_id
             })
@@ -251,8 +252,8 @@ class GateLifecycleManager:
 
             # Log conflicts
             for gate in sorted_gates[1:]:
-                self.activation_log.append({
-                    'timestamp': datetime.now().isoformat(),
+                capped_append(self.activation_log, {
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
                     'action': 'gate_conflict_resolved',
                     'gate_id': gate.id,
                     'superseded_by': sorted_gates[0].id,

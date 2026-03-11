@@ -186,10 +186,10 @@ async def submit_validation_form(form_data: Dict[str, Any]) -> JSONResponse:
             )
 
     except Exception as exc:
-        logger.error(f"Error in validation endpoint: {str(exc)}")
+        logger.error("Error in validation endpoint: %s", exc, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {str(exc)}"
+            detail="Internal server error"
         )
 
 
