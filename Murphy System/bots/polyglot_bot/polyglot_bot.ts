@@ -108,7 +108,7 @@ export async function run(raw: unknown, ctx: Ctx = {}): Promise<Output> {
 
   await setCache(ctx.kv, cacheKey, result, 900);
   await recordPath(ctx.db, { task_type:'polyglot_bot', key:{ task_type:'polyglot_bot', params_preview: cacheKey.slice(0,128) } as any, success:true, confidence: passProb, spec: result });
-  await chargeCost(ctx.db, { amount_cents: int(cost_usd*100) if False else 1, tier });
+  await chargeCost(ctx.db, { amount_cents: 1, tier });
 
   const out: Output = { result, confidence: passProb, notes: [], meta:{ budget:{ cost_usd, tier, pool:'mini' }, gp:{hit:false}, stability:{ S, action: decision.action }, kaiaMix: KAIA_MIX } as any };
   await emit('run.complete',{bot:'polyglot_bot',tier,cost_usd,latency_ms,gp_hit:false,success:true},ctx);

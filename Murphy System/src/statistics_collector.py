@@ -59,9 +59,10 @@ class ThreadSafeStatisticsCollector:
     ) -> int:
         """Atomically increment a counter."""
         key = self._make_key(name, labels)
-        current = self._counters.get(key, 0)
-        new_value = current + value
-        self._counters.set(key, new_value)
+        with self._counters._lock:
+            current = self._counters._dict.get(key, 0)
+            new_value = current + value
+            self._counters._dict[key] = new_value
         return new_value
 
     def decrement_counter(
@@ -72,9 +73,10 @@ class ThreadSafeStatisticsCollector:
     ) -> int:
         """Atomically decrement a counter."""
         key = self._make_key(name, labels)
-        current = self._counters.get(key, 0)
-        new_value = max(0, current - value)
-        self._counters.set(key, new_value)
+        with self._counters._lock:
+            current = self._counters._dict.get(key, 0)
+            new_value = max(0, current - value)
+            self._counters._dict[key] = new_value
         return new_value
 
     def set_gauge(
@@ -95,9 +97,10 @@ class ThreadSafeStatisticsCollector:
     ) -> float:
         """Atomically increment a gauge value."""
         key = self._make_key(name, labels)
-        current = self._gauges.get(key, 0.0)
-        new_value = current + value
-        self._gauges.set(key, new_value)
+        with self._gauges._lock:
+            current = self._gauges._dict.get(key, 0.0)
+            new_value = current + value
+            self._gauges._dict[key] = new_value
         return new_value
 
     def record_histogram(
@@ -108,9 +111,10 @@ class ThreadSafeStatisticsCollector:
     ) -> None:
         """Record a value in a histogram."""
         key = self._make_key(name, labels)
-        histogram = self._histograms.get(key, [])
-        histogram.append(value)
-        self._histograms.set(key, histogram)
+        with self._histograms._lock:
+            histogram = self._histograms._dict.get(key, []).copy()
+            histogram.append(value)
+            self._histograms._dict[key] = histogram
 
     def get_counter(
         self,
