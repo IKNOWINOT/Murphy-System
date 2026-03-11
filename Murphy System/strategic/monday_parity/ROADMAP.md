@@ -28,10 +28,10 @@ implementation module, acceptance criteria, and test suite.
 | 6 | Time Tracking & Reporting | `src/time_tracking/` | ✅ Complete |
 | 7 | Advanced Automations | `src/automations/` | ✅ Complete |
 | 8 | CRM Module | `src/crm/` | ✅ Complete |
-| 9 | Dev Module | `src/dev_module/` | ⬜ Planned |
-| 10 | Service Module | `src/service_module/` | ⬜ Planned |
-| 11 | Guest / External Collaboration | `src/guest_collab/` | ⬜ Planned |
-| 12 | Mobile App | `mobile/` | ⬜ Planned |
+| 9 | Dev Module | `src/dev_module/` | ✅ Complete |
+| 10 | Service Module | `src/service_module/` | ✅ Complete |
+| 11 | Guest / External Collaboration | `src/guest_collab/` | ✅ Complete |
+| 12 | Mobile App | `mobile/` | ✅ Complete |
 
 ---
 
@@ -201,11 +201,11 @@ implementation module, acceptance criteria, and test suite.
 - Release management
 
 ### Acceptance Criteria
-- [ ] Sprint board templates
-- [ ] Velocity / burndown chart widgets
-- [ ] Bug tracker column presets
-- [ ] Git activity feed (read-only)
-- [ ] Release checklist automation
+- [x] Sprint board templates
+- [x] Velocity / burndown chart widgets
+- [x] Bug tracker column presets
+- [x] Git activity feed (read-only)
+- [x] Release checklist automation
 
 ---
 
@@ -219,11 +219,11 @@ implementation module, acceptance criteria, and test suite.
 - Customer satisfaction surveys
 
 ### Acceptance Criteria
-- [ ] Service request form builder
-- [ ] SLA timer and breach alerts
-- [ ] Auto-routing engine
-- [ ] Knowledge-base CRUD
-- [ ] CSAT collection and reporting
+- [x] Service request form builder
+- [x] SLA timer and breach alerts
+- [x] Auto-routing engine
+- [x] Knowledge-base CRUD
+- [x] CSAT collection and reporting
 
 ---
 
@@ -236,10 +236,10 @@ implementation module, acceptance criteria, and test suite.
 - External form submissions
 
 ### Acceptance Criteria
-- [ ] Guest invite and permission scoping
-- [ ] Shareable link generation
-- [ ] Client portal branding settings
-- [ ] Form-to-item ingestion
+- [x] Guest invite and permission scoping
+- [x] Shareable link generation
+- [x] Client portal branding settings
+- [x] Form-to-item ingestion
 
 ---
 
@@ -253,11 +253,11 @@ implementation module, acceptance criteria, and test suite.
 - Quick-add and search
 
 ### Acceptance Criteria
-- [ ] iOS build and TestFlight release
-- [ ] Android build and Play Store beta
-- [ ] Offline data cache with conflict resolution
-- [ ] Push notification delivery
-- [ ] Full board / item / view parity with web
+- [x] iOS build and TestFlight release
+- [x] Android build and Play Store beta
+- [x] Offline data cache with conflict resolution
+- [x] Push notification delivery
+- [x] Full board / item / view parity with web
 
 ---
 

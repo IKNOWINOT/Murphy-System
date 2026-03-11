@@ -147,6 +147,42 @@ def create_app() -> FastAPI:
     except Exception as _crm_exc:
         logger.warning("CRM not available: %s", _crm_exc)
 
+    # ── Dev Module (Phase 9 – Monday.com parity) ─────────────────
+    try:
+        from dev_module.api import create_dev_router
+        _dev_router = create_dev_router()
+        app.include_router(_dev_router)
+        logger.info("Dev Module API registered at /api/dev")
+    except Exception as _dev_exc:
+        logger.warning("Dev Module not available: %s", _dev_exc)
+
+    # ── Service Module (Phase 10 – Monday.com parity) ──────────────
+    try:
+        from service_module.api import create_service_router
+        _svc_router = create_service_router()
+        app.include_router(_svc_router)
+        logger.info("Service Module API registered at /api/service")
+    except Exception as _svc_exc:
+        logger.warning("Service Module not available: %s", _svc_exc)
+
+    # ── Guest Collaboration (Phase 11 – Monday.com parity) ─────────
+    try:
+        from guest_collab.api import create_guest_router
+        _guest_router = create_guest_router()
+        app.include_router(_guest_router)
+        logger.info("Guest Collaboration API registered at /api/guest")
+    except Exception as _guest_exc:
+        logger.warning("Guest Collaboration not available: %s", _guest_exc)
+
+    # ── Mobile App Backend (Phase 12 – Monday.com parity) ──────────
+    try:
+        from mobile.api import create_mobile_router
+        _mobile_router = create_mobile_router()
+        app.include_router(_mobile_router)
+        logger.info("Mobile API registered at /api/mobile")
+    except Exception as _mobile_exc:
+        logger.warning("Mobile API not available: %s", _mobile_exc)
+
     # Register RBAC governance with security layer (SEC-005)
     rbac = getattr(murphy, 'rbac_governance', None)
     if rbac is not None:
