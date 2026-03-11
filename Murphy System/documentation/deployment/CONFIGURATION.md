@@ -43,7 +43,7 @@ The `setup_and_start.sh` (Linux/macOS) and `setup_and_start.bat` (Windows) scrip
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `MURPHY_VERSION` | No | `1.0.0` | Runtime version tag (informational) |
-| `MURPHY_ENV` | **Yes** | `development` | Deployment environment: `development`, `staging`, `production` |
+| `MURPHY_ENV` | ❌ | `production` | Deployment environment: `development`, `staging`, `production` |
 | `MURPHY_PORT` | No | `8000` | TCP port the API server listens on |
 | `MURPHY_WORKERS` | No | auto | Number of Uvicorn/Gunicorn worker processes |
 | `MURPHY_TASK_CONCURRENCY` | No | `20` | Max concurrent async tasks per worker |

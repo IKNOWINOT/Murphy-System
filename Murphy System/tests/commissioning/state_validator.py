@@ -9,7 +9,7 @@ persistence. Resolves GAP-007 (no persistent self-improvement state).
 """
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -51,7 +51,7 @@ class StateValidator:
         if state is not None:
             self.state = state
 
-        self.state["last_updated"] = datetime.now().isoformat()
+        self.state["last_updated"] = datetime.now(timezone.utc).isoformat()
         self.state_file.parent.mkdir(parents=True, exist_ok=True)
 
         with open(self.state_file, "w") as f:
@@ -68,7 +68,7 @@ class StateValidator:
             self.state["components"] = {}
         self.state["components"][component] = {
             **component_state,
-            "updated_at": datetime.now().isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
         }
 
     def validate_component_state(
@@ -107,7 +107,7 @@ class StateValidator:
             self.state["automations"] = {}
         self.state["automations"][automation_id] = {
             **automation_config,
-            "updated_at": datetime.now().isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
         }
 
     def validate_automation_enabled(self, automation_id: str) -> bool:
