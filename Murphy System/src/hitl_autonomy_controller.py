@@ -363,6 +363,82 @@ class HITLAutonomyController:
         }
 
     # ------------------------------------------------------------------
+    # Dynamic assist integration
+    # ------------------------------------------------------------------
+
+    def evaluate_dynamic_assist(
+        self,
+        task_type: str,
+        dynamic_output: Any,
+        policy_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Evaluate autonomy using dynamic assist engine output.
+
+        Uses computed_confidence_threshold from the dynamic output instead of
+        the static policy threshold, and forces HITL when requires_approval is
+        set by the dynamic model.
+
+        Args:
+            task_type: the task type string for policy lookup.
+            dynamic_output: a DynamicAssistOutput instance with computed
+                confidence threshold and approval requirement.
+            policy_id: optional policy_id to use (defaults to first registered).
+
+        Returns:
+            Autonomy evaluation dict, same shape as evaluate_autonomy().
+        """
+        if dynamic_output is None:
+            return {
+                "autonomous": False,
+                "reason": "no_dynamic_output",
+                "policy_applied": None,
+                "confidence": 0.0,
+                "risk_level": 0.0,
+                "requires_hitl": True,
+            }
+
+        computed_confidence = getattr(dynamic_output, "computed_confidence_threshold", 0.95)
+        requires_approval = getattr(dynamic_output, "requires_approval", True)
+        may_execute = getattr(dynamic_output, "may_execute", False)
+
+        # If the dynamic model says approval is required, short-circuit to HITL
+        if requires_approval:
+            return {
+                "autonomous": False,
+                "reason": "dynamic_assist_requires_approval",
+                "policy_applied": policy_id,
+                "confidence": computed_confidence,
+                "risk_level": 0.0,
+                "requires_hitl": True,
+                "dynamic_confidence_threshold": computed_confidence,
+            }
+
+        # If may_execute is False, agent is in observe/suggest mode only
+        if not may_execute:
+            return {
+                "autonomous": False,
+                "reason": "dynamic_assist_observe_or_suggest_only",
+                "policy_applied": policy_id,
+                "confidence": computed_confidence,
+                "risk_level": 0.0,
+                "requires_hitl": True,
+                "dynamic_confidence_threshold": computed_confidence,
+            }
+
+        # Delegate to evaluate_autonomy with the dynamic confidence threshold as the
+        # effective confidence value (threshold was computed as 1.0 - recall * 0.4,
+        # so we pass confidence = 1.0 - threshold to model "recall confidence").
+        effective_confidence = max(0.0, min(1.0, 1.0 - computed_confidence))
+        result = self.evaluate_autonomy(
+            task_type=task_type,
+            confidence=effective_confidence,
+            risk_level=0.0,
+            policy_id=policy_id,
+        )
+        result["dynamic_confidence_threshold"] = computed_confidence
+        return result
+
+    # ------------------------------------------------------------------
     # Reset
     # ------------------------------------------------------------------
 
