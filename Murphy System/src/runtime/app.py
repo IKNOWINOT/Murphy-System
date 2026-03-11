@@ -111,6 +111,42 @@ def create_app() -> FastAPI:
     except Exception as _po_exc:
         logger.warning("Portfolio Management not available: %s", _po_exc)
 
+    # ── Workdocs (Phase 5 – Monday.com parity) ────────────────────
+    try:
+        from workdocs.api import create_workdocs_router
+        _wd_router = create_workdocs_router()
+        app.include_router(_wd_router)
+        logger.info("Workdocs API registered at /api/workdocs")
+    except Exception as _wd_exc:
+        logger.warning("Workdocs not available: %s", _wd_exc)
+
+    # ── Time Tracking (Phase 6 – Monday.com parity) ────────────────
+    try:
+        from time_tracking.api import create_time_tracking_router
+        _tt_router = create_time_tracking_router()
+        app.include_router(_tt_router)
+        logger.info("Time Tracking API registered at /api/time-tracking")
+    except Exception as _tt_exc:
+        logger.warning("Time Tracking not available: %s", _tt_exc)
+
+    # ── Automations (Phase 7 – Monday.com parity) ──────────────────
+    try:
+        from automations.api import create_automations_router
+        _auto_router = create_automations_router()
+        app.include_router(_auto_router)
+        logger.info("Automations API registered at /api/automations")
+    except Exception as _auto_exc:
+        logger.warning("Automations not available: %s", _auto_exc)
+
+    # ── CRM Module (Phase 8 – Monday.com parity) ──────────────────
+    try:
+        from crm.api import create_crm_router
+        _crm_router = create_crm_router()
+        app.include_router(_crm_router)
+        logger.info("CRM API registered at /api/crm")
+    except Exception as _crm_exc:
+        logger.warning("CRM not available: %s", _crm_exc)
+
     # Register RBAC governance with security layer (SEC-005)
     rbac = getattr(murphy, 'rbac_governance', None)
     if rbac is not None:
