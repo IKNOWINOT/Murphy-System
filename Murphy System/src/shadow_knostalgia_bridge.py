@@ -251,16 +251,16 @@ class ShadowKnostalgiaBridge:
                 query=process_name,
                 context={"shadow_agent_id": shadow_agent_id},
             )
+            recalled_content = None
             if recall_result and hasattr(recall_result, "content"):
-                return (
-                    f"When you do {process_name}, do you mean like: {recall_result.content}?"
-                )
-            if isinstance(recall_result, dict) and recall_result.get("content"):
-                return (
-                    f"When you do {process_name}, do you mean like: {recall_result['content']}?"
-                )
-            if isinstance(recall_result, str) and recall_result:
-                return f"When you do {process_name}, do you mean like: {recall_result}?"
+                recalled_content = recall_result.content
+            elif isinstance(recall_result, dict) and recall_result.get("content"):
+                recalled_content = recall_result["content"]
+            elif isinstance(recall_result, str) and recall_result:
+                recalled_content = recall_result
+
+            if recalled_content:
+                return f"When you do {process_name}, do you mean like: {recalled_content}?"
         except Exception as exc:
             logger.warning(
                 "generate_process_question recall failed for %s: %s", process_name, exc

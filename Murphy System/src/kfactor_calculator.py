@@ -172,7 +172,6 @@ class KFactorCalculator:
                     outcome_consistency=1.0,
                     novelty_rate=1.0,
                 )
-                # Release lock before calling compute (which also acquires it)
             else:
                 total = len(memories)
 
