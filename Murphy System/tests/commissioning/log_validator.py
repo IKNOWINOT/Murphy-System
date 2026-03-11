@@ -10,7 +10,7 @@ with state_validator.py.
 """
 
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -102,7 +102,7 @@ class LogValidator:
             level: Log level (INFO, WARNING, ERROR).
             details: Additional details.
         """
-        timestamp = datetime.now().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
         entry = f"[{timestamp}] [{level}] [{user}] {action}: {details}"
 
         self.log_file.parent.mkdir(parents=True, exist_ok=True)

@@ -37,6 +37,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import shlex
 import subprocess
 import sys
 import threading
@@ -616,7 +617,7 @@ class MurphyNativeRunner:
         if self.dry_run:
             return {"status": "ok", "action": "run_command", "note": "dry_run_skipped",
                     "command": step.target}
-        proc = subprocess.run(step.target, shell=True, capture_output=True,
+        proc = subprocess.run(shlex.split(step.target), shell=False, capture_output=True,
                               text=True, timeout=300)
         return {
             "status": "pass" if proc.returncode == 0 else "fail",

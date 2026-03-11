@@ -13,13 +13,13 @@ setup:
 	@if [ ! -f .env ]; then cp .env.example .env && echo ".env created from .env.example"; fi
 
 up:
-	venv/bin/python -m uvicorn murphy.api:app --reload --port 8000
+	venv/bin/python murphy_system_1.0_runtime.py
 
 down:
-	@pkill -f "uvicorn murphy.api:app" && echo "Murphy API stopped." || echo "No uvicorn process found."
+	@pkill -f "murphy_system_1.0_runtime" && echo "Murphy API stopped." || echo "No Murphy process found."
 
 test:
-	venv/bin/pytest --cov=murphy --cov-report=term-missing
+	venv/bin/pytest --cov=src --cov-report=term-missing
 
 demo:
 	venv/bin/python scripts/quick_demo.py

@@ -10,6 +10,8 @@ from datetime import datetime
 import logging
 import sys
 import os
+import threading
+from uuid import uuid4
 
 # Add murphy_runtime_analysis to path for imports
 
@@ -44,6 +46,7 @@ class PlanDecomposer:
         self.dependency_counter = 0
         self.criterion_counter = 0
         self.checkpoint_counter = 0
+        self._id_lock = threading.Lock()
 
     def decompose_uploaded_plan(
         self,
@@ -783,25 +786,28 @@ class PlanDecomposer:
 
     def _generate_plan_id(self) -> str:
         """Generate unique plan ID"""
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        return f"plan_{timestamp}"
+        return f"plan_{uuid4().hex[:12]}"
 
     def _generate_task_id(self) -> str:
         """Generate unique task ID"""
-        self.task_counter += 1
-        return f"task_{self.task_counter:04d}"
+        with self._id_lock:
+            self.task_counter += 1
+            return f"task_{self.task_counter:04d}"
 
     def _generate_dependency_id(self) -> str:
         """Generate unique dependency ID"""
-        self.dependency_counter += 1
-        return f"dep_{self.dependency_counter:04d}"
+        with self._id_lock:
+            self.dependency_counter += 1
+            return f"dep_{self.dependency_counter:04d}"
 
     def _generate_criterion_id(self) -> str:
         """Generate unique criterion ID"""
-        self.criterion_counter += 1
-        return f"crit_{self.criterion_counter:04d}"
+        with self._id_lock:
+            self.criterion_counter += 1
+            return f"crit_{self.criterion_counter:04d}"
 
     def _generate_checkpoint_id(self) -> str:
         """Generate unique checkpoint ID"""
-        self.checkpoint_counter += 1
-        return f"chk_{self.checkpoint_counter:04d}"
+        with self._id_lock:
+            self.checkpoint_counter += 1
+            return f"chk_{self.checkpoint_counter:04d}"
