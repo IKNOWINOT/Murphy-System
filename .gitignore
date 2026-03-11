@@ -102,3 +102,13 @@ Murphy System/docs/storyline_test_results_phase3.json
 *.db-wal
 *.db-shm
 .chroma/
+
+# Telemetry evidence generated artifacts (keep scripts and .gitkeep)
+telemetry_evidence/telemetry_log.jsonl
+telemetry_evidence/FINAL_REPORT.md
+telemetry_evidence/**/*.json
+telemetry_evidence/**/*.txt
+telemetry_evidence/**/*.xml
+telemetry_evidence/**/*.log
+telemetry_evidence/**/*.png
+telemetry_evidence/**/*.pid
