@@ -1,0 +1,2 @@
+HTTP 200
+{"flows":[{"department":"Sales","source":"API","count":0,"status":"active"},{"department":"Operations","source":"Email","count":0,"status":"active"},{"department":"Compliance","source":"Webhook","count":0,"status":"active"},{"department":"Finance","source":"Manual","count":0,"status":"active"}]}

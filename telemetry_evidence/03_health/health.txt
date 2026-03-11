@@ -1,0 +1,12 @@
+{
+    "status": "healthy",
+    "checks": {
+        "runtime": "ok",
+        "persistence": "ok",
+        "database": "not_configured",
+        "redis": "ok",
+        "llm": "unavailable",
+        "modules_loaded": 90,
+        "version": "1.0.0"
+    }
+}

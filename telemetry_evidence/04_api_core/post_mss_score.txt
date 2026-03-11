@@ -1,0 +1,4 @@
+{
+    "success": false,
+    "error": "text is required"
+}

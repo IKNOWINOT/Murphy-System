@@ -102,3 +102,8 @@ Murphy System/docs/storyline_test_results_phase3.json
 *.db-wal
 *.db-shm
 .chroma/
+
+# Telemetry evidence — runtime artifacts only (evidence IS committed so reviewers can read it)
+telemetry_evidence/**/*.pid
+telemetry_evidence/**/*.xml
+telemetry_evidence/telemetry_log.jsonl
