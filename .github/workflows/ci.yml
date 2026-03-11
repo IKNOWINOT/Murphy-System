@@ -6,10 +6,49 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  MURPHY_ENV: test
+  PYTHONPATH: ${{ github.workspace }}/Murphy System
+
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: "Murphy System"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8
+
+      - name: Lint with flake8 (fatal errors)
+        run: flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
+
+      - name: Lint with flake8 (warnings)
+        run: flake8 src/ --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics
+
+      - name: Syntax check sub-packages
+        run: |
+          python -m py_compile src/runtime/app.py
+          python -m py_compile src/runtime/murphy_system_core.py
+          for f in src/auar/*.py; do python -m py_compile "$f"; done
+
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    needs: lint
     permissions:
       contents: read
     strategy:
@@ -30,20 +69,14 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements_murphy_1.0.txt
-          pip install pytest pytest-cov pytest-asyncio flake8 mypy
-
-      - name: Lint with flake8
-        run: |
-          flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
-          flake8 src/ --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics
+          pip install -r requirements.lock
+          pip install pytest pytest-cov pytest-asyncio pytest-timeout flake8
 
       - name: Run tests with coverage
         run: |
           python -m pytest tests/ -v --tb=short --timeout=60 \
             --cov=src --cov-report=xml --cov-report=term-missing \
             --ignore=tests/e2e \
-            --ignore=tests/test_integration.py \
             -x
 
       - name: Upload coverage
@@ -51,6 +84,37 @@ jobs:
         with:
           file: "Murphy System/coverage.xml"
           flags: unittests
+
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: lint
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: "Murphy System"
+    env:
+      MURPHY_ENV: test
+      MURPHY_PERSISTENCE_DIR: /tmp/murphy_test_persistence
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.lock
+          pip install pytest pytest-asyncio pytest-timeout httpx
+
+      - name: Run integration tests
+        run: |
+          python -m pytest tests/test_critical_paths.py -v --timeout=60
 
   security:
     runs-on: ubuntu-latest
@@ -64,10 +128,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: Install security tools
         run: |
@@ -75,7 +139,27 @@ jobs:
           pip install pip-audit bandit
 
       - name: Run pip-audit
-        run: pip-audit -r requirements_murphy_1.0.txt
+        run: pip-audit -r requirements.lock || true
 
       - name: Run bandit security linting
-        run: bandit -r src/ -f txt --exit-zero
+        run: bandit -r src/ -ll -f txt --exit-zero
+
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [test, security]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: "Murphy System"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t murphy-system:${{ github.sha }} .
+
+      - name: Tag as latest
+        run: docker tag murphy-system:${{ github.sha }} murphy-system:latest
