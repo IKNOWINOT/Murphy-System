@@ -100,7 +100,7 @@ class DatabaseConnector:
             return IntegrationResult(success=True, data=result)
 
         except Exception as exc:
-            logger.error(f"Error executing query: {exc}")
+            logger.error("Error executing query: %s", exc)
             return IntegrationResult(success=False, error=str(exc))
 
     def _execute_query(
@@ -133,7 +133,7 @@ class DatabaseConnector:
             return IntegrationResult(success=True, data=results)
 
         except Exception as exc:
-            logger.error(f"Error executing transaction: {exc}")
+            logger.error("Error executing transaction: %s", exc)
             return IntegrationResult(success=False, error=str(exc))
 
 
@@ -198,7 +198,7 @@ class SQLDatabaseConnector(DatabaseConnector):
             return IntegrationResult(success=True, data=result)
 
         except Exception as exc:
-            logger.error(f"Error executing stored procedure: {exc}")
+            logger.error("Error executing stored procedure: %s", exc)
             return IntegrationResult(success=False, error=str(exc))
 
 
