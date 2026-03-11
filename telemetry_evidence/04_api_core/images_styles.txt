@@ -1,0 +1,2 @@
+HTTP 200
+{"success":true,"styles":["photorealistic","digital_art","logo","icon","illustration","watercolor","pixel_art","sketch","minimalist","3d_render"],"backends":[],"active_backend":"pillow_procedural"}

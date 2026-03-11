@@ -1,0 +1,2 @@
+HTTP 200
+{"enabled":false,"provider":null,"model":null,"healthy":false,"error":"MURPHY_LLM_PROVIDER not set"}

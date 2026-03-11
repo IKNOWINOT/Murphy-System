@@ -1,0 +1,2 @@
+HTTP 200
+{"success":true,"state":{"mfgc_config":{"enabled":false,"murphy_threshold":0.3,"confidence_mode":"phase_locked","authority_mode":"standard","gate_synthesis":true,"emergency_gates":true,"audit_trail":true},"mfgc_statistics":{"total_executions":0,"success_rate":"0.0%","average_execution_time":"0.000s"}}}

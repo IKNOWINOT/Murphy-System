@@ -1,0 +1,7 @@
+{
+    "success": true,
+    "message": "Feedback integrated into state vector",
+    "signal_type": "feedback",
+    "task_id": "unknown",
+    "bus_routed": true
+}

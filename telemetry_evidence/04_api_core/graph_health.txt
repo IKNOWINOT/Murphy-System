@@ -1,0 +1,2 @@
+HTTP 200
+{"success":true,"health":{"node_coverage":1.0,"dependency_completeness":1.0,"regulatory_coverage":1.0,"redundancy_score":0.0,"cache_key":"5dbfc1293ed9166aaeb07ea2f6e59f8e0ab3fef541ff93f39308be857a003efc"}}
