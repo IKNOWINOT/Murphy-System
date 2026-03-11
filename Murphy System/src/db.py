@@ -3,7 +3,7 @@
 """
 Database module for Murphy System.
 
-Provides async SQLAlchemy engine, session factory, and FastAPI dependency
+Provides synchronous SQLAlchemy engine, session factory, and FastAPI dependency
 for relational persistence alongside the existing JSON-based PersistenceManager.
 
 Reads DATABASE_URL from env (default: sqlite:///murphy_logs.db).
@@ -11,12 +11,10 @@ Reads DATABASE_URL from env (default: sqlite:///murphy_logs.db).
 
 import os
 import logging
-from typing import AsyncGenerator, Optional
 
 from sqlalchemy import (
     Column, String, Integer, Float, DateTime, Text, ForeignKey,
     JSON, func, text,
-    MetaData, Table,
     create_engine,
 )
 from sqlalchemy.orm import (

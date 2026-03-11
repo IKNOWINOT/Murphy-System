@@ -9,7 +9,28 @@ Creator: Corey Post
 License: BSL 1.1
 """
 
-from src.runtime._deps import *  # noqa: F401,F403
+from src.runtime._deps import (
+    # Standard library
+    Any, Dict, List, Set,
+    asdict,
+    datetime, timezone,
+    json, logging, os, platform, time,
+    uuid4,
+    Path,
+    # Logging / env
+    logger, _load_dotenv,
+    # Web framework
+    FastAPI, uvicorn, CORSMiddleware, JSONResponse, Depends, Request,
+    # MSS controls
+    _mss_available, MSSController,
+    ResolutionDetectionEngine, InformationDensityEngine, StructuralCoherenceEngine,
+    InformationQualityEngine, ConceptTranslationEngine, StrategicSimulationEngine,
+    # Image / integration types
+    ImageRequest, ImageStyle,
+    IntegrationSpec,
+    # Module system
+    module_manager,
+)
 from src.runtime.murphy_system_core import MurphySystem
 from src.runtime.living_document import LivingDocument
 
