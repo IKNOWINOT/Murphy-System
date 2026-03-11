@@ -200,7 +200,9 @@ def _safe_eval(expression: str, context: Dict[str, Any]) -> bool:
     if not _validate_ast(tree):
         raise ValueError("Expression contains disallowed constructs")
     code = compile(tree, "<rule>", "eval")
-    # Sandboxed evaluation: builtins disabled, AST pre-validated
+    # SECURITY: eval() is used here ONLY after full AST validation by _validate_ast().
+    # The namespace is sandboxed: builtins are disabled and only context keys are accessible.
+    # This is intentional for rule-engine expression evaluation. See SEC-001 audit.
     _sandbox_eval = builtins.__dict__["eval"]  # noqa: S307
     result = _sandbox_eval(code, {"__builtins__": {}}, context)
     return bool(result)
