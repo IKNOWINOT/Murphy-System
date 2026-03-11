@@ -212,7 +212,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         client_ip = request.client.host if request.client else "unknown"
         rate_result = _rate_limiter.check(client_ip)
         if not rate_result["allowed"]:
-            logger.warning(f"[{self.service_name}] Rate limit exceeded for {client_ip}")
+            logger.warning("[%s] Rate limit exceeded for %s", self.service_name, client_ip)
             return JSONResponse(
                 status_code=429,
                 content={
@@ -226,13 +226,13 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         if api_key is None:
             murphy_env = os.environ.get("MURPHY_ENV", "development")
             if murphy_env not in ("development", "test"):
-                logger.warning(f"[{self.service_name}] Missing API key from {client_ip}")
+                logger.warning("[%s] Missing API key from %s", self.service_name, client_ip)
                 return JSONResponse(
                     status_code=401,
                     content={"error": "Authentication required"},
                 )
         elif not validate_api_key(api_key):
-            logger.warning(f"[{self.service_name}] Invalid API key from {client_ip}")
+            logger.warning("[%s] Invalid API key from %s", self.service_name, client_ip)
             return JSONResponse(
                 status_code=401,
                 content={"error": "Invalid API key"},
