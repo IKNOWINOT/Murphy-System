@@ -631,9 +631,9 @@ SQL database connector.
 **Constructor Parameters:**
 ```python
 SQLDatabaseConnector(
-    connection_string: str,           # Database connection string
-    database_type: DatabaseType = DatabaseType.MYSQL,  # Database type enum
-    **kwargs                          # Additional connection parameters
+    connection_string: str,                         # Database connection string
+    database_type: DatabaseType = DatabaseType.MYSQL,  # Database type enum (default: MYSQL)
+    **kwargs                                        # Additional connection parameters
 )
 ```
 
@@ -655,7 +655,7 @@ Execute a SQL query.
 - `parameters` (Dict, optional): Query parameters
 
 **Returns:**
-- `IntegrationResult`: Result object with `success: bool`, `data: Any`, and `error: Optional[str]` fields
+- `IntegrationResult`: Result object with `.success` (bool), `.data` (List[Dict] of rows on success), and `.error` (str on failure)
 
 **Example:**
 ```python
@@ -664,44 +664,54 @@ result = connector.execute_query(
     parameters={"status": "active"}
 )
 if result.success:
-    print(result.data)
+    rows = result.data
+else:
+    print(result.error)
 ```
 
 ##### `execute_transaction(operations: List[Dict]) -> IntegrationResult`
-Execute a list of operations as a transaction.
+Execute a series of operations as a single transaction.
 
 **Parameters:**
-- `operations` (List[Dict]): List of operation dicts, each with `query` and optional `parameters` keys
+- `operations` (List[Dict]): List of operation dicts, each containing `query` (str) and optional `parameters` (Dict)
 
 **Returns:**
-- `IntegrationResult`: Result containing list of per-operation results
+- `IntegrationResult`: Result object with `.success` (bool), `.data` (List of per-operation results on success), and `.error` (str on failure)
 
 **Example:**
 ```python
 result = connector.execute_transaction([
-    {"query": "INSERT INTO users (name) VALUES (:name)", "parameters": {"name": "Alice"}},
-    {"query": "UPDATE counters SET count = count + 1"},
+    {"query": "INSERT INTO orders (user_id, total) VALUES (:user_id, :total)",
+     "parameters": {"user_id": 42, "total": 99.99}},
+    {"query": "UPDATE inventory SET quantity = quantity - 1 WHERE item_id = :item_id",
+     "parameters": {"item_id": 7}},
 ])
 if result.success:
-    print(f"Transaction completed: {result.data}")
+    print("Transaction committed")
+else:
+    print(result.error)
 ```
 
 ##### `execute_stored_procedure(name: str, parameters: Optional[Dict] = None) -> IntegrationResult`
-Execute a stored procedure by name.
+Execute a stored procedure.
 
 **Parameters:**
 - `name` (str): Name of the stored procedure
-- `parameters` (Dict, optional): Procedure parameters
+- `parameters` (Dict, optional): Parameters to pass to the stored procedure
 
 **Returns:**
-- `IntegrationResult`: Result of the procedure execution
+- `IntegrationResult`: Result object with `.success` (bool), `.data` (Dict containing procedure result on success), and `.error` (str on failure)
 
 **Example:**
 ```python
 result = connector.execute_stored_procedure(
-    "sp_update_user_status",
-    parameters={"user_id": 123, "status": "active"}
+    "sp_get_user_report",
+    parameters={"user_id": 42, "start_date": "2024-01-01"}
 )
+if result.success:
+    report = result.data
+else:
+    print(result.error)
 ```
 
 ---
