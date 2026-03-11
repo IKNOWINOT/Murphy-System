@@ -10,7 +10,7 @@ from flask import Flask, request, jsonify
 import torch
 import numpy as np
 from typing import Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 from .models import NeuroSymbolicConfidenceModel, load_model, ModelConfig
@@ -56,9 +56,9 @@ class MLInferenceService:
             self.model.to(self.device)
             self.model.eval()
             self.model_loaded = True
-            logger.info(f"Loaded model from {model_path}")
+            logger.info("Model loaded successfully")
         except Exception as exc:
-            logger.error(f"Failed to load model: {exc}")
+            logger.error("Failed to load model: %s", exc)
             self.model_loaded = False
 
     def is_healthy(self) -> bool:
@@ -102,7 +102,7 @@ class MLInferenceService:
             symbolic_features = symbolic_features.to(self.device)
 
             # Inference
-            start_time = datetime.now()
+            start_time = datetime.now(timezone.utc)
 
             with torch.no_grad():
                 H_ml, D_ml, R_ml = self.model(
@@ -112,7 +112,7 @@ class MLInferenceService:
                     batch=None
                 )
 
-            inference_time = (datetime.now() - start_time).total_seconds() * 1000
+            inference_time = (datetime.now(timezone.utc) - start_time).total_seconds() * 1000
 
             # Extract values
             h_val = float(H_ml.item())
@@ -139,7 +139,7 @@ class MLInferenceService:
             return result
 
         except Exception as exc:
-            logger.error(f"Prediction failed: {exc}")
+            logger.error("Prediction failed: %s", exc)
             raise
 
     def _prepare_input(
@@ -257,7 +257,7 @@ class MLInferenceService:
                 )
                 predictions.append(pred)
             except Exception as exc:
-                logger.error(f"Batch prediction failed for scenario: {exc}")
+                logger.error("Batch prediction failed for scenario: %s", exc)
                 predictions.append(None)
 
         # Compute batch confidence
@@ -287,7 +287,7 @@ def health_check():
         "model_version": ml_service.model_version,
         "last_training": ml_service.last_training,
         "prediction_confidence": 0.85 if ml_service.is_healthy() else 0.0,
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     })
 
 
@@ -328,9 +328,9 @@ def predict_confidence():
         return jsonify(result)
 
     except Exception as exc:
-        logger.error(f"Prediction endpoint error: {exc}")
+        logger.error("Prediction endpoint error: %s", exc)
         return jsonify({
-            "error": str(exc),
+            "error": "Internal server error",
             "status": "failed"
         }), 500
 
@@ -357,9 +357,9 @@ def predict_batch():
         return jsonify(result)
 
     except Exception as exc:
-        logger.error(f"Batch prediction endpoint error: {exc}")
+        logger.error("Batch prediction endpoint error: %s", exc)
         return jsonify({
-            "error": str(exc),
+            "error": "Internal server error",
             "status": "failed"
         }), 500
 
@@ -415,9 +415,9 @@ def load_model_endpoint():
         })
 
     except Exception as exc:
-        logger.error(f"Model load error: {exc}")
+        logger.error("Model load error: %s", exc)
         return jsonify({
-            "error": str(exc),
+            "error": "Internal server error",
             "status": "failed"
         }), 500
 
@@ -434,8 +434,8 @@ def run_server(host: str = "0.0.0.0", port: int = 8060, model_path: Optional[str
     if model_path:
         ml_service.load_model(model_path)
 
-    logger.info(f"Starting ML Inference Service on {host}:{port}")
-    logger.info(f"Model loaded: {ml_service.model_loaded}")
+    logger.info("Starting ML Inference Service on %s:%s", host, port)
+    logger.info("Model loaded: %s", ml_service.model_loaded)
 
     app.run(host=host, port=port, debug=False)
 

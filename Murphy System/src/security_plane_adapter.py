@@ -12,7 +12,7 @@ This provides essential security features without requiring external dependencie
 """
 
 from typing import Dict, List, Optional, Any, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 import logging
@@ -223,7 +223,7 @@ class SecurityPlaneAdapter:
             score=adjusted_score,
             level=level,
             confidence=0.7 + (adjusted_score * 0.3),
-            last_updated=datetime.now()
+            last_updated=datetime.now(timezone.utc)
         )
 
         return {
@@ -271,7 +271,7 @@ class SecurityPlaneAdapter:
                 threshold=threshold,
                 description=description,
                 active=True,
-                created_at=datetime.now()
+                created_at=datetime.now(timezone.utc)
             )
             self.security_gates.append(gate)
             return gate
@@ -283,7 +283,7 @@ class SecurityPlaneAdapter:
                 "threshold": threshold,
                 "description": description,
                 "active": True,
-                "created_at": datetime.now()
+                "created_at": datetime.now(timezone.utc)
             }
             self.security_gates.append(gate)
             return gate
@@ -341,7 +341,7 @@ class SecurityPlaneAdapter:
                 "entity_id": entity_id,
                 "severity": "LOW",
                 "details": details,
-                "detected_at": datetime.now()
+                "detected_at": datetime.now(timezone.utc)
             }
 
         # Map anomaly type string to enum
@@ -371,7 +371,7 @@ class SecurityPlaneAdapter:
             entity_id=entity_id,
             severity=severity,
             details=details,
-            detected_at=datetime.now()
+            detected_at=datetime.now(timezone.utc)
         )
 
         self.anomalies.append(anomaly)
@@ -387,7 +387,7 @@ class SecurityPlaneAdapter:
     def _log_security_event(self, event_type: str, details: Dict[str, Any]):
         """Log a security event"""
         event = {
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "event_type": event_type,
             "details": details
         }

@@ -7,6 +7,8 @@ import time
 import json
 
 import logging
+from thread_safe_operations import capped_append
+
 logger = logging.getLogger("task_executor")
 
 class TaskExecutor:
@@ -199,23 +201,18 @@ class TaskExecutor:
 
     def _execute_with_timeout(self, func: Callable, parameters: Dict,
                              timeout: float) -> Any:
-        """Execute a function with a timeout"""
-        # Simple implementation - in production, use threading or asyncio
-        import signal
+        """Execute a function with a timeout using ThreadPoolExecutor.
 
-        def timeout_handler(signum, frame):
-            raise TimeoutError(f"Task timed out after {timeout} seconds")
-
-        # Set signal handler
-        old_handler = signal.signal(signal.SIGALRM, timeout_handler)
-        signal.alarm(int(timeout))
-
-        try:
-            result = func(**parameters)
-            signal.alarm(0)  # Cancel alarm
-            return result
-        finally:
-            signal.signal(signal.SIGALRM, old_handler)  # Restore old handler
+        Uses concurrent.futures instead of signal.SIGALRM so that this works
+        on Windows and from non-main threads (e.g. ASGI workers).
+        """
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(func, **parameters)
+            try:
+                return future.result(timeout=timeout)
+            except concurrent.futures.TimeoutError:
+                raise TimeoutError(f"Task timed out after {timeout} seconds")
 
     def _record_task(self, result: Dict[str, Any], start_time: float):
         """Record task execution for metrics"""
@@ -237,11 +234,7 @@ class TaskExecutor:
             "execution_time": execution_time,
             **result
         }
-        self.task_history.append(task_record)
-
-        # Keep only last 100 tasks
-        if len(self.task_history) > 100:
-            self.task_history.pop(0)
+        capped_append(self.task_history, task_record, max_size=100)
 
     def get_metrics(self) -> Dict[str, Any]:
         """Get performance metrics"""

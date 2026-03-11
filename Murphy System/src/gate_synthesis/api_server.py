@@ -177,8 +177,8 @@ def analyze_exposure():
         })
 
     except Exception as exc:
-        logger.error(f"Error analyzing exposure: {exc}")
-        return jsonify({'success': False, 'error': str(exc)}), 500
+        logger.error("Error analyzing exposure: %s", exc, exc_info=True)
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
 
 
 # ============================================================================

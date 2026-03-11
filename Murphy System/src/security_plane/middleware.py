@@ -29,6 +29,7 @@ import hmac
 import secrets
 import time
 import functools
+from urllib.parse import urlparse
 
 # Import Security Plane components
 from src.security_plane.authentication import (
@@ -631,15 +632,26 @@ class DLPMiddleware:
         return True
 
     def _is_trusted_destination(self, destination: str) -> bool:
-        """Check if destination is trusted"""
-        # Simplified - real implementation would check against whitelist
+        """Check if destination is trusted using proper URL parsing to prevent
+        substring bypass attacks (e.g. 'evil-localhost.attacker.com' matching
+        'localhost' via simple substring check).
+        """
         trusted_domains = [
             'localhost',
             '127.0.0.1',
             'murphy-system.internal'
         ]
-
-        return any(domain in destination for domain in trusted_domains)
+        try:
+            parsed = urlparse(
+                destination if '://' in destination else f'https://{destination}'
+            )
+            hostname = (parsed.hostname or '').lower()
+        except Exception:
+            return False
+        return hostname in trusted_domains or any(
+            hostname == domain or hostname.endswith('.' + domain)
+            for domain in trusted_domains
+        )
 
 
 # ============================================================================

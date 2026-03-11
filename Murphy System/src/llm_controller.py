@@ -519,7 +519,7 @@ class LLMController:
             )
 
         except Exception as exc:
-            logger.info(f"Error querying Groq Gemma: {exc}")
+            logger.error("Error querying Groq Gemma: %s", exc)
             return await self._query_fallback(request)
 
     async def _query_local_small(self, request: LLMRequest) -> LLMResponse:

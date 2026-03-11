@@ -152,8 +152,8 @@ class ModelTrainer:
 
             # Log progress
             if batch_idx % self.config.log_interval == 0:
-                logger.info(f"Epoch {epoch}, Batch {batch_idx}/{len(train_loader)}, "
-                      f"Loss: {loss.item():.4f}")
+                logger.info("Epoch %d, Batch %d/%d, Loss: %.4f",
+                            epoch, batch_idx, len(train_loader), loss.item())
 
         return {
             "total_loss": total_loss / num_batches,

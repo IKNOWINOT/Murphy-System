@@ -3,7 +3,7 @@ TelemetryCollector - Collects and exposes system metrics, logs, and audit trails
 """
 
 from typing import Dict, Any, List
-from datetime import datetime
+from datetime import datetime, timezone
 from thread_safe_operations import capped_append
 
 import logging
@@ -40,14 +40,14 @@ class TelemetryCollector:
     def get_audit_trail(self, packet_id: str) -> List[Dict[str, Any]]:
         """Return audit trail entries for a given packet."""
         return self._audit_trails.get(packet_id, [
-            {"action": "received", "timestamp": datetime.now().isoformat(), "component": "bridge_layer"},
-            {"action": "validated", "timestamp": datetime.now().isoformat(), "component": "confidence_engine"},
-            {"action": "gates_checked", "timestamp": datetime.now().isoformat(), "component": "gate_synthesis"},
-            {"action": "compiled", "timestamp": datetime.now().isoformat(), "component": "packet_compiler"},
-            {"action": "executed", "timestamp": datetime.now().isoformat(), "component": "orchestrator"},
-            {"action": "approved", "timestamp": datetime.now().isoformat(), "component": "supervisor"},
-            {"action": "monitored", "timestamp": datetime.now().isoformat(), "component": "telemetry"},
-            {"action": "completed", "timestamp": datetime.now().isoformat(), "component": "system"},
+            {"action": "received", "timestamp": datetime.now(timezone.utc).isoformat(), "component": "bridge_layer"},
+            {"action": "validated", "timestamp": datetime.now(timezone.utc).isoformat(), "component": "confidence_engine"},
+            {"action": "gates_checked", "timestamp": datetime.now(timezone.utc).isoformat(), "component": "gate_synthesis"},
+            {"action": "compiled", "timestamp": datetime.now(timezone.utc).isoformat(), "component": "packet_compiler"},
+            {"action": "executed", "timestamp": datetime.now(timezone.utc).isoformat(), "component": "orchestrator"},
+            {"action": "approved", "timestamp": datetime.now(timezone.utc).isoformat(), "component": "supervisor"},
+            {"action": "monitored", "timestamp": datetime.now(timezone.utc).isoformat(), "component": "telemetry"},
+            {"action": "completed", "timestamp": datetime.now(timezone.utc).isoformat(), "component": "system"},
         ])
 
     def get_safety_violations(self) -> List[Dict[str, Any]]:
