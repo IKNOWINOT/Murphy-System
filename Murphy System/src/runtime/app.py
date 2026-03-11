@@ -84,6 +84,33 @@ def create_app() -> FastAPI:
     except Exception as _bs_exc:
         logger.warning("Board System not available: %s", _bs_exc)
 
+    # ── Collaboration System (Phase 2 – Monday.com parity) ────────
+    try:
+        from collaboration.api import create_collaboration_router
+        _collab_router = create_collaboration_router()
+        app.include_router(_collab_router)
+        logger.info("Collaboration API registered at /api/collaboration")
+    except Exception as _co_exc:
+        logger.warning("Collaboration System not available: %s", _co_exc)
+
+    # ── Dashboards (Phase 3 – Monday.com parity) ───────────────────
+    try:
+        from dashboards.api import create_dashboard_router
+        _dash_router = create_dashboard_router()
+        app.include_router(_dash_router)
+        logger.info("Dashboards API registered at /api/dashboards")
+    except Exception as _da_exc:
+        logger.warning("Dashboards not available: %s", _da_exc)
+
+    # ── Portfolio Management (Phase 4 – Monday.com parity) ─────────
+    try:
+        from portfolio.api import create_portfolio_router
+        _port_router = create_portfolio_router()
+        app.include_router(_port_router)
+        logger.info("Portfolio API registered at /api/portfolio")
+    except Exception as _po_exc:
+        logger.warning("Portfolio Management not available: %s", _po_exc)
+
     # Register RBAC governance with security layer (SEC-005)
     rbac = getattr(murphy, 'rbac_governance', None)
     if rbac is not None:
