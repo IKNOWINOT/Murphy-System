@@ -540,6 +540,36 @@ except ImportError:
     logger.warning("FastAPI not installed. Install with: pip install fastapi uvicorn")
     FastAPI = None
 
+# Dynamic Assist Engine (PR #195)
+try:
+    from src.dynamic_assist_engine import DynamicAssistEngine, DynamicAssistInput, DynamicAssistOutput
+except ImportError as e:
+    logger.warning("DynamicAssistEngine not available: %s", e)
+    DynamicAssistEngine = None
+    DynamicAssistInput = None
+    DynamicAssistOutput = None
+
+# KFactor Calculator (PR #195)
+try:
+    from src.kfactor_calculator import KFactorCalculator
+except ImportError as e:
+    logger.warning("KFactorCalculator not available: %s", e)
+    KFactorCalculator = None
+
+# Shadow-Knostalgia Bridge (PR #195)
+try:
+    from src.shadow_knostalgia_bridge import ShadowKnostalgiaBridge
+except ImportError as e:
+    logger.warning("ShadowKnostalgiaBridge not available: %s", e)
+    ShadowKnostalgiaBridge = None
+
+# Onboarding Team Pipeline (PR #195)
+try:
+    from src.onboarding_team_pipeline import OnboardingTeamPipeline
+except ImportError as e:
+    logger.warning("OnboardingTeamPipeline not available: %s", e)
+    OnboardingTeamPipeline = None
+
 GOVERNANCE_AVAILABLE = all(
     component is not None
     for component in (
@@ -623,6 +653,11 @@ __all__ = [
     "ResolutionDetectionEngine", "ConceptTranslationEngine",
     "InformationDensityEngine", "InformationQualityEngine",
     "SystemIntegrator",
+    # New modules — PR #195
+    "DynamicAssistEngine", "DynamicAssistInput", "DynamicAssistOutput",
+    "KFactorCalculator",
+    "ShadowKnostalgiaBridge",
+    "OnboardingTeamPipeline",
     # RBAC / tenant / identity types
     "RBACPermission", "RBACRole", "TenantPolicy", "UserIdentity",
     # Execution / SLO types
