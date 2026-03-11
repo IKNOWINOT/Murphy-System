@@ -19,6 +19,8 @@ import os
 import sys
 import datetime
 
+MAX_RETESTS = 20  # Maximum number of endpoints to re-test per run
+
 try:
     import requests
 except ImportError:
@@ -239,7 +241,7 @@ def run_phase7():
     # Re-test failures
     print("→ Re-testing failed endpoints...")
     retest_results = []
-    for diagnosis in diagnoses[:20]:  # Limit re-tests
+    for diagnosis in diagnoses[:MAX_RETESTS]:  # Limit re-tests
         result = retest_endpoint(diagnosis)
         retest_results.append(result)
     save_evidence("retest_results.json", retest_results)

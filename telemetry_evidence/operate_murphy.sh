@@ -24,6 +24,8 @@ BASE_URL="${MURPHY_BASE_URL:-http://localhost:8000}"
 PASS_TOTAL=0
 FAIL_TOTAL=0
 FIX_COUNT=0
+RATE_LIMIT_DELAY=0.4          # seconds between API requests to avoid 429s
+MAX_ACCEPTABLE_FAILURES=7     # pre-existing pytest failures that are not blocking
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -41,7 +43,7 @@ section() {
 # Test a GET endpoint, save evidence, track pass/fail
 test_get() {
     local path="$1" label="$2" evidence_dir="$3"
-    sleep 0.4  # rate-limit avoidance
+    sleep "$RATE_LIMIT_DELAY"  # rate-limit avoidance
     local status body
     status=$(curl -s -o /tmp/_murphy_body -w "%{http_code}" "$BASE_URL$path" 2>/dev/null)
     body=$(cat /tmp/_murphy_body)
@@ -70,7 +72,7 @@ test_get() {
 # Test a POST endpoint, save evidence, track pass/fail
 test_post() {
     local path="$1" payload="$2" label="$3" evidence_dir="$4"
-    sleep 0.4
+    sleep "$RATE_LIMIT_DELAY"
     local status body
     status=$(curl -s -o /tmp/_murphy_body -w "%{http_code}" \
         -X POST "$BASE_URL$path" -H "Content-Type: application/json" \
@@ -484,7 +486,7 @@ fi
     echo "Test failures found: $PYTEST_FAIL"
     echo "Fixes applied: $FIX_COUNT"
     echo ""
-    if [ "$FAILED_APIS" -eq 0 ] && [ "$PYTEST_FAIL" -le 7 ]; then
+    if [ "$FAILED_APIS" -eq 0 ] && [ "$PYTEST_FAIL" -le "$MAX_ACCEPTABLE_FAILURES" ]; then
         echo "Status: OPERATIONAL — all core systems working"
     else
         echo "Status: NEEDS ATTENTION"
