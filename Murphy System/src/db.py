@@ -135,7 +135,7 @@ def get_db():
     Usage::
 
         @app.get("/example")
-        def example(db: Session = Depends(get_db)):
+        def example(db: SyncSession = Depends(get_db)):
             ...
     """
     factory = _get_session_factory()

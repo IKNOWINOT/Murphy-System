@@ -32,7 +32,7 @@ async def test_health_returns_200(client):
     assert r.status_code == 200
     data = r.json()
     assert data["status"] in ("healthy", "degraded")
-    assert "version" in str(data)
+    assert "version" in data or "version" in data.get("checks", {})
 
 
 @pytest.mark.asyncio
@@ -71,7 +71,7 @@ async def test_document_create_magnify_solidify(client):
 
     r3 = await client.post(f"/api/documents/{doc_id}/solidify")
     assert r3.status_code == 200
-    assert r3.json().get("state") == "SOLIDIFIED" or "SOLIDIFIED" in str(r3.json())
+    assert r3.json().get("state") == "SOLIDIFIED" or r3.json().get("data", {}).get("state") == "SOLIDIFIED"
 
 
 # ── 4. Chat / LLM Path ─────────────────────────────────────────

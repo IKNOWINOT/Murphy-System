@@ -271,8 +271,7 @@ def create_app() -> FastAPI:
         # Redis / cache check
         if _cache_client is not None:
             try:
-                checks["redis"] = await _cache_client.ping()
-                checks["redis"] = "ok" if checks["redis"] == "PONG" else checks["redis"]
+                checks["redis"] = "ok" if await _cache_client.ping() == "PONG" else "error"
             except Exception:
                 checks["redis"] = "error"
         else:
