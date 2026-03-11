@@ -11,3 +11,6 @@
 # Extras commonly needed at runtime but not listed elsewhere
 watchdog>=3.0.0
 matplotlib>=3.7.0
+
+# Statistical benchmarking (supplements pytest-cov already in Murphy System/requirements.txt)
+pytest-benchmark>=4.0.0
