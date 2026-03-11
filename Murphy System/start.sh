@@ -10,7 +10,7 @@ echo ""
 # Check Python version
 if ! command -v python3 &> /dev/null; then
     echo "❌ Error: Python 3 is not installed"
-    echo "   Please install Python 3.11 or higher"
+    echo "   Please install Python 3.10 or higher"
     exit 1
 fi
 
@@ -50,8 +50,8 @@ echo ""
 echo "📦 Checking dependencies..."
 python3 -c "import fastapi, uvicorn" 2>/dev/null
 if [ $? -ne 0 ]; then
-    echo "⚠️  Some dependencies missing. Installing..."
-    pip install --quiet fastapi uvicorn pydantic aiohttp httpx matplotlib watchdog 2>&1 | grep -v "Requirement already satisfied" || true
+    echo "⚠️  Some dependencies missing. Installing from requirements.lock..."
+    pip install --quiet -r requirements.lock 2>&1 | grep -v "Requirement already satisfied" || true
     echo "✅ Dependencies installed"
 else
     echo "✅ Dependencies OK"

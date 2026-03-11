@@ -56,6 +56,25 @@ def create_app() -> FastAPI:
     # Initialize Murphy System
     murphy = MurphySystem()
 
+    # ── Database Initialisation (Phase 1-A) ──────────────────────
+    _db_available = False
+    if os.environ.get("DATABASE_URL"):
+        try:
+            from src.db import create_tables
+            create_tables()
+            _db_available = True
+            logger.info("Relational persistence initialised (DATABASE_URL set)")
+        except Exception as _db_exc:
+            logger.warning("Database init failed — falling back to JSON persistence: %s", _db_exc)
+
+    # ── Cache Initialisation (Phase 1-B) ─────────────────────────
+    _cache_client = None
+    try:
+        from src.cache import CacheClient
+        _cache_client = CacheClient()
+    except Exception as _cache_exc:
+        logger.warning("CacheClient init failed: %s", _cache_exc)
+
     # ── AionMind 2.0 Cognitive Pipeline Integration (Gap 5) ──────
     _aionmind_kernel = None
     try:
@@ -331,8 +350,66 @@ def create_app() -> FastAPI:
     
     @app.get("/api/health")
     async def health_check():
-        """Health check"""
-        return JSONResponse({'status': 'healthy', 'version': murphy.version})
+        """Deep health check — probes persistence, database, cache, and LLM."""
+        checks: dict = {"runtime": "ok"}
+
+        # Persistence check
+        try:
+            persistence_dir = os.environ.get("MURPHY_PERSISTENCE_DIR", ".murphy_persistence")
+            _p = Path(persistence_dir)
+            _p.mkdir(parents=True, exist_ok=True)
+            _test_file = _p / ".health_probe"
+            _test_file.write_text("ok")
+            _test_file.read_text()
+            _test_file.unlink(missing_ok=True)
+            checks["persistence"] = "ok"
+        except Exception:
+            checks["persistence"] = "error"
+
+        # Database check
+        if os.environ.get("DATABASE_URL"):
+            try:
+                from src.db import check_database
+                checks["database"] = check_database()
+            except Exception:
+                checks["database"] = "error"
+        else:
+            checks["database"] = "not_configured"
+
+        # Redis / cache check
+        if _cache_client is not None:
+            try:
+                checks["redis"] = "ok" if await _cache_client.ping() == "PONG" else "error"
+            except Exception:
+                checks["redis"] = "error"
+        else:
+            checks["redis"] = "not_configured"
+
+        # LLM availability
+        try:
+            llm_status = murphy._get_llm_status()
+            checks["llm"] = "ok" if llm_status.get("enabled") else "unavailable"
+        except Exception:
+            checks["llm"] = "unavailable"
+
+        # Module count
+        try:
+            module_mgr = getattr(murphy, "module_manager", None)
+            if module_mgr is not None:
+                checks["modules_loaded"] = len(getattr(module_mgr, "available_modules", []))
+            else:
+                status = murphy.get_system_status()
+                checks["modules_loaded"] = len(status.get("modules", {}))
+        except Exception:
+            checks["modules_loaded"] = 0
+
+        checks["version"] = murphy.version
+
+        # Determine overall status
+        str_checks = [v for v in checks.values() if isinstance(v, str)]
+        status = "healthy" if all(v != "error" for v in str_checks) else "degraded"
+
+        return JSONResponse({"status": status, "checks": checks})
 
     # ==================== LIBRARIAN ENDPOINTS ====================
 
@@ -2432,6 +2509,56 @@ def create_app() -> FastAPI:
             logger.info("Key harvester router registered at /api/key-harvester/*")
     except Exception as _kh_exc:
         logger.warning("Key harvester router not available: %s", _kh_exc)
+
+    # ==================== PROMETHEUS METRICS (Phase 4-A) ====================
+
+    try:
+        from prometheus_client import (
+            make_asgi_app as _make_metrics_app,
+            Counter, Histogram,
+        )
+        _metrics_app = _make_metrics_app()
+        app.mount("/metrics", _metrics_app)
+
+        _requests_total = Counter(
+            "murphy_requests_total",
+            "Total HTTP requests",
+            ["method", "endpoint", "status"],
+        )
+        _request_duration = Histogram(
+            "murphy_request_duration_seconds",
+            "HTTP request latency in seconds",
+            ["method", "endpoint"],
+        )
+        _llm_calls_total = Counter(
+            "murphy_llm_calls_total",
+            "Total LLM API calls",
+            ["provider"],
+        )
+        _gate_evaluations_total = Counter(
+            "murphy_gate_evaluations_total",
+            "Total gate evaluations",
+        )
+        logger.info("Prometheus metrics endpoint mounted at /metrics")
+    except ImportError:
+        logger.warning("prometheus_client not installed — /metrics endpoint unavailable")
+
+    # ==================== STRUCTURED LOGGING MIDDLEWARE (Phase 4-B) ====================
+
+    import uuid as _uuid
+    from starlette.middleware.base import BaseHTTPMiddleware as _BaseHTTPMiddleware
+
+    class _TraceIdMiddleware(_BaseHTTPMiddleware):
+        """Injects a trace_id into each request for structured logging."""
+
+        async def dispatch(self, request: Request, call_next):
+            trace_id = request.headers.get("X-Trace-ID", str(_uuid.uuid4()))
+            request.state.trace_id = trace_id
+            response = await call_next(request)
+            response.headers["X-Trace-ID"] = trace_id
+            return response
+
+    app.add_middleware(_TraceIdMiddleware)
 
     return app
 
