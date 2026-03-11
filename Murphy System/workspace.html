@@ -1,0 +1,1483 @@
+<!--
+  Murphy System — Unified Workspace
+  © 2020 Inoni Limited Liability Company
+  Creator: Corey Post
+  License: BSL 1.1
+
+  Murphy does NOT claim intellectual property rights over user-created
+  channels or the data flowing through them. Channels and their content
+  remain the sole property of the creating organization.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — Workspace</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
+<style>
+  /* =====================================================
+     WORKSPACE LAYOUT — three-column shell
+     ===================================================== */
+  :root {
+    --workspace-channel-width: 224px;
+    --workspace-assistant-width: 320px;
+    --topbar-height: 52px;
+  }
+
+  /* Full-bleed body — no default sidebar margin */
+  body {
+    margin: 0;
+    background: var(--bg-base);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    overflow: hidden;
+  }
+
+  /* ── Top bar ─────────────────────────────────────── */
+  .ws-topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: var(--topbar-height);
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--space-4);
+    z-index: 100;
+    gap: var(--space-3);
+  }
+
+  .ws-topbar-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex-shrink: 0;
+  }
+
+  .ws-topbar-brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    text-decoration: none;
+    color: var(--teal);
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 0.05em;
+  }
+
+  .ws-topbar-brand img {
+    width: 28px;
+    height: 28px;
+  }
+
+  .ws-topbar-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .ws-conn-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--success);
+    flex-shrink: 0;
+    transition: background 0.3s;
+  }
+  .ws-conn-dot.disconnected { background: var(--danger); }
+
+  .ws-notif-btn {
+    position: relative;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: var(--space-1);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .ws-notif-btn:hover { color: var(--text-primary); background: var(--bg-elevated); }
+
+  .ws-notif-badge {
+    position: absolute;
+    top: -2px; right: -2px;
+    background: var(--danger);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+    line-height: 1;
+  }
+  .ws-notif-badge[hidden] { display: none; }
+
+  .ws-user-pill {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius);
+    cursor: default;
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+  }
+  .ws-user-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--teal);
+    color: var(--bg-base);
+    font-weight: 700;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* ── Channel sidebar ──────────────────────────────── */
+  .ws-channels {
+    position: fixed;
+    top: var(--topbar-height);
+    left: 0;
+    bottom: 0;
+    width: var(--workspace-channel-width);
+    background: var(--bg-surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 90;
+    transition: transform 0.2s ease, width 0.2s ease;
+  }
+
+  .ws-channels-header {
+    padding: var(--space-3) var(--space-3) var(--space-2);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    flex-shrink: 0;
+  }
+
+  .ws-channels-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 var(--space-2) var(--space-4);
+  }
+
+  .ws-channels-section {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: var(--space-3) var(--space-2) var(--space-1);
+  }
+
+  .ws-channel-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 6px var(--space-2);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    transition: background 0.15s, color 0.15s;
+    position: relative;
+    user-select: none;
+  }
+  .ws-channel-item:hover {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+  }
+  .ws-channel-item.active {
+    background: var(--teal-glow);
+    color: var(--teal);
+    font-weight: 600;
+  }
+
+  /* Colored status dot */
+  .ws-ch-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: background 0.4s;
+  }
+  .ws-ch-dot.status-success  { background: var(--success); }
+  .ws-ch-dot.status-warning  { background: var(--warning); }
+  .ws-ch-dot.status-danger   { background: var(--danger); }
+  .ws-ch-dot.status-idle     { background: var(--text-muted); }
+  .ws-ch-dot.status-learning { background: var(--accent-violet); }
+  .ws-ch-dot.status-info     { background: var(--info); }
+
+  @keyframes pulse-dot {
+    0%   { box-shadow: 0 0 0 0 currentColor; }
+    70%  { box-shadow: 0 0 0 5px transparent; }
+    100% { box-shadow: 0 0 0 0 transparent; }
+  }
+  .ws-ch-dot.pulsing { animation: pulse-dot 0.6s ease-out; }
+
+  .ws-ch-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .ws-ch-badge {
+    background: var(--danger);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+    flex-shrink: 0;
+  }
+  .ws-ch-badge[hidden] { display: none; }
+
+  .ws-add-channel-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 6px var(--space-2);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 0.8125rem;
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    transition: color 0.15s, background 0.15s;
+  }
+  .ws-add-channel-btn:hover { color: var(--teal); background: var(--bg-elevated); }
+
+  /* ── Main content ────────────────────────────────── */
+  .ws-main {
+    position: fixed;
+    top: var(--topbar-height);
+    left: var(--workspace-channel-width);
+    right: var(--workspace-assistant-width);
+    bottom: 0;
+    overflow-y: auto;
+    padding: var(--space-5);
+    transition: left 0.2s ease, right 0.2s ease;
+  }
+
+  /* ── Right assistant panel ───────────────────────── */
+  .ws-assistant {
+    position: fixed;
+    top: var(--topbar-height);
+    right: 0;
+    bottom: 0;
+    width: var(--workspace-assistant-width);
+    background: var(--bg-surface);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    z-index: 90;
+    transition: transform 0.2s ease;
+  }
+
+  .ws-assistant-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .ws-assistant-title {
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: var(--teal);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .ws-assistant-body {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Make murphy-librarian-chat fill the panel */
+  murphy-librarian-chat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Channel header inside main ──────────────────── */
+  .ws-channel-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-5);
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .ws-channel-header-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .ws-channel-header-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+  }
+
+  .ws-channel-header-desc {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    margin-left: auto;
+  }
+
+  /* ── Create channel modal ────────────────────────── */
+  .ws-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.65);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-4);
+  }
+  .ws-modal-backdrop[hidden] { display: none; }
+
+  .ws-modal {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    width: 100%;
+    max-width: 480px;
+    box-shadow: var(--shadow-xl);
+  }
+
+  .ws-modal-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    margin-bottom: var(--space-4);
+  }
+
+  .ws-modal-footer {
+    display: flex;
+    gap: var(--space-3);
+    justify-content: flex-end;
+    margin-top: var(--space-5);
+  }
+
+  /* ── Responsive ──────────────────────────────────── */
+  @media (max-width: 900px) {
+    .ws-assistant {
+      transform: translateX(100%);
+    }
+    .ws-assistant.open {
+      transform: translateX(0);
+    }
+    .ws-main {
+      right: 0;
+    }
+    .ws-btn-toggle-assistant {
+      display: flex !important;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .ws-channels {
+      transform: translateX(-100%);
+    }
+    .ws-channels.open {
+      transform: translateX(0);
+      z-index: 150;
+    }
+    .ws-main {
+      left: 0;
+      right: 0;
+      padding: var(--space-3);
+    }
+    .ws-btn-toggle-channels {
+      display: flex !important;
+    }
+  }
+
+  .ws-btn-toggle-assistant,
+  .ws-btn-toggle-channels {
+    display: none;
+  }
+
+  /* ── Utility ──────────────────────────────────────── */
+  .grid-stat { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--space-4); margin-bottom: var(--space-5); }
+  .feed-item { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border); font-size: 0.875rem; }
+  .feed-item:last-child { border-bottom: none; }
+  .feed-item-time { font-size: 0.75rem; color: var(--text-muted); }
+  .feed-item-channel { font-size: 0.75rem; color: var(--teal); font-family: var(--font-mono); }
+</style>
+</head>
+<body>
+
+<!-- Skip link for accessibility -->
+<a href="#ws-main" class="murphy-skip-link">Skip to content</a>
+
+<!-- ============================================================
+     TOP BAR
+     ============================================================ -->
+<header class="ws-topbar" role="banner" aria-label="Workspace top bar">
+  <div class="ws-topbar-left">
+    <!-- Mobile: toggle channel sidebar -->
+    <button class="murphy-btn murphy-btn-icon ws-btn-toggle-channels" id="btn-toggle-channels" aria-label="Toggle channels">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-menu"></use></svg>
+    </button>
+
+    <!-- Brand -->
+    <a href="murphy_landing_page.html" class="ws-topbar-brand" aria-label="Murphy System home">
+      <img src="static/favicon.svg" alt="Murphy gear+eye logo">
+      <span>MURPHY</span>
+    </a>
+  </div>
+
+  <div class="ws-topbar-right">
+    <!-- Connection status -->
+    <div class="ws-conn-dot" id="conn-dot" aria-label="Connection status: connected" title="SSE connected"></div>
+
+    <!-- Notification bell -->
+    <button class="ws-notif-btn" id="btn-notifications" aria-label="Notifications">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-bell"></use></svg>
+      <span class="ws-notif-badge" id="global-notif-badge" hidden aria-live="polite">0</span>
+    </button>
+
+    <!-- Mobile: toggle assistant -->
+    <button class="murphy-btn murphy-btn-icon ws-btn-toggle-assistant" id="btn-toggle-assistant" aria-label="Toggle assistant panel">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-message-circle"></use></svg>
+    </button>
+
+    <!-- User pill -->
+    <div class="ws-user-pill" id="user-pill" aria-label="Current user">
+      <div class="ws-user-avatar" id="user-avatar">?</div>
+      <span id="user-name">Loading…</span>
+    </div>
+  </div>
+</header>
+
+<!-- ============================================================
+     CHANNEL SIDEBAR
+     ============================================================ -->
+<nav class="ws-channels" id="ws-channels" role="navigation" aria-label="Channel list">
+  <div class="ws-channels-header">Workspace</div>
+  <div class="ws-channels-scroll" id="channels-scroll">
+
+    <!-- System Channels -->
+    <div class="ws-channels-section">System Channels</div>
+
+    <a href="#system" class="ws-channel-item" data-channel="system" aria-label="system channel">
+      <span class="ws-ch-dot status-success" data-ch="system"></span>
+      <span class="ws-ch-name">#system</span>
+      <span class="ws-ch-badge" id="badge-system" hidden>0</span>
+    </a>
+
+    <a href="#hitl" class="ws-channel-item" data-channel="hitl" aria-label="hitl channel">
+      <span class="ws-ch-dot status-idle" data-ch="hitl"></span>
+      <span class="ws-ch-name">#hitl</span>
+      <span class="ws-ch-badge" id="badge-hitl" hidden>0</span>
+    </a>
+
+    <a href="#workflows" class="ws-channel-item" data-channel="workflows" aria-label="workflows channel">
+      <span class="ws-ch-dot status-idle" data-ch="workflows"></span>
+      <span class="ws-ch-name">#workflows</span>
+      <span class="ws-ch-badge" id="badge-workflows" hidden>0</span>
+    </a>
+
+    <a href="#security" class="ws-channel-item" data-channel="security" aria-label="security channel">
+      <span class="ws-ch-dot status-idle" data-ch="security"></span>
+      <span class="ws-ch-name">#security</span>
+      <span class="ws-ch-badge" id="badge-security" hidden>0</span>
+    </a>
+
+    <a href="#costs" class="ws-channel-item" data-channel="costs" aria-label="costs channel">
+      <span class="ws-ch-dot status-idle" data-ch="costs"></span>
+      <span class="ws-ch-name">#costs</span>
+      <span class="ws-ch-badge" id="badge-costs" hidden>0</span>
+    </a>
+
+    <a href="#agents" class="ws-channel-item" data-channel="agents" aria-label="agents channel">
+      <span class="ws-ch-dot status-idle" data-ch="agents"></span>
+      <span class="ws-ch-name">#agents</span>
+      <span class="ws-ch-badge" id="badge-agents" hidden>0</span>
+    </a>
+
+    <!-- Founder-only: hidden until auth confirms founder_admin -->
+    <a href="#architect" class="ws-channel-item" data-channel="architect" id="ch-architect"
+       aria-label="architect channel" style="display:none;">
+      <span class="ws-ch-dot status-learning" data-ch="architect"></span>
+      <span class="ws-ch-name">#architect</span>
+      <span class="ws-ch-badge" id="badge-architect" hidden>0</span>
+    </a>
+
+    <!-- Custom Channels -->
+    <div class="ws-channels-section">Custom Channels</div>
+
+    <div id="custom-channels-list">
+      <!-- Dynamic custom channels injected here -->
+    </div>
+
+    <button class="ws-add-channel-btn" id="btn-add-channel" aria-label="Create new channel">
+      <svg width="14" height="14"><use href="static/murphy-icons.svg#icon-plus"></use></svg>
+      Create Channel
+    </button>
+
+  </div>
+</nav>
+
+<!-- ============================================================
+     MAIN CONTENT AREA
+     ============================================================ -->
+<main class="ws-main" id="ws-main" role="main" aria-label="Channel content" aria-live="polite">
+  <!-- Content is rendered here by the JS router -->
+</main>
+
+<!-- ============================================================
+     RIGHT PANEL — MURPHY ASSISTANT
+     ============================================================ -->
+<aside class="ws-assistant" id="ws-assistant" role="complementary" aria-label="Murphy Assistant">
+  <div class="ws-assistant-header">
+    <div class="ws-assistant-title">
+      <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-message-circle"></use></svg>
+      Murphy Assistant
+    </div>
+    <button class="murphy-btn murphy-btn-icon" id="btn-close-assistant" aria-label="Close assistant panel" title="Close">
+      <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-x"></use></svg>
+    </button>
+  </div>
+  <div class="ws-assistant-body">
+    <murphy-librarian-chat id="ws-librarian"></murphy-librarian-chat>
+  </div>
+</aside>
+
+<!-- ============================================================
+     CREATE CHANNEL MODAL
+     ============================================================ -->
+<div class="ws-modal-backdrop" id="create-channel-modal" hidden role="dialog"
+     aria-modal="true" aria-labelledby="modal-title">
+  <div class="ws-modal">
+    <div class="ws-modal-title" id="modal-title">
+      <svg width="18" height="18" style="vertical-align:middle;margin-right:6px;"><use href="static/murphy-icons.svg#icon-plus"></use></svg>
+      Create Channel
+    </div>
+    <p class="text-sm text-secondary" style="margin-bottom:var(--space-4);">
+      Describe what this channel should do in plain language. Murphy will set it up.
+    </p>
+    <div class="murphy-form-group">
+      <label class="murphy-label" for="new-channel-desc">What should this channel do?</label>
+      <input type="text" id="new-channel-desc" class="murphy-input"
+             placeholder="e.g. Watch for errors in the production deployment pipeline"
+             autocomplete="off">
+    </div>
+    <div id="create-channel-status" class="text-sm" style="min-height:1.25rem;"></div>
+    <div class="ws-modal-footer">
+      <button class="murphy-btn" id="btn-modal-cancel">Cancel</button>
+      <button class="murphy-btn murphy-btn-primary" id="btn-modal-create">
+        <svg width="14" height="14"><use href="static/murphy-icons.svg#icon-zap"></use></svg>
+        Create
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+<script src="static/murphy-components.js"></script>
+<script src="murphy_auth.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* ===========================================================
+     1. API + SHARED COMPONENTS
+     =========================================================== */
+  var api      = new MurphyAPI('/api');
+  var toast    = new MurphyToast();
+  var theme    = new MurphyTheme();
+  var keyboard = new MurphyKeyboard();
+  theme.init();
+  keyboard.init();
+
+  /* ===========================================================
+     2. DOM REFS
+     =========================================================== */
+  var channelsNav   = document.getElementById('ws-channels');
+  var mainEl        = document.getElementById('ws-main');
+  var assistantEl   = document.getElementById('ws-assistant');
+  var connDot       = document.getElementById('conn-dot');
+  var globalBadge   = document.getElementById('global-notif-badge');
+  var librarianEl   = document.getElementById('ws-librarian');
+  var createModal   = document.getElementById('create-channel-modal');
+  var newChDesc     = document.getElementById('new-channel-desc');
+  var createStatus  = document.getElementById('create-channel-status');
+  var userAvatar    = document.getElementById('user-avatar');
+  var userNameEl    = document.getElementById('user-name');
+
+  // Delegated handler for retry buttons rendered inside channel views
+  mainEl.addEventListener('click', function (e) {
+    var btn = e.target.closest('.ws-retry-btn');
+    if (btn) navigate(btn.getAttribute('data-channel') || currentChannel);
+  });
+
+  /* ===========================================================
+     3. HTML HELPERS  (same patterns as terminal_unified.html)
+     =========================================================== */
+  function esc(s) {
+    var d = document.createElement('div');
+    d.textContent = (s == null ? '' : String(s));
+    return d.innerHTML;
+  }
+
+  function icon(name, size) {
+    size = size || 18;
+    return '<svg width="' + size + '" height="' + size + '"><use href="static/murphy-icons.svg#icon-' + esc(name) + '"></use></svg>';
+  }
+
+  function badge(text, variant) {
+    variant = variant || 'neutral';
+    return '<span class="murphy-badge murphy-badge-' + esc(variant) + '">' + esc(text) + '</span>';
+  }
+
+  function statCard(label, value, trendDir, trendText) {
+    var tc = trendDir === 'up' ? 'murphy-stat-card-trend-up'
+           : trendDir === 'down' ? 'murphy-stat-card-trend-down' : '';
+    var th = trendText ? '<div class="murphy-stat-card-trend ' + tc + '">' + esc(trendText) + '</div>' : '';
+    return '<div class="murphy-stat-card">' +
+      '<div class="murphy-stat-card-label">' + esc(label) + '</div>' +
+      '<div class="murphy-stat-card-value">' + esc(value) + '</div>' +
+      th + '</div>';
+  }
+
+  function sectionHeader(title, subtitle) {
+    return '<div class="flex items-center justify-between mb-4">' +
+      '<div>' +
+      '<h2 class="text-xl font-bold">' + esc(title) + '</h2>' +
+      (subtitle ? '<p class="text-sm text-secondary">' + esc(subtitle) + '</p>' : '') +
+      '</div></div>';
+  }
+
+  function tableHTML(columns, rows) {
+    var h = '<div class="murphy-table murphy-table-striped"><div class="murphy-table-header">';
+    columns.forEach(function (c) { h += '<div>' + esc(c.label) + '</div>'; });
+    h += '</div>';
+    if (!rows || rows.length === 0) {
+      h += '<div class="p-6 text-center text-muted text-sm">No data available</div>';
+    } else {
+      rows.forEach(function (row) {
+        h += '<div class="murphy-table-row">';
+        columns.forEach(function (c) {
+          var val = row[c.key];
+          h += '<div>' + (c.render ? c.render(val, row) : esc(val)) + '</div>';
+        });
+        h += '</div>';
+      });
+    }
+    h += '</div>';
+    return h;
+  }
+
+  function skeletonCards(n) {
+    var h = '';
+    for (var i = 0; i < (n || 4); i++) h += '<div class="murphy-skeleton-card murphy-skeleton"></div>';
+    return '<div class="grid-stat">' + h + '</div>';
+  }
+
+  function skeletonRows(n) {
+    var h = '';
+    for (var i = 0; i < (n || 6); i++) h += '<div class="murphy-skeleton murphy-skeleton-text"></div>';
+    return '<div class="flex flex-col gap-3 p-4">' + h + '</div>';
+  }
+
+  function emptyState(title, msg) {
+    return '<div class="murphy-empty-state">' +
+      '<div class="murphy-empty-state-icon">' + icon('search', 48) + '</div>' +
+      '<div class="murphy-empty-state-title">' + esc(title) + '</div>' +
+      '<div class="murphy-empty-state-message">' + esc(msg) + '</div>' +
+      '</div>';
+  }
+
+  function errorCard(msg, retryChannel) {
+    var ch = esc(retryChannel || currentChannel);
+    return '<div class="murphy-card"><div class="murphy-card-body flex flex-col items-center gap-4 p-6">' +
+      '<div class="text-danger text-lg font-bold">' + icon('alert', 32) + ' Error</div>' +
+      '<p class="text-secondary text-sm">' + esc(msg) + '</p>' +
+      '<button class="murphy-btn murphy-btn-primary ws-retry-btn" data-channel="' + ch + '">Retry</button>' +
+      '</div></div>';
+  }
+
+  function channelHeaderHTML(ch, dotClass, desc) {
+    return '<div class="ws-channel-header">' +
+      '<span class="ws-channel-header-dot ' + esc(dotClass) + '"></span>' +
+      '<span class="ws-channel-header-title">#' + esc(ch) + '</span>' +
+      (desc ? '<span class="ws-channel-header-desc">' + esc(desc) + '</span>' : '') +
+      '</div>';
+  }
+
+  /* ===========================================================
+     4. CHANNEL STATUS MANAGEMENT
+     ===================================================== */
+  // Map from channel id → current status class
+  var channelStatus = {
+    system:    'status-success',
+    hitl:      'status-idle',
+    workflows: 'status-idle',
+    security:  'status-idle',
+    costs:     'status-idle',
+    agents:    'status-idle',
+    architect: 'status-learning'
+  };
+
+  // Unread counts per channel
+  var unreadCounts = {};
+
+  function setChannelStatus(chId, statusClass) {
+    channelStatus[chId] = statusClass;
+    var dots = document.querySelectorAll('[data-ch="' + chId + '"]');
+    dots.forEach(function (dot) {
+      dot.className = 'ws-ch-dot ' + statusClass;
+      // Pulse animation on change
+      dot.classList.add('pulsing');
+      setTimeout(function () { dot.classList.remove('pulsing'); }, 700);
+    });
+  }
+
+  function incrementUnread(chId) {
+    if (chId === currentChannel) return; // Don't count active channel
+    unreadCounts[chId] = (unreadCounts[chId] || 0) + 1;
+    var badgeEl = document.getElementById('badge-' + chId);
+    if (badgeEl) {
+      badgeEl.textContent = unreadCounts[chId] > 99 ? '99+' : String(unreadCounts[chId]);
+      badgeEl.hidden = false;
+    }
+    updateGlobalBadge();
+  }
+
+  function clearUnread(chId) {
+    unreadCounts[chId] = 0;
+    var badgeEl = document.getElementById('badge-' + chId);
+    if (badgeEl) badgeEl.hidden = true;
+    updateGlobalBadge();
+  }
+
+  function updateGlobalBadge() {
+    var total = Object.values(unreadCounts).reduce(function (a, b) { return a + b; }, 0);
+    if (total > 0) {
+      globalBadge.textContent = total > 99 ? '99+' : String(total);
+      globalBadge.hidden = false;
+    } else {
+      globalBadge.hidden = true;
+    }
+  }
+
+  /* ===========================================================
+     5. HASH ROUTER
+     ===================================================== */
+  var currentChannel = '';
+
+  var channelViews = {
+    system:    renderSystem,
+    hitl:      renderHitl,
+    workflows: renderWorkflows,
+    security:  renderSecurity,
+    costs:     renderCosts,
+    agents:    renderAgents,
+    architect: renderArchitect
+  };
+
+  window.navigate = navigate;
+
+  function navigate(chId) {
+    chId = chId || 'system';
+
+    // Custom channels not in the built-in map — fall back to system only if truly unknown
+    if (!channelViews[chId] && !customChannels[chId]) {
+      chId = 'system';
+    }
+
+    currentChannel = chId;
+
+    // Update active sidebar item
+    document.querySelectorAll('.ws-channel-item').forEach(function (el) {
+      el.classList.toggle('active', el.getAttribute('data-channel') === chId);
+    });
+
+    // Clear unread for this channel
+    clearUnread(chId);
+
+    // Set assistant context
+    if (librarianEl && librarianEl.setContext) {
+      librarianEl.setContext('workspace#' + chId);
+    }
+
+    // Render content
+    if (channelViews[chId]) {
+      channelViews[chId]();
+    } else if (customChannels[chId]) {
+      renderCustomChannel(chId);
+    } else {
+      renderSystem();
+    }
+  }
+
+  window.addEventListener('hashchange', function () {
+    navigate(location.hash.slice(1) || 'system');
+  });
+
+  /* ===========================================================
+     6. CHANNEL VIEW RENDERERS
+     ===================================================== */
+
+  /* ── #system ── */
+  async function renderSystem() {
+    var dot = channelStatus['system'] || 'status-success';
+    mainEl.innerHTML = channelHeaderHTML('system', dot, 'System overview and health') +
+      sectionHeader('Dashboard', 'Live system status') + skeletonCards(4);
+    try {
+      var res = await api.get('/status');
+      var data = res || {};
+      var hData = data.health || {};
+      var html = channelHeaderHTML('system', dot, 'System overview and health') +
+        sectionHeader('Dashboard', 'Live system status');
+      html += '<div class="grid-stat">';
+      html += statCard('System Health', (hData.health || data.health || '—') + '%');
+      html += statCard('Uptime', hData.uptime || data.uptime || '—');
+      html += statCard('API Latency', (hData.latency_ms || data.latency_ms || '—') + ' ms');
+      html += statCard('Active Modules', (data.modules ? Object.keys(data.modules).length : '—'));
+      html += '</div>';
+
+      // Module status table
+      if (data.modules) {
+        var modules = Object.entries(data.modules).map(function (kv) { return { name: kv[0], status: kv[1] }; });
+        html += sectionHeader('Modules', 'Module health status');
+        html += tableHTML(
+          [
+            { key: 'name', label: 'Module' },
+            { key: 'status', label: 'Status', render: function (v) {
+              return badge(v || 'unknown', v === 'running' || v === 'healthy' ? 'success' : v === 'error' ? 'danger' : 'warning');
+            }}
+          ],
+          modules
+        );
+      }
+
+      // Update dot based on health
+      var healthPct = parseFloat(hData.health || data.health || 100);
+      if (healthPct < 50) setChannelStatus('system', 'status-danger');
+      else if (healthPct < 80) setChannelStatus('system', 'status-warning');
+      else setChannelStatus('system', 'status-success');
+
+      mainEl.innerHTML = html;
+    } catch (e) {
+      mainEl.innerHTML = channelHeaderHTML('system', dot, '') + errorCard(e.message, 'system');
+    }
+  }
+
+  /* ── #hitl ── */
+  async function renderHitl() {
+    var dot = channelStatus['hitl'] || 'status-idle';
+    mainEl.innerHTML = channelHeaderHTML('hitl', dot, 'Human-in-the-loop queue') +
+      sectionHeader('HITL Queue', 'Items awaiting human review') + skeletonRows(6);
+    try {
+      var res  = await api.get('/hitl/interventions');
+      var items = Array.isArray(res) ? res : (res.items || res.interventions || []);
+      var html = channelHeaderHTML('hitl', dot, 'Human-in-the-loop queue') +
+        sectionHeader('HITL Queue', items.length + ' items awaiting review');
+
+      // Status dot
+      var hasCritical = items.some(function (i) { return (i.priority || '') === 'critical'; });
+      var hasPending  = items.some(function (i) { return (i.status || '') === 'pending'; });
+      if (hasCritical) setChannelStatus('hitl', 'status-danger');
+      else if (hasPending) setChannelStatus('hitl', 'status-warning');
+      else if (items.length > 0) setChannelStatus('hitl', 'status-info');
+      else setChannelStatus('hitl', 'status-idle');
+
+      html += '<div class="grid-stat">';
+      var pending  = items.filter(function (i) { return i.status === 'pending'; }).length;
+      var critical = items.filter(function (i) { return (i.priority || '') === 'critical'; }).length;
+      html += statCard('Total Items', items.length);
+      html += statCard('Pending', pending, pending > 5 ? 'up' : null, pending > 5 ? 'High' : '');
+      html += statCard('Critical', critical, critical > 0 ? 'up' : null, critical > 0 ? 'Urgent' : '');
+      html += '</div>';
+
+      html += tableHTML(
+        [
+          { key: 'id',          label: 'ID',       render: function (v) { return '<code class="text-xs">' + esc(String(v || '').slice(0, 8)) + '</code>'; }},
+          { key: 'task',        label: 'Task',      render: function (v) { return esc(v || 'N/A'); }},
+          { key: 'priority',    label: 'Priority',  render: function (v) { return badge(v || 'normal', v === 'critical' ? 'danger' : v === 'high' ? 'warning' : 'neutral'); }},
+          { key: 'status',      label: 'Status',    render: function (v) { return badge(v || 'pending', v === 'approved' ? 'success' : v === 'rejected' ? 'danger' : 'warning'); }},
+          { key: 'created_at',  label: 'Created',   render: function (v) { return v ? new Date(v).toLocaleString() : '—'; }}
+        ],
+        items
+      );
+      mainEl.innerHTML = html;
+    } catch (e) {
+      mainEl.innerHTML = channelHeaderHTML('hitl', dot, '') + errorCard(e.message, 'hitl');
+    }
+  }
+
+  /* ── #workflows ── */
+  async function renderWorkflows() {
+    var dot = channelStatus['workflows'] || 'status-idle';
+    mainEl.innerHTML = channelHeaderHTML('workflows', dot, 'Workflow management') +
+      sectionHeader('Workflows', 'Active and recent workflows') + skeletonRows(8);
+    try {
+      var res   = await api.get('/workflows');
+      var items = Array.isArray(res) ? res : (res.workflows || res.items || []);
+      var html  = channelHeaderHTML('workflows', dot, 'Workflow management') +
+        sectionHeader('Workflows', items.length + ' workflows');
+
+      var running = items.filter(function (i) { return i.status === 'running' || i.status === 'active'; }).length;
+      var failed  = items.filter(function (i) { return i.status === 'failed' || i.status === 'error'; }).length;
+      if (failed > 0) setChannelStatus('workflows', 'status-danger');
+      else if (running > 0) setChannelStatus('workflows', 'status-info');
+      else setChannelStatus('workflows', 'status-idle');
+
+      html += '<div class="grid-stat">';
+      html += statCard('Total', items.length);
+      html += statCard('Running', running, running > 0 ? 'up' : null, running > 0 ? 'In progress' : '');
+      html += statCard('Failed', failed, failed > 0 ? 'up' : null, failed > 0 ? 'Needs attention' : '');
+      html += '</div>';
+
+      html += tableHTML(
+        [
+          { key: 'id',          label: 'ID',     render: function (v) { return '<code class="text-xs">' + esc(String(v || '').slice(0, 8)) + '</code>'; }},
+          { key: 'name',        label: 'Name' },
+          { key: 'status',      label: 'Status', render: function (v) { return badge(v, v === 'active' || v === 'running' ? 'success' : v === 'failed' || v === 'error' ? 'danger' : 'neutral'); }},
+          { key: 'updated_at',  label: 'Updated', render: function (v) { return v ? new Date(v).toLocaleString() : '—'; }}
+        ],
+        items
+      );
+      mainEl.innerHTML = html;
+    } catch (e) {
+      mainEl.innerHTML = channelHeaderHTML('workflows', dot, '') + errorCard(e.message, 'workflows');
+    }
+  }
+
+  /* ── #security ── */
+  async function renderSecurity() {
+    var dot = channelStatus['security'] || 'status-idle';
+    mainEl.innerHTML = channelHeaderHTML('security', dot, 'Security events and alerts') +
+      sectionHeader('Security', 'Recent security events') + skeletonRows(6);
+    try {
+      var res   = await api.get('/security/events');
+      var items = Array.isArray(res) ? res : (res.events || res.items || []);
+      var html  = channelHeaderHTML('security', dot, 'Security events and alerts') +
+        sectionHeader('Security', items.length + ' events');
+
+      var alerts  = items.filter(function (i) { return (i.severity || '') === 'critical' || (i.severity || '') === 'high'; }).length;
+      if (alerts > 0) setChannelStatus('security', 'status-danger');
+      else if (items.length > 0) setChannelStatus('security', 'status-warning');
+      else setChannelStatus('security', 'status-idle');
+
+      html += '<div class="grid-stat">';
+      html += statCard('Total Events', items.length);
+      html += statCard('High/Critical', alerts, alerts > 0 ? 'up' : null, alerts > 0 ? 'Review required' : '');
+      html += '</div>';
+
+      if (items.length === 0) {
+        html += emptyState('No security events', 'The system is clean — no recent alerts.');
+      } else {
+        html += tableHTML(
+          [
+            { key: 'id',         label: 'ID',       render: function (v) { return '<code class="text-xs">' + esc(String(v || '').slice(0, 8)) + '</code>'; }},
+            { key: 'type',       label: 'Type' },
+            { key: 'severity',   label: 'Severity',  render: function (v) { return badge(v || 'info', v === 'critical' ? 'danger' : v === 'high' ? 'warning' : 'neutral'); }},
+            { key: 'message',    label: 'Message',   render: function (v) { return esc(String(v || '').slice(0, 80)); }},
+            { key: 'created_at', label: 'Time',      render: function (v) { return v ? new Date(v).toLocaleString() : '—'; }}
+          ],
+          items
+        );
+      }
+      mainEl.innerHTML = html;
+    } catch (e) {
+      mainEl.innerHTML = channelHeaderHTML('security', dot, '') + errorCard(e.message, 'security');
+    }
+  }
+
+  /* ── #costs ── */
+  async function renderCosts() {
+    var dot = channelStatus['costs'] || 'status-idle';
+    mainEl.innerHTML = channelHeaderHTML('costs', dot, 'Cost dashboard') +
+      sectionHeader('Costs', 'API usage and budget tracking') + skeletonCards(4);
+    try {
+      var res  = await api.get('/costs/summary');
+      var data = res || {};
+      var html = channelHeaderHTML('costs', dot, 'Cost dashboard') +
+        sectionHeader('Costs', 'API usage and budget tracking');
+
+      // Budget warning
+      var budget   = parseFloat(data.budget || 0);
+      var spent    = parseFloat(data.total_cost || data.spent || 0);
+      var pct      = budget > 0 ? Math.round((spent / budget) * 100) : 0;
+      if (pct > 90) setChannelStatus('costs', 'status-danger');
+      else if (pct > 70) setChannelStatus('costs', 'status-warning');
+      else setChannelStatus('costs', 'status-success');
+
+      html += '<div class="grid-stat">';
+      html += statCard('Total Spent', '$' + (spent).toFixed(2));
+      html += statCard('Budget', '$' + (budget).toFixed(2));
+      html += statCard('Budget Used', pct + '%', pct > 80 ? 'up' : null, pct > 80 ? 'Over limit' : '');
+      html += statCard('Requests', data.total_requests || '—');
+      html += '</div>';
+
+      // By model breakdown
+      if (data.by_model && Object.keys(data.by_model).length > 0) {
+        html += sectionHeader('By Model', 'Cost breakdown per LLM model');
+        var modelRows = Object.entries(data.by_model).map(function (kv) {
+          return { model: kv[0], cost: kv[1].cost || kv[1], requests: kv[1].requests || '—' };
+        });
+        html += tableHTML(
+          [
+            { key: 'model',    label: 'Model' },
+            { key: 'requests', label: 'Requests' },
+            { key: 'cost',     label: 'Cost', render: function (v) { return '$' + parseFloat(v || 0).toFixed(4); }}
+          ],
+          modelRows
+        );
+      }
+      mainEl.innerHTML = html;
+    } catch (e) {
+      mainEl.innerHTML = channelHeaderHTML('costs', dot, '') + errorCard(e.message, 'costs');
+    }
+  }
+
+  /* ── #agents ── */
+  async function renderAgents() {
+    var dot = channelStatus['agents'] || 'status-idle';
+    mainEl.innerHTML = channelHeaderHTML('agents', dot, 'Agent dashboard') +
+      sectionHeader('Agents', 'Active agent instances') + skeletonCards(6);
+    try {
+      var res   = await api.get('/agents');
+      var items = Array.isArray(res) ? res : (res.agents || res.items || []);
+      var html  = channelHeaderHTML('agents', dot, 'Agent dashboard') +
+        sectionHeader('Agents', items.length + ' agents');
+
+      var active  = items.filter(function (a) { return a.status === 'active'; }).length;
+      var shadow  = items.filter(function (a) { return a.type === 'shadow' || a.mode === 'shadow'; }).length;
+      if (active > 0) setChannelStatus('agents', 'status-success');
+      else setChannelStatus('agents', 'status-idle');
+
+      html += '<div class="grid-stat">';
+      html += statCard('Total Agents', items.length);
+      html += statCard('Active', active);
+      html += statCard('Shadow', shadow);
+      html += '</div>';
+
+      html += '<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:var(--space-4);">';
+      items.forEach(function (a) {
+        html += '<div class="murphy-card">' +
+          '<div class="murphy-card-header" style="display:flex;align-items:center;gap:8px;">' +
+            icon('users', 16) + '<strong>' + esc(a.name || a.id || 'Agent') + '</strong>' +
+            '<span style="margin-left:auto;">' + badge(a.status || 'idle', a.status === 'active' ? 'success' : 'neutral') + '</span>' +
+          '</div>' +
+          '<div class="murphy-card-body text-sm">' +
+            '<div class="text-muted">Type: ' + esc(a.type || a.mode || '—') + '</div>' +
+            '<div class="text-muted">Role: ' + esc(a.role || '—') + '</div>' +
+            (a.last_action ? '<div class="text-muted">Last: ' + esc(a.last_action) + '</div>' : '') +
+          '</div>' +
+          '</div>';
+      });
+      if (items.length === 0) html += emptyState('No agents', 'No agent instances are registered.');
+      html += '</div>';
+      mainEl.innerHTML = html;
+    } catch (e) {
+      mainEl.innerHTML = channelHeaderHTML('agents', dot, '') + errorCard(e.message, 'agents');
+    }
+  }
+
+  /* ── #architect (founder-only) ── */
+  async function renderArchitect() {
+    var dot = channelStatus['architect'] || 'status-learning';
+    mainEl.innerHTML = channelHeaderHTML('architect', dot, 'Architecture overview — founder only') +
+      sectionHeader('Architecture', 'System architecture and governance') + skeletonRows(8);
+    try {
+      var res  = await api.get('/architect/overview');
+      var data = res || {};
+      var html = channelHeaderHTML('architect', dot, 'Architecture overview — founder only') +
+        sectionHeader('Architecture', 'System architecture and governance');
+
+      // Render any summary data returned
+      if (data.summary) {
+        html += '<div class="murphy-card"><div class="murphy-card-body"><pre style="white-space:pre-wrap;font-size:0.8125rem;">' + esc(JSON.stringify(data.summary, null, 2)) + '</pre></div></div>';
+      } else {
+        html += '<div class="murphy-card"><div class="murphy-card-body">' +
+          '<pre style="white-space:pre-wrap;font-size:0.8125rem;color:var(--teal);">' + esc(JSON.stringify(data, null, 2)) + '</pre>' +
+          '</div></div>';
+      }
+      mainEl.innerHTML = html;
+    } catch (e) {
+      mainEl.innerHTML = channelHeaderHTML('architect', dot, '') + errorCard(e.message, 'architect');
+    }
+  }
+
+  /* ── Custom channel feed ── */
+  async function renderCustomChannel(chId) {
+    var ch   = customChannels[chId] || {};
+    var dot  = channelStatus[chId]  || 'status-idle';
+    mainEl.innerHTML = channelHeaderHTML(chId, dot, ch.description || 'Custom channel') +
+      sectionHeader('#' + chId, ch.description || '') + skeletonRows(6);
+    try {
+      // Fetch events for this subscriber
+      var res   = await api.get('/events/history/' + (ch.subscriberId || chId));
+      var items = Array.isArray(res) ? res : (res.events || res.items || []);
+      var html  = channelHeaderHTML(chId, dot, ch.description || 'Custom channel') +
+        sectionHeader('#' + chId, ch.description || '');
+
+      if (items.length === 0) {
+        html += emptyState('No events yet', 'Events matching this channel\'s filter will appear here.');
+      } else {
+        html += '<div class="murphy-card">';
+        items.forEach(function (ev) {
+          html += '<div class="feed-item">' +
+            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">' +
+              badge(ev.channel || ev.type || 'event', 'info') +
+              '<span class="feed-item-time">' + (ev.timestamp ? new Date(ev.timestamp).toLocaleString() : '') + '</span>' +
+            '</div>' +
+            '<div>' + esc(ev.message || JSON.stringify(ev.data || ev)) + '</div>' +
+            '</div>';
+        });
+        html += '</div>';
+      }
+      mainEl.innerHTML = html;
+    } catch (e) {
+      mainEl.innerHTML = channelHeaderHTML(chId, dot, '') + errorCard(e.message, chId);
+    }
+  }
+
+  /* ===========================================================
+     7. CUSTOM CHANNELS STATE
+     ===================================================== */
+  var customChannels = {}; // { id: { name, description, subscriberId } }
+
+  function addCustomChannelToSidebar(chId, ch) {
+    var list = document.getElementById('custom-channels-list');
+    var existing = list.querySelector('[data-channel="' + chId + '"]');
+    if (existing) return;
+
+    var el = document.createElement('a');
+    el.href = '#' + chId;
+    el.className = 'ws-channel-item';
+    el.setAttribute('data-channel', chId);
+    el.setAttribute('aria-label', chId + ' channel');
+    el.innerHTML =
+      '<span class="ws-ch-dot status-idle" data-ch="' + esc(chId) + '"></span>' +
+      '<span class="ws-ch-name">#' + esc(ch.name || chId) + '</span>' +
+      '<span class="ws-ch-badge" id="badge-' + esc(chId) + '" hidden>0</span>';
+    list.appendChild(el);
+
+    // Register in channelViews so the router handles it
+    channelViews[chId] = function () { renderCustomChannel(chId); };
+    channelStatus[chId] = 'status-idle';
+  }
+
+  /* ===========================================================
+     8. CREATE CHANNEL MODAL
+     ===================================================== */
+  document.getElementById('btn-add-channel').addEventListener('click', function () {
+    createModal.hidden = false;
+    newChDesc.value = '';
+    createStatus.textContent = '';
+    newChDesc.focus();
+  });
+
+  document.getElementById('btn-modal-cancel').addEventListener('click', function () {
+    createModal.hidden = true;
+  });
+
+  // Close on backdrop click
+  createModal.addEventListener('click', function (e) {
+    if (e.target === createModal) createModal.hidden = true;
+  });
+
+  // Close on Escape
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !createModal.hidden) createModal.hidden = true;
+  });
+
+  document.getElementById('btn-modal-create').addEventListener('click', createChannel);
+  newChDesc.addEventListener('keydown', function (e) { if (e.key === 'Enter') createChannel(); });
+
+  async function createChannel() {
+    var desc = newChDesc.value.trim();
+    if (!desc) {
+      createStatus.innerHTML = '<span class="text-warning">Please describe what this channel should do.</span>';
+      return;
+    }
+    createStatus.innerHTML = '<span class="text-muted">Asking Murphy…</span>';
+    document.getElementById('btn-modal-create').disabled = true;
+
+    try {
+      // Ask Murphy to create the channel via /api/librarian/ask or /api/chat
+      var chatRes = await api.post('/librarian/ask', {
+        question: 'Create an event channel for: ' + desc + '. Reply with JSON only: { "channel_name": "slug", "filter": { "channels": ["eventbus_channel"] }, "description": "short desc" }',
+        context: 'workspace#create_channel'
+      });
+
+      var chData = null;
+      try {
+        var answer = chatRes.answer || chatRes.response || chatRes.message || '';
+        var jsonMatch = answer.match(/\{[\s\S]*\}/);
+        if (jsonMatch) chData = JSON.parse(jsonMatch[0]);
+      } catch (_) {}
+
+      if (!chData || !chData.channel_name) {
+        // Fallback: derive slug from description (only alphanumeric + hyphens)
+        chData = {
+          channel_name: desc.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 32),
+          filter: { channels: ['custom'] },
+          description: desc
+        };
+      }
+
+      var slug = (chData.channel_name || '').replace(/[^a-z0-9-]/g, '').slice(0, 32);
+      if (!slug) {
+        createStatus.innerHTML = '<span class="text-warning">Could not generate a valid channel name. Please use letters and numbers in your description.</span>';
+        document.getElementById('btn-modal-create').disabled = false;
+        return;
+      }
+
+      // Subscribe to the event bus
+      var subRes = await api.post('/events/subscribe', {
+        subscriber_id: 'workspace_' + slug + '_' + Date.now(),
+        channels: chData.filter.channels || ['custom'],
+        description: chData.description || desc
+      });
+
+      var subscriberId = subRes.subscriber_id || subRes.id || ('workspace_' + slug);
+
+      // Register locally
+      customChannels[slug] = {
+        name: slug,
+        description: chData.description || desc,
+        subscriberId: subscriberId
+      };
+      addCustomChannelToSidebar(slug, customChannels[slug]);
+
+      createModal.hidden = true;
+      toast.show('Channel #' + slug + ' created!', 'success');
+      navigate(slug);
+    } catch (e) {
+      createStatus.innerHTML = '<span class="text-danger">Failed: ' + esc(e.message) + '</span>';
+    } finally {
+      document.getElementById('btn-modal-create').disabled = false;
+    }
+  }
+
+  /* ===========================================================
+     9. SSE — REAL-TIME CHANNEL STATUS
+     ===================================================== */
+  var sseSubscriberId = null;
+  var sseSource       = null;
+
+  async function startSSE() {
+    // Subscribe to the event bus
+    try {
+      var res = await api.post('/events/subscribe', {
+        subscriber_id: 'workspace_main_' + Date.now(),
+        channels: ['system', 'security', 'workflow', 'health', 'metrics', 'user_action', 'custom']
+      });
+      sseSubscriberId = res.subscriber_id || res.id;
+    } catch (_) {
+      // If subscribe fails, try with a static ID
+      sseSubscriberId = 'workspace_main';
+    }
+
+    connectSSE();
+  }
+
+  function connectSSE() {
+    if (sseSource) { try { sseSource.close(); } catch (_) {} }
+
+    var url = '/api/events/stream/' + encodeURIComponent(sseSubscriberId || 'workspace_main');
+    sseSource = new EventSource(url);
+
+    sseSource.onopen = function () {
+      connDot.classList.remove('disconnected');
+      connDot.title = 'SSE connected';
+      connDot.setAttribute('aria-label', 'Connection status: connected');
+    };
+
+    sseSource.onmessage = function (e) {
+      try {
+        var ev = JSON.parse(e.data);
+        handleSSEEvent(ev);
+      } catch (_) {}
+    };
+
+    sseSource.addEventListener('event', function (e) {
+      try {
+        var ev = JSON.parse(e.data);
+        handleSSEEvent(ev);
+      } catch (_) {}
+    });
+
+    sseSource.onerror = function () {
+      connDot.classList.add('disconnected');
+      connDot.title = 'SSE disconnected — reconnecting…';
+      connDot.setAttribute('aria-label', 'Connection status: disconnected');
+      // Auto-reconnect after 5 s
+      setTimeout(connectSSE, 5000);
+    };
+  }
+
+  // Map EventBus channel names to workspace channels
+  var CHANNEL_MAP = {
+    system:      'system',
+    health:      'system',
+    metrics:     'system',
+    security:    'security',
+    workflow:    'workflows',
+    user_action: 'hitl',
+    custom:      null  // handled by subscriber id
+  };
+
+  function handleSSEEvent(ev) {
+    var evChannel = ev.channel || ev.type || '';
+    var wsCh      = CHANNEL_MAP[evChannel] || evChannel;
+
+    // Update dot color based on severity
+    var severity = ev.severity || ev.level || '';
+    var dotClass;
+    if (severity === 'error' || severity === 'critical') dotClass = 'status-danger';
+    else if (severity === 'warning' || severity === 'warn') dotClass = 'status-warning';
+    else if (severity === 'info' || severity === 'success') dotClass = 'status-success';
+    else dotClass = 'status-info';
+
+    if (wsCh && channelStatus[wsCh] !== undefined) {
+      setChannelStatus(wsCh, dotClass);
+      incrementUnread(wsCh);
+    }
+
+    // If we're on the active channel, refresh content
+    if (wsCh === currentChannel) {
+      // Debounced refresh
+      clearTimeout(autoRefreshTimer);
+      autoRefreshTimer = setTimeout(function () { navigate(currentChannel); }, 2000);
+    }
+  }
+
+  var autoRefreshTimer = null;
+
+  /* ===========================================================
+     10. SIDEBAR & PANEL TOGGLES (mobile)
+     ===================================================== */
+  document.getElementById('btn-toggle-channels').addEventListener('click', function () {
+    channelsNav.classList.toggle('open');
+  });
+
+  document.getElementById('btn-toggle-assistant').addEventListener('click', function () {
+    assistantEl.classList.toggle('open');
+  });
+
+  document.getElementById('btn-close-assistant').addEventListener('click', function () {
+    assistantEl.classList.remove('open');
+  });
+
+  // Close channel sidebar when a channel is clicked on mobile
+  channelsNav.addEventListener('click', function (e) {
+    var item = e.target.closest('.ws-channel-item');
+    if (item && window.innerWidth <= 640) {
+      channelsNav.classList.remove('open');
+    }
+    if (item) {
+      e.preventDefault();
+      var chId = item.getAttribute('data-channel');
+      if (chId) {
+        location.hash = chId;
+        navigate(chId);
+      }
+    }
+  });
+
+  /* ===========================================================
+     11. AUTH — show/hide #architect, fill user info
+     ===================================================== */
+  window.addEventListener('murphy:profile_loaded', function (e) {
+    var profile = e.detail || {};
+
+    // Show/hide #architect
+    var archEl = document.getElementById('ch-architect');
+    if (profile.role === 'founder_admin') {
+      archEl.style.display = '';
+    }
+
+    // Populate user pill
+    var name = profile.name || profile.email || 'User';
+    userNameEl.textContent = name;
+    userAvatar.textContent = name.charAt(0).toUpperCase();
+  });
+
+  // If auth is unavailable (dev mode), still show a fallback name
+  setTimeout(function () {
+    if (userNameEl.textContent === 'Loading…') {
+      userNameEl.textContent = 'User';
+      userAvatar.textContent = 'U';
+    }
+  }, 3000);
+
+  /* ===========================================================
+     12. NOTIFICATIONS BELL
+     ===================================================== */
+  document.getElementById('btn-notifications').addEventListener('click', function () {
+    // Navigate to a view that surfaces all recent events
+    // For now, navigate to #system as the global overview
+    navigate('system');
+    // Clear global badge
+    Object.keys(unreadCounts).forEach(function (k) { unreadCounts[k] = 0; });
+    document.querySelectorAll('.ws-ch-badge').forEach(function (b) { b.hidden = true; });
+    globalBadge.hidden = true;
+  });
+
+  /* ===========================================================
+     13. INIT
+     ===================================================== */
+  // Wire up the MurphyLibrarianChat web component if it exposes an init() method
+  // (the custom element normally self-initialises; this handles any manual init path)
+  if (librarianEl && typeof librarianEl.init === 'function') {
+    librarianEl.init(api);
+  }
+
+  // Start SSE (non-blocking)
+  startSSE().catch(function () {});
+
+  // Initial navigation based on hash or default to #system
+  navigate(location.hash.slice(1) || 'system');
+
+})();
+</script>
+
+</body>
+</html>
