@@ -632,7 +632,7 @@ SQL database connector.
 ```python
 SQLDatabaseConnector(
     connection_string: str,           # Database connection string
-    database_type: str = "sqlite",    # Database type (sqlite, postgresql, mysql, etc.)
+    database_type: DatabaseType = DatabaseType.MYSQL,  # Database type enum
     **kwargs                          # Additional connection parameters
 )
 ```
@@ -641,45 +641,66 @@ SQLDatabaseConnector(
 ```python
 connector = SQLDatabaseConnector(
     connection_string="postgresql://user:password@localhost:5432/mydb",
-    database_type="postgresql"
+    database_type=DatabaseType.POSTGRESQL
 )
 ```
 
 **Methods:**
 
-##### `execute_query(query: str, params: Dict = None) -> List[Dict]`
+##### `execute_query(query: str, parameters: Optional[Dict] = None) -> IntegrationResult`
 Execute a SQL query.
 
 **Parameters:**
 - `query` (str): SQL query
-- `params` (Dict, optional): Query parameters
+- `parameters` (Dict, optional): Query parameters
 
 **Returns:**
-- `List[Dict]`: Query results
+- `IntegrationResult`: Result object with `success: bool`, `data: Any`, and `error: Optional[str]` fields
 
 **Example:**
 ```python
-results = connector.execute_query(
+result = connector.execute_query(
     "SELECT * FROM users WHERE status = :status",
-    params={"status": "active"}
+    parameters={"status": "active"}
 )
+if result.success:
+    print(result.data)
 ```
 
-##### `execute_update(query: str, params: Dict = None) -> int`
-Execute an update query.
+##### `execute_transaction(operations: List[Dict]) -> IntegrationResult`
+Execute a list of operations as a transaction.
 
 **Parameters:**
-- `query` (str): SQL query
-- `params` (Dict, optional): Query parameters
+- `operations` (List[Dict]): List of operation dicts, each with `query` and optional `parameters` keys
 
 **Returns:**
-- `int`: Number of rows affected
+- `IntegrationResult`: Result containing list of per-operation results
 
 **Example:**
 ```python
-rows_affected = connector.execute_update(
-    "UPDATE users SET status = :status WHERE id = :id",
-    params={"status": "inactive", "id": 123}
+result = connector.execute_transaction([
+    {"query": "INSERT INTO users (name) VALUES (:name)", "parameters": {"name": "Alice"}},
+    {"query": "UPDATE counters SET count = count + 1"},
+])
+if result.success:
+    print(f"Transaction completed: {result.data}")
+```
+
+##### `execute_stored_procedure(name: str, parameters: Optional[Dict] = None) -> IntegrationResult`
+Execute a stored procedure by name.
+
+**Parameters:**
+- `name` (str): Name of the stored procedure
+- `parameters` (Dict, optional): Procedure parameters
+
+**Returns:**
+- `IntegrationResult`: Result of the procedure execution
+
+**Example:**
+```python
+result = connector.execute_stored_procedure(
+    "sp_update_user_status",
+    parameters={"user_id": 123, "status": "active"}
 )
 ```
 

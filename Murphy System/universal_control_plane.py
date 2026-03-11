@@ -18,7 +18,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 from typing import Dict, Any, List, Optional, Set
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 import logging
 
@@ -273,12 +273,12 @@ class DatabaseEngine(BaseEngine):
                 if op == 'SET' and key:
                     self._persistence.save_state(key, value or {})
                     return {'query': query, 'database': database, 'rows_affected': 1,
-                            'results': [], 'timestamp': datetime.now().isoformat()}
+                            'results': [], 'timestamp': datetime.now(timezone.utc).isoformat()}
                 elif op == 'GET' and key:
                     stored = self._persistence.load_state(key)
                     return {'query': query, 'database': database, 'rows_affected': 0,
                             'results': [stored] if stored is not None else [],
-                            'timestamp': datetime.now().isoformat()}
+                            'timestamp': datetime.now(timezone.utc).isoformat()}
             except Exception as exc:
                 logger.debug("PersistenceManager query failed: %s", exc)
 
@@ -288,14 +288,14 @@ class DatabaseEngine(BaseEngine):
         if query_lower.startswith('insert') or data is not None:
             record = data if isinstance(data, dict) else {'value': data or query}
             record['_table'] = table
-            record['_ts'] = datetime.now().isoformat()
+            record['_ts'] = datetime.now(timezone.utc).isoformat()
             db.append(record)
             return {
                 'query': query,
                 'database': database,
                 'operation': 'insert',
                 'rows_affected': 1,
-                'timestamp': datetime.now().isoformat(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
             }
 
         if query_lower.startswith('delete'):
@@ -307,7 +307,7 @@ class DatabaseEngine(BaseEngine):
                 'database': database,
                 'operation': 'delete',
                 'rows_affected': removed,
-                'timestamp': datetime.now().isoformat(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
             }
 
         # Default: SELECT — return all rows for the requested table.
@@ -318,7 +318,7 @@ class DatabaseEngine(BaseEngine):
             'operation': 'select',
             'results': results,
             'rows_affected': len(results),
-            'timestamp': datetime.now().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
         }
 
 
