@@ -79,13 +79,13 @@ class MurphySidebar extends HTMLElement {
     const active = this.getAttribute('active') || '';
 
     const navItems = [
-      { icon: '⬡', label: 'ORCHESTRATOR', href: '/terminal_orchestrator.html' },
-      { icon: '✦', label: 'ORG CHART',    href: '/terminal_orgchart.html' },
-      { icon: '⬢', label: 'INTEGRATIONS', href: '/terminal_integrations.html' },
-      { icon: '◈', label: 'ARCHITECT',    href: '/terminal_architect.html' },
-      { icon: '◎', label: 'WORKER',       href: '/terminal_worker.html' },
-      { icon: '⊞', label: 'COSTS',        href: '/terminal_costs.html' },
-      { icon: '⋮', label: 'WORKFLOWS',    href: '/strategic/gap_closure/lowcode/workflow_builder_ui.html' },
+      { icon: '⬡', label: 'ORCHESTRATOR', href: '/ui/terminal_orchestrator.html' },
+      { icon: '✦', label: 'ORG CHART',    href: '/ui/terminal_orgchart.html' },
+      { icon: '⬢', label: 'INTEGRATIONS', href: '/ui/terminal_integrations.html' },
+      { icon: '◈', label: 'ARCHITECT',    href: '/ui/terminal_architect.html' },
+      { icon: '◎', label: 'WORKER',       href: '/ui/terminal_worker.html' },
+      { icon: '⊞', label: 'COSTS',        href: '/ui/terminal_costs.html' },
+      { icon: '⋮', label: 'WORKFLOWS',    href: '/ui/workflow_canvas.html' },
     ];
 
     const links = navItems.map(item => `
@@ -171,13 +171,13 @@ class MurphyCommandPalette extends HTMLElement {
       </div>`;
 
     this._commands = [
-      { icon:'⬡', label:'Orchestrator Dashboard',  href:'/terminal_orchestrator.html',   shortcut:'' },
-      { icon:'✦', label:'Org Chart',               href:'/terminal_orgchart.html',        shortcut:'' },
-      { icon:'⬢', label:'Integration Wiring',      href:'/terminal_integrations.html',   shortcut:'' },
-      { icon:'◈', label:'Architect Terminal',       href:'/terminal_architect.html',       shortcut:'' },
-      { icon:'◎', label:'Worker Terminal',          href:'/terminal_worker.html',          shortcut:'' },
-      { icon:'⊞', label:'Cost Dashboard',           href:'/terminal_costs.html',           shortcut:'' },
-      { icon:'⋮', label:'Workflow Builder',         href:'/strategic/gap_closure/lowcode/workflow_builder_ui.html', shortcut:'' },
+      { icon:'⬡', label:'Orchestrator Dashboard',  href:'/ui/terminal_orchestrator.html',   shortcut:'' },
+      { icon:'✦', label:'Org Chart',               href:'/ui/terminal_orgchart.html',        shortcut:'' },
+      { icon:'⬢', label:'Integration Wiring',      href:'/ui/terminal_integrations.html',   shortcut:'' },
+      { icon:'◈', label:'Architect Terminal',       href:'/ui/terminal_architect.html',       shortcut:'' },
+      { icon:'◎', label:'Worker Terminal',          href:'/ui/terminal_worker.html',          shortcut:'' },
+      { icon:'⊞', label:'Cost Dashboard',           href:'/ui/terminal_costs.html',           shortcut:'' },
+      { icon:'⋮', label:'Workflow Builder',         href:'/ui/workflow_canvas.html', shortcut:'' },
     ];
 
     this._selected = 0;
@@ -1130,6 +1130,21 @@ class MurphyTheme {
    */
   get() {
     return this._theme;
+  }
+
+  /**
+   * Register a callback for theme changes (no-op: dark only).
+   * @param {Function} _cb
+   */
+  onChange(_cb) {
+    /* dark-only — nothing to notify */
+  }
+
+  /**
+   * Toggle theme (no-op: dark only).
+   */
+  toggle() {
+    /* dark-only — always dark */
   }
 
   _apply() {
