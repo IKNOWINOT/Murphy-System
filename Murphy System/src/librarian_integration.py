@@ -202,7 +202,7 @@ class LibrarianStateManager:
     def _create_checksum(self, value: Any) -> str:
         """Create a checksum for a value"""
         value_str = json.dumps(value, sort_keys=True)
-        return hashlib.md5(value_str.encode()).hexdigest()
+        return hashlib.md5(value_str.encode(), usedforsecurity=False).hexdigest()  # value checksum only, not used for security
 
     def _determine_type(self, value: Any) -> str:
         """Determine the type of a value"""

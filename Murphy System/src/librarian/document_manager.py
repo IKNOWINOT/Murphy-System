@@ -277,7 +277,7 @@ class DocumentManager:
         Returns:
             Hash string
         """
-        return hashlib.md5(content.encode()).hexdigest()
+        return hashlib.md5(content.encode(), usedforsecurity=False).hexdigest()  # content checksum only, not used for security
 
     def _extract_metadata(self, content: Any, document_type: str) -> Dict:
         """
