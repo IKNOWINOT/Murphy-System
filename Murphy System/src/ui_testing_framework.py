@@ -182,7 +182,7 @@ class E2ETestHarness:
         self._lock = threading.Lock()
 
     def load_page(self, url: str, html_content: str) -> Dict[str, Any]:
-        page_id = hashlib.md5(url.encode()).hexdigest()[:12]
+        page_id = hashlib.md5(url.encode(), usedforsecurity=False).hexdigest()[:12]  # non-cryptographic page ID generation
         page = {
             "id": page_id,
             "url": url,

@@ -139,7 +139,7 @@ jobs:
         run: pip-audit -r requirements_murphy_1.0.txt
 
       - name: Run bandit security linting
-        run: bandit -r src/ -ll -f txt
+        run: bandit -c bandit.yaml -r src/ -ll -f txt
 
   build:
     runs-on: ubuntu-latest
