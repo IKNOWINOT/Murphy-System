@@ -22,7 +22,7 @@ import logging
 from pathlib import Path
 from typing import List, Optional
 
-from jinja2 import Environment, FileSystemLoader, StrictUndefined
+from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
 
 from .schemas import BotManifest, CompileResult, ShimDrift
 
@@ -52,6 +52,7 @@ class ShimCompiler:
             loader=FileSystemLoader(str(self.template_dir)),
             undefined=StrictUndefined,
             keep_trailing_newline=True,
+            autoescape=select_autoescape(["html", "htm", "xml"]),
         )
 
     # ------------------------------------------------------------------
