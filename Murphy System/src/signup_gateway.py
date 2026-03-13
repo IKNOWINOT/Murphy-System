@@ -134,6 +134,9 @@ class UserProfile:
     email_validation_token: str = field(
         default_factory=lambda: uuid.uuid4().hex
     )
+    phone: str = ""
+    phone_validated: bool = False
+    phone_validation_code: str = ""
     terminal_config: Dict[str, Any] = field(default_factory=dict)
     created_at: str = field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
@@ -159,6 +162,8 @@ class UserProfile:
             "eula_version": self.eula_version,
             "eula_accepted_at": self.eula_accepted_at,
             "email_validated": self.email_validated,
+            "phone": self.phone,
+            "phone_validated": self.phone_validated,
             "terminal_config": self.terminal_config,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
@@ -322,6 +327,7 @@ class SignupGateway:
                 justification=justification.strip(),
                 org_id=resolved_org_id,
                 role=role,
+                phone=phone.strip() if phone else "",
             )
 
             if new_org_name:
@@ -355,6 +361,53 @@ class SignupGateway:
             self._audit("validate_email", user_id, {})
 
         logger.info("Email validated: user_id=%s", user_id)
+        return profile
+
+    # ------------------------------------------------------------------
+    # Phone OTP
+    # ------------------------------------------------------------------
+
+    def send_phone_otp(self, user_id: str) -> str:
+        """Generate and store a 6-digit OTP for phone verification.
+
+        Returns the OTP code (in production this would be sent via SMS,
+        e.g. through the Twilio API).
+        """
+        import random
+        otp = f"{random.randint(0, 999999):06d}"
+        with self._lock:
+            profile = self._profiles.get(user_id)
+            if profile is None:
+                raise AuthError("user not found")
+            if not profile.phone:
+                raise SignupError("no phone number on file")
+            profile.phone_validation_code = otp
+            profile.updated_at = datetime.now(timezone.utc).isoformat()
+            self._audit("send_phone_otp", user_id, {})
+
+        # Production: call Twilio here, e.g.:
+        #   twilio_client.messages.create(to=profile.phone, body=f"Your Murphy OTP: {otp}", ...)
+        logger.info("Phone OTP generated: user_id=%s", user_id)
+        return otp
+
+    def validate_phone(self, user_id: str, otp: str) -> UserProfile:
+        """Verify the 6-digit OTP and mark the phone number as validated."""
+        with self._lock:
+            profile = self._profiles.get(user_id)
+            if profile is None:
+                raise AuthError("user not found")
+            if not profile.phone:
+                raise SignupError("no phone number on file")
+            if not profile.phone_validation_code:
+                raise AuthError("no OTP issued — call send_phone_otp first")
+            if profile.phone_validation_code != otp:
+                raise AuthError("invalid phone OTP")
+            profile.phone_validated = True
+            profile.phone_validation_code = ""
+            profile.updated_at = datetime.now(timezone.utc).isoformat()
+            self._audit("validate_phone", user_id, {})
+
+        logger.info("Phone validated: user_id=%s", user_id)
         return profile
 
     # ------------------------------------------------------------------
