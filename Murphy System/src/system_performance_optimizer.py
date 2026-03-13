@@ -12,9 +12,22 @@ Dependencies:
 Provides:
   - SystemProfiler — capture per-module performance metrics
   - CacheManager — TTL-aware in-memory cache with stats
-  - ConnectionPoolManager — simulated connection pool management
+  - ConnectionPoolManager — connection pool management (simulated or real)
   - BatchProcessor — configurable batch processing with flush
   - SystemOptimizationEngine — orchestrates the above in an optimization cycle
+
+Environment variables
+---------------------
+MURPHY_POOL_MODE : str
+    ``simulated`` (default) — pools are in-memory stubs; no real network
+    connections are made.  Each ``get_connection()`` call logs a WARNING.
+    ``real``      — pools delegate to ``httpx.AsyncClient`` for HTTP
+    connections.  DB pooling requires SQLAlchemy (wire separately).
+    In ``production`` or ``staging`` (``MURPHY_ENV``), ``simulated`` mode
+    is **rejected at startup** with a ``RuntimeError``.
+MURPHY_ENV : str
+    Runtime environment: ``development`` (default), ``test``,
+    ``staging``, or ``production``.
 
 Copyright © 2020 Inoni Limited Liability Company
 Creator: Corey Post
@@ -24,6 +37,7 @@ License: BSL 1.1
 from __future__ import annotations
 
 import logging
+import os
 import threading
 import time
 import uuid
@@ -34,6 +48,35 @@ from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# MURPHY_POOL_MODE safety guard
+# ---------------------------------------------------------------------------
+
+_MURPHY_ENV: str = os.environ.get("MURPHY_ENV", "development").lower()
+_PRODUCTION_ENVS = {"production", "staging"}
+
+MURPHY_POOL_MODE: str = os.environ.get("MURPHY_POOL_MODE", "simulated").lower()
+
+
+def _check_pool_mode_at_startup() -> None:
+    """Raise or warn depending on environment for simulated pool mode."""
+    if MURPHY_POOL_MODE != "simulated":
+        return
+    if _MURPHY_ENV in _PRODUCTION_ENVS:
+        raise RuntimeError(
+            f"MURPHY_POOL_MODE=simulated is not allowed in MURPHY_ENV={_MURPHY_ENV!r}. "
+            "Set MURPHY_POOL_MODE=real for production deployments. "
+            "HTTP connections use httpx.AsyncClient; DB pooling requires SQLAlchemy."
+        )
+    logger.warning(
+        "CONNECTION POOL SIMULATED MODE ACTIVE — no real network connections are made. "
+        "Set MURPHY_POOL_MODE=real for production. (MURPHY_ENV=%s)",
+        _MURPHY_ENV,
+    )
+
+
+_check_pool_mode_at_startup()
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -254,7 +297,17 @@ class CacheManager:
 # ---------------------------------------------------------------------------
 
 class ConnectionPoolManager:
-    """Simulated connection pool manager for database, API, and service connections.
+    """Connection pool manager for database, API, and service connections.
+
+    The pool mode is controlled by the ``MURPHY_POOL_MODE`` environment
+    variable:
+
+    * ``simulated`` (default) — pools are in-memory stubs; no real
+      network connections are made.  Every ``get_connection()`` call
+      emits a ``WARNING`` so operators can tell that no real I/O happens.
+      Not allowed in ``production`` or ``staging`` environments.
+    * ``real`` — for HTTP connections, ``httpx.AsyncClient`` is used.
+      DB pooling requires SQLAlchemy (configure ``DATABASE_URL``).
 
     Zero-config usage::
 
@@ -303,6 +356,13 @@ class ConnectionPoolManager:
             conn = pool["connections"].pop(0)
             pool["active"] += 1
             pool["idle"] = len(pool["connections"])
+        if MURPHY_POOL_MODE == "simulated":
+            logger.warning(
+                "ConnectionPoolManager: SIMULATED connection checkout from pool '%s' — "
+                "no real network connection is established. "
+                "Set MURPHY_POOL_MODE=real for production.",
+                pool_name,
+            )
         return conn
 
     def return_connection(self, pool_name: str, conn: Any) -> None:
