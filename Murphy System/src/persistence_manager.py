@@ -461,3 +461,168 @@ class PersistenceManager:
             "librarian_contexts": librarian_count,
             "audit_events": audit_count,
         }
+
+
+# =========================================================================
+# SQLite-backed persistence (used when MURPHY_DB_MODE=live)
+# =========================================================================
+
+
+class SQLitePersistenceManager:
+    """SQLite-backed persistence manager using the ORM layer from ``db.py``.
+
+    Provides the same public interface as :class:`PersistenceManager` but
+    stores data in a SQLite (or other SQL) database via SQLAlchemy.  Used
+    when ``MURPHY_DB_MODE=live`` to provide durable, query-able storage
+    instead of JSON files.
+    """
+
+    def __init__(self) -> None:
+        try:
+            from db import create_tables, get_db, check_database  # noqa: PLC0415
+            self._create_tables = create_tables
+            self._get_db = get_db
+            self._check_database = check_database
+            self._create_tables()
+            logger.info("SQLitePersistenceManager initialized (ORM tables created)")
+        except Exception as exc:
+            logger.error("Failed to initialize SQLitePersistenceManager: %s", exc)
+            raise
+
+    # ---- Documents --------------------------------------------------------
+
+    def save_document(self, doc_id: str, document: dict) -> str:
+        """Save a document to the SQL database."""
+        from db import LivingDocumentRecord, _get_session_factory  # noqa: PLC0415
+        factory = _get_session_factory()
+        session = factory()
+        try:
+            record = session.get(LivingDocumentRecord, doc_id)
+            content = json.dumps(document, default=str)
+            if record:
+                record.content = content
+                record.state = document.get("state", record.state)
+                record.confidence = document.get("confidence", record.confidence)
+            else:
+                record = LivingDocumentRecord(
+                    doc_id=doc_id,
+                    state=document.get("state", "DRAFT"),
+                    confidence=document.get("confidence", 0.0),
+                    content=content,
+                )
+                session.add(record)
+            session.commit()
+            logger.info("Saved document to SQL: %s", doc_id)
+            return doc_id
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def load_document(self, doc_id: str) -> Optional[Dict[str, Any]]:
+        """Load a document from the SQL database."""
+        from db import LivingDocumentRecord, _get_session_factory  # noqa: PLC0415
+        factory = _get_session_factory()
+        session = factory()
+        try:
+            record = session.get(LivingDocumentRecord, doc_id)
+            if not record:
+                return None
+            try:
+                return json.loads(record.content)
+            except (json.JSONDecodeError, TypeError):
+                return {"doc_id": doc_id, "state": record.state,
+                        "confidence": record.confidence}
+        finally:
+            session.close()
+
+    def list_documents(self) -> List[str]:
+        """List all document IDs in the SQL database."""
+        from db import LivingDocumentRecord, _get_session_factory  # noqa: PLC0415
+        factory = _get_session_factory()
+        session = factory()
+        try:
+            records = session.query(LivingDocumentRecord.doc_id).all()
+            return [r[0] for r in records]
+        finally:
+            session.close()
+
+    # ---- Audit trail ------------------------------------------------------
+
+    def append_audit_event(self, event: dict) -> str:
+        """Append an audit event to the SQL database."""
+        from db import AuditTrail, _get_session_factory  # noqa: PLC0415
+        factory = _get_session_factory()
+        session = factory()
+        try:
+            record = AuditTrail(
+                event_type=event.get("event_type", "unknown"),
+                actor=event.get("actor", "system"),
+                payload=event,
+            )
+            session.add(record)
+            session.commit()
+            event_id = str(record.id)
+            logger.info("Audit event saved to SQL: %s", event_id)
+            return event_id
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    # ---- Stats ------------------------------------------------------------
+
+    def get_stats(self) -> dict:
+        """Return persistence statistics from SQL."""
+        from db import (  # noqa: PLC0415
+            LivingDocumentRecord, AuditTrail, SessionRecord,
+            _get_session_factory,
+        )
+        factory = _get_session_factory()
+        session = factory()
+        try:
+            return {
+                "backend": "sqlite",
+                "documents": session.query(LivingDocumentRecord).count(),
+                "audit_events": session.query(AuditTrail).count(),
+                "sessions": session.query(SessionRecord).count(),
+            }
+        finally:
+            session.close()
+
+    # ---- Health check -----------------------------------------------------
+
+    def health_check(self) -> str:
+        """Check SQL database health."""
+        return self._check_database()
+
+
+# =========================================================================
+# Factory — choose persistence backend based on MURPHY_DB_MODE
+# =========================================================================
+
+
+def get_persistence_manager(
+    persistence_dir: Optional[str] = None,
+) -> "PersistenceManager | SQLitePersistenceManager":
+    """Return the appropriate persistence manager for the current environment.
+
+    * ``MURPHY_DB_MODE=live`` → :class:`SQLitePersistenceManager` (SQL-backed)
+    * ``MURPHY_DB_MODE=stub`` → :class:`PersistenceManager` (JSON file-backed)
+
+    Returns:
+        An instance of the appropriate persistence manager.
+    """
+    mode = os.environ.get("MURPHY_DB_MODE", "stub").lower()
+    if mode == "live":
+        try:
+            return SQLitePersistenceManager()
+        except Exception as exc:
+            logger.warning(
+                "Failed to create SQLitePersistenceManager, falling back to JSON: %s",
+                exc,
+            )
+            return PersistenceManager(persistence_dir)
+    return PersistenceManager(persistence_dir)

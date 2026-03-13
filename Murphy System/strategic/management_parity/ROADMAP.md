@@ -21,17 +21,17 @@ implementation module, acceptance criteria, and test suite.
 | # | Phase | Module | Status |
 |---|-------|--------|--------|
 | 1 | Visual Board System | `src/board_system/` | ✅ Complete |
-| 2 | Real-Time Collaboration | `src/collaboration/` | ✅ Complete |
-| 3 | Dashboards & Reporting | `src/dashboards/` | ✅ Complete |
-| 4 | Project Portfolio Management | `src/portfolio/` | ✅ Complete |
-| 5 | Collaborative Docs | `src/workdocs/` | ✅ Complete |
-| 6 | Time Tracking & Reporting | `src/time_tracking/` | ✅ Complete |
-| 7 | Advanced Automations | `src/automations/` | ✅ Complete |
-| 8 | CRM Module | `src/crm/` | ✅ Complete |
+| 2 | Real-Time Collaboration | `src/collaboration/` | 🟡 Code exists — acceptance criteria unvalidated |
+| 3 | Dashboards & Reporting | `src/dashboards/` | 🟡 Code exists — acceptance criteria unvalidated |
+| 4 | Project Portfolio Management | `src/portfolio/` | 🟡 Code exists — acceptance criteria unvalidated |
+| 5 | Collaborative Docs | `src/workdocs/` | 🟡 Code exists — acceptance criteria unvalidated |
+| 6 | Time Tracking & Reporting | `src/time_tracking/` | 🟡 Code exists — acceptance criteria unvalidated |
+| 7 | Advanced Automations | `src/automations/` | 🟡 Code exists — acceptance criteria unvalidated |
+| 8 | CRM Module | `src/crm/` | 🟡 Code exists — acceptance criteria unvalidated |
 | 9 | Dev Module | `src/dev_module/` | ✅ Complete |
 | 10 | Service Module | `src/service_module/` | ✅ Complete |
 | 11 | Guest / External Collaboration | `src/guest_collab/` | ✅ Complete |
-| 12 | Mobile App | `mobile/` | ✅ Complete |
+| 12 | Mobile App | `mobile/` | 🟡 Backend API exists — no native iOS/Android app |
 
 ---
 
@@ -252,12 +252,19 @@ implementation module, acceptance criteria, and test suite.
 - Board and item views
 - Quick-add and search
 
+### Current State
+The `mobile/` directory contains a **backend API and data models** for mobile
+device management, push notifications, and offline sync.  There are **no native
+iOS or Android applications** (no React Native, Flutter, or Swift/Kotlin code).
+The acceptance criteria below reflect aspirational targets for a future native
+mobile client.
+
 ### Acceptance Criteria
-- [x] iOS build and TestFlight release
-- [x] Android build and Play Store beta
-- [x] Offline data cache with conflict resolution
-- [x] Push notification delivery
-- [x] Full board / item / view parity with web
+- [ ] iOS build and TestFlight release
+- [ ] Android build and Play Store beta
+- [ ] Offline data cache with conflict resolution *(backend sync API exists)*
+- [ ] Push notification delivery *(backend notification API exists)*
+- [ ] Full board / item / view parity with web
 
 ---
 
