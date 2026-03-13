@@ -97,7 +97,20 @@ The community and ecosystem gap is the most critical threat to Murphy System ado
 
 **What was built:**
 
-1. **`lowcode/workflow_builder.py`** — Full programmatic workflow API:
+Murphy's "Describe → Execute" paradigm is superior to traditional drag-and-drop
+no-code builders — users describe automations in plain English and receive
+a governed, validated DAG workflow. This is backed by real implementation:
+
+1. **`text_to_automation/text_to_automation.py`** — "Describe → Execute" engine:
+   - `TextToAutomationEngine` — converts plain-English descriptions to governed automation DAGs
+   - Template matching (ETL, CI/CD, monitoring, incident response, onboarding, reporting)
+   - Keyword inference — extracts action verbs and maps to step types
+   - Automatic dependency resolution — wires steps into correct execution order
+   - Governance gate injection — inserts safety gates before critical steps (deployment, notification, security)
+   - `AutomationWorkflow` / `AutomationStep` dataclasses with JSON export
+   - Validation with warnings/errors
+
+2. **`lowcode/workflow_builder.py`** — Full programmatic workflow API:
    - `WorkflowBuilder` fluent builder class
    - `WorkflowNode`, `WorkflowEdge`, `WorkflowDefinition` dataclasses
    - `NodeType` enum: TRIGGER, ACTION, CONDITION, TRANSFORM, CONNECTOR, OUTPUT
@@ -105,7 +118,7 @@ The community and ecosystem gap is the most critical threat to Murphy System ado
    - `compile()` — topological sort into execution order
    - `export_json()` — JSON serialization
 
-2. **`lowcode/workflow_builder_ui.html`** — 1,773-line full visual workflow builder:
+3. **`lowcode/workflow_builder_ui.html`** — 1,773-line full visual workflow builder:
    - Dark Murphy theme with green accents
    - Drag-and-drop node palette
    - Interactive canvas with SVG bezier connection lines
@@ -192,22 +205,28 @@ Addressed via workflow_builder.py (visual pipeline with compile/export) + connec
 
 ---
 
-## Phase 4 — Fine-Tuning (Gap 1)
+## Phase 4 — Fine-Tuning (Gap 1) — ⚠️ Remaining
 
-### IoT/Sensor/Actuator Control (9 → 10)
-AWS IoT Core and Azure IoT Hub connectors added to registry. MQTT broker support documented.
+These capabilities are at 9/10 from the original competitive assessment. The
+gap_scorer currently has **no evidence modules** registered for them, so they
+remain at 9/10 until dedicated evidence files are built. The claims below
+describe capabilities that exist in the main `src/` tree but have not yet been
+packaged as gap-closure evidence modules.
 
-### Self-Improving/Learning (9 → 10)
-ML Scorer plugin example in PLUGIN_SDK_GUIDE.md. Agent coordinator's SPECIALIST role enables learning agents.
+### IoT/Sensor/Actuator Control (9 → 9) — evidence needed
+AWS IoT Core and Azure IoT Hub connectors are registered in the connector registry, but a dedicated IoT evidence module is needed.
 
-### Human-in-the-Loop (HITL) (9 → 10)
-HITL node type in workflow builder (CONDITION node with `role: attending_physician`). Healthcare demo workflow pre-loaded.
+### Self-Improving/Learning (9 → 9) — evidence needed
+ML Scorer plugin example exists in PLUGIN_SDK_GUIDE.md. Agent coordinator's SPECIALIST role enables learning agents. Needs a dedicated evidence module.
 
-### ML Built-in (no external deps) (9 → 10)
-All ML scoring in Murphy System uses only stdlib math — no numpy/sklearn dependencies. Demonstrated in gap_scorer.py.
+### Human-in-the-Loop (HITL) (9 → 9) — evidence needed
+HITL node type exists in workflow builder (CONDITION node with `role: attending_physician`). Healthcare demo workflow pre-loaded. Needs a dedicated evidence module.
 
-### Autonomous Business Operations (9 → 10)
-AgentCoordinator enables fully autonomous task orchestration across ORCHESTRATOR → PLANNER → EXECUTOR chains.
+### ML Built-in (no external deps) (9 → 9) — evidence needed
+All ML scoring in Murphy System uses only stdlib math — no numpy/sklearn dependencies. Needs a dedicated evidence module.
+
+### Autonomous Business Operations (9 → 9) — evidence needed
+AgentCoordinator enables fully autonomous task orchestration across ORCHESTRATOR → PLANNER → EXECUTOR chains. Needs a dedicated evidence module.
 
 ---
 
@@ -245,9 +264,9 @@ All library modules (gap_scorer, launch, connectors, lowcode, observability, age
 | Phase 1: Critical | Community, Connectors, Low-Code UX | ✅ Complete |
 | Phase 2: Significant | Deployment, Observability | ✅ Complete |
 | Phase 3: Enhancement | Multi-Agent, LLM Routing, BPA | ✅ Complete |
-| Phase 4: Fine-tuning | IoT, HITL, ML, Learning, Auto-Biz | ✅ Complete |
+| Phase 4: Fine-tuning | IoT, HITL, ML, Learning, Auto-Biz | ⚠️ Evidence needed |
 | Bonus: 150% | Confidence routing, FHIR, Grafana stack | ✅ Delivered |
 
-**Overall readiness: ≥ 93% (all gaps closed, 3 capabilities with bonus features)**
+**Overall readiness: 97.1% — 12/17 capabilities at 10/10, 5 remaining at 9/10 need evidence modules**
 
 > **VERIFIED BY: Corey Post — Inoni LLC**

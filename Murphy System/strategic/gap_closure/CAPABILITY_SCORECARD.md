@@ -11,17 +11,17 @@
 |---|-----------|---------------|--------------|-----------|----------|
 | 1 | Community & Ecosystem Maturity | 2/10 | 10/10 | +8 ✅ | community_portal.html, COMMUNITY_GUIDE.md, PLUGIN_SDK_GUIDE.md, plugin_sdk.py |
 | 2 | App Connector Ecosystem | 4/10 | 10/10 | +6 ✅ | connector_registry.py (57 connectors, 20 categories), plugin_sdk.py |
-| 3 | No-Code/Low-Code UX | 4/10 | 10/10 | +6 ✅ | workflow_builder_ui.html (1,773 lines, drag-drop), workflow_builder.py |
+| 3 | No-Code/Low-Code UX | 4/10 | 10/10 | +6 ✅ | text_to_automation.py (Describe→Execute engine), workflow_builder_ui.html (drag-drop), workflow_builder.py |
 | 4 | Production Deployment Readiness | 6/10 | 10/10 | +4 ✅ | launch.py (streaming deploy), docker-compose.scale.yml (3-replica + LB + observability) |
 | 5 | Documentation & Observability | 7/10 | 10/10 | +3 ✅ | telemetry.py (Prometheus + tracer), dashboard.html (live charts) |
 | 6 | Multi-Agent Orchestration | 8/10 | 10/10 | +2 ✅ | agent_coordinator.py (6 roles, thread-safe, broadcast + priority routing) |
 | 7 | LLM Multi-Provider Routing | 8/10 | 10/10 | +2 ✅ | multi_provider_router.py (12 providers, 6 strategies, confidence-weighted) |
 | 8 | Business Process Automation | 8/10 | 10/10 | +2 ✅ | workflow_builder.py (compile pipeline) + connector_registry.py (cross-system automation) |
-| 9 | IoT/Sensor/Actuator Control | 9/10 | 10/10 | +1 ✅ | AWS IoT Core + Azure IoT Hub connectors registered |
-| 10 | Self-Improving/Learning | 9/10 | 10/10 | +1 ✅ | ML Scorer plugin example, SPECIALIST agent role |
-| 11 | Human-in-the-Loop (HITL) | 9/10 | 10/10 | +1 ✅ | HITL CONDITION node in pre-loaded healthcare workflow |
-| 12 | ML Built-in (no external deps) | 9/10 | 10/10 | +1 ✅ | All scoring uses stdlib math only — zero numpy/sklearn |
-| 13 | Autonomous Business Operations | 9/10 | 10/10 | +1 ✅ | AgentCoordinator ORCHESTRATOR → PLANNER → EXECUTOR chain |
+| 9 | IoT/Sensor/Actuator Control | 9/10 | 9/10 | 0 | No gap closure evidence yet — needs dedicated IoT module |
+| 10 | Self-Improving/Learning | 9/10 | 9/10 | 0 | No gap closure evidence yet — needs learning feedback loop module |
+| 11 | Human-in-the-Loop (HITL) | 9/10 | 9/10 | 0 | No gap closure evidence yet — needs dedicated HITL gate module |
+| 12 | ML Built-in (no external deps) | 9/10 | 9/10 | 0 | No gap closure evidence yet — needs standalone ML evidence module |
+| 13 | Autonomous Business Operations | 9/10 | 9/10 | 0 | No gap closure evidence yet — needs autonomous ops evidence module |
 | 14 | Safety/Governance Gates | **10/10** | **10/10** | +0 ✅ | Already at maximum — maintained |
 | 15 | Mathematical Confidence Scoring | **10/10** | **10/10** | +0 ✅ | Already at maximum — enhanced with confidence-weighted LLM routing |
 | 16 | Cryptographic Execution Security | **10/10** | **10/10** | +0 ✅ | Already at maximum — plugin integrity validation added |
@@ -34,11 +34,11 @@
 | Metric | Value |
 |--------|-------|
 | **Total Capabilities** | 17 |
-| **Capabilities at 10/10** | 17 |
-| **Total Gaps Closed** | 14 |
-| **Average Baseline Score** | 7.76/10 |
-| **Average Current Score** | 10.0/10 |
-| **Overall Readiness** | ≥ 93% |
+| **Capabilities at 10/10** | 12 |
+| **Total Gaps Closed** | 9 |
+| **Average Baseline Score** | 7.71/10 |
+| **Average Current Score** | 9.71/10 |
+| **Overall Readiness** | 97.1% |
 
 ---
 
@@ -75,6 +75,8 @@ gap_closure/
 ├── lowcode/
 │   ├── workflow_builder.py                ← Programmatic builder
 │   └── workflow_builder_ui.html           ← Visual drag-drop builder
+├── text_to_automation/
+│   └── text_to_automation.py             ← "Describe→Execute" NL-to-automation engine
 ├── community/
 │   ├── PLUGIN_SDK_GUIDE.md                ← Full SDK documentation
 │   ├── COMMUNITY_GUIDE.md                 ← Contributor handbook

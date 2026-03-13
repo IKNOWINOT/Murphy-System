@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Round 48 — Production Output Calibration Engine (CAL-001)**:
+  - `production_output_calibrator.py` — dual-loop calibration system for any production output
+  - Loop 1: Compare against 10 professional examples, extract best practices per quality
+    dimension, score output, identify gaps, build prioritised remediation plan, iterate
+    until benchmark score reaches 90-95 %
+  - Loop 2: QC against original proposal/request requirements — validates output meets
+    exact standards of the request each round; prevents self-satisfying via improvement log
+  - 10 quality dimensions: clarity, completeness, structure, accuracy, consistency,
+    professionalism, efficiency, maintainability, security, usability
+  - Thread-safe engine with bounded iteration (max 50 rounds)
+  - 54 tests across 10 gap categories in `test_gap_closure_round48.py`
+
 ### Documentation
 - **docs:** `ROADMAP.md` — public revenue-first sprint plan with $0-budget execution strategy (Sprints 1–4, revenue-gated milestones)
 - **docs:** `Murphy System/BUSINESS_MODEL.md` — concrete pricing tiers (Solo $29/mo, Business $99/mo, Professional $299/mo, Enterprise custom); added "Murphy's UX Paradigm: Describe → Execute → Refine" section
