@@ -63,7 +63,7 @@ _EMAIL_RE = re.compile(
     r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$"
 )
 
-_PHONE_RE = re.compile(r"^\+?1?\d{10,15}$")
+_PHONE_RE = re.compile(r"^\+\d{10,15}$|^\d{10,15}$")
 
 _EMAIL_TOKEN_EXPIRY = timedelta(hours=24)
 

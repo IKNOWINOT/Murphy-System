@@ -482,6 +482,10 @@ class SubscriptionManager:
         When ``webhook_secret`` (or the ``PAYPAL_WEBHOOK_SECRET`` env var) is
         set, the ``signature`` is verified via HMAC-SHA256 before processing.
         Includes idempotency to prevent duplicate event processing.
+
+        Note: The HMAC is computed over canonical JSON (sorted keys, no
+        whitespace).  In production, consider using the PayPal SDK's
+        ``verify_webhook_signature`` for full protocol compliance.
         """
         secret = webhook_secret or os.environ.get("PAYPAL_WEBHOOK_SECRET", "")
         if secret:
