@@ -1,0 +1,16 @@
+# External Benchmark Dependencies (optional)
+# Copyright © 2020 Inoni Limited Liability Company
+# License: BSL-1.1
+#
+# Install with:
+#   pip install -r requirements_benchmarks.txt
+#
+# These packages are NOT required for the core Murphy System or its CI suite.
+# They are needed only when running external AI-agent benchmark evaluations.
+# All benchmark adapters guard against missing dependencies with try/except.
+
+# HuggingFace datasets — required for SWE-bench and GAIA data loading
+datasets>=2.14.0
+
+# Statistical benchmarking integration (already used in tests/benchmarks/)
+pytest-benchmark>=4.0.0
