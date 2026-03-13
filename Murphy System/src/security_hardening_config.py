@@ -253,7 +253,7 @@ class RedisRateLimiter(RateLimiter):
         self._redis_url = redis_url or os.environ.get(
             "MURPHY_REDIS_URL", "redis://localhost:6379/0"
         )
-        self._redis: Any = None
+        self._redis: Optional[Any] = None  # redis.Redis when connected, None otherwise
         self._redis_available = False
         self._connect()
 

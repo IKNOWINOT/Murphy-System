@@ -167,6 +167,7 @@ class TestBlueprintAuth:
         ("src.knowledge_graph_builder", "create_knowledge_graph_api"),
         ("src.notification_system", "create_notification_api"),
         ("src.audit_logging_system", "create_audit_api"),
+        ("src.data_pipeline_orchestrator", "create_pipeline_api"),
     ]
 
     def test_blueprint_auth_import_exists(self):
