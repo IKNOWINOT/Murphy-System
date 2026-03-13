@@ -417,8 +417,8 @@ class SandboxQuarantine:
             if p.exists():
                 try:
                     return p.read_text(encoding="utf-8", errors="replace")
-                except OSError:
-                    pass
+                except OSError as exc:
+                    logger.debug("Non-critical error: %s", exc)
         return ""
 
     def _read_docs(self, repo: Path) -> str:
@@ -429,8 +429,8 @@ class SandboxQuarantine:
                 for fp in sorted(d.rglob("*.md"))[:10]:
                     try:
                         parts.append(fp.read_text(encoding="utf-8", errors="replace"))
-                    except OSError:
-                        pass
+                    except OSError as exc:
+                        logger.debug("Non-critical error: %s", exc)
         return "\n\n".join(parts)
 
     @staticmethod

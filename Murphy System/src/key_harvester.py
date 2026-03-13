@@ -668,8 +668,8 @@ class HumanSimulator:
             await asyncio.sleep(random.uniform(0.3, 0.9))
             # Scroll back near the top so form fields are visible
             await page.evaluate("window.scrollTo(0, 0)")
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Non-critical error: %s", exc)
 
     @staticmethod
     async def hover_element(page: Any, selector: str) -> None:
@@ -679,8 +679,8 @@ class HumanSimulator:
         try:
             await page.hover(selector)
             await asyncio.sleep(random.uniform(0.1, 0.4))
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Non-critical error: %s", exc)
 
     @staticmethod
     def random_user_agent() -> str:
@@ -762,8 +762,8 @@ class CaptchaHandler:
         if runner is not None:
             try:
                 await runner.execute_task(ScreenshotTask(path=screenshot_path))
-            except Exception:  # noqa: BLE001
-                pass
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("Non-critical error: %s", exc)
 
         logger.warning(
             "CAPTCHA unresolved for '%s' after %d attempts — HITL escalated (%s).",
@@ -815,8 +815,8 @@ def _extract_email_body(msg: Any) -> str:
                     parts.append(
                         part.get_payload(decode=True).decode(errors="replace")
                     )
-                except Exception:  # noqa: BLE001
-                    pass
+                except Exception as exc:  # noqa: BLE001
+                    logger.debug("Non-critical error: %s", exc)
         return "\n".join(parts)
     try:
         return msg.get_payload(decode=True).decode(errors="replace")
@@ -1416,8 +1416,8 @@ class KeyHarvester:
             return
         try:
             await runner.execute_task(EvaluateTask(script))
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Non-critical error: %s", exc)
 
 
 # ---------------------------------------------------------------------------
@@ -1528,8 +1528,8 @@ def create_key_harvester_router() -> Any:
         body: Dict[str, Any] = {}
         try:
             body = await request.json()
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Non-critical error: %s", exc)
         imap_cfg = body.get("imap_config")
         interactive = bool(body.get("interactive", True))
 
@@ -1585,8 +1585,8 @@ def create_key_harvester_router() -> Any:
         body: Dict[str, Any] = {}
         try:
             body = await request.json()
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("kh_provide_creds error: %s", exc)
         email = body.get("email", "")
         password = body.get("password", "")
         ok = cred_gate.provide(request_id, email=email, password=password)
@@ -1629,8 +1629,8 @@ def create_key_harvester_router() -> Any:
         body: Dict[str, Any] = {}
         try:
             body = await request.json()
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("kh_approve_tos error: %s", exc)
         approved_by = body.get("approved_by", "web-ui")
         ok = tos_gate.approve(request_id, approved_by=approved_by)
         return JSONResponse({"success": ok, "request_id": request_id})
@@ -1641,8 +1641,8 @@ def create_key_harvester_router() -> Any:
         body: Dict[str, Any] = {}
         try:
             body = await request.json()
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("kh_reject_tos error: %s", exc)
         rejected_by = body.get("rejected_by", "web-ui")
         reason = body.get("reason", "")
         ok = tos_gate.reject(request_id, rejected_by=rejected_by, reason=reason)
