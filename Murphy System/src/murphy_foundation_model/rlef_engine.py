@@ -231,7 +231,7 @@ class RLEFEngine:
                     pair_loss = -F.logsigmoid(diff)
                     batch_loss = batch_loss + pair_loss
 
-                avg_loss = batch_loss / len(batch)
+                avg_loss = batch_loss / (len(batch) or 1)
                 avg_loss.backward()
                 optimizer.step()
                 optimizer.zero_grad()

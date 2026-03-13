@@ -599,7 +599,7 @@ class StatusEngine:
             for iid in item_ids
             if self._store.get(board_id, {}).get(iid, {}).get(column_id) in done_keys
         )
-        return round(done_count / len(item_ids) * 100, 1)
+        return round(done_count / (len(item_ids) or 1) * 100, 1)
 
     def render_progress_bar(self, percentage: float, width: int = 20) -> str:
         """Render a text-based progress bar.

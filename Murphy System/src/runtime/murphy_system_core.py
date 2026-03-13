@@ -5769,7 +5769,7 @@ class MurphySystem:
         fastest_paths = sorted_by_speed[: max(1, len(sorted_by_speed) // 3)] if sorted_by_speed else []
         subject_ids = sorted({stage["owner"] for stage in self.DYNAMIC_IMPLEMENTATION_STAGES})
         avg_confidence = (
-            sum(pattern["confidence"] for pattern in patterns) / len(patterns)
+            sum(pattern["confidence"] for pattern in patterns) / (len(patterns) or 1)
             if patterns
             else 0.0
         )
@@ -5791,8 +5791,8 @@ class MurphySystem:
         for subject in subject_ids:
             subject_patterns = [pattern for pattern in patterns if pattern["subject"] == subject]
             if subject_patterns:
-                avg_subject_confidence = sum(p["confidence"] for p in subject_patterns) / len(subject_patterns)
-                avg_subject_time = sum(p["estimated_seconds"] for p in subject_patterns) / len(subject_patterns)
+                avg_subject_confidence = sum(p["confidence"] for p in subject_patterns) / (len(subject_patterns) or 1)
+                avg_subject_time = sum(p["estimated_seconds"] for p in subject_patterns) / (len(subject_patterns) or 1)
             else:
                 avg_subject_confidence = 0.0
                 avg_subject_time = 0.0
@@ -7275,7 +7275,7 @@ class MurphySystem:
                     f"\"{feature['id']}\". Add a \"capabilities\" list in COMPETITIVE_FEATURES."
                 )
             else:
-                coverage = len(available) / len(required)
+                coverage = len(available) / (len(required) or 1)
                 if coverage == 1.0:
                     status_value = self.COMPETITIVE_STATUS_AVAILABLE
                 elif coverage == 0.0:
@@ -7342,7 +7342,7 @@ class MurphySystem:
             "areas": areas,
             "summary": {
                 "total_areas": len(areas),
-                "average_percent": round(sum(item["percent"] for item in areas) / len(areas), 2) if areas else 0.0,
+                "average_percent": round(sum(item["percent"] for item in areas) / (len(areas) or 1), 2) if areas else 0.0,
                 "remediation_threshold_percent": threshold,
                 "low_completion_areas": low_completion_areas,
                 "low_completion_area_ids": [area["area"] for area in areas if area["percent"] < threshold]

@@ -299,4 +299,4 @@ class ShadowDeployment:
 
         intersection = set_a & set_b
         union = set_a | set_b
-        return len(intersection) / len(union)
+        return len(intersection) / (len(union) or 1)

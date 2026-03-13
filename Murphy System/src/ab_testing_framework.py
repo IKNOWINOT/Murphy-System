@@ -587,7 +587,7 @@ class ABTestingEngine:
         for m in metrics:
             vals = grouped.get((variant.id, m.id), [])
             if vals:
-                mean = sum(vals) / len(vals)
+                mean = sum(vals) / (len(vals) or 1)
                 total += mean if m.higher_is_better else -mean
         return total
 

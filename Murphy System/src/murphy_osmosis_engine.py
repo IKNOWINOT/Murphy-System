@@ -122,7 +122,7 @@ class PatternExtractor:
                 if inp != 0:
                     ratios.append(out / inp)
             if ratios:
-                avg_ratio = sum(ratios) / len(ratios)
+                avg_ratio = sum(ratios) / (len(ratios) or 1)
                 core_desc = f"Numeric transformation: output ≈ input × {avg_ratio:.4f}"
             else:
                 core_desc = "Numeric transformation (ratio indeterminate)"
