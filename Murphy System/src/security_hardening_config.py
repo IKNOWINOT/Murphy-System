@@ -18,6 +18,7 @@ Creator: Corey Post
 """
 
 import re
+import os
 import time
 import hashlib
 import secrets
@@ -215,6 +216,149 @@ class RateLimiter:
             "burst_size": self.burst,
             "active_clients": len(self._buckets),
         }
+
+
+class RedisRateLimiter(RateLimiter):
+    """
+    Token-bucket rate limiter backed by Redis for multi-worker deployments.
+
+    When multiple uvicorn workers are running each worker would otherwise
+    have its own independent in-process rate limiter, effectively multiplying
+    the allowed rate by the number of workers.  This subclass stores token
+    bucket state in Redis so all workers share the same view.
+
+    Falls back to the parent in-memory implementation silently if the ``redis``
+    package is unavailable or the connection fails.
+
+    Configuration:
+        MURPHY_REDIS_URL — Redis connection URL (default: ``redis://localhost:6379/0``)
+
+    Usage::
+
+        from src.security_hardening_config import get_rate_limiter
+        limiter = get_rate_limiter()        # auto-selects Redis or in-memory
+        result = limiter.check("client-ip")
+    """
+
+    _KEY_PREFIX = "murphy:rl:"
+    _KEY_TTL = 120  # Expire Redis keys after 2 minutes of inactivity
+
+    def __init__(
+        self,
+        requests_per_minute: int = 60,
+        burst_size: int = 10,
+        redis_url: Optional[str] = None,
+    ):
+        super().__init__(requests_per_minute=requests_per_minute, burst_size=burst_size)
+        self._redis_url = redis_url or os.environ.get(
+            "MURPHY_REDIS_URL", "redis://localhost:6379/0"
+        )
+        self._redis: Optional[Any] = None  # redis.Redis when connected, None otherwise
+        self._redis_available = False
+        self._connect()
+
+    def _connect(self) -> None:
+        """Attempt to connect to Redis; fall back gracefully on failure."""
+        try:
+            import redis as _redis_lib
+            client = _redis_lib.from_url(self._redis_url, socket_connect_timeout=2)
+            client.ping()
+            self._redis = client
+            self._redis_available = True
+            logger.info("RedisRateLimiter: connected to %s", self._redis_url)
+        except Exception as exc:
+            logger.warning(
+                "RedisRateLimiter: cannot connect to Redis (%s) — "
+                "falling back to in-memory rate limiter.",
+                exc,
+            )
+            self._redis_available = False
+
+    def check(self, client_id: str) -> Dict[str, Any]:
+        """Check rate limit, preferring Redis; fall back to in-memory on error."""
+        if not self._redis_available:
+            return super().check(client_id)
+        try:
+            return self._check_redis(client_id)
+        except Exception as exc:
+            logger.warning(
+                "RedisRateLimiter: Redis error (%s) — falling back to in-memory.", exc
+            )
+            self._redis_available = False
+            return super().check(client_id)
+
+    def _check_redis(self, client_id: str) -> Dict[str, Any]:
+        """Token-bucket check using Redis WATCH/MULTI/EXEC for atomicity."""
+        now = time.time()
+        key = f"{self._KEY_PREFIX}{client_id}"
+
+        pipe = self._redis.pipeline()
+        pipe.hgetall(key)
+        (raw,) = pipe.execute()
+
+        if raw:
+            tokens = float(raw.get(b"tokens", self.burst))
+            last_refill = float(raw.get(b"last_refill", now))
+        else:
+            tokens = float(self.burst)
+            last_refill = now
+
+        elapsed = now - last_refill
+        refill = elapsed * (self.rpm / 60.0)
+        tokens = min(float(self.burst), tokens + refill)
+        last_refill = now
+
+        if tokens >= 1.0:
+            tokens -= 1.0
+            allowed = True
+        else:
+            allowed = False
+
+        pipe = self._redis.pipeline()
+        pipe.hset(key, mapping={"tokens": tokens, "last_refill": last_refill})
+        pipe.expire(key, self._KEY_TTL)
+        pipe.execute()
+
+        if allowed:
+            return {
+                "allowed": True,
+                "remaining": int(tokens),
+                "limit": self.rpm,
+                "reset_seconds": 60.0 / self.rpm,
+            }
+        return {
+            "allowed": False,
+            "remaining": 0,
+            "limit": self.rpm,
+            "retry_after_seconds": (1.0 - tokens) * (60.0 / self.rpm),
+        }
+
+    def status(self) -> Dict[str, Any]:
+        base = super().status()
+        base["backend"] = "redis" if self._redis_available else "memory"
+        base["redis_url"] = self._redis_url
+        return base
+
+
+def get_rate_limiter(
+    requests_per_minute: int = 60,
+    burst_size: int = 10,
+) -> RateLimiter:
+    """
+    Return the appropriate rate limiter for this deployment.
+
+    Prefers ``RedisRateLimiter`` when ``MURPHY_REDIS_URL`` is set (or Redis
+    is available at the default URL).  Falls back to the in-memory
+    ``RateLimiter`` otherwise.
+    """
+    redis_url = os.environ.get("MURPHY_REDIS_URL", "")
+    if redis_url:
+        return RedisRateLimiter(
+            requests_per_minute=requests_per_minute,
+            burst_size=burst_size,
+            redis_url=redis_url,
+        )
+    return RateLimiter(requests_per_minute=requests_per_minute, burst_size=burst_size)
 
 
 # ── Content Security Policy ─────────────────────────────────────────

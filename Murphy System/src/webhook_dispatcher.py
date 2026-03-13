@@ -61,6 +61,7 @@ except ImportError:  # pragma: no cover
 # ---------------------------------------------------------------------------
 # Bounded-list helper
 # ---------------------------------------------------------------------------
+from .blueprint_auth import require_blueprint_auth
 try:
     from thread_safe_operations import capped_append
 except ImportError:
@@ -763,4 +764,5 @@ def create_webhook_api(dispatcher: WebhookDispatcher) -> Any:
         """Return dispatcher statistics."""
         return jsonify(dispatcher.stats())
 
+    require_blueprint_auth(bp)
     return bp

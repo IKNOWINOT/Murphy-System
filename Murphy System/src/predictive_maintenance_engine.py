@@ -42,6 +42,7 @@ except ImportError:
 
     request = _FakeReq()  # type: ignore[assignment]
 
+from .blueprint_auth import require_blueprint_auth
 try:
     from thread_safe_operations import capped_append
 except ImportError:
@@ -797,4 +798,5 @@ def create_predictive_maintenance_api(
             "tracked_assets": len(assets),
         }), 200
 
+    require_blueprint_auth(bp)
     return bp
