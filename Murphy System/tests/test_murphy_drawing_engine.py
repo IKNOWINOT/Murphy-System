@@ -1881,7 +1881,6 @@ class TestSVGValidity:
 
     def test_pump_ga_drawing_roundtrip(self):
         import xml.etree.ElementTree as ET
-        from murphy_drawing_engine_extensions import build_pump_ga_drawing
         project = build_pump_ga_drawing()
         svg = DrawingExporter().to_svg(project)
         root = ET.fromstring(svg)
