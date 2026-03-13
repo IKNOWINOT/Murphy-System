@@ -48,6 +48,7 @@ except ImportError:  # pragma: no cover
             return {}
     request = _FakeReq()  # type: ignore[assignment]
 
+from .blueprint_auth import require_blueprint_auth
 try:
     from thread_safe_operations import capped_append
 except ImportError:
@@ -587,4 +588,5 @@ def create_audit_api(al: AuditLogger) -> Any:
     def audit_stats() -> Any:
         """Return audit statistics."""
         return jsonify(al.stats())
+    require_blueprint_auth(bp)
     return bp

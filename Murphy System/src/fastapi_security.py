@@ -64,6 +64,8 @@ def validate_api_key(api_key: str) -> bool:
     """
     configured_keys = get_configured_api_keys()
     if not configured_keys:
+        # No keys configured — allow only in development or test mode.
+        # staging and production both require explicit API keys.
         murphy_env = os.environ.get("MURPHY_ENV", "development")
         return murphy_env in ("development", "test")
     return any(hmac.compare_digest(api_key, key) for key in configured_keys)
@@ -228,6 +230,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         api_key = _extract_api_key(request)
         if api_key is None:
             murphy_env = os.environ.get("MURPHY_ENV", "development")
+            # Only development and test modes skip auth; staging and production require it
             if murphy_env not in ("development", "test"):
                 logger.warning("[%s] Missing API key from %s", self.service_name, client_ip)
                 return JSONResponse(
@@ -287,8 +290,8 @@ def configure_secure_fastapi(app: FastAPI, service_name: str = "murphy-api") -> 
     murphy_env = os.environ.get("MURPHY_ENV", "development")
     if murphy_env == "development":
         logger.warning(
-            "⚠️ Authentication is DISABLED in development mode. "
-            "Set MURPHY_ENV=production to enable."
+            "WARNING: Running in development mode — authentication is DISABLED. "
+            "Set MURPHY_ENV=staging or MURPHY_ENV=production for deployment."
         )
 
     logger.info(
@@ -345,6 +348,7 @@ def require_permission(permission_name: str):
         user_id = request.headers.get("X-User-ID", "")
         if not user_id:
             murphy_env = os.environ.get("MURPHY_ENV", "development")
+            # Only development and test skip RBAC; staging and production require it
             if murphy_env in ("development", "test"):
                 return  # anonymous OK in dev/test
             raise HTTPException(status_code=401, detail="X-User-ID header required")

@@ -36,6 +36,8 @@ class OAuthProvider(str, enum.Enum):
     GOOGLE = "google"
     META = "meta"
     GITHUB = "github"
+    LINKEDIN = "linkedin"
+    APPLE = "apple"
     CUSTOM = "custom"
 
 

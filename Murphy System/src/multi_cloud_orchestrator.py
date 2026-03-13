@@ -38,6 +38,7 @@ except ImportError:
 
     request = _FakeReq()  # type: ignore[assignment]
 
+from .blueprint_auth import require_blueprint_auth
 try:
     from thread_safe_operations import capped_append
 except ImportError:
@@ -786,4 +787,5 @@ def create_multi_cloud_api(
     def get_summary() -> Any:
         return jsonify(orch.get_multi_cloud_summary()), 200
 
+    require_blueprint_auth(bp)
     return bp

@@ -54,6 +54,7 @@ except ImportError:  # pragma: no cover
 
     Blueprint = _StubBlueprint  # type: ignore[misc,assignment]
 
+from .blueprint_auth import require_blueprint_auth
 try:
     from thread_safe_operations import capped_append
 except ImportError:
@@ -796,4 +797,5 @@ def create_notification_api(mgr: NotificationManager) -> Any:
         """Return notification statistics."""
         return jsonify(mgr.stats())
 
+    require_blueprint_auth(bp)
     return bp
