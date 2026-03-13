@@ -231,7 +231,7 @@ class MurphyMatrixBot:
                 "matrix-nio is required. Install with: pip install 'matrix-nio[e2e]>=0.24.0'"
             )
         self.config = config
-        self.api = MurphyAPIBridge(base_url=config.murphy_api_url)
+        self.api = MurphyAPIClient(config)
         self.client = AsyncClient(config.homeserver, config.user_id)
         self._running = False
         self._hitl_event_map: Dict[str, str] = {}

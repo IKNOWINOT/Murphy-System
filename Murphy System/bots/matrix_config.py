@@ -229,10 +229,18 @@ class MatrixBotConfig:
 
     # ------------------------------------------------------------------ Polling
     hitl_poll_interval: int = field(
-        default_factory=lambda: int(_env("MATRIX_HITL_POLL_INTERVAL", _env("HITL_POLL_INTERVAL", "30")))
+        default_factory=lambda: int(
+            os.environ.get("MATRIX_HITL_POLL_INTERVAL")
+            or os.environ.get("HITL_POLL_INTERVAL")
+            or "30"
+        )
     )
     health_poll_interval: int = field(
-        default_factory=lambda: int(_env("MATRIX_HEALTH_POLL_INTERVAL", _env("HEALTH_POLL_INTERVAL", "60")))
+        default_factory=lambda: int(
+            os.environ.get("MATRIX_HEALTH_POLL_INTERVAL")
+            or os.environ.get("HEALTH_POLL_INTERVAL")
+            or "60"
+        )
     )
 
     # ------------------------------------------------------------------ Circuit breaker
