@@ -6,6 +6,7 @@ Validates and sanitizes all user inputs using Pydantic schemas
 import logging
 import re
 from typing import List, Optional
+from urllib.parse import unquote
 
 from pydantic import BaseModel, Field, field_validator, validator
 
@@ -69,14 +70,40 @@ class ConstraintInput(BaseModel):
             r'execute\s*\(',
             r'drop\s+table',
             r'drop\s+database',
+            r'union\s+select',
+            r'insert\s+into',
+            r'delete\s+from',
+            r'update\s+\w+\s+set',
+            r'alter\s+table',
+            r';\s*(?:drop|insert|update|delete|alter)\s',
+            r'waitfor\s+delay',
+            r'sleep\s*\(',
+            r'benchmark\s*\(',
         ]
         for pattern in sql_patterns:
             v = re.sub(pattern, '', v, flags=re.IGNORECASE)
 
+        # Decode URL-encoded sequences before path traversal check to prevent
+        # bypasses via %2e%2e%2f or double-encoding (%252e%252e%252f)
+        decoded = v
+        prev = ""
+        _max_decode_rounds = 10
+        for _ in range(_max_decode_rounds):
+            if prev == decoded:
+                break
+            prev = decoded
+            decoded = unquote(decoded)
+
         # Remove path traversal sequences iteratively until stable
         # to prevent double-encoding bypasses like '....//'' → '../'
-        while '../' in v or '..\\' in v:
-            v = v.replace('../', '').replace('..\\', '')
+        for _ in range(_max_decode_rounds):
+            if '../' not in decoded and '..\\' not in decoded:
+                break
+            decoded = decoded.replace('../', '').replace('..\\', '')
+
+        # If decoding changed the value, use the decoded/sanitized version
+        if decoded != v:
+            v = decoded
 
         return v.strip()
 

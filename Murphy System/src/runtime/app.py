@@ -56,6 +56,21 @@ from src.runtime.murphy_system_core import MurphySystem
 
 # ==================== FASTAPI APPLICATION ====================
 
+def _safe_error_response(exc: Exception, status_code: int = 500) -> "JSONResponse":
+    """Return a sanitized error response that does not leak internal details.
+
+    In production / staging the client only sees a generic message.
+    In development / test the original error string is included for
+    debugging convenience.
+    """
+    env = os.environ.get("MURPHY_ENV", "development").lower()
+    if env in ("production", "staging"):
+        body = {"error": "An internal error occurred."}
+    else:
+        body = {"error": str(exc)}
+    return JSONResponse(body, status_code=status_code)
+
+
 def create_app() -> FastAPI:
     """Create FastAPI application"""
 
@@ -1280,7 +1295,7 @@ def create_app() -> FastAPI:
             _setup_wizard = SetupWizard()
             return JSONResponse({"success": True})
         except Exception as exc:
-            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+            return _safe_error_response(exc, 500)
 
     # --- Onboarding Automation Engine (employee onboarding) ---
 
@@ -2420,7 +2435,7 @@ def create_app() -> FastAPI:
             metrics = {}
         except (ValueError, RuntimeError) as exc:
             logger.exception("Failed to retrieve MFM metrics")
-            metrics = {"error": str(exc)}
+            metrics = {"error": "metrics_unavailable"}
         return JSONResponse({"metrics": metrics})
 
     @app.get("/api/mfm/traces/stats")
@@ -2435,7 +2450,7 @@ def create_app() -> FastAPI:
             stats = {"total_traces": 0, "error": "MFM trace collector not initialised"}
         except (ValueError, RuntimeError) as exc:
             logger.exception("Failed to retrieve MFM trace stats")
-            stats = {"total_traces": 0, "error": str(exc)}
+            stats = {"total_traces": 0, "error": "trace_stats_unavailable"}
         return JSONResponse(stats)
 
     @app.post("/api/mfm/retrain")
@@ -2454,7 +2469,7 @@ def create_app() -> FastAPI:
             return JSONResponse({"error": "MFM retraining module not available"}, status_code=503)
         except (ValueError, RuntimeError, OSError) as exc:
             logger.exception("MFM retraining failed")
-            return JSONResponse({"error": str(exc)}, status_code=500)
+            return _safe_error_response(exc, 500)
 
     @app.post("/api/mfm/promote")
     async def mfm_promote(request: Request):
@@ -2476,7 +2491,7 @@ def create_app() -> FastAPI:
             return JSONResponse({"error": "MFM registry module not available"}, status_code=503)
         except (KeyError, ValueError, RuntimeError) as exc:
             logger.exception("MFM promotion failed")
-            return JSONResponse({"error": str(exc)}, status_code=500)
+            return _safe_error_response(exc, 500)
 
     @app.post("/api/mfm/rollback")
     async def mfm_rollback():
@@ -2495,7 +2510,7 @@ def create_app() -> FastAPI:
             return JSONResponse({"error": "MFM registry module not available"}, status_code=503)
         except (ValueError, RuntimeError) as exc:
             logger.exception("MFM rollback failed")
-            return JSONResponse({"error": str(exc)}, status_code=500)
+            return _safe_error_response(exc, 500)
 
     @app.get("/api/mfm/versions")
     async def mfm_versions():
@@ -2521,7 +2536,7 @@ def create_app() -> FastAPI:
             return JSONResponse({"error": "MFM registry module not available"}, status_code=503)
         except (ValueError, RuntimeError) as exc:
             logger.exception("Failed to list MFM versions")
-            return JSONResponse({"error": str(exc)}, status_code=500)
+            return _safe_error_response(exc, 500)
 
     # ==================== TEST MODE ====================
 
@@ -2534,7 +2549,7 @@ def create_app() -> FastAPI:
             return JSONResponse(ctrl.get_status())
         except Exception as exc:
             logger.exception("Failed to get test-mode status")
-            return JSONResponse({"error": str(exc)}, status_code=500)
+            return _safe_error_response(exc, 500)
 
     @app.post("/api/test-mode/toggle")
     async def test_mode_toggle():
@@ -2546,7 +2561,7 @@ def create_app() -> FastAPI:
             return JSONResponse(status)
         except Exception as exc:
             logger.exception("Failed to toggle test mode")
-            return JSONResponse({"error": str(exc)}, status_code=500)
+            return _safe_error_response(exc, 500)
 
     # ==================== SELF-LEARNING TOGGLE ====================
 
@@ -2559,7 +2574,7 @@ def create_app() -> FastAPI:
             return JSONResponse(slt.get_status())
         except Exception as exc:
             logger.exception("Failed to get learning status")
-            return JSONResponse({"error": str(exc)}, status_code=500)
+            return _safe_error_response(exc, 500)
 
     @app.post("/api/learning/toggle")
     async def learning_toggle():
@@ -2571,7 +2586,7 @@ def create_app() -> FastAPI:
             return JSONResponse(status)
         except Exception as exc:
             logger.exception("Failed to toggle self-learning")
-            return JSONResponse({"error": str(exc)}, status_code=500)
+            return _safe_error_response(exc, 500)
 
     # ==================== OAUTH CALLBACK ====================
 
@@ -2600,10 +2615,10 @@ def create_app() -> FastAPI:
                 "message": "OAuth flow completed. Account linked successfully.",
             })
         except ValueError as exc:
-            return JSONResponse({"error": str(exc)}, status_code=400)
+            return _safe_error_response(exc, 400)
         except Exception as exc:
             logger.exception("OAuth callback failed")
-            return JSONResponse({"error": str(exc)}, status_code=500)
+            return _safe_error_response(exc, 500)
 
     # ==================== READINESS SCANNER ====================
 
@@ -2618,7 +2633,7 @@ def create_app() -> FastAPI:
             return JSONResponse(report)
         except Exception as exc:
             logger.exception("Readiness scan failed")
-            return JSONResponse({"error": str(exc)}, status_code=500)
+            return _safe_error_response(exc, 500)
 
     # ==================== KEY HARVESTER ENDPOINTS ====================
 
