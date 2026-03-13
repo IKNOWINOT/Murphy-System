@@ -65,6 +65,7 @@ except ImportError:
         target_list.append(item)
 
 logger = logging.getLogger(__name__)
+from .blueprint_auth import require_blueprint_auth
 
 
 def _now() -> str:
@@ -665,6 +666,7 @@ def create_cvp_api(engine: ComputerVisionPipeline) -> Any:
     _register_process_routes(bp, engine)
     _register_query_routes(bp, engine)
     _register_stats_routes(bp, engine)
+    require_blueprint_auth(bp)
     return bp
 
 

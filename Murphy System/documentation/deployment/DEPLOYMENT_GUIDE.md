@@ -855,6 +855,79 @@ sudo ufw status
 
 ---
 
+## Secrets Management
+
+Production deployments **must not** store credentials in plaintext `.env` files.
+Use one of the following approaches:
+
+### Docker Secrets
+
+```bash
+# Create secrets from files
+echo -n "my-api-key" | docker secret create murphy_api_key -
+docker secret create murphy_credential_key ./fernet_key.txt
+
+# Reference in docker-compose.yml
+services:
+  murphy-api:
+    secrets:
+      - murphy_api_key
+      - murphy_credential_key
+    environment:
+      MURPHY_API_KEYS_FILE: /run/secrets/murphy_api_key
+      MURPHY_CREDENTIAL_MASTER_KEY_FILE: /run/secrets/murphy_credential_key
+
+secrets:
+  murphy_api_key:
+    external: true
+  murphy_credential_key:
+    external: true
+```
+
+### Kubernetes Secrets
+
+```bash
+# Create secrets
+kubectl create secret generic murphy-secrets \
+  --from-literal=api-key="$(openssl rand -base64 32)" \
+  --from-literal=credential-master-key="$(python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')"
+
+# Reference in Pod spec (set via env vars)
+env:
+  - name: MURPHY_API_KEYS
+    valueFrom:
+      secretKeyRef:
+        name: murphy-secrets
+        key: api-key
+  - name: MURPHY_CREDENTIAL_MASTER_KEY
+    valueFrom:
+      secretKeyRef:
+        name: murphy-secrets
+        key: credential-master-key
+```
+
+### HashiCorp Vault Integration
+
+```bash
+# Store secrets
+vault kv put secret/murphy/production \
+  api_key="$(openssl rand -base64 32)" \
+  credential_master_key="$(python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')"
+
+# Read secrets (use Vault Agent or envconsul to inject into process env)
+vault kv get -field=api_key secret/murphy/production
+```
+
+### Required Secrets
+
+| Secret | Environment Variable | How to Generate |
+|--------|---------------------|-----------------|
+| API key(s) | `MURPHY_API_KEYS` | `python -c "import secrets; print(secrets.token_urlsafe(32))"` |
+| Credential master key | `MURPHY_CREDENTIAL_MASTER_KEY` | `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"` |
+| JWT secret | `JWT_SECRET` | `python -c "import secrets; print(secrets.token_hex(32))"` |
+
+---
+
 **© 2025 Corey Post InonI LLC. All rights reserved.**  
 **Licensed under BSL 1.1 (converts to Apache 2.0 after 4 years)**  
 **Contact: corey.gfc@gmail.com**
