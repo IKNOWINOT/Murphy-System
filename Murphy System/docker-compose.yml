@@ -23,6 +23,7 @@ services:
     environment:
       MURPHY_ENV: ${MURPHY_ENV:-development}
       MURPHY_PORT: "8000"
+      MURPHY_DB_MODE: live
       DATABASE_URL: postgresql://${POSTGRES_USER:-murphy}:${POSTGRES_PASSWORD:-murphy}@postgres:5432/${POSTGRES_DB:-murphy}
       REDIS_URL: redis://redis:6379/0
     volumes:

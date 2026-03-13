@@ -3,6 +3,7 @@ Flask Security Integration for Murphy System
 
 Provides centralized security controls for all Flask API servers:
 - API key authentication on all routes (except health checks)
+- JWT token validation as an alternative auth method
 - CORS origin allowlist (replaces wildcard CORS)
 - Rate limiting per client
 - Input sanitization
@@ -31,6 +32,36 @@ except ImportError:
     _HAS_FLASK = False
 
 logger = logging.getLogger(__name__)
+
+
+# ── JWT Configuration ──────────────────────────────────────────────
+
+_JWT_SECRET = os.environ.get("MURPHY_JWT_SECRET", "")
+_JWT_ALGORITHM = os.environ.get("MURPHY_JWT_ALGORITHM", "HS256")
+_JWT_ISSUER = os.environ.get("MURPHY_JWT_ISSUER", "murphy-system")
+
+
+def validate_jwt_token(token: str) -> Optional[Dict[str, Any]]:
+    """Validate a JWT token and return the decoded payload.
+
+    Requires ``MURPHY_JWT_SECRET`` to be set.  Returns ``None`` if JWT
+    validation is not configured or the token is invalid.
+    """
+    if not _JWT_SECRET:
+        return None
+    try:
+        import jwt  # PyJWT
+        payload = jwt.decode(
+            token,
+            _JWT_SECRET,
+            algorithms=[_JWT_ALGORITHM],
+            issuer=_JWT_ISSUER,
+            options={"require": ["exp", "sub"]},
+        )
+        return payload
+    except Exception as exc:
+        logger.debug("JWT validation failed: %s", exc)
+        return None
 
 
 # ── Environment Utilities ────────────────────────────────────────────
@@ -110,6 +141,33 @@ def _extract_api_key() -> Optional[str]:
         return api_key
 
     return None
+
+
+def _authenticate_request() -> Optional[bool]:
+    """Authenticate a request via API key or JWT token.
+
+    Returns:
+        ``True`` if authenticated, ``False`` if credentials present but
+        invalid, ``None`` if no credentials found.
+    """
+    auth_header = request.headers.get("Authorization", "")
+    api_key_header = request.headers.get("X-API-Key", "")
+
+    # Try API key from X-API-Key header
+    if api_key_header:
+        return validate_api_key(api_key_header)
+
+    # Try Bearer token — could be an API key or a JWT
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:].strip()
+        # First try JWT validation (if configured)
+        jwt_payload = validate_jwt_token(token)
+        if jwt_payload is not None:
+            return True
+        # Fall back to API key validation
+        return validate_api_key(token)
+
+    return None  # no credentials provided
 
 
 def _is_health_endpoint(path: str) -> bool:
@@ -262,20 +320,22 @@ def configure_secure_app(app: Flask, service_name: str = "murphy-api") -> Flask:
                 resp.headers['Retry-After'] = str(retry_after)
                 return resp, 429
 
-        # API key authentication
-        api_key = _extract_api_key()
-        if api_key is None:
+        # API key / JWT authentication
+        auth_result = _authenticate_request()
+        if auth_result is None:
             # Only development and test skip auth; staging and production require it
             murphy_env = os.environ.get("MURPHY_ENV", "development")
             if murphy_env not in ("development", "test"):
-                logger.warning(f"[{service_name}] Missing API key from {client_ip}")
+                client_ip = request.remote_addr or "unknown"
+                logger.warning(f"[{service_name}] Missing credentials from {client_ip}")
                 return jsonify({"error": "Authentication required"}), 401
-            # In development / test mode, allow requests without API key
+            # In development / test mode, allow requests without credentials
             return None
 
-        if not validate_api_key(api_key):
-            logger.warning(f"[{service_name}] Invalid API key from {client_ip}")
-            return jsonify({"error": "Invalid API key"}), 401
+        if not auth_result:
+            client_ip = request.remote_addr or "unknown"
+            logger.warning(f"[{service_name}] Invalid credentials from {client_ip}")
+            return jsonify({"error": "Invalid credentials"}), 401
 
         # Input sanitization for JSON requests
         if request.is_json and request.data:
