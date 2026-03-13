@@ -132,6 +132,33 @@ def _meta_profile_mapper(raw: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def _linkedin_profile_mapper(raw: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalize a LinkedIn userinfo (OIDC) response."""
+    return {
+        "email": raw.get("email", ""),
+        "display_name": raw.get("name", ""),
+        "given_name": raw.get("given_name", ""),
+        "family_name": raw.get("family_name", ""),
+        "provider_user_id": raw.get("sub", ""),
+        "picture": raw.get("picture", ""),
+    }
+
+
+def _apple_profile_mapper(raw: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalize an Apple Sign In token/userinfo response."""
+    name_obj = raw.get("name") or {}
+    given = name_obj.get("firstName", "") if isinstance(name_obj, dict) else ""
+    family = name_obj.get("lastName", "") if isinstance(name_obj, dict) else ""
+    display = f"{given} {family}".strip() or raw.get("email", "")
+    return {
+        "email": raw.get("email", ""),
+        "display_name": display,
+        "given_name": given,
+        "family_name": family,
+        "provider_user_id": raw.get("sub", ""),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Default Provider Configurations
 # ---------------------------------------------------------------------------
@@ -178,6 +205,32 @@ def _default_providers() -> Dict[str, OAuthProviderConfig]:
                 "MURPHY_OAUTH_REDIRECT_URI", "http://localhost:8000/api/auth/callback"
             ),
             profile_mapper=_meta_profile_mapper,
+        ),
+        OAuthProvider.LINKEDIN.value: OAuthProviderConfig(
+            provider=OAuthProvider.LINKEDIN,
+            client_id=os.environ.get("MURPHY_OAUTH_LINKEDIN_CLIENT_ID", ""),
+            client_secret_encrypted=os.environ.get("MURPHY_OAUTH_LINKEDIN_SECRET", ""),
+            authorize_url="https://www.linkedin.com/oauth/v2/authorization",
+            token_url="https://www.linkedin.com/oauth/v2/accessToken",
+            userinfo_url="https://api.linkedin.com/v2/userinfo",
+            scopes=["openid", "profile", "email"],
+            redirect_uri=os.environ.get(
+                "MURPHY_OAUTH_REDIRECT_URI", "http://localhost:8000/api/auth/callback"
+            ),
+            profile_mapper=_linkedin_profile_mapper,
+        ),
+        OAuthProvider.APPLE.value: OAuthProviderConfig(
+            provider=OAuthProvider.APPLE,
+            client_id=os.environ.get("MURPHY_OAUTH_APPLE_CLIENT_ID", ""),
+            client_secret_encrypted=os.environ.get("MURPHY_OAUTH_APPLE_SECRET", ""),
+            authorize_url="https://appleid.apple.com/auth/authorize",
+            token_url="https://appleid.apple.com/auth/token",
+            userinfo_url="",
+            scopes=["name", "email"],
+            redirect_uri=os.environ.get(
+                "MURPHY_OAUTH_REDIRECT_URI", "http://localhost:8000/api/auth/callback"
+            ),
+            profile_mapper=_apple_profile_mapper,
         ),
     }
 

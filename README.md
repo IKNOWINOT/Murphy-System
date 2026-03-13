@@ -40,6 +40,7 @@ Murphy is a **complete, operational AI automation system** that can automate any
 
 ### Key Features
 
+✅ **Describe → Execute** - Tell Murphy what you want in plain English; it builds the plan, governs it, and runs it  
 ✅ **Universal Automation** - Automate anything (factory, content, data, system, agent, business)  
 ✅ **Self-Integration** - Add GitHub repos, APIs, hardware automatically  
 ✅ **Self-Improvement** - Learns from corrections, trains shadow agent  
@@ -52,6 +53,24 @@ Murphy is a **complete, operational AI automation system** that can automate any
 ✅ **Container Deployment** - Docker and Kubernetes configs included (security hardening required before production)
 
 > **Coming in #136:** Drawing Engine, Credential Gate, Sensor Fusion, Osmosis Engine, Autonomous Perception, Wingman Evolution, Engineering Toolbox
+
+---
+
+## 🗣️ How It Works: Describe → Execute → Refine
+
+Murphy's hero flow inverts the traditional automation paradigm — you describe what you want; Murphy builds it.
+
+```
+1. DESCRIBE: "Monitor my sales data and send a weekly summary to Slack"
+2. EXECUTE:  Murphy builds a governed DAG workflow with safety gates
+3. REFINE:   Open the visual canvas to tweak any step (optional)
+```
+
+**No drag-and-drop. No connector wiring. No trigger logic.** Just a plain English sentence.
+
+Murphy uses [`ai_workflow_generator.py`](<Murphy System/src/ai_workflow_generator.py>) to convert your description into a structured workflow, [`nocode_workflow_terminal.py`](<Murphy System/src/nocode_workflow_terminal.py>) as the Librarian-powered conversation interface, and [`workflow_canvas.html`](<Murphy System/workflow_canvas.html>) as the optional visual refinement layer once the plan is generated.
+
+See the full [Roadmap](ROADMAP.md) for the sprint plan that takes this from prototype to production.
 
 ---
 
@@ -623,6 +642,7 @@ The following environment variables control Murphy System behaviour. Copy `.env.
 | Document | Description |
 | --- | --- |
 | [Quick Start](Murphy%20System/MURPHY_1.0_QUICK_START.md) | Get started in 5 minutes |
+| [Roadmap](ROADMAP.md) | Public revenue-first sprint plan |
 | [Specification](<Murphy System/MURPHY_SYSTEM_1.0_SPECIFICATION.md>) | Complete system spec |
 | [API Documentation](<Murphy System/API_DOCUMENTATION.md>) | API reference |
 | [Deployment Guide](<Murphy System/DEPLOYMENT_GUIDE.md>) | Deployment instructions |
