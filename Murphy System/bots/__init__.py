@@ -307,27 +307,36 @@ except Exception:  # pragma: no cover
     sign_message = verify_signature = encrypt_payload = decrypt_payload = None
 
 try:
-    from .matrix_config import MatrixBotConfig
-    from .matrix_bot import MurphyMatrixBot, MurphyAPIClient, CircuitBreaker
-    from .matrix_hitl import HITLBridge
-    from .matrix_notifications import HealthMonitor
+    from .matrix_config import MatrixConfig, load_config as load_matrix_config
     from .matrix_formatters import (
         format_status,
-        format_health,
-        format_agents,
-        format_workflows,
-        format_costs,
-        format_hitl_list,
-        format_hitl_intervention,
+        format_overview,
+        format_error,
+        format_success,
         format_links,
+        format_jargon,
+        format_jargon_list,
         format_help,
+        format_email_result,
+        format_notification_result,
+        format_webhook_delivery,
+        format_connector_status,
+        format_comms_activity_feed,
+        format_integration_status,
+        format_service_ticket,
+        get_all_jargon,
     )
+    from .matrix_bot import MatrixBot, MurphyAPIClient
+    from .matrix_hitl import HITLBridge
+    from .matrix_notifications import NotificationRelay
 except Exception:  # pragma: no cover
-    MatrixBotConfig = MurphyMatrixBot = MurphyAPIClient = CircuitBreaker = None  # type: ignore[assignment,misc]
-    HITLBridge = HealthMonitor = None  # type: ignore[assignment,misc]
-    format_status = format_health = format_agents = format_workflows = None  # type: ignore[assignment]
-    format_costs = format_hitl_list = format_hitl_intervention = None  # type: ignore[assignment]
-    format_links = format_help = None  # type: ignore[assignment]
+    MatrixConfig = load_matrix_config = None
+    MatrixBot = MurphyAPIClient = HITLBridge = NotificationRelay = None
+    format_status = format_overview = format_error = format_success = None
+    format_links = format_jargon = format_jargon_list = format_help = None
+    format_email_result = format_notification_result = format_webhook_delivery = None
+    format_connector_status = format_comms_activity_feed = None
+    format_integration_status = format_service_ticket = get_all_jargon = None
 
 try:
     from .utils.typed_event import HiveEvent
@@ -463,19 +472,26 @@ __all__ = [
     'parse_user_input_to_json',
     'handle_user_query',
     # Matrix bot integration
-    'MatrixBotConfig',
-    'MurphyMatrixBot',
+    'MatrixConfig',
+    'load_matrix_config',
+    'MatrixBot',
     'MurphyAPIClient',
-    'CircuitBreaker',
     'HITLBridge',
-    'HealthMonitor',
+    'NotificationRelay',
     'format_status',
-    'format_health',
-    'format_agents',
-    'format_workflows',
-    'format_costs',
-    'format_hitl_list',
-    'format_hitl_intervention',
+    'format_overview',
+    'format_error',
+    'format_success',
     'format_links',
+    'format_jargon',
+    'format_jargon_list',
     'format_help',
+    'format_email_result',
+    'format_notification_result',
+    'format_webhook_delivery',
+    'format_connector_status',
+    'format_comms_activity_feed',
+    'format_integration_status',
+    'format_service_ticket',
+    'get_all_jargon',
 ]
