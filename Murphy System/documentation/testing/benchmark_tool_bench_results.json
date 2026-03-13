@@ -1,0 +1,81 @@
+{
+  "benchmark_name": "tool-bench",
+  "benchmark_version": "bfcl-v2",
+  "run_timestamp": "2026-03-13T23:12:16.800488+00:00",
+  "tasks_total": 5,
+  "tasks_succeeded": 0,
+  "tasks_failed": 5,
+  "tasks_skipped": 0,
+  "total_elapsed_seconds": 0.005641629999786346,
+  "mean_elapsed_seconds": 0.0011283259999572692,
+  "success_rate": 0.0,
+  "mean_score": 0.0,
+  "results": [
+    {
+      "task_id": "tb-001",
+      "success": false,
+      "elapsed_seconds": 0.005592557999989367,
+      "score": 0.0,
+      "error": null,
+      "metadata": {
+        "expected_tool": "slack_send_message",
+        "selected_tool": "[error: 'PlatformConnectorFramework' object has no attribute 'execute']",
+        "tool_correct": false,
+        "execution_ok": false
+      }
+    },
+    {
+      "task_id": "tb-002",
+      "success": false,
+      "elapsed_seconds": 1.687199994648836e-05,
+      "score": 0.0,
+      "error": null,
+      "metadata": {
+        "expected_tool": "jira_create_issue",
+        "selected_tool": "[error: 'PlatformConnectorFramework' object has no attribute 'execute']",
+        "tool_correct": false,
+        "execution_ok": false
+      }
+    },
+    {
+      "task_id": "tb-003",
+      "success": false,
+      "elapsed_seconds": 1.2042999969708035e-05,
+      "score": 0.0,
+      "error": null,
+      "metadata": {
+        "expected_tool": "weather_api_get",
+        "selected_tool": "[error: 'PlatformConnectorFramework' object has no attribute 'execute']",
+        "tool_correct": false,
+        "execution_ok": false
+      }
+    },
+    {
+      "task_id": "tb-004",
+      "success": false,
+      "elapsed_seconds": 1.0078999935103639e-05,
+      "score": 0.0,
+      "error": null,
+      "metadata": {
+        "expected_tool": "github_create_issue",
+        "selected_tool": "[error: 'PlatformConnectorFramework' object has no attribute 'execute']",
+        "tool_correct": false,
+        "execution_ok": false
+      }
+    },
+    {
+      "task_id": "tb-005",
+      "success": false,
+      "elapsed_seconds": 1.007799994567904e-05,
+      "score": 0.0,
+      "error": null,
+      "metadata": {
+        "expected_tool": "salesforce_soql_query",
+        "selected_tool": "[error: 'PlatformConnectorFramework' object has no attribute 'execute']",
+        "tool_correct": false,
+        "execution_ok": false
+      }
+    }
+  ],
+  "extra_metrics": {}
+}
