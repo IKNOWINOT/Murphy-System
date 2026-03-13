@@ -114,7 +114,14 @@ class TrainingDataPipeline:
     ) -> List[ActionTrace]:
         """Drop traces older than *retention_days*."""
         cutoff = datetime.now(timezone.utc) - timedelta(days=self.retention_days)
-        return [t for t in traces if t.timestamp >= cutoff]
+        result: List[ActionTrace] = []
+        for t in traces:
+            ts = t.timestamp
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+            if ts >= cutoff:
+                result.append(t)
+        return result
 
     def _label_traces(
         self, traces: List[ActionTrace]
