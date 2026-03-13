@@ -1,13 +1,12 @@
-"""
-Webhook Receiver for the Murphy Matrix Bridge.
+# Copyright © 2020 Inoni Limited Liability Company
+# Creator: Corey Post
+# License: BSL 1.1
+"""Webhook Receiver — HTTP endpoint that receives external events and posts
+them to the appropriate Matrix rooms.
 
 Accepts inbound webhook payloads from Matrix and external systems
 (GitHub, alert managers, deployment pipelines) and routes them to the
 appropriate Matrix rooms via the event pipeline.
-# © 2020 Inoni Limited Liability Company by Corey Post
-# License: BSL 1.1
-"""Webhook Receiver — HTTP endpoint that receives external events and posts
-them to the appropriate Matrix rooms.
 
 Supported sources:
 - GitHub webhooks → ``#murphy-ci-cd``
@@ -29,19 +28,33 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import json
 import logging
+import os
 import uuid
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from enum import Enum
-
-from .config import MatrixBridgeConfig
-import json
-import logging
-import os
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
+from .config import MatrixBridgeConfig
+
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Optional aiohttp
+# ---------------------------------------------------------------------------
+try:
+    import aiohttp
+    from aiohttp import web
+    _AIOHTTP_AVAILABLE = True
+except ImportError:  # pragma: no cover
+    aiohttp = None  # type: ignore
+    web = None  # type: ignore
+    _AIOHTTP_AVAILABLE = False
+
+from .matrix_client import MatrixClient
+from .room_registry import RoomRegistry
 
 # ---------------------------------------------------------------------------
 # Enums
@@ -114,7 +127,6 @@ _SOURCE_ROOM_HINTS: dict[str, str] = {
     "slack": "murphy-comms",
     "email": "murphy-comms",
 }
-
 # Mapping WebhookEventType → default room key
 _EVENT_TYPE_ROOM_DEFAULTS: dict[WebhookEventType, str] = {
     WebhookEventType.MATRIX_EVENT: "murphy-core",
@@ -126,36 +138,7 @@ _EVENT_TYPE_ROOM_DEFAULTS: dict[WebhookEventType, str] = {
 
 
 # ---------------------------------------------------------------------------
-# WebhookReceiver
-# ---------------------------------------------------------------------------
-
-
-class WebhookReceiver:
-    """Receives, classifies, and routes inbound webhooks.
-
-    Maintains an in-process queue of pending and processed events.
-    Message delivery to Matrix rooms is stubbed — ``matrix-nio`` will
-    be wired in a later PR.
-
-    Args:
-        config: The active :class:`~config.MatrixBridgeConfig`.
-        room_router: Active :class:`~room_router.RoomRouter` instance.
-# Optional aiohttp
-# ---------------------------------------------------------------------------
-try:
-    import aiohttp
-    from aiohttp import web
-    _AIOHTTP_AVAILABLE = True
-except ImportError:  # pragma: no cover
-    aiohttp = None  # type: ignore
-    web = None  # type: ignore
-    _AIOHTTP_AVAILABLE = False
-
-from .matrix_client import MatrixClient
-from .room_registry import RoomRegistry
-
-# ---------------------------------------------------------------------------
-# Source → room key routing
+# Source -> room key routing (PR #206)
 # ---------------------------------------------------------------------------
 
 _SOURCE_ROOMS: Dict[str, str] = {
@@ -171,24 +154,63 @@ _SOURCE_ROOMS: Dict[str, str] = {
     "generic":    "system-status",
 }
 
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
-class WebhookReceiver:
-    """Async HTTP webhook receiver that fans events into Matrix rooms.
 
-    Parameters
-    ----------
-    client:
-        Connected :class:`~murphy.matrix_bridge.MatrixClient`.
-    registry:
-        :class:`~murphy.matrix_bridge.RoomRegistry` with room IDs populated.
-    host:
-        Bind address.
-    port:
-        Bind port.
-    github_secret:
-        HMAC secret for GitHub payload verification (optional).
-    stripe_secret:
-        Stripe signing secret for payload verification (optional).
+def _classify_event(payload: dict, source: str) -> WebhookEventType:
+    """Infer the :class:`WebhookEventType` from the payload and source.
+
+    Args:
+        payload: Raw webhook payload dict.
+        source: Source system identifier string.
+
+    Returns:
+        The most appropriate :class:`WebhookEventType`.
+    """
+    src = source.lower()
+
+    if src in ("github", "gitlab", "bitbucket"):
+        return WebhookEventType.GITHUB_EVENT
+
+    if src in ("alertmanager", "prometheus", "grafana", "pagerduty"):
+        return WebhookEventType.ALERT_FIRING
+
+    if src in ("jenkins", "argocd", "kubernetes", "docker", "ci"):
+        return WebhookEventType.DEPLOYMENT_EVENT
+
+    if src == "matrix":
+        return WebhookEventType.MATRIX_EVENT
+
+    # Heuristic payload inspection
+    if "alerts" in payload or payload.get("status") == "firing":
+        return WebhookEventType.ALERT_FIRING
+
+    if "deployment" in payload or "environment" in payload:
+        return WebhookEventType.DEPLOYMENT_EVENT
+
+    if "repository" in payload or "commits" in payload:
+        return WebhookEventType.GITHUB_EVENT
+
+    return WebhookEventType.EXTERNAL_TRIGGER
+
+
+# ---------------------------------------------------------------------------
+# Stub WebhookReceiver (config/room_router based -- PR #208)
+# ---------------------------------------------------------------------------
+
+
+class _StubWebhookReceiver:
+    """Receives, classifies, and routes inbound webhooks.
+
+    Maintains an in-process queue of pending and processed events.
+    Message delivery to Matrix rooms is stubbed -- ``matrix-nio`` will
+    be wired in a later PR.
+
+    Args:
+        config: The active :class:`~config.MatrixBridgeConfig`.
+        room_router: Active :class:`~room_router.RoomRouter` instance.
     """
 
     def __init__(
@@ -430,46 +452,33 @@ class WebhookReceiver:
         )
 
 
+
 # ---------------------------------------------------------------------------
-# Helpers
+# Async WebhookReceiver (client/registry based -- PR #206)
 # ---------------------------------------------------------------------------
 
 
-def _classify_event(payload: dict, source: str) -> WebhookEventType:
-    """Infer the :class:`WebhookEventType` from the payload and source.
+class WebhookReceiver:
+    """Async HTTP webhook receiver that fans events into Matrix rooms.
 
-    Args:
-        payload: Raw webhook payload dict.
-        source: Source system identifier string.
-
-    Returns:
-        The most appropriate :class:`WebhookEventType`.
+    Parameters
+    ----------
+    client:
+        Connected :class:`~murphy.matrix_bridge.MatrixClient`.
+    registry:
+        :class:`~murphy.matrix_bridge.RoomRegistry` with room IDs populated.
+    host:
+        Bind address.
+    port:
+        Bind port.
+    github_secret:
+        HMAC secret for GitHub payload verification (optional).
+    stripe_secret:
+        Stripe signing secret for payload verification (optional).
     """
-    src = source.lower()
 
-    if src in ("github", "gitlab", "bitbucket"):
-        return WebhookEventType.GITHUB_EVENT
-
-    if src in ("alertmanager", "prometheus", "grafana", "pagerduty"):
-        return WebhookEventType.ALERT_FIRING
-
-    if src in ("jenkins", "argocd", "kubernetes", "docker", "ci"):
-        return WebhookEventType.DEPLOYMENT_EVENT
-
-    if src == "matrix":
-        return WebhookEventType.MATRIX_EVENT
-
-    # Heuristic payload inspection
-    if "alerts" in payload or payload.get("status") == "firing":
-        return WebhookEventType.ALERT_FIRING
-
-    if "deployment" in payload or "environment" in payload:
-        return WebhookEventType.DEPLOYMENT_EVENT
-
-    if "repository" in payload or "commits" in payload:
-        return WebhookEventType.GITHUB_EVENT
-
-    return WebhookEventType.EXTERNAL_TRIGGER
+    def __init__(
+        self,
         client: MatrixClient,
         registry: RoomRegistry,
         host: str = "0.0.0.0",
@@ -498,6 +507,7 @@ def _classify_event(payload: dict, source: str) -> WebhookEventType:
     def add_route(self, path_suffix: str, room_key: str) -> None:
         """Route requests to ``/webhook/{path_suffix}`` to *room_key*."""
         self._custom_routes[path_suffix] = room_key
+
 
     # ------------------------------------------------------------------
     # Lifecycle

@@ -1,51 +1,6 @@
 # Copyright © 2020 Inoni Limited Liability Company
 # Creator: Corey Post
 # License: BSL 1.1
-"""Matrix Client Wrapper — MTX-CLIENT-001
-
-Owner: Platform Engineering · Dep: matrix_config (MatrixConfig)
-
-Core Matrix client wrapper for the Murphy System bridge.  Uses
-``matrix-nio`` (async) when available and falls back to a lightweight
-HTTP-only mock client for environments where ``nio`` is not installed
-(e.g. test environments without network access).
-
-Classes
--------
-MatrixClientError : Exception
-    Raised on unrecoverable Matrix API errors.
-MessageContent : dataclass
-    Structured message payload (plain text + optional HTML body).
-SendResult : dataclass
-    Result returned from :meth:`MatrixClient.send_message`.
-MatrixClient : class
-    Async Matrix client wrapper — connect, join rooms, send/receive.
-MockMatrixClient : class
-    In-memory stub that satisfies the same interface without network I/O.
-create_client(config) : function
-    Factory: returns a real or mock client based on token availability.
-
-Usage (async)::
-
-    from matrix_bridge.matrix_config import MatrixConfig
-    from matrix_bridge.matrix_client import create_client
-
-    cfg = MatrixConfig.from_env()
-    async with create_client(cfg) as client:
-        await client.send_text(room_alias="murphy-general", text="Hello!")
-"""
-from __future__ import annotations
-
-import abc
-import asyncio
-import logging
-import time
-from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional
-
-from .matrix_config import MatrixConfig
-# © 2020 Inoni Limited Liability Company by Corey Post
-# License: BSL 1.1
 """Matrix homeserver client wrapper for the Murphy System.
 
 Uses ``matrix-nio`` for all Matrix API operations with:
@@ -67,16 +22,42 @@ MATRIX_DEVICE_ID        device ID to reuse (optional)
 MATRIX_E2E_ENABLED      ``true`` to enable E2E encryption (default ``false``)
 MATRIX_CB_THRESHOLD     circuit-breaker failure threshold (default ``5``)
 MATRIX_CB_TIMEOUT       circuit-breaker reset timeout in seconds (default ``60``)
-"""
 
+Classes
+-------
+MatrixClientError : Exception
+    Raised on unrecoverable Matrix API errors.
+MessageContent : dataclass
+    Structured message payload (plain text + optional HTML body).
+SendResult : dataclass
+    Result returned from :meth:`MatrixClient.send_message`.
+MatrixClient : class
+    Async Matrix client wrapper --- connect, join rooms, send/receive.
+MockMatrixClient : class
+    In-memory stub that satisfies the same interface without network I/O.
+create_client(config) : function
+    Factory: returns a real or mock client based on token availability.
+
+Usage (async)::
+
+    from matrix_bridge.matrix_config import MatrixConfig
+    from matrix_bridge.matrix_client import create_client
+
+    cfg = MatrixConfig.from_env()
+    async with create_client(cfg) as client:
+        await client.send_text(room_alias="murphy-general", text="Hello!")
+"""
 from __future__ import annotations
 
+import abc
 import asyncio
 import logging
 import os
 import time
 from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable, Dict, List, Optional
+
+from .matrix_config import MatrixConfig
 
 logger = logging.getLogger(__name__)
 
@@ -85,18 +66,38 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 try:
     import nio  # type: ignore[import-untyped]
-
+    from nio import (  # type: ignore
+        AsyncClient,
+        AsyncClientConfig,
+        InviteMemberEvent,
+        LoginResponse,
+        MatrixRoom,
+        RoomCreateResponse,
+        RoomMessageText,
+        RoomSendResponse,
+        SyncResponse,
+    )
     _HAS_NIO = True
+    _NIO_AVAILABLE = True
 except ImportError:  # pragma: no cover
     _HAS_NIO = False
+    _NIO_AVAILABLE = False
     nio = None  # type: ignore[assignment]
+    AsyncClient = None  # type: ignore
+    AsyncClientConfig = None  # type: ignore
+    InviteMemberEvent = None  # type: ignore
+    LoginResponse = None  # type: ignore
+    MatrixRoom = None  # type: ignore
+    RoomCreateResponse = None  # type: ignore
+    RoomMessageText = None  # type: ignore
+    RoomSendResponse = None  # type: ignore
+    SyncResponse = None  # type: ignore
 
 # ---------------------------------------------------------------------------
 # Optional aiohttp import (used for raw HTTP fallback)
 # ---------------------------------------------------------------------------
 try:
     import aiohttp  # type: ignore[import-untyped]
-
     _HAS_AIOHTTP = True
 except ImportError:  # pragma: no cover
     _HAS_AIOHTTP = False
@@ -263,31 +264,27 @@ class _MatrixClientBase(abc.ABC):
         """Join the room identified by *room_alias*."""
 
     @abc.abstractmethod
-    import nio  # type: ignore
-    from nio import (  # type: ignore
-        AsyncClient,
-        AsyncClientConfig,
-        InviteMemberEvent,
-        LoginResponse,
-        MatrixRoom,
-        RoomCreateResponse,
-        RoomMessageText,
-        RoomSendResponse,
-        SyncResponse,
-    )
-    _NIO_AVAILABLE = True
-except ImportError:  # pragma: no cover
-    nio = None  # type: ignore
-    AsyncClient = None  # type: ignore
-    AsyncClientConfig = None  # type: ignore
-    InviteMemberEvent = None  # type: ignore
-    LoginResponse = None  # type: ignore
-    MatrixRoom = None  # type: ignore
-    RoomCreateResponse = None  # type: ignore
-    RoomMessageText = None  # type: ignore
-    RoomSendResponse = None  # type: ignore
-    SyncResponse = None  # type: ignore
-    _NIO_AVAILABLE = False
+    async def create_room(
+        self,
+        alias: str,
+        name: str,
+        topic: str = "",
+        is_public: bool = False,
+        encrypted: bool = False,
+    ) -> Optional[RoomInfo]:
+        """Create a new Matrix room."""
+
+    @abc.abstractmethod
+    async def invite_user(self, room_alias: str, user_id: str) -> bool:
+        """Invite *user_id* to the room identified by *room_alias*."""
+
+    @abc.abstractmethod
+    async def start_sync(self) -> None:
+        """Start the background sync loop."""
+
+    @abc.abstractmethod
+    def is_connected(self) -> bool:
+        """Return whether the client is currently connected."""
 
 
 # ---------------------------------------------------------------------------
@@ -330,7 +327,7 @@ class _CircuitBreaker:
 
 
 # ---------------------------------------------------------------------------
-# MatrixClient
+# MatrixClient (standalone --- used by tests and most consumers)
 # ---------------------------------------------------------------------------
 
 class MatrixClient:
@@ -382,7 +379,7 @@ class MatrixClient:
         self._client: Optional[Any] = None  # nio.AsyncClient
         self._connected: bool = False
         self._event_callbacks: List[Callable[..., Awaitable[None]]] = []
-        self._known_rooms: Dict[str, str] = {}  # alias → room_id
+        self._known_rooms: Dict[str, str] = {}  # alias -> room_id
 
     # ------------------------------------------------------------------
     # Connection / auth
@@ -396,7 +393,7 @@ class MatrixClient:
         """
         if not _NIO_AVAILABLE:
             logger.warning(
-                "matrix-nio is not installed — Matrix integration disabled. "
+                "matrix-nio is not installed --- Matrix integration disabled. "
                 "Install with: pip install 'matrix-nio[e2e]'"
             )
             return False
@@ -465,7 +462,7 @@ class MatrixClient:
                 if self._client is not None:
                     await self._client.sync_forever(timeout=timeout_ms, full_state=True)
             except Exception as exc:  # pragma: no cover
-                logger.warning("MatrixClient sync error: %s — reconnecting in %ss", exc, backoff)
+                logger.warning("MatrixClient sync error: %s --- reconnecting in %ss", exc, backoff)
                 self._connected = False
                 await asyncio.sleep(backoff)
                 backoff = min(backoff * 2, max_backoff)
@@ -480,29 +477,227 @@ class MatrixClient:
         name: str,
         topic: str = "",
         is_public: bool = False,
+        invite: Optional[List[str]] = None,
         encrypted: bool = False,
-    ) -> Optional[RoomInfo]:
-        """Create a new Matrix room."""
+    ) -> Optional[str]:
+        """Create a Matrix room and return its room ID.
 
-    @abc.abstractmethod
-    async def invite_user(self, room_alias: str, user_id: str) -> bool:
-        """Invite *user_id* to the room identified by *room_alias*."""
+        Returns ``None`` if nio is unavailable or the circuit breaker is open.
+        Idempotent: if the room already exists (tracked by alias), returns the
+        cached room ID.
+        """
+        if alias in self._known_rooms:
+            return self._known_rooms[alias]
 
-    @abc.abstractmethod
-    async def start_sync(self) -> None:
-        """Start the background sync loop."""
+        if not self._is_available():
+            return None
 
-    @abc.abstractmethod
+        preset = "public_chat" if is_public else "private_chat"
+        initial_state: List[Dict[str, Any]] = []
+        if encrypted:
+            initial_state.append(
+                {
+                    "type": "m.room.encryption",
+                    "state_key": "",
+                    "content": {"algorithm": "m.megolm.v1.aes-sha2"},
+                }
+            )
+        try:
+            resp = await self._client.room_create(  # type: ignore[union-attr]
+                alias=alias,
+                name=name,
+                topic=topic,
+                preset=preset,
+                invite=invite or [],
+                initial_state=initial_state,
+            )
+            self._cb.record_success()
+            if hasattr(resp, "room_id"):
+                self._known_rooms[alias] = resp.room_id
+                logger.info("Created Matrix room %s -> %s", alias, resp.room_id)
+                return resp.room_id
+            logger.warning("Unexpected room_create response: %s", resp)
+        except Exception as exc:
+            self._cb.record_failure()
+            logger.warning("room_create(%s) failed: %s", alias, exc)
+        return None
+
+    async def join_room(self, room_id_or_alias: str) -> bool:
+        """Join a room by ID or alias."""
+        if not self._is_available():
+            return False
+        try:
+            resp = await self._client.join(room_id_or_alias)  # type: ignore[union-attr]
+            self._cb.record_success()
+            return not hasattr(resp, "status_code")
+        except Exception as exc:
+            self._cb.record_failure()
+            logger.warning("join_room(%s) failed: %s", room_id_or_alias, exc)
+            return False
+
+    async def invite_user(self, room_id: str, user_id: str) -> bool:
+        """Invite *user_id* to *room_id*."""
+        if not self._is_available():
+            return False
+        try:
+            await self._client.room_invite(room_id, user_id)  # type: ignore[union-attr]
+            self._cb.record_success()
+            return True
+        except Exception as exc:
+            self._cb.record_failure()
+            logger.warning("invite_user(%s -> %s) failed: %s", user_id, room_id, exc)
+            return False
+
+    async def set_room_topic(self, room_id: str, topic: str) -> bool:
+        """Update the topic of *room_id*."""
+        if not self._is_available():
+            return False
+        try:
+            await self._client.room_put_state(  # type: ignore[union-attr]
+                room_id,
+                "m.room.topic",
+                {"topic": topic},
+            )
+            self._cb.record_success()
+            return True
+        except Exception as exc:
+            self._cb.record_failure()
+            logger.warning("set_room_topic(%s) failed: %s", room_id, exc)
+            return False
+
+    # ------------------------------------------------------------------
+    # Messaging
+    # ------------------------------------------------------------------
+
+    async def send_text(self, room_id: str, text: str) -> bool:
+        """Send a plain-text ``m.text`` message to *room_id*."""
+        return await self._send_message(room_id, "m.text", {"body": text, "msgtype": "m.text"})
+
+    async def send_notice(self, room_id: str, text: str) -> bool:
+        """Send an ``m.notice`` message (bot output convention)."""
+        return await self._send_message(
+            room_id, "m.notice", {"body": text, "msgtype": "m.notice"}
+        )
+
+    async def send_formatted(
+        self, room_id: str, plain: str, html: str, msgtype: str = "m.text"
+    ) -> bool:
+        """Send a message with both plain-text and HTML formatted bodies."""
+        content = {
+            "msgtype": msgtype,
+            "body": plain,
+            "format": "org.matrix.custom.html",
+            "formatted_body": html,
+        }
+        return await self._send_message(room_id, msgtype, content)
+
+    async def send_file(
+        self,
+        room_id: str,
+        filename: str,
+        data: bytes,
+        mimetype: str = "application/octet-stream",
+    ) -> bool:
+        """Upload *data* and post it as a file message to *room_id*."""
+        if not self._is_available():
+            return False
+        try:
+            resp = await self._client.upload(data, content_type=mimetype)  # type: ignore[union-attr]
+            if not hasattr(resp, "content_uri"):
+                return False
+            content = {
+                "msgtype": "m.file",
+                "body": filename,
+                "url": resp.content_uri,
+                "info": {"mimetype": mimetype, "size": len(data)},
+            }
+            self._cb.record_success()
+            return await self._send_message(room_id, "m.file", content)
+        except Exception as exc:
+            self._cb.record_failure()
+            logger.warning("send_file(%s) failed: %s", filename, exc)
+            return False
+
+    # ------------------------------------------------------------------
+    # Presence / health
+    # ------------------------------------------------------------------
+
+    async def set_presence(self, presence: str = "online", status_msg: str = "") -> bool:
+        """Report bot presence to the homeserver."""
+        if not self._is_available():
+            return False
+        try:
+            await self._client.set_presence(presence, status_msg)  # type: ignore[union-attr]
+            return True
+        except Exception as exc:
+            logger.debug("set_presence failed: %s", exc)
+            return False
+
     def is_connected(self) -> bool:
-        """Return whether the client is currently connected."""
+        """Return ``True`` if the client has an active connection."""
+        return self._connected and self._client is not None
+
+    # ------------------------------------------------------------------
+    # Event callbacks
+    # ------------------------------------------------------------------
+
+    def add_event_callback(self, callback: Callable[..., Awaitable[None]]) -> None:
+        """Register an async callback invoked for every incoming room event."""
+        self._event_callbacks.append(callback)
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _is_available(self) -> bool:
+        if not _NIO_AVAILABLE or self._client is None or not self._connected:
+            return False
+        if self._cb.is_open:
+            logger.warning("MatrixClient circuit breaker is OPEN --- skipping API call")
+            return False
+        return True
+
+    async def _send_message(self, room_id: str, _msgtype: str, content: Dict[str, Any]) -> bool:
+        if not self._is_available():
+            return False
+        try:
+            resp = await self._client.room_send(  # type: ignore[union-attr]
+                room_id, message_type="m.room.message", content=content
+            )
+            self._cb.record_success()
+            return hasattr(resp, "event_id")
+        except Exception as exc:
+            self._cb.record_failure()
+            logger.warning("send_message(%s) failed: %s", room_id, exc)
+            return False
+
+    def _register_internal_callbacks(self) -> None:
+        if self._client is None:
+            return
+        if RoomMessageText is not None:
+            self._client.add_event_callback(self._on_room_message, RoomMessageText)
+        if InviteMemberEvent is not None:
+            self._client.add_event_callback(self._on_invite, InviteMemberEvent)
+
+    async def _on_room_message(self, room: Any, event: Any) -> None:
+        for cb in self._event_callbacks:
+            try:
+                await cb(room, event)
+            except Exception as exc:
+                logger.warning("Event callback error: %s", exc)
+
+    async def _on_invite(self, room: Any, event: Any) -> None:
+        if self._client is not None:
+            await self._client.join(room.room_id)
+            logger.info("Auto-joined room %s", room.room_id)
 
 
 # ---------------------------------------------------------------------------
-# Real Matrix client (nio-backed)
+# nio-backed Matrix client (ABC implementation)
 # ---------------------------------------------------------------------------
 
 
-class MatrixClient(_MatrixClientBase):
+class _NioMatrixClient(_MatrixClientBase):
     """Async Matrix client backed by ``matrix-nio``.
 
     Requires the ``matrix-nio`` package to be installed::
@@ -571,11 +766,11 @@ class MatrixClient(_MatrixClientBase):
     async def start_sync(self) -> None:
         """Start the background sync loop (non-blocking)."""
         if not self._client:
-            raise MatrixClientError("Not connected — call connect() first")
+            raise MatrixClientError("Not connected --- call connect() first")
         self._sync_task = asyncio.create_task(self._sync_loop())
 
     async def _sync_loop(self) -> None:
-        """Internal sync loop — runs until cancelled."""
+        """Internal sync loop --- runs until cancelled."""
         assert self._client is not None
         await self._client.sync_forever(timeout=30000, full_state=True)
 
@@ -603,7 +798,6 @@ class MatrixClient(_MatrixClientBase):
         info = self._room_cache.get(room_alias)
         if info:
             return info.room_id
-        # Treat the alias as a raw room id / alias if not cached
         if not room_alias.startswith("#") and not room_alias.startswith("!"):
             return f"#{room_alias}:{self._config.homeserver_url.split('://')[-1]}"
         return room_alias
@@ -619,7 +813,7 @@ class MatrixClient(_MatrixClientBase):
             return None
         info = RoomInfo(room_id=resp.room_id, alias=room_alias)
         self._room_cache[room_alias] = info
-        logger.debug("Joined room %r → %s", room_alias, resp.room_id)
+        logger.debug("Joined room %r -> %s", room_alias, resp.room_id)
         return info
 
     async def create_room(
@@ -633,22 +827,6 @@ class MatrixClient(_MatrixClientBase):
         """Create a new Matrix room and return its :class:`RoomInfo`."""
         if not self._client:
             raise MatrixClientError("Not connected")
-        invite: Optional[List[str]] = None,
-        encrypted: bool = False,
-    ) -> Optional[str]:
-        """Create a Matrix room and return its room ID.
-
-        Returns ``None`` if nio is unavailable or the circuit breaker is open.
-        Idempotent: if the room already exists (tracked by alias), returns the
-        cached room ID.
-        """
-        if alias in self._known_rooms:
-            return self._known_rooms[alias]
-
-        if not self._is_available():
-            return None
-
-        preset = "public_chat" if is_public else "private_chat"
         initial_state: List[Dict[str, Any]] = []
         if encrypted:
             initial_state.append(
@@ -675,7 +853,7 @@ class MatrixClient(_MatrixClientBase):
             return None
         info = RoomInfo(room_id=resp.room_id, alias=alias, display_name=name)
         self._room_cache[alias] = info
-        logger.debug("Created room %r → %s", alias, resp.room_id)
+        logger.debug("Created room %r -> %s", alias, resp.room_id)
         return info
 
     async def invite_user(self, room_alias: str, user_id: str) -> bool:
@@ -698,20 +876,7 @@ class MatrixClient(_MatrixClientBase):
     async def send_message(
         self, room_alias: str, content: MessageContent
     ) -> SendResult:
-        """Send a Matrix room message with automatic retry.
-
-        Parameters
-        ----------
-        room_alias:
-            Short alias or full Matrix room alias / ID.
-        content:
-            :class:`MessageContent` describing the message to send.
-
-        Returns
-        -------
-        SendResult
-            Indicates success/failure and the assigned event ID.
-        """
+        """Send a Matrix room message with automatic retry."""
         if not self._client:
             return SendResult(
                 success=False,
@@ -840,206 +1005,30 @@ def create_client(config: MatrixConfig) -> _MatrixClientBase:
     """Return a real or mock Matrix client based on *config*.
 
     If ``matrix-nio`` is available **and** the config has a non-empty
-    ``access_token``, a :class:`MatrixClient` is returned.  Otherwise a
+    ``access_token``, a :class:`_NioMatrixClient` is returned.  Otherwise a
     :class:`MockMatrixClient` is returned so the rest of the bridge can
     function in offline / test mode without raising at import time.
     """
     if _HAS_NIO and config.access_token:
         logger.info("Creating real MatrixClient (matrix-nio backend)")
-        return MatrixClient(config)
+        return _NioMatrixClient(config)
     mode = "no access token" if not config.access_token else "matrix-nio not installed"
     logger.warning(
         "Creating MockMatrixClient (%s); bridge operates in offline mode.", mode
     )
     return MockMatrixClient(config)
-        try:
-            resp = await self._client.room_create(  # type: ignore[union-attr]
-                alias=alias,
-                name=name,
-                topic=topic,
-                preset=preset,
-                invite=invite or [],
-                initial_state=initial_state,
-            )
-            self._cb.record_success()
-            if hasattr(resp, "room_id"):
-                self._known_rooms[alias] = resp.room_id
-                logger.info("Created Matrix room %s → %s", alias, resp.room_id)
-                return resp.room_id
-            logger.warning("Unexpected room_create response: %s", resp)
-        except Exception as exc:
-            self._cb.record_failure()
-            logger.warning("room_create(%s) failed: %s", alias, exc)
-        return None
-
-    async def join_room(self, room_id_or_alias: str) -> bool:
-        """Join a room by ID or alias."""
-        if not self._is_available():
-            return False
-        try:
-            resp = await self._client.join(room_id_or_alias)  # type: ignore[union-attr]
-            self._cb.record_success()
-            return not hasattr(resp, "status_code")
-        except Exception as exc:
-            self._cb.record_failure()
-            logger.warning("join_room(%s) failed: %s", room_id_or_alias, exc)
-            return False
-
-    async def invite_user(self, room_id: str, user_id: str) -> bool:
-        """Invite *user_id* to *room_id*."""
-        if not self._is_available():
-            return False
-        try:
-            await self._client.room_invite(room_id, user_id)  # type: ignore[union-attr]
-            self._cb.record_success()
-            return True
-        except Exception as exc:
-            self._cb.record_failure()
-            logger.warning("invite_user(%s → %s) failed: %s", user_id, room_id, exc)
-            return False
-
-    async def set_room_topic(self, room_id: str, topic: str) -> bool:
-        """Update the topic of *room_id*."""
-        if not self._is_available():
-            return False
-        try:
-            await self._client.room_put_state(  # type: ignore[union-attr]
-                room_id,
-                "m.room.topic",
-                {"topic": topic},
-            )
-            self._cb.record_success()
-            return True
-        except Exception as exc:
-            self._cb.record_failure()
-            logger.warning("set_room_topic(%s) failed: %s", room_id, exc)
-            return False
-
-    # ------------------------------------------------------------------
-    # Messaging
-    # ------------------------------------------------------------------
-
-    async def send_text(self, room_id: str, text: str) -> bool:
-        """Send a plain-text ``m.text`` message to *room_id*."""
-        return await self._send_message(room_id, "m.text", {"body": text, "msgtype": "m.text"})
-
-    async def send_notice(self, room_id: str, text: str) -> bool:
-        """Send an ``m.notice`` message (bot output convention)."""
-        return await self._send_message(
-            room_id, "m.notice", {"body": text, "msgtype": "m.notice"}
-        )
-
-    async def send_formatted(
-        self, room_id: str, plain: str, html: str, msgtype: str = "m.text"
-    ) -> bool:
-        """Send a message with both plain-text and HTML formatted bodies."""
-        content = {
-            "msgtype": msgtype,
-            "body": plain,
-            "format": "org.matrix.custom.html",
-            "formatted_body": html,
-        }
-        return await self._send_message(room_id, msgtype, content)
-
-    async def send_file(
-        self,
-        room_id: str,
-        filename: str,
-        data: bytes,
-        mimetype: str = "application/octet-stream",
-    ) -> bool:
-        """Upload *data* and post it as a file message to *room_id*."""
-        if not self._is_available():
-            return False
-        try:
-            resp = await self._client.upload(data, content_type=mimetype)  # type: ignore[union-attr]
-            if not hasattr(resp, "content_uri"):
-                return False
-            content = {
-                "msgtype": "m.file",
-                "body": filename,
-                "url": resp.content_uri,
-                "info": {"mimetype": mimetype, "size": len(data)},
-            }
-            self._cb.record_success()
-            return await self._send_message(room_id, "m.file", content)
-        except Exception as exc:
-            self._cb.record_failure()
-            logger.warning("send_file(%s) failed: %s", filename, exc)
-            return False
-
-    # ------------------------------------------------------------------
-    # Presence / health
-    # ------------------------------------------------------------------
-
-    async def set_presence(self, presence: str = "online", status_msg: str = "") -> bool:
-        """Report bot presence to the homeserver."""
-        if not self._is_available():
-            return False
-        try:
-            await self._client.set_presence(presence, status_msg)  # type: ignore[union-attr]
-            return True
-        except Exception as exc:
-            logger.debug("set_presence failed: %s", exc)
-            return False
-
-    def is_connected(self) -> bool:
-        """Return ``True`` if the client has an active connection."""
-        return self._connected and self._client is not None
-
-    # ------------------------------------------------------------------
-    # Event callbacks
-    # ------------------------------------------------------------------
-
-    def add_event_callback(self, callback: Callable[..., Awaitable[None]]) -> None:
-        """Register an async callback invoked for every incoming room event."""
-        self._event_callbacks.append(callback)
-
-    # ------------------------------------------------------------------
-    # Internal helpers
-    # ------------------------------------------------------------------
-
-    def _is_available(self) -> bool:
-        if not _NIO_AVAILABLE or self._client is None or not self._connected:
-            return False
-        if self._cb.is_open:
-            logger.warning("MatrixClient circuit breaker is OPEN — skipping API call")
-            return False
-        return True
-
-    async def _send_message(self, room_id: str, _msgtype: str, content: Dict[str, Any]) -> bool:
-        if not self._is_available():
-            return False
-        try:
-            resp = await self._client.room_send(  # type: ignore[union-attr]
-                room_id, message_type="m.room.message", content=content
-            )
-            self._cb.record_success()
-            return hasattr(resp, "event_id")
-        except Exception as exc:
-            self._cb.record_failure()
-            logger.warning("send_message(%s) failed: %s", room_id, exc)
-            return False
-
-    def _register_internal_callbacks(self) -> None:
-        if self._client is None:
-            return
-        if RoomMessageText is not None:
-            self._client.add_event_callback(self._on_room_message, RoomMessageText)
-        if InviteMemberEvent is not None:
-            self._client.add_event_callback(self._on_invite, InviteMemberEvent)
-
-    async def _on_room_message(self, room: Any, event: Any) -> None:
-        for cb in self._event_callbacks:
-            try:
-                await cb(room, event)
-            except Exception as exc:
-                logger.warning("Event callback error: %s", exc)
-
-    async def _on_invite(self, room: Any, event: Any) -> None:
-        if self._client is not None:
-            await self._client.join(room.room_id)
-            logger.info("Auto-joined room %s", room.room_id)
 
 
-__all__ = ["MatrixClient"]
+__all__ = [
+    "MatrixClient",
+    "MatrixClientError",
+    "MessageContent",
+    "SendResult",
+    "RoomInfo",
+    "MockMatrixClient",
+    "create_client",
+    "_CircuitBreaker",
+    "_CircuitState",
+    "_NioMatrixClient",
+    "_MatrixClientBase",
+]
