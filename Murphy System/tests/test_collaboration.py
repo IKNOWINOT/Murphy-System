@@ -1,5 +1,5 @@
 """
-Tests for the Collaboration System (Phase 2 of Monday.com parity).
+Tests for the Collaboration System (Phase 2 of management systems parity).
 
 Covers:
   1. Models & serialization

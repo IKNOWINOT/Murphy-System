@@ -1,5 +1,5 @@
 """
-Tests for the Board System (Phase 1 of Monday.com parity).
+Tests for the Board System (Phase 1 of management systems parity).
 
 Covers all architectural layers:
   1. Models & serialization

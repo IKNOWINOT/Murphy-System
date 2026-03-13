@@ -2,7 +2,7 @@
 Automations – Advanced Automations
 =====================================
 
-Phase 7 of Monday.com feature parity for the Murphy System.
+Phase 7 of management systems feature parity for the Murphy System.
 
 Copyright 2024 Inoni LLC – BSL-1.1
 """

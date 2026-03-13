@@ -1,5 +1,5 @@
 """
-Tests for matrix_monday.monday_commands module.
+Tests for management_systems.management_commands module.
 
 Covers all 9 command handlers wired into the Matrix command dispatcher:
   1. board    — list, create, view, kanban, add-item, delete
@@ -21,8 +21,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 import pytest
 from types import SimpleNamespace
 
-from matrix_monday.monday_commands import (
-    MONDAY_COMMAND_HANDLERS,
+from management_systems.management_commands import (
+    MANAGEMENT_COMMAND_HANDLERS,
     handle_board,
     handle_dashboard,
     handle_doc,
@@ -56,7 +56,7 @@ def _cmd(subcommand=None, args=None, sender="@tester:localhost", room_id="!room:
     )
 
 
-DISPATCHER = None  # handlers accept dispatcher but don't depend on it for Monday commands
+DISPATCHER = None  # handlers accept dispatcher but don't depend on it for management commands
 
 
 # ---------------------------------------------------------------------------
@@ -498,10 +498,10 @@ class TestModuleExports:
     def test_handler_dict_has_all_commands(self):
         expected = {"board", "status-label", "timeline", "recipe", "workspace",
                     "dashboard", "sync", "form", "doc"}
-        assert set(MONDAY_COMMAND_HANDLERS.keys()) == expected
+        assert set(MANAGEMENT_COMMAND_HANDLERS.keys()) == expected
 
     def test_all_handlers_callable(self):
-        for name, handler in MONDAY_COMMAND_HANDLERS.items():
+        for name, handler in MANAGEMENT_COMMAND_HANDLERS.items():
             assert callable(handler), f"Handler for '{name}' is not callable"
 
     def test_reset_engines_callable(self):
@@ -515,17 +515,17 @@ class TestModuleExports:
 
 
 class TestDispatcherWiring:
-    def test_dispatcher_has_monday_commands(self):
-        """CommandDispatcher registers all Monday command handlers."""
+    def test_dispatcher_has_management_commands(self):
+        """CommandDispatcher registers all management command handlers."""
         from matrix_bridge.command_dispatcher import CommandDispatcher
         from matrix_bridge.config import build_default_config
 
         cfg = build_default_config("test.local")
         dispatcher = CommandDispatcher(cfg, None)
         commands = {c["command"] for c in dispatcher.list_commands()}
-        for monday_cmd in ["board", "status-label", "timeline", "recipe",
+        for mgmt_cmd in ["board", "status-label", "timeline", "recipe",
                            "workspace", "dashboard", "sync", "form", "doc"]:
-            assert monday_cmd in commands, f"Missing command: {monday_cmd}"
+            assert mgmt_cmd in commands, f"Missing command: {monday_cmd}"
 
     def test_dispatch_board_list(self):
         """Full round-trip: parse + dispatch !murphy board list."""

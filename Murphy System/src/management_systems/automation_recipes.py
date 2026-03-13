@@ -1,8 +1,8 @@
 """
-Matrix Monday – Automation Recipes
+Management Systems – Automation Recipes
 =====================================
 
-Monday.com-style "When X happens, do Y" automation recipes.
+Project management-style "When X happens, do Y" automation recipes.
 
 Provides:
 - Trigger types (status change, date arrived, item created, etc.)

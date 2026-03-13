@@ -3,7 +3,7 @@ Time Tracking – Data Models
 =============================
 
 Core data structures for the Time Tracking & Reporting system
-(Phase 6 of Monday.com parity).
+(Phase 6 of management systems parity).
 
 Copyright 2024 Inoni LLC – BSL-1.1
 """

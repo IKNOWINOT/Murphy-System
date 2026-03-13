@@ -1,9 +1,9 @@
 """
-Matrix Monday
-==============
+Management Systems
+==================
 
-Monday.com-inspired project management and workflow automation features
-accessible through Matrix chat commands.
+Project management and workflow automation features accessible through
+Matrix chat commands.
 
 This package provides a full project management layer that maps across
 all Murphy System subsystems, delivering board-based task tracking,
@@ -12,7 +12,7 @@ directly within Matrix rooms.
 
 Architecture overview::
 
-    matrix_monday/
+    management_systems/
     ├── board_engine.py        – Core board/project management
     ├── status_engine.py       – Status labels, workflow state machine
     ├── timeline_engine.py     – Gantt timelines, critical path, milestones
@@ -31,7 +31,7 @@ Integration with prior Matrix PRs:
 
 Quick start::
 
-    from matrix_monday import (
+    from management_systems import (
         BoardEngine, ColumnType,
         StatusEngine,
         TimelineEngine,
@@ -61,7 +61,7 @@ Copyright 2024 Inoni LLC – BSL-1.1
 """
 
 __version__ = "0.4.0"
-__codename__ = "Matrix Monday"
+__codename__ = "Management Systems"
 
 # -- Board Engine -----------------------------------------------------------
 from .board_engine import (
@@ -167,9 +167,9 @@ from .doc_manager import (
     WorkDoc,
 )
 
-# -- Monday Commands --------------------------------------------------------
-from .monday_commands import (
-    MONDAY_COMMAND_HANDLERS,
+# -- Management Commands ----------------------------------------------------
+from .management_commands import (
+    MANAGEMENT_COMMAND_HANDLERS,
     handle_board,
     handle_dashboard,
     handle_doc,
@@ -260,8 +260,8 @@ __all__ = [
     "DocType",
     "DocVersion",
     "WorkDoc",
-    # Monday Commands
-    "MONDAY_COMMAND_HANDLERS",
+    # Management Commands
+    "MANAGEMENT_COMMAND_HANDLERS",
     "handle_board",
     "handle_dashboard",
     "handle_doc",

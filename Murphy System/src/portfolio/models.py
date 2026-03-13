@@ -3,7 +3,7 @@ Portfolio – Data Models
 ========================
 
 Core data structures for the Project Portfolio Management system
-(Phase 4 of Monday.com parity).
+(Phase 4 of management systems parity).
 
 Copyright 2024 Inoni LLC – BSL-1.1
 """

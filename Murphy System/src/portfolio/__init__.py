@@ -2,7 +2,7 @@
 Portfolio – Project Portfolio Management
 ==========================================
 
-Phase 4 of Monday.com feature parity for the Murphy System.
+Phase 4 of management systems feature parity for the Murphy System.
 
 Provides project portfolio management including:
 

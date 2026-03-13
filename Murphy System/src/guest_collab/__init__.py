@@ -2,7 +2,7 @@
 Guest Collaboration
 =====================
 
-Phase 11 of Monday.com feature parity for the Murphy System.
+Phase 11 of management systems feature parity for the Murphy System.
 
 Provides external collaboration including:
 

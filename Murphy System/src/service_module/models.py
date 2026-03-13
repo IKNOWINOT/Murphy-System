@@ -2,7 +2,7 @@
 Service Module – Data Models
 ==============================
 
-Core data structures for the Service Module (Phase 10 of Monday.com parity).
+Core data structures for the Service Module (Phase 10 of management systems parity).
 
 Copyright 2024 Inoni LLC – BSL-1.1
 """
