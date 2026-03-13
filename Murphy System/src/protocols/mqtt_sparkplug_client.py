@@ -67,8 +67,8 @@ class MurphyMQTTSparkplugClient:
             try:
                 self._client.loop_stop()
                 self._client.disconnect()
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("MQTT disconnect cleanup: %s", exc)
             self._client = None
             self._connected = False
 

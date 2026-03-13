@@ -722,7 +722,8 @@ class _NioMatrixClient(_MatrixClientBase):
 
     async def _sync_loop(self) -> None:
         """Internal sync loop --- runs until cancelled."""
-        assert self._client is not None
+        if self._client is None:
+            raise MatrixClientError("sync loop requires an active client")
         await self._client.sync_forever(timeout=30000, full_state=True)
 
     # Event callbacks
