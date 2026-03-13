@@ -55,6 +55,28 @@ _gate_generator: "BusinessGateGenerator | None" = None
 # Cleared on reset_engines().
 _automation_registry: list[dict] = []
 
+# ---------------------------------------------------------------------------
+# Automation engine singletons (all lazy-initialised)
+# ---------------------------------------------------------------------------
+
+_automation_mode_controller: object | None = None
+_automation_integration_hub: object | None = None
+_automation_rbac_controller: object | None = None
+_automation_readiness_evaluator: object | None = None
+_automation_scaler: object | None = None
+_automation_loop_connector: object | None = None
+_automation_scheduler: object | None = None
+_automation_marketplace: object | None = None
+_murphy_native_runner: object | None = None
+_self_automation_orchestrator: object | None = None
+_onboarding_automation_engine: object | None = None
+_building_automation_orchestrator: object | None = None
+_manufacturing_automation_registry: object | None = None
+_sales_automation_engine: object | None = None
+_compliance_automation_bridge: object | None = None
+_full_automation_controller: object | None = None
+_deployment_automation_controller: object | None = None
+
 
 def _get_automation_registry() -> list[dict]:
     """Return the shared automation registry.
@@ -178,12 +200,156 @@ def _get_doc_manager() -> DocManager:
     return _doc_manager
 
 
+def _get_automation_mode_controller():
+    global _automation_mode_controller
+    if _automation_mode_controller is None:
+        from automation_mode_controller import AutomationModeController
+        _automation_mode_controller = AutomationModeController()
+    return _automation_mode_controller
+
+
+def _get_automation_integration_hub():
+    global _automation_integration_hub
+    if _automation_integration_hub is None:
+        from automation_integration_hub import AutomationIntegrationHub
+        _automation_integration_hub = AutomationIntegrationHub()
+    return _automation_integration_hub
+
+
+def _get_automation_rbac_controller():
+    global _automation_rbac_controller
+    if _automation_rbac_controller is None:
+        from automation_rbac_controller import AutomationRBACController
+        _automation_rbac_controller = AutomationRBACController()
+    return _automation_rbac_controller
+
+
+def _get_automation_readiness_evaluator():
+    global _automation_readiness_evaluator
+    if _automation_readiness_evaluator is None:
+        from automation_readiness_evaluator import AutomationReadinessEvaluator
+        _automation_readiness_evaluator = AutomationReadinessEvaluator()
+    return _automation_readiness_evaluator
+
+
+def _get_automation_scaler():
+    global _automation_scaler
+    if _automation_scaler is None:
+        from automation_scaler import AutomationScaler
+        _automation_scaler = AutomationScaler()
+    return _automation_scaler
+
+
+def _get_automation_loop_connector():
+    global _automation_loop_connector
+    if _automation_loop_connector is None:
+        from automation_loop_connector import AutomationLoopConnector
+        _automation_loop_connector = AutomationLoopConnector()
+    return _automation_loop_connector
+
+
+def _get_automation_scheduler():
+    global _automation_scheduler
+    if _automation_scheduler is None:
+        from automation_scheduler import AutomationScheduler
+        _automation_scheduler = AutomationScheduler()
+    return _automation_scheduler
+
+
+def _get_automation_marketplace():
+    global _automation_marketplace
+    if _automation_marketplace is None:
+        from automation_marketplace import AutomationMarketplace
+        _automation_marketplace = AutomationMarketplace()
+    return _automation_marketplace
+
+
+def _get_murphy_native_runner():
+    global _murphy_native_runner
+    if _murphy_native_runner is None:
+        from murphy_native_automation import MurphyNativeRunner
+        _murphy_native_runner = MurphyNativeRunner()
+    return _murphy_native_runner
+
+
+def _get_self_automation_orchestrator():
+    global _self_automation_orchestrator
+    if _self_automation_orchestrator is None:
+        from self_automation_orchestrator import SelfAutomationOrchestrator
+        _self_automation_orchestrator = SelfAutomationOrchestrator()
+    return _self_automation_orchestrator
+
+
+def _get_onboarding_automation_engine():
+    global _onboarding_automation_engine
+    if _onboarding_automation_engine is None:
+        from onboarding_automation_engine import OnboardingAutomationEngine
+        _onboarding_automation_engine = OnboardingAutomationEngine()
+    return _onboarding_automation_engine
+
+
+def _get_building_automation_orchestrator():
+    global _building_automation_orchestrator
+    if _building_automation_orchestrator is None:
+        from building_automation_connectors import BuildingAutomationRegistry
+        _building_automation_orchestrator = BuildingAutomationRegistry()
+    return _building_automation_orchestrator
+
+
+def _get_manufacturing_automation_registry():
+    global _manufacturing_automation_registry
+    if _manufacturing_automation_registry is None:
+        from manufacturing_automation_standards import ManufacturingAutomationRegistry
+        _manufacturing_automation_registry = ManufacturingAutomationRegistry()
+    return _manufacturing_automation_registry
+
+
+def _get_sales_automation_engine():
+    global _sales_automation_engine
+    if _sales_automation_engine is None:
+        from sales_automation import SalesAutomationEngine
+        _sales_automation_engine = SalesAutomationEngine()
+    return _sales_automation_engine
+
+
+def _get_compliance_automation_bridge():
+    global _compliance_automation_bridge
+    if _compliance_automation_bridge is None:
+        from compliance_automation_bridge import ComplianceAutomationBridge
+        _compliance_automation_bridge = ComplianceAutomationBridge()
+    return _compliance_automation_bridge
+
+
+def _get_full_automation_controller():
+    global _full_automation_controller
+    if _full_automation_controller is None:
+        from full_automation_controller import FullAutomationController
+        _full_automation_controller = FullAutomationController()
+    return _full_automation_controller
+
+
+def _get_deployment_automation_controller():
+    global _deployment_automation_controller
+    if _deployment_automation_controller is None:
+        from deployment_automation_controller import DeploymentAutomationController
+        _deployment_automation_controller = DeploymentAutomationController()
+    return _deployment_automation_controller
+
+
 def reset_engines() -> None:
     """Reset all engine singletons (useful for testing)."""
     global _board_engine, _status_engine, _timeline_engine, _recipe_engine
     global _workspace_manager, _dashboard_generator, _integration_bridge
     global _form_builder, _doc_manager, _onboarding_flow, _gate_generator
     global _automation_registry, _active_setpoints, _active_loops
+    global _automation_mode_controller, _automation_integration_hub
+    global _automation_rbac_controller, _automation_readiness_evaluator
+    global _automation_scaler, _automation_loop_connector, _automation_scheduler
+    global _automation_marketplace, _murphy_native_runner, _self_automation_orchestrator
+    global _onboarding_automation_engine, _building_automation_orchestrator
+    global _manufacturing_automation_registry, _sales_automation_engine
+    global _compliance_automation_bridge, _full_automation_controller
+    global _deployment_automation_controller
     _board_engine = None
     _status_engine = None
     _timeline_engine = None
@@ -198,6 +364,23 @@ def reset_engines() -> None:
     _automation_registry = []
     _active_setpoints = None
     _active_loops = None
+    _automation_mode_controller = None
+    _automation_integration_hub = None
+    _automation_rbac_controller = None
+    _automation_readiness_evaluator = None
+    _automation_scaler = None
+    _automation_loop_connector = None
+    _automation_scheduler = None
+    _automation_marketplace = None
+    _murphy_native_runner = None
+    _self_automation_orchestrator = None
+    _onboarding_automation_engine = None
+    _building_automation_orchestrator = None
+    _manufacturing_automation_registry = None
+    _sales_automation_engine = None
+    _compliance_automation_bridge = None
+    _full_automation_controller = None
+    _deployment_automation_controller = None
 
 
 # ---------------------------------------------------------------------------
@@ -1669,6 +1852,612 @@ def handle_automation(dispatcher: object, cmd: object) -> object:
         return _make_response(True, "\n".join(lines))
 
     return _make_response(False, f"Unknown automation subcommand `{sub}`. Try: list, summary.")
+
+
+# ---------------------------------------------------------------------------
+# !murphy automation [list|summary|types|mode|hub|rbac|readiness|scale|loop|
+#                     scheduler|marketplace|native|self|onboard-engine|
+#                     building|manufacturing|sales|compliance-bridge|full|deploy]
+# ---------------------------------------------------------------------------
+
+def handle_automation(dispatcher: object, cmd: object) -> object:
+    """Handle ``!murphy automation`` — unified automation view and control.
+
+    Subcommands:
+        list             — list all automation capabilities and their sources
+        summary          — high-level summary of automation coverage
+        types            — list all automation categories from the type registry
+        mode [show|set N|history]
+                         — AutomationModeController: view or change HITL mode
+        hub [status|modules|routes]
+                         — AutomationIntegrationHub: integration routing
+        rbac [roles|check USER|grant USER ROLE|revoke USER ROLE]
+                         — AutomationRBACController: access control
+        readiness [check|report]
+                         — AutomationReadinessEvaluator: module readiness
+        scale [status|up TYPE|down TYPE]
+                         — AutomationScaler: expand/contract automation capacity
+        loop [status|run|history]
+                         — AutomationLoopConnector: SKM loop integration
+        scheduler [queue|status]
+                         — AutomationScheduler: project execution queue
+        marketplace [list|popular|search QUERY]
+                         — AutomationMarketplace: community automation listings
+        native [status|list]
+                         — MurphyNativeRunner: native task execution
+        self [status|tasks|cycle]
+                         — SelfAutomationOrchestrator: self-improvement tasks
+        onboard-engine [list|status]
+                         — OnboardingAutomationEngine: structured onboarding flows
+        building [status|devices]
+                         — BuildingAutomationOrchestrator: IoT/BMS connectors
+        manufacturing [status|connectors|standards]
+                         — ManufacturingAutomationRegistry: OT/ICS standards
+        sales [pipeline|leads]
+                         — SalesAutomationEngine: lead scoring and pipeline
+        compliance-bridge [posture|history|check]
+                         — ComplianceAutomationBridge: compliance check runner
+        full [status|mode|risks|gaps]
+                         — FullAutomationController: HITL graduation controls
+        deploy [list|status]
+                         — DeploymentAutomationController: deployment gates
+    """
+    sub = getattr(cmd, "subcommand", None) or "list"
+    args = getattr(cmd, "args", [])
+    action = args[0] if args else "show"
+    automations = _get_automation_registry()
+
+    # ── list ──────────────────────────────────────────────────────────────
+    if sub == "list":
+        lines = ["## ☠ Automation Registry\n"]
+        if not automations:
+            lines.append("No automations configured. Complete onboarding to populate.")
+            lines.append("\nUse `!murphy onboard init` → `!murphy onboard start` to begin.")
+            return _make_response(True, "\n".join(lines))
+
+        shadow_auto = [a for a in automations if a["owner_type"] == "shadow_agent"]
+        pos_auto = [a for a in automations if a["owner_type"] == "position"]
+
+        if shadow_auto:
+            lines.append("### Employee Automations (Shadow Agents)\n")
+            lines.append("| Capability | Agent | Owner | IP Class |")
+            lines.append("|------------|-------|-------|----------|")
+            for a in shadow_auto:
+                lines.append(
+                    f"| {a['capability']} | `{a['agent_id']}` "
+                    f"| {a['owner'][:16]} | {a['ip_class']} |"
+                )
+
+        if pos_auto:
+            lines.append("\n### Org-Level Automations (Positions)\n")
+            lines.append("| Capability | Position | IP Class |")
+            lines.append("|------------|----------|----------|")
+            seen = set()
+            for a in pos_auto:
+                key = f"{a['owner']}:{a['capability']}"
+                if key not in seen:
+                    seen.add(key)
+                    lines.append(
+                        f"| {a['capability']} | {a['owner']} | {a['ip_class']} |"
+                    )
+
+        return _make_response(True, "\n".join(lines))
+
+    # ── summary ───────────────────────────────────────────────────────────
+    if sub == "summary":
+        lines = ["## ☠ Automation Summary\n"]
+        shadow_auto = [a for a in automations if a["owner_type"] == "shadow_agent"]
+        pos_auto = [a for a in automations if a["owner_type"] == "position"]
+        all_caps = sorted({a["capability"] for a in automations})
+
+        lines.append(f"**Total automations:** {len(automations)}")
+        lines.append(f"**Unique capabilities:** {len(all_caps)}")
+        lines.append(f"**Org-level:** {len(pos_auto)}")
+        lines.append(f"**Employee-level:** {len(shadow_auto)}\n")
+
+        if all_caps:
+            lines.append("### Capability Coverage")
+            for cap in all_caps:
+                owners = [a["owner"] for a in automations if a["capability"] == cap]
+                lines.append(f"- **{cap}** ({len(owners)} source{'s' if len(owners) != 1 else ''})")
+
+        # Cross-reference with SKM loop
+        loops = _get_active_loops()
+        enabled = sum(1 for l in loops.values() if l["enabled"])
+        gates = _get_gate_generator().list_gates()
+        lines.append(f"\n### SKM Loop Integration")
+        lines.append(f"- Business loops: {enabled}/{len(loops)} active")
+        lines.append(f"- Gates: {len(gates)} configured")
+        lines.append(f"- Setpoints: {len(_get_active_setpoints())} dimensions")
+
+        return _make_response(True, "\n".join(lines))
+
+    # ── types ─────────────────────────────────────────────────────────────
+    if sub == "types":
+        try:
+            from automation_type_registry import AutomationCategory, DEFAULT_TEMPLATES
+            lines = ["## Automation Type Categories\n"]
+            for cat in AutomationCategory:
+                templates = [t for t in DEFAULT_TEMPLATES if t.category == cat]
+                lines.append(f"**{cat.value}** — {len(templates)} template(s)")
+                for t in templates[:3]:
+                    lines.append(f"  - `{t.template_id}` — {t.name}")
+                if len(templates) > 3:
+                    lines.append(f"  - *(+{len(templates) - 3} more)*")
+            return _make_response(True, "\n".join(lines))
+        except Exception as exc:
+            return _make_response(False, f"Could not load automation type registry: {exc}")
+
+    # ── mode ──────────────────────────────────────────────────────────────
+    if sub == "mode":
+        try:
+            ctrl = _get_automation_mode_controller()
+            if action in ("show", "status"):
+                status = ctrl.get_status()
+                lines = ["## Automation Mode\n",
+                         f"**Current mode:** `{status.get('current_mode', 'unknown')}`",
+                         f"**EMA score:** `{status.get('current_ema', 0):.3f}`",
+                         f"**Total transitions:** {status.get('total_transitions', 0)}",
+                         "\n*Modes: 0=FULL_MANUAL 1=HITL_REQUIRED 2=SHADOW 3=SUPERVISED 4=FULL_AUTO*"]
+                return _make_response(True, "\n".join(lines))
+            if action == "set" and len(args) >= 2:
+                from automation_mode_controller import AutomationMode
+                try:
+                    mode_val = int(args[1])
+                    transition = ctrl.set_mode(AutomationMode(mode_val), reason=f"matrix command by {getattr(cmd, 'sender', 'unknown')}")
+                    return _make_response(True, f"Mode set to `{transition.to_mode}` — {transition.reason}")
+                except (ValueError, KeyError) as e:
+                    return _make_response(False, f"Invalid mode value: {args[1]}. Use 0–4.")
+            if action == "history":
+                transitions = ctrl.get_transitions(limit=10)
+                lines = ["## Mode Transition History\n"]
+                for t in transitions:
+                    lines.append(f"- `{t.get('from_mode')}` → `{t.get('to_mode')}` at {t.get('timestamp', '')[:19]}: {t.get('reason', '')}")
+                return _make_response(True, "\n".join(lines) if len(lines) > 1 else "## Mode Transition History\n\nNo transitions recorded.")
+            return _make_response(False, "Usage: `!murphy automation mode [show|set <0-4>|history]`")
+        except Exception as exc:
+            return _make_response(False, f"Automation mode error: {exc}")
+
+    # ── hub ───────────────────────────────────────────────────────────────
+    if sub == "hub":
+        try:
+            hub = _get_automation_integration_hub()
+            if action in ("show", "status"):
+                report = hub.generate_health_report()
+                status = hub.get_status()
+                lines = ["## Automation Integration Hub\n",
+                         f"**Registered modules:** {status.get('registered_modules', 0)}",
+                         f"**Routes processed:** {status.get('total_routes_processed', 0)}",
+                         f"**Errors:** {status.get('total_errors', 0)}"]
+                return _make_response(True, "\n".join(lines))
+            if action == "modules":
+                mods = hub.list_modules()
+                lines = ["## Hub Modules\n"]
+                for m in mods:
+                    phase = m.get("phase", "unknown")
+                    label = m.get("design_label", "?")
+                    lines.append(f"- `{label}` — phase: {phase}")
+                return _make_response(True, "\n".join(lines) if len(lines) > 1 else "## Hub Modules\n\nNo modules registered.")
+            if action == "routes":
+                routes = hub.get_event_routes()
+                lines = ["## Hub Event Routes\n"]
+                for event_type, labels in routes.items():
+                    lines.append(f"**{event_type}:** {', '.join(f'`{l}`' for l in labels)}")
+                return _make_response(True, "\n".join(lines) if len(lines) > 1 else "## Hub Event Routes\n\nNo routes configured.")
+            return _make_response(False, "Usage: `!murphy automation hub [status|modules|routes]`")
+        except Exception as exc:
+            return _make_response(False, f"Integration hub error: {exc}")
+
+    # ── rbac ──────────────────────────────────────────────────────────────
+    if sub == "rbac":
+        try:
+            rbac = _get_automation_rbac_controller()
+            if action in ("show", "status"):
+                status = rbac.get_status()
+                lines = ["## Automation RBAC\n",
+                         f"**Role assignments:** {status.get('total_assignments', 0)}",
+                         f"**Audit entries:** {status.get('audit_log_size', 0)}"]
+                return _make_response(True, "\n".join(lines))
+            if action == "roles" and len(args) >= 2:
+                user_id = args[1]
+                tenant_id = args[2] if len(args) >= 3 else "default"
+                roles = rbac.get_roles(user_id, tenant_id)
+                return _make_response(True, f"Roles for `{user_id}` in `{tenant_id}`: {', '.join(roles) or 'none'}")
+            if action == "grant" and len(args) >= 3:
+                from automation_rbac_controller import AutomationRole
+                user_id, role_str = args[1], args[2]
+                tenant_id = args[3] if len(args) >= 4 else "default"
+                rbac.assign_role(user_id, tenant_id, AutomationRole(role_str))
+                return _make_response(True, f"Granted role `{role_str}` to `{user_id}` in `{tenant_id}`.")
+            if action == "revoke" and len(args) >= 3:
+                from automation_rbac_controller import AutomationRole
+                user_id, role_str = args[1], args[2]
+                tenant_id = args[3] if len(args) >= 4 else "default"
+                removed = rbac.revoke_role(user_id, tenant_id, AutomationRole(role_str))
+                return _make_response(True, f"Revoked role `{role_str}` from `{user_id}`." if removed else f"Role `{role_str}` not found for `{user_id}`.")
+            return _make_response(False, "Usage: `!murphy automation rbac [status|roles USER|grant USER ROLE|revoke USER ROLE]`")
+        except Exception as exc:
+            return _make_response(False, f"RBAC error: {exc}")
+
+    # ── readiness ─────────────────────────────────────────────────────────
+    if sub == "readiness":
+        try:
+            evaluator = _get_automation_readiness_evaluator()
+            if action in ("check", "show"):
+                report = evaluator.evaluate()
+                status = evaluator.get_status()
+                verdict = getattr(report, "verdict", None) or getattr(report, "overall_verdict", "unknown")
+                verdict_val = verdict.value if hasattr(verdict, "value") else verdict
+                lines = ["## Automation Readiness\n",
+                         f"**Overall verdict:** `{verdict_val}`",
+                         f"**Modules evaluated:** {len(getattr(report, 'phases', []))}",
+                         f"**Reports generated:** {status.get('total_reports', 0)}"]
+                return _make_response(True, "\n".join(lines))
+            if action == "report":
+                reports = evaluator.get_reports(limit=5)
+                lines = ["## Readiness Report History\n"]
+                for r in reports:
+                    v = r.get("verdict", r.get("overall_verdict", "?"))
+                    lines.append(f"- `{v}` at {str(r.get('evaluated_at', ''))[:19]}")
+                return _make_response(True, "\n".join(lines) if len(lines) > 1 else "## Readiness Report History\n\nNo reports yet.")
+            return _make_response(False, "Usage: `!murphy automation readiness [check|report]`")
+        except Exception as exc:
+            return _make_response(False, f"Readiness evaluator error: {exc}")
+
+    # ── scale ─────────────────────────────────────────────────────────────
+    if sub == "scale":
+        try:
+            scaler = _get_automation_scaler()
+            if action in ("show", "status"):
+                status = scaler.get_status() if hasattr(scaler, "get_status") else {"note": "Use sub-actions to evaluate specific types"}
+                lines = ["## Automation Scaler\n"]
+                for k, v in status.items():
+                    lines.append(f"- **{k}:** {v}")
+                return _make_response(True, "\n".join(lines))
+            if action in ("up", "down") and len(args) >= 2:
+                from automation_scaler import AutomationType
+                try:
+                    auto_type = AutomationType(args[1])
+                    if action == "up":
+                        event = scaler.scale_up(auto_type)
+                    else:
+                        event = scaler.scale_down(auto_type)
+                    return _make_response(True, f"Scale `{action}` for `{auto_type.value}`: {event.to_dict().get('result', 'done')}")
+                except Exception as se:
+                    return _make_response(False, f"Scale error: {se}")
+            if action == "evaluate" and len(args) >= 2:
+                from automation_scaler import AutomationType
+                try:
+                    auto_type = AutomationType(args[1])
+                    result = scaler.evaluate_scaling(auto_type)
+                    lines = [f"## Scale Evaluation: {auto_type.value}\n"]
+                    for k, v in result.items():
+                        lines.append(f"- **{k}:** {v}")
+                    return _make_response(True, "\n".join(lines))
+                except Exception as se:
+                    return _make_response(False, f"Evaluate error: {se}")
+            return _make_response(False, "Usage: `!murphy automation scale [status|up TYPE|down TYPE|evaluate TYPE]`")
+        except Exception as exc:
+            return _make_response(False, f"Scaler error: {exc}")
+
+    # ── loop ──────────────────────────────────────────────────────────────
+    if sub == "loop":
+        try:
+            connector = _get_automation_loop_connector()
+            if action in ("show", "status"):
+                status = connector.get_status()
+                lines = ["## Automation Loop Connector\n",
+                         f"**Cycles run:** {status.get('total_cycles', 0)}",
+                         f"**Last cycle:** {str(status.get('last_cycle_at', 'never'))[:19]}",
+                         f"**Queued outcomes:** {status.get('queued_outcomes', 0)}"]
+                return _make_response(True, "\n".join(lines))
+            if action == "run":
+                result = connector.run_cycle()
+                d = result.to_dict() if hasattr(result, "to_dict") else vars(result)
+                lines = ["## Loop Cycle Complete\n",
+                         f"**Proposals generated:** {d.get('proposals_generated', 0)}",
+                         f"**Proposals applied:** {d.get('proposals_applied', 0)}",
+                         f"**Errors:** {d.get('errors', 0)}"]
+                return _make_response(True, "\n".join(lines))
+            if action == "history":
+                history = connector.get_cycle_history(limit=5)
+                lines = ["## Loop Cycle History\n"]
+                for c in history:
+                    lines.append(f"- `{c.get('cycle_id', '?')}` generated={c.get('proposals_generated', 0)} applied={c.get('proposals_applied', 0)}")
+                return _make_response(True, "\n".join(lines) if len(lines) > 1 else "## Loop Cycle History\n\nNo cycles recorded.")
+            return _make_response(False, "Usage: `!murphy automation loop [status|run|history]`")
+        except Exception as exc:
+            return _make_response(False, f"Loop connector error: {exc}")
+
+    # ── scheduler ─────────────────────────────────────────────────────────
+    if sub == "scheduler":
+        try:
+            scheduler = _get_automation_scheduler()
+            if action in ("show", "status", "queue"):
+                status = scheduler.get_status()
+                queue = scheduler.get_queue_status()
+                lines = ["## Automation Scheduler\n",
+                         f"**Projects:** {status.get('total_projects', 0)}",
+                         f"**Queued:** {queue.get('queued', 0)}",
+                         f"**Running:** {queue.get('running', 0)}",
+                         f"**Completed:** {queue.get('completed', 0)}"]
+                return _make_response(True, "\n".join(lines))
+            if action == "next":
+                batch = scheduler.get_next_batch(max_slots=5)
+                lines = ["## Next Scheduled Executions\n"]
+                for exe in batch:
+                    lines.append(f"- `{exe.execution_id}` project=`{exe.project_id}` priority={exe.priority.value if hasattr(exe.priority, 'value') else exe.priority}")
+                return _make_response(True, "\n".join(lines) if len(lines) > 1 else "## Next Scheduled Executions\n\nNothing queued.")
+            return _make_response(False, "Usage: `!murphy automation scheduler [status|queue|next]`")
+        except Exception as exc:
+            return _make_response(False, f"Scheduler error: {exc}")
+
+    # ── marketplace ───────────────────────────────────────────────────────
+    if sub == "marketplace":
+        try:
+            market = _get_automation_marketplace()
+            if action in ("show", "list"):
+                popular = market.get_popular(limit=5)
+                lines = ["## Automation Marketplace (Top 5)\n"]
+                for listing in popular:
+                    lines.append(f"- **{listing.name}** `{listing.listing_id}` — {listing.description[:60]}")
+                return _make_response(True, "\n".join(lines) if len(lines) > 1 else "## Automation Marketplace\n\nNo listings yet.")
+            if action == "popular":
+                popular = market.get_popular(limit=10)
+                lines = ["## Most Popular Automations\n",
+                         "| Name | Installs | Rating |",
+                         "|------|----------|--------|"]
+                for listing in popular:
+                    lines.append(f"| {listing.name} | {listing.install_count} | {listing.average_rating:.1f}⭐ |")
+                return _make_response(True, "\n".join(lines) if len(lines) > 3 else "## Most Popular Automations\n\nNo listings yet.")
+            if action == "search" and len(args) >= 2:
+                query = " ".join(args[1:])
+                results = market.search(query=query)
+                lines = [f"## Marketplace Search: \"{query}\"\n"]
+                for listing in results[:10]:
+                    lines.append(f"- **{listing.name}** — {listing.description[:60]}")
+                return _make_response(True, "\n".join(lines) if len(lines) > 1 else f"No results for \"{query}\".")
+            return _make_response(False, "Usage: `!murphy automation marketplace [list|popular|search QUERY]`")
+        except Exception as exc:
+            return _make_response(False, f"Marketplace error: {exc}")
+
+    # ── native ────────────────────────────────────────────────────────────
+    if sub == "native":
+        try:
+            runner = _get_murphy_native_runner()
+            if action in ("show", "status"):
+                run_log = runner.get_run_log()
+                lines = ["## Murphy Native Automation\n",
+                         f"**Tasks run:** {len(run_log)}",
+                         f"**Last run:** {run_log[-1].get('started_at', 'never')[:19] if run_log else 'never'}"]
+                return _make_response(True, "\n".join(lines))
+            if action == "list":
+                run_log = runner.get_run_log()
+                lines = ["## Native Task Run Log\n"]
+                for entry in run_log[-10:]:
+                    lines.append(f"- `{entry.get('task_id', '?')}` — {entry.get('status', '?')} at {str(entry.get('started_at', ''))[:19]}")
+                return _make_response(True, "\n".join(lines) if len(lines) > 1 else "## Native Task Run Log\n\nNo tasks run yet.")
+            return _make_response(False, "Usage: `!murphy automation native [status|list]`")
+        except Exception as exc:
+            return _make_response(False, f"Native runner error: {exc}")
+
+    # ── self ──────────────────────────────────────────────────────────────
+    if sub == "self":
+        try:
+            orch = _get_self_automation_orchestrator()
+            if action in ("show", "status"):
+                tasks = orch.list_tasks()
+                pending = [t for t in tasks if getattr(t, "status", None) and t.status.value in ("pending", "in_progress")]
+                lines = ["## Self-Improvement Orchestrator\n",
+                         f"**Total tasks:** {len(tasks)}",
+                         f"**Active:** {len(pending)}",
+                         f"**Cycle history:** {len(orch.get_cycle_history())}"]
+                return _make_response(True, "\n".join(lines))
+            if action == "tasks":
+                tasks = orch.list_tasks()
+                lines = ["## Self-Improvement Tasks\n"]
+                for t in tasks[:10]:
+                    lines.append(f"- `{t.task_id}` [{t.status.value if hasattr(t.status, 'value') else t.status}] {t.title}")
+                return _make_response(True, "\n".join(lines) if len(lines) > 1 else "## Self-Improvement Tasks\n\nNo tasks.")
+            if action == "cycle":
+                cycles = orch.get_cycle_history()
+                lines = ["## Self-Improvement Cycle History\n"]
+                for c in cycles[-5:]:
+                    d = vars(c) if not isinstance(c, dict) else c
+                    lines.append(f"- `{d.get('cycle_id', '?')}` started={str(d.get('started_at', ''))[:19]}")
+                return _make_response(True, "\n".join(lines) if len(lines) > 1 else "## Cycle History\n\nNo cycles recorded.")
+            return _make_response(False, "Usage: `!murphy automation self [status|tasks|cycle]`")
+        except Exception as exc:
+            return _make_response(False, f"Self orchestrator error: {exc}")
+
+    # ── onboard-engine ────────────────────────────────────────────────────
+    if sub in ("onboard-engine", "onboard_engine"):
+        try:
+            engine = _get_onboarding_automation_engine()
+            if action in ("show", "status", "list"):
+                status = engine.get_status()
+                profiles = engine.list_profiles()
+                lines = ["## Onboarding Automation Engine\n",
+                         f"**Active profiles:** {status.get('active_profiles', len(profiles))}",
+                         f"**Total profiles:** {status.get('total_profiles', len(profiles))}"]
+                for p in profiles[:5]:
+                    d = p if isinstance(p, dict) else p.to_dict() if hasattr(p, "to_dict") else vars(p)
+                    lines.append(f"  - `{d.get('profile_id', '?')}` {d.get('employee_name', '')} — {d.get('progress_pct', 0):.0f}%")
+                return _make_response(True, "\n".join(lines))
+            return _make_response(False, "Usage: `!murphy automation onboard-engine [status|list]`")
+        except Exception as exc:
+            return _make_response(False, f"Onboarding engine error: {exc}")
+
+    # ── building ──────────────────────────────────────────────────────────
+    if sub == "building":
+        try:
+            from building_automation_connectors import get_status as _bac_get_status
+            registry = _get_building_automation_orchestrator()
+            if action in ("show", "status"):
+                status = _bac_get_status()
+                lines = ["## Building Automation\n",
+                         f"**Connectors:** {status.get('default_connectors', 0)}",
+                         f"**Enabled:** {status.get('enabled_connectors', 0)}",
+                         f"**Status:** {status.get('status', 'unknown')}",
+                         f"**Protocols:** {', '.join(status.get('protocols', []))}",
+                         f"**System categories:** {', '.join(status.get('system_categories', []))}"]
+                return _make_response(True, "\n".join(lines))
+            if action == "devices":
+                connectors = registry.discover() if hasattr(registry, "discover") else []
+                lines = ["## Building Automation Devices\n"]
+                for c in connectors[:10]:
+                    d = c if isinstance(c, dict) else vars(c) if hasattr(c, "__dict__") else {}
+                    lines.append(f"- `{d.get('connector_id', d.get('name', d.get('vendor', '?')))}` — {d.get('status', '?')}")
+                return _make_response(True, "\n".join(lines) if len(lines) > 1 else "## Building Automation Devices\n\nNo devices registered.")
+            return _make_response(False, "Usage: `!murphy automation building [status|devices]`")
+        except Exception as exc:
+            return _make_response(False, f"Building automation error: {exc}")
+
+    # ── manufacturing ─────────────────────────────────────────────────────
+    if sub == "manufacturing":
+        try:
+            from manufacturing_automation_standards import get_status as mfg_status
+            registry = _get_manufacturing_automation_registry()
+            if action in ("show", "status"):
+                status = mfg_status()
+                lines = ["## Manufacturing Automation\n"]
+                for k, v in status.items():
+                    lines.append(f"- **{k}:** {v}")
+                return _make_response(True, "\n".join(lines))
+            if action in ("connectors", "standards"):
+                discovered = registry.discover()
+                lines = ["## Manufacturing Connectors/Standards\n",
+                         "| Standard | Layer | Status |",
+                         "|----------|-------|--------|"]
+                for c in discovered[:10]:
+                    lines.append(f"| {c.get('standard', '?')} | {c.get('layer', '?')} | {c.get('status', '?')} |")
+                return _make_response(True, "\n".join(lines) if len(lines) > 3 else "## Manufacturing Connectors\n\nNone registered.")
+            return _make_response(False, "Usage: `!murphy automation manufacturing [status|connectors|standards]`")
+        except Exception as exc:
+            return _make_response(False, f"Manufacturing automation error: {exc}")
+
+    # ── sales ─────────────────────────────────────────────────────────────
+    if sub == "sales":
+        try:
+            engine = _get_sales_automation_engine()
+            if action in ("show", "pipeline"):
+                summary = engine.get_pipeline_summary()
+                lines = ["## Sales Automation Pipeline\n"]
+                for stage, count in summary.get("by_stage", {}).items():
+                    lines.append(f"- **{stage}:** {count} lead(s)")
+                lines.append(f"\n**Total leads:** {summary.get('total_leads', 0)}")
+                return _make_response(True, "\n".join(lines))
+            if action == "leads":
+                pipeline = engine.get_pipeline_summary()
+                lines = ["## Sales Leads\n",
+                         f"**Total:** {pipeline.get('total_leads', 0)}",
+                         f"**By stage:** {pipeline.get('by_stage', {})}"]
+                return _make_response(True, "\n".join(lines))
+            return _make_response(False, "Usage: `!murphy automation sales [pipeline|leads]`")
+        except Exception as exc:
+            return _make_response(False, f"Sales automation error: {exc}")
+
+    # ── compliance-bridge ─────────────────────────────────────────────────
+    if sub in ("compliance-bridge", "compliance_bridge"):
+        try:
+            bridge = _get_compliance_automation_bridge()
+            if action in ("show", "posture"):
+                posture = bridge.get_compliance_posture()
+                lines = ["## Compliance Automation Bridge\n",
+                         f"**Total checks:** {posture.get('total_checks', 0)}",
+                         f"**Violations tracked:** {posture.get('violations_tracked', 0)}",
+                         f"**Frameworks active:** {posture.get('active_frameworks', 0)}"]
+                return _make_response(True, "\n".join(lines))
+            if action == "history":
+                history = bridge.get_history(limit=5)
+                lines = ["## Compliance Check History\n"]
+                for h in history:
+                    lines.append(f"- `{h.get('check_id', '?')}` — {h.get('status', '?')} at {str(h.get('checked_at', ''))[:19]}")
+                return _make_response(True, "\n".join(lines) if len(lines) > 1 else "## Compliance Check History\n\nNo checks recorded.")
+            if action == "check" and len(args) >= 2:
+                deliverable_id = args[1]
+                result = bridge.check_compliance(deliverable_id=deliverable_id)
+                passed = result.get("passed", False)
+                return _make_response(True, f"Compliance check `{deliverable_id}`: {'✅ PASSED' if passed else '❌ FAILED'}\n{result.get('summary', '')}")
+            return _make_response(False, "Usage: `!murphy automation compliance-bridge [posture|history|check DELIVERABLE_ID]`")
+        except Exception as exc:
+            return _make_response(False, f"Compliance bridge error: {exc}")
+
+    # ── full ──────────────────────────────────────────────────────────────
+    if sub == "full":
+        try:
+            controller = _get_full_automation_controller()
+            _tenant_id = getattr(cmd, "sender", "default-tenant")
+            if action in ("show", "status"):
+                metrics = controller.get_metrics(tenant_id=_tenant_id) or {}
+                lines = ["## Full Automation Controller\n",
+                         f"**Mode:** `{metrics.get('current_mode', 'unknown')}`",
+                         f"**Actions evaluated:** {metrics.get('total_evaluated', 0)}",
+                         f"**Auto-approved:** {metrics.get('auto_approved', 0)}",
+                         f"**HITL required:** {metrics.get('hitl_required', 0)}",
+                         f"**Active HITL gaps:** {metrics.get('active_hitl_gaps', 0)}"]
+                return _make_response(True, "\n".join(lines))
+            if action == "mode" and len(args) >= 2:
+                from full_automation_controller import AutomationMode as FAMode
+                try:
+                    mode = FAMode(args[1])
+                    controller.set_automation_mode(tenant_id=_tenant_id, mode=mode, reason=f"matrix command by {getattr(cmd, 'sender', 'unknown')}")
+                    return _make_response(True, f"Full automation mode set to `{mode.value}`.")
+                except (ValueError, TypeError) as e:
+                    return _make_response(False, f"Invalid mode: {args[1]}. Options: {[m.value for m in FAMode]}")
+            if action == "risks":
+                gaps = controller.get_active_hitl_gaps(tenant_id=_tenant_id)
+                lines = ["## Active HITL Gaps\n"]
+                for g in gaps:
+                    d = g if isinstance(g, dict) else vars(g)
+                    lines.append(f"- `{d.get('gap_id', '?')}` risk={d.get('risk_level', '?')}: {d.get('description', '')[:60]}")
+                return _make_response(True, "\n".join(lines) if len(lines) > 1 else "## Active HITL Gaps\n\nNo active gaps. 🎉")
+            if action == "gaps":
+                gaps = controller.get_active_hitl_gaps(tenant_id=_tenant_id)
+                return _make_response(True, f"**Active HITL gaps:** {len(gaps)}")
+            return _make_response(False, "Usage: `!murphy automation full [status|mode MODE|risks|gaps]`")
+        except Exception as exc:
+            return _make_response(False, f"Full automation controller error: {exc}")
+
+    # ── deploy ────────────────────────────────────────────────────────────
+    if sub == "deploy":
+        try:
+            dac = _get_deployment_automation_controller()
+            if action in ("show", "list"):
+                status = dac.get_status()
+                lines = ["## Deployment Automation\n",
+                         f"**Total deployments:** {status.get('total_deployments', 0)}",
+                         f"**Running:** {status.get('running', 0)}",
+                         f"**Completed:** {status.get('completed', 0)}",
+                         f"**Failed/Rolled back:** {status.get('failed', 0) + status.get('rolled_back', 0)}"]
+                return _make_response(True, "\n".join(lines))
+            if action == "status" and len(args) >= 2:
+                dep_id = args[1]
+                dep = dac.get_deployment(dep_id)
+                if dep is None:
+                    return _make_response(False, f"Deployment `{dep_id}` not found.")
+                lines = [f"## Deployment `{dep_id}`\n"]
+                for k, v in dep.items():
+                    lines.append(f"- **{k}:** {v}")
+                return _make_response(True, "\n".join(lines))
+            if action == "approve" and len(args) >= 2:
+                dep_id = args[1]
+                approver = getattr(cmd, "sender", "matrix-user")
+                dep = dac.approve(dep_id, approver=approver)
+                if dep:
+                    return _make_response(True, f"Deployment `{dep_id}` approved by `{approver}`.")
+                return _make_response(False, f"Deployment `{dep_id}` could not be approved.")
+            return _make_response(False, "Usage: `!murphy automation deploy [list|status DEP_ID|approve DEP_ID]`")
+        except Exception as exc:
+            return _make_response(False, f"Deployment controller error: {exc}")
+
+    return _make_response(
+        False,
+        "Unknown automation subcommand `" + sub + "`. "
+        "Try: list, summary, types, mode, hub, rbac, readiness, scale, loop, "
+        "scheduler, marketplace, native, self, onboard-engine, building, "
+        "manufacturing, sales, compliance-bridge, full, deploy.",
+    )
 
 
 # ---------------------------------------------------------------------------

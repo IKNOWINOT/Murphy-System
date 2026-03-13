@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+- **docs:** `ROADMAP.md` — public revenue-first sprint plan with $0-budget execution strategy (Sprints 1–4, revenue-gated milestones)
+- **docs:** `Murphy System/BUSINESS_MODEL.md` — concrete pricing tiers (Solo $29/mo, Business $99/mo, Professional $299/mo, Enterprise custom); added "Murphy's UX Paradigm: Describe → Execute → Refine" section
+- **docs:** `README.md` — repositioned "Describe → Execute" as hero feature (first in Key Features list); added "🗣️ How It Works: Describe → Execute → Refine" section; added ROADMAP.md to Documentation table
+- **docs:** `Murphy System/README.md` — added "Primary Flow: Describe → Execute" table as the leading subsection of API Reference
+
 ### UI Completion (85% → 100%)
 - **ui: P0** — Design system foundation: `murphy-design-system.css` (45KB, all tokens + light theme + 24 component classes), `murphy-components.js` (64KB, 13 reusable components including MurphyAPI, MurphyLibrarianChat, MurphyTerminalPanel), `murphy-canvas.js` (65KB, canvas rendering engine with pan/zoom/nodes/edges/auto-layout), `murphy-icons.svg` (42 icons), `favicon.svg`, and `DESIGN_SYSTEM.md`
 - **ui: P1** — Rebuilt `terminal_unified.html` as admin hub with 27 sidebar nav items, hash routing, Librarian chat widget, theme toggle, and live API data for all 25+ endpoint groups

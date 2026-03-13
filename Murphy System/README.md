@@ -30,6 +30,17 @@ Interactive API docs are served at **http://localhost:8000/docs** (Swagger UI).
 
 All endpoints are prefixed with `/api`.
 
+### Primary Flow: Describe → Execute
+
+This is Murphy's hero flow — start here.
+
+| Step | Endpoint | What Happens |
+|---|---|---|
+| 1. Describe | `POST /api/workflow-terminal/session` + `POST /api/workflow-terminal/message` | Start a Librarian session, describe what you want in plain English |
+| 2. Generate | `POST /api/forms/plan-generation` | Murphy generates a DAG workflow from your description |
+| 3. Execute | `POST /api/execute` | Run the workflow through the full orchestration pipeline |
+| 4. Refine (optional) | Visual canvas at `workflow_canvas.html` | Open the visual canvas to tweak the generated workflow |
+
 | Group | Endpoints | Description |
 |---|---|---|
 | **Core** | `/api/health`, `/api/status`, `/api/execute`, `/api/chat` | Health checks, system status, task execution, chat |
