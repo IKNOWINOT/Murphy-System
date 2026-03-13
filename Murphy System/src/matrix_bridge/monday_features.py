@@ -50,6 +50,7 @@ Usage::
 """
 from __future__ import annotations
 
+import datetime
 import logging
 import time
 import uuid
@@ -225,7 +226,6 @@ class BoardItem:
         """Return a one-line Markdown summary of this item."""
         due = ""
         if self.due_date:
-            import datetime  # local import
             dt = datetime.datetime.fromtimestamp(self.due_date, tz=datetime.timezone.utc)
             due = f" _(due {dt.strftime('%Y-%m-%d')})_"
         assignee = f" → {self.assignee}" if self.assignee else ""

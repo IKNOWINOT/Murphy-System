@@ -36,6 +36,7 @@ Usage::
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
@@ -268,8 +269,6 @@ class MatrixEventHandler:
         for handler in self._event_handlers.get(type_key, []):
             try:
                 res = handler(event)
-                import asyncio  # local to avoid top-level circular
-
                 if asyncio.iscoroutine(res):
                     res = await res
                 if isinstance(res, EventHandlerResult):
@@ -310,8 +309,6 @@ class MatrixEventHandler:
         cmd_handler = self._command_handlers.get(parsed.command)
         if cmd_handler:
             try:
-                import asyncio  # local import
-
                 res = cmd_handler(event)
                 if asyncio.iscoroutine(res):
                     res = await res
