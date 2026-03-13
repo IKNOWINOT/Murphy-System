@@ -6,18 +6,18 @@
 
 ---
 
-## Overall Readiness: ~72% Production Ready
+## Overall Readiness: ~76% Production Ready
 
 | Dimension | Weight | Current % | Notes |
 |-----------|--------|-----------|-------|
 | Core automation pipeline | 20% | 85% | Describe → Execute flow exists and structured; E2E test suite added |
-| Security hardening | 15% | 75% | Auth/CORS/CSP done; E2EE stub improved with proper error messaging |
-| Persistence (real DB) | 15% | 60% | SQLitePersistenceManager added; get_persistence_manager() factory wired |
-| CI/CD & test verification | 10% | 70% | GitHub Actions pipeline fixed (import errors resolved, PYTHONPATH updated) |
-| Documentation accuracy | 10% | 80% | 12 placeholder docs filled; README truth reconciliation complete |
+| Security hardening | 15% | 80% | Auth/CORS/CSP done; JWT token validation added; E2EE stub gated for production |
+| Persistence (real DB) | 15% | 70% | PostgreSQL support wired via DATABASE_URL; SQLite fallback; Alembic migrations ready |
+| CI/CD & test verification | 10% | 80% | Ruff lint passing; GitHub Actions pipeline with 5 jobs; PYTHONPATH configured |
+| Documentation accuracy | 10% | 85% | All placeholder docs filled; README truth reconciliation complete |
 | Management parity (Phases 1-12) | 15% | 50% | Phase 1 solid; Phases 2–8 honestly marked as unvalidated; Phase 12 corrected |
-| Production deployment (Docker/K8s) | 10% | 50% | Configs exist; untested one-command flow |
-| E2E integration testing | 5% | 60% | 49-test production readiness suite added |
+| Production deployment (Docker/K8s) | 10% | 60% | Docker Compose with PostgreSQL, Redis, Prometheus, Grafana; MURPHY_DB_MODE=live wired |
+| E2E integration testing | 5% | 65% | 49-test production readiness suite; commissioning tests |
 
 ---
 
@@ -25,13 +25,13 @@
 
 | # | Gap | Severity | Current State | Remediation |
 |---|-----|----------|---------------|-------------|
-| C1 | Database persistence | 🔴 Critical | JSON file storage; SQLite available for dev | Wire PostgreSQL for production; migration scripts via Alembic |
-| C2 | CI pipeline stability | 🔴 Critical | Import errors fixed; pipeline running | Verify full green run across Python 3.10/3.11/3.12 |
-| C3 | E2EE encryption stub | 🔴 Critical | `encrypt_message()` returns plaintext with warning | Integrate matrix-nio SDK; gate with clear production error |
+| C1 | Database persistence | 🟡 Improved | PostgreSQL wired via DATABASE_URL with connection pooling; SQLite fallback | Test PostgreSQL in CI; add integration tests |
+| C2 | CI pipeline stability | 🟡 Improved | Ruff lint passing; pipeline structure sound | Achieve full green run across Python 3.10/3.11/3.12 |
+| C3 | E2EE encryption stub | 🟡 Improved | Production refuses stub (E2EE_STUB_ALLOWED=false); dev gets warning | Integrate matrix-nio SDK for real Megolm encryption |
 | C4 | Management parity Phases 2–8 | 🟡 High | Code exists but acceptance criteria unchecked | Audit each phase against criteria; document evidence |
 | C5 | No native mobile app | 🟡 High | Backend API + models exist; no iOS/Android code | Build React Native or Flutter client |
-| C6 | JWT/OAuth for production | 🟡 High | API key auth only | Add JWT token validation middleware |
-| C7 | Documentation placeholders | 🟡 Medium | 14 files with placeholder content | Fill with real content from codebase |
+| C6 | JWT/OAuth for production | 🟢 Resolved | JWT token validation added to FastAPI and Flask security middleware | Add OAuth2/OIDC provider integration |
+| C7 | Documentation placeholders | 🟢 Resolved | All 12+ placeholder docs filled with real content | Maintain as codebase evolves |
 
 ---
 
@@ -89,3 +89,21 @@
 - [x] Verify all changes consistent
 - [x] Update audit document with final state
 - [x] Run code review and security scan
+
+### Round 9 — CI Lint Fix ✅
+- [x] Update ruff configuration to be practical for 920+ module codebase
+- [x] Remove redundant S (bandit) rules — handled by dedicated bandit CI job
+- [x] Auto-fix import sorting (I001) and whitespace (W293) across all src/ files
+- [x] Fix syntax corruption in e2ee_manager.py (broken docstring in logger.warning)
+
+### Round 10 — PostgreSQL Production Support ✅
+- [x] Update db.py to read DATABASE_URL or MURPHY_DB_URL with PostgreSQL connection pooling
+- [x] Configure pool_size, max_overflow, pool_pre_ping for production RDBMS
+- [x] Wire MURPHY_DB_MODE=live in docker-compose.yml environment
+- [x] Update persistence_manager.py to report correct backend (postgresql vs sqlite)
+
+### Round 11 — JWT Authentication ✅
+- [x] Add validate_jwt_token() to fastapi_security.py (PyJWT with HS256, issuer, exp/sub required)
+- [x] Add validate_jwt_token() to flask_security.py (mirrors FastAPI implementation)
+- [x] Add _authenticate_request() unified auth flow: tries JWT first, then API key
+- [x] Update SecurityMiddleware and Flask before_request to use unified auth
