@@ -414,7 +414,7 @@ class OrgChartOrchestrator:
     def enqueue(self, sequence: ActionSequence, priority: int = 5) -> None:
         """Add a sequence to the orchestration queue."""
         with self._lock:
-            self._queue.append((priority, sequence))
+            capped_append(self._queue, (priority, sequence))
             self._queue.sort(key=lambda item: item[0])
 
     def dequeue_next(self) -> Optional[ActionSequence]:

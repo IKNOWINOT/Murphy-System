@@ -45,6 +45,8 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Deque, Dict, List, Optional, Set
 
+from thread_safe_operations import capped_append
+
 logger = logging.getLogger(__name__)
 
 
@@ -170,7 +172,7 @@ class Subscriber:
 
     def enqueue(self, event: EventPayload) -> None:
         """Push an event into this subscriber's outbound queue."""
-        self._queue.append(event)
+        capped_append(self._queue, event)
         self.events_received += 1
 
     def drain(self, max_items: int = 50) -> List[EventPayload]:
@@ -212,7 +214,7 @@ class EventChannel:
     def append(self, event: EventPayload) -> None:
         """Record an event in channel history."""
         with self._lock:
-            self._history.append(event)
+            capped_append(self._history, event)
 
     def recent(self, n: int = 20) -> List[EventPayload]:
         """Return the last *n* events."""

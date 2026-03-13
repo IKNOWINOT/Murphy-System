@@ -245,7 +245,7 @@ class BlockchainAuditTrail:
             index=idx, previous_hash=prev_hash, entries=entries,
             timestamp=ts, block_hash=h, status=BlockStatus.sealed,
         )
-        self._chain.append(blk)
+        capped_append(self._chain, blk)
         self._block_index[blk.block_id] = blk
         capped_append(self._block_order, blk.block_id, self._max_blocks)
         self._enforce_capacity()

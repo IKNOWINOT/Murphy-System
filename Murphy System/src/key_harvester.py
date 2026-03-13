@@ -102,6 +102,7 @@ from tos_acceptance_gate import (
     TOSAcceptanceStatus,
     UserCredentialGate,
 )
+from thread_safe_operations import capped_append
 
 # FastAPI Request type — imported at module level so it is resolvable from
 # __globals__ when FastAPI inspects handler annotations under PEP 563.
@@ -913,7 +914,7 @@ class KeyHarvester:
         for recipe in PROVIDER_RECIPES:
             result = await self._acquire_single(recipe)
             with self._lock:
-                self._results.append(result)
+                capped_append(self._results, result)
 
         return list(self._results)
 

@@ -24,6 +24,8 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
+from thread_safe_operations import capped_append
+
 try:
     from shadow_agent_integration import ShadowAgentIntegration
 except ImportError:
@@ -459,7 +461,7 @@ class OnboardingTeamPipeline:
         """
         with self._lock:
             for r in results:
-                self._confirmed_docs.append(r.rosetta_doc_id)
+                capped_append(self._confirmed_docs, r.rosetta_doc_id)
                 if r.rosetta_doc_id in self._living_documents:
                     doc = self._living_documents[r.rosetta_doc_id]
                     if hasattr(doc, "solidify"):

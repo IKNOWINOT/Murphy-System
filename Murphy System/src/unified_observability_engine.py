@@ -144,8 +144,8 @@ class MetricWindow:
         """Append a new observation to the window."""
         ts = timestamp if timestamp is not None else time.time()
         with self._lock:
-            self._values.append(value)
-            self._timestamps.append(ts)
+            capped_append(self._values, value)
+            capped_append(self._timestamps, ts)
 
     # ------------------------------------------------------------------
     # Accessors (return copies for thread safety)

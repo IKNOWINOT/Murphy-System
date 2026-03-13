@@ -42,6 +42,8 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
+from thread_safe_operations import capped_append
+
 logger = logging.getLogger(__name__)
 
 
@@ -430,7 +432,7 @@ class FederatedCoordinator:
                 global_model_version=self._global_weights.version,
             )
             self._rounds[round_id] = rnd
-            self._history.append(round_id)
+            capped_append(self._history, round_id)
 
             for nid in eligible:
                 self._nodes[nid].status = NodeStatus.TRAINING.value
