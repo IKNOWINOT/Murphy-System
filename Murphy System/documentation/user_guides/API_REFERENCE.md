@@ -11,7 +11,8 @@ http://localhost:8000
 ```
 
 The FastAPI application is created by `create_app()` in `src/runtime/app.py` and served
-via uvicorn on port 8000 by default.
+via uvicorn on port 8000 by default. Override with environment variables `MURPHY_HOST`
+and `MURPHY_PORT` (see `.env.example` for all configuration options).
 
 ---
 
