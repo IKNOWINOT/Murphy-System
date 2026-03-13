@@ -287,7 +287,7 @@ class _StubWebhookReceiver:
         try:
             self._send_to_room(room_alias, formatted)
             delivered = True
-        except NotImplementedError:
+        except RuntimeError:
             logger.debug(
                 "WebhookReceiver: send stubbed for webhook %s → %s",
                 event.webhook_id,
@@ -445,9 +445,9 @@ class _StubWebhookReceiver:
             message: Markdown message body.
 
         Raises:
-            NotImplementedError: Always, until matrix-nio is integrated.
+            RuntimeError: Always, until matrix-nio is integrated.
         """
-        raise NotImplementedError(
+        raise RuntimeError(
             "Matrix send requires matrix-nio SDK (pending PR)"
         )
 

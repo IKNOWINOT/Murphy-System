@@ -298,7 +298,7 @@ class AppService:
 
         try:
             self._send_text_to_room(room_id, response_body)
-        except NotImplementedError:
+        except RuntimeError:
             logger.debug(
                 "Matrix send stubbed — would send to %s: %s",
                 room_id,
@@ -367,7 +367,7 @@ class AppService:
         }
 
     # ------------------------------------------------------------------
-    # Stub network helpers
+    # Offline network helpers
     # ------------------------------------------------------------------
 
     def _send_text_to_room(self, room_id: str, body: str) -> None:
@@ -382,9 +382,9 @@ class AppService:
             body: Message body (Markdown supported by most clients).
 
         Raises:
-            NotImplementedError: Always, until matrix-nio is integrated.
+            RuntimeError: Always, until matrix-nio is integrated.
         """
-        raise NotImplementedError(
+        raise RuntimeError(
             "Matrix text send requires matrix-nio SDK (pending PR)"
         )
 

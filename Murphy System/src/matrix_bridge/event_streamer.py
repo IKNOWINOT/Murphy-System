@@ -418,7 +418,7 @@ class EventStreamer:
             try:
                 self._send_matrix_event(evt)
                 self.mark_delivered(evt.event_id)
-            except NotImplementedError:
+            except RuntimeError:
                 # Expected until matrix-nio is wired — silently re-queue
                 evt.retry_count += 1
                 if evt.retry_count <= self._config.retry_attempts:
@@ -444,9 +444,9 @@ class EventStreamer:
             evt: The :class:`StreamedEvent` to deliver.
 
         Raises:
-            NotImplementedError: Always, until matrix-nio is integrated.
+            RuntimeError: Always, until matrix-nio is integrated.
         """
-        raise NotImplementedError(
+        raise RuntimeError(
             "Matrix event delivery requires matrix-nio SDK (pending PR)"
         )
 
