@@ -84,7 +84,7 @@ from .message_router import (
     QueuedMessage,
     RoutingEntry,
 )
-from .monday_features import (
+from .management_features import (
     AutomationEngine,
     AutomationTrigger,
     BoardItem,

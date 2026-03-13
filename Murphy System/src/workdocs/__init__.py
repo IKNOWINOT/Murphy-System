@@ -2,7 +2,7 @@
 Workdocs – Collaborative Documents
 ====================================
 
-Phase 5 of Monday.com feature parity for the Murphy System.
+Phase 5 of management systems feature parity for the Murphy System.
 
 Provides collaborative document authoring including:
 

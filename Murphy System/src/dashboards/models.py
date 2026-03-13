@@ -3,7 +3,7 @@ Dashboards – Data Models
 =========================
 
 Core data structures for the Customizable Dashboards & Reporting system
-(Phase 3 of Monday.com parity).
+(Phase 3 of management systems parity).
 
 Copyright 2024 Inoni LLC – BSL-1.1
 """

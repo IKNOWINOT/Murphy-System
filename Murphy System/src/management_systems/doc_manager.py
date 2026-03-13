@@ -1,5 +1,5 @@
 """
-Matrix Monday – Document Manager
+Management Systems – Document Manager
 =====================================
 
 Workdoc management linked to boards and items.

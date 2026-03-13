@@ -1,8 +1,8 @@
 """
-Matrix Monday – Board Engine
+Management Systems – Board Engine
 ==============================
 
-Core board/project management system for the Matrix Monday package.
+Core board/project management system for the Management Systems package.
 Provides column definitions, items, groups, board views, templates,
 sub-items, and board permissions accessible through Matrix chat commands.
 

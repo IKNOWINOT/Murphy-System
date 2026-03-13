@@ -2,7 +2,7 @@
 Dashboards – Customizable Dashboards & Reporting
 ==================================================
 
-Phase 3 of Monday.com feature parity for the Murphy System.
+Phase 3 of management systems feature parity for the Murphy System.
 
 Provides a widget-based dashboard builder including:
 

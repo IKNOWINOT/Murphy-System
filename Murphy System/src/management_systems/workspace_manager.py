@@ -1,5 +1,5 @@
 """
-Matrix Monday – Workspace Manager
+Management Systems – Workspace Manager
 =====================================
 
 Workspace definitions mapped to all Murphy System subsystem domains.

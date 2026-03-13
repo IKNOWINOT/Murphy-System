@@ -1,5 +1,5 @@
 """
-Tests for the Matrix Monday package (PR 4 of Matrix migration series).
+Tests for the Management Systems package (PR 4 of Matrix migration series).
 
 Covers all 9 modules:
   1. board_engine – Board, groups, items, columns, views, permissions, templates
@@ -24,7 +24,7 @@ import pytest
 # board_engine tests
 # ---------------------------------------------------------------------------
 
-from matrix_monday.board_engine import (
+from management_systems.board_engine import (
     Board,
     BoardColumn,
     BoardEngine,
@@ -242,7 +242,7 @@ class TestBoardEngine:
 # status_engine tests
 # ---------------------------------------------------------------------------
 
-from matrix_monday.status_engine import (
+from management_systems.status_engine import (
     PriorityLevel,
     StatusColumn,
     StatusEngine,
@@ -346,7 +346,7 @@ class TestStatusEngine:
 # timeline_engine tests
 # ---------------------------------------------------------------------------
 
-from matrix_monday.timeline_engine import (
+from management_systems.timeline_engine import (
     CriticalPath,
     Dependency,
     DependencyType,
@@ -461,7 +461,7 @@ class TestTimelineEngine:
 # automation_recipes tests
 # ---------------------------------------------------------------------------
 
-from matrix_monday.automation_recipes import (
+from management_systems.automation_recipes import (
     ActionType,
     AutomationAction,
     AutomationRecipe,
@@ -598,7 +598,7 @@ class TestRecipeEngine:
 # workspace_manager tests
 # ---------------------------------------------------------------------------
 
-from matrix_monday.workspace_manager import (
+from management_systems.workspace_manager import (
     MURPHY_SUBSYSTEM_DOMAINS,
     Workspace,
     WorkspaceManager,
@@ -701,7 +701,7 @@ class TestWorkspaceManager:
 # dashboard_generator tests
 # ---------------------------------------------------------------------------
 
-from matrix_monday.dashboard_generator import (
+from management_systems.dashboard_generator import (
     DashboardGenerator,
     DashboardTemplate,
     DashboardTemplateType,
@@ -855,7 +855,7 @@ class TestDashboardGenerator:
 # integration_bridge tests
 # ---------------------------------------------------------------------------
 
-from matrix_monday.integration_bridge import (
+from management_systems.integration_bridge import (
     ConflictPolicy,
     IntegrationBridge,
     SyncDirection,
@@ -971,7 +971,7 @@ class TestIntegrationBridge:
 # form_builder tests
 # ---------------------------------------------------------------------------
 
-from matrix_monday.form_builder import (
+from management_systems.form_builder import (
     FieldType,
     FormBuilder,
     FormField,
@@ -1110,7 +1110,7 @@ class TestFormBuilder:
 # doc_manager tests
 # ---------------------------------------------------------------------------
 
-from matrix_monday.doc_manager import (
+from management_systems.doc_manager import (
     DocManager,
     DocStatus,
     DocTemplate,

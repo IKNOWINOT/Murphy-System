@@ -1,8 +1,8 @@
 """
-Monday Commands — Chat command handlers for Matrix Monday.
+Management Commands — Chat command handlers for Management Systems.
 
 Provides handler functions that wire ``!murphy`` chat commands to the
-actual :mod:`matrix_monday` engines (BoardEngine, StatusEngine,
+actual :mod:`management_systems` engines (BoardEngine, StatusEngine,
 TimelineEngine, RecipeEngine, WorkspaceManager, DashboardGenerator,
 IntegrationBridge, FormBuilder, DocManager).
 
@@ -387,11 +387,11 @@ def handle_recipe(dispatcher: object, cmd: object) -> object:
 
 
 # ---------------------------------------------------------------------------
-# !murphy workspace monday [list|show DOMAIN|bootstrap]
+# !murphy workspace [list|show DOMAIN|bootstrap]
 # ---------------------------------------------------------------------------
 
 def handle_workspace(dispatcher: object, cmd: object) -> object:
-    """Handle ``!murphy workspace monday`` commands."""
+    """Handle ``!murphy workspace`` commands."""
     sub = getattr(cmd, "subcommand", None) or "list"
     args = getattr(cmd, "args", [])
     mgr = _get_workspace_manager()
@@ -401,7 +401,7 @@ def handle_workspace(dispatcher: object, cmd: object) -> object:
         if not workspaces:
             return _make_response(
                 True,
-                "## Workspaces\n\nNo workspaces. Use `!murphy workspace monday bootstrap` to initialise all Murphy domain workspaces.",
+                "## Workspaces\n\nNo workspaces. Use `!murphy workspace bootstrap` to initialise all Murphy domain workspaces.",
             )
         lines = ["## Workspaces\n"]
         lines.append("| Name | Domain | Modules | Boards |")
@@ -416,7 +416,7 @@ def handle_workspace(dispatcher: object, cmd: object) -> object:
     if sub == "show":
         domain = args[0] if args else None
         if not domain:
-            return _make_response(False, "Usage: `!murphy workspace monday show <domain-key>`")
+            return _make_response(False, "Usage: `!murphy workspace show <domain-key>`")
         ws = mgr.get_workspace_by_domain(domain)
         if not ws:
             return _make_response(False, f"Workspace domain `{domain}` not found.")
@@ -683,7 +683,7 @@ def handle_doc(dispatcher: object, cmd: object) -> object:
 # All handlers (for registration convenience)
 # ---------------------------------------------------------------------------
 
-MONDAY_COMMAND_HANDLERS = {
+MANAGEMENT_COMMAND_HANDLERS = {
     "board": handle_board,
     "status-label": handle_status,
     "timeline": handle_timeline,
@@ -706,5 +706,5 @@ __all__ = [
     "handle_form",
     "handle_doc",
     "reset_engines",
-    "MONDAY_COMMAND_HANDLERS",
+    "MANAGEMENT_COMMAND_HANDLERS",
 ]

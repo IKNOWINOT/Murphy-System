@@ -281,7 +281,7 @@ class CommandDispatcher:
         self.register_handler("version", _handle_version, "Show Murphy version information")
         self.register_handler("list-modules", _handle_list_modules, "List all registered Murphy modules")
         self.register_handler("list-rooms", _handle_list_rooms, "List all Matrix rooms in the bridge")
-        # Matrix Monday commands — delegate to monday_commands handlers
+        # Management Systems commands — delegate to management_commands handlers
         self.register_handler("board", _handle_board, "Board management (list, create, view, kanban)")
         self.register_handler("status-label", _handle_status_label, "Status label management")
         self.register_handler("timeline", _handle_timeline, "Timeline/Gantt engine (view, add, milestones)")
@@ -385,70 +385,70 @@ def _handle_list_rooms(
 def _handle_board(
     dispatcher: CommandDispatcher, cmd: ParsedCommand
 ) -> CommandResponse:
-    """Handle ``!murphy board`` — delegate to matrix_monday.monday_commands."""
-    from matrix_monday.monday_commands import handle_board
+    """Handle ``!murphy board`` — delegate to management_systems.management_commands."""
+    from management_systems.management_commands import handle_board
     return handle_board(dispatcher, cmd)
 
 
 def _handle_status_label(
     dispatcher: CommandDispatcher, cmd: ParsedCommand
 ) -> CommandResponse:
-    """Handle ``!murphy status-label`` — delegate to matrix_monday.monday_commands."""
-    from matrix_monday.monday_commands import handle_status
+    """Handle ``!murphy status-label`` — delegate to management_systems.management_commands."""
+    from management_systems.management_commands import handle_status
     return handle_status(dispatcher, cmd)
 
 
 def _handle_timeline(
     dispatcher: CommandDispatcher, cmd: ParsedCommand
 ) -> CommandResponse:
-    """Handle ``!murphy timeline`` — delegate to matrix_monday.monday_commands."""
-    from matrix_monday.monday_commands import handle_timeline
+    """Handle ``!murphy timeline`` — delegate to management_systems.management_commands."""
+    from management_systems.management_commands import handle_timeline
     return handle_timeline(dispatcher, cmd)
 
 
 def _handle_workspace(
     dispatcher: CommandDispatcher, cmd: ParsedCommand
 ) -> CommandResponse:
-    """Handle ``!murphy workspace`` — delegate to matrix_monday.monday_commands."""
-    from matrix_monday.monday_commands import handle_workspace
+    """Handle ``!murphy workspace`` — delegate to management_systems.management_commands."""
+    from management_systems.management_commands import handle_workspace
     return handle_workspace(dispatcher, cmd)
 
 
 def _handle_recipe(
     dispatcher: CommandDispatcher, cmd: ParsedCommand
 ) -> CommandResponse:
-    """Handle ``!murphy recipe`` — delegate to matrix_monday.monday_commands."""
-    from matrix_monday.monday_commands import handle_recipe
+    """Handle ``!murphy recipe`` — delegate to management_systems.management_commands."""
+    from management_systems.management_commands import handle_recipe
     return handle_recipe(dispatcher, cmd)
 
 
 def _handle_dashboard(
     dispatcher: CommandDispatcher, cmd: ParsedCommand
 ) -> CommandResponse:
-    """Handle ``!murphy dashboard`` — delegate to matrix_monday.monday_commands."""
-    from matrix_monday.monday_commands import handle_dashboard
+    """Handle ``!murphy dashboard`` — delegate to management_systems.management_commands."""
+    from management_systems.management_commands import handle_dashboard
     return handle_dashboard(dispatcher, cmd)
 
 
 def _handle_sync(
     dispatcher: CommandDispatcher, cmd: ParsedCommand
 ) -> CommandResponse:
-    """Handle ``!murphy sync`` — delegate to matrix_monday.monday_commands."""
-    from matrix_monday.monday_commands import handle_sync
+    """Handle ``!murphy sync`` — delegate to management_systems.management_commands."""
+    from management_systems.management_commands import handle_sync
     return handle_sync(dispatcher, cmd)
 
 
 def _handle_form(
     dispatcher: CommandDispatcher, cmd: ParsedCommand
 ) -> CommandResponse:
-    """Handle ``!murphy form`` — delegate to matrix_monday.monday_commands."""
-    from matrix_monday.monday_commands import handle_form
+    """Handle ``!murphy form`` — delegate to management_systems.management_commands."""
+    from management_systems.management_commands import handle_form
     return handle_form(dispatcher, cmd)
 
 
 def _handle_doc(
     dispatcher: CommandDispatcher, cmd: ParsedCommand
 ) -> CommandResponse:
-    """Handle ``!murphy doc`` — delegate to matrix_monday.monday_commands."""
-    from matrix_monday.monday_commands import handle_doc
+    """Handle ``!murphy doc`` — delegate to management_systems.management_commands."""
+    from management_systems.management_commands import handle_doc
     return handle_doc(dispatcher, cmd)
