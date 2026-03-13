@@ -525,7 +525,7 @@ class TestDispatcherWiring:
         commands = {c["command"] for c in dispatcher.list_commands()}
         for mgmt_cmd in ["board", "status-label", "timeline", "recipe",
                            "workspace", "dashboard", "sync", "form", "doc"]:
-            assert mgmt_cmd in commands, f"Missing command: {monday_cmd}"
+            assert mgmt_cmd in commands, f"Missing command: {mgmt_cmd}"
 
     def test_dispatch_board_list(self):
         """Full round-trip: parse + dispatch !murphy board list."""
