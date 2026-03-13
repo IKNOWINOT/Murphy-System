@@ -494,7 +494,7 @@ class KeyManager:
         return key
 
     @staticmethod
-    def _get_fernet() -> "Optional[Any]":
+    def _get_fernet() -> "Optional[Fernet]":
         """
         Load or derive the Fernet instance used for private-key encryption.
 
