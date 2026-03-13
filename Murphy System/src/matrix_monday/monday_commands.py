@@ -300,12 +300,16 @@ def handle_timeline(dispatcher: object, cmd: object) -> object:
 
     if sub == "critical-path":
         cp = engine.calculate_critical_path()
-        if not cp.items:
+        if not cp.item_ids:
             return _make_response(True, "## Critical Path\n\nNo items on the critical path (add dependencies first).")
         lines = ["## Critical Path\n"]
-        lines.append(f"**Total duration:** {cp.total_duration} days\n")
-        for item in cp.items:
-            lines.append(f"- {item.name} ({item.start_date} → {item.end_date})")
+        lines.append(f"**Total duration:** {cp.total_duration_days} days\n")
+        for item_id in cp.item_ids:
+            item = engine.get_item(item_id)
+            if item:
+                lines.append(f"- {item.name} ({item.start_date} → {item.end_date})")
+            else:
+                lines.append(f"- `{item_id}`")
         return _make_response(True, "\n".join(lines))
 
     if sub == "auto-schedule":
@@ -403,8 +407,9 @@ def handle_workspace(dispatcher: object, cmd: object) -> object:
         lines.append("| Name | Domain | Modules | Boards |")
         lines.append("|------|--------|---------|--------|")
         for ws in workspaces:
+            mod_count = len(mgr.list_modules_for_domain(ws.domain_key))
             lines.append(
-                f"| {ws.name} | `{ws.domain_key}` | {len(ws.modules)} | {len(ws.board_ids)} |"
+                f"| {ws.name} | `{ws.domain_key}` | {mod_count} | {len(ws.board_ids)} |"
             )
         return _make_response(True, "\n".join(lines))
 
@@ -415,13 +420,14 @@ def handle_workspace(dispatcher: object, cmd: object) -> object:
         ws = mgr.get_workspace_by_domain(domain)
         if not ws:
             return _make_response(False, f"Workspace domain `{domain}` not found.")
-        mod_list = ", ".join(f"`{m}`" for m in ws.modules[:10])
-        extra = f" … +{len(ws.modules) - 10} more" if len(ws.modules) > 10 else ""
+        modules = mgr.list_modules_for_domain(ws.domain_key)
+        mod_list = ", ".join(f"`{m}`" for m in modules[:10])
+        extra = f" … +{len(modules) - 10} more" if len(modules) > 10 else ""
         return _make_response(
             True,
             f"## Workspace: {ws.name}\n\n"
             f"- **Domain:** `{ws.domain_key}`\n"
-            f"- **Modules ({len(ws.modules)}):** {mod_list}{extra}\n"
+            f"- **Modules ({len(modules)}):** {mod_list}{extra}\n"
             f"- **Boards:** {len(ws.board_ids)}\n",
         )
 
