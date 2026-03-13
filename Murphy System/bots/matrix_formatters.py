@@ -540,8 +540,6 @@ Produces HTML-formatted messages with Murphy's terminal aesthetic:
   ☠ skull decorators  |  ● running  ○ idle  ✕ error
   Color-coded status  |  HTML tables  |  Code blocks
 """
-from __future__ import annotations
-
 import json
 from typing import Any
 
