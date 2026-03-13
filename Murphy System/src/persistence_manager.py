@@ -577,16 +577,18 @@ class SQLitePersistenceManager:
     def get_stats(self) -> dict:
         """Return persistence statistics from SQL."""
         from db import (  # noqa: PLC0415
+            DATABASE_URL,
             AuditTrail,
             LivingDocumentRecord,
             SessionRecord,
             _get_session_factory,
         )
+        backend = "postgresql" if DATABASE_URL.startswith("postgresql") else "sqlite"
         factory = _get_session_factory()
         session = factory()
         try:
             return {
-                "backend": "sqlite",
+                "backend": backend,
                 "documents": session.query(LivingDocumentRecord).count(),
                 "audit_events": session.query(AuditTrail).count(),
                 "sessions": session.query(SessionRecord).count(),
@@ -611,8 +613,12 @@ def get_persistence_manager(
 ) -> "PersistenceManager | SQLitePersistenceManager":
     """Return the appropriate persistence manager for the current environment.
 
-    * ``MURPHY_DB_MODE=live`` → :class:`SQLitePersistenceManager` (SQL-backed)
-    * ``MURPHY_DB_MODE=stub`` → :class:`PersistenceManager` (JSON file-backed)
+    * ``MURPHY_DB_MODE=live`` + ``DATABASE_URL`` starts with ``postgresql`` →
+      :class:`SQLitePersistenceManager` backed by PostgreSQL via SQLAlchemy.
+    * ``MURPHY_DB_MODE=live`` (no PostgreSQL URL) →
+      :class:`SQLitePersistenceManager` backed by SQLite.
+    * ``MURPHY_DB_MODE=stub`` (default) →
+      :class:`PersistenceManager` (JSON file-backed).
 
     Returns:
         An instance of the appropriate persistence manager.
