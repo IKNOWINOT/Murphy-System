@@ -132,7 +132,7 @@ class GAIAAdapter(BenchmarkAdapter):
             from src.ai_workflow_generator import AIWorkflowGenerator  # noqa: PLC0415
 
             gen = AIWorkflowGenerator()
-            result_obj = gen.generate(description=question)
+            result_obj = gen.generate_workflow(question)
             answer_output = str(result_obj)
         except Exception as exc:  # noqa: BLE001
             logger.debug("AIWorkflowGenerator unavailable for GAIA task %s: %s", task_id, exc)

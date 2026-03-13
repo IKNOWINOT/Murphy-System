@@ -144,7 +144,7 @@ class TerminalBenchAdapter(BenchmarkAdapter):
             from src.ai_workflow_generator import AIWorkflowGenerator  # noqa: PLC0415
 
             gen = AIWorkflowGenerator()
-            result_obj = gen.generate(description=f"CLI task: {instruction}")
+            result_obj = gen.generate_workflow(f"CLI task: {instruction}")
             output = str(result_obj)
             # Count non-error lines as completed steps -------------------------
             lines = [ln.strip() for ln in output.splitlines() if ln.strip()]
