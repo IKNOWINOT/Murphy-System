@@ -1913,6 +1913,159 @@ class TestSVGValidity:
 
 
 # ---------------------------------------------------------------------------
+# SVG Z-Order and Rendering Correctness
+# ---------------------------------------------------------------------------
+
+class TestSVGZOrder:
+    """Verify SVG element ordering, clipPath references, markers, and font minimums."""
+
+    def _make_mixed_sheet(self):
+        """Return a project with one sheet containing HATCH, LINE, CIRCLE, DIMENSION, TEXT."""
+        project = DrawingProject(name="ZOrder", discipline=Discipline.MECHANICAL)
+        sheet = DrawingSheet(size=SheetSize.ANSI_D)
+        project.sheets.append(sheet)
+        # Add in reverse render order to prove sorting works
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.TEXT,
+            geometry={"x": 10, "y": 10, "height": 6},
+            properties={"text": "LABEL"},
+        ))
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.DIMENSION,
+            geometry={"x1": 0, "y1": 0, "x2": 100, "y2": 0, "offset": 10},
+            properties={"text": "100"},
+        ))
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.CIRCLE,
+            geometry={"cx": 50, "cy": 50, "radius": 20},
+        ))
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.LINE,
+            geometry={"x1": 0, "y1": 0, "x2": 100, "y2": 0},
+        ))
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.HATCH,
+            geometry={"x": 0, "y": 200, "width": 100, "height": 20, "spacing": 5, "angle": 45},
+        ))
+        return project
+
+    def test_hatch_before_line_in_svg(self):
+        """HATCH elements must appear before LINE elements in the SVG body."""
+        project = self._make_mixed_sheet()
+        svg = DrawingExporter().to_svg(project)
+        # Search only in the body (after </defs>) to avoid matching <line> inside pattern defs
+        body_start = svg.find("</defs>") + len("</defs>")
+        body = svg[body_start:]
+        hatch_pos = body.find('clip-path="url(#')
+        # Find the plain non-hatch line — it won't have a clip-path attribute
+        # First <line> without clip-path in the body
+        import re
+        # Find position of the first line that is NOT a hatch line (no clip-path attr)
+        plain_line_match = re.search(r'<line x1="0"[^/]*/>', body)
+        assert hatch_pos != -1, "No hatch content found in SVG body"
+        assert plain_line_match is not None, "No plain line element found in SVG body"
+        assert hatch_pos < plain_line_match.start(), "Hatch must appear before lines (z-order)"
+
+    def test_text_after_circle_in_svg(self):
+        """TEXT elements must appear after CIRCLE elements in SVG output."""
+        project = self._make_mixed_sheet()
+        svg = DrawingExporter().to_svg(project)
+        circle_pos = svg.find('<circle ')
+        text_pos = svg.find('>LABEL<')
+        assert circle_pos != -1
+        assert text_pos != -1
+        assert circle_pos < text_pos, "Circle must appear before text annotations (z-order)"
+
+    def test_title_block_renders_after_all_elements(self):
+        """Title block must be the last group of SVG elements."""
+        project = DrawingProject(name="TB Last", discipline=Discipline.MECHANICAL)
+        sheet = DrawingSheet(size=SheetSize.ANSI_D)
+        project.sheets.append(sheet)
+        sheet.title_block = TitleBlock(
+            company="Acme", drawing_number="DWG-1", drawn_by="Eng"
+        )
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.TEXT,
+            geometry={"x": 5, "y": 5, "height": 8},
+            properties={"text": "DRAWING CONTENT"},
+        ))
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.HATCH,
+            geometry={"x": 0, "y": 300, "width": 100, "height": 20},
+        ))
+        svg = DrawingExporter().to_svg(project)
+        # Title block rect has fill="white" — it must appear after drawing content
+        title_pos = svg.rfind('fill="white"')
+        drawing_text_pos = svg.find('>DRAWING CONTENT<')
+        assert title_pos != -1, "Title block fill='white' not found"
+        assert drawing_text_pos != -1, "Drawing text element not found"
+        assert drawing_text_pos < title_pos, "Title block must appear after drawing elements"
+
+    def test_clippath_id_matches_reference(self):
+        """The clipPath id must match the clip-path url() reference."""
+        import re
+        import xml.etree.ElementTree as ET
+        project = DrawingProject(name="Clip Test", discipline=Discipline.MECHANICAL)
+        sheet = DrawingSheet(size=SheetSize.ANSI_D)
+        project.sheets.append(sheet)
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.HATCH,
+            geometry={"x": 10, "y": 10, "width": 80, "height": 40, "spacing": 5, "angle": 45},
+        ))
+        svg = DrawingExporter().to_svg(project)
+        # Collect all clipPath ids from <defs>
+        root = ET.fromstring(svg)
+        ns = "http://www.w3.org/2000/svg"
+        defs = root.find(f"{{{ns}}}defs")
+        assert defs is not None
+        clip_ids = {cp.get("id") for cp in defs.findall(f"{{{ns}}}clipPath")}
+        # Collect all clip-path references in the body
+        refs = re.findall(r'clip-path="url\(#([^)]+)\)"', svg)
+        assert len(refs) > 0, "No clip-path references found"
+        for ref_id in refs:
+            assert ref_id in clip_ids, f"clip-path url(#{ref_id}) has no matching <clipPath id>"
+
+    def test_arrow_markers_referenced_in_defs(self):
+        """marker-start/marker-end references must have matching <marker> defs."""
+        import re
+        import xml.etree.ElementTree as ET
+        project = DrawingProject(name="Marker Test", discipline=Discipline.MECHANICAL)
+        sheet = DrawingSheet(size=SheetSize.ANSI_D)
+        project.sheets.append(sheet)
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.DIMENSION,
+            geometry={"x1": 0, "y1": 0, "x2": 100, "y2": 0, "offset": 15},
+            properties={"text": "100mm"},
+        ))
+        svg = DrawingExporter().to_svg(project)
+        root = ET.fromstring(svg)
+        ns = "http://www.w3.org/2000/svg"
+        defs = root.find(f"{{{ns}}}defs")
+        assert defs is not None
+        marker_ids = {m.get("id") for m in defs.findall(f"{{{ns}}}marker")}
+        refs = re.findall(r'marker-(?:start|end)="url\(#([^)]+)\)"', svg)
+        assert len(refs) > 0, "No marker references found in dimension SVG"
+        for ref_id in refs:
+            assert ref_id in marker_ids, f"marker url(#{ref_id}) has no matching <marker> def"
+
+    def test_text_minimum_font_size_enforced(self):
+        """Text elements with very small height must be clamped to a minimum of 8px."""
+        project = DrawingProject(name="Font Test", discipline=Discipline.MECHANICAL)
+        sheet = DrawingSheet(size=SheetSize.ANSI_D)
+        project.sheets.append(sheet)
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.TEXT,
+            geometry={"x": 10, "y": 10, "height": 3},  # below minimum
+            properties={"text": "TINY"},
+        ))
+        svg = DrawingExporter().to_svg(project)
+        # font-size must not be less than 8
+        import re
+        font_sizes = [int(m) for m in re.findall(r'font-size="(\d+)"', svg)]
+        assert all(fs >= 8 for fs in font_sizes), f"Font sizes below 8 found: {font_sizes}"
+
+
+# ---------------------------------------------------------------------------
 # Phase A: TestIsometricProjector
 # ---------------------------------------------------------------------------
 
