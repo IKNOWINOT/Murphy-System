@@ -8,18 +8,18 @@ auto-moderation rules, content classification, queue management,
 cross-platform policy enforcement, analytics, and appeal handling.
 """
 
-import time
-import threading
 import hashlib
 import json
-import re
-import uuid
-from enum import Enum
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
-from thread_safe_operations import capped_append
-
 import logging
+import re
+import threading
+import time
+import uuid
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Dict, List, Optional
+
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 

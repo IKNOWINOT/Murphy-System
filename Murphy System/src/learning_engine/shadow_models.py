@@ -4,13 +4,12 @@ Shadow Agent Training Data Models
 This module defines the data structures for training the shadow agent from human corrections.
 """
 
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
 from uuid import UUID, uuid4
-
-import logging
 
 logger = logging.getLogger(__name__)
 

@@ -15,34 +15,31 @@ __version__ = "1.0.0"
 
 # Try to import the full module, fall back to simple wrapper if dependencies missing
 try:
-    from .models import (
-        TelemetryDomain,
-        OperationalTelemetry,
-        HumanTelemetry,
-        ControlTelemetry,
-        SafetyTelemetry,
-        MarketTelemetry,
-        TelemetryArtifact,
-        GateEvolutionArtifact,
-        InsightArtifact,
-    )
-
     from .ingestion import (
         TelemetryBus,
         TelemetryIngester,
     )
-
     from .learning import (
-        GateStrengtheningEngine,
-        PhaseTuningEngine,
-        BottleneckDetector,
         AssumptionInvalidator,
+        BottleneckDetector,
+        GateStrengtheningEngine,
         HardeningPolicyEngine,
+        PhaseTuningEngine,
     )
-
+    from .models import (
+        ControlTelemetry,
+        GateEvolutionArtifact,
+        HumanTelemetry,
+        InsightArtifact,
+        MarketTelemetry,
+        OperationalTelemetry,
+        SafetyTelemetry,
+        TelemetryArtifact,
+        TelemetryDomain,
+    )
     from .shadow_mode import (
-        ShadowModeController,
         AuthorizationInterface,
+        ShadowModeController,
     )
 
     __all__ = [
@@ -89,10 +86,7 @@ except ImportError as exc:
         "Using simplified telemetry learning engine due to missing dependencies: %s", exc,
     )
 
-    from .simple_wrapper import (
-        SimpleTelemetryLearningEngine,
-        TelemetryLearningEngine
-    )
+    from .simple_wrapper import SimpleTelemetryLearningEngine, TelemetryLearningEngine
 
     __all__ = [
         "TelemetryLearningEngine",

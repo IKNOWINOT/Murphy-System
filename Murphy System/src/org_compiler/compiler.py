@@ -11,24 +11,24 @@ The compiler:
 5. Detects compliance constraints
 """
 
-from typing import List, Dict, Optional, Set
-from collections import defaultdict
-import re
-
 import logging
+import re
+from collections import defaultdict
+from typing import Dict, List, Optional, Set
+
 logger = logging.getLogger("org_compiler.compiler")
 
 from .schemas import (
-    RoleTemplate,
+    ArtifactType,
+    AuthorityLevel,
+    ComplianceConstraint,
+    EscalationPath,
+    HandoffEvent,
     OrgChartNode,
     ProcessFlow,
-    WorkArtifact,
-    HandoffEvent,
-    EscalationPath,
-    ComplianceConstraint,
     RoleMetrics,
-    AuthorityLevel,
-    ArtifactType,
+    RoleTemplate,
+    WorkArtifact,
 )
 
 

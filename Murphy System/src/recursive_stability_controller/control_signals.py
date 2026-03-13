@@ -17,11 +17,10 @@ Re-expansion only after:
 - Entropy decreasing
 """
 
-from dataclasses import dataclass
-from typing import Dict, List
-from enum import Enum
-
 import logging
+from dataclasses import dataclass
+from enum import Enum
+from typing import Dict, List
 
 logger = logging.getLogger(__name__)
 

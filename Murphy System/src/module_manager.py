@@ -2,11 +2,11 @@
 Module Manager - Manages dynamic module coupling/decoupling
 Reading level: High school student
 """
-from typing import Dict, List, Any, Optional
 import importlib
 import inspect
-
 import logging
+from typing import Any, Dict, List, Optional
+
 logger = logging.getLogger("module_manager")
 
 class ModuleManager:

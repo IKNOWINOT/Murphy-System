@@ -8,11 +8,10 @@ by Prometheus or any compatible monitoring tool.
 No external dependencies — generates the text format directly.
 """
 
-import time
-import threading
-from typing import Any, Dict, List, Optional
-
 import logging
+import threading
+import time
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

@@ -10,14 +10,14 @@ Implements a capability-rollcall stage before swarm expansion
 - Thread-safe operation for concurrent orchestrator access
 """
 
-import uuid
-import random
 import logging
+import random
 import threading
-from typing import Dict, List, Optional, Any
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

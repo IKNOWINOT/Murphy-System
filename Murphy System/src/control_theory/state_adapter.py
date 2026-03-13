@@ -17,10 +17,10 @@ from control_theory.canonical_state import CanonicalStateVector
 if TYPE_CHECKING:
     # Imported only for type hints — avoids hard import errors if optional
     # dependencies are missing at runtime.
-    from mfgc_core import MFGCSystemState, Phase
-    from unified_mfgc import SystemState as UnifiedSystemState
-    from rosetta.rosetta_models import SystemState as RosettaSystemState
     from logging_system import Session
+    from mfgc_core import MFGCSystemState, Phase
+    from rosetta.rosetta_models import SystemState as RosettaSystemState
+    from unified_mfgc import SystemState as UnifiedSystemState
 
 
 # ---------------------------------------------------------------------------

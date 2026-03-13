@@ -3,12 +3,11 @@ Post-Compilation Enforcer
 Enforces rules after packet compilation
 """
 
-from typing import Dict, Any, List, Tuple
+import logging
 from datetime import datetime, timezone
+from typing import Any, Dict, List, Tuple
 
 from .models import ExecutionPacket, PacketState
-
-import logging
 
 logger = logging.getLogger(__name__)
 

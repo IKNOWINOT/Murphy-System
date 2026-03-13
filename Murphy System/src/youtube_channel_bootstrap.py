@@ -187,8 +187,8 @@ class YouTubeChannelBootstrap:
             return False
 
         try:
-            from google_auth_oauthlib.flow import InstalledAppFlow  # noqa: F401
             from google.auth.transport.requests import Request  # noqa: F401
+            from google_auth_oauthlib.flow import InstalledAppFlow  # noqa: F401
 
             scopes = [
                 "https://www.googleapis.com/auth/youtube.upload",
@@ -275,8 +275,8 @@ class YouTubeChannelBootstrap:
 
     def _check_api_packages(self) -> bool:
         try:
-            import googleapiclient  # noqa: F401
             import google_auth_oauthlib  # noqa: F401
+            import googleapiclient  # noqa: F401
             return True
         except ImportError:
             return False
@@ -325,8 +325,8 @@ class YouTubeChannelBootstrap:
 
     def _load_credentials(self) -> Optional[Any]:
         try:
-            from google.oauth2.credentials import Credentials  # noqa: F401
             from google.auth.transport.requests import Request  # noqa: F401
+            from google.oauth2.credentials import Credentials  # noqa: F401
 
             with open(str(self._credentials_path), encoding="utf-8") as fh:
                 data = json.load(fh)

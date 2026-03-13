@@ -3,11 +3,11 @@ LLM Integration Layer
 Integrates local LLMs with MFGC system for enhanced reasoning
 """
 
+import json
 import logging
 import os
-import json
-from typing import Dict, Any, Optional, List
 from enum import Enum
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

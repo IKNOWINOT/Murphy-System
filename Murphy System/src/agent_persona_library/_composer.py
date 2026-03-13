@@ -9,9 +9,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from agent_persona_library._frameworks import InfluenceFramework, INFLUENCE_FRAMEWORKS
-from agent_persona_library._roster import AgentPersonaDefinition, AGENT_ROSTER
-
+from agent_persona_library._frameworks import INFLUENCE_FRAMEWORKS, InfluenceFramework
+from agent_persona_library._roster import AGENT_ROSTER, AgentPersonaDefinition
 
 # ---------------------------------------------------------------------------
 # Selling Prompt Composer

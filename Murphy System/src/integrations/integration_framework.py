@@ -2,16 +2,16 @@
 Integration Framework - Manage external system integrations
 """
 
+import logging
 import threading
+import time
 import uuid
-from typing import Dict, List, Optional, Any, Callable
+from collections import defaultdict
 from datetime import datetime, timezone
 from enum import Enum
-import logging
-import time
-from collections import defaultdict
+from typing import Any, Callable, Dict, List, Optional
 
-from thread_safe_operations import ThreadSafeDict, ThreadSafeCounter, CircuitBreaker, RateLimiter
+from thread_safe_operations import CircuitBreaker, RateLimiter, ThreadSafeCounter, ThreadSafeDict
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

@@ -10,13 +10,14 @@ This module implements organizational-hierarchy enforcement providing:
 - Immutable audit trail for every enforcement decision
 """
 
-import uuid
 import logging
 import threading
-from typing import Dict, List, Optional, Any, Tuple
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
+
 from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)

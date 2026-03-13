@@ -3,13 +3,12 @@ Core data models for Gate Synthesis Engine
 Defines gates, risk vectors, exposure signals, and lifecycle management
 """
 
-from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional, Set
-from enum import Enum
-from datetime import datetime, timedelta, timezone
 import hashlib
-
 import logging
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
 

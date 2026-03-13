@@ -4,14 +4,14 @@ Handles budget, regulatory, architectural, and other constraints
 Provides validation, prioritization, conflict resolution, and impact analysis
 """
 
-from typing import Dict, List, Optional, Any, Tuple
-from dataclasses import dataclass, field
-from enum import Enum
 import json
+import logging
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from decimal import Decimal
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
-import logging
 logger = logging.getLogger("constraint_system")
 
 

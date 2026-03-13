@@ -3,19 +3,20 @@ Risk Lookup Service
 Fast, intelligent risk identification and assessment service.
 """
 
-from typing import Dict, List, Optional, Any, Tuple
+import logging
 from datetime import datetime, timedelta, timezone
 from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
+
 from pydantic import BaseModel, Field
 
-from src.confidence_engine.risk.risk_database import (
-    RiskPattern, RiskCategory, RiskSeverity, RiskIncident
-)
+from src.confidence_engine.risk.risk_database import RiskCategory, RiskIncident, RiskPattern, RiskSeverity
 from src.confidence_engine.risk.risk_storage import (
-    RiskPatternStorage, PatternMatchResult, RiskPatternQuery, PatternMatchType
+    PatternMatchResult,
+    PatternMatchType,
+    RiskPatternQuery,
+    RiskPatternStorage,
 )
-
-import logging
 
 logger = logging.getLogger(__name__)
 

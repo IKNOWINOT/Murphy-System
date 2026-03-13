@@ -24,17 +24,18 @@ References:
   - Section 14.1 items 1-2: compute-session wiring parity, runtime guardrails
 """
 
-import logging
-import threading
 import hashlib
+import logging
 import math
-from uuid import uuid4
-from typing import Dict, List, Optional, Any, Tuple
-from thread_safe_operations import capped_append
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
+import threading
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional, Tuple
+from uuid import uuid4
+
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 

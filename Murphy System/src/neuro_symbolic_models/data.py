@@ -6,16 +6,17 @@ Collects training data from Synthetic Failure Generator
 and prepares it for model training.
 """
 
-import torch
+import json
+import logging
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
+
 import numpy as np
 import requests
+import torch
 from torch_geometric.data import Data, Dataset
-from typing import List, Dict, Any, Optional, Tuple
-from dataclasses import dataclass
-import json
-from datetime import datetime
 
-import logging
 logger = logging.getLogger("neuro_symbolic_models.data")
 
 

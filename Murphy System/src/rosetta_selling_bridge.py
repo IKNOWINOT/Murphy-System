@@ -43,10 +43,10 @@ try:
         EmployeeContract,
         IndustryTerminology,
         ManagementLayer,
+        MetricDirection,
         RosettaDocument,
         StateFeed,
         StateFeedEntry,
-        MetricDirection,
         TermDefinition,
     )
     _ROSETTA_AVAILABLE = True
@@ -70,8 +70,8 @@ except ImportError:  # pragma: no cover
     RosettaDocumentBuilder = None
 
 try:
+    from avatar.avatar_models import AvatarProfile, AvatarStyle, AvatarVoice
     from avatar.persona_injector import PersonaInjector
-    from avatar.avatar_models import AvatarProfile, AvatarVoice, AvatarStyle
     _PERSONA_AVAILABLE = True
 except ImportError:  # pragma: no cover
     _PERSONA_AVAILABLE = False

@@ -64,6 +64,18 @@ __version__ = "0.4.0"
 __codename__ = "Management Systems"
 
 # -- Board Engine -----------------------------------------------------------
+# -- Automation Recipes -----------------------------------------------------
+from .automation_recipes import (
+    ActionType,
+    AutomationAction,
+    AutomationRecipe,
+    AutomationTrigger,
+    ExecutionLogEntry,
+    RecipeCondition,
+    RecipeEngine,
+    RecipeStatus,
+    TriggerType,
+)
 from .board_engine import (
     Board,
     BoardColumn,
@@ -77,6 +89,66 @@ from .board_engine import (
     ColumnType,
     TemplateType,
     ViewType,
+)
+
+# -- Dashboard Generator ----------------------------------------------------
+from .dashboard_generator import (
+    DashboardGenerator,
+    DashboardTemplate,
+    DashboardTemplateType,
+    DashboardWidget,
+    ScheduledReport,
+    ScheduleInterval,
+    WidgetType,
+)
+
+# -- Document Manager -------------------------------------------------------
+from .doc_manager import (
+    DocManager,
+    DocStatus,
+    DocTemplate,
+    DocType,
+    DocVersion,
+    WorkDoc,
+)
+
+# -- Form Builder -----------------------------------------------------------
+from .form_builder import (
+    FieldType,
+    FormBuilder,
+    FormField,
+    FormStatus,
+    FormSubmission,
+    FormTemplate,
+    FormTemplateType,
+    SubmissionStatus,
+)
+
+# -- Integration Bridge -----------------------------------------------------
+from .integration_bridge import (
+    ConflictPolicy,
+    IntegrationBridge,
+    SyncDirection,
+    SyncEvent,
+    SyncEventType,
+    SyncHistoryEntry,
+    SyncRule,
+    SyncStatus,
+)
+
+# -- Management Commands ----------------------------------------------------
+from .management_commands import (
+    MANAGEMENT_COMMAND_HANDLERS,
+    handle_board,
+    handle_dashboard,
+    handle_doc,
+    handle_form,
+    handle_recipe,
+    handle_status,
+    handle_sync,
+    handle_timeline,
+    handle_workspace,
+    reset_engines,
 )
 
 # -- Status Engine ----------------------------------------------------------
@@ -100,86 +172,13 @@ from .timeline_engine import (
     TimelineItem,
 )
 
-# -- Automation Recipes -----------------------------------------------------
-from .automation_recipes import (
-    ActionType,
-    AutomationAction,
-    AutomationRecipe,
-    AutomationTrigger,
-    ExecutionLogEntry,
-    RecipeCondition,
-    RecipeEngine,
-    RecipeStatus,
-    TriggerType,
-)
-
 # -- Workspace Manager ------------------------------------------------------
 from .workspace_manager import (
+    MURPHY_SUBSYSTEM_DOMAINS,
+    WORKSPACE_DISPLAY_NAMES,
     Workspace,
     WorkspaceManager,
     WorkspaceMapping,
-    MURPHY_SUBSYSTEM_DOMAINS,
-    WORKSPACE_DISPLAY_NAMES,
-)
-
-# -- Dashboard Generator ----------------------------------------------------
-from .dashboard_generator import (
-    DashboardGenerator,
-    DashboardTemplate,
-    DashboardTemplateType,
-    DashboardWidget,
-    ScheduledReport,
-    ScheduleInterval,
-    WidgetType,
-)
-
-# -- Integration Bridge -----------------------------------------------------
-from .integration_bridge import (
-    ConflictPolicy,
-    IntegrationBridge,
-    SyncDirection,
-    SyncEvent,
-    SyncEventType,
-    SyncHistoryEntry,
-    SyncRule,
-    SyncStatus,
-)
-
-# -- Form Builder -----------------------------------------------------------
-from .form_builder import (
-    FieldType,
-    FormBuilder,
-    FormField,
-    FormStatus,
-    FormSubmission,
-    FormTemplate,
-    FormTemplateType,
-    SubmissionStatus,
-)
-
-# -- Document Manager -------------------------------------------------------
-from .doc_manager import (
-    DocManager,
-    DocStatus,
-    DocTemplate,
-    DocType,
-    DocVersion,
-    WorkDoc,
-)
-
-# -- Management Commands ----------------------------------------------------
-from .management_commands import (
-    MANAGEMENT_COMMAND_HANDLERS,
-    handle_board,
-    handle_dashboard,
-    handle_doc,
-    handle_form,
-    handle_recipe,
-    handle_status,
-    handle_sync,
-    handle_timeline,
-    handle_workspace,
-    reset_engines,
 )
 
 __all__ = [

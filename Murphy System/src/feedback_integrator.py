@@ -7,13 +7,12 @@ structurally reintegrate corrections back into the typed state vector.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 from state_schema import StateVariable, TypedStateVector
-
-import logging
 
 logger = logging.getLogger(__name__)
 

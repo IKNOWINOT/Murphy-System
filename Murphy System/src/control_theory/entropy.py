@@ -1,9 +1,8 @@
 """Information-theoretic primitives for the Murphy System control theory layer."""
 
+import logging
 import math
 from typing import List
-
-import logging
 
 logger = logging.getLogger(__name__)
 

@@ -15,17 +15,11 @@ Design Principle: Cryptographically-sealed proof of execution
 
 import hashlib
 import json
-from typing import Dict, List, Optional
-from datetime import datetime, timezone
-
-from .models import (
-    CompletionCertificate,
-    ExecutionStatus,
-    ExecutionState,
-    StepResult
-)
-
 import logging
+from datetime import datetime, timezone
+from typing import Dict, List, Optional
+
+from .models import CompletionCertificate, ExecutionState, ExecutionStatus, StepResult
 
 logger = logging.getLogger(__name__)
 

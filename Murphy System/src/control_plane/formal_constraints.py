@@ -9,13 +9,14 @@ Defines:
 
 from __future__ import annotations
 
+import logging
 import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Callable, Dict, List, Optional
 
 from .state_vector import StateVector
-import logging
+
 logger = logging.getLogger(__name__)
 
 

@@ -10,6 +10,7 @@ Copyright 2024 Inoni LLC – BSL-1.1
 __version__ = "0.1.0"
 __codename__ = "Automations"
 
+from .engine import AutomationEngine
 from .models import (
     ActionType,
     AutomationAction,
@@ -18,7 +19,6 @@ from .models import (
     ConditionOperator,
     TriggerType,
 )
-from .engine import AutomationEngine
 
 try:
     from .api import create_automations_router

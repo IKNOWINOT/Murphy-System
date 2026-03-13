@@ -4,13 +4,12 @@ Handles 10 categories of reasoning tasks without changing the base model
 Uses deterministic rules, templates, and verified knowledge
 """
 
-from typing import Dict, Any, List, Optional, Tuple
-import re
-import math
-from datetime import datetime, timedelta
 import json
-
 import logging
+import math
+import re
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 

@@ -8,10 +8,10 @@ All connectors follow the same pattern:
 CRITICAL: Connectors NEVER trigger execution. They only create artifacts.
 """
 
-from abc import ABC, abstractmethod
-from typing import List, Dict, Optional, Any
-from datetime import datetime, timezone
 import logging
+from abc import ABC, abstractmethod
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
 
 try:
     import requests as _requests
@@ -19,20 +19,21 @@ except ImportError:
     _requests = None  # type: ignore[assignment]
 
 logger = logging.getLogger(__name__)
-import smtplib
-import imaplib
 import email
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-import requests
+import imaplib
+import smtplib
 import time
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+import requests
 
 from .schemas import (
-    MessageArtifact,
-    CommunicationPacket,
     Channel,
-    IntentClassification,
+    CommunicationPacket,
     ConnectorConfig,
+    IntentClassification,
+    MessageArtifact,
 )
 
 

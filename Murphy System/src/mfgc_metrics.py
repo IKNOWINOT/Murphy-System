@@ -3,13 +3,13 @@ MFGC Metrics and Monitoring
 Track execution metrics for analysis and optimization
 """
 
-from typing import Dict, Any, List
-import time
 import json
-from dataclasses import dataclass, field
-from mfgc_core import SystemState, Phase
-
 import logging
+import time
+from dataclasses import dataclass, field
+from typing import Any, Dict, List
+
+from mfgc_core import Phase, SystemState
 
 logger = logging.getLogger(__name__)
 

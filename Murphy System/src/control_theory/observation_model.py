@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple
 
 import numpy as np
 
-from .canonical_state import CanonicalStateVector, _DIMENSION_NAMES
+from .canonical_state import _DIMENSION_NAMES, CanonicalStateVector
 
 if TYPE_CHECKING:
     from .infinity_metric import CandidateQuestion, EntropyTracker, QuestionSelector

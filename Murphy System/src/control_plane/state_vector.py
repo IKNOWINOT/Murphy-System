@@ -11,12 +11,11 @@ Provides a Pydantic v2 ``StateVector`` model with:
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 
 from pydantic import BaseModel, Field, model_validator
-
-import logging
 
 logger = logging.getLogger(__name__)
 

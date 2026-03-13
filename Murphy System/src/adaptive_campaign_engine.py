@@ -48,9 +48,8 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from unit_economics_analyzer import _DEFAULT_TIER_REVENUES
-
 from thread_safe_operations import capped_append
+from unit_economics_analyzer import _DEFAULT_TIER_REVENUES
 
 logger = logging.getLogger(__name__)
 

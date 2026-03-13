@@ -3,18 +3,12 @@ Graph Analysis Engine
 Analyzes artifact graphs for structure, contradictions, and completeness
 """
 
-from typing import List, Dict, Set, Tuple, Any
+import logging
 import math
 from collections import defaultdict
+from typing import Any, Dict, List, Set, Tuple
 
-from .models import (
-    ArtifactGraph,
-    ArtifactNode,
-    ArtifactType,
-    ArtifactSource
-)
-
-import logging
+from .models import ArtifactGraph, ArtifactNode, ArtifactSource, ArtifactType
 
 logger = logging.getLogger(__name__)
 

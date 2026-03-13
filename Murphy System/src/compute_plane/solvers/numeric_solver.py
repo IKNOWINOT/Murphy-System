@@ -4,10 +4,11 @@ Numeric Solver
 Executes numeric computations with bounds and sensitivity analysis.
 """
 
-from typing import Tuple, Dict, Any
-import time
-import math
 import logging
+import math
+import time
+from typing import Any, Dict, Tuple
+
 logger = logging.getLogger(__name__)
 
 

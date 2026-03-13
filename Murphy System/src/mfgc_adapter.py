@@ -4,19 +4,23 @@ Bridges MFGC 7-phase control system with SystemIntegrator
 Provides optional phase-locked execution with confidence, authority, and Murphy index tracking
 """
 
-from typing import Dict, List, Optional, Any
+import json
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime
-import json
+from typing import Any, Dict, List, Optional
 
 from src.mfgc_core import (
-    MFGCSystemState, MFGCController, Phase,
-    ConfidenceEngine, AuthorityController,
-    MurphyIndexMonitor, GateCompiler, SwarmGenerator
+    AuthorityController,
+    ConfidenceEngine,
+    GateCompiler,
+    MFGCController,
+    MFGCSystemState,
+    MurphyIndexMonitor,
+    Phase,
+    SwarmGenerator,
 )
-from src.system_integrator import SystemIntegrator, SystemState, SystemResponse, UserRequest
-
-import logging
+from src.system_integrator import SystemIntegrator, SystemResponse, SystemState, UserRequest
 
 logger = logging.getLogger(__name__)
 

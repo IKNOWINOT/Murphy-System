@@ -3,10 +3,10 @@
 Re-exports HypothesisArtifact with a simplified constructor for e2e tests.
 """
 
-from dataclasses import dataclass, field
-from typing import List, Any, Dict, Optional
-from datetime import datetime
 import uuid
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 
 @dataclass

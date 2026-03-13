@@ -5,14 +5,14 @@ Implements the formal Agent Descriptor schema and validation for the Murphy Syst
 Ensures agents operate within bounded authority, stability limits, and phase constraints.
 """
 
-import uuid
-from datetime import datetime, timezone
-from enum import Enum
-from typing import List, Dict, Optional, Set, Any
-from dataclasses import dataclass, field
 import hashlib
 import json
 import logging
+import uuid
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
 

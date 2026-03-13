@@ -11,6 +11,7 @@ License: BSL 1.1
 
 # Import all public names from _deps (equivalent to `import *` but lint-clean)
 import src.runtime._deps as _runtime_deps  # noqa: F401
+
 globals().update(
     {k: v for k, v in vars(_runtime_deps).items() if not k.startswith("_")}
 )
@@ -21,7 +22,7 @@ from src.runtime.living_document import LivingDocument
 class MurphySystem:
     """
     Murphy System 1.0 - Complete Runtime
-    
+
     Integrates all Murphy components into a unified system:
     - Universal Control Plane (any automation type)
     - Inoni Business Automation (self-operation)
@@ -1170,7 +1171,7 @@ class MurphySystem:
         "task",
         "query",
     ]
-    
+
     @classmethod
     def create_test_instance(cls) -> "MurphySystem":
         """Lightweight instance factory for unit tests.
@@ -1294,17 +1295,17 @@ class MurphySystem:
         self.version = "1.0.0"
         self.start_time = datetime.now(timezone.utc)
         self._initialize_configuration_defaults()
-        
+
         logger.info("="*80)
         logger.info(f"MURPHY SYSTEM {self.version} - INITIALIZING")
         logger.info("="*80)
-        
+
         # Initialize core components
         logger.info("Initializing core components...")
         self.module_manager = module_manager
         self.modular_runtime = ModularRuntime()
         self._register_core_modules()
-        
+
         # Initialize Universal Control Plane
         if UniversalControlPlane:
             logger.info("Initializing Universal Control Plane...")
@@ -1312,7 +1313,7 @@ class MurphySystem:
         else:
             logger.warning("Universal Control Plane not available")
             self.control_plane = None
-        
+
         # Initialize Inoni Business Automation
         if InoniBusinessAutomation:
             logger.info("Initializing Inoni Business Automation...")
@@ -1320,7 +1321,7 @@ class MurphySystem:
         else:
             logger.warning("Inoni Business Automation not available")
             self.inoni_automation = None
-        
+
         # Initialize Integration Engine
         if UnifiedIntegrationEngine:
             logger.info("Initializing Integration Engine...")
@@ -1328,7 +1329,7 @@ class MurphySystem:
         else:
             logger.warning("Integration Engine not available (dependencies may be missing)")
             self.integration_engine = None
-        
+
         # Initialize Two-Phase Orchestrator
         if TwoPhaseOrchestrator:
             logger.info("Initializing Two-Phase Orchestrator...")
@@ -1336,7 +1337,7 @@ class MurphySystem:
         else:
             logger.warning("Two-Phase Orchestrator not available")
             self.orchestrator = None
-        
+
         # Initialize Phase 1-5 Components
         logger.info("Initializing Phase 1-5 components...")
         self.form_handler = FormHandler() if FormHandler else None
@@ -1344,7 +1345,7 @@ class MurphySystem:
         self.form_executor = IntegratedFormExecutor() if IntegratedFormExecutor else None
         self.correction_system = IntegratedCorrectionSystem() if IntegratedCorrectionSystem else None
         self.hitl_monitor = IntegratedHITLMonitor() if IntegratedHITLMonitor else None
-        
+
         # Initialize Original Murphy Components (if available)
         logger.info("Initializing original Murphy components...")
         try:
@@ -1377,7 +1378,7 @@ class MurphySystem:
             logger.warning("MFGC adapter not available")
             self.system_integrator = None
             self.mfgc_adapter = None
-        
+
         # System state
         self.sessions: Dict[str, Dict] = {}
         self.repositories: Dict[str, Dict] = {}
@@ -1710,7 +1711,7 @@ class MurphySystem:
                 self.bot_telemetry_normalizer = None
         else:
             self.bot_telemetry_normalizer = None
-    
+
         # Legacy Compatibility Matrix
         if LegacyCompatibilityMatrixAdapter:
             try:
@@ -3789,7 +3790,7 @@ class MurphySystem:
                 "route_source": route_source,
                 "error": str(exc)
             }
-    
+
     async def execute_task(
         self,
         task_description: str,
@@ -3799,21 +3800,21 @@ class MurphySystem:
     ) -> Dict:
         """
         Execute a task using Murphy System.
-        
+
         This is the main entry point for task execution.
         Uses two-phase orchestrator for complete workflow.
-        
+
         Args:
             task_description: Natural language task description
             task_type: Type of task (general, automation, integration, etc.)
             parameters: Additional parameters
             session_id: Optional session ID (creates new if not provided)
-        
+
         Returns:
             Execution result dictionary. Falls back to simulation mode when the
             Two-Phase Orchestrator is unavailable.
         """
-        
+
         logger.info(f"\n{'='*80}")
         logger.info(f"EXECUTING TASK: {task_description}")
         logger.info(f"{'='*80}\n")
@@ -4053,7 +4054,7 @@ class MurphySystem:
                     "mode": "compute_plane_validation"
                 }
             }
-        
+
         if not self._is_orchestrator_available():
             # `_build_execution_policy` maps request parameter `enforce_policy`
             # into the normalized execution_policy field `enforced`.
@@ -4153,13 +4154,13 @@ class MurphySystem:
         try:
             # Phase 1: Generative Setup
             logger.info("Phase 1: Generative Setup...")
-            
+
             setup_result = await self.orchestrator.phase1_generative_setup(
                 request_description=task_description,
                 request_type=task_type,
                 parameters=parameters or {}
             )
-            
+
             if not setup_result.get('success'):
                 return {
                     'success': False,
@@ -4172,7 +4173,7 @@ class MurphySystem:
                     'persistence_snapshot': persistence_snapshot,
                     'swarm_execution': swarm_execution,
                 }
-            
+
             session_id = self._normalize_session_id(setup_result.get('session_id'))
             if session_id is None:
                 return {
@@ -4187,16 +4188,16 @@ class MurphySystem:
                     'swarm_execution': swarm_execution,
                 }
             execution_packet = setup_result['execution_packet']
-            
+
             logger.info(f"✓ Setup complete. Session: {session_id}")
-            
+
             # Phase 2: Production Execution
             logger.info("\nPhase 2: Production Execution...")
-            
+
             execution_result = await self.orchestrator.phase2_production_execution(
                 session_id=session_id
             )
-            
+
             if not execution_result.get('success'):
                 return {
                     'success': False,
@@ -4210,9 +4211,9 @@ class MurphySystem:
                     'persistence_snapshot': persistence_snapshot,
                     'swarm_execution': swarm_execution,
                 }
-            
-            logger.info(f"✓ Execution complete")
-            
+
+            logger.info("✓ Execution complete")
+
             deliverables = self._append_document_deliverable(
                 execution_result.get('deliverables', []),
                 task_description,
@@ -4278,7 +4279,7 @@ class MurphySystem:
             }
             self._persist_execution_result(session_id, task_description, task_type, orchestrator_result)
             return orchestrator_result
-        
+
         except Exception as e:
             logger.error(f"Task execution failed: {e}")
             import traceback
@@ -6543,7 +6544,7 @@ class MurphySystem:
             from src.execution.document_generation_engine import (
                 DocumentGenerationEngine,
                 DocumentTemplate,
-                DocumentType
+                DocumentType,
             )
         except ImportError:
             logger.warning("DocumentGenerationEngine not available; document delivery skipped.")
@@ -10145,9 +10146,10 @@ class MurphySystem:
         sensor_plan: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         try:
-            from src.gate_synthesis import FailureMode, RiskVector, GateGenerator
+            from src.confidence_engine.models import AuthorityBand
+            from src.confidence_engine.models import Phase as ConfidenceEnginePhase
+            from src.gate_synthesis import FailureMode, GateGenerator, RiskVector
             from src.gate_synthesis.models import FailureModeType
-            from src.confidence_engine.models import Phase as ConfidenceEnginePhase, AuthorityBand
 
             risk_vector = RiskVector(
                 H=max(0.0, 1.0 - doc.confidence),
@@ -11230,8 +11232,8 @@ class MurphySystem:
             goal_text = answers["signup"].lower()
             if len(goal_text) > MIN_GOAL_TEXT_LENGTH:
                 hints.append(
-                    f"\n💡 *Librarian note:* Great — I'm already thinking about "
-                    f"what integrations will support your goal."
+                    "\n💡 *Librarian note:* Great — I'm already thinking about "
+                    "what integrations will support your goal."
                 )
                 # Infer specific suggestions from the signup goal
                 if any(w in goal_text for w in ("sales", "pipeline", "leads", "crm")):
@@ -11295,7 +11297,7 @@ class MurphySystem:
             else:
                 hints.append(
                     "\n💡 *Librarian note:* I'll configure the system for your "
-                    f"region. If you have specific compliance requirements, "
+                    "region. If you have specific compliance requirements, "
                     "mention them in the next step."
                 )
 
@@ -12755,7 +12757,7 @@ class MurphySystem:
         # Add readiness score indicator
         reply += f"\n\n📊 **MFGC/5U Readiness:** {score:.0f}%"
         if score < 85:
-            reply += f" (need 85% to generate your automation plan)"
+            reply += " (need 85% to generate your automation plan)"
             next_q = self._next_onboarding_question(profile)
             if next_q:
                 reply += f"\n\n**Next up:** {next_q}"
@@ -12787,8 +12789,8 @@ class MurphySystem:
             reply += f"  • **{label}:** {display}\n"
 
         reply += (
-            f"\nClick **Continue to Plan →** to see your recommended modules and integrations, "
-            f"or keep chatting to refine your setup."
+            "\nClick **Continue to Plan →** to see your recommended modules and integrations, "
+            "or keep chatting to refine your setup."
         )
         return reply
 
@@ -13204,9 +13206,9 @@ class MurphySystem:
             "mfgc_config": self.mfgc_config,
             "mfgc_statistics": self.mfgc_statistics
         }
-    
+
     # ==================== INTEGRATION ====================
-    
+
     def add_integration(
         self,
         source: str,
@@ -13217,18 +13219,18 @@ class MurphySystem:
     ) -> Dict:
         """
         Add an integration using Integration Engine.
-        
+
         Args:
             source: GitHub URL, API endpoint, or hardware device
             integration_type: Type of integration
             category: Category for the integration
             generate_agent: Whether to generate an agent
             auto_approve: Skip HITL approval (testing only)
-        
+
         Returns:
             Integration result
         """
-        
+
         if not self.integration_engine:
             return {
                 "success": False,
@@ -13242,7 +13244,7 @@ class MurphySystem:
             generate_agent=generate_agent,
             auto_approve=auto_approve
         ).to_dict()
-    
+
     def approve_integration(self, request_id: str, approved_by: str = "user") -> Dict:
         """Approve a pending integration"""
         if not self.integration_engine:
@@ -13251,7 +13253,7 @@ class MurphySystem:
             request_id=request_id,
             approved_by=approved_by
         ).to_dict()
-    
+
     def reject_integration(self, request_id: str, reason: str = "User rejected") -> Dict:
         """Reject a pending integration"""
         if not self.integration_engine:
@@ -13260,9 +13262,9 @@ class MurphySystem:
             request_id=request_id,
             reason=reason
         ).to_dict()
-    
+
     # ==================== BUSINESS AUTOMATION ====================
-    
+
     def run_inoni_automation(
         self,
         engine_name: str,
@@ -13271,16 +13273,16 @@ class MurphySystem:
     ) -> Dict:
         """
         Run Inoni business automation.
-        
+
         Args:
             engine_name: Name of engine (sales, marketing, rd, business, production)
             action: Action to perform
             parameters: Action parameters
-        
+
         Returns:
             Automation result
         """
-        
+
         if not self.inoni_automation:
             return {
                 "success": False,
@@ -13293,12 +13295,12 @@ class MurphySystem:
             action=action,
             parameters=parameters or {}
         )
-    
+
     # ==================== SYSTEM MANAGEMENT ====================
-    
+
     def get_system_status(self) -> Dict:
         """Get complete system status"""
-        
+
         uptime = (datetime.now(timezone.utc) - self.start_time).total_seconds()
         self_operation_enabled = self.inoni_automation is not None
         correction_system_available = self.correction_system is not None
@@ -13455,7 +13457,7 @@ class MurphySystem:
                 'state': 'active' if self_operation_enabled else 'unavailable'
             }
         }
-    
+
     def get_system_info(self) -> Dict:
         """Get system information"""
         summary_bundle = self._build_summary_surface_bundle()
@@ -13653,7 +13655,7 @@ class MurphySystem:
             },
             "modules": processed
         }
-    
+
     def list_modules(self) -> List[Dict]:
         """List all loaded modules"""
         status = self.module_manager.get_module_status()
@@ -13666,7 +13668,7 @@ class MurphySystem:
             }
             for name, info in status['modules'].items()
         ]
-    
+
     def list_integrations(self, status: str = 'all') -> List[Dict]:
         """List integrations by status (pending, committed, all)"""
         if not self.integration_engine:

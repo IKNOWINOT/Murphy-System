@@ -18,19 +18,19 @@ Copyright © 2020 Inoni Limited Liability Company
 Creator: Corey Post
 """
 
+from account_management.account_manager import AccountManager
+from account_management.credential_vault import CredentialVault
 from account_management.models import (
-    OAuthProvider,
-    AccountStatus,
-    ConsentStatus,
+    AccountEvent,
     AccountRecord,
+    AccountStatus,
+    ConsentRecord,
+    ConsentStatus,
+    OAuthProvider,
     OAuthToken,
     StoredCredential,
-    ConsentRecord,
-    AccountEvent,
 )
 from account_management.oauth_provider_registry import OAuthProviderRegistry
-from account_management.credential_vault import CredentialVault
-from account_management.account_manager import AccountManager
 
 __all__ = [
     "OAuthProvider",

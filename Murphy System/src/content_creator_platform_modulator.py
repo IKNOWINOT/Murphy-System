@@ -18,13 +18,13 @@ building_automation_connectors and energy_management_connectors.
 """
 
 import enum
+import logging
 import threading
 import time
 import uuid
 from typing import Any, Dict, List, Optional
-from thread_safe_operations import capped_append
 
-import logging
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 

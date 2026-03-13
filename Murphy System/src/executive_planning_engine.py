@@ -14,15 +14,16 @@ Core components:
   - ResponseEngine: generate responses based on gate outcomes
 """
 
-import uuid
-import time
-import threading
 import hashlib
 import json
 import logging
-from enum import Enum
+import threading
+import time
+import uuid
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Tuple
+
 from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)

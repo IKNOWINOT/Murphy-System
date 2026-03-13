@@ -10,33 +10,33 @@ Provides endpoints for:
 - Authorization interface
 """
 
+import logging
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional
+
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
-from typing import Dict, List, Optional, Any
-from datetime import datetime, timedelta, timezone
-import logging
 
-from .models import (
-    TelemetryDomain,
-    TelemetryArtifact,
-    GateEvolutionArtifact,
-    InsightArtifact,
-    OperationalTelemetry,
-    HumanTelemetry,
-    ControlTelemetry,
-    SafetyTelemetry,
-    MarketTelemetry,
-)
 from .ingestion import TelemetryBus, TelemetryIngester
 from .learning import HardeningPolicyEngine
-from .shadow_mode import (
-    ShadowModeController,
-    AuthorizationInterface,
-    SafetyEnforcer,
-    OperationMode,
+from .models import (
+    ControlTelemetry,
+    GateEvolutionArtifact,
+    HumanTelemetry,
+    InsightArtifact,
+    MarketTelemetry,
+    OperationalTelemetry,
+    SafetyTelemetry,
+    TelemetryArtifact,
+    TelemetryDomain,
 )
-
+from .shadow_mode import (
+    AuthorizationInterface,
+    OperationMode,
+    SafetyEnforcer,
+    ShadowModeController,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +95,7 @@ app = FastAPI(
 
 # Apply security hardening (SEC-001, SEC-002, SEC-004)
 from fastapi_security import configure_secure_fastapi
+
 configure_secure_fastapi(app, service_name="telemetry-learning")
 
 

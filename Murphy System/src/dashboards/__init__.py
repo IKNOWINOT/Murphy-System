@@ -33,6 +33,11 @@ __version__ = "0.1.0"
 __codename__ = "Dashboards"
 
 # -- Models -----------------------------------------------------------------
+# -- Aggregation ------------------------------------------------------------
+from .aggregation import AggregationEngine
+
+# -- Dashboard manager ------------------------------------------------------
+from .dashboard_manager import DashboardManager
 from .models import (
     AggregationFunction,
     ChartKind,
@@ -42,9 +47,6 @@ from .models import (
     WidgetConfig,
     WidgetType,
 )
-
-# -- Aggregation ------------------------------------------------------------
-from .aggregation import AggregationEngine
 
 # -- Widgets ----------------------------------------------------------------
 from .widgets import (
@@ -56,9 +58,6 @@ from .widgets import (
     render_timeline_widget,
     render_widget,
 )
-
-# -- Dashboard manager ------------------------------------------------------
-from .dashboard_manager import DashboardManager
 
 # -- API (optional – requires fastapi) -------------------------------------
 try:

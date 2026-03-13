@@ -617,8 +617,8 @@ class ChaosResilienceLoop:
     def _generate_failure_case(self, failure_type_str: str) -> Any:
         """Generate a synthetic FailureCase for the given failure_type string."""
         try:
-            from synthetic_failure_generator.models import FailureType
             from synthetic_failure_generator.injection_pipeline import FailureInjectionPipeline
+            from synthetic_failure_generator.models import FailureType
 
             ft = FailureType(failure_type_str)
 
@@ -680,7 +680,7 @@ class ChaosResilienceLoop:
         if self._backbone is None:
             return
         try:
-            from event_backbone import EventType, Event
+            from event_backbone import Event, EventType
 
             et_map = {
                 "CHAOS_EXPERIMENT_STARTED": EventType.CHAOS_EXPERIMENT_STARTED,

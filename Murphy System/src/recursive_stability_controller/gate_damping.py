@@ -13,11 +13,12 @@ Rules:
 - Hard upper bounds always enforced
 """
 
+import logging
 from dataclasses import dataclass
 from typing import Dict, List
+
 import numpy as np
 
-import logging
 logger = logging.getLogger("recursive_stability_controller.gate_damping")
 
 

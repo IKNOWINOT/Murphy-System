@@ -9,14 +9,14 @@ All methods return dictionaries suitable for JSON serialization.
 Thread-safe via threading.Lock on shared state.
 """
 
-import threading
-import re
-import time
 import copy
-from typing import Any, Dict, List, Optional, Tuple
-from thread_safe_operations import capped_append
-
 import logging
+import re
+import threading
+import time
+from typing import Any, Dict, List, Optional, Tuple
+
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 

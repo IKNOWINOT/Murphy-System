@@ -21,29 +21,19 @@ Components:
 - IntentConfirmer: Semantic intent matching
 """
 
+import hashlib
+import json
+import logging
+import secrets
 from dataclasses import dataclass, field
-from typing import Optional, Dict, List, Tuple
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-import hashlib
-import secrets
-import json
+from typing import Dict, List, Optional, Tuple
 
-from .schemas import (
-    TrustScore,
-    TrustLevel,
-    SecurityArtifact,
-    SecurityAction,
-    AuthorityBand
-)
 from thread_safe_operations import capped_append
-from .cryptography import (
-    CryptographicPrimitives,
-    KeyManager,
-    CryptographicAlgorithm
-)
 
-import logging
+from .cryptography import CryptographicAlgorithm, CryptographicPrimitives, KeyManager
+from .schemas import AuthorityBand, SecurityAction, SecurityArtifact, TrustLevel, TrustScore
 
 logger = logging.getLogger(__name__)
 

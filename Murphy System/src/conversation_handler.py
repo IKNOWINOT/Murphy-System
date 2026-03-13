@@ -3,10 +3,10 @@ Conversation Handler - Engages naturally with user questions
 Clearly marks Generated vs Verified responses
 """
 
-from typing import Dict, Any, Optional
-import re
-
 import logging
+import re
+from typing import Any, Dict, Optional
+
 logger = logging.getLogger("conversation_handler")
 
 

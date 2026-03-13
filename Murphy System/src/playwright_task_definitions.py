@@ -42,12 +42,12 @@ logger = logging.getLogger(__name__)
 # Lazy import of playwright (INC-08: real playwright integration)
 # ---------------------------------------------------------------------------
 try:
-    from playwright.async_api import (    # noqa: F401
-        async_playwright,
+    from playwright.async_api import (  # noqa: F401
         Browser,
         BrowserContext,
         Page,
         Playwright,
+        async_playwright,
     )
     _PLAYWRIGHT_AVAILABLE = True
     logger.info("playwright available — browser automation enabled")
@@ -632,20 +632,20 @@ class PlaywrightTaskRunner:
 # ---------------------------------------------------------------------------
 try:
     from murphy_native_automation import (  # noqa: F401
-        NativeTask,
-        NativeStep,
-        NativeTaskFactory,
-        MurphyNativeRunner,
-        MurphyAPIClient,
-        GhostDesktopRunner,
-        GhostControllerExporter,
-        PlaywrightExporter,
         ActionType,
         BrowserTask,
-        TaskStep,
         BrowserTaskFactory,
+        GhostControllerExporter,
+        GhostDesktopRunner,
+        MurphyAPIClient,
+        MurphyNativeRunner,
         MurphyTaskRunner,
+        NativeStep,
+        NativeTask,
+        NativeTaskFactory,
+        PlaywrightExporter,
         PlaywrightTaskFactory,
+        TaskStep,
     )
 except ImportError:
     pass  # Native automation not available in this context

@@ -4,15 +4,15 @@ Combines knowledge base, semantic search, and document management
 """
 
 import logging
-from typing import Dict, List, Optional, Any
 from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+from .document_manager import DocumentManager
 from .knowledge_base import KnowledgeBase
 from .semantic_search import SemanticSearchEngine
-from .document_manager import DocumentManager
 
 
 class LibrarianModule:

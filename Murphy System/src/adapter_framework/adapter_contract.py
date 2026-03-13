@@ -10,11 +10,11 @@ CRITICAL: Adapters are EXECUTION TARGETS only. They:
 - MUST only execute validated ExecutionPackets
 """
 
+import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Dict, List, Optional, Any
 from enum import Enum
-import time
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:
     from .execution_packet_extension import DeviceExecutionPacket

@@ -4,11 +4,11 @@ Handles domain classification, generative domain creation, and cross-domain impa
 """
 
 import json
-from typing import Dict, List, Optional, Tuple
-from dataclasses import dataclass, asdict
-from enum import Enum
-
 import logging
+from dataclasses import asdict, dataclass
+from enum import Enum
+from typing import Dict, List, Optional, Tuple
+
 logger = logging.getLogger("domain_engine")
 
 class DomainType(Enum):

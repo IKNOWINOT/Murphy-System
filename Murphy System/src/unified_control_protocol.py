@@ -81,9 +81,9 @@ except ImportError:
 
 try:
     from governance_kernel import (
-        GovernanceKernel,
         DepartmentScope,
         EnforcementAction,
+        GovernanceKernel,
     )
 except ImportError:
     GovernanceKernel = None  # type: ignore[assignment,misc]

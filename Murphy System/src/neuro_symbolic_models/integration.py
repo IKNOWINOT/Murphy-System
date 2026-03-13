@@ -6,12 +6,12 @@ Provides optional ML enhancement to existing confidence computation.
 Maintains backward compatibility and graceful degradation.
 """
 
-import requests
-from typing import Dict, Any, Optional
-from dataclasses import dataclass
 import logging
+from dataclasses import dataclass
 from datetime import datetime
+from typing import Any, Dict, Optional
 
+import requests
 
 logger = logging.getLogger(__name__)
 

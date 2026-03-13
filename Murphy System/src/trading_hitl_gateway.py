@@ -508,7 +508,7 @@ class TradingHITLGateway:
             logger.warning("HITL: no exchange registry configured — cannot place order")
             return False
         try:
-            from crypto_exchange_connector import OrderRequest, OrderSide, OrderType, ExchangeId
+            from crypto_exchange_connector import ExchangeId, OrderRequest, OrderSide, OrderType
             side = OrderSide.BUY if req.action.lower() == "buy" else OrderSide.SELL
             try:
                 ex_id = ExchangeId(req.exchange_id)

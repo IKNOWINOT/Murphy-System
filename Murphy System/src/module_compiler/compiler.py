@@ -6,13 +6,14 @@ Main orchestrator for converting bot modules into safe execution modules.
 Owner: INONI LLC / Corey Post (corey.gfc@gmail.com)
 """
 
-import os
-from typing import List, Optional, Dict, Any
-from .models.module_spec import ModuleSpec, SandboxProfile
-from .analyzers.static_analyzer import StaticAnalyzer, CodeStructure
-from .analyzers.capability_extractor import CapabilityExtractor
-
 import logging
+import os
+from typing import Any, Dict, List, Optional
+
+from .analyzers.capability_extractor import CapabilityExtractor
+from .analyzers.static_analyzer import CodeStructure, StaticAnalyzer
+from .models.module_spec import ModuleSpec, SandboxProfile
+
 logger = logging.getLogger("module_compiler.compiler")
 
 

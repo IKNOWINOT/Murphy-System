@@ -2,15 +2,13 @@
 Thread-safe statistics collector for accurate metrics collection.
 """
 
-import time
-from typing import Any, Dict, List, Optional
-from collections import defaultdict
-import threading
-
-from thread_safe_operations import ThreadSafeCounter, ThreadSafeDict
-from thread_safe_operations import capped_append
-
 import logging
+import threading
+import time
+from collections import defaultdict
+from typing import Any, Dict, List, Optional
+
+from thread_safe_operations import ThreadSafeCounter, ThreadSafeDict, capped_append
 
 logger = logging.getLogger(__name__)
 

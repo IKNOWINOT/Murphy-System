@@ -3,16 +3,20 @@ Credential Verification Interface
 Provides unified interface for credential verification across different services.
 """
 
-from typing import Dict, List, Optional, Any, Protocol, Tuple
+import logging
+from abc import ABC, abstractmethod
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from pydantic import BaseModel, Field
-from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Optional, Protocol, Tuple
 
-import logging
+from pydantic import BaseModel, Field
+
 logger = logging.getLogger(__name__)
 from src.confidence_engine.credential_verifier import (
-    Credential, CredentialType, CredentialStatus, CredentialVerificationResult
+    Credential,
+    CredentialStatus,
+    CredentialType,
+    CredentialVerificationResult,
 )
 
 

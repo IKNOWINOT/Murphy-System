@@ -9,18 +9,15 @@ Components:
 - ValidationSourceTracker: Tracks validation sources to prevent self-justification
 """
 
-from typing import Dict, List, Set, Optional, Tuple
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-import logging
+from typing import Dict, List, Optional, Set, Tuple
 
-from .schemas import (
-    AssumptionArtifact,
-    ValidationEvidence,
-    AssumptionBinding
-)
-from .assumption_management import AssumptionRegistry
 from thread_safe_operations import capped_append
+
+from .assumption_management import AssumptionRegistry
+from .schemas import AssumptionArtifact, AssumptionBinding, ValidationEvidence
 
 logger = logging.getLogger(__name__)
 

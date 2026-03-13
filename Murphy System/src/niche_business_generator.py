@@ -16,26 +16,26 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
+from end_user_agreement import EUAAcceptanceMethod, EUADocument, EUAGenerator
 from inference_gate_engine import InferenceDomainGateEngine, InferenceResult
 from mss_controls import MSSController, TransformationResult
-from mss_sequence_optimizer import MSSSequenceOptimizer, OPTIMAL_SEQUENCE
+from mss_sequence_optimizer import OPTIMAL_SEQUENCE, MSSSequenceOptimizer
 from niche_viability_gate import (
-    NicheViabilityGate,
-    ViabilityResult,
-    InoniLLCEntity,
-    DeployabilityStatus,
-    HITLApprovalDecision,
-    RFPGapAnalyzer,
-    RFPAnalysis,
+    ContractorPartnerRecord,
+    ContractorQualityProfile,
+    COYARecord,
     CredentialNegotiationEngine,
     CredentialRecord,
+    DeployabilityStatus,
+    HITLApprovalDecision,
+    InoniLLCEntity,
     NegotiationRecord,
-    COYARecord,
-    ContractorQualityProfile,
-    ContractorPartnerRecord,
+    NicheViabilityGate,
+    RFPAnalysis,
+    RFPGapAnalyzer,
+    ViabilityResult,
 )
-from prompt_amplifier import PromptAmplifier, AmplifiedPrompt, AMPLIFIER_SEQUENCE
-from end_user_agreement import EUAGenerator, EUADocument, EUAAcceptanceMethod
+from prompt_amplifier import AMPLIFIER_SEQUENCE, AmplifiedPrompt, PromptAmplifier
 from simulation_engine import SimulationResult
 
 logger = logging.getLogger(__name__)
@@ -1291,8 +1291,9 @@ class NicheBusinessGenerator:
         negotiation = self._credential_engine._negotiations.get(request_id)
         if negotiation is None:
             # No negotiation yet — create a minimal scoring based on credentials only
-            from niche_viability_gate import NegotiationRecord, NegotiationTerm, NegotiationStance
             from datetime import datetime, timezone
+
+            from niche_viability_gate import NegotiationRecord, NegotiationStance, NegotiationTerm
             dummy_neg = NegotiationRecord(
                 negotiation_id=f"dummy_{request_id}",
                 request_id=request_id,

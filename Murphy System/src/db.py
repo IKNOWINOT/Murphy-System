@@ -9,16 +9,28 @@ for relational persistence alongside the existing JSON-based PersistenceManager.
 Reads DATABASE_URL from env (default: sqlite:///murphy_logs.db).
 """
 
-import os
 import logging
+import os
 
 from sqlalchemy import (
-    Column, String, Integer, Float, DateTime, Text, ForeignKey,
-    JSON, func, text,
+    JSON,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
     create_engine,
+    func,
+    text,
 )
 from sqlalchemy.orm import (
-    DeclarativeBase, sessionmaker, Session as SyncSession,
+    DeclarativeBase,
+    sessionmaker,
+)
+from sqlalchemy.orm import (
+    Session as SyncSession,
 )
 
 logger = logging.getLogger(__name__)

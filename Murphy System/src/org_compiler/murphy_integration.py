@@ -8,20 +8,19 @@ Integrates Org Compiler with:
 - Telemetry Pipeline
 """
 
-from typing import List, Dict, Optional
-from datetime import datetime, timezone
 import hashlib
 import json
+import logging
+from datetime import datetime, timezone
+from typing import Dict, List, Optional
 
 from .schemas import (
-    RoleTemplate,
-    TemplateProposalArtifact,
-    SubstitutionGate,
-    WorkArtifact,
     HandoffEvent,
+    RoleTemplate,
+    SubstitutionGate,
+    TemplateProposalArtifact,
+    WorkArtifact,
 )
-
-import logging
 
 logger = logging.getLogger(__name__)
 

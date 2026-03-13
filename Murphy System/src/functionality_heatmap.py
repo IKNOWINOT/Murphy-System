@@ -18,8 +18,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
-from src.telemetry_adapter import TelemetryAdapter
 from src.golden_path_bridge import GoldenPathBridge
+from src.telemetry_adapter import TelemetryAdapter
 
 logger = logging.getLogger(__name__)
 

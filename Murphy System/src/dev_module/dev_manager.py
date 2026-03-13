@@ -17,9 +17,9 @@ from thread_safe_operations import capped_append
 
 from .models import (
     Bug,
+    BugPriority,
     BugSeverity,
     BugStatus,
-    BugPriority,
     GitActivity,
     Release,
     ReleaseChecklist,

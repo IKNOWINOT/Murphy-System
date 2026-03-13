@@ -7,10 +7,9 @@ tracking, schema versioning, and a registry for domain-scoped schemas.
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Type
-
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +47,8 @@ try:
     _PYDANTIC_AVAILABLE = True
 
 except ImportError:
-    from dataclasses import dataclass, field as dc_field  # type: ignore[no-redef]
+    from dataclasses import dataclass  # type: ignore[no-redef]
+    from dataclasses import field as dc_field
 
     _PYDANTIC_AVAILABLE = False
 

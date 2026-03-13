@@ -14,12 +14,11 @@ Design Principle: Fail fast - catch issues before execution starts
 """
 
 import hashlib
-from typing import Dict, List, Optional, Tuple
+import logging
 from datetime import datetime, timezone
+from typing import Dict, List, Optional, Tuple
 
 from .models import InterfaceHealth, InterfaceStatus
-
-import logging
 
 logger = logging.getLogger(__name__)
 

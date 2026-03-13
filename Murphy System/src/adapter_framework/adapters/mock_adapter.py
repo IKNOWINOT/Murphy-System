@@ -10,14 +10,19 @@ Simulates:
 - Safety limits
 """
 
-import time
 import hashlib
 import json
 import logging
+import time
 from typing import Dict
+
 from ..adapter_contract import (
-    AdapterAPI, AdapterManifest, AdapterCapability,
-    TelemetrySchema, CommandSchema, SafetyLimits
+    AdapterAPI,
+    AdapterCapability,
+    AdapterManifest,
+    CommandSchema,
+    SafetyLimits,
+    TelemetrySchema,
 )
 from ..execution_packet_extension import DeviceExecutionPacket
 

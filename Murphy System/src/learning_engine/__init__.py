@@ -13,38 +13,37 @@ Components:
 - AdaptiveDecisionEngine: Adaptive decision making
 """
 
-from .learning_engine import (
-    LearningEngine,
-    PerformanceTracker,
-    PatternRecognizer,
-    FeedbackCollector,
-    LearnedPattern,
-    LearningInsight
-)
-
 from .feedback_system import (
-    HumanFeedbackSystem,
-    FeedbackCollectionInterface,
-    FeedbackCategorizer,
-    FeedbackValidator,
-    FeedbackAnalytics,
     Feedback,
+    FeedbackAnalysis,
+    FeedbackAnalytics,
+    FeedbackAnalyzer,
+    FeedbackCategorizer,
+    FeedbackCollectionInterface,
     FeedbackEntry,
     FeedbackStorage,
-    FeedbackAnalysis,
-    FeedbackAnalyzer,
-    OperationalFeedbackSystem
+    FeedbackValidator,
+    HumanFeedbackSystem,
+    OperationalFeedbackSystem,
+)
+from .learning_engine import (
+    FeedbackCollector,
+    LearnedPattern,
+    LearningEngine,
+    LearningInsight,
+    PatternRecognizer,
+    PerformanceTracker,
 )
 
 # Alias for backward compatibility
 FeedbackSystem = OperationalFeedbackSystem
 
 from .adaptive_decision_engine import (
+    AdaptiveDecision,
     AdaptiveDecisionEngine,
     DecisionHistory,
+    DecisionPolicy,
     PolicyManager,
-    AdaptiveDecision,
-    DecisionPolicy
 )
 
 __all__ = [

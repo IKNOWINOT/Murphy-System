@@ -31,6 +31,14 @@ __version__ = "0.1.0"
 __codename__ = "Portfolio"
 
 # -- Models -----------------------------------------------------------------
+# -- Critical path ----------------------------------------------------------
+from .critical_path import CriticalPathEngine
+
+# -- Dependencies -----------------------------------------------------------
+from .dependencies import DependencyManager
+
+# -- Gantt engine -----------------------------------------------------------
+from .gantt import GanttEngine
 from .models import (
     Baseline,
     Dependency,
@@ -40,15 +48,6 @@ from .models import (
     MilestoneStatus,
     PortfolioProject,
 )
-
-# -- Dependencies -----------------------------------------------------------
-from .dependencies import DependencyManager
-
-# -- Critical path ----------------------------------------------------------
-from .critical_path import CriticalPathEngine
-
-# -- Gantt engine -----------------------------------------------------------
-from .gantt import GanttEngine
 
 # -- API (optional – requires fastapi) -------------------------------------
 try:

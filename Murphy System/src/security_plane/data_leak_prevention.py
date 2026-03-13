@@ -17,16 +17,15 @@ CRITICAL CONSTRAINTS:
 5. Exfiltration attempts MUST trigger security freeze
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Set, Optional, Any
-from enum import Enum
-from datetime import datetime, timedelta, timezone
 import hashlib
-import re
 import json
-from pathlib import Path
-
 import logging
+import re
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
+from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
 

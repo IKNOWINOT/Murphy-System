@@ -24,14 +24,14 @@ execution in the Murphy runtime.
 """
 
 import enum
+import logging
 import threading
 import time
 import uuid
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
-from thread_safe_operations import capped_append
 
-import logging
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 

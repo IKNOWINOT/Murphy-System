@@ -4,8 +4,8 @@ Provides neural-symbolic reasoning capabilities with graceful fallback
 """
 
 import logging
-from typing import Dict, List, Optional, Any, Union
 from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional, Union
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

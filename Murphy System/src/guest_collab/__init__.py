@@ -30,6 +30,7 @@ Copyright 2024 Inoni LLC – BSL-1.1
 __version__ = "0.1.0"
 __codename__ = "GuestCollab"
 
+from .guest_manager import GuestManager
 from .models import (
     ClientPortal,
     ExternalForm,
@@ -42,7 +43,6 @@ from .models import (
     LinkAccess,
     ShareableLink,
 )
-from .guest_manager import GuestManager
 
 try:
     from .api import create_guest_router

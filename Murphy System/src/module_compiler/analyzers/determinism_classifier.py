@@ -8,11 +8,11 @@ Owner: INONI LLC / Corey Post (corey.gfc@gmail.com)
 """
 
 import ast
-from typing import Set, List, Optional
-from ..models.module_spec import DeterminismLevel
-from .static_analyzer import FunctionInfo, CodeStructure
-
 import logging
+from typing import List, Optional, Set
+
+from ..models.module_spec import DeterminismLevel
+from .static_analyzer import CodeStructure, FunctionInfo
 
 logger = logging.getLogger(__name__)
 

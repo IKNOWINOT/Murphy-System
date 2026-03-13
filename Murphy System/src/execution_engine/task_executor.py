@@ -2,20 +2,21 @@
 Task Execution Engine - Core task scheduling and execution
 """
 
-import threading
-import time
-import uuid
-from typing import Dict, List, Optional, Callable, Any
-from datetime import datetime, timedelta, timezone
-from enum import Enum
 import logging
-from concurrent.futures import ThreadPoolExecutor, Future
+import os
 
 # Import thread-safe utilities
 import sys
-import os
+import threading
+import time
+import uuid
+from concurrent.futures import Future, ThreadPoolExecutor
+from datetime import datetime, timedelta, timezone
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from thread_safe_operations import ThreadSafeDict, ThreadSafeCounter, CircuitBreaker
+from thread_safe_operations import CircuitBreaker, ThreadSafeCounter, ThreadSafeDict
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

@@ -8,12 +8,13 @@ by evaluating gates before task execution and expanding gate checks across swarm
 subtasks.
 """
 
+import logging
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Tuple
-import logging
-import uuid
+
 from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)

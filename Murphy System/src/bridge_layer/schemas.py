@@ -4,9 +4,8 @@ JSON Schemas for Bridge Layer Validation
 Defines validation schemas for all bridge layer artifacts.
 """
 
-from typing import Dict, Any
-
 import logging
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 

@@ -3,16 +3,10 @@ Authority Mapper
 Maps confidence to authority bands: a_t = Γ(c_t)
 """
 
-from typing import Dict, Any
-
-from .models import (
-    AuthorityBand,
-    AuthorityState,
-    ConfidenceState,
-    Phase
-)
-
 import logging
+from typing import Any, Dict
+
+from .models import AuthorityBand, AuthorityState, ConfidenceState, Phase
 
 logger = logging.getLogger(__name__)
 

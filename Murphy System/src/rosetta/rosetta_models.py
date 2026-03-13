@@ -25,13 +25,12 @@ Extended in this version with:
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-
-import logging
 
 logger = logging.getLogger(__name__)
 

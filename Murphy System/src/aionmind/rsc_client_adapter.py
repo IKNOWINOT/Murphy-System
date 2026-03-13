@@ -79,8 +79,8 @@ class RSCClientAdapter:
     def _get_status_from_http(self) -> Dict[str, Any]:
         """Query the RSC REST API via HTTP."""
         try:
-            import urllib.request
             import json
+            import urllib.request
 
             url = f"{self._http_base_url}/status"
             req = urllib.request.Request(url, method="GET")

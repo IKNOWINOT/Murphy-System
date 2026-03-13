@@ -10,9 +10,10 @@ Creator: Corey Post
 License: BSL 1.1
 """
 
-from typing import Dict, Any, Optional, List
-from datetime import datetime, timezone
 import logging
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
 from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)

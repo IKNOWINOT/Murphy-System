@@ -4,8 +4,8 @@ Removes external dependencies while maintaining interface compatibility
 """
 
 import logging
-from typing import Dict, List, Optional, Any
 from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

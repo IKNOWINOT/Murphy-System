@@ -31,9 +31,9 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
-from secure_key_manager import store_api_key, retrieve_api_key
-from telemetry_adapter import TelemetryAdapter
 from golden_path_bridge import GoldenPathBridge
+from secure_key_manager import retrieve_api_key, store_api_key
+from telemetry_adapter import TelemetryAdapter
 
 logger = logging.getLogger(__name__)
 

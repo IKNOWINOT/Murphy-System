@@ -4,10 +4,10 @@ Uses LOCAL small models for intent detection and hypothesis generation
 NO API calls - runs entirely locally
 """
 
+import logging
 import os
 from typing import Optional
 
-import logging
 logger = logging.getLogger("probabilistic_layer")
 try:
     from state_machine import Hypothesis, QuestionType

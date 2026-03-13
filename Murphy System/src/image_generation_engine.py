@@ -32,6 +32,7 @@ import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+
 from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
@@ -288,8 +289,8 @@ class _StableDiffusionBackend:
     @classmethod
     def available(cls, model_variant: str = "xl") -> bool:
         try:
-            import torch  # noqa: F401
             import diffusers  # noqa: F401
+            import torch  # noqa: F401
             return True
         except ImportError:
             return False
@@ -306,7 +307,7 @@ class _StableDiffusionBackend:
                 return cls._pipe
 
             import torch
-            from diffusers import StableDiffusionXLPipeline, StableDiffusionPipeline
+            from diffusers import StableDiffusionPipeline, StableDiffusionXLPipeline
 
             device = "cuda" if torch.cuda.is_available() else "cpu"
             dtype = torch.float16 if device == "cuda" else torch.float32

@@ -35,8 +35,8 @@ logger = logging.getLogger(__name__)
 # pymodbus — lazy import (INC-19)
 # ---------------------------------------------------------------------------
 try:
-    from pymodbus.client import ModbusTcpClient         # noqa: F401
-    from pymodbus.exceptions import ModbusException      # noqa: F401
+    from pymodbus.client import ModbusTcpClient  # noqa: F401
+    from pymodbus.exceptions import ModbusException  # noqa: F401
     _PYMODBUS_AVAILABLE = True
 except ImportError:
     ModbusTcpClient = None  # type: ignore[assignment,misc]

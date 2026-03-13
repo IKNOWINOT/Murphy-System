@@ -8,14 +8,14 @@ Graph Neural Network architecture for learning:
 - Authority risk R(x)
 """
 
+import logging
+from dataclasses import dataclass
+from typing import Any, Dict, Optional, Tuple
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch_geometric.nn import GraphSAGE, GATConv, global_mean_pool
-from typing import Tuple, Optional, Dict, Any
-from dataclasses import dataclass
-
-import logging
+from torch_geometric.nn import GATConv, GraphSAGE, global_mean_pool
 
 logger = logging.getLogger(__name__)
 

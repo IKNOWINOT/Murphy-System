@@ -15,29 +15,29 @@ Non-negotiable constraint: NO AUTONOMY.
   - Optimization outputs are proposals / recommendations only.
 """
 
+from aionmind.bot_capability_bridge import load_bot_capabilities_into_registry
+from aionmind.capability_registry import Capability, CapabilityRegistry
+from aionmind.context_engine import ContextEngine
+from aionmind.dag_bridge import compile_to_workflow_dag
+from aionmind.memory_layer import MemoryLayer
+from aionmind.models.context_graph import ContextEdge, ContextGraph, ContextNode
 from aionmind.models.context_object import ContextObject
-from aionmind.models.context_graph import ContextGraph, ContextNode, ContextEdge
 from aionmind.models.execution_graph import (
+    ExecutionEdge,
     ExecutionGraphObject,
     ExecutionNode,
-    ExecutionEdge,
 )
 from aionmind.models.proposals import (
     OptimizationProposal,
-    ProposalStatus,
     ProposalCategory,
+    ProposalStatus,
 )
-from aionmind.context_engine import ContextEngine
-from aionmind.capability_registry import CapabilityRegistry, Capability
-from aionmind.reasoning_engine import ReasoningEngine
-from aionmind.stability_integration import StabilityIntegration
-from aionmind.orchestration_engine import OrchestrationEngine
-from aionmind.memory_layer import MemoryLayer
 from aionmind.optimization_engine import OptimizationEngine
-from aionmind.runtime_kernel import AionMindKernel
-from aionmind.bot_capability_bridge import load_bot_capabilities_into_registry
+from aionmind.orchestration_engine import OrchestrationEngine
+from aionmind.reasoning_engine import ReasoningEngine
 from aionmind.rsc_client_adapter import RSCClientAdapter, create_rsc_adapter
-from aionmind.dag_bridge import compile_to_workflow_dag
+from aionmind.runtime_kernel import AionMindKernel
+from aionmind.stability_integration import StabilityIntegration
 
 __all__ = [
     "ContextObject",

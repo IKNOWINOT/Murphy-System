@@ -4,14 +4,15 @@ Shadow Agent Implementation
 This module implements the shadow agent that learns from corrections and makes predictions.
 """
 
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from uuid import UUID, uuid4
-import logging
 
-from .model_architecture import ShadowAgentModel, ModelMetadata
+from .model_architecture import ModelMetadata, ShadowAgentModel
 from .model_registry import ModelRegistry, ModelVersion
+
 try:
     from confidence_engine.murphy_models import UncertaintyScores as UncertaintyScore
 except ImportError:

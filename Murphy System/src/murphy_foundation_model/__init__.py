@@ -31,28 +31,26 @@ __author__ = "Corey Post"
 from .action_trace_serializer import (
     ActionTrace,
     ActionTraceCollector,
-    trace_to_dict,
     dict_to_trace,
+    trace_to_dict,
 )
+from .mfm_inference import MFMInferenceService
+from .mfm_model import MFMConfig, MFMModel
+from .mfm_registry import MFMModelVersion, MFMRegistry
 
+# Phase 2+ — full implementations
+from .mfm_tokenizer import SPECIAL_TOKENS, MFMTokenizer, discretize_score
+from .mfm_trainer import MFMTrainer, MFMTrainerConfig, load_training_data
 from .outcome_labeler import (
-    OutcomeLabels,
     OutcomeLabeler,
+    OutcomeLabels,
 )
-
+from .rlef_engine import PreferencePair, RLEFConfig, RLEFEngine
+from .self_improvement_loop import SelfImprovementConfig, SelfImprovementLoop
+from .shadow_deployment import ShadowComparison, ShadowConfig, ShadowDeployment
 from .training_data_pipeline import (
     TrainingDataPipeline,
 )
-
-# Phase 2+ — full implementations
-from .mfm_tokenizer import MFMTokenizer, SPECIAL_TOKENS, discretize_score
-from .mfm_model import MFMModel, MFMConfig
-from .mfm_trainer import MFMTrainer, MFMTrainerConfig, load_training_data
-from .rlef_engine import RLEFEngine, RLEFConfig, PreferencePair
-from .mfm_inference import MFMInferenceService
-from .shadow_deployment import ShadowDeployment, ShadowConfig, ShadowComparison
-from .self_improvement_loop import SelfImprovementLoop, SelfImprovementConfig
-from .mfm_registry import MFMRegistry, MFMModelVersion
 
 __all__ = [
     # Phase 1 — data collection

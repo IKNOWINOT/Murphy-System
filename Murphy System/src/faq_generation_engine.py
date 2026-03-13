@@ -44,6 +44,7 @@ from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
+
 from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
@@ -451,7 +452,8 @@ class FAQGenerationEngine:
     def _publish_event(self, report: FAQGenerationReport) -> None:
         """Publish a LEARNING_FEEDBACK event for FAQ generation."""
         try:
-            from event_backbone import EventType as ET, Event
+            from event_backbone import Event
+            from event_backbone import EventType as ET
             evt = Event(
                 event_id=f"evt-{uuid.uuid4().hex[:8]}",
                 event_type=ET.LEARNING_FEEDBACK,

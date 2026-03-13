@@ -79,7 +79,7 @@ class MFMInferenceService:
 
         Returns ``True`` on success.
         """
-        from .mfm_model import MFMModel, MFMConfig
+        from .mfm_model import MFMConfig, MFMModel
         from .mfm_tokenizer import MFMTokenizer
 
         model_config = MFMConfig(device=self.config.device)

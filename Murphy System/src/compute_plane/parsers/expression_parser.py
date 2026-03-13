@@ -4,12 +4,12 @@ Expression Parser
 Parses natural language math into formal expressions with uncertainty tracking.
 """
 
-import re
-from typing import Dict, Any
-from ..models.parsed_expression import ParsedExpression, NormalizedExpression
-from ..models.validation_result import ValidationResult
-
 import logging
+import re
+from typing import Any, Dict
+
+from ..models.parsed_expression import NormalizedExpression, ParsedExpression
+from ..models.validation_result import ValidationResult
 
 logger = logging.getLogger(__name__)
 

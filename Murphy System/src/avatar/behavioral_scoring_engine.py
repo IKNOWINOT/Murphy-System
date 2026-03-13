@@ -17,12 +17,11 @@ The score helps Murphy improve its own service quality. Users can view,
 reset, or opt out of scoring at any time.
 """
 
+import logging
 from threading import Lock
 from typing import Any, Dict
 
 from .avatar_models import UserAdaptation
-
-import logging
 
 logger = logging.getLogger(__name__)
 

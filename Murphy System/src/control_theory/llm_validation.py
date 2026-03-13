@@ -7,13 +7,12 @@ Provides:
   - RegenerationPolicy — trigger conditions for LLM re-generation.
 """
 
+import logging
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator
-
-import logging
 
 logger = logging.getLogger(__name__)
 

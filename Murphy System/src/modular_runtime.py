@@ -3,21 +3,22 @@ Modular Runtime System
 Dynamic module coupling/decoupling at runtime
 """
 import importlib
-import sys
 import inspect
-from typing import Dict, List, Any, Optional, Callable
+import json
+import logging
+import sys
+import time
 from dataclasses import dataclass, field
 from enum import Enum
-import json
-import time
 from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
 
-import logging
 logger = logging.getLogger("modular_runtime")
 
 # Import gate builder
 from src.gate_builder import GateBuilder
 from src.system_builder import SystemBuilder
+
 
 class ModuleStatus(Enum):
     """Module lifecycle status"""

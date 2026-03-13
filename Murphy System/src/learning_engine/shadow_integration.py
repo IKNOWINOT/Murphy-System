@@ -4,25 +4,25 @@ Complete Shadow Agent Integration
 This module provides the complete integration of all shadow agent components.
 """
 
-from typing import Dict, List, Any, Optional
-from uuid import UUID
 import logging
+from typing import Any, Dict, List, Optional
+from uuid import UUID
 
+from .ab_testing import ABTestConfig, ABTestFramework, GradualRollout, VariantType
+from .feature_engineering import FeatureEngineer
+from .hyperparameter_tuning import HyperparameterTuner, TuningConfig, get_default_param_space
+from .model_architecture import HybridModelConfig, ModelType
+from .model_registry import ModelRegistry
+from .shadow_agent import ShadowAgent, ShadowAgentConfig
+from .shadow_evaluation import AutomatedTestSuite, ModelEvaluator
+from .shadow_monitoring import FeedbackLoop, MonitoringConfig, MonitoringDashboard
 from .training_data_transformer import (
     CorrectionToTrainingTransformer,
     FeedbackToTrainingTransformer,
     PatternToTrainingTransformer,
 )
-from .feature_engineering import FeatureEngineer
-from .training_data_validator import DataValidator, DataSplitter
-from .model_architecture import ModelType, HybridModelConfig
-from .training_pipeline import TrainingPipeline, TrainingConfig, ModelFactory
-from .hyperparameter_tuning import HyperparameterTuner, TuningConfig, get_default_param_space
-from .model_registry import ModelRegistry
-from .shadow_agent import ShadowAgent, ShadowAgentConfig
-from .ab_testing import ABTestFramework, ABTestConfig, GradualRollout, VariantType
-from .shadow_evaluation import ModelEvaluator, AutomatedTestSuite
-from .shadow_monitoring import MonitoringDashboard, MonitoringConfig, FeedbackLoop
+from .training_data_validator import DataSplitter, DataValidator
+from .training_pipeline import ModelFactory, TrainingConfig, TrainingPipeline
 
 try:
     from .correction_models import Correction, CorrectionType  # noqa: F401

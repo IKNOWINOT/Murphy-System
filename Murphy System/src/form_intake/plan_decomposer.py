@@ -5,25 +5,24 @@ Decomposes plans into executable tasks with dependencies, validation criteria,
 and human checkpoints.
 """
 
-from typing import List, Dict, Any, Optional
-from datetime import datetime
 import logging
-import sys
 import os
+import sys
 import threading
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 # Add murphy_runtime_analysis to path for imports
-
 from .plan_models import (
+    Dependency,
+    DependencyType,
+    HumanCheckpoint,
     Plan,
     Task,
-    Dependency,
-    ValidationCriterion,
-    HumanCheckpoint,
     TaskPriority,
     TaskStatus,
-    DependencyType
+    ValidationCriterion,
 )
 
 logger = logging.getLogger(__name__)

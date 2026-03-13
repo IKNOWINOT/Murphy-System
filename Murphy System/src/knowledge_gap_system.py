@@ -4,10 +4,10 @@ The chatbot detects what it doesn't know and actively seeks information
 through clarifying questions, research, and hypothesis testing
 """
 
-from typing import Dict, Any, List, Optional, Tuple
-import re
-
 import logging
+import re
+from typing import Any, Dict, List, Optional, Tuple
+
 logger = logging.getLogger("knowledge_gap_system")
 
 

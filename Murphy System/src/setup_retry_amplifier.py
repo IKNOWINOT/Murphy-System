@@ -154,7 +154,7 @@ class SetupRetryAmplifier:
                             exactly the same steps).
         """
         # Lazy import to avoid circular dependency with environment_setup_agent
-        from environment_setup_agent import SetupPlan, SetupStep, RiskLevel, StepStatus
+        from environment_setup_agent import RiskLevel, SetupPlan, SetupStep, StepStatus
 
         context: Dict[str, Any] = {
             "issues": issues,

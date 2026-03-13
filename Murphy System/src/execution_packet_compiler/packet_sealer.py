@@ -3,22 +3,21 @@ Packet Sealer
 Seals execution packets with cryptographic signatures
 """
 
-from typing import Dict, Any, Tuple, List
-from datetime import datetime, timezone
 import hashlib
 import json
+import logging
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Tuple
 
 from .models import (
+    ExecutionGraph,
     ExecutionPacket,
     ExecutionScope,
-    ExecutionGraph,
     InterfaceMap,
+    PacketState,
     RollbackPlan,
     TelemetryPlan,
-    PacketState
 )
-
-import logging
 
 logger = logging.getLogger(__name__)
 

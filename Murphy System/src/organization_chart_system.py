@@ -3,12 +3,11 @@ Organization Chart System
 Parses organization charts and maps job positions to knowledge contexts.
 """
 
-from typing import Dict, List, Any, Optional
+import json
+import logging
 from dataclasses import dataclass, field
 from enum import Enum
-import json
-
-import logging
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

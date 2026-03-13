@@ -4,14 +4,14 @@ Maintains transcript logs, generates documentation, and manages system knowledge
 Provides complete system understanding from any module's perspective
 """
 
-from typing import Dict, List, Optional, Any
-from dataclasses import dataclass, field
-from enum import Enum
 import json
-from datetime import datetime, timezone
-import uuid
-
 import logging
+import uuid
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
+from typing import Any, Dict, List, Optional
+
 logger = logging.getLogger("system_librarian")
 
 

@@ -32,6 +32,18 @@ __version__ = "0.1.0"
 __codename__ = "Collab"
 
 # -- Models -----------------------------------------------------------------
+# -- Activity feed ----------------------------------------------------------
+from .activity_feed import ActivityFeed
+
+# -- Comment manager --------------------------------------------------------
+from .comment_manager import CommentManager
+
+# -- Mentions ---------------------------------------------------------------
+from .mentions import (
+    UserResolver,
+    get_default_resolver,
+    parse_mentions,
+)
 from .models import (
     ActivityFeedEntry,
     Comment,
@@ -44,21 +56,8 @@ from .models import (
     NotificationType,
 )
 
-# -- Mentions ---------------------------------------------------------------
-from .mentions import (
-    UserResolver,
-    get_default_resolver,
-    parse_mentions,
-)
-
 # -- Notifications ----------------------------------------------------------
 from .notifications import NotificationEngine
-
-# -- Activity feed ----------------------------------------------------------
-from .activity_feed import ActivityFeed
-
-# -- Comment manager --------------------------------------------------------
-from .comment_manager import CommentManager
 
 # -- API (optional – requires fastapi) -------------------------------------
 try:

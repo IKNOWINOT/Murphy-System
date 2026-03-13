@@ -603,7 +603,16 @@ class Backtester:
         Walk *candles* forward, call ``generate_signal`` at each bar,
         and simulate fills.  Returns a ``BacktestResult`` summary.
         """
-        from market_data_feed import TechnicalIndicators, CandleGranularity, _rsi, _ema, _macd, _bollinger_bands, _atr, _vwap
+        from market_data_feed import (
+            CandleGranularity,
+            TechnicalIndicators,
+            _atr,
+            _bollinger_bands,
+            _ema,
+            _macd,
+            _rsi,
+            _vwap,
+        )
 
         pair        = candles[0].pair if candles else "UNKNOWN"
         capital     = initial_capital

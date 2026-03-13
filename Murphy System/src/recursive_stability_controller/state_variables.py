@@ -11,11 +11,12 @@ Canonical state variables for recursive stability control:
 All quantities normalized to bounded ranges [0, 1].
 """
 
+import logging
 from dataclasses import dataclass
 from typing import Dict, Optional
+
 import numpy as np
 
-import logging
 logger = logging.getLogger("recursive_stability_controller.state_variables")
 
 
@@ -256,6 +257,7 @@ class StateCollector:
             StateVariables if successful, None if collection fails
         """
         import time
+
         import requests
 
         try:
@@ -322,8 +324,8 @@ class StateCollector:
         Returns:
             Mock StateVariables
         """
-        import time
         import random
+        import time
 
         self.cycle_id += 1
 

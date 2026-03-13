@@ -23,24 +23,24 @@ Endpoints:
 - GET /health - Health check
 """
 
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+import logging
 from datetime import datetime, timezone
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
-from .models import BaseScenario, FailureType
-from .semantic_failures import SemanticFailureGenerator
-from .control_failures import ControlPlaneFailureGenerator
-from .interface_failures import InterfaceFailureGenerator
-from .organizational_failures import OrganizationalFailureGenerator
-from .injection_pipeline import FailureInjectionPipeline
-from .training_output import TrainingOutputGenerator
-from .test_modes import TestModeExecutor
-from .safety_enforcer import SafetyEnforcer
+from flask import Flask, jsonify, request
+from flask_cors import CORS
 
 from flask_security import configure_secure_app
 
-import logging
+from .control_failures import ControlPlaneFailureGenerator
+from .injection_pipeline import FailureInjectionPipeline
+from .interface_failures import InterfaceFailureGenerator
+from .models import BaseScenario, FailureType
+from .organizational_failures import OrganizationalFailureGenerator
+from .safety_enforcer import SafetyEnforcer
+from .semantic_failures import SemanticFailureGenerator
+from .test_modes import TestModeExecutor
+from .training_output import TrainingOutputGenerator
 
 logger = logging.getLogger(__name__)
 

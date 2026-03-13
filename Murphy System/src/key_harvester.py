@@ -95,6 +95,7 @@ except ImportError:  # pragma: no cover
     def write_env_key(path: Optional[str], key: str, value: str) -> None:  # type: ignore[misc]
         pass
 
+from thread_safe_operations import capped_append
 from tos_acceptance_gate import (
     CredentialRequest,
     CredentialRequestStatus,
@@ -102,7 +103,6 @@ from tos_acceptance_gate import (
     TOSAcceptanceStatus,
     UserCredentialGate,
 )
-from thread_safe_operations import capped_append
 
 # FastAPI Request type — imported at module level so it is resolvable from
 # __globals__ when FastAPI inspects handler annotations under PEP 563.
@@ -1333,8 +1333,8 @@ class KeyHarvester:
         if not self._imap_config:
             return None
         try:
-            import imaplib  # noqa: PLC0415
             import email as email_lib  # noqa: PLC0415
+            import imaplib  # noqa: PLC0415
         except ImportError:
             return None
 

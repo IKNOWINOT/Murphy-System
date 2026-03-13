@@ -3,16 +3,11 @@ Determinism Enforcer
 Validates that all execution steps are deterministic
 """
 
-from typing import List, Dict, Any, Tuple, Set
-import re
-
-from .models import (
-    ExecutionGraph,
-    ExecutionStep,
-    StepType
-)
-
 import logging
+import re
+from typing import Any, Dict, List, Set, Tuple
+
+from .models import ExecutionGraph, ExecutionStep, StepType
 
 logger = logging.getLogger(__name__)
 

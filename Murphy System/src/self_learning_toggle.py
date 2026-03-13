@@ -36,7 +36,7 @@ Usage::
 import logging
 import os
 import threading
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
