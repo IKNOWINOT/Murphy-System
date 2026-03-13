@@ -408,6 +408,24 @@ class DrawingExporter:
         lines.append("0\nENDSEC\n0\nEOF")
         return "\n".join(lines)
 
+    # Render priority for SVG z-ordering: lower numbers paint first (background).
+    _ELEMENT_RENDER_ORDER: Dict[str, int] = {
+        ElementType.HATCH: 0,
+        ElementType.RECTANGLE: 1,
+        ElementType.LINE: 1,
+        ElementType.CIRCLE: 2,
+        ElementType.ARC: 2,
+        ElementType.POLYGON: 2,
+        ElementType.SECTION_VIEW: 2,
+        ElementType.DETAIL_VIEW: 2,
+        ElementType.DIMENSION: 3,
+        ElementType.LEADER: 3,
+        ElementType.TEXT: 4,
+        ElementType.POINT: 4,
+        ElementType.SPLINE: 4,
+        ElementType.BLOCK_REF: 5,
+    }
+
     def to_svg(self, project: DrawingProject, width: int = 800, height: int = 600) -> str:
         """Generate an SVG string with viewBox, line styles, and extended element support."""
         defs_parts: List[str] = [
@@ -418,11 +436,13 @@ class DrawingExporter:
 
         svg_elements: List[str] = []
         for sheet in project.sheets:
-            # Render title block border if populated
-            tb = sheet.title_block
-            if tb.company or tb.drawing_number or tb.drawn_by:
-                svg_elements.extend(self._render_title_block_svg(tb, width, height))
-            for elem in sheet.elements:
+            # Sort elements by render order so that hatches paint first (background),
+            # structural geometry next, and annotations / title block on top.
+            sorted_elems = sorted(
+                sheet.elements,
+                key=lambda e: self._ELEMENT_RENDER_ORDER.get(e.element_type, 99),
+            )
+            for elem in sorted_elems:
                 ls = LINE_STYLE_SVG.get(
                     elem.line_style, LINE_STYLE_SVG[LineStyle.CONTINUOUS]
                 )
@@ -496,6 +516,11 @@ class DrawingExporter:
                         svg_elements.extend(hatch_parts)
                 elif elem.element_type == ElementType.LEADER:
                     svg_elements.extend(self._render_leader_svg(elem, base_attrs))
+
+            # Title block renders last — on top of all drawing elements.
+            tb = sheet.title_block
+            if tb.company or tb.drawing_number or tb.drawn_by:
+                svg_elements.extend(self._render_title_block_svg(tb, width, height))
 
         all_defs = defs_parts + clip_defs
         defs = "  <defs>\n    " + "\n    ".join(all_defs) + "\n  </defs>"
