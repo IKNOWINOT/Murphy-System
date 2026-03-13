@@ -2509,6 +2509,7 @@ def create_app() -> FastAPI:
             ctrl = get_test_mode_controller()
             return JSONResponse(ctrl.get_status())
         except Exception as exc:
+            logger.exception("Failed to get test-mode status")
             return JSONResponse({"error": str(exc)}, status_code=500)
 
     @app.post("/api/test-mode/toggle")
@@ -2520,6 +2521,7 @@ def create_app() -> FastAPI:
             status = ctrl.toggle()
             return JSONResponse(status)
         except Exception as exc:
+            logger.exception("Failed to toggle test mode")
             return JSONResponse({"error": str(exc)}, status_code=500)
 
     # ==================== SELF-LEARNING TOGGLE ====================
@@ -2532,6 +2534,7 @@ def create_app() -> FastAPI:
             slt = get_self_learning_toggle()
             return JSONResponse(slt.get_status())
         except Exception as exc:
+            logger.exception("Failed to get learning status")
             return JSONResponse({"error": str(exc)}, status_code=500)
 
     @app.post("/api/learning/toggle")
@@ -2543,6 +2546,7 @@ def create_app() -> FastAPI:
             status = slt.toggle()
             return JSONResponse(status)
         except Exception as exc:
+            logger.exception("Failed to toggle self-learning")
             return JSONResponse({"error": str(exc)}, status_code=500)
 
     # ==================== OAUTH CALLBACK ====================
@@ -2574,6 +2578,7 @@ def create_app() -> FastAPI:
         except ValueError as exc:
             return JSONResponse({"error": str(exc)}, status_code=400)
         except Exception as exc:
+            logger.exception("OAuth callback failed")
             return JSONResponse({"error": str(exc)}, status_code=500)
 
     # ==================== READINESS SCANNER ====================
@@ -2588,6 +2593,7 @@ def create_app() -> FastAPI:
             report = scanner.scan(base_url=base_url)
             return JSONResponse(report)
         except Exception as exc:
+            logger.exception("Readiness scan failed")
             return JSONResponse({"error": str(exc)}, status_code=500)
 
     # ==================== KEY HARVESTER ENDPOINTS ====================

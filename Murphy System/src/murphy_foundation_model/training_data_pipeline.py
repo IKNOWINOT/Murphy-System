@@ -214,7 +214,7 @@ class TrainingDataPipeline:
                 "intent": trace.intent,
                 "constraints": trace.constraints,
                 "murphy_index": trace.murphy_index_at_decision,
-                "history": [],  # placeholder for context window
+                "history": [],  # empty context window (populated at inference time)
             },
             "output": {
                 "action_plan": trace.actions_taken,
