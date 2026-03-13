@@ -312,3 +312,312 @@ class TestOsmosisPipeline:
             observations=[],
         )
         assert cap is not None
+
+
+# ---------------------------------------------------------------------------
+# Production-readiness tests (30+ new cases)
+# ---------------------------------------------------------------------------
+
+import threading
+
+class TestPatternExtractorProduction:
+
+    def test_numeric_multiplication_pattern(self):
+        from src.murphy_osmosis_engine import PatternExtractor
+        pe = PatternExtractor()
+        observations = [{"input": i, "output": i * 3.0} for i in range(1, 6)]
+        pattern = pe.extract(observations)
+        assert "3.0" in pattern["core_algorithm_description"] or "3." in pattern["core_algorithm_description"]
+
+    def test_string_transformation_pattern(self):
+        from src.murphy_osmosis_engine import PatternExtractor
+        pe = PatternExtractor()
+        observations = [{"input": "hello", "output": "HELLO"}, {"input": "world", "output": "WORLD"}]
+        pattern = pe.extract(observations)
+        assert "String" in pattern["core_algorithm_description"]
+
+    def test_dict_transformation_pattern(self):
+        from src.murphy_osmosis_engine import PatternExtractor
+        pe = PatternExtractor()
+        observations = [{"input": {"a": 1}, "output": {"a": 2}}, {"input": {"b": 3}, "output": {"b": 6}}]
+        pattern = pe.extract(observations)
+        assert "Dictionary" in pattern["core_algorithm_description"] or "General" in pattern["core_algorithm_description"]
+
+    def test_empty_observations_returns_defaults(self):
+        from src.murphy_osmosis_engine import PatternExtractor
+        pe = PatternExtractor()
+        pattern = pe.extract([])
+        assert pattern["sample_count"] == 0
+        assert "No observations" in pattern["core_algorithm_description"]
+
+    def test_sample_count_matches_observations(self):
+        from src.murphy_osmosis_engine import PatternExtractor
+        pe = PatternExtractor()
+        obs = [{"input": i, "output": i * 2} for i in range(10)]
+        pattern = pe.extract(obs)
+        assert pattern["sample_count"] == 10
+
+    def test_input_types_populated(self):
+        from src.murphy_osmosis_engine import PatternExtractor
+        pe = PatternExtractor()
+        obs = [{"input": 1.0, "output": 2.0}]
+        pattern = pe.extract(obs)
+        assert "float" in pattern["input_types"] or "int" in pattern["input_types"]
+
+
+class TestCapabilityObserverProduction:
+
+    def test_observe_records_entry(self):
+        from src.murphy_osmosis_engine import CapabilityObserver
+        obs = CapabilityObserver("ToolA", "double")
+        obs.observe(5, 10)
+        assert obs.get_observation_count() == 1
+
+    def test_observe_with_metadata(self):
+        from src.murphy_osmosis_engine import CapabilityObserver
+        obs = CapabilityObserver("ToolA", "double")
+        obs.observe(5, 10, metadata={"source": "api_call"})
+        records = obs.get_observations()
+        assert records[0]["metadata"]["source"] == "api_call"
+
+    def test_thread_safe_concurrent_observations(self):
+        from src.murphy_osmosis_engine import CapabilityObserver
+        obs = CapabilityObserver("ToolA", "double")
+        def do_observe():
+            for i in range(10):
+                obs.observe(i, i * 2)
+        threads = [threading.Thread(target=do_observe) for _ in range(5)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        assert obs.get_observation_count() == 50
+
+    def test_get_observations_returns_copy(self):
+        from src.murphy_osmosis_engine import CapabilityObserver
+        obs = CapabilityObserver("ToolA", "double")
+        obs.observe(1, 2)
+        copy1 = obs.get_observations()
+        copy1.append({"fake": True})
+        assert obs.get_observation_count() == 1
+
+
+class TestImplementationBuilderProduction:
+
+    def test_numeric_transform_callable(self):
+        from src.murphy_osmosis_engine import MurphyImplementationBuilder, SoftwareCapability
+        builder = MurphyImplementationBuilder()
+        cap = SoftwareCapability(source_software="ToolA", capability_name="x2",
+                                  description="double", core_algorithm="output ≈ input × 2.0000")
+        fn = builder.build(cap, {"core_algorithm_description": "output ≈ input × 2.0000"})
+        assert abs(fn(5.0) - 10.0) < 0.001
+
+    def test_string_transform_callable(self):
+        from src.murphy_osmosis_engine import MurphyImplementationBuilder, SoftwareCapability
+        builder = MurphyImplementationBuilder()
+        cap = SoftwareCapability(source_software="ToolA", capability_name="stringify",
+                                  description="convert to string")
+        fn = builder.build(cap, {"core_algorithm_description": "String processing transformation"})
+        assert fn(42) == "42"
+
+    def test_identity_transform_callable(self):
+        from src.murphy_osmosis_engine import MurphyImplementationBuilder, SoftwareCapability
+        builder = MurphyImplementationBuilder()
+        cap = SoftwareCapability(source_software="ToolA", capability_name="passthrough",
+                                  description="identity")
+        fn = builder.build(cap, {"core_algorithm_description": "General transformation pattern"})
+        assert fn("hello") == "hello"
+        assert fn(42) == 42
+
+
+class TestOsmosisCandidateProduction:
+
+    def test_candidate_passes_sandbox(self):
+        from src.murphy_osmosis_engine import OsmosisCandidate, SoftwareCapability
+        cap = SoftwareCapability(source_software="ToolA", capability_name="x2", description="double")
+        candidate = OsmosisCandidate(
+            candidate_id="c1",
+            capability=cap,
+            implementation_fn=lambda x: x * 2,
+            test_cases=[{"input": i, "expected_output": i * 2} for i in range(1, 6)],
+        )
+        result = candidate.run_test_cases()
+        assert result["passed"] == 5
+        assert result["failed"] == 0
+        assert candidate.sandbox_passed is True
+        assert candidate.effectiveness_score == 1.0
+
+    def test_candidate_fails_sandbox(self):
+        from src.murphy_osmosis_engine import OsmosisCandidate, SoftwareCapability
+        cap = SoftwareCapability(source_software="ToolA", capability_name="broken", description="broken")
+        candidate = OsmosisCandidate(
+            candidate_id="c2",
+            capability=cap,
+            implementation_fn=lambda x: x + 999,  # wrong
+            test_cases=[{"input": 1, "expected_output": 2}, {"input": 2, "expected_output": 4}],
+        )
+        result = candidate.run_test_cases()
+        assert result["failed"] == 2
+        assert candidate.sandbox_passed is False
+
+    def test_candidate_no_test_cases(self):
+        from src.murphy_osmosis_engine import OsmosisCandidate, SoftwareCapability
+        cap = SoftwareCapability(source_software="ToolA", capability_name="x", description="x")
+        candidate = OsmosisCandidate(candidate_id="c3", capability=cap, implementation_fn=lambda x: x)
+        result = candidate.run_test_cases()
+        assert result["passed"] == 0
+        assert result["failed"] == 0
+        assert candidate.effectiveness_score == 0.0
+
+
+class TestOsmosisPipelineProduction:
+
+    def test_full_pipeline_validated(self):
+        from src.murphy_osmosis_engine import OsmosisPipeline, ImplementationStatus
+        pipeline = OsmosisPipeline()
+        observations = [{"input": i, "output": i * 2.0} for i in range(1, 6)]
+        test_cases = [{"input": i, "expected_output": i * 2.0} for i in range(1, 6)]
+        cap = pipeline.absorb("ToolA", "double", "multiply by 2", observations, test_cases)
+        assert cap.murphy_implementation_status == ImplementationStatus.VALIDATED
+        assert cap.validation_score == 1.0
+
+    def test_pipeline_low_score_stays_observed(self):
+        from src.murphy_osmosis_engine import OsmosisPipeline, ImplementationStatus
+        pipeline = OsmosisPipeline()
+        observations = [{"input": i, "output": i * 2.0} for i in range(1, 6)]
+        # Test cases that will fail (wrong expected)
+        test_cases = [{"input": i, "expected_output": i * 999.0} for i in range(1, 6)]
+        cap = pipeline.absorb("ToolA", "broken", "broken", observations, test_cases)
+        # Should remain observed/sandbox status because score < 0.7
+        assert cap.murphy_implementation_status in (ImplementationStatus.OBSERVED, ImplementationStatus.SANDBOX_TESTING)
+
+    def test_pipeline_promote_to_production(self):
+        from src.murphy_osmosis_engine import OsmosisPipeline, ImplementationStatus
+        pipeline = OsmosisPipeline()
+        observations = [{"input": i, "output": i * 2.0} for i in range(1, 6)]
+        test_cases = [{"input": i, "expected_output": i * 2.0} for i in range(1, 6)]
+        cap = pipeline.absorb("ToolA", "double", "double", observations, test_cases)
+        promoted = pipeline.promote_to_production(cap.capability_id)
+        assert promoted is True
+        stored = pipeline.get_registry().get(cap.capability_id)
+        assert stored.murphy_implementation_status == ImplementationStatus.PRODUCTION
+
+    def test_registry_tracks_status(self):
+        from src.murphy_osmosis_engine import OsmosisPipeline, ImplementationStatus
+        pipeline = OsmosisPipeline()
+        observations = [{"input": i, "output": i * 2.0} for i in range(1, 6)]
+        test_cases = [{"input": i, "expected_output": i * 2.0} for i in range(1, 6)]
+        cap = pipeline.absorb("ToolA", "x2", "double", observations, test_cases)
+        validated = pipeline.get_registry().list_by_status(ImplementationStatus.VALIDATED)
+        assert any(c.capability_id == cap.capability_id for c in validated)
+
+    def test_pipeline_no_test_cases_not_sandbox_passed(self):
+        from src.murphy_osmosis_engine import OsmosisPipeline, ImplementationStatus
+        pipeline = OsmosisPipeline()
+        observations = [{"input": 1, "output": 2.0}]
+        cap = pipeline.absorb("ToolA", "no-tests", "no tests", observations)
+        # With no test cases, effectiveness = 0.0, should not pass sandbox
+        assert cap.murphy_implementation_status == ImplementationStatus.OBSERVED
+
+    def test_insight_extractor_records_and_extracts(self):
+        from src.murphy_osmosis_engine import InsightExtractor
+        ie = InsightExtractor()
+        for _ in range(3):
+            ie.record_interaction("approve", "approved")
+        ie.record_interaction("reject", "rejected", context={"reason": "too expensive"})
+        insights = ie.extract_insights()
+        assert insights["total"] == 4
+        assert insights["approved"] == 3
+        assert insights["rejected"] == 1
+        assert insights["approval_rate"] == pytest.approx(0.75)
+
+    def test_absorbed_capability_registry_update_status(self):
+        from src.murphy_osmosis_engine import AbsorbedCapabilityRegistry, SoftwareCapability, ImplementationStatus
+        reg = AbsorbedCapabilityRegistry()
+        cap = SoftwareCapability(source_software="ToolA", capability_name="x", description="x")
+        reg.register(cap)
+        result = reg.update_status(cap.capability_id, ImplementationStatus.PRODUCTION)
+        assert result is True
+        stored = reg.get(cap.capability_id)
+        assert stored.murphy_implementation_status == ImplementationStatus.PRODUCTION
+
+
+import pytest
+
+
+class TestOsmosisEdgeCasesProduction:
+
+    def test_absorb_with_no_observations(self):
+        from src.murphy_osmosis_engine import OsmosisPipeline, ImplementationStatus
+        pipeline = OsmosisPipeline()
+        cap = pipeline.absorb("ToolA", "empty", "no observations", [])
+        assert cap.capability_id is not None
+
+    def test_promote_nonexistent_capability_returns_false(self):
+        from src.murphy_osmosis_engine import OsmosisPipeline
+        pipeline = OsmosisPipeline()
+        result = pipeline.promote_to_production("no-such-id")
+        assert result is False
+
+    def test_promote_before_validated_returns_false(self):
+        from src.murphy_osmosis_engine import OsmosisPipeline
+        pipeline = OsmosisPipeline()
+        # Absorb with no test cases (stays OBSERVED)
+        cap = pipeline.absorb("ToolA", "unvalidated", "x", [{"input": 1, "output": 2}])
+        result = pipeline.promote_to_production(cap.capability_id)
+        assert result is False
+
+    def test_absorbed_capability_registry_list_all(self):
+        from src.murphy_osmosis_engine import AbsorbedCapabilityRegistry, SoftwareCapability
+        reg = AbsorbedCapabilityRegistry()
+        for i in range(3):
+            cap = SoftwareCapability(source_software="ToolA",
+                                     capability_name=f"cap_{i}", description="x")
+            reg.register(cap)
+        assert len(reg.list_all()) == 3
+
+    def test_insight_extractor_empty_returns_zeros(self):
+        from src.murphy_osmosis_engine import InsightExtractor
+        ie = InsightExtractor()
+        insights = ie.extract_insights()
+        assert insights["total"] == 0
+        assert insights["approval_rate"] == 0.0
+
+    def test_capability_observer_multiple_sources(self):
+        from src.murphy_osmosis_engine import CapabilityObserver
+        obs1 = CapabilityObserver("ToolA", "cap1")
+        obs2 = CapabilityObserver("ToolB", "cap2")
+        obs1.observe(1, 2)
+        obs2.observe("hello", "HELLO")
+        assert obs1.get_observation_count() == 1
+        assert obs2.get_observation_count() == 1
+
+    def test_pattern_extractor_general_pattern(self):
+        from src.murphy_osmosis_engine import PatternExtractor
+        pe = PatternExtractor()
+        observations = [{"input": [1, 2, 3], "output": 6}]
+        pattern = pe.extract(observations)
+        assert "General" in pattern["core_algorithm_description"]
+
+    def test_numeric_builder_with_zero_input(self):
+        from src.murphy_osmosis_engine import MurphyImplementationBuilder, SoftwareCapability
+        builder = MurphyImplementationBuilder()
+        cap = SoftwareCapability(source_software="ToolA", capability_name="x2",
+                                  description="double")
+        fn = builder.build(cap, {"core_algorithm_description": "output ≈ input × 2.0000"})
+        assert fn(0.0) == 0.0
+
+    def test_osmosis_candidate_effectiveness_zero_on_no_tests(self):
+        from src.murphy_osmosis_engine import OsmosisCandidate, SoftwareCapability
+        cap = SoftwareCapability(source_software="X", capability_name="x", description="x")
+        c = OsmosisCandidate(candidate_id="c0", capability=cap, implementation_fn=lambda x: x)
+        result = c.run_test_cases()
+        assert c.effectiveness_score == 0.0
+        assert c.sandbox_passed is False
+
+    def test_pipeline_registry_accessible(self):
+        from src.murphy_osmosis_engine import OsmosisPipeline
+        pipeline = OsmosisPipeline()
+        reg = pipeline.get_registry()
+        assert reg is not None
+        assert reg.list_all() == []

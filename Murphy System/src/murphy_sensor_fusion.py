@@ -244,6 +244,57 @@ class SensorFusionPipeline:
             values = [str(r.value) for r in good]
             most_common = Counter(values).most_common(1)
             fused_readings = {"voted_value": most_common[0][0] if most_common else None}
+        elif self.strategy == FusionStrategy.KALMAN_FILTER:
+            # Simplified 1-D Kalman filter: process model is constant, measurement noise = 1
+            numeric_vals = [
+                float(r.value) for r in good if isinstance(r.value, (int, float))
+            ]
+            if numeric_vals:
+                # Use iterative Kalman update with process noise Q=0.1, measurement noise R=1
+                estimate = numeric_vals[0]
+                p = 1.0  # initial error covariance
+                q = 0.1  # process noise
+                r_noise = 1.0  # measurement noise
+                for z in numeric_vals[1:]:
+                    p = p + q
+                    k = p / (p + r_noise)  # Kalman gain
+                    estimate = estimate + k * (z - estimate)
+                    p = (1 - k) * p
+                fused_readings = {"fused_value": estimate}
+            else:
+                fused_readings = {r.source_id: r.value for r in good}
+        elif self.strategy == FusionStrategy.COMPLEMENTARY:
+            # Complementary filter: alpha * high_freq + (1-alpha) * low_freq
+            numeric_vals = [
+                float(r.value) for r in good if isinstance(r.value, (int, float))
+            ]
+            if len(numeric_vals) >= 2:
+                alpha = 0.98
+                # Use first reading as "high frequency" source and average of rest as "low frequency"
+                high_freq = numeric_vals[0]
+                low_freq = sum(numeric_vals[1:]) / len(numeric_vals[1:])
+                fused_readings = {"fused_value": alpha * high_freq + (1 - alpha) * low_freq}
+            elif numeric_vals:
+                fused_readings = {"fused_value": numeric_vals[0]}
+            else:
+                fused_readings = {r.source_id: r.value for r in good}
+        elif self.strategy == FusionStrategy.BAYESIAN:
+            # Bayesian fusion: combine Gaussian likelihoods (equal prior)
+            # For N independent Gaussian sensors: fused = weighted mean by inverse variance
+            numeric_vals = [
+                float(r.value) for r in good if isinstance(r.value, (int, float))
+            ]
+            if len(numeric_vals) >= 2:
+                # Assume measurement variance = 1 for all sensors
+                sigma2 = 1.0
+                weights = [1.0 / sigma2] * len(numeric_vals)
+                total_weight = sum(weights)
+                fused_mean = sum(w * v for w, v in zip(weights, numeric_vals)) / total_weight
+                fused_readings = {"fused_value": fused_mean}
+            elif numeric_vals:
+                fused_readings = {"fused_value": numeric_vals[0]}
+            else:
+                fused_readings = {r.source_id: r.value for r in good}
         else:
             # Weighted average for numeric, latest for others
             numeric_vals = [
@@ -266,11 +317,24 @@ class SensorFusionPipeline:
             1.0 if r.quality == ReadingQuality.GOOD else 0.5 for r in good
         ) / (len(good) or 1)
 
+        # Staleness: ms since oldest good reading
+        now_ts = time.time() * 1000
+        staleness_ms = 0.0
+        try:
+            oldest_ts = min(
+                datetime.fromisoformat(r.timestamp).timestamp() * 1000
+                for r in good
+            )
+            staleness_ms = max(0.0, now_ts - oldest_ts)
+        except (ValueError, TypeError):
+            staleness_ms = 0.0
+
         return FusedState(
             readings=fused_readings,
             confidence=round(confidence, 4),
             source_count=len(good),
             disagreement_score=round(disagreement_score, 4),
+            staleness_ms=round(staleness_ms, 1),
         )
 
     def get_anomalies(self) -> List[AnomalyEvent]:
