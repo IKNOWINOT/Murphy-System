@@ -419,19 +419,85 @@ class ComputeService:
         )
 
     def _execute_lp(self, request: ComputeRequest, normalized) -> ComputeResult:
-        """Execute linear programming (placeholder)"""
-        return ComputeResult(
-            request_id=request.request_id,
-            status=ComputeStatus.UNSUPPORTED,
-            error_message="LP solver not integrated"
-        )
+        """Execute linear programming using scipy.optimize.linprog.
+
+        Parses a simple LP problem from the request expression.
+        The expression metadata should contain:
+          - ``c``: objective coefficients (list of floats)
+          - ``A_ub``: inequality constraint matrix (list of lists)
+          - ``b_ub``: inequality constraint bounds (list of floats)
+          - ``bounds``: variable bounds (list of (min, max) tuples), optional
+
+        Falls back to UNSUPPORTED when scipy is not installed or the
+        metadata is missing required LP parameters.
+        """
+        try:
+            from scipy.optimize import linprog  # type: ignore[import]
+        except ImportError:
+            return ComputeResult(
+                request_id=request.request_id,
+                status=ComputeStatus.UNSUPPORTED,
+                error_message=(
+                    "LP solver requires scipy. Install with: pip install scipy"
+                ),
+            )
+
+        meta = request.metadata or {}
+        c = meta.get("c")
+        if c is None:
+            return ComputeResult(
+                request_id=request.request_id,
+                status=ComputeStatus.UNSUPPORTED,
+                error_message=(
+                    "LP solver requires 'c' (objective coefficients) in request.metadata. "
+                    "Optionally include 'A_ub', 'b_ub', and 'bounds'."
+                ),
+            )
+
+        try:
+            result = linprog(
+                c,
+                A_ub=meta.get("A_ub"),
+                b_ub=meta.get("b_ub"),
+                A_eq=meta.get("A_eq"),
+                b_eq=meta.get("b_eq"),
+                bounds=meta.get("bounds"),
+                method=meta.get("method", "highs"),
+            )
+            if result.success:
+                return ComputeResult(
+                    request_id=request.request_id,
+                    status=ComputeStatus.SUCCESS,
+                    result={"x": result.x.tolist(), "fun": float(result.fun)},
+                    metadata={"message": result.message, "nit": result.nit},
+                )
+            return ComputeResult(
+                request_id=request.request_id,
+                status=ComputeStatus.FAIL,
+                error_message=f"LP solver failed: {result.message}",
+            )
+        except Exception as exc:
+            return ComputeResult(
+                request_id=request.request_id,
+                status=ComputeStatus.FAIL,
+                error_message=f"LP solver error: {exc}",
+            )
 
     def _execute_sat(self, request: ComputeRequest, normalized) -> ComputeResult:
-        """Execute SAT solving (placeholder)"""
+        """SAT solving — planned but not yet implemented.
+
+        .. note::
+            SAT solving is on the capability roadmap.  A suitable solver
+            (e.g. python-sat, pysat) will be wired in a future release.
+            See ``src/capability_map.py`` for current status.
+        """
         return ComputeResult(
             request_id=request.request_id,
             status=ComputeStatus.UNSUPPORTED,
-            error_message="SAT solver not integrated"
+            error_message=(
+                "SAT solver is planned but not yet integrated. "
+                "See capability_map for roadmap status."
+            ),
         )
 
     def get_statistics(self) -> Dict:

@@ -91,6 +91,41 @@ class CapabilityMap:
     and remediation sequencing.
     """
 
+    # ------------------------------------------------------------------
+    # Static compute-plane capability registry
+    # ------------------------------------------------------------------
+
+    #: Map of compute language → (status, notes)
+    COMPUTE_CAPABILITY_MAP: Dict[str, Dict[str, str]] = {
+        "sympy": {
+            "status": "available",
+            "notes": "Symbolic computation via sympy (installed by default).",
+        },
+        "lp": {
+            "status": "available",
+            "notes": (
+                "Linear programming via scipy.optimize.linprog. "
+                "Requires 'scipy' (pip install scipy). "
+                "Pass objective coefficients via request.metadata['c']."
+            ),
+        },
+        "sat": {
+            "status": "planned",
+            "notes": (
+                "SAT solving is on the roadmap. "
+                "A future release will wire python-sat or pysat. "
+                "Current status: UNSUPPORTED."
+            ),
+        },
+        "wolfram": {
+            "status": "planned",
+            "notes": (
+                "Wolfram Engine integration is on the roadmap. "
+                "Current status: UNSUPPORTED."
+            ),
+        },
+    }
+
     def __init__(self) -> None:
         self._lock = threading.Lock()
         self._modules: Dict[str, ModuleCapability] = {}
