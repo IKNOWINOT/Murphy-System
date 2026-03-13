@@ -12,6 +12,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import shlex
 import time
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
@@ -290,10 +291,10 @@ class MatrixBot:
     # Maximum number of webhook deliveries shown per 'webhook deliveries' query.
     _MAX_DELIVERIES_DISPLAY: int = 10
 
-    def __init__(self, cfg: MatrixConfig, api: MurphyAPIClient) -> None:
+    def __init__(self, cfg: MatrixConfig, client: Any, api: MurphyAPIClient) -> None:
         self.cfg = cfg
         self.api = api
-        self._client: Any = None  # nio.AsyncClient, typed as Any to avoid hard dep
+        self._client: Any = client  # pre-logged-in nio.AsyncClient (may be None)
         self._log = logging.getLogger(f"{__name__}.MatrixBot")
 
     # ------------------------------------------------------------------
@@ -301,36 +302,26 @@ class MatrixBot:
     # ------------------------------------------------------------------
 
     async def start(self) -> None:
-        """Log in to the homeserver and begin syncing."""
+        """Register event callbacks and begin syncing using the pre-logged-in client."""
         if AsyncClient is None:
             self._log.error("matrix-nio is not installed; cannot start MatrixBot.")
             return
 
-        self._client = AsyncClient(self.cfg.homeserver, self.cfg.user_id)
+        if self._client is None:
+            self._log.error("No Matrix client provided; cannot start MatrixBot.")
+            return
 
         # Register event callbacks
         self._client.add_event_callback(self._on_message, RoomMessageText)
         self._client.add_event_callback(self._on_invite, InviteMemberEvent)
 
-        if self.cfg.access_token:
-            self._client.access_token = self.cfg.access_token
-            self._client.user_id = self.cfg.user_id
-            self._log.info("MatrixBot using existing access token.")
-        else:
-            resp = await self._client.login(self.cfg.password)
-            if not isinstance(resp, LoginResponse):
-                self._log.error("Login failed: %s", resp)
-                return
-            self._log.info("MatrixBot logged in as %s", self.cfg.user_id)
-
-        self._log.info("MatrixBot starting sync loop.")
+        self._log.info("MatrixBot starting sync loop for %s.", self.cfg.user_id)
         await self._client.sync_forever(timeout=30000)
 
     async def stop(self) -> None:
-        """Gracefully close the Matrix connection and HTTP client."""
+        """Signal the sync loop to stop."""
         if self._client is not None:
             await self._client.close()
-        await self.api.aclose()
         self._log.info("MatrixBot stopped.")
 
     # ------------------------------------------------------------------
@@ -367,9 +358,15 @@ class MatrixBot:
     # ------------------------------------------------------------------
 
     def _parse_command(self, body: str, prefix: str) -> List[str]:
-        """Strip *prefix* from *body* and split into tokens."""
+        """Strip *prefix* from *body* and split into tokens, respecting quoted strings."""
         remainder = body[len(prefix):].strip()
-        return remainder.split() if remainder else []
+        if not remainder:
+            return []
+        try:
+            return shlex.split(remainder)
+        except ValueError:
+            # Fall back to simple whitespace splitting if shlex fails
+            return remainder.split()
 
     def _parse_json_arg(self, raw: str) -> Tuple[Optional[Any], Optional[str]]:
         """Parse *raw* as JSON; return (parsed, None) or (None, error_msg)."""

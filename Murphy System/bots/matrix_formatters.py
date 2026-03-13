@@ -93,8 +93,12 @@ def format_overview(summary: Dict[str, Any]) -> MessagePair:
 
 def format_table(columns: List[str], rows: List[List[Any]]) -> MessagePair:
     """Render a list of rows as an HTML table and plain-text grid."""
-    col_widths = [max(len(str(c)), max((len(str(r[i])) for r in rows), default=0))
-                  for i, c in enumerate(columns)]
+    # Compute column widths in a single pass to avoid O(rows × columns²) complexity.
+    col_widths = [len(str(c)) for c in columns]
+    for row in rows:
+        for i, w in enumerate(col_widths):
+            if i < len(row):
+                col_widths[i] = max(w, len(str(row[i])))
 
     # Plain text
     header = "  ".join(str(c).ljust(w) for c, w in zip(columns, col_widths))
