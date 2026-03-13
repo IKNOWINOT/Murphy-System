@@ -45,6 +45,24 @@ _dashboard_generator: DashboardGenerator | None = None
 _integration_bridge: IntegrationBridge | None = None
 _form_builder: FormBuilder | None = None
 _doc_manager: DocManager | None = None
+_onboarding_flow: "OnboardingFlow | None" = None
+_gate_generator: "BusinessGateGenerator | None" = None
+
+
+def _get_onboarding_flow():
+    global _onboarding_flow
+    if _onboarding_flow is None:
+        from onboarding_flow import OnboardingFlow
+        _onboarding_flow = OnboardingFlow()
+    return _onboarding_flow
+
+
+def _get_gate_generator():
+    global _gate_generator
+    if _gate_generator is None:
+        from executive_planning_engine import BusinessGateGenerator
+        _gate_generator = BusinessGateGenerator()
+    return _gate_generator
 
 
 def _get_board_engine() -> BoardEngine:
@@ -114,7 +132,7 @@ def reset_engines() -> None:
     """Reset all engine singletons (useful for testing)."""
     global _board_engine, _status_engine, _timeline_engine, _recipe_engine
     global _workspace_manager, _dashboard_generator, _integration_bridge
-    global _form_builder, _doc_manager
+    global _form_builder, _doc_manager, _onboarding_flow, _gate_generator
     _board_engine = None
     _status_engine = None
     _timeline_engine = None
@@ -124,6 +142,8 @@ def reset_engines() -> None:
     _integration_bridge = None
     _form_builder = None
     _doc_manager = None
+    _onboarding_flow = None
+    _gate_generator = None
 
 
 # ---------------------------------------------------------------------------
@@ -680,6 +700,545 @@ def handle_doc(dispatcher: object, cmd: object) -> object:
 
 
 # ---------------------------------------------------------------------------
+# !murphy onboard [init|start|questions|answer|assign|complete|status]
+# ---------------------------------------------------------------------------
+
+def handle_onboard(dispatcher: object, cmd: object) -> object:
+    """Handle ``!murphy onboard`` commands.
+
+    Subcommands:
+        init                          — initialize org chart with default positions
+        start <name> <email>          — start onboarding session for a new employee
+        questions <session-id>        — list onboarding questions
+        answer <session-id> <q-id> <answer> — answer an onboarding question
+        assign <session-id> [pos-id]  — assign shadow agent to employee
+        complete <session-id>         — complete onboarding, transition to workflow builder
+        status [session-id]           — show onboarding status
+    """
+    sub = getattr(cmd, "subcommand", None) or "status"
+    args = getattr(cmd, "args", [])
+    flow = _get_onboarding_flow()
+
+    if sub == "init":
+        result = flow.initialize_org()
+        lines = ["## ☠ Organization Initialized\n"]
+        lines.append(f"✅ **{result['positions_created']} positions** created")
+        lines.append(f"📋 Phase: `{result['phase']}`")
+        lines.append(f"➡️ Next: `{result['next_phase']}`")
+        chart = result.get("org_chart", {})
+        lines.append(f"\n**Total positions:** {chart.get('total_positions', 0)}")
+        lines.append(f"**IP classification:** {chart.get('ip_classification', 'N/A')}")
+        for root in chart.get("hierarchy", []):
+            lines.append(f"\n### {root.get('title', 'Unknown')}")
+            lines.append(f"  Level: {root.get('level', '?')} | Dept: {root.get('department', '?')}")
+            for child in root.get("children", []):
+                lines.append(f"  └─ **{child.get('title', '?')}** ({child.get('level', '?')})")
+                for gc in child.get("children", []):
+                    lines.append(f"     └─ {gc.get('title', '?')} ({gc.get('level', '?')})")
+        return _make_response(True, "\n".join(lines))
+
+    if sub == "start":
+        if len(args) < 2:
+            return _make_response(False, "Usage: `!murphy onboard start <name> <email>`")
+        name = args[0]
+        email = args[1]
+        session = flow.start_onboarding(name, email)
+        lines = [f"## ☠ Onboarding Started\n"]
+        lines.append(f"👤 **Employee:** {session.employee_name}")
+        lines.append(f"📧 **Email:** {session.employee_email}")
+        lines.append(f"🔑 **Session ID:** `{session.session_id}`")
+        lines.append(f"📋 **Phase:** `{session.phase.value}`")
+        lines.append(f"\n➡️ Next: Use `!murphy onboard questions {session.session_id}` to view questions")
+        return _make_response(True, "\n".join(lines))
+
+    if sub == "questions":
+        session_id = args[0] if args else None
+        if not session_id:
+            return _make_response(False, "Usage: `!murphy onboard questions <session-id>`")
+        questions = flow.get_questions(session_id)
+        if not questions:
+            return _make_response(False, f"Session `{session_id}` not found or no questions available.")
+        lines = ["## ☠ Onboarding Questions\n"]
+        for q in questions:
+            required = "⭐" if q.get("required") else "  "
+            lines.append(f"{required} **Q{q['order']}** (`{q['question_id']}`): {q['question']}")
+            if q.get("options"):
+                lines.append(f"   Options: {', '.join(q['options'])}")
+            if q.get("help_text"):
+                lines.append(f"   _{q['help_text']}_")
+        lines.append(f"\n➡️ Answer with: `!murphy onboard answer {session_id} <question-id> <your-answer>`")
+        return _make_response(True, "\n".join(lines))
+
+    if sub == "answer":
+        if len(args) < 3:
+            return _make_response(False, "Usage: `!murphy onboard answer <session-id> <question-id> <answer>`")
+        session_id = args[0]
+        question_id = args[1]
+        answer_text = " ".join(args[2:])
+        result = flow.answer_question(session_id, question_id, answer_text)
+        if "error" in result:
+            return _make_response(False, f"Error: {result['error']}")
+        lines = ["## ☠ Answer Recorded\n"]
+        lines.append(f"✅ **Answered:** {result['questions_answered']}/{result['total_questions']}")
+        lines.append(f"📋 **Required remaining:** {result['required_remaining']}")
+        if result.get("all_required_complete"):
+            lines.append("\n🎉 **All required questions answered!**")
+            lines.append(f"➡️ Next: `!murphy onboard assign {session_id}`")
+        else:
+            lines.append(f"\n➡️ Continue answering questions for session `{session_id}`")
+        return _make_response(True, "\n".join(lines))
+
+    if sub == "assign":
+        session_id = args[0] if args else None
+        if not session_id:
+            return _make_response(False, "Usage: `!murphy onboard assign <session-id> [position-id]`")
+        position_id = args[1] if len(args) > 1 else None
+        result = flow.assign_shadow_agent(session_id, position_id)
+        if "error" in result:
+            return _make_response(False, f"Error: {result['error']}")
+        shadow = result.get("shadow_agent", {})
+        lines = ["## ☠ Shadow Agent Assigned\n"]
+        lines.append(f"🤖 **Agent ID:** `{shadow.get('shadow_id', 'N/A')}`")
+        lines.append(f"👤 **Employee:** {shadow.get('employee_id', 'N/A')}")
+        lines.append(f"🔐 **IP Classification:** {result.get('ip_classification', 'N/A')}")
+        caps = shadow.get("capabilities", [])
+        if caps:
+            lines.append(f"⚡ **Capabilities:** {', '.join(caps)}")
+        lines.append(f"\n{result.get('message', '')}")
+        lines.append(f"\n➡️ Next: `!murphy onboard complete {session_id}`")
+        return _make_response(True, "\n".join(lines))
+
+    if sub == "complete":
+        session_id = args[0] if args else None
+        if not session_id:
+            return _make_response(False, "Usage: `!murphy onboard complete <session-id>`")
+        result = flow.transition_to_workflow_builder(session_id)
+        if "error" in result:
+            return _make_response(False, f"Error: {result['error']}")
+        ctx = result.get("builder_context", {})
+        lines = ["## ☠ Onboarding Complete!\n"]
+        lines.append(f"✅ **Phase:** `{result.get('phase', 'completed')}`")
+        lines.append(f"👤 **Employee:** {ctx.get('employee_name', 'N/A')}")
+        if ctx.get("shadow_agent_id"):
+            lines.append(f"🤖 **Shadow Agent:** `{ctx['shadow_agent_id']}`")
+        if ctx.get("suggested_automations"):
+            lines.append(f"⚡ **Suggested Automations:** {', '.join(ctx['suggested_automations'])}")
+        lines.append(f"\n{result.get('message', '')}")
+        return _make_response(True, "\n".join(lines))
+
+    if sub == "status":
+        session_id = args[0] if args else None
+        if session_id:
+            session = flow.get_session(session_id)
+            if not session:
+                return _make_response(False, f"Session `{session_id}` not found.")
+            s = session.to_dict()
+            lines = [f"## ☠ Onboarding Session: {s['employee_name']}\n"]
+            lines.append(f"📋 **Phase:** `{s['phase']}`")
+            lines.append(f"📧 **Email:** {s['employee_email']}")
+            lines.append(f"📝 **Questions answered:** {len(s.get('questions_answered', {}))}")
+            if s.get("shadow_agent"):
+                lines.append(f"🤖 **Shadow Agent:** `{s['shadow_agent']['shadow_id']}`")
+            return _make_response(True, "\n".join(lines))
+        else:
+            sessions = flow.list_sessions()
+            org_chart = flow.org_chart.get_org_chart()
+            lines = ["## ☠ Onboarding Status\n"]
+            lines.append(f"**Org positions:** {org_chart.get('total_positions', 0)}")
+            lines.append(f"**Active sessions:** {len(sessions)}")
+            lines.append(f"**Shadow agents:** {len(flow.get_shadow_agents())}\n")
+            if sessions:
+                lines.append("| Employee | Phase | Questions |")
+                lines.append("|----------|-------|-----------|")
+                for s in sessions:
+                    lines.append(f"| {s['employee_name']} | `{s['phase']}` | {len(s.get('questions_answered', {}))} |")
+            else:
+                lines.append("No onboarding sessions. Use `!murphy onboard init` to start.")
+            return _make_response(True, "\n".join(lines))
+
+    return _make_response(False, f"Unknown onboard subcommand `{sub}`. "
+                          "Try: init, start, questions, answer, assign, complete, status.")
+
+
+# ---------------------------------------------------------------------------
+# !murphy gate [create|list|evaluate|status]
+# ---------------------------------------------------------------------------
+
+def handle_gate(dispatcher: object, cmd: object) -> object:
+    """Handle ``!murphy gate`` commands.
+
+    Subcommands:
+        create <objective-id> <category> [--budget=N] [--roi=N] [--risk=N]
+            — generate gates for a business objective
+        list [objective-id]   — list all gates or gates for an objective
+        evaluate <gate-id> <value>  — evaluate a gate against an actual value
+        status <gate-id>      — show gate status
+        update <gate-id> <status> — update gate status
+    """
+    sub = getattr(cmd, "subcommand", None) or "list"
+    args = getattr(cmd, "args", [])
+    kwargs = getattr(cmd, "kwargs", {})
+    gen = _get_gate_generator()
+
+    if sub == "create":
+        if len(args) < 2:
+            return _make_response(
+                False,
+                "Usage: `!murphy gate create <objective-id> <category>` "
+                "[--budget=N] [--roi=N] [--risk=N]\n\n"
+                "Categories: revenue_target, cost_reduction, market_expansion, "
+                "compliance_mandate, operational_efficiency",
+            )
+        objective_id = args[0]
+        category = args[1]
+        budget = float(kwargs.get("budget", 100000))
+        roi = float(kwargs["roi"]) if "roi" in kwargs else None
+        risk = float(kwargs["risk"]) if "risk" in kwargs else None
+        try:
+            gates = gen.generate_gates_for_objective(
+                objective_id, category,
+                budget_threshold=budget,
+                roi_threshold=roi,
+                risk_tolerance=risk,
+            )
+        except (ValueError, KeyError) as exc:
+            return _make_response(False, f"Error generating gates: {exc}")
+        lines = [f"## ☠ Gates Generated for `{objective_id}`\n"]
+        lines.append(f"✅ **{len(gates)} gates** created for category `{category}`\n")
+        lines.append("| Gate ID | Type | Threshold | Status |")
+        lines.append("|---------|------|-----------|--------|")
+        for g in gates:
+            lines.append(
+                f"| `{g['gate_id']}` | {g['gate_type']} "
+                f"| {g['threshold']} | {g['status']} |"
+            )
+        return _make_response(True, "\n".join(lines))
+
+    if sub == "list":
+        objective_id = args[0] if args else None
+        if objective_id:
+            gates = gen.get_gates_for_objective(objective_id)
+        else:
+            gates = gen.list_gates()
+        if not gates:
+            return _make_response(True, "## Gates\n\nNo gates found. Use `!murphy gate create` to generate gates.")
+        lines = ["## ☠ Gate Registry\n"]
+        lines.append("| Gate ID | Objective | Type | Threshold | Status |")
+        lines.append("|---------|-----------|------|-----------|--------|")
+        for g in gates:
+            lines.append(
+                f"| `{g['gate_id']}` | `{g['objective_id']}` "
+                f"| {g['gate_type']} | {g['threshold']} | {g['status']} |"
+            )
+        return _make_response(True, "\n".join(lines))
+
+    if sub == "evaluate":
+        if len(args) < 2:
+            return _make_response(False, "Usage: `!murphy gate evaluate <gate-id> <actual-value>`")
+        gate_id = args[0]
+        try:
+            actual = float(args[1])
+        except ValueError:
+            return _make_response(False, "Value must be a number.")
+        result = gen.evaluate_gate(gate_id, actual)
+        if "error" in result:
+            return _make_response(False, f"Gate `{gate_id}` not found.")
+        ev = result.get("evaluation_result", {})
+        passed = "✅ PASSED" if ev.get("passed") else "❌ FAILED"
+        lines = [f"## ☠ Gate Evaluation: `{gate_id}`\n"]
+        lines.append(f"**Result:** {passed}")
+        lines.append(f"**Actual:** {ev.get('actual_value')}")
+        lines.append(f"**Threshold:** {ev.get('threshold')}")
+        lines.append(f"**Type:** {result.get('gate_type')}")
+        lines.append(f"**Status:** `{result.get('status')}`")
+        return _make_response(True, "\n".join(lines))
+
+    if sub == "status":
+        gate_id = args[0] if args else None
+        if not gate_id:
+            return _make_response(False, "Usage: `!murphy gate status <gate-id>`")
+        gate = gen.get_gate(gate_id)
+        if not gate:
+            return _make_response(False, f"Gate `{gate_id}` not found.")
+        lines = [f"## ☠ Gate Status: `{gate_id}`\n"]
+        lines.append(f"**Objective:** `{gate.get('objective_id')}`")
+        lines.append(f"**Type:** {gate.get('gate_type')}")
+        lines.append(f"**Threshold:** {gate.get('threshold')}")
+        lines.append(f"**Status:** `{gate.get('status')}`")
+        lines.append(f"**Approvers:** {', '.join(gate.get('approvers', []))}")
+        if gate.get("evaluation_result"):
+            ev = gate["evaluation_result"]
+            lines.append(f"\n**Last evaluation:**")
+            lines.append(f"  Actual: {ev.get('actual_value')} | Passed: {ev.get('passed')}")
+        return _make_response(True, "\n".join(lines))
+
+    if sub == "update":
+        if len(args) < 2:
+            return _make_response(
+                False,
+                "Usage: `!murphy gate update <gate-id> <status>`\n"
+                "Statuses: pending, open, passed, failed, waived, blocked",
+            )
+        gate_id = args[0]
+        status = args[1]
+        try:
+            result = gen.update_gate_status(gate_id, status)
+        except ValueError as exc:
+            return _make_response(False, f"Invalid status: {exc}")
+        if "error" in result:
+            return _make_response(False, f"Gate `{gate_id}` not found.")
+        return _make_response(True, f"✅ Gate `{gate_id}` status updated to `{result['status']}`.")
+
+    return _make_response(False, f"Unknown gate subcommand `{sub}`. "
+                          "Try: create, list, evaluate, status, update.")
+
+
+# ---------------------------------------------------------------------------
+# !murphy setpoint [show|set|ranges]
+# ---------------------------------------------------------------------------
+
+_DEFAULT_SETPOINTS = {
+    "money": {"value": 0.5, "description": "Budget neutrality target", "range": [0.0, 1.0]},
+    "time": {"value": 0.5, "description": "On-schedule target", "range": [0.0, 1.0]},
+    "production": {"value": 1.0, "description": "Production pace target", "range": [0.0, 1.5]},
+    "confidence": {"value": 1.0, "description": "Full confidence desired", "range": [0.0, 1.0]},
+    "info_completeness": {"value": 1.0, "description": "Full information desired", "range": [0.0, 1.0]},
+    "risk": {"value": 0.0, "description": "Zero risk desired", "range": [0.0, 1.0]},
+}
+
+_active_setpoints: dict | None = None
+
+
+def _get_active_setpoints() -> dict:
+    global _active_setpoints
+    if _active_setpoints is None:
+        import copy
+        _active_setpoints = copy.deepcopy(_DEFAULT_SETPOINTS)
+    return _active_setpoints
+
+
+def handle_setpoint(dispatcher: object, cmd: object) -> object:
+    """Handle ``!murphy setpoint`` commands.
+
+    Subcommands:
+        show               — display current setpoints and their ranges
+        set <dim> <value>  — override a setpoint value
+        ranges             — display allowed ranges for all dimensions
+        reset              — reset setpoints to defaults
+    """
+    sub = getattr(cmd, "subcommand", None) or "show"
+    args = getattr(cmd, "args", [])
+    setpoints = _get_active_setpoints()
+
+    if sub == "show":
+        lines = ["## ☠ Active Setpoints\n"]
+        lines.append("| Dimension | Value | Range | Description |")
+        lines.append("|-----------|-------|-------|-------------|")
+        for dim, sp in setpoints.items():
+            rng = sp.get("range", [0, 1])
+            lines.append(
+                f"| {dim} | **{sp['value']:.2f}** "
+                f"| [{rng[0]:.1f}, {rng[1]:.1f}] "
+                f"| {sp['description']} |"
+            )
+        lines.append("\nSetpoints drive the PI control loop in the Activated Heartbeat Runner.")
+        lines.append("Use `!murphy setpoint set <dimension> <value>` to adjust.")
+        return _make_response(True, "\n".join(lines))
+
+    if sub == "set":
+        if len(args) < 2:
+            return _make_response(
+                False,
+                "Usage: `!murphy setpoint set <dimension> <value>`\n"
+                f"Dimensions: {', '.join(setpoints.keys())}",
+            )
+        dim = args[0]
+        if dim not in setpoints:
+            return _make_response(False, f"Unknown dimension `{dim}`. "
+                                  f"Available: {', '.join(setpoints.keys())}")
+        try:
+            val = float(args[1])
+        except ValueError:
+            return _make_response(False, "Value must be a number.")
+        rng = setpoints[dim].get("range", [0, 1])
+        if not (rng[0] <= val <= rng[1]):
+            return _make_response(False, f"Value {val} out of range [{rng[0]}, {rng[1]}] for `{dim}`.")
+        old_val = setpoints[dim]["value"]
+        setpoints[dim]["value"] = val
+        return _make_response(
+            True,
+            f"✅ Setpoint `{dim}` updated: **{old_val:.2f}** → **{val:.2f}** (range [{rng[0]}, {rng[1]}])",
+        )
+
+    if sub == "ranges":
+        lines = ["## ☠ Setpoint Ranges\n"]
+        lines.append("| Dimension | Min | Max | Default | Description |")
+        lines.append("|-----------|-----|-----|---------|-------------|")
+        for dim, sp in setpoints.items():
+            rng = sp.get("range", [0, 1])
+            default = _DEFAULT_SETPOINTS[dim]["value"]
+            lines.append(
+                f"| {dim} | {rng[0]:.1f} | {rng[1]:.1f} "
+                f"| {default:.2f} | {sp['description']} |"
+            )
+        return _make_response(True, "\n".join(lines))
+
+    if sub == "reset":
+        import copy
+        global _active_setpoints
+        _active_setpoints = copy.deepcopy(_DEFAULT_SETPOINTS)
+        return _make_response(True, "✅ All setpoints reset to defaults.")
+
+    return _make_response(False, f"Unknown setpoint subcommand `{sub}`. "
+                          "Try: show, set, ranges, reset.")
+
+
+# ---------------------------------------------------------------------------
+# !murphy schedule [loops|configure|status]
+# ---------------------------------------------------------------------------
+
+_DEFAULT_BUSINESS_LOOPS = {
+    "heartbeat": {
+        "description": "Core PI control loop",
+        "interval_seconds": 5,
+        "range": [1, 60],
+        "enabled": True,
+    },
+    "financial_review": {
+        "description": "Budget and ROI gate evaluation cycle",
+        "interval_seconds": 3600,
+        "range": [300, 86400],
+        "enabled": True,
+    },
+    "compliance_check": {
+        "description": "Regulatory compliance gate sweep",
+        "interval_seconds": 1800,
+        "range": [600, 86400],
+        "enabled": True,
+    },
+    "risk_assessment": {
+        "description": "Risk exposure evaluation cycle",
+        "interval_seconds": 900,
+        "range": [60, 7200],
+        "enabled": True,
+    },
+    "production_pace": {
+        "description": "Production pace tracking and adjustment",
+        "interval_seconds": 300,
+        "range": [60, 3600],
+        "enabled": True,
+    },
+    "stakeholder_reporting": {
+        "description": "Executive dashboard refresh",
+        "interval_seconds": 7200,
+        "range": [1800, 86400],
+        "enabled": True,
+    },
+}
+
+_active_loops: dict | None = None
+
+
+def _get_active_loops() -> dict:
+    global _active_loops
+    if _active_loops is None:
+        import copy
+        _active_loops = copy.deepcopy(_DEFAULT_BUSINESS_LOOPS)
+    return _active_loops
+
+
+def handle_schedule(dispatcher: object, cmd: object) -> object:
+    """Handle ``!murphy schedule`` commands.
+
+    Subcommands:
+        loops                        — list all business loops and their schedules
+        configure <loop> <seconds>   — set loop interval
+        enable <loop>                — enable a loop
+        disable <loop>               — disable a loop
+        status                       — show scheduling summary
+        reset                        — reset loops to defaults
+    """
+    sub = getattr(cmd, "subcommand", None) or "loops"
+    args = getattr(cmd, "args", [])
+    loops = _get_active_loops()
+
+    if sub == "loops":
+        lines = ["## ☠ Business Loop Schedule\n"]
+        lines.append("| Loop | Interval | Range | Enabled | Description |")
+        lines.append("|------|----------|-------|---------|-------------|")
+        for name, cfg in loops.items():
+            rng = cfg.get("range", [0, 86400])
+            enabled = "✅" if cfg["enabled"] else "❌"
+            interval = cfg["interval_seconds"]
+            if interval >= 3600:
+                interval_str = f"{interval / 3600:.1f}h"
+            elif interval >= 60:
+                interval_str = f"{interval / 60:.0f}m"
+            else:
+                interval_str = f"{interval}s"
+            lines.append(
+                f"| {name} | **{interval_str}** "
+                f"| [{rng[0]}s, {rng[1]}s] "
+                f"| {enabled} | {cfg['description']} |"
+            )
+        return _make_response(True, "\n".join(lines))
+
+    if sub == "configure":
+        if len(args) < 2:
+            return _make_response(
+                False,
+                "Usage: `!murphy schedule configure <loop-name> <interval-seconds>`\n"
+                f"Loops: {', '.join(loops.keys())}",
+            )
+        loop_name = args[0]
+        if loop_name not in loops:
+            return _make_response(False, f"Unknown loop `{loop_name}`. "
+                                  f"Available: {', '.join(loops.keys())}")
+        try:
+            secs = int(args[1])
+        except ValueError:
+            return _make_response(False, "Interval must be an integer (seconds).")
+        rng = loops[loop_name].get("range", [0, 86400])
+        if not (rng[0] <= secs <= rng[1]):
+            return _make_response(False, f"Interval {secs}s out of range [{rng[0]}, {rng[1]}] for `{loop_name}`.")
+        old = loops[loop_name]["interval_seconds"]
+        loops[loop_name]["interval_seconds"] = secs
+        return _make_response(
+            True,
+            f"✅ Loop `{loop_name}` interval updated: **{old}s** → **{secs}s**",
+        )
+
+    if sub in ("enable", "disable"):
+        loop_name = args[0] if args else None
+        if not loop_name or loop_name not in loops:
+            return _make_response(False, f"Usage: `!murphy schedule {sub} <loop-name>`\n"
+                                  f"Loops: {', '.join(loops.keys())}")
+        loops[loop_name]["enabled"] = sub == "enable"
+        return _make_response(True, f"✅ Loop `{loop_name}` {'enabled' if sub == 'enable' else 'disabled'}.")
+
+    if sub == "status":
+        enabled = sum(1 for l in loops.values() if l["enabled"])
+        disabled = len(loops) - enabled
+        lines = ["## ☠ Schedule Status\n"]
+        lines.append(f"**Total loops:** {len(loops)}")
+        lines.append(f"**Enabled:** {enabled}")
+        lines.append(f"**Disabled:** {disabled}")
+        for name, cfg in loops.items():
+            state = "🟢 running" if cfg["enabled"] else "🔴 stopped"
+            lines.append(f"- **{name}**: {state} (every {cfg['interval_seconds']}s)")
+        return _make_response(True, "\n".join(lines))
+
+    if sub == "reset":
+        import copy
+        global _active_loops
+        _active_loops = copy.deepcopy(_DEFAULT_BUSINESS_LOOPS)
+        return _make_response(True, "✅ All business loop schedules reset to defaults.")
+
+    return _make_response(False, f"Unknown schedule subcommand `{sub}`. "
+                          "Try: loops, configure, enable, disable, status, reset.")
+
+
+# ---------------------------------------------------------------------------
 # All handlers (for registration convenience)
 # ---------------------------------------------------------------------------
 
@@ -693,6 +1252,10 @@ MANAGEMENT_COMMAND_HANDLERS = {
     "sync": handle_sync,
     "form": handle_form,
     "doc": handle_doc,
+    "onboard": handle_onboard,
+    "gate": handle_gate,
+    "setpoint": handle_setpoint,
+    "schedule": handle_schedule,
 }
 
 __all__ = [
@@ -705,6 +1268,10 @@ __all__ = [
     "handle_sync",
     "handle_form",
     "handle_doc",
+    "handle_onboard",
+    "handle_gate",
+    "handle_setpoint",
+    "handle_schedule",
     "reset_engines",
     "MANAGEMENT_COMMAND_HANDLERS",
 ]

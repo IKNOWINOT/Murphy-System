@@ -291,6 +291,10 @@ class CommandDispatcher:
         self.register_handler("sync", _handle_sync, "Integration bridge sync")
         self.register_handler("form", _handle_form, "Form builder (list, start, submit)")
         self.register_handler("doc", _handle_doc, "Document manager (list, create, view, search)")
+        self.register_handler("onboard", _handle_onboard, "Onboarding flow (init, start, questions, answer, assign, complete)")
+        self.register_handler("gate", _handle_gate, "Business gate management (create, list, evaluate, status)")
+        self.register_handler("setpoint", _handle_setpoint, "Control loop setpoints (show, set, ranges)")
+        self.register_handler("schedule", _handle_schedule, "Business loop scheduling (loops, configure, status)")
 
 
 # ---------------------------------------------------------------------------
@@ -452,3 +456,35 @@ def _handle_doc(
     """Handle ``!murphy doc`` — delegate to management_systems.management_commands."""
     from management_systems.management_commands import handle_doc
     return handle_doc(dispatcher, cmd)
+
+
+def _handle_onboard(
+    dispatcher: CommandDispatcher, cmd: ParsedCommand
+) -> CommandResponse:
+    """Handle ``!murphy onboard`` — delegate to management_systems.management_commands."""
+    from management_systems.management_commands import handle_onboard
+    return handle_onboard(dispatcher, cmd)
+
+
+def _handle_gate(
+    dispatcher: CommandDispatcher, cmd: ParsedCommand
+) -> CommandResponse:
+    """Handle ``!murphy gate`` — delegate to management_systems.management_commands."""
+    from management_systems.management_commands import handle_gate
+    return handle_gate(dispatcher, cmd)
+
+
+def _handle_setpoint(
+    dispatcher: CommandDispatcher, cmd: ParsedCommand
+) -> CommandResponse:
+    """Handle ``!murphy setpoint`` — delegate to management_systems.management_commands."""
+    from management_systems.management_commands import handle_setpoint
+    return handle_setpoint(dispatcher, cmd)
+
+
+def _handle_schedule(
+    dispatcher: CommandDispatcher, cmd: ParsedCommand
+) -> CommandResponse:
+    """Handle ``!murphy schedule`` — delegate to management_systems.management_commands."""
+    from management_systems.management_commands import handle_schedule
+    return handle_schedule(dispatcher, cmd)
