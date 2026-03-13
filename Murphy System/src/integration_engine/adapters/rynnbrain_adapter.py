@@ -61,6 +61,7 @@ RYNNBRAIN_VARIANTS: Dict[str, str] = {
 
 
 class TaskType(str, Enum):
+    """Task Type."""
     GENERAL = "general"
     PLANNING = "planning"
     NAVIGATION = "navigation"

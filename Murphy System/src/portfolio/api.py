@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 if APIRouter is not None:
 
     class AddBarRequest(BaseModel):
+        """Add Bar Request."""
         item_id: str
         item_name: str
         start_date: str
@@ -44,17 +45,20 @@ if APIRouter is not None:
         assignee_ids: List[str] = Field(default_factory=list)
 
     class UpdateBarRequest(BaseModel):
+        """Update Bar Request."""
         start_date: Optional[str] = None
         end_date: Optional[str] = None
         progress: Optional[float] = None
 
     class AddDependencyRequest(BaseModel):
+        """Add Dependency Request."""
         predecessor_id: str
         successor_id: str
         dependency_type: str = "fs"
         lag_days: int = 0
 
     class AddMilestoneRequest(BaseModel):
+        """Add Milestone Request."""
         name: str
         target_date: str
         board_id: str = ""
@@ -62,10 +66,12 @@ if APIRouter is not None:
         linked_item_ids: List[str] = Field(default_factory=list)
 
     class UpdateMilestoneRequest(BaseModel):
+        """Update Milestone Request."""
         status: Optional[str] = None
         target_date: Optional[str] = None
 
     class CreateBaselineRequest(BaseModel):
+        """Create Baseline Request."""
         name: str
         board_id: str = ""
         created_by: str = ""
