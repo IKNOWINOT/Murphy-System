@@ -1,0 +1,65 @@
+# Murphy System CI — Lightweight Dependencies
+# Copyright © 2020 Inoni Limited Liability Company
+# License: BSL-1.1
+#
+# Used by the CI test job. Includes only dependencies that are needed to
+# run the core test suite without heavy ML/NLP packages (torch, spacy,
+# transformers) or hardware-specific packages (matrix-nio[e2e], pymodbus).
+#
+# Heavy optional dependencies are guarded by try/except in source code.
+
+# Web Framework
+fastapi>=0.109.1
+uvicorn[standard]>=0.24.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+python-multipart>=0.0.6
+flask>=3.0.0
+flask-cors>=4.0.0
+
+# Async / HTTP
+aiohttp>=3.9.0
+httpx>=0.25.0
+
+# Database
+sqlalchemy>=2.0.0
+alembic>=1.12.0
+
+# Data Validation
+jsonschema>=4.19.0
+pyyaml>=6.0.1
+toml>=0.10.2
+
+# HTTP
+requests>=2.31.0
+
+# Cryptography & Security
+cryptography>=41.0.0
+pyjwt>=2.8.0
+bcrypt>=4.1.0
+
+# Monitoring
+prometheus-client>=0.19.0
+python-json-logger>=2.0.7
+
+# Utilities
+python-dotenv>=1.0.0
+click>=8.1.7
+rich>=13.7.0
+pyfiglet>=1.0.0
+tqdm>=4.66.0
+
+# Date & Time
+python-dateutil>=2.8.2
+
+# System Monitoring
+psutil>=5.9.6
+
+# Symbolic math (compute plane)
+sympy>=1.12.1
+
+# Data (lightweight)
+numpy>=1.24.0
+
+# Serialization
+msgpack>=1.0.7

@@ -190,10 +190,11 @@ class TestChangelogBadgeConsistency:
         readme_path = os.path.join(REPO_ROOT, "README.md")
         with open(readme_path, encoding="utf-8") as f:
             content = f.read()
-        match = re.search(r"tests-(\d+)%20passing", content)
+        # Badge may use "tests-585%2B%20files" or "tests-NNN%20passing" format
+        match = re.search(r"tests-(\d+)", content)
         assert match, "Badge not found in README"
         badge_count = int(match.group(1))
-        # Badge should be at least 8000 (we know we have 8000+)
-        assert badge_count >= 8000, (
+        # Badge should reflect honest count (585+ test files)
+        assert badge_count >= 200, (
             f"Badge count {badge_count} seems too low"
         )
