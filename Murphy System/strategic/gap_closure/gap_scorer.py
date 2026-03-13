@@ -22,7 +22,7 @@ from typing import Dict, List, Optional, Tuple
 CAPABILITY_BASELINES: Dict[str, int] = {
     "Community & Ecosystem Maturity": 2,
     "App Connector Ecosystem": 4,
-    "No-Code/Low-Code UX": 10,  # Text-to-automation (Describe → Execute) is superior to drag-and-drop
+    "No-Code/Low-Code UX": 4,
     "Production Deployment Readiness": 6,
     "Documentation & Observability": 7,
     "Multi-Agent Orchestration": 8,
@@ -55,8 +55,9 @@ _MODULE_EVIDENCE: Dict[str, List[Tuple[str, str, int]]] = {
         ("connectors/plugin_sdk.py", "Plugin SDK enabling community connector contributions", 2),
     ],
     "No-Code/Low-Code UX": [
-        # Already 10/10: Murphy's text-to-automation ("Describe → Execute") paradigm
-        # supersedes traditional no-code/low-code drag-and-drop builders.
+        ("lowcode/workflow_builder.py", "Programmatic workflow builder with compile/export", 2),
+        ("lowcode/workflow_builder_ui.html", "Visual drag-and-drop workflow builder UI", 2),
+        ("text_to_automation/text_to_automation.py", "Describe→Execute engine: NL text to governed automation DAG", 2),
     ],
     "Production Deployment Readiness": [
         ("launch/launch.py", "One-button streaming deploy script (local/docker/scale)", 2),

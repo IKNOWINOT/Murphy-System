@@ -15,7 +15,7 @@ This document describes the structured, phase-based plan to close every competit
 |-----------|-------|-----|
 | Community & Ecosystem Maturity | 2/10 | 8 |
 | App Connector Ecosystem | 4/10 | 6 |
-| No-Code/Low-Code UX | 10/10 | 0 — text-to-automation is superior |
+| No-Code/Low-Code UX | 4/10 | 6 |
 | Production Deployment Readiness | 6/10 | 4 |
 | Documentation & Observability | 7/10 | 3 |
 | Multi-Agent Orchestration | 8/10 | 2 |
@@ -92,15 +92,39 @@ The community and ecosystem gap is the most critical threat to Murphy System ado
 
 2. **`connectors/plugin_sdk.py`** — Community connector SDK enabling unlimited ecosystem growth
 
-### No-Code/Low-Code UX (10 → 10)
-**Gap: 0 — Murphy's text-to-automation ("Describe → Execute") paradigm is superior to traditional no-code/low-code drag-and-drop builders.**
+### No-Code/Low-Code UX (4 → 10)
+**Gap: 6**
 
-Murphy System's approach lets users describe what they want in natural language and the system executes it automatically. This is fundamentally more powerful than visual drag-and-drop builders, eliminating the gap entirely.
+**What was built:**
 
-**Additional assets (bonus, not required for 10/10):**
+Murphy's "Describe → Execute" paradigm is superior to traditional drag-and-drop
+no-code builders — users describe automations in plain English and receive
+a governed, validated DAG workflow. This is backed by real implementation:
 
-1. **`lowcode/workflow_builder.py`** — Programmatic workflow API (fluent builder, DAG validation, topological compile, JSON export)
-2. **`lowcode/workflow_builder_ui.html`** — Visual workflow builder (drag-drop, SVG connections, pre-loaded healthcare workflow)
+1. **`text_to_automation/text_to_automation.py`** — "Describe → Execute" engine:
+   - `TextToAutomationEngine` — converts plain-English descriptions to governed automation DAGs
+   - Template matching (ETL, CI/CD, monitoring, incident response, onboarding, reporting)
+   - Keyword inference — extracts action verbs and maps to step types
+   - Automatic dependency resolution — wires steps into correct execution order
+   - Governance gate injection — inserts safety gates before critical steps (deployment, notification, security)
+   - `AutomationWorkflow` / `AutomationStep` dataclasses with JSON export
+   - Validation with warnings/errors
+
+2. **`lowcode/workflow_builder.py`** — Full programmatic workflow API:
+   - `WorkflowBuilder` fluent builder class
+   - `WorkflowNode`, `WorkflowEdge`, `WorkflowDefinition` dataclasses
+   - `NodeType` enum: TRIGGER, ACTION, CONDITION, TRANSFORM, CONNECTOR, OUTPUT
+   - `validate()` — DAG validation with cycle detection
+   - `compile()` — topological sort into execution order
+   - `export_json()` — JSON serialization
+
+3. **`lowcode/workflow_builder_ui.html`** — 1,773-line full visual workflow builder:
+   - Dark Murphy theme with green accents
+   - Drag-and-drop node palette
+   - Interactive canvas with SVG bezier connection lines
+   - Right-panel properties editor
+   - Pre-loaded healthcare workflow: Patient Data → HIPAA Gate → AI Diagnosis → Confidence Score → Doctor Approval → Treatment Output
+   - Save/Load (localStorage), Export JSON, Run simulation
 
 ---
 
