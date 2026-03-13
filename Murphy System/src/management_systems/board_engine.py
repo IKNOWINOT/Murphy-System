@@ -1,7 +1,9 @@
 """Management Systems – Board Engine.
 
 Core board/project management for the Management Systems package.
-Columns, items, groups, views, templates, sub-items, and permissions.  Copyright 2024 Inoni LLC – BSL-1.1
+Columns, items, groups, views, templates, sub-items, and permissions.
+
+Copyright 2024 Inoni LLC – BSL-1.1
 """
 
 from __future__ import annotations
