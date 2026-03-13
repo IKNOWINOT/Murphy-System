@@ -25,37 +25,6 @@ logger = logging.getLogger(__name__)
 # Enums
 # ---------------------------------------------------------------------------
 
-class LineStyle(str, Enum):
-    """LineStyle — engineering line style definitions."""
-    CONTINUOUS = "continuous"
-    DASHED = "dashed"
-    CENTER = "center"
-    PHANTOM = "phantom"
-    DIMENSION = "dimension"
-    CONSTRUCTION = "construction"
-
-
-# Stroke-dash arrays for SVG rendering keyed by LineStyle
-_LINE_STYLE_DASHARRAY: Dict[str, str] = {
-    LineStyle.CONTINUOUS: "",
-    LineStyle.DASHED: "8,4",
-    LineStyle.CENTER: "20,5,5,5",
-    LineStyle.PHANTOM: "20,5,5,5,5,5",
-    LineStyle.DIMENSION: "",
-    LineStyle.CONSTRUCTION: "2,4",
-}
-
-# Nominal line weights (mm) keyed by LineStyle
-_LINE_STYLE_WEIGHT: Dict[str, float] = {
-    LineStyle.CONTINUOUS: 0.5,
-    LineStyle.DASHED: 0.35,
-    LineStyle.CENTER: 0.35,
-    LineStyle.PHANTOM: 0.35,
-    LineStyle.DIMENSION: 0.25,
-    LineStyle.CONSTRUCTION: 0.18,
-}
-
-
 class Discipline(str, Enum):
     """Discipline enumeration."""
     MECHANICAL = "mechanical"
@@ -159,7 +128,6 @@ class DrawingElement(BaseModel):
     geometry: Dict[str, Any] = Field(default_factory=dict)
     properties: Dict[str, Any] = Field(default_factory=dict)
     layer: str = "0"
-    line_style: str = LineStyle.CONTINUOUS
     constraints: List[Dict[str, Any]] = Field(default_factory=list)
     line_style: LineStyle = LineStyle.CONTINUOUS
     line_weight: float = 0.5
@@ -285,16 +253,16 @@ class DrawingExporter:
     @staticmethod
     def _svg_stroke_attrs(elem: "DrawingElement") -> str:
         """Return SVG stroke attributes from element line_style and line_weight."""
-        dasharray = _LINE_STYLE_DASHARRAY.get(elem.line_style, "")
+        ls = LINE_STYLE_SVG.get(elem.line_style, LINE_STYLE_SVG[LineStyle.CONTINUOUS])
         weight = elem.line_weight
         attrs = f'stroke="black" stroke-width="{weight}"'
-        if dasharray:
+        dasharray = ls.get("stroke-dasharray", "none")
+        if dasharray and dasharray != "none":
             attrs += f' stroke-dasharray="{dasharray}"'
         return attrs
 
     def to_dxf(self, project: DrawingProject) -> str:
         """Generate DXF R12 ASCII string with TABLES/LTYPE section from the project."""
-        """Generate a DXF R12 ASCII string from the project with full entity support."""
         lines: List[str] = []
         # HEADER section
         lines.append("0\nSECTION\n2\nHEADER\n0\nENDSEC")
@@ -442,12 +410,11 @@ class DrawingExporter:
 
     def to_svg(self, project: DrawingProject, width: int = 800, height: int = 600) -> str:
         """Generate an SVG string with viewBox, line styles, and extended element support."""
-        """Generate an SVG string from the project with line styles, weights, and engineering features."""
         defs_parts: List[str] = [
             self._svg_arrow_marker_defs(),
             self._svg_hatch_pattern_defs(),
         ]
-        defs = "  <defs>\n    " + "\n    ".join(defs_parts) + "\n  </defs>"
+        clip_defs: List[str] = []
 
         svg_elements: List[str] = []
         for sheet in project.sheets:
@@ -463,21 +430,18 @@ class DrawingExporter:
                 dash = f' stroke-dasharray="{ls["stroke-dasharray"]}"' if ls["stroke-dasharray"] != "none" else ""
                 base_attrs = f'stroke="black" stroke-width="{stroke_w}"{dash}'
 
-                stroke = self._svg_stroke_attrs(elem)
                 if elem.element_type == ElementType.LINE:
                     g = elem.geometry
                     svg_elements.append(
                         f'<line x1="{g.get("x1", 0)}" y1="{g.get("y1", 0)}" '
                         f'x2="{g.get("x2", 0)}" y2="{g.get("y2", 0)}" '
                         f'{base_attrs}/>'
-                        f'{stroke}/>'
                     )
                 elif elem.element_type == ElementType.CIRCLE:
                     g = elem.geometry
                     svg_elements.append(
                         f'<circle cx="{g.get("cx", 0)}" cy="{g.get("cy", 0)}" '
                         f'r="{g.get("radius", 1)}" fill="none" {base_attrs}/>'
-                        f'r="{g.get("radius", 1)}" fill="none" {stroke}/>'
                     )
                 elif elem.element_type == ElementType.RECTANGLE:
                     g = elem.geometry
@@ -485,7 +449,6 @@ class DrawingExporter:
                         f'<rect x="{g.get("x", 0)}" y="{g.get("y", 0)}" '
                         f'width="{g.get("width", 10)}" height="{g.get("height", 10)}" '
                         f'fill="none" {base_attrs}/>'
-                        f'fill="none" {stroke}/>'
                     )
                 elif elem.element_type == ElementType.TEXT:
                     g = elem.geometry
@@ -512,7 +475,6 @@ class DrawingExporter:
                     svg_elements.append(
                         f'<path d="M {x1:.3f} {y1:.3f} A {r} {r} 0 {large_arc} 1 {x2:.3f} {y2:.3f}" '
                         f'fill="none" {base_attrs}/>'
-                        f'fill="none" {stroke}/>'
                     )
                 elif elem.element_type == ElementType.POLYGON:
                     g = elem.geometry
@@ -525,85 +487,24 @@ class DrawingExporter:
                 elif elem.element_type == ElementType.DIMENSION:
                     svg_elements.extend(self._render_dimension_svg(elem, base_attrs))
                 elif elem.element_type == ElementType.HATCH:
-                    svg_elements.extend(self._render_hatch_svg(elem))
+                    hatch_parts = self._render_hatch_svg(elem)
+                    # First element from _render_hatch_svg is the <clipPath> — move it to defs
+                    if hatch_parts and hatch_parts[0].startswith("<clipPath"):
+                        clip_defs.append(hatch_parts[0])
+                        svg_elements.extend(hatch_parts[1:])
+                    else:
+                        svg_elements.extend(hatch_parts)
                 elif elem.element_type == ElementType.LEADER:
                     svg_elements.extend(self._render_leader_svg(elem, base_attrs))
 
+        all_defs = defs_parts + clip_defs
+        defs = "  <defs>\n    " + "\n    ".join(all_defs) + "\n  </defs>"
         body = "\n  ".join(svg_elements)
         return (
             f'<?xml version="1.0" encoding="UTF-8"?>\n'
             f'<svg xmlns="http://www.w3.org/2000/svg" '
             f'width="{width}" height="{height}" '
             f'viewBox="0 0 {width} {height}">\n'
-                            f'<polygon points="{pts_str}" fill="none" {stroke}/>'
-                        )
-                elif elem.element_type == ElementType.HATCH:
-                    g = elem.geometry
-                    boundary = g.get("boundary", [])
-                    hatch_style = elem.properties.get("hatch_style", "ansi31")
-                    if boundary:
-                        pts_str = " ".join(f'{v.get("x",0)},{v.get("y",0)}' for v in boundary)
-                        svg_elements.append(
-                            f'<polygon points="{pts_str}" '
-                            f'fill="url(#hatch-{hatch_style})" '
-                            f'{stroke}/>'
-                        )
-                elif elem.element_type == ElementType.DIMENSION:
-                    g = elem.geometry
-                    x1 = g.get("x1", 0)
-                    y1 = g.get("y1", 0)
-                    x2 = g.get("x2", 100)
-                    y2 = g.get("y2", 0)
-                    offset = g.get("offset", 15)
-                    dim_text = elem.properties.get("text", "")
-                    mid_x = (x1 + x2) / 2
-                    mid_y = (y1 + y2) / 2 - offset - 3
-                    # Main dimension line with arrows
-                    svg_elements.append(
-                        f'<line x1="{x1}" y1="{y1 - offset}" '
-                        f'x2="{x2}" y2="{y2 - offset}" '
-                        f'stroke="black" stroke-width="0.25" '
-                        f'marker-start="url(#arrow-start)" marker-end="url(#arrow-end)"/>'
-                    )
-                    # Extension lines
-                    svg_elements.append(
-                        f'<line x1="{x1}" y1="{y1}" x2="{x1}" y2="{y1 - offset}" '
-                        f'stroke="black" stroke-width="0.25"/>'
-                    )
-                    svg_elements.append(
-                        f'<line x1="{x2}" y1="{y2}" x2="{x2}" y2="{y2 - offset}" '
-                        f'stroke="black" stroke-width="0.25"/>'
-                    )
-                    if dim_text:
-                        svg_elements.append(
-                            f'<text x="{mid_x}" y="{mid_y}" font-size="10" '
-                            f'text-anchor="middle" font-family="sans-serif">{dim_text}</text>'
-                        )
-                elif elem.element_type == ElementType.LEADER:
-                    g = elem.geometry
-                    pts = g.get("points", [])
-                    note = elem.properties.get("text", "")
-                    if len(pts) >= 2:
-                        p0, p1 = pts[0], pts[-1]
-                        pts_str = " ".join(f'{p.get("x",0)},{p.get("y",0)}' for p in pts)
-                        svg_elements.append(
-                            f'<polyline points="{pts_str}" fill="none" '
-                            f'stroke="black" stroke-width="0.35" '
-                            f'marker-start="url(#arrow-start)"/>'
-                        )
-                        if note:
-                            svg_elements.append(
-                                f'<text x="{p1.get("x",0) + 3}" y="{p1.get("y",0)}" '
-                                f'font-size="10" font-family="sans-serif">{note}</text>'
-                            )
-            # Title block rendering for this sheet
-            tb = sheet.title_block
-            if tb.drawing_number or tb.company:
-                svg_elements += self._svg_title_block(tb, width, height)
-        body = "\n  ".join(svg_elements)
-        return (
-            f'<?xml version="1.0" encoding="UTF-8"?>\n'
-            f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}">\n'
             f'{defs}\n'
             f'  {body}\n'
             f'</svg>'

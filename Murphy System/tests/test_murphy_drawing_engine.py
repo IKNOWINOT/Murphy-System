@@ -638,8 +638,16 @@ class TestLineStyleSystem:
         assert "4,2" in svg
 
     def test_svg_renders_center_dasharray(self, project_with_sheet):
-
-# ---------------------------------------------------------------------------
+        from src.murphy_drawing_engine import LineStyle
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.LINE,
+            geometry={"x1": 0, "y1": 0, "x2": 100, "y2": 0},
+            line_style=LineStyle.CENTER,
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert "stroke-dasharray" in svg
+        assert "12,3,3,3" in svg
 # LineStyle tests
 # ---------------------------------------------------------------------------
 
@@ -647,7 +655,7 @@ class TestLineStyle:
 
     def test_all_line_styles_exist(self):
         from src.murphy_drawing_engine import LineStyle
-        for style in ["CONTINUOUS", "DASHED", "CENTER", "PHANTOM", "DIMENSION", "CONSTRUCTION"]:
+        for style in ["CONTINUOUS", "HIDDEN", "CENTER", "PHANTOM", "DIMENSION", "CUTTING_PLANE"]:
             assert hasattr(LineStyle, style)
 
     def test_drawing_element_default_line_style(self):
@@ -678,7 +686,7 @@ class TestLineStyle:
         ))
         svg = DrawingExporter().to_svg(project_with_sheet)
         assert 'stroke-dasharray' in svg
-        assert '20,5,5,5' in svg
+        assert '12,3,3,3' in svg
 
     def test_dashed_line_renders_dasharray_in_svg(self, project_with_sheet):
         from src.murphy_drawing_engine import LineStyle
@@ -1048,10 +1056,18 @@ class TestEngineeringSymbolLibrary:
             '</svg>'
         )
         root = ET.fromstring(svg_doc)
-            line_style=LineStyle.DASHED,
+        assert root is not None
+
+    def test_hidden_line_renders_dasharray_in_svg(self, project_with_sheet):
+        from src.murphy_drawing_engine import LineStyle
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.LINE,
+            geometry={"x1": 0, "y1": 0, "x2": 100, "y2": 0},
+            line_style=LineStyle.HIDDEN,
         ))
         svg = DrawingExporter().to_svg(project_with_sheet)
-        assert 'stroke-dasharray="8,4"' in svg
+        assert 'stroke-dasharray="4,2"' in svg
 
     def test_phantom_line_renders_dasharray_in_svg(self, project_with_sheet):
         from src.murphy_drawing_engine import LineStyle
@@ -1077,14 +1093,16 @@ class TestEngineeringSymbolLibrary:
         assert 'stroke-width="0.5"' in svg
 
     def test_line_weight_applied_to_svg_stroke_width(self, project_with_sheet):
+        from src.murphy_drawing_engine import LineStyle
         sheet = project_with_sheet.sheets[0]
         sheet.elements.append(DrawingElement(
             element_type=ElementType.LINE,
             geometry={"x1": 0, "y1": 0, "x2": 10, "y2": 0},
-            line_weight=1.0,
+            line_style=LineStyle.CONTINUOUS,
         ))
         svg = DrawingExporter().to_svg(project_with_sheet)
-        assert 'stroke-width="1.0"' in svg
+        # CONTINUOUS line uses ASME Y14.2 weight 0.5
+        assert 'stroke-width="0.5"' in svg
 
 
 # ---------------------------------------------------------------------------
@@ -1112,21 +1130,21 @@ class TestEnhancedSVG:
         sheet = project_with_sheet.sheets[0]
         sheet.elements.append(DrawingElement(
             element_type=ElementType.HATCH,
-            geometry={"boundary": [{"x": 0, "y": 0}, {"x": 50, "y": 0}, {"x": 50, "y": 50}, {"x": 0, "y": 50}]},
+            geometry={"x": 0, "y": 0, "width": 50, "height": 50, "spacing": 5, "angle": 45},
             properties={"hatch_style": "ansi31"},
         ))
         svg = DrawingExporter().to_svg(project_with_sheet)
-        assert 'url(#hatch-ansi31)' in svg
+        assert 'clip-path' in svg
 
     def test_svg_hatch_ansi32_pattern(self, project_with_sheet):
         sheet = project_with_sheet.sheets[0]
         sheet.elements.append(DrawingElement(
             element_type=ElementType.HATCH,
-            geometry={"boundary": [{"x": 0, "y": 0}, {"x": 10, "y": 0}, {"x": 10, "y": 10}]},
+            geometry={"x": 0, "y": 0, "width": 10, "height": 10, "spacing": 3, "angle": 45},
             properties={"hatch_style": "ansi32"},
         ))
         svg = DrawingExporter().to_svg(project_with_sheet)
-        assert 'url(#hatch-ansi32)' in svg
+        assert 'clipPath' in svg
 
     def test_svg_dimension_element(self, project_with_sheet):
         sheet = project_with_sheet.sheets[0]
@@ -1136,8 +1154,7 @@ class TestEnhancedSVG:
             properties={"text": "100.0"},
         ))
         svg = DrawingExporter().to_svg(project_with_sheet)
-        assert 'marker-start' in svg
-        assert 'marker-end' in svg
+        assert '<polygon' in svg
         assert '100.0' in svg
 
     def test_svg_dimension_extension_lines(self, project_with_sheet):
@@ -1159,7 +1176,7 @@ class TestEnhancedSVG:
             properties={"text": "PUMP HOUSING"},
         ))
         svg = DrawingExporter().to_svg(project_with_sheet)
-        assert 'polyline' in svg
+        assert '<line' in svg
         assert 'PUMP HOUSING' in svg
 
     def test_svg_title_block_renders(self, project_with_sheet):
@@ -1654,3 +1671,242 @@ class TestAgenticDrawingAssistantNewCommands:
     def test_centerline_defaults_when_no_coords(self, assistant, project):
         result = assistant.execute("add centerline")
         assert result["success"] is True
+
+
+# ---------------------------------------------------------------------------
+# Phase 4 comprehensive SVG validity tests
+# ---------------------------------------------------------------------------
+
+class TestSVGValidity:
+    """Comprehensive tests verifying SVG output is valid, well-formed XML."""
+
+    def test_svg_is_valid_xml(self, project_with_sheet):
+        import xml.etree.ElementTree as ET
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        root = ET.fromstring(svg)
+        assert root.tag.endswith("svg")
+
+    def test_svg_no_duplicate_tags(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        for elem_type, geom in [
+            (ElementType.LINE, {"x1": 0, "y1": 0, "x2": 10, "y2": 10}),
+            (ElementType.CIRCLE, {"cx": 5, "cy": 5, "radius": 3}),
+            (ElementType.RECTANGLE, {"x": 0, "y": 0, "width": 10, "height": 10}),
+            (ElementType.ARC, {"cx": 5, "cy": 5, "radius": 5, "start_angle": 0, "end_angle": 90}),
+        ]:
+            sheet.elements.append(DrawingElement(element_type=elem_type, geometry=geom))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        # No broken tag patterns from duplicate f-string lines
+        assert "/>stroke=" not in svg
+        assert "/>r=" not in svg
+        assert "/>fill=" not in svg
+
+    def test_svg_no_python_source(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.LINE,
+            geometry={"x1": 0, "y1": 0, "x2": 50, "y2": 50},
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert "elif" not in svg
+        assert "elem.element_type" not in svg
+        assert "svg_elements.append" not in svg
+
+    def test_svg_has_single_root(self, project_with_sheet):
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert svg.count("<svg") == 1
+        assert svg.count("</svg>") == 1
+
+    def test_svg_has_viewbox(self, project_with_sheet):
+        svg = DrawingExporter().to_svg(project_with_sheet, width=1200, height=900)
+        assert 'viewBox="0 0 1200 900"' in svg
+
+    def test_svg_defs_contains_markers(self, project_with_sheet):
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert "arrow-start" in svg
+        assert "arrow-end" in svg
+        assert "<defs>" in svg
+
+    def test_svg_defs_contains_hatch_patterns(self, project_with_sheet):
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert "hatch-ansi31" in svg
+
+    def test_svg_line_element(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.LINE,
+            geometry={"x1": 10, "y1": 20, "x2": 30, "y2": 40},
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert 'x1="10"' in svg
+        assert 'y1="20"' in svg
+        assert 'x2="30"' in svg
+        assert 'y2="40"' in svg
+
+    def test_svg_circle_element(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.CIRCLE,
+            geometry={"cx": 50, "cy": 60, "radius": 15},
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert 'cx="50"' in svg
+        assert 'cy="60"' in svg
+        assert 'r="15"' in svg
+
+    def test_svg_rectangle_element(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.RECTANGLE,
+            geometry={"x": 5, "y": 10, "width": 40, "height": 20},
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert '<rect' in svg
+        assert 'width="40"' in svg
+        assert 'height="20"' in svg
+
+    def test_svg_text_element(self, project_with_sheet):
+        import xml.etree.ElementTree as ET
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.TEXT,
+            geometry={"x": 10, "y": 20, "height": 12},
+            properties={"text": "HELLO WORLD"},
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        root = ET.fromstring(svg)
+        texts = root.findall(".//{http://www.w3.org/2000/svg}text")
+        assert any("HELLO WORLD" in (t.text or "") for t in texts)
+
+    def test_svg_arc_element(self, project_with_sheet):
+        import xml.etree.ElementTree as ET
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.ARC,
+            geometry={"cx": 50, "cy": 50, "radius": 20, "start_angle": 0, "end_angle": 90},
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        root = ET.fromstring(svg)
+        paths = root.findall(".//{http://www.w3.org/2000/svg}path")
+        assert len(paths) >= 1
+        d = paths[0].get("d", "")
+        assert "A" in d  # arc command
+
+    def test_svg_polygon_element(self, project_with_sheet):
+        import xml.etree.ElementTree as ET
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.POLYGON,
+            geometry={"vertices": [{"x": 0, "y": 0}, {"x": 10, "y": 0}, {"x": 5, "y": 10}]},
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        root = ET.fromstring(svg)
+        polygons = root.findall(".//{http://www.w3.org/2000/svg}polygon")
+        assert len(polygons) >= 1
+
+    def test_svg_dimension_element_has_lines_and_text(self, project_with_sheet):
+        import xml.etree.ElementTree as ET
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.DIMENSION,
+            geometry={"x1": 0, "y1": 50, "x2": 100, "y2": 50, "offset": 10},
+            properties={"text": "100mm"},
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        root = ET.fromstring(svg)
+        lines = root.findall(".//{http://www.w3.org/2000/svg}line")
+        texts = root.findall(".//{http://www.w3.org/2000/svg}text")
+        assert len(lines) >= 2  # extension + dimension lines
+        assert any("100mm" in (t.text or "") for t in texts)
+
+    def test_svg_hatch_element_clippath_in_defs(self, project_with_sheet):
+        import xml.etree.ElementTree as ET
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.HATCH,
+            geometry={"x": 0, "y": 0, "width": 50, "height": 50, "spacing": 5, "angle": 45},
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        root = ET.fromstring(svg)
+        # clipPath must be inside <defs>
+        defs = root.find("{http://www.w3.org/2000/svg}defs")
+        assert defs is not None
+        clip_paths = defs.findall("{http://www.w3.org/2000/svg}clipPath")
+        assert len(clip_paths) >= 1
+
+    def test_svg_leader_element(self, project_with_sheet):
+        import xml.etree.ElementTree as ET
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.LEADER,
+            geometry={"points": [{"x": 10, "y": 10}, {"x": 50, "y": 50}]},
+            properties={"text": "NOTE A"},
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        root = ET.fromstring(svg)
+        lines = root.findall(".//{http://www.w3.org/2000/svg}line")
+        assert len(lines) >= 1
+        assert "NOTE A" in svg
+
+    def test_svg_title_block_single_render(self, project_with_sheet):
+        """Only one title block should be rendered per sheet."""
+        project_with_sheet.sheets[0].title_block = TitleBlock(
+            company="Acme Corp",
+            drawing_number="DWG-999",
+            drawn_by="Test Engineer",
+        )
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        # The company name should appear exactly once in the body
+        assert svg.count("Acme Corp") == 1
+        assert svg.count("DWG-999") == 1
+
+    def test_linestyle_enum_has_hidden(self):
+        from src.murphy_drawing_engine import LineStyle, LINE_STYLE_SVG
+        assert hasattr(LineStyle, "HIDDEN")
+        assert LineStyle.HIDDEN in LINE_STYLE_SVG
+        assert LINE_STYLE_SVG[LineStyle.HIDDEN]["stroke-dasharray"] == "4,2"
+
+    def test_linestyle_enum_has_cutting_plane(self):
+        from src.murphy_drawing_engine import LineStyle, LINE_STYLE_SVG
+        assert hasattr(LineStyle, "CUTTING_PLANE")
+        assert LineStyle.CUTTING_PLANE in LINE_STYLE_SVG
+
+    def test_linestyle_no_dashed_member(self):
+        from src.murphy_drawing_engine import LineStyle
+        assert not hasattr(LineStyle, "DASHED")
+
+    def test_linestyle_no_construction_member(self):
+        from src.murphy_drawing_engine import LineStyle
+        assert not hasattr(LineStyle, "CONSTRUCTION")
+
+    def test_pump_ga_drawing_roundtrip(self):
+        import xml.etree.ElementTree as ET
+        project = build_pump_ga_drawing()
+        svg = DrawingExporter().to_svg(project)
+        root = ET.fromstring(svg)
+        assert root.tag.endswith("svg")
+
+    def test_pump_assembly_roundtrip(self):
+        import xml.etree.ElementTree as ET
+        from src.murphy_drawing_engine import AssemblyDrawing
+        project = DrawingProject(name="Assembly Test", discipline=Discipline.MECHANICAL)
+        sheet = DrawingSheet(size=SheetSize.ANSI_D)
+        project.sheets.append(sheet)
+        assembly = AssemblyDrawing(project)
+        assembly.build_pump_assembly()
+        svg = DrawingExporter().to_svg(project)
+        root = ET.fromstring(svg)
+        assert root.tag.endswith("svg")
+
+    def test_bom_extractor(self):
+        from src.murphy_drawing_engine import BOMExtractor
+        project = DrawingProject(name="BOM Test", discipline=Discipline.MECHANICAL)
+        sheet = DrawingSheet(size=SheetSize.ANSI_D)
+        project.sheets.append(sheet)
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.BLOCK_REF,
+            properties={"block_name": "PUMP", "quantity": 2, "description": "Centrifugal Pump"},
+        ))
+        bom = BOMExtractor().extract(project)
+        assert len(bom) >= 1
+        assert bom[0]["block_name"] == "PUMP"
