@@ -27,7 +27,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set
-from urllib.parse import quote, quote_plus, urlencode
+from urllib.parse import quote, quote_plus, unquote, urlencode
 
 logger = logging.getLogger(__name__)
 
@@ -235,16 +235,27 @@ class ValidationRule:
         if not isinstance(value, str):
             raise ValidationError(f"{field_name} must be a string")
 
-        # Check for path traversal attempts
-        if ".." in value:
+        # Decode URL-encoded sequences recursively to prevent bypasses
+        # via %2e%2e%2f or double-encoding (%252e%252e%252f)
+        decoded = value
+        prev = ""
+        _max_decode_rounds = 10
+        for _ in range(_max_decode_rounds):
+            if prev == decoded:
+                break
+            prev = decoded
+            decoded = unquote(decoded)
+
+        # Check for path traversal attempts (on decoded value)
+        if ".." in decoded:
             raise InjectionAttemptError(f"{field_name} contains path traversal attempt")
 
         # Check for absolute paths (only allow relative)
-        if os.path.isabs(value):
+        if os.path.isabs(decoded):
             raise ValidationError(f"{field_name} must be a relative path")
 
         # Normalize path
-        normalized = os.path.normpath(value)
+        normalized = os.path.normpath(decoded)
 
         # Check again after normalization
         if ".." in normalized or normalized.startswith("/"):
