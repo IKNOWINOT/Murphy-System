@@ -2,7 +2,7 @@
 
 **Universal AI Automation System**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/IKNOWINOT/Murphy-System) [![License](https://img.shields.io/badge/license-BSL%201.1-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.10+-yellow.svg)](https://www.python.org/) [![Tests](https://img.shields.io/badge/tests-8843%20passing-brightgreen.svg)](#-test-status)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/IKNOWINOT/Murphy-System) [![License](https://img.shields.io/badge/license-BSL%201.1-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.10+-yellow.svg)](https://www.python.org/) [![CI](https://github.com/IKNOWINOT/Murphy-System/actions/workflows/ci.yml/badge.svg)](https://github.com/IKNOWINOT/Murphy-System/actions/workflows/ci.yml) [![Tests](https://img.shields.io/badge/tests-585%2B%20files-blue.svg)](#-test-status)
 
 ---
 
@@ -24,7 +24,8 @@
 >   unexpected behavior. Edge cases are actively being catalogued.
 > - 🔧 **Self-healing capabilities** — Murphy includes a self-improvement engine,
 >   bug pattern detector, and correction loop.
-> - 📊 **Test coverage is extensive** — 8,843+ tests pass across 371 test files.
+> - 📊 **Test coverage is extensive** — 585+ test files with comprehensive coverage.
+>   CI runs automatically on push/PR via GitHub Actions.
 > - 🤝 **Contributions welcome** — see [CONTRIBUTING.md](CONTRIBUTING.md).
 >
 > **Bottom line:** This system is genuinely powerful — it can automate an entire
@@ -124,24 +125,28 @@ The script handles the virtual environment, installs **all** dependencies (inclu
 
 ## 📊 Overall System Completion
 
-| Area | Completion |
-| --- | --- |
-| Execution wiring (gate + swarm + orchestrator) | **100%** |
-| Deterministic + LLM routing | **100%** |
-| Persistence + replay | **100%** |
-| Multi-channel delivery | **100%** |
-| Compliance validation | **100%** |
-| Operational automation | **100%** |
-| File system cleanup | **100%** |
-| Test coverage (dynamic chains) | **100%** |
-| UI + user testing | **100%** |
-| Security hardening | **100%** |
-| Code quality audit (90 categories) | **100%** |
-| **Overall average** | **100%** |
+| Area | Completion | Notes |
+| --- | --- | --- |
+| Core automation pipeline (Describe → Execute) | **85%** | Code exists and structured; needs E2E validation |
+| Execution wiring (gate + swarm + orchestrator) | **95%** | Wired and tested; E2E hero flow validation pending |
+| Deterministic + LLM routing | **95%** | Functional; LLM key config hardening in progress |
+| Persistence + replay | **40%** | JSON file storage only; PostgreSQL/SQLite integration pending |
+| Multi-channel delivery | **90%** | Email, webhook, Slack stubs; real channel testing pending |
+| Compliance validation | **90%** | Framework complete; formal attestation (SOC 2, ISO 27001) pending |
+| Operational automation | **85%** | Core flows working; management parity Phases 2–8 need validation |
+| File system cleanup | **100%** | Complete |
+| Test coverage (dynamic chains) | **80%** | 585+ test files exist; CI verification in progress |
+| UI + user testing | **75%** | 14 web interfaces built; UI completion PR pending |
+| Security hardening | **75%** | Auth/CORS/CSP done; E2EE stub, no JWT/OAuth, no pen test |
+| Code quality audit (90 categories) | **90%** | Audit complete; remediation for remaining items in progress |
+| Management parity (Phases 1–12) | **50%** | Phase 1 complete; Phases 2–8 criteria unchecked; Phase 12 API-only |
+| CI/CD pipeline | **60%** | Workflows exist; import fixes applied; full green run pending |
+| Documentation accuracy | **65%** | Substantial docs; 14 placeholder files being filled |
+| **Weighted overall** | **~72%** | See [Production Readiness Audit](Murphy%20System/strategic/PRODUCTION_READINESS_AUDIT.md) |
 
-> **Test status (latest run):** 8,843 test functions · 0 failed · 371 test files.
+> **Test status:** 585+ test files with thousands of test functions.
 > Skipped tests require optional packages (Flask, Textual, torch).
-> See [Test Status](#-test-status) below.
+> CI pipeline runs on every push/PR — see [Test Status](#-test-status) below.
 
 ---
 
@@ -167,7 +172,7 @@ Murphy-System/
     ├── murphy                          ← CLI tool (start/stop/status/…)
     ├── murphy_system_1.0_runtime.py    ← Single production runtime
     ├── src/                            ← 750+ production modules
-    ├── tests/                          ← 371 test files (8,800+ tests)
+    ├── tests/                          ← 585+ test files
     ├── bots/                           ← 104 bot modules
     ├── documentation/                  ← Structured API/user docs
     ├── docs/                           ← Technical docs
@@ -787,8 +792,8 @@ Murphy is the **only automation platform** that covers the entire stack — from
 | **Classes** | 2,487 |
 | **Functions / Methods** | 8,472 |
 | **Packages** | 54 subsystem directories |
-| **Test Files** | 371 |
-| **Test Functions** | 8,843 |
+| **Test Files** | 585+ |
+| **Test Functions** | 8,843+ |
 | **Automation Types** | 6 (factory, content, data, system, agent, business) |
 | **Gap-Closure Categories Audited** | 90 (all at zero) |
 
@@ -803,12 +808,12 @@ cd "Murphy System"
 python -m pytest tests/ -q --tb=short
 ```
 
-**Latest verified results (2026-03-05):**
+**Latest verified results:**
 
 | Metric | Count |
 | --- | --- |
-| Test files | 371 |
-| Test functions | 8,843 |
+| Test files | 585+ |
+| Test functions | 8,843+ |
 | Gap-closure tests | 406 (rounds 3–42) |
 
 **Skipped tests** require optional dependencies (Flask, Textual, torch) that are
