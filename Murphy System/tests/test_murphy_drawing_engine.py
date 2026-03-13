@@ -2117,20 +2117,100 @@ class TestSpeakerAssemblyDrawing:
         for item in drawing.bom:
             assert item["part_number"] in svg, f"{item['part_number']} not found in SVG"
 
-    def test_agentic_assistant_handles_speaker_command(self):
-        from src.murphy_drawing_engine import AgenticDrawingAssistant, DrawingProject, Discipline
-        project = DrawingProject(name="Agentic Test", discipline=Discipline.MECHANICAL)
-        assistant = AgenticDrawingAssistant(project)
-        result = assistant.execute("create speaker assembly")
-        assert result["success"] is True
-        assert len(project.sheets) >= 1
-
     def test_speaker_project_has_block_refs_for_bom(self):
-        from src.murphy_drawing_engine import SpeakerAssemblyDrawing, ElementType, BOMExtractor
+        from src.murphy_drawing_engine import SpeakerAssemblyDrawing, BOMExtractor
         drawing = SpeakerAssemblyDrawing()
         project = drawing.build()
         bom = BOMExtractor().extract(project)
         assert len(bom) == 10
+
+
+# ---------------------------------------------------------------------------
+# General-purpose drawing capability commands in AgenticDrawingAssistant
+# ---------------------------------------------------------------------------
+
+class TestAgenticDrawingCapabilityCommands:
+    """Verify that general-purpose drawing capability commands work via the assistant."""
+
+    def test_isometric_box_command_succeeds(self, assistant, project):
+        result = assistant.execute("draw isometric box 100x50x80 at 0,0,0")
+        assert result["success"] is True
+
+    def test_isometric_box_creates_12_edges(self, assistant, project):
+        from src.murphy_drawing_engine import ElementType
+        assistant.execute("draw isometric box 100x50x80 at 0,0,0")
+        sheet = project.sheets[0]
+        lines = [e for e in sheet.elements if e.element_type == ElementType.LINE]
+        assert len(lines) == 12
+
+    def test_isometric_box_has_hidden_edges(self, assistant, project):
+        from src.murphy_drawing_engine import LineStyle
+        assistant.execute("draw isometric box 60x40x30 at 10,0,0")
+        sheet = project.sheets[0]
+        hidden = [e for e in sheet.elements if e.line_style == LineStyle.HIDDEN]
+        assert len(hidden) == 3
+
+    def test_iso_box_shorthand_command(self, assistant, project):
+        result = assistant.execute("draw iso box 50x30x40 at 0,0,0")
+        assert result["success"] is True
+
+    def test_isometric_box_default_dims_when_no_size_given(self, assistant, project):
+        from src.murphy_drawing_engine import ElementType
+        result = assistant.execute("draw isometric box at 0,0")
+        assert result["success"] is True
+        sheet = project.sheets[0]
+        lines = [e for e in sheet.elements if e.element_type == ElementType.LINE]
+        assert len(lines) == 12
+
+    def test_balloon_callout_command_succeeds(self, assistant, project):
+        result = assistant.execute("add balloon 3 at 200,150")
+        assert result["success"] is True
+
+    def test_balloon_callout_creates_circle(self, assistant, project):
+        from src.murphy_drawing_engine import ElementType
+        assistant.execute("add balloon 5 at 100,100")
+        sheet = project.sheets[0]
+        circles = [e for e in sheet.elements if e.element_type == ElementType.CIRCLE]
+        assert len(circles) == 1
+
+    def test_balloon_callout_creates_leader(self, assistant, project):
+        from src.murphy_drawing_engine import ElementType
+        assistant.execute("add balloon 2 at 50,80")
+        sheet = project.sheets[0]
+        leaders = [e for e in sheet.elements if e.element_type == ElementType.LEADER]
+        assert len(leaders) == 1
+
+    def test_balloon_callout_number_in_text(self, assistant, project):
+        from src.murphy_drawing_engine import ElementType
+        assistant.execute("add balloon 7 at 0,0")
+        sheet = project.sheets[0]
+        texts = [e.properties.get("text", "") for e in sheet.elements
+                 if e.element_type == ElementType.TEXT]
+        assert "7" in texts
+
+    def test_cutting_plane_command_succeeds(self, assistant, project):
+        result = assistant.execute("add cutting plane from (50,100) to (250,100) label A-A")
+        assert result["success"] is True
+
+    def test_cutting_plane_uses_cutting_plane_linestyle(self, assistant, project):
+        from src.murphy_drawing_engine import LineStyle
+        assistant.execute("add cutting plane from (0,50) to (200,50)")
+        sheet = project.sheets[0]
+        cp_lines = [e for e in sheet.elements if e.line_style == LineStyle.CUTTING_PLANE]
+        assert len(cp_lines) == 1
+
+    def test_cutting_plane_label_applied(self, assistant, project):
+        from src.murphy_drawing_engine import ElementType
+        assistant.execute("add cutting plane from (0,0) to (100,0) label B-B")
+        sheet = project.sheets[0]
+        texts = [e.properties.get("text", "") for e in sheet.elements
+                 if e.element_type == ElementType.TEXT]
+        assert "B" in texts
+
+    def test_speaker_command_not_recognised(self, assistant):
+        """Specific product commands are not baked in — use the class API directly."""
+        result = assistant.execute("create speaker assembly")
+        assert result["success"] is False
 
 
 # ---------------------------------------------------------------------------
