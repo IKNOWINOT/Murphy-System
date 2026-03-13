@@ -370,48 +370,78 @@ def create_app() -> FastAPI:
         return JSONResponse(response)
     
     @app.get("/api/health")
-    async def health_check():
-        """Deep health check — probes persistence, database, cache, and LLM."""
-        checks: dict = {"runtime": "ok"}
+    async def health_check(deep: bool = False):
+        """Health check endpoint.
 
-        # Persistence check
+        - ``GET /api/health`` — shallow liveness probe (fast, always 200)
+        - ``GET /api/health?deep=true`` — deep readiness probe; checks all
+          critical subsystems and returns ``503`` if any are unhealthy.
+
+        Suitable for Kubernetes liveness (shallow) and readiness (deep) probes.
+        """
+        # Shallow liveness probe — instant, no I/O
+        if not deep:
+            return JSONResponse({"status": "ok", "version": murphy.version})
+
+        # Deep readiness probe — checks all critical subsystems
+        checks: dict = {"runtime": "ok"}
+        critical_failed: list = []
+
+        # Persistence check — write + read a test key
         try:
             persistence_dir = os.environ.get("MURPHY_PERSISTENCE_DIR", ".murphy_persistence")
             _p = Path(persistence_dir)
             _p.mkdir(parents=True, exist_ok=True)
             _test_file = _p / ".health_probe"
             _test_file.write_text("ok")
-            _test_file.read_text()
+            assert _test_file.read_text() == "ok"
             _test_file.unlink(missing_ok=True)
             checks["persistence"] = "ok"
-        except Exception:
+        except Exception as _pe:
             checks["persistence"] = "error"
+            critical_failed.append(f"persistence: {_pe}")
 
-        # Database check
+        # Database check (if not stub mode)
         if os.environ.get("DATABASE_URL"):
             try:
                 from src.db import check_database
                 checks["database"] = check_database()
-            except Exception:
+                if checks["database"] == "error":
+                    critical_failed.append("database: connection test failed")
+            except Exception as _dbe:
                 checks["database"] = "error"
+                critical_failed.append(f"database: {_dbe}")
         else:
-            checks["database"] = "not_configured"
+            _db_mode = os.environ.get("MURPHY_DB_MODE", "stub").lower()
+            checks["database"] = "stub" if _db_mode == "stub" else "not_configured"
 
         # Redis / cache check
         if _cache_client is not None:
             try:
-                checks["redis"] = "ok" if await _cache_client.ping() == "PONG" else "error"
-            except Exception:
+                ping = await _cache_client.ping()
+                checks["redis"] = "ok" if ping == "PONG" else "error"
+                if checks["redis"] == "error":
+                    critical_failed.append("redis: ping failed")
+            except Exception as _re:
                 checks["redis"] = "error"
+                critical_failed.append(f"redis: {_re}")
         else:
             checks["redis"] = "not_configured"
 
-        # LLM availability
+        # LLM provider check
         try:
             llm_status = murphy._get_llm_status()
             checks["llm"] = "ok" if llm_status.get("enabled") else "unavailable"
         except Exception:
             checks["llm"] = "unavailable"
+
+        # Event backbone / integration bus
+        try:
+            from src.integration_bus import IntegrationBus
+            _bus = IntegrationBus()
+            checks["event_backbone"] = "ok" if _bus is not None else "error"
+        except Exception:
+            checks["event_backbone"] = "not_configured"
 
         # Module count
         try:
@@ -419,8 +449,8 @@ def create_app() -> FastAPI:
             if module_mgr is not None:
                 checks["modules_loaded"] = len(getattr(module_mgr, "available_modules", []))
             else:
-                status = murphy.get_system_status()
-                checks["modules_loaded"] = len(status.get("modules", {}))
+                _sys_status = murphy.get_system_status()
+                checks["modules_loaded"] = len(_sys_status.get("modules", {}))
         except Exception:
             checks["modules_loaded"] = 0
 
@@ -428,9 +458,13 @@ def create_app() -> FastAPI:
 
         # Determine overall status
         str_checks = [v for v in checks.values() if isinstance(v, str)]
-        status = "healthy" if all(v != "error" for v in str_checks) else "degraded"
+        overall = "healthy" if all(v != "error" for v in str_checks) else "degraded"
+        http_status = 200 if not critical_failed else 503
 
-        return JSONResponse({"status": status, "checks": checks})
+        return JSONResponse(
+            {"status": overall, "checks": checks, "critical_failures": critical_failed},
+            status_code=http_status,
+        )
 
     # ==================== LIBRARIAN ENDPOINTS ====================
 
@@ -2617,6 +2651,42 @@ def create_app() -> FastAPI:
 
     app.add_middleware(_TraceIdMiddleware)
 
+    # ==================== REQUEST ID MIDDLEWARE ====================
+
+    try:
+        from src.request_context import RequestIDMiddleware
+        app.add_middleware(RequestIDMiddleware)
+        logger.debug("RequestIDMiddleware registered (X-Request-ID tracking)")
+    except Exception as _rid_exc:
+        logger.warning("RequestIDMiddleware unavailable: %s", _rid_exc)
+
+    # ==================== RESPONSE SIZE LIMIT MIDDLEWARE ====================
+
+    _max_response_mb = float(os.environ.get("MURPHY_MAX_RESPONSE_SIZE_MB", "10"))
+    _max_response_bytes = int(_max_response_mb * 1024 * 1024)
+
+    class _ResponseSizeLimitMiddleware(_BaseHTTPMiddleware):
+        """Rejects responses that exceed MURPHY_MAX_RESPONSE_SIZE_MB (default 10 MB)."""
+
+        async def dispatch(self, request: Request, call_next):
+            response = await call_next(request)
+            content_length = response.headers.get("content-length")
+            if content_length and int(content_length) > _max_response_bytes:
+                from starlette.responses import JSONResponse as _JSONResponse
+                return _JSONResponse(
+                    status_code=413,
+                    content={
+                        "error": "Payload Too Large",
+                        "detail": (
+                            f"Response size exceeds the {_max_response_mb} MB limit. "
+                            "Adjust MURPHY_MAX_RESPONSE_SIZE_MB to increase the limit."
+                        ),
+                    },
+                )
+            return response
+
+    app.add_middleware(_ResponseSizeLimitMiddleware)
+
     return app
 
 
@@ -2624,6 +2694,44 @@ def create_app() -> FastAPI:
 
 def main():
     """Main entry point"""
+
+    # Configure structured logging before anything else
+    try:
+        from src.logging_config import configure_logging
+        configure_logging()
+    except Exception as _log_exc:
+        logging.basicConfig(level=logging.INFO)
+        logger.warning("logging_config unavailable (%s) — using basicConfig", _log_exc)
+
+    # Register graceful shutdown handlers
+    try:
+        from src.shutdown_manager import ShutdownManager
+        _shutdown_mgr = ShutdownManager()
+
+        # Persistence manager flush
+        try:
+            from src.persistence_manager import PersistenceManager
+            _pm = PersistenceManager()
+            _shutdown_mgr.register_cleanup_handler(
+                lambda: _pm.flush() if hasattr(_pm, "flush") else None,
+                "persistence_manager_flush",
+            )
+        except Exception:
+            pass
+
+        # Rate limiter state save
+        try:
+            from src.rate_limiter import RateLimiter
+            _rl = RateLimiter()
+            _shutdown_mgr.register_cleanup_handler(
+                lambda: _rl.save_state() if hasattr(_rl, "save_state") else None,
+                "rate_limiter_state_save",
+            )
+        except Exception:
+            pass
+
+    except Exception as _sd_exc:
+        logger.warning("ShutdownManager unavailable: %s", _sd_exc)
 
     # --- Startup banner (pyfiglet + sugar-skull framing) ---
     try:
@@ -2645,6 +2753,7 @@ def main():
             f"☠ Starting Murphy System v1.0 on port {port}",
             f"  ☠ API Docs:     http://localhost:{port}/docs",
             f"  ☠ Health:       http://localhost:{port}/api/health",
+            f"  ☠ Deep Health:  http://localhost:{port}/api/health?deep=true",
             f"  ☠ Status:       http://localhost:{port}/api/status",
             f"  ☠ Onboarding:   http://localhost:{port}/api/onboarding/wizard/questions",
             f"  ☠ Info:         http://localhost:{port}/api/info",
@@ -2654,6 +2763,7 @@ def main():
         print(f"\n☠ Starting Murphy System v1.0 on port {port}...")
         print(f"  ☠ API Docs:     http://localhost:{port}/docs")
         print(f"  ☠ Health:       http://localhost:{port}/api/health")
+        print(f"  ☠ Deep Health:  http://localhost:{port}/api/health?deep=true")
         print(f"  ☠ Status:       http://localhost:{port}/api/status")
         print(f"  ☠ Onboarding:   http://localhost:{port}/api/onboarding/wizard/questions")
         print(f"  ☠ Info:         http://localhost:{port}/api/info\n")

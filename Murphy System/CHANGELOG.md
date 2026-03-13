@@ -17,7 +17,35 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Security
+### Added — Beta Hardening (Production Safety Guards)
+
+#### Critical — Simulated Backend Safety Guards
+- **feat(db):** `integrations/database_connectors.py` — `stub_mode_allowed()` helper; startup `RuntimeError` when `MURPHY_DB_MODE=stub` in `production`/`staging`; loud `WARNING` in `development`. (`MURPHY_DB_MODE`, `MURPHY_ENV`)
+- **feat(e2ee):** `matrix_bridge/e2ee_manager.py` — `E2EE_STUB_ALLOWED` env var; `RuntimeError` when stub is used in production (`E2EE_STUB_ALLOWED=false`); stub payload now includes `_warning: "UNENCRYPTED_STUB"`; `WARNING` logged on every stub encryption.
+- **feat(pool):** `system_performance_optimizer.py` — `MURPHY_POOL_MODE` env var (`simulated`/`real`); startup `RuntimeError` when `MURPHY_POOL_MODE=simulated` in `production`/`staging`; `WARNING` logged on every simulated connection checkout.
+
+#### High — Required for Reliable Beta
+- **feat(sensor):** `sensor_reader.py` — `SensorConfig.from_env()` defaults `mock_mode` to `False` in `staging`/`production` and `True` in `development`/`test`; `connect()` raises `ConnectionError` when `mock_mode=False` and Modbus TCP host is unreachable.
+- **feat(email):** `email_integration.py` — `MockEmailBackend.send()` returns `metadata.warning="No email was actually sent"`; new `DisabledEmailBackend` returns `success=False`; `MURPHY_EMAIL_REQUIRED` env var; `EmailService.from_env()` raises `RuntimeError` when email is required but no backend is configured; `SendResult` gains `metadata` field.
+- **feat(protocols):** `protocols/__init__.py` — `validate_protocol_dependencies()` function; `MURPHY_ENABLED_PROTOCOLS` env var (comma-separated); raises `ImportError` listing missing packages for enabled protocols.
+- **feat(compute):** `compute_plane/service.py` — LP solver now wired to `scipy.optimize.linprog` when scipy is installed; falls back to `UNSUPPORTED` with install instruction when scipy is absent; SAT solver docstring updated to note planned status.
+- **feat(capability_map):** `capability_map.py` — added `COMPUTE_CAPABILITY_MAP` static registry: LP=available (scipy), SAT=planned, Wolfram=planned.
+
+#### Medium — Polish for Beta Quality
+- **feat(logging):** New `src/logging_config.py` — `configure_logging(env, level)` function; JSON lines formatter for `production`/`staging`; human-readable text for `development`/`test`; `MURPHY_LOG_FORMAT` override; request ID included in JSON records.
+- **feat(request_id):** New `src/request_context.py` — `get_request_id()`, `set_request_id()`, `RequestIDMiddleware`; reads `X-Request-ID` header or generates UUID4; stores in `contextvars.ContextVar`; returns header in response.
+- **feat(health):** `runtime/app.py` — `GET /api/health` (shallow liveness, always fast 200) and `GET /api/health?deep=true` (deep readiness — checks persistence write/read, database, Redis, LLM, event backbone; returns 503 on failure).
+- **feat(response_limit):** `runtime/app.py` — `_ResponseSizeLimitMiddleware`; rejects responses exceeding `MURPHY_MAX_RESPONSE_SIZE_MB` (default 10 MB) with 413.
+- **feat(shutdown):** `runtime/app.py` `main()` — registers `persistence_manager_flush` and `rate_limiter_state_save` handlers with `ShutdownManager` at startup.
+- **feat(logging_wire):** `runtime/app.py` `main()` — calls `configure_logging()` as the first action at startup.
+
+### Documentation
+- **docs:** `.env.example` — new `Backend Modes` section documenting `MURPHY_DB_MODE`, `E2EE_STUB_ALLOWED`, `MURPHY_POOL_MODE`, `MURPHY_EMAIL_REQUIRED`, `MURPHY_ENABLED_PROTOCOLS`, `MURPHY_LOG_FORMAT`, `MURPHY_MAX_RESPONSE_SIZE_MB`.
+
+### Tests
+- **test:** New `tests/test_beta_hardening.py` — 48 tests covering all hardening changes: stub refusals, env-defaulted modes, email warnings, protocol validation, LP solver, deep health check, request ID middleware, response size limiting, JSON logging, and shutdown handler registration.
+
+
 - **fix(sec):** Replaced `signal.SIGALRM` timeout in `task_executor.py` with `concurrent.futures.ThreadPoolExecutor` — works on Windows and from non-main threads (Issue 41)
 - **fix(sec):** DLP `_is_trusted_destination()` in `security_plane/middleware.py` now uses `urllib.parse.urlparse` for proper hostname extraction, preventing substring bypass attacks such as `evil-localhost.attacker.com` matching `localhost` (Issue 53, CWE-20)
 - **fix(sec):** API key validation in `flask_security.py` and `fastapi_security.py` now uses `hmac.compare_digest` to prevent timing side-channel attacks (Issue 54, CWE-208)

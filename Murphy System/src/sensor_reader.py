@@ -76,12 +76,20 @@ class SensorConfig:
 
     @classmethod
     def from_env(cls) -> "SensorConfig":
-        """Build config from environment variables."""
+        """Build config from environment variables.
+
+        When ``MODBUS_MOCK`` is not explicitly set, the default is:
+        * ``True``  in ``development`` and ``test`` environments
+        * ``False`` in ``staging`` and ``production`` environments
+        """
+        murphy_env = os.getenv("MURPHY_ENV", "development").lower()
+        _production_envs = {"production", "staging"}
+        _default_mock = "false" if murphy_env in _production_envs else "true"
         return cls(
             host=os.getenv("MODBUS_HOST", "localhost"),
             port=int(os.getenv("MODBUS_PORT", "502")),
             unit_id=int(os.getenv("MODBUS_UNIT_ID", "1")),
-            mock_mode=os.getenv("MODBUS_MOCK", "true").lower() == "true",
+            mock_mode=os.getenv("MODBUS_MOCK", _default_mock).lower() == "true",
             timeout_seconds=float(os.getenv("MODBUS_TIMEOUT", "5.0")),
         )
 
@@ -111,7 +119,13 @@ class SensorReader:
         return cls(SensorConfig.from_env())
 
     def connect(self) -> bool:
-        """Connect to the Modbus server (or init mock)."""
+        """Connect to the Modbus server (or init mock).
+
+        Raises:
+            ConnectionError: When ``mock_mode=False``, ``pymodbus`` is
+                installed, and the Modbus TCP server is not reachable.
+                This prevents silent sensor read failures in staging/production.
+        """
         if self._config.mock_mode or not _PYMODBUS_AVAILABLE:
             logger.info(
                 "Sensor reader in mock mode",
@@ -131,14 +145,24 @@ class SensorReader:
                 connected,
                 extra={"host": self._config.host, "port": self._config.port},
             )
+            if not connected:
+                raise ConnectionError(
+                    f"Modbus TCP host {self._config.host}:{self._config.port} is not reachable. "
+                    "Set MODBUS_MOCK=true or provide a valid MODBUS_HOST/MODBUS_PORT."
+                )
             return connected
+        except ConnectionError:
+            raise
         except Exception as exc:
             logger.error(
                 "Modbus connect failed: %s",
                 exc,
                 extra={"host": self._config.host, "error": str(exc)},
             )
-            return False
+            raise ConnectionError(
+                f"Modbus TCP connection to {self._config.host}:{self._config.port} failed: {exc}. "
+                "Set MODBUS_MOCK=true or provide a valid MODBUS_HOST/MODBUS_PORT."
+            ) from exc
 
     def read_register(
         self,

@@ -5,9 +5,22 @@ Provides async email delivery via:
   1. **SendGrid** — when ``SENDGRID_API_KEY`` is set
   2. **SMTP** — when ``SMTP_HOST`` is set (uses ``aiosmtplib``)
   3. **Mock** — for testing / development (no external service required)
+  4. **Disabled** — when ``MURPHY_EMAIL_REQUIRED=true`` and no real backend
+     is configured; every send returns ``success=False`` with a clear error.
 
 The active backend is chosen automatically from environment variables
 following the 12-factor app pattern.
+
+Environment variables
+---------------------
+MURPHY_EMAIL_REQUIRED : str
+    ``true``  — a real email backend (SendGrid or SMTP) is required.
+    In production/staging, if no credentials are found, a
+    ``RuntimeError`` is raised.
+    ``false`` (default) — fall back to MockEmailBackend.
+MURPHY_ENV : str
+    Runtime environment.  In ``production``/``staging``, the default
+    for ``MURPHY_EMAIL_REQUIRED`` becomes ``true``.
 
 Usage::
 
@@ -71,6 +84,7 @@ class SendResult:
     error: Optional[str] = None
     latency_seconds: float = 0.0
     raw_response: Dict[str, Any] = field(default_factory=dict)
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------
@@ -317,6 +331,8 @@ class MockEmailBackend(EmailBackend):
     """In-memory mock backend for testing.
 
     Stores all sent messages so tests can assert on them.
+    Every send returns a result that includes a ``warning`` field
+    so callers can detect that no email was actually delivered.
     """
 
     def __init__(self) -> None:
@@ -328,19 +344,49 @@ class MockEmailBackend(EmailBackend):
 
     async def send(self, message: EmailMessage) -> SendResult:
         self.sent_messages.append(message)
-        logger.info(
-            "Mock email sent",
-            extra={
-                "message_id": message.message_id,
-                "to": message.to,
-                "subject": message.subject,
-            },
+        logger.warning(
+            "MockEmailBackend: no email was actually sent — "
+            "configure SENDGRID_API_KEY or SMTP_HOST for real delivery. "
+            "message_id=%s to=%s subject=%r",
+            message.message_id,
+            message.to,
+            message.subject,
         )
         return SendResult(
             success=True,
             message_id=message.message_id,
             provider=self.provider_name,
             status_code=200,
+            metadata={"backend": "mock", "warning": "No email was actually sent"},
+        )
+
+
+class DisabledEmailBackend(EmailBackend):
+    """Backend used when email is required but no credentials are configured.
+
+    Every send returns ``success=False`` with a clear error message.
+    This prevents silent data loss in production when emails are expected
+    but no real provider is configured.
+    """
+
+    @property
+    def provider_name(self) -> str:
+        return "disabled"
+
+    async def send(self, message: EmailMessage) -> SendResult:
+        logger.error(
+            "DisabledEmailBackend: email delivery is required but no backend is configured. "
+            "Set SENDGRID_API_KEY or SMTP_HOST. message_id=%s",
+            message.message_id,
+        )
+        return SendResult(
+            success=False,
+            message_id=message.message_id,
+            provider=self.provider_name,
+            error=(
+                "Email delivery is required (MURPHY_EMAIL_REQUIRED=true) but no backend "
+                "is configured. Set SENDGRID_API_KEY or SMTP_HOST."
+            ),
         )
 
 
@@ -355,7 +401,8 @@ class EmailService:
     The backend is selected from environment variables:
       - ``SENDGRID_API_KEY`` → SendGrid
       - ``SMTP_HOST``        → SMTP
-      - (neither)            → Mock (dev/test mode)
+      - (neither) + ``MURPHY_EMAIL_REQUIRED=true`` → DisabledEmailBackend
+      - (neither) + ``MURPHY_EMAIL_REQUIRED=false`` → Mock (dev/test mode)
     """
 
     def __init__(self, backend: EmailBackend) -> None:
@@ -363,7 +410,12 @@ class EmailService:
 
     @classmethod
     def from_env(cls) -> "EmailService":
-        """Create an EmailService from environment variables."""
+        """Create an EmailService from environment variables.
+
+        Raises:
+            RuntimeError: When ``MURPHY_EMAIL_REQUIRED=true`` and no real
+                email backend is configured (strict mode).
+        """
         sendgrid_key = os.getenv("SENDGRID_API_KEY")
         if sendgrid_key:
             logger.info(
@@ -389,9 +441,27 @@ class EmailService:
                 )
             )
 
-        logger.info(
-            "Email backend: Mock (no SENDGRID_API_KEY or SMTP_HOST set)",
-            extra={"provider": "mock"},
+        # No real backend configured — check if email is required
+        murphy_env = os.getenv("MURPHY_ENV", "development").lower()
+        _production_envs = {"production", "staging"}
+        _default_required = "true" if murphy_env in _production_envs else "false"
+        email_required = (
+            os.getenv("MURPHY_EMAIL_REQUIRED", _default_required).lower() == "true"
+        )
+
+        if email_required:
+            raise RuntimeError(
+                "MURPHY_EMAIL_REQUIRED=true but no email backend is configured. "
+                "Set SENDGRID_API_KEY or SMTP_HOST, or set MURPHY_EMAIL_REQUIRED=false "
+                "to allow mock/disabled email in this environment."
+            )
+
+        logger.warning(
+            "Email backend: Mock (no SENDGRID_API_KEY or SMTP_HOST set) — "
+            "no emails will actually be delivered. "
+            "Set SENDGRID_API_KEY or SMTP_HOST for real delivery. "
+            "(MURPHY_ENV=%s)",
+            murphy_env,
         )
         return cls(MockEmailBackend())
 
