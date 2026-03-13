@@ -6,11 +6,23 @@ Real cryptographic operations will be delegated to ``matrix-nio``'s
 ``AsyncClient`` in a later PR.  This module maintains session metadata
 and state, and raises :class:`NotImplementedError` for operations that
 require the SDK.
+
+Environment variables
+---------------------
+E2EE_STUB_ALLOWED : str
+    ``true``  — stub encryption is permitted (default in non-production).
+    ``false`` — stub encryption raises ``RuntimeError``; the matrix-nio
+               SDK must be present.  Automatically set to ``false`` when
+               ``MURPHY_ENV=production`` unless explicitly overridden.
+MURPHY_ENV : str
+    Runtime environment.  In ``production`` or ``staging``, stub mode
+    defaults to disallowed.
 """
 
 from __future__ import annotations
 
 import logging
+import os
 import uuid
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -19,6 +31,19 @@ from enum import Enum
 from .config import MatrixBridgeConfig
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Stub-mode safety guard
+# ---------------------------------------------------------------------------
+
+_MURPHY_ENV: str = os.environ.get("MURPHY_ENV", "development").lower()
+_PRODUCTION_ENVS = {"production", "staging"}
+
+# Default: stub allowed only outside production/staging
+_default_stub_allowed = "false" if _MURPHY_ENV in _PRODUCTION_ENVS else "true"
+E2EE_STUB_ALLOWED: bool = (
+    os.environ.get("E2EE_STUB_ALLOWED", _default_stub_allowed).lower() == "true"
+)
 
 # ---------------------------------------------------------------------------
 # State enum
@@ -276,11 +301,13 @@ class E2EEManager:
             plaintext: The message body to encrypt.
 
         Returns:
-            A ``dict`` with ``algorithm`` and ``ciphertext`` keys.  The
-            ``ciphertext`` value is a stub string, not real ciphertext.
+            A ``dict`` with ``algorithm`` and ``ciphertext`` keys.  When
+            stub mode is active, the dict also includes ``_warning:
+            "UNENCRYPTED_STUB"`` so callers can detect plaintext fallback.
 
         Raises:
             RuntimeError: If E2EE is disabled in the config.
+            RuntimeError: If ``E2EE_STUB_ALLOWED=false`` (production).
         """
         if not self._config.enable_e2ee:
             raise RuntimeError(
@@ -292,8 +319,15 @@ class E2EEManager:
                 "Real Megolm encryption requires matrix-nio SDK (pending PR)"
             )
         except NotImplementedError:
-            logger.debug(
-                "encrypt_message: returning stub payload for room %s", room_id
+            if not E2EE_STUB_ALLOWED:
+                raise RuntimeError(
+                    "Matrix E2EE requires matrix-nio SDK. "
+                    "Set E2EE_STUB_ALLOWED=true to allow plaintext fallback."
+                )
+            logger.warning(
+                "encrypt_message: UNENCRYPTED STUB in use for room %s — "
+                "messages are NOT encrypted. Install matrix-nio to enable real E2EE.",
+                room_id,
             )
             if session:
                 session.rotation_message_count += 1
@@ -302,6 +336,7 @@ class E2EEManager:
                 "room_id": room_id,
                 "session_id": session.session_id if session else "stub-session",
                 "ciphertext": "__stub_ciphertext__",
+                "_warning": "UNENCRYPTED_STUB",
             }
 
     def decrypt_message(self, room_id: str, ciphertext: dict) -> str:

@@ -9,10 +9,17 @@ MURPHY_DB_MODE : str
     ``live``           — all SQL operations are executed against a real
     database using a SQLAlchemy engine created from the connector's
     ``connection_string``.
+    In ``production`` or ``staging`` environments (``MURPHY_ENV``), the
+    ``stub`` value is **rejected at startup** with a ``RuntimeError`` to
+    prevent silent data-loss.  Set ``MURPHY_DB_MODE=live`` and configure
+    a real ``DATABASE_URL`` before deploying.
 DATABASE_URL : str
     Ignored by this module; the ``connection_string`` passed to the
     constructor is used instead.  ``DATABASE_URL`` is consumed by
     ``src/db.py`` for the ORM layer.
+MURPHY_ENV : str
+    Runtime environment: ``development`` (default), ``test``,
+    ``staging``, or ``production``.
 """
 
 import os
@@ -32,6 +39,46 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 MURPHY_DB_MODE: str = os.environ.get("MURPHY_DB_MODE", "stub").lower()
+
+# ---------------------------------------------------------------------------
+# Stub-mode safety guard
+# ---------------------------------------------------------------------------
+
+_MURPHY_ENV: str = os.environ.get("MURPHY_ENV", "development").lower()
+_PRODUCTION_ENVS = {"production", "staging"}
+
+
+def stub_mode_allowed() -> bool:
+    """Return whether stub mode is permitted in the current environment.
+
+    Stub mode is allowed in ``development`` and ``test`` environments.
+    It is **not** allowed in ``production`` or ``staging``.
+
+    Returns:
+        ``True`` when stub mode is safe to use, ``False`` otherwise.
+    """
+    return _MURPHY_ENV not in _PRODUCTION_ENVS
+
+
+def _check_stub_mode_at_startup() -> None:
+    """Raise or warn depending on environment when stub mode is active."""
+    if MURPHY_DB_MODE != "stub":
+        return
+    if not stub_mode_allowed():
+        raise RuntimeError(
+            f"MURPHY_DB_MODE=stub is not allowed in MURPHY_ENV={_MURPHY_ENV!r}. "
+            "Set MURPHY_DB_MODE=live and configure a real database before deploying. "
+            "See .env.example for DATABASE_URL guidance."
+        )
+    logger.warning(
+        "DATABASE STUB MODE ACTIVE — all SQL operations return fake data. "
+        "Set MURPHY_DB_MODE=live for a real database. "
+        "(MURPHY_ENV=%s)",
+        _MURPHY_ENV,
+    )
+
+
+_check_stub_mode_at_startup()
 
 
 class DatabaseType(Enum):
