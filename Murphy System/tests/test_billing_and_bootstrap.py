@@ -39,7 +39,7 @@ class TestCurrencyConversion:
         cc = CurrencyConverter()
         result = cc.convert(29.00, "EUR")
         assert result > 0
-        assert result != 29.00  # EUR rate < 1 so result < 29
+        assert result != 29.00  # 29 USD ≈ 26.68 EUR (rate 0.92)
 
     def test_jpy_rounded_to_integer(self):
         cc = CurrencyConverter()
