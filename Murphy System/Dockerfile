@@ -11,12 +11,12 @@ FROM python:3.12-slim AS deps
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY requirements_murphy_1.0.txt .
 
 # Install build tools needed for some wheels, then clean up
 RUN apt-get update \
     && apt-get install -y --no-install-recommends gcc g++ \
-    && pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir -r requirements_murphy_1.0.txt \
     && apt-get purge -y gcc g++ \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
@@ -42,7 +42,7 @@ RUN apt-get update \
 
 # Copy application source
 COPY src/ ./src/
-COPY setup.py requirements.txt ./
+COPY setup.py requirements_murphy_1.0.txt ./
 COPY murphy_system_1.0_runtime.py ./
 
 # Create persistent data directories
