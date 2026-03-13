@@ -20,14 +20,12 @@ logger = logging.getLogger(__name__)
 _UTC = timezone.utc
 
 # Constants
-
 MAX_COLUMNS: int = 50
 MAX_ITEMS_PER_GROUP: int = 10_000
 DEFAULT_GROUP_NAME: str = "Main Group"
 BOARD_TABLE_MAX_COL_WIDTH: int = 20
 
 # Enumerations
-
 class ColumnType(Enum):
     """Supported column types."""
 
@@ -84,7 +82,6 @@ class TemplateType(Enum):
     RELEASE_PLAN = "release_plan"
 
 # Helper
-
 def _uid() -> str:
     return uuid.uuid4().hex[:12]
 
