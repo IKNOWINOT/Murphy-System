@@ -599,3 +599,182 @@ class TestExportAPI:
     def test_cannot_delete_default_brand(self, client):
         resp = client.delete("/api/brands/default")
         assert resp.status_code == 404
+
+
+# ===========================================================================
+# DocumentGenerationEngine integration tests
+# ===========================================================================
+
+
+class TestDocumentGenerationEngineIntegration:
+    """Verify the pipeline delegates to DocumentGenerationEngine for PDF/Word."""
+
+    def test_doc_engine_wired_when_available(self):
+        """Pipeline should instantiate a _doc_engine when the module is importable."""
+        pipeline = ExportPipeline()
+        # If DocumentGenerationEngine is importable, _doc_engine is not None.
+        # If it's not installed, _doc_engine is None but the pipeline still works.
+        # Either way, the attribute must exist.
+        assert hasattr(pipeline, "_doc_engine")
+
+    def test_pdf_export_uses_engine_or_fallback(self):
+        """PDF export must produce base64-decodable output regardless of engine availability."""
+        pipeline = ExportPipeline()
+        result = _run(pipeline.export(SAMPLE_BOT_OUTPUT, format="pdf"))
+        assert result.format == "pdf"
+        import base64
+        decoded = base64.b64decode(result.content)
+        assert len(decoded) > 0
+
+    def test_word_export_uses_engine_or_fallback(self):
+        """Word export must produce base64-decodable output regardless of engine availability."""
+        pipeline = ExportPipeline()
+        result = _run(pipeline.export(SAMPLE_BOT_OUTPUT, format="word"))
+        assert result.format == "word"
+        import base64
+        decoded = base64.b64decode(result.content)
+        assert len(decoded) > 0
+
+    def test_pdf_and_word_brand_font_applied(self):
+        """The brand font name should flow into the engine styling dict without error."""
+        registry = BrandRegistry()
+        brand = BrandProfile(company_name="FontTest Corp", font_body="Helvetica")
+        registry.register(brand)
+        pipeline = ExportPipeline(brand_registry=registry)
+        for fmt in ("pdf", "word"):
+            result = _run(pipeline.export(SAMPLE_BOT_OUTPUT, format=fmt, brand_profile_id=brand.brand_id))
+            import base64
+            decoded = base64.b64decode(result.content)
+            assert len(decoded) > 0
+
+
+# ===========================================================================
+# meta.forms (FPT form data) integration tests
+# ===========================================================================
+
+# Simulate commissioning bot Output with meta.forms populated
+_FPT_FORM = {
+    "filename": "FPT_proc-001.json",
+    "content": {
+        "form_type": "FPT",
+        "id": "proc-001",
+        "title": "Supply Fan Start/Stop Test",
+        "preconditions": ["BAS online", "AHU-01 accessible"],
+        "steps": [
+            {
+                "id": "s1",
+                "action": "Enable AHU-01 from BAS",
+                "expected_effect": "Fan motor starts within 30s",
+                "hold_s": 30,
+                "safety": ["LOCK OUT AHU BEFORE PANEL ACCESS"],
+                "watch_points": ["Supply air temp"],
+                "fields": [
+                    {"key": "observed", "label": "Observed Behavior", "type": "text"},
+                    {"key": "pass", "label": "Pass?", "type": "boolean"},
+                    {"key": "notes", "label": "Notes", "type": "text"},
+                ],
+            }
+        ],
+        "acceptance": ["Fan starts within 30s", "Supply air temp reaches setpoint ±2°F"],
+        "signoff": [
+            {"role": "CxA", "name": "", "date": ""},
+            {"role": "Controls", "name": "", "date": ""},
+            {"role": "Owner", "name": "", "date": ""},
+        ],
+    },
+}
+
+_BOT_OUTPUT_WITH_FORMS = {
+    "result": {"plan": SAMPLE_PLAN},
+    "confidence": 0.94,
+    "notes": [],
+    "meta": {"forms": [_FPT_FORM]},
+    "provenance": [],
+}
+
+
+class TestMetaFormsIntegration:
+    """Verify meta.forms data from the commissioning bot is extracted and rendered."""
+
+    def test_extract_plan_captures_meta_forms(self):
+        """_extract_plan should embed meta.forms under _meta_forms key."""
+        plan, is_cx = ExportPipeline._extract_plan(_BOT_OUTPUT_WITH_FORMS)
+        assert is_cx is True
+        assert "_meta_forms" in plan
+        assert len(plan["_meta_forms"]) == 1
+        assert plan["_meta_forms"][0]["filename"] == "FPT_proc-001.json"
+
+    def test_extract_plan_no_meta_forms_when_absent(self):
+        """_extract_plan without meta.forms should not inject _meta_forms key."""
+        plan, is_cx = ExportPipeline._extract_plan(SAMPLE_BOT_OUTPUT)
+        assert "_meta_forms" not in plan
+
+    def test_fpt_report_uses_meta_forms_when_present(self):
+        """fpt_report should render the rich bot-generated form data."""
+        plan_with_forms = dict(SAMPLE_PLAN)
+        plan_with_forms["_meta_forms"] = [_FPT_FORM]
+        result = fpt_report(plan_with_forms)
+        # Rich FPT fields should appear
+        assert "proc-001" in result
+        assert "Supply Fan Start/Stop Test" in result
+        assert "LOCK OUT AHU BEFORE PANEL ACCESS" in result  # safety warning
+        assert "expected_effect" not in result.lower()  # rendered, not raw key
+        assert "Fan motor starts within 30s" in result
+
+    def test_fpt_report_signoff_table_from_meta_forms(self):
+        """Sign-off table should be rendered from meta.forms signoff list."""
+        plan_with_forms = dict(SAMPLE_PLAN)
+        plan_with_forms["_meta_forms"] = [_FPT_FORM]
+        result = fpt_report(plan_with_forms)
+        assert "CxA" in result
+        assert "Controls" in result
+        assert "Owner" in result
+
+    def test_fpt_report_falls_back_to_procedures_without_meta_forms(self):
+        """Without _meta_forms, fpt_report should use the procedure list."""
+        result = fpt_report(SAMPLE_PLAN)
+        assert "FPT-001" in result
+        assert "Supply Fan Start/Stop Test" in result
+        assert "Enable AHU-01 from BAS" in result
+        # Rich FPT fields should NOT appear (no meta forms)
+        assert "s1" not in result
+
+    def test_pipeline_fpt_export_with_meta_forms(self):
+        """Full pipeline export with meta.forms should render richer FPT content."""
+        pipeline = ExportPipeline()
+        result = _run(
+            pipeline.export(
+                _BOT_OUTPUT_WITH_FORMS, format="markdown", template_type="fpt_report"
+            )
+        )
+        assert "proc-001" in result.content
+        assert "LOCK OUT AHU BEFORE PANEL ACCESS" in result.content
+
+    def test_pipeline_fpt_export_without_meta_forms(self):
+        """Pipeline FPT export without meta.forms should still render correctly."""
+        pipeline = ExportPipeline()
+        result = _run(
+            pipeline.export(SAMPLE_BOT_OUTPUT, format="markdown", template_type="fpt_report")
+        )
+        assert "FPT-001" in result.content
+        assert "Supply Fan Start/Stop Test" in result.content
+
+
+# ===========================================================================
+# __all__ / package export tests
+# ===========================================================================
+
+
+class TestPackageExports:
+    def test_all_does_not_include_conditional_names(self):
+        """ExportRequest must NOT be in __all__ (it's conditionally importable)."""
+        import src.document_export as pkg
+
+        assert "ExportRequest" not in pkg.__all__
+
+    def test_unconditional_exports_importable(self):
+        """All names in __all__ must be importable without error."""
+        import src.document_export as pkg
+
+        for name in pkg.__all__:
+            assert hasattr(pkg, name), f"__all__ member '{name}' not found on package"
