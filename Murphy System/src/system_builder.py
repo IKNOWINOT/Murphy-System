@@ -2,10 +2,10 @@
 System Builder - Translates non-technical requests into technical architectures
 Reading level: High school student
 """
-from typing import Dict, List, Any, Optional
 import json
-
 import logging
+from typing import Any, Dict, List, Optional
+
 logger = logging.getLogger("system_builder")
 
 class SystemBuilder:

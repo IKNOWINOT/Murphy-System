@@ -20,6 +20,7 @@ bounded via capped_append (CWE-770); client_secret and tokens redacted
 in serialisation; no real network calls — provider adapters are injected.
 """
 from __future__ import annotations
+
 import hashlib
 import logging
 import secrets
@@ -30,6 +31,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
+
 try:
     from flask import Blueprint, jsonify, request
     _HAS_FLASK = True

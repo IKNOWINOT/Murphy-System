@@ -4,12 +4,12 @@ Data Models for Execution
 Defines execution results, status, and phase results.
 """
 
-from typing import Dict, Any, List, Optional
+import logging
 from datetime import datetime
 from enum import Enum
-from pydantic import BaseModel, ConfigDict, Field
+from typing import Any, Dict, List, Optional
 
-import logging
+from pydantic import BaseModel, ConfigDict, Field
 
 logger = logging.getLogger(__name__)
 

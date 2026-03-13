@@ -10,7 +10,7 @@ orchestration engine or compile graphs into the legacy DAG engine.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from aionmind.models.execution_graph import (
     ExecutionGraphObject,
@@ -22,9 +22,9 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from workflow_dag_engine import (
+        StepDefinition,
         WorkflowDAGEngine,
         WorkflowDefinition,
-        StepDefinition,
     )
 
 
@@ -50,9 +50,11 @@ def compile_to_workflow_dag(
     """
     try:
         from workflow_dag_engine import (
-            WorkflowDAGEngine as WDE,
-            WorkflowDefinition,
             StepDefinition,
+            WorkflowDefinition,
+        )
+        from workflow_dag_engine import (
+            WorkflowDAGEngine as WDE,
         )
     except ImportError:
         logger.warning("workflow_dag_engine not available — bridge skipped.")

@@ -11,15 +11,15 @@ Defines:
 
 from __future__ import annotations
 
+import logging
 from collections import deque
 from typing import Deque, Dict, Optional, Tuple
 
 from pydantic import BaseModel, Field
 
-from .state_vector import StateVector
 from thread_safe_operations import capped_append
 
-import logging
+from .state_vector import StateVector
 
 logger = logging.getLogger(__name__)
 

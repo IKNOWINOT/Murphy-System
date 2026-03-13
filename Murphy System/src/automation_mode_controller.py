@@ -43,7 +43,7 @@ import threading
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from enum import IntEnum, Enum
+from enum import Enum, IntEnum
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
@@ -309,7 +309,8 @@ class AutomationModeController:
 
     def _publish_event(self, transition: ModeTransition) -> None:
         try:
-            from event_backbone import EventType as ET, Event
+            from event_backbone import Event
+            from event_backbone import EventType as ET
             evt = Event(
                 event_id=f"evt-{uuid.uuid4().hex[:8]}",
                 event_type=ET.LEARNING_FEEDBACK,

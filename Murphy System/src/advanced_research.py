@@ -7,8 +7,9 @@ Deep research capabilities for complex topics:
 - Statistics
 """
 
-from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
+
 try:
     from verification_layer import VerificationOrchestrator
 except ImportError:
@@ -17,9 +18,8 @@ try:
     from research_engine import ResearchEngine, ResearchResult
 except ImportError:
     from src.research_engine import ResearchEngine, ResearchResult
-import re
-
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 

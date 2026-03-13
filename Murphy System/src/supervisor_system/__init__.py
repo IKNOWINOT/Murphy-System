@@ -15,49 +15,40 @@ Components:
 - anti_recursion: Self-validation blocker, circular dependency detector (Phase 5)
 """
 
+from .anti_recursion import (
+    AntiRecursionSystem,
+    CircularDependencyDetector,
+    SelfValidationBlocker,
+    ValidationSourceTracker,
+)
+from .assumption_management import (
+    AssumptionBindingManager,
+    AssumptionLifecycleManager,
+    AssumptionRegistry,
+    AssumptionValidator,
+)
+from .correction_loop import (
+    AuthorityDecayer,
+    ConfidenceDecayer,
+    ExecutionFreezer,
+    InvalidationDetector,
+    ReExpansionTrigger,
+)
 from .schemas import (
     AssumptionArtifact,
+    AssumptionBinding,
     AssumptionStatus,
-    SupervisorFeedbackArtifact,
+    ConfidenceTrend,
+    CorrectionAction,
+    CorrectionActionType,
     FeedbackType,
     InvalidationSignal,
     InvalidationSource,
-    CorrectionAction,
-    CorrectionActionType,
-    AssumptionBinding,
-    ConfidenceTrend,
     MurphyIndexTrend,
-    ValidationEvidence
+    SupervisorFeedbackArtifact,
+    ValidationEvidence,
 )
-
-from .assumption_management import (
-    AssumptionRegistry,
-    AssumptionValidator,
-    AssumptionBindingManager,
-    AssumptionLifecycleManager
-)
-
-from .supervisor_loop import (
-    SupervisorInterface,
-    FeedbackProcessor,
-    FeedbackRouter,
-    SupervisorAuditLogger
-)
-
-from .correction_loop import (
-    InvalidationDetector,
-    ConfidenceDecayer,
-    AuthorityDecayer,
-    ExecutionFreezer,
-    ReExpansionTrigger
-)
-
-from .anti_recursion import (
-    ValidationSourceTracker,
-    SelfValidationBlocker,
-    CircularDependencyDetector,
-    AntiRecursionSystem
-)
+from .supervisor_loop import FeedbackProcessor, FeedbackRouter, SupervisorAuditLogger, SupervisorInterface
 
 __all__ = [
     # Schemas

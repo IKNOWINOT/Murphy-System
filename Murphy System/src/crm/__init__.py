@@ -10,17 +10,17 @@ Copyright 2024 Inoni LLC – BSL-1.1
 __version__ = "0.1.0"
 __codename__ = "CRM"
 
+from .crm_manager import CRMManager
 from .models import (
     ActivityType,
-    CRMActivity,
     Contact,
     ContactType,
+    CRMActivity,
     Deal,
     DealStage,
     Pipeline,
     Stage,
 )
-from .crm_manager import CRMManager
 
 try:
     from .api import create_crm_router

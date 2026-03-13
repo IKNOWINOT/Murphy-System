@@ -3,13 +3,12 @@ Enhanced Chatbot with MFGC Integration.
 Routes messages through complexity analysis and MFGC pipeline when needed.
 """
 
-import re
-from typing import Dict, Any, Optional, Tuple
-
-from mfgc_core import MFGCController
-from domain_swarms import DomainDetector
-
 import logging
+import re
+from typing import Any, Dict, Optional, Tuple
+
+from domain_swarms import DomainDetector
+from mfgc_core import MFGCController
 
 logger = logging.getLogger(__name__)
 

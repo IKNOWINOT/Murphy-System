@@ -6,10 +6,10 @@ Telemetry Learning Adapter for Murphy System Runtime
 Provides telemetry data collection, analysis, and learning capabilities
 """
 
-import logging
-from typing import Dict, List, Optional, Any, Union
-from datetime import datetime, timedelta, timezone
 import json
+import logging
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional, Union
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

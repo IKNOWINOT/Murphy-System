@@ -66,7 +66,7 @@ def create_automations_router(
         except ValueError:
             raise HTTPException(400, f"Invalid trigger type: {req.trigger_type!r}")
 
-        from .models import AutomationAction, Condition, ConditionOperator, ActionType
+        from .models import ActionType, AutomationAction, Condition, ConditionOperator
         conditions = []
         for c in req.conditions:
             try:

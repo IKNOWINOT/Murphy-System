@@ -8,10 +8,10 @@ Copyright 2024 Inoni LLC – BSL-1.1
 """
 
 from .command_registry import (
+    MURPHY_COMMANDS,
     CommandCategory,
     CommandDefinition,
     CommandRegistry,
-    MURPHY_COMMANDS,
     build_registry,
 )
 

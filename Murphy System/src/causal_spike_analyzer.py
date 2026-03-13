@@ -25,9 +25,9 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from src.ml_strategy_engine import _cosine_similarity
-from src.knostalgia_engine import KnostalgiaMemory
 from src.knostalgia_category_engine import KnostalgiaCategoryEngine
+from src.knostalgia_engine import KnostalgiaMemory
+from src.ml_strategy_engine import _cosine_similarity
 
 logger = logging.getLogger(__name__)
 

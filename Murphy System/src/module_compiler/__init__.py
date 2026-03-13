@@ -14,7 +14,7 @@ Owner: INONI LLC / Corey Post (corey.gfc@gmail.com)
 """
 
 from .compiler import ModuleCompiler
-from .models.module_spec import ModuleSpec, Capability, FailureMode, SandboxProfile
+from .models.module_spec import Capability, FailureMode, ModuleSpec, SandboxProfile
 from .registry.module_registry import ModuleRegistry
 
 __version__ = "1.0.0"

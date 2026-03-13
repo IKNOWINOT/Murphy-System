@@ -11,21 +11,20 @@ Supports:
 
 import csv
 import json
+import logging
 import re
-from typing import List, Dict, Optional, Tuple
 from datetime import datetime
 from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 
 from .schemas import (
+    ArtifactType,
+    AuthorityLevel,
+    HandoffEvent,
     OrgChartNode,
     ProcessFlow,
     WorkArtifact,
-    HandoffEvent,
-    AuthorityLevel,
-    ArtifactType,
 )
-
-import logging
 
 logger = logging.getLogger(__name__)
 

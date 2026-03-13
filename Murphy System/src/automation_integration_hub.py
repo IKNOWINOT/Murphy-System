@@ -448,7 +448,8 @@ class AutomationIntegrationHub:
     def _publish_event(self, event_type: str, source: str, target_count: int) -> None:
         """Publish an integration routing event to EventBackbone."""
         try:
-            from event_backbone import EventType as ET, Event
+            from event_backbone import Event
+            from event_backbone import EventType as ET
             evt = Event(
                 event_id=f"evt-{uuid.uuid4().hex[:8]}",
                 event_type=ET.LEARNING_FEEDBACK,

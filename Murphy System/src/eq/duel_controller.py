@@ -13,13 +13,13 @@ Key rules:
 
 from __future__ import annotations
 
+import logging
 import time
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import List
-from thread_safe_operations import capped_append
 
-import logging
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 

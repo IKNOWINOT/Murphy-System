@@ -13,11 +13,10 @@ Key rules:
 
 from __future__ import annotations
 
+import logging
 import time
 from dataclasses import dataclass, field
 from typing import Dict, List
-
-import logging
 
 logger = logging.getLogger(__name__)
 

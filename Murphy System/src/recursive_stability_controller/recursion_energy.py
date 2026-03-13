@@ -13,12 +13,14 @@ Where:
 Rₜ is internal only. It is never directly acted upon by external logic.
 """
 
+import logging
 from dataclasses import dataclass
 from typing import Dict
+
 import numpy as np
+
 from .state_variables import NormalizedState
 
-import logging
 logger = logging.getLogger("recursive_stability_controller.recursion_energy")
 
 

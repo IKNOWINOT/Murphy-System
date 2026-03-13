@@ -6,21 +6,22 @@ Main service that integrates all components and provides REST API.
 Port: 8061
 """
 
-from flask import Flask, request, jsonify
-from typing import Dict, Optional
-import time
-
 import logging
+import time
+from typing import Dict, Optional
+
+from flask import Flask, jsonify, request
+
 logger = logging.getLogger("recursive_stability_controller.rsc_service")
 
-from .state_variables import StateCollector, StateNormalizer
-from .recursion_energy import RecursionEnergyEstimator, RecursionEnergyCoefficients
-from .stability_score import StabilityScoreCalculator
-from .lyapunov_monitor import LyapunovMonitor
-from .spawn_controller import SpawnRateController, SpawnRequest
-from .gate_damping import GateDampingController, GateSynthesisRequest
-from .feedback_isolation import FeedbackIsolationRouter, Entity, Artifact, EvaluationRequest
 from .control_signals import ControlSignalGenerator
+from .feedback_isolation import Artifact, Entity, EvaluationRequest, FeedbackIsolationRouter
+from .gate_damping import GateDampingController, GateSynthesisRequest
+from .lyapunov_monitor import LyapunovMonitor
+from .recursion_energy import RecursionEnergyCoefficients, RecursionEnergyEstimator
+from .spawn_controller import SpawnRateController, SpawnRequest
+from .stability_score import StabilityScoreCalculator
+from .state_variables import StateCollector, StateNormalizer
 from .telemetry import StabilityTelemetry, TelemetryRecord
 
 
@@ -213,6 +214,7 @@ class RecursiveStabilityController:
 # Flask application
 app = Flask(__name__)
 from flask_security import configure_secure_app
+
 configure_secure_app(app, service_name="recursive-stability-controller")
 
 # Global controller instance

@@ -22,8 +22,9 @@ Query Parameters (for /project):
 """
 
 import re
+
 try:
-    from flask import Blueprint, request, jsonify
+    from flask import Blueprint, jsonify, request
     _HAS_FLASK = True
 except ImportError:
     _HAS_FLASK = False
@@ -35,17 +36,16 @@ except ImportError:
     Blueprint = _StubBlueprint  # type: ignore[misc,assignment]
     request = None  # type: ignore[assignment]
     jsonify = None  # type: ignore[assignment]
+import logging
 from typing import Optional
 
 from artifact_viewport import (
-    ArtifactViewport,
-    ViewportRange,
-    ViewportOrigin,
     DEFAULT_VIEWPORT_LINES,
     MAX_VIEWPORT_LINES,
+    ArtifactViewport,
+    ViewportOrigin,
+    ViewportRange,
 )
-
-import logging
 
 logger = logging.getLogger(__name__)
 

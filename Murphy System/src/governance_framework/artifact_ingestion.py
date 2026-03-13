@@ -8,16 +8,14 @@ Implements the governance artifact ingestion layer including:
 - LLM suggestion vs enforcement boundary
 """
 
+import hashlib
+import json
+import logging
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Dict, List, Optional, Set, Union
 from uuid import UUID, uuid4
-import hashlib
-import json
-
-from dataclasses import dataclass, field
-
-import logging
 
 logger = logging.getLogger(__name__)
 

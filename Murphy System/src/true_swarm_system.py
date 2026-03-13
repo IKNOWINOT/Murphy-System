@@ -10,14 +10,14 @@ Key Principles:
 5. Agents are epistemic instruments, never operational
 """
 
-from typing import List, Dict, Any, Optional, Set, Tuple, Callable
-from dataclasses import dataclass, field
-from enum import Enum
-from abc import ABC, abstractmethod
+import logging
 import time
 import uuid
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
-import logging
 logger = logging.getLogger("true_swarm_system")
 
 

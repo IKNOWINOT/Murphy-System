@@ -23,8 +23,8 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
-from src.ml_strategy_engine import _cosine_similarity
 from src.knostalgia_engine import RecallResult
+from src.ml_strategy_engine import _cosine_similarity
 
 logger = logging.getLogger(__name__)
 

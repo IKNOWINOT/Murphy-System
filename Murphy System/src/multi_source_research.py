@@ -3,12 +3,12 @@ Multi-Source Research Engine
 Compiles information from multiple sources, synthesizes, and generates coherent responses
 """
 
-from typing import List, Dict, Any, Optional
 import json
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-import logging
 logger = logging.getLogger("multi_source_research")
 
 

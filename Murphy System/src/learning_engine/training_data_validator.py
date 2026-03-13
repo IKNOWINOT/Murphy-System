@@ -4,15 +4,15 @@ Training Data Validation and Quality Checks
 This module validates training data quality and detects issues.
 """
 
-from typing import List, Dict, Any, Tuple
 import logging
 from collections import Counter
+from typing import Any, Dict, List, Tuple
 
 from .models import (
-    TrainingExample,
-    TrainingDataset,
     DataQualityMetrics,
     FeatureType,
+    TrainingDataset,
+    TrainingExample,
 )
 
 logger = logging.getLogger(__name__)

@@ -22,13 +22,13 @@ MURPHY_ENV : str
     ``staging``, or ``production``.
 """
 
+import logging
 import os
 import threading
 import uuid
-from typing import Dict, List, Optional, Any, Union
 from datetime import datetime, timezone
 from enum import Enum
-import logging
+from typing import Any, Dict, List, Optional, Union
 
 from .integration_framework import Integration, IntegrationResult
 
@@ -238,7 +238,8 @@ class SQLDatabaseConnector(DatabaseConnector):
         """
         if self._db_mode == "live":
             try:
-                from sqlalchemy import create_engine, text as sa_text  # noqa: PLC0415
+                from sqlalchemy import create_engine  # noqa: PLC0415
+                from sqlalchemy import text as sa_text
                 connect_args: Dict = {}
                 if self.connection_string.startswith("sqlite"):
                     connect_args["check_same_thread"] = False

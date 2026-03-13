@@ -4,8 +4,10 @@ External truth sources - NO generation, only lookup
 """
 
 import logging
+
 logger = logging.getLogger(__name__)
 import re
+
 try:
     import requests
 except ImportError:
@@ -15,9 +17,10 @@ try:
 except ImportError:
     wikipedia = None
 from datetime import datetime, timezone
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+
 try:
-    from SPARQLWrapper import SPARQLWrapper, JSON
+    from SPARQLWrapper import JSON, SPARQLWrapper
 except ImportError:
     SPARQLWrapper = None
     JSON = None

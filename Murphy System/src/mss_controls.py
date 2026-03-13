@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from concept_translation import ConceptTranslationEngine, TechnicalAnalogue
-from information_quality import InformationQualityEngine, InformationQuality
+from information_quality import InformationQuality, InformationQualityEngine
 from resolution_scoring import ResolutionLevel
 from simulation_engine import SimulationResult, StrategicSimulationEngine
 

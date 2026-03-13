@@ -11,21 +11,20 @@ Processes inbound messages:
 CRITICAL: Pipeline NEVER triggers execution. Only creates artifacts.
 """
 
-from typing import List, Dict, Optional
-from datetime import datetime, timedelta, timezone
+import logging
 import re
 from collections import defaultdict
+from datetime import datetime, timedelta, timezone
+from typing import Dict, List, Optional
 
 from .schemas import (
-    MessageArtifact,
+    Channel,
     IntentClassification,
+    MessageArtifact,
     RedactionRule,
     RetentionPolicy,
     ThreadContext,
-    Channel,
 )
-
-import logging
 
 logger = logging.getLogger(__name__)
 

@@ -27,6 +27,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from account_management.credential_vault import CredentialVault
 from account_management.models import (
     AccountEvent,
     AccountEventType,
@@ -37,7 +38,6 @@ from account_management.models import (
     OAuthProvider,
     OAuthToken,
 )
-from account_management.credential_vault import CredentialVault
 from account_management.oauth_provider_registry import OAuthProviderRegistry
 
 logger = logging.getLogger(__name__)

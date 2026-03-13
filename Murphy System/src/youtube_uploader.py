@@ -204,8 +204,8 @@ class YouTubeUploader:
     def _check_api_available(self) -> bool:
         """Check whether google-api-python-client is installed."""
         try:
-            import googleapiclient  # noqa: F401
             import google_auth_oauthlib  # noqa: F401
+            import googleapiclient  # noqa: F401
             return True
         except ImportError:
             return False
@@ -279,8 +279,8 @@ class YouTubeUploader:
         if not self._api_available:
             return None
         try:
-            from google.oauth2.credentials import Credentials  # noqa: F401
             from google.auth.transport.requests import Request  # noqa: F401
+            from google.oauth2.credentials import Credentials  # noqa: F401
 
             with open(str(self._credentials_path), encoding="utf-8") as fh:
                 data = json.load(fh)

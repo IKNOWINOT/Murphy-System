@@ -5,23 +5,23 @@ Document Processing, Inquisitory Engine, and LLM Integration Layer
 Provides backend-to-frontend API layer for user interaction
 """
 
-from typing import Dict, List, Optional, Any, Tuple
-from dataclasses import dataclass, field
 import json
-from datetime import datetime, timezone
-
 import logging
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional, Tuple
+
 logger = logging.getLogger("system_integrator")
 
 # Import all system components
+from src.bot_inventory_library import BotAgent, BotInventoryLibrary, BotRole
+from src.constraint_system import Constraint, ConstraintSystem, ConstraintType
+from src.contractual_audit import ContractualAgreement, ContractualAuditSystem, ProductivityGap
+from src.document_processor import DesignRequirement, DocumentProcessor
+from src.domain_gate_generator import DomainGate, DomainGateGenerator, GateType
 from src.dynamic_expert_generator import DynamicExpertGenerator, GeneratedExpert
-from src.domain_gate_generator import DomainGateGenerator, DomainGate, GateType
-from src.constraint_system import ConstraintSystem, Constraint, ConstraintType
-from src.document_processor import DocumentProcessor, DesignRequirement
-from src.inquisitory_engine import InquisitoryEngine, ChoiceType, ChoiceRecommendation
-from src.llm_integration_layer import LLMIntegrationLayer, DomainType, LLMProvider
-from src.bot_inventory_library import BotInventoryLibrary, BotAgent, BotRole
-from src.contractual_audit import ContractualAuditSystem, ProductivityGap, ContractualAgreement
+from src.inquisitory_engine import ChoiceRecommendation, ChoiceType, InquisitoryEngine
+from src.llm_integration_layer import DomainType, LLMIntegrationLayer, LLMProvider
 from src.system_librarian import SystemLibrarian
 
 
@@ -183,8 +183,8 @@ class SystemIntegrator:
 
         # Librarian adapter
         try:
-            from src.librarian_adapter import LibrarianAdapter
             from src.librarian import LibrarianModule
+            from src.librarian_adapter import LibrarianAdapter
             librarian_module = LibrarianModule()
             self.librarian_adapter = LibrarianAdapter(librarian_module)
             self.librarian_adapter_enabled = True
@@ -194,8 +194,8 @@ class SystemIntegrator:
 
         # Dynamic Assist Engine + KFactor Calculator (PR #195)
         try:
-            from src.kfactor_calculator import KFactorCalculator
             from src.dynamic_assist_engine import DynamicAssistEngine
+            from src.kfactor_calculator import KFactorCalculator
             self.kfactor_calculator = KFactorCalculator()
             self.dynamic_assist_engine = DynamicAssistEngine()
             self.dynamic_assist_enabled = True

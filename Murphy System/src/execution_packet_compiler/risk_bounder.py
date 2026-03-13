@@ -3,16 +3,11 @@ Risk Bounder
 Computes expected loss and enforces risk thresholds
 """
 
-from typing import List, Dict, Any, Tuple
-import math
-
-from .models import (
-    ExecutionGraph,
-    ExecutionStep,
-    ExecutionScope
-)
-
 import logging
+import math
+from typing import Any, Dict, List, Tuple
+
+from .models import ExecutionGraph, ExecutionScope, ExecutionStep
 
 logger = logging.getLogger(__name__)
 

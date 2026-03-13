@@ -8,14 +8,13 @@ All schemas enforce strict safety constraints:
 - All substitutions require explicit gate satisfaction
 """
 
-from dataclasses import dataclass, field
-from typing import List, Dict, Optional, Literal
-from datetime import datetime, timezone
-from enum import Enum
 import hashlib
 import json
-
 import logging
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
+from typing import Dict, List, Literal, Optional
 
 logger = logging.getLogger(__name__)
 

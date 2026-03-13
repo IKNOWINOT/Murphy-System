@@ -5,10 +5,10 @@ Ensures all resources are properly cleaned up
 """
 
 import atexit
+import logging
 import signal
 import sys
-import logging
-from typing import List, Callable, Optional
+from typing import Callable, List, Optional
 
 logger = logging.getLogger(__name__)
 

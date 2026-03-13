@@ -38,6 +38,15 @@ __version__ = "0.1.0"
 __codename__ = "Boards"
 
 # -- Models -----------------------------------------------------------------
+# -- Board manager ----------------------------------------------------------
+from .board_manager import BoardManager
+
+# -- Column types -----------------------------------------------------------
+from .column_types import (
+    COLUMN_VALIDATORS,
+    default_value,
+    validate_cell_value,
+)
 from .models import (
     ActivityAction,
     ActivityLogEntry,
@@ -54,13 +63,6 @@ from .models import (
     ViewType,
 )
 
-# -- Column types -----------------------------------------------------------
-from .column_types import (
-    COLUMN_VALIDATORS,
-    default_value,
-    validate_cell_value,
-)
-
 # -- Permissions ------------------------------------------------------------
 from .permissions import PermissionManager
 
@@ -68,16 +70,13 @@ from .permissions import PermissionManager
 from .views import (
     apply_filters,
     apply_sort,
-    render_chart_view,
     render_calendar_view,
+    render_chart_view,
     render_kanban_view,
     render_table_view,
     render_timeline_view,
     render_view,
 )
-
-# -- Board manager ----------------------------------------------------------
-from .board_manager import BoardManager
 
 # -- API (optional – requires fastapi) -------------------------------------
 try:

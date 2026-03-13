@@ -6,13 +6,12 @@ Provides:
   - StabilityAnalyzer — checks  V(x_{t+1}) < V(x_t) and BIBO stability.
 """
 
+import logging
 import math
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
-from .canonical_state import CanonicalStateVector, _DIMENSION_NAMES
-
-import logging
+from .canonical_state import _DIMENSION_NAMES, CanonicalStateVector
 
 logger = logging.getLogger(__name__)
 

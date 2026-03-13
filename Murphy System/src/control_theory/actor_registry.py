@@ -8,11 +8,10 @@ Provides:
   - Delegation graph with transitive closure and revocation.
 """
 
+import logging
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, FrozenSet, List, Optional, Set, Tuple
-
-import logging
 
 logger = logging.getLogger(__name__)
 

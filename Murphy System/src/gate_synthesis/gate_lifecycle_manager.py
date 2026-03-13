@@ -3,19 +3,13 @@ Gate Lifecycle Manager
 Manages gate activation, persistence, retirement, and conflict resolution
 """
 
-from typing import List, Dict, Any, Optional, Set
-from datetime import datetime, timezone
-
-from .models import (
-    Gate,
-    GateState,
-    GateCategory,
-    GateRegistry,
-    RetirementCondition
-)
-
 import logging
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional, Set
+
 from thread_safe_operations import capped_append
+
+from .models import Gate, GateCategory, GateRegistry, GateState, RetirementCondition
 
 logger = logging.getLogger(__name__)
 

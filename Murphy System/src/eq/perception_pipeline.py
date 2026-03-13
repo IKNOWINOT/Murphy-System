@@ -16,14 +16,13 @@ is delegated to the EQEmu game connector.
 
 from __future__ import annotations
 
+import logging
 import time
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
 from .macro_trigger_engine import MacroTriggerEngine, TriggerResult
-
-import logging
 
 logger = logging.getLogger(__name__)
 

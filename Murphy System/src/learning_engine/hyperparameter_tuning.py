@@ -4,22 +4,22 @@ Hyperparameter Tuning System
 This module implements automated hyperparameter optimization.
 """
 
+import itertools
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from uuid import UUID, uuid4
-import logging
-import itertools
 
-from .models import TrainingDataset
 from .model_architecture import (
-    ShadowAgentModel,
-    ModelType,
     DecisionTreeConfig,
-    RandomForestConfig,
     HybridModelConfig,
+    ModelType,
+    RandomForestConfig,
+    ShadowAgentModel,
 )
-from .training_pipeline import TrainingPipeline, TrainingConfig, ModelFactory
+from .models import TrainingDataset
+from .training_pipeline import ModelFactory, TrainingConfig, TrainingPipeline
 
 logger = logging.getLogger(__name__)
 

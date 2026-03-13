@@ -3,15 +3,15 @@ Design Document Processing System
 Handles uploaded design documents, equipment selection, and trigger generation
 """
 
-from typing import Dict, List, Optional, Any, Tuple
-from dataclasses import dataclass, field
-from enum import Enum
 import json
-import re
-from datetime import datetime, timezone
-import os
-
 import logging
+import os
+import re
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
+
 logger = logging.getLogger("document_processor")
 
 

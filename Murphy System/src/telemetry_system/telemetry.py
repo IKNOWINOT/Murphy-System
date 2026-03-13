@@ -2,11 +2,11 @@
 TelemetryCollector - Collects and exposes system metrics, logs, and audit trails.
 """
 
-from typing import Dict, Any, List
-from datetime import datetime, timezone
-from thread_safe_operations import capped_append
-
 import logging
+from datetime import datetime, timezone
+from typing import Any, Dict, List
+
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 

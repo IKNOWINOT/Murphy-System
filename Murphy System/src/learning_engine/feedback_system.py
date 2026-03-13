@@ -4,16 +4,17 @@ Comprehensive system for collecting, categorizing, validating, and analyzing hum
 Covers Tasks 2.1, 2.2, 2.3, and 2.4.
 """
 
-from typing import Dict, List, Optional, Any, Tuple
-from datetime import datetime, timedelta, timezone
-from enum import Enum
-from pydantic import BaseModel, Field
+import logging
+import statistics
 import uuid
 from collections import defaultdict
-import statistics
-from thread_safe_operations import capped_append
+from datetime import datetime, timedelta, timezone
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
-import logging
+from pydantic import BaseModel, Field
+
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 

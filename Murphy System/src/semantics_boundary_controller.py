@@ -11,14 +11,15 @@ integration (Section 12 Step 6.8), providing:
 - Thread-safe in-memory persistence
 """
 
-import uuid
-import math
 import logging
+import math
 import threading
-from typing import Dict, List, Optional, Any
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
 from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)

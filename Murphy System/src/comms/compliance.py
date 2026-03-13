@@ -8,22 +8,21 @@ Provides:
 4. Compliance validation (GDPR, CCPA, etc.)
 """
 
-from typing import List, Dict, Optional, Set
+import hashlib
+import logging
+import re
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-import re
-import hashlib
+from typing import Dict, List, Optional, Set
 
 from .schemas import (
-    MessageArtifact,
-    RedactionRule,
-    RetentionPolicy,
     AuditLogEntry,
     Channel,
+    MessageArtifact,
     RedactionLevel,
+    RedactionRule,
+    RetentionPolicy,
 )
-
-import logging
 
 logger = logging.getLogger(__name__)
 

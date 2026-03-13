@@ -2,11 +2,11 @@
 Task Executor - Executes tasks using available tools
 Reading level: High school student
 """
-from typing import Dict, List, Any, Optional, Callable
-import time
 import json
-
 import logging
+import time
+from typing import Any, Callable, Dict, List, Optional
+
 from thread_safe_operations import capped_append
 
 logger = logging.getLogger("task_executor")

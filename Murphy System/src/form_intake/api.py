@@ -10,13 +10,14 @@ Security Note:
     from fastapi_security.py to enforce authentication, CORS, and rate limiting.
 """
 
-from typing import Dict, Any
+import logging
+from typing import Any, Dict
+
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import JSONResponse
-import logging
 
-from .schemas import FormType
 from .handlers import submit_form
+from .schemas import FormType
 
 logger = logging.getLogger(__name__)
 

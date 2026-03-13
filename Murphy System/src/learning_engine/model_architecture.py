@@ -4,16 +4,16 @@ Shadow Agent Model Architecture
 This module defines the hybrid decision tree/neural network model architecture.
 """
 
+import logging
+import pickle
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
 from uuid import UUID, uuid4
-import logging
 
 import numpy as np
-import pickle
 
 logger = logging.getLogger(__name__)
 

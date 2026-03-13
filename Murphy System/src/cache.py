@@ -7,12 +7,12 @@ Provides a CacheClient that uses Redis when REDIS_URL is set,
 otherwise falls back to an in-memory dict with TTL eviction.
 """
 
-import os
-import time
-import logging
 import hashlib
 import json
-from typing import Optional, Any
+import logging
+import os
+import time
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 

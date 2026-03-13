@@ -4,11 +4,11 @@ Provides a simplified HypothesisIntakeService wrapper with a
 ``process_hypothesis`` helper expected by integration tests.
 """
 
-import re
-from typing import Dict, Any, List
-from thread_safe_operations import capped_append
-
 import logging
+import re
+from typing import Any, Dict, List
+
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 

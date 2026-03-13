@@ -4,18 +4,16 @@ Comprehensive system covering correction validation (Section 3) and pattern extr
 Tasks 3.1-3.4 and 4.1-4.4.
 """
 
-from typing import Dict, List, Optional, Any, Set, Tuple
+import logging
+import statistics
+from collections import defaultdict
 from datetime import datetime, timezone
 from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Tuple
+
 from pydantic import BaseModel, Field
-from collections import defaultdict
-import statistics
 
-from .correction_models import (
-    Correction, CorrectionType, CorrectionSeverity, CorrectionStatus
-)
-
-import logging
+from .correction_models import Correction, CorrectionSeverity, CorrectionStatus, CorrectionType
 
 logger = logging.getLogger(__name__)
 

@@ -12,18 +12,24 @@ Capabilities:
 - Module registry management
 """
 
-from typing import Dict, List, Optional, Any
-from datetime import datetime, timezone
-import os
 import logging
+import os
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
 logger = logging.getLogger(__name__)
 
 # Import from module_compiler
 try:
     from module_compiler.compiler import ModuleCompiler
     from module_compiler.models.module_spec import (
-        ModuleSpec, Capability, FailureMode, SandboxProfile,
-        DeterminismLevel, FailureSeverity, ResourceProfile
+        Capability,
+        DeterminismLevel,
+        FailureMode,
+        FailureSeverity,
+        ModuleSpec,
+        ResourceProfile,
+        SandboxProfile,
     )
     from module_compiler.registry.module_registry import ModuleRegistry
     MODULE_COMPILER_AVAILABLE = True

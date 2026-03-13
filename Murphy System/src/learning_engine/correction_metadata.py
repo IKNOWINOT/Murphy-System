@@ -3,17 +3,15 @@ Correction Metadata Tracking System
 Tracks detailed metadata about corrections for analysis and learning.
 """
 
-from typing import Dict, List, Optional, Any, Set
+import logging
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from enum import Enum
+from typing import Any, Dict, List, Optional, Set
+
 from pydantic import BaseModel, Field
-from collections import defaultdict
 
-from .correction_models import (
-    Correction, CorrectionType, CorrectionSeverity
-)
-
-import logging
+from .correction_models import Correction, CorrectionSeverity, CorrectionType
 
 logger = logging.getLogger(__name__)
 

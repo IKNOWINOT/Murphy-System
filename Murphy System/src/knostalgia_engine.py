@@ -27,7 +27,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from src.ml_strategy_engine import _cosine_similarity, AnomalyDetector, AnomalyMethod
+from src.ml_strategy_engine import AnomalyDetector, AnomalyMethod, _cosine_similarity
 
 logger = logging.getLogger(__name__)
 

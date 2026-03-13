@@ -9,16 +9,28 @@ for relational persistence alongside the existing JSON-based PersistenceManager.
 Reads DATABASE_URL from env (default: sqlite:///murphy_logs.db).
 """
 
-import os
 import logging
+import os
 
 from sqlalchemy import (
-    Column, String, Integer, Float, DateTime, Text, ForeignKey,
-    JSON, func, text,
+    JSON,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
     create_engine,
+    func,
+    text,
 )
 from sqlalchemy.orm import (
-    DeclarativeBase, sessionmaker, Session as SyncSession,
+    DeclarativeBase,
+    sessionmaker,
+)
+from sqlalchemy.orm import (
+    Session as SyncSession,
 )
 
 logger = logging.getLogger(__name__)
@@ -27,7 +39,10 @@ logger = logging.getLogger(__name__)
 # Configuration
 # ---------------------------------------------------------------------------
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///murphy_logs.db")
+DATABASE_URL = os.environ.get(
+    "DATABASE_URL",
+    os.environ.get("MURPHY_DB_URL", "sqlite:///murphy_logs.db"),
+)
 
 # ---------------------------------------------------------------------------
 # Declarative Base
@@ -107,14 +122,26 @@ _SessionFactory = None
 
 
 def _get_engine():
-    """Lazily create the SQLAlchemy engine."""
+    """Lazily create the SQLAlchemy engine.
+
+    For SQLite the ``check_same_thread`` connect arg is applied automatically.
+    For PostgreSQL (or other backends), connection-pool settings are tuned for
+    production use.
+    """
     global _engine
     if _engine is None:
         url = DATABASE_URL
-        connect_args = {}
+        kwargs: dict = {"echo": False}
         if url.startswith("sqlite"):
-            connect_args["check_same_thread"] = False
-        _engine = create_engine(url, connect_args=connect_args, echo=False)
+            kwargs["connect_args"] = {"check_same_thread": False}
+        else:
+            # Production pool settings for PostgreSQL / other RDBMS
+            kwargs.update(
+                pool_size=int(os.environ.get("MURPHY_DB_POOL_SIZE", "5")),
+                max_overflow=int(os.environ.get("MURPHY_DB_MAX_OVERFLOW", "10")),
+                pool_pre_ping=True,
+            )
+        _engine = create_engine(url, **kwargs)
     return _engine
 
 

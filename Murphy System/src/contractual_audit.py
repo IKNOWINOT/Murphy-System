@@ -4,14 +4,14 @@ Detects productivity flow gaps and creates contractual agreements between agents
 Monitors agent drift and triggers recalibration or domain knowledge expansion
 """
 
-from typing import Dict, List, Optional, Any, Tuple
-from dataclasses import dataclass, field
-from enum import Enum
 import json
-from datetime import datetime, timezone
-import uuid
-
 import logging
+import uuid
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
+
 logger = logging.getLogger("contractual_audit")
 
 

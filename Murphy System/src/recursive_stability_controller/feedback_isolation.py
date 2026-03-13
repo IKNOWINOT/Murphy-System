@@ -17,11 +17,11 @@ Where:
 - Violations → immediate freeze
 """
 
-from dataclasses import dataclass
-from typing import Dict, List, Set, Optional
-from enum import Enum
-
 import logging
+from dataclasses import dataclass
+from enum import Enum
+from typing import Dict, List, Optional, Set
+
 logger = logging.getLogger("recursive_stability_controller.feedback_isolation")
 
 

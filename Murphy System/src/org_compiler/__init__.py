@@ -14,16 +14,16 @@ Components:
 """
 
 from .schemas import (
-    RoleTemplate,
-    TemplateProposalArtifact,
+    ComplianceConstraint,
+    EscalationPath,
+    HandoffEvent,
     OrgChartNode,
     ProcessFlow,
-    WorkArtifact,
-    HandoffEvent,
-    SubstitutionGate,
-    EscalationPath,
-    ComplianceConstraint,
     RoleMetrics,
+    RoleTemplate,
+    SubstitutionGate,
+    TemplateProposalArtifact,
+    WorkArtifact,
 )
 
 __all__ = [

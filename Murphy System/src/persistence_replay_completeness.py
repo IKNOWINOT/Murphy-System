@@ -16,17 +16,18 @@ Contact: corey.gfc@gmail.com
 Repository: https://github.com/IKNOWINOT/Murphy-System
 """
 
-import json
-import os
 import copy
-import uuid
-import time
+import json
 import logging
+import os
 import threading
-from dataclasses import dataclass, field, asdict
+import time
+import uuid
+from dataclasses import asdict, dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Callable
+from typing import Any, Callable, Dict, List, Optional
+
 from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)

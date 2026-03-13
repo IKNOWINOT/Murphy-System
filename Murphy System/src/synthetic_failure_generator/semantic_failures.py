@@ -11,19 +11,13 @@ Failure Types:
 - Conflicting goals
 """
 
-import random
 import hashlib
-from typing import Dict, List, Any, Tuple
-from datetime import datetime, timezone
-
-from .models import (
-    FailureCase,
-    FailureType,
-    SeverityLevel,
-    ConfidenceProfile
-)
-
 import logging
+import random
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Tuple
+
+from .models import ConfidenceProfile, FailureCase, FailureType, SeverityLevel
 
 logger = logging.getLogger(__name__)
 

@@ -18,11 +18,13 @@ Design Principles:
 """
 
 import logging
+
 logger = logging.getLogger(__name__)
 import time
-import requests
-from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional, Tuple
+
+import requests
 
 from .models import StepResult, StepType
 

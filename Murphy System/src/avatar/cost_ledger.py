@@ -1,14 +1,14 @@
 """Tracks costs per avatar and service."""
 
+import logging
 import uuid
 from datetime import datetime, timezone
 from threading import Lock
 from typing import Any, Dict, List, Optional
 
-from .avatar_models import CostEntry
 from thread_safe_operations import capped_append
 
-import logging
+from .avatar_models import CostEntry
 
 logger = logging.getLogger(__name__)
 

@@ -23,7 +23,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from .matrix_client import MatrixClient
-from .room_registry import RoomRegistry, SUBSYSTEM_ROOMS
+from .room_registry import SUBSYSTEM_ROOMS, RoomRegistry
 
 logger = logging.getLogger(__name__)
 

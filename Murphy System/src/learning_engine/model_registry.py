@@ -4,13 +4,13 @@ Model Registry and Versioning
 This module manages model versions and deployment.
 """
 
+import json
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
 from uuid import UUID, uuid4
-import json
-import logging
 
 from .model_architecture import ModelMetadata, ShadowAgentModel
 

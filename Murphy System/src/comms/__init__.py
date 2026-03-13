@@ -16,10 +16,10 @@ Components:
 """
 
 from .schemas import (
-    MessageArtifact,
+    Channel,
     CommunicationPacket,
     IntentClassification,
-    Channel,
+    MessageArtifact,
     RedactionRule,
     RetentionPolicy,
 )

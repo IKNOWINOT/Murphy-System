@@ -8,18 +8,17 @@ Provides:
 4. Audit logging: Track all changes and decisions
 """
 
-from typing import Dict, List, Optional, Any, Tuple
+import json
+import logging
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-import logging
-import json
+from typing import Any, Dict, List, Optional, Tuple
 
 from .models import (
     GateEvolutionArtifact,
     InsightArtifact,
     ReasonCode,
 )
-
 
 logger = logging.getLogger(__name__)
 

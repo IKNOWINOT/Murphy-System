@@ -4,10 +4,9 @@ Parsed Expression Models
 Represents parsed and normalized mathematical expressions.
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, Any, List
-
 import logging
+from dataclasses import dataclass, field
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 

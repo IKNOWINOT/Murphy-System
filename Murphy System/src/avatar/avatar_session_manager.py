@@ -1,13 +1,12 @@
 """Manages avatar interaction sessions."""
 
+import logging
 import uuid
 from datetime import datetime, timezone
 from threading import Lock
 from typing import Any, Dict, List, Optional
 
 from .avatar_models import AvatarSession
-
-import logging
 
 logger = logging.getLogger(__name__)
 

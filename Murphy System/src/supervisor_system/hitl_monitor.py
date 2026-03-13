@@ -4,17 +4,17 @@ Human-in-the-Loop Monitor
 Manages human intervention checkpoints and approval workflows.
 """
 
-from typing import Dict, Any, List, Optional, Callable
-from datetime import datetime, timedelta
 import logging
 import uuid
+from datetime import datetime, timedelta
+from typing import Any, Callable, Dict, List, Optional
 
 from .hitl_models import (
     InterventionRequest,
     InterventionResponse,
+    InterventionStatus,
     InterventionType,
     InterventionUrgency,
-    InterventionStatus
 )
 
 logger = logging.getLogger(__name__)

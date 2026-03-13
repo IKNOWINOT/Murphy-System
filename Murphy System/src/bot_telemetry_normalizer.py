@@ -10,9 +10,10 @@ import logging
 import threading
 import time
 import uuid
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from enum import Enum
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
+
 from thread_safe_operations import capped_append_paired
 
 logger = logging.getLogger(__name__)

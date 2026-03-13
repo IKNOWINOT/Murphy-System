@@ -5,17 +5,17 @@ Main validation interface that integrates uncertainty calculations,
 confidence scoring, and Murphy Gate decisions.
 """
 
-from typing import Dict, Any, Optional
-from datetime import datetime
 import logging
-import sys
 import os
+import sys
+from datetime import datetime
+from typing import Any, Dict, Optional
+
+from .murphy_gate import MurphyGate
+from .murphy_models import ConfidenceReport, GateResult, Phase, UncertaintyScores
 
 # Add murphy_runtime_analysis to path for imports
-
 from .uncertainty_calculator import UncertaintyCalculator
-from .murphy_gate import MurphyGate
-from .murphy_models import UncertaintyScores, GateResult, ConfidenceReport, Phase
 
 logger = logging.getLogger(__name__)
 
@@ -190,7 +190,8 @@ class MurphyValidator:
 
         try:
             from .confidence_calculator import ConfidenceCalculator
-            from .models import ArtifactGraph, Phase as ConfPhase, TrustModel
+            from .models import ArtifactGraph, TrustModel
+            from .models import Phase as ConfPhase
 
             # Extract v1-compatible artefacts from context (graceful defaults)
             graph = context.get('artifact_graph')

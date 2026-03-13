@@ -9,12 +9,13 @@ Features:
 - Error code mapping (raises Murphy index, decays authority)
 """
 
+import logging
 import time
-from typing import Dict, List, Optional, Callable
-from threading import Thread, Event
+from threading import Event, Thread
+from typing import Callable, Dict, List, Optional
+
 import requests
 
-import logging
 logger = logging.getLogger("adapter_framework.safety_hooks")
 
 

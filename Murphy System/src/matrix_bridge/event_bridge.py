@@ -23,9 +23,10 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
+from thread_safe_operations import capped_append
+
 from .matrix_client import MatrixClient
 from .room_registry import RoomRegistry
-from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 

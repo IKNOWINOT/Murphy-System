@@ -9,17 +9,17 @@ Repository: https://github.com/IKNOWINOT/Murphy-System
 """
 
 import json
+import logging
 import os
 import re
 import sys
-import uuid
-import time
-import logging
 import threading
+import time
+import uuid
 from contextlib import contextmanager
-from dataclasses import dataclass, field, asdict
-from typing import Dict, List, Any, Optional
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -479,7 +479,7 @@ class SQLitePersistenceManager:
 
     def __init__(self) -> None:
         try:
-            from db import create_tables, get_db, check_database  # noqa: PLC0415
+            from db import check_database, create_tables, get_db  # noqa: PLC0415
             self._create_tables = create_tables
             self._get_db = get_db
             self._check_database = check_database
@@ -577,14 +577,18 @@ class SQLitePersistenceManager:
     def get_stats(self) -> dict:
         """Return persistence statistics from SQL."""
         from db import (  # noqa: PLC0415
-            LivingDocumentRecord, AuditTrail, SessionRecord,
+            DATABASE_URL,
+            AuditTrail,
+            LivingDocumentRecord,
+            SessionRecord,
             _get_session_factory,
         )
+        backend = "postgresql" if DATABASE_URL.startswith("postgresql") else "sqlite"
         factory = _get_session_factory()
         session = factory()
         try:
             return {
-                "backend": "sqlite",
+                "backend": backend,
                 "documents": session.query(LivingDocumentRecord).count(),
                 "audit_events": session.query(AuditTrail).count(),
                 "sessions": session.query(SessionRecord).count(),
@@ -609,8 +613,12 @@ def get_persistence_manager(
 ) -> "PersistenceManager | SQLitePersistenceManager":
     """Return the appropriate persistence manager for the current environment.
 
-    * ``MURPHY_DB_MODE=live`` → :class:`SQLitePersistenceManager` (SQL-backed)
-    * ``MURPHY_DB_MODE=stub`` → :class:`PersistenceManager` (JSON file-backed)
+    * ``MURPHY_DB_MODE=live`` + ``DATABASE_URL`` starts with ``postgresql`` →
+      :class:`SQLitePersistenceManager` backed by PostgreSQL via SQLAlchemy.
+    * ``MURPHY_DB_MODE=live`` (no PostgreSQL URL) →
+      :class:`SQLitePersistenceManager` backed by SQLite.
+    * ``MURPHY_DB_MODE=stub`` (default) →
+      :class:`PersistenceManager` (JSON file-backed).
 
     Returns:
         An instance of the appropriate persistence manager.

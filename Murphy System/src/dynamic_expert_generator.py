@@ -3,13 +3,13 @@ Dynamic Expert Generation System
 Generates domain experts dynamically based on system requirements
 """
 
-from typing import Dict, List, Optional, Any, Tuple
-from dataclasses import dataclass, field
-from enum import Enum
 import json
-from datetime import datetime, timezone
-
 import logging
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
+
 logger = logging.getLogger("dynamic_expert_generator")
 
 

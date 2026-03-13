@@ -7,14 +7,13 @@ Defines:
   - ControlLaw — feedback control  u_t = K_t × e_t  with gain scheduling.
 """
 
+import logging
 import math
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Optional
 
-from .canonical_state import CanonicalStateVector, _DIMENSION_NAMES
-
-import logging
+from .canonical_state import _DIMENSION_NAMES, CanonicalStateVector
 
 logger = logging.getLogger(__name__)
 

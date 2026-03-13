@@ -8,14 +8,13 @@ are detected.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import List, Optional
 
 from .infinity_metric import EntropyTracker, UncertaintyBudget
 from .state_model import StateVector
-
-import logging
 
 logger = logging.getLogger(__name__)
 

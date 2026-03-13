@@ -11,15 +11,16 @@ Deterministic evidence lane for pre-action verification, providing:
 - Thread-safe history tracking and compliance-ready artifacts
 """
 
-import uuid
+import logging
 import math
 import random
-import logging
 import threading
-from typing import Dict, List, Optional, Any, Callable, Tuple
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
 from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)

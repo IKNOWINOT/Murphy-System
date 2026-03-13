@@ -11,25 +11,21 @@ Components:
 - ReExpansionTrigger: Triggers re-expansion after correction
 """
 
-from typing import Dict, List, Optional, Tuple
-from datetime import datetime, timedelta, timezone
-from dataclasses import dataclass
 import logging
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
+from typing import Dict, List, Optional, Tuple
 
+from .assumption_management import AssumptionBindingManager, AssumptionLifecycleManager, AssumptionRegistry
 from .schemas import (
     AssumptionArtifact,
     AssumptionStatus,
-    InvalidationSignal,
-    InvalidationSource,
+    ConfidenceTrend,
     CorrectionAction,
     CorrectionActionType,
-    ConfidenceTrend,
-    MurphyIndexTrend
-)
-from .assumption_management import (
-    AssumptionRegistry,
-    AssumptionBindingManager,
-    AssumptionLifecycleManager
+    InvalidationSignal,
+    InvalidationSource,
+    MurphyIndexTrend,
 )
 
 logger = logging.getLogger(__name__)

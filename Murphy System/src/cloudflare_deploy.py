@@ -53,19 +53,18 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from thread_safe_operations import capped_append
-
 # Re-use the step/plan/HITL/executor infrastructure from the setup agent
 from environment_setup_agent import (
     HITLApprovalGate,
     RiskLevel,
     SetupExecutor,
     SetupPlan,
-    SetupStep,
     SetupResult,
+    SetupStep,
     StepStatus,
 )
 from signup_gateway import AuthError, SignupGateway, UserProfile
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 

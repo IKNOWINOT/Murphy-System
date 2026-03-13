@@ -4,10 +4,10 @@ Correction to Training Data Transformer
 This module transforms human corrections into training examples for the shadow agent.
 """
 
-from datetime import datetime, timezone
-from typing import List, Dict, Any, Optional
-from uuid import UUID
 import logging
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+from uuid import UUID
 
 try:
     from .correction_models import Correction, CorrectionType  # noqa: F401
@@ -21,12 +21,12 @@ except ImportError:
     Pattern = None  # type: ignore[assignment,misc]
 from .models import (
     Feature,
+    FeatureEngineering,
     FeatureType,
     Label,
     LabelType,
-    TrainingExample,
     TrainingDataset,
-    FeatureEngineering,
+    TrainingExample,
 )
 
 logger = logging.getLogger(__name__)

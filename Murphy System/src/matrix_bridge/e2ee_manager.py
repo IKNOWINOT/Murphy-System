@@ -368,20 +368,11 @@ class E2EEManager:
                 "production deployment. Set E2EE_STUB_ALLOWED=true only "
                 "for development/testing."
             )
-        # Stub mode — return a warning marker instead of crashing
+        # Dev-mode fallback — return a warning marker instead of crashing
         logger.warning(
-            "decrypt_message: STUB MODE — returning raw ciphertext for room %s. "
+            "decrypt_message: DEV FALLBACK — returning raw ciphertext for room %s. "
             "Messages are NOT decrypted. Install matrix-nio to enable real E2EE.",
             room_id,
-            RuntimeError: When E2EE is disabled.
-            RuntimeError: Always, until matrix-nio is integrated.
-        """
-        if not self._config.enable_e2ee:
-            raise RuntimeError(
-                "Cannot decrypt: E2EE is disabled in config"
-            )
-        raise RuntimeError(
-            "Real Megolm decryption requires matrix-nio SDK (pending PR)"
         )
         return ciphertext.get("ciphertext", "__undecrypted_stub__")
 

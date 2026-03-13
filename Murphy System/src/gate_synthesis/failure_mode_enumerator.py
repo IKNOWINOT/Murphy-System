@@ -3,32 +3,21 @@ Failure Mode Enumerator
 Identifies potential failure modes for candidate future steps
 """
 
-from typing import List, Dict, Any, Optional
 import hashlib
-from datetime import datetime, timezone
-
-from .models import (
-    FailureMode,
-    FailureModeType,
-    RiskVector,
-    ExposureSignal
-)
+import os
 
 # Import from confidence engine
 import sys
-import os
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
+from .models import ExposureSignal, FailureMode, FailureModeType, RiskVector
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from confidence_engine.models import (
-    ArtifactGraph,
-    ArtifactNode,
-    ArtifactType,
-    Phase,
-    ConfidenceState,
-    AuthorityBand
-)
-
 import logging
+
+from confidence_engine.models import ArtifactGraph, ArtifactNode, ArtifactType, AuthorityBand, ConfidenceState, Phase
 
 logger = logging.getLogger(__name__)
 

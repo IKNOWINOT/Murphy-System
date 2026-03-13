@@ -5,24 +5,24 @@ Collects telemetry events, deduplicates, validates, and stores as artifacts
 in the artifact graph with full provenance tracking.
 """
 
-from typing import Dict, List, Optional, Any, Set
-from datetime import datetime, timedelta, timezone
-from collections import deque
-import threading
 import logging
+import threading
+from collections import deque
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional, Set
+
 import jsonschema
 
 from .models import (
-    TelemetryDomain,
-    TelemetryArtifact,
-    OperationalTelemetry,
-    HumanTelemetry,
     ControlTelemetry,
-    SafetyTelemetry,
+    HumanTelemetry,
     MarketTelemetry,
+    OperationalTelemetry,
+    SafetyTelemetry,
+    TelemetryArtifact,
+    TelemetryDomain,
 )
-from .schemas import get_schema_for_domain, TELEMETRY_ARTIFACT_SCHEMA
-
+from .schemas import TELEMETRY_ARTIFACT_SCHEMA, get_schema_for_domain
 
 logger = logging.getLogger(__name__)
 

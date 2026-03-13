@@ -3,10 +3,10 @@ Research Engine - Multi-source research and distillation
 Gathers information from multiple sources and synthesizes it
 """
 
-from typing import List, Dict, Any, Optional
-from dataclasses import dataclass
-
 import logging
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
+
 logger = logging.getLogger("research_engine")
 try:
     from verification_layer import VerificationOrchestrator

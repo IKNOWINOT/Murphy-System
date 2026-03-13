@@ -16,11 +16,12 @@ Interpretation:
 This applies even if S(t) is still above threshold.
 """
 
+import logging
 from dataclasses import dataclass
 from typing import Dict, List, Optional
+
 import numpy as np
 
-import logging
 logger = logging.getLogger("recursive_stability_controller.lyapunov_monitor")
 
 

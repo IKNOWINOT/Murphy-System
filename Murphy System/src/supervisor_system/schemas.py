@@ -9,12 +9,11 @@ CRITICAL SAFETY CONSTRAINTS:
 3. ValidationEvidence MUST be external (enforced in __post_init__)
 """
 
+import logging
 from dataclasses import dataclass, field
-from typing import List, Optional
 from datetime import datetime
 from enum import Enum
-
-import logging
+from typing import List, Optional
 
 logger = logging.getLogger(__name__)
 

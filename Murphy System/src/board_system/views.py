@@ -15,7 +15,6 @@ from typing import Any, Callable, Dict, List, Optional
 
 from .models import Board, ColumnType, Item, ViewConfig, ViewType
 
-
 # ---------------------------------------------------------------------------
 # Filtering & Sorting helpers
 # ---------------------------------------------------------------------------

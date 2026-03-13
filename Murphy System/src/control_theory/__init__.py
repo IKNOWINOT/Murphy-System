@@ -4,14 +4,11 @@ Murphy System — Control Theory Layer.
 Formal models that close the gaps identified in the structural audit.
 """
 
-from .canonical_state import CanonicalStateVector, DimensionRegistry
-from .entropy import (
-    information_gain,
-    kl_divergence,
-    normalize_distribution,
-    shannon_entropy,
-    uniform_distribution,
-    max_entropy,
+from .actor_registry import (
+    Actor,
+    ActorKind,
+    ActorRegistry,
+    AuthorityMatrix,
 )
 from .bayesian_engine import (
     BayesianConfidenceEngine,
@@ -20,48 +17,65 @@ from .bayesian_engine import (
     Observation,
     UpdateResult,
 )
-from .state_adapter import (
-    from_dict,
-    from_mfgc_state,
-    from_rosetta_state,
-    from_session,
-    from_unified_system_state,
+from .canonical_state import CanonicalStateVector, DimensionRegistry
+from .control_structure import (
+    AuthorityGate,
+    ControlDimension,
+    StabilityMonitor,
 )
-from .observation_model import (
-    ObservationChannel,
-    ObservationData,
-    ObservationFunction,
-    ObservationNoise,
+from .control_structure import (
+    ControlLaw as PIControlLaw,
+)
+from .control_structure import (
+    ControlVector as PIControlVector,
+)
+from .control_structure import (
+    StabilityResult as StructuralStabilityResult,
 )
 from .control_vector import (
     ControlAction,
     ControlLaw,
     ControlVector,
 )
-from .state_transition import (
-    ProcessNoise,
-    StateTransitionFunction,
+from .entropy import (
+    information_gain,
+    kl_divergence,
+    max_entropy,
+    normalize_distribution,
+    shannon_entropy,
+    uniform_distribution,
 )
-from .stability import (
-    LyapunovFunction,
-    StabilityAnalyzer,
-    StabilityResult,
+from .infinity_metric import (
+    CandidateQuestion,
+    EntropyTracker,
+    QuestionSelector,
+    UncertaintyBudget,
+    compute_differential_entropy,
+    compute_murphy_index_formal,
 )
 from .jurisdiction import (
-    Jurisdiction,
-    JurisdictionConstraint,
-    JurisdictionConstraintRegistry,
     JURISDICTION_EU,
     JURISDICTION_GLOBAL,
     JURISDICTION_UK,
     JURISDICTION_US,
     JURISDICTION_US_CA,
+    Jurisdiction,
+    JurisdictionConstraint,
+    JurisdictionConstraintRegistry,
 )
-from .actor_registry import (
-    Actor,
-    ActorKind,
-    ActorRegistry,
-    AuthorityMatrix,
+from .llm_synthesis_validator import (
+    ConflictKind,
+    ConflictReport,
+    GeneratedConstraint,
+    GeneratedRole,
+    GeneratedStateDimension,
+    OutputValidator,
+    RegenerationTrigger,
+    ValidationResult,
+    validate_output,
+)
+from .llm_synthesis_validator import (
+    ConflictResolver as SynthesisConflictResolver,
 )
 from .llm_validation import (
     ConflictResolver,
@@ -74,28 +88,12 @@ from .llm_validation import (
     ResolutionStrategy,
     validate_llm_output,
 )
-
-# New control-theory modules closing the structural audit gaps
-from .state_model import (
-    StateDimension,
-    StateVector,
-    StateEvolution,
-)
-from .infinity_metric import (
-    CandidateQuestion,
-    EntropyTracker,
-    QuestionSelector,
-    UncertaintyBudget,
-    compute_differential_entropy,
-    compute_murphy_index_formal,
-)
-from .control_structure import (
-    AuthorityGate,
-    ControlDimension,
-    ControlLaw as PIControlLaw,
-    ControlVector as PIControlVector,
-    StabilityMonitor,
-    StabilityResult as StructuralStabilityResult,
+from .observation_model import (
+    KalmanObserver,
+    ObservationChannel,
+    ObservationData,
+    ObservationFunction,
+    ObservationNoise,
 )
 from .scaling_mechanism import (
     AuthorityExpander,
@@ -105,19 +103,29 @@ from .scaling_mechanism import (
     RefinementLoop,
     RoleNode,
 )
-from .llm_synthesis_validator import (
-    ConflictKind,
-    ConflictReport,
-    ConflictResolver as SynthesisConflictResolver,
-    GeneratedConstraint,
-    GeneratedRole,
-    GeneratedStateDimension,
-    OutputValidator,
-    RegenerationTrigger,
-    ValidationResult,
-    validate_output,
+from .stability import (
+    LyapunovFunction,
+    StabilityAnalyzer,
+    StabilityResult,
 )
-from .observation_model import KalmanObserver
+from .state_adapter import (
+    from_dict,
+    from_mfgc_state,
+    from_rosetta_state,
+    from_session,
+    from_unified_system_state,
+)
+
+# New control-theory modules closing the structural audit gaps
+from .state_model import (
+    StateDimension,
+    StateEvolution,
+    StateVector,
+)
+from .state_transition import (
+    ProcessNoise,
+    StateTransitionFunction,
+)
 
 __all__ = [
     # State model

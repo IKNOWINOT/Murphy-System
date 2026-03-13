@@ -11,14 +11,14 @@ import logging
 import uuid
 from typing import Any, Dict, List, Optional
 
-from aionmind.models.context_object import ContextObject, Priority, RiskLevel
 from aionmind.models.context_graph import (
+    ContextEdge,
     ContextGraph,
     ContextNode,
-    ContextEdge,
-    NodeType,
     EdgeType,
+    NodeType,
 )
+from aionmind.models.context_object import ContextObject, Priority, RiskLevel
 
 logger = logging.getLogger(__name__)
 

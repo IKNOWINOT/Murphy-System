@@ -17,12 +17,12 @@ Copyright © 2020-2026 Inoni LLC — Created by Corey Post
 License: BSL 1.1
 """
 
-import re
-import os
-import uuid
-import math
 import logging
+import math
+import os
+import re
 import threading
+import uuid
 from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 # ChromaDB — lazy import (INC-15: real vector store integration)
 # ---------------------------------------------------------------------------
 try:
-    import chromadb                                     # noqa: F401
+    import chromadb  # noqa: F401
     from chromadb.config import Settings as _ChromaSettings  # noqa: F401
     _CHROMADB_AVAILABLE = True
     logger.info("chromadb available — vector store backend enabled")

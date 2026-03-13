@@ -14,16 +14,16 @@ Features:
 - Memory optimization
 """
 
-import time
 import hashlib
+import json
 import threading
-from typing import List, Dict, Optional, Set, Iterator, Callable, Any
+import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from queue import Queue, Empty
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-import json
+from queue import Empty, Queue
+from typing import Any, Callable, Dict, Iterator, List, Optional, Set
 
 try:
     import networkx as nx
@@ -31,19 +31,21 @@ try:
 except ImportError:
     NETWORKX_AVAILABLE = False
 
+import logging
+
 from .schemas import (
-    RoleTemplate,
+    ArtifactType,
+    AuthorityLevel,
+    ComplianceConstraint,
+    EscalationPath,
+    HandoffEvent,
     OrgChartNode,
     ProcessFlow,
-    WorkArtifact,
-    HandoffEvent,
-    EscalationPath,
-    ComplianceConstraint,
     RoleMetrics,
-    AuthorityLevel,
-    ArtifactType,
+    RoleTemplate,
+    WorkArtifact,
 )
-import logging
+
 logger = logging.getLogger(__name__)
 
 

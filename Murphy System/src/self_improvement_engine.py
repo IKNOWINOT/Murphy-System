@@ -16,14 +16,14 @@ It does not automatically modify source code or system behavior.
 Proposals must be reviewed and implemented by a human operator.
 """
 
-import uuid
 import logging
 import threading
-from typing import Dict, List, Optional, Any
+import uuid
+from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from collections import defaultdict
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
