@@ -167,6 +167,21 @@ from .doc_manager import (
     WorkDoc,
 )
 
+# -- Monday Commands --------------------------------------------------------
+from .monday_commands import (
+    MONDAY_COMMAND_HANDLERS,
+    handle_board,
+    handle_dashboard,
+    handle_doc,
+    handle_form,
+    handle_recipe,
+    handle_status,
+    handle_sync,
+    handle_timeline,
+    handle_workspace,
+    reset_engines,
+)
+
 __all__ = [
     # Board Engine
     "Board",
@@ -245,4 +260,16 @@ __all__ = [
     "DocType",
     "DocVersion",
     "WorkDoc",
+    # Monday Commands
+    "MONDAY_COMMAND_HANDLERS",
+    "handle_board",
+    "handle_dashboard",
+    "handle_doc",
+    "handle_form",
+    "handle_recipe",
+    "handle_status",
+    "handle_sync",
+    "handle_timeline",
+    "handle_workspace",
+    "reset_engines",
 ]

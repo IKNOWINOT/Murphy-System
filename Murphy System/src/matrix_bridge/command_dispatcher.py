@@ -281,13 +281,16 @@ class CommandDispatcher:
         self.register_handler("version", _handle_version, "Show Murphy version information")
         self.register_handler("list-modules", _handle_list_modules, "List all registered Murphy modules")
         self.register_handler("list-rooms", _handle_list_rooms, "List all Matrix rooms in the bridge")
-        self.register_handler("board", _handle_board, "Show or interact with a project board")
-        self.register_handler("timeline", _handle_timeline, "Display event timeline")
-        self.register_handler("workspace", _handle_workspace, "Show workspace information")
-        self.register_handler("recipe", _handle_recipe, "List or trigger an automation recipe")
-        self.register_handler("dashboard", _handle_dashboard, "Show a Murphy dashboard link")
-        self.register_handler("form", _handle_form, "Display or submit a Murphy form")
-        self.register_handler("doc", _handle_doc, "Retrieve documentation for a module")
+        # Matrix Monday commands — delegate to monday_commands handlers
+        self.register_handler("board", _handle_board, "Board management (list, create, view, kanban)")
+        self.register_handler("status-label", _handle_status_label, "Status label management")
+        self.register_handler("timeline", _handle_timeline, "Timeline/Gantt engine (view, add, milestones)")
+        self.register_handler("workspace", _handle_workspace, "Workspace management")
+        self.register_handler("recipe", _handle_recipe, "Automation recipes (list, create, run)")
+        self.register_handler("dashboard", _handle_dashboard, "Dashboard generator (standup, weekly)")
+        self.register_handler("sync", _handle_sync, "Integration bridge sync")
+        self.register_handler("form", _handle_form, "Form builder (list, start, submit)")
+        self.register_handler("doc", _handle_doc, "Document manager (list, create, view, search)")
 
 
 # ---------------------------------------------------------------------------
@@ -382,99 +385,70 @@ def _handle_list_rooms(
 def _handle_board(
     dispatcher: CommandDispatcher, cmd: ParsedCommand
 ) -> CommandResponse:
-    """Handle ``!murphy board [board-name]``."""
-    board = cmd.subcommand or "default"
-    msg = (
-        f"## Project Board: **{board}**\n\n"
-        "🗂️ Board data will be fetched from the Murphy task system.\n"
-        "*(murphy-nio SDK integration pending)*"
-    )
-    return CommandResponse(success=True, message=msg, format="markdown")
+    """Handle ``!murphy board`` — delegate to matrix_monday.monday_commands."""
+    from matrix_monday.monday_commands import handle_board
+    return handle_board(dispatcher, cmd)
+
+
+def _handle_status_label(
+    dispatcher: CommandDispatcher, cmd: ParsedCommand
+) -> CommandResponse:
+    """Handle ``!murphy status-label`` — delegate to matrix_monday.monday_commands."""
+    from matrix_monday.monday_commands import handle_status
+    return handle_status(dispatcher, cmd)
 
 
 def _handle_timeline(
     dispatcher: CommandDispatcher, cmd: ParsedCommand
 ) -> CommandResponse:
-    """Handle ``!murphy timeline``."""
-    msg = (
-        "## Event Timeline\n\n"
-        "📅 Recent events will appear here once the event streamer is connected.\n"
-        "*(EventStreamer → Matrix delivery pending matrix-nio)*"
-    )
-    return CommandResponse(success=True, message=msg, format="markdown")
+    """Handle ``!murphy timeline`` — delegate to matrix_monday.monday_commands."""
+    from matrix_monday.monday_commands import handle_timeline
+    return handle_timeline(dispatcher, cmd)
 
 
 def _handle_workspace(
     dispatcher: CommandDispatcher, cmd: ParsedCommand
 ) -> CommandResponse:
-    """Handle ``!murphy workspace``."""
-    msg = (
-        "## Murphy Workspace\n\n"
-        f"- **API endpoint:** `{dispatcher._config.murphy_api_url}`\n"
-        f"- **Command prefix:** `{dispatcher._config.command_prefix}`\n"
-    )
-    return CommandResponse(success=True, message=msg, format="markdown")
+    """Handle ``!murphy workspace`` — delegate to matrix_monday.monday_commands."""
+    from matrix_monday.monday_commands import handle_workspace
+    return handle_workspace(dispatcher, cmd)
 
 
 def _handle_recipe(
     dispatcher: CommandDispatcher, cmd: ParsedCommand
 ) -> CommandResponse:
-    """Handle ``!murphy recipe [recipe-name]``."""
-    recipe = cmd.subcommand or "list"
-    if recipe == "list":
-        msg = (
-            "## Murphy Automation Recipes\n\n"
-            "*(Recipe catalogue loaded from automation_scheduler at runtime)*"
-        )
-    else:
-        msg = (
-            f"## Recipe: `{recipe}`\n\n"
-            "Triggering recipe… *(automation_scheduler integration pending)*"
-        )
-    return CommandResponse(success=True, message=msg, format="markdown")
+    """Handle ``!murphy recipe`` — delegate to matrix_monday.monday_commands."""
+    from matrix_monday.monday_commands import handle_recipe
+    return handle_recipe(dispatcher, cmd)
 
 
 def _handle_dashboard(
     dispatcher: CommandDispatcher, cmd: ParsedCommand
 ) -> CommandResponse:
-    """Handle ``!murphy dashboard``."""
-    api = dispatcher._config.murphy_api_url
-    msg = (
-        "## Murphy Dashboards\n\n"
-        f"- 📊 [Operational Dashboard]({api}/dashboards/operational)\n"
-        f"- 🤖 [Agent Monitor]({api}/dashboards/agents)\n"
-        f"- 📈 [Analytics]({api}/dashboards/analytics)\n"
-    )
-    return CommandResponse(success=True, message=msg, format="markdown")
+    """Handle ``!murphy dashboard`` — delegate to matrix_monday.monday_commands."""
+    from matrix_monday.monday_commands import handle_dashboard
+    return handle_dashboard(dispatcher, cmd)
+
+
+def _handle_sync(
+    dispatcher: CommandDispatcher, cmd: ParsedCommand
+) -> CommandResponse:
+    """Handle ``!murphy sync`` — delegate to matrix_monday.monday_commands."""
+    from matrix_monday.monday_commands import handle_sync
+    return handle_sync(dispatcher, cmd)
 
 
 def _handle_form(
     dispatcher: CommandDispatcher, cmd: ParsedCommand
 ) -> CommandResponse:
-    """Handle ``!murphy form [form-name]``."""
-    form = cmd.subcommand or "list"
-    msg = (
-        f"## Murphy Form: `{form}`\n\n"
-        "*(Form renderer integration with Murphy API pending)*"
-    )
-    return CommandResponse(success=True, message=msg, format="markdown")
+    """Handle ``!murphy form`` — delegate to matrix_monday.monday_commands."""
+    from matrix_monday.monday_commands import handle_form
+    return handle_form(dispatcher, cmd)
 
 
 def _handle_doc(
     dispatcher: CommandDispatcher, cmd: ParsedCommand
 ) -> CommandResponse:
-    """Handle ``!murphy doc <module>``."""
-    target = cmd.subcommand or (cmd.args[0] if cmd.args else None)
-    if not target:
-        return CommandResponse(
-            success=False,
-            message="Usage: `!murphy doc <module-name>`",
-            format="markdown",
-        )
-    api = dispatcher._config.murphy_api_url
-    msg = (
-        f"## Documentation: `{target}`\n\n"
-        f"📖 [View online]({api}/docs/{target})\n\n"
-        "*(Auto-generated docs from murphy auto_documentation_engine)*"
-    )
-    return CommandResponse(success=True, message=msg, format="markdown")
+    """Handle ``!murphy doc`` — delegate to matrix_monday.monday_commands."""
+    from matrix_monday.monday_commands import handle_doc
+    return handle_doc(dispatcher, cmd)
