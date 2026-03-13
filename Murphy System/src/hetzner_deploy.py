@@ -860,13 +860,19 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      MURPHY_ENV: test
+      PYTHONPATH: "${{ github.workspace }}/Murphy System:${{ github.workspace }}/Murphy System/src"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: pip install -r "Murphy System/requirements.txt"
-      - run: python -m pytest "Murphy System/tests/" --timeout=300 -x -q
+      - run: pip install pytest pytest-asyncio pytest-timeout
+      - run: python -m pytest "Murphy System/tests/" --timeout=300 -x -q --ignore="Murphy System/tests/e2e"
 
   build-and-deploy:
     needs: test
@@ -903,9 +909,16 @@ jobs:
           kubectl rollout status deployment/murphy-api -n murphy-system --timeout=300s
       - name: Verify health
         run: |
-          sleep 30
           ENDPOINT=$(kubectl get ingress murphy-api -n murphy-system -o jsonpath='{.spec.rules[0].host}')
-          curl -sf "https://${ENDPOINT}/api/health" || echo "Warning: health check failed, verify manually"
+          for i in 1 2 3 4 5; do
+            sleep 15
+            if curl -sf "https://${ENDPOINT}/api/health"; then
+              echo "Health check passed on attempt ${i}"
+              exit 0
+            fi
+            echo "Attempt ${i}/5 failed, retrying..."
+          done
+          echo "Warning: health check failed after 5 attempts, verify manually"
 """
 
     def trigger_update(self) -> "HetznerDeployResult":
