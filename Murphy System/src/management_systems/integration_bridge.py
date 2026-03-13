@@ -597,7 +597,7 @@ class IntegrationBridge:
             logger.debug("Rule %s applied to event %s: %s", rule.id, event.id, status.value)
         except Exception as exc:
             status = SyncStatus.FAILED
-            detail = str(exc)
+            detail = "Action execution failed"
             logger.error(
                 "Rule %s failed on event %s: %s", rule.id, event.id, exc
             )
