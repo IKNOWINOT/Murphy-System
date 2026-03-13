@@ -74,7 +74,7 @@ This is the generational leap that separates Murphy from drag-and-drop node buil
 
 No forms. No connectors to drag. No trigger logic to wire. Just a plain English sentence.
 
-**2. Execute** — Murphy generates the execution plan. Internally, `ai_workflow_generator.py` converts the description into a governed DAG workflow:
+**2. Execute** — Murphy generates the execution plan — `ai_workflow_generator.py` converts the description into a governed DAG workflow:
 - Nodes represent steps (fetch data, process, send notification)
 - Edges define the execution order
 - Safety gates are automatically inserted at key decision points
