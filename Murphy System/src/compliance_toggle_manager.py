@@ -318,14 +318,14 @@ class ComplianceToggleManager:
         try:
             from compliance_engine import ComplianceEngine, ComplianceFramework
             engine = ComplianceEngine()
-            engine.register_default_requirements()
+            engine._register_defaults()
 
             for fw_id in enabled:
                 native_id = COMPLIANCE_ENGINE_MAP.get(fw_id)
                 if native_id:
                     try:
                         ce_fw = ComplianceFramework(native_id)
-                        report = engine.generate_report(frameworks=[ce_fw])
+                        report = engine.get_compliance_report(frameworks=[ce_fw])
                         breakdown = report.get("framework_breakdown", {}).get(native_id, {})
                         total = sum(breakdown.values()) or 1
                         passed = breakdown.get("passed", 0)
