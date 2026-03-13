@@ -7,6 +7,7 @@ import logging
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
+from html import escape as html_escape
 from typing import Any, Dict, List, Optional
 
 logging.basicConfig(level=logging.INFO)
@@ -214,10 +215,28 @@ class DocumentGenerationEngine:
     def _convert_to_pdf(self, content: str, styling: Dict) -> str:
         """Convert content to PDF format.
 
-        Uses reportlab when available; otherwise returns a structured
-        text representation that downstream consumers can process.
-        Returns base64-encoded PDF data when reportlab is available.
+        Tries WeasyPrint → reportlab → text fallback.
+        Returns base64-encoded PDF data when a PDF library is available.
         """
+        # 1. Try WeasyPrint for rich rendering
+        try:
+            from document_export.brand_registry import BrandProfile
+            from document_export.pdf_renderer import RichPDFRenderer
+
+            renderer = RichPDFRenderer()
+            if renderer.is_available():
+                brand = BrandProfile()
+                wrapped_html = (
+                    "<html><body>"
+                    f"<pre style='font-family: monospace; white-space: pre-wrap;'>"
+                    f"{html_escape(content)}"
+                    "</pre></body></html>"
+                )
+                return renderer.render_to_base64(wrapped_html, brand, {})
+        except Exception:
+            pass
+
+        # 2. reportlab fallback
         try:
             import base64
             from io import BytesIO

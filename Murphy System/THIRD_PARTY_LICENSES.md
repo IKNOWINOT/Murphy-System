@@ -1,6 +1,6 @@
 # Third-Party Licenses — Murphy System
 
-**Last Updated:** 2026-03-08
+**Last Updated:** 2026-03-13
 
 Murphy System is licensed under BSL 1.1 (Business Source License).
 This document lists all third-party dependencies, their licenses, and
@@ -108,6 +108,12 @@ PSF, MPL 2.0) that are compatible with BSL 1.1 distribution.
 | python-magic | MIT | https://github.com/ahupp/python-magic/blob/master/LICENSE |
 | pillow | HPND | https://github.com/python-pillow/Pillow/blob/main/LICENSE |
 | pypdf2 | BSD-3-Clause | https://github.com/py-pdf/pypdf/blob/main/LICENSE |
+| weasyprint | BSD-3-Clause | https://github.com/Kozea/WeasyPrint/blob/main/LICENSE |
+
+> **Note on WeasyPrint:** BSD-3-Clause; used as an **optional** dependency for
+> rich HTML→PDF rendering. The code falls back to reportlab when WeasyPrint's
+> system libraries (cairo, pango, gdk-pixbuf2) are unavailable. Attribution
+> required per BSD-3-Clause: © WeasyPrint contributors.
 
 ## Cryptography & Security
 
