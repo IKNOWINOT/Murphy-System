@@ -3,25 +3,22 @@ Scope Freezer
 Creates immutable snapshots of execution scope
 """
 
-from typing import List, Dict, Any, Tuple, Optional
-from datetime import datetime, timezone
 import hashlib
 import json
-
-from .models import ExecutionScope
+import os
 
 # Import from confidence engine
 import sys
-import os
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional, Tuple
+
+from .models import ExecutionScope
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from confidence_engine.models import (
-    ArtifactGraph,
-    ArtifactNode,
-    ArtifactType
-)
-
 import logging
+
+from confidence_engine.models import ArtifactGraph, ArtifactNode, ArtifactType
 
 logger = logging.getLogger(__name__)
 

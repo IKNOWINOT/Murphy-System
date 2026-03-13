@@ -3,10 +3,10 @@ Smart Code Generator - Generates actual working code, not templates
 Clearly marks Generated vs Verified content
 """
 
-from typing import Dict, Any, Optional
-import re
-
 import logging
+import re
+from typing import Any, Dict, Optional
+
 logger = logging.getLogger("smart_codegen")
 
 

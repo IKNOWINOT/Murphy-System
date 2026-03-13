@@ -857,7 +857,7 @@ class SelfFixLoop:
         if self._backbone is None:
             return
         try:
-            from event_backbone import EventType, Event
+            from event_backbone import Event, EventType
             et_map = {
                 "SELF_FIX_STARTED": EventType.SELF_FIX_STARTED,
                 "SELF_FIX_PLAN_CREATED": EventType.SELF_FIX_PLAN_CREATED,

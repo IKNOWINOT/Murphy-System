@@ -7,10 +7,9 @@ This module analyzes SwissKiss audit results and extracts:
 - Suggested categories
 """
 
-from typing import Dict, List, Optional, Any
-import re
-
 import logging
+import re
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

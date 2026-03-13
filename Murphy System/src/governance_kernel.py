@@ -11,13 +11,13 @@ that routes ALL tool calls through centralized policy checks, providing:
 - Immutable audit log emission for every enforcement decision
 """
 
-import uuid
 import logging
 import threading
-from typing import Dict, List, Optional, Any, Set
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
+from typing import Any, Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
 

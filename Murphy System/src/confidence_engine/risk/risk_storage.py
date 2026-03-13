@@ -3,19 +3,25 @@ Risk Pattern Storage System
 Advanced storage and retrieval for risk patterns with pattern matching.
 """
 
-from typing import Dict, List, Optional, Any, Tuple
-from datetime import datetime, timedelta, timezone
-from enum import Enum
-from pydantic import BaseModel, Field
+import logging
 import re
 from collections import defaultdict
+from datetime import datetime, timedelta, timezone
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
-import logging
+from pydantic import BaseModel, Field
+
 logger = logging.getLogger("confidence_engine.risk.risk_storage")
 
 from src.confidence_engine.risk.risk_database import (
-    RiskPattern, RiskCategory, RiskSeverity, RiskLikelihood,
-    RiskIncident, MitigationStrategy, RiskDatabase
+    MitigationStrategy,
+    RiskCategory,
+    RiskDatabase,
+    RiskIncident,
+    RiskLikelihood,
+    RiskPattern,
+    RiskSeverity,
 )
 
 

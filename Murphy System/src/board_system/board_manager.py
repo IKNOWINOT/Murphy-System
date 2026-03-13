@@ -23,6 +23,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from thread_safe_operations import capped_append
+
 from .column_types import validate_cell_value
 from .models import (
     ActivityAction,

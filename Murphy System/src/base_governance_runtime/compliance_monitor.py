@@ -5,18 +5,16 @@ Continuous compliance monitoring and reporting for the Murphy System.
 Tracks ongoing compliance status and generates compliance reports.
 """
 
+import json
+import logging
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Dict, List, Optional, Set, Union, Any
+from typing import Any, Dict, List, Optional, Set, Union
 from uuid import UUID, uuid4
-import json
-
-from dataclasses import dataclass, field
 
 from .preset_manager import GovernancePreset
-from .validation_engine import ValidationResult, ComplianceStatus, ComplianceGap
-
-import logging
+from .validation_engine import ComplianceGap, ComplianceStatus, ValidationResult
 
 logger = logging.getLogger(__name__)
 
@@ -160,7 +158,7 @@ class ComplianceMonitor:
         current = self.get_current_status()
         if not current:
             # No current status - create default
-            from .validation_engine import ValidationEngine, ComplianceStatus
+            from .validation_engine import ComplianceStatus, ValidationEngine
             engine = ValidationEngine()
             current = engine.check_mandatory_baseline_controls()
 

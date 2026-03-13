@@ -14,9 +14,10 @@ Design Principle: Safe reversal of all executed steps
 """
 
 import logging
+
 logger = logging.getLogger(__name__)
-from typing import Dict, List, Optional, Tuple
 from datetime import datetime, timezone
+from typing import Dict, List, Optional, Tuple
 
 from .models import StepResult, StepType
 

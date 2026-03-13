@@ -5,9 +5,9 @@ Threshold-based decision mechanism that determines whether to proceed
 with execution based on confidence scores.
 """
 
-from typing import Optional
-from datetime import datetime, timezone
 import logging
+from datetime import datetime, timezone
+from typing import Optional
 
 from .murphy_models import GateAction, GateResult, Phase, UncertaintyScores
 

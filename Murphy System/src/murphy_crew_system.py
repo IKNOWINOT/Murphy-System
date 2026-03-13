@@ -8,10 +8,10 @@ Maps Murphy's 6 automation types (factory, content, data, system, agent, busines
 Integrates with: triage_rollcall_adapter.py, bot_resource_quotas.py, wingman_protocol.py
 """
 
-import uuid
-import time
 import logging
 import threading
+import time
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum

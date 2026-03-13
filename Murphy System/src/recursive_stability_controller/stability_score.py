@@ -13,11 +13,11 @@ Properties:
 All decisions are made using S(t), never raw Rₜ.
 """
 
+import logging
 from dataclasses import dataclass
 from typing import Dict, List
-import numpy as np
 
-import logging
+import numpy as np
 
 logger = logging.getLogger(__name__)
 

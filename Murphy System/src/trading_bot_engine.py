@@ -24,19 +24,19 @@ Components:
 8. AI optimization layer (strategy parameter tuning)
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Any, Optional, Tuple
-from enum import Enum
-import time
 import json
+import logging
 import math
 import statistics
 import threading
+import time
 import uuid
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from thread_safe_operations import capped_append, capped_append_paired
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
-import logging
+from thread_safe_operations import capped_append, capped_append_paired
 
 logger = logging.getLogger(__name__)
 

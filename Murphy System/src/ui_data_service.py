@@ -3,12 +3,11 @@ UI Data Service - Provides data for both System and Human interfaces
 Implements the UI Data Schema from the architecture spec
 """
 
-from typing import Dict, List, Any, Optional
-from dataclasses import dataclass, asdict
-import time
 import json
-
 import logging
+import time
+from dataclasses import asdict, dataclass
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

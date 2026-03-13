@@ -1,24 +1,24 @@
 """AionMind data models."""
 
-from aionmind.models.context_object import ContextObject, Priority, RiskLevel
 from aionmind.models.context_graph import (
+    ContextEdge,
     ContextGraph,
     ContextNode,
-    ContextEdge,
-    NodeType,
     EdgeType,
+    NodeType,
 )
+from aionmind.models.context_object import ContextObject, Priority, RiskLevel
 from aionmind.models.execution_graph import (
+    ExecutionEdge,
     ExecutionGraphObject,
     ExecutionNode,
-    ExecutionEdge,
-    ExecutionNodeType,
     ExecutionNodeStatus,
+    ExecutionNodeType,
 )
 from aionmind.models.proposals import (
     OptimizationProposal,
-    ProposalStatus,
     ProposalCategory,
+    ProposalStatus,
 )
 
 __all__ = [

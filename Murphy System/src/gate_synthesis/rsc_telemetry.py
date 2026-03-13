@@ -4,9 +4,9 @@ RSC Telemetry for Gate Synthesis Engine
 Provides telemetry endpoint for Recursive Stability Controller integration.
 """
 
-from flask import jsonify
-
 import logging
+
+from flask import jsonify
 
 logger = logging.getLogger(__name__)
 

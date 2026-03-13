@@ -21,44 +21,24 @@ Security Guarantees:
 - Surveillance prevented
 """
 
-from dataclasses import dataclass, field
-from typing import Optional, Dict, Any, Callable, List
-from datetime import datetime, timezone
+import functools
 import hashlib
 import hmac
+import logging
 import secrets
 import time
-import functools
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from typing import Any, Callable, Dict, List, Optional
 from urllib.parse import urlparse
 
-# Import Security Plane components
-from src.security_plane.authentication import (
-    HumanAuthenticator,
-    MachineAuthenticator,
-    IdentityVerifier
-)
-from src.security_plane.cryptography import (
-    HybridCryptography,
-    PacketSigner,
-    KeyManager
-)
-from src.security_plane.schemas import (
-    TrustScore,
-    SecurityArtifact,
-    AuditLogEntry,
-    CryptographicAlgorithm
-)
-from src.security_plane.data_leak_prevention import (
-    SensitiveDataClassifier,
-    ExfiltrationDetector
-)
-from src.security_plane.anti_surveillance import (
-    AntiSurveillanceSystem,
-    MetadataScrubber,
-    ExecutionTimeNormalizer
-)
+from src.security_plane.anti_surveillance import AntiSurveillanceSystem, ExecutionTimeNormalizer, MetadataScrubber
 
-import logging
+# Import Security Plane components
+from src.security_plane.authentication import HumanAuthenticator, IdentityVerifier, MachineAuthenticator
+from src.security_plane.cryptography import HybridCryptography, KeyManager, PacketSigner
+from src.security_plane.data_leak_prevention import ExfiltrationDetector, SensitiveDataClassifier
+from src.security_plane.schemas import AuditLogEntry, CryptographicAlgorithm, SecurityArtifact, TrustScore
 
 logger = logging.getLogger(__name__)
 
@@ -185,7 +165,7 @@ class AuthenticationMiddleware:
         # Verify identity (simplified)
         if context.authenticated and context.identity:
             # In production, would verify with IdentityVerifier
-            from src.security_plane.schemas import TrustScore, TrustLevel
+            from src.security_plane.schemas import TrustLevel, TrustScore
             context.trust_score = TrustScore(
                 identity_id=context.identity,
                 trust_level=TrustLevel.MEDIUM,

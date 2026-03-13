@@ -4,12 +4,12 @@ Data Models for Human-in-the-Loop
 Defines intervention requests, responses, and types.
 """
 
-from typing import Dict, Any, Optional
+import logging
 from datetime import datetime
 from enum import Enum
-from pydantic import BaseModel, ConfigDict, Field
+from typing import Any, Dict, Optional
 
-import logging
+from pydantic import BaseModel, ConfigDict, Field
 
 logger = logging.getLogger(__name__)
 

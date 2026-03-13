@@ -9,18 +9,16 @@ Implements scheduler semantics that prioritize stability over throughput:
 - Dependency resolution
 """
 
+import heapq
+import logging
+import threading
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Dict, List, Optional, Set, Union
-import heapq
-import threading
 
-from dataclasses import dataclass, field
-
-from .agent_descriptor_complete import AgentDescriptor, AuthorityBand, ActionType, PriorityLevel
+from .agent_descriptor_complete import ActionType, AgentDescriptor, AuthorityBand, PriorityLevel
 from .stability_controller import ExecutionOutcome
-
-import logging
 
 logger = logging.getLogger(__name__)
 

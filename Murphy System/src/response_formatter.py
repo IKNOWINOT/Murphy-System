@@ -4,9 +4,10 @@ Formats system output to be user-friendly and clean
 """
 
 import logging
+
 logger = logging.getLogger(__name__)
 import re
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 
 class ResponseFormatter:

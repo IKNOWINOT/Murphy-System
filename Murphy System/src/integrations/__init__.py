@@ -9,11 +9,11 @@ World Model Connectors (20+ real API integrations):
 """
 
 from .integration_framework import (
-    IntegrationFramework,
     Integration,
+    IntegrationFramework,
     IntegrationResult,
-    IntegrationType,
     IntegrationStatus,
+    IntegrationType,
     create_integration,
     execute_call,
 )

@@ -5,8 +5,8 @@ Provides streaming, pagination, and memory optimization capabilities.
 
 import gc
 import logging
-from typing import Any, Dict, Generator, Iterator, List, Optional, Callable, TypeVar
 import sys
+from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, TypeVar
 
 T = TypeVar("T")
 
@@ -216,6 +216,7 @@ class DataCache:
 
 
 import threading
+
 from thread_safe_operations import capped_append
 
 

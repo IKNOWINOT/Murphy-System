@@ -16,9 +16,9 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 
-from .config import MatrixBridgeConfig
 from .auth_bridge import AuthBridge
 from .command_dispatcher import CommandDispatcher
+from .config import MatrixBridgeConfig
 from .event_streamer import EventStreamer
 
 logger = logging.getLogger(__name__)

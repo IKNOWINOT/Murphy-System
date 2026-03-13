@@ -13,11 +13,12 @@ References:
 
 import logging
 import threading
-from uuid import uuid4
-from typing import Dict, List, Optional, Any
+from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from collections import defaultdict
+from typing import Any, Dict, List, Optional
+from uuid import uuid4
+
 from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)

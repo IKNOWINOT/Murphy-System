@@ -7,17 +7,17 @@ capability markers, conditional branching, checkpoint/resume support,
 step-level timeout/retry, and execution history tracking.
 """
 
-import time
-import threading
 import hashlib
 import json
-from enum import Enum
+import logging
+import threading
+import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
-from thread_safe_operations import capped_append
 
-import logging
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 

@@ -9,25 +9,26 @@ Creator: Corey Post
 License: BSL 1.1
 """
 
-import sys
-import os
-import json
-import importlib.util
-from copy import deepcopy
-from pathlib import Path
-from collections import deque
-from collections.abc import Mapping
-from typing import Dict, List, Optional, Any, Tuple, Literal, Set, TYPE_CHECKING
-from dataclasses import asdict, is_dataclass
-from datetime import datetime, timedelta, timezone
-import logging
 import asyncio
-import platform
-import time
-import re
+import importlib.util
+import json
+import logging
 import math
 import numbers
+import os
+import platform
+import re
+import sys
+import time
+from collections import deque
+from collections.abc import Mapping
+from copy import deepcopy
+from dataclasses import asdict, is_dataclass
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Set, Tuple
 from uuid import uuid4
+
 try:
     from dotenv import load_dotenv as _load_dotenv
 except ImportError:
@@ -50,8 +51,8 @@ logger = logging.getLogger(__name__)
 sys.path.insert(0, str(Path(__file__).parent))
 
 # Core imports
-from src.module_manager import module_manager
 from src.modular_runtime import ModularRuntime
+from src.module_manager import module_manager
 
 if TYPE_CHECKING:
     from src.compute_plane.service import ComputeService as ComputeServiceType
@@ -118,16 +119,13 @@ except ImportError:
 
 # Original Murphy Components
 try:
+    from src.governance_framework.agent_descriptor_complete import ActionSet, AgentDescriptor
+    from src.governance_framework.agent_descriptor_complete import ActionType as GovernanceActionType
+    from src.governance_framework.agent_descriptor_complete import AuthorityBand as GovernanceAuthorityBand
+    from src.governance_framework.scheduler import GovernanceScheduler, PriorityLevel, ScheduledAgent
     from src.system_librarian import SystemLibrarian
+    from src.telemetry_learning.ingestion import TelemetryBus, TelemetryIngester
     from src.true_swarm_system import TrueSwarmSystem
-    from src.governance_framework.scheduler import GovernanceScheduler, ScheduledAgent, PriorityLevel
-    from src.governance_framework.agent_descriptor_complete import (
-        AgentDescriptor,
-        AuthorityBand as GovernanceAuthorityBand,
-        ActionType as GovernanceActionType,
-        ActionSet
-    )
-    from src.telemetry_learning.ingestion import TelemetryIngester, TelemetryBus
 except ImportError as e:
     logger.warning("Some original Murphy components not available: %s", e)
     SystemLibrarian = TrueSwarmSystem = GovernanceScheduler = TelemetryIngester = TelemetryBus = None
@@ -150,13 +148,13 @@ except ImportError as e:
 
 # MSS Controls & Intelligence Layer
 try:
-    from src.resolution_scoring import ResolutionDetectionEngine
-    from src.information_density import InformationDensityEngine
-    from src.structural_coherence import StructuralCoherenceEngine
-    from src.information_quality import InformationQualityEngine
     from src.concept_translation import ConceptTranslationEngine
-    from src.simulation_engine import StrategicSimulationEngine
+    from src.information_density import InformationDensityEngine
+    from src.information_quality import InformationQualityEngine
     from src.mss_controls import MSSController
+    from src.resolution_scoring import ResolutionDetectionEngine
+    from src.simulation_engine import StrategicSimulationEngine
+    from src.structural_coherence import StructuralCoherenceEngine
     _mss_available = True
 except ImportError as e:
     logger.warning("MSS controls not available: %s", e)
@@ -177,7 +175,8 @@ except ImportError as e:
     PersistenceManager = None
 
 try:
-    from src.event_backbone import EventBackbone, EventType as BackboneEventType
+    from src.event_backbone import EventBackbone
+    from src.event_backbone import EventType as BackboneEventType
 except ImportError as e:
     logger.warning("Event backbone not available: %s", e)
     EventBackbone = None
@@ -185,9 +184,15 @@ except ImportError as e:
 
 try:
     from src.delivery_adapters import (
-        DeliveryOrchestrator, DeliveryChannel, DeliveryRequest, DeliveryStatus,
-        DocumentDeliveryAdapter, EmailDeliveryAdapter, ChatDeliveryAdapter,
-        VoiceDeliveryAdapter, TranslationDeliveryAdapter
+        ChatDeliveryAdapter,
+        DeliveryChannel,
+        DeliveryOrchestrator,
+        DeliveryRequest,
+        DeliveryStatus,
+        DocumentDeliveryAdapter,
+        EmailDeliveryAdapter,
+        TranslationDeliveryAdapter,
+        VoiceDeliveryAdapter,
     )
 except ImportError as e:
     logger.warning("Delivery adapters not available: %s", e)
@@ -196,19 +201,20 @@ except ImportError as e:
     VoiceDeliveryAdapter = TranslationDeliveryAdapter = None
 
 try:
-    from src.gate_execution_wiring import GateExecutionWiring, GateType, GatePolicy
+    from src.gate_execution_wiring import GateExecutionWiring, GatePolicy, GateType
 except ImportError as e:
     logger.warning("Gate execution wiring not available: %s", e)
     GateExecutionWiring = GateType = GatePolicy = None
 
 try:
-    from src.self_improvement_engine import SelfImprovementEngine, ExecutionOutcome, OutcomeType
+    from src.self_improvement_engine import ExecutionOutcome, OutcomeType, SelfImprovementEngine
 except ImportError as e:
     logger.warning("Self-improvement engine not available: %s", e)
     SelfImprovementEngine = ExecutionOutcome = OutcomeType = None
 
 try:
-    from src.operational_slo_tracker import OperationalSLOTracker, SLOTarget, ExecutionRecord as SLOExecutionRecord
+    from src.operational_slo_tracker import ExecutionRecord as SLOExecutionRecord
+    from src.operational_slo_tracker import OperationalSLOTracker, SLOTarget
 except ImportError as e:
     logger.warning("Operational SLO tracker not available: %s", e)
     OperationalSLOTracker = SLOTarget = SLOExecutionRecord = None
@@ -232,7 +238,9 @@ except ImportError as e:
     ComplianceEngine = ComplianceFramework = None
 
 try:
-    from src.rbac_governance import RBACGovernance, TenantPolicy, UserIdentity, Role as RBACRole, Permission as RBACPermission
+    from src.rbac_governance import Permission as RBACPermission
+    from src.rbac_governance import RBACGovernance, TenantPolicy, UserIdentity
+    from src.rbac_governance import Role as RBACRole
 except ImportError as e:
     logger.warning("RBAC governance not available: %s", e)
     RBACGovernance = TenantPolicy = UserIdentity = RBACRole = RBACPermission = None
@@ -525,17 +533,17 @@ except ImportError as e:
 
 # Universal Integration Adapter (plug-and-play for any service)
 try:
-    from src.universal_integration_adapter import UniversalIntegrationAdapter, IntegrationSpec
+    from src.universal_integration_adapter import IntegrationSpec, UniversalIntegrationAdapter
 except ImportError as e:
     logger.warning("Universal integration adapter not available: %s", e)
     UniversalIntegrationAdapter = None
 
 # FastAPI for REST API
 try:
-    from fastapi import Depends, FastAPI, HTTPException, Request
-    from fastapi.responses import JSONResponse
-    from fastapi.middleware.cors import CORSMiddleware
     import uvicorn
+    from fastapi import Depends, FastAPI, HTTPException, Request
+    from fastapi.middleware.cors import CORSMiddleware
+    from fastapi.responses import JSONResponse
 except ImportError:
     logger.warning("FastAPI not installed. Install with: pip install fastapi uvicorn")
     FastAPI = None

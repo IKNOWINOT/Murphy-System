@@ -5,17 +5,15 @@ Validates system configuration against governance requirements and identifies
 gaps in control implementation and artifact availability.
 """
 
+import json
+import logging
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Dict, List, Optional, Set, Union, Any
+from typing import Any, Dict, List, Optional, Set, Union
 from uuid import UUID, uuid4
-import json
 
-from dataclasses import dataclass, field
-
-from .preset_manager import GovernancePreset, GovernanceRequirement, EnforcementMode
-
-import logging
+from .preset_manager import EnforcementMode, GovernancePreset, GovernanceRequirement
 
 logger = logging.getLogger(__name__)
 

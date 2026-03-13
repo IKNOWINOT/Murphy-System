@@ -3,17 +3,12 @@ Murphy Index Calculator
 Computes expected downstream risk: M_t = Σ_k L_k × p_k
 """
 
-from typing import List, Dict, Any
-import math
-
-from .models import (
-    ArtifactGraph,
-    ConfidenceState,
-    Phase
-)
-from .graph_analyzer import GraphAnalyzer
-
 import logging
+import math
+from typing import Any, Dict, List
+
+from .graph_analyzer import GraphAnalyzer
+from .models import ArtifactGraph, ConfidenceState, Phase
 
 logger = logging.getLogger(__name__)
 

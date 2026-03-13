@@ -8,10 +8,11 @@ Setup: No setup required — free public data.
 """
 from __future__ import annotations
 
+import logging
 from typing import Any, Dict, List, Optional
 
 from .base_connector import BaseIntegrationConnector
-import logging
+
 logger = logging.getLogger(__name__)
 
 

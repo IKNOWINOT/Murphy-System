@@ -10,20 +10,15 @@ Modes:
 - Historical disaster replay
 """
 
-import random
-from typing import Dict, List, Any
-from datetime import datetime
-
 import logging
+import random
+from datetime import datetime
+from typing import Any, Dict, List
+
 logger = logging.getLogger("synthetic_failure_generator.test_modes")
 
-from .models import (
-    BaseScenario,
-    FailureType,
-    SimulationResult,
-    HistoricalDisaster
-)
 from .injection_pipeline import FailureInjectionPipeline
+from .models import BaseScenario, FailureType, HistoricalDisaster, SimulationResult
 
 
 class TestModeExecutor:

@@ -5,22 +5,23 @@ Model Training and Validation
 Training loop, validation, and model promotion logic.
 """
 
+import json
+import logging
+import os
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch_geometric.loader import DataLoader
-from typing import Dict, List, Optional, Any
-from dataclasses import dataclass
-import numpy as np
-from datetime import datetime, timezone
-import json
-import os
 
-import logging
 logger = logging.getLogger("neuro_symbolic_models.training")
 
-from .models import NeuroSymbolicConfidenceModel, ModelConfig
 from .data import GraphDataset, TrainingExample
+from .models import ModelConfig, NeuroSymbolicConfidenceModel
 
 
 @dataclass
@@ -665,8 +666,8 @@ class ModelValidator:
 
 # Example usage
 if __name__ == "__main__":
+    from .data import DataSplitter, TrainingDataCollector, create_dataloaders
     from .models import create_model
-    from .data import TrainingDataCollector, DataSplitter, create_dataloaders
 
     # Collect data
     logger.info("Collecting training data...")

@@ -6,18 +6,19 @@ REST API service for model inference.
 Provides auxiliary confidence signals to existing Confidence Engine.
 """
 
-from flask import Flask, request, jsonify
-import torch
-import numpy as np
-from typing import Dict, Any, Optional
-from datetime import datetime, timezone
 import logging
+from datetime import datetime, timezone
+from typing import Any, Dict, Optional
 
-from .models import NeuroSymbolicConfidenceModel, load_model, ModelConfig
+import numpy as np
+import torch
+from flask import Flask, jsonify, request
 
+from .models import ModelConfig, NeuroSymbolicConfidenceModel, load_model
 
 app = Flask(__name__)
 from flask_security import configure_secure_app
+
 configure_secure_app(app, service_name="neuro-symbolic-inference")
 
 # Configure logging

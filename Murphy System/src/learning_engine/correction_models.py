@@ -3,13 +3,13 @@ Correction Data Model
 Defines the structure for capturing and storing human corrections.
 """
 
-from typing import Dict, List, Optional, Any, Union, Tuple
+import logging
+import uuid
 from datetime import datetime, timezone
 from enum import Enum
-from pydantic import BaseModel, Field
-import uuid
+from typing import Any, Dict, List, Optional, Tuple, Union
 
-import logging
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 

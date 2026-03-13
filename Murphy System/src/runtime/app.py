@@ -11,44 +11,63 @@ License: BSL 1.1
 
 from src.runtime._deps import (
     # Standard library
-    Any, Dict, List, Set,
-    asdict,
-    datetime, timezone,
-    json, logging, os, platform, time,
-    uuid4,
-    Path,
-    # Logging / env
-    logger, _load_dotenv,
+    Any,
+    ConceptTranslationEngine,
+    CORSMiddleware,
+    Depends,
+    Dict,
     # Web framework
-    FastAPI, uvicorn, CORSMiddleware, JSONResponse, Depends, Request,
-    # MSS controls
-    _mss_available, MSSController,
-    ResolutionDetectionEngine, InformationDensityEngine, StructuralCoherenceEngine,
-    InformationQualityEngine, ConceptTranslationEngine, StrategicSimulationEngine,
+    FastAPI,
     # Image / integration types
-    ImageRequest, ImageStyle,
+    ImageRequest,
+    ImageStyle,
+    InformationDensityEngine,
+    InformationQualityEngine,
     IntegrationSpec,
+    JSONResponse,
+    List,
+    MSSController,
+    Path,
+    Request,
+    ResolutionDetectionEngine,
+    Set,
+    StrategicSimulationEngine,
+    StructuralCoherenceEngine,
+    _load_dotenv,
+    # MSS controls
+    _mss_available,
+    asdict,
+    datetime,
+    json,
+    # Logging / env
+    logger,
+    logging,
     # Module system
     module_manager,
+    os,
+    platform,
+    time,
+    timezone,
+    uuid4,
+    uvicorn,
 )
-from src.runtime.murphy_system_core import MurphySystem
 from src.runtime.living_document import LivingDocument
-
+from src.runtime.murphy_system_core import MurphySystem
 
 # ==================== FASTAPI APPLICATION ====================
 
 def create_app() -> FastAPI:
     """Create FastAPI application"""
-    
+
     if FastAPI is None:
         raise ImportError("FastAPI not installed. Install with: pip install fastapi uvicorn")
-    
+
     app = FastAPI(
         title="Murphy System 1.0",
         description="Universal AI Automation System",
         version="1.0.0"
     )
-    
+
     # Apply security hardening (CORS allowlist, API key auth, rate limiting, headers)
     try:
         from src.fastapi_security import configure_secure_fastapi
@@ -66,7 +85,7 @@ def create_app() -> FastAPI:
             allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             allow_headers=["*"],
         )
-    
+
     # Load .env before initialising MurphySystem so env vars like
     # MURPHY_LLM_PROVIDER and GROQ_API_KEY are available from the start.
     # Resolve the path relative to this file so it works regardless of CWD.
@@ -99,8 +118,8 @@ def create_app() -> FastAPI:
     # ── AionMind 2.0 Cognitive Pipeline Integration (Gap 5) ──────
     _aionmind_kernel = None
     try:
-        from aionmind.runtime_kernel import AionMindKernel
         from aionmind import api as aionmind_api
+        from aionmind.runtime_kernel import AionMindKernel
 
         _aionmind_kernel = AionMindKernel(
             auto_bridge_bots=True,
@@ -114,7 +133,7 @@ def create_app() -> FastAPI:
                      _aionmind_kernel.registry.count())
     except Exception as _aim_exc:
         logger.warning("AionMind kernel not available — endpoints use legacy path only: %s", _aim_exc)
-    
+
     # ── Board System (Phase 1 – Monday.com parity) ────────────────
     try:
         from board_system.api import create_board_router
@@ -350,12 +369,12 @@ def create_app() -> FastAPI:
             use_mfgc=data.get("use_mfgc", False)
         )
         return JSONResponse(result)
-    
+
     @app.get("/api/status")
     async def get_status():
         """Get system status"""
         return JSONResponse(murphy.get_system_status())
-    
+
     @app.get("/api/info")
     async def get_info():
         """Get system information"""
@@ -368,7 +387,7 @@ def create_app() -> FastAPI:
         # Preserve legacy flat response shape for older clients.
         response = {**info, "success": True, "system": info}
         return JSONResponse(response)
-    
+
     @app.get("/api/health")
     async def health_check(deep: bool = False):
         """Health check endpoint.
@@ -925,9 +944,9 @@ def create_app() -> FastAPI:
             murphy.mfgc_config.update(profiles[profile])
             return JSONResponse({"success": True, "profile": profile, "config": murphy.mfgc_config})
         return JSONResponse({"success": False, "error": "Unknown profile"})
-    
+
     # ==================== INTEGRATION ENDPOINTS ====================
-    
+
     @app.post("/api/integrations/add")
     async def add_integration(request: Request):
         """Add an integration"""
@@ -940,7 +959,7 @@ def create_app() -> FastAPI:
             auto_approve=data.get('auto_approve', False)
         )
         return JSONResponse(result)
-    
+
     @app.post("/api/integrations/{request_id}/approve")
     async def approve_integration(request_id: str, request: Request):
         """Approve an integration"""
@@ -950,7 +969,7 @@ def create_app() -> FastAPI:
             approved_by=data.get('approved_by', 'user')
         )
         return JSONResponse(result)
-    
+
     @app.post("/api/integrations/{request_id}/reject")
     async def reject_integration(request_id: str, request: Request):
         """Reject an integration"""
@@ -960,15 +979,15 @@ def create_app() -> FastAPI:
             reason=data.get('reason', 'User rejected')
         )
         return JSONResponse(result)
-    
+
     @app.get("/api/integrations/{status}")
     async def list_integrations(status: str = 'all'):
         """List integrations"""
         result = murphy.list_integrations(status=status)
         return JSONResponse(result)
-    
+
     # ==================== BUSINESS AUTOMATION ENDPOINTS ====================
-    
+
     @app.post("/api/automation/{engine_name}/{action}")
     async def run_automation(engine_name: str, action: str, request: Request):
         """Run business automation"""
@@ -979,9 +998,9 @@ def create_app() -> FastAPI:
             parameters=data.get('parameters')
         )
         return JSONResponse(result)
-    
+
     # ==================== SYSTEM ENDPOINTS ====================
-    
+
     @app.get("/api/modules")
     async def list_modules():
         """List all modules"""
@@ -1039,7 +1058,8 @@ def create_app() -> FastAPI:
         if not murphy.image_generation_engine:
             return JSONResponse({"success": False, "error": "Image generation engine not available"}, status_code=503)
         data = await request.json()
-        from src.image_generation_engine import ImageRequest as ImgReq, ImageStyle as ImgStyle
+        from src.image_generation_engine import ImageRequest as ImgReq
+        from src.image_generation_engine import ImageStyle as ImgStyle
         style_str = data.get("style", "digital_art")
         try:
             style = ImgStyle(style_str)
@@ -1130,8 +1150,10 @@ def create_app() -> FastAPI:
         if not murphy.universal_integration_adapter:
             return JSONResponse({"success": False, "error": "Universal integration adapter not available"}, status_code=503)
         data = await request.json()
-        from src.universal_integration_adapter import IntegrationSpec as ISpec, IntegrationAction as IAction
-        from src.universal_integration_adapter import IntegrationCategory as ICat, IntegrationAuthMethod as IAuth
+        from src.universal_integration_adapter import IntegrationAction as IAction
+        from src.universal_integration_adapter import IntegrationAuthMethod as IAuth
+        from src.universal_integration_adapter import IntegrationCategory as ICat
+        from src.universal_integration_adapter import IntegrationSpec as ISpec
         try:
             cat = ICat(data.get("category", "custom"))
         except ValueError:
@@ -1165,7 +1187,7 @@ def create_app() -> FastAPI:
     # --- Setup Wizard (system configuration) ---
 
     try:
-        from setup_wizard import SetupWizard, SetupProfile
+        from setup_wizard import SetupProfile, SetupWizard
         _setup_wizard = SetupWizard()
     except Exception:
         _setup_wizard = None
@@ -2390,7 +2412,7 @@ def create_app() -> FastAPI:
     async def mfm_metrics():
         """Training metrics and shadow comparison stats."""
         try:
-            from murphy_foundation_model.shadow_deployment import ShadowDeployment, ShadowConfig
+            from murphy_foundation_model.shadow_deployment import ShadowConfig, ShadowDeployment
             shadow = ShadowDeployment(mfm_service=None, config=ShadowConfig())
             metrics = shadow.get_metrics()
         except ImportError:
@@ -2421,7 +2443,8 @@ def create_app() -> FastAPI:
         """Trigger manual retraining."""
         try:
             from murphy_foundation_model.self_improvement_loop import (
-                SelfImprovementLoop, SelfImprovementConfig,
+                SelfImprovementConfig,
+                SelfImprovementLoop,
             )
             loop = SelfImprovementLoop(config=SelfImprovementConfig())
             result = loop.run_retraining_cycle()
@@ -2612,8 +2635,11 @@ def create_app() -> FastAPI:
 
     try:
         from prometheus_client import (
+            Counter,
+            Histogram,
+        )
+        from prometheus_client import (
             make_asgi_app as _make_metrics_app,
-            Counter, Histogram,
         )
         _metrics_app = _make_metrics_app()
         app.mount("/metrics", _metrics_app)
@@ -2644,6 +2670,7 @@ def create_app() -> FastAPI:
     # ==================== STRUCTURED LOGGING MIDDLEWARE (Phase 4-B) ====================
 
     import uuid as _uuid
+
     from starlette.middleware.base import BaseHTTPMiddleware as _BaseHTTPMiddleware
 
     class _TraceIdMiddleware(_BaseHTTPMiddleware):
@@ -2750,7 +2777,7 @@ def main():
 
     # Create FastAPI app
     app = create_app()
-    
+
     # Run server
     port = int(os.getenv('PORT') or os.getenv('MURPHY_PORT') or 8000)
 

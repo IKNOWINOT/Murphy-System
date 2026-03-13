@@ -10,17 +10,17 @@ Provides structured "why not executable yet" explanations with:
 Designed for neon green on black terminal aesthetic.
 """
 
-from typing import Dict, List, Optional, Any
-from datetime import datetime, timezone
-
 import logging
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
 logger = logging.getLogger(__name__)
 from .models import (
+    BlockingReason,
+    CompilationResult,
     HypothesisArtifact,
     VerificationArtifact,
     VerificationStatus,
-    CompilationResult,
-    BlockingReason,
 )
 
 

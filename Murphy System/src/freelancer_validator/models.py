@@ -7,14 +7,13 @@ freelancer-based HITL validation system.
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
-
-import logging
 
 logger = logging.getLogger(__name__)
 

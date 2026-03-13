@@ -4,14 +4,14 @@ Uses deductive reasoning and statistical knowledge of organization operations
 Provides choice recommendations and decision support
 """
 
-from typing import Dict, List, Optional, Any, Tuple
-from dataclasses import dataclass, field
-from enum import Enum
 import json
-from datetime import datetime, timezone
-import random
-
 import logging
+import random
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
+
 logger = logging.getLogger("inquisitory_engine")
 
 

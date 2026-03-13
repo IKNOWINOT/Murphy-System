@@ -17,15 +17,15 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from .automation_recipes import ActionType, AutomationTrigger, RecipeEngine, TriggerType
 from .board_engine import BoardEngine, ColumnType, TemplateType, ViewType
-from .status_engine import StatusEngine
-from .timeline_engine import TimelineEngine, DependencyType
-from .automation_recipes import RecipeEngine, AutomationTrigger, TriggerType, ActionType
-from .workspace_manager import WorkspaceManager
 from .dashboard_generator import DashboardGenerator, DashboardTemplateType
-from .integration_bridge import IntegrationBridge
-from .form_builder import FormBuilder, FormTemplateType
 from .doc_manager import DocManager, DocType
+from .form_builder import FormBuilder, FormTemplateType
+from .integration_bridge import IntegrationBridge
+from .status_engine import StatusEngine
+from .timeline_engine import DependencyType, TimelineEngine
+from .workspace_manager import WorkspaceManager
 
 if TYPE_CHECKING:
     from matrix_bridge.command_dispatcher import CommandDispatcher, CommandResponse, ParsedCommand
@@ -1042,7 +1042,7 @@ def handle_onboard(dispatcher: object, cmd: object) -> object:
         name = args[0]
         email = args[1]
         session = flow.start_onboarding(name, email)
-        lines = [f"## ☠ Onboarding Started\n"]
+        lines = ["## ☠ Onboarding Started\n"]
         lines.append(f"👤 **Employee:** {session.employee_name}")
         lines.append(f"📧 **Email:** {session.employee_email}")
         lines.append(f"🔑 **Session ID:** `{session.session_id}`")
@@ -1267,7 +1267,7 @@ def handle_gate(dispatcher: object, cmd: object) -> object:
         lines.append(f"**Approvers:** {', '.join(gate.get('approvers', []))}")
         if gate.get("evaluation_result"):
             ev = gate["evaluation_result"]
-            lines.append(f"\n**Last evaluation:**")
+            lines.append("\n**Last evaluation:**")
             lines.append(f"  Actual: {ev.get('actual_value')} | Passed: {ev.get('passed')}")
         return _make_response(True, "\n".join(lines))
 
@@ -1497,8 +1497,8 @@ def handle_schedule(dispatcher: object, cmd: object) -> object:
             lines.append(f"\n### SKM Loop Automation Linkage ({len(caps)} capabilities)")
             lines.append("Loops feed the **Sense→Know→Model** cycle:")
             lines.append(f"- **SENSE:** heartbeat, production_pace → observe {len(caps)} automation capabilities")
-            lines.append(f"- **KNOW:** compliance_check, risk_assessment → evaluate gates")
-            lines.append(f"- **MODEL:** financial_review, stakeholder_reporting → adapt schedules")
+            lines.append("- **KNOW:** compliance_check, risk_assessment → evaluate gates")
+            lines.append("- **MODEL:** financial_review, stakeholder_reporting → adapt schedules")
         return _make_response(True, "\n".join(lines))
 
     if sub == "configure":
@@ -1844,7 +1844,7 @@ def handle_automation(dispatcher: object, cmd: object) -> object:
         loops = _get_active_loops()
         enabled = sum(1 for l in loops.values() if l["enabled"])
         gates = _get_gate_generator().list_gates()
-        lines.append(f"\n### SKM Loop Integration")
+        lines.append("\n### SKM Loop Integration")
         lines.append(f"- Business loops: {enabled}/{len(loops)} active")
         lines.append(f"- Gates: {len(gates)} configured")
         lines.append(f"- Setpoints: {len(_get_active_setpoints())} dimensions")
@@ -1965,7 +1965,7 @@ def handle_automation(dispatcher: object, cmd: object) -> object:
         loops = _get_active_loops()
         enabled = sum(1 for l in loops.values() if l["enabled"])
         gates = _get_gate_generator().list_gates()
-        lines.append(f"\n### SKM Loop Integration")
+        lines.append("\n### SKM Loop Integration")
         lines.append(f"- Business loops: {enabled}/{len(loops)} active")
         lines.append(f"- Gates: {len(gates)} configured")
         lines.append(f"- Setpoints: {len(_get_active_setpoints())} dimensions")
@@ -1975,7 +1975,7 @@ def handle_automation(dispatcher: object, cmd: object) -> object:
     # ── types ─────────────────────────────────────────────────────────────
     if sub == "types":
         try:
-            from automation_type_registry import AutomationCategory, DEFAULT_TEMPLATES
+            from automation_type_registry import DEFAULT_TEMPLATES, AutomationCategory
             lines = ["## Automation Type Categories\n"]
             for cat in AutomationCategory:
                 templates = [t for t in DEFAULT_TEMPLATES if t.category == cat]

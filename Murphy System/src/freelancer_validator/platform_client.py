@@ -15,8 +15,8 @@ from typing import Any, Dict, Optional
 from uuid import uuid4
 
 from .models import (
-    FreelancerTask,
     FreelancerResponse,
+    FreelancerTask,
     PlatformType,
     TaskStatus,
 )

@@ -25,13 +25,13 @@ import logging
 import os
 import sys
 
+from .bot_personas import BotPersonas
+from .command_router import PERM_ADMIN, PERM_OPERATOR, CommandDef, CommandRouter
+from .event_bridge import BridgedEvent, EventBridge
+from .hitl_matrix_adapter import HITLMatrixAdapter
 from .matrix_client import MatrixClient
 from .room_registry import RoomRegistry
-from .command_router import CommandRouter, CommandDef, PERM_ADMIN, PERM_OPERATOR
-from .event_bridge import EventBridge, BridgedEvent
-from .bot_personas import BotPersonas
 from .space_manager import SpaceManager
-from .hitl_matrix_adapter import HITLMatrixAdapter
 from .webhook_receiver import WebhookReceiver
 
 logger = logging.getLogger(__name__)

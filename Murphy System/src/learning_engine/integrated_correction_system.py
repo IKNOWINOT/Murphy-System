@@ -12,9 +12,9 @@ Creator: Corey Post
 License: BSL 1.1
 """
 
-from typing import Dict, Any, List, Optional
-from datetime import datetime
 import logging
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 # Import original learning system
 try:
@@ -26,9 +26,9 @@ except ImportError:
 
 # Import new correction capture system
 from .correction_capture import CorrectionCaptureSystem, InteractiveCorrectionCapture
-from .feedback_system import HumanFeedbackSystem, FeedbackCollectionInterface, Feedback
-from .pattern_extraction import PatternExtractor, CorrectionVerifier, CorrectionPattern
 from .correction_models import Correction
+from .feedback_system import Feedback, FeedbackCollectionInterface, HumanFeedbackSystem
+from .pattern_extraction import CorrectionPattern, CorrectionVerifier, PatternExtractor
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +86,7 @@ class IntegratedCorrectionSystem:
         """
 
         # Record correction using new system
-        from .correction_models import create_simple_correction, CorrectionType, CorrectionSeverity
+        from .correction_models import CorrectionSeverity, CorrectionType, create_simple_correction
 
         correction_type_str = correction_data.get('correction_type', 'output_modification')
         correction_type_map = {ct.value: ct for ct in CorrectionType}

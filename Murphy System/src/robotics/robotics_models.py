@@ -5,13 +5,12 @@ Defines data structures for robot configuration, sensor readings,
 and actuator commands across 12 supported platforms/protocols.
 """
 
+import logging
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
-
-import logging
 
 logger = logging.getLogger(__name__)
 

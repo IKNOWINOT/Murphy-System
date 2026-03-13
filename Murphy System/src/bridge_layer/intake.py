@@ -7,20 +7,20 @@ generates verification requests, and triggers gate synthesis.
 CRITICAL: This is the ONLY entry point from System A to System B.
 """
 
-from typing import Dict, List, Optional, Any, Tuple
-from datetime import datetime, timezone
 import logging
-import jsonschema
 import re
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional, Tuple
+
+import jsonschema
 
 from .models import (
     HypothesisArtifact,
+    IntakeResult,
     VerificationRequest,
     VerificationStatus,
-    IntakeResult,
 )
 from .schemas import HYPOTHESIS_ARTIFACT_SCHEMA
-
 
 logger = logging.getLogger(__name__)
 

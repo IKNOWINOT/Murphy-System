@@ -6,11 +6,10 @@ Provides system-wide views by aggregating metrics across all agents.
 
 from __future__ import annotations
 
+import logging
 from typing import Any, Dict
 
 from .rosetta_manager import RosettaManager
-
-import logging
 
 logger = logging.getLogger(__name__)
 

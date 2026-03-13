@@ -3,17 +3,22 @@ Risk Scoring Algorithms
 Advanced algorithms for calculating and updating risk scores.
 """
 
-from typing import Dict, List, Optional, Any, Tuple
+import logging
+import statistics
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from pydantic import BaseModel, Field
-import statistics
+from typing import Any, Dict, List, Optional, Tuple
 
-import logging
+from pydantic import BaseModel, Field
+
 logger = logging.getLogger("confidence_engine.risk.risk_scoring")
 
 from src.confidence_engine.risk.risk_database import (
-    RiskPattern, RiskCategory, RiskSeverity, RiskLikelihood, RiskIncident
+    RiskCategory,
+    RiskIncident,
+    RiskLikelihood,
+    RiskPattern,
+    RiskSeverity,
 )
 
 

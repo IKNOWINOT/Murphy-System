@@ -7,13 +7,12 @@ Adds:
   - probabilistic compliance  P(g_i(x_t) ≤ 0) ≥ 1 - ε_i
 """
 
+import logging
 import math
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set
 
 from .canonical_state import CanonicalStateVector
-
-import logging
 
 logger = logging.getLogger(__name__)
 

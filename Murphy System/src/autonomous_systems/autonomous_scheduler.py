@@ -8,17 +8,17 @@ This module provides autonomous task scheduling capabilities:
 - Deadline management
 """
 
-import time
 import heapq
+import logging
 import threading
-from typing import Dict, List, Optional, Any, Callable
+import time
+import uuid
+from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from collections import deque
-import uuid
+from typing import Any, Callable, Dict, List, Optional
 
-import logging
 logger = logging.getLogger("autonomous_systems.autonomous_scheduler")
 
 

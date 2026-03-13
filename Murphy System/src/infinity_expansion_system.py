@@ -8,12 +8,11 @@ This is not search. This is progressive problem crystallization.
 Integrated into the unified MFGC system as the exploratory band's core engine.
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Set, Any, Optional, Tuple
-from enum import Enum
-import time
-
 import logging
+import time
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 logger = logging.getLogger(__name__)
 

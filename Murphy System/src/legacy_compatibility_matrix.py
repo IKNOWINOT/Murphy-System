@@ -14,12 +14,13 @@ Features:
 - Full matrix reporting with statistics and audit trail
 """
 
-import uuid
 import logging
-from typing import Dict, List, Optional, Any, Callable
+import uuid
+from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from collections import deque
+from typing import Any, Callable, Dict, List, Optional
+
 from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)

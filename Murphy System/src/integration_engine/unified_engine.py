@@ -10,27 +10,28 @@ This is the main orchestrator that:
 6. Only commits if approved
 """
 
-import sys
-import os
-from pathlib import Path
-from typing import Dict, List, Optional, Any
-from datetime import datetime, timezone
 import json
-
 import logging
+import os
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 logger = logging.getLogger("integration_engine.unified_engine")
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from bots.swisskiss_loader import SwissKissLoader
-from src.module_manager import module_manager
 from src.integrations.integration_framework import IntegrationFramework
-from .capability_extractor import CapabilityExtractor
-from .module_generator import ModuleGenerator
+from src.module_manager import module_manager
+
 from .agent_generator import AgentGenerator
+from .capability_extractor import CapabilityExtractor
+from .hitl_approval import ApprovalRequest, ApprovalStatus, HITLApprovalSystem
+from .module_generator import ModuleGenerator
 from .safety_tester import SafetyTester
-from .hitl_approval import HITLApprovalSystem, ApprovalRequest, ApprovalStatus
 from .sandbox_quarantine import SandboxQuarantine
 
 
@@ -622,9 +623,11 @@ class UnifiedIntegrationEngine:
         """
         try:
             from src.true_swarm_system import (
-                TrueSwarmSystem,
                 AgentInstance,
                 ProfessionAtom,
+                TrueSwarmSystem,
+            )
+            from src.true_swarm_system import (
                 Phase as SwarmPhase,
             )
 

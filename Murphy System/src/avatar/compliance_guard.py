@@ -1,5 +1,6 @@
 """Enforces compliance rules on avatar interactions."""
 
+import logging
 import re
 import uuid
 from datetime import datetime, timezone
@@ -7,8 +8,6 @@ from threading import Lock
 from typing import Any, Dict, List, Optional
 
 from .avatar_models import ComplianceViolation
-
-import logging
 
 logger = logging.getLogger(__name__)
 

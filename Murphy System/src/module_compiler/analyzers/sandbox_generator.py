@@ -6,10 +6,9 @@ Dynamically allocates resources and synthesizes security constraints.
 """
 
 import ast
-from typing import List, Dict, Any, Optional
-from dataclasses import dataclass, field
-
 import logging
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

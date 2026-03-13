@@ -8,17 +8,16 @@ This module provides human oversight and intervention capabilities:
 - Audit logging and compliance tracking
 """
 
-import time
+import json
+import logging
 import threading
-from typing import Dict, List, Optional, Any, Callable
+import time
+import uuid
+from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from collections import deque
-import json
-import uuid
-
-import logging
+from typing import Any, Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

@@ -10,19 +10,18 @@ Compiles ExecutionPackets ONLY when all criteria are met:
 CRITICAL: This is the ONLY way to create ExecutionPackets.
 """
 
-from typing import Dict, List, Optional, Any, Tuple
-from datetime import datetime, timezone
 import logging
 import uuid as _uuid
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional, Tuple
 
 from .models import (
+    BlockingReason,
+    CompilationResult,
     HypothesisArtifact,
     VerificationArtifact,
     VerificationStatus,
-    CompilationResult,
-    BlockingReason,
 )
-
 
 logger = logging.getLogger(__name__)
 

@@ -3,7 +3,8 @@ Advanced Report Generator
 Multiple formats: Markdown, HTML, PDF, LaTeX, JSON
 """
 
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
 try:
     from research_engine import ResearchEngine, ResearchResult
 except ImportError:
@@ -12,9 +13,8 @@ try:
     from advanced_research import AdvancedResearchEngine, AdvancedResearchResult
 except ImportError:
     from src.advanced_research import AdvancedResearchEngine, AdvancedResearchResult
-from datetime import datetime, timezone
-
 import logging
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 

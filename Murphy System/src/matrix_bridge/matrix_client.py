@@ -57,8 +57,9 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable, Dict, List, Optional
 
-from .matrix_config import MatrixConfig
 from thread_safe_operations import capped_append
+
+from .matrix_config import MatrixConfig
 
 logger = logging.getLogger(__name__)
 

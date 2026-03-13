@@ -11,14 +11,15 @@ providing clear boundaries between reasoning and enforcement:
 - Task routing through the appropriate plane based on mode and type
 """
 
-import uuid
 import logging
 import threading
-from typing import Dict, List, Optional, Any
-from thread_safe_operations import capped_append
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 

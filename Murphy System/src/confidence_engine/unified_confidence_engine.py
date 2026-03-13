@@ -12,9 +12,9 @@ Creator: Corey Post
 License: BSL 1.1
 """
 
-from typing import Dict, Any, Optional
-from datetime import datetime
 import logging
+from datetime import datetime
+from typing import Any, Dict, Optional
 
 # Import original confidence system
 try:
@@ -32,9 +32,9 @@ except ImportError:
     logging.warning("Original PhaseController not found")
 
 # Import new Murphy validation system
-from .uncertainty_calculator import UncertaintyCalculator
 from .murphy_gate import MurphyGate
-from .murphy_models import UncertaintyScores, GateResult, ConfidenceReport
+from .murphy_models import ConfidenceReport, GateResult, UncertaintyScores
+from .uncertainty_calculator import UncertaintyCalculator
 
 logger = logging.getLogger(__name__)
 

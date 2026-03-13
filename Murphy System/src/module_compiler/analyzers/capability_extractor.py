@@ -6,18 +6,12 @@ Extracts executable capabilities from analyzed code structure.
 Owner: INONI LLC / Corey Post (corey.gfc@gmail.com)
 """
 
-from typing import List, Dict, Any, Optional
-from ..models.module_spec import (
-    Capability,
-    DeterminismLevel,
-    ResourceProfile,
-    FailureMode,
-    FailureSeverity
-)
-from .static_analyzer import CodeStructure, FunctionInfo, ClassInfo
-from .determinism_classifier import AdvancedDeterminismClassifier
-
 import logging
+from typing import Any, Dict, List, Optional
+
+from ..models.module_spec import Capability, DeterminismLevel, FailureMode, FailureSeverity, ResourceProfile
+from .determinism_classifier import AdvancedDeterminismClassifier
+from .static_analyzer import ClassInfo, CodeStructure, FunctionInfo
 
 logger = logging.getLogger(__name__)
 

@@ -11,30 +11,23 @@ Integrates core security capabilities:
 This provides essential security features without requiring external dependencies.
 """
 
-from typing import Dict, List, Optional, Any, Tuple
+import logging
 from datetime import datetime, timezone
 from enum import Enum
-
-import logging
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
 # Import from security plane
 try:
-    from security_plane.hardening import (
-        InputValidator,
-        ValidationRule,
-        InputType,
-        sanitize_input,
-        encode_output
-    )
+    from security_plane.hardening import InputType, InputValidator, ValidationRule, encode_output, sanitize_input
     from security_plane.schemas import (
-        TrustScore,
-        TrustLevel,
-        SecurityGate,
-        SecurityAnomaly,
         AnomalyType,
-        SecurityTelemetry
+        SecurityAnomaly,
+        SecurityGate,
+        SecurityTelemetry,
+        TrustLevel,
+        TrustScore,
     )
     SECURITY_PLANE_AVAILABLE = True
 except ImportError:

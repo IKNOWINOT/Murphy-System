@@ -4,16 +4,19 @@ Feature Engineering Pipeline
 This module implements advanced feature engineering for training data.
 """
 
-from typing import List, Dict, Any, Optional, Set
-import numpy as np
-from collections import Counter
 import logging
+from collections import Counter
+from typing import Any, Dict, List, Optional, Set
+
+import numpy as np
 
 from .models import (
     Feature,
     FeatureType,
-    TrainingExample,
     TrainingDataset,
+    TrainingExample,
+)
+from .models import (
     FeatureEngineering as FeatureConfig,
 )
 

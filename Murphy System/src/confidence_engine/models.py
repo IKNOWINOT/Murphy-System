@@ -3,13 +3,12 @@ Core data models for Confidence Engine
 Defines artifact graphs, verification evidence, trust models, and state structures
 """
 
-from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional, Set
-from enum import Enum
-from datetime import datetime, timezone
 import hashlib
-
 import logging
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
 

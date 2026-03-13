@@ -10,8 +10,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-
-
 # ---------------------------------------------------------------------------
 # Agent Persona Definition
 # ---------------------------------------------------------------------------
@@ -55,6 +53,6 @@ class AgentPersonaDefinition:
 
 
 from agent_persona_library._roster_data import (  # noqa: F401, E402
-    _build_agent_roster,
     AGENT_ROSTER,
+    _build_agent_roster,
 )

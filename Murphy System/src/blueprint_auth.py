@@ -33,7 +33,7 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 try:
-    from flask import request, jsonify
+    from flask import jsonify, request
     _HAS_FLASK = True
 except ImportError:  # pragma: no cover
     _HAS_FLASK = False

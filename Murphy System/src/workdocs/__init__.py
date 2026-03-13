@@ -27,15 +27,15 @@ Copyright 2024 Inoni LLC – BSL-1.1
 __version__ = "0.1.0"
 __codename__ = "Workdocs"
 
+from .doc_manager import DocManager
 from .models import (
     Block,
     BlockType,
     DocPermission,
     DocStatus,
-    DocVersion,
     Document,
+    DocVersion,
 )
-from .doc_manager import DocManager
 
 try:
     from .api import create_workdocs_router

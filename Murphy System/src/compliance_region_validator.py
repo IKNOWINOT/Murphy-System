@@ -11,11 +11,12 @@ validation. Supports:
 - Validation history recording and compliance reporting
 """
 
-import uuid
 import logging
-from typing import Dict, List, Optional, Any
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
 from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)

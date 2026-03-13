@@ -4,14 +4,14 @@ Manages conversation history with bounded memory and automatic cleanup
 Integrates with MemoryArtifactSystem for important conversation preservation
 """
 
+import json
+import logging
+import threading
 from collections import deque
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Tuple
-from dataclasses import dataclass, field
-import threading
-import json
 
-import logging
 logger = logging.getLogger("conversation_manager")
 
 

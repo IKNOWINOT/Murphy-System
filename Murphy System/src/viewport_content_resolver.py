@@ -10,8 +10,8 @@ Bridges the Artifact Viewport service with Murphy System's data stores:
 Thread-safe. Tenant-isolated. Read-only.
 """
 
-from typing import Any, Optional, Dict
 import logging
+from typing import Any, Dict, Optional
 
 from artifact_viewport import ViewportOrigin
 

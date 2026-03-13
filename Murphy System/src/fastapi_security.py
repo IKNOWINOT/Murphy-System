@@ -16,16 +16,16 @@ Copyright © 2020 Inoni Limited Liability Company
 Creator: Corey Post
 """
 
+import hmac
+import logging
 import os
 import re
-import hmac
 import time
-import logging
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 logger = logging.getLogger(__name__)

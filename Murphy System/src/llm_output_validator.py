@@ -9,10 +9,9 @@ Also exposes :class:`LLMOutputEnvelope` and :class:`ValidationResult` for
 envelope-level validation workflows (Gap CFP-6).
 """
 
+import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple, Type
-
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +95,8 @@ try:
 
 except ImportError:
     # Minimal fallback stubs when pydantic is not installed
-    from dataclasses import dataclass, field as dc_field
+    from dataclasses import dataclass
+    from dataclasses import field as dc_field
 
     _PYDANTIC_AVAILABLE = False
 

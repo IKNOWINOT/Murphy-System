@@ -21,13 +21,13 @@ All operations are pure-Python with no external dependencies.
 import enum
 import hashlib
 import json
+import logging
 import threading
 import time
 import uuid
 from typing import Any, Callable, Dict, List, Optional, Tuple
-from thread_safe_operations import capped_append
 
-import logging
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 

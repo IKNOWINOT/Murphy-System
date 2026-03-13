@@ -7,13 +7,13 @@ Telemetry flow:
     Sensor/Robot → Adapter → TelemetryArtifact → Artifact Graph → Control Plane
 """
 
-from dataclasses import dataclass
-from typing import Dict, List, Optional
-import time
 import hashlib
 import json
-
 import logging
+import time
+from dataclasses import dataclass
+from typing import Dict, List, Optional
+
 logger = logging.getLogger("adapter_framework.telemetry_artifact")
 
 

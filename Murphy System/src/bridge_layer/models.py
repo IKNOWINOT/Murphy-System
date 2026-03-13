@@ -7,14 +7,13 @@ Defines all data structures for System A → System B bridging:
 - CompilationResult: System B packet compilation output
 """
 
+import hashlib
+import json
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Dict, List, Optional, Any, Literal
-import hashlib
-import json
-
-import logging
+from typing import Any, Dict, List, Literal, Optional
 
 logger = logging.getLogger(__name__)
 

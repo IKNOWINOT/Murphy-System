@@ -14,13 +14,12 @@ status, and generates the shell commands required to retrieve each asset.
 
 from __future__ import annotations
 
+import logging
 import os
 import time
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, Optional
-
-import logging
 
 logger = logging.getLogger(__name__)
 

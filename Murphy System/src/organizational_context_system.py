@@ -3,12 +3,11 @@ Organizational Context System
 Handles organizational pressures, incentives, and cultural factors
 """
 
-from typing import Dict, Any, List, Optional
+import logging
+import time
 from dataclasses import dataclass
 from enum import Enum
-import time
-
-import logging
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

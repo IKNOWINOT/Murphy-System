@@ -411,7 +411,8 @@ class DependencyAuditEngine:
 
     def _publish_event(self, report: DependencyAuditReport) -> None:
         try:
-            from event_backbone import EventType as ET, Event
+            from event_backbone import Event
+            from event_backbone import EventType as ET
             evt = Event(
                 event_id=f"evt-{uuid.uuid4().hex[:8]}",
                 event_type=ET.LEARNING_FEEDBACK,

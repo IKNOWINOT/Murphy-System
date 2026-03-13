@@ -46,28 +46,29 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from rosetta_stone_heartbeat import RosettaStoneHeartbeat
-from control_plane.control_loop import (
-    ControlLaw as ProportionalControlLaw,
-    ControlVector,
-    StabilityMonitor,
-    StabilityViolation,
-)
-from control_plane.state_vector import StateVector
-from full_automation_controller import (
-    AutomationMode,
-    AutomationToggleReason,
-    FullAutomationController,
-)
 from agent_monitor_dashboard import (
     AgentMonitorDashboard,
     AgentState,
     DashboardSnapshot,
 )
-from persistence_replay_completeness import PersistenceReplayCompleteness
+from control_plane.control_loop import (
+    ControlLaw as ProportionalControlLaw,
+)
+from control_plane.control_loop import (
+    ControlVector,
+    StabilityMonitor,
+    StabilityViolation,
+)
+from control_plane.state_vector import StateVector
 from feedback_integrator import FeedbackIntegrator, FeedbackSignal
+from full_automation_controller import (
+    AutomationMode,
+    AutomationToggleReason,
+    FullAutomationController,
+)
+from persistence_replay_completeness import PersistenceReplayCompleteness
 from rosetta.rosetta_models import BusinessPlanMath, UnitEconomics
-
+from rosetta_stone_heartbeat import RosettaStoneHeartbeat
 from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)

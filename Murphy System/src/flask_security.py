@@ -15,15 +15,15 @@ Copyright © 2020 Inoni Limited Liability Company
 Creator: Corey Post
 """
 
-import os
+import functools
 import hmac
 import logging
-import functools
-from typing import List, Optional, Dict, Any, Callable
+import os
 from datetime import datetime
+from typing import Any, Callable, Dict, List, Optional
 
 try:
-    from flask import Flask, request, jsonify, Response
+    from flask import Flask, Response, jsonify, request
     from flask_cors import CORS
     _HAS_FLASK = True
 except ImportError:

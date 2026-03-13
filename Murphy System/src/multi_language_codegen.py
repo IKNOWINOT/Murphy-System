@@ -3,9 +3,9 @@ Multi-Language Code Generator
 Generates code in multiple programming languages from verified templates
 """
 
-from typing import Dict, Any, Optional
-
 import logging
+from typing import Any, Dict, Optional
+
 logger = logging.getLogger("multi_language_codegen")
 try:
     from research_engine import ResearchEngine

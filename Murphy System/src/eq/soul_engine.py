@@ -20,13 +20,12 @@ The soul engine manages:
 
 from __future__ import annotations
 
+import logging
 import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set
 
 from .card_system import CardCollection, _strip_unmaking_state
-
-import logging
 
 logger = logging.getLogger(__name__)
 

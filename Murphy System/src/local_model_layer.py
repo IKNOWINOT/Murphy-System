@@ -3,10 +3,10 @@ Local Model Layer - Uses small Hugging Face models locally
 No API calls, runs entirely on local hardware
 """
 
-import re
-from typing import Optional, Dict, Any
-
 import logging
+import re
+from typing import Any, Dict, Optional
+
 logger = logging.getLogger("local_model_layer")
 try:
     from state_machine import Hypothesis, QuestionType
@@ -15,8 +15,8 @@ except ImportError:
 
 # Make transformers optional
 try:
-    from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
     import torch
+    from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
     HAS_TRANSFORMERS = True
 except ImportError:
     HAS_TRANSFORMERS = False

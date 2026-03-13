@@ -8,16 +8,15 @@ This module provides comprehensive learning capabilities including:
 - Adaptive behavior adjustment
 """
 
-import time
 import json
+import logging
+import statistics
 import threading
-from typing import Dict, List, Optional, Any, Tuple
+import time
+from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from collections import defaultdict, deque
-import statistics
-
-import logging
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 

@@ -12,17 +12,18 @@ bot_governance_policy_mapper):
 5. Regulation change tracker — track regulation updates and impact
 """
 
-import uuid
+import hashlib
+import json
 import logging
 import threading
 import time
-import hashlib
-import json
-from typing import Dict, List, Optional, Any
+import uuid
+from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from collections import defaultdict
+from typing import Any, Dict, List, Optional
+
 from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)

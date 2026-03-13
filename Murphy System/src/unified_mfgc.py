@@ -3,50 +3,50 @@ UNIFIED MFGC SYSTEM
 One system with confidence-based routing, not separate modes
 """
 
-import sys
 import os
 import re
-from typing import Dict, List, Any, Optional, Tuple
+import sys
+import time
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
+
+from infinity_expansion_system import ExpansionAxis, ExpansionResult, InfinityExpansionEngine
+from learning_system import (
+    ExecutionLog,
+    GatePolicyLearner,
+    LearningPipeline,
+    MultiDeploymentGeneralization,
+    TrainingSignal,
+)
+from memory_artifact_system import Artifact, ArtifactState, MemoryArtifactSystem, MemoryPlane
 
 # Import existing systems
-from true_swarm_system import (
-    TrueSwarmSystem, ProfessionAtom, ArtifactType, SwarmMode
-)
-from memory_artifact_system import (
-    MemoryArtifactSystem, MemoryPlane, ArtifactState, Artifact
-)
-from infinity_expansion_system import (
-    InfinityExpansionEngine, ExpansionAxis, ExpansionResult
-)
-from learning_system import (
-    LearningPipeline, GatePolicyLearner, MultiDeploymentGeneralization,
-    ExecutionLog, TrainingSignal
-)
-import time
+from true_swarm_system import ArtifactType, ProfessionAtom, SwarmMode, TrueSwarmSystem
 
 # Try to import LLM
 try:
-    from groq import Groq
     import os
+
+    from groq import Groq
     GROQ_AVAILABLE = True
 except ImportError:
     GROQ_AVAILABLE = False
 
 # Import local fallback LLM
-from local_llm_fallback import get_fallback_llm
+import logging
+
+# Import command parser and question manager
+from command_parser import CommandParser
 
 # Import key rotator
 from groq_key_rotator import get_rotator
+from local_llm_fallback import get_fallback_llm
+from question_manager import QuestionManager
 
 # Import response formatter
 from response_formatter import get_formatter
 
-# Import command parser and question manager
-from command_parser import CommandParser
-from question_manager import QuestionManager
-import logging
 logger = logging.getLogger(__name__)
 
 

@@ -14,13 +14,13 @@ Used for:
 - Early collapse detection
 """
 
-from dataclasses import dataclass
-from typing import Dict, List, Optional
 import json
-import time
-from pathlib import Path
-
 import logging
+import time
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Dict, List, Optional
+
 logger = logging.getLogger("recursive_stability_controller.telemetry")
 
 

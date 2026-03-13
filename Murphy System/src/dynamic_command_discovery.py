@@ -8,13 +8,13 @@ This module provides automatic command discovery based on module coupling:
 - Automatic command help generation
 """
 
-import inspect
 import importlib
-from typing import Dict, List, Optional, Any, Callable
+import inspect
+import logging
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any, Callable, Dict, List, Optional
 
-import logging
 logger = logging.getLogger("dynamic_command_discovery")
 
 

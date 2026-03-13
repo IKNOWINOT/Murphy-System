@@ -1,10 +1,9 @@
 """Simple keyword-based sentiment classifier."""
 
+import logging
 from typing import Dict, List
 
 from .avatar_models import SentimentResult
-
-import logging
 
 logger = logging.getLogger(__name__)
 

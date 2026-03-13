@@ -3,13 +3,13 @@ External Validation Service Interface
 Provides integration with external systems for validation and verification.
 """
 
+import logging
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Any
 from datetime import datetime, timezone
 from enum import Enum
-from pydantic import BaseModel, Field
+from typing import Any, Dict, List, Optional
 
-import logging
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 

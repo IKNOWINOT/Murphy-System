@@ -4,9 +4,8 @@ JSON Schemas for Telemetry Validation
 Defines validation schemas for all telemetry domains and artifacts.
 """
 
-from typing import Dict, Any
-
 import logging
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 

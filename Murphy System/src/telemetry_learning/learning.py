@@ -12,21 +12,20 @@ insights for hardening the Murphy System:
 All engines generate recommendations, NOT execution policies.
 """
 
-from typing import Dict, List, Optional, Any, Tuple
-from datetime import datetime, timedelta, timezone
-from collections import defaultdict
 import logging
 import statistics
+from collections import defaultdict
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional, Tuple
 
 from .models import (
-    TelemetryArtifact,
-    TelemetryDomain,
     GateEvolutionArtifact,
     InsightArtifact,
     InsightType,
     ReasonCode,
+    TelemetryArtifact,
+    TelemetryDomain,
 )
-
 
 logger = logging.getLogger(__name__)
 

@@ -4,12 +4,11 @@ Compute Result Model
 Defines the output contract for computation results.
 """
 
+import logging
 from dataclasses import dataclass, field
-from typing import Any, List, Dict, Tuple, Literal
 from datetime import datetime
 from enum import Enum
-
-import logging
+from typing import Any, Dict, List, Literal, Tuple
 
 logger = logging.getLogger(__name__)
 

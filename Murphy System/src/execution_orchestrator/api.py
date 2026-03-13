@@ -18,27 +18,22 @@ Endpoints:
 - GET /health - Health check
 """
 
-from flask import Flask, request, jsonify
-from datetime import datetime, timezone
 import re
 import threading
+from datetime import datetime, timezone
 from typing import Dict, Optional
 
-from .models import (
-    ExecutionState,
-    ExecutionStatus,
-    StepResult,
-    InterfaceHealth,
-    TelemetryEventType
-)
-from .validator import PreExecutionValidator
-from .executor import StepwiseExecutor
-from .telemetry import TelemetryStreamer
-from .risk_monitor import RuntimeRiskMonitor
-from .rollback import RollbackEnforcer
-from .completion import CompletionCertifier
+from flask import Flask, jsonify, request
 
 from flask_security import configure_secure_app
+
+from .completion import CompletionCertifier
+from .executor import StepwiseExecutor
+from .models import ExecutionState, ExecutionStatus, InterfaceHealth, StepResult, TelemetryEventType
+from .risk_monitor import RuntimeRiskMonitor
+from .rollback import RollbackEnforcer
+from .telemetry import TelemetryStreamer
+from .validator import PreExecutionValidator
 
 # Allowed authority levels for execution packets
 _VALID_AUTHORITY_LEVELS = frozenset({
@@ -75,11 +70,11 @@ rollback_enforcer = RollbackEnforcer()
 completion_certifier = CompletionCertifier()
 
 # Mount Artifact Viewport API for content inspection
+import logging
+
 from artifact_viewport import ArtifactViewport
 from artifact_viewport_api import mount_viewport_api
 from viewport_content_resolver import ViewportContentResolver
-
-import logging
 
 logger = logging.getLogger(__name__)
 

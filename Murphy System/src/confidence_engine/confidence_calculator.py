@@ -3,21 +3,20 @@ Confidence Calculator
 Implements the core confidence equation: c_t = w_g(p_t) × G(x_t) + w_d(p_t) × D(x_t)
 """
 
-from typing import Dict, Any, List
+import logging
 import math
+from typing import Any, Dict, List
 
+from .graph_analyzer import GraphAnalyzer
 from .models import (
     ArtifactGraph,
+    ArtifactType,
     ConfidenceState,
     Phase,
-    ArtifactType,
+    TrustModel,
     VerificationEvidence,
     VerificationResult,
-    TrustModel
 )
-from .graph_analyzer import GraphAnalyzer
-
-import logging
 
 logger = logging.getLogger(__name__)
 

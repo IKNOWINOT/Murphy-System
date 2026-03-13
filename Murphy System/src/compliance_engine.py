@@ -10,14 +10,14 @@ before release, providing:
 - Compliance reporting and release-readiness checks
 """
 
-import uuid
 import logging
 import threading
-from typing import Dict, List, Optional, Any, Tuple
+import uuid
+from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from collections import defaultdict
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 

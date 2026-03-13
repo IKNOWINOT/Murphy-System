@@ -10,8 +10,8 @@ Copyright 2024 Inoni LLC – BSL-1.1
 
 from __future__ import annotations
 
-import uuid
 import secrets
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum

@@ -11,9 +11,9 @@ import re
 
 try:
     from src.shadow_agent_integration import (
-        ShadowAgentIntegration,
         AccountType,
         ShadowAgent,
+        ShadowAgentIntegration,
         ShadowStatus,
     )
 except ImportError:
@@ -24,9 +24,9 @@ except ImportError:
 
 try:
     from src.sales_automation import (
-        SalesAutomationEngine,
-        SalesAutomationConfig,
         LeadProfile,
+        SalesAutomationConfig,
+        SalesAutomationEngine,
     )
 except ImportError:
     SalesAutomationEngine = None

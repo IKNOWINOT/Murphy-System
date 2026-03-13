@@ -6,18 +6,19 @@ REST API for module compilation, capability discovery, and registry management.
 Owner: INONI LLC / Corey Post (corey.gfc@gmail.com)
 """
 
-from flask import Blueprint, jsonify, request
-from typing import Dict, Any, List, Optional
 import os
 import sys
+from typing import Any, Dict, List, Optional
+
+from flask import Blueprint, jsonify, request
 
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
+import logging
+
 from module_compiler import ModuleCompiler, ModuleRegistry
 from module_compiler.models.module_spec import ModuleSpec
-
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -465,6 +466,7 @@ def create_standalone_app():
         Flask application
     """
     from flask import Flask
+
     from flask_security import configure_secure_app, is_debug_mode
 
     app = Flask(__name__)

@@ -724,7 +724,7 @@ class SystemOptimizationEngine:
 
         if self._wingman is None:
             try:
-                from wingman_protocol import WingmanProtocol, ExecutionRunbook, ValidationRule, ValidationSeverity
+                from wingman_protocol import ExecutionRunbook, ValidationRule, ValidationSeverity, WingmanProtocol
                 self._wingman = WingmanProtocol()
                 runbook = ExecutionRunbook(
                     runbook_id="system_optimization",

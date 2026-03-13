@@ -9,26 +9,25 @@ BaseScenario → Perturbation Operators → Failure Manifolds →
 Synthetic Execution Packets → Execution Simulator → Telemetry + Risk Outcomes
 """
 
-import random
 import hashlib
-from typing import Dict, List, Any, Tuple
+import logging
+import random
 from datetime import datetime, timezone
+from typing import Any, Dict, List, Tuple
 
-from .models import (
-    BaseScenario,
-    PerturbationOperator,
-    FailureManifold,
-    FailureCase,
-    FailureType,
-    SimulationResult,
-    TelemetryOutcome
-)
-from .semantic_failures import SemanticFailureGenerator
 from .control_failures import ControlPlaneFailureGenerator
 from .interface_failures import InterfaceFailureGenerator
+from .models import (
+    BaseScenario,
+    FailureCase,
+    FailureManifold,
+    FailureType,
+    PerturbationOperator,
+    SimulationResult,
+    TelemetryOutcome,
+)
 from .organizational_failures import OrganizationalFailureGenerator
-
-import logging
+from .semantic_failures import SemanticFailureGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -280,7 +279,7 @@ class FailureInjectionPipeline:
             failure_types: List of failure types (optional if FailureCase provided)
             count_per_type: Number of failures per type
         """
-        from .models import FailureCase, BaseScenario, SimulationResult, TelemetryOutcome
+        from .models import BaseScenario, FailureCase, SimulationResult, TelemetryOutcome
 
         # Handle both BaseScenario and FailureCase inputs
         if isinstance(base_scenario_or_failure, FailureCase):

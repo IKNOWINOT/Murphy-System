@@ -56,19 +56,17 @@ except ImportError:  # pragma: no cover
             del lst[: len(lst) - max_size]
 
 # Re-use the step/plan/HITL/executor infrastructure from the setup agent
+# Re-use FounderGate from cloudflare_deploy (single source of truth for security)
+from cloudflare_deploy import FounderGate
 from environment_setup_agent import (
     HITLApprovalGate,
     RiskLevel,
     SetupExecutor,
     SetupPlan,
-    SetupStep,
     SetupResult,
+    SetupStep,
     StepStatus,
 )
-
-# Re-use FounderGate from cloudflare_deploy (single source of truth for security)
-from cloudflare_deploy import FounderGate
-
 from signup_gateway import AuthError, SignupGateway, UserProfile
 
 logger = logging.getLogger(__name__)

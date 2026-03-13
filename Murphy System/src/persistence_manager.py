@@ -9,17 +9,17 @@ Repository: https://github.com/IKNOWINOT/Murphy-System
 """
 
 import json
+import logging
 import os
 import re
 import sys
-import uuid
-import time
-import logging
 import threading
+import time
+import uuid
 from contextlib import contextmanager
-from dataclasses import dataclass, field, asdict
-from typing import Dict, List, Any, Optional
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -479,7 +479,7 @@ class SQLitePersistenceManager:
 
     def __init__(self) -> None:
         try:
-            from db import create_tables, get_db, check_database  # noqa: PLC0415
+            from db import check_database, create_tables, get_db  # noqa: PLC0415
             self._create_tables = create_tables
             self._get_db = get_db
             self._check_database = check_database
@@ -577,7 +577,9 @@ class SQLitePersistenceManager:
     def get_stats(self) -> dict:
         """Return persistence statistics from SQL."""
         from db import (  # noqa: PLC0415
-            LivingDocumentRecord, AuditTrail, SessionRecord,
+            AuditTrail,
+            LivingDocumentRecord,
+            SessionRecord,
             _get_session_factory,
         )
         factory = _get_session_factory()

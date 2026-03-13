@@ -20,12 +20,12 @@ Key capabilities:
 - Thread-safe operation with UTC ISO timestamps
 """
 
-import uuid
 import logging
 import threading
-from typing import Dict, List, Optional, Any
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

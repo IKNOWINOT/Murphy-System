@@ -103,7 +103,7 @@ class MFMTrainer:
             return True
 
         try:
-            from peft import LoraConfig, get_peft_model, TaskType  # noqa: F811
+            from peft import LoraConfig, TaskType, get_peft_model  # noqa: F811
         except ImportError:
             logger.warning("peft not installed — LoRA cannot be applied")
             return False

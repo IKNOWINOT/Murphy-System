@@ -7,11 +7,10 @@ validating, conflict-resolving, and regenerating LLM outputs.
 
 from __future__ import annotations
 
+import logging
 from typing import Any, Dict, List, Optional, Tuple, Type
 
 from pydantic import BaseModel, Field, field_validator
-
-import logging
 
 logger = logging.getLogger(__name__)
 

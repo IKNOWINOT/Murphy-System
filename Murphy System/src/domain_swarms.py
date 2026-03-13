@@ -3,11 +3,11 @@ Domain-Specific Swarm Generators
 Specialized swarms for different problem domains
 """
 
-from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional
-from mfgc_core import Phase
-
 import logging
+from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Optional
+
+from mfgc_core import Phase
 
 logger = logging.getLogger(__name__)
 

@@ -9,23 +9,23 @@ Copyright © 2020-2026 Inoni LLC — Created by Corey Post
 License: BSL 1.1
 """
 
-import os
-import json
 import asyncio
-from typing import Dict, List, Optional, Any, Tuple
-from dataclasses import dataclass, field
-from enum import Enum
-import re
-from datetime import datetime, timezone
+import json
 import logging
+import os
+import re
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
 # INC-01 / C-01: Import the OpenAI-compatible provider (unified LLM gateway)
 from openai_compatible_provider import (  # noqa: F401
+    ChatMessage,
+    CompletionResponse,
     OpenAICompatibleProvider,
     ProviderConfig,
     ProviderType,
-    ChatMessage,
-    CompletionResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -368,7 +368,7 @@ class LLMController:
     async def _query_mfm(self, request: LLMRequest) -> LLMResponse:
         """Query the Murphy Foundation Model (local, self-trained)."""
         try:
-            from murphy_foundation_model.mfm_inference import MFMInferenceService, MFMInferenceConfig
+            from murphy_foundation_model.mfm_inference import MFMInferenceConfig, MFMInferenceService
 
             config = MFMInferenceConfig()
             service = MFMInferenceService(config=config)

@@ -3,11 +3,11 @@ Document Manager for Librarian Module
 Provides document ingestion, processing, and management capabilities
 """
 
-import logging
-from typing import Dict, List, Optional, Any
-from datetime import datetime, timezone
 import hashlib
 import json
+import logging
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

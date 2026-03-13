@@ -13,11 +13,11 @@ A new agent may only be queued (never immediately launched) if:
 Otherwise: spawn = DENIED
 """
 
-from dataclasses import dataclass
-from typing import Dict, List, Optional
-from enum import Enum
-
 import logging
+from dataclasses import dataclass
+from enum import Enum
+from typing import Dict, List, Optional
+
 logger = logging.getLogger("recursive_stability_controller.spawn_controller")
 
 
