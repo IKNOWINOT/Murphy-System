@@ -57,8 +57,8 @@ class InputSanitizer:
         re.compile(r"<body[^>]*\bon\w+\s*=", re.IGNORECASE),
         re.compile(r"vbscript:", re.IGNORECASE),
         re.compile(r"data:\s*text/html", re.IGNORECASE),
-        # LDAP injection patterns
-        re.compile(r"[)(|*\\]\s*[\x00-\x1f]", re.IGNORECASE),
+        # LDAP injection patterns (CWE-90)
+        re.compile(r"[)(]\s*[)(|*]", re.IGNORECASE),
         # OS command injection (CWE-78)
         re.compile(r";\s*(?:cat|ls|rm|wget|curl|nc|bash|sh|cmd)\b", re.IGNORECASE),
     ]

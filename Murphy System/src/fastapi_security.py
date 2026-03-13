@@ -329,6 +329,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             self._add_security_headers(response)
             return response
 
+        # Client identification (used for brute-force, rate limit, and auth tracking)
         client_ip = request.client.host if request.client else "unknown"
 
         # Brute-force lockout check (CWE-307)
@@ -353,7 +354,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             except ValueError:
                 pass
 
-        # Rate limiting by client IP
+        # Rate limiting
         rate_result = _rate_limiter.check(client_ip)
         if not rate_result["allowed"]:
             logger.warning("[%s] Rate limit exceeded for %s", self.service_name, client_ip)
