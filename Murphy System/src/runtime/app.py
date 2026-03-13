@@ -400,7 +400,7 @@ def create_app() -> FastAPI:
         """
         # Shallow liveness probe — instant, no I/O
         if not deep:
-            return JSONResponse({"status": "ok", "version": murphy.version})
+            return JSONResponse({"status": "healthy", "version": murphy.version})
 
         # Deep readiness probe — checks all critical subsystems
         checks: dict = {"runtime": "ok"}
@@ -2635,6 +2635,9 @@ def create_app() -> FastAPI:
 
     try:
         from prometheus_client import (
+            REGISTRY as _prom_registry,
+        )
+        from prometheus_client import (
             Counter,
             Histogram,
         )
@@ -2644,23 +2647,37 @@ def create_app() -> FastAPI:
         _metrics_app = _make_metrics_app()
         app.mount("/metrics", _metrics_app)
 
-        _requests_total = Counter(
-            "murphy_requests_total",
+        def _safe_counter(name, desc, labels=None):
+            """Create or reuse a prometheus Counter (safe for repeated create_app calls)."""
+            collector = _prom_registry._names_to_collectors.get(name)
+            if collector is not None:
+                return collector
+            return Counter(name, desc, labels or [])
+
+        def _safe_histogram(name, desc, labels=None):
+            """Create or reuse a prometheus Histogram (safe for repeated create_app calls)."""
+            collector = _prom_registry._names_to_collectors.get(name)
+            if collector is not None:
+                return collector
+            return Histogram(name, desc, labels or [])
+
+        _requests_total = _safe_counter(
+            "murphy_requests",
             "Total HTTP requests",
             ["method", "endpoint", "status"],
         )
-        _request_duration = Histogram(
+        _request_duration = _safe_histogram(
             "murphy_request_duration_seconds",
             "HTTP request latency in seconds",
             ["method", "endpoint"],
         )
-        _llm_calls_total = Counter(
-            "murphy_llm_calls_total",
+        _llm_calls_total = _safe_counter(
+            "murphy_llm_calls",
             "Total LLM API calls",
             ["provider"],
         )
-        _gate_evaluations_total = Counter(
-            "murphy_gate_evaluations_total",
+        _gate_evaluations_total = _safe_counter(
+            "murphy_gate_evaluations",
             "Total gate evaluations",
         )
         logger.info("Prometheus metrics endpoint mounted at /metrics")
