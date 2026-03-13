@@ -394,7 +394,8 @@ def create_app() -> FastAPI:
             _p.mkdir(parents=True, exist_ok=True)
             _test_file = _p / ".health_probe"
             _test_file.write_text("ok")
-            assert _test_file.read_text() == "ok"
+            if _test_file.read_text() != "ok":
+                raise RuntimeError("persistence write/read mismatch")
             _test_file.unlink(missing_ok=True)
             checks["persistence"] = "ok"
         except Exception as _pe:
@@ -1988,8 +1989,8 @@ def create_app() -> FastAPI:
                     "current_task": agent_data.get("current_task"),
                     "metrics": agent_data.get("metrics", {}),
                 })
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Non-critical error in endpoint: %s", exc)
         # Always return at least a sentinel placeholder so the UI renders
         if not agents:
             agents = [
@@ -2023,8 +2024,8 @@ def create_app() -> FastAPI:
                         "metrics": agent.get("metrics", {}),
                     },
                 })
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Non-critical error in endpoint: %s", exc)
         return JSONResponse({"success": False, "error": "Agent not found"}, status_code=404)
 
     # ==================== TASKS ENDPOINTS ====================
@@ -2039,8 +2040,8 @@ def create_app() -> FastAPI:
                 tasks = raw
             elif isinstance(raw, dict):
                 tasks = list(raw.values())
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Non-critical error in endpoint: %s", exc)
         return JSONResponse({"success": True, "tasks": tasks, "count": len(tasks)})
 
     # ==================== PRODUCTION QUEUE ENDPOINTS ====================
@@ -2097,8 +2098,8 @@ def create_app() -> FastAPI:
         config: Dict[str, Any] = {}
         try:
             config = dict(getattr(murphy, "config", {}) or {})
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Non-critical error in endpoint: %s", exc)
         config.setdefault("mfgc", getattr(murphy, "mfgc_config", {}))
         return JSONResponse({"success": True, "config": config})
 
@@ -2112,8 +2113,8 @@ def create_app() -> FastAPI:
                 cfg.update(data)
             if "mfgc" in data and isinstance(data["mfgc"], dict):
                 murphy.mfgc_config.update(data["mfgc"])
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Non-critical error in endpoint: %s", exc)
         return JSONResponse({"success": True})
 
     # ── Golden Path Engine ────────────────────────────────────────────
@@ -2134,8 +2135,8 @@ def create_app() -> FastAPI:
                 system_state = state_obj() or {}
             elif isinstance(state_obj, dict):
                 system_state = state_obj
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Non-critical error in endpoint: %s", exc)
         if _gpe is None:
             return JSONResponse({"recommendations": [], "error": "golden_path_engine unavailable"})
         recs = _gpe.get_recommendations(user_role, system_state)
@@ -2160,8 +2161,8 @@ def create_app() -> FastAPI:
                 workflows = list(wf_store.values())
             elif isinstance(wf_store, list):
                 workflows = wf_store
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Non-critical error in endpoint: %s", exc)
 
         active = [w for w in workflows if isinstance(w, dict) and w.get("status") == "running"]
         stuck  = [w for w in workflows if isinstance(w, dict) and w.get("status") == "stuck"]
@@ -2209,8 +2210,8 @@ def create_app() -> FastAPI:
                 agents = [{"id": k, **v} for k, v in agent_store.items()]
             elif isinstance(agent_store, list):
                 agents = agent_store
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Non-critical error in endpoint: %s", exc)
         return JSONResponse({"agents": agents, "count": len(agents)})
 
     @app.get("/api/orgchart/{task_id}")
@@ -2273,8 +2274,8 @@ def create_app() -> FastAPI:
             engine = getattr(murphy, "integration_engine", None)
             if engine and hasattr(engine, "list_active"):
                 return JSONResponse({"active": engine.list_active()})
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Non-critical error in endpoint: %s", exc)
         return JSONResponse({"active": [], "count": 0})
 
     # ── Profiles (config-as-sessions) ─────────────────────────────────
@@ -2286,8 +2287,8 @@ def create_app() -> FastAPI:
             if wiz and hasattr(wiz, "get_preset_profiles"):
                 presets = wiz.get_preset_profiles()
                 return JSONResponse({"profiles": presets, "count": len(presets)})
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Non-critical error in endpoint: %s", exc)
         return JSONResponse({"profiles": [], "count": 0})
 
     @app.post("/api/profiles")
@@ -2722,8 +2723,8 @@ def main():
                 lambda: getattr(_pm, "flush", lambda: None)(),
                 "persistence_manager_flush",
             )
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Shutdown handler registration skipped: %s", exc)
 
         # Rate limiter state save
         try:
@@ -2733,8 +2734,8 @@ def main():
                 lambda: getattr(_rl, "save_state", lambda: None)(),
                 "rate_limiter_state_save",
             )
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Shutdown handler registration skipped: %s", exc)
 
     except Exception as _sd_exc:
         logger.warning("ShutdownManager unavailable: %s", _sd_exc)
@@ -2782,6 +2783,6 @@ if __name__ == "__main__":
     try:
         from src.startup_feature_summary import print_feature_summary
         print_feature_summary()
-    except Exception:
-        pass  # Non-critical — do not block startup
+    except Exception as exc:
+        logger.debug("Feature summary skipped: %s", exc)
     main()

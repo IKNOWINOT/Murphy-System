@@ -9,7 +9,12 @@ Creator: Corey Post
 License: BSL 1.1
 """
 
-from src.runtime._deps import *  # noqa: F401,F403
+# Import all public names from _deps (equivalent to `import *` but lint-clean)
+import src.runtime._deps as _runtime_deps  # noqa: F401
+globals().update(
+    {k: v for k, v in vars(_runtime_deps).items() if not k.startswith("_")}
+)
+del _runtime_deps
 from src.runtime.living_document import LivingDocument
 
 
@@ -3466,7 +3471,7 @@ class MurphySystem:
                 if not math.isfinite(float(session_id)):
                     return None
             except OverflowError:
-                pass
+                return None
             except (TypeError, ValueError):
                 return None
         if isinstance(

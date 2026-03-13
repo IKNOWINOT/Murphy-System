@@ -4,7 +4,7 @@
 > project documentation, architecture, and getting-started instructions.
 
 This is the primary runtime directory for the Murphy System. It contains the
-FastAPI server, 750+ source modules across 60 packages in `src/`, web interfaces,
+FastAPI server, 920+ source modules across 77 packages in `src/`, web interfaces,
 tests, and deployment configuration.
 
 ---
