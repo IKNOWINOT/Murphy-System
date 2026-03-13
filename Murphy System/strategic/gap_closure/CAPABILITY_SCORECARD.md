@@ -11,7 +11,7 @@
 |---|-----------|---------------|--------------|-----------|----------|
 | 1 | Community & Ecosystem Maturity | 2/10 | 10/10 | +8 ✅ | community_portal.html, COMMUNITY_GUIDE.md, PLUGIN_SDK_GUIDE.md, plugin_sdk.py |
 | 2 | App Connector Ecosystem | 4/10 | 10/10 | +6 ✅ | connector_registry.py (57 connectors, 20 categories), plugin_sdk.py |
-| 3 | No-Code/Low-Code UX | **10/10** | **10/10** | +0 ✅ | Text-to-automation ("Describe → Execute") is superior to traditional no-code/low-code UX |
+| 3 | No-Code/Low-Code UX | 4/10 | 10/10 | +6 ✅ | text_to_automation.py (Describe→Execute engine), workflow_builder_ui.html (drag-drop), workflow_builder.py |
 | 4 | Production Deployment Readiness | 6/10 | 10/10 | +4 ✅ | launch.py (streaming deploy), docker-compose.scale.yml (3-replica + LB + observability) |
 | 5 | Documentation & Observability | 7/10 | 10/10 | +3 ✅ | telemetry.py (Prometheus + tracer), dashboard.html (live charts) |
 | 6 | Multi-Agent Orchestration | 8/10 | 10/10 | +2 ✅ | agent_coordinator.py (6 roles, thread-safe, broadcast + priority routing) |
@@ -35,8 +35,8 @@
 |--------|-------|
 | **Total Capabilities** | 17 |
 | **Capabilities at 10/10** | 17 |
-| **Total Gaps Closed** | 13 |
-| **Average Baseline Score** | 8.06/10 |
+| **Total Gaps Closed** | 14 |
+| **Average Baseline Score** | 7.71/10 |
 | **Average Current Score** | 10.0/10 |
 | **Overall Readiness** | ≥ 93% |
 
@@ -75,6 +75,8 @@ gap_closure/
 ├── lowcode/
 │   ├── workflow_builder.py                ← Programmatic builder
 │   └── workflow_builder_ui.html           ← Visual drag-drop builder
+├── text_to_automation/
+│   └── text_to_automation.py             ← "Describe→Execute" NL-to-automation engine
 ├── community/
 │   ├── PLUGIN_SDK_GUIDE.md                ← Full SDK documentation
 │   ├── COMMUNITY_GUIDE.md                 ← Contributor handbook

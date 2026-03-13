@@ -14,7 +14,7 @@ MURPHY SYSTEM — GAP SCORER REPORT
 ──────────────────────────────────────────────────────────────────────
   Community & Ecosystem Maturity          2 → 10 [+8]  ████████████████████
   App Connector Ecosystem                 4 → 10 [+6]  ████████████████████
-  No-Code/Low-Code UX                    10 → 10 [ 0]  ████████████████████
+  No-Code/Low-Code UX                     4 → 10 [+6]  ████████████████████
   Production Deployment Readiness         6 → 10 [+4]  ████████████████████
   Documentation & Observability           7 → 10 [+3]  ████████████████████
   Multi-Agent Orchestration               8 → 10 [+2]  ████████████████████
@@ -45,7 +45,9 @@ MURPHY SYSTEM — GAP SCORER REPORT
       • connectors/plugin_sdk.py: Plugin SDK enabling community connector contributions
 
   ▶ No-Code/Low-Code UX
-      • Text-to-automation ("Describe → Execute") is superior — already at 10/10
+      • lowcode/workflow_builder.py: Programmatic workflow builder with compile/export
+      • lowcode/workflow_builder_ui.html: Visual drag-and-drop workflow builder UI
+      • text_to_automation/text_to_automation.py: Describe→Execute engine: NL text to governed automation DAG
 
   ▶ Production Deployment Readiness
       • launch/launch.py: One-button streaming deploy script (local/docker/scale)
