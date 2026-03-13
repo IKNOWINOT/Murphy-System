@@ -409,6 +409,7 @@ def register_builtin_metrics(registry: CollectorRegistry) -> Dict[str, MetricFam
 
 def create_metrics_blueprint(registry: Optional[CollectorRegistry] = None):
     """Build and return a Flask Blueprint exposing metrics endpoints."""
+    from .blueprint_auth import require_blueprint_auth
     try:
         from flask import Blueprint, Response, jsonify, request
     except ImportError:
@@ -469,4 +470,5 @@ def create_metrics_blueprint(registry: Optional[CollectorRegistry] = None):
             "subsystem": "prometheus_metrics_exporter",
         })
 
+    require_blueprint_auth(bp)
     return bp

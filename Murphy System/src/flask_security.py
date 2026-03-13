@@ -265,12 +265,12 @@ def configure_secure_app(app: Flask, service_name: str = "murphy-api") -> Flask:
         # API key authentication
         api_key = _extract_api_key()
         if api_key is None:
-            # Check if auth is required (production mode)
+            # Only development and test skip auth; staging and production require it
             murphy_env = os.environ.get("MURPHY_ENV", "development")
-            if murphy_env != "development":
+            if murphy_env not in ("development", "test"):
                 logger.warning(f"[{service_name}] Missing API key from {client_ip}")
                 return jsonify({"error": "Authentication required"}), 401
-            # In development mode, allow requests without API key
+            # In development / test mode, allow requests without API key
             return None
 
         if not validate_api_key(api_key):
@@ -296,6 +296,13 @@ def configure_secure_app(app: Flask, service_name: str = "murphy-api") -> Flask:
         for header, value in _SECURITY_HEADERS.items():
             response.headers.setdefault(header, value)
         return response
+
+    murphy_env = os.environ.get("MURPHY_ENV", "development")
+    if murphy_env == "development":
+        logger.warning(
+            "WARNING: Running in development mode — authentication is DISABLED. "
+            "Set MURPHY_ENV=staging or MURPHY_ENV=production for deployment."
+        )
 
     logger.info(f"[{service_name}] Security hardening applied: auth, CORS, rate limiting, input sanitization, security headers")
     return app
