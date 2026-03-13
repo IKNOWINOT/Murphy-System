@@ -129,7 +129,7 @@ class SWEBenchAdapter(BenchmarkAdapter):
             from src.ai_workflow_generator import AIWorkflowGenerator  # noqa: PLC0415
 
             gen = AIWorkflowGenerator()
-            result_obj = gen.generate(description=issue_text)
+            result_obj = gen.generate_workflow(issue_text)
             workflow_output = str(result_obj)
         except Exception as exc:  # noqa: BLE001
             logger.debug("AIWorkflowGenerator unavailable for task %s: %s", task_id, exc)

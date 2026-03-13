@@ -185,27 +185,35 @@ class AgentBenchAdapter(BenchmarkAdapter):
         start = time.perf_counter()
         output: str = ""
 
-        if env in ("os", "db", "kg", "alfworld", "webshop", "mind2web"):
-            # Platform connector / system automation path --------------------
-            try:
-                from src.platform_connector_framework import (  # noqa: PLC0415
-                    PlatformConnectorFramework,
-                )
+        # Workflow generator path (primary for all environments) ---------------
+        try:
+            from src.ai_workflow_generator import AIWorkflowGenerator  # noqa: PLC0415
 
-                pcf = PlatformConnectorFramework()
-                output = str(pcf.execute(instruction))
-            except Exception as exc:  # noqa: BLE001
-                logger.debug("PlatformConnectorFramework unavailable: %s", exc)
-                output = f"[platform_connector_error: {exc}]"
-        else:
-            # Code / workflow generator path ----------------------------------
-            try:
-                from src.ai_workflow_generator import AIWorkflowGenerator  # noqa: PLC0415
+            gen = AIWorkflowGenerator()
+            output = str(gen.generate_workflow(instruction))
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("AIWorkflowGenerator unavailable: %s", exc)
+            # Fallback: platform connector framework --------------------------
+            if env in ("os", "db", "kg", "alfworld", "webshop", "mind2web"):
+                try:
+                    from src.platform_connector_framework import (  # noqa: PLC0415
+                        ConnectorAction,
+                        PlatformConnectorFramework,
+                    )
 
-                gen = AIWorkflowGenerator()
-                output = str(gen.generate(description=instruction))
-            except Exception as exc:  # noqa: BLE001
-                logger.debug("AIWorkflowGenerator unavailable: %s", exc)
+                    pcf = PlatformConnectorFramework()
+                    action = ConnectorAction(
+                        action_id=task_id,
+                        connector_id="default",
+                        action_type="execute",
+                        resource=instruction,
+                    )
+                    result = pcf.execute_action(action)
+                    output = str(result.data if result.success else result.error)
+                except Exception as exc2:  # noqa: BLE001
+                    logger.debug("PlatformConnectorFramework unavailable: %s", exc2)
+                    output = f"[workflow_generator_error: {exc2}]"
+            else:
                 output = f"[workflow_generator_error: {exc}]"
 
         elapsed = time.perf_counter() - start

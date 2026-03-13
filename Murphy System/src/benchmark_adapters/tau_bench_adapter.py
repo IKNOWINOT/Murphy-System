@@ -172,7 +172,7 @@ class TauBenchAdapter(BenchmarkAdapter):
                 conversation = "\n".join(
                     f"{t['role'].upper()}: {t['content']}" for t in turns
                 )
-                output = str(gen.generate(description=conversation))
+                output = str(gen.generate_workflow(conversation))
                 turns_completed = len(turns)
             except Exception as exc2:  # noqa: BLE001
                 output = f"[error: {exc2}]"
