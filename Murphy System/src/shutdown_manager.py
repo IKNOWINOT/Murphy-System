@@ -62,18 +62,36 @@ class ShutdownManager:
             return  # Prevent multiple cleanup attempts
 
         self.is_shutting_down = True
-        logger.info("🛑 Initiating Murphy System shutdown...")
+        self._safe_log("🛑 Initiating Murphy System shutdown...")
 
         # Execute cleanup handlers in reverse order (LIFO)
         for handler, name in reversed(self.cleanup_handlers):
             try:
-                logger.info(f"Executing cleanup handler: {name}")
+                self._safe_log(f"Executing cleanup handler: {name}")
                 self._run_with_timeout(handler, name, self._CLEANUP_TIMEOUT)
-                logger.info(f"✅ Cleanup handler completed: {name}")
+                self._safe_log(f"✅ Cleanup handler completed: {name}")
             except Exception as exc:
-                logger.error(f"❌ Cleanup handler failed: {name} - {exc}", exc_info=True)
+                self._safe_log(f"❌ Cleanup handler failed: {name} - {exc}", level="error")
 
-        logger.info("✅ Murphy System shutdown complete")
+        self._safe_log("✅ Murphy System shutdown complete")
+
+    @staticmethod
+    def _safe_log(msg: str, level: str = "info"):
+        """Log a message, falling back to stderr if the logger is broken."""
+        try:
+            log_fn = getattr(logger, level)
+            # Check that all handlers can still write before calling
+            for handler in logger.handlers + logging.getLogger().handlers:
+                stream = getattr(handler, "stream", None)
+                if stream is not None and getattr(stream, "closed", False):
+                    raise ValueError("stream closed")
+            log_fn(msg)
+        except Exception:
+            import sys
+            try:
+                print(msg, file=sys.stderr)
+            except Exception:
+                pass  # Nothing we can do
 
     def _run_with_timeout(self, handler, name, timeout):
         """Run a handler with a timeout to prevent hung shutdown."""
