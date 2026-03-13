@@ -48,6 +48,19 @@ class InputSanitizer:
         re.compile(r"waitfor\s+delay", re.IGNORECASE),
         re.compile(r"sleep\s*\(", re.IGNORECASE),
         re.compile(r"benchmark\s*\(", re.IGNORECASE),
+        # Additional XSS vectors (CWE-79 hardening)
+        re.compile(r"<svg[^>]*\bon\w+\s*=", re.IGNORECASE),
+        re.compile(r"<img[^>]*\bon\w+\s*=", re.IGNORECASE),
+        re.compile(r"<iframe[^>]*>", re.IGNORECASE),
+        re.compile(r"<object[^>]*>", re.IGNORECASE),
+        re.compile(r"<embed[^>]*>", re.IGNORECASE),
+        re.compile(r"<body[^>]*\bon\w+\s*=", re.IGNORECASE),
+        re.compile(r"vbscript:", re.IGNORECASE),
+        re.compile(r"data:\s*text/html", re.IGNORECASE),
+        # LDAP injection patterns
+        re.compile(r"[)(|*\\]\s*[\x00-\x1f]", re.IGNORECASE),
+        # OS command injection (CWE-78)
+        re.compile(r";\s*(?:cat|ls|rm|wget|curl|nc|bash|sh|cmd)\b", re.IGNORECASE),
     ]
 
     HTML_ENTITIES = {
@@ -64,6 +77,8 @@ class InputSanitizer:
         """Sanitize a string input."""
         if not isinstance(value, str):
             return str(value)[:max_length]
+        # Strip null bytes (CWE-158) before any processing
+        value = value.replace("\x00", "")
         value = value[:max_length]
         for char, entity in cls.HTML_ENTITIES.items():
             value = value.replace(char, entity)
@@ -194,6 +209,10 @@ class CORSPolicy:
 class RateLimiter:
     """Token-bucket rate limiter for API endpoints."""
 
+    _BUCKET_TTL_SECONDS = 3600    # Evict buckets inactive for 1 hour
+    _CLEANUP_INTERVAL = 300       # Run cleanup every 5 minutes
+    _MAX_BUCKETS = 100_000        # Hard cap to prevent memory exhaustion
+
     def __init__(
         self,
         requests_per_minute: int = 60,
@@ -202,11 +221,20 @@ class RateLimiter:
         self.rpm = requests_per_minute
         self.burst = burst_size
         self._buckets: Dict[str, Dict[str, Any]] = {}
+        self._last_cleanup: float = time.monotonic()
 
     def check(self, client_id: str) -> Dict[str, Any]:
         """Check if a request from client_id is allowed."""
         now = time.monotonic()
+
+        # Periodic stale-bucket cleanup (CWE-400 mitigation)
+        if now - self._last_cleanup > self._CLEANUP_INTERVAL:
+            self._evict_stale_buckets(now)
+
         if client_id not in self._buckets:
+            # Hard cap: reject if too many tracked clients
+            if len(self._buckets) >= self._MAX_BUCKETS:
+                self._evict_stale_buckets(now)
             self._buckets[client_id] = {
                 "tokens": self.burst,
                 "last_refill": now,
@@ -233,6 +261,16 @@ class RateLimiter:
                 "limit": self.rpm,
                 "retry_after_seconds": (1 - bucket["tokens"]) * (60.0 / self.rpm),
             }
+
+    def _evict_stale_buckets(self, now: float) -> None:
+        """Remove buckets that have not been used within the TTL window."""
+        stale_keys = [
+            cid for cid, b in self._buckets.items()
+            if now - b["last_refill"] > self._BUCKET_TTL_SECONDS
+        ]
+        for key in stale_keys:
+            del self._buckets[key]
+        self._last_cleanup = now
 
     def status(self) -> Dict[str, Any]:
         return {
@@ -436,13 +474,14 @@ class ContentSecurityPolicy:
     DEFAULT_POLICY = {
         "default-src": ["'self'"],
         "script-src": ["'self'"],
-        "style-src": ["'self'", "'unsafe-inline'"],
+        "style-src": ["'self'"],
         "img-src": ["'self'", "data:"],
         "font-src": ["'self'"],
         "connect-src": ["'self'"],
         "frame-ancestors": ["'none'"],
         "base-uri": ["'self'"],
         "form-action": ["'self'"],
+        "object-src": ["'none'"],
     }
 
     def __init__(self, policy: Optional[Dict[str, List[str]]] = None):
@@ -686,6 +725,162 @@ class SessionSecurity:
         }
 
 
+# ── Brute-Force Protection ──────────────────────────────────────────
+
+class BruteForceProtection:
+    """Track failed authentication attempts and enforce lockout (CWE-307).
+
+    After ``max_attempts`` failures within ``window_seconds``, the
+    client is locked out for ``lockout_seconds``.
+    """
+
+    _CLEANUP_INTERVAL = 300  # Purge stale entries every 5 minutes
+    _MAX_TRACKED = 50_000    # Hard cap to prevent memory exhaustion
+
+    def __init__(
+        self,
+        max_attempts: int = 5,
+        window_seconds: int = 900,
+        lockout_seconds: int = 900,
+    ):
+        self.max_attempts = max_attempts
+        self.window_seconds = window_seconds
+        self.lockout_seconds = lockout_seconds
+        self._attempts: Dict[str, List[float]] = {}
+        self._lockouts: Dict[str, float] = {}
+        self._last_cleanup: float = time.monotonic()
+
+    def record_failure(self, client_id: str) -> Dict[str, Any]:
+        """Record a failed authentication attempt for *client_id*.
+
+        Returns a dict with ``locked_out`` bool and remaining attempts.
+        """
+        now = time.monotonic()
+        self._maybe_cleanup(now)
+
+        if client_id not in self._attempts:
+            if len(self._attempts) >= self._MAX_TRACKED:
+                self._cleanup(now)
+            self._attempts[client_id] = []
+
+        # Prune old attempts outside the window
+        window_start = now - self.window_seconds
+        self._attempts[client_id] = [
+            t for t in self._attempts[client_id] if t > window_start
+        ]
+        self._attempts[client_id].append(now)
+
+        if len(self._attempts[client_id]) >= self.max_attempts:
+            self._lockouts[client_id] = now + self.lockout_seconds
+            logger.warning(
+                "BruteForceProtection: client %s locked out after %d failures",
+                client_id, len(self._attempts[client_id]),
+            )
+            return {
+                "locked_out": True,
+                "attempts": len(self._attempts[client_id]),
+                "lockout_seconds": self.lockout_seconds,
+            }
+
+        return {
+            "locked_out": False,
+            "attempts": len(self._attempts[client_id]),
+            "remaining": self.max_attempts - len(self._attempts[client_id]),
+        }
+
+    def is_locked_out(self, client_id: str) -> bool:
+        """Check if *client_id* is currently locked out."""
+        if client_id not in self._lockouts:
+            return False
+        now = time.monotonic()
+        if now >= self._lockouts[client_id]:
+            del self._lockouts[client_id]
+            self._attempts.pop(client_id, None)
+            return False
+        return True
+
+    def record_success(self, client_id: str) -> None:
+        """Clear failure tracking after a successful authentication."""
+        self._attempts.pop(client_id, None)
+        self._lockouts.pop(client_id, None)
+
+    def _maybe_cleanup(self, now: float) -> None:
+        if now - self._last_cleanup > self._CLEANUP_INTERVAL:
+            self._cleanup(now)
+
+    def _cleanup(self, now: float) -> None:
+        """Purge expired lockouts and stale attempt records."""
+        expired_lockouts = [
+            cid for cid, exp in self._lockouts.items() if now >= exp
+        ]
+        for cid in expired_lockouts:
+            del self._lockouts[cid]
+            self._attempts.pop(cid, None)
+
+        window_start = now - self.window_seconds
+        stale_attempts = [
+            cid for cid, attempts in self._attempts.items()
+            if not attempts or attempts[-1] < window_start
+        ]
+        for cid in stale_attempts:
+            del self._attempts[cid]
+
+        self._last_cleanup = now
+
+    def status(self) -> Dict[str, Any]:
+        return {
+            "max_attempts": self.max_attempts,
+            "window_seconds": self.window_seconds,
+            "lockout_seconds": self.lockout_seconds,
+            "tracked_clients": len(self._attempts),
+            "active_lockouts": len(self._lockouts),
+        }
+
+
+# ── Request Body Size Limiter ───────────────────────────────────────
+
+class RequestSizeLimiter:
+    """Enforce maximum request body size (CWE-400 mitigation).
+
+    Configurable per-endpoint category (default 1 MB, file upload 10 MB).
+    """
+
+    def __init__(
+        self,
+        default_max_bytes: int = 1_048_576,     # 1 MB
+        upload_max_bytes: int = 10_485_760,      # 10 MB
+    ):
+        self.default_max_bytes = default_max_bytes
+        self.upload_max_bytes = upload_max_bytes
+
+    def check(self, content_length: Optional[int], path: str = "") -> Dict[str, Any]:
+        """Check if the request body size is within the allowed limit.
+
+        Returns a dict with ``allowed`` bool and ``max_bytes`` value.
+        """
+        is_upload = "/upload" in path or "/import" in path
+        max_bytes = self.upload_max_bytes if is_upload else self.default_max_bytes
+
+        if content_length is None:
+            return {"allowed": True, "max_bytes": max_bytes}
+
+        if content_length > max_bytes:
+            return {
+                "allowed": False,
+                "max_bytes": max_bytes,
+                "content_length": content_length,
+                "reason": "request_body_too_large",
+            }
+
+        return {"allowed": True, "max_bytes": max_bytes}
+
+    def status(self) -> Dict[str, Any]:
+        return {
+            "default_max_bytes": self.default_max_bytes,
+            "upload_max_bytes": self.upload_max_bytes,
+        }
+
+
 # ── Security Hardening Orchestrator ─────────────────────────────────
 
 class SecurityHardeningConfig:
@@ -699,12 +894,22 @@ class SecurityHardeningConfig:
         self.key_rotation = APIKeyRotationPolicy()
         self.audit = AuditLogger()
         self.session = SessionSecurity()
+        self.brute_force = BruteForceProtection()
+        self.request_size = RequestSizeLimiter()
         self._initialized = True
 
     def apply_request_security(
         self, client_id: str, origin: str, request_data: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Apply full security pipeline to an incoming request."""
+        # 0. Brute-force lockout check
+        if self.brute_force.is_locked_out(client_id):
+            self.audit.log("brute_force", client_id, "api", "blocked", "denied")
+            return {
+                "allowed": False,
+                "reason": "account_locked",
+            }
+
         # 1. Rate limiting
         rate_check = self.rate_limiter.check(client_id)
         if not rate_check["allowed"]:
@@ -768,5 +973,7 @@ class SecurityHardeningConfig:
                 "api_key_rotation": self.key_rotation.status(),
                 "audit_logger": self.audit.status(),
                 "session_security": self.session.status(),
+                "brute_force_protection": self.brute_force.status(),
+                "request_size_limiter": self.request_size.status(),
             },
         }

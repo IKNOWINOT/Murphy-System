@@ -209,6 +209,14 @@ _INJECTION_PATTERNS = [
     re.compile(r"javascript:", re.IGNORECASE),
     re.compile(r";\s*(DROP|DELETE|UPDATE|INSERT|ALTER)\s", re.IGNORECASE),
     re.compile(r"\.\./", re.IGNORECASE),
+    # Additional XSS vectors (CWE-79 hardening)
+    re.compile(r"<svg[^>]*\bon\w+\s*=", re.IGNORECASE),
+    re.compile(r"<img[^>]*\bon\w+\s*=", re.IGNORECASE),
+    re.compile(r"<iframe[^>]*>", re.IGNORECASE),
+    re.compile(r"<object[^>]*>", re.IGNORECASE),
+    re.compile(r"<embed[^>]*>", re.IGNORECASE),
+    re.compile(r"vbscript:", re.IGNORECASE),
+    re.compile(r"data:\s*text/html", re.IGNORECASE),
 ]
 
 
@@ -227,6 +235,57 @@ def _check_injection(data: Any) -> bool:
             if _check_injection(item):
                 return True
     return False
+
+
+# ── Brute-Force Protection ───────────────────────────────────────────
+
+class _BruteForceTracker:
+    """Track failed auth attempts per client IP (CWE-307 mitigation)."""
+
+    def __init__(self, max_attempts: int = 5, window_seconds: int = 900, lockout_seconds: int = 900):
+        self.max_attempts = max_attempts
+        self.window_seconds = window_seconds
+        self.lockout_seconds = lockout_seconds
+        self._attempts: Dict[str, List[float]] = {}
+        self._lockouts: Dict[str, float] = {}
+
+    def record_failure(self, client_id: str) -> bool:
+        """Record failed auth. Returns True if now locked out."""
+        now = time.monotonic()
+        if client_id not in self._attempts:
+            self._attempts[client_id] = []
+        window_start = now - self.window_seconds
+        self._attempts[client_id] = [t for t in self._attempts[client_id] if t > window_start]
+        self._attempts[client_id].append(now)
+        if len(self._attempts[client_id]) >= self.max_attempts:
+            self._lockouts[client_id] = now + self.lockout_seconds
+            return True
+        return False
+
+    def is_locked_out(self, client_id: str) -> bool:
+        if client_id not in self._lockouts:
+            return False
+        if time.monotonic() >= self._lockouts[client_id]:
+            del self._lockouts[client_id]
+            self._attempts.pop(client_id, None)
+            return False
+        return True
+
+    def record_success(self, client_id: str) -> None:
+        self._attempts.pop(client_id, None)
+        self._lockouts.pop(client_id, None)
+
+
+_brute_force = _BruteForceTracker(
+    max_attempts=int(os.environ.get("MURPHY_AUTH_MAX_ATTEMPTS", "5")),
+    window_seconds=int(os.environ.get("MURPHY_AUTH_WINDOW_SECONDS", "900")),
+    lockout_seconds=int(os.environ.get("MURPHY_AUTH_LOCKOUT_SECONDS", "900")),
+)
+
+
+# ── Request Body Size Limit ─────────────────────────────────────────
+
+_MAX_BODY_BYTES = int(os.environ.get("MURPHY_MAX_BODY_BYTES", str(1_048_576)))  # 1 MB default
 
 
 # ── Security Headers ────────────────────────────────────────────────
@@ -270,8 +329,31 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             self._add_security_headers(response)
             return response
 
-        # Rate limiting by client IP
         client_ip = request.client.host if request.client else "unknown"
+
+        # Brute-force lockout check (CWE-307)
+        if _brute_force.is_locked_out(client_ip):
+            logger.warning("[%s] Client %s locked out (brute-force)", self.service_name, client_ip)
+            return JSONResponse(
+                status_code=429,
+                content={"error": "Too many failed attempts. Try again later."},
+            )
+
+        # Request body size check (CWE-400)
+        content_length_str = request.headers.get("content-length")
+        if content_length_str:
+            try:
+                content_length = int(content_length_str)
+                if content_length > _MAX_BODY_BYTES:
+                    logger.warning("[%s] Oversized request from %s: %d bytes", self.service_name, client_ip, content_length)
+                    return JSONResponse(
+                        status_code=413,
+                        content={"error": "Request body too large", "max_bytes": _MAX_BODY_BYTES},
+                    )
+            except ValueError:
+                pass
+
+        # Rate limiting by client IP
         rate_result = _rate_limiter.check(client_ip)
         if not rate_result["allowed"]:
             logger.warning("[%s] Rate limit exceeded for %s", self.service_name, client_ip)
@@ -290,16 +372,24 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             # Only development and test modes skip auth; staging and production require it
             if murphy_env not in ("development", "test"):
                 logger.warning("[%s] Missing credentials from %s", self.service_name, client_ip)
+                _brute_force.record_failure(client_ip)
                 return JSONResponse(
                     status_code=401,
                     content={"error": "Authentication required"},
                 )
         elif not auth_result:
             logger.warning("[%s] Invalid credentials from %s", self.service_name, client_ip)
-            return JSONResponse(
-                status_code=401,
-                content={"error": "Invalid credentials"},
+            locked = _brute_force.record_failure(client_ip)
+            status_code = 429 if locked else 401
+            content = (
+                {"error": "Too many failed attempts. Try again later."}
+                if locked
+                else {"error": "Invalid credentials"}
             )
+            return JSONResponse(status_code=status_code, content=content)
+        else:
+            # Successful auth — clear any brute-force tracking
+            _brute_force.record_success(client_ip)
 
         response = await call_next(request)
         self._add_security_headers(response)

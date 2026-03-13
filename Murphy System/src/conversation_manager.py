@@ -6,6 +6,7 @@ Integrates with MemoryArtifactSystem for important conversation preservation
 
 import json
 import logging
+import re
 import threading
 from collections import deque
 from dataclasses import dataclass, field
@@ -76,12 +77,16 @@ class ConversationManager:
     - Cleans up ephemeral chat history
     """
 
+    # Conversation ID format: alphanumeric + hyphen/underscore, max 100 chars
+    _VALID_CONV_ID = re.compile(r"^[a-zA-Z0-9_\-]{1,100}$")
+    _MAX_CONVERSATIONS = 10_000  # Hard cap to prevent memory exhaustion (CWE-400)
+
     def __init__(
         self,
         max_messages_per_conversation: int = 100,
         max_conversation_age_hours: int = 24,
         cleanup_interval_seconds: int = 3600,
-        memory_artifact_system = None
+        memory_artifact_system=None
     ):
         """
         Initialize conversation manager.
@@ -109,18 +114,41 @@ class ConversationManager:
             'conversations_archived': 0
         }
 
+    def _validate_conversation_id(self, conversation_id: str) -> str:
+        """Validate and sanitize a conversation ID.
+
+        Returns the validated ID.  Raises ``ValueError`` for invalid formats.
+        """
+        if not isinstance(conversation_id, str) or not conversation_id:
+            raise ValueError("conversation_id must be a non-empty string")
+        # Strip null bytes
+        conversation_id = conversation_id.replace("\x00", "")
+        if not self._VALID_CONV_ID.match(conversation_id):
+            raise ValueError(
+                "conversation_id must be 1-100 alphanumeric characters, hyphens, or underscores"
+            )
+        return conversation_id
+
     def get_or_create_conversation(self, conversation_id: str) -> Conversation:
         """
         Get existing conversation or create new one.
 
         Args:
-            conversation_id: Unique conversation identifier
+            conversation_id: Unique conversation identifier (alphanumeric, hyphens, underscores)
 
         Returns:
             Conversation object
+
+        Raises:
+            ValueError: If conversation_id is invalid
         """
+        conversation_id = self._validate_conversation_id(conversation_id)
         with self.lock:
             if conversation_id not in self.conversations:
+                # Hard cap: prevent unbounded memory growth
+                if len(self.conversations) >= self._MAX_CONVERSATIONS:
+                    logger.warning("ConversationManager: hit max conversations cap (%d), running cleanup", self._MAX_CONVERSATIONS)
+                    self._cleanup_oldest_unlocked()
                 # Create new conversation with bounded deque
                 conv = Conversation(
                     conversation_id=conversation_id,
@@ -132,6 +160,19 @@ class ConversationManager:
                 self.stats['total_conversations'] += 1
 
             return self.conversations[conversation_id]
+
+    def _cleanup_oldest_unlocked(self) -> None:
+        """Remove the 10% oldest conversations to make room. Must hold self.lock."""
+        if not self.conversations:
+            return
+        sorted_convs = sorted(
+            self.conversations.items(),
+            key=lambda kv: kv[1].last_activity,
+        )
+        remove_count = max(1, len(sorted_convs) // 10)
+        for cid, _ in sorted_convs[:remove_count]:
+            del self.conversations[cid]
+            self.stats['conversations_cleaned'] += 1
 
     def add_message(
         self,
@@ -145,10 +186,21 @@ class ConversationManager:
 
         Args:
             conversation_id: Conversation identifier
-            user_message: User's message
+            user_message: User's message (max 50000 chars, sanitized)
             bot_response: Bot's response
             metadata: Optional metadata (confidence, band, etc.)
         """
+        # Input length bounds (CWE-400)
+        if isinstance(user_message, str):
+            user_message = user_message[:50000]
+        if isinstance(bot_response, str):
+            bot_response = bot_response[:50000]
+        # Sanitize metadata keys/values
+        if metadata:
+            metadata = {
+                str(k)[:256]: (str(v)[:10000] if isinstance(v, str) else v)
+                for k, v in (metadata or {}).items()
+            }
         conv = self.get_or_create_conversation(conversation_id)
         conv.add_message(user_message, bot_response, metadata)
         self.stats['total_messages'] += 1
