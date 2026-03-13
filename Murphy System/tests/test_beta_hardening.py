@@ -79,25 +79,21 @@ def _restore_modules_after_reload():
 class TestDatabaseConnectorStubModeGuard:
     """Database connector must refuse stub mode in production/staging."""
 
-    def _reload_module(self, env_override: dict):
-        """Reload database_connectors with patched env."""
-        import integrations.database_connectors as dc_mod
-        with patch.dict(os.environ, env_override, clear=False):
-            importlib.reload(dc_mod)
-            return dc_mod
-
-    def test_stub_mode_allowed_in_development(self, monkeypatch):
-        monkeypatch.setenv("MURPHY_ENV", "development")
-        monkeypatch.setenv("MURPHY_DB_MODE", "stub")
+    @staticmethod
+    def _reload_db_connectors(monkeypatch, murphy_env: str, db_mode: str):
+        """Set env vars and reload database_connectors; return the module."""
+        monkeypatch.setenv("MURPHY_ENV", murphy_env)
+        monkeypatch.setenv("MURPHY_DB_MODE", db_mode)
         import integrations.database_connectors as dc
         importlib.reload(dc)
+        return dc
+
+    def test_stub_mode_allowed_in_development(self, monkeypatch):
+        dc = self._reload_db_connectors(monkeypatch, "development", "stub")
         assert dc.stub_mode_allowed() is True
 
     def test_stub_mode_allowed_in_test(self, monkeypatch):
-        monkeypatch.setenv("MURPHY_ENV", "test")
-        monkeypatch.setenv("MURPHY_DB_MODE", "stub")
-        import integrations.database_connectors as dc
-        importlib.reload(dc)
+        dc = self._reload_db_connectors(monkeypatch, "test", "stub")
         assert dc.stub_mode_allowed() is True
 
     def test_stub_mode_not_allowed_in_production(self, monkeypatch):
@@ -115,18 +111,11 @@ class TestDatabaseConnectorStubModeGuard:
             importlib.reload(dc)
 
     def test_live_mode_allowed_in_production(self, monkeypatch):
-        monkeypatch.setenv("MURPHY_ENV", "production")
-        monkeypatch.setenv("MURPHY_DB_MODE", "live")
-        import integrations.database_connectors as dc
-        # Should not raise
-        importlib.reload(dc)
+        dc = self._reload_db_connectors(monkeypatch, "production", "live")
         assert dc.MURPHY_DB_MODE == "live"
 
     def test_stub_mode_allowed_helper_false_in_production(self, monkeypatch):
-        monkeypatch.setenv("MURPHY_ENV", "production")
-        monkeypatch.setenv("MURPHY_DB_MODE", "live")
-        import integrations.database_connectors as dc
-        importlib.reload(dc)
+        dc = self._reload_db_connectors(monkeypatch, "production", "live")
         assert dc.stub_mode_allowed() is False
 
 
@@ -184,11 +173,17 @@ class TestE2EEStubGuard:
 class TestConnectionPoolManagerProductionGuard:
     """ConnectionPoolManager must refuse simulated mode in production/staging."""
 
-    def test_simulated_ok_in_development(self, monkeypatch):
-        monkeypatch.setenv("MURPHY_ENV", "development")
-        monkeypatch.setenv("MURPHY_POOL_MODE", "simulated")
+    @staticmethod
+    def _reload_pool_manager(monkeypatch, murphy_env: str, pool_mode: str):
+        """Set env vars and reload system_performance_optimizer; return the module."""
+        monkeypatch.setenv("MURPHY_ENV", murphy_env)
+        monkeypatch.setenv("MURPHY_POOL_MODE", pool_mode)
         import system_performance_optimizer as spo
-        importlib.reload(spo)  # Should not raise
+        importlib.reload(spo)
+        return spo
+
+    def test_simulated_ok_in_development(self, monkeypatch):
+        spo = self._reload_pool_manager(monkeypatch, "development", "simulated")
         assert spo.MURPHY_POOL_MODE == "simulated"
 
     def test_simulated_refused_in_production(self, monkeypatch):
@@ -207,10 +202,7 @@ class TestConnectionPoolManagerProductionGuard:
 
     def test_get_connection_logs_warning_in_simulated(self, monkeypatch, caplog):
         import logging
-        monkeypatch.setenv("MURPHY_ENV", "development")
-        monkeypatch.setenv("MURPHY_POOL_MODE", "simulated")
-        import system_performance_optimizer as spo
-        importlib.reload(spo)
+        spo = self._reload_pool_manager(monkeypatch, "development", "simulated")
         pool_mgr = spo.ConnectionPoolManager()
         pool_mgr.create_pool("test", "mem", {"pool_size": 2})
         with caplog.at_level(logging.WARNING):
