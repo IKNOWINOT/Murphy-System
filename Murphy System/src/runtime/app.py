@@ -2713,7 +2713,7 @@ def main():
             from src.persistence_manager import PersistenceManager
             _pm = PersistenceManager()
             _shutdown_mgr.register_cleanup_handler(
-                lambda: _pm.flush() if hasattr(_pm, "flush") else None,
+                lambda: getattr(_pm, "flush", lambda: None)(),
                 "persistence_manager_flush",
             )
         except Exception:
@@ -2724,7 +2724,7 @@ def main():
             from src.rate_limiter import RateLimiter
             _rl = RateLimiter()
             _shutdown_mgr.register_cleanup_handler(
-                lambda: _rl.save_state() if hasattr(_rl, "save_state") else None,
+                lambda: getattr(_rl, "save_state", lambda: None)(),
                 "rate_limiter_state_save",
             )
         except Exception:
