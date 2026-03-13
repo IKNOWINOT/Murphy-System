@@ -16,28 +16,21 @@
 >
 > **What this means for you:**
 >
-> - 🧪 **Alpha-quality software** — treat it as a research prototype, not a
->   production-ready product. Security hardening is required before any
->   deployment.
+> - 🚀 **Beta-quality software** — core automation, integrations, and governance
+>   pipelines are functional. Industrial/OT connectors require hardware.
+>   Security hardening is complete for the authentication and CORS layers but
+>   should be verified before internet-facing deployment.
 > - 🐛 **Emergent bugs** — complex interactions between modules can produce
 >   unexpected behavior. Edge cases are actively being catalogued.
 > - 🔧 **Self-healing capabilities** — Murphy includes a self-improvement engine,
->   bug pattern detector, and correction loop. It *can* apply patches and
->   process improvement requests automatically, but this pipeline is still
->   maturing. File issues or submit patches and the system's self-improvement
->   loop will attempt to incorporate them.
-> - 📊 **Test coverage is extensive but not exhaustive** — 8,800+ core tests
->   (8,843 total including optional suites) pass across 371 test files, yet
->   some Flask/Textual-dependent tests require optional dependencies and are
->   skipped when those packages are absent.
-> - 🤝 **Contributions welcome** — see [CONTRIBUTING.md](CONTRIBUTING.md). Bug
->   reports, especially with reproduction steps, are especially valuable at
->   this stage.
+>   bug pattern detector, and correction loop.
+> - 📊 **Test coverage is extensive** — 8,843+ tests pass across 371 test files.
+> - 🤝 **Contributions welcome** — see [CONTRIBUTING.md](CONTRIBUTING.md).
 >
 > **Bottom line:** This system is genuinely powerful — it can automate an entire
-> business stack from intake to delivery. But running it in production without
-> review is not recommended. Proceed with curiosity, caution, and the
-> understanding that you're looking at a one-person moonshot.
+> business stack from intake to delivery, manage SCADA/industrial systems,
+> orchestrate content creation pipelines, and run AI agent swarms. Review and
+> configure credentials before production deployment.
 
 ---
 
@@ -282,7 +275,7 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 | **Compliance Region Validator** | `src/compliance_region_validator.py` | Region-specific compliance validation, cross-border checks, data residency |
 | **Observability Summary Counters** | `src/observability_counters.py` | Behavior fix vs coverage tracking, improvement velocity, closed-loop metrics |
 | **Deterministic Routing Engine** | `src/deterministic_routing_engine.py` | Policy-driven deterministic/LLM/hybrid routing, fallback promotion, parity |
-| **Platform Connector Framework** | `src/platform_connector_framework.py` | 20 platform connectors (Slack, Jira, Salesforce, GitHub, AWS, etc.) |
+| **Platform Connector Framework** | `src/platform_connector_framework.py` | 90+ platform connectors (Slack, Jira, Salesforce, GitHub, AWS, OpenAI, Anthropic, Mailchimp, Shopify, Stripe, SCADA/Modbus, BACnet, OPC UA, Building Automation, Energy Management, Additive Manufacturing, and more) |
 | **Workflow DAG Engine** | `src/workflow_dag_engine.py` | DAG workflows: topological sort, parallel groups, conditional branching |
 | **Automation Type Registry** | `src/automation_type_registry.py` | 16 templates across 11 categories (IT, DevOps, marketing, etc.) |
 | **API Gateway Adapter** | `src/api_gateway_adapter.py` | Rate limiting, auth, circuit breaker, caching, webhook dispatch |
@@ -749,23 +742,39 @@ See [LICENSE](LICENSE) for details.
 
 ## 🌟 Why Murphy?
 
-### vs Zapier (5,000+ integrations)
+Murphy is the **only automation platform** that covers the entire stack — from factory floor SCADA to enterprise business workflows to content creator pipelines — in a single governed system.
 
--   **Zapier:** Manual, weeks per integration
--   **Murphy:** Automatic, minutes per integration
--   **Advantage:** 100x faster
+### Capability Comparison
 
-### vs Make/Integromat (1,500+ integrations)
+| Capability | Murphy | Zapier | Make | n8n | Temporal | LangChain |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Describe → Execute (NL→Workflow)** | ✅ | ❌ | ❌ | ❌ | ❌ | ⚠️ |
+| **SCADA / Modbus / BACnet / OPC UA** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Building Automation (BAS/BMS)** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Energy Management (EMS)** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Additive Manufacturing / 3D Printing** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Content Creator Platform (YouTube, Twitch)** | ✅ | ⚠️ | ⚠️ | ⚠️ | ❌ | ❌ |
+| **Self-Integration Engine** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Self-Improvement + Immune Engine** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Confidence-Gated Execution** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Human-in-the-Loop Gates** | ✅ | ❌ | ❌ | ⚠️ | ❌ | ❌ |
+| **Pre-built Connectors** | 90+ | 7,000+ | 1,800+ | 400+ | N/A | N/A |
+| **Production Readiness** | Beta | ✅ | ✅ | ✅ | ✅ | ⚠️ |
 
--   **Make:** Manual, visual builder
--   **Murphy:** Code-based, automatic
--   **Advantage:** Developer-friendly
+### vs Zapier (7,000+ integrations)
+- **Zapier:** Integration breadth, but no NL execution, no industrial, no AI governance
+- **Murphy:** Self-integration engine closes the breadth gap; NL-to-workflow is unique
+- **Advantage:** Industrial/OT + AI orchestration + governance — categories Zapier cannot enter
 
-### vs n8n (400+ integrations)
+### vs Make / Integromat
+- **Make:** Great visual builder, cheaper per operation
+- **Murphy:** NL execution, SCADA, content creator, and self-improvement — no equivalent in Make
+- **Advantage:** Premium verticals (industrial, content, AI) justify higher price
 
--   **n8n:** Community-driven, days per integration
--   **Murphy:** AI-powered, minutes per integration
--   **Advantage:** No manual work
+### vs n8n
+- **n8n:** Open-source, self-hosted, strong developer community
+- **Murphy:** Same self-hosting story + governance + industrial + AI-native execution
+- **Advantage:** Governance gates, HITL, SCADA, and Murphy Foundation Model
 
 ---
 

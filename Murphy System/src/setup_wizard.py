@@ -41,6 +41,35 @@ VALID_INDUSTRIES = [
     "retail", "energy", "media", "other",
 ]
 
+# World Model integrations available during onboarding (free-tier first)
+VALID_INTEGRATIONS = [
+    # No credentials required (fully public APIs)
+    "yahoo_finance",    # Market data — no API key required
+    # Industrial (local network hardware — no cloud subscription)
+    "scada",            # SCADA / ICS — requires local Modbus/BACnet/OPC UA hardware
+    # Free tier (API key required — no cost to sign up)
+    "openweathermap",   # Weather — free tier API key
+    "discord",          # Communication bot
+    "telegram",         # Communication bot
+    "trello",           # Project management
+    "asana",            # Project management
+    "hubspot",          # CRM
+    "mailchimp",        # Email marketing
+    "google_drive",     # Cloud storage
+    "dropbox",          # Cloud storage
+    "stripe",           # Payments (free API key, pay-per-transaction)
+    "google_analytics", # Analytics
+    "twitter",          # Social media
+    "supabase",         # Database
+    "firebase",         # Database
+    "datadog",          # Monitoring (free tier)
+    "cloudflare",       # DNS / CDN (free tier)
+    # Requires paid account or existing store
+    "shopify",          # E-commerce (requires Shopify store)
+    "openai",           # AI/ML (paid per-token API)
+    "anthropic",        # AI/ML (paid per-token API)
+]
+
 
 @dataclass
 class SetupProfile:
@@ -60,6 +89,7 @@ class SetupProfile:
     compliance_frameworks: List[str] = field(default_factory=list)
     deployment_mode: str = "local"
     sales_automation_enabled: bool = False
+    enabled_integrations: List[str] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -269,6 +299,14 @@ def _build_questions() -> List[Dict[str, Any]]:
             "options": None,
             "default": False,
         },
+        {
+            "id": "q13",
+            "text": "Which external integrations would you like to enable?",
+            "field": "enabled_integrations",
+            "question_type": "multi_choice",
+            "options": VALID_INTEGRATIONS,
+            "default": [],
+        },
     ]
 
 
@@ -378,6 +416,10 @@ class SetupWizard:
             },
             "sales_automation": {
                 "enabled": profile.sales_automation_enabled,
+            },
+            "integrations": {
+                "enabled": list(profile.enabled_integrations),
+                "credentials_env_var_prefix": "MURPHY_",
             },
             "modules": modules,
             "bots": bots,
@@ -544,6 +586,7 @@ class SetupWizard:
             f"Compliance   : {', '.join(profile.compliance_frameworks) or 'none'}",
             f"Deployment   : {profile.deployment_mode}",
             f"Sales Auto   : {'enabled' if profile.sales_automation_enabled else 'disabled'}",
+            f"Integrations : {', '.join(profile.enabled_integrations) or 'none'}",
         ])
 
         modules = self.get_enabled_modules(profile)
