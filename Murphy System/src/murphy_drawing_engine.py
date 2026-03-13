@@ -25,6 +25,37 @@ logger = logging.getLogger(__name__)
 # Enums
 # ---------------------------------------------------------------------------
 
+class LineStyle(str, Enum):
+    """LineStyle — engineering line style definitions."""
+    CONTINUOUS = "continuous"
+    DASHED = "dashed"
+    CENTER = "center"
+    PHANTOM = "phantom"
+    DIMENSION = "dimension"
+    CONSTRUCTION = "construction"
+
+
+# Stroke-dash arrays for SVG rendering keyed by LineStyle
+_LINE_STYLE_DASHARRAY: Dict[str, str] = {
+    LineStyle.CONTINUOUS: "",
+    LineStyle.DASHED: "8,4",
+    LineStyle.CENTER: "20,5,5,5",
+    LineStyle.PHANTOM: "20,5,5,5,5,5",
+    LineStyle.DIMENSION: "",
+    LineStyle.CONSTRUCTION: "2,4",
+}
+
+# Nominal line weights (mm) keyed by LineStyle
+_LINE_STYLE_WEIGHT: Dict[str, float] = {
+    LineStyle.CONTINUOUS: 0.5,
+    LineStyle.DASHED: 0.35,
+    LineStyle.CENTER: 0.35,
+    LineStyle.PHANTOM: 0.35,
+    LineStyle.DIMENSION: 0.25,
+    LineStyle.CONSTRUCTION: 0.18,
+}
+
+
 class Discipline(str, Enum):
     """Discipline enumeration."""
     MECHANICAL = "mechanical"
@@ -98,6 +129,8 @@ class DrawingElement(BaseModel):
     properties: Dict[str, Any] = Field(default_factory=dict)
     layer: str = "0"
     constraints: List[Dict[str, Any]] = Field(default_factory=list)
+    line_style: LineStyle = LineStyle.CONTINUOUS
+    line_weight: float = 0.5
 
 
 class TitleBlock(BaseModel):
@@ -176,10 +209,82 @@ class BOMExtractor:
 class DrawingExporter:
     """Export drawings to DXF (text-based), SVG, and PDF formats."""
 
+    # ------------------------------------------------------------------
+    # SVG defs builders
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _svg_arrow_marker_defs() -> str:
+        """Return SVG <marker> definitions for dimension/leader arrows."""
+        return (
+            '<marker id="arrow-start" markerWidth="10" markerHeight="7" '
+            'refX="0" refY="3.5" orient="auto">'
+            '<polygon points="10 0, 10 7, 0 3.5" fill="black"/></marker>\n'
+            '    <marker id="arrow-end" markerWidth="10" markerHeight="7" '
+            'refX="10" refY="3.5" orient="auto-start-reverse">'
+            '<polygon points="10 0, 10 7, 0 3.5" fill="black"/></marker>'
+        )
+
+    @staticmethod
+    def _svg_hatch_pattern_defs() -> str:
+        """Return SVG <pattern> definitions for standard ANSI hatch styles."""
+        return (
+            '<pattern id="hatch-ansi31" patternUnits="userSpaceOnUse" '
+            'width="8" height="8" patternTransform="rotate(45)">'
+            '<line x1="0" y1="0" x2="0" y2="8" stroke="black" stroke-width="0.5"/>'
+            '</pattern>\n'
+            '    <pattern id="hatch-ansi32" patternUnits="userSpaceOnUse" '
+            'width="8" height="8" patternTransform="rotate(45)">'
+            '<line x1="0" y1="0" x2="0" y2="8" stroke="black" stroke-width="0.5"/>'
+            '<line x1="4" y1="0" x2="4" y2="8" stroke="black" stroke-width="0.5"/>'
+            '</pattern>\n'
+            '    <pattern id="hatch-ansi33" patternUnits="userSpaceOnUse" '
+            'width="8" height="8" patternTransform="rotate(30)">'
+            '<line x1="0" y1="0" x2="0" y2="8" stroke="black" stroke-width="0.5"/>'
+            '<line x1="4" y1="0" x2="4" y2="8" stroke="black" stroke-width="0.75"/>'
+            '</pattern>\n'
+            '    <pattern id="hatch-ansi37" patternUnits="userSpaceOnUse" '
+            'width="10" height="10">'
+            '<rect width="10" height="10" fill="none" stroke="black" stroke-width="0.3"/>'
+            '<line x1="0" y1="5" x2="10" y2="5" stroke="black" stroke-width="0.3"/>'
+            '</pattern>'
+        )
+
+    @staticmethod
+    def _svg_stroke_attrs(elem: "DrawingElement") -> str:
+        """Return SVG stroke attributes from element line_style and line_weight."""
+        dasharray = _LINE_STYLE_DASHARRAY.get(elem.line_style, "")
+        weight = elem.line_weight
+        attrs = f'stroke="black" stroke-width="{weight}"'
+        if dasharray:
+            attrs += f' stroke-dasharray="{dasharray}"'
+        return attrs
+
     def to_dxf(self, project: DrawingProject) -> str:
-        """Generate a minimal DXF R12 ASCII string from the project."""
+        """Generate a DXF R12 ASCII string from the project with full entity support."""
         lines: List[str] = []
+        # HEADER section
         lines.append("0\nSECTION\n2\nHEADER\n0\nENDSEC")
+        # TABLES section — layer and linetype definitions
+        lines.append("0\nSECTION\n2\nTABLES")
+        lines.append(
+            "0\nTABLE\n2\nLTYPE\n70\n6\n"
+            "0\nLTYPE\n2\nCONTINUOUS\n70\n0\n3\nSolid line\n72\n65\n73\n0\n40\n0.0\n"
+            "0\nLTYPE\n2\nDASHED\n70\n0\n3\nDashed\n72\n65\n73\n2\n40\n0.75\n49\n0.5\n49\n-0.25\n"
+            "0\nLTYPE\n2\nCENTER\n70\n0\n3\nCenter\n72\n65\n73\n4\n40\n2.0\n49\n1.25\n49\n-0.25\n49\n0.25\n49\n-0.25\n"
+            "0\nLTYPE\n2\nPHANTOM\n70\n0\n3\nPhantom\n72\n65\n73\n6\n40\n2.5\n49\n1.25\n49\n-0.25\n49\n0.25\n49\n-0.25\n49\n0.25\n49\n-0.25\n"
+            "0\nENDTAB"
+        )
+        lines.append(
+            "0\nTABLE\n2\nLAYER\n70\n4\n"
+            "0\nLAYER\n2\n0\n70\n0\n62\n7\n6\nCONTINUOUS\n"
+            "0\nLAYER\n2\nCENTERLINES\n70\n0\n62\n1\n6\nCENTER\n"
+            "0\nLAYER\n2\nHIDDEN\n70\n0\n62\n3\n6\nDASHED\n"
+            "0\nLAYER\n2\nDIMENSIONS\n70\n0\n62\n2\n6\nCONTINUOUS\n"
+            "0\nENDTAB"
+        )
+        lines.append("0\nENDSEC")
+        # ENTITIES section
         lines.append("0\nSECTION\n2\nENTITIES")
         for sheet in project.sheets:
             for elem in sheet.elements:
@@ -205,6 +310,18 @@ class DrawingExporter:
                         f"30\n{g.get('cz', 0.0)}\n"
                         f"40\n{g.get('radius', 1.0)}"
                     )
+                elif elem.element_type == ElementType.ARC:
+                    g = elem.geometry
+                    lines.append(
+                        "0\nARC\n"
+                        f"8\n{elem.layer}\n"
+                        f"10\n{g.get('cx', 0.0)}\n"
+                        f"20\n{g.get('cy', 0.0)}\n"
+                        f"30\n{g.get('cz', 0.0)}\n"
+                        f"40\n{g.get('radius', 1.0)}\n"
+                        f"50\n{g.get('start_angle', 0.0)}\n"
+                        f"51\n{g.get('end_angle', 90.0)}"
+                    )
                 elif elem.element_type == ElementType.TEXT:
                     g = elem.geometry
                     lines.append(
@@ -216,40 +333,94 @@ class DrawingExporter:
                         f"40\n{g.get('height', 2.5)}\n"
                         f"1\n{elem.properties.get('text', '')}"
                     )
+                elif elem.element_type == ElementType.DIMENSION:
+                    # Emit dimension as paired lines + text in DXF R12
+                    g = elem.geometry
+                    x1 = g.get("x1", 0.0)
+                    y1 = g.get("y1", 0.0)
+                    x2 = g.get("x2", 10.0)
+                    y2 = g.get("y2", 0.0)
+                    offset = g.get("offset", 10.0)
+                    dim_text = elem.properties.get("text", "")
+                    mid_x = (x1 + x2) / 2
+                    mid_y = (y1 + y2) / 2 - offset
+                    # Dimension line
+                    lines.append(
+                        f"0\nLINE\n8\nDIMENSIONS\n"
+                        f"10\n{x1}\n20\n{y1 - offset}\n30\n0.0\n"
+                        f"11\n{x2}\n21\n{y2 - offset}\n31\n0.0"
+                    )
+                    # Extension lines
+                    lines.append(
+                        f"0\nLINE\n8\nDIMENSIONS\n"
+                        f"10\n{x1}\n20\n{y1}\n30\n0.0\n"
+                        f"11\n{x1}\n21\n{y1 - offset}\n31\n0.0"
+                    )
+                    lines.append(
+                        f"0\nLINE\n8\nDIMENSIONS\n"
+                        f"10\n{x2}\n20\n{y2}\n30\n0.0\n"
+                        f"11\n{x2}\n21\n{y2 - offset}\n31\n0.0"
+                    )
+                    if dim_text:
+                        lines.append(
+                            f"0\nTEXT\n8\nDIMENSIONS\n"
+                            f"10\n{mid_x}\n20\n{mid_y}\n30\n0.0\n"
+                            f"40\n2.5\n1\n{dim_text}"
+                        )
+                elif elem.element_type == ElementType.HATCH:
+                    # Emit hatch boundary as LINE entities
+                    g = elem.geometry
+                    boundary = g.get("boundary", [])
+                    for i in range(len(boundary)):
+                        p1 = boundary[i]
+                        p2 = boundary[(i + 1) % len(boundary)]
+                        lines.append(
+                            f"0\nLINE\n8\n{elem.layer}\n"
+                            f"10\n{p1.get('x', 0.0)}\n20\n{p1.get('y', 0.0)}\n30\n0.0\n"
+                            f"11\n{p2.get('x', 0.0)}\n21\n{p2.get('y', 0.0)}\n31\n0.0"
+                        )
         lines.append("0\nENDSEC\n0\nEOF")
         return "\n".join(lines)
 
     def to_svg(self, project: DrawingProject, width: int = 800, height: int = 600) -> str:
-        """Generate a minimal SVG string from the project."""
+        """Generate an SVG string from the project with line styles, weights, and engineering features."""
+        defs_parts: List[str] = [
+            self._svg_arrow_marker_defs(),
+            self._svg_hatch_pattern_defs(),
+        ]
+        defs = "  <defs>\n    " + "\n    ".join(defs_parts) + "\n  </defs>"
+
         svg_elements: List[str] = []
         for sheet in project.sheets:
             for elem in sheet.elements:
+                stroke = self._svg_stroke_attrs(elem)
                 if elem.element_type == ElementType.LINE:
                     g = elem.geometry
                     svg_elements.append(
                         f'<line x1="{g.get("x1", 0)}" y1="{g.get("y1", 0)}" '
                         f'x2="{g.get("x2", 0)}" y2="{g.get("y2", 0)}" '
-                        f'stroke="black" stroke-width="1"/>'
+                        f'{stroke}/>'
                     )
                 elif elem.element_type == ElementType.CIRCLE:
                     g = elem.geometry
                     svg_elements.append(
                         f'<circle cx="{g.get("cx", 0)}" cy="{g.get("cy", 0)}" '
-                        f'r="{g.get("radius", 1)}" fill="none" stroke="black" stroke-width="1"/>'
+                        f'r="{g.get("radius", 1)}" fill="none" {stroke}/>'
                     )
                 elif elem.element_type == ElementType.RECTANGLE:
                     g = elem.geometry
                     svg_elements.append(
                         f'<rect x="{g.get("x", 0)}" y="{g.get("y", 0)}" '
                         f'width="{g.get("width", 10)}" height="{g.get("height", 10)}" '
-                        f'fill="none" stroke="black" stroke-width="1"/>'
+                        f'fill="none" {stroke}/>'
                     )
                 elif elem.element_type == ElementType.TEXT:
                     g = elem.geometry
                     text_val = elem.properties.get("text", "")
+                    font_size = g.get("height", 12)
                     svg_elements.append(
                         f'<text x="{g.get("x", 0)}" y="{g.get("y", 0)}" '
-                        f'font-size="{g.get("height", 12)}">{text_val}</text>'
+                        f'font-size="{font_size}" font-family="sans-serif">{text_val}</text>'
                     )
                 elif elem.element_type == ElementType.ARC:
                     g = elem.geometry
@@ -267,7 +438,7 @@ class DrawingExporter:
                     large_arc = 1 if (end_deg - start_deg) % 360 > 180 else 0
                     svg_elements.append(
                         f'<path d="M {x1:.3f} {y1:.3f} A {r} {r} 0 {large_arc} 1 {x2:.3f} {y2:.3f}" '
-                        f'fill="none" stroke="black" stroke-width="1"/>'
+                        f'fill="none" {stroke}/>'
                     )
                 elif elem.element_type == ElementType.POLYGON:
                     g = elem.geometry
@@ -275,15 +446,99 @@ class DrawingExporter:
                     if verts:
                         pts_str = " ".join(f'{v.get("x",0)},{v.get("y",0)}' for v in verts)
                         svg_elements.append(
-                            f'<polygon points="{pts_str}" fill="none" stroke="black" stroke-width="1"/>'
+                            f'<polygon points="{pts_str}" fill="none" {stroke}/>'
                         )
+                elif elem.element_type == ElementType.HATCH:
+                    g = elem.geometry
+                    boundary = g.get("boundary", [])
+                    hatch_style = elem.properties.get("hatch_style", "ansi31")
+                    if boundary:
+                        pts_str = " ".join(f'{v.get("x",0)},{v.get("y",0)}' for v in boundary)
+                        svg_elements.append(
+                            f'<polygon points="{pts_str}" '
+                            f'fill="url(#hatch-{hatch_style})" '
+                            f'{stroke}/>'
+                        )
+                elif elem.element_type == ElementType.DIMENSION:
+                    g = elem.geometry
+                    x1 = g.get("x1", 0)
+                    y1 = g.get("y1", 0)
+                    x2 = g.get("x2", 100)
+                    y2 = g.get("y2", 0)
+                    offset = g.get("offset", 15)
+                    dim_text = elem.properties.get("text", "")
+                    mid_x = (x1 + x2) / 2
+                    mid_y = (y1 + y2) / 2 - offset - 3
+                    # Main dimension line with arrows
+                    svg_elements.append(
+                        f'<line x1="{x1}" y1="{y1 - offset}" '
+                        f'x2="{x2}" y2="{y2 - offset}" '
+                        f'stroke="black" stroke-width="0.25" '
+                        f'marker-start="url(#arrow-start)" marker-end="url(#arrow-end)"/>'
+                    )
+                    # Extension lines
+                    svg_elements.append(
+                        f'<line x1="{x1}" y1="{y1}" x2="{x1}" y2="{y1 - offset}" '
+                        f'stroke="black" stroke-width="0.25"/>'
+                    )
+                    svg_elements.append(
+                        f'<line x1="{x2}" y1="{y2}" x2="{x2}" y2="{y2 - offset}" '
+                        f'stroke="black" stroke-width="0.25"/>'
+                    )
+                    if dim_text:
+                        svg_elements.append(
+                            f'<text x="{mid_x}" y="{mid_y}" font-size="10" '
+                            f'text-anchor="middle" font-family="sans-serif">{dim_text}</text>'
+                        )
+                elif elem.element_type == ElementType.LEADER:
+                    g = elem.geometry
+                    pts = g.get("points", [])
+                    note = elem.properties.get("text", "")
+                    if len(pts) >= 2:
+                        p0, p1 = pts[0], pts[-1]
+                        pts_str = " ".join(f'{p.get("x",0)},{p.get("y",0)}' for p in pts)
+                        svg_elements.append(
+                            f'<polyline points="{pts_str}" fill="none" '
+                            f'stroke="black" stroke-width="0.35" '
+                            f'marker-start="url(#arrow-start)"/>'
+                        )
+                        if note:
+                            svg_elements.append(
+                                f'<text x="{p1.get("x",0) + 3}" y="{p1.get("y",0)}" '
+                                f'font-size="10" font-family="sans-serif">{note}</text>'
+                            )
+            # Title block rendering for this sheet
+            tb = sheet.title_block
+            if tb.drawing_number or tb.company:
+                svg_elements += self._svg_title_block(tb, width, height)
         body = "\n  ".join(svg_elements)
         return (
             f'<?xml version="1.0" encoding="UTF-8"?>\n'
             f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}">\n'
+            f'{defs}\n'
             f'  {body}\n'
             f'</svg>'
         )
+
+    @staticmethod
+    def _svg_title_block(tb: "TitleBlock", width: int, height: int) -> List[str]:
+        """Render the title block as SVG elements at the bottom-right of the sheet."""
+        bx = width - 200
+        by = height - 60
+        return [
+            f'<rect x="{bx}" y="{by}" width="200" height="60" '
+            f'fill="white" stroke="black" stroke-width="0.5"/>',
+            f'<text x="{bx + 5}" y="{by + 12}" font-size="8" font-family="sans-serif">'
+            f'{tb.company}</text>',
+            f'<text x="{bx + 5}" y="{by + 24}" font-size="8" font-family="sans-serif">'
+            f'DWG: {tb.drawing_number}  REV: {tb.revision}</text>',
+            f'<text x="{bx + 5}" y="{by + 36}" font-size="7" font-family="sans-serif">'
+            f'BY: {tb.drawn_by}  CHK: {tb.checked_by}</text>',
+            f'<text x="{bx + 5}" y="{by + 48}" font-size="7" font-family="sans-serif">'
+            f'APPR: {tb.approved_by}  DATE: {tb.date}</text>',
+            f'<text x="{bx + 5}" y="{by + 58}" font-size="7" font-family="sans-serif">'
+            f'PE: {tb.pe_stamp_id or "N/A"}</text>',
+        ]
 
     def to_pdf_placeholder(self, project: DrawingProject) -> Dict[str, Any]:
         """Return metadata for PDF generation (actual PDF via reportlab in production)."""
@@ -317,12 +572,24 @@ class AgenticDrawingAssistant:
           - "add a circle radius 5 at 10,10"
           - "add text 'Murphy Drawing' at 0,0"
           - "create sheet A1"
+          - "add centerline from (0,0) to (100,0)"
+          - "add dimension from (0,0) to (100,0)"
+          - "draw motor at 50,50"
+          - "create pump assembly"
         """
         cmd = command.strip().lower()
         result: Dict[str, Any] = {"command": command, "success": False, "message": ""}
 
         try:
-            if "rectangle" in cmd:
+            if "pump assembly" in cmd or "pump_assembly" in cmd:
+                result = self._handle_pump_assembly(command)
+            elif "centerline" in cmd:
+                result = self._handle_centerline(command)
+            elif "dimension" in cmd and ("add" in cmd or "draw" in cmd):
+                result = self._handle_dimension(command)
+            elif "motor" in cmd and "draw" in cmd:
+                result = self._handle_motor(command)
+            elif "rectangle" in cmd:
                 result = self._handle_rectangle(command)
             elif "circle" in cmd:
                 result = self._handle_circle(command)
@@ -471,9 +738,334 @@ class AgenticDrawingAssistant:
             "element_id": elem.element_id,
         }
 
+    def _handle_centerline(self, command: str) -> Dict[str, Any]:
+        import re
+        pts = re.findall(r"\(?\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)?", command)
+        x1, y1 = (float(pts[0][0]), float(pts[0][1])) if len(pts) > 0 else (0.0, 0.0)
+        x2, y2 = (float(pts[1][0]), float(pts[1][1])) if len(pts) > 1 else (100.0, 0.0)
+        elem = DrawingElement(
+            element_type=ElementType.LINE,
+            geometry={"x1": x1, "y1": y1, "z1": 0.0, "x2": x2, "y2": y2, "z2": 0.0},
+            layer="CENTERLINES",
+            line_style=LineStyle.CENTER,
+            line_weight=0.35,
+        )
+        sheet = self._get_or_create_sheet()
+        sheet.elements.append(elem)
+        # Add "CL" label near start
+        label = DrawingElement(
+            element_type=ElementType.TEXT,
+            geometry={"x": x1 - 8, "y": y1, "z": 0.0, "height": 2.5},
+            properties={"text": "CL"},
+            layer="CENTERLINES",
+        )
+        sheet.elements.append(label)
+        return {
+            "command": command,
+            "success": True,
+            "message": f"Centerline from ({x1},{y1}) to ({x2},{y2}) added",
+            "element_id": elem.element_id,
+        }
+
+    def _handle_dimension(self, command: str) -> Dict[str, Any]:
+        import re
+        pts = re.findall(r"\(?\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)?", command)
+        x1, y1 = (float(pts[0][0]), float(pts[0][1])) if len(pts) > 0 else (0.0, 0.0)
+        x2, y2 = (float(pts[1][0]), float(pts[1][1])) if len(pts) > 1 else (100.0, 0.0)
+        distance = math.hypot(x2 - x1, y2 - y1)
+        dim_text = f"{distance:.1f}"
+        elem = DrawingElement(
+            element_type=ElementType.DIMENSION,
+            geometry={"x1": x1, "y1": y1, "x2": x2, "y2": y2, "offset": 15.0},
+            properties={"text": dim_text},
+            layer="DIMENSIONS",
+            line_style=LineStyle.DIMENSION,
+            line_weight=0.25,
+        )
+        sheet = self._get_or_create_sheet()
+        sheet.elements.append(elem)
+        return {
+            "command": command,
+            "success": True,
+            "message": f"Dimension {dim_text} from ({x1},{y1}) to ({x2},{y2}) added",
+            "element_id": elem.element_id,
+        }
+
+    def _handle_motor(self, command: str) -> Dict[str, Any]:
+        import re
+        coords = re.findall(r"at\s+\(?\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)?", command)
+        x = float(coords[0][0]) if coords else 0.0
+        y = float(coords[0][1]) if coords else 0.0
+        sheet = self._get_or_create_sheet()
+        elements = EngineeringSymbolLibrary.motor(x, y, 60.0, 40.0)
+        for e in elements:
+            sheet.elements.append(e)
+        return {
+            "command": command,
+            "success": True,
+            "message": f"Motor symbol at ({x},{y}) added ({len(elements)} elements)",
+        }
+
+    def _handle_pump_assembly(self, command: str) -> Dict[str, Any]:
+        assembly = AssemblyDrawing(self.project)
+        assembly.build_pump_assembly()
+        return {
+            "command": command,
+            "success": True,
+            "message": "Pump assembly created",
+        }
+
     def get_command_log(self) -> List[Dict[str, Any]]:
         """Return the history of executed commands."""
         return list(self._command_log)
+
+
+# ---------------------------------------------------------------------------
+# Engineering Symbol Library
+# ---------------------------------------------------------------------------
+
+class EngineeringSymbolLibrary:
+    """
+    Factory methods that return lists of DrawingElement representing
+    common mechanical/piping engineering symbols.
+    """
+
+    @staticmethod
+    def motor(x: float, y: float, width: float = 60.0, height: float = 40.0) -> List[DrawingElement]:
+        """Motor symbol: rectangle with 'MOTOR' label."""
+        return [
+            DrawingElement(
+                element_type=ElementType.RECTANGLE,
+                geometry={"x": x, "y": y, "width": width, "height": height},
+                layer="EQUIPMENT",
+                line_weight=0.5,
+            ),
+            DrawingElement(
+                element_type=ElementType.TEXT,
+                geometry={"x": x + width / 2 - 10, "y": y + height / 2, "z": 0.0, "height": 5.0},
+                properties={"text": "MOTOR"},
+                layer="EQUIPMENT",
+            ),
+        ]
+
+    @staticmethod
+    def pump_housing(x: float, y: float, width: float = 120.0, height: float = 80.0) -> List[DrawingElement]:
+        """Pump housing symbol: rectangle with label."""
+        return [
+            DrawingElement(
+                element_type=ElementType.RECTANGLE,
+                geometry={"x": x, "y": y, "width": width, "height": height},
+                layer="EQUIPMENT",
+                line_weight=0.7,
+            ),
+            DrawingElement(
+                element_type=ElementType.TEXT,
+                geometry={"x": x + 5, "y": y + height / 2, "z": 0.0, "height": 4.5},
+                properties={"text": "PUMP HOUSING"},
+                layer="EQUIPMENT",
+            ),
+        ]
+
+    @staticmethod
+    def coupling(x: float, y: float, radius: float = 12.0) -> List[DrawingElement]:
+        """Coupling symbol: two concentric circles at the shaft connection point."""
+        return [
+            DrawingElement(
+                element_type=ElementType.CIRCLE,
+                geometry={"cx": x, "cy": y, "cz": 0.0, "radius": radius},
+                layer="EQUIPMENT",
+                line_weight=0.5,
+            ),
+            DrawingElement(
+                element_type=ElementType.CIRCLE,
+                geometry={"cx": x, "cy": y, "cz": 0.0, "radius": radius * 0.5},
+                layer="EQUIPMENT",
+                line_weight=0.35,
+            ),
+            DrawingElement(
+                element_type=ElementType.TEXT,
+                geometry={"x": x - 12, "y": y + radius + 6, "z": 0.0, "height": 3.5},
+                properties={"text": "COUPLING"},
+                layer="EQUIPMENT",
+            ),
+        ]
+
+    @staticmethod
+    def flange(
+        cx: float,
+        cy: float,
+        od: float = 50.0,
+        bolt_circle_dia: float = 40.0,
+        bolt_count: int = 4,
+        bolt_dia: float = 5.0,
+    ) -> List[DrawingElement]:
+        """Flange symbol: outer circle with bolt holes arranged on the bolt circle."""
+        elements: List[DrawingElement] = [
+            DrawingElement(
+                element_type=ElementType.CIRCLE,
+                geometry={"cx": cx, "cy": cy, "cz": 0.0, "radius": od / 2},
+                layer="EQUIPMENT",
+                line_weight=0.5,
+            ),
+        ]
+        bolt_r = bolt_circle_dia / 2
+        for i in range(bolt_count):
+            angle = math.radians(i * 360.0 / bolt_count)
+            bx = cx + bolt_r * math.cos(angle)
+            by = cy + bolt_r * math.sin(angle)
+            elements.append(DrawingElement(
+                element_type=ElementType.CIRCLE,
+                geometry={"cx": bx, "cy": by, "cz": 0.0, "radius": bolt_dia / 2},
+                layer="EQUIPMENT",
+                line_weight=0.35,
+            ))
+        return elements
+
+    @staticmethod
+    def valve(x: float, y: float, valve_type: str = "gate") -> List[DrawingElement]:
+        """Valve symbol: two triangles representing a gate/globe valve."""
+        half = 10.0
+        body_pts = [
+            {"x": x - half, "y": y - half},
+            {"x": x + half, "y": y},
+            {"x": x - half, "y": y + half},
+        ]
+        actuator_pts = [
+            {"x": x + half, "y": y - half},
+            {"x": x - half, "y": y},
+            {"x": x + half, "y": y + half},
+        ]
+        return [
+            DrawingElement(
+                element_type=ElementType.POLYGON,
+                geometry={"vertices": body_pts},
+                layer="EQUIPMENT",
+                line_weight=0.5,
+            ),
+            DrawingElement(
+                element_type=ElementType.POLYGON,
+                geometry={"vertices": actuator_pts},
+                layer="EQUIPMENT",
+                line_weight=0.5,
+            ),
+            DrawingElement(
+                element_type=ElementType.TEXT,
+                geometry={"x": x - 5, "y": y - half - 4, "z": 0.0, "height": 3.5},
+                properties={"text": valve_type.upper()},
+                layer="EQUIPMENT",
+            ),
+        ]
+
+    @staticmethod
+    def centerline(x1: float, y1: float, x2: float, y2: float) -> List[DrawingElement]:
+        """Centerline: CENTER linestyle line with 'CL' annotation."""
+        return [
+            DrawingElement(
+                element_type=ElementType.LINE,
+                geometry={"x1": x1, "y1": y1, "z1": 0.0, "x2": x2, "y2": y2, "z2": 0.0},
+                layer="CENTERLINES",
+                line_style=LineStyle.CENTER,
+                line_weight=0.35,
+            ),
+            DrawingElement(
+                element_type=ElementType.TEXT,
+                geometry={"x": x1 - 8, "y": y1, "z": 0.0, "height": 3.5},
+                properties={"text": "CL"},
+                layer="CENTERLINES",
+            ),
+        ]
+
+
+# ---------------------------------------------------------------------------
+# Assembly Drawing
+# ---------------------------------------------------------------------------
+
+class AssemblyDrawing:
+    """
+    Composes multiple engineering symbols into a complete assembly drawing.
+    """
+
+    def __init__(self, project: DrawingProject) -> None:
+        self.project = project
+
+    def _get_or_create_sheet(self) -> DrawingSheet:
+        if not self.project.sheets:
+            sheet = DrawingSheet(size=SheetSize.ANSI_D)
+            self.project.sheets.append(sheet)
+        return self.project.sheets[-1]
+
+    def build_pump_assembly(self, origin_x: float = 50.0, origin_y: float = 150.0) -> DrawingSheet:
+        """
+        Build a centrifugal pump GA drawing:
+        Motor → Coupling → Pump Housing → Outlet Flange + Inlet Flange.
+        Includes centerline through the assembly and title block.
+        """
+        sheet = self._get_or_create_sheet()
+        sym = EngineeringSymbolLibrary
+
+        # Motor
+        motor_x = origin_x
+        motor_y = origin_y
+        motor_w, motor_h = 60.0, 40.0
+        for elem in sym.motor(motor_x, motor_y, motor_w, motor_h):
+            sheet.elements.append(elem)
+
+        # Coupling — positioned to the right of motor
+        coupling_x = motor_x + motor_w + 15.0
+        coupling_y = motor_y + motor_h / 2
+        for elem in sym.coupling(coupling_x, coupling_y, 12.0):
+            sheet.elements.append(elem)
+
+        # Pump housing
+        pump_x = coupling_x + 15.0
+        pump_y = motor_y
+        pump_w, pump_h = 120.0, 80.0
+        for elem in sym.pump_housing(pump_x, pump_y, pump_w, pump_h):
+            sheet.elements.append(elem)
+
+        # Outlet flange (top of pump housing)
+        outlet_cx = pump_x + pump_w / 2
+        outlet_cy = pump_y - 30.0
+        for elem in sym.flange(outlet_cx, outlet_cy, 40.0, 32.0, 4, 5.0):
+            sheet.elements.append(elem)
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.TEXT,
+            geometry={"x": outlet_cx - 20, "y": outlet_cy - 25, "z": 0.0, "height": 4.0},
+            properties={"text": 'OUTLET 4" FLANGE'},
+            layer="ANNOTATIONS",
+        ))
+
+        # Inlet flange (right side of pump housing)
+        inlet_cx = pump_x + pump_w + 30.0
+        inlet_cy = pump_y + pump_h / 2
+        for elem in sym.flange(inlet_cx, inlet_cy, 50.0, 40.0, 4, 6.0):
+            sheet.elements.append(elem)
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.TEXT,
+            geometry={"x": inlet_cx + 30, "y": inlet_cy, "z": 0.0, "height": 4.0},
+            properties={"text": 'INLET 6" FLANGE'},
+            layer="ANNOTATIONS",
+        ))
+
+        # Centerline through the entire assembly
+        cl_x1 = motor_x - 10.0
+        cl_x2 = inlet_cx + 60.0
+        cl_y = motor_y + motor_h / 2
+        for elem in sym.centerline(cl_x1, cl_y, cl_x2, cl_y):
+            sheet.elements.append(elem)
+
+        # Title block
+        sheet.title_block = TitleBlock(
+            company="Inoni LLC",
+            project="Murphy Pump Station GA",
+            drawing_number="MECH-GA-001",
+            revision="A",
+            drawn_by="Murphy AI",
+            checked_by="Engineer",
+            approved_by="PE",
+        )
+
+        return sheet
 
 
 # ---------------------------------------------------------------------------
