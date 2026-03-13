@@ -184,7 +184,6 @@ MURPHY_SUBSYSTEM_DOMAINS: Dict[str, List[str]] = {
         "onboarding_team_pipeline",
         "hardware_visual_onboarding",
         "nocode_onboarding_flow",
-        "agentic_onboarding_engine",
     ],
     "data_pipeline": [
         "data_pipeline_orchestrator",

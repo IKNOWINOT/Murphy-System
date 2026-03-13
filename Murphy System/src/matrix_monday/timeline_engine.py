@@ -645,19 +645,27 @@ class TimelineEngine:
                     pred_item = self._items.get(dep.from_id)
                     if pred_item is None:
                         continue
+                    # duration_days uses inclusive counting: end = start + (duration-1).
+                    # E.g. Jan 1–Jan 5 → duration_days=5; pred ends Jan 5
+                    # (pred_start + timedelta(5) = Jan 6) which is the correct
+                    # FINISH_TO_START successor start. The -1 only applies when
+                    # computing an end date from a start date (line below).
                     dur = pred_item.duration_days
                     lag = timedelta(days=dep.lag_days)
                     if dep.dep_type == DependencyType.FINISH_TO_START:
+                        # successor starts the day after predecessor ends
                         cand = pred_start + timedelta(days=dur) + lag
                     elif dep.dep_type == DependencyType.START_TO_START:
                         cand = pred_start + lag
                     elif dep.dep_type == DependencyType.FINISH_TO_FINISH:
+                        # both items finish on the same day; back-compute successor start
                         cand = pred_start + timedelta(days=dur) + lag - timedelta(days=item.duration_days)
-                    else:
+                    else:  # START_TO_FINISH: successor finishes when predecessor starts
                         cand = pred_start + lag
                     earliest = max(earliest, cand)
 
             new_dates[iid] = earliest
+            # end = start + (duration - 1) because both endpoints are inclusive
             new_end = earliest + timedelta(days=item.duration_days - 1)
             item.start_date = _fmt_date(earliest)
             item.end_date = _fmt_date(new_end)
