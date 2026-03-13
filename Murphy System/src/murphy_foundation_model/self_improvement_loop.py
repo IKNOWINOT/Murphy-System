@@ -28,6 +28,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from thread_safe_operations import capped_append
+
 logger = logging.getLogger(__name__)
 
 # -- configuration -------------------------------------------------------
@@ -230,7 +232,7 @@ class SelfImprovementLoop:
             "traces_used": len(traces),
             "cycle_time_s": round(elapsed, 2),
         }
-        self._history.append(result)
+        capped_append(self._history, result)
         return result
 
     def evaluate_new_model(

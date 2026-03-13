@@ -58,6 +58,7 @@ from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable, Dict, List, Optional
 
 from .matrix_config import MatrixConfig
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -604,7 +605,7 @@ class MatrixClient:
 
     def add_event_callback(self, callback: Callable[..., Awaitable[None]]) -> None:
         """Register an async callback invoked for every incoming room event."""
-        self._event_callbacks.append(callback)
+        capped_append(self._event_callbacks, callback)
 
     # Internal helpers
 

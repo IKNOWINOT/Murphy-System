@@ -13,6 +13,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
+from thread_safe_operations import capped_append
+
 from .models import (
     Bug,
     BugSeverity,
@@ -263,7 +265,7 @@ class DevManager:
             ref=ref,
             url=url,
         )
-        self._git_activities.append(activity)
+        capped_append(self._git_activities, activity)
         return activity
 
     def git_feed(self, board_id: str = "", limit: int = 50) -> List[GitActivity]:

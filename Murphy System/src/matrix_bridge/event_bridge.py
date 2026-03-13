@@ -25,6 +25,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from .matrix_client import MatrixClient
 from .room_registry import RoomRegistry
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -205,7 +206,7 @@ class EventBridge:
 
     def add_router(self, router: Callable[[BridgedEvent], Optional[str]]) -> None:
         """Add a custom router ``(event) → subsystem_key | None``."""
-        self._custom_routers.append(router)
+        capped_append(self._custom_routers, router)
 
     # ------------------------------------------------------------------
     # Dispatch
