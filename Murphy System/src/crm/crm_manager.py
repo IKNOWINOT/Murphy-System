@@ -12,6 +12,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
+from thread_safe_operations import capped_append
+
 from .models import (
     CRMActivity,
     ActivityType,
@@ -234,7 +236,7 @@ class CRMManager:
             summary=summary,
             details=details,
         )
-        self._activities.append(activity)
+        capped_append(self._activities, activity)
         return activity
 
     def list_activities(

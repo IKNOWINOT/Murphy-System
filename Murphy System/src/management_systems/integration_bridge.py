@@ -32,6 +32,8 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
+from thread_safe_operations import capped_append
+
 logger = logging.getLogger(__name__)
 
 _UTC = timezone.utc
@@ -485,7 +487,7 @@ class IntegrationBridge:
         for rule in matching_rules:
             entry = self._apply_rule(rule, event)
             entries.append(entry)
-            self._history.append(entry)
+            capped_append(self._history, entry)
 
         if len(self._history) > MAX_SYNC_HISTORY:
             self._history = self._history[-MAX_SYNC_HISTORY:]
@@ -603,7 +605,7 @@ class IntegrationBridge:
             )
 
         if status == SyncStatus.CONFLICT:
-            self._conflict_log.append({
+            capped_append(self._conflict_log, {
                 "rule_id": rule.id,
                 "event_id": event.id,
                 "policy": rule.conflict_policy.value,

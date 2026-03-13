@@ -23,6 +23,8 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from thread_safe_operations import capped_append
+
 logger = logging.getLogger(__name__)
 
 # -- valid statuses -------------------------------------------------------
@@ -167,7 +169,7 @@ class MFMRegistry:
             "to_status": next_status,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
-        self._promotion_history.append(event)
+        capped_append(self._promotion_history, event)
         self._save_state()
 
         logger.info(
@@ -212,7 +214,7 @@ class MFMRegistry:
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "rollback": True,
         }
-        self._promotion_history.append(event)
+        capped_append(self._promotion_history, event)
         self._previous_production_id = None
         self._save_state()
 

@@ -21,6 +21,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Callable
 
+from thread_safe_operations import capped_append
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -725,7 +727,7 @@ class CommandRegistry:
         self._by_module[cmd.module_name] = cmd
         self._by_category[cmd.category].append(cmd)
         for alias in cmd.nl_aliases:
-            self._nl_index.append((alias.lower(), cmd))
+            capped_append(self._nl_index, (alias.lower(), cmd))
         logger.debug("Registered command: %s → %s", cmd.module_name, cmd.slash_command)
 
     def lookup_by_slash(self, slash: str) -> CommandDefinition | None:
