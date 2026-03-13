@@ -43,7 +43,7 @@ Expected output:
 
 ```
 INFO:     Murphy System 1.0 starting...
-INFO:     Module registry: 753 modules loaded
+INFO:     Module registry: 922 modules loaded
 INFO:     Governance kernel: active
 INFO:     HITL gates: enabled
 INFO:     Librarian: capability map loaded (610 capabilities)
@@ -62,7 +62,7 @@ Every action Murphy takes passes through a governance pipeline that scores confi
 
 Out of the box you get:
 
-- **753 modules** across 60 packages — AI orchestration, governance gates, business automation, trading, enterprise ops, compliance, robotics, and self-healing
+- **922 modules** across 77 packages — AI orchestration, governance gates, business automation, trading, enterprise ops, compliance, robotics, and self-healing
 - **90 audit categories** covering security, compliance, performance, data integrity, access control, financial, operational, and infrastructure concerns
 - A two-phase execution model (Generative Setup → Production Execute) with the Wingman Protocol
 - A full suite of web-based terminals and dashboards (see [§ 5. Terminal](#5-terminal))
@@ -98,7 +98,7 @@ Phase 2 — Production Execute
 
 ### 600+ source modules
 
-`src/` contains 753 Python modules across 60 packages. A representative selection:
+`src/` contains 922 Python modules across 77 packages. A representative selection:
 
 **AI and LLM orchestration**
 - `llm_controller.py` — routes prompts to the configured LLM provider
@@ -172,7 +172,7 @@ Expected:
 {
   "status": "ok",
   "version": "1.0.0",
-  "modules_loaded": 753,
+  "modules_loaded": 922,
   "uptime_seconds": 4
 }
 ```

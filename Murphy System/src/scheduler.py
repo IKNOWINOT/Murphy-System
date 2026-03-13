@@ -73,8 +73,8 @@ class MurphyScheduler:
         if self._scheduler is not None:
             try:
                 self._scheduler.shutdown(wait=False)
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("stop error: %s", exc)
             self._scheduler = None
             logger.info("MurphyScheduler stopped")
 

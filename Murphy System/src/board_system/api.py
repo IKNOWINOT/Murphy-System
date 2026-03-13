@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 if APIRouter is not None:
 
     class CreateBoardRequest(BaseModel):
+        """Create Board Request."""
         name: str
         description: str = ""
         kind: str = "public"
@@ -41,36 +42,43 @@ if APIRouter is not None:
         owner_id: str = ""
 
     class UpdateBoardRequest(BaseModel):
+        """Update Board Request."""
         name: Optional[str] = None
         description: Optional[str] = None
         kind: Optional[str] = None
         user_id: str = ""
 
     class CreateGroupRequest(BaseModel):
+        """Create Group Request."""
         title: str = "New Group"
         color: str = "#579bfc"
         user_id: str = ""
 
     class UpdateGroupRequest(BaseModel):
+        """Update Group Request."""
         title: Optional[str] = None
         color: Optional[str] = None
         user_id: str = ""
 
     class CreateItemRequest(BaseModel):
+        """Create Item Request."""
         name: str
         group_id: str
         user_id: str = ""
         cell_values: Dict[str, Any] = Field(default_factory=dict)
 
     class UpdateItemRequest(BaseModel):
+        """Update Item Request."""
         name: Optional[str] = None
         user_id: str = ""
 
     class MoveItemRequest(BaseModel):
+        """Move Item Request."""
         target_group_id: str
         user_id: str = ""
 
     class CreateColumnRequest(BaseModel):
+        """Create Column Request."""
         title: str
         column_type: str = "text"
         description: str = ""
@@ -78,15 +86,18 @@ if APIRouter is not None:
         user_id: str = ""
 
     class UpdateColumnRequest(BaseModel):
+        """Update Column Request."""
         title: Optional[str] = None
         settings: Optional[Dict[str, Any]] = None
         user_id: str = ""
 
     class UpdateCellRequest(BaseModel):
+        """Update Cell Request."""
         value: Any
         user_id: str = ""
 
     class CreateViewRequest(BaseModel):
+        """Create View Request."""
         name: str
         view_type: str = "table"
         settings: Dict[str, Any] = Field(default_factory=dict)

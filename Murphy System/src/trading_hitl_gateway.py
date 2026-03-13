@@ -38,6 +38,8 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
+from thread_safe_operations import capped_append
+
 logger = logging.getLogger(__name__)
 
 _MAX_AUDIT_LOG  = 100_000
@@ -427,7 +429,7 @@ class TradingHITLGateway:
 
     def register_pending_callback(self, cb: Callable[[TradeApprovalRequest], None]) -> None:
         """Register a callback invoked whenever a new trade is queued for approval."""
-        self._on_pending_callbacks.append(cb)
+        capped_append(self._on_pending_callbacks, cb)
 
     # ---- internals -------------------------------------------------------
 

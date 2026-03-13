@@ -34,6 +34,8 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
+from thread_safe_operations import capped_append
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -472,7 +474,7 @@ class BudgetAwareProcessor:
             )
 
         with self._lock:
-            self._plans.append(plan)
+            capped_append(self._plans, plan)
 
         logger.info(
             "Created execution plan %s strategy=%s phases=%d units=%d",

@@ -12,6 +12,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Callable, Dict, List, Optional
 
+from thread_safe_operations import capped_append
+
 from .models import (
     ActionType,
     AutomationAction,
@@ -139,7 +141,7 @@ class AutomationEngine:
                 "results": action_results,
             }
             results.append(result)
-            self._execution_log.append(result)
+            capped_append(self._execution_log, result)
 
         return results
 

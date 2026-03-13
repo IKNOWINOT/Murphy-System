@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 if APIRouter is not None:
 
     class InviteGuestRequest(BaseModel):
+        """Invite Guest Request."""
         email: str
         name: str = ""
         permission: str = "view"
@@ -38,10 +39,12 @@ if APIRouter is not None:
         expires_at: str = ""
 
     class UpdateGuestRequest(BaseModel):
+        """Update Guest Request."""
         permission: Optional[str] = None
         board_ids: Optional[List[str]] = None
 
     class CreateLinkRequest(BaseModel):
+        """Create Link Request."""
         board_id: str
         item_id: str = ""
         access: str = "read_only"
@@ -50,6 +53,7 @@ if APIRouter is not None:
         expires_at: str = ""
 
     class CreatePortalRequest(BaseModel):
+        """Create Portal Request."""
         name: str
         owner_id: str
         board_ids: List[str] = Field(default_factory=list)
@@ -58,12 +62,14 @@ if APIRouter is not None:
         welcome_message: str = ""
 
     class CreateFormRequest(BaseModel):
+        """Create Form Request."""
         name: str
         board_id: str
         group_id: str = ""
         fields: List[Dict[str, Any]] = Field(default_factory=list)
 
     class SubmitFormRequest(BaseModel):
+        """Submit Form Request."""
         data: Dict[str, Any]
         submitter_email: str = ""
 

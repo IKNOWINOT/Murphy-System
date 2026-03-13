@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 if APIRouter is not None:
 
     class StartTimerRequest(BaseModel):
+        """Start Timer Request."""
         user_id: str
         board_id: str = ""
         item_id: str = ""
@@ -35,6 +36,7 @@ if APIRouter is not None:
         billable: bool = True
 
     class AddEntryRequest(BaseModel):
+        """Add Entry Request."""
         user_id: str
         duration_seconds: int
         board_id: str = ""
@@ -45,6 +47,7 @@ if APIRouter is not None:
         tags: List[str] = Field(default_factory=list)
 
     class CreateSheetRequest(BaseModel):
+        """Create Sheet Request."""
         user_id: str
         period_start: str
         period_end: str
