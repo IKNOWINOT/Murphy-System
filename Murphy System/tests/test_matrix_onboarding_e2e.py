@@ -446,6 +446,162 @@ class TestMatrixOnboardingE2E(unittest.TestCase):
         self.assertIn("out of range", resp.message.lower())
 
     # ------------------------------------------------------------------
+    # Step 24: SKM Loop Status — full Sense-Know-Model overview
+    # ------------------------------------------------------------------
+    def test_24_skm_status(self):
+        raw = "!murphy skm status"
+        resp = _dispatch(self.dispatcher, raw)
+        _capture("24_skm_status", raw, resp)
+        self.assertTrue(resp.success)
+        self.assertIn("Sense-Know-Model", resp.message)
+        self.assertIn("SENSE", resp.message)
+        self.assertIn("KNOW", resp.message)
+        self.assertIn("MODEL", resp.message)
+        # Verify it shows automations from onboarding
+        self.assertIn("automation", resp.message.lower())
+
+    # ------------------------------------------------------------------
+    # Step 25: SKM Sense phase
+    # ------------------------------------------------------------------
+    def test_25_skm_sense(self):
+        raw = "!murphy skm sense"
+        resp = _dispatch(self.dispatcher, raw)
+        _capture("25_skm_sense", raw, resp)
+        self.assertTrue(resp.success)
+        self.assertIn("SENSE", resp.message)
+        # Should show setpoints
+        for dim in ["money", "time", "production"]:
+            self.assertIn(dim, resp.message)
+        # Should show observed automations from onboarding
+        self.assertIn("Observed Automations", resp.message)
+
+    # ------------------------------------------------------------------
+    # Step 26: SKM Know phase
+    # ------------------------------------------------------------------
+    def test_26_skm_know(self):
+        raw = "!murphy skm know"
+        resp = _dispatch(self.dispatcher, raw)
+        _capture("26_skm_know", raw, resp)
+        self.assertTrue(resp.success)
+        self.assertIn("KNOW", resp.message)
+        self.assertIn("Gate Evaluations", resp.message)
+        # Should show gates we created earlier
+        self.assertIn("revenue-q1", resp.message)
+
+    # ------------------------------------------------------------------
+    # Step 27: SKM Model phase
+    # ------------------------------------------------------------------
+    def test_27_skm_model(self):
+        raw = "!murphy skm model"
+        resp = _dispatch(self.dispatcher, raw)
+        _capture("27_skm_model", raw, resp)
+        self.assertTrue(resp.success)
+        self.assertIn("MODEL", resp.message)
+        # Should show automation capabilities from onboarding
+        self.assertIn("Automation Capabilities", resp.message)
+        # Should show gate-loop mapping
+        self.assertIn("Gate-Loop Mapping", resp.message)
+
+    # ------------------------------------------------------------------
+    # Step 28: SKM Cycle — run a full virtual cycle
+    # ------------------------------------------------------------------
+    def test_28_skm_cycle(self):
+        raw = "!murphy skm cycle"
+        resp = _dispatch(self.dispatcher, raw)
+        _capture("28_skm_cycle", raw, resp)
+        self.assertTrue(resp.success)
+        self.assertIn("SKM Cycle Execution", resp.message)
+        self.assertIn("SENSE", resp.message)
+        self.assertIn("KNOW", resp.message)
+        self.assertIn("MODEL", resp.message)
+        # Should complete with a health summary
+        self.assertIn("Cycle complete", resp.message)
+
+    # ------------------------------------------------------------------
+    # Step 29: Automation list — unified view
+    # ------------------------------------------------------------------
+    def test_29_automation_list(self):
+        raw = "!murphy automation list"
+        resp = _dispatch(self.dispatcher, raw)
+        _capture("29_automation_list", raw, resp)
+        self.assertTrue(resp.success)
+        self.assertIn("Automation Registry", resp.message)
+        # Should show employee automations from onboarding
+        self.assertIn("shadow", resp.message.lower())
+
+    # ------------------------------------------------------------------
+    # Step 30: Automation summary
+    # ------------------------------------------------------------------
+    def test_30_automation_summary(self):
+        raw = "!murphy automation summary"
+        resp = _dispatch(self.dispatcher, raw)
+        _capture("30_automation_summary", raw, resp)
+        self.assertTrue(resp.success)
+        self.assertIn("Automation Summary", resp.message)
+        self.assertIn("SKM Loop Integration", resp.message)
+
+    # ------------------------------------------------------------------
+    # Step 31: Dashboard standup shows automations
+    # ------------------------------------------------------------------
+    def test_31_dashboard_shows_automations(self):
+        raw = "!murphy dashboard standup"
+        resp = _dispatch(self.dispatcher, raw)
+        _capture("31_dashboard_standup", raw, resp)
+        self.assertTrue(resp.success)
+        # Dashboard should include automation status
+        self.assertIn("Automation Status", resp.message)
+        # Should include SKM loop summary
+        self.assertIn("SKM Loop", resp.message)
+
+    # ------------------------------------------------------------------
+    # Step 32: Dashboard weekly shows automations
+    # ------------------------------------------------------------------
+    def test_32_dashboard_shows_weekly_automations(self):
+        raw = "!murphy dashboard weekly"
+        resp = _dispatch(self.dispatcher, raw)
+        _capture("32_dashboard_weekly", raw, resp)
+        self.assertTrue(resp.success)
+        # Weekly should include automation summary
+        self.assertIn("Automation Summary", resp.message)
+        self.assertIn("Setpoint Health", resp.message)
+        self.assertIn("Business Loops", resp.message)
+
+    # ------------------------------------------------------------------
+    # Step 33: Recipe list shows onboarding automations
+    # ------------------------------------------------------------------
+    def test_33_recipe_shows_automations(self):
+        raw = "!murphy recipe list"
+        resp = _dispatch(self.dispatcher, raw)
+        _capture("33_recipe_list", raw, resp)
+        self.assertTrue(resp.success)
+        # Should include onboarding-derived automations
+        self.assertIn("Onboarding-Derived Automations", resp.message)
+
+    # ------------------------------------------------------------------
+    # Step 34: Schedule loops shows SKM linkage
+    # ------------------------------------------------------------------
+    def test_34_schedule_shows_skm_linkage(self):
+        raw = "!murphy schedule loops"
+        resp = _dispatch(self.dispatcher, raw)
+        _capture("34_schedule_loops_skm", raw, resp)
+        self.assertTrue(resp.success)
+        self.assertIn("SKM Loop Automation Linkage", resp.message)
+        self.assertIn("SENSE", resp.message)
+        self.assertIn("KNOW", resp.message)
+        self.assertIn("MODEL", resp.message)
+
+    # ------------------------------------------------------------------
+    # Step 35: Workspace list shows automation assignments
+    # ------------------------------------------------------------------
+    def test_35_workspace_shows_automations(self):
+        raw = "!murphy workspace list"
+        resp = _dispatch(self.dispatcher, raw)
+        _capture("35_workspace_list", raw, resp)
+        self.assertTrue(resp.success)
+        # Should include automation count
+        self.assertIn("Automation assignments", resp.message)
+
+    # ------------------------------------------------------------------
     # Validation: all responses unique (no stuck system)
     # ------------------------------------------------------------------
     def test_90_no_duplicate_responses(self):
@@ -453,8 +609,8 @@ class TestMatrixOnboardingE2E(unittest.TestCase):
         msgs = [s["message"] for s in _SCREENSHOTS]
         # Count distinct messages
         unique = set(msgs)
-        # We expect at least 15 unique responses out of 20+ steps
-        self.assertGreaterEqual(len(unique), 15,
+        # We expect at least 25 unique responses out of 35+ steps
+        self.assertGreaterEqual(len(unique), 25,
                                 f"Only {len(unique)} unique responses out of {len(msgs)} — system may be stuck")
 
     def test_91_all_setpoints_established(self):
@@ -498,8 +654,8 @@ class TestMatrixOnboardingE2E(unittest.TestCase):
     def test_95_screenshot_count(self):
         """Verify we captured screenshots at every step."""
         self.assertGreaterEqual(
-            len(_SCREENSHOTS), 20,
-            f"Expected at least 20 screenshots, got {len(_SCREENSHOTS)}"
+            len(_SCREENSHOTS), 30,
+            f"Expected at least 30 screenshots, got {len(_SCREENSHOTS)}"
         )
 
     # ------------------------------------------------------------------
