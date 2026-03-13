@@ -67,6 +67,37 @@ class Discipline(str, Enum):
     HVAC = "hvac"
 
 
+class LineStyle(str, Enum):
+    """ASME Y14.2 line convention types."""
+    CONTINUOUS = "continuous"        # visible lines, 0.5 mm
+    HIDDEN = "hidden"                # hidden/dashed lines, 0.35 mm
+    CENTER = "center"                # centerlines, long-short dash, 0.25 mm
+    PHANTOM = "phantom"              # phantom lines, long-short-short, 0.25 mm
+    DIMENSION = "dimension"          # dimension / extension lines, thin, 0.25 mm
+    CUTTING_PLANE = "cutting_plane"  # cutting plane lines, thick, 0.5 mm
+
+
+# ASME Y14.2 SVG rendering attributes keyed by LineStyle
+LINE_STYLE_SVG: Dict[LineStyle, Dict[str, str]] = {
+    LineStyle.CONTINUOUS: {"stroke-dasharray": "none", "stroke-width": "0.5"},
+    LineStyle.HIDDEN: {"stroke-dasharray": "4,2", "stroke-width": "0.35"},
+    LineStyle.CENTER: {"stroke-dasharray": "12,3,3,3", "stroke-width": "0.25"},
+    LineStyle.PHANTOM: {"stroke-dasharray": "12,3,3,3,3,3", "stroke-width": "0.25"},
+    LineStyle.DIMENSION: {"stroke-dasharray": "none", "stroke-width": "0.25"},
+    LineStyle.CUTTING_PLANE: {"stroke-dasharray": "12,3,3,3", "stroke-width": "0.5"},
+}
+
+# ASME Y14.2 DXF R12 linetype names keyed by LineStyle
+LINE_STYLE_DXF: Dict[LineStyle, str] = {
+    LineStyle.CONTINUOUS: "CONTINUOUS",
+    LineStyle.HIDDEN: "HIDDEN",
+    LineStyle.CENTER: "CENTER",
+    LineStyle.PHANTOM: "PHANTOM",
+    LineStyle.DIMENSION: "CONTINUOUS",
+    LineStyle.CUTTING_PLANE: "CENTER2",
+}
+
+
 class SheetSize(str, Enum):
     """SheetSize enumeration."""
     A0 = "A0"
@@ -128,6 +159,7 @@ class DrawingElement(BaseModel):
     geometry: Dict[str, Any] = Field(default_factory=dict)
     properties: Dict[str, Any] = Field(default_factory=dict)
     layer: str = "0"
+    line_style: str = LineStyle.CONTINUOUS
     constraints: List[Dict[str, Any]] = Field(default_factory=list)
     line_style: LineStyle = LineStyle.CONTINUOUS
     line_weight: float = 0.5
@@ -261,10 +293,32 @@ class DrawingExporter:
         return attrs
 
     def to_dxf(self, project: DrawingProject) -> str:
+        """Generate DXF R12 ASCII string with TABLES/LTYPE section from the project."""
         """Generate a DXF R12 ASCII string from the project with full entity support."""
         lines: List[str] = []
         # HEADER section
         lines.append("0\nSECTION\n2\nHEADER\n0\nENDSEC")
+
+        # TABLES section — define standard linetypes per ASME Y14.2
+        lines.append("0\nSECTION\n2\nTABLES")
+        lines.append("0\nTABLE\n2\nLTYPE")
+        _ltype_defs = [
+            ("CONTINUOUS", "Solid line", 0, []),
+            ("HIDDEN", "__ __ __ __", 2, [4.0, -2.0]),
+            ("CENTER", "_____ _ ___", 4, [12.0, -3.0, 3.0, -3.0]),
+            ("PHANTOM", "____ _ _ ___", 6, [12.0, -3.0, 3.0, -3.0, 3.0, -3.0]),
+            ("CENTER2", "___ _ ___", 4, [9.0, -2.0, 2.5, -2.0]),
+        ]
+        for lt_name, lt_desc, lt_elems, lt_pattern in _ltype_defs:
+            pattern_str = "".join(f"49\n{p}\n" for p in lt_pattern)
+            lines.append(
+                f"0\nLTYPE\n2\n{lt_name}\n70\n0\n3\n{lt_desc}\n"
+                f"72\n65\n73\n{lt_elems}\n40\n{sum(abs(p) for p in lt_pattern):.1f}\n"
+                f"{pattern_str}"
+            )
+        lines.append("0\nENDTAB")
+        lines.append("0\nENDSEC")
+
         # TABLES section — layer and linetype definitions
         lines.append("0\nSECTION\n2\nTABLES")
         lines.append(
@@ -288,11 +342,13 @@ class DrawingExporter:
         lines.append("0\nSECTION\n2\nENTITIES")
         for sheet in project.sheets:
             for elem in sheet.elements:
+                ltype = LINE_STYLE_DXF.get(elem.line_style, "CONTINUOUS")
                 if elem.element_type == ElementType.LINE:
                     g = elem.geometry
                     lines.append(
                         "0\nLINE\n"
                         f"8\n{elem.layer}\n"
+                        f"6\n{ltype}\n"
                         f"10\n{g.get('x1', 0.0)}\n"
                         f"20\n{g.get('y1', 0.0)}\n"
                         f"30\n{g.get('z1', 0.0)}\n"
@@ -305,6 +361,7 @@ class DrawingExporter:
                     lines.append(
                         "0\nCIRCLE\n"
                         f"8\n{elem.layer}\n"
+                        f"6\n{ltype}\n"
                         f"10\n{g.get('cx', 0.0)}\n"
                         f"20\n{g.get('cy', 0.0)}\n"
                         f"30\n{g.get('cz', 0.0)}\n"
@@ -315,6 +372,7 @@ class DrawingExporter:
                     lines.append(
                         "0\nARC\n"
                         f"8\n{elem.layer}\n"
+                        f"6\n{ltype}\n"
                         f"10\n{g.get('cx', 0.0)}\n"
                         f"20\n{g.get('cy', 0.0)}\n"
                         f"30\n{g.get('cz', 0.0)}\n"
@@ -383,6 +441,7 @@ class DrawingExporter:
         return "\n".join(lines)
 
     def to_svg(self, project: DrawingProject, width: int = 800, height: int = 600) -> str:
+        """Generate an SVG string with viewBox, line styles, and extended element support."""
         """Generate an SVG string from the project with line styles, weights, and engineering features."""
         defs_parts: List[str] = [
             self._svg_arrow_marker_defs(),
@@ -392,19 +451,32 @@ class DrawingExporter:
 
         svg_elements: List[str] = []
         for sheet in project.sheets:
+            # Render title block border if populated
+            tb = sheet.title_block
+            if tb.company or tb.drawing_number or tb.drawn_by:
+                svg_elements.extend(self._render_title_block_svg(tb, width, height))
             for elem in sheet.elements:
+                ls = LINE_STYLE_SVG.get(
+                    elem.line_style, LINE_STYLE_SVG[LineStyle.CONTINUOUS]
+                )
+                stroke_w = ls["stroke-width"]
+                dash = f' stroke-dasharray="{ls["stroke-dasharray"]}"' if ls["stroke-dasharray"] != "none" else ""
+                base_attrs = f'stroke="black" stroke-width="{stroke_w}"{dash}'
+
                 stroke = self._svg_stroke_attrs(elem)
                 if elem.element_type == ElementType.LINE:
                     g = elem.geometry
                     svg_elements.append(
                         f'<line x1="{g.get("x1", 0)}" y1="{g.get("y1", 0)}" '
                         f'x2="{g.get("x2", 0)}" y2="{g.get("y2", 0)}" '
+                        f'{base_attrs}/>'
                         f'{stroke}/>'
                     )
                 elif elem.element_type == ElementType.CIRCLE:
                     g = elem.geometry
                     svg_elements.append(
                         f'<circle cx="{g.get("cx", 0)}" cy="{g.get("cy", 0)}" '
+                        f'r="{g.get("radius", 1)}" fill="none" {base_attrs}/>'
                         f'r="{g.get("radius", 1)}" fill="none" {stroke}/>'
                     )
                 elif elem.element_type == ElementType.RECTANGLE:
@@ -412,6 +484,7 @@ class DrawingExporter:
                     svg_elements.append(
                         f'<rect x="{g.get("x", 0)}" y="{g.get("y", 0)}" '
                         f'width="{g.get("width", 10)}" height="{g.get("height", 10)}" '
+                        f'fill="none" {base_attrs}/>'
                         f'fill="none" {stroke}/>'
                     )
                 elif elem.element_type == ElementType.TEXT:
@@ -438,6 +511,7 @@ class DrawingExporter:
                     large_arc = 1 if (end_deg - start_deg) % 360 > 180 else 0
                     svg_elements.append(
                         f'<path d="M {x1:.3f} {y1:.3f} A {r} {r} 0 {large_arc} 1 {x2:.3f} {y2:.3f}" '
+                        f'fill="none" {base_attrs}/>'
                         f'fill="none" {stroke}/>'
                     )
                 elif elem.element_type == ElementType.POLYGON:
@@ -446,6 +520,21 @@ class DrawingExporter:
                     if verts:
                         pts_str = " ".join(f'{v.get("x",0)},{v.get("y",0)}' for v in verts)
                         svg_elements.append(
+                            f'<polygon points="{pts_str}" fill="none" {base_attrs}/>'
+                        )
+                elif elem.element_type == ElementType.DIMENSION:
+                    svg_elements.extend(self._render_dimension_svg(elem, base_attrs))
+                elif elem.element_type == ElementType.HATCH:
+                    svg_elements.extend(self._render_hatch_svg(elem))
+                elif elem.element_type == ElementType.LEADER:
+                    svg_elements.extend(self._render_leader_svg(elem, base_attrs))
+
+        body = "\n  ".join(svg_elements)
+        return (
+            f'<?xml version="1.0" encoding="UTF-8"?>\n'
+            f'<svg xmlns="http://www.w3.org/2000/svg" '
+            f'width="{width}" height="{height}" '
+            f'viewBox="0 0 {width} {height}">\n'
                             f'<polygon points="{pts_str}" fill="none" {stroke}/>'
                         )
                 elif elem.element_type == ElementType.HATCH:
@@ -520,6 +609,142 @@ class DrawingExporter:
             f'</svg>'
         )
 
+    # ------------------------------------------------------------------
+    # SVG helpers for advanced element types
+    # ------------------------------------------------------------------
+
+    def _render_title_block_svg(self, tb: "TitleBlock", width: int, height: int) -> List[str]:
+        """Render a title block border with fields in the lower-right corner."""
+        tw, th = min(width, 280), 60
+        tx = width - tw - 5
+        ty = height - th - 5
+        parts: List[str] = [
+            f'<rect x="{tx}" y="{ty}" width="{tw}" height="{th}" '
+            f'fill="white" stroke="black" stroke-width="0.5"/>',
+            f'<text x="{tx+4}" y="{ty+12}" font-size="8" font-weight="bold">{tb.company}</text>',
+            f'<text x="{tx+4}" y="{ty+24}" font-size="7">{tb.project}</text>',
+            f'<text x="{tx+4}" y="{ty+36}" font-size="7">DWG: {tb.drawing_number}</text>',
+            f'<text x="{tx+4}" y="{ty+48}" font-size="6">'
+            f'By: {tb.drawn_by}  Chk: {tb.checked_by}  Rev: {tb.revision}</text>',
+        ]
+        if tb.pe_stamp_id:
+            parts.append(
+                f'<circle cx="{tx+tw-20}" cy="{ty+30}" r="18" fill="none" '
+                f'stroke="black" stroke-width="0.5"/>'
+            )
+            parts.append(
+                f'<text x="{tx+tw-20}" y="{ty+34}" font-size="5" text-anchor="middle">'
+                f'PE STAMP</text>'
+            )
+        return parts
+
+    def _render_dimension_svg(self, elem: "DrawingElement", base_attrs: str) -> List[str]:
+        """Render a DIMENSION element: extension lines, dimension line, arrowheads, text."""
+        g = elem.geometry
+        x1, y1 = g.get("x1", 0), g.get("y1", 0)
+        x2, y2 = g.get("x2", 100), g.get("y2", 0)
+        offset = g.get("offset", 10)
+        text_val = elem.properties.get("text", "") or elem.properties.get("dimension_text", "")
+        dim_attrs = 'stroke="black" stroke-width="0.25"'
+
+        # dimension line (parallel to feature, offset)
+        dy1, dy2 = y1 - offset, y2 - offset
+        parts: List[str] = [
+            f'<line x1="{x1}" y1="{y1}" x2="{x1}" y2="{dy1}" {dim_attrs}/>',
+            f'<line x1="{x2}" y1="{y2}" x2="{x2}" y2="{dy2}" {dim_attrs}/>',
+            f'<line x1="{x1}" y1="{dy1}" x2="{x2}" y2="{dy2}" {dim_attrs}/>',
+        ]
+        # arrowheads at both ends of the dimension line
+        arrow_size = g.get("arrowhead_size", 2.5)
+        parts.append(
+            f'<polygon points="{x1},{dy1} {x1+arrow_size},{dy1-arrow_size/2} '
+            f'{x1+arrow_size},{dy1+arrow_size/2}" fill="black"/>'
+        )
+        parts.append(
+            f'<polygon points="{x2},{dy2} {x2-arrow_size},{dy2-arrow_size/2} '
+            f'{x2-arrow_size},{dy2+arrow_size/2}" fill="black"/>'
+        )
+        # dimension text centred on the dimension line
+        mid_x = (x1 + x2) / 2
+        if text_val:
+            parts.append(
+                f'<text x="{mid_x}" y="{dy1-2}" font-size="3.5" '
+                f'text-anchor="middle">{text_val}</text>'
+            )
+        return parts
+
+    def _render_hatch_svg(self, elem: "DrawingElement") -> List[str]:
+        """Render a HATCH element as 45° parallel line pattern within a bounding rect."""
+        g = elem.geometry
+        x, y = g.get("x", 0), g.get("y", 0)
+        w, h = g.get("width", 50), g.get("height", 50)
+        spacing = g.get("spacing", 5)
+        angle_deg = g.get("angle", 45)
+        pid = f"hatch_{elem.element_id[:8]}"
+        tan_a = math.tan(math.radians(angle_deg)) if angle_deg != 90 else 1e9
+        hatch_lines: List[str] = []
+        step = spacing
+        total = int((w + h) / step) + 2
+        for i in range(-total, total):
+            offset_x = i * step
+            if abs(tan_a) > 1e8:
+                x0, x1c = x + offset_x, x + offset_x
+                y0, y1c = y, y + h
+            else:
+                x0, y0 = x + offset_x, y
+                x1c = x0 + h / tan_a if tan_a != 0 else x0
+                y1c = y + h
+            hatch_lines.append(
+                f'<line x1="{x0:.2f}" y1="{y0:.2f}" x2="{x1c:.2f}" y2="{y1c:.2f}" '
+                f'stroke="black" stroke-width="0.25" clip-path="url(#{pid}_clip)"/>'
+            )
+        border = (
+            f'<clipPath id="{pid}_clip">'
+            f'<rect x="{x}" y="{y}" width="{w}" height="{h}"/>'
+            f'</clipPath>'
+        )
+        outline = (
+            f'<rect x="{x}" y="{y}" width="{w}" height="{h}" '
+            f'fill="none" stroke="black" stroke-width="0.5"/>'
+        )
+        return [border] + hatch_lines + [outline]
+
+    def _render_leader_svg(self, elem: "DrawingElement", base_attrs: str) -> List[str]:
+        """Render a LEADER element: arrowhead line with annotation text."""
+        g = elem.geometry
+        pts = g.get("points", [])
+        if len(pts) < 2:
+            return []
+        text_val = elem.properties.get("text", "")
+        segs: List[str] = []
+        for i in range(len(pts) - 1):
+            p0, p1 = pts[i], pts[i + 1]
+            segs.append(
+                f'<line x1="{p0.get("x",0)}" y1="{p0.get("y",0)}" '
+                f'x2="{p1.get("x",0)}" y2="{p1.get("y",0)}" {base_attrs}/>'
+            )
+        # arrowhead at first point
+        p0, p1 = pts[0], pts[1]
+        dx, dy = p1.get("x", 0) - p0.get("x", 0), p1.get("y", 0) - p0.get("y", 0)
+        length = math.hypot(dx, dy) or 1
+        nx, ny = dx / length, dy / length
+        ax = p0.get("x", 0) + ny * 2
+        ay = p0.get("y", 0) - nx * 2
+        bx = p0.get("x", 0) - ny * 2
+        by = p0.get("y", 0) + nx * 2
+        arrow_tip_x = p0.get("x", 0)
+        arrow_tip_y = p0.get("y", 0)
+        segs.append(
+            f'<polygon points="{arrow_tip_x},{arrow_tip_y} {ax:.2f},{ay:.2f} '
+            f'{bx:.2f},{by:.2f}" fill="black"/>'
+        )
+        if text_val:
+            last = pts[-1]
+            segs.append(
+                f'<text x="{last.get("x",0)+2}" y="{last.get("y",0)}" '
+                f'font-size="3.5">{text_val}</text>'
+            )
+        return segs
     @staticmethod
     def _svg_title_block(tb: "TitleBlock", width: int, height: int) -> List[str]:
         """Render the title block as SVG elements at the bottom-right of the sheet."""
@@ -1114,4 +1339,15 @@ class DrawingApprovalIntegration:
             "notes": record.notes,
             "has_stamp": record.e_stamp is not None,
         }
+
+
+# ---------------------------------------------------------------------------
+# Re-export from extensions module for convenient single-import access
+# ---------------------------------------------------------------------------
+
+from murphy_drawing_engine_extensions import (  # noqa: E402
+    EngineeringSymbol,
+    DrawingBorder,
+    build_pump_ga_drawing,
+)
 
