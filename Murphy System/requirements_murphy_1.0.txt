@@ -32,6 +32,9 @@ aiohttp>=3.9.0
 asyncio>=3.4.3
 httpx>=0.25.0
 
+# Matrix Integration
+matrix-nio[e2e]>=0.24.0
+
 # Database
 sqlalchemy>=2.0.0
 psycopg2-binary>=2.9.9
