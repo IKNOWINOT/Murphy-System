@@ -65,7 +65,10 @@ except ImportError:
         target_list.append(item)
 
 logger = logging.getLogger(__name__)
-from .blueprint_auth import require_blueprint_auth
+try:
+    from .blueprint_auth import require_blueprint_auth
+except ImportError:
+    from blueprint_auth import require_blueprint_auth
 
 
 def _now() -> str:

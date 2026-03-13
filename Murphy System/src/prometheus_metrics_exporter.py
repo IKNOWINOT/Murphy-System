@@ -409,7 +409,10 @@ def register_builtin_metrics(registry: CollectorRegistry) -> Dict[str, MetricFam
 
 def create_metrics_blueprint(registry: Optional[CollectorRegistry] = None):
     """Build and return a Flask Blueprint exposing metrics endpoints."""
+    try:
     from .blueprint_auth import require_blueprint_auth
+except ImportError:
+    from blueprint_auth import require_blueprint_auth
     try:
         from flask import Blueprint, Response, jsonify, request
     except ImportError:
