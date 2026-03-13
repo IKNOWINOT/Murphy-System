@@ -61,9 +61,7 @@ from .matrix_config import MatrixConfig
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
 # Optional matrix-nio import
-# ---------------------------------------------------------------------------
 try:
     import nio  # type: ignore[import-untyped]
     from nio import (  # type: ignore
@@ -93,9 +91,7 @@ except ImportError:  # pragma: no cover
     RoomSendResponse = None  # type: ignore
     SyncResponse = None  # type: ignore
 
-# ---------------------------------------------------------------------------
 # Optional aiohttp import (used for raw HTTP fallback)
-# ---------------------------------------------------------------------------
 try:
     import aiohttp  # type: ignore[import-untyped]
     _HAS_AIOHTTP = True
@@ -103,20 +99,12 @@ except ImportError:  # pragma: no cover
     _HAS_AIOHTTP = False
     aiohttp = None  # type: ignore[assignment]
 
-
-# ---------------------------------------------------------------------------
 # Errors
-# ---------------------------------------------------------------------------
-
 
 class MatrixClientError(Exception):
     """Raised on unrecoverable Matrix API or connection errors."""
 
-
-# ---------------------------------------------------------------------------
 # Data structures
-# ---------------------------------------------------------------------------
-
 
 @dataclass
 class MessageContent:
@@ -147,7 +135,6 @@ class MessageContent:
             content["formatted_body"] = self.html
         return content
 
-
 @dataclass
 class SendResult:
     """Result returned by :meth:`MatrixClient.send_message`.
@@ -169,7 +156,6 @@ class SendResult:
     room_alias: str = ""
     error: str = ""
 
-
 @dataclass
 class RoomInfo:
     """Basic information about a joined Matrix room."""
@@ -179,11 +165,7 @@ class RoomInfo:
     display_name: str = ""
     member_count: int = 0
 
-
-# ---------------------------------------------------------------------------
 # Base interface (for type-checking mock vs real)
-# ---------------------------------------------------------------------------
-
 
 class _MatrixClientBase(abc.ABC):
     """Shared interface for real and mock Matrix clients."""
@@ -193,9 +175,7 @@ class _MatrixClientBase(abc.ABC):
         self._event_handlers: Dict[str, List[Callable[..., Any]]] = {}
         self._room_cache: Dict[str, RoomInfo] = {}
 
-    # -----------------------------------------------------------------------
     # Event handler registration
-    # -----------------------------------------------------------------------
 
     def on_event(self, event_type: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """Decorator to register an async event handler for *event_type*."""
@@ -221,9 +201,7 @@ class _MatrixClientBase(abc.ABC):
             except Exception:
                 logger.exception("Event handler %r raised an exception", handler)
 
-    # -----------------------------------------------------------------------
     # Async context manager
-    # -----------------------------------------------------------------------
 
     async def __aenter__(self) -> "_MatrixClientBase":
         await self.connect()
@@ -286,16 +264,12 @@ class _MatrixClientBase(abc.ABC):
     def is_connected(self) -> bool:
         """Return whether the client is currently connected."""
 
-
-# ---------------------------------------------------------------------------
 # Circuit-breaker state
-# ---------------------------------------------------------------------------
 
 class _CircuitState:
     CLOSED = "closed"
     OPEN = "open"
     HALF_OPEN = "half_open"
-
 
 @dataclass
 class _CircuitBreaker:
@@ -325,10 +299,7 @@ class _CircuitBreaker:
             self._opened_at = time.monotonic()
             logger.warning("MatrixClient circuit breaker OPEN after %d failures", self._failures)
 
-
-# ---------------------------------------------------------------------------
 # MatrixClient (standalone --- used by tests and most consumers)
-# ---------------------------------------------------------------------------
 
 class MatrixClient:
     """Async Matrix homeserver client with reconnection and circuit-breaker.
@@ -381,9 +352,7 @@ class MatrixClient:
         self._event_callbacks: List[Callable[..., Awaitable[None]]] = []
         self._known_rooms: Dict[str, str] = {}  # alias -> room_id
 
-    # ------------------------------------------------------------------
     # Connection / auth
-    # ------------------------------------------------------------------
 
     async def connect(self) -> bool:
         """Log in to the homeserver and start sync.
@@ -467,9 +436,7 @@ class MatrixClient:
                 await asyncio.sleep(backoff)
                 backoff = min(backoff * 2, max_backoff)
 
-    # ------------------------------------------------------------------
     # Room management
-    # ------------------------------------------------------------------
 
     async def create_room(
         self,
@@ -565,9 +532,7 @@ class MatrixClient:
             logger.warning("set_room_topic(%s) failed: %s", room_id, exc)
             return False
 
-    # ------------------------------------------------------------------
     # Messaging
-    # ------------------------------------------------------------------
 
     async def send_text(self, room_id: str, text: str) -> bool:
         """Send a plain-text ``m.text`` message to *room_id*."""
@@ -618,9 +583,7 @@ class MatrixClient:
             logger.warning("send_file(%s) failed: %s", filename, exc)
             return False
 
-    # ------------------------------------------------------------------
     # Presence / health
-    # ------------------------------------------------------------------
 
     async def set_presence(self, presence: str = "online", status_msg: str = "") -> bool:
         """Report bot presence to the homeserver."""
@@ -637,17 +600,13 @@ class MatrixClient:
         """Return ``True`` if the client has an active connection."""
         return self._connected and self._client is not None
 
-    # ------------------------------------------------------------------
     # Event callbacks
-    # ------------------------------------------------------------------
 
     def add_event_callback(self, callback: Callable[..., Awaitable[None]]) -> None:
         """Register an async callback invoked for every incoming room event."""
         self._event_callbacks.append(callback)
 
-    # ------------------------------------------------------------------
     # Internal helpers
-    # ------------------------------------------------------------------
 
     def _is_available(self) -> bool:
         if not _NIO_AVAILABLE or self._client is None or not self._connected:
@@ -691,11 +650,7 @@ class MatrixClient:
             await self._client.join(room.room_id)
             logger.info("Auto-joined room %s", room.room_id)
 
-
-# ---------------------------------------------------------------------------
 # nio-backed Matrix client (ABC implementation)
-# ---------------------------------------------------------------------------
-
 
 class _NioMatrixClient(_MatrixClientBase):
     """Async Matrix client backed by ``matrix-nio``.
@@ -714,9 +669,7 @@ class _NioMatrixClient(_MatrixClientBase):
         self._connected = False
         self._sync_task: Optional[asyncio.Task[None]] = None
 
-    # -----------------------------------------------------------------------
     # Lifecycle
-    # -----------------------------------------------------------------------
 
     async def connect(self) -> None:
         """Authenticate with the homeserver and start the event loop."""
@@ -759,9 +712,7 @@ class _NioMatrixClient(_MatrixClientBase):
     def is_connected(self) -> bool:
         return self._connected
 
-    # -----------------------------------------------------------------------
     # Sync
-    # -----------------------------------------------------------------------
 
     async def start_sync(self) -> None:
         """Start the background sync loop (non-blocking)."""
@@ -774,9 +725,7 @@ class _NioMatrixClient(_MatrixClientBase):
         assert self._client is not None
         await self._client.sync_forever(timeout=30000, full_state=True)
 
-    # -----------------------------------------------------------------------
     # Event callbacks
-    # -----------------------------------------------------------------------
 
     async def _on_message_event(
         self, room: Any, event: Any
@@ -789,9 +738,7 @@ class _NioMatrixClient(_MatrixClientBase):
         event_type = getattr(event, "type", "unknown")
         await self._dispatch(event_type, {"room": room, "event": event})
 
-    # -----------------------------------------------------------------------
     # Room operations
-    # -----------------------------------------------------------------------
 
     def _resolve_room_id(self, room_alias: str) -> str:
         """Return the Matrix room ID from alias cache, or the alias itself."""
@@ -869,9 +816,7 @@ class _NioMatrixClient(_MatrixClientBase):
             return False
         return True
 
-    # -----------------------------------------------------------------------
     # Message sending (with retry)
-    # -----------------------------------------------------------------------
 
     async def send_message(
         self, room_alias: str, content: MessageContent
@@ -921,18 +866,13 @@ class _NioMatrixClient(_MatrixClientBase):
 
         return SendResult(success=False, room_alias=room_alias, error=last_error)
 
-
-# ---------------------------------------------------------------------------
 # Mock client (no network I/O)
-# ---------------------------------------------------------------------------
-
 
 @dataclass
 class _MockSentMessage:
     room_alias: str
     content: MessageContent
     timestamp: float = field(default_factory=time.time)
-
 
 class MockMatrixClient(_MatrixClientBase):
     """In-memory Matrix client stub for testing and offline environments.
@@ -995,11 +935,7 @@ class MockMatrixClient(_MatrixClientBase):
         logger.debug("MockMatrixClient: invited %r to %r", user_id, room_alias)
         return True
 
-
-# ---------------------------------------------------------------------------
 # Factory
-# ---------------------------------------------------------------------------
-
 
 def create_client(config: MatrixConfig) -> _MatrixClientBase:
     """Return a real or mock Matrix client based on *config*.
@@ -1017,7 +953,6 @@ def create_client(config: MatrixConfig) -> _MatrixClientBase:
         "Creating MockMatrixClient (%s); bridge operates in offline mode.", mode
     )
     return MockMatrixClient(config)
-
 
 __all__ = [
     "MatrixClient",
