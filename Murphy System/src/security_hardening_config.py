@@ -17,15 +17,14 @@ Copyright © 2020 Inoni Limited Liability Company
 Creator: Corey Post
 """
 
-import re
-import os
-import time
 import hashlib
-import secrets
-from datetime import datetime, timedelta, timezone
-from typing import Dict, List, Optional, Any, Set
-
 import logging
+import os
+import re
+import secrets
+import time
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
 

@@ -13,19 +13,14 @@ Features:
 Design Principle: Complete observability of execution state
 """
 
-from typing import Dict, List, Optional, Callable
-from datetime import datetime, timezone
 import json
-
 import logging
+from datetime import datetime, timezone
+from typing import Callable, Dict, List, Optional
+
 logger = logging.getLogger("execution_orchestrator.telemetry")
 
-from .models import (
-    TelemetryEvent,
-    TelemetryStream,
-    TelemetryEventType,
-    StepResult
-)
+from .models import StepResult, TelemetryEvent, TelemetryEventType, TelemetryStream
 
 
 class TelemetryStreamer:

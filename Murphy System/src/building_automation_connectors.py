@@ -7,14 +7,14 @@ elevator, energy metering, and building envelope systems with thread-safe
 registry, multi-protocol orchestration, and automatic capability mapping.
 """
 
+import logging
+import threading
 import time
 import uuid
-import threading
 from enum import Enum
 from typing import Any, Dict, List, Optional
-from thread_safe_operations import capped_append
 
-import logging
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +122,7 @@ class BuildingAutomationConnector:
 
     def execute_action(self, action_name: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Execute a named action against this connector.
-        
+
         When credentials are configured and the appropriate protocol library
         is installed, dispatches to the real protocol client. Falls back to
         simulation when no credentials are available.
@@ -163,14 +163,16 @@ class BuildingAutomationConnector:
 
     def _dispatch_protocol(self, action_name: str, params: dict) -> Optional[dict]:
         """Dispatch to the real protocol client.
-        
+
         Returns a result dict if the dispatch succeeded (or failed with a real
         error), or None to signal that the caller should fall through to simulation.
         """
         try:
             from src.protocols import (
-                MurphyBACnetClient, MurphyModbusClient,
-                MurphyOPCUAClient, MurphyKNXClient,
+                MurphyBACnetClient,
+                MurphyKNXClient,
+                MurphyModbusClient,
+                MurphyOPCUAClient,
             )
         except ImportError:
             return None

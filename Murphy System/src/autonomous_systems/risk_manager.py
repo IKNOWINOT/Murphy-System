@@ -8,16 +8,15 @@ This module provides comprehensive risk management capabilities:
 - Risk reporting and analysis
 """
 
-import time
+import logging
+import statistics
 import threading
-from typing import Dict, List, Optional, Any, Tuple
+import time
+from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from collections import defaultdict
-import statistics
-
-import logging
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 

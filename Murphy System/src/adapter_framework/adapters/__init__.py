@@ -6,7 +6,7 @@ Provides reference implementations:
 - HTTPAdapter: Generic HTTP-based device adapter
 """
 
-from .mock_adapter import MockAdapter
 from .http_adapter import HTTPAdapter
+from .mock_adapter import MockAdapter
 
 __all__ = ['MockAdapter', 'HTTPAdapter']

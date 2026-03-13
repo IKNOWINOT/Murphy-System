@@ -26,8 +26,8 @@ try:
 except ImportError:
     KnostalgiaEngine = None  # type: ignore[assignment,misc]
 
-from kfactor_calculator import KFactorCalculator, KFactorResult
 from dynamic_assist_engine import DynamicAssistEngine, DynamicAssistInput, DynamicAssistOutput
+from kfactor_calculator import KFactorCalculator, KFactorResult
 
 logger = logging.getLogger(__name__)
 

@@ -4,11 +4,11 @@ Deterministic control logic that decides whether to proceed
 """
 
 try:
-    from state_machine import State, Hypothesis, VerifiedFacts, QuestionType
+    from state_machine import Hypothesis, QuestionType, State, VerifiedFacts
 except ImportError:
-    from src.state_machine import State, Hypothesis, VerifiedFacts, QuestionType
-from typing import Tuple
+    from src.state_machine import Hypothesis, QuestionType, State, VerifiedFacts
 import logging
+from typing import Tuple
 
 logger = logging.getLogger(__name__)
 

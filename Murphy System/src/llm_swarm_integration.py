@@ -4,21 +4,18 @@ Combines LLM capabilities with True Swarm System and Memory & Artifacts
 """
 
 import logging
+
 logger = logging.getLogger(__name__)
-import sys
 import os
-from typing import Dict, List, Any, Optional
+import sys
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
+from memory_artifact_system import ArtifactState, MemoryArtifactSystem, MemoryPlane
 
 # Import existing systems
-from true_swarm_system import (
-    TrueSwarmSystem, ProfessionAtom, ArtifactType,
-    SwarmMode
-)
-from memory_artifact_system import (
-    MemoryArtifactSystem, MemoryPlane, ArtifactState
-)
+from true_swarm_system import ArtifactType, ProfessionAtom, SwarmMode, TrueSwarmSystem
 
 # Try to import LLM
 try:

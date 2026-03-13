@@ -8,20 +8,19 @@ Provides views of:
 - Human vs automated work breakdown
 """
 
-from typing import List, Dict, Optional, Set, Tuple
-from collections import defaultdict
 import json
+import logging
+from collections import defaultdict
+from typing import Dict, List, Optional, Set, Tuple
 
 from .schemas import (
-    RoleTemplate,
-    TemplateProposalArtifact,
-    SubstitutionGate,
     GateStatus,
-    ProcessFlow,
     HandoffEvent,
+    ProcessFlow,
+    RoleTemplate,
+    SubstitutionGate,
+    TemplateProposalArtifact,
 )
-
-import logging
 
 logger = logging.getLogger(__name__)
 

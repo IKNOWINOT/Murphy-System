@@ -9,13 +9,14 @@ different ITSM back-ends (ServiceNow, Jira, Zendesk, custom), supporting:
 - Thread-safe in-memory ticket store
 """
 
-import uuid
 import logging
 import threading
-from typing import Dict, List, Optional, Any
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
 from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)

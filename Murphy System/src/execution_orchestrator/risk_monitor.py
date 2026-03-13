@@ -13,19 +13,13 @@ Monitoring:
 Design Principle: Continuous safety monitoring with automatic intervention
 """
 
-from typing import Dict, List, Optional, Callable
-from datetime import datetime, timezone
-
 import logging
+from datetime import datetime, timezone
+from typing import Callable, Dict, List, Optional
+
 logger = logging.getLogger("execution_orchestrator.risk_monitor")
 
-from .models import (
-    RuntimeRisk,
-    SafetyState,
-    StopCondition,
-    StopReason,
-    StepResult
-)
+from .models import RuntimeRisk, SafetyState, StepResult, StopCondition, StopReason
 
 
 class RuntimeRiskMonitor:

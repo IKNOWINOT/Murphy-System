@@ -2,12 +2,12 @@
 Document Generation Engine - Generate working documents (PDF, Word, HTML)
 """
 
+import json
+import logging
 import uuid
-from typing import Dict, List, Optional, Any
 from datetime import datetime, timezone
 from enum import Enum
-import logging
-import json
+from typing import Any, Dict, List, Optional
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -221,6 +221,7 @@ class DocumentGenerationEngine:
         try:
             import base64
             from io import BytesIO
+
             from reportlab.lib.pagesizes import letter  # type: ignore[import-untyped]
             from reportlab.pdfgen import canvas as rl_canvas  # type: ignore[import-untyped]
 
@@ -255,6 +256,7 @@ class DocumentGenerationEngine:
         try:
             import base64
             from io import BytesIO
+
             from docx import Document as DocxDocument  # type: ignore[import-untyped]
             from docx.shared import Pt  # type: ignore[import-untyped]
 

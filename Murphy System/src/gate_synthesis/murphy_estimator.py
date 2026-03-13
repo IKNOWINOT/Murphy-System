@@ -3,17 +3,11 @@ Murphy Probability Estimator
 Estimates probability of Murphy paths and determines when gates are required
 """
 
-from typing import List, Dict, Any, Optional
-import math
-
-from .models import (
-    FailureMode,
-    RiskVector,
-    RiskPath,
-    ExposureSignal
-)
-
 import logging
+import math
+from typing import Any, Dict, List, Optional
+
+from .models import ExposureSignal, FailureMode, RiskPath, RiskVector
 
 logger = logging.getLogger(__name__)
 

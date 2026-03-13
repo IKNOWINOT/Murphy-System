@@ -11,11 +11,11 @@ Components:
 - Governance API: REST API for governance operations
 """
 
-from .preset_manager import PresetManager, GovernancePreset, EnforcementMode
-from .validation_engine import ValidationEngine, ValidationResult, ComplianceStatus
+from .api_server import GovernanceAPI
 from .compliance_monitor import ComplianceMonitor, ComplianceReport
 from .governance_runtime import GovernanceRuntime, RuntimeConfig
-from .api_server import GovernanceAPI
+from .preset_manager import EnforcementMode, GovernancePreset, PresetManager
+from .validation_engine import ComplianceStatus, ValidationEngine, ValidationResult
 
 __version__ = "1.0.0"
 __all__ = [

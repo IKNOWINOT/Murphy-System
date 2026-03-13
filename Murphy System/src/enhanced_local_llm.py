@@ -3,14 +3,15 @@ Enhanced Local LLM System
 Replicates mock function outputs with similar quality and structure
 """
 
-import re
 import ast
-import math
 import json
-import operator
-from typing import Dict, Any, List, Tuple, Optional
-from datetime import datetime, timezone
 import logging
+import math
+import operator
+import re
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional, Tuple
+
 logger = logging.getLogger(__name__)
 
 

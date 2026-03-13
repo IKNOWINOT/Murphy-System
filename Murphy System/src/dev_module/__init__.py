@@ -28,6 +28,7 @@ Copyright 2024 Inoni LLC – BSL-1.1
 __version__ = "0.1.0"
 __codename__ = "DevModule"
 
+from .dev_manager import DevManager
 from .models import (
     Bug,
     BugPriority,
@@ -43,7 +44,6 @@ from .models import (
     SprintItem,
     SprintStatus,
 )
-from .dev_manager import DevManager
 
 try:
     from .api import create_dev_router

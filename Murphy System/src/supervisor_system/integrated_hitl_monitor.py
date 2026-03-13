@@ -12,9 +12,9 @@ Creator: Corey Post
 License: BSL 1.1
 """
 
-from typing import Dict, Any, Optional, List
-from datetime import datetime
 import logging
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 # Import original supervisor system
 try:
@@ -25,14 +25,14 @@ except ImportError:
     logging.warning("Original Supervisor not found")
 
 # Import new HITL system
-from .hitl_monitor import HumanInTheLoopMonitor
 from .hitl_models import (
     InterventionRequest,
     InterventionResponse,
+    InterventionStatus,
     InterventionType,
     InterventionUrgency,
-    InterventionStatus
 )
+from .hitl_monitor import HumanInTheLoopMonitor
 
 logger = logging.getLogger(__name__)
 

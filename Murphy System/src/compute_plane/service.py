@@ -5,21 +5,24 @@ Main service that orchestrates computation requests.
 """
 
 import json
-import time
+import logging
 import threading
+import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from copy import deepcopy
 from dataclasses import replace
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
-from typing import Dict, Optional
 from queue import Queue
+from typing import Dict, Optional
+
+from .analyzers.determinism_analyzer import DeterminismAnalyzer
 from .models.compute_request import ComputeRequest
 from .models.compute_result import ComputeResult, ComputeStatus
 from .parsers.expression_parser import ExpressionParser
-from .solvers.symbolic_solver import SymbolicSolver
 from .solvers.numeric_solver import NumericSolver
-from .analyzers.determinism_analyzer import DeterminismAnalyzer
-import logging
+from .solvers.symbolic_solver import SymbolicSolver
+
 logger = logging.getLogger(__name__)
 
 

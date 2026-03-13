@@ -21,9 +21,9 @@ __status__ = "Production"
 
 # Try to import the full module, fall back to simple wrapper if dependencies missing
 try:
-    from .models import NeuroSymbolicConfidenceModel
     from .data import GraphDataset, TrainingDataCollector
     from .inference import MLInferenceService
+    from .models import NeuroSymbolicConfidenceModel
     from .training import ModelTrainer, ModelValidator
 
     __all__ = [
@@ -41,10 +41,7 @@ except ImportError as exc:
         "Using simplified neuro-symbolic model due to missing dependencies: %s", exc,
     )
 
-    from .simple_wrapper import (
-        SimpleNeuroSymbolicModel,
-        NeuroSymbolicConfidenceModel
-    )
+    from .simple_wrapper import NeuroSymbolicConfidenceModel, SimpleNeuroSymbolicModel
 
     __all__ = [
         "NeuroSymbolicConfidenceModel",

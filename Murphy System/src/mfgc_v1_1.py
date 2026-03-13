@@ -3,15 +3,14 @@ MFGC v1.1 - Trust-Weighted Grounding, Organizational Override Protection,
 Temporal Confidence Decay, Meta-Governance, and Enhanced Murphy Index.
 """
 
+import logging
 import math
 import time
-from enum import Enum
-from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
-from mfgc_core import MFGCController, MFGCSystemState, ConfidenceEngine
-
-import logging
+from mfgc_core import ConfidenceEngine, MFGCController, MFGCSystemState
 
 logger = logging.getLogger(__name__)
 

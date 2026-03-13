@@ -4,24 +4,24 @@ Model Training Pipeline
 This module implements the training pipeline with checkpointing and monitoring.
 """
 
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from pathlib import Path
-from typing import Dict, List, Any, Optional, Callable
-from uuid import UUID, uuid4
 import json
 import logging
 import time
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
+from uuid import UUID, uuid4
 
-from .models import TrainingDataset, DataSplitType
 from .model_architecture import (
-    ShadowAgentModel,
+    DecisionTreeModel,
+    HybridModel,
     ModelMetadata,
     ModelType,
-    HybridModel,
     RandomForestModel,
-    DecisionTreeModel,
+    ShadowAgentModel,
 )
+from .models import DataSplitType, TrainingDataset
 
 logger = logging.getLogger(__name__)
 

@@ -14,7 +14,6 @@ from typing import Dict, List, Optional
 
 from .models import Board, BoardPermission, Permission
 
-
 # Permission hierarchy: ADMIN > EDIT_STRUCTURE > EDIT > VIEW
 _PERMISSION_RANK: Dict[Permission, int] = {
     Permission.VIEW: 1,

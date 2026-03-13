@@ -3,11 +3,11 @@ Configuration Management for Murphy System
 Centralized configuration using Pydantic settings
 """
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field
+import logging
 from typing import Optional
 
-import logging
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
 

@@ -3,12 +3,11 @@ Safe LLM Wrapper with MFGC Integration
 Ensures ALL LLM outputs go through Murphy-Free safety checks
 """
 
-from typing import Dict, Any, List, Optional, Tuple
+import logging
+import re
 from dataclasses import dataclass
 from enum import Enum
-import re
-
-import logging
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 

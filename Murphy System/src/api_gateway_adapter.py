@@ -4,16 +4,16 @@ with rate limiting, authentication management, webhook dispatch,
 circuit breaker pattern, and request/response transformation.
 """
 
-import time
-import threading
 import hashlib
 import json
-from enum import Enum
-from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional
-from thread_safe_operations import capped_append
-
 import logging
+import threading
+import time
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional
+
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 

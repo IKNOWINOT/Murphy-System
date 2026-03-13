@@ -4,15 +4,15 @@ Controlled generation within verified bounds using templates
 NO LLM calls - pure template-based responses
 """
 
+import logging
 import os
 from typing import Optional
 
-import logging
 logger = logging.getLogger("response_composer")
 try:
-    from state_machine import State, VerifiedFacts, SystemResponse
+    from state_machine import State, SystemResponse, VerifiedFacts
 except ImportError:
-    from src.state_machine import State, VerifiedFacts, SystemResponse
+    from src.state_machine import State, SystemResponse, VerifiedFacts
 
 
 class ResponseComposer:

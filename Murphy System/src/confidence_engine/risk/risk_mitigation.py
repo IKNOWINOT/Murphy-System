@@ -3,16 +3,14 @@ Risk Mitigation Recommendation System
 Provides intelligent mitigation strategies and recommendations.
 """
 
-from typing import Dict, List, Optional, Any, Tuple
+import logging
 from datetime import datetime, timezone
 from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
+
 from pydantic import BaseModel, Field
 
-from src.confidence_engine.risk.risk_database import (
-    RiskPattern, MitigationStrategy, RiskCategory, RiskSeverity
-)
-
-import logging
+from src.confidence_engine.risk.risk_database import MitigationStrategy, RiskCategory, RiskPattern, RiskSeverity
 
 logger = logging.getLogger(__name__)
 

@@ -6,14 +6,15 @@ Integrates with Ollama for local model inference when available
 """
 
 import logging
+
 logger = logging.getLogger(__name__)
-import re
-from typing import Dict, Any, List, Tuple, Optional
 import random
+import re
+from typing import Any, Dict, List, Optional, Tuple
 
 try:
-    import urllib.request
     import json as _json
+    import urllib.request
     _HAS_URLLIB = True
 except ImportError:
     _HAS_URLLIB = False

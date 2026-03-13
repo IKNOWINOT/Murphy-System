@@ -20,12 +20,11 @@ Tier 4 — Soul-Bound Protector (permanent): the entity's soul is bound to the
 
 from __future__ import annotations
 
+import logging
 import math
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional
-
-import logging
 
 logger = logging.getLogger(__name__)
 

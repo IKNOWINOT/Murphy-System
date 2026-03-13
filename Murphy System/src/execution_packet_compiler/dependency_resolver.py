@@ -3,30 +3,22 @@ Dependency Resolver
 Generates execution DAG with strict ordering
 """
 
-from typing import List, Dict, Any, Tuple, Optional, Set
-from datetime import datetime
 import hashlib
-
-from .models import (
-    ExecutionGraph,
-    ExecutionStep,
-    StepType,
-    ExecutionScope
-)
+import logging
+import os
 
 # Import from confidence engine
 import sys
-import os
-import logging
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Set, Tuple
+
+from .models import ExecutionGraph, ExecutionScope, ExecutionStep, StepType
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 logger = logging.getLogger(__name__)
 
-from confidence_engine.models import (
-    ArtifactGraph,
-    ArtifactNode,
-    ArtifactType
-)
+from confidence_engine.models import ArtifactGraph, ArtifactNode, ArtifactType
 
 
 class DependencyResolver:

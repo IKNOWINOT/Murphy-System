@@ -3,46 +3,41 @@ Execution Packet Compiler API Server
 REST API for compiling sealed execution packets
 """
 
-from flask import Flask, request, jsonify
-from typing import Dict, Any, List, Optional
 import logging
-from datetime import datetime, timezone
-
-from .models import (
-    ExecutionPacket,
-    ExecutionScope,
-    ExecutionGraph,
-    ExecutionStep,
-    StepType,
-    InterfaceMap,
-    InterfaceBinding,
-    InterfaceType,
-    RollbackPlan,
-    RollbackStep,
-    TelemetryPlan,
-    TelemetryConfig,
-    PacketState
-)
-
-from .scope_freezer import ScopeFreezer
-from .dependency_resolver import DependencyResolver
-from .determinism_enforcer import DeterminismEnforcer
-from .risk_bounder import RiskBounder
-from .packet_sealer import PacketSealer
-from .post_compilation_enforcer import PostCompilationEnforcer
+import os
 
 # Import from confidence engine
 import sys
-import os
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
+from flask import Flask, jsonify, request
+
+from .dependency_resolver import DependencyResolver
+from .determinism_enforcer import DeterminismEnforcer
+from .models import (
+    ExecutionGraph,
+    ExecutionPacket,
+    ExecutionScope,
+    ExecutionStep,
+    InterfaceBinding,
+    InterfaceMap,
+    InterfaceType,
+    PacketState,
+    RollbackPlan,
+    RollbackStep,
+    StepType,
+    TelemetryConfig,
+    TelemetryPlan,
+)
+from .packet_sealer import PacketSealer
+from .post_compilation_enforcer import PostCompilationEnforcer
+from .risk_bounder import RiskBounder
+from .scope_freezer import ScopeFreezer
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from confidence_engine.models import (
-    ArtifactGraph,
-    ArtifactNode,
-    ArtifactType,
-    ArtifactSource
-)
-
+from confidence_engine.models import ArtifactGraph, ArtifactNode, ArtifactSource, ArtifactType
 from flask_security import configure_secure_app, is_debug_mode
 
 # Initialize Flask app

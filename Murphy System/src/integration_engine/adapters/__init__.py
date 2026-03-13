@@ -3,7 +3,7 @@
 # License: BSL 1.1
 """Third-party adapters — data-format translation between Murphy and external models/APIs."""
 
-from .rynnbrain_adapter import RynnBrainAdapter, MurphyPrompt, BoundingBox, PlanStep, NavWaypoint, TaskType
+from .rynnbrain_adapter import BoundingBox, MurphyPrompt, NavWaypoint, PlanStep, RynnBrainAdapter, TaskType
 
 __all__ = [
     "RynnBrainAdapter",

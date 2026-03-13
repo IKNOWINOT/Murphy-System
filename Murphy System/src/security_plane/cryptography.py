@@ -38,23 +38,18 @@ Key Rotation:
 - Invisible to users
 """
 
-from dataclasses import dataclass, field
-from typing import Optional, Tuple, Dict
-from datetime import datetime, timedelta, timezone
 import hashlib
-import secrets
 import hmac
 import logging
+import secrets
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
 from enum import Enum
+from typing import Dict, Optional, Tuple
 
 logger = logging.getLogger("security_plane.cryptography")
 
-from .schemas import (
-    CryptographicKey,
-    CryptographicAlgorithm,
-    ExecutionPacketSignature,
-    AuthorityBand
-)
+from .schemas import AuthorityBand, CryptographicAlgorithm, CryptographicKey, ExecutionPacketSignature
 
 _log = logging.getLogger(__name__)
 
@@ -66,12 +61,13 @@ _HAS_REAL_PQC = False
 _HAS_FERNET = False
 
 try:
-    from cryptography.hazmat.primitives.asymmetric import ec
-    from cryptography.hazmat.primitives import hashes, serialization
-    from cryptography.hazmat.primitives.asymmetric.utils import (
-        decode_dss_signature, encode_dss_signature,
-    )
     from cryptography.fernet import Fernet, InvalidToken
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from cryptography.hazmat.primitives.asymmetric.utils import (
+        decode_dss_signature,
+        encode_dss_signature,
+    )
     _HAS_REAL_CLASSICAL = True
     _HAS_FERNET = True
     _log.info("SEC-003: Real classical crypto available (cryptography library)")

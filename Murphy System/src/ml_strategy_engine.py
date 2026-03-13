@@ -24,6 +24,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Sequence, Tuple
+
 from thread_safe_operations import capped_append, capped_append_paired
 
 logger = logging.getLogger(__name__)

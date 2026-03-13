@@ -3,15 +3,15 @@ MFGC Core - Murphy-Free Generative Control AI
 Complete implementation of the 7-phase control system
 """
 
-import numpy as np
-from enum import Enum
-from typing import List, Tuple, Dict, Any, Optional, Callable
-import time
 import copy
-from dataclasses import dataclass, field
 import json
-
 import logging
+import time
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -747,7 +747,8 @@ class MFGCController:
 
         # CFP-4: Closed learning loop — wired FeedbackIntegrator
         try:
-            from feedback_integrator import FeedbackIntegrator, FeedbackSignal as _FeedbackSignal
+            from feedback_integrator import FeedbackIntegrator
+            from feedback_integrator import FeedbackSignal as _FeedbackSignal
             from state_schema import StateVariable, StateVectorSchema, TypedStateVector
             self._feedback_integrator = FeedbackIntegrator()
             self._FeedbackSignal = _FeedbackSignal

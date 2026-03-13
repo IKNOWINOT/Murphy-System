@@ -3,14 +3,13 @@ Thread-safe operations for the Murphy System Runtime.
 Provides utilities for concurrent operations without race conditions.
 """
 
+import logging
+import queue
 import threading
 import time
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, List, Optional, TypeVar
 from functools import wraps
-import queue
-
-import logging
+from typing import Any, Callable, Dict, List, Optional, TypeVar
 
 logger = logging.getLogger(__name__)
 

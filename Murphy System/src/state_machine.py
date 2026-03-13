@@ -3,11 +3,10 @@ State Machine and Core Enums
 Deterministic control flow for the chatbot
 """
 
+import logging
+from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
-from dataclasses import dataclass
-
-import logging
 
 logger = logging.getLogger(__name__)
 

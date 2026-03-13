@@ -10,14 +10,13 @@ Where:
   w_t  — process noise (stochastic disturbance)
 """
 
+import logging
 import math
 import random
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
-from .canonical_state import CanonicalStateVector, _DIMENSION_NAMES
-
-import logging
+from .canonical_state import _DIMENSION_NAMES, CanonicalStateVector
 
 logger = logging.getLogger(__name__)
 

@@ -6,11 +6,10 @@ Implements RECOMMENDATIONS.md Section 6.2.2.
 """
 
 import hashlib
+import logging
 import threading
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
-
-import logging
 
 logger = logging.getLogger(__name__)
 

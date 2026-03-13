@@ -3,32 +3,31 @@ Confidence Engine API Server
 REST API for confidence, risk, and authority computation
 """
 
-from flask import Flask, request, jsonify
-from typing import Dict, Any, List, Optional
 import logging
 import os
 import threading
 from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional
 
+from flask import Flask, jsonify, request
+
+from confidence_engine.authority_mapper import AuthorityMapper
+from confidence_engine.confidence_calculator import ConfidenceCalculator
+from confidence_engine.graph_analyzer import GraphAnalyzer
 from confidence_engine.models import (
-    ArtifactNode,
     ArtifactGraph,
-    ArtifactType,
+    ArtifactNode,
     ArtifactSource,
-    VerificationEvidence,
-    VerificationResult,
+    ArtifactType,
+    Phase,
     SourceTrust,
     TrustModel,
-    Phase
+    VerificationEvidence,
+    VerificationResult,
 )
-from confidence_engine.graph_analyzer import GraphAnalyzer
-from confidence_engine.confidence_calculator import ConfidenceCalculator
 from confidence_engine.murphy_calculator import MurphyCalculator
-from confidence_engine.authority_mapper import AuthorityMapper
 from confidence_engine.phase_controller import PhaseController
-
 from flask_security import configure_secure_app, is_debug_mode
-
 
 # Initialize Flask app
 app = Flask(__name__)

@@ -17,8 +17,8 @@ from .models import (
     BlockType,
     DocPermission,
     DocStatus,
-    DocVersion,
     Document,
+    DocVersion,
     _now,
 )
 

@@ -11,20 +11,20 @@ Components:
 - AssumptionLifecycleManager: Manages assumption status transitions
 """
 
-from typing import Dict, List, Optional, Set
-from datetime import datetime, timedelta, timezone
-from dataclasses import dataclass, field
 import logging
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
+from typing import Dict, List, Optional, Set
 
 from .schemas import (
     AssumptionArtifact,
-    AssumptionStatus,
-    SupervisorFeedbackArtifact,
-    InvalidationSignal,
     AssumptionBinding,
-    ValidationEvidence,
+    AssumptionStatus,
     ConfidenceTrend,
-    MurphyIndexTrend
+    InvalidationSignal,
+    MurphyIndexTrend,
+    SupervisorFeedbackArtifact,
+    ValidationEvidence,
 )
 
 logger = logging.getLogger(__name__)

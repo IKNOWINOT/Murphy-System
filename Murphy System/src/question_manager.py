@@ -3,10 +3,9 @@ Question Manager for Murphy System
 Handles iterative questioning - asks ONE question at a time
 """
 
-from typing import List, Dict, Any, Optional
-from dataclasses import dataclass, field
-
 import logging
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

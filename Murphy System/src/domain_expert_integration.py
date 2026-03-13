@@ -3,23 +3,13 @@ Domain Expert Integration with Murphy System
 Integrates organization charts, domain experts, and RLM patterns with the existing Murphy System.
 """
 
-from typing import Dict, List, Any, Optional
-from dataclasses import dataclass
 import json
-
-from domain_expert_system import (
-    DomainExpertSwarm,
-    DomainExpert,
-    KnowledgeContext,
-    Artifact
-)
-from organization_chart_system import (
-    OrganizationChart,
-    JobPosition,
-    Department
-)
-
 import logging
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
+
+from domain_expert_system import Artifact, DomainExpert, DomainExpertSwarm, KnowledgeContext
+from organization_chart_system import Department, JobPosition, OrganizationChart
 
 logger = logging.getLogger(__name__)
 

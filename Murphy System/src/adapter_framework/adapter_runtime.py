@@ -6,12 +6,13 @@ Validates and executes DeviceExecutionPackets with strict safety enforcement.
 CRITICAL: This is the enforcement boundary. NO commands bypass this layer.
 """
 
-from typing import Dict, List, Optional, Set
+import logging
 import time
+from typing import Dict, List, Optional, Set
+
 from .adapter_contract import AdapterAPI
 from .execution_packet_extension import DeviceExecutionPacket
 
-import logging
 logger = logging.getLogger("adapter_framework.adapter_runtime")
 
 

@@ -4,12 +4,11 @@ Creates domain expert teams based on organization charts and job positions.
 Uses RLM patterns for intelligent task decomposition.
 """
 
-from typing import Dict, List, Any, Optional
+import json
+import logging
 from dataclasses import dataclass, field
 from enum import Enum
-import json
-
-import logging
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

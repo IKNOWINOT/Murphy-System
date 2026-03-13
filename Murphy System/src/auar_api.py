@@ -25,9 +25,9 @@ import os
 from typing import Any, Dict, List, Optional
 
 from auar import (
-    AUARPipeline,
-    AUARConfig,
     AdapterConfig,
+    AUARConfig,
+    AUARPipeline,
     AuthMethod,
     Capability,
     CapabilityGraph,

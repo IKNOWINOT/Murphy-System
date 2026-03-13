@@ -28,7 +28,7 @@ Usage::
 import logging
 import threading
 import time
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 

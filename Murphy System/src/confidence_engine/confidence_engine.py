@@ -10,9 +10,8 @@ When risk data (loss/probability pairs) is available, the canonical
 ``CONFIDENCE_COMPLEMENT`` fallback (``1.0 - confidence``) is applied instead.
 """
 
-from enum import Enum
-
 import logging
+from enum import Enum
 
 logger = logging.getLogger(__name__)
 

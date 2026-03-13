@@ -18,16 +18,16 @@ License: BSL 1.1
 
 import logging
 import threading
-from typing import Dict, List, Optional, Any
 from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
 
+from telemetry_adapter import TelemetryAdapter
 from wingman_protocol import (
     ExecutionRunbook,
     ValidationRule,
     ValidationSeverity,
     WingmanProtocol,
 )
-from telemetry_adapter import TelemetryAdapter
 
 logger = logging.getLogger(__name__)
 

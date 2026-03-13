@@ -3,29 +3,30 @@ Gate Generator
 Synthesizes gates based on failure modes and risk analysis
 """
 
-from typing import List, Dict, Any, Optional
-from datetime import datetime, timedelta, timezone
 import hashlib
-
-from .models import (
-    Gate,
-    GateType,
-    GateCategory,
-    GateState,
-    FailureMode,
-    FailureModeType,
-    RetirementCondition,
-    RiskVector
-)
+import os
 
 # Import from confidence engine
 import sys
-import os
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional
+
+from .models import (
+    FailureMode,
+    FailureModeType,
+    Gate,
+    GateCategory,
+    GateState,
+    GateType,
+    RetirementCondition,
+    RiskVector,
+)
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from confidence_engine.models import Phase, AuthorityBand
-
 import logging
+
+from confidence_engine.models import AuthorityBand, Phase
 
 logger = logging.getLogger(__name__)
 
@@ -68,8 +69,8 @@ class GateGenerator:
         """
         # Handle dict-style calling from e2e tests (returns awaitable)
         if isinstance(failure_modes, dict):
-            import uuid as _uuid
             import asyncio
+            import uuid as _uuid
             from types import SimpleNamespace
             params = failure_modes
             gates_list = []

@@ -27,7 +27,7 @@ import secrets
 import threading
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from account_management.models import OAuthProvider, OAuthToken

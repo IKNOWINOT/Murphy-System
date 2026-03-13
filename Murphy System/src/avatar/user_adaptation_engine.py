@@ -1,12 +1,11 @@
 """Tracks and adapts to user interaction patterns."""
 
+import logging
 from datetime import datetime, timezone
 from threading import Lock
 from typing import Any, Dict, Optional
 
 from .avatar_models import UserAdaptation
-
-import logging
 
 logger = logging.getLogger(__name__)
 

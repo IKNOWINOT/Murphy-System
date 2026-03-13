@@ -24,15 +24,15 @@ Security:
 - Auditable: Every viewport access is logged with caller identity
 """
 
-from typing import Dict, Any, List, Optional, Tuple
-from dataclasses import dataclass, field
-from enum import Enum
-from datetime import datetime, timezone
 import hashlib
 import json
 import logging
 import math
 import threading
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 

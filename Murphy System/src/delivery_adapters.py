@@ -9,14 +9,15 @@ Each adapter prepares payloads ready for real transport without requiring
 external service connections at runtime.
 """
 
-from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any
-from enum import Enum
-from datetime import datetime, timezone
 import logging
 import re
 import uuid
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
+from typing import Any, Dict, List, Optional
+
 from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)

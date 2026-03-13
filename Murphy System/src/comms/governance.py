@@ -11,19 +11,18 @@ Enforces:
 CRITICAL: This layer is the enforcement boundary between messages and execution.
 """
 
-from typing import List, Dict, Optional, Tuple
-from datetime import datetime, timezone
+import logging
 import re
+from datetime import datetime, timezone
+from typing import Dict, List, Optional, Tuple
 
 from .schemas import (
-    MessageArtifact,
-    CommunicationPacket,
-    IntentClassification,
     AuditLogEntry,
     Channel,
+    CommunicationPacket,
+    IntentClassification,
+    MessageArtifact,
 )
-
-import logging
 
 logger = logging.getLogger(__name__)
 

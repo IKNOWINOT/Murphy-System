@@ -35,19 +35,7 @@ __codename__ = "Bridge Layer"
 
 # PR #208 — Application Service layer
 from .appservice import AppService, AppserviceRegistration, AppServiceState
-from .auth_bridge import AuthBridge, COMMAND_ROLE_REQUIREMENTS, MurphyRole, UserMapping
-from .command_dispatcher import CommandDispatcher, CommandResponse, ParsedCommand
-from .config import (
-    DEFAULT_ROOM_DEFINITIONS,
-    MatrixBridgeConfig,
-    RoomMapping,
-    build_default_config,
-)
-from .e2ee_manager import E2EEManager, E2EEState, MegolmSession, OlmSession
-from .event_streamer import EVENT_FORMAT_TEMPLATES, EventStreamer, StreamedEvent
-from .media_handler import MediaHandler, MediaType, MediaUpload
-from .room_router import MODULE_TO_ROOM, RoomRouter
-from .webhook_receiver import WebhookEvent, WebhookEventType, WebhookReceiver
+from .auth_bridge import COMMAND_ROLE_REQUIREMENTS, AuthBridge, MurphyRole, UserMapping
 
 # PR #207 — Communication Bridge Foundation
 from .bot_bridge_adapter import (
@@ -55,6 +43,30 @@ from .bot_bridge_adapter import (
     BotPersona,
     get_adapter,
     reset_adapter,
+)
+from .bot_personas import BotPersonas, Persona
+from .command_dispatcher import CommandDispatcher, CommandResponse, ParsedCommand
+from .command_router import CommandRouter
+from .config import (
+    DEFAULT_ROOM_DEFINITIONS,
+    MatrixBridgeConfig,
+    RoomMapping,
+    build_default_config,
+)
+from .e2ee_manager import E2EEManager, E2EEState, MegolmSession, OlmSession
+from .event_bridge import EventBridge
+from .event_streamer import EVENT_FORMAT_TEMPLATES, EventStreamer, StreamedEvent
+from .hitl_matrix_adapter import HITLMatrixAdapter
+from .management_features import (
+    AutomationEngine,
+    AutomationTrigger,
+    BoardItem,
+    BoardManager,
+    ColumnType,
+    DashboardManager,
+    ItemPriority,
+    ItemStatus,
+    MurphyBoard,
 )
 from .matrix_client import (
     MatrixClient,
@@ -77,6 +89,7 @@ from .matrix_event_handler import (
     MatrixEventHandler,
     MatrixEventType,
 )
+from .media_handler import MediaHandler, MediaType, MediaUpload
 from .message_router import (
     CommandParseResult,
     MessagePriority,
@@ -84,17 +97,11 @@ from .message_router import (
     QueuedMessage,
     RoutingEntry,
 )
-from .management_features import (
-    AutomationEngine,
-    AutomationTrigger,
-    BoardItem,
-    BoardManager,
-    ColumnType,
-    DashboardManager,
-    ItemPriority,
-    ItemStatus,
-    MurphyBoard,
-)
+from .module_manifest import MODULE_MANIFEST
+
+# PR #206 — Integration Layer
+from .room_registry import SUBSYSTEM_ROOMS, RoomRegistry
+from .room_router import MODULE_TO_ROOM, RoomRouter
 from .room_topology import (
     MurphyRoomTopology,
     RoomDefinition,
@@ -103,6 +110,7 @@ from .room_topology import (
     get_topology,
     reset_topology,
 )
+from .space_manager import SpaceManager
 from .subsystem_registry import (
     SubsystemDomain,
     SubsystemEntry,
@@ -110,15 +118,7 @@ from .subsystem_registry import (
     get_registry,
     reset_registry,
 )
-
-# PR #206 — Integration Layer
-from .room_registry import RoomRegistry, SUBSYSTEM_ROOMS
-from .command_router import CommandRouter
-from .event_bridge import EventBridge
-from .bot_personas import BotPersonas, Persona
-from .space_manager import SpaceManager
-from .hitl_matrix_adapter import HITLMatrixAdapter
-from .module_manifest import MODULE_MANIFEST
+from .webhook_receiver import WebhookEvent, WebhookEventType, WebhookReceiver
 
 __all__ = [
     # Package metadata

@@ -4,14 +4,14 @@ Generates domain-specific gates with wired functions
 Integrates with librarian system for knowledge reference
 """
 
-from typing import Dict, List, Optional, Any, Callable, Tuple
-from dataclasses import dataclass, field
-from enum import Enum
 import json
-from datetime import datetime, timezone
-import uuid
-
 import logging
+import uuid
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
 logger = logging.getLogger("domain_gate_generator")
 
 

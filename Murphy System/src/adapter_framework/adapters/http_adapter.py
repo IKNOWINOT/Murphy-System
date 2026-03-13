@@ -6,15 +6,17 @@ Generic HTTP-based device adapter.
 Communicates with devices via HTTP REST API.
 """
 
-import time
 import hashlib
 import json
-import requests
+import logging
+import time
 from typing import Dict
+
+import requests
+
 from ..adapter_contract import AdapterAPI, AdapterManifest
 from ..execution_packet_extension import DeviceExecutionPacket
 
-import logging
 logger = logging.getLogger("adapter_framework.adapters.http_adapter")
 
 

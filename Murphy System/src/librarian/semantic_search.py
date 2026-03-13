@@ -3,11 +3,11 @@ Semantic Search Engine for Librarian Module
 Provides intelligent search and retrieval capabilities
 """
 
-import logging
-from typing import Dict, List, Optional, Any, Tuple
-from datetime import datetime, timezone
-import re
 import json
+import logging
+import re
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional, Tuple
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

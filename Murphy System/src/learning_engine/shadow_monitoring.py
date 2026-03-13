@@ -4,11 +4,11 @@ Continuous Monitoring Dashboard
 This module implements real-time monitoring and alerting for the shadow agent.
 """
 
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
 from uuid import UUID, uuid4
-import logging
 
 logger = logging.getLogger(__name__)
 

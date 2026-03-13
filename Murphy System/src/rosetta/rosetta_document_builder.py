@@ -71,8 +71,8 @@ from .rosetta_models import (
     HITLThroughputModel,
     Identity,
     IndustryTerminology,
-    ManagementLayer,
     MagnifySimplifyTask,
+    ManagementLayer,
     Metadata,
     RosettaAgentState,
     RosettaDocument,
@@ -216,8 +216,8 @@ class RosettaDocumentBuilder:
         # Lazy-load heavy dependencies only if not injected
         if self._gate_engine is None:
             try:
-                import sys
                 import os
+                import sys
                 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
                 from inference_gate_engine import InferenceDomainGateEngine
                 self._gate_engine = InferenceDomainGateEngine()

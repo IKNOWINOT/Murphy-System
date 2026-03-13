@@ -6,17 +6,23 @@ This is the critical boundary where reasoning becomes action.
 Converts verified, gated, high-confidence plans into immutable execution packets.
 """
 
+import logging
 import uuid
-from typing import Dict, List, Any, Optional, Tuple
 from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional, Tuple
 
 from .execution_packet import (
-    ExecutionPacket, Action, Gate, SafetyConstraint,
-    TimeWindow, RollbackPlan, AuthorityEnvelope,
-    ActionType, ConstraintType, create_simple_packet
+    Action,
+    ActionType,
+    AuthorityEnvelope,
+    ConstraintType,
+    ExecutionPacket,
+    Gate,
+    RollbackPlan,
+    SafetyConstraint,
+    TimeWindow,
+    create_simple_packet,
 )
-
-import logging
 
 logger = logging.getLogger(__name__)
 

@@ -10,13 +10,14 @@ providing:
 - Thread-safe state management
 """
 
-import uuid
 import logging
 import threading
-from typing import Dict, List, Optional, Any, Set, Tuple
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Tuple
+
 from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)

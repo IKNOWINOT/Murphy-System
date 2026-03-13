@@ -1,6 +1,6 @@
 """Rosetta State Management System for Murphy."""
-from .rosetta_models import RosettaAgentState, Identity, SystemState, AgentState, Goal, Task
 from .rosetta_manager import RosettaManager
+from .rosetta_models import AgentState, Goal, Identity, RosettaAgentState, SystemState, Task
 
 __all__ = [
     "RosettaAgentState",

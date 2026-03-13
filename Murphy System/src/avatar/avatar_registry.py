@@ -1,11 +1,10 @@
 """Thread-safe avatar CRUD and lookup."""
 
+import logging
 from threading import Lock
 from typing import Any, Dict, List, Optional
 
 from .avatar_models import AvatarProfile
-
-import logging
 
 logger = logging.getLogger(__name__)
 

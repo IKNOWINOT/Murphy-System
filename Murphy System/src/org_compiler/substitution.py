@@ -11,18 +11,17 @@ CRITICAL SAFETY RULES:
 - Human signoff gate must be configured and granted
 """
 
-from typing import List, Dict, Optional, Tuple
+import logging
 from datetime import datetime, timedelta, timezone
+from typing import Dict, List, Optional, Tuple
 
 from .schemas import (
-    SubstitutionGate,
-    GateStatus,
-    TemplateProposalArtifact,
-    RoleTemplate,
     ComplianceConstraint,
+    GateStatus,
+    RoleTemplate,
+    SubstitutionGate,
+    TemplateProposalArtifact,
 )
-
-import logging
 
 logger = logging.getLogger(__name__)
 

@@ -15,10 +15,10 @@ from typing import Any, Dict, List, Optional
 from thread_safe_operations import capped_append
 
 from .models import (
-    CRMActivity,
     ActivityType,
     Contact,
     ContactType,
+    CRMActivity,
     Deal,
     DealStage,
     Pipeline,

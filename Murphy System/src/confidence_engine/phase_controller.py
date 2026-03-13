@@ -3,12 +3,11 @@ Phase Controller
 Controls phase transitions based on confidence thresholds
 """
 
-from typing import Dict, Any, List
-from datetime import datetime, timezone
-
-from .models import Phase, ConfidenceState
-
 import logging
+from datetime import datetime, timezone
+from typing import Any, Dict, List
+
+from .models import ConfidenceState, Phase
 
 logger = logging.getLogger(__name__)
 

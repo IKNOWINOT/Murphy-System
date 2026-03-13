@@ -1,5 +1,6 @@
 """Bayesian confidence engine replacing heuristic confidence increments."""
 
+import logging
 import math
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -12,8 +13,6 @@ from .entropy import (
     shannon_entropy,
     uniform_distribution,
 )
-
-import logging
 
 logger = logging.getLogger(__name__)
 

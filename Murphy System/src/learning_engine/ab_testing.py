@@ -4,13 +4,13 @@ A/B Testing Framework
 This module implements A/B testing for shadow agent vs Murphy Gate.
 """
 
+import logging
+import random
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
 from uuid import UUID, uuid4
-import logging
-import random
 
 logger = logging.getLogger(__name__)
 

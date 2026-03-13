@@ -10,26 +10,23 @@ Components:
 - SupervisorAuditLogger: Tracks all supervisor actions
 """
 
-from typing import Dict, List, Optional, Callable
-from datetime import datetime, timezone
-from dataclasses import dataclass, field
-import logging
 import json
+import logging
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from typing import Callable, Dict, List, Optional
 
+from thread_safe_operations import capped_append
+
+from .assumption_management import AssumptionLifecycleManager, AssumptionRegistry, AssumptionValidator
 from .schemas import (
-    SupervisorFeedbackArtifact,
-    FeedbackType,
     AssumptionArtifact,
     AssumptionStatus,
-    ValidationEvidence,
+    FeedbackType,
     InvalidationSignal,
-    InvalidationSource
-)
-from thread_safe_operations import capped_append
-from .assumption_management import (
-    AssumptionRegistry,
-    AssumptionValidator,
-    AssumptionLifecycleManager
+    InvalidationSource,
+    SupervisorFeedbackArtifact,
+    ValidationEvidence,
 )
 
 logger = logging.getLogger(__name__)

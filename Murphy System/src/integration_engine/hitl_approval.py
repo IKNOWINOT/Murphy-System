@@ -8,13 +8,12 @@ This module handles the approval workflow for integrations:
 4. Provides approval/rejection interface
 """
 
+import json
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Dict, List, Optional, Any
-import json
-
-import logging
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

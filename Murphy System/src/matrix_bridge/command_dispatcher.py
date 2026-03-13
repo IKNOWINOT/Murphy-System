@@ -347,7 +347,7 @@ def _handle_version(
     dispatcher: CommandDispatcher, cmd: ParsedCommand
 ) -> CommandResponse:
     """Handle ``!murphy version``."""
-    from . import __version__, __codename__  # type: ignore[attr-defined]
+    from . import __codename__, __version__  # type: ignore[attr-defined]
 
     msg = (
         f"## Murphy Matrix Bridge\n\n"

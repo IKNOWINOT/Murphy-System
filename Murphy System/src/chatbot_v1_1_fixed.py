@@ -3,10 +3,9 @@ ChatbotV1_1Fixed - Fixed MFGC v1.1 chatbot with safety gates,
 complexity routing, and proper response markers.
 """
 
-import re
-from typing import Dict, Any, Optional
-
 import logging
+import re
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 

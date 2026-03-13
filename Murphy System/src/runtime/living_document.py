@@ -10,7 +10,7 @@ License: BSL 1.1
 """
 
 from datetime import datetime, timezone
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
 
 
 class LivingDocument:

@@ -20,12 +20,11 @@ building_automation_connectors and content_creator_platform_modulator.
 """
 
 import enum
+import logging
 import threading
 import time
 import uuid
 from typing import Any, Dict, List, Optional
-
-import logging
 
 logger = logging.getLogger(__name__)
 

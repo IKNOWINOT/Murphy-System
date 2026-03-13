@@ -7,7 +7,7 @@ artifacts.  Provides:
 - Data models: ArtifactSchema, BotContract, SchemaField, etc.
 """
 
-from .registry import SchemaRegistry, ARTIFACT_SCHEMA_TEMPLATES
+from .registry import ARTIFACT_SCHEMA_TEMPLATES, SchemaRegistry
 from .schemas import (
     ArtifactSchema,
     BotContract,

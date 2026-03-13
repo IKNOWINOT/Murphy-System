@@ -3,18 +3,26 @@ Correction Capture Interface
 Provides interfaces for capturing human corrections in various formats.
 """
 
-from typing import Dict, List, Optional, Any, Callable
+import logging
 from datetime import datetime, timezone
 from enum import Enum
+from typing import Any, Callable, Dict, List, Optional
+
 from pydantic import BaseModel, Field
 
-import logging
 logger = logging.getLogger("learning_engine.correction_capture")
 
 from .correction_models import (
-    Correction, CorrectionType, CorrectionSeverity, CorrectionSource,
-    CorrectionContext, CorrectionDiff, OriginalValue, CorrectedValue,
-    CorrectionMetrics, create_simple_correction
+    CorrectedValue,
+    Correction,
+    CorrectionContext,
+    CorrectionDiff,
+    CorrectionMetrics,
+    CorrectionSeverity,
+    CorrectionSource,
+    CorrectionType,
+    OriginalValue,
+    create_simple_correction,
 )
 
 

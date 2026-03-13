@@ -19,22 +19,21 @@ CRITICAL SAFETY CONSTRAINTS:
 - Substitution requires explicit gate satisfaction
 """
 
-from typing import List, Dict, Optional, Set, Tuple
-from collections import defaultdict, Counter
-from datetime import datetime, timedelta, timezone
+import logging
 import statistics
+from collections import Counter, defaultdict
+from datetime import datetime, timedelta, timezone
+from typing import Dict, List, Optional, Set, Tuple
 
 from .schemas import (
-    TemplateProposalArtifact,
-    RoleTemplate,
-    HandoffEvent,
-    WorkArtifact,
-    ProposalStatus,
-    SubstitutionGate,
     GateStatus,
+    HandoffEvent,
+    ProposalStatus,
+    RoleTemplate,
+    SubstitutionGate,
+    TemplateProposalArtifact,
+    WorkArtifact,
 )
-
-import logging
 
 logger = logging.getLogger(__name__)
 

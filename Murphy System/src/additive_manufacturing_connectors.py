@@ -16,14 +16,14 @@ Supported Protocols / Standards:
     HP 3D Command Center, Markforged Eiger, EOS EOSTATE, etc.)
 """
 
+import logging
+import threading
 import time
 import uuid
-import threading
 from enum import Enum
 from typing import Any, Dict, List, Optional
-from thread_safe_operations import capped_append
 
-import logging
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 

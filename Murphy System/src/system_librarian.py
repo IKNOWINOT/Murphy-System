@@ -4,14 +4,14 @@ Maintains transcript logs, generates documentation, and manages system knowledge
 Provides complete system understanding from any module's perspective
 """
 
-from typing import Dict, List, Optional, Any
-from dataclasses import dataclass, field
-from enum import Enum
 import json
-from datetime import datetime, timezone
-import uuid
-
 import logging
+import uuid
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
+from typing import Any, Dict, List, Optional
+
 logger = logging.getLogger("system_librarian")
 
 
@@ -202,6 +202,22 @@ class SystemLibrarian:
                 "related_modules": ["contractual_audit"],
                 "related_functions": ["audit_productivity", "generate_contract", "monitor_agent_drift"],
                 "references": ["org_statistics", "gap_thresholds"]
+            },
+            {
+                "category": "engineering_drawing",
+                "topic": "Murphy Drawing Engine",
+                "description": "Vector drawing engine for engineering drawings with SVG/DXF export, BOM extraction, parametric constraints, and natural-language agentic drawing commands",
+                "related_modules": ["murphy_drawing_engine"],
+                "related_functions": ["export_svg", "export_dxf", "extract_bom", "execute_command"],
+                "references": ["drawing_projects", "engineering_symbols", "sheet_sizes"]
+            },
+            {
+                "category": "engineering_toolbox",
+                "topic": "Murphy Engineering Toolbox",
+                "description": "Developer utilities for engineering workflows: schema scaffolding, stub generation, diff tools, and engineering calculation helpers",
+                "related_modules": ["murphy_engineering_toolbox"],
+                "related_functions": ["scaffold_schema", "generate_stub", "diff_schemas"],
+                "references": ["engineering_schemas", "stub_templates"]
             }
         ]
 
@@ -351,6 +367,59 @@ class SystemLibrarian:
                     "help_visible": True,
                     "coupled": True
                 }
+            },
+            "murphy_drawing_engine": {
+                "create_project": {
+                    "description": "Create a new drawing project with discipline and units",
+                    "parameters": ["name", "discipline", "units"],
+                    "returns": "DrawingProject",
+                    "help_visible": True,
+                    "coupled": True
+                },
+                "export_svg": {
+                    "description": "Export drawing project to SVG format",
+                    "parameters": ["project"],
+                    "returns": "str",
+                    "help_visible": True,
+                    "coupled": True
+                },
+                "export_dxf": {
+                    "description": "Export drawing project to DXF format",
+                    "parameters": ["project"],
+                    "returns": "str",
+                    "help_visible": True,
+                    "coupled": True
+                },
+                "extract_bom": {
+                    "description": "Extract bill of materials from drawing project",
+                    "parameters": ["project"],
+                    "returns": "List[Dict]",
+                    "help_visible": True,
+                    "coupled": True
+                },
+                "execute_command": {
+                    "description": "Execute natural-language drawing command via agentic assistant",
+                    "parameters": ["command"],
+                    "returns": "Dict[str, Any]",
+                    "help_visible": True,
+                    "coupled": True
+                }
+            },
+            "murphy_engineering_toolbox": {
+                "scaffold_schema": {
+                    "description": "Generate schema scaffolding for engineering modules",
+                    "parameters": ["module_name", "schema_type"],
+                    "returns": "Dict",
+                    "help_visible": True,
+                    "coupled": True
+                },
+                "generate_stub": {
+                    "description": "Generate stub implementation for engineering interface",
+                    "parameters": ["interface_spec"],
+                    "returns": "str",
+                    "help_visible": True,
+                    "coupled": True
+                }
             }
         }
 
@@ -410,6 +479,21 @@ class SystemLibrarian:
                 "Detect gaps",
                 "Generate contracts",
                 "Monitor agent drift"
+            ],
+            "murphy_drawing_engine": [
+                "Create engineering drawing projects",
+                "Export drawings to SVG format",
+                "Export drawings to DXF format",
+                "Extract bill of materials from drawings",
+                "Execute natural-language drawing commands",
+                "Manage drawing sheets and elements",
+                "Apply parametric constraints"
+            ],
+            "murphy_engineering_toolbox": [
+                "Scaffold engineering schemas",
+                "Generate stub implementations",
+                "Diff engineering schemas",
+                "Provide engineering calculation helpers"
             ]
         }
 

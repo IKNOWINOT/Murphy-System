@@ -21,8 +21,8 @@ try:
 except ImportError:  # pragma: no cover
     APIRouter = None  # type: ignore[assignment,misc]
 
-from .service_manager import ServiceManager
 from .models import RoutingStrategy, TicketPriority, TicketStatus
+from .service_manager import ServiceManager
 
 logger = logging.getLogger(__name__)
 

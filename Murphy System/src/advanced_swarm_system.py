@@ -3,12 +3,11 @@ Advanced Swarm System with Enhanced Generation and Gates
 Combines powerful generative capabilities with Murphy-Free safety
 """
 
-from typing import List, Dict, Any, Optional, Tuple, Callable
+import logging
+import re
 from dataclasses import dataclass
 from enum import Enum
-import re
-
-import logging
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 

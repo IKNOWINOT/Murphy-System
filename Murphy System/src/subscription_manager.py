@@ -25,7 +25,7 @@ import threading
 import time
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from thread_safe_operations import capped_append
@@ -453,8 +453,9 @@ class SubscriptionManager:
 
     def _get_paypal_access_token(self) -> str:
         """Exchange PayPal client credentials for an access token."""
-        import requests
         import base64
+
+        import requests
         credentials = base64.b64encode(
             f"{self._paypal_client_id}:{self._paypal_client_secret}".encode()
         ).decode()

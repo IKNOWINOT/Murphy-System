@@ -9,13 +9,14 @@ Pluggable source adapters let the system query any public record API.
 from __future__ import annotations
 
 import logging
-import urllib.request
 import urllib.error
+import urllib.request
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from thread_safe_operations import capped_append
+
 from .models import (
     CertificationType,
     ComplaintRecord,

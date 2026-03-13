@@ -20,6 +20,7 @@ falls back to simple Unicode box-drawing characters.
 from __future__ import annotations
 
 import logging
+
 logger = logging.getLogger("cli_art")
 
 from typing import Optional

@@ -20,14 +20,14 @@ is delegated to the respective tool APIs/SDKs.
 
 import enum
 import json
+import logging
 import threading
 import time
 import uuid
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
-from thread_safe_operations import capped_append
 
-import logging
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 

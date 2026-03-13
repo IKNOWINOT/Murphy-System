@@ -4,10 +4,9 @@ Determinism Analyzer
 Analyzes determinism properties of computation results.
 """
 
-from typing import Dict, Any
-import math
-
 import logging
+import math
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 

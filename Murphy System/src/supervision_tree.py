@@ -536,7 +536,7 @@ class SupervisionTreeBuilder:
         component_type: str = "service",
     ) -> "SupervisionTreeBuilder":
         """Register a supervised component with this supervisor."""
-        capped_append(self._components, 
+        capped_append(self._components,
             SupervisedComponent(
                 component_id=component_id,
                 component_type=component_type,

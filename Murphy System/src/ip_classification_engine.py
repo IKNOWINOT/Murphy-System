@@ -8,11 +8,11 @@ Manages intellectual property classification across three tiers:
 Includes trade secret marking, protection, and licensing framework.
 """
 
-import uuid
 import hashlib
 import logging
-from datetime import datetime, timezone
+import uuid
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Optional
 
@@ -138,12 +138,12 @@ class TradeSecretRecord:
 class IPClassificationEngine:
     """
     Manages IP classification, protection, and licensing across the system.
-    
+
     Three-tier IP model:
       1. Employee IP: Shadow agent data, learning patterns, work habits
       2. Business IP: Org chart interactions, process flows, system configs
       3. System IP: Aggregated metrics, automation patterns (licensed to Murphy)
-    
+
     Trade secrets receive additional protection with access controls.
     """
 

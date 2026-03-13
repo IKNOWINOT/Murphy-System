@@ -16,13 +16,12 @@ Dynamic dimension addition preserves existing covariance structure.
 
 from __future__ import annotations
 
+import logging
 import math
 from dataclasses import dataclass, field
 from typing import Callable, List, Optional, Tuple
 
 import numpy as np
-
-import logging
 
 logger = logging.getLogger(__name__)
 

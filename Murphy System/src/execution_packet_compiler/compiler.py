@@ -4,12 +4,11 @@ Provides a simplified ExecutionPacketCompiler that wraps the core compiler
 with a ``compile()`` helper expected by integration tests.
 """
 
-import uuid
 import hashlib
 import json
-from typing import Dict, Any
-
 import logging
+import uuid
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 

@@ -14,29 +14,26 @@ SAFETY CONSTRAINTS:
 
 __version__ = "1.0.0"
 
+from .compilation import (
+    CompilationGate,
+    ExecutionPacketCompiler,
+)
+from .intake import (
+    ClaimExtractor,
+    HypothesisIntakeService,
+    VerificationRequestGenerator,
+)
 from .models import (
+    BlockingReason,
+    CompilationResult,
     HypothesisArtifact,
     VerificationArtifact,
     VerificationRequest,
     VerificationStatus,
-    CompilationResult,
-    BlockingReason,
 )
-
-from .intake import (
-    HypothesisIntakeService,
-    ClaimExtractor,
-    VerificationRequestGenerator,
-)
-
-from .compilation import (
-    ExecutionPacketCompiler,
-    CompilationGate,
-)
-
 from .ux import (
-    ExecutabilityExplainer,
     BlockingFeedback,
+    ExecutabilityExplainer,
 )
 
 __all__ = [

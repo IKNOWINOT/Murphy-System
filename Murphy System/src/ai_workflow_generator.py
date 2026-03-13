@@ -7,13 +7,13 @@ Implements RECOMMENDATIONS.md Section 6.2.3.
 """
 
 import hashlib
+import logging
 import re
 import threading
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional, Tuple
-from thread_safe_operations import capped_append
 
-import logging
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 

@@ -3,13 +3,13 @@ Groq API Key Rotation System
 Evenly distributes API calls across multiple keys to maximize throughput
 """
 
+import logging
 import threading
-from typing import List, Optional
+import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-import time
+from typing import List, Optional
 
-import logging
 logger = logging.getLogger("groq_key_rotator")
 
 

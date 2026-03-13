@@ -47,6 +47,7 @@ License: BSL 1.1
 
 from __future__ import annotations
 
+import logging
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -54,8 +55,6 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
 from domain_gate_generator import DomainGate, DomainGateGenerator, GateSeverity, GateType
-
-import logging
 
 logger = logging.getLogger(__name__)
 
