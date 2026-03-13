@@ -2,20 +2,54 @@
 # License: BSL 1.1
 """Matrix Bot Configuration — environment-based settings for Murphy Matrix integration.
 
-All settings are read from environment variables.  No defaults embed credentials;
-only interval / prefix / threshold values carry safe defaults.
+Provides two configuration classes:
+
+* :class:`MatrixConfig` — the original flat dataclass used by the v1 bot.
+* :class:`MatrixBotConfig` — the enhanced dataclass with ``from_env()`` /
+  ``from_yaml()`` classmethods used by :class:`~bots.matrix_bot.MurphyMatrixBot`.
+
+All settings are read from environment variables.  No defaults embed
+credentials; only interval / prefix / threshold values carry safe defaults.
 """
 
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Optional
+
+logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# YAML loader (optional — falls back gracefully if pyyaml not installed)
+# ---------------------------------------------------------------------------
+try:
+    import yaml as _yaml
+
+    def _load_yaml(path: str) -> dict:
+        with open(path) as fh:
+            return _yaml.safe_load(fh) or {}
+except ImportError:  # pragma: no cover
+    def _load_yaml(path: str) -> dict:  # type: ignore[misc]
+        logger.warning("pyyaml not installed — skipping YAML config at %s", path)
+        return {}
+
+
+def _env(key: str, default: str = "") -> str:
+    """Read a single environment variable, returning *default* if unset."""
+    return os.environ.get(key, default)
+
+
+# ---------------------------------------------------------------------------
+# v1 config dataclass (kept for backward compatibility)
+# ---------------------------------------------------------------------------
 
 
 @dataclass
 class MatrixConfig:
-    """Validated configuration for the Murphy Matrix bot."""
+    """Validated configuration for the Murphy Matrix bot (v1)."""
 
     # ------------------------------------------------------------------
     # Matrix homeserver / account
@@ -150,44 +184,18 @@ def load_config() -> MatrixConfig:
     )
 
 
-__all__ = ["MatrixConfig", "load_config"]
-"""Configuration for the Murphy Matrix bot integration.
-
-Reads settings from environment variables with optional YAML override.
-All settings have sensible defaults so the bot starts without any configuration.
-"""
-from __future__ import annotations
-
-import logging
-import os
-from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Optional
-
-logger = logging.getLogger(__name__)
-
 # ---------------------------------------------------------------------------
-# YAML loader (optional — falls back gracefully if pyyaml not installed)
+# v2 config dataclass (used by MurphyMatrixBot)
 # ---------------------------------------------------------------------------
-try:
-    import yaml as _yaml
-
-    def _load_yaml(path: str) -> dict:
-        with open(path) as fh:
-            return _yaml.safe_load(fh) or {}
-except ImportError:  # pragma: no cover
-    def _load_yaml(path: str) -> dict:  # type: ignore[misc]
-        logger.warning("pyyaml not installed — skipping YAML config at %s", path)
-        return {}
-
-
-def _env(key: str, default: str = "") -> str:
-    return os.environ.get(key, default)
 
 
 @dataclass
 class MatrixBotConfig:
-    """All configurable parameters for the Murphy Matrix bot."""
+    """All configurable parameters for the Murphy Matrix bot (v2).
+
+    Supports loading from environment variables via :meth:`from_env` or
+    from a YAML file via :meth:`from_yaml`.
+    """
 
     # ------------------------------------------------------------------ Matrix
     homeserver: str = field(
@@ -221,10 +229,10 @@ class MatrixBotConfig:
 
     # ------------------------------------------------------------------ Polling
     hitl_poll_interval: int = field(
-        default_factory=lambda: int(_env("HITL_POLL_INTERVAL", "30"))
+        default_factory=lambda: int(_env("MATRIX_HITL_POLL_INTERVAL", _env("HITL_POLL_INTERVAL", "30")))
     )
     health_poll_interval: int = field(
-        default_factory=lambda: int(_env("HEALTH_POLL_INTERVAL", "15"))
+        default_factory=lambda: int(_env("MATRIX_HEALTH_POLL_INTERVAL", _env("HEALTH_POLL_INTERVAL", "60")))
     )
 
     # ------------------------------------------------------------------ Circuit breaker
@@ -242,7 +250,16 @@ class MatrixBotConfig:
 
     @classmethod
     def from_yaml(cls, path: str) -> "MatrixBotConfig":
-        """Load config from a YAML file, with env-var overrides on top."""
+        """Load config from a YAML file, with env-var overrides on top.
+
+        Args:
+            path: Path to the YAML configuration file.
+
+        Returns:
+            A :class:`MatrixBotConfig` populated from the file, with any
+            environment variables taking precedence.
+        """
+        logger.info("Loading Matrix bot config from %s", path)
         data = _load_yaml(path)
         inst = cls()
         for key, value in data.items():
@@ -250,13 +267,19 @@ class MatrixBotConfig:
                 setattr(inst, key, value)
         # env-vars always win
         inst._apply_env()
+        logger.info("Matrix bot config loaded (homeserver=%s, user=%s)", inst.homeserver, inst.user_id)
         return inst
 
     @classmethod
     def from_env(cls) -> "MatrixBotConfig":
-        """Load config purely from environment variables."""
+        """Load config purely from environment variables.
+
+        Returns:
+            A :class:`MatrixBotConfig` populated from environment variables.
+        """
         inst = cls()
         inst._apply_env()
+        logger.info("Matrix bot config loaded from env (homeserver=%s, user=%s)", inst.homeserver, inst.user_id)
         return inst
 
     def _apply_env(self) -> None:
@@ -276,8 +299,10 @@ class MatrixBotConfig:
             if val is not None:
                 setattr(self, attr, val)
 
-        int_mapping = {
+        int_mapping: dict[str, str] = {
+            "MATRIX_HITL_POLL_INTERVAL": "hitl_poll_interval",
             "HITL_POLL_INTERVAL": "hitl_poll_interval",
+            "MATRIX_HEALTH_POLL_INTERVAL": "health_poll_interval",
             "HEALTH_POLL_INTERVAL": "health_poll_interval",
             "CIRCUIT_BREAKER_THRESHOLD": "circuit_breaker_threshold",
             "CIRCUIT_BREAKER_TIMEOUT": "circuit_breaker_timeout",
@@ -291,7 +316,11 @@ class MatrixBotConfig:
                     logger.warning("Invalid int for %s: %s", env_key, val)
 
     def validate(self) -> list[str]:
-        """Return a list of validation errors (empty = valid)."""
+        """Return a list of validation errors (empty list means config is valid).
+
+        Returns:
+            List of error strings, empty if the config is valid.
+        """
         errors: list[str] = []
         if not self.homeserver:
             errors.append("MATRIX_HOMESERVER is required")
@@ -303,7 +332,17 @@ class MatrixBotConfig:
             errors.append("MURPHY_API_URL is required")
         return errors
 
-    # Terminal page URL helpers
     def terminal_url(self, page: str) -> str:
+        """Return the full URL for a Murphy terminal page.
+
+        Args:
+            page: Terminal page name (e.g. ``"dashboard"``).
+
+        Returns:
+            Full URL string.
+        """
         base = self.murphy_web_url.rstrip("/")
         return f"{base}/ui/{page}"
+
+
+__all__ = ["MatrixConfig", "load_config", "MatrixBotConfig"]
