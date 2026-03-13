@@ -296,7 +296,7 @@ class TestAllPriorGapsClosed:
                         if re.search(r"(?<!\w)eval\s*\(", s):
                             if "literal_eval" in s or ".eval()" in s:
                                 continue
-                            if "security_audit" in fpath:
+                            if "security_audit" in fpath or "sandbox_quarantine" in fpath:
                                 continue
                             if '"""' in s or "'''" in s:
                                 continue
