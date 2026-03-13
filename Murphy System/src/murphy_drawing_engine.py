@@ -680,12 +680,21 @@ class AgenticDrawingAssistant:
           - "add dimension from (0,0) to (100,0)"
           - "draw motor at 50,50"
           - "create pump assembly"
+          - "draw isometric box 100x50x80 at 0,0,0"
+          - "add balloon 3 at 200,150"
+          - "add cutting plane from (50,100) to (250,100) label A-A"
         """
         cmd = command.strip().lower()
         result: Dict[str, Any] = {"command": command, "success": False, "message": ""}
 
         try:
-            if "pump assembly" in cmd or "pump_assembly" in cmd:
+            if "isometric box" in cmd or "iso box" in cmd:
+                result = self._handle_isometric_box(command)
+            elif "balloon" in cmd and ("add" in cmd or "draw" in cmd):
+                result = self._handle_balloon_callout(command)
+            elif "cutting plane" in cmd:
+                result = self._handle_cutting_plane(command)
+            elif "pump assembly" in cmd or "pump_assembly" in cmd:
                 result = self._handle_pump_assembly(command)
             elif "centerline" in cmd:
                 result = self._handle_centerline(command)
@@ -917,6 +926,74 @@ class AgenticDrawingAssistant:
             "command": command,
             "success": True,
             "message": "Pump assembly created",
+        }
+
+    def _handle_isometric_box(self, command: str) -> Dict[str, Any]:
+        """Handle: "draw isometric box WxHxD at X,Y,Z [at origin_x,origin_y]"."""
+        import re
+        dims = re.findall(r"(\d+(?:\.\d+)?)\s*[xX×]\s*(\d+(?:\.\d+)?)\s*[xX×]\s*(\d+(?:\.\d+)?)", command)
+        coords = re.findall(r"at\s+\(?\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*(?:,\s*(-?\d+(?:\.\d+)?))?\s*\)?", command)
+        w = float(dims[0][0]) if dims else 100.0
+        h = float(dims[0][1]) if dims else 50.0
+        d = float(dims[0][2]) if dims else 80.0
+        if coords:
+            bx = float(coords[0][0])
+            by = float(coords[0][1])
+            bz = float(coords[0][2]) if coords[0][2] else 0.0
+        else:
+            bx, by, bz = 0.0, 0.0, 0.0
+        from murphy_drawing_engine_extensions import IsometricProjector
+        proj = IsometricProjector()
+        elements = proj.project_box(bx, by, bz, w, h, d)
+        sheet = self._get_or_create_sheet()
+        for elem in elements:
+            sheet.elements.append(elem)
+        return {
+            "command": command,
+            "success": True,
+            "message": f"Isometric box {w}x{h}x{d} at ({bx},{by},{bz}) added ({len(elements)} edges)",
+        }
+
+    def _handle_balloon_callout(self, command: str) -> Dict[str, Any]:
+        """Handle: "add balloon N at X,Y" — places a numbered balloon at (X,Y)."""
+        import re
+        num_match = re.findall(r"balloon\s+(\d+)", command, re.IGNORECASE)
+        coords = re.findall(r"at\s+\(?\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)?", command)
+        item_number = int(num_match[0]) if num_match else 1
+        cx = float(coords[0][0]) if coords else 0.0
+        cy = float(coords[0][1]) if coords else 0.0
+        # Leader tip slightly offset from balloon centre
+        lx, ly = cx - 20.0, cy
+        from murphy_drawing_engine_extensions import BalloonCallout
+        callout = BalloonCallout(cx, cy, r=8.0, item_number=item_number)
+        elements = callout.to_drawing_elements(leader_x=lx, leader_y=ly)
+        sheet = self._get_or_create_sheet()
+        for elem in elements:
+            sheet.elements.append(elem)
+        return {
+            "command": command,
+            "success": True,
+            "message": f"Balloon callout {item_number} at ({cx},{cy}) added",
+        }
+
+    def _handle_cutting_plane(self, command: str) -> Dict[str, Any]:
+        """Handle: "add cutting plane from X1,Y1 to X2,Y2 [label L]"."""
+        import re
+        pts = re.findall(r"\(?\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)?", command)
+        label_match = re.findall(r"label\s+([A-Za-z0-9\-]+)", command, re.IGNORECASE)
+        x1, y1 = (float(pts[0][0]), float(pts[0][1])) if len(pts) > 0 else (0.0, 0.0)
+        x2, y2 = (float(pts[1][0]), float(pts[1][1])) if len(pts) > 1 else (100.0, 0.0)
+        label = label_match[0] if label_match else "A-A"
+        from murphy_drawing_engine_extensions import CuttingPlaneLine
+        cpl = CuttingPlaneLine(x1, y1, x2, y2, label)
+        elements = cpl.to_drawing_elements()
+        sheet = self._get_or_create_sheet()
+        for elem in elements:
+            sheet.elements.append(elem)
+        return {
+            "command": command,
+            "success": True,
+            "message": f"Cutting plane {label} from ({x1},{y1}) to ({x2},{y2}) added",
         }
 
     def get_command_log(self) -> List[Dict[str, Any]]:
@@ -1228,5 +1305,11 @@ from murphy_drawing_engine_extensions import (  # noqa: E402
     EngineeringSymbol,
     DrawingBorder,
     build_pump_ga_drawing,
+    IsometricProjector,
+    ExplodedViewBuilder,
+    BalloonCallout,
+    BOMTableRenderer,
+    CuttingPlaneLine,
+    SpeakerAssemblyDrawing,
 )
 

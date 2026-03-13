@@ -1910,3 +1910,407 @@ class TestSVGValidity:
         bom = BOMExtractor().extract(project)
         assert len(bom) >= 1
         assert bom[0]["block_name"] == "PUMP"
+
+
+# ---------------------------------------------------------------------------
+# Phase A: TestIsometricProjector
+# ---------------------------------------------------------------------------
+
+class TestIsometricProjector:
+
+    def test_project_point_at_origin(self):
+        import pytest
+        from src.murphy_drawing_engine import IsometricProjector
+        proj = IsometricProjector()
+        iso_x, iso_y = proj.project_point(0, 0, 0)
+        assert iso_x == pytest.approx(0.0)
+        assert iso_y == pytest.approx(0.0)
+
+    def test_project_box_returns_12_lines(self):
+        from src.murphy_drawing_engine import IsometricProjector, ElementType
+        proj = IsometricProjector()
+        elements = proj.project_box(0, 0, 0, 100, 50, 80)
+        assert len(elements) == 12
+        assert all(e.element_type == ElementType.LINE for e in elements)
+
+    def test_isometric_angles_are_30_degrees(self):
+        import math
+        from src.murphy_drawing_engine import IsometricProjector
+        proj = IsometricProjector()
+        assert abs(proj.COS30 - math.cos(math.radians(30))) < 1e-9
+        assert abs(proj.SIN30 - math.sin(math.radians(30))) < 1e-9
+
+    def test_hidden_edges_use_hidden_linestyle(self):
+        from src.murphy_drawing_engine import IsometricProjector, LineStyle
+        proj = IsometricProjector()
+        elements = proj.project_box(0, 0, 0, 100, 50, 80)
+        hidden = [e for e in elements if e.line_style == LineStyle.HIDDEN]
+        assert len(hidden) == 3  # exactly 3 hidden edges at back-bottom-left corner
+
+    def test_project_point_pure_x(self):
+        import pytest, math
+        from src.murphy_drawing_engine import IsometricProjector
+        proj = IsometricProjector()
+        iso_x, iso_y = proj.project_point(10, 0, 0)
+        assert iso_x == pytest.approx(10 * math.cos(math.radians(30)))
+        assert iso_y == pytest.approx(10 * math.sin(math.radians(30)))
+
+    def test_project_circle_returns_polygon(self):
+        from src.murphy_drawing_engine import IsometricProjector, ElementType
+        proj = IsometricProjector()
+        elem = proj.project_circle_as_ellipse(50, 50, 0, 20)
+        assert elem.element_type == ElementType.POLYGON
+        verts = elem.geometry.get("vertices", [])
+        assert len(verts) == 24
+
+    def test_project_box_has_continuous_and_hidden(self):
+        from src.murphy_drawing_engine import IsometricProjector, LineStyle
+        proj = IsometricProjector()
+        elements = proj.project_box(10, 10, 10, 40, 30, 20)
+        cont = [e for e in elements if e.line_style == LineStyle.CONTINUOUS]
+        hidn = [e for e in elements if e.line_style == LineStyle.HIDDEN]
+        assert len(cont) == 9
+        assert len(hidn) == 3
+
+
+# ---------------------------------------------------------------------------
+# Phase B: TestExplodedViewBuilder
+# ---------------------------------------------------------------------------
+
+class TestExplodedViewBuilder:
+
+    def test_explode_offsets_parts_correctly(self):
+        from src.murphy_drawing_engine import ExplodedViewBuilder
+        parts = [
+            {"name": "A", "x": 0, "y": 0, "z": 0, "w": 10, "h": 10, "d": 10},
+            {"name": "B", "x": 0, "y": 0, "z": 0, "w": 10, "h": 10, "d": 10},
+            {"name": "C", "x": 0, "y": 5, "z": 0, "w": 10, "h": 10, "d": 10},
+        ]
+        builder = ExplodedViewBuilder(parts)
+        builder.explode(offset_vector=(0, -30, 0))
+        assert builder._exploded_parts[0]["y"] == 0
+        assert builder._exploded_parts[1]["y"] == -30
+        assert builder._exploded_parts[2]["y"] == 5 + 2 * (-30)
+
+    def test_balloon_callouts_generated(self):
+        from src.murphy_drawing_engine import ExplodedViewBuilder, ElementType
+        parts = [
+            {"name": "A", "x": 0, "y": 0, "z": 0, "w": 10, "h": 10, "d": 10},
+        ]
+        builder = ExplodedViewBuilder(parts)
+        builder.explode()
+        elements = builder.build(0, 0)
+        circles = [e for e in elements if e.element_type == ElementType.CIRCLE]
+        assert len(circles) >= 1
+        balloon_circles = [c for c in circles if c.properties.get("type") == "balloon"]
+        assert len(balloon_circles) == 1
+
+    def test_roundtrip_svg_valid_xml(self):
+        import xml.etree.ElementTree as ET
+        from src.murphy_drawing_engine import (
+            ExplodedViewBuilder, DrawingProject, DrawingSheet, DrawingExporter,
+        )
+        parts = [{"name": "Box", "x": 0, "y": 0, "z": 0, "w": 50, "h": 30, "d": 40}]
+        builder = ExplodedViewBuilder(parts)
+        builder.explode()
+        elements = builder.build(100, 100)
+        project = DrawingProject(name="Exploded Test")
+        sheet = DrawingSheet()
+        sheet.elements.extend(elements)
+        project.sheets.append(sheet)
+        svg = DrawingExporter().to_svg(project)
+        root = ET.fromstring(svg)
+        assert root.tag.endswith("svg")
+
+    def test_build_without_explicit_explode(self):
+        from src.murphy_drawing_engine import ExplodedViewBuilder, ElementType
+        parts = [{"name": "P", "x": 0, "y": 0, "z": 0, "w": 20, "h": 10, "d": 5}]
+        builder = ExplodedViewBuilder(parts)
+        elements = builder.build(0, 0)
+        lines = [e for e in elements if e.element_type == ElementType.LINE]
+        assert len(lines) == 12  # one box = 12 edges
+
+    def test_multiple_parts_generate_multiple_balloons(self):
+        from src.murphy_drawing_engine import ExplodedViewBuilder, ElementType
+        parts = [
+            {"name": f"P{i}", "x": 0, "y": 0, "z": 0, "w": 10, "h": 5, "d": 5}
+            for i in range(5)
+        ]
+        builder = ExplodedViewBuilder(parts)
+        builder.explode(offset_vector=(0, -20, 0))
+        elements = builder.build(0, 0)
+        balloons = [e for e in elements if e.element_type == ElementType.CIRCLE
+                    and e.properties.get("type") == "balloon"]
+        assert len(balloons) == 5
+
+
+# ---------------------------------------------------------------------------
+# Phase C: TestSpeakerAssemblyDrawing
+# ---------------------------------------------------------------------------
+
+class TestSpeakerAssemblyDrawing:
+
+    def test_build_produces_valid_svg(self):
+        import xml.etree.ElementTree as ET
+        from src.murphy_drawing_engine import SpeakerAssemblyDrawing, DrawingExporter
+        drawing = SpeakerAssemblyDrawing()
+        project = drawing.build()
+        svg = DrawingExporter().to_svg(project, width=1200, height=900)
+        root = ET.fromstring(svg)
+        assert root.tag.endswith("svg")
+
+    def test_bom_has_10_items(self):
+        from src.murphy_drawing_engine import SpeakerAssemblyDrawing
+        drawing = SpeakerAssemblyDrawing()
+        assert len(drawing.bom) == 10
+
+    def test_front_view_has_driver_circles(self):
+        from src.murphy_drawing_engine import SpeakerAssemblyDrawing, ElementType
+        drawing = SpeakerAssemblyDrawing()
+        project = drawing.build()
+        sheet = project.sheets[0]
+        circles = [e for e in sheet.elements if e.element_type == ElementType.CIRCLE]
+        driver_circles = [c for c in circles if c.properties.get("driver") in ("woofer", "tweeter")]
+        assert len(driver_circles) >= 2
+
+    def test_section_view_has_hatch(self):
+        from src.murphy_drawing_engine import SpeakerAssemblyDrawing, ElementType
+        drawing = SpeakerAssemblyDrawing()
+        project = drawing.build()
+        sheet = project.sheets[0]
+        hatches = [e for e in sheet.elements if e.element_type == ElementType.HATCH]
+        assert len(hatches) >= 1
+
+    def test_exploded_view_has_balloons(self):
+        from src.murphy_drawing_engine import SpeakerAssemblyDrawing, ElementType
+        drawing = SpeakerAssemblyDrawing()
+        project = drawing.build()
+        sheet = project.sheets[0]
+        balloons = [
+            e for e in sheet.elements
+            if e.element_type == ElementType.CIRCLE
+            and e.properties.get("type") == "balloon"
+        ]
+        assert len(balloons) >= 10
+
+    def test_title_block_present(self):
+        from src.murphy_drawing_engine import SpeakerAssemblyDrawing
+        drawing = SpeakerAssemblyDrawing()
+        project = drawing.build()
+        tb = project.sheets[0].title_block
+        assert tb.company == "Murphy System Engineering"
+        assert tb.drawing_number == "MEC-SPKR-001"
+
+    def test_dimension_lines_present(self):
+        from src.murphy_drawing_engine import SpeakerAssemblyDrawing, ElementType
+        drawing = SpeakerAssemblyDrawing()
+        project = drawing.build()
+        sheet = project.sheets[0]
+        dims = [e for e in sheet.elements if e.element_type == ElementType.DIMENSION]
+        assert len(dims) >= 3
+
+    def test_all_10_part_numbers_in_bom(self):
+        from src.murphy_drawing_engine import SpeakerAssemblyDrawing, DrawingExporter
+        drawing = SpeakerAssemblyDrawing()
+        project = drawing.build()
+        svg = DrawingExporter().to_svg(project, width=1200, height=900)
+        for item in drawing.bom:
+            assert item["part_number"] in svg, f"{item['part_number']} not found in SVG"
+
+    def test_speaker_project_has_block_refs_for_bom(self):
+        from src.murphy_drawing_engine import SpeakerAssemblyDrawing, BOMExtractor
+        drawing = SpeakerAssemblyDrawing()
+        project = drawing.build()
+        bom = BOMExtractor().extract(project)
+        assert len(bom) == 10
+
+
+# ---------------------------------------------------------------------------
+# General-purpose drawing capability commands in AgenticDrawingAssistant
+# ---------------------------------------------------------------------------
+
+class TestAgenticDrawingCapabilityCommands:
+    """Verify that general-purpose drawing capability commands work via the assistant."""
+
+    def test_isometric_box_command_succeeds(self, assistant, project):
+        result = assistant.execute("draw isometric box 100x50x80 at 0,0,0")
+        assert result["success"] is True
+
+    def test_isometric_box_creates_12_edges(self, assistant, project):
+        from src.murphy_drawing_engine import ElementType
+        assistant.execute("draw isometric box 100x50x80 at 0,0,0")
+        sheet = project.sheets[0]
+        lines = [e for e in sheet.elements if e.element_type == ElementType.LINE]
+        assert len(lines) == 12
+
+    def test_isometric_box_has_hidden_edges(self, assistant, project):
+        from src.murphy_drawing_engine import LineStyle
+        assistant.execute("draw isometric box 60x40x30 at 10,0,0")
+        sheet = project.sheets[0]
+        hidden = [e for e in sheet.elements if e.line_style == LineStyle.HIDDEN]
+        assert len(hidden) == 3
+
+    def test_iso_box_shorthand_command(self, assistant, project):
+        result = assistant.execute("draw iso box 50x30x40 at 0,0,0")
+        assert result["success"] is True
+
+    def test_isometric_box_default_dims_when_no_size_given(self, assistant, project):
+        from src.murphy_drawing_engine import ElementType
+        result = assistant.execute("draw isometric box at 0,0")
+        assert result["success"] is True
+        sheet = project.sheets[0]
+        lines = [e for e in sheet.elements if e.element_type == ElementType.LINE]
+        assert len(lines) == 12
+
+    def test_balloon_callout_command_succeeds(self, assistant, project):
+        result = assistant.execute("add balloon 3 at 200,150")
+        assert result["success"] is True
+
+    def test_balloon_callout_creates_circle(self, assistant, project):
+        from src.murphy_drawing_engine import ElementType
+        assistant.execute("add balloon 5 at 100,100")
+        sheet = project.sheets[0]
+        circles = [e for e in sheet.elements if e.element_type == ElementType.CIRCLE]
+        assert len(circles) == 1
+
+    def test_balloon_callout_creates_leader(self, assistant, project):
+        from src.murphy_drawing_engine import ElementType
+        assistant.execute("add balloon 2 at 50,80")
+        sheet = project.sheets[0]
+        leaders = [e for e in sheet.elements if e.element_type == ElementType.LEADER]
+        assert len(leaders) == 1
+
+    def test_balloon_callout_number_in_text(self, assistant, project):
+        from src.murphy_drawing_engine import ElementType
+        assistant.execute("add balloon 7 at 0,0")
+        sheet = project.sheets[0]
+        texts = [e.properties.get("text", "") for e in sheet.elements
+                 if e.element_type == ElementType.TEXT]
+        assert "7" in texts
+
+    def test_cutting_plane_command_succeeds(self, assistant, project):
+        result = assistant.execute("add cutting plane from (50,100) to (250,100) label A-A")
+        assert result["success"] is True
+
+    def test_cutting_plane_uses_cutting_plane_linestyle(self, assistant, project):
+        from src.murphy_drawing_engine import LineStyle
+        assistant.execute("add cutting plane from (0,50) to (200,50)")
+        sheet = project.sheets[0]
+        cp_lines = [e for e in sheet.elements if e.line_style == LineStyle.CUTTING_PLANE]
+        assert len(cp_lines) == 1
+
+    def test_cutting_plane_label_applied(self, assistant, project):
+        from src.murphy_drawing_engine import ElementType
+        assistant.execute("add cutting plane from (0,0) to (100,0) label B-B")
+        sheet = project.sheets[0]
+        texts = [e.properties.get("text", "") for e in sheet.elements
+                 if e.element_type == ElementType.TEXT]
+        assert "B" in texts
+
+    def test_speaker_command_not_recognised(self, assistant):
+        """Specific product commands are not baked in — use the class API directly."""
+        result = assistant.execute("create speaker assembly")
+        assert result["success"] is False
+
+
+# ---------------------------------------------------------------------------
+# Phase E: TestBOMTableRenderer
+# ---------------------------------------------------------------------------
+
+class TestBOMTableRenderer:
+
+    def _sample_bom(self):
+        return [
+            {"item": 1, "qty": 1, "part_number": "PART-001", "description": "Test Part", "material": "Steel"},
+            {"item": 2, "qty": 2, "part_number": "PART-002", "description": "Another Part", "material": "Aluminum"},
+        ]
+
+    def test_renders_header_row(self):
+        from src.murphy_drawing_engine import BOMTableRenderer
+        renderer = BOMTableRenderer(self._sample_bom())
+        svg = renderer.render_svg()
+        assert "ITEM" in svg
+        assert "DESCRIPTION" in svg
+        assert "MATERIAL" in svg
+        assert "PART NUMBER" in svg
+
+    def test_renders_all_data_rows(self):
+        from src.murphy_drawing_engine import BOMTableRenderer
+        renderer = BOMTableRenderer(self._sample_bom())
+        svg = renderer.render_svg()
+        assert "PART-001" in svg
+        assert "PART-002" in svg
+
+    def test_svg_valid_xml(self):
+        import xml.etree.ElementTree as ET
+        from src.murphy_drawing_engine import BOMTableRenderer
+        renderer = BOMTableRenderer(self._sample_bom())
+        svg = renderer.render_svg()
+        root = ET.fromstring(svg)
+        assert root.tag.endswith("svg")
+
+    def test_custom_col_widths(self):
+        from src.murphy_drawing_engine import BOMTableRenderer
+        renderer = BOMTableRenderer(self._sample_bom(), col_widths=[20.0, 20.0, 60.0, 120.0, 60.0])
+        svg = renderer.render_svg()
+        assert "PART-001" in svg
+
+    def test_xml_escape_in_description(self):
+        import xml.etree.ElementTree as ET
+        from src.murphy_drawing_engine import BOMTableRenderer
+        # BOMTableRenderer._xml_escape converts & to &amp; — verify roundtrip is valid XML
+        bom_raw = [{"item": 1, "qty": 1, "part_number": "P-001", "description": "A & B", "material": "Steel"}]
+        renderer = BOMTableRenderer(bom_raw)
+        svg = renderer.render_svg()
+        root = ET.fromstring(svg)  # would raise if & not escaped
+        assert root is not None
+
+
+# ---------------------------------------------------------------------------
+# Phase E: TestBalloonCallout
+# ---------------------------------------------------------------------------
+
+class TestBalloonCallout:
+
+    def test_renders_circle_and_number(self):
+        from src.murphy_drawing_engine import BalloonCallout, ElementType
+        callout = BalloonCallout(100, 100, 8, 5)
+        elements = callout.to_drawing_elements(50, 50)
+        circle_elems = [e for e in elements if e.element_type == ElementType.CIRCLE]
+        text_elems = [e for e in elements if e.element_type == ElementType.TEXT]
+        assert len(circle_elems) >= 1
+        assert len(text_elems) >= 1
+        assert any("5" in e.properties.get("text", "") for e in text_elems)
+
+    def test_leader_line_connects(self):
+        from src.murphy_drawing_engine import BalloonCallout, ElementType
+        callout = BalloonCallout(100, 100, 8, 3)
+        elements = callout.to_drawing_elements(50, 50)
+        leader_elems = [e for e in elements if e.element_type == ElementType.LEADER]
+        assert len(leader_elems) >= 1
+        pts = leader_elems[0].geometry.get("points", [])
+        assert len(pts) >= 2
+        assert pts[0]["x"] == 50
+        assert pts[0]["y"] == 50
+
+    def test_balloon_type_property(self):
+        from src.murphy_drawing_engine import BalloonCallout, ElementType
+        callout = BalloonCallout(50, 50, 10, 7)
+        elements = callout.to_drawing_elements(0, 0)
+        circles = [e for e in elements if e.element_type == ElementType.CIRCLE]
+        assert circles[0].properties.get("type") == "balloon"
+        assert circles[0].properties.get("item_number") == 7
+
+    def test_item_number_in_text(self):
+        from src.murphy_drawing_engine import BalloonCallout, ElementType
+        for n in [1, 5, 10]:
+            callout = BalloonCallout(0, 0, 8, n)
+            elements = callout.to_drawing_elements(0, 0)
+            texts = [e for e in elements if e.element_type == ElementType.TEXT]
+            assert any(str(n) in e.properties.get("text", "") for e in texts)
+
+    def test_returns_three_elements(self):
+        from src.murphy_drawing_engine import BalloonCallout
+        callout = BalloonCallout(20, 20, 5, 1)
+        elements = callout.to_drawing_elements(0, 0)
+        assert len(elements) == 3  # circle + text + leader
