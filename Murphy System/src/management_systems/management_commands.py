@@ -48,7 +48,11 @@ _doc_manager: DocManager | None = None
 _onboarding_flow: "OnboardingFlow | None" = None
 _gate_generator: "BusinessGateGenerator | None" = None
 
-# Shared automation registry — populated by onboarding, consumed by other views
+# Shared automation registry — populated by onboarding, consumed by other views.
+# Each entry is a dict with keys: source, owner, owner_type, capability,
+# ip_class, status, and optionally agent_id or position_id.
+# Rebuilt on every call to _get_automation_registry() from onboarding state.
+# Cleared on reset_engines().
 _automation_registry: list[dict] = []
 
 
@@ -1109,6 +1113,10 @@ def handle_gate(dispatcher: object, cmd: object) -> object:
 # !murphy setpoint [show|set|ranges]
 # ---------------------------------------------------------------------------
 
+# Default PI control setpoints — each maps a dimension name to a dict with
+# value (float), description (str), and range ([min, max]).
+# Lazily deep-copied into _active_setpoints on first access.
+# Cleared on reset_engines().
 _DEFAULT_SETPOINTS = {
     "money": {"value": 0.5, "description": "Budget neutrality target", "range": [0.0, 1.0]},
     "time": {"value": 0.5, "description": "On-schedule target", "range": [0.0, 1.0]},
@@ -1118,6 +1126,7 @@ _DEFAULT_SETPOINTS = {
     "risk": {"value": 0.0, "description": "Zero risk desired", "range": [0.0, 1.0]},
 }
 
+# Mutable working copy; None until first _get_active_setpoints() call.
 _active_setpoints: dict | None = None
 
 
@@ -1209,6 +1218,10 @@ def handle_setpoint(dispatcher: object, cmd: object) -> object:
 # !murphy schedule [loops|configure|status]
 # ---------------------------------------------------------------------------
 
+# Default business loop configurations — each maps a loop name to a dict
+# with description (str), interval_seconds (int), range ([min, max] seconds),
+# and enabled (bool).  Lazily deep-copied into _active_loops on first access.
+# Cleared on reset_engines().
 _DEFAULT_BUSINESS_LOOPS = {
     "heartbeat": {
         "description": "Core PI control loop",
@@ -1248,6 +1261,7 @@ _DEFAULT_BUSINESS_LOOPS = {
     },
 }
 
+# Mutable working copy; None until first _get_active_loops() call.
 _active_loops: dict | None = None
 
 
