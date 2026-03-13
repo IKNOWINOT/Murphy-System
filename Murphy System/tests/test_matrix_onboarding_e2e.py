@@ -200,6 +200,8 @@ class TestMatrixOnboardingE2E(unittest.TestCase):
         ]
 
         responses_seen = []
+        self.assertGreaterEqual(len(qids), 10,
+                                f"Expected at least 10 question IDs, got {len(qids)}")
         for i, (qid, answer) in enumerate(zip(qids[:10], answers)):
             raw = f"!murphy onboard answer {sid} {qid} {answer}"
             resp = _dispatch(self.dispatcher, raw)
