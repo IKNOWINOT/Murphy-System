@@ -8,7 +8,7 @@ on:
 
 env:
   MURPHY_ENV: test
-  PYTHONPATH: ${{ github.workspace }}/Murphy System
+  PYTHONPATH: "${{ github.workspace }}/Murphy System:${{ github.workspace }}/Murphy System/src"
 
 jobs:
   lint:

@@ -63,7 +63,10 @@ except ImportError:
 
     Blueprint = _StubBlueprint  # type: ignore[misc,assignment]
 
-from .blueprint_auth import require_blueprint_auth
+try:
+    from .blueprint_auth import require_blueprint_auth
+except ImportError:
+    from blueprint_auth import require_blueprint_auth
 try:
     from thread_safe_operations import capped_append
 except ImportError:
