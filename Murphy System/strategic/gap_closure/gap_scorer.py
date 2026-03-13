@@ -55,8 +55,9 @@ _MODULE_EVIDENCE: Dict[str, List[Tuple[str, str, int]]] = {
         ("connectors/plugin_sdk.py", "Plugin SDK enabling community connector contributions", 2),
     ],
     "No-Code/Low-Code UX": [
-        ("lowcode/workflow_builder.py", "Programmatic workflow builder with compile/export", 3),
-        ("lowcode/workflow_builder_ui.html", "Visual drag-and-drop workflow builder UI", 3),
+        ("lowcode/workflow_builder.py", "Programmatic workflow builder with compile/export", 2),
+        ("lowcode/workflow_builder_ui.html", "Visual drag-and-drop workflow builder UI", 2),
+        ("text_to_automation/text_to_automation.py", "Describe→Execute engine: NL text to governed automation DAG", 2),
     ],
     "Production Deployment Readiness": [
         ("launch/launch.py", "One-button streaming deploy script (local/docker/scale)", 2),
