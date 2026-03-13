@@ -92,6 +92,9 @@ def dict_to_trace(data: Dict[str, Any]) -> ActionTrace:
     ts = data.get("timestamp")
     if isinstance(ts, str):
         data["timestamp"] = datetime.fromisoformat(ts)
+    # Normalise naive timestamps to UTC so comparisons with aware cutoffs work.
+    if isinstance(data.get("timestamp"), datetime) and data["timestamp"].tzinfo is None:
+        data["timestamp"] = data["timestamp"].replace(tzinfo=timezone.utc)
     return ActionTrace(**data)
 
 
@@ -204,7 +207,7 @@ class ActionTraceCollector:
             if since_days is not None:
                 file_date_str = filepath.stem.replace("traces_", "")
                 try:
-                    file_date = datetime.strptime(file_date_str, "%Y-%m-%d")
+                    file_date = datetime.strptime(file_date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
                     if (datetime.now(timezone.utc) - file_date).days > since_days:
                         continue
                 except ValueError:
@@ -226,7 +229,7 @@ class ActionTraceCollector:
         for filepath in list(self.trace_dir.glob("traces_*.jsonl")):
             file_date_str = filepath.stem.replace("traces_", "")
             try:
-                file_date = datetime.strptime(file_date_str, "%Y-%m-%d")
+                file_date = datetime.strptime(file_date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
                 if file_date < cutoff:
                     gz_path = filepath.with_suffix(".jsonl.gz")
                     if not gz_path.exists():
