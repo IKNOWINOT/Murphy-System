@@ -103,11 +103,11 @@ class SCADAConnector:
             self._request_count += 1
         if not self._modbus_host:
             return {"success": False, "error": "Modbus host not configured — set SCADA_MODBUS_HOST",
-                    "simulated": True}
+                    "configured": False}
         client = self._get_modbus_client()
         if client is None:
             return {"success": False, "error": "Modbus host not configured or pymodbus unavailable",
-                    "simulated": True}
+                    "configured": False}
         return client.read_holding_registers(address, count, unit)
 
     def modbus_write_register(self, address: int, value: int,
@@ -116,11 +116,11 @@ class SCADAConnector:
             self._request_count += 1
         if not self._modbus_host:
             return {"success": False, "error": "Modbus host not configured",
-                    "simulated": True}
+                    "configured": False}
         client = self._get_modbus_client()
         if client is None:
             return {"success": False, "error": "Modbus host not configured",
-                    "simulated": True}
+                    "configured": False}
         return client.write_register(address, value, unit)
 
     def modbus_read_coils(self, address: int, count: int = 1,
@@ -129,11 +129,11 @@ class SCADAConnector:
             self._request_count += 1
         if not self._modbus_host:
             return {"success": False, "error": "Modbus host not configured",
-                    "simulated": True}
+                    "configured": False}
         client = self._get_modbus_client()
         if client is None:
             return {"success": False, "error": "Modbus host not configured",
-                    "simulated": True}
+                    "configured": False}
         return client.read_coils(address, count, unit)
 
     def modbus_write_coil(self, address: int, value: bool,
@@ -142,11 +142,11 @@ class SCADAConnector:
             self._request_count += 1
         if not self._modbus_host:
             return {"success": False, "error": "Modbus host not configured",
-                    "simulated": True}
+                    "configured": False}
         client = self._get_modbus_client()
         if client is None:
             return {"success": False, "error": "Modbus host not configured",
-                    "simulated": True}
+                    "configured": False}
         return client.write_coil(address, value, unit)
 
     # ------------------------------------------------------------------

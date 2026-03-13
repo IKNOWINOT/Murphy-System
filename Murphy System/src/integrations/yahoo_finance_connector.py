@@ -2,7 +2,8 @@
 Yahoo Finance Market Data Integration — Murphy System World Model Connector.
 
 Uses Yahoo Finance public APIs (no API key required — free).
-Falls back to yfinance library if available, else uses direct HTTP.
+Primary path: yfinance library (if installed, `pip install yfinance`).
+HTTP fallback: Yahoo Finance public JSON endpoints (query1.finance.yahoo.com).
 Setup: No setup required — free public data.
 """
 from __future__ import annotations
