@@ -11,6 +11,8 @@ import logging
 import time
 from typing import Any, Callable, Dict, Optional
 
+from thread_safe_operations import capped_append
+
 logger = logging.getLogger(__name__)
 
 try:
@@ -67,8 +69,8 @@ class MurphyMQTTSparkplugClient:
             try:
                 self._client.loop_stop()
                 self._client.disconnect()
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("MQTT disconnect cleanup: %s", exc)
             self._client = None
             self._connected = False
 
@@ -80,7 +82,7 @@ class MurphyMQTTSparkplugClient:
             logger.warning("MQTT connection refused, code %s", rc)
 
     def _on_message(self, client, userdata, msg):
-        self._messages.append({"topic": msg.topic, "payload": msg.payload, "timestamp": time.time()})
+        capped_append(self._messages, {"topic": msg.topic, "payload": msg.payload, "timestamp": time.time()})
 
     def _sparkplug_topic(self, msg_type: str, device_id: Optional[str] = None) -> str:
         if device_id:

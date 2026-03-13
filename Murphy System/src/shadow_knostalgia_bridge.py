@@ -384,11 +384,11 @@ class ShadowKnostalgiaBridge:
             had_recall = [m.get("had_recall", False) for m in memories]
             variation = [m.get("was_variation", False) for m in memories]
 
-            recall_confidence = sum(1 for r in had_recall if r) / len(memories)
-            impact_weight = sum(weights) / len(memories)
-            variation_frequency = sum(1 for v in variation if v) / len(memories)
+            recall_confidence = sum(1 for r in had_recall if r) / (len(memories) or 1)
+            impact_weight = sum(weights) / (len(memories) or 1)
+            variation_frequency = sum(1 for v in variation if v) / (len(memories) or 1)
             no_recall_count = sum(1 for r in had_recall if not r)
-            novelty_rate = no_recall_count / len(memories)
+            novelty_rate = no_recall_count / (len(memories) or 1)
         else:
             recall_confidence = 0.0
             impact_weight = 0.0

@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 if APIRouter is not None:
 
     class CreateContactRequest(BaseModel):
+        """Create Contact Request."""
         name: str
         email: str = ""
         phone: str = ""
@@ -38,6 +39,7 @@ if APIRouter is not None:
         tags: List[str] = Field(default_factory=list)
 
     class UpdateContactRequest(BaseModel):
+        """Update Contact Request."""
         name: Optional[str] = None
         email: Optional[str] = None
         phone: Optional[str] = None
@@ -45,6 +47,7 @@ if APIRouter is not None:
         contact_type: Optional[str] = None
 
     class CreateDealRequest(BaseModel):
+        """Create Deal Request."""
         title: str
         contact_id: str = ""
         pipeline_id: str = ""
@@ -55,15 +58,18 @@ if APIRouter is not None:
         expected_close_date: str = ""
 
     class UpdateDealRequest(BaseModel):
+        """Update Deal Request."""
         title: Optional[str] = None
         stage: Optional[str] = None
         value: Optional[float] = None
 
     class CreatePipelineRequest(BaseModel):
+        """Create Pipeline Request."""
         name: str
         stages: List[Dict[str, Any]] = Field(default_factory=list)
 
     class LogActivityRequest(BaseModel):
+        """Log Activity Request."""
         activity_type: str = "note"
         contact_id: str = ""
         deal_id: str = ""

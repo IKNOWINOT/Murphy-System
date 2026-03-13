@@ -541,8 +541,8 @@ class PlaywrightTaskRunner:
             if page is not None:
                 try:
                     await page.close()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.debug("Non-critical error: %s", exc)
 
     async def execute_tasks_on_shared_page(
         self,
@@ -590,8 +590,8 @@ class PlaywrightTaskRunner:
             if page is not None:
                 try:
                     await page.close()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.debug("Non-critical error: %s", exc)
 
         return results
 
@@ -600,20 +600,20 @@ class PlaywrightTaskRunner:
         if self._context is not None:
             try:
                 await self._context.close()
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("close error: %s", exc)
             self._context = None
         if self._browser is not None:
             try:
                 await self._browser.close()
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("Non-critical error: %s", exc)
             self._browser = None
         if self._playwright_instance is not None:
             try:
                 await self._playwright_instance.stop()
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("Non-critical error: %s", exc)
             self._playwright_instance = None
         logger.info("Playwright runner closed")
 

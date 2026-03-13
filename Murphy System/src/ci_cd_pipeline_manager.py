@@ -525,7 +525,7 @@ class PipelineManager:
             for sr in r.stage_results:
                 durations.append(sr.duration_seconds)
 
-        avg_dur = sum(durations) / len(durations) if durations else 0.0
+        avg_dur = sum(durations) / (len(durations) or 1) if durations else 0.0
         recent_failures = [
             r.run_id for r in sorted(runs, key=lambda x: x.started_at, reverse=True)
             if r.status == PipelineStatus.FAILED

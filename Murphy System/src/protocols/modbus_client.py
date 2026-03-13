@@ -51,8 +51,8 @@ class MurphyModbusClient:
         if self._client is not None:
             try:
                 self._client.close()
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("Modbus disconnect cleanup: %s", exc)
             self._client = None
 
     def read_holding_registers(self, address: int, count: int = 1, unit: int = 1) -> Dict[str, Any]:

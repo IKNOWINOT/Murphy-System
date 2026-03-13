@@ -86,7 +86,7 @@ if _STARLETTE_AVAILABLE:
                 _REQUEST_ID_VAR.reset(token)
 
 else:
-    # Stub when Starlette is not installed (e.g. unit tests without web deps)
+    # Fallback when Starlette is not installed (e.g. unit tests without web deps)
     class RequestIDMiddleware:  # type: ignore[no-redef]
         """Stub middleware — Starlette is not installed."""
 

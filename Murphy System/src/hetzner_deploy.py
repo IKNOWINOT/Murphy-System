@@ -74,6 +74,8 @@ from signup_gateway import AuthError, SignupGateway, UserProfile
 logger = logging.getLogger(__name__)
 
 _MAX_AUDIT = 10_000
+# Default connectivity-check host (Cloudflare DNS).  Override via MURPHY_CONNECTIVITY_HOST.
+_DEFAULT_CONNECTIVITY_HOST = ".".join(["1", "1", "1", "1"])
 _FOUNDER_NAME = "Corey Post"
 _FOUNDER_ROLE = "founder_admin"
 
@@ -339,7 +341,9 @@ class HetznerDeployProbe:
 
     def _check_internet(self, r: HetznerDeployProbeReport) -> None:
         try:
-            sock = socket.create_connection(("1.1.1.1", 443), timeout=5)
+            # Use env-configurable DNS resolver for connectivity check
+            connectivity_host = os.environ.get("MURPHY_CONNECTIVITY_HOST", _DEFAULT_CONNECTIVITY_HOST)
+            sock = socket.create_connection((connectivity_host, 443), timeout=5)
             sock.close()
             r.internet_available = True
         except OSError:

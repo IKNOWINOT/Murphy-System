@@ -25,6 +25,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from .matrix_client import MatrixClient
 from .room_registry import RoomRegistry
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,7 @@ def _h(text: str) -> str:
 # ---------------------------------------------------------------------------
 
 class Severity(Enum):
+    """Severity."""
     INFO = "info"
     WARNING = "warning"
     ERROR = "error"
@@ -204,7 +206,7 @@ class EventBridge:
 
     def add_router(self, router: Callable[[BridgedEvent], Optional[str]]) -> None:
         """Add a custom router ``(event) → subsystem_key | None``."""
-        self._custom_routers.append(router)
+        capped_append(self._custom_routers, router)
 
     # ------------------------------------------------------------------
     # Dispatch
@@ -240,8 +242,8 @@ class EventBridge:
                 asyncio.ensure_future(self.dispatch(event))
             else:
                 loop.run_until_complete(self.dispatch(event))
-        except RuntimeError:
-            pass  # No event loop available; skip
+        except RuntimeError as exc:
+            logger.debug("Non-critical error: %s", exc)
 
     # ------------------------------------------------------------------
     # Room resolution

@@ -332,8 +332,8 @@ class GateExecutionWiring:
                         result = checker.evaluate(task)
                         if isinstance(result, dict) and not result.get("ok", True):
                             issues.append(check_name)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.debug("Non-critical error: %s", exc)
 
             if issues:
                 decision = GateDecision.NEEDS_REVIEW

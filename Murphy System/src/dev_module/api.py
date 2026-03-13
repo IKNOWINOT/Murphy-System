@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 if APIRouter is not None:
 
     class CreateSprintRequest(BaseModel):
+        """Create Sprint Request."""
         name: str
         board_id: str
         start_date: str = ""
@@ -36,10 +37,12 @@ if APIRouter is not None:
         goal: str = ""
 
     class AddSprintItemRequest(BaseModel):
+        """Add Sprint Item Request."""
         item_id: str
         story_points: int = 0
 
     class CreateBugRequest(BaseModel):
+        """Create Bug Request."""
         title: str
         board_id: str = ""
         description: str = ""
@@ -49,15 +52,18 @@ if APIRouter is not None:
         assignee_id: str = ""
 
     class CreateReleaseRequest(BaseModel):
+        """Create Release Request."""
         version: str
         name: str = ""
         sprint_ids: List[str] = Field(default_factory=list)
         release_notes: str = ""
 
     class AddChecklistRequest(BaseModel):
+        """Add Checklist Request."""
         label: str
 
     class LogGitActivityRequest(BaseModel):
+        """Log Git Activity Request."""
         board_id: str
         event_type: str
         author: str = ""
@@ -66,6 +72,7 @@ if APIRouter is not None:
         url: str = ""
 
     class CreateRoadmapItemRequest(BaseModel):
+        """Create Roadmap Item Request."""
         title: str
         description: str = ""
         quarter: str = ""
@@ -73,6 +80,7 @@ if APIRouter is not None:
         tags: List[str] = Field(default_factory=list)
 
     class UpdateRoadmapItemRequest(BaseModel):
+        """Update Roadmap Item Request."""
         status: Optional[str] = None
         quarter: Optional[str] = None
 

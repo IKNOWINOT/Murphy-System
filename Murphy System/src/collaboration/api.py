@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 if APIRouter is not None:
 
     class AddCommentRequest(BaseModel):
+        """Add Comment Request."""
         entity_type: str = "item"
         entity_id: str
         board_id: str = ""
@@ -43,10 +44,12 @@ if APIRouter is not None:
         parent_id: str = ""
 
     class EditCommentRequest(BaseModel):
+        """Edit Comment Request."""
         body: str
         editor_id: str = ""
 
     class ReactionRequest(BaseModel):
+        """Reaction Request."""
         emoji: str
         user_id: str
 

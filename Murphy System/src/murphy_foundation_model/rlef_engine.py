@@ -28,6 +28,8 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
+from thread_safe_operations import capped_append
+
 logger = logging.getLogger(__name__)
 
 # -- configuration -------------------------------------------------------
@@ -231,7 +233,7 @@ class RLEFEngine:
                     pair_loss = -F.logsigmoid(diff)
                     batch_loss = batch_loss + pair_loss
 
-                avg_loss = batch_loss / len(batch)
+                avg_loss = batch_loss / (len(batch) or 1)
                 avg_loss.backward()
                 optimizer.step()
                 optimizer.zero_grad()
@@ -247,7 +249,7 @@ class RLEFEngine:
             "pairs_used": len(pairs),
             "training_time_s": round(elapsed, 2),
         }
-        self._training_history.append(metrics)
+        capped_append(self._training_history, metrics)
         logger.info("DPO training complete — loss=%.4f, steps=%d", metrics["avg_loss"], n_steps)
         return metrics
 

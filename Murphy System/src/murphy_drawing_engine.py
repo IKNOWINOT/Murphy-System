@@ -15,6 +15,8 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
+from thread_safe_operations import capped_append
+
 logger = logging.getLogger(__name__)
 
 
@@ -310,7 +312,7 @@ class AgenticDrawingAssistant:
             result["message"] = f"Error executing command: {exc}"
             result["success"] = False
 
-        self._command_log.append(result)
+        capped_append(self._command_log, result)
         return result
 
     # ------------------------------------------------------------------

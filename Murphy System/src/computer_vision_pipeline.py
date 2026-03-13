@@ -55,7 +55,7 @@ except ImportError:
     request = _FakeReq()  # type: ignore[assignment]
 
 try:
-    from thread_safe_operations import capped_append
+    from thread_safe_operations import capped_append, capped_append_paired
 except ImportError:
 
     def capped_append(target_list: list, item: Any, max_size: int = 10_000) -> None:
@@ -544,9 +544,16 @@ class ComputerVisionPipeline:
                     alerts: List[AlertResult]) -> None:
         """Thread-safely record run results and alerts."""
         with self._lock:
-            capped_append(self._run_history, result, self._max_history)
-            for a in alerts:
-                capped_append(self._alerts, a, self._max_history)
+            if not alerts:
+                capped_append(self._run_history, result, self._max_history)
+            else:
+                capped_append_paired(
+                    self._run_history, result,
+                    self._alerts, alerts[0],
+                    max_size=self._max_history,
+                )
+                for a in alerts[1:]:
+                    capped_append(self._alerts, a, self._max_history)
             self._total_runs += 1
             self._total_detections += len(result.detections)
             self._total_duration_ms += result.duration_ms

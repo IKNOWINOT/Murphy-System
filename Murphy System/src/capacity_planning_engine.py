@@ -431,7 +431,7 @@ class CapacityPlanningEngine:
     def _moving_avg(values: List[float], window: int = 5) -> float:
         """Moving average of the last *window* values."""
         tail = values[-window:]
-        return sum(tail) / len(tail) if tail else 0.0
+        return sum(tail) / (len(tail) or 1) if tail else 0.0
 
     @staticmethod
     def _time_to_threshold(

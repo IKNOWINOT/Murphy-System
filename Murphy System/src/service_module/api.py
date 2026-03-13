@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 if APIRouter is not None:
 
     class CreateCatalogRequest(BaseModel):
+        """Create Catalog Request."""
         name: str
         description: str = ""
         category: str = ""
@@ -36,6 +37,7 @@ if APIRouter is not None:
         sla_hours: int = 24
 
     class CreateSLARequest(BaseModel):
+        """Create S L A Request."""
         name: str
         response_hours: int = 4
         resolution_hours: int = 24
@@ -43,6 +45,7 @@ if APIRouter is not None:
         priority: str = "normal"
 
     class CreateTicketRequest(BaseModel):
+        """Create Ticket Request."""
         title: str
         description: str = ""
         requester_id: str = ""
@@ -51,12 +54,15 @@ if APIRouter is not None:
         form_data: Dict[str, Any] = Field(default_factory=dict)
 
     class UpdateTicketStatusRequest(BaseModel):
+        """Update Ticket Status Request."""
         status: str
 
     class AssignTicketRequest(BaseModel):
+        """Assign Ticket Request."""
         assignee_id: str
 
     class CreateArticleRequest(BaseModel):
+        """Create Article Request."""
         title: str
         body: str
         category: str = ""
@@ -64,6 +70,7 @@ if APIRouter is not None:
         tags: List[str] = Field(default_factory=list)
 
     class SubmitCSATRequest(BaseModel):
+        """Submit C S A T Request."""
         ticket_id: str
         rating: int
         comment: str = ""

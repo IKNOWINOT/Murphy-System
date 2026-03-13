@@ -208,7 +208,7 @@ class TestAllTestFilesHaveTests:
                     continue
                 has_test = any(
                     (isinstance(n, ast.ClassDef) and n.name.startswith("Test"))
-                    or (isinstance(n, ast.FunctionDef) and n.name.startswith("test_"))
+                    or (isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name.startswith("test_"))
                     for n in ast.walk(tree)
                 )
                 if not has_test:

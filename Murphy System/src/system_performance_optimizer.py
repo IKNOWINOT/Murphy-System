@@ -47,6 +47,8 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
+from thread_safe_operations import capped_append
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -569,7 +571,7 @@ class SystemProfiler:
         }
 
         with self._lock:
-            self._history.append(metrics)
+            capped_append(self._history, metrics)
             if len(self._history) > 100:
                 self._history.pop(0)
 
@@ -776,7 +778,7 @@ class SystemOptimizationEngine:
         )
 
         with self._lock:
-            self._history.append(report)
+            capped_append(self._history, report)
             if len(self._history) > 50:
                 self._history.pop(0)
 

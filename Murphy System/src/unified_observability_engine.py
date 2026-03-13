@@ -48,7 +48,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
-from thread_safe_operations import capped_append
+from thread_safe_operations import capped_append, capped_append_paired
 
 logger = logging.getLogger(__name__)
 
@@ -144,8 +144,7 @@ class MetricWindow:
         """Append a new observation to the window."""
         ts = timestamp if timestamp is not None else time.time()
         with self._lock:
-            self._values.append(value)
-            self._timestamps.append(ts)
+            capped_append_paired(self._values, value, self._timestamps, ts)
 
     # ------------------------------------------------------------------
     # Accessors (return copies for thread safety)

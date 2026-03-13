@@ -203,8 +203,8 @@ class SelfImprovementEngine:
             if not slt.is_enabled():
                 slt.increment_skipped()
                 return outcome.task_id
-        except Exception:
-            pass  # toggle unavailable — allow recording
+        except Exception as exc:
+            logger.debug("Non-critical error: %s", exc)
 
         with self._lock:
             if len(self._outcomes) >= self._MAX_OUTCOMES:

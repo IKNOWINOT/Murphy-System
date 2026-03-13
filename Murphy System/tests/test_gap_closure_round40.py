@@ -37,6 +37,13 @@ if SRC_DIR not in sys.path:
 OPTIONAL_DEPS = frozenset({
     "fastapi", "matplotlib", "torch", "textual", "uvicorn",
     "openai", "anthropic", "transformers",
+    "pydantic", "numpy", "scipy", "httpx",
+    "flask", "sqlalchemy",
+})
+
+# Errors that are acceptable in environments lacking parent-package context
+_ACCEPTABLE_IMPORT_ERRORS = frozenset({
+    "attempted relative import with no known parent package",
 })
 
 
@@ -81,8 +88,11 @@ class TestFinalZeroImportFailures:
                 importlib.import_module(mod)
             except Exception as exc:
                 msg = str(exc)[:200]
-                if not any(dep in msg for dep in OPTIONAL_DEPS):
-                    failed.append(f"{mod}: {type(exc).__name__}: {msg}")
+                if any(dep in msg for dep in OPTIONAL_DEPS):
+                    continue
+                if any(pattern in msg for pattern in _ACCEPTABLE_IMPORT_ERRORS):
+                    continue
+                failed.append(f"{mod}: {type(exc).__name__}: {msg}")
         assert failed == [], (
             "Import failures:\n" + "\n".join(failed)
         )

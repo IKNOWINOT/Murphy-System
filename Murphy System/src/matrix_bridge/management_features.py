@@ -58,6 +58,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
+from thread_safe_operations import capped_append
+
 logger = logging.getLogger(__name__)
 
 
@@ -647,7 +649,7 @@ class AutomationEngine:
 
     def register(self, trigger: AutomationTrigger) -> None:
         """Register an :class:`AutomationTrigger`."""
-        self._triggers.append(trigger)
+        capped_append(self._triggers, trigger)
         logger.debug("Registered automation %r", trigger.name)
 
     async def evaluate(
