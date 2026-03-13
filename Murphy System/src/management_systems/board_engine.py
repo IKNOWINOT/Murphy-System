@@ -1,24 +1,7 @@
-"""
-Management Systems – Board Engine
-==============================
+"""Management Systems – Board Engine.
 
-Core board/project management system for the Management Systems package.
-Provides column definitions, items, groups, board views, templates,
-sub-items, and board permissions accessible through Matrix chat commands.
-
-This module wraps and extends the existing ``board_system`` package with:
-
-- Matrix-friendly ASCII table rendering
-- Board templates for common project types
-- Sub-items for task decomposition
-- Board permission model (owner / subscriber / viewer)
-- Full CRUD for boards, groups, items, columns, and views
-
-Integration points:
-    - Commands are routed via ``command_router.py`` (PR 2)
-    - Events are published via ``event_bridge.py`` (PR 2)
-
-Copyright 2024 Inoni LLC – BSL-1.1
+Core board/project management for the Management Systems package.
+Columns, items, groups, views, templates, sub-items, and permissions.  Copyright 2024 Inoni LLC – BSL-1.1
 """
 
 from __future__ import annotations
@@ -34,19 +17,14 @@ logger = logging.getLogger(__name__)
 
 _UTC = timezone.utc
 
-# ---------------------------------------------------------------------------
 # Constants
-# ---------------------------------------------------------------------------
 
 MAX_COLUMNS: int = 50
 MAX_ITEMS_PER_GROUP: int = 10_000
 DEFAULT_GROUP_NAME: str = "Main Group"
 BOARD_TABLE_MAX_COL_WIDTH: int = 20
 
-# ---------------------------------------------------------------------------
 # Enumerations
-# ---------------------------------------------------------------------------
-
 
 class ColumnType(Enum):
     """Supported column types."""
@@ -72,7 +50,6 @@ class ColumnType(Enum):
     AUTO_NUMBER = "auto_number"
     PRIORITY = "priority"
 
-
 class ViewType(Enum):
     """Available board view types."""
 
@@ -83,14 +60,12 @@ class ViewType(Enum):
     TIMELINE = "timeline"
     FILES_GALLERY = "files_gallery"
 
-
 class BoardPermissionLevel(Enum):
     """Board permission levels."""
 
     OWNER = "owner"
     SUBSCRIBER = "subscriber"
     VIEWER = "viewer"
-
 
 class TemplateType(Enum):
     """Pre-defined board templates."""
@@ -106,24 +81,15 @@ class TemplateType(Enum):
     IT_REQUESTS = "it_requests"
     RELEASE_PLAN = "release_plan"
 
-
-# ---------------------------------------------------------------------------
 # Helper
-# ---------------------------------------------------------------------------
-
 
 def _uid() -> str:
     return uuid.uuid4().hex[:12]
 
-
 def _now() -> str:
     return datetime.now(tz=_UTC).isoformat()
 
-
-# ---------------------------------------------------------------------------
 # Data classes
-# ---------------------------------------------------------------------------
-
 
 @dataclass
 class BoardColumn:
@@ -164,7 +130,6 @@ class BoardColumn:
         obj.id = data.get("id", obj.id)
         obj.created_at = data.get("created_at", obj.created_at)
         return obj
-
 
 @dataclass
 class BoardItem:
@@ -213,7 +178,6 @@ class BoardItem:
         obj.subitems = [BoardItem.from_dict(s) for s in data.get("subitems", [])]
         return obj
 
-
 @dataclass
 class BoardGroup:
     """A section within a board that organises items.
@@ -248,7 +212,6 @@ class BoardGroup:
         obj.created_at = data.get("created_at", obj.created_at)
         obj.items = [BoardItem.from_dict(i) for i in data.get("items", [])]
         return obj
-
 
 @dataclass
 class BoardView:
@@ -286,7 +249,6 @@ class BoardView:
         obj.created_at = data.get("created_at", obj.created_at)
         return obj
 
-
 @dataclass
 class BoardPermission:
     """A user's permission on a specific board.
@@ -306,7 +268,6 @@ class BoardPermission:
             "level": self.level.value,
             "granted_at": self.granted_at,
         }
-
 
 @dataclass
 class Board:
@@ -370,7 +331,6 @@ class Board:
         ]
         return obj
 
-
 @dataclass
 class BoardTemplate:
     """A pre-configured board template.
@@ -398,10 +358,7 @@ class BoardTemplate:
             "default_groups": self.default_groups,
         }
 
-
-# ---------------------------------------------------------------------------
 # Built-in templates
-# ---------------------------------------------------------------------------
 
 _TEMPLATES: Dict[TemplateType, BoardTemplate] = {
     TemplateType.SPRINT_BOARD: BoardTemplate(
@@ -497,11 +454,7 @@ _TEMPLATES: Dict[TemplateType, BoardTemplate] = {
     ),
 }
 
-
-# ---------------------------------------------------------------------------
 # Board Engine
-# ---------------------------------------------------------------------------
-
 
 class BoardEngine:
     """Central engine for board/project management.
