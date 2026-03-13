@@ -15,6 +15,8 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
+from thread_safe_operations import capped_append
+
 logger = logging.getLogger(__name__)
 
 
@@ -327,7 +329,7 @@ class WingmanFactory:
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
         with self._lock:
-            self._pairs.append(pair)
+            capped_append(self._pairs, pair)
         logger.debug("WingmanFactory: created pair for '%s' (type=%s)", subject, capability_type)
         return pair
 

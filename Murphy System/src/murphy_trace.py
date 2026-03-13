@@ -24,6 +24,8 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
 
+from thread_safe_operations import capped_append
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -179,7 +181,7 @@ class TraceStore:
         with self._lock:
             self._traces[trace.trace_id] = trace
             if trace.trace_id not in self._order:
-                self._order.append(trace.trace_id)
+                capped_append(self._order, trace.trace_id)
             if self._traces_dir:
                 file_path = os.path.join(self._traces_dir, "traces.jsonl")
                 try:

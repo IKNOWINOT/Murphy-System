@@ -68,6 +68,8 @@ from persistence_replay_completeness import PersistenceReplayCompleteness
 from feedback_integrator import FeedbackIntegrator, FeedbackSignal
 from rosetta.rosetta_models import BusinessPlanMath, UnitEconomics
 
+from thread_safe_operations import capped_append
+
 logger = logging.getLogger(__name__)
 
 
@@ -692,7 +694,7 @@ class ActivatedHeartbeatRunner:
                 wo.status = WorkOrderStatus.PENDING_HITL
 
             work_orders.append(wo)
-            self._work_orders.append(wo)
+            capped_append(self._work_orders, wo)
 
         return work_orders
 

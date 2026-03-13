@@ -35,6 +35,8 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
+from thread_safe_operations import capped_append
+
 logger = logging.getLogger(__name__)
 
 
@@ -144,7 +146,7 @@ class Supervisor:
     def add_child(self, component: SupervisedComponent) -> None:
         """Register a supervised component with this supervisor."""
         with self._lock:
-            self._components.append(component)
+            capped_append(self._components, component)
             self._restart_history.setdefault(component.component_id, [])
             self._consecutive_failures.setdefault(component.component_id, 0)
 
@@ -152,7 +154,7 @@ class Supervisor:
         """Attach a nested child supervisor, making this supervisor its parent."""
         supervisor.parent = self
         with self._lock:
-            self._child_supervisors.append(supervisor)
+            capped_append(self._child_supervisors, supervisor)
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -534,7 +536,7 @@ class SupervisionTreeBuilder:
         component_type: str = "service",
     ) -> "SupervisionTreeBuilder":
         """Register a supervised component with this supervisor."""
-        self._components.append(
+        capped_append(self._components, 
             SupervisedComponent(
                 component_id=component_id,
                 component_type=component_type,
@@ -562,7 +564,7 @@ class SupervisionTreeBuilder:
             child_builder._components.append(comp)
         if self._event_backbone is not None:
             child_builder._event_backbone = self._event_backbone
-        self._child_builders.append(child_builder)
+        capped_append(self._child_builders, child_builder)
         return self
 
     def build(self) -> "Supervisor":

@@ -18,6 +18,8 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
+from thread_safe_operations import capped_append
+
 logger = logging.getLogger(__name__)
 
 
@@ -232,7 +234,7 @@ class SensorFusionPipeline:
         if disagreement_event:
             disagreement_score = float(disagreement_event.value or 0.0)
             with self._lock:
-                self._anomalies.append(disagreement_event)
+                capped_append(self._anomalies, disagreement_event)
 
         if self.strategy == FusionStrategy.LATEST_VALID:
             latest = max(good, key=lambda r: r.timestamp)
@@ -258,7 +260,7 @@ class SensorFusionPipeline:
             event = self._anomaly_detector.check(r.source_id, r.value)
             if event:
                 with self._lock:
-                    self._anomalies.append(event)
+                    capped_append(self._anomalies, event)
 
         confidence = sum(
             1.0 if r.quality == ReadingQuality.GOOD else 0.5 for r in good

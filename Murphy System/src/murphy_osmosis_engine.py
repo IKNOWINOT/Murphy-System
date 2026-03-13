@@ -16,6 +16,8 @@ from typing import Any, Callable, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
+from thread_safe_operations import capped_append
+
 logger = logging.getLogger(__name__)
 
 
@@ -68,7 +70,7 @@ class CapabilityObserver:
     def observe(self, input_data: Any, output_data: Any, metadata: Optional[Dict[str, Any]] = None) -> None:
         """Record an input/output observation."""
         with self._lock:
-            self._observations.append({
+            capped_append(self._observations, {
                 "observation_id": str(uuid.uuid4()),
                 "input": input_data,
                 "output": output_data,
@@ -291,7 +293,7 @@ class InsightExtractor:
     ) -> None:
         """Record a human interaction (approval/rejection/modification)."""
         with self._lock:
-            self._interactions.append({
+            capped_append(self._interactions, {
                 "interaction_id": str(uuid.uuid4()),
                 "action": action,
                 "outcome": outcome,
