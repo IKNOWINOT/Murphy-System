@@ -453,10 +453,10 @@ class DrawingExporter:
                 elif elem.element_type == ElementType.TEXT:
                     g = elem.geometry
                     text_val = elem.properties.get("text", "")
-                    font_size = g.get("height", 12)
+                    font_size = max(g.get("height", 12), 8)
                     svg_elements.append(
                         f'<text x="{g.get("x", 0)}" y="{g.get("y", 0)}" '
-                        f'font-size="{font_size}" font-family="sans-serif">{text_val}</text>'
+                        f'font-size="{font_size}" font-family="sans-serif" fill="black">{text_val}</text>'
                     )
                 elif elem.element_type == ElementType.ARC:
                     g = elem.geometry
@@ -522,10 +522,10 @@ class DrawingExporter:
         parts: List[str] = [
             f'<rect x="{tx}" y="{ty}" width="{tw}" height="{th}" '
             f'fill="white" stroke="black" stroke-width="0.5"/>',
-            f'<text x="{tx+4}" y="{ty+12}" font-size="8" font-weight="bold">{tb.company}</text>',
-            f'<text x="{tx+4}" y="{ty+24}" font-size="7">{tb.project}</text>',
-            f'<text x="{tx+4}" y="{ty+36}" font-size="7">DWG: {tb.drawing_number}</text>',
-            f'<text x="{tx+4}" y="{ty+48}" font-size="6">'
+            f'<text x="{tx+4}" y="{ty+12}" font-size="8" font-weight="bold" fill="black">{tb.company}</text>',
+            f'<text x="{tx+4}" y="{ty+24}" font-size="8" fill="black">{tb.project}</text>',
+            f'<text x="{tx+4}" y="{ty+36}" font-size="8" fill="black">DWG: {tb.drawing_number}</text>',
+            f'<text x="{tx+4}" y="{ty+48}" font-size="8" fill="black">'
             f'By: {tb.drawn_by}  Chk: {tb.checked_by}  Rev: {tb.revision}</text>',
         ]
         if tb.pe_stamp_id:
@@ -534,7 +534,7 @@ class DrawingExporter:
                 f'stroke="black" stroke-width="0.5"/>'
             )
             parts.append(
-                f'<text x="{tx+tw-20}" y="{ty+34}" font-size="5" text-anchor="middle">'
+                f'<text x="{tx+tw-20}" y="{ty+34}" font-size="8" text-anchor="middle" fill="black">'
                 f'PE STAMP</text>'
             )
         return parts
@@ -548,29 +548,20 @@ class DrawingExporter:
         text_val = elem.properties.get("text", "") or elem.properties.get("dimension_text", "")
         dim_attrs = 'stroke="black" stroke-width="0.25"'
 
-        # dimension line (parallel to feature, offset)
+        # dimension line (parallel to feature, offset) — use SVG markers for arrowheads
         dy1, dy2 = y1 - offset, y2 - offset
         parts: List[str] = [
             f'<line x1="{x1}" y1="{y1}" x2="{x1}" y2="{dy1}" {dim_attrs}/>',
             f'<line x1="{x2}" y1="{y2}" x2="{x2}" y2="{dy2}" {dim_attrs}/>',
-            f'<line x1="{x1}" y1="{dy1}" x2="{x2}" y2="{dy2}" {dim_attrs}/>',
+            f'<line x1="{x1}" y1="{dy1}" x2="{x2}" y2="{dy2}" {dim_attrs} '
+            f'marker-start="url(#arrow-start)" marker-end="url(#arrow-end)"/>',
         ]
-        # arrowheads at both ends of the dimension line
-        arrow_size = g.get("arrowhead_size", 2.5)
-        parts.append(
-            f'<polygon points="{x1},{dy1} {x1+arrow_size},{dy1-arrow_size/2} '
-            f'{x1+arrow_size},{dy1+arrow_size/2}" fill="black"/>'
-        )
-        parts.append(
-            f'<polygon points="{x2},{dy2} {x2-arrow_size},{dy2-arrow_size/2} '
-            f'{x2-arrow_size},{dy2+arrow_size/2}" fill="black"/>'
-        )
         # dimension text centred on the dimension line
         mid_x = (x1 + x2) / 2
         if text_val:
             parts.append(
-                f'<text x="{mid_x}" y="{dy1-2}" font-size="3.5" '
-                f'text-anchor="middle">{text_val}</text>'
+                f'<text x="{mid_x}" y="{dy1-2}" font-size="10" font-family="sans-serif" '
+                f'text-anchor="middle" fill="black">{text_val}</text>'
             )
         return parts
 
@@ -620,30 +611,17 @@ class DrawingExporter:
         segs: List[str] = []
         for i in range(len(pts) - 1):
             p0, p1 = pts[i], pts[i + 1]
+            # Place arrowhead marker at the start of the first segment
+            marker_attr = ' marker-start="url(#arrow-start)"' if i == 0 else ""
             segs.append(
                 f'<line x1="{p0.get("x",0)}" y1="{p0.get("y",0)}" '
-                f'x2="{p1.get("x",0)}" y2="{p1.get("y",0)}" {base_attrs}/>'
+                f'x2="{p1.get("x",0)}" y2="{p1.get("y",0)}" {base_attrs}{marker_attr}/>'
             )
-        # arrowhead at first point
-        p0, p1 = pts[0], pts[1]
-        dx, dy = p1.get("x", 0) - p0.get("x", 0), p1.get("y", 0) - p0.get("y", 0)
-        length = math.hypot(dx, dy) or 1
-        nx, ny = dx / length, dy / length
-        ax = p0.get("x", 0) + ny * 2
-        ay = p0.get("y", 0) - nx * 2
-        bx = p0.get("x", 0) - ny * 2
-        by = p0.get("y", 0) + nx * 2
-        arrow_tip_x = p0.get("x", 0)
-        arrow_tip_y = p0.get("y", 0)
-        segs.append(
-            f'<polygon points="{arrow_tip_x},{arrow_tip_y} {ax:.2f},{ay:.2f} '
-            f'{bx:.2f},{by:.2f}" fill="black"/>'
-        )
         if text_val:
             last = pts[-1]
             segs.append(
                 f'<text x="{last.get("x",0)+2}" y="{last.get("y",0)}" '
-                f'font-size="3.5">{text_val}</text>'
+                f'font-size="10" font-family="sans-serif" fill="black">{text_val}</text>'
             )
         return segs
     @staticmethod
@@ -654,15 +632,15 @@ class DrawingExporter:
         return [
             f'<rect x="{bx}" y="{by}" width="200" height="60" '
             f'fill="white" stroke="black" stroke-width="0.5"/>',
-            f'<text x="{bx + 5}" y="{by + 12}" font-size="8" font-family="sans-serif">'
+            f'<text x="{bx + 5}" y="{by + 12}" font-size="8" font-family="sans-serif" fill="black">'
             f'{tb.company}</text>',
-            f'<text x="{bx + 5}" y="{by + 24}" font-size="8" font-family="sans-serif">'
+            f'<text x="{bx + 5}" y="{by + 24}" font-size="8" font-family="sans-serif" fill="black">'
             f'DWG: {tb.drawing_number}  REV: {tb.revision}</text>',
-            f'<text x="{bx + 5}" y="{by + 36}" font-size="7" font-family="sans-serif">'
+            f'<text x="{bx + 5}" y="{by + 36}" font-size="8" font-family="sans-serif" fill="black">'
             f'BY: {tb.drawn_by}  CHK: {tb.checked_by}</text>',
-            f'<text x="{bx + 5}" y="{by + 48}" font-size="7" font-family="sans-serif">'
+            f'<text x="{bx + 5}" y="{by + 48}" font-size="8" font-family="sans-serif" fill="black">'
             f'APPR: {tb.approved_by}  DATE: {tb.date}</text>',
-            f'<text x="{bx + 5}" y="{by + 58}" font-size="7" font-family="sans-serif">'
+            f'<text x="{bx + 5}" y="{by + 58}" font-size="8" font-family="sans-serif" fill="black">'
             f'PE: {tb.pe_stamp_id or "N/A"}</text>',
         ]
 
