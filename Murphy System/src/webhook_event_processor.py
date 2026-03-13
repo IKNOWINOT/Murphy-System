@@ -946,10 +946,26 @@ class WebhookEventProcessor:
                 hashlib.sha256,
             ).hexdigest()
         elif source.signature_algorithm == SignatureAlgorithm.SHA1:
+            logger.warning(
+                "Webhook source %s uses deprecated SHA1 signature algorithm; "
+                "upgrade to SHA256 for stronger security",
+                source.source_id,
+            )
             expected = hmac.new(
                 source.secret.encode(),
                 payload,
                 hashlib.sha1,
+            ).hexdigest()
+        elif source.signature_algorithm == SignatureAlgorithm.MD5:
+            logger.warning(
+                "Webhook source %s uses deprecated MD5 signature algorithm; "
+                "upgrade to SHA256 for stronger security",
+                source.source_id,
+            )
+            expected = hmac.new(
+                source.secret.encode(),
+                payload,
+                hashlib.md5,
             ).hexdigest()
         else:
             return True

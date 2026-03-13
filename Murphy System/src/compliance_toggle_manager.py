@@ -267,8 +267,10 @@ class ComplianceToggleManager:
         """Persist the enabled framework list for a tenant.
 
         Unknown framework IDs are silently filtered out to prevent storage
-        of arbitrary strings.
+        of arbitrary strings.  ``tenant_id`` must be a non-empty string.
         """
+        if not tenant_id or not tenant_id.strip():
+            raise ValueError("tenant_id is required")
         validated = [f for f in framework_ids if f in ALL_FRAMEWORKS]
         invalid = set(framework_ids) - set(validated)
         if invalid:
