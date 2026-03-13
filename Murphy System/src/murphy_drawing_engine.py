@@ -685,7 +685,9 @@ class AgenticDrawingAssistant:
         result: Dict[str, Any] = {"command": command, "success": False, "message": ""}
 
         try:
-            if "pump assembly" in cmd or "pump_assembly" in cmd:
+            if "speaker assembly" in cmd or "speaker_assembly" in cmd:
+                result = self._handle_speaker_assembly(command)
+            elif "pump assembly" in cmd or "pump_assembly" in cmd:
                 result = self._handle_pump_assembly(command)
             elif "centerline" in cmd:
                 result = self._handle_centerline(command)
@@ -917,6 +919,18 @@ class AgenticDrawingAssistant:
             "command": command,
             "success": True,
             "message": "Pump assembly created",
+        }
+
+    def _handle_speaker_assembly(self, command: str) -> Dict[str, Any]:
+        from murphy_drawing_engine_extensions import SpeakerAssemblyDrawing  # lazy import
+        drawing = SpeakerAssemblyDrawing()
+        speaker_project = drawing.build()
+        for sheet in speaker_project.sheets:
+            self.project.sheets.append(sheet)
+        return {
+            "command": command,
+            "success": True,
+            "message": f"Speaker assembly created ({len(speaker_project.sheets)} sheet(s))",
         }
 
     def get_command_log(self) -> List[Dict[str, Any]]:
@@ -1228,5 +1242,11 @@ from murphy_drawing_engine_extensions import (  # noqa: E402
     EngineeringSymbol,
     DrawingBorder,
     build_pump_ga_drawing,
+    IsometricProjector,
+    ExplodedViewBuilder,
+    BalloonCallout,
+    BOMTableRenderer,
+    CuttingPlaneLine,
+    SpeakerAssemblyDrawing,
 )
 
