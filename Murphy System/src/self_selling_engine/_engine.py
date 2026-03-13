@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from self_selling_engine._constraints import BUSINESS_TYPE_CONSTRAINTS
+from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
@@ -475,7 +476,7 @@ class SelfSellingOutreach:
         message.sent_at = datetime.now(timezone.utc).isoformat()
 
         with self._lock:
-            self._sent.append(message)
+            capped_append(self._sent, message)
 
         logger.info("Outreach sent to prospect %s", message.prospect_id)
         return message

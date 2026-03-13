@@ -11,6 +11,9 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 from .base_connector import BaseIntegrationConnector
+import logging
+logger = logging.getLogger(__name__)
+
 
 
 class YahooFinanceConnector(BaseIntegrationConnector):
@@ -55,8 +58,8 @@ class YahooFinanceConnector(BaseIntegrationConnector):
                 info = ticker.info
                 return {"success": True, "configured": True, "simulated": False,
                         "data": info, "error": None, "source": "yfinance"}
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("Non-critical error: %s", exc)
         # HTTP fallback
         result = self._get("/v8/finance/quote",
                            params={"symbols": symbol,
@@ -79,8 +82,8 @@ class YahooFinanceConnector(BaseIntegrationConnector):
                 return {"success": True, "configured": True, "simulated": False,
                         "data": hist.to_dict() if hasattr(hist, "to_dict") else {},
                         "error": None, "source": "yfinance"}
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("Non-critical error: %s", exc)
         # HTTP fallback
         return self._get(f"/v8/finance/chart/{symbol}",
                          params={"range": period, "interval": interval})
@@ -95,8 +98,8 @@ class YahooFinanceConnector(BaseIntegrationConnector):
                             "balance_sheet": ticker.balance_sheet.to_dict() if hasattr(ticker.balance_sheet, "to_dict") else {},
                             "cash_flow": ticker.cashflow.to_dict() if hasattr(ticker.cashflow, "to_dict") else {},
                         }, "error": None, "source": "yfinance"}
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("Non-critical error: %s", exc)
         return self._get(f"/v8/finance/chart/{symbol}",
                          params={"modules": "financialData,incomeStatementHistory"})
 
@@ -106,8 +109,8 @@ class YahooFinanceConnector(BaseIntegrationConnector):
             try:
                 return {"success": True, "configured": True, "simulated": False,
                         "data": ticker.info, "error": None, "source": "yfinance"}
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("Non-critical error: %s", exc)
         return self._get("/v10/finance/quoteSummary/" + symbol,
                          params={"modules": "summaryDetail,defaultKeyStatistics,financialData"})
 
@@ -125,8 +128,8 @@ class YahooFinanceConnector(BaseIntegrationConnector):
                             "calls": opts.calls.to_dict() if hasattr(opts, "calls") else {},
                             "puts": opts.puts.to_dict() if hasattr(opts, "puts") else {},
                         }, "error": None, "source": "yfinance"}
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("Non-critical error: %s", exc)
         return self._get(f"/v7/finance/options/{symbol}")
 
     def get_earnings(self, symbol: str) -> Dict[str, Any]:
@@ -136,8 +139,8 @@ class YahooFinanceConnector(BaseIntegrationConnector):
                 return {"success": True, "configured": True, "simulated": False,
                         "data": ticker.earnings.to_dict() if hasattr(ticker, "earnings") and hasattr(ticker.earnings, "to_dict") else {},
                         "error": None, "source": "yfinance"}
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("Non-critical error: %s", exc)
         return self._get(f"/v10/finance/quoteSummary/{symbol}",
                          params={"modules": "earningsHistory,earningsTrend"})
 

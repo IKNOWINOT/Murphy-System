@@ -17,6 +17,8 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
+from thread_safe_operations import capped_append
+
 logger = logging.getLogger(__name__)
 
 
@@ -328,7 +330,7 @@ class CredentialGatedApproval:
                 e_stamp=stamp,
             )
         with self._lock:
-            self._approvals.append(record)
+            capped_append(self._approvals, record)
         return record
 
     def get_approval(self, approval_id: str) -> Optional[ApprovalRecord]:

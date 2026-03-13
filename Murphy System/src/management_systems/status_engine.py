@@ -22,6 +22,8 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
+from thread_safe_operations import capped_append
+
 logger = logging.getLogger(__name__)
 
 _UTC = timezone.utc
@@ -281,7 +283,7 @@ class WorkflowStateMachine:
             condition: Guard callable ``(item_data) -> bool``.
             on_enter: Callback ``(item_id, from_key, to_key)`` on success.
         """
-        self._transitions.append(
+        capped_append(self._transitions,
             WorkflowTransition(
                 from_key=from_key,
                 to_key=to_key,
@@ -357,7 +359,7 @@ class WorkflowStateMachine:
             new_value=target_key,
             changed_by=changed_by,
         )
-        self._history.append(entry)
+        capped_append(self._history, entry)
         logger.debug(
             "Transition recorded: item=%s %s→%s", item_id, current_key, target_key
         )
@@ -599,7 +601,7 @@ class StatusEngine:
             for iid in item_ids
             if self._store.get(board_id, {}).get(iid, {}).get(column_id) in done_keys
         )
-        return round(done_count / len(item_ids) * 100, 1)
+        return round(done_count / (len(item_ids) or 1) * 100, 1)
 
     def render_progress_bar(self, percentage: float, width: int = 20) -> str:
         """Render a text-based progress bar.
@@ -632,7 +634,7 @@ class StatusEngine:
             to_key: Target status key (``"*"`` for any).
             callback: ``(column_id, item_id, board_id, new_key) -> None``.
         """
-        self._automations.append((column_id, from_key, to_key, callback))
+        capped_append(self._automations, (column_id, from_key, to_key, callback))
 
     # -- Serialisation ------------------------------------------------------
 

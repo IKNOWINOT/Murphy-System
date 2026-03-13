@@ -28,6 +28,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from thread_safe_operations import capped_append
+
 logger = logging.getLogger(__name__)
 
 # -- configuration -------------------------------------------------------
@@ -96,8 +98,8 @@ class SelfImprovementLoop:
             if not slt.is_enabled():
                 slt.increment_skipped()
                 return {"should_retrain": False, "reasons": ["self_learning_disabled"]}
-        except Exception:
-            pass  # toggle unavailable — allow normal evaluation
+        except Exception as exc:
+            logger.debug("Non-critical error: %s", exc)
 
         reasons: List[str] = []
 
@@ -230,7 +232,7 @@ class SelfImprovementLoop:
             "traces_used": len(traces),
             "cycle_time_s": round(elapsed, 2),
         }
-        self._history.append(result)
+        capped_append(self._history, result)
         return result
 
     def evaluate_new_model(
@@ -370,8 +372,8 @@ class SelfImprovementLoop:
             if prod is not None:
                 metrics = getattr(prod, "metrics", {})
                 return metrics.get("accuracy", metrics.get("similarity_rate"))
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Non-critical error: %s", exc)
         return None
 
     def _get_human_override_rate(self) -> Optional[float]:
@@ -383,8 +385,8 @@ class SelfImprovementLoop:
             if prod is not None:
                 metrics = getattr(prod, "metrics", {})
                 return metrics.get("human_override_rate")
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Non-critical error: %s", exc)
         return None
 
     def _get_current_production_metrics(self) -> Dict[str, float]:
@@ -395,6 +397,6 @@ class SelfImprovementLoop:
             prod = self.registry.get_current_production()
             if prod is not None:
                 return getattr(prod, "metrics", {})
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Non-critical error: %s", exc)
         return {}

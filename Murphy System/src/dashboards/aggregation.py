@@ -97,7 +97,7 @@ class AggregationEngine:
         if function == AggregationFunction.SUM:
             return sum(nums)
         if function == AggregationFunction.AVG:
-            return sum(nums) / len(nums)
+            return sum(nums) / (len(nums) or 1)
         if function == AggregationFunction.MIN:
             return min(nums)
         if function == AggregationFunction.MAX:

@@ -55,7 +55,7 @@ try:
 except ImportError:
     from blueprint_auth import require_blueprint_auth
 try:
-    from thread_safe_operations import capped_append
+    from thread_safe_operations import capped_append, capped_append_paired
 except ImportError:
 
     def capped_append(target_list: list, item: Any, max_size: int = 10_000) -> None:
@@ -248,9 +248,8 @@ class BlockchainAuditTrail:
             index=idx, previous_hash=prev_hash, entries=entries,
             timestamp=ts, block_hash=h, status=BlockStatus.sealed,
         )
-        self._chain.append(blk)
+        capped_append_paired(self._chain, blk, self._block_order, blk.block_id, max_size=self._max_blocks)
         self._block_index[blk.block_id] = blk
-        capped_append(self._block_order, blk.block_id, self._max_blocks)
         self._enforce_capacity()
         return blk
 

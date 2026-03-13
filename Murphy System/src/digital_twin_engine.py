@@ -195,7 +195,7 @@ class AnomalyDetector:
     """
 
     def __init__(self, window_size: int = 100, threshold: float = 3.0) -> None:
-        self._window: Deque[float] = deque(maxlen=window_size)
+        self._window = deque(maxlen=window_size)  # type: Deque[float]
         self._threshold = threshold
 
     def ingest(self, value: float) -> None:

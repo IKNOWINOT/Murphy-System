@@ -112,7 +112,8 @@ class TestActionTraceSerialization:
         assert isinstance(d["timestamp"], str)
         restored = dict_to_trace(d)
         assert isinstance(restored.timestamp, datetime)
-        assert restored.timestamp.isoformat() == now.isoformat()
+        # Restored timestamp is normalised to UTC-aware; compare the bare values.
+        assert restored.timestamp.replace(tzinfo=None) == now.replace(tzinfo=None)
 
     def test_labels_none_by_default(self):
         trace = _make_trace()

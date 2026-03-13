@@ -17,7 +17,6 @@ from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
-
 # ---------------------------------------------------------------------------
 # Profile dataclass
 # ---------------------------------------------------------------------------
@@ -70,7 +69,6 @@ VALID_INTEGRATIONS = [
     "anthropic",        # AI/ML (paid per-token API)
 ]
 
-
 @dataclass
 class SetupProfile:
     """Stores all user configuration choices."""
@@ -90,7 +88,6 @@ class SetupProfile:
     deployment_mode: str = "local"
     sales_automation_enabled: bool = False
     enabled_integrations: List[str] = field(default_factory=list)
-
 
 # ---------------------------------------------------------------------------
 # Module / bot mapping tables
@@ -194,7 +191,6 @@ CORE_MODULES = [
     "authority_gate",
     "capability_map",
 ]
-
 
 # ---------------------------------------------------------------------------
 # Questions
@@ -308,7 +304,6 @@ def _build_questions() -> List[Dict[str, Any]]:
             "default": [],
         },
     ]
-
 
 # ---------------------------------------------------------------------------
 # Wizard class
@@ -596,7 +591,6 @@ class SetupWizard:
 
         return "\n".join(lines)
 
-
 # ---------------------------------------------------------------------------
 # Deployment preset profiles
 # ---------------------------------------------------------------------------
@@ -785,7 +779,6 @@ PRESET_PROFILES: Dict[str, Dict[str, Any]] = {
     },
 }
 
-
 def get_preset_profiles() -> Dict[str, Dict[str, Any]]:
     """Return all available deployment preset profiles.
 
@@ -793,7 +786,6 @@ def get_preset_profiles() -> Dict[str, Dict[str, Any]]:
     dict whose keys match the :class:`SetupProfile` fields.
     """
     return copy.deepcopy(PRESET_PROFILES)
-
 
 def apply_preset(preset_id: str, organization_name: str = "") -> SetupProfile:
     """Instantiate a :class:`SetupProfile` from a named preset.
@@ -820,7 +812,6 @@ def apply_preset(preset_id: str, organization_name: str = "") -> SetupProfile:
     if organization_name:
         data["organization_name"] = organization_name
     return SetupProfile(**data)
-
 
 # ---------------------------------------------------------------------------
 # CLI entry-point
@@ -850,7 +841,6 @@ _MULTI_SKIP_PHRASES = frozenset([
     "i don't know", "i dont know", "i don't know yet", "i dont know yet",
 ])
 
-
 def _parse_bool(raw: str) -> Optional[bool]:
     """Parse a yes/no string into a boolean.
 
@@ -868,7 +858,6 @@ def _parse_bool(raw: str) -> Optional[bool]:
         if phrase in lower:
             return True
     return None
-
 
 def _fuzzy_match_choice(raw: str, options: List[str]) -> Optional[str]:
     """Try to extract a valid option from free-text input.
@@ -894,7 +883,6 @@ def _fuzzy_match_choice(raw: str, options: List[str]) -> Optional[str]:
         if opt.lower() in words:
             return opt
     return None
-
 
 def _fuzzy_match_multi_choice(raw: str, options: List[str]) -> Optional[List[str]]:
     """Try to extract valid options from free-text input.
@@ -924,7 +912,6 @@ def _fuzzy_match_multi_choice(raw: str, options: List[str]) -> Optional[List[str
     if found:
         return found
     return None
-
 
 def run_cli() -> None:
     """Interactive CLI session that walks through all setup questions."""
@@ -1008,7 +995,6 @@ def run_cli() -> None:
         print(f"Configuration saved to {path}")
 
     print("\n✅  Setup complete.\n")
-
 
 if __name__ == "__main__":
     run_cli()

@@ -43,7 +43,7 @@ try:
 except ImportError:
     from blueprint_auth import require_blueprint_auth
 try:
-    from thread_safe_operations import capped_append
+    from thread_safe_operations import capped_append, capped_append_paired
 except ImportError:
     def capped_append(target_list: list, item: Any, max_size: int = 10_000) -> None:
         """Fallback bounded append (CWE-770)."""
@@ -424,10 +424,12 @@ class MultiCloudOrchestrator:
             amount=amount, currency=currency,
             period_start=period_start, period_end=period_end,)
         with self._lock:
-            capped_append(self._costs, rec, 50_000)
-            capped_append(self._history,
-                          {"action": "record_cost", "cost_id": rec.id,
-                           "ts": _now()}, 50_000)
+            capped_append_paired(
+                self._costs, rec,
+                self._history, {"action": "record_cost", "cost_id": rec.id,
+                                "ts": _now()},
+                max_size=50_000,
+            )
         return rec
     def get_cost_summary(
         self, provider: Optional[str] = None,

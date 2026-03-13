@@ -24,6 +24,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from thread_safe_operations import capped_append
+
 logger = logging.getLogger(__name__)
 
 
@@ -103,19 +105,19 @@ class StartupValidator:
 
     def add_required_env(self, var_name: str) -> None:
         """Register an environment variable that must be set."""
-        self._env_vars.append(var_name)
+        capped_append(self._env_vars, var_name)
 
     def add_required_file(self, path: Path) -> None:
         """Register a file that must exist on disk."""
-        self._files.append(path)
+        capped_append(self._files, path)
 
     def add_required_port(self, port: int) -> None:
         """Register a TCP port that must be available (not in use)."""
-        self._ports.append(port)
+        capped_append(self._ports, port)
 
     def add_required_dependency(self, module_name: str) -> None:
         """Register a Python package that must be importable."""
-        self._dependencies.append(module_name)
+        capped_append(self._dependencies, module_name)
 
     # -- validation ----------------------------------------------------------
 

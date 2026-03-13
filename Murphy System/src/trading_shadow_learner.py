@@ -448,9 +448,12 @@ class ShadowBot:
                 self._entry_price    = 0.0
 
             if trade is not None:
-                from thread_safe_operations import capped_append
-                capped_append(self._week_trades, trade, _MAX_SHADOW_TRADES)
-                capped_append(self._all_trades,  trade, _MAX_SHADOW_TRADES)
+                from thread_safe_operations import capped_append_paired
+                capped_append_paired(
+                    self._week_trades, trade,
+                    self._all_trades, trade,
+                    max_size=_MAX_SHADOW_TRADES,
+                )
 
         return trade
 
@@ -497,7 +500,7 @@ class ShadowBot:
                     for k, v in t.indicators.items():
                         merged.setdefault(k, []).append(v)
                 return {
-                    k: sum(vs) / len(vs)
+                    k: sum(vs) / (len(vs) or 1)
                     for k, vs in merged.items()
                     if vs  # only include keys with at least one value
                 }

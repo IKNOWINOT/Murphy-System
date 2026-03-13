@@ -19,6 +19,8 @@ from typing import Any, Callable, Dict, List, Optional
 
 from pydantic import BaseModel
 
+from thread_safe_operations import capped_append
+
 
 class ExplorationStrategy(Enum):
     """ExplorationStrategy enumeration."""
@@ -65,7 +67,7 @@ class ExperienceBuffer:
         with self._lock:
             if len(self._buffer) >= self._max_size:
                 self._buffer.pop(0)
-            self._buffer.append(exp)
+            capped_append(self._buffer, exp)
 
     def sample(self, n: int) -> List[Experience]:
         with self._lock:

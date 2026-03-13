@@ -49,6 +49,7 @@ try:
     from .blueprint_auth import require_blueprint_auth
 except ImportError:
     from blueprint_auth import require_blueprint_auth
+    from blueprint_auth import require_blueprint_auth  # type: ignore[no-redef]
 try:
     from thread_safe_operations import capped_append
 except ImportError:
@@ -587,7 +588,7 @@ class ABTestingEngine:
         for m in metrics:
             vals = grouped.get((variant.id, m.id), [])
             if vals:
-                mean = sum(vals) / len(vals)
+                mean = sum(vals) / (len(vals) or 1)
                 total += mean if m.higher_is_better else -mean
         return total
 

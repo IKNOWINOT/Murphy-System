@@ -12,6 +12,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
+from thread_safe_operations import capped_append
+
 from .models import (
     ClientPortal,
     ExternalForm,
@@ -259,7 +261,7 @@ class GuestManager:
             data=data,
             submitter_email=submitter_email,
         )
-        self._submissions.append(submission)
+        capped_append(self._submissions, submission)
         form.submission_count += 1
         return submission
 

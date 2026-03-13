@@ -185,11 +185,11 @@ class LLMIntegrationLayer:
         self.local_llm = None
         if use_local_fallback:
             try:
-                from src.mock_compatible_local_llm import MockCompatibleLocalLLM
-                self.local_llm = MockCompatibleLocalLLM()
-                logger.info("✅ Mock-Compatible Local LLM loaded successfully")
+                from src.local_inference_engine import LocalInferenceEngine
+                self.local_llm = LocalInferenceEngine()
+                logger.info("✅ Local Inference Engine loaded successfully")
             except ImportError as exc:
-                logger.info(f"⚠️  Could not import Mock-Compatible Local LLM: {exc}")
+                logger.info(f"⚠️  Could not import Local Inference Engine: {exc}")
                 self.use_local_fallback = False
 
     def _load_domain_routing(self) -> Dict[DomainType, Dict[str, Any]]:

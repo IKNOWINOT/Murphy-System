@@ -57,10 +57,14 @@ class TestDocAccuracy:
         assert count >= 8200, f"Badge says {count}, expected ≥ 8200"
 
     def test_readme_disclaimer_count_accurate(self):
-        """README disclaimer mentions 8,200+ tests."""
+        """README disclaimer mentions 8,200+ tests (or higher)."""
         readme = _read(os.path.join(REPO_ROOT, "README.md"))
-        assert "8,200+" in readme, (
-            "README should say 8,200+ tests"
+        # Accept any test count >= 8200 in the README
+        import re
+        counts = re.findall(r"([\d,]+)\+?\s*tests?\s*pass", readme)
+        numeric = [int(c.replace(",", "")) for c in counts]
+        assert any(n >= 8200 for n in numeric), (
+            f"README should mention >= 8,200 tests (found counts: {numeric})"
         )
 
 
