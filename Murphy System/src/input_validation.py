@@ -87,13 +87,18 @@ class ConstraintInput(BaseModel):
         # bypasses via %2e%2e%2f or double-encoding (%252e%252e%252f)
         decoded = v
         prev = ""
-        while prev != decoded:
+        _max_decode_rounds = 10
+        for _ in range(_max_decode_rounds):
+            if prev == decoded:
+                break
             prev = decoded
             decoded = unquote(decoded)
 
         # Remove path traversal sequences iteratively until stable
         # to prevent double-encoding bypasses like '....//'' → '../'
-        while '../' in decoded or '..\\' in decoded:
+        for _ in range(_max_decode_rounds):
+            if '../' not in decoded and '..\\' not in decoded:
+                break
             decoded = decoded.replace('../', '').replace('..\\', '')
 
         # If decoding changed the value, use the decoded/sanitized version

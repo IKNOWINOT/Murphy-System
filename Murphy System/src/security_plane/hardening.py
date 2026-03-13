@@ -239,7 +239,10 @@ class ValidationRule:
         # via %2e%2e%2f or double-encoding (%252e%252e%252f)
         decoded = value
         prev = ""
-        while prev != decoded:
+        _max_decode_rounds = 10
+        for _ in range(_max_decode_rounds):
+            if prev == decoded:
+                break
             prev = decoded
             decoded = unquote(decoded)
 
