@@ -25,6 +25,7 @@ import secrets
 import time
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Set
+from urllib.parse import unquote
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,10 @@ class InputSanitizer:
         re.compile(r"(\-\-|\/\*|\*\/)", re.IGNORECASE),
         re.compile(r"\.\./", re.IGNORECASE),
         re.compile(r"\\x[0-9a-fA-F]{2}"),
+        re.compile(r"union\s+select", re.IGNORECASE),
+        re.compile(r"waitfor\s+delay", re.IGNORECASE),
+        re.compile(r"sleep\s*\(", re.IGNORECASE),
+        re.compile(r"benchmark\s*\(", re.IGNORECASE),
     ]
 
     HTML_ENTITIES = {
@@ -78,8 +83,17 @@ class InputSanitizer:
     @classmethod
     def sanitize_path(cls, path: str) -> str:
         """Sanitize a file path to prevent traversal attacks."""
+        # Recursively decode URL-encoded sequences to prevent bypass
+        prev = ""
+        while prev != path:
+            prev = path
+            path = unquote(path)
         path = path.replace("\\", "/")
-        path = re.sub(r"\.\./", "", path)
+        # Iteratively remove traversal sequences until stable
+        prev = ""
+        while prev != path:
+            prev = path
+            path = re.sub(r"\.\./", "", path)
         path = re.sub(r"//+", "/", path)
         path = path.lstrip("/")
         return path
@@ -121,6 +135,12 @@ class CORSPolicy:
     ):
         self.allowed_origins: Set[str] = set(allowed_origins or [])
         if "*" in self.allowed_origins:
+            env = os.environ.get("MURPHY_ENV", "development").lower()
+            if env in ("production", "staging"):
+                raise ValueError(
+                    "CORSPolicy: wildcard '*' origin is not allowed in "
+                    f"{env}. Specify explicit origins."
+                )
             import logging as _logging
             _logging.getLogger(__name__).warning(
                 "CORSPolicy: wildcard '*' origin detected — this disables CORS protection. "
@@ -360,6 +380,49 @@ def get_rate_limiter(
     return RateLimiter(requests_per_minute=requests_per_minute, burst_size=burst_size)
 
 
+def extract_client_id(
+    remote_addr: str,
+    forwarded_for: Optional[str] = None,
+    *,
+    trusted_proxies: Optional[Set[str]] = None,
+) -> str:
+    """Safely extract a client identifier for rate limiting.
+
+    When ``forwarded_for`` is provided and the *immediate* connection
+    (``remote_addr``) is from a trusted proxy, the *right-most* untrusted
+    IP in ``X-Forwarded-For`` is returned.  Otherwise ``remote_addr`` is
+    used directly, preventing spoofing when there is no trusted reverse
+    proxy in front of the application.
+
+    Args:
+        remote_addr: The direct connection IP address.
+        forwarded_for: Value of the ``X-Forwarded-For`` header (may be ``None``).
+        trusted_proxies: Set of proxy IP addresses to trust.  If not
+            provided, ``X-Forwarded-For`` is ignored entirely.
+
+    Returns:
+        A string suitable as ``client_id`` for :class:`RateLimiter.check`.
+    """
+    if not forwarded_for or not trusted_proxies:
+        return remote_addr or "unknown"
+
+    if remote_addr not in trusted_proxies:
+        return remote_addr or "unknown"
+
+    # Parse the chain: "client, proxy1, proxy2"
+    parts = [ip.strip() for ip in forwarded_for.split(",") if ip.strip()]
+    if not parts:
+        return remote_addr or "unknown"
+
+    # Walk from the right; the first non-trusted entry is the real client
+    for ip in reversed(parts):
+        if ip not in trusted_proxies:
+            return ip
+
+    # All IPs are trusted proxies – fall back to remote_addr
+    return remote_addr or "unknown"
+
+
 # ── Content Security Policy ─────────────────────────────────────────
 
 class ContentSecurityPolicy:
@@ -477,11 +540,17 @@ class APIKeyRotationPolicy:
 # ── Audit Logger ─────────────────────────────────────────────────────
 
 class AuditLogger:
-    """Structured audit logging for security events."""
+    """Structured audit logging for security events.
+
+    In addition to the in-memory circular buffer, each audit event is
+    persisted via the standard ``logging`` module so that events survive
+    process restarts when a file or external log handler is configured.
+    """
 
     def __init__(self, max_entries: int = 10000):
         self.max_entries = max_entries
         self._log: List[Dict[str, Any]] = []
+        self._persist_logger = logging.getLogger("murphy.audit")
 
     def log(
         self,
@@ -505,6 +574,15 @@ class AuditLogger:
         self._log.append(entry)
         if len(self._log) > self.max_entries:
             self._log = self._log[-self.max_entries:]
+        # Persist to durable log (file handler, syslog, etc.)
+        try:
+            self._persist_logger.info(
+                "AUDIT event=%s actor=%s resource=%s action=%s outcome=%s",
+                event_type, actor, resource, action, outcome,
+                extra={"audit_entry": entry},
+            )
+        except Exception:
+            pass  # Never let audit persistence failure break the request
 
     def query(
         self,
