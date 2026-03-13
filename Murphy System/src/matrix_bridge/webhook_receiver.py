@@ -197,7 +197,7 @@ def _classify_event(payload: dict, source: str) -> WebhookEventType:
 
 
 # ---------------------------------------------------------------------------
-# Stub WebhookReceiver (config/room_router based -- PR #208)
+# WebhookReceiver (config/room_router based -- PR #208)
 # ---------------------------------------------------------------------------
 
 
