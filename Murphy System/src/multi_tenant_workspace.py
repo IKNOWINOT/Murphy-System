@@ -63,6 +63,7 @@ except ImportError:
 
     Blueprint = _StubBlueprint  # type: ignore[misc,assignment]
 
+from .blueprint_auth import require_blueprint_auth
 try:
     from thread_safe_operations import capped_append
 except ImportError:
@@ -777,4 +778,5 @@ def create_multi_tenant_api(
             return jsonify({"updated": True})
         return jsonify({"error": "not found", "code": "NOT_FOUND"}), 404
 
+    require_blueprint_auth(bp)
     return bp

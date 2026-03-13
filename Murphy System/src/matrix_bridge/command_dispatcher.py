@@ -296,7 +296,7 @@ class CommandDispatcher:
         self.register_handler("setpoint", _handle_setpoint, "Control loop setpoints (show, set, ranges)")
         self.register_handler("schedule", _handle_schedule, "Business loop scheduling (loops, configure, status)")
         self.register_handler("skm", _handle_skm, "Sense-Know-Model loop (status, sense, know, model, cycle)")
-        self.register_handler("automation", _handle_automation, "Unified automation view (list, summary)")
+        self.register_handler("automation", _handle_automation, "Unified automation view and control (list, summary, types, mode, hub, rbac, readiness, scale, loop, scheduler, marketplace, native, self, onboard-engine, building, manufacturing, sales, compliance-bridge, full, deploy)")
 
 
 # ---------------------------------------------------------------------------

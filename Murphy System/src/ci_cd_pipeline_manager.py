@@ -43,6 +43,7 @@ except ImportError:
 
     Blueprint = _StubBlueprint  # type: ignore[misc,assignment]
 
+from .blueprint_auth import require_blueprint_auth
 try:
     from thread_safe_operations import capped_append
 except ImportError:
@@ -797,4 +798,5 @@ def create_cicd_api(
             return jsonify({"error": "Artifact not found", "code": "ARTIFACT_NOT_FOUND"}), 404
         return jsonify(art.to_dict())
 
+    require_blueprint_auth(bp)
     return bp
