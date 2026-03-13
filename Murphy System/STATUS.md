@@ -47,8 +47,9 @@ Murphy System is **aligned with** (not formally attested to) the following frame
 
 ## Test Coverage
 
-- **Total test files**: 265+
+- **Total test files**: 585+
 - **CI configuration**: `python -m pytest --timeout=60 -v --tb=short`
+- **CI pipeline**: GitHub Actions runs lint, test (Python 3.10/3.11/3.12), integration, security, and build jobs
 - **Key test suites**: concept graph engine (48), unified control protocol (62), session context (37), crypto trading system (102), shadow learning + real-money guard (48)
 
 ## Known Gaps
@@ -58,6 +59,11 @@ Murphy System is **aligned with** (not formally attested to) the following frame
 | ~~G-004~~ | ~~Full ML feedback loop not wired~~ | ~~Medium~~ | ✅ **RESOLVED** — `record_outcome()` added to `GeographicLoadBalancer`, wiring feedback signals into `capacity_weight` via configurable learning rate |
 | G-005 | Dashboard UI incomplete | Medium | Complete React/terminal dashboard with live metrics |
 | G-006 | Formal security pen-test | High | Engage third-party security firm for penetration testing |
+| G-007 | Database persistence JSON-only | Critical | Implement SQLite/PostgreSQL persistence layer |
+| G-008 | E2EE encryption is stubbed | Critical | Integrate matrix-nio SDK for real encryption |
+| G-009 | Management parity Phases 2–8 unvalidated | High | Audit acceptance criteria against implementation |
+| G-010 | JWT/OAuth not in production | High | Add token validation for production auth |
+| G-011 | Documentation placeholders | Medium | Fill 14 placeholder docs with real content |
 | ~~G-008~~ | ~~Production deployment hardening~~ | ~~Medium~~ | ✅ **RESOLVED** — `SecurityContext`, `PodDisruptionBudget`, `NetworkPolicy` added to `kubernetes_deployment.py` with YAML rendering |
 
 ## Infrastructure Deferred Items

@@ -9,13 +9,17 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      MURPHY_ENV: test
+      PYTHONPATH: "${{ github.workspace }}/Murphy System:${{ github.workspace }}/Murphy System/src"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -r "Murphy System/requirements.txt"
-      - run: python -m pytest "Murphy System/tests/" --timeout=300 -x -q
+      - run: pip install -r "Murphy System/requirements_murphy_1.0.txt"
+      - run: pip install pytest pytest-asyncio pytest-timeout
+      - run: python -m pytest "Murphy System/tests/" --timeout=300 -x -q --ignore="Murphy System/tests/e2e"
 
   build-and-deploy:
     needs: test

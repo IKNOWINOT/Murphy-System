@@ -48,6 +48,7 @@ except ImportError:
 try:
     from .blueprint_auth import require_blueprint_auth
 except ImportError:
+    from blueprint_auth import require_blueprint_auth
     from blueprint_auth import require_blueprint_auth  # type: ignore[no-redef]
 try:
     from thread_safe_operations import capped_append

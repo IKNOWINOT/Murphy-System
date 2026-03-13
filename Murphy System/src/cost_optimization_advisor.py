@@ -40,7 +40,10 @@ except ImportError:
 
     request = _FakeReq()  # type: ignore[assignment]
 
-from .blueprint_auth import require_blueprint_auth
+try:
+    from .blueprint_auth import require_blueprint_auth
+except ImportError:
+    from blueprint_auth import require_blueprint_auth
 try:
     from thread_safe_operations import capped_append, capped_append_paired
 except ImportError:
