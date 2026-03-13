@@ -295,6 +295,8 @@ class CommandDispatcher:
         self.register_handler("gate", _handle_gate, "Business gate management (create, list, evaluate, status)")
         self.register_handler("setpoint", _handle_setpoint, "Control loop setpoints (show, set, ranges)")
         self.register_handler("schedule", _handle_schedule, "Business loop scheduling (loops, configure, status)")
+        self.register_handler("skm", _handle_skm, "Sense-Know-Model loop (status, sense, know, model, cycle)")
+        self.register_handler("automation", _handle_automation, "Unified automation view (list, summary)")
 
 
 # ---------------------------------------------------------------------------
@@ -488,3 +490,19 @@ def _handle_schedule(
     """Handle ``!murphy schedule`` — delegate to management_systems.management_commands."""
     from management_systems.management_commands import handle_schedule
     return handle_schedule(dispatcher, cmd)
+
+
+def _handle_skm(
+    dispatcher: CommandDispatcher, cmd: ParsedCommand
+) -> CommandResponse:
+    """Handle ``!murphy skm`` — delegate to management_systems.management_commands."""
+    from management_systems.management_commands import handle_skm
+    return handle_skm(dispatcher, cmd)
+
+
+def _handle_automation(
+    dispatcher: CommandDispatcher, cmd: ParsedCommand
+) -> CommandResponse:
+    """Handle ``!murphy automation`` — delegate to management_systems.management_commands."""
+    from management_systems.management_commands import handle_automation
+    return handle_automation(dispatcher, cmd)

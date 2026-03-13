@@ -220,7 +220,7 @@ class TestHandleRecipe:
     def test_list_empty(self):
         resp = handle_recipe(DISPATCHER, _cmd("list"))
         assert resp.success
-        assert "No recipes" in resp.message
+        assert "No recipes" in resp.message or "No manual recipes" in resp.message
 
     def test_create_recipe(self):
         resp = handle_recipe(DISPATCHER, _cmd("create", ["Auto-Status"]))
@@ -498,7 +498,7 @@ class TestModuleExports:
     def test_handler_dict_has_all_commands(self):
         expected = {"board", "status-label", "timeline", "recipe", "workspace",
                     "dashboard", "sync", "form", "doc", "onboard", "gate",
-                    "setpoint", "schedule"}
+                    "setpoint", "schedule", "skm", "automation"}
         assert set(MANAGEMENT_COMMAND_HANDLERS.keys()) == expected
 
     def test_all_handlers_callable(self):

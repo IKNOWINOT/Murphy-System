@@ -48,6 +48,52 @@ _doc_manager: DocManager | None = None
 _onboarding_flow: "OnboardingFlow | None" = None
 _gate_generator: "BusinessGateGenerator | None" = None
 
+# Shared automation registry — populated by onboarding, consumed by other views
+_automation_registry: list[dict] = []
+
+
+def _get_automation_registry() -> list[dict]:
+    """Return the shared automation registry.
+
+    Merges automations from onboarding shadow agents and org positions
+    so that dashboard, workspace, recipe, schedule, and workflow views
+    can all surface the same automation data.
+    """
+    global _automation_registry
+    flow = _get_onboarding_flow()
+
+    # Rebuild from onboarding state
+    entries: list[dict] = []
+
+    # From shadow agents (employee-level automations)
+    for agent in flow.shadow_agents.values():
+        for cap in agent.capabilities:
+            entries.append({
+                "source": "onboarding",
+                "owner": agent.employee_id,
+                "owner_type": "shadow_agent",
+                "agent_id": agent.shadow_id,
+                "capability": cap,
+                "ip_class": agent.ip_classification,
+                "status": "active",
+            })
+
+    # From org positions (position-level automation scope)
+    for pos in flow.org_chart.positions.values():
+        for scope in pos.automation_scope:
+            entries.append({
+                "source": "org_chart",
+                "owner": pos.title,
+                "owner_type": "position",
+                "position_id": pos.position_id,
+                "capability": scope,
+                "ip_class": flow.org_chart.ip_classification,
+                "status": "active",
+            })
+
+    _automation_registry = entries
+    return _automation_registry
+
 
 def _get_onboarding_flow():
     global _onboarding_flow
@@ -133,6 +179,7 @@ def reset_engines() -> None:
     global _board_engine, _status_engine, _timeline_engine, _recipe_engine
     global _workspace_manager, _dashboard_generator, _integration_bridge
     global _form_builder, _doc_manager, _onboarding_flow, _gate_generator
+    global _automation_registry, _active_setpoints, _active_loops
     _board_engine = None
     _status_engine = None
     _timeline_engine = None
@@ -144,6 +191,9 @@ def reset_engines() -> None:
     _doc_manager = None
     _onboarding_flow = None
     _gate_generator = None
+    _automation_registry = []
+    _active_setpoints = None
+    _active_loops = None
 
 
 # ---------------------------------------------------------------------------
@@ -359,14 +409,28 @@ def handle_recipe(dispatcher: object, cmd: object) -> object:
 
     if sub == "list":
         recipes = engine.list_recipes()
-        if not recipes:
-            return _make_response(True, "## Automation Recipes\n\nNo recipes defined. Use `!murphy recipe create <name>` or `!murphy recipe templates`.")
         lines = ["## Automation Recipes\n"]
-        lines.append("| Name | Trigger | Status | Executions |")
-        lines.append("|------|---------|--------|------------|")
-        for r in recipes:
-            execs = len([e for e in engine.get_execution_log() if e.recipe_id == r.id])
-            lines.append(f"| {r.name} | {r.trigger.trigger_type.value} | {r.status.value} | {execs} |")
+        if recipes:
+            lines.append("| Name | Trigger | Status | Executions |")
+            lines.append("|------|---------|--------|------------|")
+            for r in recipes:
+                execs = len([e for e in engine.get_execution_log() if e.recipe_id == r.id])
+                lines.append(f"| {r.name} | {r.trigger.trigger_type.value} | {r.status.value} | {execs} |")
+        else:
+            lines.append("No manual recipes defined. Use `!murphy recipe create <name>` or `!murphy recipe templates`.")
+
+        # Show onboarding-derived automation capabilities
+        automations = _get_automation_registry()
+        shadow_auto = [a for a in automations if a["owner_type"] == "shadow_agent"]
+        if shadow_auto:
+            lines.append("\n### Onboarding-Derived Automations\n")
+            lines.append("| Capability | Owner | Agent | Status |")
+            lines.append("|------------|-------|-------|--------|")
+            for a in shadow_auto:
+                lines.append(
+                    f"| {a['capability']} | {a['owner'][:16]} "
+                    f"| `{a['agent_id']}` | {a['status']} |"
+                )
         return _make_response(True, "\n".join(lines))
 
     if sub == "create":
@@ -418,19 +482,22 @@ def handle_workspace(dispatcher: object, cmd: object) -> object:
 
     if sub == "list":
         workspaces = mgr.list_workspaces()
-        if not workspaces:
-            return _make_response(
-                True,
-                "## Workspaces\n\nNo workspaces. Use `!murphy workspace bootstrap` to initialise all Murphy domain workspaces.",
-            )
+        automations = _get_automation_registry()
         lines = ["## Workspaces\n"]
-        lines.append("| Name | Domain | Modules | Boards |")
-        lines.append("|------|--------|---------|--------|")
-        for ws in workspaces:
-            mod_count = len(mgr.list_modules_for_domain(ws.domain_key))
-            lines.append(
-                f"| {ws.name} | `{ws.domain_key}` | {mod_count} | {len(ws.board_ids)} |"
-            )
+        if workspaces:
+            lines.append("| Name | Domain | Modules | Boards |")
+            lines.append("|------|--------|---------|--------|")
+            for ws in workspaces:
+                mod_count = len(mgr.list_modules_for_domain(ws.domain_key))
+                lines.append(
+                    f"| {ws.name} | `{ws.domain_key}` | {mod_count} | {len(ws.board_ids)} |"
+                )
+        else:
+            lines.append("No workspaces. Use `!murphy workspace bootstrap` to initialise all Murphy domain workspaces.")
+        if automations:
+            pos_auto = [a for a in automations if a["owner_type"] == "position"]
+            shadow_auto = [a for a in automations if a["owner_type"] == "shadow_agent"]
+            lines.append(f"\n**Automation assignments:** {len(pos_auto)} org-level, {len(shadow_auto)} employee-level")
         return _make_response(True, "\n".join(lines))
 
     if sub == "show":
@@ -443,13 +510,21 @@ def handle_workspace(dispatcher: object, cmd: object) -> object:
         modules = mgr.list_modules_for_domain(ws.domain_key)
         mod_list = ", ".join(f"`{m}`" for m in modules[:10])
         extra = f" … +{len(modules) - 10} more" if len(modules) > 10 else ""
-        return _make_response(
-            True,
-            f"## Workspace: {ws.name}\n\n"
-            f"- **Domain:** `{ws.domain_key}`\n"
-            f"- **Modules ({len(modules)}):** {mod_list}{extra}\n"
-            f"- **Boards:** {len(ws.board_ids)}\n",
-        )
+        lines = [
+            f"## Workspace: {ws.name}\n",
+            f"- **Domain:** `{ws.domain_key}`",
+            f"- **Modules ({len(modules)}):** {mod_list}{extra}",
+            f"- **Boards:** {len(ws.board_ids)}",
+        ]
+        # Include automation capabilities active in this workspace
+        automations = _get_automation_registry()
+        if automations:
+            caps = sorted({a["capability"] for a in automations})
+            lines.append(f"\n### Active Automations ({len(caps)})")
+            for cap in caps:
+                owners = [a["owner"] for a in automations if a["capability"] == cap]
+                lines.append(f"- **{cap}** — {', '.join(set(owners))}")
+        return _make_response(True, "\n".join(lines))
 
     if sub == "bootstrap":
         created = mgr.bootstrap_murphy_workspaces()
@@ -476,6 +551,25 @@ def handle_dashboard(dispatcher: object, cmd: object) -> object:
             in_progress_items=[],
             blocked_items=[],
         )
+        # Append automation and SKM loop status
+        automations = _get_automation_registry()
+        if automations:
+            caps = sorted({a["capability"] for a in automations})
+            report += f"\n\n### Automation Status ({len(automations)} active)\n"
+            report += "Capabilities: " + ", ".join(caps[:8])
+            if len(caps) > 8:
+                report += f" +{len(caps) - 8} more"
+
+        # SKM loop summary
+        setpoints = _get_active_setpoints()
+        loops = _get_active_loops()
+        enabled_loops = sum(1 for l in loops.values() if l["enabled"])
+        report += f"\n\n### SKM Loop: {enabled_loops}/{len(loops)} loops active"
+        gate_gen = _get_gate_generator()
+        gates = gate_gen.list_gates()
+        if gates:
+            passed = sum(1 for g in gates if g.get("status") == "passed")
+            report += f" | {len(gates)} gates ({passed} passed)"
         return _make_response(True, report)
 
     if sub == "weekly":
@@ -484,6 +578,24 @@ def handle_dashboard(dispatcher: object, cmd: object) -> object:
             workspace_name=workspace,
             stats={"tasks_completed": 0, "tasks_in_progress": 0, "tasks_blocked": 0},
         )
+        # Append automation and SKM loop summary for weekly
+        automations = _get_automation_registry()
+        shadow_auto = [a for a in automations if a["owner_type"] == "shadow_agent"]
+        pos_auto = [a for a in automations if a["owner_type"] == "position"]
+        report += "\n\n### Weekly Automation Summary\n"
+        report += f"- **Org-level automations:** {len(pos_auto)}\n"
+        report += f"- **Employee-level automations:** {len(shadow_auto)}\n"
+
+        setpoints = _get_active_setpoints()
+        report += "\n### Setpoint Health\n"
+        report += "| Dimension | Target | Range |\n|---|---|---|\n"
+        for dim, sp in setpoints.items():
+            rng = sp.get("range", [0, 1])
+            report += f"| {dim} | {sp['value']:.2f} | [{rng[0]:.1f}, {rng[1]:.1f}] |\n"
+
+        loops = _get_active_loops()
+        enabled = sum(1 for l in loops.values() if l["enabled"])
+        report += f"\n### Business Loops: {enabled}/{len(loops)} active"
         return _make_response(True, report)
 
     if sub == "project":
@@ -1181,6 +1293,15 @@ def handle_schedule(dispatcher: object, cmd: object) -> object:
                 f"| [{rng[0]}s, {rng[1]}s] "
                 f"| {enabled} | {cfg['description']} |"
             )
+        # SKM loop linkage
+        automations = _get_automation_registry()
+        if automations:
+            caps = sorted({a["capability"] for a in automations})
+            lines.append(f"\n### SKM Loop Automation Linkage ({len(caps)} capabilities)")
+            lines.append("Loops feed the **Sense→Know→Model** cycle:")
+            lines.append(f"- **SENSE:** heartbeat, production_pace → observe {len(caps)} automation capabilities")
+            lines.append(f"- **KNOW:** compliance_check, risk_assessment → evaluate gates")
+            lines.append(f"- **MODEL:** financial_review, stakeholder_reporting → adapt schedules")
         return _make_response(True, "\n".join(lines))
 
     if sub == "configure":
@@ -1239,6 +1360,304 @@ def handle_schedule(dispatcher: object, cmd: object) -> object:
 
 
 # ---------------------------------------------------------------------------
+# !murphy skm [status|sense|know|model|cycle]
+# ---------------------------------------------------------------------------
+
+def handle_skm(dispatcher: object, cmd: object) -> object:
+    """Handle ``!murphy skm`` — Sense-Know-Model loop.
+
+    The SKM loop is the core operating cycle that wires together
+    observation, evaluation, and adaptation:
+
+      SENSE  → Read setpoints, metrics, and automation telemetry.
+      KNOW   → Evaluate state against gates and thresholds.
+      MODEL  → Adapt automations, schedules, and recipes based on outcomes.
+
+    Subcommands:
+        status   — Full SKM loop overview
+        sense    — Show what the system is observing (setpoints + automations)
+        know     — Show gate evaluations and threshold checks
+        model    — Show adaptation actions and loop adjustments
+        cycle    — Run a virtual SKM cycle and show results
+    """
+    sub = getattr(cmd, "subcommand", None) or "status"
+    args = getattr(cmd, "args", [])
+
+    automations = _get_automation_registry()
+    setpoints = _get_active_setpoints()
+    loops = _get_active_loops()
+    gate_gen = _get_gate_generator()
+    gates = gate_gen.list_gates()
+    flow = _get_onboarding_flow()
+
+    if sub == "status":
+        shadow_auto = [a for a in automations if a["owner_type"] == "shadow_agent"]
+        pos_auto = [a for a in automations if a["owner_type"] == "position"]
+        enabled_loops = sum(1 for l in loops.values() if l["enabled"])
+        passed_gates = sum(1 for g in gates if g.get("status") == "passed")
+        failed_gates = sum(1 for g in gates if g.get("status") == "failed")
+        pending_gates = sum(1 for g in gates if g.get("status") == "pending")
+
+        lines = ["## ☠ Sense-Know-Model Loop Status\n"]
+        lines.append("```")
+        lines.append("  ┌──────────┐      ┌──────────┐      ┌──────────┐")
+        lines.append("  │  SENSE   │ ───► │   KNOW   │ ───► │  MODEL   │")
+        lines.append("  │ observe  │      │ evaluate │      │  adapt   │")
+        lines.append("  └──────────┘      └──────────┘      └──────────┘")
+        lines.append("       ▲                                    │")
+        lines.append("       └────────────────────────────────────┘")
+        lines.append("```\n")
+
+        lines.append("### SENSE (Observation)")
+        lines.append(f"- **Setpoints:** {len(setpoints)} dimensions configured")
+        lines.append(f"- **Automations observed:** {len(automations)} "
+                     f"({len(pos_auto)} org, {len(shadow_auto)} employee)")
+        lines.append(f"- **Business loops:** {enabled_loops}/{len(loops)} active\n")
+
+        lines.append("### KNOW (Evaluation)")
+        lines.append(f"- **Gates total:** {len(gates)}")
+        lines.append(f"- **Passed:** {passed_gates} | **Failed:** {failed_gates} | **Pending:** {pending_gates}")
+        objectives = sorted({g.get("objective_id", "?") for g in gates})
+        if objectives:
+            lines.append(f"- **Objectives covered:** {', '.join(objectives)}\n")
+
+        lines.append("### MODEL (Adaptation)")
+        caps = sorted({a["capability"] for a in automations})
+        lines.append(f"- **Automation capabilities:** {len(caps)}")
+        if caps:
+            lines.append(f"  {', '.join(caps)}")
+        sessions = flow.list_sessions()
+        completed = [s for s in sessions if s.get("phase") == "completed"]
+        lines.append(f"- **Onboarded employees:** {len(completed)}/{len(sessions)}")
+        lines.append(f"- **Shadow agents:** {len(flow.get_shadow_agents())}")
+
+        return _make_response(True, "\n".join(lines))
+
+    if sub == "sense":
+        lines = ["## ☠ SKM → SENSE Phase\n"]
+        lines.append("The SENSE phase observes the current system state.\n")
+        lines.append("### Setpoints")
+        lines.append("| Dimension | Value | Range |")
+        lines.append("|-----------|-------|-------|")
+        for dim, sp in setpoints.items():
+            rng = sp.get("range", [0, 1])
+            lines.append(f"| {dim} | {sp['value']:.2f} | [{rng[0]:.1f}, {rng[1]:.1f}] |")
+
+        lines.append("\n### Observed Automations")
+        if automations:
+            lines.append("| Capability | Source | Owner | Status |")
+            lines.append("|------------|--------|-------|--------|")
+            for a in automations[:20]:
+                lines.append(
+                    f"| {a['capability']} | {a['source']} "
+                    f"| {a['owner'][:20]} | {a['status']} |"
+                )
+            if len(automations) > 20:
+                lines.append(f"\n… +{len(automations) - 20} more")
+        else:
+            lines.append("No automations observed. Run `!murphy onboard init` and complete onboarding.")
+
+        lines.append("\n### Active Loops (sensors)")
+        for name, cfg in loops.items():
+            if cfg["enabled"]:
+                lines.append(f"- **{name}** every {cfg['interval_seconds']}s — {cfg['description']}")
+        return _make_response(True, "\n".join(lines))
+
+    if sub == "know":
+        lines = ["## ☠ SKM → KNOW Phase\n"]
+        lines.append("The KNOW phase evaluates state against gates and thresholds.\n")
+        if gates:
+            lines.append("### Gate Evaluations")
+            lines.append("| Gate | Objective | Type | Threshold | Status |")
+            lines.append("|------|-----------|------|-----------|--------|")
+            for g in gates:
+                lines.append(
+                    f"| `{g['gate_id']}` | {g['objective_id']} "
+                    f"| {g['gate_type']} | {g['threshold']} | {g['status']} |"
+                )
+        else:
+            lines.append("No gates configured. Use `!murphy gate create` to define gates.")
+
+        lines.append("\n### Setpoint Thresholds")
+        for dim, sp in setpoints.items():
+            rng = sp.get("range", [0, 1])
+            in_range = rng[0] <= sp["value"] <= rng[1]
+            status = "✅ OK" if in_range else "⚠️ OUT OF RANGE"
+            lines.append(f"- **{dim}**: {sp['value']:.2f} ({status})")
+        return _make_response(True, "\n".join(lines))
+
+    if sub == "model":
+        lines = ["## ☠ SKM → MODEL Phase\n"]
+        lines.append("The MODEL phase adapts the system based on evaluation results.\n")
+
+        lines.append("### Automation Capabilities")
+        shadow_auto = [a for a in automations if a["owner_type"] == "shadow_agent"]
+        pos_auto = [a for a in automations if a["owner_type"] == "position"]
+        if shadow_auto:
+            lines.append("\n**Employee-level (shadow agents):**")
+            for a in shadow_auto:
+                lines.append(f"- `{a['agent_id']}` → {a['capability']}")
+        if pos_auto:
+            lines.append("\n**Org-level (positions):**")
+            seen = set()
+            for a in pos_auto:
+                key = f"{a['owner']}:{a['capability']}"
+                if key not in seen:
+                    seen.add(key)
+                    lines.append(f"- {a['owner']} → {a['capability']}")
+
+        lines.append("\n### Loop Schedule Adaptations")
+        for name, cfg in loops.items():
+            state = "🟢" if cfg["enabled"] else "🔴"
+            lines.append(f"- {state} **{name}** → {cfg['interval_seconds']}s")
+
+        # Model the impact: which gates are driven by which loops
+        lines.append("\n### Gate-Loop Mapping")
+        lines.append("| Loop | Drives Gate Types |")
+        lines.append("|------|-------------------|")
+        lines.append("| heartbeat | PI control → all dimensions |")
+        lines.append("| financial_review | budget_gate, roi_gate |")
+        lines.append("| compliance_check | compliance_gate, approval_gate |")
+        lines.append("| risk_assessment | risk_gate |")
+        lines.append("| production_pace | timeline_gate |")
+        lines.append("| stakeholder_reporting | executive dashboards |")
+
+        return _make_response(True, "\n".join(lines))
+
+    if sub == "cycle":
+        lines = ["## ☠ SKM Cycle Execution\n"]
+
+        # SENSE
+        lines.append("### 1. SENSE — Observing state")
+        lines.append(f"  📡 Reading {len(setpoints)} setpoint dimensions")
+        lines.append(f"  📡 Observing {len(automations)} automation capabilities")
+        enabled_loops = sum(1 for l in loops.values() if l["enabled"])
+        lines.append(f"  📡 {enabled_loops} business loops active\n")
+
+        # KNOW
+        lines.append("### 2. KNOW — Evaluating gates")
+        passed = sum(1 for g in gates if g.get("status") == "passed")
+        failed = sum(1 for g in gates if g.get("status") == "failed")
+        pending = sum(1 for g in gates if g.get("status") == "pending")
+        lines.append(f"  🔍 {len(gates)} gates evaluated: {passed}✅ {failed}❌ {pending}⏳")
+
+        # Check setpoint health
+        healthy = 0
+        for dim, sp in setpoints.items():
+            rng = sp.get("range", [0, 1])
+            if rng[0] <= sp["value"] <= rng[1]:
+                healthy += 1
+        lines.append(f"  🔍 Setpoint health: {healthy}/{len(setpoints)} in range\n")
+
+        # MODEL
+        lines.append("### 3. MODEL — Adaptation recommendations")
+        if failed > 0:
+            lines.append(f"  ⚡ {failed} gate(s) FAILED → consider adjusting setpoints or loop intervals")
+        if pending > 0:
+            lines.append(f"  ⏳ {pending} gate(s) PENDING → evaluate with `!murphy gate evaluate`")
+        shadow_auto = [a for a in automations if a["owner_type"] == "shadow_agent"]
+        if not shadow_auto:
+            lines.append("  💡 No employee automations — complete onboarding to populate")
+        else:
+            lines.append(f"  ✅ {len(shadow_auto)} employee automation(s) active")
+        if not gates:
+            lines.append("  💡 No gates defined — create with `!murphy gate create`")
+        else:
+            lines.append(f"  ✅ {len(gates)} gate(s) configured across "
+                        f"{len({g.get('objective_id') for g in gates})} objective(s)")
+
+        lines.append(f"\n**Cycle complete.** SKM loop healthy: "
+                     f"{'✅ YES' if (healthy == len(setpoints) and failed == 0) else '⚠️ NEEDS ATTENTION'}")
+        return _make_response(True, "\n".join(lines))
+
+    return _make_response(False, f"Unknown skm subcommand `{sub}`. "
+                          "Try: status, sense, know, model, cycle.")
+
+
+# ---------------------------------------------------------------------------
+# !murphy automation [list|summary]
+# ---------------------------------------------------------------------------
+
+def handle_automation(dispatcher: object, cmd: object) -> object:
+    """Handle ``!murphy automation`` — unified automation view.
+
+    Shows all automations from onboarding, org chart, and recipes
+    in a single consolidated view.
+
+    Subcommands:
+        list     — list all automation capabilities and their sources
+        summary  — high-level summary of automation coverage
+    """
+    sub = getattr(cmd, "subcommand", None) or "list"
+    automations = _get_automation_registry()
+
+    if sub == "list":
+        lines = ["## ☠ Automation Registry\n"]
+        if not automations:
+            lines.append("No automations configured. Complete onboarding to populate.")
+            lines.append("\nUse `!murphy onboard init` → `!murphy onboard start` to begin.")
+            return _make_response(True, "\n".join(lines))
+
+        shadow_auto = [a for a in automations if a["owner_type"] == "shadow_agent"]
+        pos_auto = [a for a in automations if a["owner_type"] == "position"]
+
+        if shadow_auto:
+            lines.append("### Employee Automations (Shadow Agents)\n")
+            lines.append("| Capability | Agent | Owner | IP Class |")
+            lines.append("|------------|-------|-------|----------|")
+            for a in shadow_auto:
+                lines.append(
+                    f"| {a['capability']} | `{a['agent_id']}` "
+                    f"| {a['owner'][:16]} | {a['ip_class']} |"
+                )
+
+        if pos_auto:
+            lines.append("\n### Org-Level Automations (Positions)\n")
+            lines.append("| Capability | Position | IP Class |")
+            lines.append("|------------|----------|----------|")
+            seen = set()
+            for a in pos_auto:
+                key = f"{a['owner']}:{a['capability']}"
+                if key not in seen:
+                    seen.add(key)
+                    lines.append(
+                        f"| {a['capability']} | {a['owner']} | {a['ip_class']} |"
+                    )
+
+        return _make_response(True, "\n".join(lines))
+
+    if sub == "summary":
+        lines = ["## ☠ Automation Summary\n"]
+        shadow_auto = [a for a in automations if a["owner_type"] == "shadow_agent"]
+        pos_auto = [a for a in automations if a["owner_type"] == "position"]
+        all_caps = sorted({a["capability"] for a in automations})
+
+        lines.append(f"**Total automations:** {len(automations)}")
+        lines.append(f"**Unique capabilities:** {len(all_caps)}")
+        lines.append(f"**Org-level:** {len(pos_auto)}")
+        lines.append(f"**Employee-level:** {len(shadow_auto)}\n")
+
+        if all_caps:
+            lines.append("### Capability Coverage")
+            for cap in all_caps:
+                owners = [a["owner"] for a in automations if a["capability"] == cap]
+                lines.append(f"- **{cap}** ({len(owners)} source{'s' if len(owners) != 1 else ''})")
+
+        # Cross-reference with SKM loop
+        loops = _get_active_loops()
+        enabled = sum(1 for l in loops.values() if l["enabled"])
+        gates = _get_gate_generator().list_gates()
+        lines.append(f"\n### SKM Loop Integration")
+        lines.append(f"- Business loops: {enabled}/{len(loops)} active")
+        lines.append(f"- Gates: {len(gates)} configured")
+        lines.append(f"- Setpoints: {len(_get_active_setpoints())} dimensions")
+
+        return _make_response(True, "\n".join(lines))
+
+    return _make_response(False, f"Unknown automation subcommand `{sub}`. Try: list, summary.")
+
+
+# ---------------------------------------------------------------------------
 # All handlers (for registration convenience)
 # ---------------------------------------------------------------------------
 
@@ -1256,6 +1675,8 @@ MANAGEMENT_COMMAND_HANDLERS = {
     "gate": handle_gate,
     "setpoint": handle_setpoint,
     "schedule": handle_schedule,
+    "skm": handle_skm,
+    "automation": handle_automation,
 }
 
 __all__ = [
@@ -1272,6 +1693,8 @@ __all__ = [
     "handle_gate",
     "handle_setpoint",
     "handle_schedule",
+    "handle_skm",
+    "handle_automation",
     "reset_engines",
     "MANAGEMENT_COMMAND_HANDLERS",
 ]
