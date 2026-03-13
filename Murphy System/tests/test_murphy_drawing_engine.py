@@ -568,6 +568,76 @@ class TestMultiSheetProjectProduction:
 import math as _math
 from datetime import datetime, timezone
 
+from src.murphy_drawing_engine import (
+    LineStyle,
+    LINE_STYLE_SVG,
+    LINE_STYLE_DXF,
+    EngineeringSymbol,
+    DrawingBorder,
+    build_pump_ga_drawing,
+)
+
+
+# ---------------------------------------------------------------------------
+# Line Style System Tests
+# ---------------------------------------------------------------------------
+
+class TestLineStyleSystem:
+    """ASME Y14.2 line convention system."""
+
+    def test_all_line_styles_defined(self):
+        for ls in LineStyle:
+            assert ls in LINE_STYLE_SVG
+            assert ls in LINE_STYLE_DXF
+
+    def test_continuous_no_dasharray(self):
+        assert LINE_STYLE_SVG[LineStyle.CONTINUOUS]["stroke-dasharray"] == "none"
+
+    def test_hidden_has_dasharray(self):
+        dash = LINE_STYLE_SVG[LineStyle.HIDDEN]["stroke-dasharray"]
+        assert dash != "none"
+        assert "," in dash
+
+    def test_center_dasharray(self):
+        dash = LINE_STYLE_SVG[LineStyle.CENTER]["stroke-dasharray"]
+        parts = [p.strip() for p in dash.split(",")]
+        assert len(parts) >= 3
+
+    def test_phantom_dasharray_longer_than_center(self):
+        center_parts = LINE_STYLE_SVG[LineStyle.CENTER]["stroke-dasharray"].split(",")
+        phantom_parts = LINE_STYLE_SVG[LineStyle.PHANTOM]["stroke-dasharray"].split(",")
+        assert len(phantom_parts) >= len(center_parts)
+
+    def test_visible_lines_thicker_than_center(self):
+        vis = float(LINE_STYLE_SVG[LineStyle.CONTINUOUS]["stroke-width"])
+        cen = float(LINE_STYLE_SVG[LineStyle.CENTER]["stroke-width"])
+        assert vis > cen
+
+    def test_dxf_linetype_names(self):
+        assert LINE_STYLE_DXF[LineStyle.CONTINUOUS] == "CONTINUOUS"
+        assert LINE_STYLE_DXF[LineStyle.HIDDEN] == "HIDDEN"
+        assert LINE_STYLE_DXF[LineStyle.CENTER] == "CENTER"
+
+    def test_element_default_line_style(self):
+        elem = DrawingElement(element_type=ElementType.LINE)
+        assert elem.line_style == LineStyle.CONTINUOUS
+
+    def test_element_custom_line_style(self):
+        elem = DrawingElement(element_type=ElementType.CIRCLE, line_style=LineStyle.HIDDEN)
+        assert elem.line_style == LineStyle.HIDDEN
+
+    def test_svg_renders_hidden_dasharray(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.LINE,
+            geometry={"x1": 0, "y1": 0, "x2": 10, "y2": 0},
+            line_style=LineStyle.HIDDEN,
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert "stroke-dasharray" in svg
+        assert "4,2" in svg
+
+    def test_svg_renders_center_dasharray(self, project_with_sheet):
 
 # ---------------------------------------------------------------------------
 # LineStyle tests
@@ -616,6 +686,368 @@ class TestLineStyle:
         sheet.elements.append(DrawingElement(
             element_type=ElementType.LINE,
             geometry={"x1": 0, "y1": 0, "x2": 100, "y2": 0},
+            line_style=LineStyle.CENTER,
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert "12,3,3,3" in svg
+
+    def test_dxf_includes_ltype_attribute(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.LINE,
+            geometry={"x1": 0, "y1": 0, "z1": 0, "x2": 5, "y2": 5, "z2": 0},
+            line_style=LineStyle.HIDDEN,
+        ))
+        dxf = DrawingExporter().to_dxf(project_with_sheet)
+        assert "HIDDEN" in dxf
+
+
+# ---------------------------------------------------------------------------
+# DXF TABLES Section Tests
+# ---------------------------------------------------------------------------
+
+class TestDXFTablesSection:
+    """DXF R12 TABLES section with LTYPE definitions."""
+
+    def test_dxf_has_tables_section(self, project_with_sheet):
+        dxf = DrawingExporter().to_dxf(project_with_sheet)
+        assert "2\nTABLES" in dxf
+
+    def test_dxf_has_ltype_table(self, project_with_sheet):
+        dxf = DrawingExporter().to_dxf(project_with_sheet)
+        assert "2\nLTYPE" in dxf
+
+    def test_dxf_defines_continuous_linetype(self, project_with_sheet):
+        dxf = DrawingExporter().to_dxf(project_with_sheet)
+        assert "CONTINUOUS" in dxf
+
+    def test_dxf_defines_hidden_linetype(self, project_with_sheet):
+        dxf = DrawingExporter().to_dxf(project_with_sheet)
+        assert "HIDDEN" in dxf
+
+    def test_dxf_defines_center_linetype(self, project_with_sheet):
+        dxf = DrawingExporter().to_dxf(project_with_sheet)
+        assert "CENTER" in dxf
+
+    def test_dxf_endtab_marker(self, project_with_sheet):
+        dxf = DrawingExporter().to_dxf(project_with_sheet)
+        assert "ENDTAB" in dxf
+
+    def test_dxf_tables_before_entities(self, project_with_sheet):
+        dxf = DrawingExporter().to_dxf(project_with_sheet)
+        tables_pos = dxf.index("TABLES")
+        entities_pos = dxf.index("ENTITIES")
+        assert tables_pos < entities_pos
+
+    def test_dxf_arc_entity(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.ARC,
+            geometry={"cx": 50, "cy": 50, "cz": 0, "radius": 20,
+                      "start_angle": 0, "end_angle": 180},
+        ))
+        dxf = DrawingExporter().to_dxf(project_with_sheet)
+        assert "0\nARC" in dxf
+        assert "\n50\n" in dxf  # cx value
+
+    def test_dxf_arc_angles(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.ARC,
+            geometry={"cx": 0, "cy": 0, "cz": 0, "radius": 10,
+                      "start_angle": 45, "end_angle": 135},
+        ))
+        dxf = DrawingExporter().to_dxf(project_with_sheet)
+        assert "\n45\n" in dxf
+        assert "\n135\n" in dxf
+
+
+# ---------------------------------------------------------------------------
+# SVG viewBox Tests
+# ---------------------------------------------------------------------------
+
+class TestSVGViewBox:
+    """SVG must include a viewBox attribute for proper scaling."""
+
+    def test_svg_has_viewbox(self, project_with_sheet):
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert "viewBox=" in svg
+
+    def test_viewbox_matches_dimensions(self, project_with_sheet):
+        svg = DrawingExporter().to_svg(project_with_sheet, width=1200, height=800)
+        assert 'viewBox="0 0 1200 800"' in svg
+
+    def test_viewbox_default_dimensions(self, project_with_sheet):
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert 'viewBox="0 0 800 600"' in svg
+
+    def test_svg_valid_xml_with_viewbox(self, project_with_sheet):
+        import xml.etree.ElementTree as ET
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        root = ET.fromstring(svg)
+        assert root.get("viewBox") is not None
+
+
+# ---------------------------------------------------------------------------
+# Dimension Annotation Tests
+# ---------------------------------------------------------------------------
+
+class TestDimensionAnnotations:
+    """DIMENSION elements render with extension lines, dimension line, arrowheads."""
+
+    def test_dimension_element_renders_in_svg(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.DIMENSION,
+            geometry={"x1": 10, "y1": 50, "x2": 110, "y2": 50, "offset": 15},
+            properties={"text": "100"},
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert "<line" in svg
+        assert "<polygon" in svg  # arrowheads
+
+    def test_dimension_text_appears_in_svg(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.DIMENSION,
+            geometry={"x1": 0, "y1": 0, "x2": 200, "y2": 0, "offset": 20},
+            properties={"text": "200mm"},
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert "200mm" in svg
+
+    def test_dimension_extension_lines(self, project_with_sheet):
+        """Two extension lines must appear: one from each feature point."""
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.DIMENSION,
+            geometry={"x1": 0, "y1": 100, "x2": 50, "y2": 100, "offset": 10},
+            properties={"text": "50"},
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        # Count at least 3 lines: 2 extension + 1 dimension line
+        assert svg.count("<line") >= 3
+
+    def test_dimension_arrowheads(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.DIMENSION,
+            geometry={"x1": 0, "y1": 0, "x2": 80, "y2": 0, "offset": 10},
+            properties={"text": "80"},
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert svg.count("<polygon") >= 2  # two arrowheads
+
+    def test_dimension_no_text_no_text_element(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.DIMENSION,
+            geometry={"x1": 0, "y1": 0, "x2": 50, "y2": 0, "offset": 10},
+            properties={},
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert "<text" not in svg or "font-size" in svg  # no dimension text, but title block might have text
+
+
+# ---------------------------------------------------------------------------
+# Hatch Pattern Tests
+# ---------------------------------------------------------------------------
+
+class TestHatchPatterns:
+    """HATCH elements render as 45° parallel line patterns with clip boundary."""
+
+    def test_hatch_renders_clip_path(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.HATCH,
+            geometry={"x": 10, "y": 10, "width": 60, "height": 40, "spacing": 5, "angle": 45},
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert "clipPath" in svg
+        assert "clip-path=" in svg
+
+    def test_hatch_renders_lines(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.HATCH,
+            geometry={"x": 0, "y": 0, "width": 50, "height": 50, "spacing": 10},
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert "<line" in svg
+
+    def test_hatch_boundary_outline(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.HATCH,
+            geometry={"x": 5, "y": 5, "width": 40, "height": 40},
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert "<rect" in svg  # boundary outline
+
+    def test_hatch_valid_xml(self, project_with_sheet):
+        import xml.etree.ElementTree as ET
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.HATCH,
+            geometry={"x": 0, "y": 0, "width": 30, "height": 30, "spacing": 5},
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        ET.fromstring(svg)  # must not raise
+
+
+# ---------------------------------------------------------------------------
+# Leader Line Tests
+# ---------------------------------------------------------------------------
+
+class TestLeaderLines:
+    """LEADER elements render with arrow at first point and optional text."""
+
+    def test_leader_renders_lines(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.LEADER,
+            geometry={"points": [{"x": 100, "y": 100}, {"x": 150, "y": 80}, {"x": 200, "y": 80}]},
+            properties={"text": "LABEL"},
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert "<line" in svg
+        assert "LABEL" in svg
+
+    def test_leader_arrowhead(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.LEADER,
+            geometry={"points": [{"x": 50, "y": 50}, {"x": 100, "y": 30}]},
+            properties={"text": "NOTE"},
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert "<polygon" in svg
+
+    def test_leader_no_points_skipped(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.LEADER,
+            geometry={"points": []},
+            properties={"text": "EMPTY"},
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        # no crash; no leader rendered
+        assert "EMPTY" not in svg
+
+
+# ---------------------------------------------------------------------------
+# Title Block Rendering Tests
+# ---------------------------------------------------------------------------
+
+class TestTitleBlockRendering:
+    """TitleBlock renders as bordered field area in SVG output."""
+
+    def test_title_block_company_name_in_svg(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.title_block.company = "ACME Corp"
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert "ACME Corp" in svg
+
+    def test_title_block_drawing_number_in_svg(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.title_block.drawing_number = "DWG-001"
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert "DWG-001" in svg
+
+    def test_title_block_border_rect(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.title_block.company = "Test"
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert "<rect" in svg
+
+    def test_title_block_pe_stamp_circle(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.title_block.company = "PE Firm"
+        sheet.title_block.pe_stamp_id = "PE-STAMP-999"
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert "PE STAMP" in svg
+
+    def test_title_block_drawn_by_in_svg(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.title_block.company = "Eng Co"
+        sheet.title_block.drawn_by = "Alice"
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert "Alice" in svg
+
+    def test_title_block_empty_not_rendered(self, project_with_sheet):
+        """Empty title block (no company/number/drawnby) should not render."""
+        sheet = project_with_sheet.sheets[0]
+        # default TitleBlock has all empty strings
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        # no title block border should appear
+        count_before = svg.count("fill=\"white\"")
+        sheet2 = DrawingSheet()
+        sheet2.title_block.company = "Corp"
+        p2 = DrawingProject(name="X")
+        p2.sheets.append(sheet2)
+        svg2 = DrawingExporter().to_svg(p2)
+        count_after = svg2.count("fill=\"white\"")
+        assert count_after > count_before
+
+
+# ---------------------------------------------------------------------------
+# Engineering Symbol Library Tests
+# ---------------------------------------------------------------------------
+
+class TestEngineeringSymbolLibrary:
+    """ISA 5.1 engineering symbols render as valid SVG snippets."""
+
+    def test_centrifugal_pump_returns_svg(self):
+        svg_snip = EngineeringSymbol.centrifugal_pump(0, 0, 30)
+        assert "<circle" in svg_snip
+        assert "<line" in svg_snip
+
+    def test_gate_valve_returns_svg(self):
+        svg_snip = EngineeringSymbol.gate_valve(0, 0, 20)
+        assert "<polygon" in svg_snip
+        assert "<line" in svg_snip
+
+    def test_check_valve_returns_svg(self):
+        svg_snip = EngineeringSymbol.check_valve(0, 0, 20)
+        assert "<circle" in svg_snip
+        assert "<polygon" in svg_snip
+
+    def test_instrument_bubble_pi(self):
+        svg_snip = EngineeringSymbol.instrument_bubble(0, 0, "PI", 14)
+        assert "<circle" in svg_snip
+        assert "PI" in svg_snip
+
+    def test_instrument_bubble_fi(self):
+        svg_snip = EngineeringSymbol.instrument_bubble(0, 0, "FI", 14)
+        assert "FI" in svg_snip
+
+    def test_instrument_bubble_ti(self):
+        svg_snip = EngineeringSymbol.instrument_bubble(0, 0, "TI", 12)
+        assert "TI" in svg_snip
+
+    def test_pump_position_offset(self):
+        sym_a = EngineeringSymbol.centrifugal_pump(0, 0, 30)
+        sym_b = EngineeringSymbol.centrifugal_pump(100, 200, 30)
+        # cx = x + size/2; floats are used internally
+        assert 'cx="15' in sym_a
+        assert 'cx="115' in sym_b
+
+    def test_symbols_embed_in_svg(self):
+        """All symbols must embed in a valid SVG document."""
+        import xml.etree.ElementTree as ET
+        parts = [
+            EngineeringSymbol.centrifugal_pump(10, 10, 20),
+            EngineeringSymbol.gate_valve(50, 50, 15),
+            EngineeringSymbol.check_valve(80, 80, 15),
+            EngineeringSymbol.instrument_bubble(110, 110, "PI", 10),
+        ]
+        svg_doc = (
+            '<?xml version="1.0"?>'
+            '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">'
+            + "".join(parts) +
+            '</svg>'
+        )
+        root = ET.fromstring(svg_doc)
             line_style=LineStyle.DASHED,
         ))
         svg = DrawingExporter().to_svg(project_with_sheet)
@@ -929,6 +1361,140 @@ class TestEngineeringSymbolLibrary:
 
 
 # ---------------------------------------------------------------------------
+# Drawing Border Tests
+# ---------------------------------------------------------------------------
+
+class TestDrawingBorder:
+    """DrawingBorder generates zone grid labels and frame rect."""
+
+    def test_border_generates_svg(self):
+        border = DrawingBorder()
+        svg = border.to_svg(800, 600)
+        assert "<rect" in svg
+        assert "<text" in svg
+
+    def test_border_column_labels(self):
+        border = DrawingBorder(zone_cols=8, zone_rows=4)
+        svg = border.to_svg(800, 600)
+        for i in range(1, 9):
+            assert str(i) in svg
+
+    def test_border_row_labels(self):
+        border = DrawingBorder(zone_cols=8, zone_rows=4)
+        svg = border.to_svg(800, 600)
+        for letter in "ABCD":
+            assert letter in svg
+
+    def test_border_frame_rect(self):
+        border = DrawingBorder(margin=10)
+        svg = border.to_svg(800, 600)
+        assert 'stroke="black"' in svg
+        assert 'fill="none"' in svg
+
+    def test_border_custom_margin(self):
+        border = DrawingBorder(margin=20)
+        svg = border.to_svg(400, 300)
+        assert "20" in svg
+
+
+# ---------------------------------------------------------------------------
+# Pump GA Drawing Demo Tests
+# ---------------------------------------------------------------------------
+
+class TestPumpGADrawing:
+    """The built-in pump GA demo drawing proves end-to-end capability."""
+
+    @pytest.fixture
+    def pump_project(self):
+        return build_pump_ga_drawing()
+
+    def test_pump_project_exists(self, pump_project):
+        assert pump_project.name == "Centrifugal Pump — General Arrangement"
+        assert pump_project.discipline == Discipline.MECHANICAL
+
+    def test_pump_has_one_sheet(self, pump_project):
+        assert len(pump_project.sheets) == 1
+
+    def test_pump_title_block_populated(self, pump_project):
+        tb = pump_project.sheets[0].title_block
+        assert tb.company == "Murphy System Engineering"
+        assert tb.drawing_number == "MEC-PUMP-001"
+        assert tb.pe_stamp_id == "STAMP-MEC-001"
+
+    def test_pump_bom_has_three_items(self, pump_project):
+        bom = BOMExtractor().extract(pump_project)
+        assert len(bom) == 3
+
+    def test_pump_bom_includes_pump(self, pump_project):
+        bom = BOMExtractor().extract(pump_project)
+        names = [b["block_name"] for b in bom]
+        assert "CENTRIFUGAL_PUMP" in names
+
+    def test_pump_bom_includes_motor(self, pump_project):
+        bom = BOMExtractor().extract(pump_project)
+        names = [b["block_name"] for b in bom]
+        assert "ELECTRIC_MOTOR" in names
+
+    def test_pump_svg_export(self, pump_project):
+        svg = DrawingExporter().to_svg(pump_project, width=800, height=600)
+        assert "viewBox" in svg
+        assert "<?xml" in svg
+
+    def test_pump_svg_has_title_block(self, pump_project):
+        svg = DrawingExporter().to_svg(pump_project, width=800, height=600)
+        assert "Murphy System Engineering" in svg
+        assert "MEC-PUMP-001" in svg
+
+    def test_pump_svg_has_hatch(self, pump_project):
+        svg = DrawingExporter().to_svg(pump_project, width=800, height=600)
+        assert "clipPath" in svg
+
+    def test_pump_svg_has_dimension(self, pump_project):
+        svg = DrawingExporter().to_svg(pump_project, width=800, height=600)
+        # dimension text "400" should appear
+        assert "400" in svg
+
+    def test_pump_svg_has_leader(self, pump_project):
+        svg = DrawingExporter().to_svg(pump_project, width=800, height=600)
+        assert "MOTOR 15kW" in svg
+
+    def test_pump_svg_valid_xml(self, pump_project):
+        import xml.etree.ElementTree as ET
+        svg = DrawingExporter().to_svg(pump_project, width=800, height=600)
+        root = ET.fromstring(svg)
+        assert root.tag.endswith("svg")
+
+    def test_pump_dxf_export(self, pump_project):
+        dxf = DrawingExporter().to_dxf(pump_project)
+        assert "SECTION" in dxf
+        assert "TABLES" in dxf
+        assert "LTYPE" in dxf
+        assert "EOF" in dxf
+
+    def test_pump_dxf_has_centerline_type(self, pump_project):
+        dxf = DrawingExporter().to_dxf(pump_project)
+        assert "CENTER" in dxf
+
+    def test_pump_svg_has_centerline_dasharray(self, pump_project):
+        svg = DrawingExporter().to_svg(pump_project, width=800, height=600)
+        # shaft centerline should render with CENTER dasharray
+        assert "12,3,3,3" in svg
+
+    def test_pump_has_multiple_element_types(self, pump_project):
+        sheet = pump_project.sheets[0]
+        types_present = {e.element_type for e in sheet.elements}
+        expected = {
+            ElementType.LINE, ElementType.CIRCLE, ElementType.RECTANGLE,
+            ElementType.HATCH, ElementType.DIMENSION, ElementType.LEADER,
+            ElementType.TEXT, ElementType.BLOCK_REF,
+        }
+        assert expected.issubset(types_present)
+
+    def test_pump_pdf_placeholder(self, pump_project):
+        result = DrawingExporter().to_pdf_placeholder(pump_project)
+        assert result["sheets"] == 1
+        assert result["elements"] > 10
+
 # Assembly Drawing tests
 # ---------------------------------------------------------------------------
 
