@@ -347,7 +347,7 @@ class ComplianceToggleManager:
 
         total_enabled = len(enabled)
         scored = [v["score"] for v in framework_statuses.values() if v.get("score") is not None]
-        overall_score = round(sum(scored) / len(scored)) if scored else None
+        overall_score = round(sum(scored) / (len(scored) or 1)) if scored else None
 
         return {
             "tenant_id": tenant_id,

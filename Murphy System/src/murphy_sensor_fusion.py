@@ -248,7 +248,7 @@ class SensorFusionPipeline:
                 float(r.value) for r in good if isinstance(r.value, (int, float))
             ]
             if numeric_vals:
-                avg = sum(numeric_vals) / len(numeric_vals)
+                avg = sum(numeric_vals) / (len(numeric_vals) or 1)
                 fused_readings = {"fused_value": avg}
             else:
                 fused_readings = {r.source_id: r.value for r in good}
