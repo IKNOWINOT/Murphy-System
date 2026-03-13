@@ -19,6 +19,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
+from thread_safe_operations import capped_append
+
 logger = logging.getLogger(__name__)
 
 
@@ -710,7 +712,7 @@ class GraphRunner:
             "status": state.get("_status", "running"),
         }
         with self._lock:
-            self._history.append(entry)
+            capped_append(self._history, entry)
 
     def _save_checkpoint(
         self,

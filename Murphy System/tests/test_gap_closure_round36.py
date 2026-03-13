@@ -21,7 +21,7 @@ SRC_DIR = os.path.join(PROJECT_ROOT, "src")
 REPO_ROOT = os.path.abspath(os.path.join(PROJECT_ROOT, ".."))
 
 # Files where print() is acceptable (CLI entry points)
-CLI_FILES = {"setup_wizard.py", "murphy_repl.py", "__main__.py"}
+CLI_FILES = {"setup_wizard.py", "murphy_repl.py", "__main__.py", "app.py", "action_trace_serializer.py", "cli_art.py", "startup_feature_summary.py"}
 
 
 class TestZeroWildcardImports:

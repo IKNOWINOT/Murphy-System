@@ -16,9 +16,13 @@ License: BSL 1.1
 from __future__ import annotations
 
 import enum
+import hashlib
+import hmac as _hmac
+import json as _json
 import logging
 import os
 import threading
+import time
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone, timedelta
@@ -268,6 +272,8 @@ class SubscriptionManager:
         self._lock = threading.Lock()
         self._subscriptions: Dict[str, SubscriptionRecord] = {}
         self._audit_log: List[Dict[str, Any]] = []
+        self._processed_events: Dict[str, float] = {}  # event_id → timestamp
+        self._EVENT_DEDUP_WINDOW = 3600  # 1 hour
 
     # ------------------------------------------------------------------
     # Stripe
@@ -337,6 +343,9 @@ class SubscriptionManager:
 
         Handles: checkout.session.completed, customer.subscription.updated,
         customer.subscription.deleted, invoice.payment_failed.
+
+        Includes idempotency: duplicate event IDs within the dedup window
+        are acknowledged without re-processing.
         """
         secret = webhook_secret or os.environ.get("STRIPE_WEBHOOK_SECRET", "")
         event: Dict[str, Any] = {}
@@ -350,6 +359,12 @@ class SubscriptionManager:
         except Exception as exc:  # noqa: BLE001
             logger.error("Stripe webhook validation failed: %s", exc)
             raise ValueError("invalid stripe webhook") from exc
+
+        # Idempotency: skip already-processed events
+        event_id = event.get("id", "")
+        if event_id and self._is_duplicate_event(event_id):
+            logger.info("Duplicate Stripe event skipped: %s", event_id)
+            return {"received": True, "duplicate": True, "event_type": event.get("type", "")}
 
         event_type = event.get("type", "")
         data_obj = event.get("data", {}).get("object", {})
@@ -456,8 +471,40 @@ class SubscriptionManager:
         resp.raise_for_status()
         return str(resp.json()["access_token"])
 
-    def handle_paypal_webhook(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-        """Process a PayPal subscription webhook event."""
+    def handle_paypal_webhook(
+        self,
+        payload: Dict[str, Any],
+        signature: str = "",
+        webhook_secret: str = "",
+    ) -> Dict[str, Any]:
+        """Process a PayPal subscription webhook event.
+
+        When ``webhook_secret`` (or the ``PAYPAL_WEBHOOK_SECRET`` env var) is
+        set, the ``signature`` is verified via HMAC-SHA256 before processing.
+        Includes idempotency to prevent duplicate event processing.
+
+        Note: The HMAC is computed over canonical JSON (sorted keys, no
+        whitespace).  In production, consider using the PayPal SDK's
+        ``verify_webhook_signature`` for full protocol compliance.
+        """
+        secret = webhook_secret or os.environ.get("PAYPAL_WEBHOOK_SECRET", "")
+        if secret:
+            payload_bytes = _json.dumps(
+                payload, separators=(",", ":"), sort_keys=True
+            ).encode()
+            expected = _hmac.new(
+                secret.encode(), payload_bytes, hashlib.sha256
+            ).hexdigest()
+            if not _hmac.compare_digest(expected, signature):
+                logger.warning("PayPal webhook signature mismatch")
+                raise ValueError("invalid PayPal webhook signature")
+
+        # Idempotency
+        event_id = payload.get("id", "")
+        if event_id and self._is_duplicate_event(event_id):
+            logger.info("Duplicate PayPal event skipped: %s", event_id)
+            return {"received": True, "duplicate": True, "event_type": payload.get("event_type", "")}
+
         event_type = payload.get("event_type", "")
         resource = payload.get("resource", {})
         account_id = resource.get("custom_id", "")
@@ -622,6 +669,24 @@ class SubscriptionManager:
                 sub.status = status
                 if status == SubscriptionStatus.CANCELED:
                     sub.canceled_at = datetime.now(timezone.utc).isoformat()
+
+    def _is_duplicate_event(self, event_id: str) -> bool:
+        """Check if an event has already been processed (idempotency guard).
+
+        Prunes stale entries outside the dedup window to bound memory.
+        """
+        now = time.time()
+        with self._lock:
+            # Prune old entries
+            cutoff = now - self._EVENT_DEDUP_WINDOW
+            stale = [eid for eid, ts in self._processed_events.items() if ts < cutoff]
+            for eid in stale:
+                del self._processed_events[eid]
+
+            if event_id in self._processed_events:
+                return True
+            self._processed_events[event_id] = now
+            return False
 
     def _audit(self, action: str, account_id: str, details: Dict[str, Any]) -> None:
         entry = {

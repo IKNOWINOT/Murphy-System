@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 if APIRouter is not None:
 
     class CreateRuleRequest(BaseModel):
+        """Create Rule Request."""
         name: str
         board_id: str
         trigger_type: str
@@ -37,10 +38,12 @@ if APIRouter is not None:
         actions: List[Dict[str, Any]] = Field(default_factory=list)
 
     class UpdateRuleRequest(BaseModel):
+        """Update Rule Request."""
         name: Optional[str] = None
         enabled: Optional[bool] = None
 
     class FireTriggerRequest(BaseModel):
+        """Fire Trigger Request."""
         board_id: str
         trigger_type: str
         context: Dict[str, Any] = Field(default_factory=dict)

@@ -29,18 +29,21 @@ logger = logging.getLogger(__name__)
 if APIRouter is not None:
 
     class CreateDocRequest(BaseModel):
+        """Create Doc Request."""
         title: str
         owner_id: str = ""
         board_id: str = ""
         permission: str = "private"
 
     class UpdateDocRequest(BaseModel):
+        """Update Doc Request."""
         title: Optional[str] = None
         status: Optional[str] = None
         permission: Optional[str] = None
         user_id: str = ""
 
     class AddBlockRequest(BaseModel):
+        """Add Block Request."""
         block_type: str = "text"
         content: str = ""
         position: int = -1
@@ -48,15 +51,18 @@ if APIRouter is not None:
         indent_level: int = 0
 
     class UpdateBlockRequest(BaseModel):
+        """Update Block Request."""
         content: Optional[str] = None
         checked: Optional[bool] = None
         metadata: Optional[Dict[str, Any]] = None
 
     class CreateVersionRequest(BaseModel):
+        """Create Version Request."""
         editor_id: str = ""
         summary: str = ""
 
     class CollaboratorRequest(BaseModel):
+        """Collaborator Request."""
         user_id: str
 
 

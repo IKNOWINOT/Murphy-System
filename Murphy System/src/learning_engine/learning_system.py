@@ -49,8 +49,8 @@ class LearningSystem:
             if not slt.is_enabled():
                 slt.increment_skipped()
                 return
-        except Exception:
-            pass  # toggle unavailable — allow learning to proceed
+        except Exception as exc:
+            logger.debug("Non-critical error: %s", exc)
 
         entry = {
             'correction': correction_data,

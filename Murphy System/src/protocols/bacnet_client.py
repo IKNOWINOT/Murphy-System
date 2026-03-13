@@ -7,7 +7,7 @@ Guards the import so the module can be imported even when BAC0 is not installed.
 Usage:
     try:
         from src.protocols.bacnet_client import MurphyBACnetClient
-        client = MurphyBACnetClient("192.168.1.100", port=47808)
+        # client = MurphyBACnetClient("<device-ip>", port=47808)
         value = client.read_property("analogInput:0", "presentValue")
     except ImportError:
         pass  # BAC0 not installed

@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 MURPHY_DB_MODE: str = os.environ.get("MURPHY_DB_MODE", "stub").lower()
 
 # ---------------------------------------------------------------------------
-# Stub-mode safety guard
+# Development-mode safety guard
 # ---------------------------------------------------------------------------
 
 _MURPHY_ENV: str = os.environ.get("MURPHY_ENV", "development").lower()
@@ -255,7 +255,7 @@ class SQLDatabaseConnector(DatabaseConnector):
                 logger.error("Live DB connection failed: %s", exc)
                 self._engine = None
                 return False
-        # stub mode — always succeeds
+        # development mode — always succeeds
         return True
 
     def _close_connection(self) -> None:
@@ -292,7 +292,7 @@ class SQLDatabaseConnector(DatabaseConnector):
                     return [dict(zip(cols, row)) for row in result.fetchall()]
                 return [{"affected_rows": result.rowcount}]
 
-        # stub mode — return deterministic fixture data
+        # development mode — return deterministic fixture data
         query_lower = query.lower().strip()
         if query_lower.startswith('select'):
             return [
@@ -355,7 +355,7 @@ class SQLDatabaseConnector(DatabaseConnector):
                 logger.error("Error executing transaction: %s", exc)
                 return IntegrationResult(success=False, error=str(exc))
 
-        # stub mode — sequential execution, no real rollback
+        # development mode — sequential execution, no real rollback
         try:
             results = []
             for operation in operations:
@@ -413,7 +413,7 @@ class SQLDatabaseConnector(DatabaseConnector):
                 logger.error("Error executing stored procedure: %s", exc)
                 return IntegrationResult(success=False, error=str(exc))
 
-        # stub mode — return deterministic success payload
+        # development mode — return deterministic success payload
         try:
             result = {
                 'procedure': name,

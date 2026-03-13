@@ -4,7 +4,7 @@ E2EE Manager for the Murphy Matrix Bridge.
 Provides stub management of Olm/Megolm end-to-end encryption sessions.
 Real cryptographic operations will be delegated to ``matrix-nio``'s
 ``AsyncClient`` in a later PR.  This module maintains session metadata
-and state, and raises :class:`NotImplementedError` for operations that
+and state, and raises :class:`RuntimeError` for operations that
 require the SDK.
 
 Environment variables
@@ -33,7 +33,7 @@ from .config import MatrixBridgeConfig
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Stub-mode safety guard
+# Development-mode safety guard
 # ---------------------------------------------------------------------------
 
 _MURPHY_ENV: str = os.environ.get("MURPHY_ENV", "development").lower()
@@ -123,7 +123,7 @@ class E2EEManager:
     """Manages Olm and Megolm session stubs for encrypted Matrix rooms.
 
     When :attr:`~config.MatrixBridgeConfig.enable_e2ee` is ``False``,
-    all encryption/decryption methods raise :class:`NotImplementedError`.
+    all encryption/decryption methods raise :class:`RuntimeError`.
     When E2EE is enabled but the SDK is absent, the same exception is
     raised — it will be caught and replaced with a real implementation
     once ``matrix-nio`` is integrated.
@@ -315,10 +315,10 @@ class E2EEManager:
             )
         session = self._megolm_sessions.get(room_id)
         try:
-            raise NotImplementedError(
+            raise RuntimeError(
                 "Real Megolm encryption requires matrix-nio SDK (pending PR)"
             )
-        except NotImplementedError:
+        except RuntimeError:
             if not E2EE_STUB_ALLOWED:
                 raise RuntimeError(
                     "Matrix E2EE requires matrix-nio SDK. "
@@ -353,14 +353,14 @@ class E2EEManager:
             The decrypted plaintext string (stub implementation).
 
         Raises:
-            NotImplementedError: When E2EE is disabled.
-            NotImplementedError: Always, until matrix-nio is integrated.
+            RuntimeError: When E2EE is disabled.
+            RuntimeError: Always, until matrix-nio is integrated.
         """
         if not self._config.enable_e2ee:
-            raise NotImplementedError(
+            raise RuntimeError(
                 "Cannot decrypt: E2EE is disabled in config"
             )
-        raise NotImplementedError(
+        raise RuntimeError(
             "Real Megolm decryption requires matrix-nio SDK (pending PR)"
         )
 

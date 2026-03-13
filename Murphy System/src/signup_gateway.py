@@ -19,11 +19,14 @@ License: BSL 1.1
 from __future__ import annotations
 
 import hashlib
+import hmac
 import logging
+import re
 import threading
+import time
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 
 from thread_safe_operations import capped_append
@@ -51,6 +54,24 @@ def _redact_ip(ip: str) -> str:
     if len(parts) == 4:
         return f"{parts[0]}.{parts[1]}.xxx.xxx"
     return "[REDACTED_IP]"
+
+# ---------------------------------------------------------------------------
+# Validation helpers
+# ---------------------------------------------------------------------------
+
+_EMAIL_RE = re.compile(
+    r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$"
+)
+
+_PHONE_RE = re.compile(r"^\+\d{10,15}$|^\d{10,15}$")
+
+_EMAIL_TOKEN_EXPIRY = timedelta(hours=24)
+
+_OTP_EXPIRY = timedelta(minutes=10)
+
+_OTP_MAX_ATTEMPTS = 5
+
+_OTP_LOCKOUT_WINDOW = 300  # seconds
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -134,9 +155,13 @@ class UserProfile:
     email_validation_token: str = field(
         default_factory=lambda: uuid.uuid4().hex
     )
+    email_validation_token_created_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
     phone: str = ""
     phone_validated: bool = False
     phone_validation_code: str = ""
+    phone_otp_created_at: str = ""
     terminal_config: Dict[str, Any] = field(default_factory=dict)
     created_at: str = field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
@@ -269,6 +294,8 @@ class SignupGateway:
         self._orgs: Dict[str, Organization] = {}
         self._eula_records: Dict[str, EulaRecord] = {}  # user_id → record
         self._audit_log: List[Dict[str, Any]] = []
+        self._otp_attempts: Dict[str, List[float]] = {}  # user_id → [timestamps]
+        self._otp_lockouts: Dict[str, float] = {}  # user_id → lockout_until
 
     # ------------------------------------------------------------------
     # Signup
@@ -296,6 +323,8 @@ class SignupGateway:
             raise SignupError("name is required")
         if not email or not email.strip():
             raise SignupError("email is required")
+        if not _EMAIL_RE.match(email.strip()):
+            raise SignupError("invalid email format")
         if not position or not position.strip():
             raise SignupError("position is required")
         if not justification or not justification.strip():
@@ -347,14 +376,23 @@ class SignupGateway:
     # ------------------------------------------------------------------
 
     def validate_email(self, user_id: str, token: str) -> UserProfile:
-        """Validate the email token for a user."""
+        """Validate the email token for a user.
+
+        Tokens expire after 24 hours.  Uses constant-time comparison
+        to prevent timing-based token guessing.
+        """
         with self._lock:
             profile = self._profiles.get(user_id)
             if profile is None:
                 raise AuthError("user not found")
             if profile.email_validated:
                 return profile
-            if profile.email_validation_token != token:
+            # Check token expiry
+            if profile.email_validation_token_created_at:
+                created = datetime.fromisoformat(profile.email_validation_token_created_at)
+                if datetime.now(timezone.utc) - created > _EMAIL_TOKEN_EXPIRY:
+                    raise AuthError("email validation token has expired")
+            if not hmac.compare_digest(profile.email_validation_token, token):
                 raise AuthError("invalid email validation token")
             profile.email_validated = True
             profile.updated_at = datetime.now(timezone.utc).isoformat()
@@ -371,7 +409,8 @@ class SignupGateway:
         """Generate and store a 6-digit OTP for phone verification.
 
         Returns the OTP code (in production this would be sent via SMS,
-        e.g. through the Twilio API).
+        e.g. through the Twilio API).  Validates phone number format
+        (E.164 / 10–15 digit) before generating.
         """
         import random
         otp = f"{random.randint(0, 999999):06d}"
@@ -381,8 +420,13 @@ class SignupGateway:
                 raise AuthError("user not found")
             if not profile.phone:
                 raise SignupError("no phone number on file")
+            if not _PHONE_RE.match(profile.phone):
+                raise SignupError("invalid phone number format")
             profile.phone_validation_code = otp
+            profile.phone_otp_created_at = datetime.now(timezone.utc).isoformat()
             profile.updated_at = datetime.now(timezone.utc).isoformat()
+            self._otp_attempts.pop(user_id, None)
+            self._otp_lockouts.pop(user_id, None)
             self._audit("send_phone_otp", user_id, {})
 
         # Production: call Twilio here, e.g.:
@@ -391,20 +435,52 @@ class SignupGateway:
         return otp
 
     def validate_phone(self, user_id: str, otp: str) -> UserProfile:
-        """Verify the 6-digit OTP and mark the phone number as validated."""
+        """Verify the 6-digit OTP and mark the phone number as validated.
+
+        Hardening:
+        - Constant-time comparison via ``hmac.compare_digest``
+        - OTP expires after 10 minutes
+        - Max 5 failed attempts before 5-minute lockout
+        """
+        now = time.time()
         with self._lock:
             profile = self._profiles.get(user_id)
             if profile is None:
                 raise AuthError("user not found")
+
+            # Check lockout
+            lockout_until = self._otp_lockouts.get(user_id, 0.0)
+            if now < lockout_until:
+                raise AuthError("too many failed OTP attempts — try again later")
+
             if not profile.phone:
                 raise SignupError("no phone number on file")
             if not profile.phone_validation_code:
                 raise AuthError("no OTP issued — call send_phone_otp first")
-            if profile.phone_validation_code != otp:
+
+            # Check OTP expiry
+            if profile.phone_otp_created_at:
+                created = datetime.fromisoformat(profile.phone_otp_created_at)
+                if datetime.now(timezone.utc) - created > _OTP_EXPIRY:
+                    profile.phone_validation_code = ""
+                    raise AuthError("OTP has expired — request a new one")
+
+            if not hmac.compare_digest(profile.phone_validation_code, otp):
+                attempts = self._otp_attempts.setdefault(user_id, [])
+                attempts.append(now)
+                # Prune old attempts outside the window
+                attempts[:] = [t for t in attempts if now - t < _OTP_LOCKOUT_WINDOW]
+                if len(attempts) >= _OTP_MAX_ATTEMPTS:
+                    self._otp_lockouts[user_id] = now + _OTP_LOCKOUT_WINDOW
+                    logger.warning("OTP lockout triggered: user_id=%s", user_id)
                 raise AuthError("invalid phone OTP")
+
             profile.phone_validated = True
             profile.phone_validation_code = ""
+            profile.phone_otp_created_at = ""
             profile.updated_at = datetime.now(timezone.utc).isoformat()
+            self._otp_attempts.pop(user_id, None)
+            self._otp_lockouts.pop(user_id, None)
             self._audit("validate_phone", user_id, {})
 
         logger.info("Phone validated: user_id=%s", user_id)

@@ -267,7 +267,7 @@ class PredictiveFailureEngine:
           - runtime_config_size (int)
         """
         with self._lock:
-            self._telemetry.append(dict(event))
+            capped_append(self._telemetry, dict(event))
             # Track confidence history per component
             comp = event.get("component", "unknown")
             conf = event.get("confidence")
@@ -287,7 +287,7 @@ class PredictiveFailureEngine:
           - timestamp (str)
         """
         with self._lock:
-            self._errors.append(dict(error_record))
+            capped_append(self._errors, dict(error_record))
             # Track error rate window
             self._error_rate_history.append(len(self._errors))
             # Bound history list to avoid unbounded growth

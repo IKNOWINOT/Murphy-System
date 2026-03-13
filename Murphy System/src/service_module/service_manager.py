@@ -12,6 +12,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
+from thread_safe_operations import capped_append
+
 from .models import (
     CSATResponse,
     KBArticle,
@@ -166,7 +168,7 @@ class ServiceManager:
 
     def register_agent(self, agent_id: str) -> None:
         if agent_id not in self._agents:
-            self._agents.append(agent_id)
+            capped_append(self._agents, agent_id)
             self._agent_loads.setdefault(agent_id, 0)
 
     def set_routing_strategy(self, strategy: RoutingStrategy) -> None:
@@ -257,7 +259,7 @@ class ServiceManager:
             comment=comment,
             respondent_id=respondent_id,
         )
-        self._csat_responses.append(resp)
+        capped_append(self._csat_responses, resp)
         return resp
 
     def csat_average(self) -> float:

@@ -235,8 +235,8 @@ class SpaceManager:
                         "m.room.create",
                         creation_content,
                     )
-                except Exception:
-                    pass  # May already be set; not critical
+                except Exception as exc:
+                    logger.debug("Non-critical error: %s", exc)
             return room_id
         except Exception as exc:
             logger.warning("_ensure_space(%s) failed: %s", alias, exc)
