@@ -3,7 +3,7 @@ Automations – Data Models
 ===========================
 
 Core data structures for the Advanced Automations system
-(Phase 7 of Monday.com parity).
+(Phase 7 of management systems parity).
 
 Copyright 2024 Inoni LLC – BSL-1.1
 """

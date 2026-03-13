@@ -2,7 +2,7 @@
 Dev Module
 ============
 
-Phase 9 of Monday.com feature parity for the Murphy System.
+Phase 9 of management systems feature parity for the Murphy System.
 
 Provides developer-centric project management including:
 

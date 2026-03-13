@@ -1,5 +1,5 @@
 """
-Matrix Monday – Dashboard Generator
+Management Systems – Dashboard Generator
 ========================================
 
 Generate formatted Matrix reports from board data.

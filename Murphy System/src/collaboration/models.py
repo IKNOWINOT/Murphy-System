@@ -3,7 +3,7 @@ Collaboration System – Data Models
 ====================================
 
 Core data structures for the Real-Time Collaboration System
-(Phase 2 of Monday.com parity).
+(Phase 2 of management systems parity).
 
 Provides dataclass-based models for:
 - Comments on items and boards

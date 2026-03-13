@@ -2,7 +2,7 @@
 Service Module
 ================
 
-Phase 10 of Monday.com feature parity for the Murphy System.
+Phase 10 of management systems feature parity for the Murphy System.
 
 Provides IT service management including:
 

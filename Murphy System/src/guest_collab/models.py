@@ -3,7 +3,7 @@ Guest Collaboration – Data Models
 ====================================
 
 Core data structures for the Guest / External Collaboration system
-(Phase 11 of Monday.com parity).
+(Phase 11 of management systems parity).
 
 Copyright 2024 Inoni LLC – BSL-1.1
 """

@@ -2,7 +2,7 @@
 Collaboration System – Real-Time Collaboration
 ================================================
 
-Phase 2 of Monday.com feature parity for the Murphy System.
+Phase 2 of management systems feature parity for the Murphy System.
 
 Provides a complete collaboration layer including:
 

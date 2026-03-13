@@ -3,7 +3,7 @@ Workdocs – Data Models
 =======================
 
 Core data structures for the Collaborative Documents system
-(Phase 5 of Monday.com parity).
+(Phase 5 of management systems parity).
 
 Copyright 2024 Inoni LLC – BSL-1.1
 """

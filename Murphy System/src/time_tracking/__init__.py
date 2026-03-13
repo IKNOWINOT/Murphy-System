@@ -2,7 +2,7 @@
 Time Tracking & Reporting
 ==========================
 
-Phase 6 of Monday.com feature parity for the Murphy System.
+Phase 6 of management systems feature parity for the Murphy System.
 
 Copyright 2024 Inoni LLC – BSL-1.1
 """

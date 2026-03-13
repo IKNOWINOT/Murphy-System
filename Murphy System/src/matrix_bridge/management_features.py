@@ -1,11 +1,11 @@
 # Copyright © 2020 Inoni Limited Liability Company
 # Creator: Corey Post
 # License: BSL 1.1
-"""Monday.com-Inspired Features for Matrix — MTX-MONDAY-001
+"""Management Features for Matrix — MTX-MGMT-001
 
 Owner: Platform Engineering · Dep: matrix_client, message_router
 
-Implements Monday.com-style project management features as Matrix room
+Implements project management features as Matrix room
 state events and structured messages.
 
 Features
@@ -20,7 +20,7 @@ Features
 Classes
 -------
 ItemStatus : Enum
-    Status values mirroring Monday.com's column types.
+    Status values for management system column types.
 BoardColumn : dataclass
     A board column definition.
 BoardItem : dataclass
@@ -38,7 +38,7 @@ AutomationEngine : class
 
 Usage::
 
-    from matrix_bridge.monday_features import BoardManager, DashboardManager
+    from matrix_bridge.management_features import BoardManager, DashboardManager
 
     mgr = BoardManager()
     board = mgr.create_board("Sprint 12", owner="@murphy-triage")
@@ -67,7 +67,7 @@ logger = logging.getLogger(__name__)
 
 
 class ItemStatus(Enum):
-    """Work-item status values.  Maps to Monday.com status labels."""
+    """Work-item status values.  Maps to management system status labels."""
 
     NOT_STARTED = "not_started"
     IN_PROGRESS = "in_progress"
@@ -96,7 +96,7 @@ class ItemStatus(Enum):
 
 
 class ColumnType(Enum):
-    """Types of board columns (mirrors Monday.com column types)."""
+    """Types of board columns for management system views."""
 
     TEXT = "text"
     STATUS = "status"
