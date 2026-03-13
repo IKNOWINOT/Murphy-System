@@ -91,6 +91,9 @@ _DEFAULT_RATES: Dict[str, float] = {
 # Currencies whose locale qualifies for the 10% Japan discount
 _JAPAN_DISCOUNT_CURRENCIES = frozenset({"JPY"})
 _JAPAN_DISCOUNT_LOCALES = frozenset({"ja", "ja_jp", "ja-jp"})
+_JAPAN_DISCOUNT_LOCALES_NORMALIZED = frozenset(
+    lc.replace("_", "-") for lc in _JAPAN_DISCOUNT_LOCALES
+)
 _JAPAN_DISCOUNT_RATE = 0.10  # 10%
 
 
@@ -147,9 +150,7 @@ class CurrencyConverter:
         discount_pct = 0.0
 
         # Japan 10 % discount
-        if currency in _JAPAN_DISCOUNT_CURRENCIES or locale_lower in (
-            lc.replace("_", "-") for lc in _JAPAN_DISCOUNT_LOCALES
-        ):
+        if currency in _JAPAN_DISCOUNT_CURRENCIES or locale_lower in _JAPAN_DISCOUNT_LOCALES_NORMALIZED:
             discount_pct = _JAPAN_DISCOUNT_RATE
 
         discounted_usd = usd_amount * (1.0 - discount_pct)
