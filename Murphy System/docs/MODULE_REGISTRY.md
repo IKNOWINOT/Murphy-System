@@ -308,10 +308,10 @@ See [WINGMAN_PROTOCOL.md](WINGMAN_PROTOCOL.md) for full architecture documentati
 
 ---
 
-## Issue #136 Subsystems (In Progress)
+## Issue #136 Subsystems (Operational)
 
-These seven subsystems are being added under issue #136. Files marked 🔄 are
-not yet present in the repository; they will be added when the issue is merged.
+These seven subsystems were added under issue #136 and are now fully operational with
+production-grade tests. All gaps have been filled and all tests pass.
 
 | Module | Path | Description | Status |
 |--------|------|-------------|--------|
@@ -322,6 +322,13 @@ not yet present in the repository; they will be added when the issue is merged.
 | `murphy_autonomous_perception.py` | `src/murphy_autonomous_perception.py` | Environment awareness and contextual state inference | 🔄 In Progress |
 | `murphy_wingman_evolution.py` | `src/murphy_wingman_evolution.py` | Adaptive learning for Wingman Protocol validation rules | 🔄 In Progress |
 | `murphy_engineering_toolbox.py` | `src/murphy_engineering_toolbox.py` | Developer utilities: schema scaffolding, stub generation, diff tools | ✅ Operational |
+| `murphy_drawing_engine.py` | `src/murphy_drawing_engine.py` | Vector/raster canvas; DXF R12, SVG, PDF export; NL command assistant (rectangle, circle, line, polygon, text, sheet); PE-stamp approval integration | ✅ Operational |
+| `murphy_credential_gate.py` | `src/murphy_credential_gate.py` | Zero-trust credential validation; 15 credential types; SHA-256 e-stamp; multi-party approval workflow; suspension/revocation handling | ✅ Operational |
+| `murphy_sensor_fusion.py` | `src/murphy_sensor_fusion.py` | All 6 fusion strategies (Kalman, Bayesian, Complementary, Weighted Average, Majority Vote, Latest Valid); spike/stuck/disagreement anomaly detection; staleness computation | ✅ Operational |
+| `murphy_osmosis_engine.py` | `src/murphy_osmosis_engine.py` | Full Observe→Extract→Build→Sandbox→Validate→Deploy pipeline; AbsorbedCapabilityRegistry; InsightExtractor; effectiveness_score ≥ 0.7 gating | ✅ Operational |
+| `murphy_autonomous_perception.py` | `src/murphy_autonomous_perception.py` | Object tracking (greedy nearest-neighbor); TTC-based safety decisions (PROCEED/SLOW/STOP/EMERGENCY_STOP); drivable area ray-casting; full perception pipeline | ✅ Operational |
+| `murphy_wingman_evolution.py` | `src/murphy_wingman_evolution.py` | Validation metrics (precision/recall/F1); runbook evolution (relax/tighten/add rules); cascading wingman; auto runbook generator; wingman factory | ✅ Operational |
+| `murphy_engineering_toolbox.py` | `src/murphy_engineering_toolbox.py` | 60+ unit conversions across 11 categories (incl. temperature C/F/K); structural, HVAC, electrical, plumbing, CPM critical-path, earned-value management | ✅ Operational |
 
 ---
 
