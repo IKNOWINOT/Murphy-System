@@ -300,3 +300,295 @@ class TestWingmanEvolution:
         assert status["total_pairs_tracked"] == 1
         assert status["total_validations"] == 1
         assert status["factory_pairs_created"] == 1
+
+
+# ---------------------------------------------------------------------------
+# Production-readiness tests (30+ new cases)
+# ---------------------------------------------------------------------------
+
+import threading
+
+class TestValidationMetricsProduction:
+
+    def test_zero_division_safety_approval_rate(self):
+        from src.murphy_wingman_evolution import ValidationMetrics
+        m = ValidationMetrics(pair_id="p1")
+        assert m.approval_rate == 0.0
+
+    def test_zero_division_safety_rejection_rate(self):
+        from src.murphy_wingman_evolution import ValidationMetrics
+        m = ValidationMetrics(pair_id="p1")
+        assert m.rejection_rate == 0.0
+
+    def test_zero_division_avg_time(self):
+        from src.murphy_wingman_evolution import ValidationMetrics
+        m = ValidationMetrics(pair_id="p1")
+        assert m.avg_validation_time_s == 0.0
+
+    def test_zero_division_human_override_rate(self):
+        from src.murphy_wingman_evolution import ValidationMetrics
+        m = ValidationMetrics(pair_id="p1")
+        assert m.human_override_rate == 0.0
+
+    def test_zero_division_false_positive_rate(self):
+        from src.murphy_wingman_evolution import ValidationMetrics
+        m = ValidationMetrics(pair_id="p1")
+        assert m.false_positive_rate == 0.0
+
+    def test_approval_rate_calculation(self):
+        from src.murphy_wingman_evolution import ValidationMetrics
+        m = ValidationMetrics(pair_id="p1", total_validations=10, approved_count=7)
+        assert abs(m.approval_rate - 0.7) < 1e-6
+
+    def test_override_rate_calculation(self):
+        from src.murphy_wingman_evolution import ValidationMetrics
+        m = ValidationMetrics(pair_id="p1", total_validations=10, human_override_count=3)
+        assert abs(m.human_override_rate - 0.3) < 1e-6
+
+
+class TestWingmanScorecardProduction:
+
+    def test_perfect_scorecard(self):
+        from src.murphy_wingman_evolution import ValidationMetrics, WingmanScorecard
+        m = ValidationMetrics(pair_id="p1", total_validations=10, approved_count=10,
+                              false_positive_count=0, false_negative_count=0)
+        sc = WingmanScorecard.compute(m)
+        assert sc.precision == 1.0
+        assert sc.recall == 1.0
+        assert sc.f1 == 1.0
+
+    def test_all_false_positives(self):
+        from src.murphy_wingman_evolution import ValidationMetrics, WingmanScorecard
+        m = ValidationMetrics(pair_id="p1", total_validations=5, approved_count=5,
+                              false_positive_count=5, false_negative_count=0)
+        sc = WingmanScorecard.compute(m)
+        assert sc.precision == 0.0
+        assert sc.f1 == 0.0
+
+    def test_all_false_negatives(self):
+        from src.murphy_wingman_evolution import ValidationMetrics, WingmanScorecard
+        m = ValidationMetrics(pair_id="p1", total_validations=5, approved_count=0,
+                              false_positive_count=0, false_negative_count=5)
+        sc = WingmanScorecard.compute(m)
+        assert sc.recall == 0.0
+        assert sc.f1 == 0.0
+
+    def test_mixed_scorecard(self):
+        from src.murphy_wingman_evolution import ValidationMetrics, WingmanScorecard
+        # 8 approved, 2 FP, 3 FN → TP=6, precision=6/8=0.75, recall=6/9=0.667
+        m = ValidationMetrics(pair_id="p1", total_validations=10, approved_count=8,
+                              false_positive_count=2, false_negative_count=3)
+        sc = WingmanScorecard.compute(m)
+        assert sc.precision > 0.0
+        assert sc.recall > 0.0
+        assert sc.f1 > 0.0
+
+
+class TestRunbookEvolverProduction:
+
+    def _make_history(self, rule_id, passes, fails):
+        history = []
+        for _ in range(passes):
+            history.append({"results": [{"rule_id": rule_id, "passed": True}]})
+        for _ in range(fails):
+            history.append({"results": [{"rule_id": rule_id, "passed": False}]})
+        return history
+
+    def test_suggest_relax_for_never_failing_rule(self):
+        from src.murphy_wingman_evolution import RunbookEvolver, ValidationMetrics
+        evolver = RunbookEvolver()
+        history = self._make_history("rule_always_pass", 10, 0)
+        metrics = ValidationMetrics(pair_id="p1", total_validations=10)
+        suggestions = evolver.analyze("p1", history, metrics)
+        relax = [s for s in suggestions if s.suggestion_type == "relax"]
+        assert len(relax) >= 1
+
+    def test_suggest_tighten_for_always_failing_rule(self):
+        from src.murphy_wingman_evolution import RunbookEvolver, ValidationMetrics
+        evolver = RunbookEvolver()
+        history = self._make_history("rule_always_fail", 0, 10)
+        metrics = ValidationMetrics(pair_id="p1", total_validations=10)
+        suggestions = evolver.analyze("p1", history, metrics)
+        tighten = [s for s in suggestions if s.suggestion_type == "tighten"]
+        assert len(tighten) >= 1
+
+    def test_suggest_new_rule_for_high_override_rate(self):
+        from src.murphy_wingman_evolution import RunbookEvolver, ValidationMetrics
+        evolver = RunbookEvolver()
+        metrics = ValidationMetrics(pair_id="p1", total_validations=10,
+                                     human_override_count=5)
+        suggestions = evolver.analyze("p1", [], metrics)
+        add_rules = [s for s in suggestions if s.suggestion_type == "add"]
+        assert len(add_rules) >= 1
+
+    def test_no_suggestion_when_insufficient_data(self):
+        from src.murphy_wingman_evolution import RunbookEvolver, ValidationMetrics
+        evolver = RunbookEvolver()
+        history = self._make_history("rule_x", 3, 0)  # only 3 samples
+        metrics = ValidationMetrics(pair_id="p1", total_validations=3)
+        suggestions = evolver.analyze("p1", history, metrics)
+        # fewer than 5 samples → no suggestions for that rule
+        assert all(s.rule_id != "rule_x" for s in suggestions if s.suggestion_type != "add")
+
+    def test_get_suggestions_filter_by_pair(self):
+        from src.murphy_wingman_evolution import RunbookEvolver, ValidationMetrics
+        evolver = RunbookEvolver()
+        hist = self._make_history("rule_x", 10, 0)
+        metrics = ValidationMetrics(pair_id="pair-A", total_validations=10)
+        evolver.analyze("pair-A", hist, metrics)
+        evolver.analyze("pair-B", hist, metrics)
+        sug_a = evolver.get_suggestions("pair-A")
+        assert all(s.pair_id == "pair-A" for s in sug_a)
+
+
+class TestAutoRunbookGeneratorProduction:
+
+    def test_engineering_runbook(self):
+        from src.murphy_wingman_evolution import AutoRunbookGenerator
+        gen = AutoRunbookGenerator()
+        rb = gen.generate("beam_calc", "engineering")
+        assert "check_credential_active" in rb["rules"]
+        assert rb["domain"] == "engineering"
+
+    def test_safety_runbook(self):
+        from src.murphy_wingman_evolution import AutoRunbookGenerator
+        gen = AutoRunbookGenerator()
+        rb = gen.generate("emergency_stop", "safety")
+        assert "check_gate_clearance" in rb["rules"]
+
+    def test_finance_runbook(self):
+        from src.murphy_wingman_evolution import AutoRunbookGenerator
+        gen = AutoRunbookGenerator()
+        rb = gen.generate("invoice_approval", "finance")
+        assert "check_budget_limit" in rb["rules"]
+
+    def test_default_domain_fallback(self):
+        from src.murphy_wingman_evolution import AutoRunbookGenerator
+        gen = AutoRunbookGenerator()
+        rb = gen.generate("unknown_subject")
+        assert rb["domain"] == "default"
+        assert "check_has_output" in rb["rules"]
+
+    def test_runbook_has_id_and_timestamp(self):
+        from src.murphy_wingman_evolution import AutoRunbookGenerator
+        gen = AutoRunbookGenerator()
+        rb = gen.generate("test_subject", "default")
+        assert "runbook_id" in rb
+        assert "generated_at" in rb
+
+
+class TestCascadingWingmanProduction:
+
+    def test_cascade_completes_in_order(self):
+        from src.murphy_wingman_evolution import CascadingWingman, CascadeStage
+        stages = [
+            CascadeStage("s1", "wp-1", "execute"),
+            CascadeStage("s2", "wp-2", "validate"),
+            CascadeStage("s3", "wp-3", "credential_gate"),
+        ]
+        cw = CascadingWingman("cascade-1", stages)
+        assert cw.current_stage().stage_id == "s1"
+        cw.complete_stage("s1", {"approved": True})
+        assert cw.current_stage().stage_id == "s2"
+        cw.complete_stage("s2", {"approved": True})
+        cw.complete_stage("s3", {"approved": True})
+        assert cw.is_complete() is True
+
+    def test_cascade_summary_reports_all_passed(self):
+        from src.murphy_wingman_evolution import CascadingWingman, CascadeStage
+        stages = [
+            CascadeStage("s1", "wp-1", "execute"),
+            CascadeStage("s2", "wp-2", "validate"),
+        ]
+        cw = CascadingWingman("cascade-2", stages)
+        cw.complete_stage("s1", {"approved": True})
+        cw.complete_stage("s2", {"approved": True})
+        summary = cw.get_summary()
+        assert summary["all_passed"] is True
+
+    def test_cascade_not_complete_after_partial(self):
+        from src.murphy_wingman_evolution import CascadingWingman, CascadeStage
+        stages = [CascadeStage("s1", "wp-1", "execute"), CascadeStage("s2", "wp-2", "validate")]
+        cw = CascadingWingman("cascade-3", stages)
+        cw.complete_stage("s1", {"approved": True})
+        assert cw.is_complete() is False
+
+    def test_cascade_complete_stage_idempotent(self):
+        from src.murphy_wingman_evolution import CascadingWingman, CascadeStage
+        stages = [CascadeStage("s1", "wp-1", "execute")]
+        cw = CascadingWingman("cascade-4", stages)
+        r1 = cw.complete_stage("s1", {"approved": True})
+        r2 = cw.complete_stage("s1", {"approved": True})
+        assert r1 is True and r2 is False
+
+
+class TestWingmanEvolutionProduction:
+
+    def test_record_validation_creates_metrics(self):
+        from src.murphy_wingman_evolution import WingmanEvolution
+        we = WingmanEvolution()
+        we.record_validation("pair-1", True, validation_time_s=0.5)
+        m = we.get_metrics("pair-1")
+        assert m is not None
+        assert m.total_validations == 1
+        assert m.approved_count == 1
+
+    def test_record_multiple_validations(self):
+        from src.murphy_wingman_evolution import WingmanEvolution
+        we = WingmanEvolution()
+        for _ in range(5):
+            we.record_validation("pair-2", True)
+        for _ in range(3):
+            we.record_validation("pair-2", False)
+        m = we.get_metrics("pair-2")
+        assert m.total_validations == 8
+
+    def test_scorecard_computed_from_metrics(self):
+        from src.murphy_wingman_evolution import WingmanEvolution
+        we = WingmanEvolution()
+        for _ in range(10):
+            we.record_validation("pair-3", True)
+        sc = we.get_scorecard("pair-3")
+        assert sc is not None
+        assert sc.f1 >= 0.0
+
+    def test_evolve_produces_suggestions(self):
+        from src.murphy_wingman_evolution import WingmanEvolution
+        we = WingmanEvolution()
+        for _ in range(10):
+            we.record_validation("pair-4", False)
+        history = [{"results": [{"rule_id": "rule_x", "passed": False}]} for _ in range(10)]
+        suggestions = we.evolve("pair-4", history)
+        assert len(suggestions) >= 1
+
+    def test_factory_creates_pair_for_drawing(self):
+        from src.murphy_wingman_evolution import WingmanEvolution
+        we = WingmanEvolution()
+        pair = we.factory().auto_create_pair("beam drawing", "drawing")
+        assert pair["domain"] == "engineering"
+        assert "check_credential_active" in pair["runbook_spec"]["rules"]
+
+    def test_status_report(self):
+        from src.murphy_wingman_evolution import WingmanEvolution
+        we = WingmanEvolution()
+        we.record_validation("pair-5", True)
+        we.factory().auto_create_pair("subject", "action")
+        status = we.get_status()
+        assert status["total_pairs_tracked"] >= 1
+        assert status["factory_pairs_created"] >= 1
+
+    def test_concurrent_validation_recording(self):
+        from src.murphy_wingman_evolution import WingmanEvolution
+        we = WingmanEvolution()
+
+        def record():
+            for _ in range(10):
+                we.record_validation("pair-concurrent", True)
+
+        threads = [threading.Thread(target=record) for _ in range(5)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        m = we.get_metrics("pair-concurrent")
+        assert m.total_validations == 50
