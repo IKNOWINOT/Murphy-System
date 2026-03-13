@@ -6,6 +6,7 @@ License: BSL 1.1
 
 from __future__ import annotations
 
+import math
 import uuid
 import logging
 from dataclasses import dataclass, field
@@ -250,6 +251,32 @@ class DrawingExporter:
                         f'<text x="{g.get("x", 0)}" y="{g.get("y", 0)}" '
                         f'font-size="{g.get("height", 12)}">{text_val}</text>'
                     )
+                elif elem.element_type == ElementType.ARC:
+                    g = elem.geometry
+                    cx = g.get("cx", 0)
+                    cy = g.get("cy", 0)
+                    r = g.get("radius", 10)
+                    start_deg = g.get("start_angle", 0)
+                    end_deg = g.get("end_angle", 90)
+                    start_rad = math.radians(start_deg)
+                    end_rad = math.radians(end_deg)
+                    x1 = cx + r * math.cos(start_rad)
+                    y1 = cy + r * math.sin(start_rad)
+                    x2 = cx + r * math.cos(end_rad)
+                    y2 = cy + r * math.sin(end_rad)
+                    large_arc = 1 if (end_deg - start_deg) % 360 > 180 else 0
+                    svg_elements.append(
+                        f'<path d="M {x1:.3f} {y1:.3f} A {r} {r} 0 {large_arc} 1 {x2:.3f} {y2:.3f}" '
+                        f'fill="none" stroke="black" stroke-width="1"/>'
+                    )
+                elif elem.element_type == ElementType.POLYGON:
+                    g = elem.geometry
+                    verts = g.get("vertices", [])
+                    if verts:
+                        pts_str = " ".join(f'{v.get("x",0)},{v.get("y",0)}' for v in verts)
+                        svg_elements.append(
+                            f'<polygon points="{pts_str}" fill="none" stroke="black" stroke-width="1"/>'
+                        )
         body = "\n  ".join(svg_elements)
         return (
             f'<?xml version="1.0" encoding="UTF-8"?>\n'
@@ -299,6 +326,8 @@ class AgenticDrawingAssistant:
                 result = self._handle_rectangle(command)
             elif "circle" in cmd:
                 result = self._handle_circle(command)
+            elif "polygon" in cmd:
+                result = self._handle_polygon(command)
             elif "line" in cmd:
                 result = self._handle_line(command)
             elif "text" in cmd or "label" in cmd:
@@ -421,6 +450,76 @@ class AgenticDrawingAssistant:
             "sheet_id": sheet.sheet_id,
         }
 
+    def _handle_polygon(self, command: str) -> Dict[str, Any]:
+        import re
+        # Parse coordinate pairs like "(x,y)" from the command
+        pts = re.findall(r"\(?\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)?", command)
+        if len(pts) < 3:
+            # Default triangle
+            pts = [("0", "0"), ("10", "0"), ("5", "10")]
+        vertices = [{"x": float(p[0]), "y": float(p[1])} for p in pts]
+        elem = DrawingElement(
+            element_type=ElementType.POLYGON,
+            geometry={"vertices": vertices},
+        )
+        sheet = self._get_or_create_sheet()
+        sheet.elements.append(elem)
+        return {
+            "command": command,
+            "success": True,
+            "message": f"Polygon with {len(vertices)} vertices added",
+            "element_id": elem.element_id,
+        }
+
     def get_command_log(self) -> List[Dict[str, Any]]:
         """Return the history of executed commands."""
         return list(self._command_log)
+
+
+# ---------------------------------------------------------------------------
+# Drawing Approval Integration
+# ---------------------------------------------------------------------------
+
+class DrawingApprovalIntegration:
+    """
+    Wire a DrawingProject to a CredentialGatedApproval instance.
+    Serializes the project to bytes and requests PE-stamped approval.
+    """
+
+    def __init__(self, gated_approval: Any) -> None:
+        """
+        gated_approval: a CredentialGatedApproval instance (from murphy_credential_gate).
+        Accepts Any to avoid a hard circular import at module load.
+        """
+        self._gated_approval = gated_approval
+
+    def request_pe_stamp(
+        self,
+        project: DrawingProject,
+        approver_credential_id: str,
+        required_credential_types: Optional[Any] = None,
+        jurisdiction: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Serialize the project and request credential-gated approval.
+        Returns the approval record as a dict.
+        """
+        import json
+        doc_bytes = project.model_dump_json().encode() if hasattr(project, "model_dump_json") else (
+            json.dumps(project.dict()).encode()
+        )
+        record = self._gated_approval.request_approval(
+            document_id=project.project_id,
+            document_bytes=doc_bytes,
+            approver_credential_id=approver_credential_id,
+            required_credential_types=required_credential_types or [],
+            jurisdiction=jurisdiction,
+        )
+        return {
+            "approval_id": record.approval_id,
+            "document_id": record.document_id,
+            "status": record.approval_status.value,
+            "notes": record.notes,
+            "has_stamp": record.e_stamp is not None,
+        }
+
