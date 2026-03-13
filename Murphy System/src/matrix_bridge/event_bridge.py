@@ -38,6 +38,7 @@ def _h(text: str) -> str:
 # ---------------------------------------------------------------------------
 
 class Severity(Enum):
+    """Severity."""
     INFO = "info"
     WARNING = "warning"
     ERROR = "error"

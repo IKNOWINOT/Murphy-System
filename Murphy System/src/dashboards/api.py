@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 if APIRouter is not None:
 
     class CreateDashboardRequest(BaseModel):
+        """Create Dashboard Request."""
         name: str
         description: str = ""
         owner_id: str = ""
@@ -40,12 +41,14 @@ if APIRouter is not None:
         permission: str = "private"
 
     class UpdateDashboardRequest(BaseModel):
+        """Update Dashboard Request."""
         name: Optional[str] = None
         description: Optional[str] = None
         permission: Optional[str] = None
         user_id: str = ""
 
     class AddWidgetRequest(BaseModel):
+        """Add Widget Request."""
         widget_type: str = "chart"
         title: str
         data_sources: List[Dict[str, Any]] = Field(default_factory=list)
@@ -53,6 +56,7 @@ if APIRouter is not None:
         position: Optional[Dict[str, int]] = None
 
     class UpdateWidgetRequest(BaseModel):
+        """Update Widget Request."""
         title: Optional[str] = None
         settings: Optional[Dict[str, Any]] = None
         position: Optional[Dict[str, int]] = None
