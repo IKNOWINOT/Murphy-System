@@ -1,5 +1,5 @@
 """
-Matrix Monday – Status Engine
+Management Systems – Status Engine
 ================================
 
 Status and workflow tracking with colour-coded labels, customisable

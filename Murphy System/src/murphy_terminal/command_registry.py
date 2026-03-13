@@ -68,7 +68,7 @@ class CommandCategory(str, Enum):
     FOUNDATION = "foundation"
     RESEARCH = "research"
     TERMINAL = "terminal"
-    MATRIX_MONDAY = "matrix_monday"
+    MANAGEMENT_SYSTEMS = "management_systems"
 
 
 # ---------------------------------------------------------------------------
@@ -656,42 +656,42 @@ MURPHY_COMMANDS: list[CommandDefinition] = [
     CommandDefinition("dynamic_command_discovery", "/commands discover", "!murphy commands discover",
         ["discover commands", "auto discover commands", "command discovery"],
         CommandCategory.TERMINAL, "Dynamic command discovery", "/commands discover [--module NAME]"),
-    # ── MATRIX MONDAY ──────────────────────────────────────────────────────
+    # ── MANAGEMENT SYSTEMS ──────────────────────────────────────────────────
     CommandDefinition("board_engine", "/board", "!murphy board",
         ["board", "project board", "create board", "list boards", "task board"],
-        CommandCategory.MATRIX_MONDAY, "Board management", "/board [list|create NAME|view ID|kanban ID]",
+        CommandCategory.MANAGEMENT_SYSTEMS, "Board management", "/board [list|create NAME|view ID|kanban ID]",
         subcommands=["list", "create", "view", "kanban", "add-item", "delete"]),
     CommandDefinition("status_engine", "/status-label", "!murphy status-label",
         ["status label", "workflow status", "set status color", "status workflow"],
-        CommandCategory.MATRIX_MONDAY, "Status label management", "/status-label [list|create NAME|set ITEM STATUS]",
+        CommandCategory.MANAGEMENT_SYSTEMS, "Status label management", "/status-label [list|create NAME|set ITEM STATUS]",
         subcommands=["list", "create", "set", "progress"]),
     CommandDefinition("timeline_engine", "/timeline", "!murphy timeline",
         ["timeline", "gantt chart", "project timeline", "task timeline", "milestone"],
-        CommandCategory.MATRIX_MONDAY, "Timeline/Gantt engine", "/timeline [view BOARD|add ITEM|milestones|critical-path]",
+        CommandCategory.MANAGEMENT_SYSTEMS, "Timeline/Gantt engine", "/timeline [view BOARD|add ITEM|milestones|critical-path]",
         subcommands=["view", "add", "milestones", "critical-path", "auto-schedule"]),
     CommandDefinition("automation_recipes", "/recipe", "!murphy recipe",
         ["recipe", "automation recipe", "when x do y", "workflow recipe", "automation trigger"],
-        CommandCategory.MATRIX_MONDAY, "Automation recipes", "/recipe [list|create|run ID|delete ID]",
+        CommandCategory.MANAGEMENT_SYSTEMS, "Automation recipes", "/recipe [list|create|run ID|delete ID]",
         subcommands=["list", "create", "run", "delete", "templates"]),
-    CommandDefinition("workspace_manager", "/workspace monday", "!murphy workspace monday",
-        ["murphy workspace", "monday workspace", "project workspace", "workspace list"],
-        CommandCategory.MATRIX_MONDAY, "Workspace manager", "/workspace monday [list|show DOMAIN|bootstrap]",
+    CommandDefinition("workspace_manager", "/workspace", "!murphy workspace",
+        ["murphy workspace", "project workspace", "workspace list"],
+        CommandCategory.MANAGEMENT_SYSTEMS, "Workspace manager", "/workspace [list|show DOMAIN|bootstrap]",
         subcommands=["list", "show", "bootstrap"]),
     CommandDefinition("dashboard_generator", "/dashboard", "!murphy dashboard",
         ["dashboard", "project dashboard", "show dashboard", "generate dashboard", "standup"],
-        CommandCategory.MATRIX_MONDAY, "Dashboard generator", "/dashboard [standup|weekly|project BOARD|widget]",
+        CommandCategory.MANAGEMENT_SYSTEMS, "Dashboard generator", "/dashboard [standup|weekly|project BOARD|widget]",
         subcommands=["standup", "weekly", "project", "widget"]),
     CommandDefinition("integration_bridge", "/sync", "!murphy sync",
         ["sync modules", "sync board", "integration sync", "bridge sync"],
-        CommandCategory.MATRIX_MONDAY, "Integration bridge sync", "/sync [status|rules|run|history]",
+        CommandCategory.MANAGEMENT_SYSTEMS, "Integration bridge sync", "/sync [status|rules|run|history]",
         subcommands=["status", "rules", "run", "history"]),
     CommandDefinition("form_builder", "/form", "!murphy form",
         ["form", "create form", "intake form", "submit form", "bug report form"],
-        CommandCategory.MATRIX_MONDAY, "Form builder", "/form [list|start TEMPLATE|submit ID|responses ID]",
+        CommandCategory.MANAGEMENT_SYSTEMS, "Form builder", "/form [list|start TEMPLATE|submit ID|responses ID]",
         subcommands=["list", "start", "submit", "responses"]),
     CommandDefinition("doc_manager", "/doc", "!murphy doc",
         ["doc", "workdoc", "create doc", "meeting notes", "document", "list docs"],
-        CommandCategory.MATRIX_MONDAY, "Document manager", "/doc [list|create TYPE TITLE|view ID|search TEXT]",
+        CommandCategory.MANAGEMENT_SYSTEMS, "Document manager", "/doc [list|create TYPE TITLE|view ID|search TEXT]",
         subcommands=["list", "create", "view", "search", "link", "versions"]),
 ]
 

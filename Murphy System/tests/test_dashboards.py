@@ -1,5 +1,5 @@
 """
-Tests for the Dashboards module (Phase 3 of Monday.com parity).
+Tests for the Dashboards module (Phase 3 of management systems parity).
 
 Covers:
   1. Models & serialization

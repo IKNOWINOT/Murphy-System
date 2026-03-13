@@ -2,7 +2,7 @@
 Dev Module – Data Models
 =========================
 
-Core data structures for the Dev Module (Phase 9 of Monday.com parity).
+Core data structures for the Dev Module (Phase 9 of management systems parity).
 
 Copyright 2024 Inoni LLC – BSL-1.1
 """

@@ -1,5 +1,5 @@
 """
-Matrix Monday – Timeline Engine
+Management Systems – Timeline Engine
 =================================
 
 Gantt-style timeline management with task dependencies, milestone

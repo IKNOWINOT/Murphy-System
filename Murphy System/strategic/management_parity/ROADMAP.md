@@ -1,6 +1,6 @@
-# Monday.com Feature Parity Roadmap
+# Management Systems Feature Parity Roadmap
 
-> **Epic:** Achieve full Monday.com parity — end-to-end feature match
+> **Epic:** Achieve full management systems parity — end-to-end feature match
 >
 > **Owner:** @IKNOWINOT
 >
@@ -11,7 +11,7 @@
 ## Overview
 
 This document tracks the 12-phase roadmap to achieve 100 % feature parity
-with Monday.com inside the Murphy System.  Each phase has a dedicated
+for management systems inside the Murphy System.  Each phase has a dedicated
 implementation module, acceptance criteria, and test suite.
 
 ---

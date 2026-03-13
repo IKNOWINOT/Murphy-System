@@ -1,5 +1,5 @@
 """
-Tests for the Portfolio module (Phase 4 of Monday.com parity).
+Tests for the Portfolio module (Phase 4 of management systems parity).
 
 Covers:
   1. Models & serialization

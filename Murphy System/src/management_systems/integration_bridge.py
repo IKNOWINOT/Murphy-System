@@ -1,9 +1,9 @@
 """
-Matrix Monday – Integration Bridge
+Management Systems – Integration Bridge
 =====================================
 
 Bidirectional synchronisation between Murphy System modules and
-Monday board items.
+management board items.
 
 Provides:
 - Module health status → board status column updates
