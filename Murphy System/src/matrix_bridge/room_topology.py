@@ -714,7 +714,7 @@ _CANONICAL_SPACES: List[SpaceDefinition] = [
                 alias="murphy-feedback",
                 display_name="Feedback",
                 room_type=RoomType.FEEDBACK,
-                description="Error logs, user feedback, optimisation reports.",
+                description="Error logs, user feedback, optimization reports.",
                 subsystems=["feedback_integrator"],
             ),
         ],

@@ -38,6 +38,7 @@ Usage::
 """
 from __future__ import annotations
 
+import functools
 import logging
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
@@ -508,10 +509,9 @@ class BotBridgeAdapter:
                 if handler_factory:
                     handler = handler_factory(persona)
                 else:
-                    _persona_ref = persona  # capture
 
                     async def _noop_handler(
-                        parsed: Any, _p: BotPersona = _persona_ref
+                        parsed: Any, _p: BotPersona
                     ) -> str:
                         logger.info(
                             "Command %r dispatched to %r (no-op handler)",
@@ -520,7 +520,7 @@ class BotBridgeAdapter:
                         )
                         return f"Command received by {_p.matrix_display_name}"
 
-                    handler = _noop_handler
+                    handler = functools.partial(_noop_handler, _p=persona)
 
                 router.register_command_handler(cmd, handler)
 

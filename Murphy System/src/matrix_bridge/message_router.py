@@ -310,7 +310,12 @@ class MessageRouter:
         """
         entry = self.get_route(subsystem_name)
         room_alias = entry.room_alias if entry else "murphy-general"
-        effective_priority = priority or (entry.priority if entry else MessagePriority.NORMAL)
+        if priority is not None:
+            effective_priority = priority
+        elif entry is not None:
+            effective_priority = entry.priority
+        else:
+            effective_priority = MessagePriority.NORMAL
 
         content = MessageContent(text=text, html=html)
 
