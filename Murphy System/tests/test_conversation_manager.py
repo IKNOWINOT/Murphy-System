@@ -5,7 +5,7 @@ Tests bounded history, cleanup, and state persistence
 
 import pytest
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from collections import deque
 import sys
 import os
@@ -27,7 +27,7 @@ class TestConversationMessage:
         msg = ConversationMessage(
             user_message="Hello",
             bot_response="Hi there!",
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             metadata={'confidence': 0.9}
         )
 
@@ -44,8 +44,8 @@ class TestConversation:
         conv = Conversation(
             conversation_id="test-123",
             messages=deque(maxlen=10),
-            created_at=datetime.now(),
-            last_activity=datetime.now()
+            created_at=datetime.now(timezone.utc),
+            last_activity=datetime.now(timezone.utc)
         )
 
         assert conv.conversation_id == "test-123"
@@ -57,8 +57,8 @@ class TestConversation:
         conv = Conversation(
             conversation_id="test-123",
             messages=deque(maxlen=10),
-            created_at=datetime.now(),
-            last_activity=datetime.now()
+            created_at=datetime.now(timezone.utc),
+            last_activity=datetime.now(timezone.utc)
         )
 
         conv.add_message("Hello", "Hi", {'confidence': 0.9})
@@ -72,8 +72,8 @@ class TestConversation:
         conv = Conversation(
             conversation_id="test-123",
             messages=deque(maxlen=5),
-            created_at=datetime.now(),
-            last_activity=datetime.now()
+            created_at=datetime.now(timezone.utc),
+            last_activity=datetime.now(timezone.utc)
         )
 
         # Add 10 messages (more than maxlen)
@@ -90,8 +90,8 @@ class TestConversation:
         conv = Conversation(
             conversation_id="test-123",
             messages=deque(maxlen=100),
-            created_at=datetime.now(),
-            last_activity=datetime.now()
+            created_at=datetime.now(timezone.utc),
+            last_activity=datetime.now(timezone.utc)
         )
 
         # Add 20 messages
@@ -204,8 +204,8 @@ class TestConversationManager:
         old_conv = Conversation(
             conversation_id="old",
             messages=deque(maxlen=10),
-            created_at=datetime.now() - timedelta(hours=2),
-            last_activity=datetime.now() - timedelta(hours=2)
+            created_at=datetime.now(timezone.utc) - timedelta(hours=2),
+            last_activity=datetime.now(timezone.utc) - timedelta(hours=2)
         )
         manager.conversations["old"] = old_conv
 
@@ -262,8 +262,8 @@ class TestConversationManager:
         old_conv = Conversation(
             conversation_id="old",
             messages=deque(maxlen=10),
-            created_at=datetime.now() - timedelta(hours=2),
-            last_activity=datetime.now() - timedelta(hours=2)
+            created_at=datetime.now(timezone.utc) - timedelta(hours=2),
+            last_activity=datetime.now(timezone.utc) - timedelta(hours=2)
         )
         manager.conversations["old"] = old_conv
 
