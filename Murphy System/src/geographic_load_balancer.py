@@ -49,6 +49,7 @@ except ImportError:
 
     request = _FakeReq()  # type: ignore[assignment]
 
+from .blueprint_auth import require_blueprint_auth
 try:
     from thread_safe_operations import capped_append
 except ImportError:
@@ -656,6 +657,7 @@ def create_glb_api(engine: GeographicLoadBalancer) -> Any:
     _register_policy_routes(bp, engine)
     _register_deployment_routes(bp, engine)
     _register_misc_routes(bp, engine)
+    require_blueprint_auth(bp)
     return bp
 
 def _register_region_routes(bp: Any, eng: GeographicLoadBalancer) -> None:

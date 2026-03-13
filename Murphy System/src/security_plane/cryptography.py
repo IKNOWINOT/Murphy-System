@@ -63,6 +63,7 @@ _log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 _HAS_REAL_CLASSICAL = False
 _HAS_REAL_PQC = False
+_HAS_FERNET = False
 
 try:
     from cryptography.hazmat.primitives.asymmetric import ec
@@ -70,7 +71,9 @@ try:
     from cryptography.hazmat.primitives.asymmetric.utils import (
         decode_dss_signature, encode_dss_signature,
     )
+    from cryptography.fernet import Fernet, InvalidToken
     _HAS_REAL_CLASSICAL = True
+    _HAS_FERNET = True
     _log.info("SEC-003: Real classical crypto available (cryptography library)")
 except ImportError:
     _log.warning("SEC-003: cryptography library not available — using HMAC simulation for classical crypto")
@@ -470,7 +473,7 @@ class KeyManager:
 
         key_id = f"key-{secrets.token_hex(16)}"
 
-        # Encrypt private key (simulated - in production use proper encryption)
+        # Encrypt private key using Fernet (MURPHY_CREDENTIAL_MASTER_KEY env var)
         private_key_encrypted = self._encrypt_private_key(private_key)
 
         key = CryptographicKey(
@@ -490,22 +493,83 @@ class KeyManager:
 
         return key
 
+    @staticmethod
+    def _get_fernet() -> "Optional[Any]":
+        """
+        Load or derive the Fernet instance used for private-key encryption.
+
+        Reads ``MURPHY_CREDENTIAL_MASTER_KEY`` from the environment.  The key
+        must be a URL-safe base-64 encoded 32-byte value as produced by
+        ``Fernet.generate_key()``.
+
+        Returns None when the ``cryptography`` library is unavailable so that
+        callers can fall back to the legacy stub behaviour.
+
+        Raises ``RuntimeError`` in production/staging when the env var is not
+        set, to prevent silent data loss.
+        """
+        if not _HAS_FERNET:
+            return None
+        import base64
+        import os as _os
+        raw = _os.environ.get("MURPHY_CREDENTIAL_MASTER_KEY", "")
+        if raw:
+            try:
+                fernet_key = raw.encode() if isinstance(raw, str) else raw
+                return Fernet(fernet_key)
+            except Exception as exc:
+                _log.error("MURPHY_CREDENTIAL_MASTER_KEY is set but invalid: %s", exc)
+                raise RuntimeError(
+                    "MURPHY_CREDENTIAL_MASTER_KEY is set but is not a valid Fernet key. "
+                    "Generate one with: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
+                ) from exc
+        # No key configured — derive a per-process ephemeral key and warn
+        murphy_env = _os.environ.get("MURPHY_ENV", "development")
+        if murphy_env not in ("development", "test"):
+            raise RuntimeError(
+                "MURPHY_CREDENTIAL_MASTER_KEY must be set in production/staging. "
+                "Generate one with: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
+            )
+        _log.warning(
+            "MURPHY_CREDENTIAL_MASTER_KEY not set — using ephemeral per-process key. "
+            "Private keys will not survive process restart. Set the env var for production."
+        )
+        # Generate and cache an ephemeral key for this process lifetime
+        if not hasattr(KeyManager, "_ephemeral_fernet"):
+            KeyManager._ephemeral_fernet = Fernet(Fernet.generate_key())  # type: ignore[attr-defined]
+        return KeyManager._ephemeral_fernet  # type: ignore[attr-defined]
+
     def _encrypt_private_key(self, private_key: bytes) -> bytes:
         """
-        Encrypt private key at rest (simulated).
+        Encrypt private key at rest using Fernet symmetric encryption.
 
-        In production: Use proper encryption (AES-256-GCM with hardware key).
+        Uses ``MURPHY_CREDENTIAL_MASTER_KEY`` env var.  Falls back to an
+        ephemeral per-process key in development/test with a warning.
         """
-        # Simulated encryption
-        return hashlib.sha256(private_key).digest()
+        fernet = self._get_fernet()
+        if fernet is not None:
+            return fernet.encrypt(private_key)
+        # cryptography library not available — store as-is with a warning
+        _log.warning(
+            "cryptography library not available — private key stored unencrypted. "
+            "Install 'cryptography' for proper at-rest encryption."
+        )
+        return private_key
 
     def _decrypt_private_key(self, encrypted_key: bytes) -> bytes:
         """
-        Decrypt private key (simulated).
+        Decrypt a Fernet-encrypted private key.
 
-        In production: Use proper decryption.
+        Returns the plaintext key bytes.
         """
-        # Simulated decryption - in reality this would reverse the encryption
+        fernet = self._get_fernet()
+        if fernet is not None:
+            try:
+                return fernet.decrypt(encrypted_key)
+            except Exception as exc:
+                _log.error("Failed to decrypt private key: %s", exc)
+                raise ValueError("Private key decryption failed — check MURPHY_CREDENTIAL_MASTER_KEY") from exc
+        # cryptography library not available — key was stored unencrypted
         return encrypted_key
 
     def get_key(self, key_id: str) -> Optional[CryptographicKey]:

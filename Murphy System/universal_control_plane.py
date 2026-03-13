@@ -353,8 +353,8 @@ class APIEngine(BaseEngine):
         if method not in self._ALLOWED_METHODS:
             raise ValueError(f"Unsupported HTTP method: {method}")
 
+        import httpx  # Hard dependency — fails loudly if not installed
         try:
-            import httpx
             with httpx.Client(timeout=timeout) as client:
                 response = client.request(
                     method, url, headers=headers, json=body if body is not None else None
@@ -369,8 +369,6 @@ class APIEngine(BaseEngine):
                 }
                 self._call_log.append(result)
                 return result
-        except ImportError:
-            logger.debug("httpx not installed — APIEngine returning stub response")
         except Exception as exc:
             logger.warning("APIEngine call to %s failed: %s", url, exc)
 

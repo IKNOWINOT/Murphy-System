@@ -53,6 +53,7 @@ except ImportError:
 
     request = _FakeReq()  # type: ignore[assignment]
 
+from .blueprint_auth import require_blueprint_auth
 try:
     from thread_safe_operations import capped_append
 except ImportError:
@@ -649,6 +650,7 @@ def create_vci_api(engine: VoiceCommandInterface) -> Any:
     _register_pattern_routes(bp, engine)
     _register_history_routes(bp, engine)
     _register_stats_routes(bp, engine)
+    require_blueprint_auth(bp)
     return bp
 
 

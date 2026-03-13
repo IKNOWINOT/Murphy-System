@@ -44,6 +44,7 @@ except ImportError:
 
     Blueprint = _StubBlueprint  # type: ignore[misc,assignment]
 
+from .blueprint_auth import require_blueprint_auth
 try:
     from thread_safe_operations import capped_append
 except ImportError:
@@ -934,4 +935,5 @@ def create_k8s_api(mgr: KubernetesManager) -> Any:
         """Return resource statistics."""
         return jsonify(mgr.resource_stats())
 
+    require_blueprint_auth(bp)
     return bp

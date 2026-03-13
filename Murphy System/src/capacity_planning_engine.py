@@ -51,6 +51,7 @@ except ImportError:  # pragma: no cover
         def get_json(silent: bool = True) -> dict: return {}
     request = _FakeReq()  # type: ignore[assignment]
 
+from .blueprint_auth import require_blueprint_auth
 try:
     from thread_safe_operations import capped_append
 except ImportError:
@@ -656,4 +657,5 @@ def create_capacity_api(engine: CapacityPlanningEngine) -> Any:
     _register_forecast_routes(bp, engine)
     _register_plan_routes(bp, engine)
     _register_alert_routes(bp, engine)
+    require_blueprint_auth(bp)
     return bp
