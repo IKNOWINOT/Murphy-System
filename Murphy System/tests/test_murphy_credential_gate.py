@@ -304,3 +304,291 @@ class TestApprovalWorkflow:
             steps=[WorkflowStep("s1", "drawn_by", [CredentialType.PE])],
         )
         assert wf.complete_step("nonexistent", "appr-1") is False
+
+
+# ---------------------------------------------------------------------------
+# Production-readiness tests (30+ new cases)
+# ---------------------------------------------------------------------------
+
+import threading
+
+class TestCredentialVerifierProduction:
+
+    def test_active_credential_is_valid(self, registry):
+        cred = make_credential()
+        registry.register(cred)
+        verifier = CredentialVerifier(registry)
+        assert verifier.is_active(cred.credential_id) is True
+
+    def test_expired_credential_not_active(self, registry):
+        cred = make_credential(expires_days=-1)
+        registry.register(cred)
+        verifier = CredentialVerifier(registry)
+        assert verifier.is_active(cred.credential_id) is False
+
+    def test_revoked_credential_not_active(self, registry):
+        cred = make_credential()
+        registry.register(cred)
+        registry.revoke(cred.credential_id)
+        verifier = CredentialVerifier(registry)
+        assert verifier.is_active(cred.credential_id) is False
+
+    def test_suspended_credential_not_active(self, registry):
+        cred = make_credential(status=CredentialStatus.SUSPENDED)
+        registry.register(cred)
+        verifier = CredentialVerifier(registry)
+        assert verifier.is_active(cred.credential_id) is False
+
+    def test_nonexistent_credential_not_active(self, registry):
+        verifier = CredentialVerifier(registry)
+        assert verifier.is_active("no-such-id") is False
+
+    def test_verify_for_discipline_wrong_type(self, registry):
+        cred = make_credential(credential_type=CredentialType.CPA)
+        registry.register(cred)
+        verifier = CredentialVerifier(registry)
+        result = verifier.verify_for_discipline(cred.credential_id, [CredentialType.PE])
+        assert result["valid"] is False
+        assert "not in required" in result["reason"]
+
+    def test_verify_for_discipline_wrong_jurisdiction(self, registry):
+        cred = make_credential(jurisdiction="CA")
+        registry.register(cred)
+        verifier = CredentialVerifier(registry)
+        result = verifier.verify_for_discipline(cred.credential_id, [CredentialType.PE], jurisdiction="TX")
+        assert result["valid"] is False
+        assert "Jurisdiction" in result["reason"]
+
+    def test_verify_for_discipline_success(self, registry):
+        cred = make_credential(jurisdiction="TX")
+        registry.register(cred)
+        verifier = CredentialVerifier(registry)
+        result = verifier.verify_for_discipline(cred.credential_id, [CredentialType.PE], jurisdiction="TX")
+        assert result["valid"] is True
+
+    def test_verify_all_15_credential_types(self, registry):
+        verifier = CredentialVerifier(registry)
+        for ct in CredentialType:
+            cred = make_credential(credential_type=ct)
+            registry.register(cred)
+            assert verifier.is_active(cred.credential_id) is True
+
+
+class TestEStampEngineProduction:
+
+    def test_stamp_created_for_active_cred(self, registry):
+        cred = make_credential()
+        registry.register(cred)
+        verifier = CredentialVerifier(registry)
+        engine = EStampEngine(registry, verifier)
+        stamp = engine.create_stamp(cred.credential_id, b"document content")
+        assert stamp is not None
+        assert stamp.document_hash != ""
+        assert stamp.signature_hex != ""
+
+    def test_stamp_none_for_inactive_cred(self, registry):
+        cred = make_credential(expires_days=-1)
+        registry.register(cred)
+        verifier = CredentialVerifier(registry)
+        engine = EStampEngine(registry, verifier)
+        stamp = engine.create_stamp(cred.credential_id, b"doc")
+        assert stamp is None
+
+    def test_verify_stamp_matches_original_bytes(self, registry):
+        cred = make_credential()
+        registry.register(cred)
+        verifier = CredentialVerifier(registry)
+        engine = EStampEngine(registry, verifier)
+        doc = b"original document bytes"
+        stamp = engine.create_stamp(cred.credential_id, doc)
+        assert engine.verify_stamp(stamp, doc) is True
+
+    def test_verify_stamp_fails_for_tampered_bytes(self, registry):
+        cred = make_credential()
+        registry.register(cred)
+        verifier = CredentialVerifier(registry)
+        engine = EStampEngine(registry, verifier)
+        stamp = engine.create_stamp(cred.credential_id, b"original bytes")
+        assert engine.verify_stamp(stamp, b"tampered bytes") is False
+
+    def test_seal_svg_contains_credential_info(self, registry):
+        cred = make_credential(credential_type=CredentialType.PE)
+        registry.register(cred)
+        verifier = CredentialVerifier(registry)
+        engine = EStampEngine(registry, verifier)
+        stamp = engine.create_stamp(cred.credential_id, b"doc")
+        assert "PE" in stamp.seal_image_svg
+        assert "PE-12345" in stamp.seal_image_svg
+        assert "CA" in stamp.seal_image_svg
+
+    def test_stamp_none_for_nonexistent_cred(self, registry):
+        verifier = CredentialVerifier(registry)
+        engine = EStampEngine(registry, verifier)
+        stamp = engine.create_stamp("no-such-id", b"doc")
+        assert stamp is None
+
+
+class TestCredentialGatedApprovalProduction:
+
+    def _setup(self, registry, expires_days=365, cred_type=CredentialType.PE):
+        cred = make_credential(credential_type=cred_type, expires_days=expires_days)
+        registry.register(cred)
+        verifier = CredentialVerifier(registry)
+        engine = EStampEngine(registry, verifier)
+        gated = CredentialGatedApproval(registry, verifier, engine)
+        return gated, cred
+
+    def test_approved_with_valid_credential(self, registry):
+        gated, cred = self._setup(registry)
+        record = gated.request_approval("doc1", b"bytes", cred.credential_id, [CredentialType.PE])
+        assert record.approval_status == ApprovalStatus.APPROVED
+        assert record.e_stamp is not None
+
+    def test_rejected_expired_credential(self, registry):
+        gated, cred = self._setup(registry, expires_days=-1)
+        record = gated.request_approval("doc2", b"bytes", cred.credential_id, [CredentialType.PE])
+        assert record.approval_status == ApprovalStatus.REQUIRES_CREDENTIAL
+
+    def test_rejected_wrong_cred_type(self, registry):
+        gated, cred = self._setup(registry, cred_type=CredentialType.CPA)
+        record = gated.request_approval("doc3", b"bytes", cred.credential_id, [CredentialType.PE])
+        assert record.approval_status == ApprovalStatus.REQUIRES_CREDENTIAL
+
+    def test_rejected_wrong_jurisdiction(self, registry):
+        cred = make_credential(jurisdiction="CA")
+        registry.register(cred)
+        verifier = CredentialVerifier(registry)
+        engine = EStampEngine(registry, verifier)
+        gated = CredentialGatedApproval(registry, verifier, engine)
+        record = gated.request_approval("doc4", b"bytes", cred.credential_id,
+                                        [CredentialType.PE], jurisdiction="TX")
+        assert record.approval_status == ApprovalStatus.REQUIRES_CREDENTIAL
+
+    def test_lookup_approval_by_id(self, registry):
+        gated, cred = self._setup(registry)
+        record = gated.request_approval("doc5", b"bytes", cred.credential_id, [CredentialType.PE])
+        found = gated.get_approval(record.approval_id)
+        assert found is not None
+        assert found.approval_id == record.approval_id
+
+    def test_list_approvals_filtered_by_doc(self, registry):
+        gated, cred = self._setup(registry)
+        gated.request_approval("doc-a", b"bytes", cred.credential_id, [CredentialType.PE])
+        gated.request_approval("doc-b", b"bytes", cred.credential_id, [CredentialType.PE])
+        result = gated.list_approvals("doc-a")
+        assert len(result) == 1
+        assert result[0].document_id == "doc-a"
+
+    def test_concurrent_approval_requests(self, registry):
+        """Multiple threads can safely request approvals."""
+        gated, cred = self._setup(registry)
+        results = []
+        lock = threading.Lock()
+
+        def do_request():
+            r = gated.request_approval("doc-concurrent", b"data", cred.credential_id, [CredentialType.PE])
+            with lock:
+                results.append(r.approval_status)
+
+        threads = [threading.Thread(target=do_request) for _ in range(5)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        assert len(results) == 5
+        assert all(s == ApprovalStatus.APPROVED for s in results)
+
+
+class TestApprovalWorkflowProduction:
+
+    def test_workflow_step_order_enforced(self):
+        """Workflow must complete steps in order — cannot skip."""
+        steps = [
+            WorkflowStep("s1", "drawn_by", [], False),
+            WorkflowStep("s2", "checked_by", [CredentialType.PE], False),
+            WorkflowStep("s3", "approved_by", [CredentialType.PE], False),
+        ]
+        wf = ApprovalWorkflow("wf-1", "doc-1", steps)
+        # First incomplete step is s1
+        assert wf.current_step().step_id == "s1"
+        wf.complete_step("s1", "ar-1")
+        assert wf.current_step().step_id == "s2"
+        wf.complete_step("s2", "ar-2")
+        wf.complete_step("s3", "ar-3")
+        assert wf.is_complete()
+
+    def test_workflow_not_complete_initially(self):
+        steps = [WorkflowStep("s1", "drawn_by", [], False)]
+        wf = ApprovalWorkflow("wf-2", "doc-2", steps)
+        assert wf.is_complete() is False
+
+    def test_workflow_summary_counts_completed(self):
+        steps = [
+            WorkflowStep("s1", "drawn_by", [], False),
+            WorkflowStep("s2", "checked_by", [], False),
+        ]
+        wf = ApprovalWorkflow("wf-3", "doc-3", steps)
+        wf.complete_step("s1", "ar-1")
+        summary = wf.get_summary()
+        assert summary["completed_steps"] == 1
+        assert summary["total_steps"] == 2
+        assert summary["is_complete"] is False
+
+    def test_workflow_complete_step_idempotent(self):
+        """Completing a step twice should only mark it once."""
+        steps = [WorkflowStep("s1", "drawn_by", [], False)]
+        wf = ApprovalWorkflow("wf-4", "doc-4", steps)
+        r1 = wf.complete_step("s1", "ar-1")
+        r2 = wf.complete_step("s1", "ar-2")
+        assert r1 is True
+        assert r2 is False  # Already completed
+
+    def test_workflow_current_step_none_when_done(self):
+        steps = [WorkflowStep("s1", "drawn_by", [], False)]
+        wf = ApprovalWorkflow("wf-5", "doc-5", steps)
+        wf.complete_step("s1", "ar-1")
+        assert wf.current_step() is None
+
+    def test_credential_registry_find_by_type(self, registry):
+        cred1 = make_credential(credential_type=CredentialType.PE)
+        cred2 = make_credential(credential_type=CredentialType.CPA)
+        registry.register(cred1)
+        registry.register(cred2)
+        pe_creds = registry.find_by_type(CredentialType.PE)
+        assert len(pe_creds) >= 1
+        assert all(c.credential_type == CredentialType.PE for c in pe_creds)
+
+    def test_credential_registry_list_all(self, registry):
+        for ct in list(CredentialType)[:5]:
+            registry.register(make_credential(credential_type=ct))
+        all_creds = registry.list_all()
+        assert len(all_creds) >= 5
+
+
+class TestCredentialRegistryProduction:
+
+    def test_register_and_get_credential(self, registry):
+        cred = make_credential()
+        cid = registry.register(cred)
+        found = registry.get(cid)
+        assert found is not None
+        assert found.credential_id == cid
+
+    def test_find_by_email(self, registry):
+        cred = make_credential()
+        cred2 = make_credential(credential_type=CredentialType.CPA)
+        registry.register(cred)
+        registry.register(cred2)
+        found = registry.find_by_email("john@example.com")
+        assert len(found) >= 2
+
+    def test_revoke_nonexistent_returns_false(self, registry):
+        result = registry.revoke("no-such-id")
+        assert result is False
+
+    def test_revoked_status_updated(self, registry):
+        cred = make_credential()
+        registry.register(cred)
+        registry.revoke(cred.credential_id)
+        updated = registry.get(cred.credential_id)
+        assert updated.status.value == "revoked"
