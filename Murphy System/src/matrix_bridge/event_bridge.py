@@ -240,8 +240,8 @@ class EventBridge:
                 asyncio.ensure_future(self.dispatch(event))
             else:
                 loop.run_until_complete(self.dispatch(event))
-        except RuntimeError:
-            pass  # No event loop available; skip
+        except RuntimeError as exc:
+            logger.debug("Non-critical error: %s", exc)
 
     # ------------------------------------------------------------------
     # Room resolution

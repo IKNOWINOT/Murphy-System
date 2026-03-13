@@ -267,8 +267,8 @@ class SensorReader:
         if self._client is not None:
             try:
                 self._client.close()
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("close error: %s", exc)
             self._client = None
             logger.info("Modbus connection closed")
 
