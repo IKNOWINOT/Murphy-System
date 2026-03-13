@@ -315,13 +315,13 @@ not yet present in the repository; they will be added when the issue is merged.
 
 | Module | Path | Description | Status |
 |--------|------|-------------|--------|
-| `murphy_drawing_engine.py` | `src/murphy_drawing_engine.py` | Vector/raster canvas for workflow diagrams and visual outputs | 🔄 In Progress |
+| `murphy_drawing_engine.py` | `src/murphy_drawing_engine.py` | Engineering drawing engine with SVG/DXF export, BOM extraction, agentic commands | ✅ Operational |
 | `murphy_credential_gate.py` | `src/murphy_credential_gate.py` | Zero-trust credential validation at every gate boundary | 🔄 In Progress |
 | `murphy_sensor_fusion.py` | `src/murphy_sensor_fusion.py` | Multi-source signal merging for autonomous decision-making | 🔄 In Progress |
 | `murphy_osmosis_engine.py` | `src/murphy_osmosis_engine.py` | Passive knowledge absorption and cross-domain synthesis | 🔄 In Progress |
 | `murphy_autonomous_perception.py` | `src/murphy_autonomous_perception.py` | Environment awareness and contextual state inference | 🔄 In Progress |
 | `murphy_wingman_evolution.py` | `src/murphy_wingman_evolution.py` | Adaptive learning for Wingman Protocol validation rules | 🔄 In Progress |
-| `murphy_engineering_toolbox.py` | `src/murphy_engineering_toolbox.py` | Developer utilities: schema scaffolding, stub generation, diff tools | 🔄 In Progress |
+| `murphy_engineering_toolbox.py` | `src/murphy_engineering_toolbox.py` | Developer utilities: schema scaffolding, stub generation, diff tools | ✅ Operational |
 
 ---
 
