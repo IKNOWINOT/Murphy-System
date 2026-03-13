@@ -76,3 +76,7 @@ pytest-timeout>=2.2.0
 
 # IoT / Industrial Protocols (INC-19)
 pymodbus>=3.6.9
+# Document Export — Optional rich PDF renderer (BSD-3-Clause)
+# Requires system libraries: cairo, pango, gdk-pixbuf2. Falls back to
+# reportlab plain-text rendering when not installed.
+weasyprint>=60.0

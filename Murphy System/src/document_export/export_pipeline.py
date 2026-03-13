@@ -372,7 +372,7 @@ class ExportPipeline:
             "\\geometry{margin=1in}",
             "\\usepackage{booktabs}",
             "\\usepackage{hyperref}",
-            f"\\title{{Document}}",
+            "\\title{Document}",
             f"\\author{{{escape(brand.company_name)}}}",
             "\\date{\\today}",
             "\\begin{document}",
@@ -414,15 +414,28 @@ class ExportPipeline:
     def _markdown_to_pdf(self, markdown: str, brand: BrandProfile) -> str:
         """Convert Markdown to base64-encoded PDF.
 
-        Delegates to :meth:`~execution.document_generation_engine.DocumentGenerationEngine.render_pdf`
-        when the engine is available (architecture requirement:
-        "leverage the existing method — don't reinvent it").  Falls back to a
-        plain-text base64 payload when the engine is not importable.
+        Strategy (ordered by quality):
+        1. WeasyPrint (BSD-3): Full HTML→PDF with tables, styling, branding.
+        2. reportlab via DocumentGenerationEngine: Plain-text line-by-line.
+        3. base64-encoded plain text: Ultimate fallback.
         """
+        # 1. Try WeasyPrint rich rendering first
+        try:
+            from .pdf_renderer import RichPDFRenderer
+
+            renderer = RichPDFRenderer()
+            if renderer.is_available():
+                html = self._markdown_to_html(markdown, brand)
+                metadata = {"document_title": "Murphy System Document"}
+                return renderer.render_to_base64(html, brand, metadata)
+        except Exception:
+            pass  # Fall through to reportlab
+
         plain_text = self._markdown_to_text(markdown)
         font = brand.font_body if brand.font_body in ("Helvetica", "Times-Roman", "Courier") else "Helvetica"
         styling = {"font": font, "size": 11}
 
+        # 2. reportlab via DocumentGenerationEngine
         if self._doc_engine is not None:
             raw = self._doc_engine.render_pdf(plain_text, styling)
             # render_pdf() returns base64-encoded bytes when reportlab is available,
@@ -434,7 +447,7 @@ class ExportPipeline:
             except Exception:
                 return base64.b64encode(raw.encode("utf-8", errors="replace")).decode("ascii")
 
-        # Ultimate fallback (no engine)
+        # 3. Ultimate fallback (no engine)
         return base64.b64encode(plain_text.encode("utf-8")).decode("ascii")
 
     def _markdown_to_word(self, markdown: str, brand: BrandProfile) -> str:
