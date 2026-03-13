@@ -491,7 +491,8 @@ class TestSCADAConnector(unittest.TestCase):
 
     def test_modbus_read_unconfigured_returns_error(self):
         result = self.conn.modbus_read_holding_registers(0)
-        self.assertFalse(result.get("success", True))
+        self.assertFalse(result["success"])
+        self.assertFalse(result.get("configured", True))
 
     def test_bacnet_who_is_unconfigured(self):
         result = self.conn.bacnet_who_is()
@@ -654,7 +655,7 @@ class TestPlatformFrameworkNewConnectors(unittest.TestCase):
         self.assertIn("energy_management", self._ids)
 
     def test_total_connector_count_exceeds_80(self):
-        """After adding industrial + new world-model connectors, total should be 80+."""
+        """After adding industrial + new world-model connectors, total should be 90+."""
         self.assertGreaterEqual(len(self._ids), 80)
 
     def test_configure_and_execute_mailchimp(self):

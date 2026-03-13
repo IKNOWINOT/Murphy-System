@@ -43,11 +43,12 @@ VALID_INDUSTRIES = [
 
 # World Model integrations available during onboarding (free-tier first)
 VALID_INTEGRATIONS = [
-    # Free / no credentials
+    # No credentials required (fully public APIs)
     "yahoo_finance",    # Market data — no API key required
+    # Industrial (local network hardware — no cloud subscription)
+    "scada",            # SCADA / ICS — requires local Modbus/BACnet/OPC UA hardware
+    # Free tier (API key required — no cost to sign up)
     "openweathermap",   # Weather — free tier API key
-    "scada",            # Industrial / SCADA — local network, no cloud key
-    # Free tier (API key required)
     "discord",          # Communication bot
     "telegram",         # Communication bot
     "trello",           # Project management
@@ -56,17 +57,17 @@ VALID_INTEGRATIONS = [
     "mailchimp",        # Email marketing
     "google_drive",     # Cloud storage
     "dropbox",          # Cloud storage
-    "stripe",           # Payments
+    "stripe",           # Payments (free API key, pay-per-transaction)
     "google_analytics", # Analytics
     "twitter",          # Social media
     "supabase",         # Database
     "firebase",         # Database
-    "datadog",          # Monitoring
-    "cloudflare",       # DNS / CDN
-    # Paid / requires account
-    "shopify",          # E-commerce (requires store)
-    "openai",           # AI/ML (paid API)
-    "anthropic",        # AI/ML (paid API)
+    "datadog",          # Monitoring (free tier)
+    "cloudflare",       # DNS / CDN (free tier)
+    # Requires paid account or existing store
+    "shopify",          # E-commerce (requires Shopify store)
+    "openai",           # AI/ML (paid per-token API)
+    "anthropic",        # AI/ML (paid per-token API)
 ]
 
 
