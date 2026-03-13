@@ -300,6 +300,28 @@ class DocumentGenerationEngine:
 
         return html_content
 
+    def render_pdf(self, content: str, styling: Optional[Dict] = None) -> str:
+        """Render plain-text *content* as a PDF document.
+
+        This is the public API for callers that have pre-rendered content and
+        just need the format conversion.  Delegates to :meth:`_convert_to_pdf`.
+
+        Returns base64-encoded PDF bytes (or a text-fallback sentinel when
+        reportlab is not installed).
+        """
+        return self._convert_to_pdf(content, styling or {})
+
+    def render_word(self, content: str, styling: Optional[Dict] = None) -> str:
+        """Render plain-text *content* as a Word (.docx) document.
+
+        This is the public API for callers that have pre-rendered content and
+        just need the format conversion.  Delegates to :meth:`_convert_to_word`.
+
+        Returns base64-encoded DOCX bytes (or a minimal XML fallback when
+        python-docx is not installed).
+        """
+        return self._convert_to_word(content, styling or {})
+
     def get_document(self, document_id: str) -> Optional[Document]:
         """Get document by ID"""
         return self.documents.get(document_id)
