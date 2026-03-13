@@ -84,14 +84,19 @@ class InputSanitizer:
     def sanitize_path(cls, path: str) -> str:
         """Sanitize a file path to prevent traversal attacks."""
         # Recursively decode URL-encoded sequences to prevent bypass
+        _max_decode_rounds = 10
         prev = ""
-        while prev != path:
+        for _ in range(_max_decode_rounds):
+            if prev == path:
+                break
             prev = path
             path = unquote(path)
         path = path.replace("\\", "/")
         # Iteratively remove traversal sequences until stable
         prev = ""
-        while prev != path:
+        for _ in range(_max_decode_rounds):
+            if prev == path:
+                break
             prev = path
             path = re.sub(r"\.\./", "", path)
         path = re.sub(r"//+", "/", path)
