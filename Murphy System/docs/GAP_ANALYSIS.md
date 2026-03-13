@@ -203,13 +203,13 @@ tracks their implementation status as of 2026-03-08.
 
 | Subsystem | Module File | Status | Notes |
 |-----------|-------------|--------|-------|
-| Drawing Engine | `murphy_drawing_engine.py` | 🔄 In Progress | Vector/raster canvas for workflow diagrams |
-| Credential Gate | `murphy_credential_gate.py` | 🔄 In Progress | Zero-trust credential validation at every gate boundary |
-| Sensor Fusion | `murphy_sensor_fusion.py` | 🔄 In Progress | Multi-source signal merging for autonomous decision-making |
-| Osmosis Engine | `murphy_osmosis_engine.py` | 🔄 In Progress | Passive knowledge absorption and cross-domain synthesis |
-| Autonomous Perception | `murphy_autonomous_perception.py` | 🔄 In Progress | Environment awareness and contextual state inference |
-| Wingman Evolution | `murphy_wingman_evolution.py` | 🔄 In Progress | Adaptive learning for wingman validation rules |
-| Engineering Toolbox | `murphy_engineering_toolbox.py` | 🔄 In Progress | Developer utilities: schema scaffolding, stub generation, diff tools |
+| Drawing Engine | `murphy_drawing_engine.py` | ✅ Operational | Vector/raster canvas; DXF R12, SVG, PDF export; NL command assistant; PE-stamp approval integration |
+| Credential Gate | `murphy_credential_gate.py` | ✅ Operational | Zero-trust credential validation; 15 credential types; e-stamp; multi-party approval workflow |
+| Sensor Fusion | `murphy_sensor_fusion.py` | ✅ Operational | All 6 fusion strategies (Kalman, Bayesian, Complementary, WA, Vote, Latest); anomaly detection; staleness |
+| Osmosis Engine | `murphy_osmosis_engine.py` | ✅ Operational | Full Observe→Extract→Build→Sandbox→Validate pipeline; AbsorbedCapabilityRegistry; InsightExtractor |
+| Autonomous Perception | `murphy_autonomous_perception.py` | ✅ Operational | Object tracking; TTC-based safety decisions; drivable area; perception pipeline |
+| Wingman Evolution | `murphy_wingman_evolution.py` | ✅ Operational | Validation metrics; F1 scorecard; runbook evolution; cascading wingman; factory pattern |
+| Engineering Toolbox | `murphy_engineering_toolbox.py` | ✅ Operational | 60+ unit conversions (incl. temperature); structural, HVAC, electrical, plumbing, CPM, EVM calcs |
 
 ### 6.1 Recently Added Engines and Orchestrators
 
