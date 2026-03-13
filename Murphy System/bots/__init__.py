@@ -307,7 +307,7 @@ except Exception:  # pragma: no cover
     sign_message = verify_signature = encrypt_payload = decrypt_payload = None
 
 try:
-    from .matrix_config import MatrixConfig, load_config as load_matrix_config
+    from .matrix_config import MatrixConfig, load_config as load_matrix_config, MatrixBotConfig
     from .matrix_formatters import (
         format_status,
         format_overview,
@@ -326,12 +326,12 @@ try:
         format_service_ticket,
         get_all_jargon,
     )
-    from .matrix_bot import MatrixBot, MurphyAPIClient
+    from .matrix_bot import MurphyMatrixBot, MurphyAPIBridge, MurphyAPIClient
     from .matrix_hitl import HITLBridge
-    from .matrix_notifications import NotificationRelay
+    from .matrix_notifications import HealthMonitor
 except Exception:  # pragma: no cover
-    MatrixConfig = load_matrix_config = None
-    MatrixBot = MurphyAPIClient = HITLBridge = NotificationRelay = None
+    MatrixConfig = load_matrix_config = MatrixBotConfig = None
+    MurphyMatrixBot = MurphyAPIBridge = MurphyAPIClient = HITLBridge = HealthMonitor = None
     format_status = format_overview = format_error = format_success = None
     format_links = format_jargon = format_jargon_list = format_help = None
     format_email_result = format_notification_result = format_webhook_delivery = None
