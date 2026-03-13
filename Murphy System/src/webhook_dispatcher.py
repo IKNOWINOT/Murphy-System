@@ -24,8 +24,10 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import ipaddress
 import json
 import logging
+import os
 import random
 import threading
 import time
@@ -34,6 +36,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Tuple
+from urllib.parse import urlparse
 
 # ---------------------------------------------------------------------------
 # Optional Flask import (mirrors oauth_oidc_provider pattern)
@@ -262,6 +265,78 @@ class WebhookDispatcher:
     #  Subscription management                                            #
     # ------------------------------------------------------------------ #
 
+    # ------------------------------------------------------------------ #
+    #  SSRF protection                                                     #
+    # ------------------------------------------------------------------ #
+
+    # Private/reserved IP ranges that must never be webhook targets (CWE-918)
+    _BLOCKED_NETWORKS = [
+        ipaddress.ip_network("0.0.0.0/8"),
+        ipaddress.ip_network("10.0.0.0/8"),
+        ipaddress.ip_network("100.64.0.0/10"),
+        ipaddress.ip_network("127.0.0.0/8"),
+        ipaddress.ip_network("169.254.0.0/16"),
+        ipaddress.ip_network("172.16.0.0/12"),
+        ipaddress.ip_network("192.0.0.0/24"),
+        ipaddress.ip_network("192.0.2.0/24"),
+        ipaddress.ip_network("192.168.0.0/16"),
+        ipaddress.ip_network("198.18.0.0/15"),
+        ipaddress.ip_network("198.51.100.0/24"),
+        ipaddress.ip_network("203.0.113.0/24"),
+        ipaddress.ip_network("224.0.0.0/4"),
+        ipaddress.ip_network("240.0.0.0/4"),
+        ipaddress.ip_network("255.255.255.255/32"),
+        ipaddress.ip_network("::1/128"),
+        ipaddress.ip_network("fc00::/7"),
+        ipaddress.ip_network("fe80::/10"),
+    ]
+
+    @classmethod
+    def validate_webhook_url(cls, url: str) -> None:
+        """Validate a webhook URL is safe from SSRF attacks (CWE-918).
+
+        Raises ``ValueError`` if the URL targets a private/reserved IP range,
+        uses a non-HTTPS scheme in production, or is otherwise malformed.
+        """
+        if not url or not isinstance(url, str):
+            raise ValueError("Webhook URL is required")
+
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https"):
+            raise ValueError(
+                f"Webhook URL scheme must be http or https, got '{parsed.scheme}'"
+            )
+
+        # Enforce HTTPS in production/staging
+        murphy_env = os.environ.get("MURPHY_ENV", "development").lower()
+        if murphy_env in ("production", "staging") and parsed.scheme != "https":
+            raise ValueError(
+                "Webhook URLs must use HTTPS in production/staging environments"
+            )
+
+        hostname = parsed.hostname
+        if not hostname:
+            raise ValueError("Webhook URL must include a hostname")
+
+        # Block IP-literal hostnames pointing to private ranges
+        try:
+            addr = ipaddress.ip_address(hostname)
+            for net in cls._BLOCKED_NETWORKS:
+                if addr in net:
+                    raise ValueError(
+                        f"Webhook URL must not target private/reserved IP: {hostname}"
+                    )
+        except ValueError as exc:
+            if "private" in str(exc).lower() or "must not" in str(exc).lower():
+                raise
+            # hostname is a DNS name — allow it (DNS re-binding defence is at
+            # delivery time, not registration time)
+
+        if parsed.port is not None and parsed.port in (0, 22, 25, 53, 6379, 5432, 3306, 11211):
+            raise ValueError(
+                f"Webhook URL targets a restricted port: {parsed.port}"
+            )
+
     def register_subscription(
         self,
         name: str,
@@ -273,6 +348,8 @@ class WebhookDispatcher:
         timeout_seconds: float = 10.0,
     ) -> WebhookSubscription:
         """Register a new webhook subscription and return it."""
+        # SSRF protection: validate URL before registration
+        self.validate_webhook_url(url)
         sub = WebhookSubscription(
             name=name,
             url=url,
@@ -314,6 +391,9 @@ class WebhookDispatcher:
             "name", "url", "event_types", "headers",
             "max_retries", "timeout_seconds", "enabled",
         }
+        # SSRF protection: validate URL if being updated
+        if "url" in kwargs:
+            self.validate_webhook_url(kwargs["url"])
         with self._lock:
             sub = self._subscriptions.get(subscription_id)
             if sub is None:
