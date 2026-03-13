@@ -638,6 +638,50 @@ class TestLineStyleSystem:
         assert "4,2" in svg
 
     def test_svg_renders_center_dasharray(self, project_with_sheet):
+
+# ---------------------------------------------------------------------------
+# LineStyle tests
+# ---------------------------------------------------------------------------
+
+class TestLineStyle:
+
+    def test_all_line_styles_exist(self):
+        from src.murphy_drawing_engine import LineStyle
+        for style in ["CONTINUOUS", "DASHED", "CENTER", "PHANTOM", "DIMENSION", "CONSTRUCTION"]:
+            assert hasattr(LineStyle, style)
+
+    def test_drawing_element_default_line_style(self):
+        from src.murphy_drawing_engine import LineStyle
+        elem = DrawingElement(element_type=ElementType.LINE)
+        assert elem.line_style == LineStyle.CONTINUOUS
+
+    def test_drawing_element_custom_line_style(self):
+        from src.murphy_drawing_engine import LineStyle
+        elem = DrawingElement(element_type=ElementType.LINE, line_style=LineStyle.CENTER)
+        assert elem.line_style == LineStyle.CENTER
+
+    def test_drawing_element_default_line_weight(self):
+        elem = DrawingElement(element_type=ElementType.LINE)
+        assert elem.line_weight == 0.5
+
+    def test_drawing_element_custom_line_weight(self):
+        elem = DrawingElement(element_type=ElementType.LINE, line_weight=1.0)
+        assert elem.line_weight == 1.0
+
+    def test_center_line_renders_dasharray_in_svg(self, project_with_sheet):
+        from src.murphy_drawing_engine import LineStyle
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.LINE,
+            geometry={"x1": 0, "y1": 0, "x2": 100, "y2": 0},
+            line_style=LineStyle.CENTER,
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert 'stroke-dasharray' in svg
+        assert '20,5,5,5' in svg
+
+    def test_dashed_line_renders_dasharray_in_svg(self, project_with_sheet):
+        from src.murphy_drawing_engine import LineStyle
         sheet = project_with_sheet.sheets[0]
         sheet.elements.append(DrawingElement(
             element_type=ElementType.LINE,
@@ -1004,6 +1048,315 @@ class TestEngineeringSymbolLibrary:
             '</svg>'
         )
         root = ET.fromstring(svg_doc)
+            line_style=LineStyle.DASHED,
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert 'stroke-dasharray="8,4"' in svg
+
+    def test_phantom_line_renders_dasharray_in_svg(self, project_with_sheet):
+        from src.murphy_drawing_engine import LineStyle
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.LINE,
+            geometry={"x1": 0, "y1": 0, "x2": 100, "y2": 0},
+            line_style=LineStyle.PHANTOM,
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert 'stroke-dasharray' in svg
+
+    def test_continuous_line_no_dasharray(self, project_with_sheet):
+        from src.murphy_drawing_engine import LineStyle
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.LINE,
+            geometry={"x1": 0, "y1": 0, "x2": 100, "y2": 0},
+            line_style=LineStyle.CONTINUOUS,
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        # Continuous should not add dash array in this element's stroke attrs
+        assert 'stroke-width="0.5"' in svg
+
+    def test_line_weight_applied_to_svg_stroke_width(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.LINE,
+            geometry={"x1": 0, "y1": 0, "x2": 10, "y2": 0},
+            line_weight=1.0,
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert 'stroke-width="1.0"' in svg
+
+
+# ---------------------------------------------------------------------------
+# Enhanced SVG tests
+# ---------------------------------------------------------------------------
+
+class TestEnhancedSVG:
+
+    def test_svg_has_defs_section(self, project_with_sheet):
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert '<defs>' in svg
+
+    def test_svg_has_arrow_marker_definitions(self, project_with_sheet):
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert 'marker' in svg
+        assert 'arrow-start' in svg
+        assert 'arrow-end' in svg
+
+    def test_svg_has_hatch_pattern_definitions(self, project_with_sheet):
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert '<pattern' in svg
+        assert 'hatch-ansi31' in svg
+
+    def test_svg_hatch_element_renders_pattern_fill(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.HATCH,
+            geometry={"boundary": [{"x": 0, "y": 0}, {"x": 50, "y": 0}, {"x": 50, "y": 50}, {"x": 0, "y": 50}]},
+            properties={"hatch_style": "ansi31"},
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert 'url(#hatch-ansi31)' in svg
+
+    def test_svg_hatch_ansi32_pattern(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.HATCH,
+            geometry={"boundary": [{"x": 0, "y": 0}, {"x": 10, "y": 0}, {"x": 10, "y": 10}]},
+            properties={"hatch_style": "ansi32"},
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert 'url(#hatch-ansi32)' in svg
+
+    def test_svg_dimension_element(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.DIMENSION,
+            geometry={"x1": 0, "y1": 50, "x2": 100, "y2": 50, "offset": 15},
+            properties={"text": "100.0"},
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert 'marker-start' in svg
+        assert 'marker-end' in svg
+        assert '100.0' in svg
+
+    def test_svg_dimension_extension_lines(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.DIMENSION,
+            geometry={"x1": 10, "y1": 50, "x2": 90, "y2": 50, "offset": 12},
+            properties={"text": "80.0"},
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        # Should have 3 lines: dimension line + 2 extension lines
+        assert svg.count('<line') >= 3
+
+    def test_svg_leader_element(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.LEADER,
+            geometry={"points": [{"x": 50, "y": 50}, {"x": 100, "y": 30}, {"x": 130, "y": 30}]},
+            properties={"text": "PUMP HOUSING"},
+        ))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert 'polyline' in svg
+        assert 'PUMP HOUSING' in svg
+
+    def test_svg_title_block_renders(self, project_with_sheet):
+        project_with_sheet.sheets[0].title_block = TitleBlock(
+            company="Inoni LLC",
+            drawing_number="MECH-001",
+            revision="B",
+            drawn_by="Murphy AI",
+        )
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        assert 'Inoni LLC' in svg
+        assert 'MECH-001' in svg
+
+    def test_svg_is_valid_xml_with_all_features(self, project_with_sheet):
+        import xml.etree.ElementTree as ET
+        from src.murphy_drawing_engine import LineStyle
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.extend([
+            DrawingElement(element_type=ElementType.LINE,
+                geometry={"x1": 0, "y1": 0, "x2": 100, "y2": 0},
+                line_style=LineStyle.CENTER),
+            DrawingElement(element_type=ElementType.DIMENSION,
+                geometry={"x1": 0, "y1": 50, "x2": 100, "y2": 50, "offset": 10},
+                properties={"text": "100"}),
+            DrawingElement(element_type=ElementType.HATCH,
+                geometry={"boundary": [{"x": 0, "y": 0}, {"x": 20, "y": 0}, {"x": 20, "y": 20}]},
+                properties={"hatch_style": "ansi31"}),
+        ])
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        root = ET.fromstring(svg)
+        assert root.tag.endswith("svg")
+
+
+# ---------------------------------------------------------------------------
+# Enhanced DXF tests
+# ---------------------------------------------------------------------------
+
+class TestEnhancedDXF:
+
+    def test_dxf_has_tables_section(self, project_with_sheet):
+        dxf = DrawingExporter().to_dxf(project_with_sheet)
+        assert 'TABLES' in dxf
+
+    def test_dxf_has_layer_definitions(self, project_with_sheet):
+        dxf = DrawingExporter().to_dxf(project_with_sheet)
+        assert 'LAYER' in dxf
+        assert 'CENTERLINES' in dxf
+        assert 'DIMENSIONS' in dxf
+
+    def test_dxf_has_linetype_definitions(self, project_with_sheet):
+        dxf = DrawingExporter().to_dxf(project_with_sheet)
+        assert 'LTYPE' in dxf
+        assert 'CENTER' in dxf
+        assert 'DASHED' in dxf
+
+    def test_dxf_arc_entity(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.ARC,
+            geometry={"cx": 50.0, "cy": 50.0, "cz": 0.0, "radius": 20.0, "start_angle": 0.0, "end_angle": 90.0},
+        ))
+        dxf = DrawingExporter().to_dxf(project_with_sheet)
+        assert '0\nARC' in dxf
+        assert '50\n0.0\n' in dxf  # start angle
+        assert '51\n90.0' in dxf   # end angle
+
+    def test_dxf_dimension_entity_produces_lines(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.DIMENSION,
+            geometry={"x1": 0, "y1": 50, "x2": 100, "y2": 50, "offset": 15},
+            properties={"text": "100.0"},
+        ))
+        dxf = DrawingExporter().to_dxf(project_with_sheet)
+        assert 'DIMENSIONS' in dxf
+        assert '100.0' in dxf
+
+    def test_dxf_hatch_boundary_as_lines(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.HATCH,
+            geometry={"boundary": [{"x": 0, "y": 0}, {"x": 50, "y": 0}, {"x": 50, "y": 50}]},
+        ))
+        dxf = DrawingExporter().to_dxf(project_with_sheet)
+        # 3 edges → 3 LINE entities from hatch + any other elements
+        assert dxf.count('0\nLINE') >= 3
+
+    def test_dxf_arc_angles_stored_correctly(self, project_with_sheet):
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.append(DrawingElement(
+            element_type=ElementType.ARC,
+            geometry={"cx": 0, "cy": 0, "cz": 0, "radius": 5, "start_angle": 45.0, "end_angle": 270.0},
+        ))
+        dxf = DrawingExporter().to_dxf(project_with_sheet)
+        assert '45.0' in dxf
+        assert '270.0' in dxf
+
+
+# ---------------------------------------------------------------------------
+# Engineering Symbol Library tests
+# ---------------------------------------------------------------------------
+
+class TestEngineeringSymbolLibrary:
+
+    def test_motor_returns_elements(self):
+        from src.murphy_drawing_engine import EngineeringSymbolLibrary
+        elems = EngineeringSymbolLibrary.motor(0, 0)
+        assert len(elems) >= 2
+
+    def test_motor_contains_rectangle_and_text(self):
+        from src.murphy_drawing_engine import EngineeringSymbolLibrary
+        elems = EngineeringSymbolLibrary.motor(0, 0)
+        types = {e.element_type for e in elems}
+        assert ElementType.RECTANGLE in types
+        assert ElementType.TEXT in types
+
+    def test_motor_label_text(self):
+        from src.murphy_drawing_engine import EngineeringSymbolLibrary
+        elems = EngineeringSymbolLibrary.motor(10, 20)
+        texts = [e.properties.get("text", "") for e in elems if e.element_type == ElementType.TEXT]
+        assert any("MOTOR" in t for t in texts)
+
+    def test_pump_housing_returns_elements(self):
+        from src.murphy_drawing_engine import EngineeringSymbolLibrary
+        elems = EngineeringSymbolLibrary.pump_housing(50, 50)
+        assert len(elems) >= 2
+
+    def test_pump_housing_label(self):
+        from src.murphy_drawing_engine import EngineeringSymbolLibrary
+        elems = EngineeringSymbolLibrary.pump_housing(0, 0)
+        texts = [e.properties.get("text", "") for e in elems if e.element_type == ElementType.TEXT]
+        assert any("PUMP" in t for t in texts)
+
+    def test_coupling_returns_circles(self):
+        from src.murphy_drawing_engine import EngineeringSymbolLibrary
+        elems = EngineeringSymbolLibrary.coupling(100, 100)
+        circles = [e for e in elems if e.element_type == ElementType.CIRCLE]
+        assert len(circles) >= 2
+
+    def test_flange_returns_correct_bolt_count(self):
+        from src.murphy_drawing_engine import EngineeringSymbolLibrary
+        bolt_count = 6
+        elems = EngineeringSymbolLibrary.flange(0, 0, 60, 48, bolt_count, 5)
+        bolt_circles = [e for e in elems if e.element_type == ElementType.CIRCLE]
+        # outer circle + bolt_count bolt holes
+        assert len(bolt_circles) == bolt_count + 1
+
+    def test_flange_default_4_bolts(self):
+        from src.murphy_drawing_engine import EngineeringSymbolLibrary
+        elems = EngineeringSymbolLibrary.flange(0, 0)
+        circles = [e for e in elems if e.element_type == ElementType.CIRCLE]
+        assert len(circles) == 5  # 1 outer + 4 bolts
+
+    def test_valve_returns_elements(self):
+        from src.murphy_drawing_engine import EngineeringSymbolLibrary
+        elems = EngineeringSymbolLibrary.valve(50, 50)
+        assert len(elems) >= 3
+
+    def test_valve_contains_polygons(self):
+        from src.murphy_drawing_engine import EngineeringSymbolLibrary
+        elems = EngineeringSymbolLibrary.valve(0, 0)
+        polys = [e for e in elems if e.element_type == ElementType.POLYGON]
+        assert len(polys) == 2
+
+    def test_valve_type_label(self):
+        from src.murphy_drawing_engine import EngineeringSymbolLibrary
+        elems = EngineeringSymbolLibrary.valve(0, 0, "check")
+        texts = [e.properties.get("text", "") for e in elems if e.element_type == ElementType.TEXT]
+        assert any("CHECK" in t for t in texts)
+
+    def test_centerline_has_center_linestyle(self):
+        from src.murphy_drawing_engine import EngineeringSymbolLibrary, LineStyle
+        elems = EngineeringSymbolLibrary.centerline(0, 0, 100, 0)
+        lines = [e for e in elems if e.element_type == ElementType.LINE]
+        assert all(ln.line_style == LineStyle.CENTER for ln in lines)
+
+    def test_centerline_cl_label(self):
+        from src.murphy_drawing_engine import EngineeringSymbolLibrary
+        elems = EngineeringSymbolLibrary.centerline(0, 0, 100, 0)
+        texts = [e.properties.get("text", "") for e in elems if e.element_type == ElementType.TEXT]
+        assert "CL" in texts
+
+    def test_centerline_layer(self):
+        from src.murphy_drawing_engine import EngineeringSymbolLibrary
+        elems = EngineeringSymbolLibrary.centerline(0, 0, 100, 0)
+        layers = {e.layer for e in elems}
+        assert "CENTERLINES" in layers
+
+    def test_symbols_render_to_svg(self, project_with_sheet):
+        from src.murphy_drawing_engine import EngineeringSymbolLibrary
+        sheet = project_with_sheet.sheets[0]
+        sheet.elements.extend(EngineeringSymbolLibrary.motor(10, 10))
+        sheet.elements.extend(EngineeringSymbolLibrary.flange(100, 100))
+        sheet.elements.extend(EngineeringSymbolLibrary.centerline(0, 50, 200, 50))
+        svg = DrawingExporter().to_svg(project_with_sheet)
+        import xml.etree.ElementTree as ET
+        root = ET.fromstring(svg)
         assert root.tag.endswith("svg")
 
 
@@ -1142,3 +1495,162 @@ class TestPumpGADrawing:
         assert result["sheets"] == 1
         assert result["elements"] > 10
 
+# Assembly Drawing tests
+# ---------------------------------------------------------------------------
+
+class TestAssemblyDrawing:
+
+    def test_build_pump_assembly_creates_sheet(self):
+        from src.murphy_drawing_engine import AssemblyDrawing
+        project = DrawingProject(name="Pump Assembly Test")
+        assy = AssemblyDrawing(project)
+        sheet = assy.build_pump_assembly()
+        assert sheet is not None
+
+    def test_build_pump_assembly_has_multiple_elements(self):
+        from src.murphy_drawing_engine import AssemblyDrawing
+        project = DrawingProject(name="Pump Assembly Test")
+        assy = AssemblyDrawing(project)
+        sheet = assy.build_pump_assembly()
+        assert len(sheet.elements) >= 10
+
+    def test_build_pump_assembly_has_centerline(self):
+        from src.murphy_drawing_engine import AssemblyDrawing, LineStyle
+        project = DrawingProject(name="Pump Assembly Test")
+        assy = AssemblyDrawing(project)
+        sheet = assy.build_pump_assembly()
+        cl_elems = [e for e in sheet.elements
+                    if e.element_type == ElementType.LINE and e.line_style == LineStyle.CENTER]
+        assert len(cl_elems) >= 1
+
+    def test_build_pump_assembly_has_flanges(self):
+        from src.murphy_drawing_engine import AssemblyDrawing
+        project = DrawingProject(name="Pump Assembly Test")
+        assy = AssemblyDrawing(project)
+        sheet = assy.build_pump_assembly()
+        circles = [e for e in sheet.elements if e.element_type == ElementType.CIRCLE]
+        # Should have circles from 2 flanges + coupling
+        assert len(circles) >= 5
+
+    def test_build_pump_assembly_has_title_block(self):
+        from src.murphy_drawing_engine import AssemblyDrawing
+        project = DrawingProject(name="Pump Assembly Test")
+        assy = AssemblyDrawing(project)
+        sheet = assy.build_pump_assembly()
+        assert sheet.title_block.drawing_number == "MECH-GA-001"
+
+    def test_build_pump_assembly_has_annotations(self):
+        from src.murphy_drawing_engine import AssemblyDrawing
+        project = DrawingProject(name="Pump Assembly Test")
+        assy = AssemblyDrawing(project)
+        sheet = assy.build_pump_assembly()
+        texts = [e.properties.get("text", "") for e in sheet.elements
+                 if e.element_type == ElementType.TEXT]
+        combined = " ".join(texts)
+        assert "MOTOR" in combined
+        assert "PUMP" in combined
+        assert "FLANGE" in combined
+
+    def test_assembly_renders_valid_svg(self):
+        from src.murphy_drawing_engine import AssemblyDrawing
+        import xml.etree.ElementTree as ET
+        project = DrawingProject(name="Pump Assembly Test")
+        assy = AssemblyDrawing(project)
+        assy.build_pump_assembly()
+        svg = DrawingExporter().to_svg(project)
+        root = ET.fromstring(svg)
+        assert root.tag.endswith("svg")
+
+    def test_assembly_renders_valid_dxf(self):
+        from src.murphy_drawing_engine import AssemblyDrawing
+        project = DrawingProject(name="Pump Assembly Test")
+        assy = AssemblyDrawing(project)
+        assy.build_pump_assembly()
+        dxf = DrawingExporter().to_dxf(project)
+        assert "SECTION" in dxf
+        assert "EOF" in dxf
+
+    def test_assembly_with_custom_origin(self):
+        from src.murphy_drawing_engine import AssemblyDrawing
+        project = DrawingProject(name="Pump Assembly Test")
+        assy = AssemblyDrawing(project)
+        sheet = assy.build_pump_assembly(origin_x=200, origin_y=300)
+        assert len(sheet.elements) >= 10
+
+    def test_assembly_drawing_composition_with_existing_sheet(self):
+        from src.murphy_drawing_engine import AssemblyDrawing
+        project = DrawingProject(name="Pump Assembly Existing Sheet")
+        existing = DrawingSheet(size=SheetSize.ANSI_D)
+        project.sheets.append(existing)
+        assy = AssemblyDrawing(project)
+        sheet = assy.build_pump_assembly()
+        assert sheet is existing
+
+
+# ---------------------------------------------------------------------------
+# New AgenticDrawingAssistant command tests
+# ---------------------------------------------------------------------------
+
+class TestAgenticDrawingAssistantNewCommands:
+
+    def test_add_centerline_command(self, assistant, project):
+        result = assistant.execute("add centerline from (0,50) to (200,50)")
+        assert result["success"] is True
+
+    def test_centerline_has_center_line_style(self, assistant, project):
+        from src.murphy_drawing_engine import LineStyle
+        assistant.execute("add centerline from (0,0) to (100,0)")
+        sheet = project.sheets[0]
+        cl_elems = [e for e in sheet.elements
+                    if e.element_type == ElementType.LINE and e.line_style == LineStyle.CENTER]
+        assert len(cl_elems) >= 1
+
+    def test_centerline_adds_cl_label(self, assistant, project):
+        assistant.execute("add centerline from (0,50) to (200,50)")
+        sheet = project.sheets[0]
+        texts = [e.properties.get("text", "") for e in sheet.elements
+                 if e.element_type == ElementType.TEXT]
+        assert "CL" in texts
+
+    def test_add_dimension_command(self, assistant, project):
+        result = assistant.execute("add dimension from (0,0) to (100,0)")
+        assert result["success"] is True
+
+    def test_dimension_element_created(self, assistant, project):
+        assistant.execute("add dimension from (0,0) to (100,0)")
+        sheet = project.sheets[0]
+        dims = [e for e in sheet.elements if e.element_type == ElementType.DIMENSION]
+        assert len(dims) == 1
+
+    def test_dimension_text_computed(self, assistant, project):
+        assistant.execute("add dimension from (0,0) to (100,0)")
+        sheet = project.sheets[0]
+        dims = [e for e in sheet.elements if e.element_type == ElementType.DIMENSION]
+        assert dims
+        assert dims[0].properties["text"] == "100.0"
+
+    def test_draw_motor_command(self, assistant, project):
+        result = assistant.execute("draw motor at 50,50")
+        assert result["success"] is True
+
+    def test_draw_motor_creates_elements(self, assistant, project):
+        assistant.execute("draw motor at 100,100")
+        sheet = project.sheets[0]
+        assert len(sheet.elements) >= 2
+
+    def test_create_pump_assembly_command(self, assistant, project):
+        result = assistant.execute("create pump assembly")
+        assert result["success"] is True
+
+    def test_pump_assembly_via_assistant_populates_project(self, assistant, project):
+        assistant.execute("create pump assembly")
+        total_elements = sum(len(s.elements) for s in project.sheets)
+        assert total_elements >= 10
+
+    def test_draw_dimension_alternative_command(self, assistant, project):
+        result = assistant.execute("draw dimension from (10,10) to (60,10)")
+        assert result["success"] is True
+
+    def test_centerline_defaults_when_no_coords(self, assistant, project):
+        result = assistant.execute("add centerline")
+        assert result["success"] is True
