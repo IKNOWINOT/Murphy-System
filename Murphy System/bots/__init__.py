@@ -307,6 +307,29 @@ except Exception:  # pragma: no cover
     sign_message = verify_signature = encrypt_payload = decrypt_payload = None
 
 try:
+    from .matrix_config import MatrixBotConfig
+    from .matrix_bot import MurphyMatrixBot, MurphyAPIClient, CircuitBreaker
+    from .matrix_hitl import HITLBridge
+    from .matrix_notifications import HealthMonitor
+    from .matrix_formatters import (
+        format_status,
+        format_health,
+        format_agents,
+        format_workflows,
+        format_costs,
+        format_hitl_list,
+        format_hitl_intervention,
+        format_links,
+        format_help,
+    )
+except Exception:  # pragma: no cover
+    MatrixBotConfig = MurphyMatrixBot = MurphyAPIClient = CircuitBreaker = None  # type: ignore[assignment,misc]
+    HITLBridge = HealthMonitor = None  # type: ignore[assignment,misc]
+    format_status = format_health = format_agents = format_workflows = None  # type: ignore[assignment]
+    format_costs = format_hitl_list = format_hitl_intervention = None  # type: ignore[assignment]
+    format_links = format_help = None  # type: ignore[assignment]
+
+try:
     from .utils.typed_event import HiveEvent
 except Exception:  # pragma: no cover
     HiveEvent = None
@@ -439,4 +462,20 @@ __all__ = [
     'handle_validated_task',
     'parse_user_input_to_json',
     'handle_user_query',
+    # Matrix bot integration
+    'MatrixBotConfig',
+    'MurphyMatrixBot',
+    'MurphyAPIClient',
+    'CircuitBreaker',
+    'HITLBridge',
+    'HealthMonitor',
+    'format_status',
+    'format_health',
+    'format_agents',
+    'format_workflows',
+    'format_costs',
+    'format_hitl_list',
+    'format_hitl_intervention',
+    'format_links',
+    'format_help',
 ]
