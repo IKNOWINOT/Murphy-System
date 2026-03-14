@@ -1061,13 +1061,11 @@ body.murphy-light .murphy-topbar {
    ============================================================ */
 .murphy-gate-indicator {
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-full);
-  border: 2px solid var(--teal);
-  background: transparent;
+  gap: 4px;
+  min-width: 56px;
   font-size: var(--text-xs);
   font-weight: 700;
   color: var(--teal);
@@ -1075,43 +1073,46 @@ body.murphy-light .murphy-topbar {
   transition: all var(--transition-base);
 }
 
-.murphy-gate-indicator-open {
+.murphy-gate-indicator-hex {
+  width: 40px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  border: 2px solid currentColor;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+}
+
+.murphy-gate-indicator-open .murphy-gate-indicator-hex {
   background: var(--teal);
   color: var(--bg-base);
   box-shadow: 0 0 12px rgba(0, 212, 170, 0.3);
 }
 
-.murphy-gate-indicator-closed {
+.murphy-gate-indicator-closed .murphy-gate-indicator-hex {
   border-color: var(--danger);
   color: var(--danger);
 }
 
-.murphy-gate-indicator-executive { border-color: var(--gate-executive); color: var(--gate-executive); }
-.murphy-gate-indicator-executive.murphy-gate-indicator-open { background: var(--gate-executive); color: var(--bg-base); }
-.murphy-gate-indicator-operations { border-color: var(--gate-operations); color: var(--gate-operations); }
-.murphy-gate-indicator-operations.murphy-gate-indicator-open { background: var(--gate-operations); color: var(--bg-base); }
-.murphy-gate-indicator-qa { border-color: var(--gate-qa); color: var(--gate-qa); }
-.murphy-gate-indicator-qa.murphy-gate-indicator-open { background: var(--gate-qa); color: var(--bg-base); }
-.murphy-gate-indicator-hitl { border-color: var(--gate-hitl); color: var(--gate-hitl); }
-.murphy-gate-indicator-hitl.murphy-gate-indicator-open { background: var(--gate-hitl); color: var(--bg-base); }
-.murphy-gate-indicator-compliance { border-color: var(--gate-compliance); color: var(--gate-compliance); }
-.murphy-gate-indicator-compliance.murphy-gate-indicator-open { background: var(--gate-compliance); color: var(--bg-base); }
-.murphy-gate-indicator-budget { border-color: var(--gate-budget); color: var(--gate-budget); }
-.murphy-gate-indicator-budget.murphy-gate-indicator-open { background: var(--gate-budget); color: var(--bg-base); }
-
-/* Hexagonal variant */
-.murphy-gate-indicator-hex {
-  width: 40px;
-  height: 36px;
-  border-radius: 0;
-  border: none;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-  background: var(--bg-elevated);
-}
-
-.murphy-gate-indicator-hex.murphy-gate-indicator-open {
-  background: var(--teal);
-}
+.murphy-gate-indicator-executive { color: var(--gate-executive); }
+.murphy-gate-indicator-executive .murphy-gate-indicator-hex { border-color: var(--gate-executive); color: var(--gate-executive); }
+.murphy-gate-indicator-executive.murphy-gate-indicator-open .murphy-gate-indicator-hex { background: var(--gate-executive); color: var(--bg-base); }
+.murphy-gate-indicator-operations { color: var(--gate-operations); }
+.murphy-gate-indicator-operations .murphy-gate-indicator-hex { border-color: var(--gate-operations); color: var(--gate-operations); }
+.murphy-gate-indicator-operations.murphy-gate-indicator-open .murphy-gate-indicator-hex { background: var(--gate-operations); color: var(--bg-base); }
+.murphy-gate-indicator-qa { color: var(--gate-qa); }
+.murphy-gate-indicator-qa .murphy-gate-indicator-hex { border-color: var(--gate-qa); color: var(--gate-qa); }
+.murphy-gate-indicator-qa.murphy-gate-indicator-open .murphy-gate-indicator-hex { background: var(--gate-qa); color: var(--bg-base); }
+.murphy-gate-indicator-hitl { color: var(--gate-hitl); }
+.murphy-gate-indicator-hitl .murphy-gate-indicator-hex { border-color: var(--gate-hitl); color: var(--gate-hitl); }
+.murphy-gate-indicator-hitl.murphy-gate-indicator-open .murphy-gate-indicator-hex { background: var(--gate-hitl); color: var(--bg-base); }
+.murphy-gate-indicator-compliance { color: var(--gate-compliance); }
+.murphy-gate-indicator-compliance .murphy-gate-indicator-hex { border-color: var(--gate-compliance); color: var(--gate-compliance); }
+.murphy-gate-indicator-compliance.murphy-gate-indicator-open .murphy-gate-indicator-hex { background: var(--gate-compliance); color: var(--bg-base); }
+.murphy-gate-indicator-budget { color: var(--gate-budget); }
+.murphy-gate-indicator-budget .murphy-gate-indicator-hex { border-color: var(--gate-budget); color: var(--gate-budget); }
+.murphy-gate-indicator-budget.murphy-gate-indicator-open .murphy-gate-indicator-hex { background: var(--gate-budget); color: var(--bg-base); }
 
 /* ============================================================
    21. PROGRESS BAR — .murphy-progress-bar
