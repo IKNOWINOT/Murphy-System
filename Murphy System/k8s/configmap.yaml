@@ -13,3 +13,9 @@ data:
   MURPHY_LOG_DIR: "/app/logs"
   MURPHY_CORS_ORIGINS: "https://murphy.example.com"
   LOG_LEVEL: "INFO"
+  MURPHY_PORT: "8000"
+  # Set MURPHY_CREDENTIAL_MASTER_KEY and MURPHY_REDIS_URL before deploying
+  MURPHY_CREDENTIAL_MASTER_KEY: ""
+  MURPHY_REDIS_URL: ""
+  PYTHONUNBUFFERED: "1"
+  PYTHONPATH: "/app"
