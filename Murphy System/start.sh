@@ -50,8 +50,8 @@ echo ""
 echo "📦 Checking dependencies..."
 python3 -c "import fastapi, uvicorn" 2>/dev/null
 if [ $? -ne 0 ]; then
-    echo "⚠️  Some dependencies missing. Installing from requirements.lock..."
-    pip install --quiet -r requirements.lock 2>&1 | grep -v "Requirement already satisfied" || true
+    echo "⚠️  Some dependencies missing. Installing from requirements_murphy_1.0.txt..."
+    pip install --quiet -r requirements_murphy_1.0.txt 2>&1 | grep -v "Requirement already satisfied" || true
     echo "✅ Dependencies installed"
 else
     echo "✅ Dependencies OK"

@@ -9,7 +9,7 @@
 setup:
 	python3 -m venv venv
 	venv/bin/pip install --upgrade pip
-	venv/bin/pip install -r requirements.txt
+	venv/bin/pip install -r requirements_murphy_1.0.txt
 	@if [ ! -f .env ]; then cp .env.example .env && echo ".env created from .env.example"; fi
 
 up:

@@ -503,3 +503,263 @@ class TestReadmeModuleCounts:
         content = self._root_readme()
         assert "371 test files" not in content, "Stale test file count 371 found"
         assert "603 test files" not in content, "Stale test file count 603 found"
+
+
+# ===================================================================
+# Round 2: Additional gap-closure tests
+# ===================================================================
+
+# ---------------------------------------------------------------------------
+# 15. .env path resolution — _deps.py and app.py must point to project root
+# ---------------------------------------------------------------------------
+
+class TestEnvPathResolution:
+    """.env loading must resolve to the project root (Murphy System/.env),
+    not to src/runtime/.env."""
+
+    def test_deps_env_path_resolves_to_project_root(self):
+        """_deps.py must load .env from three levels up (project root)."""
+        with open(os.path.join(_PROJECT_ROOT, "src", "runtime", "_deps.py")) as fh:
+            source = fh.read()
+        # Should use parent.parent.parent to reach Murphy System/ from src/runtime/
+        assert 'parent.parent.parent / ".env"' in source, (
+            "_deps.py .env path should resolve to project root via parent.parent.parent"
+        )
+        # Must NOT use the old broken path
+        lines = source.splitlines()
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith("#"):
+                continue
+            if '_load_dotenv' in stripped and '".env"' in stripped:
+                assert "parent.parent.parent" in stripped, (
+                    f"Active dotenv line uses wrong path: {stripped!r}"
+                )
+
+    def test_app_env_path_resolves_to_project_root(self):
+        """app.py must load .env from three levels up (project root)."""
+        with open(os.path.join(_PROJECT_ROOT, "src", "runtime", "app.py")) as fh:
+            source = fh.read()
+        # Every _env_path assignment should use parent.parent.parent
+        for i, line in enumerate(source.splitlines(), 1):
+            if "_env_path" in line and "parent" in line and "==" not in line:
+                assert "parent.parent.parent" in line, (
+                    f"app.py line {i} has wrong .env path: {line.strip()!r}"
+                )
+
+    def test_no_src_runtime_env_path(self):
+        """Neither file should resolve .env to src/runtime/."""
+        for rel in ("src/runtime/_deps.py", "src/runtime/app.py"):
+            with open(os.path.join(_PROJECT_ROOT, rel)) as fh:
+                source = fh.read()
+            # The old broken pattern was: .parent / ".env" (resolves to src/runtime/.env)
+            lines = source.splitlines()
+            for lineno, line in enumerate(lines, 1):
+                stripped = line.strip()
+                if stripped.startswith("#"):
+                    continue
+                if '".env"' in stripped and "parent /" in stripped:
+                    # This line sets an .env path — must not be single .parent
+                    assert "parent.parent.parent" in stripped, (
+                        f"{rel}:{lineno} still uses single-parent .env path: {stripped!r}"
+                    )
+
+
+# ---------------------------------------------------------------------------
+# 16. setup.py consistency with pyproject.toml
+# ---------------------------------------------------------------------------
+
+class TestSetupPyConsistency:
+    """setup.py must be aligned with pyproject.toml."""
+
+    def _setup(self) -> str:
+        with open(os.path.join(_PROJECT_ROOT, "setup.py")) as fh:
+            return fh.read()
+
+    def _pyproject(self) -> str:
+        with open(os.path.join(_PROJECT_ROOT, "pyproject.toml")) as fh:
+            return fh.read()
+
+    def test_package_name_matches(self):
+        """setup.py name= must match pyproject.toml [project] name."""
+        setup = self._setup()
+        pyproject = self._pyproject()
+        assert 'name="murphy-system"' in setup or "name='murphy-system'" in setup, (
+            "setup.py package name should be 'murphy-system' to match pyproject.toml"
+        )
+
+    def test_no_mfgc_ai_name(self):
+        """The legacy 'mfgc-ai' name should be removed from setup.py."""
+        setup = self._setup()
+        assert 'name="mfgc-ai"' not in setup and "name='mfgc-ai'" not in setup, (
+            "setup.py still uses legacy 'mfgc-ai' name"
+        )
+
+    def test_description_matches_project(self):
+        """setup.py description should reference 'Murphy System'."""
+        setup = self._setup()
+        assert "Murphy System" in setup, (
+            "setup.py description should reference 'Murphy System'"
+        )
+
+    def test_no_stale_entry_point(self):
+        """setup.py should not reference the non-existent mfgc_ai module."""
+        setup = self._setup()
+        assert "mfgc_ai" not in setup, (
+            "setup.py entry_points still references non-existent mfgc_ai module"
+        )
+
+    def test_fastapi_in_install_requires(self):
+        """setup.py must include fastapi in install_requires (runtime dependency)."""
+        setup = self._setup()
+        assert "fastapi" in setup, "setup.py missing fastapi in install_requires"
+
+    def test_uvicorn_in_install_requires(self):
+        """setup.py must include uvicorn in install_requires (runtime dependency)."""
+        setup = self._setup()
+        assert "uvicorn" in setup, "setup.py missing uvicorn in install_requires"
+
+    def test_pydantic_in_install_requires(self):
+        """setup.py must include pydantic in install_requires (runtime dependency)."""
+        setup = self._setup()
+        assert "pydantic" in setup, "setup.py missing pydantic in install_requires"
+
+    def test_readme_read_is_safe(self):
+        """setup.py should not crash if README_INSTALL.md is missing."""
+        setup = self._setup()
+        # Should use Path.exists() check or try/except, not bare open()
+        assert "open(" not in setup.split("setup(")[0] or "exists()" in setup or "if" in setup.split("setup(")[0], (
+            "setup.py should safely handle missing README_INSTALL.md"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 17. Makefile uses correct requirements file
+# ---------------------------------------------------------------------------
+
+class TestMakefileCorrectness:
+    """Makefile should reference the right requirements file."""
+
+    def _content(self) -> str:
+        with open(os.path.join(_PROJECT_ROOT, "Makefile")) as fh:
+            return fh.read()
+
+    def test_makefile_uses_murphy_requirements(self):
+        """Makefile setup target should use requirements_murphy_1.0.txt."""
+        content = self._content()
+        assert "requirements_murphy_1.0.txt" in content, (
+            "Makefile should reference requirements_murphy_1.0.txt"
+        )
+
+    def test_makefile_not_using_bare_requirements(self):
+        """Makefile should not use bare 'requirements.txt' for install."""
+        content = self._content()
+        lines = content.splitlines()
+        for line in lines:
+            stripped = line.strip()
+            if "pip install" in stripped and "requirements.txt" in stripped:
+                assert "requirements_murphy_1.0.txt" in stripped, (
+                    f"Makefile pip install uses wrong requirements file: {stripped!r}"
+                )
+
+
+# ---------------------------------------------------------------------------
+# 18. start.sh uses correct requirements file
+# ---------------------------------------------------------------------------
+
+class TestStartShCorrectness:
+    """start.sh should use the correct requirements file."""
+
+    def _content(self) -> str:
+        with open(os.path.join(_PROJECT_ROOT, "start.sh")) as fh:
+            return fh.read()
+
+    def test_start_sh_uses_murphy_requirements(self):
+        """start.sh should install from requirements_murphy_1.0.txt, not requirements.lock."""
+        content = self._content()
+        assert "requirements_murphy_1.0.txt" in content, (
+            "start.sh should reference requirements_murphy_1.0.txt"
+        )
+
+    def test_start_sh_not_using_lock_file(self):
+        """start.sh should not reference the incomplete requirements.lock."""
+        content = self._content()
+        assert "requirements.lock" not in content, (
+            "start.sh still references incomplete requirements.lock"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 19. GETTING_STARTED.md module counts accuracy
+# ---------------------------------------------------------------------------
+
+class TestGettingStartedCounts:
+    """GETTING_STARTED.md should have accurate module counts."""
+
+    def _content(self) -> str:
+        with open(os.path.join(_PROJECT_ROOT, "GETTING_STARTED.md")) as fh:
+            return fh.read()
+
+    def test_no_stale_753_count(self):
+        """GETTING_STARTED.md should not reference old 753 module count."""
+        content = self._content()
+        assert "753" not in content, "Stale module count '753' found in GETTING_STARTED.md"
+
+    def test_no_stale_60_packages(self):
+        """GETTING_STARTED.md should not reference old '60 packages'."""
+        content = self._content()
+        assert "60 packages" not in content, "Stale package count '60 packages' found"
+
+    def test_updated_module_count_present(self):
+        """GETTING_STARTED.md should reference 978 modules."""
+        content = self._content()
+        assert "978" in content, "GETTING_STARTED.md should mention 978 modules"
+
+
+# ---------------------------------------------------------------------------
+# 20. STATUS.md test count accuracy
+# ---------------------------------------------------------------------------
+
+class TestStatusMdCounts:
+    """STATUS.md should reflect current test file counts."""
+
+    def _content(self) -> str:
+        with open(os.path.join(_PROJECT_ROOT, "STATUS.md")) as fh:
+            return fh.read()
+
+    def test_no_stale_585_count(self):
+        """STATUS.md should not reference old '585+' test count."""
+        content = self._content()
+        assert "585+" not in content, "Stale test count '585+' found in STATUS.md"
+
+    def test_updated_test_count_present(self):
+        """STATUS.md should reference 627+ test files."""
+        content = self._content()
+        assert "627" in content, "STATUS.md should mention 627 test files"
+
+
+# ---------------------------------------------------------------------------
+# 21. Deployment guide — no stale demo/api_server_v2.py references
+# ---------------------------------------------------------------------------
+
+class TestDeploymentGuideEntryPoint:
+    """DEPLOYMENT_GUIDE.md should reference the correct entry point."""
+
+    def _content(self) -> str:
+        path = os.path.join(_PROJECT_ROOT, "documentation", "deployment", "DEPLOYMENT_GUIDE.md")
+        with open(path) as fh:
+            return fh.read()
+
+    def test_no_stale_api_server_v2_reference(self):
+        """Deployment guide should not reference non-existent demo/api_server_v2.py."""
+        content = self._content()
+        assert "api_server_v2" not in content, (
+            "DEPLOYMENT_GUIDE.md still references non-existent demo/api_server_v2.py"
+        )
+
+    def test_uses_current_runtime_entry_point(self):
+        """Deployment guide should reference murphy_system_1.0_runtime.py."""
+        content = self._content()
+        assert "murphy_system_1.0_runtime.py" in content, (
+            "DEPLOYMENT_GUIDE.md should reference murphy_system_1.0_runtime.py"
+        )
