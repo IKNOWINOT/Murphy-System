@@ -772,12 +772,10 @@ class SubscriptionManager:
             for eid in stale:
                 del self._processed_events[eid]
 
-            # Hard cap: evict oldest entries if at capacity
-            if len(self._processed_events) >= self._MAX_DEDUP_ENTRIES:
-                sorted_events = sorted(self._processed_events.items(), key=lambda x: x[1])
-                to_evict = len(self._processed_events) - self._MAX_DEDUP_ENTRIES + 1
-                for eid, _ in sorted_events[:to_evict]:
-                    del self._processed_events[eid]
+            # Hard cap: evict the single oldest entry (O(n) not O(n log n))
+            while len(self._processed_events) >= self._MAX_DEDUP_ENTRIES:
+                oldest = min(self._processed_events, key=self._processed_events.get)
+                del self._processed_events[oldest]
 
             if event_id in self._processed_events:
                 return True

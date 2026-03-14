@@ -59,7 +59,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 # account_id must be alphanumeric + hyphens/underscores, 1–200 chars (CWE-20)
-_ACCOUNT_ID_RE = re.compile(r"^[a-zA-Z0-9_\-]{1,200}$")
+_ACCOUNT_ID_RE = re.compile(r"^[a-zA-Z0-9_-]{1,200}$")
 
 # ISO 4217 currency codes are always 3 uppercase letters
 _CURRENCY_CODE_RE = re.compile(r"^[A-Za-z]{3}$")
