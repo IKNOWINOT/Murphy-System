@@ -29,6 +29,14 @@ try:
 except Exception:  # pragma: no cover
     create_reporting_blueprint = None  # type: ignore[assignment]
 
+from .billing_integration import BillingIntegrationService
+from .invoicing_hooks import InvoicingHookManager, TimeTrackingEvent
+from .config import TimeTrackingConfig
+
+try:
+    from .settings_api import create_settings_blueprint
+except Exception:  # pragma: no cover
+    create_settings_blueprint = None  # type: ignore[assignment]
 try:
     from .dashboard_api import create_dashboard_blueprint
 except Exception:  # pragma: no cover
@@ -49,5 +57,10 @@ __all__ = [
     "TeamViewService",
     "create_time_tracking_router",
     "create_reporting_blueprint",
+    "BillingIntegrationService",
+    "InvoicingHookManager",
+    "TimeTrackingEvent",
+    "TimeTrackingConfig",
+    "create_settings_blueprint",
     "create_dashboard_blueprint",
 ]
