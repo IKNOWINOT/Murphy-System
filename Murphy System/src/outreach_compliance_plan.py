@@ -15,10 +15,10 @@ Implements Murphy's self-advertising outreach engine with legally-compliant
 rules layered on top of the existing ContactComplianceGovernor.
 
 Key classes:
-  - OutreachComplianceGovernor   Wraps the selling cycle with compliance checks
-  - SuppressionListManager       Manages opt-outs, DNC imports, GDPR erasure
-  - CooldownEnforcer             Enforces 30-day re-contact window
-  - OutreachCampaignPlanner      Generates daily/weekly outreach plans
+  - OutreachComplianceGovernor — Wraps the selling cycle with compliance checks
+  - SuppressionListManager — Manages opt-outs, DNC imports, GDPR erasure
+  - CooldownEnforcer — Enforces 30-day re-contact window
+  - OutreachCampaignPlanner — Generates daily/weekly outreach plans
 
 Data models:
   - OutreachComplianceRecord     Tracks contact attempts per prospect
