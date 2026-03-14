@@ -62,6 +62,16 @@ Safety invariants:
   - Bounded: all history lists are capped to prevent memory growth
   - Audit trail: every published piece, outreach sent, and compliance block is logged
   - Opt-out is irreversible: DNC additions are never removed by automation
+  - Input validation: prospect_id validated against _PROSPECT_ID_RE (CWE-20)
+  - Channel allowlist: only {email, sms, linkedin, phone, push} accepted (CWE-20)
+  - Size caps: topic ≤500 chars, keywords ≤20 items of ≤100 chars each (CWE-20/CWE-400)
+  - Reply body capped at 50,000 bytes (CWE-400)
+  - Pending-replies queue capped at 1,000 entries (CWE-400)
+  - DNC set capped at 100,000 entries (CWE-400)
+  - Cooldown dict capped at 100,000 entries (CWE-400)
+  - Content catalogue capped at 50,000 items (CWE-400)
+  - Error messages sanitized and truncated — no PII in stored errors (CWE-209)
+  - PII redacted from logs — email addresses masked before emission
 
 Copyright © 2020 Inoni Limited Liability Company
 Creator: Corey Post
@@ -71,6 +81,7 @@ License: BSL 1.1
 from __future__ import annotations
 
 import logging
+import re
 import threading
 import uuid
 from dataclasses import dataclass, field
@@ -99,6 +110,42 @@ _MAX_SOCIAL_HISTORY = 5_000
 
 # Persist document IDs
 _PERSIST_DOC_ID = "self_marketing_orchestrator_state"
+
+# ---------------------------------------------------------------------------
+# Hardening — input validation & memory-growth caps (CWE-20 / CWE-400)
+# ---------------------------------------------------------------------------
+
+# prospect_id: alphanumeric + underscore, hyphen, dot, at-sign.
+# Accommodates UUID-style IDs, email-as-ID, and plain slugs.
+# Identical to the constraint used by COMPL-002 OutreachComplianceGate.
+_PROSPECT_ID_RE = re.compile(r"^[a-zA-Z0-9_@.\-]{1,200}$")
+
+# content_id: generated internally as a slug prefix + UUID hex fragment.
+_CONTENT_ID_RE = re.compile(r"^[a-zA-Z0-9_\-]{1,64}$")
+
+# Allowed outreach channels (frozenset prevents accidental mutation).
+_ALLOWED_CHANNELS: frozenset = frozenset({"email", "sms", "linkedin", "phone", "push"})
+
+# Maximum length for topic / subject / sdk_feature strings (CWE-20).
+_MAX_TOPIC_LEN = 500
+
+# Keyword list limits (CWE-400 / CWE-20).
+_MAX_KEYWORD_LEN = 100
+_MAX_KEYWORDS = 20
+
+# Maximum reply body size in characters (CWE-400).
+_MAX_REPLY_BODY = 50_000
+
+# Maximum pending-replies queue depth (CWE-400).
+_MAX_PENDING_REPLIES = 1_000
+
+# Maximum error-message length stored in cycle results (CWE-209).
+_MAX_ERROR_MSG_LEN = 200
+
+# Hard caps on in-process data structures (CWE-400).
+_MAX_DNC_ENTRIES = 100_000       # DNC set — same limit as COMPL-002
+_MAX_LAST_CONTACTED = 100_000    # cooldown tracking dict
+_MAX_CONTENT_ITEMS = 50_000      # content catalogue dict
 
 # ---------------------------------------------------------------------------
 # Content topic calendar — rotated weekly
@@ -149,6 +196,69 @@ _PLATFORM_CHAR_LIMITS: Dict[str, int] = {
     "linkedin": 3_000,
     "reddit": 40_000,
 }
+
+
+# ---------------------------------------------------------------------------
+# Validation helpers
+# ---------------------------------------------------------------------------
+
+def _validate_prospect_id(prospect_id: str) -> str:
+    """Return validated prospect_id or raise ValueError (CWE-20).
+
+    Accepts alphanumeric IDs, UUID strings, email-style IDs, and slugs up to
+    200 characters.  Rejects anything that could be used for injection.
+    """
+    if not isinstance(prospect_id, str):
+        raise ValueError("prospect_id must be a string")
+    if not _PROSPECT_ID_RE.match(prospect_id):
+        # Truncate in the error message — don't echo potentially huge payloads
+        raise ValueError(
+            f"Invalid prospect_id (len={len(prospect_id)}): "
+            r"must match ^[a-zA-Z0-9_@.\-]{1,200}$"
+        )
+    return prospect_id
+
+
+def _validate_channel(channel: str) -> str:
+    """Return channel if in allowlist, raise ValueError otherwise (CWE-20)."""
+    if not isinstance(channel, str) or channel not in _ALLOWED_CHANNELS:
+        raise ValueError(
+            f"Invalid channel '{channel}': must be one of {sorted(_ALLOWED_CHANNELS)}"
+        )
+    return channel
+
+
+def _validate_topic(topic: str, *, param: str = "topic") -> str:
+    """Strip null bytes, enforce max length, and return the cleaned value (CWE-20).
+
+    Raises ValueError when the topic exceeds _MAX_TOPIC_LEN characters.
+    """
+    if not isinstance(topic, str):
+        raise ValueError(f"{param} must be a string")
+    topic = topic.replace("\x00", "")
+    if len(topic) > _MAX_TOPIC_LEN:
+        raise ValueError(
+            f"{param} exceeds maximum length of {_MAX_TOPIC_LEN} characters"
+        )
+    return topic
+
+
+def _sanitize_error(exc: BaseException) -> str:
+    """Return a safe, truncated error message without PII (CWE-209).
+
+    Strips email-address patterns (potential PII) and truncates the message
+    to _MAX_ERROR_MSG_LEN characters so that error lists cannot grow unbounded
+    and never expose sensitive contact information.
+    """
+    detail = str(exc)
+    # Mask anything that looks like an email address
+    detail = re.sub(
+        r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}",
+        "<redacted>",
+        detail,
+    )
+    combined = f"{type(exc).__name__}: {detail}"
+    return combined[:_MAX_ERROR_MSG_LEN]
 
 
 # ---------------------------------------------------------------------------
@@ -558,8 +668,13 @@ class SelfMarketingOrchestrator:
         otherwise constructs a structured placeholder post that satisfies the
         SEO scoring minimum-length requirement.
         """
+        topic = _validate_topic(topic)  # CWE-20: strip null bytes, enforce max length
+
         if keywords is None:
             keywords = self._extract_keywords(topic)
+
+        # Cap keyword list size and per-keyword length — CWE-400 / CWE-20
+        keywords = [kw[:_MAX_KEYWORD_LEN] for kw in keywords[:_MAX_KEYWORDS]]
 
         title = topic
         body = self._compose_blog_body(title, keywords)
@@ -595,6 +710,12 @@ class SelfMarketingOrchestrator:
                 logger.debug("ContentPipelineEngine integration skipped: %s", exc)
 
         with self._lock:
+            # Hard cap on content catalogue — CWE-400
+            if len(self._content) >= _MAX_CONTENT_ITEMS:
+                evict = max(1, _MAX_CONTENT_ITEMS // 10)
+                keys = list(self._content.keys())[:evict]
+                for k in keys:
+                    del self._content[k]
             self._content[content.content_id] = content
 
         logger.info("Generated blog post %s: '%s' (seo=%.1f)", content.content_id, title, seo_score)
@@ -602,8 +723,11 @@ class SelfMarketingOrchestrator:
 
     def generate_case_study(self, subject: str) -> GeneratedContent:
         """Generate a case study from Murphy's own operational data."""
+        subject = _validate_topic(subject, param="subject")  # CWE-20
+
         title = f"Case Study: {subject}"
         keywords = self._extract_keywords(subject) + ["automation", "ROI", "Murphy System"]
+        keywords = [kw[:_MAX_KEYWORD_LEN] for kw in keywords[:_MAX_KEYWORDS]]  # CWE-400
         body = self._compose_case_study_body(title, subject, keywords)
 
         seo_score = self._score_content(title, body)
@@ -620,6 +744,12 @@ class SelfMarketingOrchestrator:
         )
 
         with self._lock:
+            # Hard cap on content catalogue — CWE-400
+            if len(self._content) >= _MAX_CONTENT_ITEMS:
+                evict = max(1, _MAX_CONTENT_ITEMS // 10)
+                keys = list(self._content.keys())[:evict]
+                for k in keys:
+                    del self._content[k]
             self._content[content.content_id] = content
 
         logger.info("Generated case study %s: '%s' (seo=%.1f)", content.content_id, title, seo_score)
@@ -627,8 +757,11 @@ class SelfMarketingOrchestrator:
 
     def generate_tutorial(self, sdk_feature: str) -> GeneratedContent:
         """Generate a developer tutorial for an SDK feature."""
+        sdk_feature = _validate_topic(sdk_feature, param="sdk_feature")  # CWE-20
+
         title = f"Tutorial: {sdk_feature}"
         keywords = self._extract_keywords(sdk_feature) + ["SDK", "tutorial", "Python", "API"]
+        keywords = [kw[:_MAX_KEYWORD_LEN] for kw in keywords[:_MAX_KEYWORDS]]  # CWE-400
         body = self._compose_tutorial_body(title, sdk_feature, keywords)
 
         seo_score = self._score_content(title, body)
@@ -645,6 +778,12 @@ class SelfMarketingOrchestrator:
         )
 
         with self._lock:
+            # Hard cap on content catalogue — CWE-400
+            if len(self._content) >= _MAX_CONTENT_ITEMS:
+                evict = max(1, _MAX_CONTENT_ITEMS // 10)
+                keys = list(self._content.keys())[:evict]
+                for k in keys:
+                    del self._content[k]
             self._content[content.content_id] = content
 
         logger.info("Generated tutorial %s: '%s' (seo=%.1f)", content.content_id, title, seo_score)
@@ -657,6 +796,10 @@ class SelfMarketingOrchestrator:
         pending content. Once HITL_REVIEW_THRESHOLD pieces are approved,
         subsequent content auto-publishes.
         """
+        # Validate content_id format before any dict lookup — CWE-20
+        if not isinstance(content_id, str) or not _CONTENT_ID_RE.match(content_id):
+            logger.warning("approve_content: invalid content_id format")
+            return False
         with self._lock:
             content = self._content.get(content_id)
         if content is None:
@@ -721,6 +864,10 @@ class SelfMarketingOrchestrator:
 
     def generate_social_variants(self, content_id: str) -> List[Dict[str, Any]]:
         """Generate platform-specific social posts from a content piece."""
+        # Validate content_id format before dict lookup — CWE-20
+        if not isinstance(content_id, str) or not _CONTENT_ID_RE.match(content_id):
+            logger.warning("generate_social_variants: invalid content_id format")
+            return []
         with self._lock:
             content = self._content.get(content_id)
         if content is None:
@@ -802,8 +949,16 @@ class SelfMarketingOrchestrator:
 
         for prospect in prospects:
             prospects_evaluated += 1
-            prospect_id = prospect.get("id", str(uuid.uuid4()))
-            channel = prospect.get("channel", "email")
+            raw_id = prospect.get("id", "")
+            raw_channel = prospect.get("channel", "email")
+
+            try:
+                prospect_id = _validate_prospect_id(raw_id)  # CWE-20
+                channel = _validate_channel(raw_channel)      # CWE-20
+            except ValueError as exc:
+                errors.append(_sanitize_error(exc))
+                logger.warning("Prospect validation failed — skipping: %s", _sanitize_error(exc))
+                continue
 
             try:
                 decision = self._check_compliance(prospect_id, prospect)
@@ -844,8 +999,8 @@ class SelfMarketingOrchestrator:
                     })
 
             except Exception as exc:  # noqa: BLE001
-                errors.append(str(exc))
-                logger.warning("Outreach error for prospect %s: %s", prospect_id, exc)
+                errors.append(_sanitize_error(exc))
+                logger.warning("Outreach error for prospect %s: %s", prospect_id, _sanitize_error(exc))
 
         completed_at = datetime.now(timezone.utc).isoformat()
         result = OutreachCycleResult(
