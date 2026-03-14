@@ -1361,3 +1361,112 @@ class TestContributingModuleCounts:
         assert "81 packages" in content, (
             "CONTRIBUTING.md should reflect 81 packages"
         )
+
+
+# ===================================================================
+# Round 7: Cross-system consistency (K8s monitoring, compose parity,
+#          root README stats, start-script permissions)
+# ===================================================================
+
+# ---------------------------------------------------------------------------
+# 37. K8s Grafana image version matches Docker Compose
+# ---------------------------------------------------------------------------
+
+class TestK8sGrafanaVersionPinned:
+    """K8s grafana-deployment.yaml must match the pinned Grafana version used
+    in docker-compose.yml (11.1.0)."""
+
+    def _content(self) -> str:
+        path = os.path.join(
+            _PROJECT_ROOT, "k8s", "monitoring", "grafana-deployment.yaml"
+        )
+        with open(path) as fh:
+            return fh.read()
+
+    def test_grafana_version_matches_compose(self):
+        content = self._content()
+        assert "grafana/grafana:11.1.0" in content, (
+            "K8s grafana-deployment.yaml must use grafana:11.1.0 "
+            "(matching docker-compose.yml)"
+        )
+
+    def test_no_stale_11_0_0(self):
+        content = self._content()
+        assert "grafana:11.0.0" not in content, (
+            "K8s grafana-deployment.yaml still uses stale 11.0.0"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 38. docker-compose.murphy.yml prometheus-rules volume
+# ---------------------------------------------------------------------------
+
+class TestDockerComposeMurphyPrometheusRules:
+    """docker-compose.murphy.yml must mount prometheus-rules like
+    docker-compose.yml does."""
+
+    def _content(self) -> str:
+        path = os.path.join(_PROJECT_ROOT, "docker-compose.murphy.yml")
+        with open(path) as fh:
+            return fh.read()
+
+    def test_prometheus_rules_mounted(self):
+        content = self._content()
+        assert "prometheus-rules" in content, (
+            "docker-compose.murphy.yml must mount ./prometheus-rules "
+            "to enable alert rules (matching docker-compose.yml)"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 39. Root README.md stats table accuracy
+# ---------------------------------------------------------------------------
+
+class TestRootReadmeStatsTableAccurate:
+    """Root README.md stats table must reflect actual file counts."""
+
+    def _content(self) -> str:
+        path = os.path.join(_REPO_ROOT, "README.md")
+        with open(path) as fh:
+            return fh.read()
+
+    def test_no_stale_585_test_count(self):
+        content = self._content()
+        assert "585+" not in content, (
+            "Root README.md still uses stale '585+' test file count; "
+            "actual is 644"
+        )
+
+    def test_no_stale_54_packages(self):
+        content = self._content()
+        assert "54 subsystem" not in content, (
+            "Root README.md stats table still uses stale '54 subsystem "
+            "directories'; actual is 81"
+        )
+
+    def test_stats_show_644_tests(self):
+        content = self._content()
+        assert "644" in content, (
+            "Root README.md should show 644 test files"
+        )
+
+    def test_stats_show_81_packages(self):
+        content = self._content()
+        assert "81 subsystem" in content, (
+            "Root README.md stats should show 81 subsystem directories"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 40. start_murphy_1.0.sh is executable
+# ---------------------------------------------------------------------------
+
+class TestStartScriptExecutable:
+    """start_murphy_1.0.sh must have the executable permission bit set."""
+
+    def test_start_script_is_executable(self):
+        path = os.path.join(_PROJECT_ROOT, "start_murphy_1.0.sh")
+        assert os.path.isfile(path), "start_murphy_1.0.sh not found"
+        assert os.access(path, os.X_OK), (
+            "start_murphy_1.0.sh is not executable; run chmod +x"
+        )
