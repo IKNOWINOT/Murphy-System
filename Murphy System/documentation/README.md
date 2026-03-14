@@ -216,6 +216,13 @@ Detailed documentation for each system component:
 - [Confidence Engine](components/CONFIDENCE_ENGINE.md) - Confidence computation
 - [Telemetry](components/TELEMETRY.md) - System monitoring and metrics
 - [Librarian](components/LIBRARIAN.md) - Knowledge management
+- **CEO Branch Activation** (`src/ceo_branch_activation.py`) — Top-level autonomous decision-making, org chart automation, operational planning (CEO-002)
+- **Production Assistant Engine** (`src/production_assistant_engine.py`) — Request lifecycle management with deliverable gate validation (PROD-ENG-001)
+- **Self-Codebase Swarm** (`src/self_codebase_swarm.py`) — Autonomous BMS spec generation, RFP parsing, deliverable packaging (SCS-001)
+- **Cut Sheet Engine** (`src/cutsheet_engine.py`) — Manufacturer data parsing, wiring diagrams, device config generation (CSE-001)
+- **Visual Swarm Builder** (`src/visual_swarm_builder.py`) — Visual pipeline construction for swarm workflows (VSB-001)
+- **Self-Introspection Module** (`src/self_introspection_module.py`) — Runtime self-analysis and codebase scanning (INTRO-001)
+- **Time Tracking** (`src/time_tracking/`) — Complete time tracking with Phase 6B (reporting/approvals/export), Phase 6C (dashboard), and Phase 6D (billing/invoicing) — Phase 6 complete
 
 ### Component Integration
 
