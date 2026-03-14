@@ -529,6 +529,7 @@ class SubscriptionManager:
         payload: Dict[str, Any],
         signature: str = "",
         webhook_secret: str = "",
+        raw_body: bytes = b"",
     ) -> Dict[str, Any]:
         """Process a Coinbase Commerce webhook event.
 
@@ -541,13 +542,25 @@ class SubscriptionManager:
 
         When ``webhook_secret`` (or ``COINBASE_WEBHOOK_SECRET`` env var) is
         set, the ``signature`` header (``X-CC-Webhook-Signature``) is verified
-        via HMAC-SHA256 before processing.
+        via HMAC-SHA256 against the raw request body.
+
+        Args:
+            payload: Parsed JSON payload dict.
+            signature: Value of the ``X-CC-Webhook-Signature`` header.
+            webhook_secret: Shared secret for HMAC verification.
+            raw_body: Raw request body bytes for accurate signature verification.
+                      Falls back to canonical JSON re-serialization when empty.
         """
         secret = webhook_secret or os.environ.get("COINBASE_WEBHOOK_SECRET", "")
         if secret and signature:
-            payload_bytes = _json.dumps(
-                payload, separators=(",", ":"), sort_keys=True
-            ).encode()
+            # Prefer raw_body for accurate signature verification;
+            # fall back to canonical JSON if raw bytes not provided.
+            if raw_body:
+                payload_bytes = raw_body
+            else:
+                payload_bytes = _json.dumps(
+                    payload, separators=(",", ":"), sort_keys=True
+                ).encode()
             expected = _hmac.new(
                 secret.encode(), payload_bytes, hashlib.sha256
             ).hexdigest()
