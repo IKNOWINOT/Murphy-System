@@ -2468,6 +2468,15 @@ MODULE_MANIFEST: List[ModuleEntry] = [
         description="Compliance orchestration bridge",
     ),
     ModuleEntry(
+        module="contact_compliance_governor",
+        room="contact-compliance-governor",
+        commands=["compliance outreach", "compliance dnc"],
+        persona="GovernanceBot",
+        emits=["outreach_blocked", "contact_suppressed", "dnc_added"],
+        consumes=["outreach_requested"],
+        description="Contact compliance governor — cooldown, DNC, regulatory gating",
+    ),
+    ModuleEntry(
         module="legacy_compatibility_matrix",
         room="bridge-layer",
         commands=["bridge compat"],
