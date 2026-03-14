@@ -127,6 +127,24 @@ It is maintained as part of the iterative **DIAGNOSE → PLAN → IMPLEMENT → 
 
 ---
 
+## Floating Module Gaps (2026-03-14)
+
+The following modules landed without a corresponding `ModuleEntry` in `module_manifest.py`. These are tracked as wiring gaps.
+
+| Gap ID | Module | Issue | Status |
+|--------|--------|-------|--------|
+| G-W01 | `self_introspection_module` not in module_manifest.py | No emits/consumes contract | 🔄 In Progress |
+| G-W02 | `self_codebase_swarm` not in module_manifest.py | No emits/consumes contract | 🔄 In Progress |
+| G-W03 | `cutsheet_engine` not in module_manifest.py | No emits/consumes contract | 🔄 In Progress |
+| G-W04 | `visual_swarm_builder` not in module_manifest.py | No emits/consumes contract | 🔄 In Progress |
+| G-W05 | `ceo_branch_activation` not in module_manifest.py | No emits/consumes contract | 🔄 In Progress |
+| G-W06 | `production_assistant_engine` not in module_manifest.py | No emits/consumes contract | 🔄 In Progress |
+| G-W07 | `time_tracking` has empty emits list but InvoicingHookManager publishes events not bridged to EventBackbone | Internal event system not bridged to EventBackbone | 🔄 In Progress |
+
+> **Reference:** Module wiring PR is in progress on branch `copilot/add-moduleentry-entries`.
+
+---
+
 ## Remaining Known Gaps (Need Admin/External Action)
 
 | ID | Gap | Blocker | Who |
