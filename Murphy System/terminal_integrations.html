@@ -94,6 +94,30 @@
 </nav>
 
 <!-- ============================================================
+     TOP BAR
+     ============================================================ -->
+<header class="murphy-topbar" role="banner" aria-label="Top bar">
+  <div class="murphy-topbar-left">
+    <button class="murphy-btn murphy-btn-icon" id="btn-sidebar-toggle" aria-label="Toggle sidebar" title="Toggle sidebar">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-menu"></use></svg>
+    </button>
+    <h1 class="murphy-topbar-title">☠ Integrations Terminal — Connectors &amp; Services</h1>
+    <span class="murphy-topbar-subtitle" style="font-size:0.75rem;opacity:0.7;">Manage external integrations, API keys, and connections</span>
+  </div>
+  <div class="murphy-topbar-right">
+    <div class="relative" id="topbar-search-wrapper">
+      <input type="search" class="murphy-input" id="topbar-search" placeholder="Search… (Ctrl+K)" aria-label="Search" autocomplete="off">
+    </div>
+    <button class="murphy-btn murphy-btn-icon" id="btn-theme-toggle" aria-label="Toggle theme" title="Toggle theme">
+      <svg width="18" height="18" id="theme-icon"><use href="static/murphy-icons.svg#icon-moon"></use></svg>
+    </button>
+    <button class="murphy-btn murphy-btn-icon" id="btn-notifications" aria-label="Notifications" title="Notifications">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-bell"></use></svg>
+    </button>
+  </div>
+</header>
+
+<!-- ============================================================
      MAIN CONTENT AREA
      ============================================================ -->
 <main id="content" role="main" aria-label="Main content" aria-live="polite"
@@ -125,6 +149,33 @@
   keyboard.init();
   jargon.init();
   health.start(15000);
+
+  /* ===========================================================
+     1b. SIDEBAR TOGGLE & THEME TOGGLE
+     =========================================================== */
+  var sidebar   = document.getElementById('sidebar');
+  var contentEl = document.getElementById('content');
+
+  var sidebarToggle = document.getElementById('btn-sidebar-toggle');
+  if (sidebarToggle) {
+    sidebarToggle.addEventListener('click', function () {
+      if (window.innerWidth <= 640) {
+        sidebar.classList.toggle('murphy-sidebar-open');
+      } else {
+        sidebar.classList.toggle('murphy-sidebar-collapsed');
+        contentEl.style.marginLeft = sidebar.classList.contains('murphy-sidebar-collapsed')
+          ? '56px'
+          : 'var(--sidebar-width)';
+      }
+    });
+  }
+
+  var themeToggle = document.getElementById('btn-theme-toggle');
+  if (themeToggle) {
+    themeToggle.addEventListener('click', function () {
+      theme.toggle();
+    });
+  }
 
   /* ===========================================================
      2. HELPERS — HTML generation utilities
