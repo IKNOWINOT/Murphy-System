@@ -149,14 +149,35 @@ def _is_health_endpoint(path: str) -> bool:
 # ── Rate Limiting ────────────────────────────────────────────────────
 
 class _FastAPIRateLimiter:
-    """Simple token-bucket rate limiter with TTL-based cleanup."""
+    """Token-bucket rate limiter with swarm detection.
+
+    Two tiers of rate limiting:
+    - **Single-call** (default): standard ``burst_size`` tokens refilled at
+      ``requests_per_minute`` rate.  Suitable for normal sequential API usage.
+    - **Swarm/batch**: when many requests arrive within ``swarm_window_seconds``
+      the limiter automatically switches to a higher ``swarm_burst_size`` for
+      that client, allowing dashboards and smoke-test pages that fire many
+      parallel requests to complete without being throttled.
+
+    The swarm bucket drains independently and resets once the rapid-fire
+    window elapses, preventing abuse while accommodating legitimate batch
+    patterns like UI dashboards and automated test suites.
+    """
 
     _BUCKET_TTL_SECONDS = 3600  # Evict buckets inactive for 1 hour
     _CLEANUP_INTERVAL = 300     # Run cleanup every 5 minutes
 
-    def __init__(self, requests_per_minute: int = 60, burst_size: int = 20):
+    def __init__(
+        self,
+        requests_per_minute: int = 60,
+        burst_size: int = 20,
+        swarm_burst_size: int = 0,
+        swarm_window_seconds: float = 2.0,
+    ):
         self.rpm = requests_per_minute
         self.burst = burst_size
+        self.swarm_burst = swarm_burst_size
+        self.swarm_window = swarm_window_seconds
         self._buckets: Dict[str, Dict[str, Any]] = {}
         self._last_cleanup: float = time.monotonic()
 
@@ -169,16 +190,46 @@ class _FastAPIRateLimiter:
             self._evict_stale_buckets(now)
 
         if client_id not in self._buckets:
-            self._buckets[client_id] = {"tokens": self.burst, "last_refill": now}
+            self._buckets[client_id] = {
+                "tokens": self.burst,
+                "last_refill": now,
+                "swarm_tokens": self.swarm_burst,
+                "swarm_window_start": now,
+                "swarm_hits": 0,
+            }
         bucket = self._buckets[client_id]
         elapsed = now - bucket["last_refill"]
         refill = elapsed * (self.rpm / 60.0)
         bucket["tokens"] = min(self.burst, bucket["tokens"] + refill)
         bucket["last_refill"] = now
 
+        # --- Swarm detection ---
+        # Track rapid-fire hits within the swarm window
+        swarm_elapsed = now - bucket.get("swarm_window_start", now)
+        if swarm_elapsed > self.swarm_window:
+            # Window expired — reset swarm counters
+            bucket["swarm_tokens"] = self.swarm_burst
+            bucket["swarm_window_start"] = now
+            bucket["swarm_hits"] = 0
+
+        bucket["swarm_hits"] = bucket.get("swarm_hits", 0) + 1
+        is_swarm = bucket["swarm_hits"] > self.burst
+
+        # --- Token check ---
         if bucket["tokens"] >= 1:
+            # Normal single-call path: consume a standard token
             bucket["tokens"] -= 1
             return {"allowed": True, "remaining": int(bucket["tokens"])}
+
+        # Standard tokens exhausted — check swarm allowance
+        if is_swarm and bucket.get("swarm_tokens", 0) >= 1:
+            bucket["swarm_tokens"] -= 1
+            return {
+                "allowed": True,
+                "remaining": int(bucket["swarm_tokens"]),
+                "swarm_mode": True,
+            }
+
         return {
             "allowed": False,
             "remaining": 0,
@@ -199,6 +250,8 @@ class _FastAPIRateLimiter:
 _rate_limiter = _FastAPIRateLimiter(
     requests_per_minute=int(os.environ.get("MURPHY_RATE_LIMIT_RPM", "60")),
     burst_size=int(os.environ.get("MURPHY_RATE_LIMIT_BURST", "20")),
+    swarm_burst_size=int(os.environ.get("MURPHY_RATE_LIMIT_SWARM_BURST", "60")),
+    swarm_window_seconds=float(os.environ.get("MURPHY_RATE_LIMIT_SWARM_WINDOW", "2.0")),
 )
 
 
