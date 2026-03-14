@@ -617,7 +617,14 @@ class CoinbaseConnector:
             raw             = resp,
         )
         with self._lock:
-            from thread_safe_operations import capped_append
+            try:
+                from thread_safe_operations import capped_append
+            except ImportError:
+                def capped_append(target_list: list, item: Any, max_size: int = 10_000) -> None:
+                    """Fallback bounded append (CWE-770)."""
+                    if len(target_list) >= max_size:
+                        del target_list[: max_size // 10]
+                    target_list.append(item)
             capped_append(self._order_history, order, _MAX_ORDER_HISTORY)
 
     def get_order_history(self) -> List[CoinbaseOrder]:
