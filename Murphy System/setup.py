@@ -64,7 +64,7 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "murphy=murphy_system_1.0_runtime:main",
+            "murphy=src.runtime.app:main",
         ],
     },
 )
