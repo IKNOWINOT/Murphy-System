@@ -180,13 +180,29 @@ def _is_health_endpoint(path: str) -> bool:
 # ── Rate Limiting ────────────────────────────────────────────────────
 
 class _FlaskRateLimiter:
-    """Simple token-bucket rate limiter for Flask requests."""
+    """Token-bucket rate limiter with swarm detection for Flask requests.
+
+    Two tiers of rate limiting:
+    - **Single-call** (default): standard ``burst_size`` tokens refilled at
+      ``requests_per_minute`` rate.
+    - **Swarm/batch**: when many requests arrive within ``swarm_window_seconds``
+      the limiter switches to a higher ``swarm_burst_size``, allowing
+      dashboards and batch callers to complete without being throttled.
+    """
 
     import time as _time
 
-    def __init__(self, requests_per_minute: int = 60, burst_size: int = 10):
+    def __init__(
+        self,
+        requests_per_minute: int = 60,
+        burst_size: int = 10,
+        swarm_burst_size: int = 0,
+        swarm_window_seconds: float = 2.0,
+    ):
         self.rpm = requests_per_minute
         self.burst = burst_size
+        self.swarm_burst = swarm_burst_size
+        self.swarm_window = swarm_window_seconds
         self._buckets: Dict[str, Dict[str, Any]] = {}
 
     def check(self, client_id: str) -> Dict[str, Any]:
@@ -197,6 +213,9 @@ class _FlaskRateLimiter:
             self._buckets[client_id] = {
                 "tokens": self.burst,
                 "last_refill": now,
+                "swarm_tokens": self.swarm_burst,
+                "swarm_window_start": now,
+                "swarm_hits": 0,
             }
         bucket = self._buckets[client_id]
         elapsed = now - bucket["last_refill"]
@@ -204,9 +223,29 @@ class _FlaskRateLimiter:
         bucket["tokens"] = min(self.burst, bucket["tokens"] + refill)
         bucket["last_refill"] = now
 
+        # --- Swarm detection ---
+        swarm_elapsed = now - bucket.get("swarm_window_start", now)
+        if swarm_elapsed > self.swarm_window:
+            bucket["swarm_tokens"] = self.swarm_burst
+            bucket["swarm_window_start"] = now
+            bucket["swarm_hits"] = 0
+
+        bucket["swarm_hits"] = bucket.get("swarm_hits", 0) + 1
+        is_swarm = bucket["swarm_hits"] > self.burst
+
         if bucket["tokens"] >= 1:
             bucket["tokens"] -= 1
             return {"allowed": True, "remaining": int(bucket["tokens"])}
+
+        # Standard tokens exhausted — check swarm allowance
+        if is_swarm and bucket.get("swarm_tokens", 0) >= 1:
+            bucket["swarm_tokens"] -= 1
+            return {
+                "allowed": True,
+                "remaining": int(bucket["swarm_tokens"]),
+                "swarm_mode": True,
+            }
+
         return {
             "allowed": False,
             "remaining": 0,
@@ -215,7 +254,12 @@ class _FlaskRateLimiter:
 
 
 # Global rate limiter instance
-_rate_limiter = _FlaskRateLimiter(requests_per_minute=60, burst_size=20)
+_rate_limiter = _FlaskRateLimiter(
+    requests_per_minute=60,
+    burst_size=20,
+    swarm_burst_size=60,
+    swarm_window_seconds=2.0,
+)
 
 
 # ── Security Headers ────────────────────────────────────────────────
