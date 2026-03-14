@@ -894,6 +894,15 @@ MODULE_MANIFEST: List[ModuleEntry] = [
         consumes=["learning_feedback"],
         description="Adaptive campaign engine",
     ),
+    ModuleEntry(
+        module="self_marketing_orchestrator",
+        room="self-marketing-orchestrator",
+        commands=["marketing cycle", "marketing content", "marketing social", "marketing outreach"],
+        persona="MarketingBot",
+        emits=["content_published", "social_posted", "outreach_sent", "outreach_blocked"],
+        consumes=["campaign_adjusted", "traction_evaluated"],
+        description="Self-marketing orchestrator — Murphy markets Murphy with compliance",
+    ),
 
     # ── Infrastructure & DevOps ───────────────────────────────────────────────
     ModuleEntry(
