@@ -3082,16 +3082,19 @@ def create_app() -> FastAPI:
         }
 
         _mounted_count = 0
+
+        def _make_html_handler(_fp: str):
+            """Create an async handler that serves an HTML file."""
+            async def _handler():
+                return _FileResponse(_fp, media_type="text/html")
+            return _handler
+
         for _route_path, _filename in _html_routes.items():
             _filepath = _project_root / _filename
             if _filepath.is_file():
-                def _make_handler(_fp=str(_filepath)):
-                    async def _handler():
-                        return _FileResponse(_fp, media_type="text/html")
-                    return _handler
                 app.add_api_route(
-                    _route_path, _make_handler(), methods=["GET"],
-                    include_in_schema=False,
+                    _route_path, _make_html_handler(str(_filepath)),
+                    methods=["GET"], include_in_schema=False,
                 )
                 _mounted_count += 1
 
@@ -3100,14 +3103,10 @@ def create_app() -> FastAPI:
         # to terminal_architect.html directly).
         for _hf in sorted(_project_root.glob("*.html")):
             _ui_path = f"/ui/{_hf.name}"
-            if _ui_path not in {r for r in _html_routes}:
-                def _make_fallback(_fp=str(_hf)):
-                    async def _handler():
-                        return _FileResponse(_fp, media_type="text/html")
-                    return _handler
+            if _ui_path not in _html_routes:
                 app.add_api_route(
-                    _ui_path, _make_fallback(), methods=["GET"],
-                    include_in_schema=False,
+                    _ui_path, _make_html_handler(str(_hf)),
+                    methods=["GET"], include_in_schema=False,
                 )
                 _mounted_count += 1
 
