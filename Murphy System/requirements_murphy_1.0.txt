@@ -199,3 +199,6 @@ notebook>=7.0.0
 # Linux
 # python-systemd>=235  # Linux only
 tomli>=2.0.0;python_version<'3.11'
+
+# Protective floor — if weasyprint IS installed, ensure tinycss2 is compatible
+tinycss2>=1.5.0
