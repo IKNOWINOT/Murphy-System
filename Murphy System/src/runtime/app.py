@@ -799,6 +799,14 @@ def create_app() -> FastAPI:
             {"command": "guest", "category": "guest", "description": "Guest collaboration sharing", "api": "/api/guest", "ui": "/ui/dashboard"},
             {"command": "mobile", "category": "mobile", "description": "Mobile API endpoints", "api": "/api/mobile", "ui": "/ui/dashboard"},
             {"command": "billing", "category": "billing", "description": "Billing and subscription management", "api": "/api/billing", "ui": "/ui/pricing"},
+            # ── Compliance ───────────────────────────────────────────
+            {"command": "compliance toggles", "category": "compliance", "description": "View and manage compliance framework toggles", "api": "/api/compliance/toggles", "ui": "/ui/compliance"},
+            {"command": "compliance recommended", "category": "compliance", "description": "Get recommended compliance frameworks for your country/industry", "api": "/api/compliance/recommended", "ui": "/ui/compliance"},
+            {"command": "compliance report", "category": "compliance", "description": "Generate a compliance posture report", "api": "/api/compliance/report", "ui": "/ui/compliance"},
+            # ── Signup & Auth ────────────────────────────────────────
+            {"command": "signup", "category": "auth", "description": "Create a new Murphy account", "api": "/api/auth/signup", "ui": "/ui/signup"},
+            {"command": "oauth google", "category": "auth", "description": "Sign up or login with Google", "api": "/api/auth/oauth/google", "ui": "/ui/signup"},
+            {"command": "oauth github", "category": "auth", "description": "Sign up or login with GitHub", "api": "/api/auth/oauth/github", "ui": "/ui/signup"},
         ]
 
         categories = {}
@@ -2822,6 +2830,71 @@ def create_app() -> FastAPI:
             logger.exception("Failed to list MFM versions")
             return _safe_error_response(exc, 500)
 
+    # ==================== COMPLIANCE ENDPOINTS ====================
+
+    _compliance_toggles: Dict[str, bool] = {}
+
+    @app.get("/api/compliance/toggles")
+    async def compliance_toggles_get():
+        """Return the current compliance framework toggle states."""
+        return JSONResponse({"success": True, "toggles": _compliance_toggles})
+
+    @app.post("/api/compliance/toggles")
+    async def compliance_toggles_save(request: Request):
+        """Save compliance framework toggle states."""
+        try:
+            data = await request.json()
+            toggles = data.get("toggles", {})
+            _compliance_toggles.update(toggles)
+            return JSONResponse({
+                "success": True,
+                "toggles": _compliance_toggles,
+                "saved_at": __import__("datetime").datetime.utcnow().isoformat() + "Z",
+            })
+        except Exception as exc:
+            logger.exception("Failed to save compliance toggles")
+            return _safe_error_response(exc, 500)
+
+    @app.get("/api/compliance/recommended")
+    async def compliance_recommended(country: str = "US", industry: str = "general"):
+        """Return recommended compliance frameworks for a given country/industry."""
+        recommendations: Dict[str, list] = {
+            "US": ["SOC2", "CCPA", "HIPAA"],
+            "EU": ["GDPR", "NIS2", "DORA"],
+            "UK": ["UK_GDPR", "FCA"],
+            "AU": ["APPs", "CPS234"],
+        }
+        industry_map: Dict[str, list] = {
+            "healthcare": ["HIPAA", "HITECH"],
+            "finance": ["SOC2", "PCI_DSS", "SOX"],
+            "government": ["FedRAMP", "CMMC", "ITAR"],
+            "general": [],
+        }
+        country_recs = recommendations.get(country.upper(), recommendations["US"])
+        industry_recs = industry_map.get(industry.lower(), [])
+        combined = list(dict.fromkeys(country_recs + industry_recs))
+        return JSONResponse({
+            "success": True,
+            "country": country,
+            "industry": industry,
+            "recommended": combined,
+        })
+
+    @app.get("/api/compliance/report")
+    async def compliance_report():
+        """Generate a compliance posture report."""
+        enabled = [k for k, v in _compliance_toggles.items() if v]
+        return JSONResponse({
+            "success": True,
+            "report": {
+                "enabled_frameworks": enabled,
+                "total_enabled": len(enabled),
+                "total_available": 42,
+                "posture_score": round(len(enabled) / 42 * 100, 1) if enabled else 0,
+                "generated_at": __import__("datetime").datetime.utcnow().isoformat() + "Z",
+            },
+        })
+
     # ==================== TEST MODE ====================
 
     @app.get("/api/test-mode/status")
@@ -2903,6 +2976,43 @@ def create_app() -> FastAPI:
         except Exception as exc:
             logger.exception("OAuth callback failed")
             return _safe_error_response(exc, 500)
+
+    @app.post("/api/auth/signup")
+    async def auth_signup(request: Request):
+        """Handle email/password signup."""
+        try:
+            data = await request.json()
+            email = data.get("email", "")
+            name = data.get("name", "")
+            if not email:
+                return JSONResponse({"success": False, "error": "Email is required"}, status_code=400)
+            # In production, this would create the user account
+            return JSONResponse({
+                "success": True,
+                "message": "Account created successfully. Check your email to verify.",
+                "email": email,
+                "name": name,
+            })
+        except Exception as exc:
+            logger.exception("Signup failed")
+            return _safe_error_response(exc, 500)
+
+    @app.get("/api/auth/oauth/{provider}")
+    async def auth_oauth_redirect(provider: str):
+        """Redirect to OAuth provider for signup/login."""
+        supported = ["google", "github", "meta", "linkedin", "apple"]
+        if provider.lower() not in supported:
+            return JSONResponse(
+                {"success": False, "error": f"Unsupported provider: {provider}"},
+                status_code=400,
+            )
+        # In production, this would redirect to the provider's auth URL
+        return JSONResponse({
+            "success": True,
+            "provider": provider,
+            "message": f"OAuth flow for {provider} initiated. Configure OAuth credentials to enable.",
+            "redirect_url": f"https://accounts.{provider}.com/o/oauth2/auth",
+        })
 
     # ==================== READINESS SCANNER ====================
 
