@@ -14,6 +14,7 @@ from typing import Any, Callable, Dict, List, Optional
 try:
     from thread_safe_operations import CircuitBreaker, RateLimiter, ThreadSafeCounter, ThreadSafeDict
 except ImportError:
+    import threading as _fb_threading
     class CircuitBreaker:
         """Minimal fallback CircuitBreaker (pass-through, no tripping)."""
         def __init__(self, *args, **kwargs):
@@ -35,10 +36,9 @@ except ImportError:
             return True
     class ThreadSafeCounter:
         """Minimal fallback ThreadSafeCounter."""
-        import threading as _tsc_threading
         def __init__(self, initial_value: int = 0):
             self._value = initial_value
-            self._lock = self._tsc_threading.Lock()
+            self._lock = _fb_threading.Lock()
         def increment(self, delta: int = 1) -> int:
             with self._lock:
                 self._value += delta
@@ -56,10 +56,9 @@ except ImportError:
                 return self._value
     class ThreadSafeDict:
         """Minimal fallback ThreadSafeDict."""
-        import threading as _tsd_threading
         def __init__(self):
             self._dict: dict = {}
-            self._lock = self._tsd_threading.RLock()
+            self._lock = _fb_threading.RLock()
         def get(self, key, default=None):
             with self._lock:
                 return self._dict.get(key, default)
