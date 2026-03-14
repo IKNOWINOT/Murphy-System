@@ -30,6 +30,13 @@ Safety invariants:
     the outreach rather than allowing it (fail closed, not fail open)
   - Bounded collections via capped_append (CWE-770)
   - DNC additions are permanent and cannot be reversed by this layer
+  - Input validation (CWE-20): all public methods validate and sanitize
+    contact_id, email, channel, and string lengths before use
+  - Null-byte stripping on all string inputs (CWE-158)
+  - Channel allowlist enforced: only known channels are accepted
+  - Reply text capped at _MAX_REPLY_TEXT_LEN before keyword scan (DoS)
+  - Governor-supplied strings truncated before storage
+  - Raw email addresses are never written to log records
 
 Copyright © 2020 Inoni Limited Liability Company
 Creator: Corey Post
@@ -39,10 +46,11 @@ License: BSL 1.1
 from __future__ import annotations
 
 import logging
+import re
 import threading
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -57,7 +65,28 @@ logger = logging.getLogger(__name__)
 _MAX_AUDIT_LOG = 10_000
 _MAX_DNC_ENTRIES = 100_000
 
-# Keywords that indicate opt-out intent (case-insensitive, partial match)
+# ── Input validation constraints (CWE-20) ────────────────────────────────────
+# contact_id: alphanumeric plus underscore, hyphen, dot, and at-sign
+# (accommodates UUID-style IDs, email-as-ID, and plain slugs)
+_CONTACT_ID_RE = re.compile(r"^[a-zA-Z0-9_@.\-]{1,200}$")
+# Email: RFC 5322 simplified — only safe characters before and after @
+_EMAIL_RE = re.compile(r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$")
+
+_MAX_EMAIL_LEN = 254           # RFC 5321 hard limit
+_MAX_CONTACT_ID_LEN = 200
+_MAX_OUTREACH_TYPE_LEN = 100
+_MAX_REGION_LEN = 100
+_MAX_REPLY_TEXT_LEN = 50_000   # truncate before keyword scan to prevent DoS
+_MAX_METADATA_KEYS = 50        # CWE-770
+_MAX_METADATA_KEY_LEN = 100
+_MAX_METADATA_VALUE_LEN = 1_000
+_MAX_REGULATION_LEN = 100      # cap governor-supplied regulation string
+_MAX_MESSAGE_LEN = 500         # cap governor-supplied reason/message string
+
+# Channels that Murphy recognises; anything else is rejected
+_ALLOWED_CHANNELS: frozenset[str] = frozenset({"email", "sms", "linkedin", "phone", "push"})
+
+# Keywords that indicate opt-out intent (case-insensitive, substring match)
 _OPT_OUT_KEYWORDS: List[str] = [
     "stop",
     "unsubscribe",
@@ -75,6 +104,108 @@ _OPT_OUT_KEYWORDS: List[str] = [
     "never contact",
     "please stop",
 ]
+
+# Keywords that indicate positive / interested intent (module-level constant)
+_POSITIVE_KEYWORDS: List[str] = [
+    "interested", "tell me more", "sounds good", "yes please",
+    "let's talk", "let's chat", "schedule a call", "book a demo",
+    "how much", "pricing", "sign me up", "sign up", "i'd like",
+    "i would like", "please set up", "trial", "demo",
+]
+
+
+# ---------------------------------------------------------------------------
+# Input validation helpers (CWE-20, CWE-158)
+# ---------------------------------------------------------------------------
+
+
+def _validate_contact_id(contact_id: str) -> str:
+    """Validate contact_id: strip null bytes, enforce allowlist regex.
+
+    Raises:
+        ValueError: if contact_id is empty, too long, or contains invalid chars.
+    """
+    if not isinstance(contact_id, str):
+        raise ValueError("contact_id must be a string")
+    contact_id = contact_id.replace("\x00", "")
+    if not contact_id:
+        raise ValueError("contact_id must not be empty")
+    if len(contact_id) > _MAX_CONTACT_ID_LEN:
+        raise ValueError(f"contact_id too long (max {_MAX_CONTACT_ID_LEN} chars)")
+    if not _CONTACT_ID_RE.match(contact_id):
+        raise ValueError(
+            "contact_id contains invalid characters "
+            "(allowed: alphanumeric, underscore, hyphen, dot, at-sign)"
+        )
+    return contact_id
+
+
+def _validate_email(email: str) -> str:
+    """Validate and normalise email address (RFC 5321 / RFC 5322 simplified).
+
+    Raises:
+        ValueError: if email is empty, too long, or not a valid address.
+    """
+    if not isinstance(email, str):
+        raise ValueError("contact_email must be a string")
+    email = email.replace("\x00", "").strip()
+    if not email:
+        raise ValueError("contact_email must not be empty")
+    if len(email) > _MAX_EMAIL_LEN:
+        raise ValueError(f"contact_email too long (max {_MAX_EMAIL_LEN} chars)")
+    if not _EMAIL_RE.match(email):
+        raise ValueError("contact_email is not a valid email address")
+    return email.lower()
+
+
+def _validate_channel(channel: str) -> str:
+    """Validate channel against the known-channel allowlist.
+
+    Raises:
+        ValueError: if channel is not in _ALLOWED_CHANNELS.
+    """
+    if not isinstance(channel, str):
+        raise ValueError("channel must be a string")
+    channel = channel.replace("\x00", "").strip().lower()
+    if channel not in _ALLOWED_CHANNELS:
+        raise ValueError(
+            f"channel must be one of: {', '.join(sorted(_ALLOWED_CHANNELS))}"
+        )
+    return channel
+
+
+def _sanitize_str(value: str, max_len: int) -> str:
+    """Strip null bytes and truncate to max_len (CWE-158, CWE-770)."""
+    if not isinstance(value, str):
+        value = str(value)
+    return value.replace("\x00", "")[:max_len]
+
+
+def _sanitize_metadata(
+    metadata: Optional[Dict[str, Any]],
+) -> Optional[Dict[str, Any]]:
+    """Validate and sanitize message_metadata dict (CWE-20, CWE-770).
+
+    Raises:
+        ValueError: if metadata is not a dict or exceeds the key-count cap.
+    """
+    if metadata is None:
+        return None
+    if not isinstance(metadata, dict):
+        raise ValueError("message_metadata must be a dict")
+    if len(metadata) > _MAX_METADATA_KEYS:
+        raise ValueError(
+            f"message_metadata exceeds maximum key count ({_MAX_METADATA_KEYS})"
+        )
+    sanitized: Dict[str, Any] = {}
+    for k, v in metadata.items():
+        if not isinstance(k, str):
+            raise ValueError("message_metadata keys must be strings")
+        k = k.replace("\x00", "")[:_MAX_METADATA_KEY_LEN]
+        if isinstance(v, str):
+            v = v.replace("\x00", "")[:_MAX_METADATA_VALUE_LEN]
+        sanitized[k] = v
+    return sanitized
 
 # ---------------------------------------------------------------------------
 # Enums
@@ -310,7 +441,21 @@ class OutreachComplianceGate:
 
         If ALLOW: records the contact timestamp for future cooldown tracking.
         If BLOCK: records the block reason for analytics.
+
+        Raises:
+            ValueError: if any input fails validation (contact_id, email, channel,
+                metadata).  These are programmer errors and are not caught by the
+                fail-closed exception handler.
         """
+        # ── Input validation — runs BEFORE the fail-closed try/except ────────
+        # ValueError propagates directly to the caller; it is not swallowed.
+        contact_id = _validate_contact_id(contact_id)
+        contact_email = _validate_email(contact_email)
+        channel = _validate_channel(channel)
+        outreach_type = _sanitize_str(outreach_type, _MAX_OUTREACH_TYPE_LEN)
+        contact_region = _sanitize_str(contact_region, _MAX_REGION_LEN)
+        message_metadata = _sanitize_metadata(message_metadata)
+
         try:
             gov = self._get_governor()
 
@@ -368,6 +513,13 @@ class OutreachComplianceGate:
                     if "consent" in reg_result.get("reason", "").lower()
                     else BlockReason.REGULATORY
                 )
+                # Sanitize governor-supplied strings before surfacing (CWE-20)
+                safe_regulation = _sanitize_str(
+                    reg_result.get("regulation", ""), _MAX_REGULATION_LEN
+                )
+                safe_message = _sanitize_str(
+                    reg_result.get("reason", "Regulatory block."), _MAX_MESSAGE_LEN
+                )
                 decision = OutreachDecision(
                     decision=OutreachDecisionType.BLOCK,
                     contact_id=contact_id,
@@ -375,13 +527,12 @@ class OutreachComplianceGate:
                     channel=channel,
                     outreach_type=outreach_type,
                     block_reason=block_reason,
-                    regulation_cited=reg_result.get("regulation", ""),
-                    message=reg_result.get("reason", "Regulatory block."),
+                    regulation_cited=safe_regulation,
+                    message=safe_message,
                 )
                 self._record_audit(
                     contact_id, contact_email, channel, outreach_type,
-                    OutreachDecisionType.BLOCK, block_reason,
-                    reg_result.get("regulation", "")
+                    OutreachDecisionType.BLOCK, block_reason, safe_regulation
                 )
                 return decision
 
@@ -403,8 +554,12 @@ class OutreachComplianceGate:
             return decision
 
         except Exception as exc:  # noqa: BLE001
-            # Fail closed: unexpected errors block the outreach
-            logger.error("OutreachComplianceGate unexpected error: %s", exc, exc_info=True)
+            # Fail closed: unexpected errors block the outreach.
+            # Log contact_id only — never the raw email address (PII in logs).
+            logger.error(
+                "OutreachComplianceGate unexpected error for contact %s: %s",
+                contact_id, exc, exc_info=True,
+            )
             decision = OutreachDecision(
                 decision=OutreachDecisionType.BLOCK,
                 contact_id=contact_id,
@@ -434,7 +589,18 @@ class OutreachComplianceGate:
             {"opted_out": False, "positive": True}
         Otherwise: returns
             {"opted_out": False, "positive": False}
+
+        Raises:
+            ValueError: if contact_id or contact_email fail validation.
         """
+        # ── Input validation ──────────────────────────────────────────────────
+        contact_id = _validate_contact_id(contact_id)
+        contact_email = _validate_email(contact_email)
+        if not isinstance(reply_text, str):
+            reply_text = str(reply_text)
+        # Strip null bytes and cap length before keyword scan (CWE-158, DoS)
+        reply_text = reply_text.replace("\x00", "")[:_MAX_REPLY_TEXT_LEN]
+
         normalized = reply_text.lower()
 
         # ── Opt-out detection ─────────────────────────────────────────────────
@@ -453,9 +619,10 @@ class OutreachComplianceGate:
                     reason=f"opt_out_reply:{matched_keyword}",
                 )
             except Exception as exc:  # noqa: BLE001
+                # Log contact_id only — do not expose raw email in log output (PII)
                 logger.error(
-                    "Failed to add %s to DNC after opt-out reply: %s",
-                    contact_email,
+                    "Failed to add contact %s to DNC after opt-out reply: %s",
+                    contact_id,
                     exc,
                     exc_info=True,
                 )
@@ -467,12 +634,6 @@ class OutreachComplianceGate:
             return {"opted_out": True, "reason": matched_keyword}
 
         # ── Positive intent detection ─────────────────────────────────────────
-        _POSITIVE_KEYWORDS = [
-            "interested", "tell me more", "sounds good", "yes please",
-            "let's talk", "let's chat", "schedule a call", "book a demo",
-            "how much", "pricing", "sign me up", "sign up", "i'd like",
-            "i would like", "please set up", "trial", "demo",
-        ]
         is_positive = any(kw in normalized for kw in _POSITIVE_KEYWORDS)
 
         return {"opted_out": False, "positive": is_positive}
@@ -489,7 +650,14 @@ class OutreachComplianceGate:
             cooldown_remaining — seconds remaining in cooldown (0 if none)
             last_contacted    — ISO timestamp of last contact, or None
             consent_status    — "granted" | "withdrawn" | "unknown"
+
+        Raises:
+            ValueError: if contact_id or contact_email fail validation.
         """
+        # ── Input validation ──────────────────────────────────────────────────
+        contact_id = _validate_contact_id(contact_id)
+        contact_email = _validate_email(contact_email)
+
         try:
             gov = self._get_governor()
             is_dnc = gov.is_dnc(contact_id, contact_email)
@@ -499,8 +667,10 @@ class OutreachComplianceGate:
             last_contacted = gov.last_contacted_at(contact_id, contact_email)
             consent_status = gov.consent_status(contact_id, contact_email)
         except Exception as exc:  # noqa: BLE001
+            # Log contact_id only — do not expose raw email in log output (PII)
             logger.error(
-                "get_contact_status failed for %s: %s", contact_email, exc, exc_info=True
+                "get_contact_status failed for contact %s: %s",
+                contact_id, exc, exc_info=True,
             )
             return {
                 "contact_id": contact_id,
@@ -566,4 +736,11 @@ __all__ = [
     "OutreachDecision",
     "OutreachDecisionType",
     "get_default_gate",
+    # Validation helpers (exported for external testing and re-use)
+    "_ALLOWED_CHANNELS",
+    "_validate_contact_id",
+    "_validate_channel",
+    "_validate_email",
+    "_sanitize_str",
+    "_sanitize_metadata",
 ]
