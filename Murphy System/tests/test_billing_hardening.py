@@ -83,7 +83,7 @@ class TestAccountIdValidation:
         assert r.status_code in (400, 404, 422)
 
     @pytest.mark.asyncio
-    async def test_empty_account_id_usage(self, client):
+    async def test_whitespace_only_account_id_rejected(self, client):
         c, _ = client
         r = await c.get("/api/billing/usage/%20")
         assert r.status_code == 400
