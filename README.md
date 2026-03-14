@@ -306,6 +306,12 @@ Use this table as the primary lookup for active modules, docs, and entry points.
 | **Bot Identity Verifier** | `src/security_plane/bot_identity_verifier.py` | HMAC-SHA256 signing, message verification, identity registry, key revocation |
 | **Bot Anomaly Detector** | `src/security_plane/bot_anomaly_detector.py` | Z-score anomaly detection, resource spikes, API pattern analysis |
 | **Security Dashboard** | `src/security_plane/security_dashboard.py` | Unified event view, correlation, compliance reports, escalation |
+| **Self-Introspection** | `src/self_introspection_module.py` | Runtime self-analysis and codebase scanning |
+| **Self-Codebase Swarm** | `src/self_codebase_swarm.py` | Autonomous BMS spec generation and RFP parsing |
+| **Cut Sheet Engine** | `src/cutsheet_engine.py` | Manufacturer data parsing and wiring diagram generation |
+| **Visual Swarm Builder** | `src/visual_swarm_builder.py` | Visual pipeline construction for swarm workflows |
+| **CEO Branch Activation** | `src/ceo_branch_activation.py` | Top-level autonomous decision-making and planning |
+| **Production Assistant Engine** | `src/production_assistant_engine.py` | Request lifecycle and deliverable gate validation |
 
 **Progress tracking:** All security enhancements are complete. All RFI items (`RFI-001`..`RFI-015`) have been resolved. See [SECURITY.md](SECURITY.md) for vulnerability reporting.
 
@@ -783,7 +789,7 @@ Murphy is the **only automation platform** that covers the entire stack — from
 
 ---
 
-## 📊 Stats (Murphy System, as of 2026-03-05)
+## 📊 Stats (Murphy System, as of 2026-03-14)
 
 | Metric | Value |
 | --- | --- |

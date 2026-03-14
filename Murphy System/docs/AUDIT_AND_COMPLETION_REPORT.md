@@ -145,6 +145,12 @@ system completion to **100%** at the functional level.
 | **Librarian** (`src/librarian/`) | 100% | 90% | 85% | 92% |
 | **Integration Engine** (`src/integration_engine/`) | 100% | 60% | 70% | 77% |
 | **Module Compiler** (`src/module_compiler/`) | 100% | 50% | 70% | 73% |
+| `self_introspection_module.py` (INTRO-001) | ✅ Complete | Runtime self-analysis, codebase scanning | — | — |
+| `self_codebase_swarm.py` (SCS-001) | ✅ Complete | Autonomous BMS spec generation, RFP parsing | — | — |
+| `cutsheet_engine.py` (CSE-001) | ✅ Complete | Manufacturer data parsing, wiring diagrams | — | — |
+| `visual_swarm_builder.py` (VSB-001) | ✅ Complete | Visual pipeline construction | — | — |
+| `ceo_branch_activation.py` (CEO-002) | ✅ Complete | Top-level autonomous decision-making | — | — |
+| `production_assistant_engine.py` (PROD-ENG-001) | ✅ Complete | Request lifecycle management | — | — |
 
 ### 3.2 Documentation Completeness by Category
 

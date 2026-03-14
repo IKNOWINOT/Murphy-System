@@ -199,7 +199,7 @@ These areas have **zero gap** between plan and reality:
 ## 6. Issue #136 Subsystems — Implementation Tracking
 
 Seven new subsystems are being added in parallel under issue #136. The table below
-tracks their implementation status as of 2026-03-08.
+tracks their implementation status as of 2026-03-14.
 
 | Subsystem | Module File | Status | Notes |
 |-----------|-------------|--------|-------|
@@ -229,10 +229,23 @@ The following modules were added in the 2026-03-07/08 wave and are now operation
 | `efficiency_orchestrator.py` | 📋 Planned | Efficiency scoring and optimisation |
 | `supply_orchestrator.py` | 📋 Planned | Inventory, usage, receipts, and reorder management |
 
+### 6.2 New Modules from PRs #249–#254
+
+The following modules were added in the 2026-03-14 wave and are now operational:
+
+| Subsystem | Module File | PR | Tracking ID | Status | Description |
+|-----------|-------------|-----|-------------|--------|-------------|
+| Self-Introspection | `self_introspection_module.py` | #252 | INTRO-001 | ✅ Operational | Runtime self-analysis engine |
+| Self-Codebase Swarm | `self_codebase_swarm.py` | #252 | SCS-001 | ✅ Operational | Autonomous BMS spec swarm |
+| Cut Sheet Engine | `cutsheet_engine.py` | #252 | CSE-001 | ✅ Operational | Cut sheet parsing engine |
+| Visual Swarm Builder | `visual_swarm_builder.py` | #252 | VSB-001 | ✅ Operational | Visual swarm pipeline builder |
+| CEO Branch Activation | `ceo_branch_activation.py` | #250 | CEO-002 | ✅ Operational | CEO autonomous operations |
+| Production Assistant Engine | `production_assistant_engine.py` | #249 | PROD-ENG-001 | ✅ Operational | Production lifecycle engine |
+
 ---
 
 **Document Version:** 3.0
-**Last Updated:** 2026-03-08
+**Last Updated:** 2026-03-14
 
 ---
 
