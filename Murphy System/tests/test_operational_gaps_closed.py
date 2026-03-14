@@ -1759,22 +1759,18 @@ class TestK8sImagePullPolicyPresent:
 class TestTerminalTopbarsPresent:
     """Terminal HTML pages with sidebar JS must have btn-sidebar-toggle element."""
 
-    _TERMINALS_WITH_SIDEBAR_JS = [
-        "terminal_architect.html",
-        "terminal_enhanced.html",
-        "terminal_integrated.html",
-        "terminal_unified.html",
-        "terminal_worker.html",
-        "terminal_costs.html",
-        "terminal_orgchart.html",
-        "terminal_integrations.html",
-    ]
+    @staticmethod
+    def _discover_terminals():
+        """Dynamically discover terminal_*.html files in the project root."""
+        import glob as _glob
+        return [
+            os.path.basename(f)
+            for f in _glob.glob(os.path.join(_PROJECT_ROOT, "terminal_*.html"))
+        ]
 
     def test_topbar_element_exists(self):
-        for fname in self._TERMINALS_WITH_SIDEBAR_JS:
+        for fname in self._discover_terminals():
             path = os.path.join(_PROJECT_ROOT, fname)
-            if not os.path.isfile(path):
-                continue
             with open(path) as fh:
                 content = fh.read()
             assert 'class="murphy-topbar"' in content or '<murphy-header' in content, (
@@ -1782,10 +1778,8 @@ class TestTerminalTopbarsPresent:
             )
 
     def test_sidebar_toggle_wired(self):
-        for fname in self._TERMINALS_WITH_SIDEBAR_JS:
+        for fname in self._discover_terminals():
             path = os.path.join(_PROJECT_ROOT, fname)
-            if not os.path.isfile(path):
-                continue
             with open(path) as fh:
                 content = fh.read()
             if 'btn-sidebar-toggle' in content:
