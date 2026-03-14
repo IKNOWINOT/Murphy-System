@@ -88,6 +88,10 @@ _VALID_VERTICAL_IDS: FrozenSet[str] = frozenset({
     "technology",
     "professional_services",
     "government",
+    "iot_building_automation",
+    "energy_management",
+    "additive_manufacturing",
+    "factory_automation",
 })
 
 _VALID_OFFERING_TYPES: FrozenSet[str] = frozenset({
@@ -329,17 +333,26 @@ MURPHY_CAPABILITIES: Dict[str, MurphyCapability] = {
         name="App Connector Ecosystem (57+ connectors)",
         description=(
             "57 pre-built connectors across 20 categories — CRM, ERP, cloud, "
-            "IoT, healthcare (FHIR), financial, DevOps, and communication platforms."
+            "IoT, healthcare (FHIR), financial, DevOps, and communication platforms. "
+            "Industrial connectors cover building automation (BACnet, KNX, Modbus), "
+            "energy management (ISO 50001, demand response), additive manufacturing "
+            "(OPC-UA AM, GrabCAD, Eiger, EOSTATE), and factory automation "
+            "(OPC-UA, EtherNet/IP, PROFINET, MTConnect)."
         ),
         maturity_score=10,
         relevant_vertical_ids=(
             "technology", "financial_services", "healthcare",
             "manufacturing", "professional_services",
+            "iot_building_automation", "energy_management",
+            "additive_manufacturing", "factory_automation",
         ),
         differentiators=(
             "7 connectors beyond the 50-connector industry benchmark",
             "FHIR Healthcare connector — ships ready for HIPAA-compliant workflows",
             "Plugin SDK — operators build and publish custom connectors",
+            "Building automation: BACnet/IP, KNX, Modbus, DALI, LonWorks, OPC-UA",
+            "Factory automation: 15 vendor connectors — Rockwell, Siemens, Beckhoff, FANUC, ABB, KUKA",
+            "Additive manufacturing: FDM/SLS/DMLS — GrabCAD, Eiger, EOSTATE, HP Command Center",
         ),
     ),
     "no_code_low_code_ux": MurphyCapability(
@@ -366,15 +379,22 @@ MURPHY_CAPABILITIES: Dict[str, MurphyCapability] = {
         name="IoT / Sensor / Actuator Control",
         description=(
             "Native integration with industrial IoT protocols (OPC-UA, SCADA, "
-            "Modbus TCP) — Murphy reads sensors, processes telemetry, and "
-            "triggers actuators through confidence-gated commands."
+            "Modbus TCP, BACnet, KNX, EtherNet/IP, PROFINET, MTConnect) — Murphy reads "
+            "sensors, processes telemetry, and triggers actuators through "
+            "confidence-gated commands."
         ),
         maturity_score=9,
-        relevant_vertical_ids=("manufacturing", "government"),
+        relevant_vertical_ids=(
+            "manufacturing", "government",
+            "iot_building_automation", "energy_management",
+            "factory_automation",
+        ),
         differentiators=(
             "Safety-critical EXECUTIVE gate with emergency-stop for actuator commands",
             "Predictive maintenance: trend-based failure classification before downtime",
             "Multi-sensor fusion: Kalman, Bayesian, Complementary strategies",
+            "15+ factory automation connectors: Rockwell, Siemens, Beckhoff, FANUC, ABB, KUKA",
+            "Building automation connectors: BACnet/IP, KNX, Modbus, DALI, OPC-UA",
         ),
     ),
     "self_improving_learning": MurphyCapability(
@@ -837,6 +857,266 @@ INDUSTRY_VERTICALS: Dict[str, IndustryVertical] = {
             "Article 15 evidence requirements out of the box."
         ),
     ),
+    "iot_building_automation": IndustryVertical(
+        vertical_id="iot_building_automation",
+        name="IoT & Building Automation Systems (BAS/BMS)",
+        icp=(
+            "Commercial real-estate owners, facility management companies, smart-building "
+            "technology vendors, and systems integrators who deploy BACnet, KNX, Modbus, "
+            "or OPC-UA building automation systems and need AI orchestration to unify "
+            "HVAC, lighting, access control, and energy systems into a single adaptive loop. "
+            "Buyers: VP of Facilities Technology, Chief Sustainability Officers, or BAS "
+            "Systems Integrators with $100K–$2M smart-building automation budgets."
+        ),
+        pain_points=(
+            "Siloed building systems (HVAC, lighting, access, elevators) that cannot share "
+            "data or respond to each other in real time",
+            "Manual setpoint management that wastes 20–40% of building energy",
+            "BACnet/KNX/Modbus protocol fragmentation — each system speaks a different language",
+            "Reactive rather than predictive maintenance: equipment fails before alerts fire",
+            "Sustainability reporting burden — manually aggregating energy data for ESG compliance",
+        ),
+        regulatory_context=(
+            "ASHRAE 90.1 (energy efficiency), ISO 50001 (energy management), "
+            "LEED / BREEAM certification requirements, EU Energy Performance of Buildings "
+            "Directive (EPBD), local fire and life safety codes (NFPA 72)"
+        ),
+        murphy_value_props=(
+            "Unified protocol bridge: BACnet/IP, KNX, Modbus TCP, DALI, LonWorks, and OPC-UA "
+            "all connected through a single Murphy orchestration layer",
+            "Describe-to-Execute building automation: 'Reduce HVAC setpoints by 2°C when "
+            "occupancy drops below 10%' — Murphy writes the logic automatically",
+            "Predictive Maintenance Engine: trend-based failure detection on HVAC, chillers, "
+            "and AHUs before downtime occurs",
+            "Real-time ESG dashboards: automated energy consumption aggregation and reporting "
+            "against LEED/BREEAM/ISO 50001 targets",
+            "Safety-gated actuator commands: confidence gates prevent erroneous HVAC/fire-safety "
+            "actuation — EU AI Act–aligned oversight built in",
+        ),
+        relevant_capability_ids=(
+            "iot_sensor_actuator_control",
+            "app_connector_ecosystem",
+            "nlp_workflow_automation",
+            "safety_gates",
+            "confidence_gated_execution",
+            "self_improving_learning",
+            "cryptographic_audit_trail",
+            "production_deployment_readiness",
+        ),
+        content_topics=(
+            "Unifying BACnet, KNX, and Modbus with AI orchestration — no custom middleware",
+            "How AI building automation reduces HVAC energy waste by 30% with zero manual setpoints",
+            "Predictive HVAC maintenance: Murphy detects chiller degradation 3 weeks early",
+            "LEED and BREEAM automation: how Murphy generates energy compliance reports automatically",
+            "Smart building with natural language: 'Reduce cooling when meeting rooms are empty'",
+            "OPC-UA companion spec for buildings: Murphy as the unified BAS integration layer",
+            "EU EPBD compliance automation: continuous energy performance tracking with Murphy",
+        ),
+        b2b_pitch_hook=(
+            "Murphy's building automation connectors (BACnet/IP, KNX, Modbus, DALI, OPC-UA) "
+            "and Describe-to-Execute paradigm let facilities teams automate cross-system "
+            "building logic in plain English — unifying HVAC, lighting, and access control "
+            "without writing a single line of integration code."
+        ),
+    ),
+    "energy_management": IndustryVertical(
+        vertical_id="energy_management",
+        name="Energy Management Systems & Energy Audits",
+        icp=(
+            "Commercial and industrial facility owners, energy services companies (ESCOs), "
+            "utility analytics providers, and sustainability managers who need to automate "
+            "energy data collection, execute ASHRAE Level I/II/III audits, identify Energy "
+            "Conservation Measures (ECMs), and demonstrate ISO 50001 / ENERGY STAR compliance. "
+            "Buyers: Chief Sustainability Officers, Energy Managers, or VP Operations with "
+            "$50K–$500K energy management programme budgets."
+        ),
+        pain_points=(
+            "Manual energy data collection from multiple utility meters and EMS platforms "
+            "taking days of analyst time per facility",
+            "ASHRAE energy audits still largely paper-based — ECM identification is slow and "
+            "inconsistently prioritised",
+            "ISO 50001 certification documentation burden — evidence collection across dozens "
+            "of systems",
+            "Demand response programme participation requires real-time decision-making that "
+            "manual processes cannot support",
+            "ESG reporting inconsistency — carbon calculations vary by analyst methodology",
+        ),
+        regulatory_context=(
+            "ISO 50001 (Energy Management Systems), ISO 50002 (Energy Audits), "
+            "ASHRAE 90.1 / 100 / 211 (energy performance standards), "
+            "ENERGY STAR (EPA benchmarking), EU Energy Efficiency Directive, "
+            "LEED / BREEAM (green building certification), SEC climate disclosure rules"
+        ),
+        murphy_value_props=(
+            "ASHRAE Level I/II/III audit automation: ingest utility data, identify ECMs, "
+            "auto-compute payback and ROI — weeks of work done in hours",
+            "ISO 50001 / ISO 50002 compliance checklists auto-generated with evidence links "
+            "from the cryptographic audit trail",
+            "Greedy-knapsack ECM prioritisation: maximum energy savings within your capital "
+            "budget, ranked by ROI",
+            "Demand response automation: Murphy monitors grid signals and dispatches load-shed "
+            "commands through building automation connectors in real time",
+            "Automated carbon reporting: EUI calculations, kg CO2e estimates, and ENERGY STAR "
+            "benchmarking against CBECS medians — all generated from raw meter data",
+        ),
+        relevant_capability_ids=(
+            "iot_sensor_actuator_control",
+            "app_connector_ecosystem",
+            "nlp_workflow_automation",
+            "business_process_automation",
+            "self_improving_learning",
+            "cryptographic_audit_trail",
+            "safety_gates",
+            "production_deployment_readiness",
+        ),
+        content_topics=(
+            "ASHRAE Level II energy audit automation: from utility bills to ECM report in 4 hours",
+            "ISO 50001 certification with Murphy: automating the evidence trail",
+            "Greedy ECM prioritisation: maximising energy savings within a $500K capital budget",
+            "Demand response on autopilot: Murphy dispatches load-shed in under 30 seconds",
+            "Energy Use Intensity benchmarking: how Murphy compares your facility to CBECS medians",
+            "Carbon reporting automation: from smart meter data to SEC-ready ESG disclosure",
+            "How AI energy audits find 20% more ECMs than manual ASHRAE Level II",
+        ),
+        b2b_pitch_hook=(
+            "Murphy's Energy Audit Engine (ASHRAE Level I/II/III) and Energy Management "
+            "connectors automate the full audit lifecycle — from utility data ingestion to "
+            "ISO 50001–compliant reports with ECM ROI rankings — turning a 3-week manual "
+            "audit process into a 4-hour automated analysis."
+        ),
+    ),
+    "additive_manufacturing": IndustryVertical(
+        vertical_id="additive_manufacturing",
+        name="Additive Manufacturing & 3D Printing Automation",
+        icp=(
+            "Manufacturing companies running FDM, SLS, DMLS, SLA, or PolyJet production "
+            "systems who need to automate build job management, quality control, material "
+            "tracking, and post-processing workflows. Also AM service bureaus and OEMs "
+            "integrating 3D printing into their production floor. Buyers: AM Operations "
+            "Managers, Manufacturing Engineers, or VP of Advanced Manufacturing with "
+            "$200K–$5M AM fleet investment."
+        ),
+        pain_points=(
+            "Manual build job scheduling across multi-vendor AM fleets wastes machine time "
+            "and requires constant human intervention",
+            "Post-processing coordination (support removal, heat treatment, finishing) "
+            "disconnected from print completion events",
+            "Quality tracking inconsistency — build parameters not systematically linked "
+            "to inspection results for traceability",
+            "OPC-UA AM companion spec adoption uneven — each vendor has a proprietary API",
+            "Material consumption tracking manual — wastage hard to quantify across platforms",
+        ),
+        regulatory_context=(
+            "OPC UA Companion Specification for AM (OPC 40564), AS9100D (aerospace quality), "
+            "ISO/ASTM 52900 (AM terminology), FDA 21 CFR Part 820 (medical device AM), "
+            "MTConnect Additive Device Model, Nadcap AM accreditation"
+        ),
+        murphy_value_props=(
+            "Unified AM fleet management: GrabCAD Print (Stratasys), Eiger (Markforged), "
+            "EOSTATE (EOS), HP 3D Command Center — all orchestrated from a single Murphy layer",
+            "OPC-UA AM companion spec (OPC 40564) support — standardised machine telemetry "
+            "ingestion across compliant vendors",
+            "Describe-to-Execute AM workflows: 'Run titanium SLS batch when queue exceeds 5 jobs "
+            "and material level is >20%' — Murphy automates the dispatch logic",
+            "Quality traceability: build parameters, material lot numbers, and inspection "
+            "results linked in the cryptographic audit trail",
+            "Post-processing automation: print completion triggers downstream CNC, heat treatment, "
+            "and inspection workflows via Murphy's factory automation connectors",
+        ),
+        relevant_capability_ids=(
+            "iot_sensor_actuator_control",
+            "app_connector_ecosystem",
+            "nlp_workflow_automation",
+            "multi_agent_orchestration",
+            "cryptographic_audit_trail",
+            "business_process_automation",
+            "self_improving_learning",
+            "safety_gates",
+        ),
+        content_topics=(
+            "Automating multi-vendor AM fleets: GrabCAD + Eiger + EOSTATE unified with Murphy",
+            "OPC-UA companion spec for additive manufacturing: Murphy as the integration layer",
+            "End-to-end AM traceability: linking build parameters to inspection with AI",
+            "Post-processing automation: how Murphy connects print completion to CNC and heat treat",
+            "Describe-to-Execute AM scheduling: 'Run titanium SLS when queue exceeds 5 jobs'",
+            "AS9100D compliance automation for additive manufacturing with Murphy",
+            "AI-driven material consumption tracking across FDM, SLS, and DMLS fleets",
+        ),
+        b2b_pitch_hook=(
+            "Murphy's additive manufacturing connectors (OPC-UA AM / OPC 40564, GrabCAD, "
+            "Eiger, EOSTATE, HP Command Center) and natural-language orchestration let AM "
+            "operations teams automate multi-vendor fleet scheduling, quality traceability, "
+            "and post-processing workflows from a single describe-and-execute interface."
+        ),
+    ),
+    "factory_automation": IndustryVertical(
+        vertical_id="factory_automation",
+        name="Factory Automation & Industrial Control Systems",
+        icp=(
+            "Discrete and process manufacturers deploying PLCs, CNC machines, industrial "
+            "robots, and SCADA systems who need to modernise their OT layer with AI-native "
+            "orchestration — machine-tending automation, production scheduling, quality vision "
+            "inspection, and closed-loop process control. Buyers: VP of Manufacturing "
+            "Operations, OT/IT Integration Architects, or Plant Managers with $500K–$10M "
+            "factory automation investment."
+        ),
+        pain_points=(
+            "OT/IT integration gap — PLC/SCADA data cannot reach business systems without "
+            "expensive custom middleware",
+            "Robot programming requires specialist integrators for every new task — "
+            "no natural-language interface to motion control",
+            "Production scheduling is manual or rigid MES-driven — cannot adapt to "
+            "real-time machine availability, quality rejects, or material shortages",
+            "Machine vision inspection results not fed back to upstream process control",
+            "IEC 13849 safety compliance for collaborative robot cells requires careful "
+            "software control architecture",
+        ),
+        regulatory_context=(
+            "IEC 61131 (PLC programming languages), IEC 13849 (safety of machinery — "
+            "CAT B through CAT 4), ISO 10218 (industrial robot safety), IEC 62443 "
+            "(industrial cybersecurity), ISA-95 (enterprise-control integration), "
+            "OSHA 1910.217 (machine guarding), EU Machinery Directive"
+        ),
+        murphy_value_props=(
+            "15 factory automation connectors: Rockwell FactoryTalk, Siemens SIMATIC, "
+            "Beckhoff TwinCAT, FANUC, ABB OmniCore, KUKA KR C5, Yaskawa, Omron, "
+            "Mitsubishi, PTC ThingWorx, Cognex vision — all orchestrated via Murphy",
+            "ISA-95 layer-aware execution: Murphy orchestrates FIELD → CONTROL → "
+            "SUPERVISORY → MES sequences in the correct order",
+            "IEC 13849 safety gate: sequences involving sub-CAT 2 connectors require "
+            "explicit safety override — built-in machinery safety compliance",
+            "Natural-language robot programming: 'Move robot arm to pick position when "
+            "conveyor sensor fires and gripper pressure confirms part present'",
+            "Confidence-gated machine commands: the MFGC formula prevents erroneous "
+            "actuator commands — no unbound autonomous machine control",
+        ),
+        relevant_capability_ids=(
+            "iot_sensor_actuator_control",
+            "app_connector_ecosystem",
+            "nlp_workflow_automation",
+            "safety_gates",
+            "confidence_gated_execution",
+            "multi_agent_orchestration",
+            "self_improving_learning",
+            "cryptographic_audit_trail",
+            "production_deployment_readiness",
+        ),
+        content_topics=(
+            "OT/IT convergence with Murphy: connecting PLCs to business systems without custom code",
+            "Natural-language robot programming: 'Pick when sensor fires' — Murphy writes the logic",
+            "ISA-95 orchestration: how Murphy sequences FIELD, CONTROL, and MES layers correctly",
+            "IEC 13849 safety gate in software: Murphy's approach to collaborative robot safety",
+            "SCADA modernisation without rip-and-replace: Murphy as the AI overlay layer",
+            "Machine vision + process control: closing the quality loop with Murphy and Cognex",
+            "Factory automation on autopilot: how Murphy schedules CNC, robots, and conveyors via NL",
+        ),
+        b2b_pitch_hook=(
+            "Murphy's 15-vendor factory automation connector library (Rockwell, Siemens, "
+            "Beckhoff, FANUC, ABB, KUKA), ISA-95 layer-aware orchestration, and IEC 13849 "
+            "software safety gate give manufacturing teams a natural-language interface to "
+            "their entire factory floor — without a single line of PLC code."
+        ),
+    ),
 }
 
 # ---------------------------------------------------------------------------
@@ -861,11 +1141,19 @@ MURPHY_MARKET_POSITION = MarketPosition(
         "deployable in sovereign, classified, or air-isolated environments",
         "Full autonomy with full control: HITL graduation model earns automation rights "
         "through tracked performance — trust is measured, not assumed",
+        "Industrial-grade connector depth: 57+ connectors spanning BACnet/KNX/OPC-UA "
+        "building automation, ISO 50001 energy management, OPC-UA AM additive manufacturing, "
+        "and ISA-95 factory automation (EtherNet/IP, PROFINET, MTConnect)",
     ),
     target_segments=(
         "Regulated enterprises in healthcare, financial services, and government "
         "(EU AI Act high-risk — highest willingness to pay)",
-        "Industrial manufacturers modernising SCADA/OT with AI orchestration",
+        "Industrial manufacturers: factory automation (Rockwell/Siemens/Beckhoff/FANUC), "
+        "additive manufacturing (Stratasys/EOS/Markforged), and SCADA modernisation",
+        "Smart building & IoT: BAS/BMS operators using BACnet/KNX/Modbus for "
+        "HVAC, lighting, access control, and building-wide energy optimisation",
+        "Energy management and sustainability: ESCOs and facility owners running "
+        "ASHRAE energy audits, ISO 50001 programmes, and ESG reporting",
         "Technology companies and SaaS platforms building on or integrating with Murphy",
         "Professional services firms automating knowledge work and client operations",
     ),
@@ -876,6 +1164,9 @@ MURPHY_MARKET_POSITION = MarketPosition(
         "57-connector ecosystem with Plugin SDK: network effects grow with community",
         "Patent #3 in progress: cryptographic execution integrity — HMAC-SHA256 audit trail",
         "Air-gap deployability: zero stdlib-external Python — unique in the market",
+        "ISA-95 layer-ordered orchestration + IEC 13849 safety gate: built-in factory safety",
+        "ASHRAE Level I/II/III Energy Audit Engine + ISO 50001 auto-compliance: "
+        "no competing automation platform offers this out of the box",
     ),
     tagline="Automate anything. Trust every action.",
 )
@@ -1193,22 +1484,73 @@ class MarketPositioningEngine:
     def _infer_vertical(company_name_lower: str) -> Optional[str]:
         """Heuristic vertical detection from company name fragments."""
         _HINTS: List[tuple] = [
+            # Healthcare
             ("health", "healthcare"),
             ("medical", "healthcare"),
             ("pharma", "healthcare"),
             ("clinic", "healthcare"),
             ("hospital", "healthcare"),
+            # Financial services
             ("bank", "financial_services"),
             ("financ", "financial_services"),
             ("insur", "financial_services"),
             ("invest", "financial_services"),
             ("trading", "financial_services"),
             ("capital", "financial_services"),
+            # Factory automation — check before generic "manufacturing"
+            ("rockwell", "factory_automation"),
+            ("beckhoff", "factory_automation"),
+            ("fanuc", "factory_automation"),
+            ("siemens", "factory_automation"),
+            ("abb", "factory_automation"),
+            ("kuka", "factory_automation"),
+            ("yaskawa", "factory_automation"),
+            ("omron", "factory_automation"),
+            ("mitsubishi", "factory_automation"),
+            ("cognex", "factory_automation"),
+            ("keyence", "factory_automation"),
+            ("ptc", "factory_automation"),
+            ("thingworx", "factory_automation"),
+            ("ignition", "factory_automation"),
+            ("emerson", "factory_automation"),
+            ("factorytalk", "factory_automation"),
+            # Additive manufacturing — check before generic "manufacturing"
+            ("stratasys", "additive_manufacturing"),
+            ("eos gmbh", "additive_manufacturing"),
+            ("markforged", "additive_manufacturing"),
+            ("hp 3d", "additive_manufacturing"),
+            ("bambu", "additive_manufacturing"),
+            ("ultimaker", "additive_manufacturing"),
+            ("formlabs", "additive_manufacturing"),
+            ("carbon3d", "additive_manufacturing"),
+            ("additive", "additive_manufacturing"),
+            # IoT / building automation
+            ("johnson controls", "iot_building_automation"),
+            ("honeywell", "iot_building_automation"),
+            ("schneider", "iot_building_automation"),
+            ("bacnet", "iot_building_automation"),
+            ("knx", "iot_building_automation"),
+            ("building auto", "iot_building_automation"),
+            ("smart building", "iot_building_automation"),
+            ("desigo", "iot_building_automation"),
+            ("openblue", "iot_building_automation"),
+            # Energy management / audits
+            ("ameresco", "energy_management"),
+            ("facilio", "energy_management"),
+            ("energycap", "energy_management"),
+            ("energy toolbase", "energy_management"),
+            ("energy manage", "energy_management"),
+            ("energy audit", "energy_management"),
+            ("esco", "energy_management"),
+            ("wattics", "energy_management"),
+            ("enertiv", "energy_management"),
+            # Generic manufacturing (lower priority — after specific verticals)
             ("manufactur", "manufacturing"),
-            ("factory", "manufacturing"),
+            ("factory", "factory_automation"),
             ("industrial", "manufacturing"),
             ("scada", "manufacturing"),
             ("plant", "manufacturing"),
+            # Technology
             ("zapier", "technology"),
             ("hubspot", "technology"),
             ("salesforce", "technology"),
@@ -1217,14 +1559,15 @@ class MarketPositioningEngine:
             ("notion", "technology"),
             ("datadog", "technology"),
             ("microsoft", "technology"),
+            # Government
             ("government", "government"),
             ("agency", "government"),
             ("federal", "government"),
             ("ministry", "government"),
             ("council", "government"),
+            # Professional services
             ("consulting", "professional_services"),
             ("advisory", "professional_services"),
-            ("agency", "professional_services"),
         ]
         for fragment, vertical in _HINTS:
             if fragment in company_name_lower:
