@@ -124,6 +124,9 @@ class HetznerStepType(str, Enum):
     APPLY_HPA = "apply_hpa"
     APPLY_NETWORK_POLICY = "apply_network_policy"
     APPLY_PDB = "apply_pdb"
+    APPLY_REDIS = "apply_redis"
+    APPLY_RESOURCE_QUOTA = "apply_resource_quota"
+    APPLY_BACKUP_CRONJOB = "apply_backup_cronjob"
     ROLLING_UPDATE = "rolling_update"
     APPLY_PROMETHEUS = "apply_prometheus"
     APPLY_GRAFANA = "apply_grafana"
@@ -689,6 +692,36 @@ class HetznerDeployPlanGenerator:
         # 20. Verify deployment
         steps.append(SetupStep(
             step_id="hetzner-20-verify-deployment",
+        # 18. Apply Redis deployment (cache, rate limiting, session store)
+        steps.append(SetupStep(
+            step_id="hetzner-18-apply-redis",
+            description="Apply Redis deployment (ConfigMap, Deployment, Service, PVC)",
+            risk_level=RiskLevel.LOW,
+            command=f'kubectl apply -f "{self._k8s("redis.yaml")}"',
+            liability_note="You approved this action. Murphy executed it as instructed.",
+        ))
+
+        # 19. Apply ResourceQuota and LimitRange
+        steps.append(SetupStep(
+            step_id="hetzner-19-apply-resource-quota",
+            description="Apply Kubernetes ResourceQuota and LimitRange for namespace governance",
+            risk_level=RiskLevel.LOW,
+            command=f'kubectl apply -f "{self._k8s("resource-quota.yaml")}"',
+            liability_note="You approved this action. Murphy executed it as instructed.",
+        ))
+
+        # 20. Apply backup CronJob
+        steps.append(SetupStep(
+            step_id="hetzner-20-apply-backup-cronjob",
+            description="Apply automated backup CronJob (daily at 02:00 UTC)",
+            risk_level=RiskLevel.MEDIUM,
+            command=f'kubectl apply -f "{self._k8s("backup-cronjob.yaml")}"',
+            liability_note="You approved this action. Murphy executed it as instructed.",
+        ))
+
+        # 21. Verify deployment
+        steps.append(SetupStep(
+            step_id="hetzner-21-verify-deployment",
             description="Verify deployment health via kubectl and /api/health endpoint",
             risk_level=RiskLevel.LOW,
             command=(
