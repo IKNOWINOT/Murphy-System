@@ -1582,8 +1582,11 @@ class TestBenchmarksYmlPythonpathQuoted:
             stripped = line.strip()
             if stripped.startswith("PYTHONPATH:"):
                 value_part = stripped.split(":", 1)[1].strip()
-                assert value_part.startswith('"') or value_part.startswith("'"), (
-                    f"benchmarks.yml PYTHONPATH not quoted: {stripped}"
+                assert (
+                    (value_part.startswith('"') and value_part.endswith('"'))
+                    or (value_part.startswith("'") and value_part.endswith("'"))
+                ), (
+                    f"benchmarks.yml PYTHONPATH not properly quoted: {stripped}"
                 )
 
 
