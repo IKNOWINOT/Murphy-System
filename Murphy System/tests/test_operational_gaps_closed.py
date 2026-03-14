@@ -627,8 +627,11 @@ class TestSetupPyConsistency:
     def test_readme_read_is_safe(self):
         """setup.py should not crash if README_INSTALL.md is missing."""
         setup = self._setup()
-        # Should use Path.exists() check or try/except, not bare open()
-        assert "open(" not in setup.split("setup(")[0] or "exists()" in setup or "if" in setup.split("setup(")[0], (
+        pre_setup = setup.split("setup(")[0]
+        has_bare_open = "open(" in pre_setup
+        has_exists_guard = "exists()" in pre_setup
+        has_conditional = "if" in pre_setup
+        assert not has_bare_open or has_exists_guard or has_conditional, (
             "setup.py should safely handle missing README_INSTALL.md"
         )
 
@@ -739,11 +742,11 @@ class TestStatusMdCounts:
 
 
 # ---------------------------------------------------------------------------
-# 21. Deployment guide — no stale demo/api_server_v2.py references
+# 21. Documentation — no stale demo/api_server_v2.py references
 # ---------------------------------------------------------------------------
 
 class TestDeploymentGuideEntryPoint:
-    """DEPLOYMENT_GUIDE.md should reference the correct entry point."""
+    """Documentation files should reference the correct entry point."""
 
     def _content(self) -> str:
         path = os.path.join(_PROJECT_ROOT, "documentation", "deployment", "DEPLOYMENT_GUIDE.md")
@@ -762,4 +765,32 @@ class TestDeploymentGuideEntryPoint:
         content = self._content()
         assert "murphy_system_1.0_runtime.py" in content, (
             "DEPLOYMENT_GUIDE.md should reference murphy_system_1.0_runtime.py"
+        )
+
+    def test_systemd_services_use_correct_entry_point(self):
+        """Systemd ExecStart lines in deployment guide should use the current runtime."""
+        content = self._content()
+        import re as _re
+        exec_lines = _re.findall(r"ExecStart=.*", content)
+        for line in exec_lines:
+            assert "murphy_system_1.0_runtime.py" in line, (
+                f"Systemd ExecStart still uses old entry point: {line!r}"
+            )
+
+    def test_no_stale_entry_point_in_any_doc(self):
+        """No documentation file should reference demo/api_server_v2.py."""
+        doc_dir = os.path.join(_PROJECT_ROOT, "documentation")
+        stale = []
+        for root, _dirs, files in os.walk(doc_dir):
+            for fn in files:
+                if not fn.endswith(".md"):
+                    continue
+                path = os.path.join(root, fn)
+                with open(path) as fh:
+                    content = fh.read()
+                if "api_server_v2" in content:
+                    rel = os.path.relpath(path, _PROJECT_ROOT)
+                    stale.append(rel)
+        assert not stale, (
+            f"Stale demo/api_server_v2.py reference found in: {stale}"
         )

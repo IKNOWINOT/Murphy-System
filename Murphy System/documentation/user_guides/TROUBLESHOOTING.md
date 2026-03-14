@@ -154,13 +154,13 @@ netstat -tuln | grep 8000
 
 2. **Use Different Port**:
    ```bash
-   python demo/api_server_v2.py --port 8053
+   python murphy_system_1.0_runtime.py --port 8053
    ```
 
 3. **Check Logs**:
    ```bash
    # Run with verbose output
-   python demo/api_server_v2.py --log-level DEBUG
+   python murphy_system_1.0_runtime.py --log-level DEBUG
    ```
 
 4. **Verify Dependencies**:
@@ -212,7 +212,7 @@ df -h
 
 3. **Enable Debug Mode**:
    ```bash
-   python demo/api_server_v2.py --log-level DEBUG
+   python murphy_system_1.0_runtime.py --log-level DEBUG
    ```
 
 4. **Check System Logs**:
@@ -528,13 +528,13 @@ python -c "import yaml; yaml.safe_load(open('config/config.yaml'))"
 3. **Check Config Path**:
    ```bash
    # Specify config explicitly
-   python demo/api_server_v2.py --config config/config.yaml
+   python murphy_system_1.0_runtime.py --config config/config.yaml
    ```
 
 4. **Use Environment Variables**:
    ```bash
    export MURPHY_CONFIG=/path/to/config.yaml
-   python demo/api_server_v2.py
+   python murphy_system_1.0_runtime.py
    ```
 
 ---
@@ -710,7 +710,7 @@ telnet localhost 8000
 
 1. **Start Server**:
    ```bash
-   python demo/api_server_v2.py
+   python murphy_system_1.0_runtime.py
    ```
 
 2. **Check Firewall**:
@@ -837,7 +837,7 @@ curl -v https://yourdomain.com/api/health
 
 ```bash
 # Run with debug logging
-python demo/api_server_v2.py --log-level DEBUG
+python murphy_system_1.0_runtime.py --log-level DEBUG
 ```
 
 ### Use Verbose Output
@@ -847,7 +847,7 @@ python demo/api_server_v2.py --log-level DEBUG
 curl -v http://localhost:8000/api/health
 
 # Verbose Python
-python -v demo/api_server_v2.py
+python -v murphy_system_1.0_runtime.py
 ```
 
 ### Check Logs

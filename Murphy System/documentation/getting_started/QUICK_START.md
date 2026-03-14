@@ -62,8 +62,7 @@ sentencepiece         # Tokenization (optional, for advanced features)
 The API server provides the main interface to the system.
 
 ```bash
-cd /workspace/demo
-python api_server_v2.py
+python murphy_system_1.0_runtime.py
 ```
 
 The server will start on `http://localhost:8000`
