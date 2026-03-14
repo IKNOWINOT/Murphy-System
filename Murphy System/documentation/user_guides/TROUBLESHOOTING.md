@@ -134,7 +134,7 @@ pip list | grep -E "rich|prompt-toolkit|pyyaml"
 **Diagnosis**:
 ```bash
 # Check if server is running
-ps aux | grep api_server
+ps aux | grep murphy_system_1.0_runtime
 
 # Check port usage
 lsof -i :8000
@@ -232,8 +232,8 @@ df -h
 **Diagnosis**:
 ```bash
 # Check memory usage
-ps aux | grep api_server
-top -p $(pgrep api_server)
+ps aux | grep murphy_system_1.0_runtime
+top -p $(pgrep -f murphy_system_1.0_runtime)
 ```
 
 **Solutions**:
@@ -260,7 +260,7 @@ top -p $(pgrep api_server)
 4. **Monitor Memory**:
    ```bash
    # Monitor memory usage
-   watch -n 1 'ps aux | grep api_server'
+   watch -n 1 'ps aux | grep murphy_system_1.0_runtime'
    ```
 
 ---
@@ -459,7 +459,7 @@ iostat -x 1
 **Diagnosis**:
 ```bash
 # Check CPU usage
-top -p $(pgrep api_server)
+top -p $(pgrep -f murphy_system_1.0_runtime)
 ```
 
 **Solutions**:
@@ -697,7 +697,7 @@ curl http://localhost:8000/api/telemetry/metrics?type=cache
 **Diagnosis**:
 ```bash
 # Check if server is running
-ps aux | grep api_server
+ps aux | grep murphy_system_1.0_runtime
 
 # Check if port is listening
 netstat -tuln | grep 8000
@@ -801,7 +801,7 @@ curl -v https://yourdomain.com/api/health
 
    # Server status
    systemctl status murphy-production
-   ps aux | grep api_server
+   ps aux | grep murphy_system_1.0_runtime
 
    # Logs
    tail -100 /var/log/murphy-production.log

@@ -11,7 +11,7 @@ from pathlib import Path
 from setuptools import setup, find_packages
 
 _here = Path(__file__).parent
-_readme = _here / "README_INSTALL.md"
+_readme = _here / "README.md"
 long_description = _readme.read_text(encoding="utf-8") if _readme.exists() else ""
 
 setup(

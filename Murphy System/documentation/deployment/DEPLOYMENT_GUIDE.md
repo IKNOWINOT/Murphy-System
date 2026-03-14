@@ -671,7 +671,7 @@ Set up comprehensive monitoring:
   "containerDefinitions": [
     {
       "name": "murphy-runtime",
-      "image": "your-registry/murphy-runtime:latest",
+      "image": "your-registry/murphy-runtime:v1.0.0",
       "portMappings": [
         {
           "containerPort": 8000,
@@ -702,7 +702,7 @@ gcloud run deploy murphy-runtime \
 az container create \
   --resource-group myResourceGroup \
   --name murphy-runtime \
-  --image your-registry/murphy-runtime:latest \
+  --image your-registry/murphy-runtime:v1.0.0 \
   --cpu 4 \
   --memory 8 \
   --ports 8000
