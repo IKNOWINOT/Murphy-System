@@ -1,0 +1,34 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: murphy-api
+  namespace: murphy-system
+  labels:
+    app: murphy-system
+    component: network-policy
+    environment: production
+spec:
+  podSelector:
+    matchLabels:
+      app: murphy-system
+      component: api
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - ports:
+        - port: 8000
+          protocol: TCP
+  egress:
+    - ports:
+        - port: 53
+          protocol: TCP
+        - port: 53
+          protocol: UDP
+    - ports:
+        - port: 443
+          protocol: TCP
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: murphy-system
