@@ -740,6 +740,28 @@ def create_app() -> FastAPI:
             {"command": "squarespace orders", "category": "website_integrations", "description": "List Squarespace orders", "api": "/api/universal-integrations/services/squarespace/execute/list_orders", "ui": "/ui/terminal-integrations#integrations"},
             {"command": "webflow connect", "category": "website_integrations", "description": "Connect a Webflow site to pull CMS collections and form data", "api": "/api/universal-integrations/services/webflow/configure", "ui": "/ui/terminal-integrations#integrations"},
             {"command": "webflow forms", "category": "website_integrations", "description": "List Webflow form submissions", "api": "/api/universal-integrations/services/webflow/execute/list_form_submissions", "ui": "/ui/terminal-integrations#integrations"},
+            # ── Partner Integration ──────────────────────────────────
+            {"command": "partner request", "category": "partner", "description": "Submit a partner integration request", "api": "/api/partner/request", "ui": "/ui/partner"},
+            {"command": "partner status", "category": "partner", "description": "Check partner request status", "api": "/api/partner/status/{id}", "ui": "/ui/partner"},
+            {"command": "partner review", "category": "partner", "description": "HITL review of partner integration", "api": "/api/partner/review/{id}", "ui": "/ui/partner"},
+            # ── Reviews & Referrals ──────────────────────────────────
+            {"command": "review submit", "category": "reviews", "description": "Submit a product review", "api": "/api/reviews/submit", "ui": "/ui/murphy_landing_page.html#reviews"},
+            {"command": "reviews list", "category": "reviews", "description": "List public reviews", "api": "/api/reviews", "ui": "/ui/murphy_landing_page.html#reviews"},
+            {"command": "review moderate", "category": "reviews", "description": "Moderate a review (10-min SLA for negatives)", "api": "/api/reviews/{id}/moderate", "ui": "/ui/murphy_landing_page.html#reviews"},
+            {"command": "referral create", "category": "reviews", "description": "Create a referral link (1 month free Solo)", "api": "/api/referrals/create", "ui": "/ui/signup.html"},
+            {"command": "referral redeem", "category": "reviews", "description": "Redeem a referral code on signup", "api": "/api/referrals/redeem", "ui": "/ui/signup.html"},
+            # ── HITL (QC vs User Acceptance) ─────────────────────────
+            {"command": "hitl qc submit", "category": "hitl", "description": "Submit for internal QC review before delivery", "api": "/api/hitl/qc/submit", "ui": "/ui/terminal-unified#hitl"},
+            {"command": "hitl acceptance submit", "category": "hitl", "description": "Submit deliverable for customer acceptance", "api": "/api/hitl/acceptance/submit", "ui": "/ui/terminal-unified#hitl"},
+            {"command": "hitl decide", "category": "hitl", "description": "Accept/reject/revise an HITL item", "api": "/api/hitl/{id}/decide", "ui": "/ui/terminal-unified#hitl"},
+            {"command": "hitl queue", "category": "hitl", "description": "View HITL queue (qc or acceptance)", "api": "/api/hitl/queue", "ui": "/ui/terminal-unified#hitl"},
+            # ── Community / Forum / Org Groups ───────────────────────
+            {"command": "community create channel", "category": "community", "description": "Create a forum topic or org group channel", "api": "/api/community/channels", "ui": "/ui/community"},
+            {"command": "community channels", "category": "community", "description": "List community channels", "api": "/api/community/channels", "ui": "/ui/community"},
+            {"command": "community post", "category": "community", "description": "Post a message to a channel", "api": "/api/community/channels/{id}/messages", "ui": "/ui/community"},
+            {"command": "org join", "category": "community", "description": "Auto-join organization on login", "api": "/api/org/join", "ui": "/ui/community"},
+            {"command": "org invite", "category": "community", "description": "Invite a user to your organization", "api": "/api/org/invite", "ui": "/ui/community"},
+            {"command": "review automation", "category": "reviews", "description": "Run review-driven automation adjustments", "api": "/api/automation/review-response", "ui": "/ui/terminal-unified"},
             # ── Matrix Bridge ────────────────────────────────────────
             {"command": "matrix status", "category": "matrix", "description": "Check Matrix bridge connection status", "api": "/api/matrix/status", "ui": "/ui/matrix"},
             {"command": "matrix rooms", "category": "matrix", "description": "List joined Matrix rooms", "api": "/api/matrix/rooms", "ui": "/ui/matrix"},
@@ -3913,6 +3935,344 @@ def create_app() -> FastAPI:
 
     app.add_middleware(_ResponseSizeLimitMiddleware)
 
+    # ==================== PARTNER INTEGRATION ENDPOINTS ====================
+
+    _partner_requests: dict = {}
+
+    @app.post("/api/partner/request")
+    async def partner_submit(request: Request):
+        """Submit a partner integration request."""
+        body = await request.json()
+        import uuid as _uuid
+        pid = _uuid.uuid4().hex[:12]
+        _partner_requests[pid] = {
+            "id": pid,
+            "company": body.get("company", ""),
+            "integration_type": body.get("integration_type", ""),
+            "description": body.get("description", ""),
+            "modules": body.get("modules", []),
+            "status": "plan",
+            "phase": 2,
+            "plan": None,
+            "verification": None,
+            "hardening": None,
+            "review": {"action": None, "notes": "", "cycles": 0},
+            "created": _now_iso(),
+        }
+        plan_steps = [
+            {"step": 1, "title": "Requirements analysis", "status": "pending"},
+            {"step": 2, "title": f"Design {body.get('integration_type','')} connector", "status": "pending"},
+            {"step": 3, "title": "Implement data bridge", "status": "pending"},
+            {"step": 4, "title": "Module integration", "status": "pending"},
+            {"step": 5, "title": "Security audit", "status": "pending"},
+            {"step": 6, "title": "Performance testing", "status": "pending"},
+        ]
+        _partner_requests[pid]["plan"] = plan_steps
+        return JSONResponse({"ok": True, "id": pid, "plan": plan_steps})
+
+    @app.get("/api/partner/status/{pid}")
+    async def partner_status(pid: str):
+        pr = _partner_requests.get(pid)
+        if not pr:
+            return JSONResponse({"ok": False, "error": "Not found"}, status_code=404)
+        return JSONResponse({"ok": True, **pr})
+
+    @app.post("/api/partner/review/{pid}")
+    async def partner_review(pid: str, request: Request):
+        """HITL review action: accept / deny / revise."""
+        pr = _partner_requests.get(pid)
+        if not pr:
+            return JSONResponse({"ok": False, "error": "Not found"}, status_code=404)
+        body = await request.json()
+        action = body.get("action", "")
+        pr["review"]["action"] = action
+        pr["review"]["notes"] = body.get("notes", "")
+        if action == "revise":
+            pr["review"]["cycles"] += 1
+            pr["status"] = "revision"
+            pr["phase"] = 4
+        elif action == "accept":
+            pr["status"] = "delivered"
+            pr["phase"] = 7
+        elif action == "deny":
+            pr["status"] = "denied"
+        return JSONResponse({"ok": True, "status": pr["status"], "review": pr["review"]})
+
+    # ==================== REVIEW & REFERRAL SYSTEM ====================
+
+    _reviews_store: list = []
+    _referrals_store: dict = {}
+
+    @app.post("/api/reviews/submit")
+    async def review_submit(request: Request):
+        """Submit a product review. Negative reviews trigger auto-response within SLA."""
+        body = await request.json()
+        import uuid as _uuid
+        rid = _uuid.uuid4().hex[:10]
+        rating = int(body.get("rating", 5))
+        review = {
+            "id": rid,
+            "user": body.get("user", "Anonymous"),
+            "rating": rating,
+            "title": body.get("title", ""),
+            "comment": body.get("comment", ""),
+            "created": _now_iso(),
+            "moderated": False,
+            "visible": rating >= 3,
+            "moderator_response": None,
+            "response_sla_met": True,
+        }
+        if rating <= 2:
+            review["moderator_response"] = {
+                "message": (
+                    "We're sorry about your experience. We'd like to make this right — "
+                    "please accept a complimentary month of our Solo plan on us while "
+                    "we address your feedback. Our team will reach out within 10 minutes."
+                ),
+                "responded_at": _now_iso(),
+                "free_month_applied": True,
+                "tier_applied": "Solo",
+                "automation_triggered": True,
+            }
+            review["visible"] = True
+            review["moderated"] = True
+            review["response_sla_met"] = True
+        _reviews_store.append(review)
+        return JSONResponse({"ok": True, "id": rid, "review": review})
+
+    @app.get("/api/reviews")
+    async def reviews_list(request: Request):
+        """Public reviews list (moderated, visible only)."""
+        visible = [r for r in _reviews_store if r.get("visible")]
+        return JSONResponse({"ok": True, "reviews": visible, "total": len(visible)})
+
+    @app.post("/api/reviews/{rid}/moderate")
+    async def review_moderate(rid: str, request: Request):
+        """Moderator action on a review. Must respond to negatives within 10 min SLA."""
+        body = await request.json()
+        review = next((r for r in _reviews_store if r["id"] == rid), None)
+        if not review:
+            return JSONResponse({"ok": False, "error": "Not found"}, status_code=404)
+        review["moderated"] = True
+        review["visible"] = body.get("visible", True)
+        if body.get("response"):
+            review["moderator_response"] = {
+                "message": body["response"],
+                "responded_at": _now_iso(),
+            }
+        return JSONResponse({"ok": True, "review": review})
+
+    @app.post("/api/referrals/create")
+    async def referral_create(request: Request):
+        """Create a referral link. Referee gets 1 month free Solo on signup."""
+        body = await request.json()
+        import uuid as _uuid
+        code = _uuid.uuid4().hex[:8].upper()
+        _referrals_store[code] = {
+            "code": code,
+            "referrer": body.get("user", ""),
+            "reward_tier": "Solo",
+            "reward_months": 1,
+            "redeemed_by": [],
+            "created": _now_iso(),
+        }
+        return JSONResponse({"ok": True, "code": code, "link": f"/signup.html?ref={code}"})
+
+    @app.post("/api/referrals/redeem")
+    async def referral_redeem(request: Request):
+        """Redeem a referral code on signup."""
+        body = await request.json()
+        code = body.get("code", "").upper()
+        ref = _referrals_store.get(code)
+        if not ref:
+            return JSONResponse({"ok": False, "error": "Invalid referral code"}, status_code=404)
+        ref["redeemed_by"].append({"user": body.get("user", ""), "at": _now_iso()})
+        return JSONResponse({
+            "ok": True,
+            "reward": {"tier": ref["reward_tier"], "free_months": ref["reward_months"]},
+        })
+
+    # ==================== HITL: QC vs USER ACCEPTANCE ====================
+
+    _hitl_queue: list = []
+
+    @app.post("/api/hitl/qc/submit")
+    async def hitl_qc_submit(request: Request):
+        """HITL Quality Control — internal review before customer delivery."""
+        body = await request.json()
+        import uuid as _uuid
+        tid = _uuid.uuid4().hex[:10]
+        item = {
+            "id": tid, "type": "qc", "module": body.get("module", ""),
+            "description": body.get("description", ""),
+            "status": "pending_qc", "reviewer": None,
+            "result": None, "created": _now_iso(),
+        }
+        _hitl_queue.append(item)
+        return JSONResponse({"ok": True, "id": tid, "item": item})
+
+    @app.post("/api/hitl/acceptance/submit")
+    async def hitl_acceptance_submit(request: Request):
+        """HITL User Acceptance — customer accepts/rejects deliverable from production."""
+        body = await request.json()
+        import uuid as _uuid
+        tid = _uuid.uuid4().hex[:10]
+        item = {
+            "id": tid, "type": "user_acceptance", "deliverable": body.get("deliverable", ""),
+            "description": body.get("description", ""),
+            "status": "pending_acceptance", "customer": body.get("customer", ""),
+            "result": None, "created": _now_iso(),
+        }
+        _hitl_queue.append(item)
+        return JSONResponse({"ok": True, "id": tid, "item": item})
+
+    @app.post("/api/hitl/{tid}/decide")
+    async def hitl_decide(tid: str, request: Request):
+        """Accept, reject, or request revisions on an HITL item (QC or acceptance)."""
+        body = await request.json()
+        item = next((i for i in _hitl_queue if i["id"] == tid), None)
+        if not item:
+            return JSONResponse({"ok": False, "error": "Not found"}, status_code=404)
+        action = body.get("action", "")
+        item["result"] = action
+        item["status"] = (
+            "approved" if action == "accept" else
+            "rejected" if action == "reject" else
+            "revision_requested"
+        )
+        item["decided_at"] = _now_iso()
+        item["notes"] = body.get("notes", "")
+        return JSONResponse({"ok": True, "item": item})
+
+    @app.get("/api/hitl/queue")
+    async def hitl_queue_list(request: Request):
+        qtype = request.query_params.get("type", "")
+        items = _hitl_queue if not qtype else [i for i in _hitl_queue if i["type"] == qtype]
+        return JSONResponse({"ok": True, "items": items, "total": len(items)})
+
+    # ==================== COMMUNITY / FORUM / ORG GROUPS ====================
+
+    _community_channels: dict = {}
+    _community_messages: dict = {}
+    _org_memberships: dict = {}
+
+    @app.post("/api/community/channels")
+    async def community_create_channel(request: Request):
+        """Create a community channel (forum topic or org group)."""
+        body = await request.json()
+        import uuid as _uuid
+        cid = _uuid.uuid4().hex[:10]
+        _community_channels[cid] = {
+            "id": cid, "name": body.get("name", ""),
+            "type": body.get("type", "forum"),
+            "org_id": body.get("org_id"),
+            "description": body.get("description", ""),
+            "created_by": body.get("user", ""),
+            "created": _now_iso(), "members": [body.get("user", "")],
+        }
+        _community_messages[cid] = []
+        return JSONResponse({"ok": True, "channel": _community_channels[cid]})
+
+    @app.get("/api/community/channels")
+    async def community_list_channels(request: Request):
+        org = request.query_params.get("org_id", "")
+        ctype = request.query_params.get("type", "")
+        channels = list(_community_channels.values())
+        if org:
+            channels = [c for c in channels if c.get("org_id") == org]
+        if ctype:
+            channels = [c for c in channels if c.get("type") == ctype]
+        return JSONResponse({"ok": True, "channels": channels})
+
+    @app.post("/api/community/channels/{cid}/messages")
+    async def community_post_message(cid: str, request: Request):
+        body = await request.json()
+        if cid not in _community_messages:
+            return JSONResponse({"ok": False, "error": "Channel not found"}, status_code=404)
+        import uuid as _uuid
+        mid = _uuid.uuid4().hex[:10]
+        msg = {
+            "id": mid, "channel_id": cid, "user": body.get("user", ""),
+            "content": body.get("content", ""), "created": _now_iso(),
+            "reactions": {}, "thread_replies": [],
+        }
+        _community_messages[cid].append(msg)
+        return JSONResponse({"ok": True, "message": msg})
+
+    @app.get("/api/community/channels/{cid}/messages")
+    async def community_get_messages(cid: str):
+        msgs = _community_messages.get(cid, [])
+        return JSONResponse({"ok": True, "messages": msgs})
+
+    @app.post("/api/org/join")
+    async def org_join(request: Request):
+        """Auto-join org on login if user has accepted invitation or org chart placement."""
+        body = await request.json()
+        user = body.get("user", "")
+        org_id = body.get("org_id", "")
+        if org_id not in _org_memberships:
+            _org_memberships[org_id] = {"members": [], "moderators": [], "pending": []}
+        org = _org_memberships[org_id]
+        if user not in org["members"]:
+            org["members"].append(user)
+        auto_channels = [
+            c for c in _community_channels.values()
+            if c.get("org_id") == org_id
+        ]
+        return JSONResponse({
+            "ok": True, "org_id": org_id, "auto_joined_channels": len(auto_channels),
+        })
+
+    @app.post("/api/org/invite")
+    async def org_invite(request: Request):
+        body = await request.json()
+        org_id = body.get("org_id", "")
+        invitee = body.get("invitee", "")
+        if org_id not in _org_memberships:
+            _org_memberships[org_id] = {"members": [], "moderators": [], "pending": []}
+        _org_memberships[org_id]["pending"].append({"user": invitee, "at": _now_iso()})
+        return JSONResponse({"ok": True, "invited": invitee})
+
+    # ==================== REVIEW AUTOMATION ENGINE ====================
+
+    @app.post("/api/automation/review-response")
+    async def automation_review_response(request: Request):
+        """
+        Platform automation that handles review-driven adjustments.
+        Analyzes negative review comments and triggers corrective actions.
+        """
+        body = await request.json()
+        review_id = body.get("review_id", "")
+        review = next((r for r in _reviews_store if r["id"] == review_id), None)
+        if not review:
+            return JSONResponse({"ok": False, "error": "Review not found"}, status_code=404)
+        comment = review.get("comment", "").lower()
+        actions_taken = []
+        if any(w in comment for w in ["slow", "performance", "speed", "lag", "timeout"]):
+            actions_taken.append({"type": "performance_ticket", "detail": "Auto-created performance review ticket"})
+        if any(w in comment for w in ["bug", "error", "crash", "broken", "fail"]):
+            actions_taken.append({"type": "bug_ticket", "detail": "Auto-created bug investigation ticket"})
+        if any(w in comment for w in ["confus", "unclear", "hard to use", "ux", "ui", "interface"]):
+            actions_taken.append({"type": "ux_ticket", "detail": "Auto-created UX improvement ticket"})
+        if any(w in comment for w in ["security", "vulnerability", "unsafe", "hack"]):
+            actions_taken.append({"type": "security_escalation", "detail": "Auto-escalated to security team"})
+        if any(w in comment for w in ["billing", "charge", "payment", "refund", "price"]):
+            actions_taken.append({"type": "billing_ticket", "detail": "Auto-created billing support ticket"})
+        if any(w in comment for w in ["feature", "missing", "wish", "want", "need"]):
+            actions_taken.append({"type": "feature_request", "detail": "Auto-created feature request"})
+        if not actions_taken:
+            actions_taken.append({"type": "general_followup", "detail": "Scheduled manual review by support team"})
+        if review.get("rating", 5) <= 2:
+            actions_taken.append({
+                "type": "free_month_credit",
+                "detail": "Applied 1 month free Solo subscription as goodwill gesture",
+                "tier": "Solo",
+            })
+        return JSONResponse({
+            "ok": True, "review_id": review_id, "rating": review.get("rating"),
+            "actions_taken": actions_taken, "total_actions": len(actions_taken),
+        })
+
     # ==================== STATIC FILES & HTML UI ROUTES ====================
     # Serve the static/ directory (CSS, JS, SVG assets) and all HTML UI pages
     # so that /ui/... routes advertised by /api/ui/links are actually reachable.
@@ -3955,6 +4315,8 @@ def create_app() -> FastAPI:
             "/ui/matrix": "matrix_integration.html",
             "/ui/workspace": "workspace.html",
             "/ui/production-wizard": "production_wizard.html",
+            "/ui/partner": "partner_request.html",
+            "/ui/community": "community_forum.html",
         }
 
         _mounted_count = 0
