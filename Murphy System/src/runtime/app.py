@@ -2879,6 +2879,98 @@ def create_app() -> FastAPI:
             "count": len(_deliverables_store),
         })
 
+    # ==================== BILLING & TIER ENFORCEMENT ====================
+
+    # Lazy-init subscription manager
+    _sub_mgr = None
+
+    def _get_sub_manager():
+        nonlocal _sub_mgr
+        if _sub_mgr is None:
+            try:
+                from src.subscription_manager import SubscriptionManager
+                _sub_mgr = SubscriptionManager()
+            except Exception:
+                _sub_mgr = None
+        return _sub_mgr
+
+    @app.get("/api/billing/tiers")
+    async def billing_tiers():
+        """Return all available pricing tiers with limits, features, and prices."""
+        try:
+            from src.subscription_manager import (
+                PRICING_PLANS,
+                SubscriptionManager,
+            )
+            mgr = _get_sub_manager() or SubscriptionManager()
+            tiers = []
+            for tier_enum, plan in PRICING_PLANS.items():
+                details = mgr.get_tier_details(tier_enum.value)
+                tiers.append(details)
+            return JSONResponse({"success": True, "tiers": tiers})
+        except Exception as e:
+            return JSONResponse({"success": False, "error": str(e)}, 500)
+
+    @app.get("/api/billing/account/{account_id}")
+    async def billing_account(account_id: str):
+        """Get billing status, tier, usage, and limits for an account."""
+        mgr = _get_sub_manager()
+        if not mgr:
+            return JSONResponse({"success": False, "error": "Subscription system unavailable"}, 503)
+        try:
+            usage = mgr.get_usage_summary(account_id)
+            sub = mgr.get_subscription(account_id)
+            tier_name = sub.tier.value if sub else "solo"
+            details = mgr.get_tier_details(tier_name)
+            return JSONResponse({
+                "success": True,
+                "account_id": account_id,
+                "subscription": sub.to_dict() if sub else None,
+                "usage": usage,
+                "tier_details": details,
+            })
+        except Exception as e:
+            return JSONResponse({"success": False, "error": str(e)}, 500)
+
+    @app.post("/api/billing/check-limit")
+    async def billing_check_limit(request: Request):
+        """Check if an account can create a resource (users or automations).
+
+        Body: { "account_id": "...", "resource": "users"|"automations", "current_count": 0 }
+        """
+        mgr = _get_sub_manager()
+        if not mgr:
+            return JSONResponse({"success": False, "error": "Subscription system unavailable"}, 503)
+        try:
+            body = await request.json()
+            result = mgr.check_tier_limit(
+                account_id=body.get("account_id", ""),
+                resource=body.get("resource", ""),
+                current_count=body.get("current_count", 0),
+            )
+            return JSONResponse({"success": True, **result})
+        except Exception as e:
+            return JSONResponse({"success": False, "error": str(e)}, 500)
+
+    @app.post("/api/billing/check-feature")
+    async def billing_check_feature(request: Request):
+        """Check if an account's tier allows access to a specific feature.
+
+        Body: { "account_id": "...", "feature": "api_access"|"matrix_bridge"|... }
+        """
+        mgr = _get_sub_manager()
+        if not mgr:
+            return JSONResponse({"success": False, "error": "Subscription system unavailable"}, 503)
+        try:
+            body = await request.json()
+            result = mgr.check_feature_access(
+                account_id=body.get("account_id", ""),
+                feature=body.get("feature", ""),
+            )
+            return JSONResponse({"success": True, **result})
+        except Exception as e:
+            return JSONResponse({"success": False, "error": str(e)}, 500)
+
     # ==================== TELEMETRY ENDPOINT ====================
 
     @app.get("/api/telemetry")
