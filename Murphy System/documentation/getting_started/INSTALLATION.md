@@ -203,14 +203,14 @@ brew install --cask docker
 
 ```bash
 # Pull the official image
-docker pull murphy-system-runtime:latest
+docker pull murphy-system-runtime:v1.0.0
 ```
 
 ### Step 3: Run the Container
 
 ```bash
 # Run the container
-docker run -d -p 8000:8000 --name murphy-system murphy-system-runtime:latest
+docker run -d -p 8000:8000 --name murphy-system murphy-system-runtime:v1.0.0
 ```
 
 ### Step 4: Verify Installation
@@ -288,7 +288,7 @@ Type=simple
 User=your-user
 WorkingDirectory=/path/to/murphy-system-runtime
 Environment="PATH=/path/to/venv/bin"
-ExecStart=/path/to/venv/bin/python demo/api_server_v2.py
+ExecStart=/path/to/venv/bin/python murphy_system_1.0_runtime.py
 Restart=always
 
 [Install]
@@ -319,7 +319,7 @@ sudo systemctl status murphy-system
 
 ```bash
 # Start the API server
-python demo/api_server_v2.py
+python murphy_system_1.0_runtime.py
 
 # In another terminal, test health endpoint
 curl http://localhost:8000/api/health
@@ -424,7 +424,7 @@ lsof -i :8000
 kill -9 <PID>
 
 # Or use a different port
-python demo/api_server_v2.py --port 8053
+python murphy_system_1.0_runtime.py --port 8053
 ```
 
 ### Issue: Dependencies Not Found
@@ -456,7 +456,7 @@ docker logs murphy-system
 netstat -tuln | grep 8000
 
 # Try running without detaching to see errors
-docker run -it -p 8000:8000 murphy-system-runtime:latest
+docker run -it -p 8000:8000 murphy-system-runtime:v1.0.0
 ```
 
 ### Issue: Slow Performance
@@ -515,7 +515,7 @@ docker stop murphy-system
 docker rm murphy-system
 
 # Remove image
-docker rmi murphy-system-runtime:latest
+docker rmi murphy-system-runtime:v1.0.0
 ```
 
 ### Remove System Service (Linux)

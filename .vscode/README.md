@@ -16,12 +16,9 @@ Install the official Python extension from Microsoft if you haven't already.
 
 **Press F5** and select from:
 
-- 🚀 **Murphy: Quick Demo (2 min)** - Fast overview
-- 🌟 **Murphy: Full Demo (10 min)** - Complete showcase
-- 🔌 **Murphy: API Demo** - REST endpoints
-- 🔗 **Murphy: Integration Demo** - SwissKiss integration
-- 💼 **Murphy: Business Automation Demo** - 5 engines
-- 🤖 **Murphy: AI/ML Demo** - Advanced AI features
+- 🚀 **Murphy: Quick Demo (2 min)** - Hits core API endpoints
+- 🖥️ **Murphy: Start Server (Debug)** - Debug the API server
+- 🧪 **Murphy: Run Tests** - Run full test suite
 
 ### 4. Use Tasks
 
@@ -31,32 +28,30 @@ Install the official Python extension from Microsoft if you haven't already.
 - **Murphy: Run Quick Demo** - 2-minute demo
 - **Murphy: Health Check** - Test server
 - **Murphy: View API Docs** - Open documentation
+- **Murphy: Run Tests** - Run pytest suite
 
 ## What's Configured
 
 ### Debug Configurations (.vscode/launch.json)
 
-8 pre-configured debug/launch configurations for all demo types plus server debugging.
+3 pre-configured debug/launch configurations for the demo, server debugging, and test execution.
 
 ### Tasks (.vscode/tasks.json)
 
-8 pre-configured tasks for common Murphy operations.
+7 pre-configured tasks for common Murphy operations.
 
-### Demo Script (demo_murphy.py)
+### Demo Script (scripts/quick_demo.py)
 
-Comprehensive demonstration system with 6 demo types:
-- Quick (2 min)
-- Full (10 min)
-- API endpoints
-- Integration engine
-- Business automation
-- AI/ML features
+Lightweight API smoke-test that exercises core endpoints:
+- Health check
+- System status
+- Deep readiness
 
 ## Files
 
 - **/.vscode/launch.json** - Debug configurations
 - **/.vscode/tasks.json** - Task definitions
-- **/Murphy System/demo_murphy.py** - Demo orchestrator
+- **/Murphy System/scripts/quick_demo.py** - Demo orchestrator
 - **/Murphy System/DEMO_GUIDE.md** - Complete demo guide
 - **/Murphy System/start.sh** - Server startup script
 
@@ -80,7 +75,7 @@ Comprehensive demonstration system with 6 demo types:
 
 1. **Ctrl+`** to open integrated terminal
 2. `cd "Murphy System"`
-3. `python demo_murphy.py --demo quick`
+3. `python scripts/quick_demo.py`
 
 ## Features
 
@@ -133,7 +128,7 @@ cd "Murphy System"
 Then run demos with `--no-start`:
 
 ```bash
-python demo_murphy.py --demo quick --no-start
+python scripts/quick_demo.py
 ```
 
 ### Multiple Demos
@@ -141,7 +136,7 @@ python demo_murphy.py --demo quick --no-start
 Run all demos in sequence:
 
 ```bash
-python demo_murphy.py --demo all
+python scripts/quick_demo.py
 ```
 
 ## Troubleshooting
@@ -170,7 +165,7 @@ netstat -ano | findstr :8000  # Windows
 Run with verbose output:
 
 ```bash
-python demo_murphy.py --demo quick 2>&1 | tee demo.log
+python scripts/quick_demo.py 2>&1 | tee demo.log
 ```
 
 ## Documentation

@@ -37,7 +37,7 @@ cd /path/to/murphy-system-runtime
 Start the API server:
 
 ```bash
-python demo/api_server_v2.py
+python murphy_system_1.0_runtime.py
 ```
 
 You should see output like:
@@ -584,7 +584,7 @@ Press `Ctrl+C` in the terminal where the server is running.
 ### Q: How do I change the port?
 
 ```bash
-python demo/api_server_v2.py --port 8053
+python murphy_system_1.0_runtime.py --port 8053
 ```
 
 ### Q: What if I see errors?

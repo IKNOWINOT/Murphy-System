@@ -34,8 +34,8 @@ spec:
             runAsNonRoot: true
           containers:
             - name: backup
-              image: murphy-system:latest  # Same image as API; CI/CD should pin to SHA in production
-              imagePullPolicy: Always
+              image: ghcr.io/iknowinot/murphy-system/murphy-system:v1.0.0
+              imagePullPolicy: IfNotPresent
               command:
                 - python
                 - -c

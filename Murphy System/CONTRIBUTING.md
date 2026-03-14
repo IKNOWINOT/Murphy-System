@@ -90,7 +90,7 @@ source venv/bin/activate        # Linux/macOS
 ### 3. Install dependencies
 
 ```bash
-pip install -r requirements.lock
+pip install -r requirements_murphy_1.0.txt
 ```
 
 ### 4. Configure the environment

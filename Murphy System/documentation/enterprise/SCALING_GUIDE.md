@@ -42,7 +42,7 @@ uvicorn src.runtime.app:create_app --host 0.0.0.0 --port 8000 --workers 4
 ```yaml
 services:
   murphy:
-    image: murphy-system:latest
+    image: murphy-system:v1.0.0
     deploy:
       replicas: 4
     environment:
