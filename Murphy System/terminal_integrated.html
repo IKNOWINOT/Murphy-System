@@ -16,8 +16,11 @@
   /* Neon terminal theme */
   /* Cyan accent: #00ffff */
   /* Color Key: green=#00ff41, cyan=#00ffff, bg=#0a0a0a */
-  .murphy-terminal, .murphy-output, pre, code, textarea, input[type="text"] {
-    font-family: 'Courier New', Courier, monospace;
+  .murphy-terminal, .murphy-output, pre, code {
+    font-family: var(--font-code, 'JetBrains Mono', monospace);
+  }
+  textarea, input[type="text"] {
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
     color: #00ff41;
     background: #0a0a0a;
   }

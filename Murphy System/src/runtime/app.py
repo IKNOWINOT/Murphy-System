@@ -537,13 +537,35 @@ def create_app() -> FastAPI:
 
     @app.post("/api/librarian/ask")
     async def librarian_ask(request: Request):
-        """Route a natural-language message through the Librarian + optional LLM."""
+        """Route a natural-language message through the Librarian + optional LLM.
+
+        Accepts an optional ``mode`` field:
+        - ``"ask"``     — pure knowledge query; skips onboarding dimension
+                          extraction and returns a direct answer.
+        - ``"execute"`` — task/action mode; routes through the execution
+                          engine and returns a structured result.
+        - ``None``      — (default) legacy behaviour, onboarding + LLM
+                          fallback.
+        """
         data = await request.json()
         # Accept 'message', 'query', or 'question' — UI components use different names
         message = data.get("message") or data.get("query") or data.get("question") or ""
+        mode = data.get("mode")  # "ask" | "execute" | None
+
+        if mode == "execute":
+            # Route through the task execution engine
+            result = murphy.handle_chat(
+                message=message,
+                session_id=data.get("session_id"),
+                use_mfgc=True,
+            )
+            result["librarian_mode"] = "execute"
+            return JSONResponse(result)
+
         result = murphy.librarian_ask(
             message=message,
             session_id=data.get("session_id"),
+            mode=mode,
         )
         return JSONResponse(result)
 

@@ -12112,11 +12112,18 @@ class MurphySystem:
                 return None, str(exc)
         return None, None
 
-    def librarian_ask(self, message: str, session_id: Optional[str] = None) -> Dict[str, Any]:
+    def librarian_ask(self, message: str, session_id: Optional[str] = None, mode: Optional[str] = None) -> Dict[str, Any]:
         """Route a natural-language message through the Librarian + optional LLM.
 
+        Parameters
+        ----------
+        mode : str | None
+            ``"ask"``  — knowledge-only; skips onboarding dimension extraction.
+            ``None``   — default onboarding + LLM behaviour.
+
+        Pipeline:
         1. Classify the intent
-        2. Extract MFGC/5U dimensions from the user's message
+        2. Extract MFGC/5U dimensions from the user's message (skipped in ask mode)
         3. Gather session / onboarding context for richer answers
         4. Try LLM-backed response generation (with conversation profile)
         5. Fall back to conversational deterministic guidance if LLM is unavailable
@@ -12124,15 +12131,20 @@ class MurphySystem:
         session_id = session_id or "default"
         nl_intent = self._classify_nl_intent(message)
 
-        # Extract MFGC/5U dimensions from the message (always, before LLM)
         profile = self._get_onboarding_profile(session_id)
-        new_dims = self._extract_dimensions_from_message(message, profile)
-        if new_dims:
-            profile["collected"].update(new_dims)
-            session = self.chat_sessions.setdefault(session_id, {})
-            session.setdefault("answers", {}).update(new_dims)
-        # Store extracted dims for _deterministic_reply to use
-        profile["_last_extracted"] = new_dims
+
+        # In "ask" mode, skip dimension extraction — treat as pure knowledge query
+        if mode != "ask":
+            new_dims = self._extract_dimensions_from_message(message, profile)
+            if new_dims:
+                profile["collected"].update(new_dims)
+                session = self.chat_sessions.setdefault(session_id, {})
+                session.setdefault("answers", {}).update(new_dims)
+            # Store extracted dims for _deterministic_reply to use
+            profile["_last_extracted"] = new_dims
+        else:
+            profile["_last_extracted"] = {}
+
         profile["exchange_count"] = profile.get("exchange_count", 0) + 1
 
         # Score readiness
@@ -12187,6 +12199,7 @@ class MurphySystem:
                 "message": llm_text,
                 "intent": nl_intent,
                 "mode": "llm",
+                "librarian_mode": mode or "onboard",
                 "mfgc_score": score,
                 "suggested_commands": self._suggest_commands(nl_intent),
             }
@@ -12216,7 +12229,11 @@ class MurphySystem:
             }
 
         # Deterministic fallback — librarian is still active using onboard knowledge
-        fallback_reply = self._deterministic_reply(message, nl_intent, session_id=session_id)
+        # In "ask" mode, provide direct knowledge answers (skip onboarding prompts)
+        if mode == "ask":
+            fallback_reply = self._knowledge_reply(message, nl_intent)
+        else:
+            fallback_reply = self._deterministic_reply(message, nl_intent, session_id=session_id)
         llm_status = self._get_llm_status()
         # Show LLM upgrade notice once per session (librarian is always active)
         if not llm_status.get("enabled") and not session.get("_llm_notice_shown"):
@@ -12235,6 +12252,7 @@ class MurphySystem:
             "message": fallback_reply,
             "intent": nl_intent,
             "mode": "onboard",
+            "librarian_mode": mode or "onboard",
             "mfgc_score": score,
             "suggested_commands": self._suggest_commands(nl_intent),
         }
@@ -12493,6 +12511,114 @@ class MurphySystem:
         # Sort by weight descending — ask the most important questions first
         candidates.sort(key=lambda x: x[1]["weight"], reverse=True)
         return candidates[0][1]["question"]
+
+    def _knowledge_reply(self, message: str, nl_intent: str) -> str:
+        """Generate a knowledge-base answer without onboarding dimension extraction.
+
+        Used when the Librarian is in **Ask** mode — the user wants a direct
+        answer to a question, not to advance the onboarding flow.
+        """
+        msg_lower = message.lower()
+
+        # --- System knowledge topics ---
+        knowledge = {
+            "shadow": (
+                "**Shadow Learning** is Murphy's apprentice model. A Shadow Agent is assigned "
+                "to mirror a specific user — it watches how you work, which decisions you make, "
+                "which automations you approve or reject. Over time, it learns your patterns and "
+                "proposes automations that match your style.\n\n"
+                "**How it works:**\n"
+                "1. **Observe** — the shadow agent records your actions (approvals, rejections, edits)\n"
+                "2. **Learn** — patterns are extracted from observations\n"
+                "3. **Propose** — shadow suggests automations based on learned patterns\n"
+                "4. **Graduate** — once confident enough, shadow actions can run autonomously\n\n"
+                "Check shadow status: **Sidebar → Graduation** or `/api/learning/status`"
+            ),
+            "mfgc": (
+                "**MFGC (Murphy Framework Gate Controls)** are governance gates that every "
+                "automation must pass through:\n\n"
+                "- **Executive** — strategic alignment check\n"
+                "- **Operations** — operational feasibility\n"
+                "- **QA** — quality assurance validation\n"
+                "- **HITL** — human-in-the-loop approval\n"
+                "- **Compliance** — regulatory and policy compliance\n"
+                "- **Budget** — cost and resource approval\n\n"
+                "Gates can be open (auto-approve) or closed (require approval). "
+                "View gate status: **Sidebar → Gates (MFGC)** or `/api/mfgc/gates`"
+            ),
+            "magnif": (
+                "**Magnify** is Murphy's domain expansion operator. When you describe a task, "
+                "Magnify breaks it down into concrete components — trigger conditions, processing "
+                "stages, delivery actions, and verification steps. Each magnification level adds "
+                "more detail.\n\n"
+                "**Solidify** locks the expanded plan. **Simplify** reduces complexity."
+            ),
+            "librarian": (
+                "**The Librarian** is Murphy's knowledge assistant. It operates in two modes:\n\n"
+                "- **📖 Ask** — answer questions about the system, features, and capabilities\n"
+                "- **⚡ Execute** — run commands and trigger automations\n\n"
+                "The Librarian is available on every page via the floating button (bottom-right). "
+                "Toggle between Ask and Execute modes using the buttons at the top of the panel."
+            ),
+            "hitl": (
+                "**HITL (Human-in-the-Loop)** ensures humans approve important actions before "
+                "they execute. The HITL queue shows pending approvals.\n\n"
+                "- View queue: **Sidebar → HITL Queue** or `/api/hitl/queue`\n"
+                "- Safety level controls how much HITL is required (1=always ask, 5=full auto)\n"
+                "- Shadow agents gradually learn which actions you always approve"
+            ),
+            "integrat": (
+                "**Integrations** connect Murphy to external services. Available connectors "
+                "include WordPress, Wix, Slack, GitHub, and 80+ more.\n\n"
+                "- Browse catalog: **Sidebar → Integrations**\n"
+                "- Configure: `/api/universal-integrations/services/{service}/configure`\n"
+                "- Website builders: WordPress, Wix, Squarespace, Webflow"
+            ),
+            "workflow": (
+                "**Workflows** are automated sequences of actions with governance gates. "
+                "Create them visually in the **Workflow Canvas** or via commands.\n\n"
+                "- View workflows: **Sidebar → Workflows**\n"
+                "- Visual editor: **Sidebar → Workflow Canvas**\n"
+                "- Each step passes through MFGC gates and HITL checkpoints"
+            ),
+            "onboard": (
+                "**Onboarding** is Murphy's guided setup process. The wizard asks about your "
+                "business, goals, and tools — then configures automations to match.\n\n"
+                "- Start onboarding: **Sidebar → Onboarding** or say \"start interview\"\n"
+                "- MFGC/5U Readiness tracks progress (need 85% to generate your plan)\n"
+                "- Switch to **Execute** mode in the Librarian to begin onboarding"
+            ),
+            "cost": (
+                "**Costs** are tracked per task, session, and tenant. The cost explosion gate "
+                "prevents runaway spending.\n\n"
+                "- View costs: **Sidebar → Costs**\n"
+                "- Swarm coordination overhead: $0.02/min × agents × parallel time\n"
+                "- Safety gate overhead: $0.05 per execution step"
+            ),
+        }
+
+        # Match against knowledge topics
+        for keyword, answer in knowledge.items():
+            if keyword in msg_lower:
+                return answer
+
+        # Generic helpful response
+        suggestions = self._suggest_commands(nl_intent)
+        reply = (
+            "I can help with questions about Murphy's features and capabilities. "
+            "Try asking about:\n\n"
+            "- **Shadow Learning** — how agents learn from your work\n"
+            "- **MFGC Gates** — governance and approval controls\n"
+            "- **Integrations** — connecting external services\n"
+            "- **Workflows** — automated task sequences\n"
+            "- **HITL** — human-in-the-loop approvals\n"
+            "- **Onboarding** — getting started with Murphy\n"
+            "- **Costs** — pricing and overhead tracking\n"
+        )
+        if suggestions:
+            reply += f"\n**Related commands:** {', '.join(f'`{c}`' for c in suggestions[:5])}"
+
+        return reply
 
     def _deterministic_reply(self, message: str, nl_intent: str, session_id: str = "default") -> str:
         """Generate a context-aware conversational reply when LLM is unavailable.

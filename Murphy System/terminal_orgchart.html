@@ -14,8 +14,11 @@
 <link rel="stylesheet" href="static/murphy-design-system.css">
 <style>
   /* Neon terminal theme */
-  .murphy-terminal, .murphy-output, pre, code, textarea, input[type="text"] {
-    font-family: 'Courier New', Courier, monospace;
+  .murphy-terminal, .murphy-output, pre, code {
+    font-family: var(--font-code, 'JetBrains Mono', monospace);
+  }
+  textarea, input[type="text"] {
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
     color: #00ff00;
     background: #0a0a0a;
   }
