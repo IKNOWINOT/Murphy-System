@@ -243,6 +243,7 @@ def create_billing_router(
         events.  The ``X-CC-Webhook-Signature`` header is verified when
         ``COINBASE_WEBHOOK_SECRET`` is configured.
         """
+        raw_body = await request.body()
         try:
             payload: Dict[str, Any] = await request.json()
         except Exception as exc:
@@ -254,6 +255,7 @@ def create_billing_router(
             result = mgr.handle_coinbase_webhook(
                 payload=payload,
                 signature=signature,
+                raw_body=raw_body,
             )
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
