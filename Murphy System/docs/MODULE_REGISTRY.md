@@ -13,7 +13,7 @@ Murphy System organised by subsystem. It is the authoritative reference
 for understanding what each module does, where it lives, and its current
 operational status.
 
-**Counts (as of 2026-03-08):** 650+ source modules across 56 packages in `src/`.
+**Counts (as of 2026-03-14):** 656+ source modules across 57 packages in `src/`.
 
 Legend:
 - ✅ **Operational** — module is active and tested
@@ -80,7 +80,7 @@ See [WINGMAN_PROTOCOL.md](WINGMAN_PROTOCOL.md) for full architecture documentati
 |--------|------|-------------|--------|-----------------|
 | `hitl_graduation_engine.py` | `src/hitl_graduation_engine.py` | Human-to-automation handoff pipeline — register, evaluate, graduate, rollback | ✅ | — |
 | `functionality_heatmap.py` | `src/functionality_heatmap.py` | Activity recording, cold/hot-spot analysis, coverage dashboard | 📋 Planned | — |
-| `agentic_onboarding_engine.py` | `src/agentic_onboarding_engine.py` | Autonomous onboarding with adaptive path selection | 📋 Planned | — |
+| `agentic_onboarding_engine.py` | `src/agentic_onboarding_engine.py` | Autonomous onboarding with adaptive path selection | ✅ Operational | — |
 | `production_assistant.py` | `src/production_assistant.py` | Production Assistant (PROD-001): proposal validation at 99% confidence, HITL gate requirements (certifications, licensing, experience, discipline accountability), work-order deliverable matching, lifecycle management (created→in_review→approved→in_progress→delivered→verified), regulatory completeness checks; integrates ProductionOutputCalibrator, SafetyGate, ComplianceEngine | ✅ | `production_output_calibrator`, `thread_safe_operations`, `strategic.murphy_confidence.gates` |
 | `code_generation_gateway.py` | `src/code_generation_gateway.py` | LLM-powered code generation gateway | ✅ | — |
 | `auto_documentation_engine.py` | `src/auto_documentation_engine.py` | Automated docstring and README generation | ✅ | — |
@@ -362,6 +362,37 @@ additive-manufacturing cells.
 | `additive_manufacturing_connectors.py` | OPC-UA AM / OPC 40564, REST | `AdditiveManufacturingRegistry` + `AMWorkflowBinder` | FDM/SLS/DMLS/SLA/PolyJet/EBM/WAAM processes; GrabCAD/Eiger/EOSTATE integration; Stratasys/EOS/Markforged | ✅ Operational |
 | `factory_automation_connectors.py` (FAC-001) | OPC-UA, EtherNet/IP, PROFINET, MTConnect, MQTT Sparkplug | 15 vendor connectors (Rockwell/Siemens/Beckhoff/FANUC/ABB/KUKA/Yaskawa/Omron/Mitsubishi/PTC/Ignition/Emerson/Cognex/Keyence/Bosch Rexroth); `FactoryAutomationRegistry` + `FactoryAutomationOrchestrator` | ISA-95 layer-aware orchestration (FIELD→CONTROL→SUPERVISORY→MES); IEC 13849 safety gate (sub-CAT_2 requires override) | ✅ Operational |
 | `energy_audit_engine.py` (EAE-001) | Internal (no OT protocol) | `EnergyAuditEngine` | ASHRAE Level I/II/III workflows; ECM identification; ROI/payback auto-computation; ISO 50001/50002 compliance checklists; CBECS benchmarking (12 building types); greedy-knapsack ECM prioritisation | ✅ Operational |
+
+---
+
+## New Modules (2026-03-14)
+
+| Module | Path | Description | Status | Key Dependencies |
+|--------|------|-------------|--------|-----------------|
+| `self_introspection_module.py` | `src/self_introspection_module.py` | Runtime self-analysis, codebase scanning, dependency graph extraction | ✅ Operational | ast |
+| `self_codebase_swarm.py` | `src/self_codebase_swarm.py` | Autonomous BMS spec generation, RFP parsing, deliverable packaging | ✅ Operational | cutsheet_engine |
+| `cutsheet_engine.py` | `src/cutsheet_engine.py` | Manufacturer data parsing, wiring diagrams, device config generation | ✅ Operational | — |
+| `visual_swarm_builder.py` | `src/visual_swarm_builder.py` | Visual pipeline construction for swarm workflows | ✅ Operational | — |
+| `ceo_branch_activation.py` | `src/ceo_branch_activation.py` | Top-level autonomous decision-making, org chart automation, operational planning | ✅ Operational | event_backbone, org_chart_enforcement |
+| `production_assistant_engine.py` | `src/production_assistant_engine.py` | Request lifecycle management with deliverable gate validation | ✅ Operational | event_backbone, persistence_manager |
+
+---
+
+## Time Tracking Phase 6B–6D
+
+| Module | Path | Description | Status | Key Dependencies |
+|--------|------|-------------|--------|-----------------|
+| `time_tracking/reporting_service.py` | `src/time_tracking/reporting_service.py` | Time entry reporting | ✅ Operational | time_tracking |
+| `time_tracking/approval_service.py` | `src/time_tracking/approval_service.py` | Time entry approval workflows | ✅ Operational | time_tracking |
+| `time_tracking/export_service.py` | `src/time_tracking/export_service.py` | Time data export (CSV, PDF) | ✅ Operational | time_tracking |
+| `time_tracking/dashboard_widgets.py` | `src/time_tracking/dashboard_widgets.py` | Dashboard UI widgets | ✅ Operational | time_tracking |
+| `time_tracking/summary_statistics.py` | `src/time_tracking/summary_statistics.py` | Summary statistics aggregation | ✅ Operational | time_tracking |
+| `time_tracking/team_views.py` | `src/time_tracking/team_views.py` | Team-level time views | ✅ Operational | time_tracking |
+| `time_tracking/dashboard_api.py` | `src/time_tracking/dashboard_api.py` | Dashboard REST API endpoints | ✅ Operational | time_tracking |
+| `time_tracking/billing_integration.py` | `src/time_tracking/billing_integration.py` | Billing system integration | ✅ Operational | time_tracking |
+| `time_tracking/invoicing_hooks.py` | `src/time_tracking/invoicing_hooks.py` | Invoice generation hooks | ✅ Operational | time_tracking |
+| `time_tracking/settings_api.py` | `src/time_tracking/settings_api.py` | Time tracking settings API | ✅ Operational | time_tracking |
+| `time_tracking/config.py` | `src/time_tracking/config.py` | Time tracking configuration | ✅ Operational | time_tracking |
 
 ---
 
