@@ -28,6 +28,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # Resolve the project root (Murphy System/) for file-based assertions.
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# Resolve the repository root (parent of Murphy System/).
+_REPO_ROOT = os.path.dirname(_PROJECT_ROOT)
+
 
 # ---------------------------------------------------------------------------
 # 1. Version consistency
@@ -949,3 +952,136 @@ class TestEnvExampleWebhookSecrets:
     def test_paypal_labeled_primary(self):
         """PayPal should be labeled as primary, not 'alternative'."""
         assert "primary payment" in self._content().lower() or "PayPal (primary" in self._content()
+
+
+# ---------------------------------------------------------------------------
+# Round 4: Image pinning, lock file, CONTRIBUTING, .vscode stale refs
+# ---------------------------------------------------------------------------
+
+class TestK8sImagePinning:
+    """K8s manifests must not use :latest in production."""
+
+    def test_deployment_image_pinned(self):
+        path = os.path.join(_PROJECT_ROOT, "k8s", "deployment.yaml")
+        with open(path) as fh:
+            content = fh.read()
+        assert ":latest" not in content, "k8s/deployment.yaml still uses :latest"
+        assert ":v1.0.0" in content or ":v" in content, (
+            "k8s/deployment.yaml should use a versioned tag like :v1.0.0"
+        )
+
+    def test_deployment_pull_policy_not_always(self):
+        path = os.path.join(_PROJECT_ROOT, "k8s", "deployment.yaml")
+        with open(path) as fh:
+            content = fh.read()
+        assert "imagePullPolicy: Always" not in content, (
+            "imagePullPolicy should be IfNotPresent with pinned images"
+        )
+
+    def test_backup_cronjob_image_pinned(self):
+        path = os.path.join(_PROJECT_ROOT, "k8s", "backup-cronjob.yaml")
+        with open(path) as fh:
+            content = fh.read()
+        assert ":latest" not in content, "k8s/backup-cronjob.yaml still uses :latest"
+        assert ":v1.0.0" in content or ":v" in content
+
+
+class TestContributingRequirements:
+    """CONTRIBUTING.md must reference the correct requirements file."""
+
+    def test_no_requirements_lock_install(self):
+        path = os.path.join(_PROJECT_ROOT, "CONTRIBUTING.md")
+        with open(path) as fh:
+            content = fh.read()
+        assert "pip install -r requirements.lock" not in content, (
+            "CONTRIBUTING.md still tells contributors to install from incomplete lock file"
+        )
+
+    def test_uses_murphy_requirements(self):
+        path = os.path.join(_PROJECT_ROOT, "CONTRIBUTING.md")
+        with open(path) as fh:
+            content = fh.read()
+        assert "requirements_murphy_1.0.txt" in content
+
+
+class TestRequirementsLockCompleteness:
+    """requirements.lock must cover all packages from requirements_murphy_1.0.txt."""
+
+    def _pkg_count(self, filename: str) -> int:
+        path = os.path.join(_PROJECT_ROOT, filename)
+        with open(path) as fh:
+            lines = fh.readlines()
+        return len([
+            l for l in lines
+            if l.strip() and not l.strip().startswith("#")
+        ])
+
+    def test_lock_has_at_least_80_packages(self):
+        count = self._pkg_count("requirements.lock")
+        assert count >= 80, f"requirements.lock has only {count} packages, expected >= 80"
+
+    def test_lock_uses_exact_pins(self):
+        path = os.path.join(_PROJECT_ROOT, "requirements.lock")
+        with open(path) as fh:
+            lines = fh.readlines()
+        for line in lines:
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            if ">=" in stripped:
+                assert False, f"Lock file should use ==, not >=: {stripped}"
+
+    def test_lock_references_murphy_source(self):
+        path = os.path.join(_PROJECT_ROOT, "requirements.lock")
+        with open(path) as fh:
+            content = fh.read()
+        assert "requirements_murphy_1.0.txt" in content, (
+            "Lock file should reference its authoritative source"
+        )
+
+
+class TestVscodeReadmeNoStaleDemo:
+    """.vscode/README.md must not reference non-existent demo_murphy.py."""
+
+    def test_no_demo_murphy_reference(self):
+        path = os.path.join(_REPO_ROOT, ".vscode", "README.md")
+        with open(path) as fh:
+            content = fh.read()
+        assert "demo_murphy" not in content, (
+            ".vscode/README.md still references non-existent demo_murphy.py"
+        )
+
+    def test_references_quick_demo(self):
+        path = os.path.join(_REPO_ROOT, ".vscode", "README.md")
+        with open(path) as fh:
+            content = fh.read()
+        assert "quick_demo" in content, (
+            ".vscode/README.md should reference scripts/quick_demo.py"
+        )
+
+
+class TestDockerComposeMurphyRedis:
+    """docker-compose.murphy.yml Redis should be version-pinned."""
+
+    def test_redis_version_pinned(self):
+        path = os.path.join(_PROJECT_ROOT, "docker-compose.murphy.yml")
+        with open(path) as fh:
+            content = fh.read()
+        assert "redis:7-alpine" not in content, (
+            "Redis should be pinned to specific version, not redis:7-alpine"
+        )
+        assert "redis:7." in content, "Redis version should be pinned (e.g., redis:7.2-alpine)"
+
+
+class TestScalingGuideImageTag:
+    """SCALING_GUIDE.md should use versioned image tags, not :latest."""
+
+    def test_no_latest_tag(self):
+        path = os.path.join(
+            _PROJECT_ROOT, "documentation", "enterprise", "SCALING_GUIDE.md"
+        )
+        with open(path) as fh:
+            content = fh.read()
+        assert "murphy-system:latest" not in content, (
+            "SCALING_GUIDE.md still uses :latest — production guides should use version tags"
+        )

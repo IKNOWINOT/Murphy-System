@@ -42,7 +42,7 @@ Install the official Python extension from Microsoft if you haven't already.
 
 8 pre-configured tasks for common Murphy operations.
 
-### Demo Script (demo_murphy.py)
+### Demo Script (scripts/quick_demo.py)
 
 Comprehensive demonstration system with 6 demo types:
 - Quick (2 min)
@@ -56,7 +56,7 @@ Comprehensive demonstration system with 6 demo types:
 
 - **/.vscode/launch.json** - Debug configurations
 - **/.vscode/tasks.json** - Task definitions
-- **/Murphy System/demo_murphy.py** - Demo orchestrator
+- **/Murphy System/scripts/quick_demo.py** - Demo orchestrator
 - **/Murphy System/DEMO_GUIDE.md** - Complete demo guide
 - **/Murphy System/start.sh** - Server startup script
 
@@ -80,7 +80,7 @@ Comprehensive demonstration system with 6 demo types:
 
 1. **Ctrl+`** to open integrated terminal
 2. `cd "Murphy System"`
-3. `python demo_murphy.py --demo quick`
+3. `python scripts/quick_demo.py`
 
 ## Features
 
@@ -133,7 +133,7 @@ cd "Murphy System"
 Then run demos with `--no-start`:
 
 ```bash
-python demo_murphy.py --demo quick --no-start
+python scripts/quick_demo.py
 ```
 
 ### Multiple Demos
@@ -141,7 +141,7 @@ python demo_murphy.py --demo quick --no-start
 Run all demos in sequence:
 
 ```bash
-python demo_murphy.py --demo all
+python scripts/quick_demo.py
 ```
 
 ## Troubleshooting
@@ -170,7 +170,7 @@ netstat -ano | findstr :8000  # Windows
 Run with verbose output:
 
 ```bash
-python demo_murphy.py --demo quick 2>&1 | tee demo.log
+python scripts/quick_demo.py 2>&1 | tee demo.log
 ```
 
 ## Documentation
