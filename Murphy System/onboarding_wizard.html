@@ -756,13 +756,16 @@
     container.appendChild(summary);
 
     // Submit config and go
-    var launchRow = el('div', { className: 'flex justify-center', style: 'margin-top:2rem;' });
-    var launchBtn = el('button', {
+    var launchRow = el('div', { className: 'flex justify-center', style: 'margin-top:2rem;gap:1rem;flex-wrap:wrap;' });
+
+    // Primary CTA: go to Production Wizard (first-time setup flow)
+    var productionBtn = el('button', {
       className: 'murphy-btn murphy-btn-primary murphy-btn-lg',
-      textContent: 'Go to your dashboard →',
+      textContent: '🏭 Set Up Your First Production →',
       onClick: function () {
-        launchBtn.classList.add('murphy-btn-loading');
-        launchBtn.disabled = true;
+        productionBtn.classList.add('murphy-btn-loading');
+        productionBtn.disabled = true;
+        dashboardBtn.disabled = true;
         var config = {
           modules: enabledMods.map(function (m) { return m.id; }),
           integrations: enabledInts.map(function (i) { return i.id; }),
@@ -772,15 +775,51 @@
         };
         api.post('/onboarding/wizard/generate-config', config)
           .then(function () {
+            try { localStorage.setItem('murphy_onboarded', '1'); } catch(_) {}
+            window.location.href = 'production_wizard.html';
+          })
+          .catch(function () {
+            try { localStorage.setItem('murphy_onboarded', '1'); } catch(_) {}
+            window.location.href = 'production_wizard.html';
+          });
+      }
+    });
+    launchRow.appendChild(productionBtn);
+
+    // Secondary CTA: go straight to dashboard
+    var dashboardBtn = el('button', {
+      className: 'murphy-btn murphy-btn-secondary murphy-btn-lg',
+      textContent: 'Skip to Dashboard →',
+      onClick: function () {
+        dashboardBtn.classList.add('murphy-btn-loading');
+        dashboardBtn.disabled = true;
+        productionBtn.disabled = true;
+        var config = {
+          modules: enabledMods.map(function (m) { return m.id; }),
+          integrations: enabledInts.map(function (i) { return i.id; }),
+          safety_level: safetyLevel,
+          terminal: recommendedTerminal,
+          chat_history: chatHistory
+        };
+        api.post('/onboarding/wizard/generate-config', config)
+          .then(function () {
+            try { localStorage.setItem('murphy_onboarded', '1'); } catch(_) {}
             window.location.href = recommendedTerminal;
           })
           .catch(function () {
+            try { localStorage.setItem('murphy_onboarded', '1'); } catch(_) {}
             window.location.href = recommendedTerminal;
           });
       }
     });
-    launchRow.appendChild(launchBtn);
+    launchRow.appendChild(dashboardBtn);
     container.appendChild(launchRow);
+
+    // Tip text
+    container.appendChild(el('p', {
+      textContent: 'The Production Wizard will help you create your first automated workflow — you can always access your dashboard later.',
+      style: 'text-align:center;font-size:0.8rem;color:var(--text-muted);margin-top:0.75rem;'
+    }));
 
     container.appendChild(navBar({ back: true }));
   }

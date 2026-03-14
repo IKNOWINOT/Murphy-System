@@ -86,6 +86,7 @@ class MurphySidebar extends HTMLElement {
       { icon: '◎', label: 'WORKER',       href: '/ui/terminal_worker.html' },
       { icon: '⊞', label: 'COSTS',        href: '/ui/terminal_costs.html' },
       { icon: '⋮', label: 'WORKFLOWS',    href: '/ui/workflow_canvas.html' },
+      { icon: '🏭', label: 'PRODUCTION',   href: '/ui/production_wizard.html' },
     ];
 
     const links = navItems.map(item => `

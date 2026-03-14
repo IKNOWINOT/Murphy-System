@@ -562,10 +562,26 @@ document.getElementById('proposal-form').addEventListener('submit', async (e) =>
     const payload = { proposal_id: id, regulatory_location: location, regulatory_industry: industry, regulatory_functions: funcs, deliverable_spec: spec, required_gates: gates };
     log(`Submitting proposal ${id}…`);
     const res = await apiFetch('/api/production/proposals', { method: 'POST', body: JSON.stringify(payload) });
+    const wf = res.workflow;
+    const wfJson = wf ? JSON.stringify(wf) : null;
     document.getElementById('proposal-result-body').innerHTML =
-      `<div class="murphy-alert murphy-alert-success">Proposal <strong>${id}</strong> submitted successfully.<br>Status: ${res.status || 'pending'}</div>`;
+      `<div class="murphy-alert murphy-alert-success">
+         Proposal <strong>${id}</strong> submitted successfully.<br>
+         Status: ${res.status || 'pending'}
+         ${wf ? `<br>Workflow generated: <strong>${wf.nodes ? wf.nodes.length : 0} nodes</strong>, <strong>${wf.edges ? wf.edges.length : 0} connections</strong>` : ''}
+       </div>
+       ${wf ? `<button class="murphy-btn murphy-btn-primary" id="btn-open-workflow" style="margin-top:var(--space-3)">
+         🏭 Open Workflow in Visual Editor ↗
+       </button>` : ''}`;
     document.getElementById('proposal-result').style.display = '';
-    log(`Proposal ${id} submitted. Status: ${res.status}`);
+    // Bind the workflow-open button
+    if (wf) {
+      document.getElementById('btn-open-workflow').addEventListener('click', () => {
+        try { localStorage.setItem('murphy_production_workflow', wfJson); } catch(_) {}
+        window.open('workflow_canvas.html?production=' + encodeURIComponent(id), '_blank');
+      });
+    }
+    log(`Proposal ${id} submitted. Status: ${res.status}. Workflow: ${wf ? wf.nodes.length + ' nodes' : 'none'}`);
   } catch (err) {
     document.getElementById('proposal-result-body').innerHTML =
       `<div class="murphy-alert murphy-alert-danger">Submission failed: ${err.message}</div>`;
