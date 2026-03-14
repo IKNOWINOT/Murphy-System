@@ -775,11 +775,11 @@
         };
         api.post('/onboarding/wizard/generate-config', config)
           .then(function () {
-            try { localStorage.setItem('murphy_onboarded', '1'); } catch(_) {}
+            try { localStorage.setItem('murphy_onboarded', '1'); } catch(e) { console.warn('localStorage unavailable:', e.message); }
             window.location.href = 'production_wizard.html';
           })
           .catch(function () {
-            try { localStorage.setItem('murphy_onboarded', '1'); } catch(_) {}
+            try { localStorage.setItem('murphy_onboarded', '1'); } catch(e) { console.warn('localStorage unavailable:', e.message); }
             window.location.href = 'production_wizard.html';
           });
       }
@@ -803,11 +803,11 @@
         };
         api.post('/onboarding/wizard/generate-config', config)
           .then(function () {
-            try { localStorage.setItem('murphy_onboarded', '1'); } catch(_) {}
+            try { localStorage.setItem('murphy_onboarded', '1'); } catch(e) { console.warn('localStorage unavailable:', e.message); }
             window.location.href = recommendedTerminal;
           })
           .catch(function () {
-            try { localStorage.setItem('murphy_onboarded', '1'); } catch(_) {}
+            try { localStorage.setItem('murphy_onboarded', '1'); } catch(e) { console.warn('localStorage unavailable:', e.message); }
             window.location.href = recommendedTerminal;
           });
       }
