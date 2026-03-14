@@ -621,6 +621,9 @@ document.addEventListener('keydown',function(e){
   }
 });
 document.querySelectorAll('#main-nav a').forEach(function(a){a.addEventListener('click',function(){document.getElementById('main-nav').classList.remove('open');document.getElementById('hamburger-btn').setAttribute('aria-expanded','false');});});
+// Librarian chat
+var api = new MurphyAPI('/api');
+var librarian = new MurphyLibrarianChat(api);
 </script>
 </body>
 </html>

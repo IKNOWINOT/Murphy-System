@@ -401,6 +401,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const role = getUserRole();
   const badge = document.getElementById('role-badge');
   if (badge) badge.textContent = `● ${role}`;
+
+  // Librarian chat
+  var api = new MurphyAPI(API);
+  var librarian = new MurphyLibrarianChat(api);
 });
 </script>
 </body>
