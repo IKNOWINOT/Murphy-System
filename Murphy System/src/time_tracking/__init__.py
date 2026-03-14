@@ -15,6 +15,9 @@ from .tracker import TimeTracker
 from .reporting_service import ReportingService
 from .approval_service import ApprovalError, ApprovalService
 from .export_service import ExportService
+from .dashboard_widgets import TimeTrackingWidgetFactory
+from .summary_statistics import SummaryStatisticsService
+from .team_views import TeamViewService
 
 try:
     from .api import create_time_tracking_router
@@ -26,6 +29,11 @@ try:
 except Exception:  # pragma: no cover
     create_reporting_blueprint = None  # type: ignore[assignment]
 
+try:
+    from .dashboard_api import create_dashboard_blueprint
+except Exception:  # pragma: no cover
+    create_dashboard_blueprint = None  # type: ignore[assignment]
+
 __all__ = [
     "EntryStatus",
     "SheetStatus",
@@ -36,6 +44,10 @@ __all__ = [
     "ApprovalError",
     "ApprovalService",
     "ExportService",
+    "TimeTrackingWidgetFactory",
+    "SummaryStatisticsService",
+    "TeamViewService",
     "create_time_tracking_router",
     "create_reporting_blueprint",
+    "create_dashboard_blueprint",
 ]
