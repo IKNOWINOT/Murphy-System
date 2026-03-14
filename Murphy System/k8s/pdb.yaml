@@ -5,7 +5,7 @@ metadata:
   namespace: murphy-system
   labels:
     app: murphy-system
-    component: disruption-budget
+    component: availability
     environment: production
 spec:
   minAvailable: 1
