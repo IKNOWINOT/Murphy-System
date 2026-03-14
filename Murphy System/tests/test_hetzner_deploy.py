@@ -434,20 +434,23 @@ class TestHetznerDeployPlanGeneratorFullDeploy:
         step_ids = [s.step_id for s in plan.steps]
         for expected in [
             "hetzner-08-apply-namespace",
-            "hetzner-09-apply-secrets",
-            "hetzner-10-apply-configmap",
-            "hetzner-11-apply-pvc",
-            "hetzner-12-apply-deployment",
-            "hetzner-13-apply-service",
-            "hetzner-14-apply-ingress",
-            "hetzner-15-apply-hpa",
+            "hetzner-09-apply-resource-quota",
+            "hetzner-10-apply-limit-range",
+            "hetzner-11-apply-secrets",
+            "hetzner-12-apply-configmap",
+            "hetzner-13-apply-pvc",
+            "hetzner-14-apply-network-policy",
+            "hetzner-15-apply-deployment",
+            "hetzner-16-apply-service",
+            "hetzner-17-apply-ingress",
+            "hetzner-18-apply-hpa",
         ]:
             assert expected in step_ids
 
     def test_full_deploy_verify_step_is_last(self):
         gen = HetznerDeployPlanGenerator(image_tag="sha-abc")
         plan = gen._full_deploy_plan(_probe_nothing_ready())
-        assert plan.steps[-1].step_id == "hetzner-16-verify-deployment"
+        assert plan.steps[-1].step_id == "hetzner-20-verify-deployment"
 
     def test_full_deploy_skips_install_hcloud_when_present(self):
         gen = HetznerDeployPlanGenerator(image_tag="sha-abc")
@@ -480,7 +483,7 @@ class TestHetznerDeployPlanGeneratorFullDeploy:
         assert risk_map["hetzner-03-authenticate-hcloud"] == RiskLevel.HIGH
         assert risk_map["hetzner-04-create-cluster"] == RiskLevel.HIGH
         assert risk_map["hetzner-08-apply-namespace"] == RiskLevel.LOW
-        assert risk_map["hetzner-09-apply-secrets"] == RiskLevel.HIGH
+        assert risk_map["hetzner-11-apply-secrets"] == RiskLevel.HIGH
 
     def test_full_deploy_all_steps_have_liability_note(self):
         gen = HetznerDeployPlanGenerator(image_tag="sha-abc")
@@ -1114,7 +1117,9 @@ class TestHetznerStepType:
             "create_k8s_cluster", "configure_kubeconfig", "build_image",
             "push_image", "apply_namespace", "apply_secrets", "apply_configmap",
             "apply_pvc", "apply_deployment", "apply_service", "apply_ingress",
-            "apply_hpa", "rolling_update", "verify_deployment",
+            "apply_hpa", "apply_network_policy", "apply_pdb",
+            "apply_resource_quota", "apply_limit_range",
+            "rolling_update", "verify_deployment",
         }
         actual = {member.value for member in HetznerStepType}
         assert expected == actual
