@@ -125,6 +125,9 @@ class HetznerStepType(str, Enum):
     APPLY_NETWORK_POLICY = "apply_network_policy"
     APPLY_PDB = "apply_pdb"
     ROLLING_UPDATE = "rolling_update"
+    APPLY_PROMETHEUS = "apply_prometheus"
+    APPLY_GRAFANA = "apply_grafana"
+    APPLY_SERVICE_MONITOR = "apply_service_monitor"
     VERIFY_DEPLOYMENT = "verify_deployment"
 
 
@@ -664,9 +667,28 @@ class HetznerDeployPlanGenerator:
             liability_note="You approved this action. Murphy executed it as instructed.",
         ))
 
-        # 18. Verify deployment
+        # 18. Apply Prometheus monitoring config
         steps.append(SetupStep(
-            step_id="hetzner-18-verify-deployment",
+            step_id="hetzner-18-apply-prometheus",
+            description="Apply Prometheus ConfigMap, Deployment, RBAC, and Service for observability",
+            risk_level=RiskLevel.LOW,
+            command=f'kubectl apply -f "{self._k8s("monitoring/prometheus-config.yaml")}" && '
+                    f'kubectl apply -f "{self._k8s("monitoring/prometheus-deployment.yaml")}"',
+            liability_note="You approved this action. Murphy executed it as instructed.",
+        ))
+
+        # 19. Apply Grafana monitoring deployment
+        steps.append(SetupStep(
+            step_id="hetzner-19-apply-grafana",
+            description="Apply Grafana Deployment, ConfigMaps, PVC, and Service for dashboards",
+            risk_level=RiskLevel.LOW,
+            command=f'kubectl apply -f "{self._k8s("monitoring/grafana-deployment.yaml")}"',
+            liability_note="You approved this action. Murphy executed it as instructed.",
+        ))
+
+        # 20. Verify deployment
+        steps.append(SetupStep(
+            step_id="hetzner-20-verify-deployment",
             description="Verify deployment health via kubectl and /api/health endpoint",
             risk_level=RiskLevel.LOW,
             command=(
