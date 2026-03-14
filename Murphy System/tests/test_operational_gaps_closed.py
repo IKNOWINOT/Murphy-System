@@ -286,18 +286,21 @@ class TestPytestConfigConsolidation:
         )
 
     def test_pyproject_has_collection_warning_filter(self):
-        content = open(os.path.join(_PROJECT_ROOT, "pyproject.toml")).read()
+        with open(os.path.join(_PROJECT_ROOT, "pyproject.toml")) as fh:
+            content = fh.read()
         assert "PytestCollectionWarning" in content, (
             "pyproject.toml should include PytestCollectionWarning filter "
             "(was previously in pytest.ini)"
         )
 
     def test_pyproject_has_testpaths(self):
-        content = open(os.path.join(_PROJECT_ROOT, "pyproject.toml")).read()
+        with open(os.path.join(_PROJECT_ROOT, "pyproject.toml")) as fh:
+            content = fh.read()
         assert "testpaths" in content
 
     def test_pyproject_has_asyncio_mode(self):
-        content = open(os.path.join(_PROJECT_ROOT, "pyproject.toml")).read()
+        with open(os.path.join(_PROJECT_ROOT, "pyproject.toml")) as fh:
+            content = fh.read()
         assert "asyncio_mode" in content
 
 
@@ -309,7 +312,8 @@ class TestAlembicConfig:
     """alembic.ini should document the env-var override."""
 
     def test_alembic_ini_mentions_env_override(self):
-        content = open(os.path.join(_PROJECT_ROOT, "alembic.ini")).read()
+        with open(os.path.join(_PROJECT_ROOT, "alembic.ini")) as fh:
+            content = fh.read()
         assert "DATABASE_URL" in content or "environment" in content.lower(), (
             "alembic.ini should document the environment variable override"
         )
