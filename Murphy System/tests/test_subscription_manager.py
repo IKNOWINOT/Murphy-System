@@ -279,6 +279,74 @@ class TestPaypalWebhook:
 
 
 # ---------------------------------------------------------------------------
+# Coinbase Commerce webhook handling
+# ---------------------------------------------------------------------------
+
+class TestCoinbaseWebhook:
+    def test_charge_confirmed_creates_subscription(self):
+        mgr = SubscriptionManager()
+        payload = {
+            "type": "charge:confirmed",
+            "data": {
+                "code": "CHARGE123",
+                "metadata": {"murphy_account_id": "cb_acc", "tier": "business"},
+            }
+        }
+        result = mgr.handle_coinbase_webhook(payload)
+        assert result["received"] is True
+        assert result["event_type"] == "charge:confirmed"
+        sub = mgr.get_subscription("cb_acc")
+        assert sub is not None
+        assert sub.tier == SubscriptionTier.BUSINESS
+        assert sub.status == SubscriptionStatus.ACTIVE
+
+    def test_charge_failed_sets_past_due(self):
+        mgr = SubscriptionManager()
+        mgr._upsert_subscription("cb_acc2", SubscriptionTier.SOLO, SubscriptionStatus.ACTIVE, PaymentProvider.CRYPTO)
+        payload = {
+            "type": "charge:failed",
+            "data": {"metadata": {"murphy_account_id": "cb_acc2"}},
+        }
+        mgr.handle_coinbase_webhook(payload)
+        assert mgr.get_subscription("cb_acc2").status == SubscriptionStatus.PAST_DUE
+
+    def test_charge_resolved_reactivates(self):
+        mgr = SubscriptionManager()
+        mgr._upsert_subscription("cb_acc3", SubscriptionTier.PROFESSIONAL, SubscriptionStatus.PAST_DUE, PaymentProvider.CRYPTO)
+        payload = {
+            "type": "charge:resolved",
+            "data": {"metadata": {"murphy_account_id": "cb_acc3"}},
+        }
+        mgr.handle_coinbase_webhook(payload)
+        assert mgr.get_subscription("cb_acc3").status == SubscriptionStatus.ACTIVE
+
+    def test_duplicate_event_skipped(self):
+        mgr = SubscriptionManager()
+        payload = {
+            "id": "unique_event_1",
+            "type": "charge:confirmed",
+            "data": {
+                "code": "CHARGE456",
+                "metadata": {"murphy_account_id": "cb_dedup", "tier": "solo"},
+            }
+        }
+        r1 = mgr.handle_coinbase_webhook(payload)
+        r2 = mgr.handle_coinbase_webhook(payload)
+        assert r1["received"] is True
+        assert r2.get("duplicate") is True
+
+    def test_unknown_event_type_accepted(self):
+        mgr = SubscriptionManager()
+        payload = {
+            "type": "charge:pending",
+            "data": {"metadata": {"murphy_account_id": "cb_pend"}},
+        }
+        result = mgr.handle_coinbase_webhook(payload)
+        assert result["received"] is True
+        assert result["event_type"] == "charge:pending"
+
+
+# ---------------------------------------------------------------------------
 # Subscription CRUD
 # ---------------------------------------------------------------------------
 

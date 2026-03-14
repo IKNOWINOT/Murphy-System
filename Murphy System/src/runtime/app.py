@@ -257,6 +257,15 @@ def create_app() -> FastAPI:
     except Exception as _mobile_exc:
         logger.warning("Mobile API not available: %s", _mobile_exc)
 
+    # ── Billing API (PayPal + Crypto, multi-currency, Japan discount) ──
+    try:
+        from billing.api import create_billing_router
+        _billing_router = create_billing_router()
+        app.include_router(_billing_router)
+        logger.info("Billing API registered at /api/billing")
+    except Exception as _bill_exc:
+        logger.warning("Billing API not available: %s", _bill_exc)
+
     # Register RBAC governance with security layer (SEC-005)
     rbac = getattr(murphy, 'rbac_governance', None)
     if rbac is not None:
@@ -500,6 +509,27 @@ def create_app() -> FastAPI:
             {"status": overall, "checks": checks, "critical_failures": critical_failed},
             status_code=http_status,
         )
+
+    # ── Deployment Readiness & Bootstrap Status ────────────────────
+    @app.get("/api/readiness")
+    async def readiness_check():
+        """Pre-flight deployment readiness report."""
+        try:
+            from deployment_readiness import DeploymentReadinessChecker
+            checker = DeploymentReadinessChecker()
+            return JSONResponse(checker.get_status())
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.get("/api/bootstrap")
+    async def bootstrap_status():
+        """Self-automation bootstrap status across all three stages."""
+        try:
+            from self_automation_bootstrap import SelfAutomationBootstrap
+            boot = SelfAutomationBootstrap()
+            return JSONResponse(boot.run())
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
 
     # ==================== LIBRARIAN ENDPOINTS ====================
 

@@ -274,6 +274,8 @@ class SubscriptionManager:
         self._audit_log: List[Dict[str, Any]] = []
         self._processed_events: Dict[str, float] = {}  # event_id → timestamp
         self._EVENT_DEDUP_WINDOW = 3600  # 1 hour
+        self._MAX_DEDUP_ENTRIES = 50_000  # hard cap on dedup map (CWE-400)
+        self._MAX_SUBSCRIPTIONS = 100_000  # hard cap on subscriptions map (CWE-400)
 
     # ------------------------------------------------------------------
     # Stripe
@@ -524,6 +526,82 @@ class SubscriptionManager:
     # Coinbase Commerce (crypto)
     # ------------------------------------------------------------------
 
+    def handle_coinbase_webhook(
+        self,
+        payload: Dict[str, Any],
+        signature: str = "",
+        webhook_secret: str = "",
+        raw_body: bytes = b"",
+    ) -> Dict[str, Any]:
+        """Process a Coinbase Commerce webhook event.
+
+        Coinbase Commerce sends events for charge lifecycle:
+          - ``charge:confirmed``  → payment received, activate subscription
+          - ``charge:failed``     → payment failed
+          - ``charge:delayed``    → underpaid / waiting for confirmation
+          - ``charge:pending``    → payment detected, awaiting confirmation
+          - ``charge:resolved``   → previously underpaid charge resolved
+
+        When ``webhook_secret`` (or ``COINBASE_WEBHOOK_SECRET`` env var) is
+        set, the ``signature`` header (``X-CC-Webhook-Signature``) is verified
+        via HMAC-SHA256 against the raw request body.
+
+        Args:
+            payload: Parsed JSON payload dict.
+            signature: Value of the ``X-CC-Webhook-Signature`` header.
+            webhook_secret: Shared secret for HMAC verification.
+            raw_body: Raw request body bytes for accurate signature verification.
+                      Falls back to canonical JSON re-serialization when empty.
+        """
+        secret = webhook_secret or os.environ.get("COINBASE_WEBHOOK_SECRET", "")
+        if secret and signature:
+            # Prefer raw_body for accurate signature verification;
+            # fall back to canonical JSON if raw bytes not provided.
+            if raw_body:
+                payload_bytes = raw_body
+            else:
+                payload_bytes = _json.dumps(
+                    payload, separators=(",", ":"), sort_keys=True
+                ).encode()
+            expected = _hmac.new(
+                secret.encode(), payload_bytes, hashlib.sha256
+            ).hexdigest()
+            if not _hmac.compare_digest(expected, signature):
+                logger.warning("Coinbase webhook signature mismatch")
+                raise ValueError("invalid Coinbase webhook signature")
+
+        # Idempotency
+        event_id = payload.get("id", "")
+        if event_id and self._is_duplicate_event(event_id):
+            logger.info("Duplicate Coinbase event skipped: %s", event_id)
+            return {"received": True, "duplicate": True, "event_type": payload.get("type", "")}
+
+        event_type = payload.get("type", "")
+        event_data = payload.get("data", {})
+        metadata = event_data.get("metadata", {})
+        account_id = metadata.get("murphy_account_id", "")
+        tier_str = metadata.get("tier", "solo")
+
+        if event_type == "charge:confirmed":
+            if account_id:
+                try:
+                    tier = SubscriptionTier(tier_str)
+                except ValueError:
+                    tier = SubscriptionTier.SOLO
+                self._upsert_subscription(
+                    account_id, tier, SubscriptionStatus.ACTIVE, PaymentProvider.CRYPTO,
+                    external_id=event_data.get("code", ""),
+                )
+        elif event_type == "charge:failed":
+            if account_id:
+                self._update_subscription_status(account_id, SubscriptionStatus.PAST_DUE)
+        elif event_type == "charge:resolved":
+            if account_id:
+                self._update_subscription_status(account_id, SubscriptionStatus.ACTIVE)
+
+        self._audit("coinbase_webhook", account_id, {"event_type": event_type})
+        return {"received": True, "event_type": event_type}
+
     def create_crypto_charge(
         self,
         account_id: str,
@@ -634,7 +712,11 @@ class SubscriptionManager:
         provider: PaymentProvider,
         external_id: str = "",
     ) -> SubscriptionRecord:
-        """Create or update a subscription record."""
+        """Create or update a subscription record.
+
+        Enforces a hard cap on total subscriptions to prevent memory
+        exhaustion (CWE-400).
+        """
         now = datetime.now(timezone.utc)
         trial_end = (now + timedelta(days=_TRIAL_DAYS)).isoformat()
         period_end = (now + timedelta(days=30)).isoformat()
@@ -647,6 +729,10 @@ class SubscriptionManager:
                 existing.payment_provider = provider
                 existing.external_subscription_id = external_id
                 return existing
+
+            # Hard cap on total subscriptions
+            if len(self._subscriptions) >= self._MAX_SUBSCRIPTIONS:
+                raise ValueError("Subscription capacity limit reached")
 
             sub = SubscriptionRecord(
                 account_id=account_id,
@@ -675,6 +761,8 @@ class SubscriptionManager:
         """Check if an event has already been processed (idempotency guard).
 
         Prunes stale entries outside the dedup window to bound memory.
+        Enforces a hard cap on the dedup map to prevent memory exhaustion
+        (CWE-400).
         """
         now = time.time()
         with self._lock:
@@ -683,6 +771,11 @@ class SubscriptionManager:
             stale = [eid for eid, ts in self._processed_events.items() if ts < cutoff]
             for eid in stale:
                 del self._processed_events[eid]
+
+            # Hard cap: evict the single oldest entry (O(n) not O(n log n))
+            while len(self._processed_events) >= self._MAX_DEDUP_ENTRIES:
+                oldest = min(self._processed_events, key=self._processed_events.get)
+                del self._processed_events[oldest]
 
             if event_id in self._processed_events:
                 return True
