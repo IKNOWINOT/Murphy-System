@@ -20,11 +20,24 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import threading
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Tuple
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Security constants
+# ---------------------------------------------------------------------------
+
+# ISO 4217 currency codes: 3 uppercase letters
+_CURRENCY_CODE_RE = re.compile(r"^[A-Z]{3}$")
+
+# Exchange rate sanity bounds — reject extreme / malicious values
+_MIN_RATE = 1e-6      # no rate below 0.000001
+_MAX_RATE = 1_000_000  # no rate above 1,000,000 (covers VND, IDR, etc.)
 
 
 # ---------------------------------------------------------------------------
@@ -123,8 +136,12 @@ class CurrencyConverter:
 
         Returns the amount rounded to 2 decimal places (or 0 for JPY/KRW
         since those currencies don't use decimals).
+
+        Raises ValueError if the currency code is malformed or unsupported.
         """
         currency = currency.upper()
+        if not _CURRENCY_CODE_RE.match(currency):
+            raise ValueError(f"Invalid currency code format: {currency!r}")
         with self._lock:
             rate = self._rates.get(currency)
         if rate is None:
@@ -176,9 +193,24 @@ class CurrencyConverter:
             return self._rates.get(currency.upper())
 
     def refresh_rates(self, new_rates: Dict[str, float]) -> None:
-        """Bulk-update exchange rates (e.g. from a live API feed)."""
+        """Bulk-update exchange rates (e.g. from a live API feed).
+
+        Ignores entries with non-alphabetic currency codes or rates outside
+        the sane bounds (``_MIN_RATE``..``_MAX_RATE``) to prevent injection
+        of malicious values.
+        """
+        sanitized: Dict[str, float] = {}
+        for k, v in new_rates.items():
+            code = k.upper()
+            if not _CURRENCY_CODE_RE.match(code):
+                logger.warning("Ignoring invalid currency code in rate update: %r", k)
+                continue
+            if not isinstance(v, (int, float)) or v < _MIN_RATE or v > _MAX_RATE:
+                logger.warning("Ignoring out-of-bounds rate for %s: %r", code, v)
+                continue
+            sanitized[code] = float(v)
         with self._lock:
-            self._rates.update({k.upper(): v for k, v in new_rates.items()})
+            self._rates.update(sanitized)
             self._last_refresh = datetime.now(timezone.utc).isoformat()
 
     def fetch_live_rates(self) -> bool:

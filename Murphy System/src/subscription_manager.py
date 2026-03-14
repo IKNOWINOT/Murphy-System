@@ -274,6 +274,8 @@ class SubscriptionManager:
         self._audit_log: List[Dict[str, Any]] = []
         self._processed_events: Dict[str, float] = {}  # event_id → timestamp
         self._EVENT_DEDUP_WINDOW = 3600  # 1 hour
+        self._MAX_DEDUP_ENTRIES = 50_000  # hard cap on dedup map (CWE-400)
+        self._MAX_SUBSCRIPTIONS = 100_000  # hard cap on subscriptions map (CWE-400)
 
     # ------------------------------------------------------------------
     # Stripe
@@ -710,7 +712,11 @@ class SubscriptionManager:
         provider: PaymentProvider,
         external_id: str = "",
     ) -> SubscriptionRecord:
-        """Create or update a subscription record."""
+        """Create or update a subscription record.
+
+        Enforces a hard cap on total subscriptions to prevent memory
+        exhaustion (CWE-400).
+        """
         now = datetime.now(timezone.utc)
         trial_end = (now + timedelta(days=_TRIAL_DAYS)).isoformat()
         period_end = (now + timedelta(days=30)).isoformat()
@@ -723,6 +729,10 @@ class SubscriptionManager:
                 existing.payment_provider = provider
                 existing.external_subscription_id = external_id
                 return existing
+
+            # Hard cap on total subscriptions
+            if len(self._subscriptions) >= self._MAX_SUBSCRIPTIONS:
+                raise ValueError("Subscription capacity limit reached")
 
             sub = SubscriptionRecord(
                 account_id=account_id,
@@ -751,6 +761,8 @@ class SubscriptionManager:
         """Check if an event has already been processed (idempotency guard).
 
         Prunes stale entries outside the dedup window to bound memory.
+        Enforces a hard cap on the dedup map to prevent memory exhaustion
+        (CWE-400).
         """
         now = time.time()
         with self._lock:
@@ -759,6 +771,13 @@ class SubscriptionManager:
             stale = [eid for eid, ts in self._processed_events.items() if ts < cutoff]
             for eid in stale:
                 del self._processed_events[eid]
+
+            # Hard cap: evict oldest entries if at capacity
+            if len(self._processed_events) >= self._MAX_DEDUP_ENTRIES:
+                sorted_events = sorted(self._processed_events.items(), key=lambda x: x[1])
+                to_evict = len(self._processed_events) - self._MAX_DEDUP_ENTRIES + 1
+                for eid, _ in sorted_events[:to_evict]:
+                    del self._processed_events[eid]
 
             if event_id in self._processed_events:
                 return True

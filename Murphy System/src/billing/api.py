@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query, Request
@@ -43,14 +44,73 @@ from pydantic import BaseModel, Field
 
 from billing.currency import CurrencyConverter, get_converter
 from subscription_manager import (
-    BillingInterval,
     PRICING_PLANS,
+    BillingInterval,
     PaymentProvider,
     SubscriptionManager,
     SubscriptionTier,
 )
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Security constants
+# ---------------------------------------------------------------------------
+
+# account_id must be alphanumeric + hyphens/underscores, 1–200 chars (CWE-20)
+_ACCOUNT_ID_RE = re.compile(r"^[a-zA-Z0-9_\-]{1,200}$")
+
+# ISO 4217 currency codes are always 3 uppercase letters
+_CURRENCY_CODE_RE = re.compile(r"^[A-Za-z]{3}$")
+
+# Locale hint — relaxed to allow 'ja', 'en-US', 'ja_JP', etc.
+_LOCALE_RE = re.compile(r"^[a-zA-Z]{0,10}([_\-][a-zA-Z]{0,10})?$")
+
+# Maximum webhook body size — 256 KB (generous for payment webhooks)
+_MAX_WEBHOOK_BODY_BYTES = 256 * 1024
+
+
+# ---------------------------------------------------------------------------
+# Input validation helpers
+# ---------------------------------------------------------------------------
+
+def _validate_account_id(account_id: str) -> str:
+    """Validate and return account_id, or raise HTTPException (CWE-20)."""
+    if not account_id or not _ACCOUNT_ID_RE.match(account_id):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid account_id format",
+        )
+    return account_id
+
+
+def _validate_currency_code(code: str) -> str:
+    """Validate ISO 4217 currency code format (CWE-20)."""
+    if code and not _CURRENCY_CODE_RE.match(code):
+        raise HTTPException(status_code=400, detail="Invalid currency code format")
+    return code.upper() if code else "USD"
+
+
+def _validate_locale(locale: str) -> str:
+    """Validate locale hint format (CWE-20)."""
+    if locale and not _LOCALE_RE.match(locale):
+        raise HTTPException(status_code=400, detail="Invalid locale format")
+    return locale
+
+
+def _safe_billing_error(exc: Exception, status_code: int = 500) -> JSONResponse:
+    """Return a sanitized error response — never leak provider internals.
+
+    In production/staging, the client only sees a generic message.
+    In development/test, the original error string is included.
+    """
+    env = os.environ.get("MURPHY_ENV", "development").lower()
+    if env in ("production", "staging"):
+        body = {"error": "A billing error occurred."}
+    else:
+        body = {"error": str(exc)}
+    return JSONResponse(body, status_code=status_code)
 
 
 # ---------------------------------------------------------------------------
@@ -119,6 +179,8 @@ def create_billing_router(
         When ``currency=JPY`` or ``locale=ja`` the 10 % Japan discount is
         applied automatically.
         """
+        currency = _validate_currency_code(currency)
+        locale = _validate_locale(locale)
         plans: List[Dict[str, Any]] = []
         for plan in PRICING_PLANS.values():
             d = plan.to_dict()
@@ -139,6 +201,10 @@ def create_billing_router(
         currency display).  The response includes the localised price
         for front-end display.
         """
+        _validate_account_id(body.account_id)
+        _validate_currency_code(body.currency)
+        _validate_locale(body.locale)
+
         try:
             tier = SubscriptionTier(body.tier)
             interval = BillingInterval(body.interval)
@@ -180,6 +246,10 @@ def create_billing_router(
         The charge is denominated in USD; crypto conversion is automatic.
         Response includes the localised display price.
         """
+        _validate_account_id(body.account_id)
+        _validate_currency_code(body.currency)
+        _validate_locale(body.locale)
+
         try:
             tier = SubscriptionTier(body.tier)
             interval = BillingInterval(body.interval)
@@ -215,6 +285,11 @@ def create_billing_router(
     @router.post("/webhooks/paypal")
     async def paypal_webhook(request: Request) -> JSONResponse:
         """Receive and process PayPal subscription lifecycle webhooks."""
+        # Body size guard (CWE-400)
+        raw_body = await request.body()
+        if len(raw_body) > _MAX_WEBHOOK_BODY_BYTES:
+            raise HTTPException(status_code=413, detail="Payload too large")
+
         try:
             payload: Dict[str, Any] = await request.json()
         except Exception as exc:
@@ -244,6 +319,10 @@ def create_billing_router(
         ``COINBASE_WEBHOOK_SECRET`` is configured.
         """
         raw_body = await request.body()
+        # Body size guard (CWE-400)
+        if len(raw_body) > _MAX_WEBHOOK_BODY_BYTES:
+            raise HTTPException(status_code=413, detail="Payload too large")
+
         try:
             payload: Dict[str, Any] = await request.json()
         except Exception as exc:
@@ -267,6 +346,7 @@ def create_billing_router(
     @router.get("/subscription/{account_id}")
     async def get_subscription(account_id: str) -> JSONResponse:
         """Get the current subscription for an account."""
+        _validate_account_id(account_id)
         sub = mgr.get_subscription(account_id)
         if sub is None:
             raise HTTPException(status_code=404, detail="No subscription found")
@@ -275,6 +355,7 @@ def create_billing_router(
     @router.post("/subscription/{account_id}/cancel")
     async def cancel_subscription(account_id: str) -> JSONResponse:
         """Cancel a subscription at the end of the billing period."""
+        _validate_account_id(account_id)
         try:
             sub = mgr.cancel_subscription(account_id)
         except ValueError as exc:
@@ -287,6 +368,7 @@ def create_billing_router(
         body: UpgradeRequest,
     ) -> JSONResponse:
         """Upgrade (or downgrade) a subscription tier."""
+        _validate_account_id(account_id)
         try:
             new_tier = SubscriptionTier(body.new_tier)
             sub = mgr.upgrade_subscription(account_id, new_tier)
@@ -299,6 +381,7 @@ def create_billing_router(
     @router.get("/usage/{account_id}")
     async def get_usage(account_id: str) -> JSONResponse:
         """Return current usage metrics for the account."""
+        _validate_account_id(account_id)
         summary = mgr.get_usage_summary(account_id)
         return JSONResponse(summary)
 

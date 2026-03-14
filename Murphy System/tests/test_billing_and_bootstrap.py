@@ -62,8 +62,8 @@ class TestCurrencyConversion:
         assert cc.convert(29.00, "eur") == cc.convert(29.00, "EUR")
 
     def test_custom_rates(self):
-        cc = CurrencyConverter(rates={"USD": 1.0, "TEST": 2.5})
-        assert cc.convert(10.0, "TEST") == 25.0
+        cc = CurrencyConverter(rates={"USD": 1.0, "XTS": 2.5})
+        assert cc.convert(10.0, "XTS") == 25.0
 
 
 class TestJapanDiscount:
@@ -137,8 +137,8 @@ class TestCurrencyConverterMethods:
 
     def test_refresh_rates(self):
         cc = CurrencyConverter()
-        cc.refresh_rates({"USD": 1.0, "NEW": 42.0})
-        assert cc.get_rate("NEW") == 42.0
+        cc.refresh_rates({"USD": 1.0, "XTS": 42.0})
+        assert cc.get_rate("XTS") == 42.0
 
     def test_get_status(self):
         cc = CurrencyConverter()

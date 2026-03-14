@@ -182,6 +182,10 @@ class DeploymentReadinessChecker:
             ReadinessCheck("PAYPAL_CLIENT_SECRET", "billing", _check_env_var("PAYPAL_CLIENT_SECRET")),
             ReadinessCheck("COINBASE_COMMERCE_API_KEY", "billing", _check_env_var("COINBASE_COMMERCE_API_KEY", required=False)),
 
+            # Webhook security — secrets should be set in production
+            ReadinessCheck("PAYPAL_WEBHOOK_SECRET", "billing_security", _check_env_var("PAYPAL_WEBHOOK_SECRET", required=False)),
+            ReadinessCheck("COINBASE_WEBHOOK_SECRET", "billing_security", _check_env_var("COINBASE_WEBHOOK_SECRET", required=False)),
+
             # Infrastructure
             ReadinessCheck("database", "infra", _check_database),
             ReadinessCheck("redis", "infra", _check_redis),
