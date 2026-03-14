@@ -1793,9 +1793,10 @@ def create_app() -> FastAPI:
         return JSONResponse({"ok": True, "id": workflow_id})
 
     @app.get("/api/workflow-terminal/load")
-    async def workflow_terminal_load(workflow_id: str = ""):
+    async def workflow_terminal_load(request: Request):
         """Load a single workflow by ID (used by workflow canvas UI)."""
-        wf = _workflows_store.get(workflow_id)
+        wf_id = request.query_params.get("id") or request.query_params.get("workflow_id", "")
+        wf = _workflows_store.get(wf_id)
         if not wf:
             return JSONResponse({"ok": False, "error": "Not found"}, status_code=404)
         return JSONResponse(wf)
