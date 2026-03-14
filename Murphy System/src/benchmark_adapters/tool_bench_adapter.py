@@ -151,13 +151,20 @@ class ToolBenchAdapter(BenchmarkAdapter):
         if not execution_ok:
             try:
                 from src.platform_connector_framework import (  # noqa: PLC0415
+                    ConnectorAction,
                     PlatformConnectorFramework,
                 )
 
                 pcf = PlatformConnectorFramework()
-                result = pcf.execute(instruction)
-                selected_tool = str(result)
-                execution_ok = True
+                action = ConnectorAction(
+                    action_id=task_id,
+                    connector_id="default",
+                    action_type="execute",
+                    resource=instruction,
+                )
+                result = pcf.execute_action(action)
+                selected_tool = str(result.data if result.success else result.error)
+                execution_ok = result.success
             except Exception as exc:  # noqa: BLE001
                 logger.debug("PlatformConnectorFramework unavailable: %s", exc)
                 selected_tool = f"[error: {exc}]"

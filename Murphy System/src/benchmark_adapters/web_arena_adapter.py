@@ -144,20 +144,28 @@ class WebArenaAdapter(BenchmarkAdapter):
         output: str = ""
 
         try:
-            from src.platform_connector_framework import (  # noqa: PLC0415
-                PlatformConnectorFramework,
-            )
+            from src.ai_workflow_generator import AIWorkflowGenerator  # noqa: PLC0415
 
-            pcf = PlatformConnectorFramework()
-            output = str(pcf.execute(task_desc))
+            gen = AIWorkflowGenerator()
+            output = str(gen.generate_workflow(task_desc))
         except Exception as exc:  # noqa: BLE001
-            logger.debug("PlatformConnectorFramework unavailable: %s", exc)
-            # Fall back to workflow generator for web automation ---------------
+            logger.debug("AIWorkflowGenerator unavailable: %s", exc)
+            # Fall back to platform connector framework for web automation ------
             try:
-                from src.ai_workflow_generator import AIWorkflowGenerator  # noqa: PLC0415
+                from src.platform_connector_framework import (  # noqa: PLC0415
+                    ConnectorAction,
+                    PlatformConnectorFramework,
+                )
 
-                gen = AIWorkflowGenerator()
-                output = str(gen.generate(description=task_desc))
+                pcf = PlatformConnectorFramework()
+                action = ConnectorAction(
+                    action_id=task_id,
+                    connector_id="web",
+                    action_type="execute",
+                    resource=task_desc,
+                )
+                result = pcf.execute_action(action)
+                output = str(result.data if result.success else result.error)
             except Exception as exc2:  # noqa: BLE001
                 output = f"[error: {exc2}]"
 
