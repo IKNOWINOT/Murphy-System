@@ -12077,8 +12077,10 @@ class MurphySystem:
             return self._chat_response(
                 "**Billing Tiers:**\n\n"
                 "• **Community** (Free) — Core modules, 1 automation, local LLM\n"
-                "• **Professional** ($99/mo) — All modules, 10 automations, cloud LLM\n"
-                "• **Enterprise** (Contact us) — Unlimited, dedicated support, on-prem option",
+                "• **Solo** ($29/mo) — 3 automations, email support, basic compliance\n"
+                "• **Business** ($299/mo) — Unlimited automations, 10 users, all integrations\n"
+                "• **Professional** (Custom) — Unlimited users, HITL graduation, white-label\n"
+                "• **Enterprise** (Contact us) — Dedicated instance, custom SLA, on-prem option",
                 session_id, intent=intent
             )
         if intent == "compliance":

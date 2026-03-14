@@ -243,10 +243,11 @@ _MURPHY_CAPABILITIES: Set[str] = {
 # Murphy pricing for competitive comparison
 _MURPHY_PRICING: Dict[str, str] = {
     "community": "Free (open source)",
-    "pro": "$99/mo per seat",
+    "solo": "$29/mo",
+    "pro": "$299/mo per seat",
     "enterprise": "Contact us",
     "creator_starter": "$20/mo",
-    "creator_pro": "$99/mo",
+    "creator_pro": "$299/mo",
 }
 
 
@@ -780,7 +781,7 @@ class CompetitiveIntelligenceEngine:
         rec_tier: str,
     ) -> str:
         """Build adversarial messaging positioning Murphy against competitor."""
-        price = _MURPHY_PRICING.get(rec_tier, "$99/mo")
+        price = _MURPHY_PRICING.get(rec_tier, "$299/mo")
         advantages_text = ", ".join(our_advantages[:3]) if our_advantages else "comprehensive automation"
         weaknesses_text = ", ".join(comp.weaknesses[:2]) if comp.weaknesses else "limited scope"
 
