@@ -122,6 +122,8 @@ class HetznerStepType(str, Enum):
     APPLY_SERVICE = "apply_service"
     APPLY_INGRESS = "apply_ingress"
     APPLY_HPA = "apply_hpa"
+    APPLY_NETWORK_POLICY = "apply_network_policy"
+    APPLY_PDB = "apply_pdb"
     ROLLING_UPDATE = "rolling_update"
     VERIFY_DEPLOYMENT = "verify_deployment"
 
@@ -644,9 +646,27 @@ class HetznerDeployPlanGenerator:
             liability_note="You approved this action. Murphy executed it as instructed.",
         ))
 
-        # 16. Verify deployment
+        # 16. Apply NetworkPolicy
         steps.append(SetupStep(
-            step_id="hetzner-16-verify-deployment",
+            step_id="hetzner-16-apply-network-policy",
+            description="Apply Kubernetes NetworkPolicy to restrict pod traffic",
+            risk_level=RiskLevel.LOW,
+            command=f'kubectl apply -f "{self._k8s("network-policy.yaml")}"',
+            liability_note="You approved this action. Murphy executed it as instructed.",
+        ))
+
+        # 17. Apply PodDisruptionBudget
+        steps.append(SetupStep(
+            step_id="hetzner-17-apply-pdb",
+            description="Apply Kubernetes PodDisruptionBudget (minAvailable: 1)",
+            risk_level=RiskLevel.LOW,
+            command=f'kubectl apply -f "{self._k8s("pdb.yaml")}"',
+            liability_note="You approved this action. Murphy executed it as instructed.",
+        ))
+
+        # 18. Verify deployment
+        steps.append(SetupStep(
+            step_id="hetzner-18-verify-deployment",
             description="Verify deployment health via kubectl and /api/health endpoint",
             risk_level=RiskLevel.LOW,
             command=(
