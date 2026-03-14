@@ -127,7 +127,6 @@ class HetznerStepType(str, Enum):
     APPLY_RESOURCE_QUOTA = "apply_resource_quota"
     APPLY_LIMIT_RANGE = "apply_limit_range"
     APPLY_REDIS = "apply_redis"
-    APPLY_RESOURCE_QUOTA = "apply_resource_quota"
     APPLY_BACKUP_CRONJOB = "apply_backup_cronjob"
     ROLLING_UPDATE = "rolling_update"
     APPLY_PROMETHEUS = "apply_prometheus"
@@ -693,9 +692,9 @@ class HetznerDeployPlanGenerator:
             liability_note="You approved this action. Murphy executed it as instructed.",
         ))
 
-        # 18. Apply Prometheus monitoring config
+        # 20. Apply Prometheus monitoring config
         steps.append(SetupStep(
-            step_id="hetzner-18-apply-prometheus",
+            step_id="hetzner-20-apply-prometheus",
             description="Apply Prometheus ConfigMap, Deployment, RBAC, and Service for observability",
             risk_level=RiskLevel.LOW,
             command=f'kubectl apply -f "{self._k8s("monitoring/prometheus-config.yaml")}" && '
@@ -703,15 +702,18 @@ class HetznerDeployPlanGenerator:
             liability_note="You approved this action. Murphy executed it as instructed.",
         ))
 
-        # 19. Apply Grafana monitoring deployment
+        # 21. Apply Grafana monitoring deployment
         steps.append(SetupStep(
-            step_id="hetzner-19-apply-grafana",
+            step_id="hetzner-21-apply-grafana",
             description="Apply Grafana Deployment, ConfigMaps, PVC, and Service for dashboards",
             risk_level=RiskLevel.LOW,
             command=f'kubectl apply -f "{self._k8s("monitoring/grafana-deployment.yaml")}"',
             liability_note="You approved this action. Murphy executed it as instructed.",
         ))
 
+        # 22. Apply Redis deployment (cache, rate limiting, session store)
+        steps.append(SetupStep(
+            step_id="hetzner-22-apply-redis",
         # 20. Apply Redis deployment (cache, rate limiting, session store)
         steps.append(SetupStep(
             step_id="hetzner-20-apply-redis",
@@ -721,6 +723,9 @@ class HetznerDeployPlanGenerator:
             liability_note="You approved this action. Murphy executed it as instructed.",
         ))
 
+        # 23. Apply backup CronJob
+        steps.append(SetupStep(
+            step_id="hetzner-23-apply-backup-cronjob",
         # 21. Apply PostgreSQL deployment (primary database)
         steps.append(SetupStep(
             step_id="hetzner-21-apply-postgres",
@@ -760,6 +765,10 @@ class HetznerDeployPlanGenerator:
             liability_note="You approved this action. Murphy executed it as instructed.",
         ))
 
+        # 24. Verify deployment
+        steps.append(SetupStep(
+            step_id="hetzner-24-verify-deployment",
+            description="Verify deployment health via kubectl and /api/health endpoint",
         # 25. Verify deployment (rollout status)
         steps.append(SetupStep(
             step_id="hetzner-25-verify-deployment",
