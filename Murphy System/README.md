@@ -65,6 +65,9 @@ This is Murphy's hero flow — start here.
 | **Safety Orchestrator** | `/api/safety/*` | Safety checks, compliance reports, safety dashboard |
 | **Efficiency Orchestrator** | `/api/efficiency/*` | Efficiency readings, scoring, optimisation recommendations |
 | **Supply Orchestrator** | `/api/supply/*` | Inventory registration, usage tracking, reorder management |
+| **Time Tracking — Settings** | `/api/time/settings` (GET, PUT), `/api/time/settings/validate` | Get/update time tracking settings, validate current settings |
+| **Time Tracking — Billing** | `/api/time/billing/summary`, `/api/time/billing/summary/<client_id>`, `/api/time/billing/invoice`, `/api/time/billing/invoice/preview`, `/api/time/billing/rates`, `/api/time/billing/rates/<client_id>`, `/api/time/billing/audit-log` | Billing summaries, invoice generation and preview, rate management, audit log |
+| **Time Tracking — Dashboard** | `/api/time/dashboard/summary/user/<user_id>`, `/api/time/dashboard/summary/team`, `/api/time/dashboard/summary/project/<project_id>`, `/api/time/dashboard/summary/system`, `/api/time/team/<manager_id>/dashboard` | User, team, project, and system dashboard summaries; team manager dashboard |
 
 Full auto-generated docs: **http://localhost:8000/docs**
 

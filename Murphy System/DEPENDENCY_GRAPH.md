@@ -614,6 +614,55 @@ Verify components work independently:
 
 ---
 
+## New Modules — Dependency Chains (2026-03-14)
+
+### `ceo_branch_activation.py` (CEO-002)
+```
+ceo_branch_activation
+├── event_backbone (publish ceo_branch_activated, ceo_directive_issued, metric_recorded)
+├── org_chart_enforcement (OrgChartEnforcer — authority validation)
+├── activated_heartbeat_runner (ActivatedHeartbeatRunner.tick() drives planning cycle)
+└── persistence_manager (save/load CEO plan state)
+```
+
+### `production_assistant_engine.py` (PROD-ENG-001)
+```
+production_assistant_engine
+├── event_backbone (publish gate_evaluated, task_submitted, task_completed)
+├── persistence_manager (save/load production request state)
+├── safety_gate (COMPLIANCE type — 99% confidence threshold)
+└── deliverable_gate_validator (per-item gate evaluation)
+```
+
+### `self_introspection_module.py` (INTRO-001)
+```
+self_introspection_module
+├── ast (stdlib — codebase scanning and AST analysis)
+├── pathlib (stdlib — file discovery)
+└── event_backbone (publish introspection_completed, metric_recorded)
+```
+
+### `self_codebase_swarm.py` (SCS-001) → `cutsheet_engine.py` (CSE-001)
+```
+self_codebase_swarm
+├── cutsheet_engine (CutSheetEngine — manufacturer data parsing for BMS specs)
+├── event_backbone (publish task_completed, task_submitted)
+└── self_introspection_module (optional — codebase context)
+
+cutsheet_engine
+├── event_backbone (publish task_completed, metric_recorded)
+└── (no external runtime dependencies — operates on structured data)
+```
+
+### `visual_swarm_builder.py` (VSB-001)
+```
+visual_swarm_builder
+├── event_backbone (publish task_completed)
+└── (pipeline definitions are data-driven; no hard module deps)
+```
+
+---
+
 **Last Updated:** February 4, 2026  
 **Status:** Phase 2 Complete - Dependency analysis finalized
 **Next:** Phase 3 - Test Strategy & Implementation

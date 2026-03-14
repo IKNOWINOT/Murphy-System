@@ -743,6 +743,120 @@ except Exception as e:
 
 ---
 
+## Time Tracking
+
+### Start Timer
+
+**Request:**
+```http
+POST /api/time/entries/start
+Content-Type: application/json
+
+{
+  "user_id": "user-123",
+  "project_id": "proj-456",
+  "description": "Working on feature X"
+}
+```
+
+**Response:**
+```json
+{
+  "entry_id": "entry-789",
+  "started_at": "2026-03-14T09:00:00Z",
+  "status": "running"
+}
+```
+
+### Stop Timer
+
+**Request:**
+```http
+POST /api/time/entries/entry-789/stop
+Content-Type: application/json
+{}
+```
+
+**Response:**
+```json
+{
+  "entry_id": "entry-789",
+  "started_at": "2026-03-14T09:00:00Z",
+  "stopped_at": "2026-03-14T10:30:00Z",
+  "duration_minutes": 90,
+  "status": "completed"
+}
+```
+
+### Generate Invoice
+
+**Request:**
+```http
+POST /api/time/billing/invoice
+Content-Type: application/json
+
+{
+  "client_id": "client-001",
+  "period_start": "2026-03-01",
+  "period_end": "2026-03-14",
+  "include_expenses": true
+}
+```
+
+**Response:**
+```json
+{
+  "invoice_id": "inv-2026-001",
+  "client_id": "client-001",
+  "period": "2026-03-01 to 2026-03-14",
+  "total_hours": 120.5,
+  "total_amount": 18075.00,
+  "currency": "USD",
+  "status": "draft"
+}
+```
+
+### Get Billing Summary
+
+**Request:**
+```http
+GET /api/time/billing/summary/client-001
+```
+
+**Response:**
+```json
+{
+  "client_id": "client-001",
+  "total_hours_ytd": 842.5,
+  "total_billed_ytd": 126375.00,
+  "outstanding_balance": 18075.00,
+  "last_invoice_date": "2026-02-28",
+  "currency": "USD"
+}
+```
+
+### Dashboard Summary
+
+**Request:**
+```http
+GET /api/time/dashboard/summary/team
+```
+
+**Response:**
+```json
+{
+  "period": "current_week",
+  "team_total_hours": 287.5,
+  "active_timers": 4,
+  "projects": [
+    {"project_id": "proj-456", "hours": 120.0, "team_members": 3},
+    {"project_id": "proj-789", "hours": 167.5, "team_members": 5}
+  ]
+}
+```
+
+---
+
 ## License
 
 BSL 1.1 (converts to Apache 2.0 after four years) - See LICENSE.md for details.

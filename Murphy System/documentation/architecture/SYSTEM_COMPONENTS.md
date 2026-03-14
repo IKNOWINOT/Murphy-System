@@ -145,6 +145,53 @@ Overview of the core components that make up the Murphy System architecture.
 | `murphy_ui_integrated.html` | Legacy | Redirects to `terminal_unified.html` |
 | `murphy_ui_integrated_terminal.html` | Legacy | Redirects to `terminal_unified.html` |
 
+## New Components (2026-03-14)
+
+### Self-Introspection Module (INTRO-001)
+- **Layer:** Observability / Self-Analysis
+- **File:** `src/self_introspection_module.py`
+- **Purpose:** Runtime self-analysis, codebase scanning, dependency graph extraction
+- **Design Label:** INTRO-001
+- **Events:** Publishes `introspection_completed`, `metric_recorded`
+
+### Self-Codebase Swarm (SCS-001)
+- **Layer:** Autonomous Operations / Swarm
+- **File:** `src/self_codebase_swarm.py`
+- **Purpose:** Autonomous BMS spec generation, RFP parsing, deliverable packaging
+- **Design Label:** SCS-001
+- **Events:** Publishes `task_completed`, `task_submitted`
+- **Dependencies:** `cutsheet_engine` (CSE-001)
+
+### Cut Sheet Engine (CSE-001)
+- **Layer:** Data Processing / Integration
+- **File:** `src/cutsheet_engine.py`
+- **Purpose:** Manufacturer data parsing, wiring diagrams, device config generation
+- **Design Label:** CSE-001
+- **Events:** Publishes `task_completed`, `metric_recorded`
+
+### Visual Swarm Builder (VSB-001)
+- **Layer:** User Interface / Workflow Construction
+- **File:** `src/visual_swarm_builder.py`
+- **Purpose:** Visual pipeline construction for swarm workflows
+- **Design Label:** VSB-001
+- **Events:** Publishes `task_completed`
+
+### CEO Branch Activation (CEO-002)
+- **Layer:** Autonomous Operations / Executive Control
+- **File:** `src/ceo_branch_activation.py`
+- **Purpose:** Top-level autonomous decision-making, org chart automation, operational planning
+- **Design Label:** CEO-002
+- **Events:** Publishes `ceo_branch_activated`, `ceo_directive_issued`, `metric_recorded`
+- **Integration:** Wired to `ActivatedHeartbeatRunner` via tick() callback
+
+### Production Assistant Engine (PROD-ENG-001)
+- **Layer:** Operations / Lifecycle Management
+- **File:** `src/production_assistant_engine.py`
+- **Purpose:** Request lifecycle management with 7-stage pipeline and deliverable gate validation
+- **Design Label:** PROD-ENG-001
+- **Events:** Publishes `gate_evaluated`, `task_submitted`, `task_completed`
+- **Gate:** 99% confidence threshold via `DeliverableGateValidator` (COMPLIANCE SafetyGate)
+
 ## See Also
 
 - [Architecture Overview](ARCHITECTURE_OVERVIEW.md)
