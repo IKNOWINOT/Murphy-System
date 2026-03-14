@@ -825,6 +825,7 @@
   }
 
   // ── Boot ───────────────────────────────────────────────
+  window._murphyGoToStep = goToStep;  // expose for testing
   updateDots();
   renderStep(1);
 })();
