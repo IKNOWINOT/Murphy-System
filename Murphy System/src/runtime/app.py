@@ -2784,6 +2784,85 @@ def create_app() -> FastAPI:
 
     app.add_middleware(_ResponseSizeLimitMiddleware)
 
+    # ==================== STATIC FILES & HTML UI ROUTES ====================
+    # Serve the static/ directory (CSS, JS, SVG assets) and all HTML UI pages
+    # so that /ui/... routes advertised by /api/ui/links are actually reachable.
+
+    try:
+        from starlette.responses import FileResponse as _FileResponse
+        from starlette.staticfiles import StaticFiles as _StaticFiles
+
+        _project_root = Path(__file__).resolve().parent.parent.parent  # src/runtime/ → Murphy System/
+
+        _static_dir = _project_root / "static"
+        if _static_dir.is_dir():
+            app.mount("/static", _StaticFiles(directory=str(_static_dir)), name="static")
+            # HTML pages use relative paths like "static/foo.css"; when served
+            # under /ui/..., the browser resolves them to /ui/static/foo.css.
+            app.mount("/ui/static", _StaticFiles(directory=str(_static_dir)), name="ui_static")
+            logger.info("Static file directories mounted at /static and /ui/static")
+
+        # Named routes for each HTML UI page
+        _html_routes = {
+            "/": "murphy_landing_page.html",
+            "/ui/landing": "murphy_landing_page.html",
+            "/ui/terminal-unified": "terminal_unified.html",
+            "/ui/terminal-integrated": "terminal_integrated.html",
+            "/ui/terminal-architect": "terminal_architect.html",
+            "/ui/terminal-enhanced": "terminal_enhanced.html",
+            "/ui/terminal-worker": "terminal_worker.html",
+            "/ui/terminal-costs": "terminal_costs.html",
+            "/ui/terminal-orgchart": "terminal_orgchart.html",
+            "/ui/terminal-integrations": "terminal_integrations.html",
+            "/ui/terminal-orchestrator": "terminal_orchestrator.html",
+            "/ui/onboarding": "onboarding_wizard.html",
+            "/ui/workflow-canvas": "workflow_canvas.html",
+            "/ui/system-visualizer": "system_visualizer.html",
+            "/ui/dashboard": "murphy_ui_integrated.html",
+            "/ui/smoke-test": "murphy-smoke-test.html",
+            "/ui/signup": "signup.html",
+            "/ui/pricing": "pricing.html",
+            "/ui/compliance": "compliance_dashboard.html",
+            "/ui/matrix": "matrix_integration.html",
+            "/ui/workspace": "workspace.html",
+            "/ui/production-wizard": "production_wizard.html",
+        }
+
+        _mounted_count = 0
+        for _route_path, _filename in _html_routes.items():
+            _filepath = _project_root / _filename
+            if _filepath.is_file():
+                def _make_handler(_fp=str(_filepath)):
+                    async def _handler():
+                        return _FileResponse(_fp, media_type="text/html")
+                    return _handler
+                app.add_api_route(
+                    _route_path, _make_handler(), methods=["GET"],
+                    include_in_schema=False,
+                )
+                _mounted_count += 1
+
+        # Also serve any remaining .html files under /ui/<filename> for
+        # cross-page relative links (e.g. terminal_enhanced.html links
+        # to terminal_architect.html directly).
+        for _hf in sorted(_project_root.glob("*.html")):
+            _ui_path = f"/ui/{_hf.name}"
+            if _ui_path not in {r for r in _html_routes}:
+                def _make_fallback(_fp=str(_hf)):
+                    async def _handler():
+                        return _FileResponse(_fp, media_type="text/html")
+                    return _handler
+                app.add_api_route(
+                    _ui_path, _make_fallback(), methods=["GET"],
+                    include_in_schema=False,
+                )
+                _mounted_count += 1
+
+        logger.info("Mounted %d HTML UI routes under /ui/", _mounted_count)
+
+    except Exception as _ui_exc:
+        logger.warning("HTML UI route mounting failed: %s", _ui_exc)
+
     return app
 
 
