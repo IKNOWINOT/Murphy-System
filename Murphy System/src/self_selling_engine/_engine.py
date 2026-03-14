@@ -13,6 +13,11 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from self_selling_engine._compliance import (
+    ComplianceDecision,
+    ContactRecord,
+    OutreachComplianceGovernor,
+)
 from self_selling_engine._constraints import BUSINESS_TYPE_CONSTRAINTS
 from thread_safe_operations import capped_append
 
@@ -777,6 +782,7 @@ class MurphySelfSellingEngine:
         hitl_bridge: Any = None,
         dispatch_interface: Any = None,
         scaler: Any = None,
+        compliance_governor: Optional["OutreachComplianceGovernor"] = None,
     ) -> None:
         self.prospect_onboarder = ProspectOnboarder(alert_engine=alert_engine)
         self.outreach = SelfSellingOutreach()
@@ -788,6 +794,12 @@ class MurphySelfSellingEngine:
         )
         self.metrics = SelfSellingMetrics()
         self._lock = threading.Lock()
+
+        # Compliance governor — enforces 30-day cooldown, opt-out suppression,
+        # and per-channel daily rate limits before any outreach is sent.
+        self.compliance_governor: OutreachComplianceGovernor = (
+            compliance_governor or OutreachComplianceGovernor()
+        )
 
         # Lazy import to avoid circular dependencies at module load
         self._trial_orchestrator: Any = None
@@ -822,8 +834,46 @@ class MurphySelfSellingEngine:
 
             for prospect in prospects:
                 try:
+                    channel = "email"  # default channel for self-selling outreach
+
+                    # Compliance gate — skip if not allowed
+                    try:
+                        decision = self.compliance_governor.check_contact_allowed(
+                            prospect_id=prospect.prospect_id,
+                            channel=channel,
+                        )
+                    except Exception as exc:  # noqa: BLE001
+                        logger.warning(
+                            "Compliance check failed for %s, skipping: %s",
+                            prospect.prospect_id, exc,
+                        )
+                        errors.append(
+                            f"Compliance check error for {prospect.prospect_id}: {exc}"
+                        )
+                        continue
+
+                    if not decision.allowed:
+                        logger.debug(
+                            "Outreach blocked for %s (%s): %s",
+                            prospect.prospect_id, decision.status, decision.reason,
+                        )
+                        continue
+
                     msg = self.compose_outreach_message(prospect)
                     self.outreach.send(msg)
+
+                    # Record successful contact for cooldown tracking
+                    try:
+                        self.compliance_governor.record_contact(
+                            prospect_id=prospect.prospect_id,
+                            channel=channel,
+                        )
+                    except Exception as exc:  # noqa: BLE001
+                        logger.warning(
+                            "Failed to record contact for %s: %s",
+                            prospect.prospect_id, exc,
+                        )
+
                     outreach_sent += 1
                     with self._lock:
                         self.metrics.emails_sent += 1
