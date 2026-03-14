@@ -46,6 +46,13 @@ murphy_system_1.0_runtime.py
 
 | Module | Direct Dependencies | Integration Test File |
 |---|---|---|
+| `market_positioning_engine` (MPE-001) | (none — leaf module) | `test_market_positioning_engine.py` |
+| `self_marketing_orchestrator` (MKT-006) | `market_positioning_engine`, `contact_compliance_governor`, `outreach_compliance_integration`, `thread_safe_operations` | `test_self_marketing_orchestrator.py` |
+| `factory_automation_connectors` (FAC-001) | `thread_safe_operations` | `test_factory_automation_connectors.py` |
+| `energy_audit_engine` (EAE-001) | `thread_safe_operations` | `test_energy_audit_engine.py` |
+| `building_automation_connectors` | `thread_safe_operations` | `test_building_automation_connectors.py` |
+| `energy_management_connectors` | `thread_safe_operations` | `test_energy_management_connectors.py` |
+| `additive_manufacturing_connectors` | `thread_safe_operations` | `test_additive_manufacturing_connectors.py` |
 | `llm_controller` | `llm_integration_layer`, `safe_llm_wrapper`, `env_manager` | `test_llm_integration_with_fallback.py` |
 | `llm_integration_layer` | `safe_llm_wrapper` | `test_llm_integration_with_fallback.py` |
 | `safe_llm_wrapper` | `llm_output_validator` | `test_llm_integration_with_fallback.py` |
@@ -167,6 +174,29 @@ Action Request
 
 ---
 
+### Pipeline 6: Self-Marketing & Industrial Connector Ecosystem
+
+```
+B2B / Content Cycle
+    → self_marketing_orchestrator (MKT-006)
+    │   ├── market_positioning_engine (MPE-001) — vertical topics & pitch hooks
+    │   ├── contact_compliance_governor (COMPL-001/002 gate)
+    │   └── _commission_system() gate — emits system_commissioned audit event
+    ├── factory_automation_connectors (FAC-001)
+    │   ├── FactoryAutomationRegistry — 15 vendor connectors (Rockwell/Siemens/FANUC/…)
+    │   └── FactoryAutomationOrchestrator — ISA-95 ordered; IEC 13849 safety gate
+    └── energy_audit_engine (EAE-001)
+        └── EnergyAuditEngine — ASHRAE I/II/III; ECM prioritisation; ISO 50001/50002
+```
+
+**Integration test:** `tests/test_self_marketing_orchestrator.py` (264 tests)  
+**Known edge cases:**
+- `_commission_system()` is a cross-cutting gate, not a partner offering; it fires at the end of every B2B and content cycle regardless of vertical
+- IEC 13849 sub-CAT_2 connectors block sequence execution unless an override flag is supplied
+- `score_partner_fit()` in MPE-001 returns 0.0–1.0 float; values below 0.5 suppress B2B outreach for that partner
+
+---
+
 ## Integration Test Coverage Matrix
 
 | Module Pair | Covered? | Test File |
@@ -188,6 +218,10 @@ Action Request
 | `mss → sequence → niche → gate` (full pipeline) | ✅ | `test_cross_module_integration.py` |
 | `self_fix → persistence → recovery` (full pipeline) | ✅ | `test_cross_module_integration.py` |
 | `gate → governance → rbac` (full pipeline) | ✅ | `test_cross_module_integration.py` |
+| `market_positioning_engine → self_marketing_orchestrator` | ✅ | `test_self_marketing_orchestrator.py` |
+| `self_marketing_orchestrator → contact_compliance_governor` | ✅ | `test_self_marketing_orchestrator.py` |
+| `factory_automation_connectors → thread_safe_operations` | ✅ | `test_factory_automation_connectors.py` |
+| `energy_audit_engine → thread_safe_operations` | ✅ | `test_energy_audit_engine.py` |
 
 ---
 
