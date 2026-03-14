@@ -31,7 +31,7 @@ TOTAL_STEPS=5
 # ---- banner ----------------------------------------------------------------
 echo ""
 echo -e "${CYAN}${BOLD}╔══════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}${BOLD}║           💀  Murphy System — Setup & Start  💀             ║${NC}"
+echo -e "${CYAN}${BOLD}║            💀  Murphy System — Setup & Start  💀             ║${NC}"
 echo -e "${CYAN}${BOLD}║              One-Step Install & Launch                       ║${NC}"
 echo -e "${CYAN}${BOLD}╚══════════════════════════════════════════════════════════════╝${NC}"
 echo ""
