@@ -1040,6 +1040,44 @@ The following components implement the self-automation foundation (Phase 0 + Pha
 | BIZ-004      | ComplianceReportAggregator   | EventBackbone        | publish(LEARNING_FEEDBACK) |
 | BIZ-005      | StrategicPlanningEngine      | PersistenceManager   | save_document (plans)      |
 | BIZ-005      | StrategicPlanningEngine      | EventBackbone        | publish(LEARNING_FEEDBACK) |
+| INTRO-001    | SelfIntrospectionEngine      | EventBackbone        | publish(introspection_completed, metric_recorded) |
+| SCS-001      | SelfCodebaseSwarm            | EventBackbone        | publish(task_completed, task_submitted) |
+| CSE-001      | CutSheetEngine               | EventBackbone        | publish(task_completed, metric_recorded) |
+| VSB-001      | VisualSwarmBuilder           | EventBackbone        | publish(task_completed) |
+| CEO-002      | CEOBranchActivation          | EventBackbone        | publish(ceo_branch_activated, ceo_directive_issued, metric_recorded) |
+| PROD-ENG-001 | ProductionAssistantEngine    | EventBackbone        | publish(gate_evaluated, task_submitted, task_completed) |
+
+### CEO Branch ↔ ActivatedHeartbeatRunner Wiring
+
+```
+ [CEO-002] CEOBranchActivation ↔ ActivatedHeartbeatRunner
+   Owner: Platform Engineering / Autonomous Operations
+   File:  src/ceo_branch_activation.py + src/activated_heartbeat_runner.py
+   Purpose: CEOBranchActivation drives the top-level autonomous decision
+            cycle; ActivatedHeartbeatRunner.tick() invokes the CEO plan
+            loop on a configurable cadence.
+   Wiring: ActivatedHeartbeatRunner calls CEOBranchActivation.run_cycle()
+           on each tick. CEOBranchActivation emits metric_recorded and
+           ceo_directive_issued to EventBackbone after each planning cycle.
+   Safety: Bounded directive queue; planning errors are logged and the
+           runner continues without halting the heartbeat loop.
+```
+
+### Production Assistant ↔ EventBackbone Wiring
+
+```
+ [PROD-ENG-001] ProductionAssistantEngine ↔ EventBackbone
+   Owner: Platform Engineering / Operations
+   File:  src/production_assistant_engine.py
+   Purpose: Manages the full request lifecycle (7 stages) with deliverable
+            gate validation (99% confidence threshold via SafetyGate).
+   Wiring: ProductionAssistantOrchestrator accepts event_backbone param.
+           Publishes gate_evaluated on each DeliverableGateValidator call,
+           task_submitted when a production request enters the queue,
+           task_completed when the 7-stage lifecycle finishes.
+   Safety: DeliverableGateValidator enforces COMPLIANCE-type SafetyGate;
+           non-compliant items fail closed (request halted, not skipped).
+```
 
 ### Phase 3–4 Automation Wiring
 
@@ -1508,8 +1546,10 @@ The following components implement the self-automation foundation (Phase 0 + Pha
    │              │ SAF-004, SAF-005                 │              │
    │ Orchestration│ ORCH-001, ORCH-002, ORCH-003,    │ 4            │
    │              │ ORCH-004                         │              │
+   │ New Modules  │ INTRO-001, SCS-001, CSE-001, VSB-001, │ 6            │
+   │              │ CEO-002, PROD-ENG-001                  │              │
    ├──────────────┼──────────────────────────────────┼──────────────┤
-   │ TOTAL        │                                  │ 46           │
+   │ TOTAL        │                                  │ 52           │
    └──────────────┴──────────────────────────────────┴──────────────┘
 ```
 
