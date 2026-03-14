@@ -124,6 +124,8 @@ class HetznerStepType(str, Enum):
     APPLY_HPA = "apply_hpa"
     APPLY_NETWORK_POLICY = "apply_network_policy"
     APPLY_PDB = "apply_pdb"
+    APPLY_RESOURCE_QUOTA = "apply_resource_quota"
+    APPLY_LIMIT_RANGE = "apply_limit_range"
     ROLLING_UPDATE = "rolling_update"
     VERIFY_DEPLOYMENT = "verify_deployment"
 
@@ -575,36 +577,63 @@ class HetznerDeployPlanGenerator:
             liability_note="You approved this action. Murphy executed it as instructed.",
         ))
 
-        # 9. Apply secrets
+        # 9. Apply ResourceQuota
         steps.append(SetupStep(
-            step_id="hetzner-09-apply-secrets",
+            step_id="hetzner-09-apply-resource-quota",
+            description="Apply Kubernetes ResourceQuota to prevent runaway resource consumption",
+            risk_level=RiskLevel.LOW,
+            command=f'kubectl apply -f "{self._k8s("resource-quota.yaml")}"',
+            liability_note="You approved this action. Murphy executed it as instructed.",
+        ))
+
+        # 10. Apply LimitRange
+        steps.append(SetupStep(
+            step_id="hetzner-10-apply-limit-range",
+            description="Apply Kubernetes LimitRange to set default container resource limits",
+            risk_level=RiskLevel.LOW,
+            command=f'kubectl apply -f "{self._k8s("limit-range.yaml")}"',
+            liability_note="You approved this action. Murphy executed it as instructed.",
+        ))
+
+        # 11. Apply secrets
+        steps.append(SetupStep(
+            step_id="hetzner-11-apply-secrets",
             description="Apply Kubernetes secrets (API keys, DB URL, Redis URL)",
             risk_level=RiskLevel.HIGH,
             command=f'kubectl apply -f "{self._k8s("secret.yaml")}"',
             liability_note="You approved this action. Murphy executed it as instructed.",
         ))
 
-        # 10. Apply configmap
+        # 12. Apply configmap
         steps.append(SetupStep(
-            step_id="hetzner-10-apply-configmap",
+            step_id="hetzner-12-apply-configmap",
             description="Apply Kubernetes ConfigMap (non-secret environment variables)",
             risk_level=RiskLevel.LOW,
             command=f'kubectl apply -f "{self._k8s("configmap.yaml")}"',
             liability_note="You approved this action. Murphy executed it as instructed.",
         ))
 
-        # 11. Apply PVC
+        # 13. Apply PVC
         steps.append(SetupStep(
-            step_id="hetzner-11-apply-pvc",
+            step_id="hetzner-13-apply-pvc",
             description="Apply Kubernetes PersistentVolumeClaim for Murphy data",
             risk_level=RiskLevel.MEDIUM,
             command=f'kubectl apply -f "{self._k8s("pvc.yaml")}"',
             liability_note="You approved this action. Murphy executed it as instructed.",
         ))
 
-        # 12. Apply deployment
+        # 14. Apply NetworkPolicy (before deployment so policies are in place first)
         steps.append(SetupStep(
-            step_id="hetzner-12-apply-deployment",
+            step_id="hetzner-14-apply-network-policy",
+            description="Apply Kubernetes NetworkPolicy to restrict pod traffic",
+            risk_level=RiskLevel.LOW,
+            command=f'kubectl apply -f "{self._k8s("network-policy.yaml")}"',
+            liability_note="You approved this action. Murphy executed it as instructed.",
+        ))
+
+        # 15. Apply deployment
+        steps.append(SetupStep(
+            step_id="hetzner-15-apply-deployment",
             description=(
                 f"Apply Kubernetes Deployment '{self.deployment}' "
                 f"with image {self._image_ref()}"
@@ -619,54 +648,45 @@ class HetznerDeployPlanGenerator:
             liability_note="You approved this action. Murphy executed it as instructed.",
         ))
 
-        # 13. Apply service
+        # 16. Apply service
         steps.append(SetupStep(
-            step_id="hetzner-13-apply-service",
+            step_id="hetzner-16-apply-service",
             description="Apply Kubernetes Service for murphy-api",
             risk_level=RiskLevel.LOW,
             command=f'kubectl apply -f "{self._k8s("service.yaml")}"',
             liability_note="You approved this action. Murphy executed it as instructed.",
         ))
 
-        # 14. Apply ingress
+        # 17. Apply ingress
         steps.append(SetupStep(
-            step_id="hetzner-14-apply-ingress",
+            step_id="hetzner-17-apply-ingress",
             description="Apply Kubernetes Ingress for public HTTPS access",
             risk_level=RiskLevel.MEDIUM,
             command=f'kubectl apply -f "{self._k8s("ingress.yaml")}"',
             liability_note="You approved this action. Murphy executed it as instructed.",
         ))
 
-        # 15. Apply HPA
+        # 18. Apply HPA
         steps.append(SetupStep(
-            step_id="hetzner-15-apply-hpa",
+            step_id="hetzner-18-apply-hpa",
             description="Apply Kubernetes HorizontalPodAutoscaler (2–10 replicas)",
             risk_level=RiskLevel.LOW,
             command=f'kubectl apply -f "{self._k8s("hpa.yaml")}"',
             liability_note="You approved this action. Murphy executed it as instructed.",
         ))
 
-        # 16. Apply NetworkPolicy
+        # 19. Apply PodDisruptionBudget
         steps.append(SetupStep(
-            step_id="hetzner-16-apply-network-policy",
-            description="Apply Kubernetes NetworkPolicy to restrict pod traffic",
-            risk_level=RiskLevel.LOW,
-            command=f'kubectl apply -f "{self._k8s("network-policy.yaml")}"',
-            liability_note="You approved this action. Murphy executed it as instructed.",
-        ))
-
-        # 17. Apply PodDisruptionBudget
-        steps.append(SetupStep(
-            step_id="hetzner-17-apply-pdb",
+            step_id="hetzner-19-apply-pdb",
             description="Apply Kubernetes PodDisruptionBudget (minAvailable: 1)",
             risk_level=RiskLevel.LOW,
             command=f'kubectl apply -f "{self._k8s("pdb.yaml")}"',
             liability_note="You approved this action. Murphy executed it as instructed.",
         ))
 
-        # 18. Verify deployment
+        # 20. Verify deployment
         steps.append(SetupStep(
-            step_id="hetzner-18-verify-deployment",
+            step_id="hetzner-20-verify-deployment",
             description="Verify deployment health via kubectl and /api/health endpoint",
             risk_level=RiskLevel.LOW,
             command=(

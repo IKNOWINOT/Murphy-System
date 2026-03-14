@@ -57,12 +57,19 @@ jobs:
       - name: Verify health
         run: |
           ENDPOINT=$(kubectl get ingress murphy-api -n murphy-system -o jsonpath='{.spec.rules[0].host}')
+          HEALTHY=false
           for i in 1 2 3 4 5; do
             sleep 15
             if curl -sf "https://${ENDPOINT}/api/health"; then
               echo "Health check passed on attempt ${i}"
-              exit 0
+              HEALTHY=true
+              break
             fi
             echo "Attempt ${i}/5 failed, retrying..."
           done
-          echo "Warning: health check failed after 5 attempts, verify manually"
+          if [ "$HEALTHY" = "false" ]; then
+            echo "::error::Health check failed after 5 attempts — rolling back"
+            kubectl rollout undo deployment/murphy-api -n murphy-system
+            kubectl rollout status deployment/murphy-api -n murphy-system --timeout=300s
+            exit 1
+          fi
