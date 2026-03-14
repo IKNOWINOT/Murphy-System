@@ -193,6 +193,21 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
   .stats-row{flex-direction:column;align-items:center;}
   .fcbtns{flex-direction:column;align-items:center;}
 }
+/* ── Inline-style replacements ─────────────────────────────── */
+.lp-bg3{background:var(--bg3);}
+.lp-gradient-bg{background:linear-gradient(180deg,var(--bg3),var(--bg1));}
+.lp-pamt-lg{font-size:1.5rem;}
+.lp-center-mt2{text-align:center;margin-top:2rem;}
+.lp-narrow{max-width:720px;}
+.lp-fine-print{margin-top:1.25rem;font-size:.8rem;color:#444;}
+.lp-clr-accent{color:#00D4AA;}
+.lp-clr-muted{color:#555;}
+.lp-clr-cyan{color:#00ffff;}
+.lp-demo-btns{margin-top:1.5rem;display:flex;gap:.75rem;flex-wrap:wrap;}
+.lp-flex-center{flex:1;justify-content:center;}
+/* ── Partner CTA ───────────────────────────────────────────── */
+.btn-partner{display:inline-flex;align-items:center;gap:.5rem;padding:.75rem 1.5rem;border:2px solid #00D4AA;border-radius:8px;color:#00D4AA;font-weight:600;font-family:var(--font-ui,Inter,sans-serif);text-decoration:none;transition:all .2s;}
+.btn-partner:hover{background:#00D4AA;color:#0a0e17;}
 </style>
 </head>
 <body class="murphy-no-sidebar">
@@ -238,6 +253,7 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
     <div class="hero-ctas">
       <a href="signup.html" class="btn-p lg">&#9889; Start Free — No Credit Card Required</a>
       <button class="btn-s lg" onclick="openDemo(event)" aria-label="Watch 2-minute demo">&#9654; Watch 2-Min Demo</button>
+      <a href="partner_request.html" class="btn-partner">&#129309; Partner with Murphy</a>
     </div>
     <p class="hero-note">Free tier forever &middot; Cancel anytime &middot; SOC 2 compliant</p>
     <div class="sp-strip" aria-label="Trusted industries">
@@ -275,7 +291,7 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
 </section>
 
 <!-- SOLUTION -->
-<section id="solution" style="background:var(--bg3);" aria-labelledby="sol-h">
+<section id="solution" class="lp-bg3" aria-labelledby="sol-h">
   <div class="si">
     <span class="slabel">The Solution</span>
     <h2 class="stitle" id="sol-h">One System. Every Department.</h2>
@@ -327,7 +343,7 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
 </section>
 
 <!-- SHADOW AGENTS -->
-<section id="shadow-agents" class="seg-bg" aria-labelledby="shadow-h" style="background:linear-gradient(180deg,var(--bg3),var(--bg1));">
+<section id="shadow-agents" class="seg-bg lp-gradient-bg" aria-labelledby="shadow-h">
   <div class="si">
     <div class="seg-layout rev">
       <div class="seg-content">
@@ -503,19 +519,19 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
       <article class="pcard" role="listitem">
         <div class="ptag">Professional</div>
         <div class="pname">Professional</div>
-        <div class="pamt" style="font-size:1.5rem;">Custom</div>
+        <div class="pamt lp-pamt-lg">Custom</div>
         <p class="pdesc">Tailored to your needs. Contact for unique offerings.</p>
         <a href="mailto:sales@murphy.ai" class="btn-p">Contact Sales</a>
       </article>
       <article class="pcard" role="listitem">
         <div class="ptag">Enterprise</div>
         <div class="pname">Enterprise</div>
-        <div class="pamt" style="font-size:1.5rem;">Custom</div>
+        <div class="pamt lp-pamt-lg">Custom</div>
         <p class="pdesc">Dedicated instance, SLA, white-label.</p>
         <a href="mailto:sales@murphy.ai" class="btn-p">Talk to Sales</a>
       </article>
     </div>
-    <div style="text-align:center;margin-top:2rem;">
+    <div class="lp-center-mt2">
       <a href="pricing.html" class="btn-s">See Full Pricing &amp; Feature Comparison &#8594;</a>
     </div>
   </div>
@@ -551,14 +567,14 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
 
 <!-- FINAL CTA -->
 <section id="final-cta" aria-labelledby="fcta-h">
-  <div class="si" style="max-width:720px;">
+  <div class="si lp-narrow">
     <h2 id="fcta-h">Ready to Automate Everything?</h2>
     <p>Join 2,000+ businesses already running on Murphy. Set up takes under 5 minutes.</p>
     <div class="fcbtns">
       <a href="signup.html" class="btn-p lg">&#9889; Start Free Trial</a>
       <button class="btn-s lg" onclick="openDemo(event)">&#9654; Watch Demo</button>
     </div>
-    <p style="margin-top:1.25rem;font-size:.8rem;color:#444;">No credit card required &middot; Free tier forever &middot; SOC 2 Type II</p>
+    <p class="lp-fine-print">No credit card required &middot; Free tier forever &middot; SOC 2 Type II</p>
   </div>
 </section>
 
@@ -568,6 +584,7 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
 <footer role="contentinfo">
   <div class="footer-inner">
     <nav class="flinks" aria-label="Footer navigation">
+      <a href="terminal_unified.html">Dashboard</a>
       <a href="#solution">Features</a>
       <a href="#pricing">Pricing</a>
       <a href="#compliance">Compliance</a>
@@ -576,6 +593,7 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
       <a href="careers.html">Careers</a>
       <a href="legal.html">Legal</a>
       <a href="privacy.html">Privacy</a>
+      <a href="partner_request.html">Partner</a>
       <a href="mailto:contact@murphy.ai">Contact</a>
     </nav>
     <p class="fcopy">&#169; 2020 Inoni Limited Liability Company. All rights reserved.</p>
@@ -590,17 +608,17 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
     <p class="msub">Watch Murphy automate an entire client workflow in real time.</p>
     <div class="demo-term" aria-live="polite" aria-label="Live terminal demo">
       <div class="dl">$ murphy start --business</div>
-      <div class="dl" style="color:#00D4AA">&#10003; Murphy System v4.2.0 initialized</div>
-      <div class="dl" style="color:#555">&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;</div>
+      <div class="dl lp-clr-accent">&#10003; Murphy System v4.2.0 initialized</div>
+      <div class="dl lp-clr-muted">&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;</div>
       <div class="dl">$ murphy workflow run client-onboarding</div>
-      <div class="dl" style="color:#00ffff">&#9656; Intake form sent &#8594; signed in 2m 14s</div>
-      <div class="dl" style="color:#00ffff">&#9656; Invoice #2091 generated + emailed</div>
-      <div class="dl" style="color:#00ffff">&#9656; CRM updated &middot; Project created</div>
-      <div class="dl" style="color:#00D4AA">&#10003; Full onboarding complete in 4m 38s</div>
+      <div class="dl lp-clr-cyan">&#9656; Intake form sent &#8594; signed in 2m 14s</div>
+      <div class="dl lp-clr-cyan">&#9656; Invoice #2091 generated + emailed</div>
+      <div class="dl lp-clr-cyan">&#9656; CRM updated &middot; Project created</div>
+      <div class="dl lp-clr-accent">&#10003; Full onboarding complete in 4m 38s</div>
     </div>
-    <div style="margin-top:1.5rem;display:flex;gap:.75rem;flex-wrap:wrap;">
-      <a href="signup.html" class="btn-p" style="flex:1;justify-content:center;">Start Free Trial</a>
-      <a href="pricing.html" class="btn-s" style="flex:1;justify-content:center;">See Pricing</a>
+    <div class="lp-demo-btns">
+      <a href="signup.html" class="btn-p lp-flex-center">Start Free Trial</a>
+      <a href="pricing.html" class="btn-s lp-flex-center">See Pricing</a>
     </div>
   </div>
 </div>

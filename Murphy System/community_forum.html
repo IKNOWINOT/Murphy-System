@@ -1,0 +1,2266 @@
+<!--
+  Murphy System — Community Forum
+  © 2020 Inoni Limited Liability Company by Corey Post
+  License: BSL 1.1 (Business Source License 1.1)
+  See LICENSE file in repository root for full terms.
+
+  Murphy does NOT claim intellectual property rights over user-created
+  channels or the data flowing through them. Channels and their content
+  remain the sole property of the creating organization.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — Community Forum</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
+<style>
+  /* =====================================================
+     FORUM LAYOUT — three-column Discord/Teams shell
+     ===================================================== */
+  :root {
+    --forum-channels-width: 240px;
+    --forum-members-width: 240px;
+    --topbar-height: 52px;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg-base);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    overflow: hidden;
+  }
+
+  /* ── Top bar ─────────────────────────────────────── */
+  .forum-topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: var(--topbar-height);
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border-default);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--space-4);
+    z-index: var(--z-topbar);
+    gap: var(--space-3);
+  }
+
+  .forum-topbar-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex-shrink: 0;
+  }
+
+  .forum-topbar-brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    text-decoration: none;
+    color: var(--teal);
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 0.05em;
+  }
+
+  .forum-topbar-brand img {
+    width: 28px;
+    height: 28px;
+  }
+
+  .forum-topbar-channel-name {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    font-weight: 600;
+    padding-left: var(--space-3);
+    border-left: 1px solid var(--border-subtle);
+  }
+
+  .forum-topbar-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .forum-conn-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--success);
+    flex-shrink: 0;
+    transition: background var(--transition-base);
+  }
+  .forum-conn-dot.disconnected { background: var(--danger); }
+
+  .forum-notif-btn {
+    position: relative;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: var(--space-1);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .forum-notif-btn:hover { color: var(--text-primary); background: var(--bg-elevated); }
+
+  .forum-notif-badge {
+    position: absolute;
+    top: -2px; right: -2px;
+    background: var(--danger);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+    line-height: 1;
+  }
+  .forum-notif-badge[hidden] { display: none; }
+
+  .forum-user-pill {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-full);
+    cursor: default;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+  }
+
+  .forum-user-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--teal);
+    color: var(--bg-base);
+    font-weight: 700;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* ── Channel sidebar (left) ──────────────────────── */
+  .forum-channels {
+    position: fixed;
+    top: var(--topbar-height);
+    left: 0;
+    bottom: 0;
+    width: var(--forum-channels-width);
+    background: var(--bg-surface);
+    border-right: 1px solid var(--border-default);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: var(--z-sidebar);
+    transition: transform var(--transition-base);
+  }
+
+  .forum-channels-header {
+    padding: var(--space-3) var(--space-3) var(--space-2);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .forum-channels-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 var(--space-2) var(--space-4);
+  }
+
+  .forum-channels-section {
+    font-size: var(--text-xs);
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: var(--space-3) var(--space-2) var(--space-1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .forum-section-toggle {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 2px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+  }
+  .forum-section-toggle:hover { color: var(--teal); }
+
+  .forum-channel-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 6px var(--space-2);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    transition: background var(--transition-fast), color var(--transition-fast);
+    position: relative;
+    user-select: none;
+  }
+  .forum-channel-item:hover {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+  }
+  .forum-channel-item.active {
+    background: var(--teal-glow);
+    color: var(--teal);
+    font-weight: 600;
+  }
+
+  .forum-ch-icon {
+    flex-shrink: 0;
+    font-size: 0.875rem;
+    width: 18px;
+    text-align: center;
+    color: var(--text-muted);
+  }
+  .forum-channel-item.active .forum-ch-icon { color: var(--teal); }
+
+  .forum-ch-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .forum-ch-badge {
+    background: var(--danger);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+    flex-shrink: 0;
+  }
+  .forum-ch-badge[hidden] { display: none; }
+
+  .forum-add-channel-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 6px var(--space-2);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    transition: color var(--transition-fast), background var(--transition-fast);
+  }
+  .forum-add-channel-btn:hover { color: var(--teal); background: var(--bg-elevated); }
+
+  .forum-dm-avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    font-size: 0.625rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: var(--accent-violet);
+    color: var(--bg-base);
+  }
+
+  .forum-dm-status {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .forum-dm-status.online { background: var(--success); }
+  .forum-dm-status.offline { background: var(--text-muted); }
+
+  /* ── Main message area (center) ──────────────────── */
+  .forum-main {
+    position: fixed;
+    top: var(--topbar-height);
+    left: var(--forum-channels-width);
+    right: var(--forum-members-width);
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    transition: left var(--transition-base), right var(--transition-base);
+  }
+
+  .forum-channel-banner {
+    padding: var(--space-4) var(--space-5);
+    border-bottom: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .forum-channel-banner-title {
+    font-size: var(--text-lg);
+    font-weight: 700;
+  }
+
+  .forum-channel-banner-desc {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    margin-left: auto;
+  }
+
+  .forum-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-3) var(--space-5);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .forum-msg-group {
+    display: flex;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    transition: background var(--transition-fast);
+  }
+  .forum-msg-group:hover { background: var(--bg-elevated); }
+
+  .forum-msg-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 0.8125rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: var(--accent-teal);
+    color: var(--bg-base);
+  }
+
+  .forum-msg-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .forum-msg-header {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    margin-bottom: 2px;
+  }
+
+  .forum-msg-author {
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: var(--text-primary);
+  }
+
+  .forum-msg-role-badge {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: var(--radius-full);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .forum-msg-role-badge.role-admin {
+    background: rgba(255, 215, 0, 0.15);
+    color: var(--accent-gold);
+  }
+  .forum-msg-role-badge.role-moderator {
+    background: rgba(139, 108, 231, 0.15);
+    color: var(--accent-violet);
+  }
+  .forum-msg-role-badge.role-member {
+    background: rgba(0, 212, 170, 0.1);
+    color: var(--teal);
+  }
+
+  .forum-msg-timestamp {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+
+  .forum-msg-content {
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    color: var(--text-primary);
+    word-break: break-word;
+  }
+
+  .forum-msg-content code {
+    font-family: var(--font-code);
+    background: var(--bg-input);
+    padding: 1px 4px;
+    border-radius: var(--radius-sm);
+    font-size: 0.85em;
+  }
+
+  .forum-msg-content pre {
+    font-family: var(--font-code);
+    background: var(--bg-input);
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    overflow-x: auto;
+    margin: var(--space-2) 0;
+    font-size: var(--text-sm);
+    line-height: 1.4;
+  }
+
+  .forum-msg-actions {
+    display: flex;
+    gap: var(--space-1);
+    margin-top: var(--space-1);
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+  }
+  .forum-msg-group:hover .forum-msg-actions { opacity: 1; }
+
+  .forum-msg-action-btn {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 2px 6px;
+    font-size: var(--text-xs);
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+  }
+  .forum-msg-action-btn:hover {
+    color: var(--teal);
+    border-color: var(--teal);
+  }
+
+  .forum-msg-reactions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+    margin-top: var(--space-1);
+  }
+
+  .forum-reaction {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    font-size: var(--text-xs);
+    cursor: pointer;
+    transition: border-color var(--transition-fast), background var(--transition-fast);
+    color: var(--text-secondary);
+  }
+  .forum-reaction:hover {
+    border-color: var(--teal);
+    background: var(--teal-glow);
+  }
+  .forum-reaction.reacted {
+    border-color: var(--teal);
+    background: var(--teal-glow);
+    color: var(--teal);
+  }
+
+  .forum-reaction-count {
+    font-weight: 600;
+    min-width: 10px;
+    text-align: center;
+  }
+
+  /* Thread replies */
+  .forum-thread-container {
+    margin-left: 48px;
+    padding-left: var(--space-3);
+    border-left: 2px solid var(--border-subtle);
+  }
+
+  .forum-thread-toggle {
+    background: none;
+    border: none;
+    color: var(--teal);
+    cursor: pointer;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    padding: var(--space-1) 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+  }
+  .forum-thread-toggle:hover { text-decoration: underline; }
+
+  .forum-thread-replies {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .forum-thread-replies[hidden] { display: none; }
+
+  .forum-thread-msg {
+    display: flex;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+  }
+  .forum-thread-msg:hover { background: var(--bg-elevated); }
+
+  .forum-thread-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-size: 0.625rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: var(--accent-violet);
+    color: var(--bg-base);
+  }
+
+  .forum-thread-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .forum-thread-author {
+    font-weight: 600;
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+  }
+
+  .forum-thread-time {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    margin-left: var(--space-2);
+  }
+
+  .forum-thread-text {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+
+  /* Date separator */
+  .forum-date-separator {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) 0;
+  }
+
+  .forum-date-separator::before,
+  .forum-date-separator::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-subtle);
+  }
+
+  .forum-date-label {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  /* Welcome message */
+  .forum-welcome {
+    text-align: center;
+    padding: var(--space-7) var(--space-5);
+    color: var(--text-muted);
+  }
+
+  .forum-welcome-title {
+    font-size: var(--text-xl);
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: var(--space-2);
+  }
+
+  .forum-welcome-desc {
+    font-size: var(--text-sm);
+    max-width: 480px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  /* ── Composer ─────────────────────────────────────── */
+  .forum-composer {
+    padding: var(--space-3) var(--space-5);
+    border-top: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+    background: var(--bg-base);
+  }
+
+  .forum-composer-inner {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--space-2);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    padding: var(--space-2) var(--space-3);
+    transition: border-color var(--transition-fast);
+  }
+  .forum-composer-inner:focus-within { border-color: var(--teal); }
+
+  .forum-composer-textarea {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: 0.9375rem;
+    resize: none;
+    min-height: 24px;
+    max-height: 160px;
+    line-height: 1.5;
+    padding: var(--space-1) 0;
+  }
+  .forum-composer-textarea::placeholder {
+    color: var(--text-muted);
+  }
+
+  .forum-composer-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: var(--space-1);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color var(--transition-fast);
+  }
+  .forum-composer-btn:hover { color: var(--teal); }
+  .forum-composer-btn.send-active { color: var(--teal); }
+
+  .forum-composer-hint {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    padding: var(--space-1) var(--space-1) 0;
+  }
+
+  /* Emoji picker */
+  .forum-emoji-picker {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    margin-bottom: var(--space-2);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    padding: var(--space-3);
+    box-shadow: var(--shadow-lg);
+    z-index: var(--z-dropdown);
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: var(--space-1);
+  }
+  .forum-emoji-picker[hidden] { display: none; }
+
+  .forum-emoji-btn {
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: var(--space-1);
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-fast);
+    line-height: 1;
+  }
+  .forum-emoji-btn:hover { background: var(--bg-surface); }
+
+  /* ── Members sidebar (right) ─────────────────────── */
+  .forum-members {
+    position: fixed;
+    top: var(--topbar-height);
+    right: 0;
+    bottom: 0;
+    width: var(--forum-members-width);
+    background: var(--bg-surface);
+    border-left: 1px solid var(--border-default);
+    display: flex;
+    flex-direction: column;
+    z-index: var(--z-sidebar);
+    transition: transform var(--transition-base);
+  }
+
+  .forum-members-header {
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .forum-members-title {
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: var(--teal);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .forum-members-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-2);
+  }
+
+  .forum-members-section {
+    font-size: var(--text-xs);
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: var(--space-3) var(--space-2) var(--space-1);
+  }
+
+  .forum-member-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 5px var(--space-2);
+    border-radius: var(--radius-sm);
+    cursor: default;
+    transition: background var(--transition-fast);
+  }
+  .forum-member-item:hover { background: var(--bg-elevated); }
+
+  .forum-member-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--bg-base);
+    position: relative;
+  }
+
+  .forum-member-presence {
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--bg-surface);
+  }
+  .forum-member-presence.online { background: var(--success); }
+  .forum-member-presence.idle { background: var(--warning); }
+  .forum-member-presence.offline { background: var(--text-muted); }
+
+  .forum-member-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .forum-member-name {
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .forum-member-role {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+
+  .forum-member-badge {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: var(--radius-full);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+  }
+  .forum-member-badge.badge-admin {
+    background: rgba(255, 215, 0, 0.15);
+    color: var(--accent-gold);
+  }
+  .forum-member-badge.badge-moderator {
+    background: rgba(139, 108, 231, 0.15);
+    color: var(--accent-violet);
+  }
+  .forum-member-badge.badge-member {
+    background: rgba(0, 212, 170, 0.1);
+    color: var(--teal);
+  }
+
+  /* Org info panel */
+  .forum-org-info {
+    padding: var(--space-3) var(--space-4);
+    border-top: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+  }
+
+  .forum-org-info-title {
+    font-size: var(--text-xs);
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: var(--space-2);
+  }
+
+  .forum-org-name {
+    font-weight: 700;
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+    margin-bottom: var(--space-1);
+  }
+
+  .forum-org-stat {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: 2px 0;
+  }
+
+  .forum-invite-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    width: 100%;
+    padding: var(--space-2) var(--space-3);
+    margin-top: var(--space-3);
+    background: var(--teal-glow);
+    border: 1px solid var(--teal);
+    border-radius: var(--radius-md);
+    color: var(--teal);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--transition-fast);
+  }
+  .forum-invite-btn:hover { background: rgba(0, 212, 170, 0.2); }
+  .forum-invite-btn[hidden] { display: none; }
+
+  /* ── Modals ──────────────────────────────────────── */
+  .forum-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    z-index: var(--z-modal-backdrop);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-4);
+  }
+  .forum-modal-backdrop[hidden] { display: none; }
+
+  .forum-modal {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    width: 100%;
+    max-width: 480px;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .forum-modal-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    margin-bottom: var(--space-4);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .forum-modal-footer {
+    display: flex;
+    gap: var(--space-3);
+    justify-content: flex-end;
+    margin-top: var(--space-5);
+  }
+
+  .forum-form-group {
+    margin-bottom: var(--space-3);
+  }
+
+  .forum-form-label {
+    display: block;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: var(--space-1);
+  }
+
+  .forum-form-input {
+    width: 100%;
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-input);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: var(--text-sm);
+    transition: border-color var(--transition-fast);
+  }
+  .forum-form-input:focus {
+    outline: none;
+    border-color: var(--border-focus);
+  }
+
+  .forum-form-select {
+    width: 100%;
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-input);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: var(--text-sm);
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238899AA'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+  }
+  .forum-form-select:focus {
+    outline: none;
+    border-color: var(--border-focus);
+  }
+
+  .forum-form-status {
+    font-size: var(--text-sm);
+    min-height: 1.25rem;
+    margin-top: var(--space-2);
+  }
+
+  /* ── Mobile toggle buttons (hidden on desktop) ──── */
+  .forum-btn-toggle-channels,
+  .forum-btn-toggle-members {
+    display: none;
+  }
+
+  /* ── Responsive ──────────────────────────────────── */
+  @media (max-width: 960px) {
+    .forum-members {
+      transform: translateX(100%);
+    }
+    .forum-members.open {
+      transform: translateX(0);
+      z-index: 150;
+    }
+    .forum-main {
+      right: 0;
+    }
+    .forum-btn-toggle-members {
+      display: flex !important;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .forum-channels {
+      transform: translateX(-100%);
+    }
+    .forum-channels.open {
+      transform: translateX(0);
+      z-index: 150;
+    }
+    .forum-main {
+      left: 0;
+      right: 0;
+    }
+    .forum-btn-toggle-channels {
+      display: flex !important;
+    }
+    .forum-composer {
+      padding: var(--space-2) var(--space-3);
+    }
+  }
+
+  /* ── Scrollbar styling ───────────────────────────── */
+  .forum-channels-scroll::-webkit-scrollbar,
+  .forum-messages::-webkit-scrollbar,
+  .forum-members-scroll::-webkit-scrollbar {
+    width: 6px;
+  }
+  .forum-channels-scroll::-webkit-scrollbar-track,
+  .forum-messages::-webkit-scrollbar-track,
+  .forum-members-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .forum-channels-scroll::-webkit-scrollbar-thumb,
+  .forum-messages::-webkit-scrollbar-thumb,
+  .forum-members-scroll::-webkit-scrollbar-thumb {
+    background: var(--border-subtle);
+    border-radius: 3px;
+  }
+  .forum-channels-scroll::-webkit-scrollbar-thumb:hover,
+  .forum-messages::-webkit-scrollbar-thumb:hover,
+  .forum-members-scroll::-webkit-scrollbar-thumb:hover {
+    background: var(--border-default);
+  }
+
+  /* Loading spinner */
+  .forum-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-7);
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+  }
+
+  @keyframes forum-spin {
+    to { transform: rotate(360deg); }
+  }
+  .forum-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border-subtle);
+    border-top-color: var(--teal);
+    border-radius: 50%;
+    animation: forum-spin 0.6s linear infinite;
+    margin-right: var(--space-2);
+  }
+
+  /* Avatar color classes for dynamic assignment */
+  .avatar-teal    { background: var(--accent-teal); }
+  .avatar-violet  { background: var(--accent-violet); }
+  .avatar-blue    { background: var(--accent-blue); }
+  .avatar-coral   { background: var(--accent-coral); }
+  .avatar-gold    { background: var(--accent-gold); }
+  .avatar-pink    { background: var(--accent-pink); }
+  .avatar-green   { background: var(--accent-green); }
+  .avatar-amber   { background: var(--accent-amber); }
+  .avatar-sky     { background: var(--accent-sky); }
+  .avatar-cyan    { background: var(--accent-cyan); }
+  .avatar-indigo  { background: var(--accent-indigo); }
+  .forum-ch-name-muted { color: var(--text-muted); }
+  .forum-status-info { color: var(--text-secondary); }
+  .forum-status-error { color: var(--danger); }
+</style>
+</head>
+<body>
+
+<!-- Skip link for accessibility -->
+<a href="#forum-main" class="murphy-skip-link">Skip to content</a>
+
+<!-- ============================================================
+     TOP BAR
+     ============================================================ -->
+<header class="forum-topbar" role="banner" aria-label="Forum top bar">
+  <div class="forum-topbar-left">
+    <button class="murphy-btn murphy-btn-icon forum-btn-toggle-channels" id="btn-toggle-channels"
+            aria-label="Toggle channel list">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-menu"></use></svg>
+    </button>
+
+    <a href="murphy_landing_page.html" class="forum-topbar-brand" aria-label="Murphy System home">
+      <img src="static/favicon.svg" alt="Murphy gear and eye logo">
+      <span>MURPHY</span>
+    </a>
+
+    <span class="forum-topbar-channel-name" id="topbar-channel-name"># general</span>
+  </div>
+
+  <div class="forum-topbar-right">
+    <div class="forum-conn-dot" id="conn-dot" aria-label="Connection status: connected"
+         title="Connected"></div>
+
+    <button class="forum-notif-btn" id="btn-notifications" aria-label="Notifications">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-bell"></use></svg>
+      <span class="forum-notif-badge" id="global-notif-badge" hidden aria-live="polite">0</span>
+    </button>
+
+    <button class="murphy-btn murphy-btn-icon forum-btn-toggle-members" id="btn-toggle-members"
+            aria-label="Toggle member list">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-users"></use></svg>
+    </button>
+
+    <div class="forum-user-pill" id="user-pill" aria-label="Current user">
+      <div class="forum-user-avatar" id="user-avatar">?</div>
+      <span id="user-name">Loading…</span>
+    </div>
+  </div>
+</header>
+
+<!-- ============================================================
+     CHANNEL SIDEBAR (LEFT)
+     ============================================================ -->
+<nav class="forum-channels" id="forum-channels" role="navigation" aria-label="Forum channels">
+  <div class="forum-channels-header">
+    <span>Community</span>
+  </div>
+  <div class="forum-channels-scroll" id="channels-scroll">
+
+    <!-- Forum Topics -->
+    <div class="forum-channels-section" id="section-topics">
+      <span>Forum Topics</span>
+      <button class="forum-section-toggle" aria-label="Add forum topic">
+        <svg width="12" height="12"><use href="static/murphy-icons.svg#icon-plus"></use></svg>
+      </button>
+    </div>
+    <div id="forum-topics-list" role="list" aria-label="Forum topic channels">
+      <!-- Dynamic forum channels rendered here -->
+    </div>
+
+    <!-- Org Groups -->
+    <div class="forum-channels-section" id="section-groups">
+      <span>Org Groups</span>
+      <button class="forum-section-toggle" aria-label="Add org group">
+        <svg width="12" height="12"><use href="static/murphy-icons.svg#icon-plus"></use></svg>
+      </button>
+    </div>
+    <div id="forum-groups-list" role="list" aria-label="Organization group channels">
+      <!-- Dynamic org group channels rendered here -->
+    </div>
+
+    <!-- Direct Messages -->
+    <div class="forum-channels-section" id="section-dms">
+      <span>Direct Messages</span>
+    </div>
+    <div id="forum-dm-list" role="list" aria-label="Direct message channels">
+      <!-- Dynamic DM channels rendered here -->
+    </div>
+
+    <button class="forum-add-channel-btn" id="btn-create-channel" aria-label="Create new channel">
+      <svg width="14" height="14"><use href="static/murphy-icons.svg#icon-plus"></use></svg>
+      New Channel
+    </button>
+  </div>
+</nav>
+
+<!-- ============================================================
+     MAIN MESSAGE AREA (CENTER)
+     ============================================================ -->
+<main class="forum-main" id="forum-main" role="main" aria-label="Message area">
+  <div class="forum-channel-banner" id="channel-banner">
+    <span class="forum-channel-banner-title" id="banner-title"># general</span>
+    <span class="forum-channel-banner-desc" id="banner-desc">General discussion</span>
+  </div>
+
+  <div class="forum-messages" id="messages-container" role="log" aria-label="Messages" aria-live="polite">
+    <!-- Messages rendered here by JS -->
+  </div>
+
+  <div class="forum-composer" id="composer">
+    <div class="forum-composer-inner">
+      <div class="forum-composer-btn-group" role="group" aria-label="Message formatting">
+        <button class="forum-composer-btn" id="btn-emoji" aria-label="Add emoji"
+                title="Emoji">😀</button>
+        <div class="forum-emoji-picker" id="emoji-picker" hidden role="listbox" aria-label="Emoji picker">
+          <!-- Emoji buttons rendered by JS -->
+        </div>
+      </div>
+      <textarea class="forum-composer-textarea" id="composer-input"
+                placeholder="Message #general"
+                rows="1"
+                aria-label="Message input"
+                aria-describedby="composer-hint"></textarea>
+      <button class="forum-composer-btn" id="btn-send" aria-label="Send message" title="Send">
+        <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-execute"></use></svg>
+      </button>
+    </div>
+    <div class="forum-composer-hint" id="composer-hint">
+      Press <kbd>Enter</kbd> to send, <kbd>Shift+Enter</kbd> for new line
+    </div>
+  </div>
+</main>
+
+<!-- ============================================================
+     MEMBERS SIDEBAR (RIGHT)
+     ============================================================ -->
+<aside class="forum-members" id="forum-members" role="complementary" aria-label="Channel members">
+  <div class="forum-members-header">
+    <div class="forum-members-title">
+      <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-users"></use></svg>
+      Members
+    </div>
+    <button class="murphy-btn murphy-btn-icon" id="btn-close-members" aria-label="Close member list"
+            title="Close">
+      <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-x"></use></svg>
+    </button>
+  </div>
+
+  <div class="forum-members-scroll" id="members-scroll">
+    <!-- Member list rendered by JS -->
+  </div>
+
+  <div class="forum-org-info" id="org-info-panel">
+    <div class="forum-org-info-title">Organization</div>
+    <div class="forum-org-name" id="org-name">—</div>
+    <div class="forum-org-stat" id="org-member-count">
+      <svg width="12" height="12"><use href="static/murphy-icons.svg#icon-users"></use></svg>
+      <span>— members</span>
+    </div>
+    <div class="forum-org-stat" id="org-channel-count">
+      <svg width="12" height="12"><use href="static/murphy-icons.svg#icon-message-circle"></use></svg>
+      <span>— channels</span>
+    </div>
+    <button class="forum-invite-btn" id="btn-invite" hidden aria-label="Invite user to organization">
+      <svg width="14" height="14"><use href="static/murphy-icons.svg#icon-user"></use></svg>
+      Invite User
+    </button>
+  </div>
+</aside>
+
+<!-- ============================================================
+     CREATE CHANNEL MODAL
+     ============================================================ -->
+<div class="forum-modal-backdrop" id="create-channel-modal" hidden
+     role="dialog" aria-modal="true" aria-labelledby="modal-create-title">
+  <div class="forum-modal">
+    <div class="forum-modal-title" id="modal-create-title">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-plus"></use></svg>
+      Create Channel
+    </div>
+    <div class="forum-form-group">
+      <label class="forum-form-label" for="new-channel-name">Channel Name</label>
+      <input type="text" id="new-channel-name" class="forum-form-input"
+             placeholder="e.g. feature-requests" autocomplete="off">
+    </div>
+    <div class="forum-form-group">
+      <label class="forum-form-label" for="new-channel-desc">Description</label>
+      <input type="text" id="new-channel-desc" class="forum-form-input"
+             placeholder="What is this channel about?" autocomplete="off">
+    </div>
+    <div class="forum-form-group">
+      <label class="forum-form-label" for="new-channel-type">Type</label>
+      <select id="new-channel-type" class="forum-form-select">
+        <option value="forum">Forum Topic</option>
+        <option value="org_group">Org Group</option>
+      </select>
+    </div>
+    <div class="forum-form-status" id="create-channel-status" aria-live="polite"></div>
+    <div class="forum-modal-footer">
+      <button class="murphy-btn" id="btn-modal-cancel">Cancel</button>
+      <button class="murphy-btn murphy-btn-primary" id="btn-modal-create">
+        <svg width="14" height="14"><use href="static/murphy-icons.svg#icon-plus"></use></svg>
+        Create
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     INVITE USER MODAL
+     ============================================================ -->
+<div class="forum-modal-backdrop" id="invite-modal" hidden
+     role="dialog" aria-modal="true" aria-labelledby="modal-invite-title">
+  <div class="forum-modal">
+    <div class="forum-modal-title" id="modal-invite-title">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-user"></use></svg>
+      Invite User
+    </div>
+    <div class="forum-form-group">
+      <label class="forum-form-label" for="invite-email">Email Address</label>
+      <input type="email" id="invite-email" class="forum-form-input"
+             placeholder="user@example.com" autocomplete="off">
+    </div>
+    <div class="forum-form-group">
+      <label class="forum-form-label" for="invite-role">Role</label>
+      <select id="invite-role" class="forum-form-select">
+        <option value="member">Member</option>
+        <option value="moderator">Moderator</option>
+      </select>
+    </div>
+    <div class="forum-form-status" id="invite-status" aria-live="polite"></div>
+    <div class="forum-modal-footer">
+      <button class="murphy-btn" id="btn-invite-cancel">Cancel</button>
+      <button class="murphy-btn murphy-btn-primary" id="btn-invite-send">
+        <svg width="14" height="14"><use href="static/murphy-icons.svg#icon-execute"></use></svg>
+        Send Invite
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+<script src="static/murphy-components.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* ===========================================================
+     1. API + SHARED COMPONENTS
+     =========================================================== */
+  var api       = new MurphyAPI('/api');
+  var librarian = new MurphyLibrarianChat(api);
+  var toast     = new MurphyToast();
+  var theme     = new MurphyTheme();
+  var keyboard  = new MurphyKeyboard();
+  theme.init();
+  keyboard.init();
+
+  var BASE = window.location.origin;
+
+  /* ===========================================================
+     2. DOM REFS
+     =========================================================== */
+  var channelsNav     = document.getElementById('forum-channels');
+  var mainEl          = document.getElementById('forum-main');
+  var membersPanel    = document.getElementById('forum-members');
+  var connDot         = document.getElementById('conn-dot');
+  var globalBadge     = document.getElementById('global-notif-badge');
+  var userAvatar      = document.getElementById('user-avatar');
+  var userNameEl      = document.getElementById('user-name');
+  var topbarChName    = document.getElementById('topbar-channel-name');
+  var bannerTitle     = document.getElementById('banner-title');
+  var bannerDesc      = document.getElementById('banner-desc');
+  var messagesEl      = document.getElementById('messages-container');
+  var composerInput   = document.getElementById('composer-input');
+  var emojiPicker     = document.getElementById('emoji-picker');
+  var topicsListEl    = document.getElementById('forum-topics-list');
+  var groupsListEl    = document.getElementById('forum-groups-list');
+  var dmListEl        = document.getElementById('forum-dm-list');
+  var membersScroll   = document.getElementById('members-scroll');
+  var orgNameEl       = document.getElementById('org-name');
+  var orgMemberCount  = document.getElementById('org-member-count');
+  var orgChannelCount = document.getElementById('org-channel-count');
+  var createModal     = document.getElementById('create-channel-modal');
+  var inviteModal     = document.getElementById('invite-modal');
+  var inviteBtn       = document.getElementById('btn-invite');
+
+  /* ===========================================================
+     3. STATE
+     =========================================================== */
+  var currentChannel = null;
+  var channels       = [];
+  var unreadCounts   = {};
+  var userProfile    = { name: 'User', email: '', role: 'member', org_id: null };
+  var sseSource      = null;
+  var sseSubId       = null;
+
+  var EMOJI_LIST = ['👍','👎','❤️','😂','🎉','🤔','👀','🚀','✅','❌','🔥','💯','⭐','🙌','💡','🐛'];
+
+  var AVATAR_CLASSES = [
+    'avatar-teal', 'avatar-violet', 'avatar-blue',
+    'avatar-coral', 'avatar-gold', 'avatar-pink',
+    'avatar-green', 'avatar-amber', 'avatar-sky',
+    'avatar-cyan', 'avatar-indigo'
+  ];
+
+  /* ===========================================================
+     4. HTML HELPERS
+     =========================================================== */
+  function esc(s) {
+    var d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
+  }
+
+  function avatarColor(name) {
+    var hash = 0;
+    var str = String(name || '');
+    for (var i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return AVATAR_CLASSES[Math.abs(hash) % AVATAR_CLASSES.length];
+  }
+
+  function initial(name) {
+    return (String(name || '?').charAt(0) || '?').toUpperCase();
+  }
+
+  function formatTime(ts) {
+    if (!ts) return '';
+    var d = new Date(ts);
+    if (isNaN(d.getTime())) return String(ts);
+    var now = new Date();
+    var diff = now - d;
+    if (diff < 60000) return 'Just now';
+    if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+    if (diff < 86400000) return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' +
+           d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function formatDateSep(ts) {
+    if (!ts) return '';
+    var d = new Date(ts);
+    if (isNaN(d.getTime())) return '';
+    var now = new Date();
+    var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var msgDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    var diff = today - msgDay;
+    if (diff === 0) return 'Today';
+    if (diff <= 86400000) return 'Yesterday';
+    return d.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  }
+
+  function roleBadgeClass(role) {
+    if (role === 'admin' || role === 'founder_admin') return 'role-admin';
+    if (role === 'moderator' || role === 'mod') return 'role-moderator';
+    return 'role-member';
+  }
+
+  function memberBadgeClass(role) {
+    if (role === 'admin' || role === 'founder_admin') return 'badge-admin';
+    if (role === 'moderator' || role === 'mod') return 'badge-moderator';
+    return 'badge-member';
+  }
+
+  function roleName(role) {
+    if (role === 'admin' || role === 'founder_admin') return 'Admin';
+    if (role === 'moderator' || role === 'mod') return 'Mod';
+    return 'Member';
+  }
+
+  /* ===========================================================
+     5. CHANNEL MANAGEMENT
+     =========================================================== */
+  async function loadChannels() {
+    try {
+      var res = await fetch(BASE + '/api/community/channels', {
+        credentials: 'include'
+      });
+      if (!res.ok) throw new Error('Failed to load channels');
+      var data = await res.json();
+      channels = Array.isArray(data) ? data : (data.channels || []);
+    } catch (e) {
+      channels = [];
+    }
+    renderChannelList();
+  }
+
+  function renderChannelList() {
+    var topicsHTML = '';
+    var groupsHTML = '';
+    var dmHTML = '';
+
+    channels.forEach(function (ch) {
+      var type = ch.type || 'forum';
+      var isActive = currentChannel && currentChannel.id === ch.id;
+      var badgeHTML = '';
+      var count = unreadCounts[ch.id] || 0;
+      if (count > 0) {
+        badgeHTML = '<span class="forum-ch-badge" aria-label="' + count + ' unread">' +
+                    (count > 99 ? '99+' : count) + '</span>';
+      }
+
+      var icon = type === 'dm' ? '' : '#';
+      var itemHTML;
+
+      if (type === 'dm') {
+        itemHTML = '<div class="forum-channel-item' + (isActive ? ' active' : '') +
+                   '" data-channel-id="' + esc(ch.id) + '" role="listitem" tabindex="0" ' +
+                   'aria-label="Direct message with ' + esc(ch.name) + '">' +
+                   '<div class="forum-dm-avatar ' + avatarColor(ch.name) + '">' +
+                   initial(ch.name) + '</div>' +
+                   '<span class="forum-ch-name">' + esc(ch.name) + '</span>' +
+                   badgeHTML + '</div>';
+        dmHTML += itemHTML;
+      } else {
+        var iconChar = type === 'org_group' ? '◈' : '#';
+        itemHTML = '<div class="forum-channel-item' + (isActive ? ' active' : '') +
+                   '" data-channel-id="' + esc(ch.id) + '" role="listitem" tabindex="0" ' +
+                   'aria-label="' + esc(ch.name) + ' channel">' +
+                   '<span class="forum-ch-icon">' + iconChar + '</span>' +
+                   '<span class="forum-ch-name">' + esc(ch.name) + '</span>' +
+                   badgeHTML + '</div>';
+        if (type === 'org_group') {
+          groupsHTML += itemHTML;
+        } else {
+          topicsHTML += itemHTML;
+        }
+      }
+    });
+
+    if (!topicsHTML) {
+      topicsHTML = '<div class="forum-channel-item" role="listitem"><span class="forum-ch-icon">#</span>' +
+                   '<span class="forum-ch-name forum-ch-name-muted">No topics yet</span></div>';
+    }
+
+    topicsListEl.innerHTML = topicsHTML;
+    groupsListEl.innerHTML = groupsHTML || '';
+    dmListEl.innerHTML = dmHTML || '';
+  }
+
+  async function createChannel(name, description, type) {
+    var statusEl = document.getElementById('create-channel-status');
+    statusEl.textContent = 'Creating…';
+    statusEl.className = 'forum-form-status forum-status-info';
+    try {
+      var res = await fetch(BASE + '/api/community/channels', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name, description: description, type: type })
+      });
+      if (!res.ok) {
+        var err = await res.json().catch(function () { return {}; });
+        throw new Error(err.detail || err.message || 'Failed to create channel');
+      }
+      var ch = await res.json();
+      statusEl.textContent = '';
+      createModal.hidden = true;
+      toast.show('Channel #' + (ch.name || name) + ' created', 'success');
+      await loadChannels();
+      if (ch.id) selectChannel(ch);
+    } catch (e) {
+      statusEl.textContent = e.message;
+      statusEl.className = 'forum-form-status forum-status-error';
+    }
+  }
+
+  /* ===========================================================
+     6. MESSAGE LOADING & RENDERING
+     =========================================================== */
+  async function loadMessages(channelId) {
+    messagesEl.innerHTML = '<div class="forum-loading"><div class="forum-spinner"></div>Loading messages…</div>';
+    try {
+      var res = await fetch(BASE + '/api/community/channels/' + encodeURIComponent(channelId) + '/messages', {
+        credentials: 'include'
+      });
+      if (!res.ok) throw new Error('Failed to load messages');
+      var data = await res.json();
+      var messages = Array.isArray(data) ? data : (data.messages || []);
+      renderMessages(messages);
+    } catch (e) {
+      messagesEl.innerHTML = '<div class="forum-welcome">' +
+        '<div class="forum-welcome-title">Welcome to #' + esc(currentChannel ? currentChannel.name : '') + '</div>' +
+        '<div class="forum-welcome-desc">This is the beginning of the channel. Start the conversation!</div></div>';
+    }
+  }
+
+  function renderMessages(messages) {
+    if (!messages || messages.length === 0) {
+      messagesEl.innerHTML = '<div class="forum-welcome">' +
+        '<div class="forum-welcome-title"># ' + esc(currentChannel ? currentChannel.name : 'general') + '</div>' +
+        '<div class="forum-welcome-desc">This is the start of the conversation. ' +
+        'Be the first to post a message!</div></div>';
+      return;
+    }
+
+    var html = '';
+    var lastDateStr = '';
+
+    messages.forEach(function (msg) {
+      var dateStr = formatDateSep(msg.created_at || msg.timestamp);
+      if (dateStr && dateStr !== lastDateStr) {
+        html += '<div class="forum-date-separator" role="separator">' +
+                '<span class="forum-date-label">' + esc(dateStr) + '</span></div>';
+        lastDateStr = dateStr;
+      }
+
+      var authorName = msg.author || msg.user || msg.username || 'Unknown';
+      var authorRole = msg.role || 'member';
+      var color = avatarColor(authorName);
+      var roleClass = roleBadgeClass(authorRole);
+
+      html += '<div class="forum-msg-group" data-msg-id="' + esc(msg.id) + '" tabindex="0">';
+      html += '<div class="forum-msg-avatar ' + color + '">' + initial(authorName) + '</div>';
+      html += '<div class="forum-msg-body">';
+      html += '<div class="forum-msg-header">';
+      html += '<span class="forum-msg-author">' + esc(authorName) + '</span>';
+      if (authorRole && authorRole !== 'member') {
+        html += '<span class="forum-msg-role-badge ' + roleClass + '">' + esc(roleName(authorRole)) + '</span>';
+      }
+      html += '<span class="forum-msg-timestamp">' + esc(formatTime(msg.created_at || msg.timestamp)) + '</span>';
+      html += '</div>';
+      html += '<div class="forum-msg-content">' + formatMessageContent(msg.content || msg.text || '') + '</div>';
+
+      // Reactions
+      var reactions = msg.reactions || [];
+      if (reactions.length > 0) {
+        html += '<div class="forum-msg-reactions">';
+        reactions.forEach(function (r) {
+          var reacted = r.users && r.users.indexOf(userProfile.name) !== -1;
+          html += '<button class="forum-reaction' + (reacted ? ' reacted' : '') +
+                  '" data-msg-id="' + esc(msg.id) + '" data-emoji="' + esc(r.emoji) +
+                  '" aria-label="' + esc(r.emoji) + ' reaction, ' + (r.count || 0) + ' users">' +
+                  r.emoji + '<span class="forum-reaction-count">' + (r.count || 0) + '</span></button>';
+        });
+        html += '</div>';
+      }
+
+      // Action buttons
+      html += '<div class="forum-msg-actions">';
+      html += '<button class="forum-msg-action-btn" data-action="react" data-msg-id="' + esc(msg.id) +
+              '" aria-label="Add reaction">😀</button>';
+      html += '<button class="forum-msg-action-btn" data-action="reply" data-msg-id="' + esc(msg.id) +
+              '" aria-label="Reply in thread">💬 Reply</button>';
+      html += '</div>';
+
+      // Thread replies
+      var replies = msg.replies || msg.thread || [];
+      if (replies.length > 0) {
+        html += '<div class="forum-thread-container">';
+        html += '<button class="forum-thread-toggle" data-thread-id="' + esc(msg.id) +
+                '" aria-expanded="false" aria-controls="thread-' + esc(msg.id) + '">' +
+                replies.length + ' repl' + (replies.length === 1 ? 'y' : 'ies') + '</button>';
+        html += '<div class="forum-thread-replies" id="thread-' + esc(msg.id) + '" hidden>';
+        replies.forEach(function (reply) {
+          var rName = reply.author || reply.user || 'Unknown';
+          var rColor = avatarColor(rName);
+          html += '<div class="forum-thread-msg">';
+          html += '<div class="forum-thread-avatar ' + rColor + '">' + initial(rName) + '</div>';
+          html += '<div class="forum-thread-body">';
+          html += '<span class="forum-thread-author">' + esc(rName) + '</span>';
+          html += '<span class="forum-thread-time">' + esc(formatTime(reply.created_at || reply.timestamp)) + '</span>';
+          html += '<div class="forum-thread-text">' + formatMessageContent(reply.content || reply.text || '') + '</div>';
+          html += '</div></div>';
+        });
+        html += '</div></div>';
+      }
+
+      html += '</div></div>';
+    });
+
+    messagesEl.innerHTML = html;
+    scrollToBottom();
+  }
+
+  function formatMessageContent(text) {
+    var safe = esc(text);
+    // Code blocks
+    safe = safe.replace(/```([\s\S]*?)```/g, '<pre>$1</pre>');
+    // Inline code
+    safe = safe.replace(/`([^`]+)`/g, '<code>$1</code>');
+    // Bold
+    safe = safe.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    // Italic
+    safe = safe.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    // Newlines
+    safe = safe.replace(/\n/g, '<br>');
+    return safe;
+  }
+
+  function scrollToBottom() {
+    requestAnimationFrame(function () {
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    });
+  }
+
+  /* ===========================================================
+     7. POST MESSAGE
+     =========================================================== */
+  async function postMessage(content, parentId) {
+    if (!currentChannel || !content.trim()) return;
+    var body = { content: content.trim() };
+    if (parentId) body.parent_id = parentId;
+    try {
+      var res = await fetch(
+        BASE + '/api/community/channels/' + encodeURIComponent(currentChannel.id) + '/messages',
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        }
+      );
+      if (!res.ok) throw new Error('Send failed');
+      composerInput.value = '';
+      autoResizeComposer();
+      await loadMessages(currentChannel.id);
+    } catch (e) {
+      toast.show('Failed to send message: ' + e.message, 'danger');
+    }
+  }
+
+  /* ===========================================================
+     8. EMOJI REACTIONS
+     =========================================================== */
+  function buildEmojiPicker() {
+    var html = '';
+    EMOJI_LIST.forEach(function (emoji) {
+      html += '<button class="forum-emoji-btn" data-emoji="' + emoji +
+              '" role="option" aria-label="' + emoji + ' emoji">' + emoji + '</button>';
+    });
+    emojiPicker.innerHTML = html;
+  }
+
+  async function addReaction(msgId, emoji) {
+    if (!currentChannel) return;
+    try {
+      await fetch(
+        BASE + '/api/community/channels/' + encodeURIComponent(currentChannel.id) +
+        '/messages/' + encodeURIComponent(msgId) + '/reactions',
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ emoji: emoji })
+        }
+      );
+      await loadMessages(currentChannel.id);
+    } catch (_) {
+      // Silently fail for reactions
+    }
+  }
+
+  /* ===========================================================
+     9. MEMBER LIST
+     =========================================================== */
+  async function loadMembers(channelId) {
+    membersScroll.innerHTML = '<div class="forum-loading"><div class="forum-spinner"></div>Loading…</div>';
+    try {
+      var res = await fetch(
+        BASE + '/api/community/channels/' + encodeURIComponent(channelId) + '/members',
+        { credentials: 'include' }
+      );
+      if (!res.ok) throw new Error('Failed to load members');
+      var data = await res.json();
+      var members = Array.isArray(data) ? data : (data.members || []);
+      renderMembers(members);
+    } catch (_) {
+      renderMembers([]);
+    }
+  }
+
+  function renderMembers(members) {
+    if (!members || members.length === 0) {
+      membersScroll.innerHTML = '<div class="forum-members-section">No members</div>';
+      return;
+    }
+
+    var online = members.filter(function (m) { return m.status === 'online'; });
+    var offline = members.filter(function (m) { return m.status !== 'online'; });
+
+    var html = '';
+
+    if (online.length > 0) {
+      html += '<div class="forum-members-section">Online — ' + online.length + '</div>';
+      online.forEach(function (m) { html += memberHTML(m, 'online'); });
+    }
+
+    if (offline.length > 0) {
+      html += '<div class="forum-members-section">Offline — ' + offline.length + '</div>';
+      offline.forEach(function (m) { html += memberHTML(m, 'offline'); });
+    }
+
+    membersScroll.innerHTML = html;
+  }
+
+  function memberHTML(m, presence) {
+    var name = m.name || m.username || m.email || 'Unknown';
+    var role = m.role || m.org_role || 'member';
+    var color = avatarColor(name);
+    var bClass = memberBadgeClass(role);
+    return '<div class="forum-member-item" tabindex="0" aria-label="' + esc(name) + ', ' + esc(roleName(role)) + '">' +
+      '<div class="forum-member-avatar ' + color + '">' +
+      initial(name) +
+      '<span class="forum-member-presence ' + esc(presence) + '"></span>' +
+      '</div>' +
+      '<div class="forum-member-info">' +
+      '<div class="forum-member-name">' + esc(name) + '</div>' +
+      '<div class="forum-member-role">' + esc(roleName(role)) + '</div>' +
+      '</div>' +
+      '<span class="forum-member-badge ' + bClass + '">' + esc(roleName(role)) + '</span>' +
+      '</div>';
+  }
+
+  /* ===========================================================
+     10. ORG FEATURES
+     =========================================================== */
+  async function autoJoinOrg() {
+    try {
+      await fetch(BASE + '/api/org/join', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      });
+    } catch (_) {
+      // Silently handle — user may not be in an org
+    }
+  }
+
+  async function inviteUser(email, role) {
+    var statusEl = document.getElementById('invite-status');
+    statusEl.textContent = 'Sending invite…';
+    statusEl.className = 'forum-form-status forum-status-info';
+    try {
+      var res = await fetch(BASE + '/api/org/invite', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, role: role || 'member' })
+      });
+      if (!res.ok) {
+        var err = await res.json().catch(function () { return {}; });
+        throw new Error(err.detail || err.message || 'Failed to send invite');
+      }
+      statusEl.textContent = '';
+      inviteModal.hidden = true;
+      toast.show('Invite sent to ' + email, 'success');
+    } catch (e) {
+      statusEl.textContent = e.message;
+      statusEl.className = 'forum-form-status forum-status-error';
+    }
+  }
+
+  /* ===========================================================
+     11. CHANNEL NAVIGATION
+     =========================================================== */
+  function selectChannel(ch) {
+    currentChannel = ch;
+    topbarChName.textContent = '# ' + (ch.name || '');
+    bannerTitle.textContent = '# ' + (ch.name || '');
+    bannerDesc.textContent = ch.description || '';
+    composerInput.placeholder = 'Message #' + (ch.name || 'channel');
+
+    unreadCounts[ch.id] = 0;
+    renderChannelList();
+    loadMessages(ch.id);
+    loadMembers(ch.id);
+
+    // Close mobile sidebar
+    if (window.innerWidth <= 640) {
+      channelsNav.classList.remove('open');
+    }
+  }
+
+  /* ===========================================================
+     12. SSE — REAL-TIME UPDATES
+     =========================================================== */
+  async function startSSE() {
+    try {
+      var res = await fetch(BASE + '/api/events/subscribe', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subscriber_id: 'community_forum_' + Date.now(),
+          channels: ['community', 'system']
+        })
+      });
+      if (res.ok) {
+        var data = await res.json();
+        sseSubId = data.subscriber_id || data.id;
+      }
+    } catch (_) {
+      sseSubId = 'community_forum';
+    }
+    connectSSE();
+  }
+
+  function connectSSE() {
+    if (sseSource) { try { sseSource.close(); } catch (_) {} }
+    var url = BASE + '/api/events/stream/' + encodeURIComponent(sseSubId || 'community_forum');
+    sseSource = new EventSource(url);
+
+    sseSource.onopen = function () {
+      connDot.classList.remove('disconnected');
+      connDot.title = 'Connected';
+      connDot.setAttribute('aria-label', 'Connection status: connected');
+    };
+
+    sseSource.onmessage = function (e) {
+      try { handleSSEEvent(JSON.parse(e.data)); } catch (_) {}
+    };
+
+    sseSource.addEventListener('event', function (e) {
+      try { handleSSEEvent(JSON.parse(e.data)); } catch (_) {}
+    });
+
+    sseSource.onerror = function () {
+      connDot.classList.add('disconnected');
+      connDot.title = 'Disconnected — reconnecting…';
+      connDot.setAttribute('aria-label', 'Connection status: disconnected');
+      setTimeout(connectSSE, 5000);
+    };
+  }
+
+  function handleSSEEvent(ev) {
+    var evType = ev.type || ev.event || '';
+    var chId = ev.channel_id || ev.channelId || '';
+
+    if (evType === 'new_message' && chId) {
+      if (currentChannel && chId === currentChannel.id) {
+        loadMessages(currentChannel.id);
+      } else {
+        unreadCounts[chId] = (unreadCounts[chId] || 0) + 1;
+        renderChannelList();
+        updateGlobalBadge();
+      }
+    }
+
+    if (evType === 'channel_created') {
+      loadChannels();
+    }
+
+    if (evType === 'member_joined' && currentChannel && chId === currentChannel.id) {
+      loadMembers(currentChannel.id);
+    }
+  }
+
+  function updateGlobalBadge() {
+    var total = Object.values(unreadCounts).reduce(function (a, b) { return a + b; }, 0);
+    if (total > 0) {
+      globalBadge.textContent = total > 99 ? '99+' : String(total);
+      globalBadge.hidden = false;
+    } else {
+      globalBadge.hidden = true;
+    }
+  }
+
+  /* ===========================================================
+     13. EVENT HANDLERS
+     =========================================================== */
+
+  // Channel click delegation
+  document.getElementById('channels-scroll').addEventListener('click', function (e) {
+    var item = e.target.closest('.forum-channel-item');
+    if (!item) return;
+    var chId = item.getAttribute('data-channel-id');
+    if (!chId) return;
+    var ch = channels.find(function (c) { return c.id === chId; });
+    if (ch) selectChannel(ch);
+  });
+
+  // Keyboard: channel items
+  document.getElementById('channels-scroll').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      var item = e.target.closest('.forum-channel-item');
+      if (item) {
+        e.preventDefault();
+        item.click();
+      }
+    }
+  });
+
+  // Create channel button (multiple triggers)
+  document.getElementById('btn-create-channel').addEventListener('click', function () {
+    createModal.hidden = false;
+    document.getElementById('new-channel-name').value = '';
+    document.getElementById('new-channel-desc').value = '';
+    document.getElementById('create-channel-status').textContent = '';
+    document.getElementById('new-channel-name').focus();
+  });
+
+  // Section + buttons also open create modal with type preselected
+  document.querySelectorAll('.forum-section-toggle').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      createModal.hidden = false;
+      document.getElementById('new-channel-name').value = '';
+      document.getElementById('new-channel-desc').value = '';
+      document.getElementById('create-channel-status').textContent = '';
+      var sectionId = btn.closest('.forum-channels-section').id;
+      var typeSelect = document.getElementById('new-channel-type');
+      if (sectionId === 'section-groups') {
+        typeSelect.value = 'org_group';
+      } else {
+        typeSelect.value = 'forum';
+      }
+      document.getElementById('new-channel-name').focus();
+    });
+  });
+
+  // Modal: cancel
+  document.getElementById('btn-modal-cancel').addEventListener('click', function () {
+    createModal.hidden = true;
+  });
+
+  // Modal: create
+  document.getElementById('btn-modal-create').addEventListener('click', function () {
+    var name = document.getElementById('new-channel-name').value.trim();
+    var desc = document.getElementById('new-channel-desc').value.trim();
+    var type = document.getElementById('new-channel-type').value;
+    if (!name) {
+      document.getElementById('create-channel-status').textContent = 'Channel name is required';
+      document.getElementById('create-channel-status').className = 'forum-form-status forum-status-error';
+      return;
+    }
+    createChannel(name, desc, type);
+  });
+
+  // Modal: Enter key
+  document.getElementById('new-channel-name').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      document.getElementById('btn-modal-create').click();
+    }
+  });
+
+  // Modal: Escape to close
+  createModal.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') createModal.hidden = true;
+  });
+
+  // Invite button
+  inviteBtn.addEventListener('click', function () {
+    inviteModal.hidden = false;
+    document.getElementById('invite-email').value = '';
+    document.getElementById('invite-status').textContent = '';
+    document.getElementById('invite-email').focus();
+  });
+
+  document.getElementById('btn-invite-cancel').addEventListener('click', function () {
+    inviteModal.hidden = true;
+  });
+
+  document.getElementById('btn-invite-send').addEventListener('click', function () {
+    var email = document.getElementById('invite-email').value.trim();
+    var role = document.getElementById('invite-role').value;
+    if (!email) {
+      document.getElementById('invite-status').textContent = 'Email is required';
+      document.getElementById('invite-status').className = 'forum-form-status forum-status-error';
+      return;
+    }
+    inviteUser(email, role);
+  });
+
+  inviteModal.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') inviteModal.hidden = true;
+  });
+
+  document.getElementById('invite-email').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      document.getElementById('btn-invite-send').click();
+    }
+  });
+
+  // Composer: send on Enter
+  composerInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      postMessage(composerInput.value);
+    }
+  });
+
+  // Composer: send button
+  document.getElementById('btn-send').addEventListener('click', function () {
+    postMessage(composerInput.value);
+  });
+
+  // Composer: auto-resize
+  composerInput.addEventListener('input', autoResizeComposer);
+
+  function autoResizeComposer() {
+    composerInput.style.height = 'auto';
+    composerInput.style.height = Math.min(composerInput.scrollHeight, 160) + 'px';
+    var sendBtn = document.getElementById('btn-send');
+    if (composerInput.value.trim()) {
+      sendBtn.classList.add('send-active');
+    } else {
+      sendBtn.classList.remove('send-active');
+    }
+  }
+
+  // Emoji picker
+  var emojiTarget = null;
+
+  document.getElementById('btn-emoji').addEventListener('click', function (e) {
+    e.stopPropagation();
+    emojiTarget = null;
+    emojiPicker.hidden = !emojiPicker.hidden;
+  });
+
+  emojiPicker.addEventListener('click', function (e) {
+    var btn = e.target.closest('.forum-emoji-btn');
+    if (!btn) return;
+    var emoji = btn.getAttribute('data-emoji');
+    if (emojiTarget) {
+      addReaction(emojiTarget, emoji);
+      emojiTarget = null;
+    } else {
+      composerInput.value += emoji;
+      composerInput.focus();
+    }
+    emojiPicker.hidden = true;
+  });
+
+  // Close emoji picker on outside click
+  document.addEventListener('click', function (e) {
+    if (!emojiPicker.hidden && !emojiPicker.contains(e.target) &&
+        e.target.id !== 'btn-emoji') {
+      emojiPicker.hidden = true;
+    }
+  });
+
+  // Message action delegation (reactions, replies, thread toggles)
+  messagesEl.addEventListener('click', function (e) {
+    // React button
+    var reactBtn = e.target.closest('[data-action="react"]');
+    if (reactBtn) {
+      emojiTarget = reactBtn.getAttribute('data-msg-id');
+      emojiPicker.hidden = false;
+      return;
+    }
+
+    // Reply button
+    var replyBtn = e.target.closest('[data-action="reply"]');
+    if (replyBtn) {
+      composerInput.focus();
+      composerInput.placeholder = 'Reply to thread…';
+      composerInput.setAttribute('data-reply-to', replyBtn.getAttribute('data-msg-id'));
+      return;
+    }
+
+    // Existing reaction
+    var reaction = e.target.closest('.forum-reaction');
+    if (reaction) {
+      addReaction(reaction.getAttribute('data-msg-id'), reaction.getAttribute('data-emoji'));
+      return;
+    }
+
+    // Thread toggle
+    var threadToggle = e.target.closest('.forum-thread-toggle');
+    if (threadToggle) {
+      var threadId = threadToggle.getAttribute('data-thread-id');
+      var repliesEl = document.getElementById('thread-' + threadId);
+      if (repliesEl) {
+        var expanded = repliesEl.hidden;
+        repliesEl.hidden = !expanded;
+        threadToggle.setAttribute('aria-expanded', String(expanded));
+      }
+      return;
+    }
+  });
+
+  // Composer: handle reply mode
+  composerInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      composerInput.removeAttribute('data-reply-to');
+      composerInput.placeholder = 'Message #' + (currentChannel ? currentChannel.name : 'channel');
+    }
+  });
+
+  // Wrap postMessage to support replies
+  var originalPostMessage = postMessage;
+  postMessage = function (content) {
+    var parentId = composerInput.getAttribute('data-reply-to') || null;
+    composerInput.removeAttribute('data-reply-to');
+    if (currentChannel) {
+      composerInput.placeholder = 'Message #' + currentChannel.name;
+    }
+    return originalPostMessage(content, parentId);
+  };
+
+  // Mobile toggles
+  document.getElementById('btn-toggle-channels').addEventListener('click', function () {
+    channelsNav.classList.toggle('open');
+  });
+
+  document.getElementById('btn-toggle-members').addEventListener('click', function () {
+    membersPanel.classList.toggle('open');
+  });
+
+  document.getElementById('btn-close-members').addEventListener('click', function () {
+    membersPanel.classList.remove('open');
+  });
+
+  // Notifications bell
+  document.getElementById('btn-notifications').addEventListener('click', function () {
+    Object.keys(unreadCounts).forEach(function (k) { unreadCounts[k] = 0; });
+    renderChannelList();
+    globalBadge.hidden = true;
+  });
+
+  /* ===========================================================
+     14. AUTH & USER PROFILE
+     =========================================================== */
+  window.addEventListener('murphy:profile_loaded', function (e) {
+    var profile = e.detail || {};
+    userProfile.name = profile.name || profile.email || 'User';
+    userProfile.email = profile.email || '';
+    userProfile.role = profile.role || 'member';
+    userProfile.org_id = profile.org_id || null;
+    userNameEl.textContent = userProfile.name;
+    userAvatar.textContent = initial(userProfile.name);
+
+    // Show invite button for moderators/admins
+    if (userProfile.role === 'admin' || userProfile.role === 'founder_admin' ||
+        userProfile.role === 'moderator' || userProfile.role === 'mod') {
+      inviteBtn.hidden = false;
+    }
+  });
+
+  setTimeout(function () {
+    if (userNameEl.textContent === 'Loading…') {
+      userNameEl.textContent = 'User';
+      userAvatar.textContent = 'U';
+    }
+  }, 3000);
+
+  /* ===========================================================
+     15. INIT
+     =========================================================== */
+  buildEmojiPicker();
+  autoJoinOrg();
+
+  loadChannels().then(function () {
+    // Select first channel or show welcome
+    if (channels.length > 0) {
+      selectChannel(channels[0]);
+    } else {
+      messagesEl.innerHTML = '<div class="forum-welcome">' +
+        '<div class="forum-welcome-title">Welcome to Murphy Community</div>' +
+        '<div class="forum-welcome-desc">Create a channel to get started. ' +
+        'Use the sidebar to browse topics, org groups, and direct messages.</div></div>';
+    }
+  });
+
+  startSSE().catch(function () {});
+
+  // Load org info
+  (async function () {
+    try {
+      var res = await fetch(BASE + '/api/org/info', { credentials: 'include' });
+      if (res.ok) {
+        var org = await res.json();
+        orgNameEl.textContent = org.name || '—';
+        orgMemberCount.querySelector('span').textContent = (org.member_count || 0) + ' members';
+        orgChannelCount.querySelector('span').textContent = (org.channel_count || channels.length) + ' channels';
+      }
+    } catch (_) {}
+  })();
+
+})();
+</script>
+
+</body>
+</html>
