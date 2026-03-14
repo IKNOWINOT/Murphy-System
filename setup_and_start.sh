@@ -177,8 +177,12 @@ echo -e "  ${BOLD}Health:${NC}      ${BLUE}http://localhost:${MURPHY_PORT}/api/h
 echo -e "  ${BOLD}Status:${NC}      ${BLUE}http://localhost:${MURPHY_PORT}/api/status${NC}"
 echo ""
 
-# Determine actual Architect Terminal URL (absolute file path)
-TERMINAL_HTML="$MURPHY_DIR/terminal_architect.html"
+# Determine Unified Terminal URL (primary multi-role hub, absolute file path)
+TERMINAL_HTML="$MURPHY_DIR/terminal_unified.html"
+if [ ! -f "$TERMINAL_HTML" ]; then
+    # Fall back to Architect Terminal if Unified Terminal is not present
+    TERMINAL_HTML="$MURPHY_DIR/terminal_architect.html"
+fi
 if [ -f "$TERMINAL_HTML" ]; then
     # Encode spaces for display; other special characters are rare in typical
     # repository paths and the URL is informational only (not machine-processed).
@@ -190,7 +194,7 @@ fi
 # Offer choice: backend server vs terminal UI
 if [ -f "$MURPHY_DIR/murphy_terminal.py" ]; then
     echo -e "${CYAN}How would you like to start Murphy?${NC}"
-    echo -e "  ${BOLD}1)${NC} Start backend server  (API + Architect Terminal in browser)"
+    echo -e "  ${BOLD}1)${NC} Start backend server  (API + all web dashboards in browser)"
     echo -e "  ${BOLD}2)${NC} Start terminal UI     (interactive natural-language terminal in shell)"
     echo ""
     read -r -p "Enter choice [1]: " LAUNCH_CHOICE
@@ -228,8 +232,12 @@ case "$LAUNCH_CHOICE" in
         ;;
     *)
         echo -e "${CYAN}🚀 Starting Murphy System backend on port ${MURPHY_PORT}…${NC}"
-        echo -e "${GREEN}${BOLD}→ Open the Architect Terminal in your browser:${NC}"
+        echo -e "${GREEN}${BOLD}→ Open the Unified Terminal (Admin / Multi-role hub) in your browser:${NC}"
         echo -e "  ${BLUE}${TERMINAL_URL}${NC}"
+        echo -e "${GREEN}→ Other web interfaces (role-specific terminals, canvas, visualiser, etc.):${NC}"
+        echo -e "  ${BLUE}file://$(printf '%s' "$MURPHY_DIR" | sed 's| |%20|g')/murphy_landing_page.html${NC}"
+        echo -e "  ${BLUE}file://$(printf '%s' "$MURPHY_DIR" | sed 's| |%20|g')/terminal_architect.html${NC}"
+        echo -e "  ${BLUE}http://localhost:${MURPHY_PORT}/docs${NC}  (Swagger API docs)"
         echo -e "${YELLOW}Press Ctrl+C to stop${NC}"
         echo ""
         $PY murphy_system_1.0_runtime.py &
