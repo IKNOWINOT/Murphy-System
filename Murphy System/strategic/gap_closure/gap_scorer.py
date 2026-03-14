@@ -79,12 +79,21 @@ _MODULE_EVIDENCE: Dict[str, List[Tuple[str, str, int]]] = {
         ("lowcode/workflow_builder.py", "Workflow definition + compile pipeline", 1),
         ("connectors/connector_registry.py", "50+ connectors enabling cross-system automation", 1),
     ],
-    "IoT/Sensor/Actuator Control": [],
-    "Self-Improving/Learning": [],
-    "Human-in-the-Loop (HITL)": [],
-    "ML Built-in (no external deps)": [],
+    "IoT/Sensor/Actuator Control": [
+        ("../murphy_confidence/domain/manufacturing.py", "OPC-UA adapter + multi-sensor fusion + dynamic hazard recalibrator", 1),
+    ],
+    "Self-Improving/Learning": [
+        ("../murphy_confidence/domain/cross_system.py", "PerformanceBenchmark + AdversarialRobustnessTester for continuous improvement", 1),
+    ],
+    "Human-in-the-Loop (HITL)": [
+        ("../murphy_confidence/domain/healthcare.py", "Healthcare HITL with clinical safety gates + paediatric dosing validation", 1),
+    ],
+    "ML Built-in (no external deps)": [
+        ("../murphy_confidence/domain/manufacturing.py", "PredictiveMaintenanceModel with Weibull-based failure prediction (zero-dep)", 1),
+    ],
     "Autonomous Business Operations": [
         ("agents/agent_coordinator.py", "Autonomous agent swarm with orchestration", 0),
+        ("../murphy_confidence/domain/financial.py", "FinancialDomainEngine with 6 autonomous compliance sub-models", 1),
     ],
     "Safety/Governance Gates": [],
     "Mathematical Confidence Scoring": [],
