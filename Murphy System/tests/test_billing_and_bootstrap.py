@@ -363,6 +363,49 @@ class TestBillingWebhook:
         sub = mgr.get_subscription("wh_acc")
         assert sub.status == SubscriptionStatus.ACTIVE
 
+    @pytest.mark.asyncio
+    async def test_coinbase_webhook_confirmed(self, billing_client):
+        client, mgr = billing_client
+        payload = {
+            "type": "charge:confirmed",
+            "data": {
+                "code": "CB_CHARGE_1",
+                "metadata": {"murphy_account_id": "cb_wh_acc", "tier": "business"},
+            },
+        }
+        r = await client.post("/api/billing/webhooks/coinbase", json=payload)
+        assert r.status_code == 200
+        data = r.json()
+        assert data["received"] is True
+        assert data["event_type"] == "charge:confirmed"
+        sub = mgr.get_subscription("cb_wh_acc")
+        assert sub is not None
+        assert sub.tier == SubscriptionTier.BUSINESS
+        assert sub.status == SubscriptionStatus.ACTIVE
+
+    @pytest.mark.asyncio
+    async def test_coinbase_webhook_failed(self, billing_client):
+        client, mgr = billing_client
+        mgr._upsert_subscription("cb_fail_acc", SubscriptionTier.SOLO, SubscriptionStatus.ACTIVE, PaymentProvider.CRYPTO)
+        payload = {
+            "type": "charge:failed",
+            "data": {"metadata": {"murphy_account_id": "cb_fail_acc"}},
+        }
+        r = await client.post("/api/billing/webhooks/coinbase", json=payload)
+        assert r.status_code == 200
+        sub = mgr.get_subscription("cb_fail_acc")
+        assert sub.status == SubscriptionStatus.PAST_DUE
+
+    @pytest.mark.asyncio
+    async def test_coinbase_webhook_invalid_json(self, billing_client):
+        client, _ = billing_client
+        r = await client.post(
+            "/api/billing/webhooks/coinbase",
+            content=b"not json",
+            headers={"content-type": "application/json"},
+        )
+        assert r.status_code == 400
+
 
 class TestBillingSubscriptionCrud:
     @pytest.mark.asyncio
