@@ -19,7 +19,8 @@ Endpoints:
   GET  /api/billing/currencies      — list supported currencies
   POST /api/billing/checkout        — create PayPal checkout (redirect URL)
   POST /api/billing/checkout/crypto — create Coinbase Commerce charge
-  POST /api/billing/webhooks/paypal — PayPal webhook receiver
+  POST /api/billing/webhooks/paypal   — PayPal webhook receiver
+  POST /api/billing/webhooks/coinbase — Coinbase Commerce webhook receiver
   GET  /api/billing/subscription/{account_id} — get subscription state
   POST /api/billing/subscription/{account_id}/cancel  — cancel
   POST /api/billing/subscription/{account_id}/upgrade — upgrade/downgrade
@@ -223,6 +224,34 @@ def create_billing_router(
 
         try:
             result = mgr.handle_paypal_webhook(
+                payload=payload,
+                signature=signature,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+        return JSONResponse(result)
+
+    # ── Coinbase Commerce Webhook ────────────────────────────────────
+
+    @router.post("/webhooks/coinbase")
+    async def coinbase_webhook(request: Request) -> JSONResponse:
+        """Receive and process Coinbase Commerce charge lifecycle webhooks.
+
+        Coinbase Commerce sends ``charge:confirmed``, ``charge:failed``,
+        ``charge:delayed``, ``charge:pending``, and ``charge:resolved``
+        events.  The ``X-CC-Webhook-Signature`` header is verified when
+        ``COINBASE_WEBHOOK_SECRET`` is configured.
+        """
+        try:
+            payload: Dict[str, Any] = await request.json()
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail="Invalid JSON") from exc
+
+        signature = request.headers.get("x-cc-webhook-signature", "")
+
+        try:
+            result = mgr.handle_coinbase_webhook(
                 payload=payload,
                 signature=signature,
             )

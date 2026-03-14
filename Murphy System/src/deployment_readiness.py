@@ -180,6 +180,7 @@ class DeploymentReadinessChecker:
             ReadinessCheck("REDIS_URL", "env", _check_env_var("REDIS_URL", required=False)),
             ReadinessCheck("PAYPAL_CLIENT_ID", "billing", _check_env_var("PAYPAL_CLIENT_ID")),
             ReadinessCheck("PAYPAL_CLIENT_SECRET", "billing", _check_env_var("PAYPAL_CLIENT_SECRET")),
+            ReadinessCheck("COINBASE_COMMERCE_API_KEY", "billing", _check_env_var("COINBASE_COMMERCE_API_KEY", required=False)),
 
             # Infrastructure
             ReadinessCheck("database", "infra", _check_database),

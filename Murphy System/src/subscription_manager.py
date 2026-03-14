@@ -524,6 +524,69 @@ class SubscriptionManager:
     # Coinbase Commerce (crypto)
     # ------------------------------------------------------------------
 
+    def handle_coinbase_webhook(
+        self,
+        payload: Dict[str, Any],
+        signature: str = "",
+        webhook_secret: str = "",
+    ) -> Dict[str, Any]:
+        """Process a Coinbase Commerce webhook event.
+
+        Coinbase Commerce sends events for charge lifecycle:
+          - ``charge:confirmed``  → payment received, activate subscription
+          - ``charge:failed``     → payment failed
+          - ``charge:delayed``    → underpaid / waiting for confirmation
+          - ``charge:pending``    → payment detected, awaiting confirmation
+          - ``charge:resolved``   → previously underpaid charge resolved
+
+        When ``webhook_secret`` (or ``COINBASE_WEBHOOK_SECRET`` env var) is
+        set, the ``signature`` header (``X-CC-Webhook-Signature``) is verified
+        via HMAC-SHA256 before processing.
+        """
+        secret = webhook_secret or os.environ.get("COINBASE_WEBHOOK_SECRET", "")
+        if secret and signature:
+            payload_bytes = _json.dumps(
+                payload, separators=(",", ":"), sort_keys=True
+            ).encode()
+            expected = _hmac.new(
+                secret.encode(), payload_bytes, hashlib.sha256
+            ).hexdigest()
+            if not _hmac.compare_digest(expected, signature):
+                logger.warning("Coinbase webhook signature mismatch")
+                raise ValueError("invalid Coinbase webhook signature")
+
+        # Idempotency
+        event_id = payload.get("id", "")
+        if event_id and self._is_duplicate_event(event_id):
+            logger.info("Duplicate Coinbase event skipped: %s", event_id)
+            return {"received": True, "duplicate": True, "event_type": payload.get("type", "")}
+
+        event_type = payload.get("type", "")
+        event_data = payload.get("data", {})
+        metadata = event_data.get("metadata", {})
+        account_id = metadata.get("murphy_account_id", "")
+        tier_str = metadata.get("tier", "solo")
+
+        if event_type == "charge:confirmed":
+            if account_id:
+                try:
+                    tier = SubscriptionTier(tier_str)
+                except ValueError:
+                    tier = SubscriptionTier.SOLO
+                self._upsert_subscription(
+                    account_id, tier, SubscriptionStatus.ACTIVE, PaymentProvider.CRYPTO,
+                    external_id=event_data.get("code", ""),
+                )
+        elif event_type == "charge:failed":
+            if account_id:
+                self._update_subscription_status(account_id, SubscriptionStatus.PAST_DUE)
+        elif event_type == "charge:resolved":
+            if account_id:
+                self._update_subscription_status(account_id, SubscriptionStatus.ACTIVE)
+
+        self._audit("coinbase_webhook", account_id, {"event_type": event_type})
+        return {"received": True, "event_type": event_type}
+
     def create_crypto_charge(
         self,
         account_id: str,
