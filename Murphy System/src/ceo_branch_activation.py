@@ -974,6 +974,7 @@ class CEOBranch:
         tick_interval: float = _DEFAULT_TICK_SECONDS,
         confidence_threshold: float = _CONFIDENCE_THRESHOLD,
         alert_hook: Optional[Callable[[List[str]], None]] = None,
+        event_backbone: Any = None,
     ) -> None:
         """Initialise the CEO branch.
 
@@ -983,12 +984,16 @@ class CEOBranch:
             tick_interval: Seconds between workflow ticks.
             confidence_threshold: Min confidence for full automation.
             alert_hook: Optional alert callback ``(alerts: List[str]) -> None``.
+            event_backbone: Optional :class:`EventBackbone` instance.  When
+                provided, telemetry events are also published to the backbone
+                so they flow through the system-wide event fabric.
         """
         self._lock = threading.Lock()
         self._branch_id: str = uuid.uuid4().hex[:12]
         self._activated: bool = False
         self._activation_time: Optional[str] = None
         self._telemetry: List[Dict[str, Any]] = []
+        self._backbone = event_backbone
 
         # Build org chart
         self._org_chart = OrgChartAutomation(role_probes=role_probes)
@@ -1145,6 +1150,11 @@ class CEOBranch:
         }
         with self._lock:
             capped_append(self._telemetry, entry, max_size=_MAX_TELEMETRY_EVENTS)
+        if self._backbone is not None:
+            try:
+                self._backbone.publish(event, entry)
+            except Exception:
+                logger.debug("CEOBranch: EventBackbone publish failed for event %r", event)
 
 
 # ---------------------------------------------------------------------------
