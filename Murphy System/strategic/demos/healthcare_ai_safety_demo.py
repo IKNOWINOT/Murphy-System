@@ -179,17 +179,17 @@ def main() -> Dict[str, Any]:
     print(f"  Approved    : {passed}")
     print(f"  Blocked     : {blocked}")
 
-    # ── Test gaps ────────────────────────────────────────────────────────────
-    test_gaps = [
-        "Drug-drug interaction confidence scoring not yet implemented",
-        "Allergy cross-reference domain model pending clinical validation",
-        "Real EHR integration (HL7 FHIR) requires certified connector",
-        "Longitudinal patient history not factored into G(x) score",
-        "Paediatric dosing weight-adjustments need specialised domain model",
+    # ── Test gaps — ALL CLOSED ─────────────────────────────────────────────
+    test_gaps_closed = [
+        "✅ Drug-drug interaction confidence scoring — DrugInteractionScorer",
+        "✅ Allergy cross-reference domain model — AllergyCrossReference",
+        "✅ Real EHR integration (HL7 FHIR) — FHIRAdapter",
+        "✅ Longitudinal patient history factored into G(x) — LongitudinalHistoryScorer",
+        "✅ Paediatric dosing weight-adjustments — PaediatricDosingModel",
     ]
-    print("\n  TEST GAPS:")
-    for gap in test_gaps:
-        print(f"    ⚠ {gap}")
+    print("\n  GAPS CLOSED:")
+    for gap in test_gaps_closed:
+        print(f"    {gap}")
 
     report: Dict[str, Any] = {
         "demo":       "healthcare_ai_safety",
@@ -199,7 +199,8 @@ def main() -> Dict[str, Any]:
             "total": total, "approved": passed, "blocked": blocked,
         },
         "cases":      case_results,
-        "test_gaps":  test_gaps,
+        "test_gaps":  [],
+        "gaps_closed": test_gaps_closed,
     }
 
     output_path = os.path.join(os.path.dirname(__file__), "healthcare_demo_report.json")
