@@ -38,7 +38,7 @@
   }
 
   function _baseUrl() {
-    return "http://127.0.0.1:" + _apiPort();
+    return window.location.origin;
   }
 
   // ---------------------------------------------------------------------------
