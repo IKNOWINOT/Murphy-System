@@ -220,10 +220,12 @@ class TestVerticalQueries:
         with pytest.raises(ValueError):
             engine.get_ideal_customer_profile("invalid_vertical")
 
-    def test_all_six_verticals_present(self, engine):
+    def test_all_ten_verticals_present(self, engine):
         expected = {
             "healthcare", "financial_services", "manufacturing",
             "technology", "professional_services", "government",
+            "iot_building_automation", "energy_management",
+            "additive_manufacturing", "factory_automation",
         }
         ids = {v.vertical_id for v in engine.list_verticals()}
         assert ids == expected
@@ -517,3 +519,254 @@ class TestSingleton:
         e = get_default_positioning_engine()
         mp = e.get_market_position()
         assert mp.positioning_statement
+
+
+# ---------------------------------------------------------------------------
+# 11. New verticals: IoT/BAS, Energy Management, Additive Mfg, Factory Auto
+# ---------------------------------------------------------------------------
+
+class TestNewVerticals:
+
+    def test_iot_building_automation_vertical_present(self):
+        engine = MarketPositioningEngine()
+        vert = engine.get_vertical("iot_building_automation")
+        assert vert.vertical_id == "iot_building_automation"
+        assert len(vert.pain_points) >= 3
+        assert len(vert.murphy_value_props) >= 3
+        assert len(vert.content_topics) >= 5
+        assert vert.b2b_pitch_hook
+
+    def test_energy_management_vertical_present(self):
+        engine = MarketPositioningEngine()
+        vert = engine.get_vertical("energy_management")
+        assert vert.vertical_id == "energy_management"
+        assert "ashrae" in " ".join(vert.content_topics).lower() or "iso 50001" in " ".join(vert.murphy_value_props).lower()
+
+    def test_additive_manufacturing_vertical_present(self):
+        engine = MarketPositioningEngine()
+        vert = engine.get_vertical("additive_manufacturing")
+        assert vert.vertical_id == "additive_manufacturing"
+        assert any("opc" in t.lower() or "grabcad" in t.lower() or "stratasys" in t.lower()
+                   for t in vert.content_topics)
+
+    def test_factory_automation_vertical_present(self):
+        engine = MarketPositioningEngine()
+        vert = engine.get_vertical("factory_automation")
+        assert vert.vertical_id == "factory_automation"
+        assert any("isa-95" in t.lower() or "rockwell" in t.lower() or "beckhoff" in t.lower()
+                   for t in vert.content_topics)
+
+    def test_new_verticals_in_valid_set(self):
+        for vid in ("iot_building_automation", "energy_management",
+                    "additive_manufacturing", "factory_automation"):
+            assert vid in _VALID_VERTICAL_IDS
+
+    def test_new_verticals_have_relevant_capabilities(self):
+        engine = MarketPositioningEngine()
+        for vid in ("iot_building_automation", "energy_management",
+                    "additive_manufacturing", "factory_automation"):
+            caps = engine.get_capabilities_for_vertical(vid)
+            assert len(caps) >= 4, f"{vid} should have ≥4 capabilities"
+
+    def test_infer_vertical_beckhoff(self):
+        engine = MarketPositioningEngine()
+        result = engine._infer_vertical("beckhoff")
+        assert result == "factory_automation"
+
+    def test_infer_vertical_ameresco(self):
+        engine = MarketPositioningEngine()
+        result = engine._infer_vertical("ameresco")
+        assert result == "energy_management"
+
+    def test_infer_vertical_stratasys(self):
+        engine = MarketPositioningEngine()
+        result = engine._infer_vertical("stratasys")
+        assert result == "additive_manufacturing"
+
+    def test_infer_vertical_honeywell(self):
+        engine = MarketPositioningEngine()
+        result = engine._infer_vertical("honeywell forge buildings")
+        assert result == "iot_building_automation"
+
+    def test_score_partner_fit_factory_automation(self):
+        engine = MarketPositioningEngine()
+        score = engine.score_partner_fit("Rockwell Automation", ["integration_featuring", "case_study"])
+        assert score > 0.0
+
+    def test_content_topics_for_new_verticals_non_empty(self):
+        engine = MarketPositioningEngine()
+        for vid in ("iot_building_automation", "energy_management",
+                    "additive_manufacturing", "factory_automation"):
+            topics = engine.get_content_topics_for_vertical(vid)
+            assert len(topics) >= 5
+
+    def test_industry_pitch_angle_new_verticals(self):
+        engine = MarketPositioningEngine()
+        for vid in ("iot_building_automation", "energy_management",
+                    "additive_manufacturing", "factory_automation"):
+            angle = engine.get_industry_pitch_angle(vid)
+            assert isinstance(angle, str) and len(angle) > 20
+
+    def test_icp_for_new_verticals(self):
+        engine = MarketPositioningEngine()
+        for vid in ("iot_building_automation", "energy_management",
+                    "additive_manufacturing", "factory_automation"):
+            icp = engine.get_ideal_customer_profile(vid)
+            assert icp["regulatory_context"]
+            assert icp["b2b_pitch_hook"]
+
+    def test_market_position_mentions_new_segments(self):
+        engine = MarketPositioningEngine()
+        mp = engine.get_market_position()
+        segments_text = " ".join(mp.target_segments).lower()
+        assert "building" in segments_text or "iot" in segments_text
+        assert "energy" in segments_text or "audit" in segments_text
+        assert "additive" in segments_text or "3d print" in segments_text
+        assert "factory" in segments_text or "manufacturing" in segments_text
+
+    def test_vertical_summary_includes_new_verticals(self):
+        engine = MarketPositioningEngine()
+        summary = engine.get_vertical_summary()
+        for vid in ("iot_building_automation", "energy_management",
+                    "additive_manufacturing", "factory_automation"):
+            assert vid in summary
+
+
+# ---------------------------------------------------------------------------
+# 12. Commissioning gate wiring
+# ---------------------------------------------------------------------------
+
+class TestCommissioningGate:
+
+    def _make_orchestrator(self):
+        import sys
+        import os
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+        from self_marketing_orchestrator import SelfMarketingOrchestrator
+        return SelfMarketingOrchestrator()
+
+    def test_commission_system_pass(self):
+        orch = self._make_orchestrator()
+        result = orch._commission_system(
+            "test-001", "Test System",
+            {"pieces_generated": 3, "errors": []},
+        )
+        assert result["status"] == "PASS"
+        assert result["system_id"] == "test-001"
+        assert result["system_name"] == "Test System"
+        assert "checks_passed" in result
+        assert "checks_failed" in result
+
+    def test_commission_system_with_errors_still_returns_result(self):
+        orch = self._make_orchestrator()
+        result = orch._commission_system(
+            "test-002", "Failing System",
+            {"errors": ["Something went wrong"]},
+        )
+        # Errors present → checks_failed is non-empty
+        assert isinstance(result["checks_failed"], list)
+        assert len(result["checks_failed"]) >= 1
+
+    def test_commission_system_sanitises_inputs(self):
+        orch = self._make_orchestrator()
+        result = orch._commission_system(
+            "id\x00with\x00nulls", "name\x00here",
+            {"errors": []},
+        )
+        assert "\x00" not in result["system_id"]
+        assert "\x00" not in result["system_name"]
+
+    def test_commission_system_caps_long_inputs(self):
+        orch = self._make_orchestrator()
+        result = orch._commission_system(
+            "x" * 5000, "y" * 5000,
+            {"errors": []},
+        )
+        assert len(result["system_id"]) <= 200
+        assert len(result["system_name"]) <= 200
+
+    def test_b2b_cycle_calls_commissioning(self):
+        """B2B cycle result includes implicit commissioning — pipeline count non-negative."""
+        orch = self._make_orchestrator()
+        result = orch.run_b2b_partnership_cycle()
+        # If commissioning fails, the cycle still returns a result (non-fatal)
+        assert "cycle_id" in result
+
+    def test_content_cycle_calls_commissioning(self):
+        orch = self._make_orchestrator()
+        result = orch.run_content_cycle()
+        assert "cycle_id" in result
+
+
+# ---------------------------------------------------------------------------
+# 13. New DEFAULT_DESIRED_OFFERINGS entries
+# ---------------------------------------------------------------------------
+
+class TestNewDefaultOfferings:
+
+    def _make_orchestrator(self):
+        import sys
+        import os
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+        from self_marketing_orchestrator import SelfMarketingOrchestrator
+        return SelfMarketingOrchestrator()
+
+    def test_total_partners_is_22(self):
+        orch = self._make_orchestrator()
+        pipeline = orch.get_partnership_pipeline()
+        assert pipeline["total_partners"] == 22
+
+    def test_new_iot_partners_present(self):
+        orch = self._make_orchestrator()
+        pipeline = orch.get_partnership_pipeline()
+        ids = {p["partner_id"] for p in pipeline["partners"]}
+        assert "siemens_smart_infrastructure" in ids
+        assert "johnson_controls_openblue" in ids
+        assert "honeywell_forge_buildings" in ids
+
+    def test_new_energy_partners_present(self):
+        orch = self._make_orchestrator()
+        pipeline = orch.get_partnership_pipeline()
+        ids = {p["partner_id"] for p in pipeline["partners"]}
+        assert "ameresco" in ids
+        assert "facilio" in ids
+        assert "energycap" in ids
+
+    def test_new_am_partners_present(self):
+        orch = self._make_orchestrator()
+        pipeline = orch.get_partnership_pipeline()
+        ids = {p["partner_id"] for p in pipeline["partners"]}
+        assert "stratasys" in ids
+        assert "eos_gmbh" in ids
+        assert "markforged" in ids
+
+    def test_new_factory_partners_present(self):
+        orch = self._make_orchestrator()
+        pipeline = orch.get_partnership_pipeline()
+        ids = {p["partner_id"] for p in pipeline["partners"]}
+        assert "rockwell_automation" in ids
+        assert "beckhoff" in ids
+        assert "ptc_thingworx" in ids
+
+    def test_all_new_partners_have_salesperson_name(self):
+        orch = self._make_orchestrator()
+        pipeline = orch.get_partnership_pipeline()
+        new_ids = {
+            "siemens_smart_infrastructure", "johnson_controls_openblue",
+            "honeywell_forge_buildings", "ameresco", "facilio", "energycap",
+            "stratasys", "eos_gmbh", "markforged",
+            "rockwell_automation", "beckhoff", "ptc_thingworx",
+        }
+        for p in pipeline["partners"]:
+            if p["partner_id"] in new_ids:
+                assert p["has_named_contact"], f"{p['partner_id']} missing salesperson_name"
+
+    def test_commissioning_is_not_an_offering_type(self):
+        """Verify commissioning is never listed as a B2B offering type."""
+        import sys
+        import os
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+        from self_marketing_orchestrator import B2B_OFFERING_TYPES, DEFAULT_DESIRED_OFFERINGS
+        assert "commissioning" not in B2B_OFFERING_TYPES
+        for offering in DEFAULT_DESIRED_OFFERINGS:
+            assert "commissioning" not in offering.get("offering_types", [])

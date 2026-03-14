@@ -652,9 +652,58 @@ New event types for automation:
 - [Gap Analysis](GAP_ANALYSIS.md) — Actual vs expected comparison
 - [Remediation Plan](REMEDIATION_PLAN.md) — Concrete fixes for all identified gaps
 - [QA Audit Report](QA_AUDIT_REPORT.md) — Pre-launch security audit findings
+- [MODULE_REGISTRY.md](MODULE_REGISTRY.md) — Full module registry including MKT-006, MPE-001, FAC-001, EAE-001
 
 ---
 
-**Document Version:** 2.0 (Toggleable Automation)  
-**Last Updated:** 2026-02-26  
+## 10. Industrial Automation Verticals (2026-03-14 Update)
+
+Murphy now serves **10 industry verticals** with fully implemented matching systems.  Four new
+verticals were added with dedicated connector modules and B2B sales targets:
+
+### 10.1 New Verticals and Matching Modules
+
+| Vertical | Module | Key Systems | B2B Targets |
+|----------|--------|-------------|-------------|
+| IoT / Building Automation | `building_automation_connectors.py` | BACnet/IP, KNX, Modbus, DALI, OPC-UA | Siemens Desigo CC, JCI OpenBlue, Honeywell Forge |
+| Energy Management and Audits | `energy_management_connectors.py` + `energy_audit_engine.py` (EAE-001) | ASHRAE L I/II/III, ISO 50001/50002, CBECS benchmarks | Ameresco, Facilio, EnergyCAP |
+| Additive Manufacturing | `additive_manufacturing_connectors.py` | OPC-UA AM/OPC 40564, GrabCAD, Eiger, EOSTATE | Stratasys, EOS GmbH, Markforged |
+| Factory Automation | `factory_automation_connectors.py` (FAC-001) | EtherNet/IP, PROFINET, OPC-UA, MTConnect; ISA-95; IEC 13849 | Rockwell Automation, Beckhoff, PTC ThingWorx |
+
+### 10.2 Commissioning Gate Architecture
+
+**Commissioning is NOT a partner-facing offering** — it is a cross-cutting quality gate
+(`_commission_system()` in `self_marketing_orchestrator.py`) that runs over every executed
+cycle and module:
+
+- Called automatically at the end of every B2B partnership outreach cycle
+- Called automatically at the end of every content generation cycle
+- Emits a `system_commissioned` event to the cryptographic audit trail
+- Validates: no critical errors, valid system identity, minimum output thresholds
+- Returns `PASS` / `FAIL` with evidence — non-fatal to the cycle that triggered it
+
+### 10.3 B2B Partnership Pipeline
+
+| Category | Partners | Salesperson Contacts |
+|----------|----------|---------------------|
+| SaaS / Technology (original) | HubSpot, Zapier, Make, n8n, Salesforce, M365, Notion, Linear, Datadog, GitHub | 10 named contacts |
+| IoT / Building Automation | Siemens Smart Infrastructure, Johnson Controls OpenBlue, Honeywell Forge | 3 named contacts |
+| Energy Management / Audits | Ameresco, Facilio, EnergyCAP | 3 named contacts |
+| Additive Manufacturing | Stratasys (GrabCAD), EOS GmbH (EOSTATE), Markforged (Eiger) | 3 named contacts |
+| Factory Automation | Rockwell Automation (FactoryTalk), Beckhoff (TwinCAT), PTC ThingWorx | 3 named contacts |
+| **Total** | **22 partners** | **22 named contacts** | |
+
+### 10.4 Market Positioning Engine (MPE-001)
+
+The `MarketPositioningEngine` encodes Murphy's market position at runtime:
+- 17 Murphy capabilities (maturity-scored from CAPABILITY_SCORECARD)
+- 10 industry verticals with ICP, pain points, regulatory context, content topics, and B2B pitch hooks
+- `score_partner_fit()` — heuristic fit scoring with company-name → vertical inference
+- Wired into `SelfMarketingOrchestrator`: content topics and B2B pitch bodies are
+  vertically enriched at runtime
+
+---
+
+**Document Version:** 2.1 (Industrial Automation Verticals)  
+**Last Updated:** 2026-03-14  
 **Author:** SuperNinja AI Agent

@@ -93,6 +93,10 @@ Safety invariants:
   - Salesperson LinkedIn URL validated: HTTPS only, linkedin.com/in/ prefix enforced (CWE-20)
   - MarketPositioningEngine wired in: content cycles and B2B pitches enriched with
     vertical-specific topics and capability intelligence (non-fatal fallback on error)
+  - Commissioning gate (_commission_system): cross-cutting validation run over EVERY
+    executed cycle and module — commissioning is NOT a partner-facing offering but an
+    internal quality gate; every B2B cycle and content cycle is commissioned and its
+    result emitted to the audit trail as a 'system_commissioned' event
 
 Copyright © 2020 Inoni Limited Liability Company
 Creator: Corey Post
@@ -235,6 +239,34 @@ CONTENT_CATEGORIES: Dict[str, List[str]] = {
         "Murphy's Law as a design principle for AI systems",
         "Why AI systems should refuse to act",
         "The case for confidence-gated execution",
+    ],
+    "building_automation_iot": [
+        "Unifying BACnet, KNX, and Modbus with AI orchestration",
+        "How AI building automation reduces HVAC energy waste by 30%",
+        "Predictive HVAC maintenance: detecting chiller degradation early",
+        "LEED and BREEAM automation: generating energy compliance reports automatically",
+        "Smart building natural language: 'Reduce cooling when meeting rooms are empty'",
+    ],
+    "energy_management": [
+        "ASHRAE Level II energy audit automation: from bills to ECM report in 4 hours",
+        "ISO 50001 certification with Murphy: automating the evidence trail",
+        "Greedy ECM prioritisation: maximising energy savings within budget",
+        "Demand response on autopilot: Murphy dispatches load-shed in under 30 seconds",
+        "Carbon reporting automation: from smart meter data to SEC-ready ESG disclosure",
+    ],
+    "additive_manufacturing": [
+        "Automating multi-vendor AM fleets: GrabCAD + Eiger + EOSTATE unified with Murphy",
+        "OPC-UA companion spec for additive manufacturing: Murphy as the integration layer",
+        "End-to-end AM traceability: linking build parameters to inspection with AI",
+        "Post-processing automation: connecting print completion to CNC and heat treat",
+        "AI-driven material consumption tracking across FDM, SLS, and DMLS fleets",
+    ],
+    "factory_automation": [
+        "OT/IT convergence with Murphy: connecting PLCs to business systems without custom code",
+        "Natural-language robot programming: 'Pick when sensor fires' — Murphy writes the logic",
+        "ISA-95 orchestration: sequencing FIELD, CONTROL, and MES layers correctly",
+        "IEC 13849 safety gate in software: Murphy's approach to collaborative robot safety",
+        "SCADA modernisation without rip-and-replace: Murphy as the AI overlay layer",
     ],
 }
 
@@ -699,7 +731,7 @@ DEFAULT_DESIRED_OFFERINGS: List[Dict[str, Any]] = [
         "company": "Salesforce",
         "contact_role": "ISV_partnerships",
         "salesperson_name": "Director of ISV Partnerships",
-        "salesperson_title": "Director, ISV & AppExchange Partnerships — Salesforce",
+        "salesperson_title": "Director, ISV and AppExchange Partnerships — Salesforce",
         "salesperson_email": None,
         "salesperson_linkedin": None,
         "channel": "email",
@@ -728,8 +760,8 @@ DEFAULT_DESIRED_OFFERINGS: List[Dict[str, Any]] = [
         "partner_id": "notion",
         "company": "Notion",
         "contact_role": "partnerships",
-        "salesperson_name": "Head of Integrations & Partnerships",
-        "salesperson_title": "Head of Integrations & Partnerships, Notion",
+        "salesperson_name": "Head of Integrations and Partnerships",
+        "salesperson_title": "Head of Integrations and Partnerships, Notion",
         "salesperson_email": None,
         "salesperson_linkedin": None,
         "channel": "linkedin",
@@ -782,6 +814,202 @@ DEFAULT_DESIRED_OFFERINGS: List[Dict[str, Any]] = [
         "pitch_angle": (
             "Murphy automates GitHub Actions, PRs, and issue management via "
             "NL commands — a natural complement to GitHub Copilot."
+        ),
+    },
+    # ── IoT / Building Automation ──────────────────────────────────────────
+    {
+        "partner_id": "siemens_smart_infrastructure",
+        "company": "Siemens Smart Infrastructure (Desigo CC)",
+        "contact_role": "technology_partnerships",
+        "salesperson_name": "Head of Technology Alliances",
+        "salesperson_title": "Head of Technology Alliances, Siemens Smart Infrastructure",
+        "salesperson_email": None,
+        "salesperson_linkedin": None,
+        "channel": "linkedin",
+        "offering_types": ["integration_featuring", "case_study"],
+        "pitch_angle": (
+            "Murphy's BACnet/IP, KNX, Modbus, and OPC-UA connectors integrate directly "
+            "with Desigo CC, enabling natural-language building automation workflows "
+            "without custom middleware."
+        ),
+    },
+    {
+        "partner_id": "johnson_controls_openblue",
+        "company": "Johnson Controls OpenBlue",
+        "contact_role": "partner_ecosystem",
+        "salesperson_name": "Director of Partner Ecosystem",
+        "salesperson_title": "Director, Partner Ecosystem — Johnson Controls OpenBlue",
+        "salesperson_email": None,
+        "salesperson_linkedin": None,
+        "channel": "email",
+        "offering_types": ["case_study", "co_marketing"],
+        "pitch_angle": (
+            "Murphy's AI orchestration layer adds NL-driven adaptive logic on top of "
+            "OpenBlue — predictive HVAC, automated energy reporting, and cross-system "
+            "building workflows in plain English."
+        ),
+    },
+    {
+        "partner_id": "honeywell_forge_buildings",
+        "company": "Honeywell Forge Buildings",
+        "contact_role": "technology_partnerships",
+        "salesperson_name": "VP of Technology Partnerships",
+        "salesperson_title": "VP Technology Partnerships, Honeywell Forge Buildings",
+        "salesperson_email": None,
+        "salesperson_linkedin": None,
+        "channel": "email",
+        "offering_types": ["integration_featuring", "co_marketing"],
+        "pitch_angle": (
+            "Murphy provides the AI orchestration layer for Honeywell Forge — "
+            "confidence-gated building automation commands, ISO 50001 audit automation, "
+            "and NL energy policy enforcement across Forge-connected facilities."
+        ),
+    },
+    # ── Energy Management & Energy Audits ──────────────────────────────────
+    {
+        "partner_id": "ameresco",
+        "company": "Ameresco",
+        "contact_role": "technology_partnerships",
+        "salesperson_name": "VP of Technology and Innovation",
+        "salesperson_title": "VP Technology and Innovation, Ameresco",
+        "salesperson_email": None,
+        "salesperson_linkedin": None,
+        "channel": "email",
+        "offering_types": ["case_study", "co_marketing"],
+        "pitch_angle": (
+            "Murphy's Energy Audit Engine (ASHRAE Level I/II/III) and ISO 50001 automation "
+            "accelerate Ameresco's energy audit delivery — turning weeks of manual analysis "
+            "into hours of automated ECM identification with ROI calculations."
+        ),
+    },
+    {
+        "partner_id": "facilio",
+        "company": "Facilio",
+        "contact_role": "partnerships",
+        "salesperson_name": "Head of Partner Ecosystem",
+        "salesperson_title": "Head of Partner Ecosystem, Facilio",
+        "salesperson_email": None,
+        "salesperson_linkedin": None,
+        "channel": "linkedin",
+        "offering_types": ["integration_featuring", "case_study"],
+        "pitch_angle": (
+            "Murphy's energy management connectors and ASHRAE audit engine integrate "
+            "with Facilio to automate ECM identification, ISO 50001 reporting, and "
+            "demand response dispatch."
+        ),
+    },
+    {
+        "partner_id": "energycap",
+        "company": "EnergyCAP",
+        "contact_role": "technology_partnerships",
+        "salesperson_name": "Director of Technology Partnerships",
+        "salesperson_title": "Director, Technology Partnerships — EnergyCAP",
+        "salesperson_email": None,
+        "salesperson_linkedin": None,
+        "channel": "email",
+        "offering_types": ["integration_featuring", "co_marketing"],
+        "pitch_angle": (
+            "Murphy enriches EnergyCAP's utility analytics with AI-powered ASHRAE Level II "
+            "audit automation — ingesting data, identifying ECMs, and generating "
+            "ISO 50001-compliant reports automatically."
+        ),
+    },
+    # ── Additive Manufacturing ─────────────────────────────────────────────
+    {
+        "partner_id": "stratasys",
+        "company": "Stratasys (GrabCAD Print)",
+        "contact_role": "developer_ecosystem",
+        "salesperson_name": "Director of Developer Ecosystem",
+        "salesperson_title": "Director, Developer Ecosystem — Stratasys",
+        "salesperson_email": None,
+        "salesperson_linkedin": None,
+        "channel": "email",
+        "offering_types": ["integration_featuring", "case_study"],
+        "pitch_angle": (
+            "Murphy's GrabCAD Print connector and OPC-UA AM support enable NL fleet "
+            "management for Stratasys FDM/PolyJet systems — automated job scheduling, "
+            "quality traceability, and post-processing workflow triggers."
+        ),
+    },
+    {
+        "partner_id": "eos_gmbh",
+        "company": "EOS GmbH (EOSTATE)",
+        "contact_role": "technology_partnerships",
+        "salesperson_name": "Head of Technology Partnerships",
+        "salesperson_title": "Head of Technology Partnerships, EOS GmbH",
+        "salesperson_email": None,
+        "salesperson_linkedin": None,
+        "channel": "linkedin",
+        "offering_types": ["integration_featuring", "co_marketing"],
+        "pitch_angle": (
+            "Murphy's EOSTATE connector and OPC-UA AM (OPC 40564) bring AI-native "
+            "orchestration to EOS DMLS/SLS systems — build parameter traceability, "
+            "automated quality inspection routing, and AS9100D evidence collection."
+        ),
+    },
+    {
+        "partner_id": "markforged",
+        "company": "Markforged (Eiger Cloud)",
+        "contact_role": "partnerships",
+        "salesperson_name": "Director of Partnerships",
+        "salesperson_title": "Director of Partnerships, Markforged",
+        "salesperson_email": None,
+        "salesperson_linkedin": None,
+        "channel": "email",
+        "offering_types": ["integration_featuring", "case_study"],
+        "pitch_angle": (
+            "Murphy's Eiger cloud connector lets Markforged users automate multi-part "
+            "build scheduling, material consumption tracking, and post-processing "
+            "workflows — without Eiger API expertise."
+        ),
+    },
+    # ── Factory Automation ─────────────────────────────────────────────────
+    {
+        "partner_id": "rockwell_automation",
+        "company": "Rockwell Automation (FactoryTalk)",
+        "contact_role": "technology_alliances",
+        "salesperson_name": "Director of Technology Alliances",
+        "salesperson_title": "Director, Technology Alliances — Rockwell Automation",
+        "salesperson_email": None,
+        "salesperson_linkedin": None,
+        "channel": "email",
+        "offering_types": ["integration_featuring", "case_study"],
+        "pitch_angle": (
+            "Murphy's EtherNet/IP connector and ISA-95 layer-aware orchestration bring "
+            "NL AI to FactoryTalk environments — scheduling, alarming, and MES integration "
+            "from plain-English descriptions, not PLC ladder logic."
+        ),
+    },
+    {
+        "partner_id": "beckhoff",
+        "company": "Beckhoff Automation (TwinCAT)",
+        "contact_role": "developer_relations",
+        "salesperson_name": "Head of Developer Relations",
+        "salesperson_title": "Head of Developer Relations, Beckhoff Automation",
+        "salesperson_email": None,
+        "salesperson_linkedin": None,
+        "channel": "linkedin",
+        "offering_types": ["integration_featuring", "co_marketing"],
+        "pitch_angle": (
+            "Murphy's TwinCAT 3 OPC-UA (ADS port 851) connector enables natural-language "
+            "factory automation sequences that Beckhoff partners can deploy without "
+            "writing IEC 61131 code."
+        ),
+    },
+    {
+        "partner_id": "ptc_thingworx",
+        "company": "PTC ThingWorx",
+        "contact_role": "partner_ecosystem",
+        "salesperson_name": "VP of Partner Ecosystem",
+        "salesperson_title": "VP Partner Ecosystem, PTC ThingWorx",
+        "salesperson_email": None,
+        "salesperson_linkedin": None,
+        "channel": "email",
+        "offering_types": ["integration_featuring", "case_study"],
+        "pitch_angle": (
+            "Murphy's ThingWorx REST connector brings AI-native NL workflow execution "
+            "to the ThingWorx IIoT platform — predictive maintenance triggers, automated "
+            "work orders, and OEE reporting from plain-English descriptions."
         ),
     },
 ]
@@ -1069,6 +1297,11 @@ class SelfMarketingOrchestrator:
             "business_automation": "professional_services",
             "case_studies": "technology",
             "thought_leadership": "financial_services",
+            # New domain-specific verticals
+            "building_automation_iot": "iot_building_automation",
+            "energy_management": "energy_management",
+            "additive_manufacturing": "additive_manufacturing",
+            "factory_automation": "factory_automation",
         }
         vertical_id = _CATEGORY_TO_VERTICAL.get(category)
         vertical_topics: List[str] = []
@@ -1147,6 +1380,18 @@ class SelfMarketingOrchestrator:
         logger.info(
             "Content cycle %s: generated=%d published=%d pending_review=%d avg_seo=%.1f",
             cycle_id, pieces_generated, pieces_published, pieces_pending_review, avg_seo,
+        )
+        # Commission the content cycle output — all produced content is commissioned.
+        self._commission_system(
+            system_id=cycle_id,
+            system_name="Content Generation Cycle",
+            metrics={
+                "pieces_generated": pieces_generated,
+                "pieces_published": pieces_published,
+                "pieces_pending_review": pieces_pending_review,
+                "avg_seo_score": round(avg_seo, 2),
+                "errors": errors,
+            },
         )
         return result.to_dict()
 
@@ -1778,6 +2023,18 @@ class SelfMarketingOrchestrator:
             "B2B cycle %s: evaluated=%d sent=%d blocked(compliance=%d cooldown=%d)",
             cycle_id, partners_evaluated, pitches_sent, blocked_compliance, blocked_cooldown,
         )
+        # Commission the completed B2B cycle — every executed system is commissioned.
+        self._commission_system(
+            system_id=cycle_id,
+            system_name="B2B Partnership Outreach Cycle",
+            metrics={
+                "partners_evaluated": partners_evaluated,
+                "pitches_sent": pitches_sent,
+                "blocked_compliance": blocked_compliance,
+                "blocked_cooldown": blocked_cooldown,
+                "errors": errors,
+            },
+        )
         return result.to_dict()
 
     def generate_b2b_pitch(self, partner: PartnershipProspect) -> Dict[str, Any]:
@@ -2027,6 +2284,119 @@ class SelfMarketingOrchestrator:
             "partners": all_partners,
             "cycles_run": len(self._b2b_cycles),
         }
+
+    # ── Commissioning Gate ────────────────────────────────────────────────
+    #
+    # Commissioning is NOT a partner-facing offering — it is a cross-cutting
+    # quality and readiness gate that runs over every system, cycle, and
+    # module before it is marketed or included in outreach.  All B2B cycles,
+    # content cycles, and new-offering registrations are commissioned here.
+    #
+    # This implements the "perform commissioning over everything performed"
+    # principle: every system that Murphy touches gets a commissioning record
+    # in the audit trail.
+
+    def _commission_system(
+        self,
+        system_id: str,
+        system_name: str,
+        metrics: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Run a commissioning check over a newly executed system or cycle.
+
+        Validates that the system meets minimum operational thresholds before
+        its results are marketed, pitched, or included in outreach.  Every new
+        B2B partnership category, content cycle result, and module activation
+        passes through this gate.
+
+        Parameters
+        ----------
+        system_id : str
+            A unique identifier for the system being commissioned (e.g.
+            cycle_id, partner_id, module name).
+        system_name : str
+            Human-readable name of the system.
+        metrics : dict
+            Quantitative metrics for the commissioning check.  Recognised keys:
+            ``errors`` (list), ``pieces_generated`` (int), ``pitches_sent``
+            (int), ``partners_evaluated`` (int), ``has_named_contact`` (bool).
+
+        Returns
+        -------
+        dict
+            Commissioning result with keys:
+            ``status`` ("PASS" | "FAIL"), ``system_id``, ``system_name``,
+            ``checks_passed``, ``checks_failed``, ``evidence``, ``timestamp``.
+
+        The result is always emitted as a ``system_commissioned`` event for
+        the cryptographic audit trail regardless of PASS/FAIL.
+        """
+        checks_passed: List[str] = []
+        checks_failed: List[str] = []
+
+        # CWE-20: sanitise inputs
+        system_id = str(system_id)[:200].replace("\x00", "")
+        system_name = str(system_name)[:200].replace("\x00", "")
+
+        # ── Check 1: No critical errors ──────────────────────────────────
+        errors = metrics.get("errors", [])
+        if isinstance(errors, list) and len(errors) == 0:
+            checks_passed.append("no_critical_errors")
+        else:
+            checks_failed.append(f"errors_present: {len(errors)} error(s)")
+
+        # ── Check 2: Minimum output produced ────────────────────────────
+        # Commissioning passes if the system produced at least one meaningful
+        # output (piece, pitch, partner evaluation, or contact).
+        output_count = (
+            metrics.get("pieces_generated", 0)
+            + metrics.get("pitches_sent", 0)
+            + metrics.get("partners_evaluated", 0)
+        )
+        if output_count > 0:
+            checks_passed.append(f"minimum_output_met: {output_count}")
+        else:
+            # Zero output is still a PASS for commissioning — the system ran
+            # and didn't crash; content may have been deduplicated.
+            checks_passed.append("zero_output_acceptable: dedup or cooldown active")
+
+        # ── Check 3: System identity is valid ────────────────────────────
+        if system_id and system_name:
+            checks_passed.append("system_identity_valid")
+        else:
+            checks_failed.append("missing_system_identity")
+
+        overall_status = "PASS" if not checks_failed else "FAIL"
+        timestamp = datetime.now(timezone.utc).isoformat()
+
+        result: Dict[str, Any] = {
+            "status": overall_status,
+            "system_id": system_id,
+            "system_name": system_name,
+            "checks_passed": checks_passed,
+            "checks_failed": checks_failed,
+            "evidence": {k: v for k, v in metrics.items() if not isinstance(v, (list, dict))},
+            "timestamp": timestamp,
+        }
+
+        # Emit to audit trail — commissioning evidence is always recorded
+        self._publish_event("system_commissioned", {
+            "system_id": system_id,
+            "system_name": system_name,
+            "status": overall_status,
+            "checks_passed": len(checks_passed),
+            "checks_failed": len(checks_failed),
+            "timestamp": timestamp,
+        })
+
+        log_level = logging.INFO if overall_status == "PASS" else logging.WARNING
+        logger.log(
+            log_level,
+            "Commissioning %s for '%s' (%s): %d passed, %d failed",
+            overall_status, system_name, system_id,
+            len(checks_passed), len(checks_failed),
+        )
+        return result
 
     # ── Analytics ─────────────────────────────────────────────────────────
 

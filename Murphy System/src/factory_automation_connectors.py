@@ -381,16 +381,21 @@ class FactoryAutomationConnector:
         """
         try:
             from src.protocols import (  # type: ignore[import]
-                MurphyOPCUAClient,
-                MurphyModbusClient,
                 MurphyEtherNetIPClient,
-                MurphyProfinetClient,
-                MurphyMTConnectClient,
-                MurphyMQTTSparkplugClient,
-                MurphyRESTClient,
                 MurphyGRPCClient,
+                MurphyModbusClient,
+                MurphyMQTTSparkplugClient,
+                MurphyMTConnectClient,
+                MurphyOPCUAClient,
+                MurphyProfinetClient,
+                MurphyRESTClient,
             )
         except ImportError:
+            logger.debug(
+                "Protocol clients unavailable (simulation mode) for %s/%s — "
+                "install murphy-protocols package to enable live dispatch",
+                self.vendor, self.protocol.value,
+            )
             return None
 
         proto = self.protocol
