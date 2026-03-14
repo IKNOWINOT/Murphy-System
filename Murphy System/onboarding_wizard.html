@@ -316,7 +316,17 @@
     var bubbleClass = 'murphy-chat-bubble ' +
       (role === 'user' ? 'murphy-chat-bubble-user' : 'murphy-chat-bubble-assistant');
     var bubble = el('div', { className: bubbleClass });
-    bubble.textContent = text;
+    if (role === 'user') {
+      bubble.textContent = text;
+    } else {
+      // Render assistant messages with markdown formatting
+      if (typeof MurphyMarkdown !== 'undefined') {
+        MurphyMarkdown.injectStyles();
+        bubble.innerHTML = MurphyMarkdown.render(text);
+      } else {
+        bubble.textContent = text;
+      }
+    }
     return bubble;
   }
 
