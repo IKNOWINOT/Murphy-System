@@ -359,6 +359,6 @@ python "Murphy System/murphy_system_runtime.py" --workflow content-generation --
 
 ---
 
-**© 2025 Corey Post / InonI LLC. All rights reserved.**
-**Licensed under the Apache License, Version 2.0**
+**© 2026 Corey Post / InonI LLC. All rights reserved.**
+**Licensed under BSL 1.1 (converts to Apache 2.0 after four years)**
 **Creator: Corey Post**
