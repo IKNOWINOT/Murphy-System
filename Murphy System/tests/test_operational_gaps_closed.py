@@ -1470,3 +1470,196 @@ class TestStartScriptExecutable:
         assert os.access(path, os.X_OK), (
             "start_murphy_1.0.sh is not executable; run chmod +x"
         )
+
+
+# ===================================================================
+# Round 8: Deployment workflow, scale compose, setup.py, CI, docs
+# ===================================================================
+
+# ---------------------------------------------------------------------------
+# 41. hetzner-deploy.yml health-check if-block properly closed
+# ---------------------------------------------------------------------------
+
+class TestHetznerDeployHealthCheckSyntax:
+    """The Verify health step must have a properly closed if-block with fi."""
+
+    def _content(self) -> str:
+        path = os.path.join(_REPO_ROOT, ".github", "workflows",
+                            "hetzner-deploy.yml")
+        with open(path) as fh:
+            return fh.read()
+
+    def test_if_block_has_fi(self):
+        content = self._content()
+        assert "exit 1\n          fi" in content or "exit 1\n            fi" in content, (
+            "hetzner-deploy.yml health-check if-block missing closing 'fi'"
+        )
+
+    def test_no_unreachable_echo_after_exit(self):
+        lines = self._content().splitlines()
+        for i, line in enumerate(lines):
+            if "exit 1" in line and i + 1 < len(lines):
+                next_line = lines[i + 1].strip()
+                assert not next_line.startswith("echo"), (
+                    f"Unreachable echo after exit 1 at line {i + 2}"
+                )
+
+
+# ---------------------------------------------------------------------------
+# 42. docker-compose.scale.yml Grafana credentials enforced
+# ---------------------------------------------------------------------------
+
+class TestDockerComposeScaleGrafanaCredentials:
+    """docker-compose.scale.yml must enforce Grafana credentials with :? syntax."""
+
+    def _content(self) -> str:
+        path = os.path.join(
+            _PROJECT_ROOT, "strategic", "gap_closure", "launch",
+            "docker-compose.scale.yml",
+        )
+        with open(path) as fh:
+            return fh.read()
+
+    def test_no_hardcoded_grafana_password(self):
+        content = self._content()
+        assert "GF_SECURITY_ADMIN_PASSWORD=murphy_admin" not in content, (
+            "docker-compose.scale.yml has hardcoded Grafana password"
+        )
+
+    def test_grafana_password_uses_required_var(self):
+        content = self._content()
+        assert "GRAFANA_ADMIN_PASSWORD:?" in content, (
+            "docker-compose.scale.yml must use :? syntax for Grafana password"
+        )
+
+    def test_grafana_user_uses_required_var(self):
+        content = self._content()
+        assert "GRAFANA_ADMIN_USER:?" in content, (
+            "docker-compose.scale.yml must use :? syntax for Grafana admin user"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 43. setup.py references README.md (not non-existent README_INSTALL.md)
+# ---------------------------------------------------------------------------
+
+class TestSetupPyReadmeReference:
+    """setup.py must reference README.md (which exists), not README_INSTALL.md."""
+
+    def _content(self) -> str:
+        path = os.path.join(_PROJECT_ROOT, "setup.py")
+        with open(path) as fh:
+            return fh.read()
+
+    def test_no_readme_install_reference(self):
+        content = self._content()
+        assert "README_INSTALL.md" not in content, (
+            "setup.py still references non-existent README_INSTALL.md"
+        )
+
+    def test_references_readme_md(self):
+        content = self._content()
+        assert '"README.md"' in content or "'README.md'" in content, (
+            "setup.py should reference README.md for long_description"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 44. benchmarks.yml PYTHONPATH is quoted
+# ---------------------------------------------------------------------------
+
+class TestBenchmarksYmlPythonpathQuoted:
+    """benchmarks.yml PYTHONPATH must be quoted to handle spaces in path."""
+
+    def _content(self) -> str:
+        path = os.path.join(_REPO_ROOT, ".github", "workflows",
+                            "benchmarks.yml")
+        with open(path) as fh:
+            return fh.read()
+
+    def test_pythonpath_is_quoted(self):
+        for line in self._content().splitlines():
+            stripped = line.strip()
+            if stripped.startswith("PYTHONPATH:"):
+                value_part = stripped.split(":", 1)[1].strip()
+                assert value_part.startswith('"') or value_part.startswith("'"), (
+                    f"benchmarks.yml PYTHONPATH not quoted: {stripped}"
+                )
+
+
+# ---------------------------------------------------------------------------
+# 45. TROUBLESHOOTING.md has no stale api_server process references
+# ---------------------------------------------------------------------------
+
+class TestTroubleshootingNoStaleProcessName:
+    """TROUBLESHOOTING.md must use murphy_system_1.0_runtime, not api_server."""
+
+    def _content(self) -> str:
+        path = os.path.join(
+            _PROJECT_ROOT, "documentation", "user_guides",
+            "TROUBLESHOOTING.md",
+        )
+        with open(path) as fh:
+            return fh.read()
+
+    def test_no_grep_api_server(self):
+        content = self._content()
+        assert "grep api_server" not in content, (
+            "TROUBLESHOOTING.md still references 'grep api_server'"
+        )
+
+    def test_no_pgrep_api_server(self):
+        content = self._content()
+        assert "pgrep api_server" not in content, (
+            "TROUBLESHOOTING.md still references 'pgrep api_server'"
+        )
+
+    def test_uses_correct_runtime_name(self):
+        content = self._content()
+        assert "murphy_system_1.0_runtime" in content, (
+            "TROUBLESHOOTING.md should reference murphy_system_1.0_runtime"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 46. INSTALLATION.md has no :latest Docker tags
+# ---------------------------------------------------------------------------
+
+class TestInstallationDocNoLatestTag:
+    """INSTALLATION.md must use pinned image tags, not :latest."""
+
+    def _content(self) -> str:
+        path = os.path.join(
+            _PROJECT_ROOT, "documentation", "getting_started",
+            "INSTALLATION.md",
+        )
+        with open(path) as fh:
+            return fh.read()
+
+    def test_no_latest_tag(self):
+        content = self._content()
+        assert ":latest" not in content, (
+            "INSTALLATION.md still uses :latest Docker tag"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 47. DEPLOYMENT_GUIDE.md has no :latest Docker tags
+# ---------------------------------------------------------------------------
+
+class TestDeploymentGuideNoLatestTag:
+    """DEPLOYMENT_GUIDE.md must use pinned image tags, not :latest."""
+
+    def _content(self) -> str:
+        path = os.path.join(
+            _PROJECT_ROOT, "documentation", "deployment",
+            "DEPLOYMENT_GUIDE.md",
+        )
+        with open(path) as fh:
+            return fh.read()
+
+    def test_no_latest_tag(self):
+        content = self._content()
+        assert ":latest" not in content, (
+            "DEPLOYMENT_GUIDE.md still uses :latest Docker tag"
+        )

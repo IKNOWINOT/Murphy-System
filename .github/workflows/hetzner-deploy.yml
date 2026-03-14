@@ -72,7 +72,7 @@ jobs:
             kubectl rollout undo deployment/murphy-api -n murphy-system
             kubectl rollout status deployment/murphy-api -n murphy-system --timeout=300s
             exit 1
-          echo "Warning: health check failed after 5 attempts, verify manually"
+          fi
       - name: Integration smoke tests
         run: |
           ENDPOINT=$(kubectl get ingress murphy-api -n murphy-system -o jsonpath='{.spec.rules[0].host}')

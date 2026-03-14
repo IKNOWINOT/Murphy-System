@@ -203,14 +203,14 @@ brew install --cask docker
 
 ```bash
 # Pull the official image
-docker pull murphy-system-runtime:latest
+docker pull murphy-system-runtime:v1.0.0
 ```
 
 ### Step 3: Run the Container
 
 ```bash
 # Run the container
-docker run -d -p 8000:8000 --name murphy-system murphy-system-runtime:latest
+docker run -d -p 8000:8000 --name murphy-system murphy-system-runtime:v1.0.0
 ```
 
 ### Step 4: Verify Installation
@@ -456,7 +456,7 @@ docker logs murphy-system
 netstat -tuln | grep 8000
 
 # Try running without detaching to see errors
-docker run -it -p 8000:8000 murphy-system-runtime:latest
+docker run -it -p 8000:8000 murphy-system-runtime:v1.0.0
 ```
 
 ### Issue: Slow Performance
@@ -515,7 +515,7 @@ docker stop murphy-system
 docker rm murphy-system
 
 # Remove image
-docker rmi murphy-system-runtime:latest
+docker rmi murphy-system-runtime:v1.0.0
 ```
 
 ### Remove System Service (Linux)
