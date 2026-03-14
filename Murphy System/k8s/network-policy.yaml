@@ -62,3 +62,83 @@ spec:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: murphy-system
+    - to:
+        - podSelector:
+            matchLabels:
+              app: murphy-system
+              component: redis
+      ports:
+        - port: 6379
+          protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: murphy-redis
+  namespace: murphy-system
+  labels:
+    app: murphy-system
+    component: network-policy
+    environment: production
+spec:
+  podSelector:
+    matchLabels:
+      app: murphy-system
+      component: redis
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: murphy-system
+              component: api
+      ports:
+        - port: 6379
+          protocol: TCP
+    - from:
+        - podSelector:
+            matchLabels:
+              app: murphy-system
+              component: backup
+      ports:
+        - port: 6379
+          protocol: TCP
+  egress:
+    - ports:
+        - port: 53
+          protocol: TCP
+        - port: 53
+          protocol: UDP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: murphy-backup
+  namespace: murphy-system
+  labels:
+    app: murphy-system
+    component: network-policy
+    environment: production
+spec:
+  podSelector:
+    matchLabels:
+      app: murphy-system
+      component: backup
+  policyTypes:
+    - Egress
+  egress:
+    - ports:
+        - port: 53
+          protocol: TCP
+        - port: 53
+          protocol: UDP
+    - to:
+        - podSelector:
+            matchLabels:
+              app: murphy-system
+              component: redis
+      ports:
+        - port: 6379
+          protocol: TCP

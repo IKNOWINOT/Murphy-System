@@ -131,10 +131,42 @@ cp .env.example .env
 docker compose up -d
 ```
 
-Services:
-- Murphy API: <http://localhost:8000>
-- Prometheus: <http://localhost:9090>
-- Grafana: <http://localhost:3000> (admin / admin)
+**Backend Services:**
+
+| Service | URL | Notes |
+|---------|-----|-------|
+| Murphy API | <http://localhost:8000> | FastAPI backend |
+| API Docs (Swagger) | <http://localhost:8000/docs> | Interactive API reference |
+| Prometheus | <http://localhost:9090> | Metrics collection |
+| Grafana | <http://localhost:3000> | Dashboards — admin / admin |
+
+**UI Pages** (served by `python -m http.server 8090` from `Murphy System/`):
+
+| Page | URL | Role |
+|------|-----|------|
+| Landing Page | <http://localhost:8090/murphy_landing_page.html?apiPort=8000> | Public entry point |
+| Onboarding Wizard | <http://localhost:8090/onboarding_wizard.html?apiPort=8000> | Zero-jargon setup |
+| Unified Hub | <http://localhost:8090/terminal_unified.html?apiPort=8000> | Admin / all-roles hub |
+| Architect Terminal | <http://localhost:8090/terminal_architect.html?apiPort=8000> | System architect (planning) |
+| Enhanced Terminal | <http://localhost:8090/terminal_enhanced.html?apiPort=8000> | Power-user terminal |
+| Integrated Terminal | <http://localhost:8090/terminal_integrated.html?apiPort=8000> | Operations manager |
+| Worker Terminal | <http://localhost:8090/terminal_worker.html?apiPort=8000> | Delivery worker |
+| Orchestrator Terminal | <http://localhost:8090/terminal_orchestrator.html?apiPort=8000> | Orchestration overview |
+| Costs Terminal | <http://localhost:8090/terminal_costs.html?apiPort=8000> | Finance / budget manager |
+| Org Chart Terminal | <http://localhost:8090/terminal_orgchart.html?apiPort=8000> | HR / org structure |
+| Integrations Terminal | <http://localhost:8090/terminal_integrations.html?apiPort=8000> | DevOps / platform engineer |
+| Workflow Canvas | <http://localhost:8090/workflow_canvas.html?apiPort=8000> | Visual workflow designer |
+| System Visualizer | <http://localhost:8090/system_visualizer.html?apiPort=8000> | Topology viewer |
+| Production Wizard | <http://localhost:8090/production_wizard.html?apiPort=8000> | PROD-001 lifecycle wizard |
+| Matrix Integration | <http://localhost:8090/matrix_integration.html?apiPort=8000> | Matrix bridge & HITL |
+| Compliance Dashboard | <http://localhost:8090/compliance_dashboard.html?apiPort=8000> | Compliance / audit |
+| Workspace | <http://localhost:8090/workspace.html?apiPort=8000> | Personal workspace |
+| Pricing | <http://localhost:8090/pricing.html?apiPort=8000> | Plans & pricing |
+| Sign Up | <http://localhost:8090/signup.html?apiPort=8000> | User registration |
+| Smoke Test Tool | <http://localhost:8090/murphy-smoke-test.html?apiPort=8000> | API smoke tests (dev/QA) |
+| Observability Dashboard | <http://localhost:8090/strategic/gap_closure/observability/dashboard.html?apiPort=8000> | Observability metrics |
+| Community Portal | <http://localhost:8090/strategic/gap_closure/community/community_portal.html?apiPort=8000> | Community collaboration |
+| Workflow Builder (Low-Code) | <http://localhost:8090/strategic/gap_closure/lowcode/workflow_builder_ui.html?apiPort=8000> | Low-code builder |
 
 ---
 
