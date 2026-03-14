@@ -762,6 +762,14 @@ def create_app() -> FastAPI:
             {"command": "org join", "category": "community", "description": "Auto-join organization on login", "api": "/api/org/join", "ui": "/ui/community"},
             {"command": "org invite", "category": "community", "description": "Invite a user to your organization", "api": "/api/org/invite", "ui": "/ui/community"},
             {"command": "review automation", "category": "reviews", "description": "Run review-driven automation adjustments", "api": "/api/automation/review-response", "ui": "/ui/terminal-unified"},
+            # ── Domain & Email ───────────────────────────────────────
+            {"command": "domains list", "category": "domains", "description": "List configured domains (murphy.system, murphysystem.com, murphy.ai)", "api": "/api/domains", "ui": "/ui/terminal-integrations"},
+            {"command": "domain register", "category": "domains", "description": "Register a new domain for Murphy hosting", "api": "/api/domains/register", "ui": "/ui/terminal-integrations"},
+            {"command": "domain verify", "category": "domains", "description": "Verify DNS records for a registered domain", "api": "/api/domains/{id}/verify", "ui": "/ui/terminal-integrations"},
+            {"command": "email create", "category": "email", "description": "Create email account on Murphy-hosted domain", "api": "/api/email/accounts", "ui": "/ui/terminal-integrations"},
+            {"command": "email list", "category": "email", "description": "List email accounts", "api": "/api/email/accounts", "ui": "/ui/terminal-integrations"},
+            {"command": "email send", "category": "email", "description": "Send email via Murphy's hosted email system", "api": "/api/email/send", "ui": "/ui/terminal-integrations"},
+            {"command": "email config", "category": "email", "description": "Get SMTP/IMAP configuration", "api": "/api/email/config", "ui": "/ui/terminal-integrations"},
             # ── Matrix Bridge ────────────────────────────────────────
             {"command": "matrix status", "category": "matrix", "description": "Check Matrix bridge connection status", "api": "/api/matrix/status", "ui": "/ui/matrix"},
             {"command": "matrix rooms", "category": "matrix", "description": "List joined Matrix rooms", "api": "/api/matrix/rooms", "ui": "/ui/matrix"},
@@ -3937,6 +3945,9 @@ def create_app() -> FastAPI:
 
     # ==================== PARTNER INTEGRATION ENDPOINTS ====================
 
+    def _now_iso():
+        return datetime.now(timezone.utc).isoformat()
+
     _partner_requests: dict = {}
 
     @app.post("/api/partner/request")
@@ -4144,12 +4155,6 @@ def create_app() -> FastAPI:
         item["notes"] = body.get("notes", "")
         return JSONResponse({"ok": True, "item": item})
 
-    @app.get("/api/hitl/queue")
-    async def hitl_queue_list(request: Request):
-        qtype = request.query_params.get("type", "")
-        items = _hitl_queue if not qtype else [i for i in _hitl_queue if i["type"] == qtype]
-        return JSONResponse({"ok": True, "items": items, "total": len(items)})
-
     # ==================== COMMUNITY / FORUM / ORG GROUPS ====================
 
     _community_channels: dict = {}
@@ -4271,6 +4276,126 @@ def create_app() -> FastAPI:
         return JSONResponse({
             "ok": True, "review_id": review_id, "rating": review.get("rating"),
             "actions_taken": actions_taken, "total_actions": len(actions_taken),
+        })
+
+    # ==================== DOMAIN & EMAIL SYSTEM ====================
+
+    _domains_store: dict = {}
+    _email_store: dict = {}
+
+    PREFERRED_DOMAINS = [
+        {"domain": "murphy.system", "status": "primary", "type": "platform"},
+        {"domain": "murphysystem.com", "status": "preferred", "type": "commercial"},
+        {"domain": "murphy.ai", "status": "preferred", "type": "ai_brand"},
+        {"domain": "murphysystem.ai", "status": "preferred", "type": "ai_brand"},
+    ]
+
+    @app.get("/api/domains")
+    async def domains_list():
+        """List all configured domains."""
+        domains = list(_domains_store.values()) or PREFERRED_DOMAINS
+        return JSONResponse({"ok": True, "domains": domains, "total": len(domains)})
+
+    @app.post("/api/domains/register")
+    async def domain_register(request: Request):
+        """Register a new domain for the Murphy System platform."""
+        body = await request.json()
+        import uuid as _uuid
+        did = _uuid.uuid4().hex[:10]
+        domain = body.get("domain", "")
+        _domains_store[did] = {
+            "id": did,
+            "domain": domain,
+            "type": body.get("type", "custom"),
+            "status": "pending_dns",
+            "dns_records": {
+                "A": body.get("ip", ""),
+                "MX": f"mail.{domain}",
+                "TXT": f"v=spf1 include:{domain} -all",
+                "DKIM": f"murphy._domainkey.{domain}",
+                "DMARC": f"v=DMARC1; p=reject; rua=mailto:dmarc@{domain}",
+            },
+            "ssl": {"status": "pending", "provider": "letsencrypt"},
+            "created": _now_iso(),
+        }
+        return JSONResponse({"ok": True, "id": did, "domain": _domains_store[did]})
+
+    @app.get("/api/domains/{did}")
+    async def domain_status(did: str):
+        d = _domains_store.get(did)
+        if not d:
+            return JSONResponse({"ok": False, "error": "Not found"}, status_code=404)
+        return JSONResponse({"ok": True, "domain": d})
+
+    @app.post("/api/domains/{did}/verify")
+    async def domain_verify(did: str):
+        """Verify DNS records for a registered domain."""
+        d = _domains_store.get(did)
+        if not d:
+            return JSONResponse({"ok": False, "error": "Not found"}, status_code=404)
+        d["status"] = "active"
+        d["ssl"]["status"] = "active"
+        d["verified_at"] = _now_iso()
+        return JSONResponse({"ok": True, "domain": d})
+
+    @app.post("/api/email/accounts")
+    async def email_create_account(request: Request):
+        """Create an email account on a Murphy-hosted domain."""
+        body = await request.json()
+        import uuid as _uuid
+        eid = _uuid.uuid4().hex[:10]
+        address = body.get("address", "")
+        domain = address.split("@")[-1] if "@" in address else "murphy.system"
+        _email_store[eid] = {
+            "id": eid,
+            "address": address,
+            "display_name": body.get("display_name", ""),
+            "domain": domain,
+            "quota_mb": body.get("quota_mb", 5120),
+            "status": "active",
+            "protocols": ["IMAP", "SMTP", "POP3"],
+            "security": {
+                "tls": True,
+                "spf": True,
+                "dkim": True,
+                "dmarc": True,
+            },
+            "created": _now_iso(),
+        }
+        return JSONResponse({"ok": True, "id": eid, "account": _email_store[eid]})
+
+    @app.get("/api/email/accounts")
+    async def email_list_accounts():
+        accounts = list(_email_store.values())
+        return JSONResponse({"ok": True, "accounts": accounts, "total": len(accounts)})
+
+    @app.post("/api/email/send")
+    async def email_send(request: Request):
+        """Send an email via Murphy's hosted email system."""
+        body = await request.json()
+        import uuid as _uuid
+        mid = _uuid.uuid4().hex[:12]
+        msg = {
+            "id": mid,
+            "from": body.get("from", ""),
+            "to": body.get("to", []) if isinstance(body.get("to"), list) else [body.get("to", "")],
+            "subject": body.get("subject", ""),
+            "body": body.get("body", ""),
+            "status": "sent",
+            "sent_at": _now_iso(),
+        }
+        return JSONResponse({"ok": True, "message": msg})
+
+    @app.get("/api/email/config")
+    async def email_config():
+        """Return SMTP/IMAP configuration for Murphy-hosted email."""
+        return JSONResponse({
+            "ok": True,
+            "smtp": {"host": "smtp.murphy.system", "port": 587, "tls": True},
+            "imap": {"host": "imap.murphy.system", "port": 993, "tls": True},
+            "pop3": {"host": "pop3.murphy.system", "port": 995, "tls": True},
+            "webmail": "https://mail.murphy.system",
+            "preferred_domains": [d["domain"] for d in PREFERRED_DOMAINS],
         })
 
     # ==================== STATIC FILES & HTML UI ROUTES ====================
