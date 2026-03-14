@@ -55,6 +55,20 @@ Cycles:
     4. Create developer tutorial content
     5. Propose open-source SDK improvements (creates GitHub issues on murphy-sdk repo)
 
+  B2B PARTNERSHIP CYCLE (Weekly):
+    1. Iterate through DESIRED_OFFERINGS list (configurable at construction time)
+    2. For each offering: compose a personalised B2B pitch targeting the partner's
+       sales / BD contact (email or LinkedIn)
+    3. Check EVERY partner contact through the same compliance layer as regular outreach
+       (DNC list → ContactComplianceGovernor → 30-day cooldown)
+    4. For allowed contacts: send pitch; record contact timestamp
+    5. Process partner replies:
+       - Positive / interested reply → advance PartnershipStatus to INTERESTED,
+         trigger automated case-study brief generation
+       - Declined reply → mark DECLINED; respect opt-out if requested
+    6. Track pipeline: PENDING → OUTREACH_SENT → INTERESTED → CASE_STUDY_DRAFTED
+       → FEATURING_AGREED / DECLINED
+
 Safety invariants:
   - Thread-safe: all shared state guarded by Lock
   - No outreach without ContactComplianceGovernor clearance (COMPL-001)
@@ -72,6 +86,8 @@ Safety invariants:
   - Content catalogue capped at 50,000 items (CWE-400)
   - Error messages sanitized and truncated — no PII in stored errors (CWE-209)
   - PII redacted from logs — email addresses masked before emission
+  - B2B partner contacts subject to the same compliance layer as regular outreach
+  - B2B case-study briefs queued for HITL review before sending to partner
 
 Copyright © 2020 Inoni Limited Liability Company
 Creator: Corey Post
@@ -122,6 +138,9 @@ _PROSPECT_ID_RE = re.compile(r"^[a-zA-Z0-9_@.\-]{1,200}$")
 
 # content_id: generated internally as a slug prefix + UUID hex fragment.
 _CONTENT_ID_RE = re.compile(r"^[a-zA-Z0-9_\-]{1,64}$")
+
+# partner_id: same character set as content_id; shorter max length for slug keys.
+_PARTNER_ID_RE = re.compile(r"^[a-zA-Z0-9_\-]{1,100}$")
 
 # Allowed outreach channels (frozenset prevents accidental mutation).
 _ALLOWED_CHANNELS: frozenset = frozenset({"email", "sms", "linkedin", "phone", "push"})
@@ -498,6 +517,213 @@ class DeveloperAttractionResult:
 
 
 # ---------------------------------------------------------------------------
+# B2B Partnership — desired offerings, status model, and result dataclass
+# ---------------------------------------------------------------------------
+
+# Offering types Murphy is actively seeking.
+B2B_OFFERING_TYPES = frozenset({
+    "case_study",           # joint written/video case study
+    "featuring",            # featured on partner's website / blog
+    "co_marketing",         # shared marketing campaign
+    "integration_featuring", # listed in partner's integration directory
+    "press_mention",        # mention in partner's press release
+    "podcast_guest",        # appearance on partner's podcast / webinar
+})
+
+# Default list of desired B2B partners.  Operators can override by passing
+# desired_offerings=[...] to SelfMarketingOrchestrator().
+DEFAULT_DESIRED_OFFERINGS: List[Dict[str, Any]] = [
+    {
+        "partner_id": "hubspot",
+        "company": "HubSpot",
+        "contact_role": "partnerships",
+        "channel": "linkedin",
+        "offering_types": ["case_study", "integration_featuring"],
+        "pitch_angle": (
+            "Murphy System automates the full HubSpot workflow lifecycle "
+            "using natural language — zero drag-and-drop, just describe it."
+        ),
+    },
+    {
+        "partner_id": "zapier",
+        "company": "Zapier",
+        "contact_role": "developer_relations",
+        "channel": "email",
+        "offering_types": ["featuring", "co_marketing"],
+        "pitch_angle": (
+            "Murphy complements Zapier for complex multi-step AI orchestration "
+            "with confidence-gated execution and HITL safety gates."
+        ),
+    },
+    {
+        "partner_id": "make",
+        "company": "Make (Integromat)",
+        "contact_role": "partnerships",
+        "channel": "linkedin",
+        "offering_types": ["case_study", "featuring"],
+        "pitch_angle": (
+            "Murphy's Describe-to-Execute paradigm bridges the gap between "
+            "no-code visual builders and full programmatic automation."
+        ),
+    },
+    {
+        "partner_id": "n8n",
+        "company": "n8n",
+        "contact_role": "developer_relations",
+        "channel": "email",
+        "offering_types": ["co_marketing", "integration_featuring"],
+        "pitch_angle": (
+            "Murphy and n8n together offer open-source orchestration with "
+            "AI-native NL workflow generation — powerful for technical teams."
+        ),
+    },
+    {
+        "partner_id": "salesforce",
+        "company": "Salesforce",
+        "contact_role": "ISV_partnerships",
+        "channel": "email",
+        "offering_types": ["case_study", "integration_featuring"],
+        "pitch_angle": (
+            "Murphy can automate any Salesforce workflow via NL commands, "
+            "reducing CRM administration overhead by 80%+."
+        ),
+    },
+    {
+        "partner_id": "microsoft_365",
+        "company": "Microsoft 365",
+        "contact_role": "partner_network",
+        "channel": "email",
+        "offering_types": ["featuring", "case_study"],
+        "pitch_angle": (
+            "Murphy automates Teams, Outlook, and SharePoint workflows "
+            "using plain English — a natural fit for the M365 ecosystem."
+        ),
+    },
+    {
+        "partner_id": "notion",
+        "company": "Notion",
+        "contact_role": "partnerships",
+        "channel": "linkedin",
+        "offering_types": ["co_marketing", "featuring"],
+        "pitch_angle": (
+            "Murphy turns Notion wikis into executable playbooks — "
+            "describe a process in Notion and Murphy runs it automatically."
+        ),
+    },
+    {
+        "partner_id": "linear",
+        "company": "Linear",
+        "contact_role": "developer_relations",
+        "channel": "email",
+        "offering_types": ["integration_featuring", "podcast_guest"],
+        "pitch_angle": (
+            "Murphy automates engineering workflows in Linear using NL — "
+            "issue triage, sprint planning, and CI/CD triggers via chat."
+        ),
+    },
+    {
+        "partner_id": "datadog",
+        "company": "Datadog",
+        "contact_role": "technology_partnerships",
+        "channel": "email",
+        "offering_types": ["case_study", "integration_featuring"],
+        "pitch_angle": (
+            "Murphy closes the loop on Datadog alerts by automatically "
+            "triggering remediation workflows with confidence-gated execution."
+        ),
+    },
+    {
+        "partner_id": "github",
+        "company": "GitHub",
+        "contact_role": "ecosystem_partnerships",
+        "channel": "email",
+        "offering_types": ["featuring", "press_mention"],
+        "pitch_angle": (
+            "Murphy automates GitHub Actions, PRs, and issue management via "
+            "NL commands — a natural complement to GitHub Copilot."
+        ),
+    },
+]
+
+
+class PartnershipStatus(str, Enum):
+    """Lifecycle status of a B2B partnership prospect."""
+    PENDING = "pending"                  # Identified, no outreach yet
+    OUTREACH_SENT = "outreach_sent"      # Initial pitch sent
+    INTERESTED = "interested"            # Partner replied positively
+    CASE_STUDY_DRAFTED = "case_study_drafted"  # Case-study brief generated
+    FEATURING_AGREED = "featuring_agreed"      # Formal agreement to feature
+    DECLINED = "declined"                # Partner not interested
+    BLOCKED = "blocked"                  # Compliance blocked outreach
+
+
+@dataclass
+class PartnershipProspect:
+    """A B2B partnership opportunity being tracked."""
+
+    partner_id: str
+    company: str
+    contact_role: str
+    channel: str
+    offering_types: List[str]
+    pitch_angle: str
+    status: str = PartnershipStatus.PENDING.value
+    outreach_sent_at: Optional[str] = None
+    last_reply_at: Optional[str] = None
+    case_study_content_id: Optional[str] = None
+    notes: str = ""
+    created_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "partner_id": self.partner_id,
+            "company": self.company,
+            "contact_role": self.contact_role,
+            "channel": self.channel,
+            "offering_types": list(self.offering_types),
+            "pitch_angle": self.pitch_angle,
+            "status": self.status,
+            "outreach_sent_at": self.outreach_sent_at,
+            "last_reply_at": self.last_reply_at,
+            "case_study_content_id": self.case_study_content_id,
+            "notes": self.notes,
+            "created_at": self.created_at,
+        }
+
+
+@dataclass
+class B2BPartnershipCycleResult:
+    """Summary of a single B2B partnership outreach cycle."""
+
+    cycle_id: str
+    started_at: str
+    completed_at: str
+    partners_evaluated: int = 0
+    pitches_sent: int = 0
+    blocked_compliance: int = 0
+    blocked_cooldown: int = 0
+    interested: int = 0
+    case_studies_drafted: int = 0
+    errors: List[str] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "cycle_id": self.cycle_id,
+            "started_at": self.started_at,
+            "completed_at": self.completed_at,
+            "partners_evaluated": self.partners_evaluated,
+            "pitches_sent": self.pitches_sent,
+            "blocked_compliance": self.blocked_compliance,
+            "blocked_cooldown": self.blocked_cooldown,
+            "interested": self.interested,
+            "case_studies_drafted": self.case_studies_drafted,
+            "errors": list(self.errors),
+        }
+
+
+# ---------------------------------------------------------------------------
 # SelfMarketingOrchestrator
 # ---------------------------------------------------------------------------
 
@@ -539,6 +765,7 @@ class SelfMarketingOrchestrator:
         compliance_gate: Any = None,
         event_backbone: Any = None,
         persistence_manager: Any = None,
+        desired_offerings: Optional[List[Dict[str, Any]]] = None,
     ) -> None:
         self._content_engine = content_engine
         self._seo_engine = seo_engine
@@ -575,6 +802,24 @@ class SelfMarketingOrchestrator:
 
         # Topic deduplication: set of (category, topic) used within 30 days
         self._recent_topics: List[Dict[str, Any]] = []  # [{category, topic, used_at}]
+
+        # B2B partnership pipeline: partner_id → PartnershipProspect
+        self._partnerships: Dict[str, PartnershipProspect] = {}
+        self._b2b_cycles: List[B2BPartnershipCycleResult] = []
+
+        # Seed the partnership pipeline from the desired offerings list
+        offerings = desired_offerings if desired_offerings is not None else DEFAULT_DESIRED_OFFERINGS
+        for offering in offerings:
+            pid = offering.get("partner_id", "")
+            if pid and pid not in self._partnerships:
+                self._partnerships[pid] = PartnershipProspect(
+                    partner_id=pid,
+                    company=offering.get("company", pid),
+                    contact_role=offering.get("contact_role", "partnerships"),
+                    channel=offering.get("channel", "email"),
+                    offering_types=list(offering.get("offering_types", [])),
+                    pitch_angle=offering.get("pitch_angle", ""),
+                )
 
     # ── Content Cycle ─────────────────────────────────────────────────────
 
@@ -635,8 +880,8 @@ class SelfMarketingOrchestrator:
                 self._mark_topic_used(category, topic)
 
             except Exception as exc:  # noqa: BLE001
-                errors.append(str(exc))
-                logger.warning("Content generation error for topic '%s': %s", topic, exc)
+                errors.append(_sanitize_error(exc))
+                logger.warning("Content generation error for topic '%s': %s", topic, _sanitize_error(exc))
 
         completed_at = datetime.now(timezone.utc).isoformat()
         avg_seo = sum(seo_scores) / len(seo_scores) if seo_scores else 0.0
@@ -840,8 +1085,8 @@ class SelfMarketingOrchestrator:
                 variants_generated += len(variants)
                 posts_scheduled += len(variants)
             except Exception as exc:  # noqa: BLE001
-                errors.append(str(exc))
-                logger.warning("Social variant generation error for %s: %s", content.content_id, exc)
+                errors.append(_sanitize_error(exc))
+                logger.warning("Social variant generation error for %s: %s", content.content_id, _sanitize_error(exc))
 
         completed_at = datetime.now(timezone.utc).isoformat()
         result = SocialCycleResult(
@@ -1046,6 +1291,14 @@ class SelfMarketingOrchestrator:
         for raw in pending:
             prospect_id = raw.get("prospect_id", "")
             body = raw.get("body", "")
+
+            # Validate prospect_id before any DNC mutation — CWE-20
+            try:
+                prospect_id = _validate_prospect_id(prospect_id)
+            except ValueError:
+                logger.warning("Invalid prospect_id in pending reply — skipping")
+                continue
+
             reply = ReplyRecord(
                 reply_id=f"rpl-{uuid.uuid4().hex[:8]}",
                 prospect_id=prospect_id,
@@ -1056,15 +1309,23 @@ class SelfMarketingOrchestrator:
 
             if reply.is_opt_out:
                 with self._lock:
-                    self._dnc_set.add(prospect_id)
+                    # Hard cap on DNC set — CWE-400
+                    if len(self._dnc_set) < _MAX_DNC_ENTRIES:
+                        self._dnc_set.add(prospect_id)
+                    else:
+                        logger.warning(
+                            "DNC set at capacity (%d) — opt-out recorded in audit only",
+                            _MAX_DNC_ENTRIES,
+                        )
                 opt_outs += 1
+                # Do not log raw prospect_id — may contain a real email address (PII)
                 self._publish_event("opt_out_recorded", {"prospect_id": prospect_id})
-                logger.info("Opt-out recorded for prospect %s — added to DNC", prospect_id)
+                logger.info("Opt-out recorded — added to DNC")
 
             if reply.is_positive:
                 positives += 1
                 self._publish_event("positive_reply_detected", {"prospect_id": prospect_id})
-                logger.info("Positive reply from prospect %s — routing to trial orchestrator", prospect_id)
+                logger.info("Positive reply detected — routing to trial orchestrator")
 
             with self._lock:
                 capped_append(self._reply_records, reply, max_size=_MAX_HISTORY)
@@ -1077,10 +1338,29 @@ class SelfMarketingOrchestrator:
         }
 
     def inject_reply(self, prospect_id: str, body: str) -> None:
-        """Inject a prospect reply for processing on the next cycle."""
+        """Inject a prospect reply for processing on the next cycle.
+
+        Validates prospect_id format (CWE-20) and caps body length to prevent
+        memory exhaustion (CWE-400).  Drops null bytes from body text.
+        Raises ValueError for invalid prospect_id so callers get explicit feedback.
+        """
+        prospect_id = _validate_prospect_id(prospect_id)  # CWE-20: raises ValueError if invalid
+
+        if not isinstance(body, str):
+            body = ""
+        body = body[:_MAX_REPLY_BODY]      # CWE-400: cap reply body
+        body = body.replace("\x00", "")    # strip null bytes
+
         with self._lock:
             if not hasattr(self, "_pending_replies"):
                 self._pending_replies: List[Dict[str, Any]] = []
+            # Hard cap on pending-replies queue — CWE-400
+            if len(self._pending_replies) >= _MAX_PENDING_REPLIES:
+                logger.warning(
+                    "Pending replies queue at capacity (%d) — dropping oldest reply",
+                    _MAX_PENDING_REPLIES,
+                )
+                self._pending_replies = self._pending_replies[1:]
             self._pending_replies.append({"prospect_id": prospect_id, "body": body})
 
     # ── Developer Attraction ──────────────────────────────────────────────
@@ -1128,8 +1408,8 @@ class SelfMarketingOrchestrator:
                 })
 
             except Exception as exc:  # noqa: BLE001
-                errors.append(str(exc))
-                logger.warning("Developer attraction error for feature '%s': %s", feature, exc)
+                errors.append(_sanitize_error(exc))
+                logger.warning("Developer attraction error for feature '%s': %s", feature, _sanitize_error(exc))
 
         completed_at = datetime.now(timezone.utc).isoformat()
         result = DeveloperAttractionResult(
@@ -1152,6 +1432,253 @@ class SelfMarketingOrchestrator:
             cycle_id, tutorials, snippets, issues_proposed,
         )
         return result.to_dict()
+
+    # ── B2B Partnership Cycle ──────────────────────────────────────────────
+
+    def run_b2b_partnership_cycle(self) -> Dict[str, Any]:
+        """Weekly B2B partnership outreach cycle.
+
+        Iterates through the desired offerings list and sends personalised
+        B2B pitches to sales / BD contacts at each partner company.
+        Every contact is checked against the same compliance layer as the
+        regular outreach cycle.  Positive responses automatically trigger
+        a case-study brief (queued for HITL review).
+        """
+        cycle_id = f"b2b-{uuid.uuid4().hex[:8]}"
+        started_at = datetime.now(timezone.utc).isoformat()
+        errors: List[str] = []
+
+        partners_evaluated = 0
+        pitches_sent = 0
+        blocked_compliance = 0
+        blocked_cooldown = 0
+        interested = 0
+        case_studies_drafted = 0
+
+        with self._lock:
+            partners = list(self._partnerships.values())
+
+        for partner in partners:
+            partners_evaluated += 1
+            # Use a namespaced prospect_id so the B2B cooldown is tracked
+            # separately from individual sales prospects
+            prospect_id = f"b2b-{partner.partner_id}"
+            channel = partner.channel
+
+            try:
+                _validate_channel(channel)  # CWE-20: channel must be in allowlist
+            except ValueError:
+                logger.warning(
+                    "B2B partner '%s' has invalid channel '%s' — falling back to email",
+                    partner.company, channel,
+                )
+                channel = "email"           # safe default
+
+            try:
+                decision = self._check_compliance(prospect_id, {"id": prospect_id, "channel": channel})
+
+                if decision == ComplianceDecision.ALLOW:
+                    pitch = self.generate_b2b_pitch(partner)
+                    self._send_outreach(prospect_id, channel, {"id": prospect_id})
+                    pitches_sent += 1
+
+                    with self._lock:
+                        self._partnerships[partner.partner_id].status = PartnershipStatus.OUTREACH_SENT.value
+                        self._partnerships[partner.partner_id].outreach_sent_at = (
+                            datetime.now(timezone.utc).isoformat()
+                        )
+
+                    self._publish_event("b2b_pitch_sent", {
+                        "partner_id": partner.partner_id,
+                        "company": partner.company,
+                        "offering_types": partner.offering_types,
+                        "channel": channel,
+                        "pitch_id": pitch.get("pitch_id", ""),
+                    })
+
+                elif decision in (ComplianceDecision.BLOCK_DNC, ComplianceDecision.REQUIRES_CONSENT):
+                    blocked_compliance += 1
+                    with self._lock:
+                        self._partnerships[partner.partner_id].status = PartnershipStatus.BLOCKED.value
+                    self._publish_event("b2b_pitch_blocked", {
+                        "partner_id": partner.partner_id,
+                        "reason": decision.value,
+                    })
+
+                else:  # BLOCK_COOLDOWN
+                    blocked_cooldown += 1
+                    logger.debug("B2B pitch to %s blocked by cooldown", partner.company)
+
+            except Exception as exc:  # noqa: BLE001
+                errors.append(_sanitize_error(exc))
+                logger.warning("B2B outreach error for %s: %s", partner.company, _sanitize_error(exc))
+
+        completed_at = datetime.now(timezone.utc).isoformat()
+        result = B2BPartnershipCycleResult(
+            cycle_id=cycle_id,
+            started_at=started_at,
+            completed_at=completed_at,
+            partners_evaluated=partners_evaluated,
+            pitches_sent=pitches_sent,
+            blocked_compliance=blocked_compliance,
+            blocked_cooldown=blocked_cooldown,
+            interested=interested,
+            case_studies_drafted=case_studies_drafted,
+            errors=errors,
+        )
+        with self._lock:
+            capped_append(self._b2b_cycles, result, max_size=_MAX_HISTORY)
+
+        self._publish_event("b2b_cycle_completed", result.to_dict())
+        logger.info(
+            "B2B cycle %s: evaluated=%d sent=%d blocked(compliance=%d cooldown=%d)",
+            cycle_id, partners_evaluated, pitches_sent, blocked_compliance, blocked_cooldown,
+        )
+        return result.to_dict()
+
+    def generate_b2b_pitch(self, partner: PartnershipProspect) -> Dict[str, Any]:
+        """Compose a personalised B2B pitch for a partnership prospect.
+
+        Returns a pitch dict containing the subject line, body, and metadata.
+        The body is tailored to each offering_type the partner is interested in.
+        """
+        offering_labels = {
+            "case_study": "a joint case study",
+            "featuring": "a feature placement",
+            "co_marketing": "a co-marketing campaign",
+            "integration_featuring": "an integration directory listing",
+            "press_mention": "a press mention",
+            "podcast_guest": "a podcast / webinar appearance",
+        }
+        offering_str = " and ".join(
+            offering_labels.get(t, t) for t in partner.offering_types[:3]
+        )
+
+        subject = (
+            f"B2B Partnership Opportunity: Murphy System × {partner.company} — "
+            f"{offering_str.capitalize()}"
+        )
+        body = (
+            f"Hi {partner.contact_role.replace('_', ' ').title()},\n\n"
+            f"I'm reaching out from Murphy System (murphy.inoni.ai) — an AI automation "
+            f"platform that enables teams to automate any workflow by describing it in "
+            f"plain English, with confidence-gated execution and full human-in-the-loop "
+            f"governance.\n\n"
+            f"We'd love to explore {offering_str} with {partner.company}.\n\n"
+            f"Why it's a great fit:\n"
+            f"{partner.pitch_angle}\n\n"
+            f"What we're proposing:\n"
+            + "\n".join(f"  • {offering_labels.get(t, t).capitalize()}" for t in partner.offering_types)
+            + "\n\n"
+            "Happy to send over a one-pager, a live demo, or draft content — "
+            "whatever works best for your team.\n\n"
+            "Best,\n"
+            "Corey Post\n"
+            "Founder, Inoni LLC / Murphy System\n"
+            "murphy.inoni.ai\n"
+        )
+
+        return {
+            "pitch_id": f"b2bp-{uuid.uuid4().hex[:8]}",
+            "partner_id": partner.partner_id,
+            "company": partner.company,
+            "channel": partner.channel,
+            "subject": subject,
+            "body": body,
+            "offering_types": list(partner.offering_types),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+    def process_partnership_replies(self, partner_id: str, reply_body: str) -> Dict[str, Any]:
+        """Process a reply from a B2B partner contact.
+
+        Advances partnership status on positive replies and auto-drafts a
+        case-study brief.  Marks DECLINED on negative replies.
+        Returns a summary dict of the action taken.
+
+        partner_id must be a known entry in self._partnerships.  The reply_body
+        is capped and null-byte stripped per the same hardening rules as regular
+        reply processing.
+        """
+        # Validate partner_id — must be alphanumeric slug (not a raw email)
+        if not isinstance(partner_id, str) or not _PARTNER_ID_RE.match(partner_id):
+            raise ValueError(f"Invalid partner_id format (len={len(str(partner_id))})")
+
+        if not isinstance(reply_body, str):
+            reply_body = ""
+        reply_body = reply_body[:_MAX_REPLY_BODY].replace("\x00", "")
+
+        with self._lock:
+            partner = self._partnerships.get(partner_id)
+        if partner is None:
+            return {"status": "unknown_partner", "partner_id": partner_id}
+
+        is_positive = self._is_positive_reply(reply_body)
+        is_opt_out = self._is_opt_out(reply_body)
+        case_study_id: Optional[str] = None
+        action_taken = "none"
+
+        if is_opt_out:
+            with self._lock:
+                self._partnerships[partner_id].status = PartnershipStatus.DECLINED.value
+                self._partnerships[partner_id].last_reply_at = datetime.now(timezone.utc).isoformat()
+                # Honour opt-out: add namespaced prospect_id to DNC
+                dnc_id = f"b2b-{partner_id}"
+                if len(self._dnc_set) < _MAX_DNC_ENTRIES:
+                    self._dnc_set.add(dnc_id)
+            action_taken = "declined_opt_out"
+            self._publish_event("b2b_partner_declined", {"partner_id": partner_id})
+
+        elif is_positive:
+            # Auto-draft case study brief (queued for HITL review)
+            try:
+                case_study = self.generate_case_study(
+                    f"{partner.company} × Murphy System partnership"
+                )
+                case_study.status = ContentStatus.PENDING_REVIEW.value
+                case_study.hitl_required = True
+                case_study_id = case_study.content_id
+                action_taken = "interested_case_study_drafted"
+                with self._lock:
+                    self._partnerships[partner_id].status = PartnershipStatus.CASE_STUDY_DRAFTED.value
+                    self._partnerships[partner_id].last_reply_at = datetime.now(timezone.utc).isoformat()
+                    self._partnerships[partner_id].case_study_content_id = case_study_id
+            except Exception as exc:  # noqa: BLE001
+                action_taken = "interested_case_study_failed"
+                logger.warning("Case study generation for partner %s failed: %s", partner_id, _sanitize_error(exc))
+                with self._lock:
+                    self._partnerships[partner_id].status = PartnershipStatus.INTERESTED.value
+                    self._partnerships[partner_id].last_reply_at = datetime.now(timezone.utc).isoformat()
+
+            self._publish_event("b2b_partner_interested", {
+                "partner_id": partner_id,
+                "company": partner.company,
+                "case_study_content_id": case_study_id,
+            })
+
+        logger.info("Partnership reply processed for %s — action=%s", partner_id, action_taken)
+        return {
+            "partner_id": partner_id,
+            "action_taken": action_taken,
+            "case_study_content_id": case_study_id,
+            "is_positive": is_positive,
+            "is_opt_out": is_opt_out,
+        }
+
+    def get_partnership_pipeline(self) -> Dict[str, Any]:
+        """Return the full B2B partnership pipeline status."""
+        with self._lock:
+            all_partners = [p.to_dict() for p in self._partnerships.values()]
+            by_status: Dict[str, int] = {}
+            for p in self._partnerships.values():
+                by_status[p.status] = by_status.get(p.status, 0) + 1
+
+        return {
+            "total_partners": len(all_partners),
+            "by_status": by_status,
+            "partners": all_partners,
+            "cycles_run": len(self._b2b_cycles),
+        }
 
     # ── Analytics ─────────────────────────────────────────────────────────
 
@@ -1191,6 +1718,35 @@ class SelfMarketingOrchestrator:
             opt_outs = sum(1 for r in self._reply_records if r.is_opt_out)
             positives = sum(1 for r in self._reply_records if r.is_positive)
 
+            # B2B partnership metrics
+            b2b_total = len(self._partnerships)
+            b2b_sent = sum(
+                1 for p in self._partnerships.values()
+                if p.status in (
+                    PartnershipStatus.OUTREACH_SENT.value,
+                    PartnershipStatus.INTERESTED.value,
+                    PartnershipStatus.CASE_STUDY_DRAFTED.value,
+                    PartnershipStatus.FEATURING_AGREED.value,
+                )
+            )
+            b2b_interested = sum(
+                1 for p in self._partnerships.values()
+                if p.status in (
+                    PartnershipStatus.INTERESTED.value,
+                    PartnershipStatus.CASE_STUDY_DRAFTED.value,
+                    PartnershipStatus.FEATURING_AGREED.value,
+                )
+            )
+            b2b_declined = sum(
+                1 for p in self._partnerships.values()
+                if p.status == PartnershipStatus.DECLINED.value
+            )
+            b2b_case_studies = sum(
+                1 for p in self._partnerships.values()
+                if p.case_study_content_id is not None
+            )
+            b2b_cycles_count = len(self._b2b_cycles)
+
         return {
             "content": {
                 "total": total_content,
@@ -1207,11 +1763,20 @@ class SelfMarketingOrchestrator:
                 "opt_outs_detected": opt_outs,
                 "positive_replies": positives,
             },
+            "b2b_partnerships": {
+                "total_partners": b2b_total,
+                "pitches_sent": b2b_sent,
+                "interested": b2b_interested,
+                "declined": b2b_declined,
+                "case_studies_drafted": b2b_case_studies,
+                "b2b_cycles_run": b2b_cycles_count,
+            },
             "cycles": {
                 "content_cycles_run": content_cycles,
                 "social_cycles_run": social_cycles,
                 "outreach_cycles_run": outreach_cycles,
                 "developer_attraction_cycles_run": dev_cycles,
+                "b2b_partnership_cycles_run": b2b_cycles_count,
             },
         }
 
@@ -1266,6 +1831,8 @@ class SelfMarketingOrchestrator:
                 "social_cycles": [c.to_dict() for c in self._social_cycles],
                 "outreach_cycles": [c.to_dict() for c in self._outreach_cycles],
                 "dev_cycles": [c.to_dict() for c in self._dev_cycles],
+                "partnerships": {pid: p.to_dict() for pid, p in self._partnerships.items()},
+                "b2b_cycles": [c.to_dict() for c in self._b2b_cycles],
             }
         try:
             self._pm.save_document(self._PERSIST_DOC_ID, state)
@@ -1291,10 +1858,36 @@ class SelfMarketingOrchestrator:
             return False
 
         with self._lock:
-            self._published_count = state.get("published_count", 0)
-            self._category_index = state.get("category_index", 0)
-            self._last_contacted = dict(state.get("last_contacted", {}))
-            self._dnc_set = set(state.get("dnc_set", []))
+            # Type guards for numeric fields — CWE-20 (prevent integer confusion attacks)
+            raw_pub = state.get("published_count", 0)
+            self._published_count = int(raw_pub) if isinstance(raw_pub, (int, float)) else 0
+
+            raw_cat = state.get("category_index", 0)
+            self._category_index = int(raw_cat) if isinstance(raw_cat, (int, float)) else 0
+
+            # Restore cooldown dict — cap at _MAX_LAST_CONTACTED, validate keys (CWE-20/CWE-400)
+            raw_lc = state.get("last_contacted", {})
+            if isinstance(raw_lc, dict):
+                items = list(raw_lc.items())[:_MAX_LAST_CONTACTED]
+                self._last_contacted = {
+                    k: v
+                    for k, v in items
+                    if isinstance(k, str) and _PROSPECT_ID_RE.match(k) and isinstance(v, str)
+                }
+            else:
+                self._last_contacted = {}
+
+            # Restore DNC set — cap at _MAX_DNC_ENTRIES, validate entries (CWE-20/CWE-400)
+            raw_dnc = state.get("dnc_set", [])
+            if isinstance(raw_dnc, list):
+                self._dnc_set = {
+                    pid
+                    for pid in raw_dnc[:_MAX_DNC_ENTRIES]
+                    if isinstance(pid, str) and _PROSPECT_ID_RE.match(pid)
+                }
+            else:
+                self._dnc_set = set()
+
             self._recent_topics = list(state.get("recent_topics", []))
 
             self._content = {}
@@ -1341,6 +1934,25 @@ class SelfMarketingOrchestrator:
                 )
                 for r in state.get("reply_records", [])
             ]
+
+            # Restore B2B partnership pipeline
+            for pd in state.get("partnerships", {}).values():
+                pid = pd.get("partner_id", "")
+                if pid and _PARTNER_ID_RE.match(pid):
+                    self._partnerships[pid] = PartnershipProspect(
+                        partner_id=pid,
+                        company=str(pd.get("company", pid))[:200],
+                        contact_role=str(pd.get("contact_role", "partnerships"))[:100],
+                        channel=pd.get("channel", "email") if pd.get("channel") in _ALLOWED_CHANNELS else "email",
+                        offering_types=list(pd.get("offering_types", [])),
+                        pitch_angle=str(pd.get("pitch_angle", ""))[:_MAX_TOPIC_LEN],
+                        status=pd.get("status", PartnershipStatus.PENDING.value),
+                        outreach_sent_at=pd.get("outreach_sent_at"),
+                        last_reply_at=pd.get("last_reply_at"),
+                        case_study_content_id=pd.get("case_study_content_id"),
+                        notes=str(pd.get("notes", ""))[:1000],
+                        created_at=pd.get("created_at", ""),
+                    )
 
         logger.info(
             "Loaded state: %d content pieces, %d DNC, %d outreach records",
@@ -1401,13 +2013,19 @@ class SelfMarketingOrchestrator:
         """Compose and send outreach; record contact timestamp."""
         sent_at = datetime.now(timezone.utc).isoformat()
         with self._lock:
+            # Hard cap on cooldown-tracking dict — CWE-400
+            if len(self._last_contacted) >= _MAX_LAST_CONTACTED:
+                evict_count = max(1, _MAX_LAST_CONTACTED // 10)
+                keys_to_evict = list(self._last_contacted.keys())[:evict_count]
+                for k in keys_to_evict:
+                    del self._last_contacted[k]
             self._last_contacted[prospect_id] = sent_at
 
         self._record_outreach(
             prospect_id, channel, OutreachStatus.SENT,
             ComplianceDecision.ALLOW, None,
         )
-        logger.debug("Outreach sent to prospect %s via %s", prospect_id, channel)
+        logger.debug("Outreach sent to prospect via %s", channel)  # prospect_id omitted — may be email (PII)
 
     def _record_outreach(
         self,
@@ -1667,16 +2285,21 @@ class SelfMarketingOrchestrator:
 __all__ = [
     "SelfMarketingOrchestrator",
     "CONTENT_CATEGORIES",
+    "DEFAULT_DESIRED_OFFERINGS",
+    "B2B_OFFERING_TYPES",
     "HITL_REVIEW_THRESHOLD",
     "OUTREACH_COOLDOWN_DAYS",
     "ComplianceDecision",
     "ContentStatus",
     "OutreachStatus",
+    "PartnershipStatus",
     "GeneratedContent",
     "OutreachRecord",
     "ReplyRecord",
+    "PartnershipProspect",
     "ContentCycleResult",
     "SocialCycleResult",
     "OutreachCycleResult",
     "DeveloperAttractionResult",
+    "B2BPartnershipCycleResult",
 ]
