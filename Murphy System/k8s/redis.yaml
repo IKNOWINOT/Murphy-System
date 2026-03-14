@@ -55,6 +55,7 @@ spec:
       containers:
         - name: redis
           image: redis:7.2-alpine
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 6379
               protocol: TCP

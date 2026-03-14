@@ -714,21 +714,15 @@ class HetznerDeployPlanGenerator:
         # 22. Apply Redis deployment (cache, rate limiting, session store)
         steps.append(SetupStep(
             step_id="hetzner-22-apply-redis",
-        # 20. Apply Redis deployment (cache, rate limiting, session store)
-        steps.append(SetupStep(
-            step_id="hetzner-20-apply-redis",
             description="Apply Redis deployment (ConfigMap, Deployment, Service, PVC)",
             risk_level=RiskLevel.LOW,
             command=f'kubectl apply -f "{self._k8s("redis.yaml")}"',
             liability_note="You approved this action. Murphy executed it as instructed.",
         ))
 
-        # 23. Apply backup CronJob
+        # 23. Apply PostgreSQL deployment (primary database)
         steps.append(SetupStep(
-            step_id="hetzner-23-apply-backup-cronjob",
-        # 21. Apply PostgreSQL deployment (primary database)
-        steps.append(SetupStep(
-            step_id="hetzner-21-apply-postgres",
+            step_id="hetzner-23-apply-postgres",
             description="Apply PostgreSQL deployment (ConfigMap, PVC, Deployment, Service)",
             risk_level=RiskLevel.MEDIUM,
             command=f'kubectl apply -f "{self._k8s("postgres.yaml")}"',
@@ -765,10 +759,6 @@ class HetznerDeployPlanGenerator:
             liability_note="You approved this action. Murphy executed it as instructed.",
         ))
 
-        # 24. Verify deployment
-        steps.append(SetupStep(
-            step_id="hetzner-24-verify-deployment",
-            description="Verify deployment health via kubectl and /api/health endpoint",
         # 25. Verify deployment (rollout status)
         steps.append(SetupStep(
             step_id="hetzner-25-verify-deployment",

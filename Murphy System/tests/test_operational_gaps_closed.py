@@ -1666,3 +1666,87 @@ class TestDeploymentGuideNoLatestTag:
         assert ":latest" not in content, (
             "DEPLOYMENT_GUIDE.md still uses :latest Docker tag"
         )
+
+
+# ---------------------------------------------------------------------------
+# 48. docker-compose.scale.yml must not contain hardcoded database credentials
+# ---------------------------------------------------------------------------
+
+class TestDockerComposeScaleCredentials:
+    """docker-compose.scale.yml must not contain hardcoded database passwords."""
+
+    def _content(self) -> str:
+        path = os.path.join(
+            _PROJECT_ROOT, "strategic", "gap_closure", "launch",
+            "docker-compose.scale.yml",
+        )
+        with open(path) as fh:
+            return fh.read()
+
+    def test_no_hardcoded_postgres_password(self):
+        content = self._content()
+        assert "POSTGRES_PASSWORD=murphy_pass" not in content, (
+            "docker-compose.scale.yml has hardcoded POSTGRES_PASSWORD"
+        )
+
+    def test_postgres_password_uses_required_var(self):
+        content = self._content()
+        assert "POSTGRES_PASSWORD:?" in content, (
+            "docker-compose.scale.yml must use :? syntax for POSTGRES_PASSWORD"
+        )
+
+    def test_no_hardcoded_database_url(self):
+        content = self._content()
+        assert "murphy_pass" not in content, (
+            "docker-compose.scale.yml still contains hardcoded password 'murphy_pass'"
+        )
+
+    def test_database_url_uses_required_var(self):
+        content = self._content()
+        assert "DATABASE_URL:?" in content or "DATABASE_URL=${DATABASE_URL:?" in content, (
+            "docker-compose.scale.yml must use :? syntax for DATABASE_URL"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 49. K8s manifests must have imagePullPolicy on all containers
+# ---------------------------------------------------------------------------
+
+class TestK8sImagePullPolicyPresent:
+    """All K8s manifests with container images must specify imagePullPolicy."""
+
+    def test_postgres_has_pull_policy(self):
+        path = os.path.join(_PROJECT_ROOT, "k8s", "postgres.yaml")
+        with open(path) as fh:
+            content = fh.read()
+        assert "imagePullPolicy:" in content, (
+            "k8s/postgres.yaml missing imagePullPolicy"
+        )
+
+    def test_redis_has_pull_policy(self):
+        path = os.path.join(_PROJECT_ROOT, "k8s", "redis.yaml")
+        with open(path) as fh:
+            content = fh.read()
+        assert "imagePullPolicy:" in content, (
+            "k8s/redis.yaml missing imagePullPolicy"
+        )
+
+    def test_grafana_has_pull_policy(self):
+        path = os.path.join(
+            _PROJECT_ROOT, "k8s", "monitoring", "grafana-deployment.yaml",
+        )
+        with open(path) as fh:
+            content = fh.read()
+        assert "imagePullPolicy:" in content, (
+            "k8s/monitoring/grafana-deployment.yaml missing imagePullPolicy"
+        )
+
+    def test_prometheus_has_pull_policy(self):
+        path = os.path.join(
+            _PROJECT_ROOT, "k8s", "monitoring", "prometheus-deployment.yaml",
+        )
+        with open(path) as fh:
+            content = fh.read()
+        assert "imagePullPolicy:" in content, (
+            "k8s/monitoring/prometheus-deployment.yaml missing imagePullPolicy"
+        )
