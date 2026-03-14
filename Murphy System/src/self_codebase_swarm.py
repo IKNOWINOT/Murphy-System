@@ -18,6 +18,10 @@ Key capabilities
   * **Autonomous build mode** — Generate professional specs, point maps,
     sequences of operations, and code packages from domain knowledge alone —
     no input documents required.
+  * **Manufacturer cut sheet integration** — Ingest product data sheets via
+    ``CutSheetEngine`` (CSE-001) to drive drawing generation, device code
+    generation (BACnet configs / controller program stubs), and commissioning
+    verification of installed equipment against spec requirements.
   * **BMS / BCS domain** — First-class support for HVAC, lighting, fire-safety,
     access control, energy metering, BACnet/Modbus point schedules, ASHRAE /
     NFPA compliance, and P.E.-stamp HITL gates.
@@ -53,6 +57,22 @@ from typing import Any, Dict, List, Optional, Tuple
 from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
+
+# Lazy import so the swarm still loads if cutsheet_engine is unavailable
+try:
+    from cutsheet_engine import (
+        CutSheetEngine,
+        CutSheetSpec,
+        DeviceConfig,
+        ControlDiagram,
+        WiringDiagram,
+        VerificationResult,
+    )
+    _CUTSHEET_AVAILABLE = True
+except ImportError:  # pragma: no cover
+    _CUTSHEET_AVAILABLE = False
+    CutSheetEngine = None  # type: ignore[assignment,misc]
+    CutSheetSpec = None    # type: ignore[assignment,misc]
 
 # ---------------------------------------------------------------------------
 # Input-validation constants                                         [CWE-20]
@@ -792,6 +812,9 @@ class SelfCodebaseSwarm:
         self._packages: Dict[str, DeliverablePackage] = {}
         self._audit_log: List[Dict[str, Any]] = []
 
+        # Cut sheet engine (CSE-001) — instantiated once per swarm
+        self._cutsheet_engine: Any = CutSheetEngine() if _CUTSHEET_AVAILABLE else None
+
     # ------------------------------------------------------------------
     # Agent initialisation
     # ------------------------------------------------------------------
@@ -1408,8 +1431,208 @@ class SelfCodebaseSwarm:
             return list(self._audit_log)
 
     # ------------------------------------------------------------------
-    # HITL evaluation helper
+    # Cut sheet integration (CSE-001)
     # ------------------------------------------------------------------
+
+    def ingest_cutsheet(
+        self,
+        text: str,
+        manufacturer: str = "",
+        model: str = "",
+    ) -> Any:
+        """Parse a manufacturer cut sheet and store it in the cut sheet library.
+
+        Args:
+            text: plain-text content of the product data sheet.
+            manufacturer: optional manufacturer name override.
+            model: optional model number override.
+
+        Returns:
+            CutSheetSpec parsed from the document, or a dict with an error
+            key if the cut sheet engine is unavailable.
+        """
+        if self._cutsheet_engine is None:
+            return {"error": "cutsheet_engine_unavailable"}
+        spec = self._cutsheet_engine.parse_cutsheet(text, manufacturer, model)
+        self._audit("ingest_cutsheet",
+                    cutsheet_id=spec.cutsheet_id,
+                    manufacturer=spec.manufacturer,
+                    model=spec.model_number,
+                    category=spec.category.value)
+        return spec
+
+    def generate_drawings_from_cutsheets(
+        self,
+        cutsheet_ids: List[str],
+        project_name: str = "",
+    ) -> Dict[str, Any]:
+        """Generate wiring and control diagrams from stored cut sheets.
+
+        Args:
+            cutsheet_ids: list of cutsheet_id values previously returned by
+                ingest_cutsheet().
+            project_name: project name for title blocks.
+
+        Returns:
+            Dict with keys "wiring_diagram" and "control_diagram" containing
+            the rendered diagram objects, plus "files" with markdown/CSV exports.
+        """
+        if self._cutsheet_engine is None:
+            return {"error": "cutsheet_engine_unavailable"}
+
+        cutsheets = [
+            self._cutsheet_engine.get_cutsheet(cid)
+            for cid in cutsheet_ids
+        ]
+        cutsheets = [c for c in cutsheets if c is not None]
+
+        if not cutsheets:
+            return {"error": "no_valid_cutsheets", "requested": cutsheet_ids}
+
+        wiring = self._cutsheet_engine.generate_wiring_diagram(
+            cutsheets, project_name=project_name
+        )
+        control = self._cutsheet_engine.generate_control_diagram(
+            cutsheets, project_name=project_name
+        )
+
+        self._audit("generate_drawings",
+                    wiring_diagram_id=wiring.diagram_id,
+                    control_diagram_id=control.diagram_id,
+                    device_count=len(cutsheets))
+        return {
+            "wiring_diagram": wiring.to_dict(),
+            "control_diagram": control.to_dict(),
+            "files": {
+                "WIRING_DIAGRAM.md": wiring.markdown_render,
+                "WIRE_LIST.csv": wiring.wire_list_csv,
+                "CONTROL_DIAGRAM.md": control.markdown_render,
+            },
+        }
+
+    def generate_device_code_from_cutsheets(
+        self,
+        cutsheet_ids: List[str],
+        project_name: str = "",
+        start_device_instance: int = 1,
+    ) -> Dict[str, Any]:
+        """Generate BACnet device configs and controller code from cut sheets.
+
+        Args:
+            cutsheet_ids: list of cutsheet_id values from ingest_cutsheet().
+            project_name: used in device names and config labelling.
+            start_device_instance: starting BACnet device instance number.
+
+        Returns:
+            Dict with "device_configs" (list of DeviceConfig dicts),
+            "json_export" (combined JSON ready for front-end import), and
+            "program_stubs" (controller program skeleton per device).
+        """
+        if self._cutsheet_engine is None:
+            return {"error": "cutsheet_engine_unavailable"}
+
+        cutsheets = [
+            self._cutsheet_engine.get_cutsheet(cid)
+            for cid in cutsheet_ids
+        ]
+        cutsheets = [c for c in cutsheets if c is not None]
+        if not cutsheets:
+            return {"error": "no_valid_cutsheets", "requested": cutsheet_ids}
+
+        configs = self._cutsheet_engine.generate_device_configs(
+            cutsheets,
+            project_name=project_name,
+            start_device_instance=start_device_instance,
+        )
+        json_export = self._cutsheet_engine.export_device_configs_json(configs)
+
+        self._audit("generate_device_code",
+                    config_count=len(configs),
+                    project=project_name)
+        return {
+            "device_configs": [c.to_dict() for c in configs],
+            "json_export": json_export,
+            "program_stubs": {
+                c.device_name: c.controller_program_stub for c in configs
+            },
+        }
+
+    def verify_commissioning_from_cutsheets(
+        self,
+        cutsheet_ids: List[str],
+        commissioned_requirements: Optional[Dict[str, Any]] = None,
+        field_measurements: Optional[Dict[str, Any]] = None,
+        project_name: str = "",
+    ) -> Dict[str, Any]:
+        """Verify commissioned requirements against manufacturer cut sheet specs.
+
+        Compares what the cut sheets declare against:
+          1. The commissioned requirements (what was specified in the RFP).
+          2. Optional field-measured values from on-site commissioning.
+
+        HITL sign-off is flagged for any failed or safety-critical test.
+
+        Args:
+            cutsheet_ids: list of cutsheet_id values from ingest_cutsheet().
+            commissioned_requirements: dict mapping cutsheet_id → requirement
+                dict (required_model, required_range_min, required_accuracy…).
+            field_measurements: dict mapping test_id → {value, tested_by,
+                tested_at} for tests that have been executed on-site.
+            project_name: project name for the report header.
+
+        Returns:
+            Dict with "verification_result" (VerificationResult dict) and
+            "report_markdown" (human-readable commissioning report).
+        """
+        if self._cutsheet_engine is None:
+            return {"error": "cutsheet_engine_unavailable"}
+
+        cutsheets = [
+            self._cutsheet_engine.get_cutsheet(cid)
+            for cid in cutsheet_ids
+        ]
+        cutsheets = [c for c in cutsheets if c is not None]
+        if not cutsheets:
+            return {"error": "no_valid_cutsheets", "requested": cutsheet_ids}
+
+        vr = self._cutsheet_engine.verify_commissioning(
+            cutsheets,
+            commissioned_requirements=commissioned_requirements,
+            field_measurements=field_measurements,
+        )
+        vr.project_name = project_name or vr.project_name
+        report_md = self._cutsheet_engine.export_verification_report(vr)
+
+        # HITL gate: if any tests failed, block final acceptance
+        hitl_eval = self._evaluate_hitl(
+            task_type="verify_commissioning",
+            confidence=vr.passed / max(len(vr.tests), 1),
+            risk_level=0.8 if vr.failed > 0 else 0.2,
+        )
+
+        self._audit("verify_commissioning",
+                    result_id=vr.result_id,
+                    passed=vr.passed,
+                    failed=vr.failed,
+                    hitl_required=hitl_eval.get("requires_hitl", False))
+        return {
+            "verification_result": vr.to_dict(),
+            "report_markdown": report_md,
+            "hitl_eval": hitl_eval,
+            "acceptance_blocked": hitl_eval.get("requires_hitl", False),
+        }
+
+    def get_cutsheet(self, cutsheet_id: str) -> Optional[Any]:
+        """Return a previously ingested CutSheetSpec by ID."""
+        if self._cutsheet_engine is None:
+            return None
+        return self._cutsheet_engine.get_cutsheet(cutsheet_id)
+
+    def list_cutsheets(self) -> List[Dict[str, Any]]:
+        """Return summary list of all ingested cut sheets."""
+        if self._cutsheet_engine is None:
+            return []
+        return self._cutsheet_engine.list_cutsheets()
 
     def _evaluate_hitl(
         self,
