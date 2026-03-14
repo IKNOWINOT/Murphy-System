@@ -531,3 +531,133 @@ class AutomationIntegrationHub:
             event_types=["SHADOW_OBSERVATION", "SHADOW_AGENT_EVENT"],
         )
         logger.info("AutomationIntegrationHub: ShadowKnostalgiaBridge registered for shadow events")
+
+    def register_self_introspection_module(self, module: Any = None) -> None:
+        """Register the self-introspection module (INTRO-001).
+
+        Uses graceful degradation — passes through even if *module* is None so
+        that the design label is recorded in the hub regardless.
+        """
+        def _handler(event_type: str, payload: Dict[str, Any]) -> None:
+            if module is None:
+                return
+            try:
+                if hasattr(module, "handle_event"):
+                    module.handle_event(event_type, payload)
+            except Exception as exc:
+                logger.warning("SelfIntrospectionModule handler error: %s", exc)
+
+        self.register_module(
+            design_label="INTRO-001",
+            name="SelfIntrospectionModule",
+            phase=ModulePhase.OBSERVABILITY,
+            handler=_handler,
+            description="Self-introspection module — runtime self-analysis and reporting",
+            event_types=["TASK_SUBMITTED"],
+        )
+        logger.info("AutomationIntegrationHub: SelfIntrospectionModule registered (INTRO-001)")
+
+    def register_self_codebase_swarm(self, swarm: Any = None) -> None:
+        """Register the self-codebase swarm (SCS-001)."""
+        def _handler(event_type: str, payload: Dict[str, Any]) -> None:
+            if swarm is None:
+                return
+            try:
+                if hasattr(swarm, "handle_event"):
+                    swarm.handle_event(event_type, payload)
+            except Exception as exc:
+                logger.warning("SelfCodebaseSwarm handler error: %s", exc)
+
+        self.register_module(
+            design_label="SCS-001",
+            name="SelfCodebaseSwarm",
+            phase=ModulePhase.ADVANCED,
+            handler=_handler,
+            description="Self-codebase swarm — autonomous BMS spec generation, RFP parsing, and deliverable packaging",
+            event_types=["TASK_SUBMITTED"],
+        )
+        logger.info("AutomationIntegrationHub: SelfCodebaseSwarm registered (SCS-001)")
+
+    def register_cutsheet_engine(self, engine: Any = None) -> None:
+        """Register the cut sheet engine (CSE-001)."""
+        def _handler(event_type: str, payload: Dict[str, Any]) -> None:
+            if engine is None:
+                return
+            try:
+                if hasattr(engine, "handle_event"):
+                    engine.handle_event(event_type, payload)
+            except Exception as exc:
+                logger.warning("CutsheetEngine handler error: %s", exc)
+
+        self.register_module(
+            design_label="CSE-001",
+            name="CutsheetEngine",
+            phase=ModulePhase.ADVANCED,
+            handler=_handler,
+            description="Cut sheet engine — manufacturer data parsing, wiring diagrams, device config generation",
+            event_types=["TASK_SUBMITTED"],
+        )
+        logger.info("AutomationIntegrationHub: CutsheetEngine registered (CSE-001)")
+
+    def register_visual_swarm_builder(self, builder: Any = None) -> None:
+        """Register the visual swarm builder (VSB-001)."""
+        def _handler(event_type: str, payload: Dict[str, Any]) -> None:
+            if builder is None:
+                return
+            try:
+                if hasattr(builder, "handle_event"):
+                    builder.handle_event(event_type, payload)
+            except Exception as exc:
+                logger.warning("VisualSwarmBuilder handler error: %s", exc)
+
+        self.register_module(
+            design_label="VSB-001",
+            name="VisualSwarmBuilder",
+            phase=ModulePhase.ADVANCED,
+            handler=_handler,
+            description="Visual swarm builder — visual pipeline construction for swarm workflows",
+            event_types=["TASK_SUBMITTED"],
+        )
+        logger.info("AutomationIntegrationHub: VisualSwarmBuilder registered (VSB-001)")
+
+    def register_ceo_branch_activation(self, branch: Any = None) -> None:
+        """Register the CEO branch activation module (CEO-002)."""
+        def _handler(event_type: str, payload: Dict[str, Any]) -> None:
+            if branch is None:
+                return
+            try:
+                if hasattr(branch, "handle_event"):
+                    branch.handle_event(event_type, payload)
+            except Exception as exc:
+                logger.warning("CEOBranchActivation handler error: %s", exc)
+
+        self.register_module(
+            design_label="CEO-002",
+            name="CEOBranchActivation",
+            phase=ModulePhase.INTEGRATION,
+            handler=_handler,
+            description="CEO branch activation — top-level autonomous decision-making, org chart automation, and operational planning",
+            event_types=["TASK_COMPLETED", "TASK_FAILED", "ALERT_FIRED"],
+        )
+        logger.info("AutomationIntegrationHub: CEOBranchActivation registered (CEO-002)")
+
+    def register_production_assistant_engine(self, orchestrator: Any = None) -> None:
+        """Register the production assistant engine (PROD-ENG-001)."""
+        def _handler(event_type: str, payload: Dict[str, Any]) -> None:
+            if orchestrator is None:
+                return
+            try:
+                if hasattr(orchestrator, "handle_event"):
+                    orchestrator.handle_event(event_type, payload)
+            except Exception as exc:
+                logger.warning("ProductionAssistantEngine handler error: %s", exc)
+
+        self.register_module(
+            design_label="PROD-ENG-001",
+            name="ProductionAssistantEngine",
+            phase=ModulePhase.BUSINESS,
+            handler=_handler,
+            description="Production assistant engine — request lifecycle management with deliverable gate validation via EventBackbone",
+            event_types=["TASK_SUBMITTED"],
+        )
+        logger.info("AutomationIntegrationHub: ProductionAssistantEngine registered (PROD-ENG-001)")
