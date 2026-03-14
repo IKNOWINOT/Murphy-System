@@ -797,7 +797,17 @@
       var cls = role === 'user' ? 'murphy-chat-bubble-user' : 'murphy-chat-bubble-assistant';
       var el  = document.createElement('div');
       el.className = 'murphy-chat-bubble ' + cls;
-      el.textContent = text;
+      if (role === 'user') {
+        el.textContent = text;
+      } else {
+        // Render assistant messages with markdown formatting
+        if (typeof MurphyMarkdown !== 'undefined') {
+          MurphyMarkdown.injectStyles();
+          el.innerHTML = MurphyMarkdown.render(text);
+        } else {
+          el.textContent = text;
+        }
+      }
       chatMsgs.appendChild(el);
       chatMsgs.scrollTop = chatMsgs.scrollHeight;
     }

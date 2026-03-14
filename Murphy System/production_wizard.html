@@ -145,12 +145,16 @@
     </a>
 
     <div class="murphy-sidebar-section">Quality</div>
-    <a href="#hitl" class="murphy-sidebar-item" data-view="hitl" aria-label="HITL Gates">
+    <a href="#hitl" class="murphy-sidebar-item" data-view="hitl" aria-label="HITL Review">
       <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-bell"></use></svg>
-      <span>HITL Gates</span>
+      <span>HITL Review</span>
+    </a>
+    <a href="#schedule" class="murphy-sidebar-item" data-view="schedule" aria-label="Automation Schedule">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-activity"></use></svg>
+      <span>Schedule</span>
     </a>
     <a href="#deliverables" class="murphy-sidebar-item" data-view="deliverables" aria-label="Deliverables">
-      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-activity"></use></svg>
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-layers"></use></svg>
       <span>Deliverables</span>
     </a>
 
@@ -435,16 +439,97 @@
   <!-- ── HITL VIEW ──────────────────────────────────────────── -->
   <div id="view-hitl" class="murphy-view" style="display:none">
     <div class="murphy-page-header">
-      <h2 class="murphy-page-title">HITL Gates</h2>
-      <p class="murphy-page-subtitle">Pending human-in-the-loop interventions requiring approval.</p>
+      <h2 class="murphy-page-title">HITL Review Center</h2>
+      <p class="murphy-page-subtitle">Review outputs, request revisions, and manage compliance. Revisions are tracked for document control.</p>
     </div>
-    <div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-4)">
+
+    <!-- Quick actions -->
+    <div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-4);flex-wrap:wrap">
       <button class="murphy-btn murphy-btn-primary" id="btn-refresh-hitl">
         <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-refresh"></use></svg>
-        Refresh
+        Refresh Reviews
+      </button>
+      <button class="murphy-btn murphy-btn-secondary" id="btn-submit-demo-review">
+        <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-play"></use></svg>
+        Submit Example for Review
+      </button>
+      <button class="murphy-btn murphy-btn-secondary" id="btn-view-learned">
+        <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-audit-log"></use></svg>
+        View Learned Patterns
       </button>
     </div>
+
+    <!-- Compliance toggles -->
+    <div class="murphy-card" style="margin-bottom:var(--space-4)">
+      <h3 class="murphy-section-title">Compliance Requirements</h3>
+      <p class="murphy-hint" style="margin-bottom:var(--space-2)">Toggle additional compliance frameworks. These apply to all reviews.</p>
+      <div id="compliance-toggles" style="display:flex;flex-wrap:wrap;gap:var(--space-2)">
+        <label class="gate-chip required"><input type="checkbox" value="HIPAA" checked>HIPAA</label>
+        <label class="gate-chip required"><input type="checkbox" value="SOC2" checked>SOC2</label>
+        <label class="gate-chip"><input type="checkbox" value="GDPR">GDPR</label>
+        <label class="gate-chip"><input type="checkbox" value="PCI_DSS">PCI-DSS</label>
+        <label class="gate-chip"><input type="checkbox" value="ISO_27001">ISO 27001</label>
+        <label class="gate-chip"><input type="checkbox" value="CCPA">CCPA</label>
+        <label class="gate-chip"><input type="checkbox" value="FERPA">FERPA</label>
+        <label class="gate-chip"><input type="checkbox" value="FedRAMP">FedRAMP</label>
+        <label class="gate-chip"><input type="checkbox" value="NIST">NIST 800-53</label>
+      </div>
+    </div>
+
+    <!-- Pending reviews list -->
     <div id="hitl-list"></div>
+
+    <!-- Learned patterns panel -->
+    <div id="learned-patterns-panel" class="murphy-card" style="display:none;margin-top:var(--space-4)">
+      <h3 class="murphy-section-title">Learned Patterns</h3>
+      <p class="murphy-hint">These patterns were learned from accepted HITL reviews and will train future outputs.</p>
+      <div id="learned-list"></div>
+    </div>
+  </div>
+
+  <!-- ── SCHEDULE VIEW ──────────────────────────────────────── -->
+  <div id="view-schedule" class="murphy-view" style="display:none">
+    <div class="murphy-page-header">
+      <h2 class="murphy-page-title">Automation Schedule</h2>
+      <p class="murphy-page-subtitle">Your automation calendar — see what the system plans to do and when. Blocks show automated vs. human-required steps.</p>
+    </div>
+
+    <div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-4)">
+      <button class="murphy-btn murphy-btn-primary" id="btn-refresh-schedule">
+        <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-refresh"></use></svg>
+        Refresh Schedule
+      </button>
+    </div>
+
+    <!-- Summary stats -->
+    <div class="murphy-grid murphy-grid-4" style="margin-bottom:var(--space-4)" id="schedule-stats">
+      <div class="murphy-stat-card">
+        <div class="murphy-stat-value" id="sched-total">—</div>
+        <div class="murphy-stat-label">Total Steps</div>
+      </div>
+      <div class="murphy-stat-card">
+        <div class="murphy-stat-value" style="color:var(--color-success)" id="sched-automated">—</div>
+        <div class="murphy-stat-label">🤖 Automated</div>
+      </div>
+      <div class="murphy-stat-card">
+        <div class="murphy-stat-value" style="color:var(--color-warning)" id="sched-human">—</div>
+        <div class="murphy-stat-label">🙋 Needs You</div>
+      </div>
+      <div class="murphy-stat-card">
+        <div class="murphy-stat-value" id="sched-proposals">—</div>
+        <div class="murphy-stat-label">Active Proposals</div>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div style="display:flex;gap:var(--space-4);margin-bottom:var(--space-3);font-size:0.8rem">
+      <span><span style="display:inline-block;width:12px;height:12px;background:var(--color-success);border-radius:3px;margin-right:4px;vertical-align:middle"></span>Automated</span>
+      <span><span style="display:inline-block;width:12px;height:12px;background:var(--color-warning);border-radius:3px;margin-right:4px;vertical-align:middle"></span>Needs Human</span>
+      <span><span style="display:inline-block;width:12px;height:12px;background:var(--color-info, #60A5FA);border-radius:3px;margin-right:4px;vertical-align:middle"></span>Ready Now</span>
+    </div>
+
+    <!-- Schedule calendar / timeline -->
+    <div id="schedule-timeline"></div>
   </div>
 
   <!-- ── DELIVERABLES VIEW ──────────────────────────────────── -->
@@ -506,7 +591,7 @@ const checkApiStatus = async () => {
 };
 
 // ── View router ───────────────────────────────────────────────
-const views = ['dashboard','proposal','workorder','validate','profiles','queue','hitl','deliverables'];
+const views = ['dashboard','proposal','workorder','validate','profiles','queue','hitl','schedule','deliverables'];
 const showView = (name) => {
   views.forEach(v => {
     const el = document.getElementById(`view-${v}`);
@@ -687,35 +772,216 @@ const loadQueue = async () => {
 };
 document.getElementById('btn-refresh-queue').addEventListener('click', loadQueue);
 
-// ── HITL ──────────────────────────────────────────────────────
+// ── HITL Review System ──────────────────────────────────────────
+function getActiveComplianceFlags() {
+  return [...document.querySelectorAll('#compliance-toggles input[type=checkbox]:checked')].map(c => c.value);
+}
+
 const loadHITL = async () => {
   try {
-    const data = await apiFetch('/api/hitl/interventions/pending');
-    const items = data.interventions || data.items || [];
-    document.getElementById('hitl-list').innerHTML = items.length
-      ? items.map(it => `<div class="prod-card">
-          <div style="display:flex;justify-content:space-between">
-            <strong>${it.intervention_id || it.id || '—'}</strong>
-            <span class="murphy-badge murphy-badge-warning">Pending</span>
+    // Load from production HITL review system
+    const data = await apiFetch('/api/production/hitl/pending');
+    const items = data.reviews || [];
+    // Also try legacy HITL interventions
+    let legacyItems = [];
+    try {
+      const legacy = await apiFetch('/api/hitl/interventions/pending');
+      legacyItems = legacy.interventions || legacy.items || [];
+    } catch(_) {}
+
+    let html = '';
+
+    // Production HITL reviews (full accept/deny/revisions)
+    if (items.length) {
+      html += items.map(r => `<div class="prod-card" style="border-left:3px solid var(--color-warning)">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong>${r.review_id}</strong>
+          <div style="display:flex;gap:var(--space-2);align-items:center">
+            <span class="murphy-badge murphy-badge-warning">Rev ${r.revision}</span>
+            <span class="murphy-badge" style="background:var(--color-info,#60A5FA);color:#000">Pending</span>
           </div>
-          <p class="text-sm text-muted">${it.description || it.reason || ''}</p>
-          <div style="margin-top:var(--space-2);display:flex;gap:var(--space-2)">
-            <button class="murphy-btn murphy-btn-sm murphy-btn-success" onclick="respondHITL('${it.intervention_id||it.id}','approved')">Approve</button>
-            <button class="murphy-btn murphy-btn-sm murphy-btn-danger" onclick="respondHITL('${it.intervention_id||it.id}','rejected')">Reject</button>
-          </div>
-        </div>`).join('')
-      : '<p class="text-muted">No pending HITL interventions.</p>';
-    log(`Loaded ${items.length} HITL items.`);
+        </div>
+        <p class="text-sm text-muted" style="margin:var(--space-2) 0">Proposal: ${r.proposal_id}</p>
+
+        <div class="murphy-card" style="background:var(--bg-elevated);padding:var(--space-3);margin:var(--space-2) 0;font-family:monospace;font-size:0.85rem;white-space:pre-wrap;max-height:200px;overflow-y:auto">${escH(r.output_content)}</div>
+
+        <p style="font-size:0.75rem;color:var(--text-dim)">Compliance: ${(r.compliance_flags || []).join(', ') || 'none'} · Revision history: ${r.history ? r.history.length : 0} entries</p>
+
+        <div style="margin-top:var(--space-3)">
+          <label class="murphy-label" style="font-size:0.8rem">Reviewer Notes</label>
+          <textarea id="notes-${r.review_id}" class="murphy-input" rows="2" style="width:100%;resize:vertical;font-size:0.85rem" placeholder="Add notes, corrections, or suggested output…"></textarea>
+        </div>
+
+        <div style="margin-top:var(--space-2);display:flex;gap:var(--space-2);align-items:center;flex-wrap:wrap">
+          <button class="murphy-btn murphy-btn-sm murphy-btn-success" onclick="respondReview('${r.review_id}','accept')">✅ Accept</button>
+          <button class="murphy-btn murphy-btn-sm murphy-btn-danger" onclick="respondReview('${r.review_id}','deny')">❌ Deny</button>
+          <button class="murphy-btn murphy-btn-sm" style="background:var(--color-warning);color:#000" onclick="respondReview('${r.review_id}','revisions')">🔄 Request Revisions → Rev ${r.revision + 1}</button>
+          <label style="margin-left:auto;font-size:0.8rem;display:flex;align-items:center;gap:4px;cursor:pointer">
+            <input type="checkbox" id="exception-${r.review_id}">
+            <span>Exception (don't learn)</span>
+          </label>
+        </div>
+      </div>`).join('');
+    }
+
+    // Legacy HITL interventions (simple approve/reject)
+    if (legacyItems.length) {
+      html += '<h4 style="margin-top:var(--space-4);margin-bottom:var(--space-2)">Legacy Interventions</h4>';
+      html += legacyItems.map(it => `<div class="prod-card">
+        <div style="display:flex;justify-content:space-between">
+          <strong>${it.intervention_id || it.id || '—'}</strong>
+          <span class="murphy-badge murphy-badge-warning">Pending</span>
+        </div>
+        <p class="text-sm text-muted">${it.description || it.reason || ''}</p>
+        <div style="margin-top:var(--space-2);display:flex;gap:var(--space-2)">
+          <button class="murphy-btn murphy-btn-sm murphy-btn-success" onclick="respondLegacyHITL('${it.intervention_id||it.id}','approved')">Approve</button>
+          <button class="murphy-btn murphy-btn-sm murphy-btn-danger" onclick="respondLegacyHITL('${it.intervention_id||it.id}','rejected')">Reject</button>
+        </div>
+      </div>`).join('');
+    }
+
+    if (!html) html = '<p class="text-muted">No pending HITL reviews. Submit an example to test the review cycle.</p>';
+    document.getElementById('hitl-list').innerHTML = html;
+    log(`Loaded ${items.length} reviews + ${legacyItems.length} legacy interventions.`);
   } catch (err) { document.getElementById('hitl-list').innerHTML = `<div class="murphy-alert murphy-alert-danger">${err.message}</div>`; }
 };
-window.respondHITL = async (id, decision) => {
+
+function escH(s) { const d = document.createElement('div'); d.appendChild(document.createTextNode(s||'')); return d.innerHTML; }
+
+window.respondReview = async (reviewId, decision) => {
+  try {
+    const notes = (document.getElementById('notes-' + reviewId) || {}).value || '';
+    const exception = (document.getElementById('exception-' + reviewId) || {}).checked || false;
+    const compliance = getActiveComplianceFlags();
+    const payload = { decision, notes, exception, compliance_flags: compliance };
+    if (decision === 'revisions') {
+      payload.revised_content = notes || '(awaiting revised content)';
+    }
+    const res = await apiFetch(`/api/production/hitl/${reviewId}/respond`, { method: 'POST', body: JSON.stringify(payload) });
+    if (decision === 'accept') {
+      log(`✅ Review ${reviewId}: ACCEPTED${exception ? ' (exception — not learned)' : ' (learned for future outputs)'}`);
+    } else if (decision === 'deny') {
+      log(`❌ Review ${reviewId}: DENIED`);
+    } else if (decision === 'revisions') {
+      log(`🔄 Review ${reviewId}: REVISIONS requested → Rev ${res.revision} (${res.new_review_id})`);
+    }
+    loadHITL();
+  } catch (err) { log(`ERROR: HITL respond failed — ${err.message}`); }
+};
+
+window.respondLegacyHITL = async (id, decision) => {
   try {
     await apiFetch(`/api/hitl/interventions/${id}/respond`, { method: 'POST', body: JSON.stringify({ decision }) });
     log(`HITL ${id}: ${decision}`);
     loadHITL();
   } catch (err) { log(`ERROR: HITL respond failed — ${err.message}`); }
 };
+
+// Submit a demo review item for testing
+document.getElementById('btn-submit-demo-review').addEventListener('click', async () => {
+  const proposals = Object.keys(window._cachedProposals || {});
+  const pid = proposals.length ? proposals[proposals.length - 1] : 'demo-proposal';
+  const compliance = getActiveComplianceFlags();
+  try {
+    const res = await apiFetch('/api/production/hitl/submit', {
+      method: 'POST',
+      body: JSON.stringify({
+        proposal_id: pid,
+        output_content: `=== Production Output (${pid}) ===\n\nDeliverable: Automated workflow for ${pid}\nCompliance: ${compliance.join(', ')}\nConfidence: 0.92\n\nGenerated report with 3 sections:\n1. Executive Summary\n2. Compliance Matrix\n3. Implementation Plan\n\n[This is an example output for HITL review.\n Edit notes below to suggest changes.]`,
+        compliance_flags: compliance,
+      }),
+    });
+    log(`📋 Submitted review: ${res.review.review_id} for ${pid}`);
+    loadHITL();
+  } catch (err) { log(`ERROR: Submit review failed — ${err.message}`); }
+});
+
+// View learned patterns
+document.getElementById('btn-view-learned').addEventListener('click', async () => {
+  const panel = document.getElementById('learned-patterns-panel');
+  try {
+    const data = await apiFetch('/api/production/hitl/learned');
+    const patterns = data.patterns || [];
+    panel.style.display = '';
+    document.getElementById('learned-list').innerHTML = patterns.length
+      ? patterns.map(p => `<div class="prod-card" style="border-left:3px solid var(--color-success)">
+          <div style="display:flex;justify-content:space-between">
+            <strong>${p.proposal_id}</strong>
+            <span class="murphy-badge murphy-badge-success">Rev ${p.revision} · Learned</span>
+          </div>
+          <div class="murphy-card" style="background:var(--bg-elevated);padding:var(--space-2);margin:var(--space-2) 0;font-family:monospace;font-size:0.8rem;white-space:pre-wrap;max-height:120px;overflow-y:auto">${escH(p.output_content)}</div>
+          <p class="text-sm text-muted">Notes: ${escH(p.notes) || '—'} · Learned: ${new Date(p.learned_at).toLocaleString()}</p>
+        </div>`).join('')
+      : '<p class="text-muted">No patterns learned yet. Accept a review to start training.</p>';
+    log(`Loaded ${patterns.length} learned patterns.`);
+  } catch (err) { document.getElementById('learned-list').innerHTML = `<div class="murphy-alert murphy-alert-danger">${err.message}</div>`; }
+});
+
 document.getElementById('btn-refresh-hitl').addEventListener('click', loadHITL);
+
+// ── Automation Schedule ────────────────────────────────────────
+const loadSchedule = async () => {
+  try {
+    const data = await apiFetch('/api/production/schedule');
+    const items = data.schedule || [];
+    const summary = data.summary || {};
+
+    document.getElementById('sched-total').textContent = summary.total_steps || 0;
+    document.getElementById('sched-automated').textContent = summary.automated || 0;
+    document.getElementById('sched-human').textContent = summary.needs_human || 0;
+    document.getElementById('sched-proposals').textContent = summary.active_proposals || 0;
+
+    if (!items.length) {
+      document.getElementById('schedule-timeline').innerHTML = '<p class="text-muted">No scheduled automations. Create a proposal to populate the schedule.</p>';
+      return;
+    }
+
+    // Group by proposal
+    const grouped = {};
+    items.forEach(item => {
+      const pid = item.proposal_id || 'unknown';
+      if (!grouped[pid]) grouped[pid] = [];
+      grouped[pid].push(item);
+    });
+
+    let html = '';
+    for (const [pid, steps] of Object.entries(grouped)) {
+      html += `<div class="murphy-card" style="margin-bottom:var(--space-3)">
+        <h3 class="murphy-section-title" style="margin-bottom:var(--space-2)">📋 ${escH(pid)}</h3>
+        <div style="display:flex;flex-direction:column;gap:2px">`;
+      steps.forEach((step, i) => {
+        const isAuto = step.automated;
+        const isHuman = step.status === 'waiting_human';
+        const isReady = step.status === 'ready';
+        const bg = isReady ? 'var(--color-info,#60A5FA)' : isHuman ? 'var(--color-warning)' : 'var(--color-success)';
+        const textColor = '#000';
+        const time = new Date(step.scheduled_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+        const icon = isHuman ? '🙋' : '🤖';
+        html += `<div style="display:flex;align-items:center;gap:var(--space-2);padding:var(--space-1) var(--space-2);border-radius:var(--radius-sm);background:${bg}15;border-left:3px solid ${bg}">
+          <span style="font-size:0.75rem;color:var(--text-dim);min-width:52px">${time}</span>
+          <span style="min-width:24px;text-align:center">${icon}</span>
+          <span style="flex:1;font-size:0.85rem">${escH(step.label)}</span>
+          <span class="murphy-badge" style="background:${bg};color:${textColor};font-size:0.7rem">${step.stage.replace('gate:','')}</span>
+        </div>`;
+      });
+      html += '</div></div>';
+    }
+    document.getElementById('schedule-timeline').innerHTML = html;
+    log(`Schedule loaded: ${items.length} steps across ${Object.keys(grouped).length} proposals.`);
+  } catch (err) {
+    document.getElementById('schedule-timeline').innerHTML = `<div class="murphy-alert murphy-alert-danger">${err.message}</div>`;
+  }
+};
+document.getElementById('btn-refresh-schedule').addEventListener('click', loadSchedule);
+
+// Cache proposal IDs for demo review submission
+window._cachedProposals = {};
+(async () => {
+  try {
+    const data = await apiFetch('/api/production/proposals');
+    (data.proposals || []).forEach(p => { window._cachedProposals[p.proposal_id] = p; });
+  } catch(_) {}
+})();
 
 // ── Deliverables ──────────────────────────────────────────────
 const loadDeliverables = async () => {

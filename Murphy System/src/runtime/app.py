@@ -47,6 +47,7 @@ from src.runtime._deps import (
     os,
     platform,
     time,
+    timedelta,
     timezone,
     uuid4,
     uvicorn,
@@ -2640,6 +2641,229 @@ def create_app() -> FastAPI:
             "success": True, "routed": False,
             "message": "No matching production workflow found",
             "available_proposals": list(_production_proposals.keys()),
+        })
+
+    # ==================== HITL REVIEW SYSTEM ====================
+    # Full accept/deny/revision cycle with learning and doc tracking.
+
+    _hitl_reviews: Dict[str, Dict[str, Any]] = {}
+    _hitl_learned_patterns: List[Dict[str, Any]] = []
+
+    @app.post("/api/production/hitl/submit")
+    async def hitl_submit_for_review(request: Request):
+        """Submit a work item for HITL review, creating a review entry."""
+        body = await request.json()
+        proposal_id = body.get("proposal_id", "")
+        output_content = body.get("output_content", "")
+        if not proposal_id or not output_content:
+            return JSONResponse({"success": False, "error": "proposal_id and output_content required"}, 400)
+
+        review_id = f"hitl-{proposal_id}-rev1"
+        review = {
+            "review_id": review_id,
+            "proposal_id": proposal_id,
+            "revision": 1,
+            "output_content": output_content,
+            "status": "pending",
+            "decision": None,
+            "reviewer_notes": "",
+            "exception": False,
+            "compliance_flags": body.get("compliance_flags", []),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "history": [],
+        }
+        _hitl_reviews[review_id] = review
+        return JSONResponse({"success": True, "review": review})
+
+    @app.post("/api/production/hitl/{review_id}/respond")
+    async def hitl_review_respond(review_id: str, request: Request):
+        """Respond to a HITL review: accept, deny, or request revisions."""
+        review = _hitl_reviews.get(review_id)
+        if not review:
+            return JSONResponse({"success": False, "error": "Review not found"}, 404)
+
+        body = await request.json()
+        decision = body.get("decision", "")  # "accept", "deny", "revisions"
+        notes = body.get("notes", "")
+        exception = body.get("exception", False)
+
+        # Record history entry
+        review["history"].append({
+            "revision": review["revision"],
+            "decision": decision,
+            "notes": notes,
+            "exception": exception,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+
+        if decision == "accept":
+            review["status"] = "accepted"
+            review["decision"] = "accepted"
+            review["reviewer_notes"] = notes
+            # Learn from accepted output unless exception toggled
+            if not exception:
+                _hitl_learned_patterns.append({
+                    "proposal_id": review["proposal_id"],
+                    "revision": review["revision"],
+                    "output_content": review["output_content"],
+                    "notes": notes,
+                    "learned_at": datetime.now(timezone.utc).isoformat(),
+                })
+            return JSONResponse({
+                "success": True, "status": "accepted",
+                "learned": not exception,
+                "review": review,
+            })
+        elif decision == "deny":
+            review["status"] = "denied"
+            review["decision"] = "denied"
+            review["reviewer_notes"] = notes
+            return JSONResponse({"success": True, "status": "denied", "review": review})
+        elif decision == "revisions":
+            # Increment revision counter for document tracking
+            new_rev = review["revision"] + 1
+            new_id = f"hitl-{review['proposal_id']}-rev{new_rev}"
+            new_review = {
+                "review_id": new_id,
+                "proposal_id": review["proposal_id"],
+                "revision": new_rev,
+                "output_content": body.get("revised_content", review["output_content"]),
+                "status": "pending",
+                "decision": None,
+                "reviewer_notes": "",
+                "exception": exception,
+                "compliance_flags": body.get("compliance_flags", review.get("compliance_flags", [])),
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "history": review["history"],
+            }
+            review["status"] = "revision_requested"
+            review["decision"] = "revisions"
+            review["reviewer_notes"] = notes
+            _hitl_reviews[new_id] = new_review
+            return JSONResponse({
+                "success": True, "status": "revision_requested",
+                "new_review_id": new_id, "revision": new_rev,
+                "review": new_review,
+            })
+        else:
+            return JSONResponse({"success": False, "error": "decision must be accept, deny, or revisions"}, 400)
+
+    @app.get("/api/production/hitl/pending")
+    async def hitl_reviews_pending():
+        """List all pending HITL reviews."""
+        pending = [r for r in _hitl_reviews.values() if r["status"] == "pending"]
+        return JSONResponse({"success": True, "reviews": pending, "count": len(pending)})
+
+    @app.get("/api/production/hitl/learned")
+    async def hitl_learned_patterns():
+        """List all patterns learned from accepted HITL reviews."""
+        return JSONResponse({
+            "success": True,
+            "patterns": _hitl_learned_patterns,
+            "count": len(_hitl_learned_patterns),
+        })
+
+    # ==================== AUTOMATION SCHEDULE ====================
+
+    @app.get("/api/production/schedule")
+    async def production_schedule():
+        """Return the automation schedule showing what the system plans to do.
+
+        Generates a schedule from active proposals/work orders so the user
+        can see planned automation alongside their own workflow.
+        """
+        schedule_items = []
+        now = datetime.now(timezone.utc)
+
+        for pid, p in _production_proposals.items():
+            gates = p.get("gates", [])
+            base_time = datetime.fromisoformat(p["created_at"].replace("Z", "+00:00")) if "created_at" in p else now
+            # Build schedule entries for each stage of the workflow
+            schedule_items.append({
+                "id": f"sched-{pid}-intake",
+                "proposal_id": pid,
+                "stage": "intake",
+                "label": f"Receive & validate incoming request",
+                "industry": p.get("industry", ""),
+                "scheduled_at": base_time.isoformat(),
+                "status": "ready",
+                "automated": True,
+            })
+            offset_min = 5
+            for gate in gates:
+                schedule_items.append({
+                    "id": f"sched-{pid}-gate-{gate.lower()}",
+                    "proposal_id": pid,
+                    "stage": f"gate:{gate}",
+                    "label": f"{gate.replace('_', ' ').title()} compliance check",
+                    "scheduled_at": (base_time + timedelta(minutes=offset_min)).isoformat(),
+                    "status": "queued",
+                    "automated": gate not in ("HITL_REVIEW",),
+                })
+                offset_min += 5
+            schedule_items.append({
+                "id": f"sched-{pid}-process",
+                "proposal_id": pid,
+                "stage": "process",
+                "label": f"Process ({p.get('industry', 'general')})",
+                "scheduled_at": (base_time + timedelta(minutes=offset_min)).isoformat(),
+                "status": "queued",
+                "automated": True,
+            })
+            offset_min += 10
+            schedule_items.append({
+                "id": f"sched-{pid}-hitl",
+                "proposal_id": pid,
+                "stage": "hitl_review",
+                "label": "Human review (your action required)",
+                "scheduled_at": (base_time + timedelta(minutes=offset_min)).isoformat(),
+                "status": "waiting_human",
+                "automated": False,
+            })
+            offset_min += 15
+            schedule_items.append({
+                "id": f"sched-{pid}-deliver",
+                "proposal_id": pid,
+                "stage": "deliver",
+                "label": "Package & deliver output",
+                "scheduled_at": (base_time + timedelta(minutes=offset_min)).isoformat(),
+                "status": "queued",
+                "automated": True,
+            })
+            schedule_items.append({
+                "id": f"sched-{pid}-verify",
+                "proposal_id": pid,
+                "stage": "verify",
+                "label": "Final verification ✓",
+                "scheduled_at": (base_time + timedelta(minutes=offset_min + 5)).isoformat(),
+                "status": "queued",
+                "automated": True,
+            })
+
+        # Include pending HITL reviews in schedule
+        for rid, r in _hitl_reviews.items():
+            if r["status"] == "pending":
+                schedule_items.append({
+                    "id": f"sched-hitl-{rid}",
+                    "proposal_id": r["proposal_id"],
+                    "stage": "hitl_review",
+                    "label": f"HITL Review pending (rev{r['revision']})",
+                    "scheduled_at": r["created_at"],
+                    "status": "waiting_human",
+                    "automated": False,
+                })
+
+        schedule_items.sort(key=lambda s: s.get("scheduled_at", ""))
+        return JSONResponse({
+            "success": True,
+            "schedule": schedule_items,
+            "count": len(schedule_items),
+            "summary": {
+                "total_steps": len(schedule_items),
+                "automated": sum(1 for s in schedule_items if s.get("automated")),
+                "needs_human": sum(1 for s in schedule_items if not s.get("automated")),
+                "active_proposals": len(_production_proposals),
+            },
         })
 
     # ==================== DELIVERABLES ENDPOINTS ====================
