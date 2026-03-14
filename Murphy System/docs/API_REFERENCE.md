@@ -1325,4 +1325,370 @@ Retrieve promoted pattern hints for a given strategy and pair.
 
 ---
 
+## Self-Marketing & Revenue Generation API
+
+### `POST /api/marketing/content-cycle`
+
+Trigger a content generation cycle. Returns `ContentCycleResult` with vertical-specific topic enrichment sourced from `MarketPositioningEngine` (MPE-001).
+
+**Auth:** Required  
+**Body:** `{}` (optional `{ "vertical": "factory_automation" }` to target a specific vertical)  
+**Response 200:** `{ "cycle_id": "uuid", "topics_generated": 5, "vertical": "factory_automation", "status": "complete" }`
+
+---
+
+### `POST /api/marketing/b2b-cycle`
+
+Run a B2B partnership outreach cycle across all 22 configured partners. `_commission_system()` gate fires automatically before execution and emits `system_commissioned` to the audit trail.
+
+**Auth:** Required  
+**Body:** `{}` (optional `{ "partner_ids": ["rockwell_automation"] }` to target specific partners)  
+**Response 200:** `{ "cycle_id": "uuid", "partners_contacted": 22, "commissioned": true, "status": "complete" }`
+
+---
+
+### `GET /api/marketing/dashboard`
+
+Return the full marketing dashboard including a `market_position` section with `MarketPositioningEngine` data (10 verticals, 17 capabilities, positioning statement, tagline, target segments, differentiation pillars).
+
+**Auth:** Required  
+**Response 200:**
+```json
+{
+  "market_position": {
+    "positioning_statement": "...",
+    "tagline": "...",
+    "target_segments": ["...", "..."],
+    "differentiation_pillars": ["...", "..."],
+    "competitive_moats": ["...", "..."]
+  },
+  "verticals_count": 10,
+  "capabilities_count": 17,
+  "partners_count": 22
+}
+```
+
+---
+
+### `GET /api/marketing/pipeline`
+
+Return the B2B partnership pipeline (22 partners).
+
+**Auth:** Required  
+**Response 200:** `{ "partners": [ { "id": "rockwell_automation", "vertical": "factory_automation", "status": "active" }, ... ] }`
+
+---
+
+### `GET /api/marketing/partners/{partner_id}/pitch`
+
+Generate a B2B pitch for a specific partner, enriched with industry context via MPE-001.
+
+**Auth:** Required  
+**Path param:** `partner_id` — partner identifier (e.g. `rockwell_automation`)  
+**Response 200:** `{ "partner_id": "rockwell_automation", "pitch": "...", "vertical": "factory_automation" }`
+
+---
+
+### `POST /api/marketing/partners/{partner_id}/contact`
+
+Set or update the salesperson contact for a partner (PII-safe storage).
+
+**Auth:** Required  
+**Path param:** `partner_id`  
+**Body:**
+```json
+{
+  "salesperson_name": "Jane Smith",
+  "salesperson_title": "VP Partnerships",
+  "salesperson_email": "jane@example.com",
+  "salesperson_linkedin": "https://linkedin.com/in/janesmith"
+}
+```
+**Response 200:** `{ "partner_id": "rockwell_automation", "contact_updated": true }`
+
+---
+
+## Market Positioning API (MPE-001)
+
+### `GET /api/positioning/market-position`
+
+Return Murphy's market position (positioning statement, tagline, 6 differentiation pillars, 6 target segments, 8 competitive moats).
+
+**Auth:** Required  
+**Response 200:** `{ "positioning_statement": "...", "tagline": "...", "differentiation_pillars": [...], "target_segments": [...], "competitive_moats": [...] }`
+
+---
+
+### `GET /api/positioning/capabilities`
+
+List all 17 Murphy capabilities with maturity scores and relevant verticals.
+
+**Auth:** Required  
+**Response 200:** `{ "capabilities": [ { "id": "...", "name": "...", "maturity": 0.9, "verticals": [...] }, ... ] }`
+
+---
+
+### `GET /api/positioning/capabilities/{capability_id}`
+
+Get a specific capability by ID.
+
+**Auth:** Required  
+**Response 200:** `{ "id": "...", "name": "...", "maturity": 0.9, "description": "...", "verticals": [...] }`  
+**Response 404:** `{ "error": "capability_not_found" }`
+
+---
+
+### `GET /api/positioning/verticals`
+
+List all 10 industry verticals: `healthcare`, `financial_services`, `manufacturing`, `technology`, `professional_services`, `government`, `iot_building_automation`, `energy_management`, `additive_manufacturing`, `factory_automation`.
+
+**Auth:** Required  
+**Response 200:** `{ "verticals": ["healthcare", "financial_services", "manufacturing", "technology", "professional_services", "government", "iot_building_automation", "energy_management", "additive_manufacturing", "factory_automation"] }`
+
+---
+
+### `GET /api/positioning/verticals/{vertical_id}`
+
+Get full vertical detail (ICP, pain points, regulatory context, value props, content topics, B2B pitch hook).
+
+**Auth:** Required  
+**Response 200:** `{ "id": "factory_automation", "icp": {...}, "pain_points": [...], "regulatory_context": [...], "value_props": [...], "content_topics": [...], "b2b_pitch_hook": "..." }`  
+**Response 404:** `{ "error": "vertical_not_found" }`
+
+---
+
+### `GET /api/positioning/verticals/{vertical_id}/icp`
+
+Get the Ideal Customer Profile for a vertical.
+
+**Auth:** Required  
+**Response 200:** `{ "vertical": "factory_automation", "icp": { "company_size": "...", "titles": [...], "tech_stack": [...] } }`
+
+---
+
+### `GET /api/positioning/verticals/{vertical_id}/topics`
+
+Get content topics for a vertical.
+
+**Auth:** Required  
+**Response 200:** `{ "vertical": "factory_automation", "topics": ["ISA-95 orchestration", "IEC 13849 safety", ...] }`
+
+---
+
+### `GET /api/positioning/score-fit`
+
+Score partner fit against Murphy's vertical and capability profile.
+
+**Auth:** Required  
+**Query params:** `company` (string), `offerings` (comma-separated offering types)  
+**Response 200:** `{ "company": "Rockwell Automation", "fit_score": 0.87 }`
+
+---
+
+## Energy Audit API (EAE-001)
+
+### `POST /api/energy-audit/audits`
+
+Create a new energy audit.
+
+**Auth:** Required  
+**Body:**
+```json
+{
+  "facility_id": "fac-001",
+  "facility_name": "Main Campus",
+  "sqft": 120000,
+  "audit_level": "LEVEL_II",
+  "compliance_frameworks": ["iso_50001", "ashrae_90_1"]
+}
+```
+**Response 201:** `{ "audit_id": "uuid", "status": "created" }`
+
+---
+
+### `GET /api/energy-audit/audits/{audit_id}`
+
+Get audit details.
+
+**Auth:** Required  
+**Response 200:** `{ "audit_id": "...", "facility_name": "...", "audit_level": "LEVEL_II", "status": "in_progress" }`
+
+---
+
+### `POST /api/energy-audit/audits/{audit_id}/readings`
+
+Ingest energy meter readings.
+
+**Auth:** Required  
+**Body:** `{ "readings": [ { "timestamp": "2026-01-01T00:00:00Z", "kwh": 4521.3, "meter_id": "M-001" } ] }`  
+**Response 200:** `{ "readings_accepted": 1 }`
+
+---
+
+### `GET /api/energy-audit/audits/{audit_id}/summary`
+
+Compute energy cost summary (EUI, monthly average, carbon estimate).
+
+**Auth:** Required  
+**Response 200:** `{ "eui": 68.2, "monthly_avg_kwh": 87500, "annual_cost_usd": 105000, "carbon_tons_co2e": 48.3 }`
+
+---
+
+### `POST /api/energy-audit/audits/{audit_id}/ecms`
+
+Add an Energy Conservation Measure.
+
+**Auth:** Required  
+**Body:**
+```json
+{
+  "name": "LED Retrofit",
+  "category": "lighting",
+  "annual_savings_usd": 18000,
+  "implementation_cost_usd": 54000,
+  "priority": "high"
+}
+```
+**Response 201:** `{ "ecm_id": "uuid", "payback_years": 3.0 }`
+
+---
+
+### `GET /api/energy-audit/audits/{audit_id}/ecms`
+
+List ECMs with optional filters.
+
+**Auth:** Required  
+**Query params:** `category` (string), `priority` (string), `max_payback_years` (float)  
+**Response 200:** `{ "ecms": [ { "ecm_id": "...", "name": "LED Retrofit", "payback_years": 3.0 } ] }`
+
+---
+
+### `GET /api/energy-audit/audits/{audit_id}/prioritise`
+
+Return optimal ECM set within budget using greedy-knapsack algorithm.
+
+**Auth:** Required  
+**Query params:** `budget_usd` (float)  
+**Response 200:** `{ "selected_ecms": [...], "total_cost_usd": 120000, "total_annual_savings_usd": 42000, "aggregate_payback_years": 2.86 }`
+
+---
+
+### `GET /api/energy-audit/audits/{audit_id}/compliance/{framework}`
+
+Generate compliance checklist. `framework` is one of: `ashrae_90_1`, `iso_50001`, `iso_50002`, `energy_star`, `leed`, `breeam`.
+
+**Auth:** Required  
+**Response 200:** `{ "framework": "iso_50001", "checklist": [ { "item": "...", "status": "pass" } ] }`
+
+---
+
+### `GET /api/energy-audit/audits/{audit_id}/export`
+
+Export full audit as JSON (facility metadata, readings summary, ECMs, compliance checklists, prioritised ECM set).
+
+**Auth:** Required  
+**Response 200:** Full audit JSON.
+
+---
+
+### `GET /api/energy-audit/benchmark`
+
+Benchmark an EUI value against CBECS medians for a given facility type (12 types supported: `office`, `hospital`, `warehouse`, `retail`, `school`, `hotel`, `multifamily`, `food_service`, `laboratory`, `data_center`, `religious`, `other`).
+
+**Auth:** Required  
+**Query params:** `facility_type` (string), `eui` (float)  
+**Response 200:** `{ "facility_type": "office", "submitted_eui": 68.2, "cbecs_median_eui": 72.0, "percentile": 45, "rating": "below_median" }`
+
+---
+
+## Factory Automation Connector API (FAC-001)
+
+### `GET /api/factory/connectors`
+
+List all registered factory automation connectors.
+
+**Auth:** Required  
+**Response 200:** `{ "connectors": [ { "key": "rockwell_factorytalk", "vendor": "Rockwell", "protocol": "EtherNet/IP", "isa95_layer": "CONTROL", "safety_category": "CAT_3" }, ... ] }`
+
+---
+
+### `POST /api/factory/connectors`
+
+Register a new connector.
+
+**Auth:** Required  
+**Body:** `{ "key": "custom_plc", "vendor": "Acme", "protocol": "Modbus", "isa95_layer": "FIELD", "safety_category": "CAT_1" }`  
+**Response 201:** `{ "key": "custom_plc", "status": "registered" }`
+
+---
+
+### `GET /api/factory/connectors/{key}`
+
+Get connector details.
+
+**Auth:** Required  
+**Response 200:** `{ "key": "rockwell_factorytalk", "vendor": "Rockwell", "protocol": "EtherNet/IP" }`  
+**Response 404:** `{ "error": "connector_not_found" }`
+
+---
+
+### `GET /api/factory/connectors/{key}/health`
+
+Health-check a connector.
+
+**Auth:** Required  
+**Response 200:** `{ "key": "rockwell_factorytalk", "health": "ok", "latency_ms": 12 }`
+
+---
+
+### `POST /api/factory/connectors/{key}/execute`
+
+Execute an action on a connector. Supported actions: `read_sensor`, `write_tag`, `start_cycle`, `stop_cycle`, `e_stop`, `get_alarms`.
+
+**Auth:** Required  
+**Body:** `{ "action": "read_sensor", "params": { "tag": "Line1.Speed" } }`  
+**Response 200:** `{ "key": "rockwell_factorytalk", "action": "read_sensor", "result": { "tag": "Line1.Speed", "value": 120.5 } }`
+
+---
+
+### `GET /api/factory/sequences`
+
+List all automation sequences.
+
+**Auth:** Required  
+**Response 200:** `{ "sequences": [ { "sequence_id": "uuid", "name": "Assembly Line Start", "steps": 4 } ] }`
+
+---
+
+### `POST /api/factory/sequences`
+
+Create a new ISA-95 layer-aware automation sequence.
+
+**Auth:** Required  
+**Body:**
+```json
+{
+  "name": "Assembly Line Start",
+  "steps": [
+    { "connector_key": "siemens_simatic_s7", "action": "start_cycle", "isa95_layer": "CONTROL" },
+    { "connector_key": "rockwell_factorytalk", "action": "read_sensor", "isa95_layer": "CONTROL" },
+    { "connector_key": "ptc_thingworx", "action": "get_alarms", "isa95_layer": "MES" }
+  ]
+}
+```
+**Response 201:** `{ "sequence_id": "uuid", "name": "Assembly Line Start", "status": "created" }`
+
+---
+
+### `POST /api/factory/sequences/{sequence_id}/execute`
+
+Execute a sequence. Steps execute in ISA-95 order: `FIELD → CONTROL → SUPERVISORY → MES`. Sub-CAT_2 connectors are blocked by the IEC 13849 safety gate unless `override_safety: true` is provided.
+
+**Auth:** Required  
+**Body:** `{ "override_safety": false }` (optional)  
+**Response 200:** `{ "sequence_id": "uuid", "steps_executed": 3, "safety_gate_triggered": false, "status": "complete" }`  
+**Response 403:** `{ "error": "iec13849_safety_gate", "detail": "Sub-CAT_2 connector requires override" }`
+
+---
+
 *Copyright © 2020 Inoni Limited Liability Company | Creator: Corey Post | License: BSL 1.1*
