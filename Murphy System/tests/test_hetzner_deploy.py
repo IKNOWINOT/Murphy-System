@@ -451,6 +451,8 @@ class TestHetznerDeployPlanGeneratorFullDeploy:
         gen = HetznerDeployPlanGenerator(image_tag="sha-abc")
         plan = gen._full_deploy_plan(_probe_nothing_ready())
         assert plan.steps[-1].step_id == "hetzner-24-verify-deployment"
+        assert plan.steps[-1].step_id == "hetzner-26-production-readiness"
+        assert plan.steps[-1].step_id == "hetzner-20-verify-deployment"
 
     def test_full_deploy_skips_install_hcloud_when_present(self):
         gen = HetznerDeployPlanGenerator(image_tag="sha-abc")
@@ -1117,6 +1119,11 @@ class TestHetznerStepType:
             "create_k8s_cluster", "configure_kubeconfig", "build_image",
             "push_image", "apply_namespace", "apply_secrets", "apply_configmap",
             "apply_pvc", "apply_deployment", "apply_service", "apply_ingress",
+            "apply_hpa", "apply_network_policy", "apply_pdb", "apply_redis",
+            "apply_resource_quota", "apply_backup_cronjob", "rolling_update",
+            "apply_prometheus", "apply_grafana", "apply_service_monitor",
+            "apply_postgres", "apply_staging_namespace", "run_production_readiness",
+            "verify_deployment",
             "apply_hpa", "apply_network_policy", "apply_pdb",
             "apply_resource_quota", "apply_limit_range", "apply_redis",
             "apply_prometheus", "apply_grafana", "apply_service_monitor",
