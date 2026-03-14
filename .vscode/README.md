@@ -16,12 +16,9 @@ Install the official Python extension from Microsoft if you haven't already.
 
 **Press F5** and select from:
 
-- 🚀 **Murphy: Quick Demo (2 min)** - Fast overview
-- 🌟 **Murphy: Full Demo (10 min)** - Complete showcase
-- 🔌 **Murphy: API Demo** - REST endpoints
-- 🔗 **Murphy: Integration Demo** - SwissKiss integration
-- 💼 **Murphy: Business Automation Demo** - 5 engines
-- 🤖 **Murphy: AI/ML Demo** - Advanced AI features
+- 🚀 **Murphy: Quick Demo (2 min)** - Hits core API endpoints
+- 🖥️ **Murphy: Start Server (Debug)** - Debug the API server
+- 🧪 **Murphy: Run Tests** - Run full test suite
 
 ### 4. Use Tasks
 
@@ -31,26 +28,24 @@ Install the official Python extension from Microsoft if you haven't already.
 - **Murphy: Run Quick Demo** - 2-minute demo
 - **Murphy: Health Check** - Test server
 - **Murphy: View API Docs** - Open documentation
+- **Murphy: Run Tests** - Run pytest suite
 
 ## What's Configured
 
 ### Debug Configurations (.vscode/launch.json)
 
-8 pre-configured debug/launch configurations for all demo types plus server debugging.
+3 pre-configured debug/launch configurations for the demo, server debugging, and test execution.
 
 ### Tasks (.vscode/tasks.json)
 
-8 pre-configured tasks for common Murphy operations.
+7 pre-configured tasks for common Murphy operations.
 
 ### Demo Script (scripts/quick_demo.py)
 
-Comprehensive demonstration system with 6 demo types:
-- Quick (2 min)
-- Full (10 min)
-- API endpoints
-- Integration engine
-- Business automation
-- AI/ML features
+Lightweight API smoke-test that exercises core endpoints:
+- Health check
+- System status
+- Deep readiness
 
 ## Files
 

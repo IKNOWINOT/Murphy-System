@@ -1221,3 +1221,143 @@ class TestK8sRedisImagePinning:
             "k8s/redis.yaml Redis should be pinned (e.g., redis:7.2-alpine)"
         )
         assert "redis:7." in content, "Redis version should be pinned"
+
+
+# ===================================================================
+# Round 6: VS Code, docker-compose.murphy.yml, CONTRIBUTING.md
+# ===================================================================
+
+# ---------------------------------------------------------------------------
+# 33. .vscode/launch.json — no stale murphy_integrated paths
+# ---------------------------------------------------------------------------
+
+class TestVscodeLaunchJsonNoBrokenPaths:
+    """launch.json must not reference the non-existent murphy_integrated/ dir."""
+
+    def _content(self) -> str:
+        path = os.path.join(_REPO_ROOT, ".vscode", "launch.json")
+        with open(path) as fh:
+            return fh.read()
+
+    def test_no_murphy_integrated_reference(self):
+        content = self._content()
+        assert "murphy_integrated" not in content, (
+            "launch.json still references non-existent murphy_integrated/ directory"
+        )
+
+    def test_no_demo_murphy_reference(self):
+        content = self._content()
+        assert "demo_murphy" not in content, (
+            "launch.json still references non-existent demo_murphy.py"
+        )
+
+    def test_references_quick_demo(self):
+        content = self._content()
+        assert "scripts/quick_demo.py" in content, (
+            "launch.json should reference scripts/quick_demo.py for demos"
+        )
+
+    def test_references_runtime_entry_point(self):
+        content = self._content()
+        assert "murphy_system_1.0_runtime.py" in content, (
+            "launch.json should reference murphy_system_1.0_runtime.py for server"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 34. .vscode/tasks.json — no stale murphy_integrated paths
+# ---------------------------------------------------------------------------
+
+class TestVscodeTasksJsonNoBrokenPaths:
+    """tasks.json must not reference the non-existent murphy_integrated/ dir."""
+
+    def _content(self) -> str:
+        path = os.path.join(_REPO_ROOT, ".vscode", "tasks.json")
+        with open(path) as fh:
+            return fh.read()
+
+    def test_no_murphy_integrated_reference(self):
+        content = self._content()
+        assert "murphy_integrated" not in content, (
+            "tasks.json still references non-existent murphy_integrated/ directory"
+        )
+
+    def test_no_demo_murphy_reference(self):
+        content = self._content()
+        assert "demo_murphy" not in content, (
+            "tasks.json still references non-existent demo_murphy.py"
+        )
+
+    def test_references_quick_demo(self):
+        content = self._content()
+        assert "scripts/quick_demo.py" in content, (
+            "tasks.json should reference scripts/quick_demo.py for demos"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 35. docker-compose.murphy.yml Grafana credential enforcement
+# ---------------------------------------------------------------------------
+
+class TestDockerComposeMurphyGrafanaCredentials:
+    """docker-compose.murphy.yml must enforce Grafana credentials."""
+
+    def _content(self) -> str:
+        path = os.path.join(_PROJECT_ROOT, "docker-compose.murphy.yml")
+        with open(path) as fh:
+            return fh.read()
+
+    def test_grafana_admin_password_enforced(self):
+        content = self._content()
+        assert "GRAFANA_ADMIN_PASSWORD" in content, (
+            "docker-compose.murphy.yml must wire GRAFANA_ADMIN_PASSWORD to Grafana"
+        )
+
+    def test_grafana_admin_user_enforced(self):
+        content = self._content()
+        assert "GRAFANA_ADMIN_USER" in content, (
+            "docker-compose.murphy.yml must wire GRAFANA_ADMIN_USER to Grafana"
+        )
+
+    def test_grafana_uses_required_var_syntax(self):
+        content = self._content()
+        assert ":?" in content or "GRAFANA_ADMIN_PASSWORD" in content, (
+            "docker-compose.murphy.yml should enforce Grafana credentials"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 36. CONTRIBUTING.md module counts
+# ---------------------------------------------------------------------------
+
+class TestContributingModuleCounts:
+    """Root CONTRIBUTING.md must reflect current module/package counts."""
+
+    def _content(self) -> str:
+        path = os.path.join(_REPO_ROOT, "CONTRIBUTING.md")
+        with open(path) as fh:
+            return fh.read()
+
+    def test_no_stale_650_count(self):
+        content = self._content()
+        assert "650+" not in content, (
+            "CONTRIBUTING.md still uses stale '650+' module count"
+        )
+
+    def test_no_stale_56_packages(self):
+        content = self._content()
+        assert "56 packages" not in content, (
+            "CONTRIBUTING.md still uses stale '56 packages' count"
+        )
+
+    def test_current_module_count(self):
+        content = self._content()
+        assert "978" in content, (
+            "CONTRIBUTING.md should reflect 978 source modules"
+        )
+
+    def test_current_package_count(self):
+        content = self._content()
+        assert "81 packages" in content, (
+            "CONTRIBUTING.md should reflect 81 packages"
+        )
