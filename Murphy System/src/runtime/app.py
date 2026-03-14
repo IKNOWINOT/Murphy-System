@@ -2817,8 +2817,12 @@ def create_app() -> FastAPI:
                 "stage": "hitl_review",
                 "label": "Human review (your action required)",
                 "scheduled_at": (base_time + timedelta(minutes=offset_min)).isoformat(),
+                "scheduled_end": (base_time + timedelta(minutes=offset_min + 15)).isoformat(),
                 "status": "waiting_human",
                 "automated": False,
+                "meeting_invite": True,
+                "meeting_title": f"HITL Review — {pid}",
+                "meeting_description": f"Human-in-the-loop review required for production {pid}. Review output, accept/deny/request revisions.",
             })
             offset_min += 15
             schedule_items.append({
