@@ -1204,3 +1204,20 @@ class TestRootReadmeStatsCurrent:
         assert "627 test files" not in content, (
             "Root README.md still shows stale 627 test file count"
         )
+
+
+# ---------------------------------------------------------------------------
+# 32. K8s redis.yaml image pinning
+# ---------------------------------------------------------------------------
+
+class TestK8sRedisImagePinning:
+    """k8s/redis.yaml must use a pinned Redis image version."""
+
+    def test_redis_version_pinned(self):
+        path = os.path.join(_PROJECT_ROOT, "k8s", "redis.yaml")
+        with open(path) as fh:
+            content = fh.read()
+        assert "redis:7-alpine" not in content, (
+            "k8s/redis.yaml Redis should be pinned (e.g., redis:7.2-alpine)"
+        )
+        assert "redis:7." in content, "Redis version should be pinned"
