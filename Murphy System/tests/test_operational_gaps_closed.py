@@ -794,3 +794,152 @@ class TestDeploymentGuideEntryPoint:
         assert not stale, (
             f"Stale demo/api_server_v2.py reference found in: {stale}"
         )
+
+
+# ---------------------------------------------------------------------------
+# Round-3 gap closure: scripts, setup helpers, K8s manifests, compose files
+# ---------------------------------------------------------------------------
+
+class TestQuickDemoScript:
+    """scripts/quick_demo.py must exist (referenced by Makefile 'demo' target)."""
+
+    def test_quick_demo_exists(self):
+        path = os.path.join(_PROJECT_ROOT, "scripts", "quick_demo.py")
+        assert os.path.isfile(path), "scripts/quick_demo.py is missing"
+
+    def test_quick_demo_is_importable(self):
+        """File should be valid Python."""
+        path = os.path.join(_PROJECT_ROOT, "scripts", "quick_demo.py")
+        with open(path) as fh:
+            compile(fh.read(), path, "exec")
+
+    def test_makefile_demo_target_matches(self):
+        with open(os.path.join(_PROJECT_ROOT, "Makefile")) as fh:
+            content = fh.read()
+        assert "scripts/quick_demo.py" in content
+
+
+class TestSetupScriptsNoStaleDemoRef:
+    """setup_murphy.sh/bat must not reference non-existent demo_murphy.py."""
+
+    def test_setup_sh_no_demo_murphy(self):
+        with open(os.path.join(_PROJECT_ROOT, "setup_murphy.sh")) as fh:
+            content = fh.read()
+        assert "demo_murphy.py" not in content, (
+            "setup_murphy.sh still references non-existent demo_murphy.py"
+        )
+
+    def test_setup_bat_no_demo_murphy(self):
+        with open(os.path.join(_PROJECT_ROOT, "setup_murphy.bat")) as fh:
+            content = fh.read()
+        assert "demo_murphy.py" not in content, (
+            "setup_murphy.bat still references non-existent demo_murphy.py"
+        )
+
+    def test_setup_sh_references_quick_demo(self):
+        with open(os.path.join(_PROJECT_ROOT, "setup_murphy.sh")) as fh:
+            content = fh.read()
+        assert "quick_demo" in content or "make demo" in content
+
+
+class TestK8sConfigmapNoSecrets:
+    """ConfigMap must not contain credential values; secrets belong in Secret."""
+
+    def _configmap(self) -> str:
+        with open(os.path.join(_PROJECT_ROOT, "k8s", "configmap.yaml")) as fh:
+            return fh.read()
+
+    def test_no_credential_master_key_value(self):
+        content = self._configmap()
+        # The key name may appear in a comment, but must not have an empty-string value
+        for line in content.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("#"):
+                continue
+            assert "MURPHY_CREDENTIAL_MASTER_KEY" not in stripped, (
+                "MURPHY_CREDENTIAL_MASTER_KEY should not be in ConfigMap — use Secret"
+            )
+
+    def test_no_redis_url_value(self):
+        content = self._configmap()
+        for line in content.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("#"):
+                continue
+            assert "MURPHY_REDIS_URL" not in stripped, (
+                "MURPHY_REDIS_URL (contains password) should not be in ConfigMap — use Secret"
+            )
+
+
+class TestK8sSecretBillingKeys:
+    """K8s secret.yaml must have PayPal/Coinbase billing secrets, not Stripe."""
+
+    def _secret(self) -> str:
+        with open(os.path.join(_PROJECT_ROOT, "k8s", "secret.yaml")) as fh:
+            return fh.read()
+
+    def test_no_stripe_api_key(self):
+        content = self._secret()
+        # STRIPE_API_KEY should not be present (billing uses PayPal + Coinbase)
+        for line in content.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("#"):
+                continue
+            assert "STRIPE_API_KEY" not in stripped, (
+                "K8s secret still contains STRIPE_API_KEY — billing uses PayPal + Coinbase"
+            )
+
+    def test_has_paypal_webhook_secret(self):
+        assert "PAYPAL_WEBHOOK_SECRET" in self._secret()
+
+    def test_has_coinbase_webhook_secret(self):
+        assert "COINBASE_WEBHOOK_SECRET" in self._secret()
+
+    def test_has_paypal_client_id(self):
+        assert "PAYPAL_CLIENT_ID" in self._secret()
+
+    def test_has_paypal_client_secret(self):
+        assert "PAYPAL_CLIENT_SECRET" in self._secret()
+
+    def test_has_murphy_redis_url(self):
+        assert "MURPHY_REDIS_URL" in self._secret()
+
+
+class TestDockerComposeMurphyPinned:
+    """docker-compose.murphy.yml must use pinned image versions, not :latest."""
+
+    def _content(self) -> str:
+        with open(os.path.join(_PROJECT_ROOT, "docker-compose.murphy.yml")) as fh:
+            return fh.read()
+
+    def test_prometheus_pinned(self):
+        content = self._content()
+        assert "prom/prometheus:latest" not in content, (
+            "docker-compose.murphy.yml should pin Prometheus version"
+        )
+        assert "prom/prometheus:v" in content
+
+    def test_grafana_pinned(self):
+        content = self._content()
+        assert "grafana/grafana:latest" not in content, (
+            "docker-compose.murphy.yml should pin Grafana version"
+        )
+        assert "grafana/grafana:1" in content
+
+
+class TestEnvExampleWebhookSecrets:
+    """.env.example must document PayPal and Coinbase webhook secrets."""
+
+    def _content(self) -> str:
+        with open(os.path.join(_PROJECT_ROOT, ".env.example")) as fh:
+            return fh.read()
+
+    def test_paypal_webhook_secret_documented(self):
+        assert "PAYPAL_WEBHOOK_SECRET" in self._content()
+
+    def test_coinbase_webhook_secret_documented(self):
+        assert "COINBASE_WEBHOOK_SECRET" in self._content()
+
+    def test_paypal_labeled_primary(self):
+        """PayPal should be labeled as primary, not 'alternative'."""
+        assert "primary payment" in self._content().lower() or "PayPal (primary" in self._content()
