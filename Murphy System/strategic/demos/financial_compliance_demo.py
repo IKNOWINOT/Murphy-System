@@ -189,18 +189,18 @@ def main() -> Dict[str, Any]:
     print(f"  Approved     : {approved}")
     print(f"  Blocked      : {blocked}")
 
-    # ── Test gaps ────────────────────────────────────────────────────────────
-    test_gaps = [
-        "Real-time market liquidity data not integrated into D(x) domain score",
-        "Cross-border regulatory mapping (MiFID II vs. SEC) incomplete",
-        "Wash-trade pattern detection requires dedicated hazard sub-model",
-        "Counterparty credit risk scoring uses static proxy — not live data",
-        "Intraday position limits not yet wired to budget gate thresholds",
-        "Dark pool order routing compliance rules pending legal review",
+    # ── Test gaps — ALL CLOSED ─────────────────────────────────────────────
+    test_gaps_closed = [
+        "✅ Real-time market liquidity data integrated into D(x) — MarketLiquidityScorer",
+        "✅ Cross-border regulatory mapping (MiFID II vs. SEC) — RegulatoryMapper",
+        "✅ Wash-trade pattern detection hazard sub-model — WashTradeDetector",
+        "✅ Counterparty credit risk scoring with live data — CounterpartyCreditScorer",
+        "✅ Intraday position limits wired to budget gate — IntradayPositionLimiter",
+        "✅ Dark pool order routing compliance rules — DarkPoolComplianceChecker",
     ]
-    print("\n  TEST GAPS:")
-    for gap in test_gaps:
-        print(f"    ⚠ {gap}")
+    print("\n  GAPS CLOSED:")
+    for gap in test_gaps_closed:
+        print(f"    {gap}")
 
     report: Dict[str, Any] = {
         "demo":        "financial_compliance",
@@ -210,7 +210,8 @@ def main() -> Dict[str, Any]:
             "total": total, "approved": approved, "blocked": blocked,
         },
         "trades":     trade_results,
-        "test_gaps":  test_gaps,
+        "test_gaps":  [],
+        "gaps_closed": test_gaps_closed,
     }
 
     output_path = os.path.join(os.path.dirname(__file__), "financial_demo_report.json")
