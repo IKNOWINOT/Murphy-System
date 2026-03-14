@@ -24,7 +24,7 @@
 >   unexpected behavior. Edge cases are actively being catalogued.
 > - 🔧 **Self-healing capabilities** — Murphy includes a self-improvement engine,
 >   bug pattern detector, and correction loop.
-> - 📊 **Test coverage is extensive** — 585+ test files with comprehensive coverage.
+> - 📊 **Test coverage is extensive** — 644 test files with comprehensive coverage.
 >   CI runs automatically on push/PR via GitHub Actions.
 > - 🤝 **Contributions welcome** — see [CONTRIBUTING.md](CONTRIBUTING.md).
 >
@@ -797,8 +797,8 @@ Murphy is the **only automation platform** that covers the entire stack — from
 | **Source Lines** | 218,497 |
 | **Classes** | 2,487 |
 | **Functions / Methods** | 8,472 |
-| **Packages** | 54 subsystem directories |
-| **Test Files** | 585+ |
+| **Packages** | 81 subsystem directories |
+| **Test Files** | 644 |
 | **Test Functions** | 8,843+ |
 | **Automation Types** | 6 (factory, content, data, system, agent, business) |
 | **Gap-Closure Categories Audited** | 90 (all at zero) |
@@ -818,7 +818,7 @@ python -m pytest tests/ -q --tb=short
 
 | Metric | Count |
 | --- | --- |
-| Test files | 585+ |
+| Test files | 644 |
 | Test functions | 8,843+ |
 | Gap-closure tests | 406 (rounds 3–42) |
 
