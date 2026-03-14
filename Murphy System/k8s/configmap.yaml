@@ -24,3 +24,6 @@ data:
   MURPHY_BACKUP_DIR: "/backups"
   MURPHY_BACKUP_RETENTION_DAYS: "30"
   MURPHY_DB_MODE: "live"
+  POSTGRES_HOST: "postgres"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "murphy_db"

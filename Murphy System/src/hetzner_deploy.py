@@ -131,6 +131,9 @@ class HetznerStepType(str, Enum):
     APPLY_PROMETHEUS = "apply_prometheus"
     APPLY_GRAFANA = "apply_grafana"
     APPLY_SERVICE_MONITOR = "apply_service_monitor"
+    APPLY_POSTGRES = "apply_postgres"
+    APPLY_STAGING_NAMESPACE = "apply_staging_namespace"
+    RUN_PRODUCTION_READINESS = "run_production_readiness"
     VERIFY_DEPLOYMENT = "verify_deployment"
 
 
@@ -689,44 +692,74 @@ class HetznerDeployPlanGenerator:
             liability_note="You approved this action. Murphy executed it as instructed.",
         ))
 
-        # 20. Verify deployment
+        # 20. Apply Redis deployment (cache, rate limiting, session store)
         steps.append(SetupStep(
-            step_id="hetzner-20-verify-deployment",
-        # 18. Apply Redis deployment (cache, rate limiting, session store)
-        steps.append(SetupStep(
-            step_id="hetzner-18-apply-redis",
+            step_id="hetzner-20-apply-redis",
             description="Apply Redis deployment (ConfigMap, Deployment, Service, PVC)",
             risk_level=RiskLevel.LOW,
             command=f'kubectl apply -f "{self._k8s("redis.yaml")}"',
             liability_note="You approved this action. Murphy executed it as instructed.",
         ))
 
-        # 19. Apply ResourceQuota and LimitRange
+        # 21. Apply PostgreSQL deployment (primary database)
         steps.append(SetupStep(
-            step_id="hetzner-19-apply-resource-quota",
+            step_id="hetzner-21-apply-postgres",
+            description="Apply PostgreSQL deployment (ConfigMap, PVC, Deployment, Service)",
+            risk_level=RiskLevel.MEDIUM,
+            command=f'kubectl apply -f "{self._k8s("postgres.yaml")}"',
+            liability_note="You approved this action. Murphy executed it as instructed.",
+        ))
+
+        # 22. Wait for PostgreSQL to be ready
+        steps.append(SetupStep(
+            step_id="hetzner-22-wait-postgres",
+            description="Wait for PostgreSQL pod to become ready",
+            risk_level=RiskLevel.LOW,
+            command=(
+                f"kubectl rollout status deployment/postgres "
+                f"-n {self.namespace} --timeout=300s"
+            ),
+            liability_note="Read-only verification. No system change.",
+        ))
+
+        # 23. Apply ResourceQuota and LimitRange
+        steps.append(SetupStep(
+            step_id="hetzner-23-apply-resource-quota",
             description="Apply Kubernetes ResourceQuota and LimitRange for namespace governance",
             risk_level=RiskLevel.LOW,
             command=f'kubectl apply -f "{self._k8s("resource-quota.yaml")}"',
             liability_note="You approved this action. Murphy executed it as instructed.",
         ))
 
-        # 20. Apply backup CronJob
+        # 24. Apply backup CronJob
         steps.append(SetupStep(
-            step_id="hetzner-20-apply-backup-cronjob",
+            step_id="hetzner-24-apply-backup-cronjob",
             description="Apply automated backup CronJob (daily at 02:00 UTC)",
             risk_level=RiskLevel.MEDIUM,
             command=f'kubectl apply -f "{self._k8s("backup-cronjob.yaml")}"',
             liability_note="You approved this action. Murphy executed it as instructed.",
         ))
 
-        # 21. Verify deployment
+        # 25. Verify deployment (rollout status)
         steps.append(SetupStep(
-            step_id="hetzner-21-verify-deployment",
-            description="Verify deployment health via kubectl and /api/health endpoint",
+            step_id="hetzner-25-verify-deployment",
+            description="Verify deployment health via kubectl rollout status",
             risk_level=RiskLevel.LOW,
             command=(
                 f"kubectl rollout status deployment/{self.deployment} "
                 f"-n {self.namespace} --timeout=300s"
+            ),
+            liability_note="Read-only verification. No system change.",
+        ))
+
+        # 26. Run production readiness check
+        steps.append(SetupStep(
+            step_id="hetzner-26-production-readiness",
+            description="Run production readiness check script to validate all resources",
+            risk_level=RiskLevel.LOW,
+            command=(
+                f'bash "Murphy System/scripts/production_readiness_check.sh" '
+                f'{self.namespace}'
             ),
             liability_note="Read-only verification. No system change.",
         ))
