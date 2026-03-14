@@ -82,7 +82,7 @@
     var POLL_INTERVAL_MS = 10000;
     var SPLIT_DEFAULT_RATIO = 0.70;
 
-    var HEALTH_COLORS = {
+    var TOPO_HEALTH_COLORS = {
       healthy:  '#34D399',
       degraded: '#FBBF24',
       error:    '#F87171',
@@ -166,7 +166,7 @@
     /* ------------------------------------------------------------------ */
 
     function getHealthColor(h) {
-      return HEALTH_COLORS[h] || HEALTH_COLORS.unknown;
+      return TOPO_HEALTH_COLORS[h] || TOPO_HEALTH_COLORS.unknown;
     }
 
     function getGateColor(gate) {

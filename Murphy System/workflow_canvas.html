@@ -96,6 +96,15 @@
           <div class="palette-item" draggable="true" data-type="gate" data-subtype="budget">💰 Budget</div>
         </div>
 
+        <div class="palette-section">
+          <h4>Production</h4>
+          <div class="palette-item" draggable="true" data-type="production" data-subtype="proposal">📝 New Proposal</div>
+          <div class="palette-item" draggable="true" data-type="production" data-subtype="workorder">📋 Work Order</div>
+          <div class="palette-item" draggable="true" data-type="production" data-subtype="validate">✅ Validate</div>
+          <div class="palette-item" draggable="true" data-type="production" data-subtype="deliver">📦 Deliver</div>
+          <div class="palette-item murphy-sidebar-item" style="cursor:pointer" onclick="window.open('production_wizard.html','_blank')">🏭 Open Production Wizard ↗</div>
+        </div>
+
         <div class="palette-section" id="integration-nodes">
           <h4>Integrations</h4>
           <div class="murphy-skeleton" aria-label="Loading integrations"></div>
@@ -668,7 +677,7 @@
       });
 
       if (nodesData.length > 2) {
-        autoLayout.layoutWithAnimation(400);
+        autoLayout.dagLayout();
       } else {
         canvas.render();
       }
@@ -835,7 +844,7 @@
 
     /* ── Auto-layout button ─────────────────────────────── */
     $btnLayout.addEventListener('click', function () {
-      autoLayout.layoutWithAnimation(500);
+      autoLayout.dagLayout();
       terminal.output('✓ Auto-layout applied.');
     });
 
@@ -970,6 +979,46 @@
     /* ── Welcome message ────────────────────────────────── */
     terminal.output('Murphy Workflow Designer ready.');
     terminal.output('Drag nodes from the palette, connect ports, or describe a workflow above.');
+
+    /* ── Auto-load production workflow if passed via URL ── */
+    (function loadProductionWorkflow() {
+      var params = new URLSearchParams(window.location.search);
+      var prodId = params.get('production');
+      if (!prodId) return;
+      var stored = null;
+      try { stored = localStorage.getItem('murphy_production_workflow'); } catch(_) {}
+      if (stored) {
+        try {
+          var wf = JSON.parse(stored);
+          canvas.fromJSON(wf);
+          autoLayout.dagLayout();
+          canvas.render();
+          terminal.output('🏭 Production workflow loaded: ' + prodId);
+          terminal.output('   ' + (wf.nodes ? wf.nodes.length : 0) + ' nodes, ' + (wf.edges ? wf.edges.length : 0) + ' connections');
+          terminal.output('   Edit nodes, drag to rearrange, then Save when ready.');
+          try { localStorage.removeItem('murphy_production_workflow'); } catch(_) {}
+        } catch(e) {
+          terminal.output('✗ Failed to parse production workflow: ' + e.message);
+        }
+      } else {
+        /* Fetch from API if not in localStorage */
+        api.get('/production/proposals/' + encodeURIComponent(prodId))
+          .then(function(res) {
+            if (res.ok && res.data && res.data.proposal && res.data.proposal.workflow) {
+              canvas.fromJSON(res.data.proposal.workflow);
+              autoLayout.dagLayout();
+              canvas.render();
+              terminal.output('🏭 Production workflow loaded from API: ' + prodId);
+              terminal.output('   Edit nodes, drag to rearrange, then Save when ready.');
+            } else {
+              terminal.output('✗ No workflow found for production: ' + prodId);
+            }
+          })
+          .catch(function() {
+            terminal.output('✗ Could not load production workflow from API');
+          });
+      }
+    })();
 
   })();
   </script>

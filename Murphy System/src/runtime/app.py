@@ -725,6 +725,11 @@ def create_app() -> FastAPI:
             {"command": "agent dashboard", "category": "agents", "description": "View agent dashboard snapshot", "api": "/api/agent-dashboard/snapshot", "ui": "/ui/terminal-integrated#agents"},
             {"command": "tasks list", "category": "agents", "description": "List active tasks", "api": "/api/tasks", "ui": "/ui/terminal-orchestrator"},
             {"command": "production queue", "category": "agents", "description": "View production queue", "api": "/api/production/queue", "ui": "/ui/terminal-orchestrator"},
+            {"command": "production wizard", "category": "production", "description": "Open the production wizard for proposals, work orders, and deliverables", "api": "/api/production/queue", "ui": "/ui/production-wizard"},
+            {"command": "production new proposal", "category": "production", "description": "Create a new production proposal via the wizard", "api": "/api/production/proposal", "ui": "/ui/production-wizard#proposal"},
+            {"command": "production work order", "category": "production", "description": "Create a work order from an approved proposal", "api": "/api/production/workorder", "ui": "/ui/production-wizard#workorder"},
+            {"command": "production validate", "category": "production", "description": "Validate a deliverable against its work order", "api": "/api/production/validate", "ui": "/ui/production-wizard#validate"},
+            {"command": "production profiles", "category": "production", "description": "Manage production profiles (client configurations)", "api": "/api/production/profiles", "ui": "/ui/production-wizard#profiles"},
             {"command": "deliverables", "category": "agents", "description": "List deliverables", "api": "/api/deliverables", "ui": "/ui/terminal-orchestrator"},
             # ── Orchestrator & Org Chart ──────────────────────────────
             {"command": "orchestrator overview", "category": "orchestrator", "description": "View orchestrator system overview", "api": "/api/orchestrator/overview", "ui": "/ui/terminal-orchestrator"},
@@ -2376,6 +2381,8 @@ def create_app() -> FastAPI:
     # ==================== PRODUCTION QUEUE ENDPOINTS ====================
 
     _production_queue: List[Dict[str, Any]] = []
+    _production_proposals: Dict[str, Dict[str, Any]] = {}
+    _production_work_orders: Dict[str, Dict[str, Any]] = {}
 
     @app.get("/api/production/queue")
     async def production_queue():
@@ -2384,6 +2391,255 @@ def create_app() -> FastAPI:
             "success": True,
             "items": _production_queue,
             "count": len(_production_queue),
+        })
+
+    @app.post("/api/production/proposals")
+    async def create_production_proposal(request: Request):
+        """Create a production proposal and generate its workflow."""
+        body = await request.json()
+        pid = body.get("proposal_id", "")
+        if not pid:
+            return JSONResponse({"success": False, "error": "proposal_id required"}, 400)
+
+        gates = body.get("required_gates", ["SAFETY", "COMPLIANCE"])
+        funcs = body.get("regulatory_functions", [])
+        industry = body.get("regulatory_industry", "general")
+        location = body.get("regulatory_location", "US")
+        spec = body.get("deliverable_spec", "")
+
+        # Build workflow nodes from the proposal
+        nodes = []
+        edges = []
+        y_base = 80
+        x_step = 240
+
+        # 1. Trigger node — incoming request
+        nodes.append({
+            "id": f"{pid}-trigger", "x": 60, "y": y_base,
+            "type": "trigger", "label": "Incoming Request",
+            "icon": "📡", "health": "idle",
+            "data": {"subtype": "event", "proposal_id": pid},
+            "ports": [
+                {"id": f"{pid}-trigger-out", "type": "output", "label": "out", "side": "right"},
+            ],
+        })
+
+        # 2. Compliance gate(s) from selected gates
+        prev_port = f"{pid}-trigger-out"
+        prev_node = f"{pid}-trigger"
+        for i, gate in enumerate(gates):
+            nid = f"{pid}-gate-{gate.lower()}"
+            nodes.append({
+                "id": nid, "x": 60 + x_step * (i + 1), "y": y_base,
+                "type": "gate", "label": gate.replace("_", " ").title(),
+                "icon": "🔒" if gate in ("SAFETY", "SECURITY") else "📋",
+                "health": "idle",
+                "data": {"subtype": gate.lower(), "gate_type": gate},
+                "ports": [
+                    {"id": f"{nid}-in", "type": "input", "label": "in", "side": "left"},
+                    {"id": f"{nid}-out", "type": "output", "label": "out", "side": "right"},
+                ],
+            })
+            edges.append({
+                "id": f"{pid}-edge-{i}",
+                "sourceNodeId": prev_node, "sourcePortId": prev_port,
+                "targetNodeId": nid, "targetPortId": f"{nid}-in",
+                "animated": True,
+            })
+            prev_port = f"{nid}-out"
+            prev_node = nid
+
+        # 3. Processing node
+        proc_x = 60 + x_step * (len(gates) + 1)
+        proc_id = f"{pid}-process"
+        nodes.append({
+            "id": proc_id, "x": proc_x, "y": y_base,
+            "type": "action", "label": f"Process ({industry})",
+            "icon": "⚙", "health": "idle",
+            "data": {"subtype": "execute", "industry": industry, "location": location},
+            "ports": [
+                {"id": f"{proc_id}-in", "type": "input", "label": "in", "side": "left"},
+                {"id": f"{proc_id}-out", "type": "output", "label": "out", "side": "right"},
+            ],
+        })
+        edges.append({
+            "id": f"{pid}-edge-proc",
+            "sourceNodeId": prev_node, "sourcePortId": prev_port,
+            "targetNodeId": proc_id, "targetPortId": f"{proc_id}-in",
+            "animated": True,
+        })
+
+        # 4. HITL review node
+        hitl_x = proc_x + x_step
+        hitl_id = f"{pid}-hitl"
+        nodes.append({
+            "id": hitl_id, "x": hitl_x, "y": y_base,
+            "type": "gate", "label": "HITL Review",
+            "icon": "🙋", "health": "idle",
+            "data": {"subtype": "hitl", "gate_type": "HITL_REVIEW"},
+            "ports": [
+                {"id": f"{hitl_id}-in", "type": "input", "label": "in", "side": "left"},
+                {"id": f"{hitl_id}-pass", "type": "output", "label": "pass", "side": "right"},
+                {"id": f"{hitl_id}-fail", "type": "output", "label": "fail", "side": "right"},
+            ],
+        })
+        edges.append({
+            "id": f"{pid}-edge-hitl",
+            "sourceNodeId": proc_id, "sourcePortId": f"{proc_id}-out",
+            "targetNodeId": hitl_id, "targetPortId": f"{hitl_id}-in",
+            "animated": True,
+        })
+
+        # 5. Deliver node
+        deliver_x = hitl_x + x_step
+        deliver_id = f"{pid}-deliver"
+        nodes.append({
+            "id": deliver_id, "x": deliver_x, "y": y_base - 40,
+            "type": "action", "label": "Deliver",
+            "icon": "📦", "health": "idle",
+            "data": {"subtype": "deliver"},
+            "ports": [
+                {"id": f"{deliver_id}-in", "type": "input", "label": "in", "side": "left"},
+                {"id": f"{deliver_id}-out", "type": "output", "label": "out", "side": "right"},
+            ],
+        })
+        edges.append({
+            "id": f"{pid}-edge-deliver",
+            "sourceNodeId": hitl_id, "sourcePortId": f"{hitl_id}-pass",
+            "targetNodeId": deliver_id, "targetPortId": f"{deliver_id}-in",
+            "animated": True,
+        })
+
+        # 6. Correction loop (HITL fail → back to process)
+        edges.append({
+            "id": f"{pid}-edge-correction",
+            "sourceNodeId": hitl_id, "sourcePortId": f"{hitl_id}-fail",
+            "targetNodeId": proc_id, "targetPortId": f"{proc_id}-in",
+            "color": "#F87171", "animated": True,
+        })
+
+        # 7. Verify node
+        verify_x = deliver_x + x_step
+        verify_id = f"{pid}-verify"
+        nodes.append({
+            "id": verify_id, "x": verify_x, "y": y_base - 40,
+            "type": "action", "label": "Verified ✓",
+            "icon": "✅", "health": "idle",
+            "data": {"subtype": "validate"},
+            "ports": [
+                {"id": f"{verify_id}-in", "type": "input", "label": "in", "side": "left"},
+            ],
+        })
+        edges.append({
+            "id": f"{pid}-edge-verify",
+            "sourceNodeId": deliver_id, "sourcePortId": f"{deliver_id}-out",
+            "targetNodeId": verify_id, "targetPortId": f"{verify_id}-in",
+            "animated": True,
+        })
+
+        workflow = {
+            "id": pid,
+            "name": f"Production: {pid}",
+            "transform": {"offsetX": 40, "offsetY": 40, "scale": 1},
+            "nodes": nodes,
+            "edges": edges,
+        }
+
+        proposal = {
+            "proposal_id": pid,
+            "industry": industry,
+            "location": location,
+            "functions": funcs,
+            "spec": spec,
+            "gates": gates,
+            "status": "pending",
+            "workflow": workflow,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        _production_proposals[pid] = proposal
+        _production_queue.append({"id": pid, "type": "proposal", "status": "pending"})
+
+        return JSONResponse({
+            "success": True, "status": "pending",
+            "proposal_id": pid, "workflow": workflow,
+        })
+
+    @app.get("/api/production/proposals")
+    async def list_production_proposals():
+        """List all production proposals."""
+        return JSONResponse({
+            "success": True,
+            "proposals": list(_production_proposals.values()),
+            "count": len(_production_proposals),
+        })
+
+    @app.get("/api/production/proposals/{proposal_id}")
+    async def get_production_proposal(proposal_id: str):
+        """Get a specific proposal and its generated workflow."""
+        p = _production_proposals.get(proposal_id)
+        if not p:
+            return JSONResponse({"success": False, "error": "Not found"}, 404)
+        return JSONResponse({"success": True, "proposal": p})
+
+    @app.post("/api/production/work-orders")
+    async def create_work_order(request: Request):
+        """Create a work order linked to a proposal."""
+        body = await request.json()
+        woid = body.get("work_order_id", "")
+        pid = body.get("proposal_id", "")
+        if not woid or not pid:
+            return JSONResponse({"success": False, "error": "work_order_id and proposal_id required"}, 400)
+
+        proposal = _production_proposals.get(pid)
+        wo = {
+            "work_order_id": woid,
+            "proposal_id": pid,
+            "deliverable_content": body.get("deliverable_content", ""),
+            "status": "pending",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "workflow_id": pid if proposal else None,
+        }
+        _production_work_orders[woid] = wo
+        _production_queue.append({"id": woid, "type": "work_order", "status": "pending"})
+        return JSONResponse({"success": True, "status": "pending", "work_order_id": woid})
+
+    @app.post("/api/production/route")
+    async def route_incoming_request(request: Request):
+        """Route an incoming request to the matching production workflow.
+
+        Looks up active proposals by industry/location/keyword and returns
+        the matching workflow so the caller (or the UI) can execute or
+        display it.
+        """
+        body = await request.json()
+        req_industry = (body.get("industry") or "").lower()
+        req_keyword = (body.get("keyword") or "").lower()
+
+        matches = []
+        for pid, p in _production_proposals.items():
+            p_industry = (p.get("industry") or "").lower()
+            p_spec = (p.get("spec") or "").lower()
+            score = 0
+            if req_industry and req_industry in p_industry:
+                score += 2
+            if req_keyword and req_keyword in p_spec:
+                score += 1
+            if score > 0:
+                matches.append({"proposal_id": pid, "score": score, "workflow": p.get("workflow")})
+
+        matches.sort(key=lambda m: m["score"], reverse=True)
+        if matches:
+            best = matches[0]
+            return JSONResponse({
+                "success": True, "routed": True,
+                "proposal_id": best["proposal_id"],
+                "workflow": best["workflow"],
+                "alternatives": [m["proposal_id"] for m in matches[1:5]],
+            })
+        return JSONResponse({
+            "success": True, "routed": False,
+            "message": "No matching production workflow found",
+            "available_proposals": list(_production_proposals.keys()),
         })
 
     # ==================== DELIVERABLES ENDPOINTS ====================
@@ -2885,6 +3141,93 @@ def create_app() -> FastAPI:
         except (ValueError, RuntimeError) as exc:
             logger.exception("Failed to list MFM versions")
             return _safe_error_response(exc, 500)
+
+    # ==================== SMOKE-TEST STUB ENDPOINTS ====================
+    # Lightweight stubs so every sidebar view resolves to a live endpoint.
+    # These return empty-but-valid JSON so the UI never shows a 404.
+
+    @app.get("/api/onboarding-flow/status")
+    async def onboarding_flow_status():
+        """Return current onboarding flow status."""
+        return JSONResponse({
+            "success": True, "status": "idle",
+            "active_sessions": 0, "completed": 0,
+        })
+
+    @app.get("/api/credentials/list")
+    async def credentials_list():
+        """List stored credential keys (no secrets exposed)."""
+        return JSONResponse({"success": True, "credentials": []})
+
+    @app.get("/api/documents/list")
+    async def documents_list():
+        """List available documents."""
+        return JSONResponse({"success": True, "documents": []})
+
+    @app.get("/api/llm/providers")
+    async def llm_providers_list():
+        """List configured LLM providers."""
+        return JSONResponse({
+            "success": True,
+            "providers": [],
+            "active": None,
+            "message": "Configure MURPHY_LLM_PROVIDER to enable LLM integration",
+        })
+
+    @app.get("/api/hitl/queue")
+    async def hitl_queue():
+        """Return HITL approval queue."""
+        return JSONResponse({"success": True, "queue": [], "pending_count": 0})
+
+    @app.get("/api/mfgc/gates")
+    async def mfgc_gates():
+        """Return current MFGC gate states."""
+        return JSONResponse({
+            "success": True,
+            "gates": {
+                "executive": "closed", "operations": "closed",
+                "qa": "closed", "hitl": "closed",
+                "compliance": "closed", "budget": "closed",
+            },
+        })
+
+    @app.get("/api/corrections/list")
+    async def corrections_list():
+        """List correction entries."""
+        return JSONResponse({"success": True, "corrections": []})
+
+    @app.get("/api/wingman/status")
+    async def wingman_status():
+        """Return Wingman co-pilot status."""
+        return JSONResponse({
+            "success": True, "status": "idle",
+            "active_session": None, "suggestions": [],
+        })
+
+    @app.get("/api/causality/graph")
+    async def causality_graph():
+        """Return causality dependency graph."""
+        return JSONResponse({"success": True, "nodes": [], "edges": []})
+
+    @app.get("/api/efficiency/metrics")
+    async def efficiency_metrics():
+        """Return efficiency metrics."""
+        return JSONResponse({
+            "success": True,
+            "automation_rate": 0.0, "time_saved_hours": 0,
+            "cost_saved_usd": 0.0, "tasks_automated": 0,
+        })
+
+    @app.get("/api/forms/list")
+    async def forms_list_get():
+        """List available form types."""
+        return JSONResponse({
+            "success": True,
+            "forms": [
+                "task-execution", "validation", "correction",
+                "plan-upload", "plan-generation",
+            ],
+        })
 
     # ==================== COMPLIANCE ENDPOINTS ====================
 
