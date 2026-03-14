@@ -703,6 +703,21 @@ def create_app() -> FastAPI:
             {"command": "integrations wire", "category": "integrations", "description": "Wire up an integration connection", "api": "/api/integrations/wire", "ui": "/ui/terminal-integrations#connections"},
             {"command": "integrations active", "category": "integrations", "description": "View active integration connections", "api": "/api/integrations/active", "ui": "/ui/terminal-integrations#connections"},
             {"command": "universal-integrations list", "category": "integrations", "description": "Browse universal integration services catalog", "api": "/api/universal-integrations/services", "ui": "/ui/terminal-integrations#integrations"},
+            # ── Website Builder Integrations ─────────────────────────
+            {"command": "wordpress connect", "category": "website_integrations", "description": "Connect a WordPress site to pull posts, pages, forms, and WooCommerce data", "api": "/api/universal-integrations/services/wordpress/configure", "ui": "/ui/terminal-integrations#integrations"},
+            {"command": "wordpress posts", "category": "website_integrations", "description": "List WordPress posts as automation inputs", "api": "/api/universal-integrations/services/wordpress/execute/list_posts", "ui": "/ui/terminal-integrations#integrations"},
+            {"command": "wordpress pages", "category": "website_integrations", "description": "List WordPress pages", "api": "/api/universal-integrations/services/wordpress/execute/list_pages", "ui": "/ui/terminal-integrations#integrations"},
+            {"command": "wordpress forms", "category": "website_integrations", "description": "List WordPress form entries (Contact Form 7 / Gravity Forms)", "api": "/api/universal-integrations/services/wordpress/execute/list_form_entries", "ui": "/ui/terminal-integrations#integrations"},
+            {"command": "wordpress orders", "category": "website_integrations", "description": "List WooCommerce orders", "api": "/api/universal-integrations/services/wordpress/execute/list_wc_orders", "ui": "/ui/terminal-integrations#integrations"},
+            {"command": "wix connect", "category": "website_integrations", "description": "Connect a Wix site to pull content, forms, bookings, and e-commerce data", "api": "/api/universal-integrations/services/wix/configure", "ui": "/ui/terminal-integrations#integrations"},
+            {"command": "wix forms", "category": "website_integrations", "description": "List Wix form submissions as automation inputs", "api": "/api/universal-integrations/services/wix/execute/list_form_submissions", "ui": "/ui/terminal-integrations#integrations"},
+            {"command": "wix orders", "category": "website_integrations", "description": "List Wix e-commerce orders", "api": "/api/universal-integrations/services/wix/execute/list_orders", "ui": "/ui/terminal-integrations#integrations"},
+            {"command": "wix contacts", "category": "website_integrations", "description": "List Wix CRM contacts", "api": "/api/universal-integrations/services/wix/execute/list_contacts", "ui": "/ui/terminal-integrations#integrations"},
+            {"command": "wix bookings", "category": "website_integrations", "description": "List Wix bookings/appointments", "api": "/api/universal-integrations/services/wix/execute/list_bookings", "ui": "/ui/terminal-integrations#integrations"},
+            {"command": "squarespace connect", "category": "website_integrations", "description": "Connect a Squarespace site to pull orders, products, forms", "api": "/api/universal-integrations/services/squarespace/configure", "ui": "/ui/terminal-integrations#integrations"},
+            {"command": "squarespace orders", "category": "website_integrations", "description": "List Squarespace orders", "api": "/api/universal-integrations/services/squarespace/execute/list_orders", "ui": "/ui/terminal-integrations#integrations"},
+            {"command": "webflow connect", "category": "website_integrations", "description": "Connect a Webflow site to pull CMS collections and form data", "api": "/api/universal-integrations/services/webflow/configure", "ui": "/ui/terminal-integrations#integrations"},
+            {"command": "webflow forms", "category": "website_integrations", "description": "List Webflow form submissions", "api": "/api/universal-integrations/services/webflow/execute/list_form_submissions", "ui": "/ui/terminal-integrations#integrations"},
             # ── Matrix Bridge ────────────────────────────────────────
             {"command": "matrix status", "category": "matrix", "description": "Check Matrix bridge connection status", "api": "/api/matrix/status", "ui": "/ui/matrix"},
             {"command": "matrix rooms", "category": "matrix", "description": "List joined Matrix rooms", "api": "/api/matrix/rooms", "ui": "/ui/matrix"},
@@ -931,6 +946,14 @@ def create_app() -> FastAPI:
         doc_type = data.get("type") or data.get("doc_type") or "general"
         doc = murphy._create_document(title=title, content=content, doc_type=doc_type, session_id=data.get("session_id"))
         return JSONResponse({"success": True, **doc.to_dict()})
+
+    @app.get("/api/documents/list")
+    async def documents_list_early():
+        """List available documents (registered before {doc_id} wildcard)."""
+        docs = []
+        for doc_id, doc in getattr(murphy, "living_documents", {}).items():
+            docs.append({"doc_id": doc_id, "title": getattr(doc, "title", "Untitled")})
+        return JSONResponse({"success": True, "documents": docs})
 
     @app.get("/api/documents/{doc_id}")
     async def get_document(doc_id: str):
@@ -3478,11 +3501,6 @@ def create_app() -> FastAPI:
     async def credentials_list():
         """List stored credential keys (no secrets exposed)."""
         return JSONResponse({"success": True, "credentials": []})
-
-    @app.get("/api/documents/list")
-    async def documents_list():
-        """List available documents."""
-        return JSONResponse({"success": True, "documents": []})
 
     @app.get("/api/llm/providers")
     async def llm_providers_list():
