@@ -774,16 +774,16 @@ class TestThreadSafety:
 # ProductionAssistantOrchestrator
 # ===========================================================================
 
-import sys as _sys
-import os as _os
+import sys
+import os
 
 # Ensure strategic package is importable (needed for SafetyGate integration)
-_strategic_root = _os.path.join(_os.path.dirname(__file__), "..")
-if _strategic_root not in _sys.path:
-    _sys.path.insert(0, _strategic_root)
+_strategic_root = os.path.join(os.path.dirname(__file__), "..")
+if _strategic_root not in sys.path:
+    sys.path.insert(0, _strategic_root)
 
 from production_assistant_engine import (
-    PRODUCTION_CONFIDENCE_THRESHOLD as _THRESHOLD,
+    PRODUCTION_CONFIDENCE_THRESHOLD,
     DeliverableGateReport,
     DeliverableGateValidator,
     DeliverableItem,
@@ -817,10 +817,10 @@ def orchestrator():
 
 class TestEngineConfidenceThreshold:
     def test_threshold_is_099(self):
-        assert _THRESHOLD == 0.99
+        assert PRODUCTION_CONFIDENCE_THRESHOLD == 0.99
 
     def test_threshold_type_float(self):
-        assert isinstance(_THRESHOLD, float)
+        assert isinstance(PRODUCTION_CONFIDENCE_THRESHOLD, float)
 
 
 # ---------------------------------------------------------------------------
