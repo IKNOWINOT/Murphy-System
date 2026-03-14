@@ -15,8 +15,11 @@
 <link rel="stylesheet" href="static/murphy-design-system.css">
 <style>
   /* Color Key: green=#00ff41, cyan=#00ffff, teal=#00D4AA, bg=#0a0a0a */
-  .murphy-terminal, .murphy-output, pre, code, textarea, input[type="text"] {
-    font-family: 'Courier New', Courier, monospace;
+  .murphy-terminal, .murphy-output, pre, code {
+    font-family: var(--font-code, 'JetBrains Mono', monospace);
+  }
+  textarea, input[type="text"] {
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
     color: #00ff41;
     background: #0a0a0a;
   }
@@ -36,7 +39,7 @@
 
   /* ── Breadcrumb ── */
   .murphy-breadcrumb {
-    font-family: 'Courier New', Courier, monospace;
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
     font-size: 0.78rem;
     color: #666;
     margin-bottom: 1rem;
@@ -50,7 +53,7 @@
 
   /* ── Page Heading ── */
   .compliance-page-title {
-    font-family: 'Courier New', Courier, monospace;
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
     font-size: 1.6rem;
     font-weight: 700;
     color: #00ffff;
@@ -78,7 +81,7 @@
   }
   .compliance-banner-text {
     flex: 1;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
     font-size: 0.82rem;
     color: #e0c97f;
     line-height: 1.5;
@@ -111,7 +114,7 @@
   .compliance-section-header:hover { background: #161616; }
   .compliance-section-header[aria-expanded="false"] { border-bottom-color: transparent; }
   .compliance-section-title-text {
-    font-family: 'Courier New', Courier, monospace;
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
     font-size: 0.9rem;
     font-weight: 700;
     color: #00ff41;
@@ -125,7 +128,7 @@
     margin-left: auto;
   }
   .compliance-section-count {
-    font-family: 'Courier New', Courier, monospace;
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
     font-size: 0.72rem;
     color: #555;
     background: #1a1a1a;
@@ -167,7 +170,7 @@
   }
   .toggle-item-info { flex: 1; min-width: 0; }
   .toggle-item-name {
-    font-family: 'Courier New', Courier, monospace;
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
     font-size: 0.82rem;
     font-weight: 700;
     color: #e0e0e0;
@@ -175,7 +178,7 @@
     line-height: 1.3;
   }
   .toggle-item-desc {
-    font-family: 'Courier New', Courier, monospace;
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
     font-size: 0.72rem;
     color: #555;
     display: block;
@@ -186,7 +189,7 @@
     text-overflow: ellipsis;
   }
   .toggle-item-badge {
-    font-family: 'Courier New', Courier, monospace;
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
     font-size: 0.65rem;
     font-weight: 700;
     letter-spacing: 0.04em;
@@ -266,7 +269,7 @@
     margin-bottom: 1rem;
   }
   .compliance-status-title {
-    font-family: 'Courier New', Courier, monospace;
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
     font-size: 0.75rem;
     font-weight: 700;
     color: #00ff41;
@@ -279,7 +282,7 @@
     justify-content: space-between;
     align-items: baseline;
     margin-bottom: 0.6rem;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
     font-size: 0.8rem;
   }
   .compliance-status-label { color: #555; }
@@ -298,7 +301,7 @@
     transition: width 0.3s ease;
   }
   .compliance-enabled-pct {
-    font-family: 'Courier New', Courier, monospace;
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
     font-size: 0.68rem;
     color: #444;
     text-align: right;
@@ -313,7 +316,7 @@
     border: 1px solid #1e1e1e;
     border-radius: 8px;
     padding: 0.8rem 1.1rem;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
     font-size: 0.82rem;
     color: #e0e0e0;
     display: flex;

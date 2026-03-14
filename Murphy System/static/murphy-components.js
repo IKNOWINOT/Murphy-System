@@ -1501,6 +1501,7 @@ class MurphyLibrarianChat {
     this._api     = api;
     this._context = '';
     this._open    = false;
+    this._mode    = 'ask';   // 'ask' (knowledge) or 'execute' (action)
     this._history = this._loadHistory();
     this._createButton();
     this._createPanel();
@@ -1513,11 +1514,16 @@ class MurphyLibrarianChat {
   async send(message) {
     const trimmed = message.trim();
     if (!trimmed) return;
-    this._addBubble(trimmed, 'user');
-    this._history.push({ role: 'user', text: trimmed });
+    const modeLabel = this._mode === 'ask' ? '📖' : '⚡';
+    this._addBubble(`${modeLabel} ${trimmed}`, 'user');
+    this._history.push({ role: 'user', text: `${modeLabel} ${trimmed}` });
     this._saveHistory();
 
-    const result = await this._api.post('/librarian/ask', { query: trimmed, context: this._context });
+    const result = await this._api.post('/librarian/ask', {
+      query: trimmed,
+      context: this._context,
+      mode: this._mode,
+    });
     if (result.ok) {
       const reply = result.data?.answer ?? result.data?.response ?? (typeof result.data === 'string' ? result.data : JSON.stringify(result.data));
       this._addBubble(reply, 'assistant');
@@ -1530,11 +1536,63 @@ class MurphyLibrarianChat {
   }
 
   /**
+   * Apply an MSS operator (magnify/simplify/solidify) to the last assistant message.
+   * @param {'magnify'|'simplify'|'solidify'} op MSS operator name.
+   */
+  async applyMSS(op) {
+    const lastMsg = this._getLastAssistantText();
+    if (!lastMsg) {
+      this._addBubble('No previous response to apply ' + op + ' to. Send a message first.', 'assistant');
+      return;
+    }
+    const labels = { magnify: '🔍 Magnify', simplify: '✂️ Simplify', solidify: '🔒 Solidify' };
+    this._addBubble(labels[op] + ' applied…', 'user');
+    this._history.push({ role: 'user', text: labels[op] + ' applied…' });
+    this._saveHistory();
+
+    const result = await this._api.post('/mss/' + op, { text: lastMsg, context: this._context });
+    if (result.ok) {
+      const r = result.data?.result || result.data || {};
+      const output = r.output || r.text || r.plan || JSON.stringify(r, null, 2);
+      this._addBubble(output, 'assistant');
+      this._history.push({ role: 'assistant', text: output });
+    } else {
+      const errMsg = result.data?.error || result.error || 'MSS operator not available';
+      this._addBubble('Error: ' + errMsg, 'assistant');
+      this._history.push({ role: 'assistant', text: 'Error: ' + errMsg });
+    }
+    this._saveHistory();
+  }
+
+  _getLastAssistantText() {
+    for (let i = this._history.length - 1; i >= 0; i--) {
+      if (this._history[i].role === 'assistant') return this._history[i].text;
+    }
+    return '';
+  }
+
+  /**
    * Update the current page context sent with queries.
    * @param {string} context Identifier for the current view.
    */
   setContext(context) {
     this._context = context;
+  }
+
+  _setMode(mode) {
+    this._mode = mode;
+    const askBtn = this._panel.querySelector('.murphy-mode-ask');
+    const execBtn = this._panel.querySelector('.murphy-mode-execute');
+    if (askBtn && execBtn) {
+      const activeStyle = 'background:#0d9488;color:#fff;';
+      const inactiveStyle = 'background:transparent;color:var(--text-secondary,#aaa);';
+      askBtn.style.cssText = askBtn.style.cssText.replace(/background:[^;]+;color:[^;]+;/, mode === 'ask' ? activeStyle : inactiveStyle);
+      execBtn.style.cssText = execBtn.style.cssText.replace(/background:[^;]+;color:[^;]+;/, mode === 'execute' ? activeStyle : inactiveStyle);
+    }
+    const input = this._panel.querySelector('.murphy-chat-input');
+    if (input) {
+      input.placeholder = mode === 'ask' ? 'Ask a question…' : 'Describe a task to execute…';
+    }
   }
 
   _createButton() {
@@ -1561,14 +1619,28 @@ class MurphyLibrarianChat {
         <span style="font-weight:600;font-size:13px;color:var(--text-primary,#eee);letter-spacing:1px;">MURPHY LIBRARIAN</span>
         <button class="murphy-chat-close" style="background:none;border:none;color:var(--text-secondary,#aaa);cursor:pointer;font-size:18px;" aria-label="Close">&times;</button>
       </div>
+      <div style="display:flex;gap:0;padding:0;border-bottom:1px solid var(--border-dim,#333);background:var(--bg-secondary,#1a1a2e);">
+        <button class="murphy-mode-ask" style="flex:1;padding:8px 0;border:none;cursor:pointer;font-size:12px;font-weight:600;border-radius:0;background:#0d9488;color:#fff;transition:background .15s;" aria-label="Ask mode" title="Ask a question — get knowledge answers">📖 Ask</button>
+        <button class="murphy-mode-execute" style="flex:1;padding:8px 0;border:none;cursor:pointer;font-size:12px;font-weight:600;border-radius:0;background:transparent;color:var(--text-secondary,#aaa);transition:background .15s;" aria-label="Execute mode" title="Execute a task — run commands and automations">⚡ Execute</button>
+      </div>
+      <div style="display:flex;gap:4px;padding:6px 14px;border-bottom:1px solid var(--border-dim,#333);background:var(--bg-primary,#0d0d1a);">
+        <button class="murphy-mss-magnify" style="flex:1;padding:6px 0;border:1px solid #6366f1;background:transparent;color:#a5b4fc;cursor:pointer;font-size:11px;font-weight:600;border-radius:4px;transition:background .15s;" title="Magnify — expand detail and resolution on the last response">🔍 Magnify</button>
+        <button class="murphy-mss-simplify" style="flex:1;padding:6px 0;border:1px solid #f59e0b;background:transparent;color:#fcd34d;cursor:pointer;font-size:11px;font-weight:600;border-radius:4px;transition:background .15s;" title="Simplify — reduce noise and complexity">✂️ Simplify</button>
+        <button class="murphy-mss-solidify" style="flex:1;padding:6px 0;border:1px solid #10b981;background:transparent;color:#6ee7b7;cursor:pointer;font-size:11px;font-weight:600;border-radius:4px;transition:background .15s;" title="Solidify — lock into actionable plan">🔒 Solidify</button>
+      </div>
       <div class="murphy-chat-messages" style="flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px;"></div>
       <div style="padding:10px 14px;border-top:1px solid var(--border-dim,#333);display:flex;gap:8px;">
-        <input type="text" class="murphy-chat-input" placeholder="Ask the Librarian…"
+        <input type="text" class="murphy-chat-input" placeholder="Ask a question…"
           style="flex:1;padding:8px 10px;background:var(--bg-secondary,#1a1a2e);color:var(--text-primary,#eee);border:1px solid var(--border-dim,#333);border-radius:3px;font-size:12px;outline:none;" autocomplete="off">
         <button class="murphy-chat-send" style="padding:6px 14px;background:#0d9488;color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:12px;">Send</button>
       </div>`;
 
     this._panel.querySelector('.murphy-chat-close').addEventListener('click', () => this._toggle());
+    this._panel.querySelector('.murphy-mode-ask').addEventListener('click', () => this._setMode('ask'));
+    this._panel.querySelector('.murphy-mode-execute').addEventListener('click', () => this._setMode('execute'));
+    this._panel.querySelector('.murphy-mss-magnify').addEventListener('click', () => this.applyMSS('magnify'));
+    this._panel.querySelector('.murphy-mss-simplify').addEventListener('click', () => this.applyMSS('simplify'));
+    this._panel.querySelector('.murphy-mss-solidify').addEventListener('click', () => this.applyMSS('solidify'));
 
     const input   = this._panel.querySelector('.murphy-chat-input');
     const sendBtn = this._panel.querySelector('.murphy-chat-send');
