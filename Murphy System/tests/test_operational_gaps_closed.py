@@ -129,9 +129,15 @@ class TestDockerComposeCredentials:
         )
 
     def test_postgres_password_required(self):
-        """POSTGRES_PASSWORD should use :? (required) syntax."""
+        """POSTGRES_PASSWORD should use :? (required) syntax, not a default."""
         content = self._content()
-        assert "POSTGRES_PASSWORD:?" in content or "POSTGRES_PASSWORD}" not in content
+        assert "POSTGRES_PASSWORD:?" in content, (
+            "POSTGRES_PASSWORD should use :? required-variable syntax"
+        )
+        # Must NOT have a default fallback like POSTGRES_PASSWORD:-
+        assert "POSTGRES_PASSWORD:-" not in content, (
+            "POSTGRES_PASSWORD should not have a default value (:-); use :? for required"
+        )
 
     def test_redis_password_supported(self):
         """docker-compose.yml should support REDIS_PASSWORD."""
