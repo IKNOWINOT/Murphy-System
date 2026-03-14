@@ -14,7 +14,21 @@ from dataclasses import asdict, dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from thread_safe_operations import capped_append_paired
+try:
+    from thread_safe_operations import capped_append_paired
+except ImportError:
+    def capped_append_paired(*lists_and_items: Any, max_size: int = 10_000) -> None:
+        """Fallback bounded paired append (CWE-770)."""
+        pairs = list(zip(lists_and_items[::2], lists_and_items[1::2]))
+        if not pairs:
+            return
+        ref_list = pairs[0][0]
+        if len(ref_list) >= max_size:
+            trim = max_size // 10
+            for lst, _ in pairs:
+                del lst[:trim]
+        for lst, item in pairs:
+            lst.append(item)
 
 logger = logging.getLogger(__name__)
 

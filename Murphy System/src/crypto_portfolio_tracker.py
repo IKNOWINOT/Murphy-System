@@ -239,7 +239,14 @@ class CryptoPortfolioTracker:
                 bot_id      = pos.bot_id,
                 opened_at   = pos.opened_at,
             )
-            from thread_safe_operations import capped_append
+            try:
+                from thread_safe_operations import capped_append
+            except ImportError:
+                def capped_append(target_list: list, item: Any, max_size: int = 10_000) -> None:
+                    """Fallback bounded append (CWE-770)."""
+                    if len(target_list) >= max_size:
+                        del target_list[: max_size // 10]
+                    target_list.append(item)
             capped_append(self._closed_trades, trade, _MAX_TRADE_HISTORY)
         self._record_equity()
         logger.debug("Portfolio: closed %s pnl=%.4f (%.2f%%)", position_id, pnl, pnl_pct * 100)
@@ -386,6 +393,13 @@ class CryptoPortfolioTracker:
             unrealized = sum(p.unrealized_pnl for p in self._positions.values())
             invested   = sum(p.cost_basis     for p in self._positions.values())
             equity     = self._cash + invested + unrealized
-            from thread_safe_operations import capped_append
+            try:
+                from thread_safe_operations import capped_append
+            except ImportError:
+                def capped_append(target_list: list, item: Any, max_size: int = 10_000) -> None:
+                    """Fallback bounded append (CWE-770)."""
+                    if len(target_list) >= max_size:
+                        del target_list[: max_size // 10]
+                    target_list.append(item)
             capped_append(self._equity_curve, equity, 100_000)
             self._peak_equity = max(self._peak_equity, equity)

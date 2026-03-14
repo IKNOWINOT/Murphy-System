@@ -36,7 +36,25 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
-from thread_safe_operations import CircuitBreaker, capped_append
+try:
+    from thread_safe_operations import CircuitBreaker, capped_append
+except ImportError:
+    class CircuitBreaker:
+        """Minimal fallback CircuitBreaker (pass-through, no tripping)."""
+        def __init__(self, *args, **kwargs):
+            pass
+        def call(self, fn, *args, **kwargs):
+            return fn(*args, **kwargs)
+        @property
+        def state(self):
+            return "closed"
+        def reset(self) -> None:
+            pass
+    def capped_append(target_list: list, item: Any, max_size: int = 10_000) -> None:
+        """Fallback bounded append (CWE-770)."""
+        if len(target_list) >= max_size:
+            del target_list[: max_size // 10]
+        target_list.append(item)
 
 logger = logging.getLogger(__name__)
 
