@@ -103,9 +103,10 @@ def create_app() -> FastAPI:
 
     # Load .env before initialising MurphySystem so env vars like
     # MURPHY_LLM_PROVIDER and GROQ_API_KEY are available from the start.
-    # Resolve the path relative to this file so it works regardless of CWD.
+    # Resolve to the project root (Murphy System/) — three levels up from
+    # src/runtime/app.py — so it works regardless of CWD.
     if _load_dotenv is not None:
-        _env_path = Path(__file__).resolve().parent / ".env"
+        _env_path = Path(__file__).resolve().parent.parent.parent / ".env"
         _load_dotenv(_env_path, override=True)
 
     # Initialize Murphy System
@@ -580,7 +581,7 @@ def create_app() -> FastAPI:
             os.environ[env_var] = api_key
         os.environ["MURPHY_LLM_PROVIDER"] = provider
         # Persist key to .env so it survives restarts
-        _env_path = Path(__file__).resolve().parent / ".env"
+        _env_path = Path(__file__).resolve().parent.parent.parent / ".env"
         try:
             from src.env_manager import write_env_key as _write_env_key
             if env_var and api_key:
@@ -615,7 +616,7 @@ def create_app() -> FastAPI:
     async def llm_reload():
         """Re-read .env and reinitialise LLM config — called on terminal reconnect."""
         if _load_dotenv is not None:
-            _load_dotenv(Path(__file__).resolve().parent / ".env", override=True)
+            _load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env", override=True)
         # Refresh LLMController model availability after env reload
         try:
             from src.llm_controller import LLMController as _LLMController

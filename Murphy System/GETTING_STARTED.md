@@ -49,9 +49,9 @@ Phase 2 — Production Execute
   - Outcome fed back to FeedbackIntegrator for future routing improvement
 ```
 
-### 600+ source modules
+### 900+ source modules
 
-`src/` contains 753 Python modules across 60 packages. A representative selection:
+`src/` contains 978 Python modules across 81 packages. A representative selection:
 
 **AI and LLM orchestration**
 - `llm_controller.py` — routes prompts to the configured LLM provider
@@ -381,7 +381,7 @@ Expected output:
 
 ```
 INFO:     Murphy System 1.0 starting...
-INFO:     Module registry: 753 modules loaded
+INFO:     Module registry: 978 modules loaded
 INFO:     Governance kernel: active
 INFO:     HITL gates: enabled
 INFO:     Librarian: capability map loaded (610 capabilities)
@@ -404,7 +404,7 @@ Expected:
 {
   "status": "ok",
   "version": "1.0.0",
-  "modules_loaded": 753,
+  "modules_loaded": 978,
   "uptime_seconds": 4
 }
 ```

@@ -148,10 +148,10 @@ telemetry:
 
 ```bash
 # Start API server
-python demo/api_server_v2.py
+python murphy_system_1.0_runtime.py
 
 # Or with custom configuration
-python demo/api_server_v2.py --config config/config.yaml
+python murphy_system_1.0_runtime.py --config config/config.yaml
 ```
 
 ### Step 4: Verify Deployment
@@ -242,7 +242,7 @@ User=murphy
 Group=murphy
 WorkingDirectory=/opt/murphy-staging
 Environment="PATH=/opt/murphy-staging/venv/bin"
-ExecStart=/opt/murphy-staging/venv/bin/python demo/api_server_v2.py
+ExecStart=/opt/murphy-staging/venv/bin/python murphy_system_1.0_runtime.py
 Restart=always
 RestartSec=10
 
@@ -431,7 +431,7 @@ Group=murphy
 WorkingDirectory=/opt/murphy-production
 Environment="PATH=/opt/murphy-production/venv/bin"
 EnvironmentFile=/etc/murphy-production/environment
-ExecStart=/opt/murphy-production/venv/bin/python demo/api_server_v2.py
+ExecStart=/opt/murphy-production/venv/bin/python murphy_system_1.0_runtime.py
 Restart=always
 RestartSec=10
 

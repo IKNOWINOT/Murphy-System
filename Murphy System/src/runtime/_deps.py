@@ -34,9 +34,10 @@ try:
 except ImportError:
     _load_dotenv = None
 
-# B-001: Actually call load_dotenv() so .env variables are loaded at import time
+# B-001: Actually call load_dotenv() so .env variables are loaded at import time.
+# Resolve to project root (Murphy System/) — three levels up from src/runtime/_deps.py.
 if _load_dotenv is not None:
-    _load_dotenv(Path(__file__).resolve().parent / ".env", override=False)
+    _load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env", override=False)
 
 from threading import Lock
 
