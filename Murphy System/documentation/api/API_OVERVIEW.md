@@ -605,6 +605,30 @@ GET /api/system/state
 Authorization: Bearer YOUR_API_KEY
 ```
 
+### Time Tracking Billing APIs
+Base path: `/api/time/billing/`
+- `GET /api/time/billing/summary` — Aggregate billing summary across all clients
+- `GET /api/time/billing/summary/<client_id>` — Per-client billing summary
+- `POST /api/time/billing/invoice` — Generate invoice from tracked time entries
+- `POST /api/time/billing/invoice/preview` — Preview invoice before generation
+- `GET /api/time/billing/rates` — List all billing rates
+- `PUT /api/time/billing/rates/<client_id>` — Update billing rate for a specific client
+- `GET /api/time/billing/audit-log` — Retrieve billing audit trail
+
+### Time Tracking Dashboard APIs
+Base path: `/api/time/dashboard/`
+- `GET /api/time/dashboard/summary/user/<user_id>` — Individual user time dashboard
+- `GET /api/time/dashboard/summary/team` — Team-level time dashboard
+- `GET /api/time/dashboard/summary/project/<project_id>` — Project time dashboard
+- `GET /api/time/dashboard/summary/system` — System-wide time dashboard
+- `GET /api/time/team/<manager_id>/dashboard` — Manager's team dashboard view
+
+### Time Tracking Settings APIs
+Base path: `/api/time/settings/`
+- `GET /api/time/settings` — Retrieve current time tracking settings
+- `PUT /api/time/settings` — Update time tracking settings
+- `GET /api/time/settings/validate` — Validate settings configuration
+
 ### Trigger Endpoints
 
 #### Get Triggers

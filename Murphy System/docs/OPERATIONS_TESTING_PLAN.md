@@ -405,6 +405,6 @@ The Murphy System Operations, Testing & Iteration Plan is **complete** when:
 
 ---
 
-**Copyright © 2020 Inoni Limited Liability Company**
-**Licensed under the Apache License, Version 2.0**
+**Copyright © 2026 Inoni Limited Liability Company**
+**Licensed under BSL 1.1 (converts to Apache 2.0 after four years)**
 **Creator: Corey Post**

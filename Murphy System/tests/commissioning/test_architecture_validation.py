@@ -217,3 +217,25 @@ class TestArchitectureDocumentation:
         ]
         for doc in expected_docs:
             assert (comm_dir / doc).exists(), f"Missing: {doc}"
+
+
+class TestArchitectureNewModuleDesignLabels:
+    """@arch-lead: Validates new 2026-03-14 module design labels appear in ARCHITECTURE_MAP.md."""
+
+    NEW_DESIGN_LABELS = [
+        "INTRO-001",
+        "SCS-001",
+        "CSE-001",
+        "VSB-001",
+        "CEO-002",
+        "PROD-ENG-001",
+    ]
+
+    @pytest.mark.parametrize("label", NEW_DESIGN_LABELS)
+    def test_architecture_map_contains_new_design_label(self, project_root, label):
+        """@arch-lead: ARCHITECTURE_MAP.md must reference each new design label."""
+        arch_map = project_root / "ARCHITECTURE_MAP.md"
+        content = arch_map.read_text(encoding="utf-8")
+        assert label in content, (
+            f"ARCHITECTURE_MAP.md does not contain new design label '{label}'"
+        )

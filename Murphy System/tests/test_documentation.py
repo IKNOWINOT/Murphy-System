@@ -77,6 +77,24 @@ class TestReadme:
             f"README.md is missing a section matching '{section}'"
         )
 
+    @pytest.mark.parametrize(
+        "module_name",
+        [
+            "Self-Introspection",
+            "Self-Codebase Swarm",
+            "Cut Sheet Engine",
+            "Visual Swarm Builder",
+            "CEO Branch Activation",
+            "Production Assistant Engine",
+        ],
+    )
+    def test_readme_subsystem_lookup_contains_new_modules(self, module_name: str):
+        """Subsystem Lookup table must contain entries for all 6 new modules."""
+        content = _read(README_PATH)
+        assert module_name in content, (
+            f"README.md Subsystem Lookup table is missing entry for '{module_name}'"
+        )
+
     def test_readme_api_endpoints_table(self):
         """The API Endpoints section must contain at least one Markdown table row."""
         content = _read(README_PATH)
