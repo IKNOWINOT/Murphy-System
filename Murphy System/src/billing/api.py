@@ -42,8 +42,8 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from billing.currency import CurrencyConverter, get_converter
-from subscription_manager import (
+from src.billing.currency import CurrencyConverter, get_converter
+from src.subscription_manager import (
     PRICING_PLANS,
     BillingInterval,
     PaymentProvider,

@@ -259,7 +259,7 @@ def create_app() -> FastAPI:
 
     # ── Billing API (PayPal + Crypto, multi-currency, Japan discount) ──
     try:
-        from billing.api import create_billing_router
+        from src.billing.api import create_billing_router
         _billing_router = create_billing_router()
         app.include_router(_billing_router)
         logger.info("Billing API registered at /api/billing")
