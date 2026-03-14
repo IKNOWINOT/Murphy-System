@@ -2419,6 +2419,62 @@ def create_app() -> FastAPI:
             },
         })
 
+    # ==================== EVENTS / SSE ENDPOINTS ====================
+
+    _event_subscribers: Dict[str, dict] = {}
+
+    @app.post("/api/events/subscribe")
+    async def events_subscribe(request: Request):
+        """Subscribe to a filtered event stream."""
+        try:
+            data = await request.json()
+            sub_id = data.get("subscriberId", f"sub_{int(time.time() * 1000)}")
+            channel = data.get("channel", "system")
+            _event_subscribers[sub_id] = {
+                "id": sub_id,
+                "channel": channel,
+                "filters": data.get("filters", {}),
+                "created_at": __import__("datetime").datetime.utcnow().isoformat() + "Z",
+            }
+            return JSONResponse({
+                "success": True,
+                "subscriberId": sub_id,
+                "channel": channel,
+                "message": f"Subscribed to {channel} events",
+            })
+        except Exception as exc:
+            logger.exception("Event subscribe failed")
+            return _safe_error_response(exc, 500)
+
+    @app.get("/api/events/history/{subscriber_id}")
+    async def events_history(subscriber_id: str):
+        """Return event history for a subscriber."""
+        return JSONResponse({
+            "success": True,
+            "subscriber_id": subscriber_id,
+            "events": [],
+            "count": 0,
+        })
+
+    @app.get("/api/events/stream/{subscriber_id}")
+    async def events_stream(subscriber_id: str):
+        """SSE endpoint for real-time events (returns initial keepalive)."""
+        from starlette.responses import StreamingResponse
+
+        async def _generate():
+            yield f"data: {json.dumps({'type': 'connected', 'subscriberId': subscriber_id})}\n\n"
+
+        return StreamingResponse(_generate(), media_type="text/event-stream")
+
+    @app.get("/api/security/events")
+    async def security_events():
+        """Return recent security events."""
+        return JSONResponse({
+            "success": True,
+            "events": [],
+            "count": 0,
+        })
+
     # ==================== CONFIG ENDPOINTS ====================
 
     @app.get("/api/config")
@@ -3219,6 +3275,22 @@ def create_app() -> FastAPI:
                     methods=["GET"], include_in_schema=False,
                 )
                 _mounted_count += 1
+
+        # Serve root-level .js files under /ui/ so that HTML pages loaded
+        # at /ui/<page> can reference sibling scripts with relative paths
+        # (e.g. workspace.html has <script src="murphy_auth.js">).
+        def _make_js_handler(_fp: str):
+            async def _handler():
+                return _FileResponse(_fp, media_type="application/javascript")
+            return _handler
+
+        for _jf in sorted(_project_root.glob("*.js")):
+            _js_path = f"/ui/{_jf.name}"
+            app.add_api_route(
+                _js_path, _make_js_handler(str(_jf)),
+                methods=["GET"], include_in_schema=False,
+            )
+            _mounted_count += 1
 
         logger.info("Mounted %d HTML UI routes under /ui/", _mounted_count)
 

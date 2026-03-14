@@ -1831,3 +1831,152 @@ class TestStaticFilesAndHTMLRoutes:
         assert "/api/librarian/commands" in content, (
             "app.py must have /api/librarian/commands endpoint for command catalog"
         )
+
+
+# ---------------------------------------------------------------------------
+# 52. Compliance API endpoints must exist
+# ---------------------------------------------------------------------------
+
+class TestComplianceEndpoints:
+    """Compliance dashboard requires backend API endpoints."""
+
+    def _app_content(self) -> str:
+        path = os.path.join(_PROJECT_ROOT, "src", "runtime", "app.py")
+        with open(path) as fh:
+            return fh.read()
+
+    def test_compliance_toggles_endpoint(self):
+        content = self._app_content()
+        assert "/api/compliance/toggles" in content, (
+            "app.py must have /api/compliance/toggles endpoint"
+        )
+
+    def test_compliance_recommended_endpoint(self):
+        content = self._app_content()
+        assert "/api/compliance/recommended" in content, (
+            "app.py must have /api/compliance/recommended endpoint"
+        )
+
+    def test_compliance_report_endpoint(self):
+        content = self._app_content()
+        assert "/api/compliance/report" in content, (
+            "app.py must have /api/compliance/report endpoint"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 53. No hardcoded localhost API URLs in HTML pages
+# ---------------------------------------------------------------------------
+
+class TestNoHardcodedLocalhostURLs:
+    """HTML pages must use relative URLs or window.location.origin, not hardcoded localhost."""
+
+    def test_matrix_integration_no_hardcoded_port(self):
+        path = os.path.join(_PROJECT_ROOT, "matrix_integration.html")
+        with open(path) as fh:
+            content = fh.read()
+        assert "http://localhost:" not in content and "http://127.0.0.1:" not in content, (
+            "matrix_integration.html must not use hardcoded localhost API URLs"
+        )
+
+    def test_production_wizard_no_hardcoded_port(self):
+        path = os.path.join(_PROJECT_ROOT, "production_wizard.html")
+        with open(path) as fh:
+            content = fh.read()
+        assert "http://localhost:" not in content and "http://127.0.0.1:" not in content, (
+            "production_wizard.html must not use hardcoded localhost API URLs"
+        )
+
+    def test_murphy_auth_no_hardcoded_base(self):
+        path = os.path.join(_PROJECT_ROOT, "murphy_auth.js")
+        with open(path) as fh:
+            content = fh.read()
+        assert "http://127.0.0.1:" not in content and "http://localhost:" not in content, (
+            "murphy_auth.js must not use hardcoded localhost API URLs"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 54. CSP headers must allow Google Fonts
+# ---------------------------------------------------------------------------
+
+class TestCSPGoogleFonts:
+    """CSP headers must include Google Fonts domains for proper font loading."""
+
+    def test_fastapi_csp_allows_google_fonts(self):
+        path = os.path.join(_PROJECT_ROOT, "src", "fastapi_security.py")
+        with open(path) as fh:
+            content = fh.read()
+        assert "fonts.googleapis.com" in content, (
+            "fastapi_security.py CSP must allow fonts.googleapis.com in style-src"
+        )
+        assert "fonts.gstatic.com" in content, (
+            "fastapi_security.py CSP must allow fonts.gstatic.com in font-src"
+        )
+
+    def test_flask_csp_allows_google_fonts(self):
+        path = os.path.join(_PROJECT_ROOT, "src", "flask_security.py")
+        with open(path) as fh:
+            content = fh.read()
+        assert "fonts.googleapis.com" in content, (
+            "flask_security.py CSP must allow fonts.googleapis.com in style-src"
+        )
+        assert "fonts.gstatic.com" in content, (
+            "flask_security.py CSP must allow fonts.gstatic.com in font-src"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 55. Events/SSE endpoints must exist for workspace
+# ---------------------------------------------------------------------------
+
+class TestEventsEndpoints:
+    """Workspace requires events API endpoints."""
+
+    def _app_content(self) -> str:
+        path = os.path.join(_PROJECT_ROOT, "src", "runtime", "app.py")
+        with open(path) as fh:
+            return fh.read()
+
+    def test_events_subscribe_endpoint(self):
+        content = self._app_content()
+        assert "/api/events/subscribe" in content, (
+            "app.py must have /api/events/subscribe endpoint"
+        )
+
+    def test_events_stream_endpoint(self):
+        content = self._app_content()
+        assert "/api/events/stream/" in content, (
+            "app.py must have /api/events/stream/{subscriber_id} endpoint"
+        )
+
+    def test_events_history_endpoint(self):
+        content = self._app_content()
+        assert "/api/events/history/" in content, (
+            "app.py must have /api/events/history/{subscriber_id} endpoint"
+        )
+
+    def test_security_events_endpoint(self):
+        content = self._app_content()
+        assert "/api/security/events" in content, (
+            "app.py must have /api/security/events endpoint"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 56. JS files at project root must be served under /ui/ path
+# ---------------------------------------------------------------------------
+
+class TestJSFileServing:
+    """Root-level JS files must be served under /ui/ for relative path resolution."""
+
+    def _app_content(self) -> str:
+        path = os.path.join(_PROJECT_ROOT, "src", "runtime", "app.py")
+        with open(path) as fh:
+            return fh.read()
+
+    def test_js_files_served_under_ui(self):
+        content = self._app_content()
+        assert '*.js' in content or 'glob("*.js")' in content, (
+            "app.py must serve root-level .js files under /ui/ for relative path resolution"
+        )
