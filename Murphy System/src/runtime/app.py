@@ -84,6 +84,10 @@ def create_app() -> FastAPI:
         version="1.0.0"
     )
 
+    # ── Utility: ISO timestamp helper ───────────────────────────
+    def _now_iso():
+        return datetime.now(timezone.utc).isoformat()
+
     # Apply security hardening (CORS allowlist, API key auth, rate limiting, headers)
     try:
         from src.fastapi_security import configure_secure_fastapi
@@ -3944,9 +3948,6 @@ def create_app() -> FastAPI:
     app.add_middleware(_ResponseSizeLimitMiddleware)
 
     # ==================== PARTNER INTEGRATION ENDPOINTS ====================
-
-    def _now_iso():
-        return datetime.now(timezone.utc).isoformat()
 
     _partner_requests: dict = {}
 
