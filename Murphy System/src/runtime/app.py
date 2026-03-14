@@ -2428,13 +2428,13 @@ def create_app() -> FastAPI:
         """Subscribe to a filtered event stream."""
         try:
             data = await request.json()
-            sub_id = data.get("subscriberId", f"sub_{int(time.time() * 1000)}")
+            sub_id = data.get("subscriberId", str(uuid4()))
             channel = data.get("channel", "system")
             _event_subscribers[sub_id] = {
                 "id": sub_id,
                 "channel": channel,
                 "filters": data.get("filters", {}),
-                "created_at": __import__("datetime").datetime.utcnow().isoformat() + "Z",
+                "created_at": datetime.now(timezone.utc).isoformat(),
             }
             return JSONResponse({
                 "success": True,
@@ -2905,7 +2905,7 @@ def create_app() -> FastAPI:
             return JSONResponse({
                 "success": True,
                 "toggles": _compliance_toggles,
-                "saved_at": __import__("datetime").datetime.utcnow().isoformat() + "Z",
+                "saved_at": datetime.now(timezone.utc).isoformat(),
             })
         except Exception as exc:
             logger.exception("Failed to save compliance toggles")
@@ -2947,7 +2947,7 @@ def create_app() -> FastAPI:
                 "total_enabled": len(enabled),
                 "total_available": 42,
                 "posture_score": round(len(enabled) / 42 * 100, 1) if enabled else 0,
-                "generated_at": __import__("datetime").datetime.utcnow().isoformat() + "Z",
+                "generated_at": datetime.now(timezone.utc).isoformat(),
             },
         })
 
@@ -3056,8 +3056,14 @@ def create_app() -> FastAPI:
     @app.get("/api/auth/oauth/{provider}")
     async def auth_oauth_redirect(provider: str):
         """Redirect to OAuth provider for signup/login."""
-        supported = ["google", "github", "meta", "linkedin", "apple"]
-        if provider.lower() not in supported:
+        _oauth_urls = {
+            "google": "https://accounts.google.com/o/oauth2/auth",
+            "github": "https://github.com/login/oauth/authorize",
+            "meta": "https://www.facebook.com/v18.0/dialog/oauth",
+            "linkedin": "https://www.linkedin.com/oauth/v2/authorization",
+            "apple": "https://appleid.apple.com/auth/authorize",
+        }
+        if provider.lower() not in _oauth_urls:
             return JSONResponse(
                 {"success": False, "error": f"Unsupported provider: {provider}"},
                 status_code=400,
@@ -3067,7 +3073,7 @@ def create_app() -> FastAPI:
             "success": True,
             "provider": provider,
             "message": f"OAuth flow for {provider} initiated. Configure OAuth credentials to enable.",
-            "redirect_url": f"https://accounts.{provider}.com/o/oauth2/auth",
+            "redirect_url": _oauth_urls[provider.lower()],
         })
 
     # ==================== READINESS SCANNER ====================
