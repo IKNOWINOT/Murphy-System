@@ -111,15 +111,23 @@ Phase 2 — Production Execute
 
 Fourteen HTML interfaces are included:
 
-| Interface | Purpose |
-|---|---|
-| `terminal_unified.html` | Primary operator terminal |
-| `terminal_enhanced.html` | Extended view with module inspector |
-| `terminal_architect.html` | System architecture visualiser |
-| `terminal_integrations.html` | Integration status and connector management |
-| `murphy_landing_page.html` | Entry page with system overview |
-| `onboarding_wizard.html` | Guided first-run setup |
-| ...and more | Coverage, audit, analytics, canvas views |
+| Interface | User / Role | Type |
+|---|---|---|
+| `murphy_landing_page.html` | Public front door | Landing page |
+| `onboarding_wizard.html` | New user (zero jargon) | Conversational (Librarian-powered) |
+| `terminal_unified.html` | Admin / Multi-role hub | Dashboard + All views |
+| `terminal_architect.html` | System Architect | Dashboard + Terminal |
+| `terminal_enhanced.html` | Power User | Dashboard + Terminal |
+| `terminal_integrated.html` | Operations Manager | Dashboard |
+| `terminal_worker.html` | Delivery Worker | Dashboard |
+| `terminal_costs.html` | Finance / Budget | Dashboard |
+| `terminal_orgchart.html` | HR / Admin | Dashboard |
+| `terminal_integrations.html` | DevOps | Dashboard |
+| `workflow_canvas.html` | Workflow Designer | Graphical canvas + Terminal |
+| `system_visualizer.html` | System Topology | Graphical canvas + Terminal |
+| `murphy-smoke-test.html` | Developer / QA | API smoke test |
+| `murphy_ui_integrated.html` | Legacy → redirects to `terminal_unified.html` | — |
+| `murphy_ui_integrated_terminal.html` | Legacy → redirects to `terminal_unified.html` | — |
 
 All interfaces share a single design system (`static/murphy-design-system.css`, `static/murphy-components.js`) with a dark-only theme (`#0C1017` base, teal/cyan accents). No light mode.
 
