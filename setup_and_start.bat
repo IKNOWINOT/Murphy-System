@@ -112,6 +112,8 @@ REM Ensure extras that users commonly need
 pip install -q watchdog matplotlib 2>nul
 
 echo [OK] All dependencies installed
+REM NOTE: pip may report dependency conflicts for optional packages (e.g. weasyprint/tinycss2).
+REM These are non-fatal — Murphy falls back to alternative renderers automatically.
 echo.
 
 REM ---- step 4: configuration -----------------------------------------------

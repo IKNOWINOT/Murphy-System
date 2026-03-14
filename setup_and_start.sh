@@ -131,6 +131,8 @@ fi
 pip install -q watchdog matplotlib 2>&1 | grep -v "already satisfied" || true
 
 ok "All dependencies installed"
+# NOTE: pip may report dependency conflicts for optional packages (e.g. weasyprint/tinycss2).
+# These are non-fatal — Murphy falls back to alternative renderers automatically.
 
 # ---- step 4: configuration -------------------------------------------------
 step 4 "Configuring Murphy"
