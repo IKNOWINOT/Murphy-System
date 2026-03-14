@@ -1750,3 +1750,90 @@ class TestK8sImagePullPolicyPresent:
         assert "imagePullPolicy:" in content, (
             "k8s/monitoring/prometheus-deployment.yaml missing imagePullPolicy"
         )
+
+
+# ---------------------------------------------------------------------------
+# 50. All terminal HTML pages must have a topbar with sidebar toggle
+# ---------------------------------------------------------------------------
+
+class TestTerminalTopbarsPresent:
+    """Terminal HTML pages with sidebar JS must have btn-sidebar-toggle element."""
+
+    _TERMINALS_WITH_SIDEBAR_JS = [
+        "terminal_architect.html",
+        "terminal_enhanced.html",
+        "terminal_integrated.html",
+        "terminal_unified.html",
+        "terminal_worker.html",
+        "terminal_costs.html",
+        "terminal_orgchart.html",
+        "terminal_integrations.html",
+    ]
+
+    def test_topbar_element_exists(self):
+        for fname in self._TERMINALS_WITH_SIDEBAR_JS:
+            path = os.path.join(_PROJECT_ROOT, fname)
+            if not os.path.isfile(path):
+                continue
+            with open(path) as fh:
+                content = fh.read()
+            assert 'class="murphy-topbar"' in content or '<murphy-header' in content, (
+                f"{fname} missing topbar header element"
+            )
+
+    def test_sidebar_toggle_wired(self):
+        for fname in self._TERMINALS_WITH_SIDEBAR_JS:
+            path = os.path.join(_PROJECT_ROOT, fname)
+            if not os.path.isfile(path):
+                continue
+            with open(path) as fh:
+                content = fh.read()
+            if 'btn-sidebar-toggle' in content:
+                assert 'id="btn-sidebar-toggle"' in content, (
+                    f"{fname} references btn-sidebar-toggle in JS but has no HTML element"
+                )
+
+
+# ---------------------------------------------------------------------------
+# 51. Static file serving must be configured in create_app()
+# ---------------------------------------------------------------------------
+
+class TestStaticFilesAndHTMLRoutes:
+    """create_app() must mount static files and HTML UI routes."""
+
+    def _app_content(self) -> str:
+        path = os.path.join(_PROJECT_ROOT, "src", "runtime", "app.py")
+        with open(path) as fh:
+            return fh.read()
+
+    def test_static_files_mounted(self):
+        content = self._app_content()
+        assert "StaticFiles" in content, (
+            "app.py must mount StaticFiles for static/ directory"
+        )
+        assert "/ui/static" in content, (
+            "app.py must mount static files at /ui/static for relative asset paths"
+        )
+
+    def test_html_routes_defined(self):
+        content = self._app_content()
+        assert "murphy_landing_page.html" in content, (
+            "app.py must register the landing page HTML route"
+        )
+        assert "terminal_architect.html" in content, (
+            "app.py must register the architect terminal HTML route"
+        )
+
+    def test_matrix_api_endpoints_exist(self):
+        content = self._app_content()
+        for endpoint in ["/api/matrix/status", "/api/matrix/rooms",
+                         "/api/matrix/send", "/api/matrix/stats"]:
+            assert endpoint in content, (
+                f"app.py missing Matrix bridge endpoint: {endpoint}"
+            )
+
+    def test_librarian_commands_endpoint_exists(self):
+        content = self._app_content()
+        assert "/api/librarian/commands" in content, (
+            "app.py must have /api/librarian/commands endpoint for command catalog"
+        )
