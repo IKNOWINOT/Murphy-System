@@ -886,7 +886,6 @@ class ActivatedHeartbeatRunner:
 
 __all__ = [
     "ActivatedHeartbeatRunner",
-    "CEOBranch",
     "WorkOrder",
     "WorkOrderStatus",
     "TickRecord",
