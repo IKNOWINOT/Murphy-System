@@ -8,7 +8,76 @@ import time
 from collections import defaultdict
 from typing import Any, Dict, List, Optional
 
-from thread_safe_operations import ThreadSafeCounter, ThreadSafeDict, capped_append
+try:
+    from thread_safe_operations import ThreadSafeCounter, ThreadSafeDict, capped_append
+except ImportError:
+    import threading as _fb_threading
+    class ThreadSafeCounter:
+        """Minimal fallback ThreadSafeCounter."""
+        def __init__(self, initial_value: int = 0):
+            self._value = initial_value
+            self._lock = _fb_threading.Lock()
+        def increment(self, delta: int = 1) -> int:
+            with self._lock:
+                self._value += delta
+                return self._value
+        def decrement(self, delta: int = 1) -> int:
+            with self._lock:
+                self._value -= delta
+                return self._value
+        def get(self) -> int:
+            with self._lock:
+                return self._value
+        def reset(self) -> int:
+            with self._lock:
+                self._value = 0
+                return self._value
+    class ThreadSafeDict:
+        """Minimal fallback ThreadSafeDict."""
+        def __init__(self):
+            self._dict: dict = {}
+            self._lock = _fb_threading.RLock()
+        def get(self, key, default=None):
+            with self._lock:
+                return self._dict.get(key, default)
+        def set(self, key, value) -> None:
+            with self._lock:
+                self._dict[key] = value
+        def delete(self, key) -> bool:
+            with self._lock:
+                if key in self._dict:
+                    del self._dict[key]
+                    return True
+                return False
+        def keys(self):
+            with self._lock:
+                return list(self._dict.keys())
+        def values(self):
+            with self._lock:
+                return list(self._dict.values())
+        def items(self):
+            with self._lock:
+                return list(self._dict.items())
+        def update(self, other: dict) -> None:
+            with self._lock:
+                self._dict.update(other)
+        def clear(self) -> None:
+            with self._lock:
+                self._dict.clear()
+        def get_dict(self) -> dict:
+            with self._lock:
+                return dict(self._dict)
+        def __len__(self) -> int:
+            with self._lock:
+                return len(self._dict)
+        def __contains__(self, key) -> bool:
+            with self._lock:
+                return key in self._dict
+    def capped_append(target_list: list, item: Any, max_size: int = 10_000) -> None:
+        """Fallback bounded append (CWE-770)."""
+        if len(target_list) >= max_size:
+            del target_list[: max_size // 10]
+        target_list.append(item)
 
 logger = logging.getLogger(__name__)
 

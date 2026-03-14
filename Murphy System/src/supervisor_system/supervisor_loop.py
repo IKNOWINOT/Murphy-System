@@ -16,7 +16,14 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Callable, Dict, List, Optional
 
-from thread_safe_operations import capped_append
+try:
+    from thread_safe_operations import capped_append
+except ImportError:
+    def capped_append(target_list: list, item: Any, max_size: int = 10_000) -> None:
+        """Fallback bounded append (CWE-770)."""
+        if len(target_list) >= max_size:
+            del target_list[: max_size // 10]
+        target_list.append(item)
 
 from .assumption_management import AssumptionLifecycleManager, AssumptionRegistry, AssumptionValidator
 from .schemas import (

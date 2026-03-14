@@ -38,7 +38,14 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
-from thread_safe_operations import capped_append
+try:
+    from thread_safe_operations import capped_append
+except ImportError:
+    def capped_append(target_list: list, item: Any, max_size: int = 10_000) -> None:
+        """Fallback bounded append (CWE-770)."""
+        if len(target_list) >= max_size:
+            del target_list[: max_size // 10]
+        target_list.append(item)
 
 logger = logging.getLogger(__name__)
 
@@ -358,7 +365,14 @@ class TradingHITLGateway:
             notes          = transfer.get("notes", ""),
         )
         with self._lock:
-            from thread_safe_operations import capped_append as _cap
+            try:
+                from thread_safe_operations import capped_append as _cap
+            except ImportError:
+                def capped_append(target_list: list, item: Any, max_size: int = 10_000) -> None:
+                    """Fallback bounded append (CWE-770)."""
+                    if len(target_list) >= max_size:
+                        del target_list[: max_size // 10]
+                    target_list.append(item)
             self._transfer_queue[req.request_id] = req
         logger.info(
             "TradingHITLGateway: transfer %s queued — %s %s → %s",
@@ -572,7 +586,14 @@ class TradingHITLGateway:
             },
         )
         with self._lock:
-            from thread_safe_operations import capped_append
+            try:
+                from thread_safe_operations import capped_append
+            except ImportError:
+                def capped_append(target_list: list, item: Any, max_size: int = 10_000) -> None:
+                    """Fallback bounded append (CWE-770)."""
+                    if len(target_list) >= max_size:
+                        del target_list[: max_size // 10]
+                    target_list.append(item)
             capped_append(self._audit_log, entry, _MAX_AUDIT_LOG)
 
     def _pop_trade(self, request_id: str) -> Optional[TradeApprovalRequest]:

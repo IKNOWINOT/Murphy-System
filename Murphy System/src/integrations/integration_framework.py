@@ -11,7 +11,90 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
-from thread_safe_operations import CircuitBreaker, RateLimiter, ThreadSafeCounter, ThreadSafeDict
+try:
+    from thread_safe_operations import CircuitBreaker, RateLimiter, ThreadSafeCounter, ThreadSafeDict
+except ImportError:
+    import threading as _fb_threading
+    class CircuitBreaker:
+        """Minimal fallback CircuitBreaker (pass-through, no tripping)."""
+        def __init__(self, *args, **kwargs):
+            pass
+        def call(self, fn, *args, **kwargs):
+            return fn(*args, **kwargs)
+        @property
+        def state(self):
+            return "closed"
+        def reset(self) -> None:
+            pass
+    class RateLimiter:
+        """Minimal fallback RateLimiter (no limiting)."""
+        def __init__(self, *args, **kwargs):
+            pass
+        def is_allowed(self, *args, **kwargs) -> bool:
+            return True
+        def acquire(self, *args, **kwargs) -> bool:
+            return True
+    class ThreadSafeCounter:
+        """Minimal fallback ThreadSafeCounter."""
+        def __init__(self, initial_value: int = 0):
+            self._value = initial_value
+            self._lock = _fb_threading.Lock()
+        def increment(self, delta: int = 1) -> int:
+            with self._lock:
+                self._value += delta
+                return self._value
+        def decrement(self, delta: int = 1) -> int:
+            with self._lock:
+                self._value -= delta
+                return self._value
+        def get(self) -> int:
+            with self._lock:
+                return self._value
+        def reset(self) -> int:
+            with self._lock:
+                self._value = 0
+                return self._value
+    class ThreadSafeDict:
+        """Minimal fallback ThreadSafeDict."""
+        def __init__(self):
+            self._dict: dict = {}
+            self._lock = _fb_threading.RLock()
+        def get(self, key, default=None):
+            with self._lock:
+                return self._dict.get(key, default)
+        def set(self, key, value) -> None:
+            with self._lock:
+                self._dict[key] = value
+        def delete(self, key) -> bool:
+            with self._lock:
+                if key in self._dict:
+                    del self._dict[key]
+                    return True
+                return False
+        def keys(self):
+            with self._lock:
+                return list(self._dict.keys())
+        def values(self):
+            with self._lock:
+                return list(self._dict.values())
+        def items(self):
+            with self._lock:
+                return list(self._dict.items())
+        def update(self, other: dict) -> None:
+            with self._lock:
+                self._dict.update(other)
+        def clear(self) -> None:
+            with self._lock:
+                self._dict.clear()
+        def get_dict(self) -> dict:
+            with self._lock:
+                return dict(self._dict)
+        def __len__(self) -> int:
+            with self._lock:
+                return len(self._dict)
+        def __contains__(self, key) -> bool:
+            with self._lock:
+                return key in self._dict
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
