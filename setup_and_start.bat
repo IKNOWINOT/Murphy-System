@@ -162,13 +162,17 @@ echo   API Docs:    http://localhost:%MURPHY_PORT%/docs
 echo   Health:      http://localhost:%MURPHY_PORT%/api/health
 echo   Status:      http://localhost:%MURPHY_PORT%/api/status
 echo.
-echo   Architect Terminal: %MURPHY_DIR%\terminal_architect.html
+echo   Unified Terminal (Admin / Multi-role hub): %MURPHY_DIR%\terminal_unified.html
 echo.
+
+REM Determine primary terminal path (fall back to Architect Terminal if Unified is absent)
+set TERMINAL_FILE=%MURPHY_DIR%\terminal_unified.html
+if not exist "%TERMINAL_FILE%" set TERMINAL_FILE=%MURPHY_DIR%\terminal_architect.html
 
 REM Offer choice: backend server vs terminal UI
 if exist "%MURPHY_DIR%\murphy_terminal.py" (
     echo How would you like to start Murphy?
-    echo   1^) Start backend server  (API + Architect Terminal in browser)
+    echo   1^) Start backend server  (API + all web dashboards in browser)
     echo   2^) Start terminal UI     (interactive natural-language terminal in shell)
     echo.
     set /p LAUNCH_CHOICE="Enter choice [1]: "
@@ -187,8 +191,12 @@ if "!LAUNCH_CHOICE!"=="2" (
     python murphy_terminal.py
 ) else (
     echo Starting Murphy System backend on port %MURPHY_PORT%...
-    echo Open the Architect Terminal in your browser:
+    echo Open the Unified Terminal (Admin / Multi-role hub) in your browser:
+    echo   %TERMINAL_FILE%
+    echo Other web interfaces (role-specific terminals, canvas, visualiser, etc.):
+    echo   %MURPHY_DIR%\murphy_landing_page.html
     echo   %MURPHY_DIR%\terminal_architect.html
+    echo   http://localhost:%MURPHY_PORT%/docs  (Swagger API docs)
     echo Press Ctrl+C to stop
     echo.
     REM Start backend in foreground — health check prompt is printed before launch
