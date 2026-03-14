@@ -313,16 +313,23 @@ Murphy System ships with a set of browser-based HTML interfaces. All interfaces 
 
 Serve any interface by opening it directly or via the backend static route while the server is running on port 8000.
 
-| Interface | Purpose |
-|---|---|
-| `terminal_architect.html` | Architect terminal — system architecture visualiser and design workspace |
-| `terminal_integrated.html` | Integrated terminal — unified view combining operator controls and system status |
-| `terminal_enhanced.html` | Enhanced terminal — extended view with module inspector and diagnostics |
-| `terminal_worker.html` | Worker terminal — task-focused execution and monitoring console |
-| `murphy_ui_integrated.html` | Integrated UI — combined dashboard for governance, modules, and execution |
-| `murphy_ui_integrated_terminal.html` | Integrated terminal UI — full terminal experience embedded in the dashboard |
-| `onboarding_wizard.html` | Onboarding wizard — guided first-run setup and configuration |
-| `murphy_landing_page.html` | Landing page — entry page with system overview and navigation |
+| Interface | User / Role | Type |
+|---|---|---|
+| `murphy_landing_page.html` | Public front door | Landing page |
+| `onboarding_wizard.html` | New user (zero jargon) | Conversational (Librarian-powered) |
+| `terminal_unified.html` | Admin / Multi-role hub | Dashboard + All views |
+| `terminal_architect.html` | System Architect | Dashboard + Terminal |
+| `terminal_enhanced.html` | Power User | Dashboard + Terminal |
+| `terminal_integrated.html` | Operations Manager | Dashboard |
+| `terminal_worker.html` | Delivery Worker | Dashboard |
+| `terminal_costs.html` | Finance / Budget | Dashboard |
+| `terminal_orgchart.html` | HR / Admin | Dashboard |
+| `terminal_integrations.html` | DevOps | Dashboard |
+| `workflow_canvas.html` | Workflow Designer | Graphical canvas + Terminal |
+| `system_visualizer.html` | System Topology | Graphical canvas + Terminal |
+| `murphy-smoke-test.html` | Developer / QA | API smoke test |
+| `murphy_ui_integrated.html` | Legacy → redirects to `terminal_unified.html` | — |
+| `murphy_ui_integrated_terminal.html` | Legacy → redirects to `terminal_unified.html` | — |
 
 ---
 
