@@ -12,7 +12,7 @@
 > developed and maintained by a **single developer** ([@IKNOWINOT](https://github.com/IKNOWINOT)).
 > While the architecture is comprehensive and the test suite covers thousands of
 > functions, **not everything works as intended**. Emergent bugs are still being
-> discovered and classified across the 920+ module surface area.
+> discovered and classified across the 978-module surface area.
 >
 > **What this means for you:**
 >
@@ -135,7 +135,7 @@ The script handles the virtual environment, installs **all** dependencies (inclu
 | Compliance validation | **90%** | Framework complete; formal attestation (SOC 2, ISO 27001) pending |
 | Operational automation | **85%** | Core flows working; Phases 2–8 all implemented and verified |
 | File system cleanup | **100%** | Complete |
-| Test coverage (dynamic chains) | **85%** | 603 test files, 17,368 test functions; 1,611 verified passing across 37+ suites |
+| Test coverage (dynamic chains) | **85%** | 627 test files, 17,368 test functions; 1,611 verified passing across 37+ suites |
 | UI + user testing | **75%** | 14 web interfaces built; UI completion PR pending |
 | Security hardening | **80%** | Auth/CORS/CSP/JWT done; E2EE stub gated for production |
 | Code quality audit (90 categories) | **90%** | Audit complete; remediation for remaining items in progress |
@@ -144,7 +144,7 @@ The script handles the virtual environment, installs **all** dependencies (inclu
 | Documentation accuracy | **85%** | All placeholder docs filled; README truth reconciliation complete |
 | **Weighted overall** | **~82%** | See [Production Readiness Audit](Murphy%20System/strategic/PRODUCTION_READINESS_AUDIT.md) |
 
-> **Test status:** 603 test files with 17,368 test functions; 1,611 verified passing.
+> **Test status:** 627 test files with 17,368 test functions; 1,611 verified passing.
 > Skipped tests require optional packages (Flask, Textual, torch).
 > CI pipeline runs on every push/PR — see [Test Status](#-test-status) below.
 
@@ -171,8 +171,8 @@ Murphy-System/
 └── Murphy System/                      ← ACTIVE SYSTEM
     ├── murphy                          ← CLI tool (start/stop/status/…)
     ├── murphy_system_1.0_runtime.py    ← Single production runtime
-    ├── src/                            ← 920+ production modules
-    ├── tests/                          ← 371 test files (8,800+ tests)
+    ├── src/                            ← 978 production modules
+    ├── tests/                          ← 627 test files
     ├── bots/                           ← 104 bot modules
     ├── documentation/                  ← Structured API/user docs
     ├── docs/                           ← Technical docs

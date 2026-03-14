@@ -36,7 +36,7 @@ class Settings(BaseSettings):
 
     api_debug: bool = Field(
         default=False,
-        description="Enable Flask debug mode (DO NOT use in production)"
+        description="Enable debug mode (DO NOT use in production)"
     )
 
     # ============================================================================

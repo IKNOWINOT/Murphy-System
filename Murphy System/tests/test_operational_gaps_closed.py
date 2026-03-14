@@ -383,3 +383,123 @@ class TestEnvExample:
     def test_documents_docker_compose_section(self):
         content = self._content()
         assert "DOCKER COMPOSE" in content.upper() or "docker compose" in content.lower()
+
+
+# ---------------------------------------------------------------------------
+# 10. Billing module import paths (CRITICAL fix)
+# ---------------------------------------------------------------------------
+
+class TestBillingImportPaths:
+    """src/billing/api.py must use fully-qualified import paths."""
+
+    def _billing_api_source(self) -> str:
+        with open(os.path.join(_PROJECT_ROOT, "src", "billing", "api.py")) as fh:
+            return fh.read()
+
+    def test_currency_import_uses_src_prefix(self):
+        """billing/api.py should import from src.billing.currency, not billing.currency."""
+        source = self._billing_api_source()
+        assert "from src.billing.currency import" in source
+        assert "from billing.currency import" not in source
+
+    def test_subscription_manager_uses_src_prefix(self):
+        """billing/api.py should import from src.subscription_manager, not bare subscription_manager."""
+        source = self._billing_api_source()
+        assert "from src.subscription_manager import" in source
+        # Ensure no bare import (unqualified) is used
+        lines = source.splitlines()
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith("from subscription_manager import"):
+                pytest.fail(
+                    f"Found bare import: {stripped!r} — should use 'from src.subscription_manager import'"
+                )
+
+    def test_billing_api_importable(self):
+        """Verify src.billing.api can actually be imported."""
+        from src.billing.api import create_billing_router
+        assert callable(create_billing_router)
+
+
+# ---------------------------------------------------------------------------
+# 11. Runtime app.py billing import path
+# ---------------------------------------------------------------------------
+
+class TestRuntimeBillingImport:
+    """src/runtime/app.py must import billing through src.billing."""
+
+    def test_app_imports_src_billing(self):
+        with open(os.path.join(_PROJECT_ROOT, "src", "runtime", "app.py")) as fh:
+            source = fh.read()
+        assert "from src.billing.api import" in source
+        assert "from billing.api import" not in source
+
+
+# ---------------------------------------------------------------------------
+# 12. _deps.py sys.path points to project root
+# ---------------------------------------------------------------------------
+
+class TestDepsPathSetup:
+    """src/runtime/_deps.py must add the project root to sys.path."""
+
+    def test_deps_adds_project_root_to_path(self):
+        with open(os.path.join(_PROJECT_ROOT, "src", "runtime", "_deps.py")) as fh:
+            source = fh.read()
+        # Must use parent.parent.parent to get Murphy System/ from src/runtime/_deps.py
+        assert "parent.parent.parent" in source
+
+
+# ---------------------------------------------------------------------------
+# 13. Config description accuracy
+# ---------------------------------------------------------------------------
+
+class TestConfigDescriptions:
+    """src/config.py field descriptions should not reference stale frameworks."""
+
+    def test_no_flask_reference_in_api_debug(self):
+        with open(os.path.join(_PROJECT_ROOT, "src", "config.py")) as fh:
+            source = fh.read()
+        assert "Flask debug" not in source, (
+            "config.py api_debug description still references Flask — should say 'debug mode'"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 14. README module count accuracy
+# ---------------------------------------------------------------------------
+
+class TestReadmeModuleCounts:
+    """README files should reflect actual module and test file counts."""
+
+    def _murphy_readme(self) -> str:
+        with open(os.path.join(_PROJECT_ROOT, "README.md")) as fh:
+            return fh.read()
+
+    def _root_readme(self) -> str:
+        root = os.path.dirname(_PROJECT_ROOT)
+        with open(os.path.join(root, "README.md")) as fh:
+            return fh.read()
+
+    def test_murphy_readme_module_count_current(self):
+        """Murphy System/README.md should not reference stale module counts."""
+        content = self._murphy_readme()
+        # The old counts were 922 and 753 — both should be updated
+        assert "922 source modules" not in content, "Stale module count 922 found"
+        assert "753 modules" not in content, "Stale module count 753 found"
+
+    def test_murphy_readme_package_count_current(self):
+        """Murphy System/README.md should not reference stale package counts."""
+        content = self._murphy_readme()
+        assert "77 packages" not in content, "Stale package count 77 found"
+        assert "60 packages" not in content, "Stale package count 60 found"
+
+    def test_root_readme_module_count_current(self):
+        """Root README.md should not reference stale module counts."""
+        content = self._root_readme()
+        assert "920+ production modules" not in content, "Stale module count '920+' found"
+
+    def test_root_readme_test_file_count_current(self):
+        """Root README.md should not reference stale test file counts."""
+        content = self._root_readme()
+        assert "371 test files" not in content, "Stale test file count 371 found"
+        assert "603 test files" not in content, "Stale test file count 603 found"
