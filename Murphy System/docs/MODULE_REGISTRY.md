@@ -2,7 +2,7 @@
 
 *Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post — BSL 1.1*
 
-*Last updated: 2026-03-08*
+*Last updated: 2026-03-14*
 
 ---
 
@@ -329,6 +329,18 @@ production-grade tests. All gaps have been filled and all tests pass.
 | `murphy_autonomous_perception.py` | `src/murphy_autonomous_perception.py` | Object tracking (greedy nearest-neighbor); TTC-based safety decisions (PROCEED/SLOW/STOP/EMERGENCY_STOP); drivable area ray-casting; full perception pipeline | ✅ Operational |
 | `murphy_wingman_evolution.py` | `src/murphy_wingman_evolution.py` | Validation metrics (precision/recall/F1); runbook evolution (relax/tighten/add rules); cascading wingman; auto runbook generator; wingman factory | ✅ Operational |
 | `murphy_engineering_toolbox.py` | `src/murphy_engineering_toolbox.py` | 60+ unit conversions across 11 categories (incl. temperature C/F/K); structural, HVAC, electrical, plumbing, CPM critical-path, earned-value management | ✅ Operational |
+
+---
+
+## Self-Marketing & Revenue Generation
+
+These modules form Murphy's autonomous marketing and go-to-market engine — Murphy markets,
+sells, and partners for itself with full compliance gating and human-in-the-loop oversight.
+
+| Module | Path | Description | Status | Key Dependencies |
+|--------|------|-------------|--------|-----------------|
+| `market_positioning_engine.py` | `src/market_positioning_engine.py` | Market Positioning Engine (MPE-001); authoritative source for Murphy's capabilities, target industry verticals, ICPs, value propositions, and competitive moats; 17 registered capabilities (maturity-scored from CAPABILITY_SCORECARD); 6 industry verticals (Healthcare, Financial Services, Manufacturing, Technology, Professional Services, Government) each with ICP, pain points, regulatory context, content topics, and B2B pitch hooks; `MarketPositioningEngine` with `get_market_position`, `list_capabilities`, `get_vertical`, `get_ideal_customer_profile`, `get_content_topics_for_vertical`, `get_industry_pitch_angle`, `get_positioning_for_offering_types`, `score_partner_fit`; all inputs validated against closed allowlists (CWE-20); zero external deps; 76 tests in `test_market_positioning_engine.py` | ✅ Operational | — |
+| `self_marketing_orchestrator.py` | `src/self_marketing_orchestrator.py` | Self-Marketing Orchestrator (MKT-006); autonomous marketing loop: weekly content cycle (blog posts, case studies, tutorials), daily social cycle (Twitter/LinkedIn/Reddit variants), outreach cycle (COMPL-001/002 gated), developer attraction cycle, and weekly B2B partnership cycle; `SelfMarketingOrchestrator` wired to `MarketPositioningEngine` — content cycles enriched with vertical-specific topics, B2B pitches enriched with capability intelligence; `PartnershipProspect` with named salesperson contacts (`salesperson_name`, `salesperson_title`, `salesperson_email` [PII-safe], `salesperson_linkedin`); `add_salesperson_contact()` for runtime contact updates; 10 default partners (HubSpot, Zapier, Make, n8n, Salesforce, M365, Notion, Linear, Datadog, GitHub) with role-based salesperson contacts; hardened: `_PROSPECT_ID_RE`, `_PARTNER_ID_RE`, `_CONTENT_ID_RE`, `_ALLOWED_CHANNELS`, topic/keyword/reply/queue/DNC/cooldown/content caps, `_sanitize_error` (CWE-209), type guards in `load_state`; 235 tests across 3 test files | ✅ Operational | `market_positioning_engine`, `contact_compliance_governor`, `outreach_compliance_integration`, `thread_safe_operations` |
 
 ---
 
