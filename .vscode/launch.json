@@ -5,83 +5,22 @@
             "name": "Murphy: Quick Demo (2 min)",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/Murphy System/murphy_integrated/demo_murphy.py",
-            "args": ["--demo", "quick"],
+            "program": "${workspaceFolder}/Murphy System/scripts/quick_demo.py",
             "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}/Murphy System/murphy_integrated",
+            "cwd": "${workspaceFolder}/Murphy System",
             "env": {
-                "PYTHONPATH": "${workspaceFolder}/Murphy System/murphy_integrated"
-            }
-        },
-        {
-            "name": "Murphy: Full Demo (10 min)",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/Murphy System/murphy_integrated/demo_murphy.py",
-            "args": ["--demo", "full"],
-            "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}/Murphy System/murphy_integrated",
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}/Murphy System/murphy_integrated"
-            }
-        },
-        {
-            "name": "Murphy: API Demo",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/Murphy System/murphy_integrated/demo_murphy.py",
-            "args": ["--demo", "api"],
-            "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}/Murphy System/murphy_integrated",
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}/Murphy System/murphy_integrated"
-            }
-        },
-        {
-            "name": "Murphy: Integration Demo",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/Murphy System/murphy_integrated/demo_murphy.py",
-            "args": ["--demo", "integration"],
-            "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}/Murphy System/murphy_integrated",
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}/Murphy System/murphy_integrated"
-            }
-        },
-        {
-            "name": "Murphy: Business Automation Demo",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/Murphy System/murphy_integrated/demo_murphy.py",
-            "args": ["--demo", "business"],
-            "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}/Murphy System/murphy_integrated",
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}/Murphy System/murphy_integrated"
-            }
-        },
-        {
-            "name": "Murphy: AI/ML Demo",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/Murphy System/murphy_integrated/demo_murphy.py",
-            "args": ["--demo", "aiml"],
-            "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}/Murphy System/murphy_integrated",
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}/Murphy System/murphy_integrated"
+                "PYTHONPATH": "${workspaceFolder}/Murphy System"
             }
         },
         {
             "name": "Murphy: Start Server (Debug)",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/Murphy System/murphy_integrated/murphy_system_1.0_runtime.py",
+            "program": "${workspaceFolder}/Murphy System/murphy_system_1.0_runtime.py",
             "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}/Murphy System/murphy_integrated",
+            "cwd": "${workspaceFolder}/Murphy System",
             "env": {
-                "PYTHONPATH": "${workspaceFolder}/Murphy System/murphy_integrated",
+                "PYTHONPATH": "${workspaceFolder}/Murphy System",
                 "MURPHY_DEBUG": "1"
             }
         },
@@ -90,11 +29,11 @@
             "type": "python",
             "request": "launch",
             "module": "pytest",
-            "args": ["tests/", "-v"],
+            "args": ["tests/", "-v", "--no-cov", "--timeout=60"],
             "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}/Murphy System/murphy_integrated",
+            "cwd": "${workspaceFolder}/Murphy System",
             "env": {
-                "PYTHONPATH": "${workspaceFolder}/Murphy System/murphy_integrated"
+                "PYTHONPATH": "${workspaceFolder}/Murphy System"
             }
         }
     ]
