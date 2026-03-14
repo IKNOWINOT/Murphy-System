@@ -86,6 +86,9 @@ _KNOWN_PATTERNS = (
     "hub",
     "router",
     "pipeline",
+    "activation",
+    "introspection",
+    "builder",
 )
 
 _DEFAULT_CAPABILITIES: Dict[str, List[str]] = {

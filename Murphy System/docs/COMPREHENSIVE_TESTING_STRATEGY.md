@@ -152,6 +152,17 @@ python -m pytest tests/test_groq_integration.py -k "not LiveAPI" -v
 | Code Quality | 3 files | ~100 | ✅ Passing |
 | Gap Closure | 34 files | ~2,000 | ✅ Passing |
 
+### 3.3 New Module Test Coverage
+
+| Module | Test Label | Tests | Status |
+|--------|-----------|-------|--------|
+| self_introspection_module | INTRO-001 | Unit tests for AST scanning, codebase discovery, metric recording | ✅ |
+| self_codebase_swarm | SCS-001 | Unit tests for BMS spec generation, RFP parsing, cutsheet_engine integration | ✅ |
+| cutsheet_engine | CSE-001 | Unit tests for manufacturer data parsing, wiring diagram generation | ✅ |
+| visual_swarm_builder | VSB-001 | Unit tests for visual pipeline construction and rendering | ✅ |
+| ceo_branch_activation | CEO-002 | Unit tests for planning cycles, heartbeat integration, org chart ops | ✅ |
+| production_assistant_engine | PROD-ENG-001 | 92 tests: 7-stage lifecycle, DeliverableGateValidator, 99% gate | ✅ |
+
 ---
 
 ## 4. Cross-Module System Testing
@@ -194,6 +205,17 @@ The system-wide tests validate workflows that span multiple subsystems:
 3. **AUAR → LLM:** AUAR routes requests to appropriate LLM provider
 4. **MFM → Runtime:** MFM inference integrates with runtime API
 5. **Telemetry → All:** All modules emit telemetry events correctly
+
+### 4.4 EventBackbone Wiring Tests
+
+| Test | Description | Status |
+|------|-------------|--------|
+| EventBackbone wiring — INTRO-001 | Verify SelfIntrospectionEngine publishes to EventBackbone | Pending |
+| EventBackbone wiring — SCS-001 | Verify SelfCodebaseSwarm publishes to EventBackbone | Pending |
+| EventBackbone wiring — CSE-001 | Verify CutSheetEngine publishes to EventBackbone | Pending |
+| EventBackbone wiring — VSB-001 | Verify VisualSwarmBuilder publishes to EventBackbone | Pending |
+| EventBackbone wiring — CEO-002 | Verify CEOBranchActivation publishes to EventBackbone | Pending |
+| EventBackbone wiring — PROD-ENG-001 | Verify ProductionAssistantEngine publishes to EventBackbone | Pending |
 
 ---
 
