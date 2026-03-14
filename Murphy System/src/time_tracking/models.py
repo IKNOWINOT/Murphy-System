@@ -32,6 +32,10 @@ class EntryStatus(Enum):
     RUNNING = "running"
     PAUSED = "paused"
     COMPLETED = "completed"
+    STOPPED = "stopped"       # alias for completed; ready to submit
+    SUBMITTED = "submitted"   # awaiting approval
+    APPROVED = "approved"     # approved by a manager
+    REJECTED = "rejected"     # rejected with reason
 
 
 class SheetStatus(Enum):
@@ -56,6 +60,10 @@ class TimeEntry:
     duration_seconds: int = 0
     billable: bool = True
     tags: List[str] = field(default_factory=list)
+    # Approval fields
+    approved_by: str = ""
+    approved_at: str = ""
+    rejection_reason: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -70,6 +78,9 @@ class TimeEntry:
             "duration_seconds": self.duration_seconds,
             "billable": self.billable,
             "tags": self.tags,
+            "approved_by": self.approved_by,
+            "approved_at": self.approved_at,
+            "rejection_reason": self.rejection_reason,
         }
 
 
