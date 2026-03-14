@@ -135,7 +135,7 @@ The script handles the virtual environment, installs **all** dependencies (inclu
 | Compliance validation | **90%** | Framework complete; formal attestation (SOC 2, ISO 27001) pending |
 | Operational automation | **85%** | Core flows working; Phases 2–8 all implemented and verified |
 | File system cleanup | **100%** | Complete |
-| Test coverage (dynamic chains) | **85%** | 627 test files, 17,368 test functions; 1,611 verified passing across 37+ suites |
+| Test coverage (dynamic chains) | **85%** | 644 test files, 17,368 test functions; 1,611 verified passing across 37+ suites |
 | UI + user testing | **75%** | 14 web interfaces built; UI completion PR pending |
 | Security hardening | **80%** | Auth/CORS/CSP/JWT done; E2EE stub gated for production |
 | Code quality audit (90 categories) | **90%** | Audit complete; remediation for remaining items in progress |
@@ -144,7 +144,7 @@ The script handles the virtual environment, installs **all** dependencies (inclu
 | Documentation accuracy | **85%** | All placeholder docs filled; README truth reconciliation complete |
 | **Weighted overall** | **~82%** | See [Production Readiness Audit](Murphy%20System/strategic/PRODUCTION_READINESS_AUDIT.md) |
 
-> **Test status:** 627 test files with 17,368 test functions; 1,611 verified passing.
+> **Test status:** 644 test files with 17,368 test functions; 1,611 verified passing.
 > Skipped tests require optional packages (Flask, Textual, torch).
 > CI pipeline runs on every push/PR — see [Test Status](#-test-status) below.
 
@@ -172,7 +172,7 @@ Murphy-System/
     ├── murphy                          ← CLI tool (start/stop/status/…)
     ├── murphy_system_1.0_runtime.py    ← Single production runtime
     ├── src/                            ← 978 production modules
-    ├── tests/                          ← 627 test files
+    ├── tests/                          ← 644 test files
     ├── bots/                           ← 104 bot modules
     ├── documentation/                  ← Structured API/user docs
     ├── docs/                           ← Technical docs
@@ -793,7 +793,7 @@ Murphy is the **only automation platform** that covers the entire stack — from
 
 | Metric | Value |
 | --- | --- |
-| **Source Files** | 625+ Python modules |
+| **Source Files** | 978 Python modules |
 | **Source Lines** | 218,497 |
 | **Classes** | 2,487 |
 | **Functions / Methods** | 8,472 |
