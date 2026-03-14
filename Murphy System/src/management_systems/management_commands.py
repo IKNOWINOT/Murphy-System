@@ -76,6 +76,8 @@ _sales_automation_engine: object | None = None
 _compliance_automation_bridge: object | None = None
 _full_automation_controller: object | None = None
 _deployment_automation_controller: object | None = None
+_production_assistant: object | None = None
+_campaign_planner: object | None = None
 
 
 def _get_automation_registry() -> list[dict]:
@@ -336,6 +338,22 @@ def _get_deployment_automation_controller():
     return _deployment_automation_controller
 
 
+def _get_production_assistant():
+    global _production_assistant
+    if _production_assistant is None:
+        from production_assistant import ProductionAssistantEngine
+        _production_assistant = ProductionAssistantEngine()
+    return _production_assistant
+
+
+def _get_campaign_planner():
+    global _campaign_planner
+    if _campaign_planner is None:
+        from outreach_campaign_planner import CampaignPlannerEngine
+        _campaign_planner = CampaignPlannerEngine()
+    return _campaign_planner
+
+
 def reset_engines() -> None:
     """Reset all engine singletons (useful for testing)."""
     global _board_engine, _status_engine, _timeline_engine, _recipe_engine
@@ -350,6 +368,7 @@ def reset_engines() -> None:
     global _manufacturing_automation_registry, _sales_automation_engine
     global _compliance_automation_bridge, _full_automation_controller
     global _deployment_automation_controller
+    global _production_assistant, _campaign_planner
     _board_engine = None
     _status_engine = None
     _timeline_engine = None
@@ -381,6 +400,8 @@ def reset_engines() -> None:
     _compliance_automation_bridge = None
     _full_automation_controller = None
     _deployment_automation_controller = None
+    _production_assistant = None
+    _campaign_planner = None
 
 
 # ---------------------------------------------------------------------------
@@ -2464,6 +2485,201 @@ def handle_automation(dispatcher: object, cmd: object) -> object:
 # All handlers (for registration convenience)
 # ---------------------------------------------------------------------------
 
+
+def handle_production(dispatcher: object, cmd: object) -> object:
+    """``!murphy production <subcommand>`` — Production Assistant Engine (PROD-001).
+
+    Subcommands:
+      submit LOCATION INDUSTRY FUNCTIONS… SPEC — submit a new proposal
+      validate PROPOSAL_ID                      — validate proposal at 99% confidence
+      workorder PROPOSAL_ID DELIVERABLE         — submit a work order
+      validate-wo WORK_ORDER_ID                 — validate work order deliverable
+      advance PROFILE_ID STATE                  — advance lifecycle state
+      profiles                                   — list all production profiles
+      proposals                                  — list all proposals
+      audit [LIMIT]                              — show audit log
+    """
+    args = list(getattr(cmd, "args", []))
+    action = args[0].lower() if args else "profiles"
+
+    try:
+        pa = _get_production_assistant()
+
+        if action in ("profiles", "list"):
+            profiles = pa.list_profiles()
+            lines = ["## Production Profiles\n"]
+            if not profiles:
+                lines.append("No profiles found.")
+            for p in profiles[:20]:
+                lines.append(
+                    f"- `{p['profile_id']}` | lifecycle={p['lifecycle']} "
+                    f"| proposal={p['proposal_id']}"
+                )
+            return _make_response(True, "\n".join(lines))
+
+        if action == "proposals":
+            proposals = pa.list_proposals()
+            lines = ["## Production Proposals\n"]
+            if not proposals:
+                lines.append("No proposals found.")
+            for p in proposals[:20]:
+                lines.append(
+                    f"- `{p['proposal_id']}` | status={p['status']} "
+                    f"| confidence={p.get('confidence_score', 0):.3f} "
+                    f"| {p.get('title') or p.get('regulatory_industry', '')}"
+                )
+            return _make_response(True, "\n".join(lines))
+
+        if action == "validate" and len(args) >= 2:
+            proposal_id = args[1]
+            result = pa.validate_proposal(proposal_id)
+            lines = [f"## Proposal Validation: `{proposal_id}`\n"]
+            lines.append(f"**Passed:** {result.passed}")
+            lines.append(f"**Confidence:** {result.confidence_score:.4f}")
+            lines.append(f"**Regulatory OK:** {result.regulatory_ok}")
+            lines.append(f"**Deliverable OK:** {result.deliverable_ok}")
+            lines.append(f"**HITL OK:** {result.hitl_ok}")
+            if result.failure_reasons:
+                lines.append("\n**Failure reasons:**")
+                for r in result.failure_reasons:
+                    lines.append(f"- {r}")
+            return _make_response(result.passed, "\n".join(lines))
+
+        if action in ("validate-wo", "validate_wo") and len(args) >= 2:
+            work_order_id = args[1]
+            match = pa.validate_work_order(work_order_id)
+            lines = [f"## Work Order Validation: `{work_order_id}`\n"]
+            lines.append(f"**Passed:** {match.passed}")
+            lines.append(f"**Confidence:** {match.confidence_score:.4f}")
+            if match.missing_elements:
+                lines.append(f"**Missing elements ({len(match.missing_elements)}):** "
+                             + ", ".join(match.missing_elements[:10]))
+            return _make_response(match.passed, "\n".join(lines))
+
+        if action == "advance" and len(args) >= 3:
+            profile_id = args[1]
+            new_state_str = args[2].lower()
+            from production_assistant import ProductionLifecycle
+            try:
+                new_state = ProductionLifecycle(new_state_str)
+            except ValueError:
+                return _make_response(
+                    False,
+                    f"Unknown lifecycle state `{new_state_str}`. "
+                    f"Valid: {[s.value for s in ProductionLifecycle]}"
+                )
+            ok = pa.advance_lifecycle(profile_id, new_state)
+            if ok:
+                return _make_response(True, f"Profile `{profile_id}` advanced to `{new_state_str}`.")
+            return _make_response(False, f"Cannot advance `{profile_id}` to `{new_state_str}`.")
+
+        if action == "audit":
+            limit = int(args[1]) if len(args) >= 2 else 10
+            log = pa.get_audit_log(limit=limit)
+            lines = [f"## Production Audit Log (last {limit})\n"]
+            for entry in log:
+                lines.append(f"- `{entry.get('action')}` at {entry.get('at', '')} — {entry.get('context', {})}")
+            return _make_response(True, "\n".join(lines) if len(lines) > 1 else "No audit log entries.")
+
+        return _make_response(
+            False,
+            "Usage: `!murphy production [profiles|proposals|validate PROPOSAL_ID"
+            "|validate-wo WO_ID|advance PROFILE_ID STATE|audit [LIMIT]]`",
+        )
+    except Exception as exc:
+        return _make_response(False, f"Production assistant error: {exc}")
+
+
+def handle_campaign(dispatcher: object, cmd: object) -> object:
+    """``!murphy campaign <subcommand>`` — Outreach Campaign Planner (CAMP-001).
+
+    Subcommands:
+      health                           — run compliance health check
+      list                             — list all campaigns
+      activate CAMPAIGN_ID             — activate a draft campaign
+      pause CAMPAIGN_ID                — pause an active campaign
+      suppress CONTACT_ID [REASON]     — add contact to suppression list
+      suppressed CONTACT_ID            — check if contact is suppressed
+      audit [LIMIT]                    — show audit log
+    """
+    args = list(getattr(cmd, "args", []))
+    action = args[0].lower() if args else "list"
+
+    try:
+        cp = _get_campaign_planner()
+
+        if action == "health":
+            result = cp.campaign_health_check()
+            lines = ["## Campaign Health Check\n"]
+            lines.append(f"**Healthy:** {result.healthy}")
+            lines.append(f"**Governor OK:** {result.governor_ok}")
+            lines.append(f"**Compliance gate OK:** {result.compliance_gate_ok}")
+            lines.append(f"**Suppression OK:** {result.suppression_ok}")
+            lines.append(f"**Channel OK:** {result.channel_ok}")
+            if result.issues:
+                lines.append("\n**Issues:**")
+                for issue in result.issues:
+                    lines.append(f"- {issue}")
+            return _make_response(result.healthy, "\n".join(lines))
+
+        if action in ("list", "campaigns"):
+            campaigns = cp.list_campaigns()
+            lines = ["## Outreach Campaigns\n"]
+            if not campaigns:
+                lines.append("No campaigns found.")
+            for c in campaigns[:20]:
+                lines.append(
+                    f"- `{c['campaign_id']}` | **{c['name']}** | "
+                    f"status={c['status']} | sent={c['steps_executed']} "
+                    f"blocked={c['steps_blocked']}"
+                )
+            return _make_response(True, "\n".join(lines))
+
+        if action == "activate" and len(args) >= 2:
+            campaign_id = args[1]
+            ok = cp.activate_campaign(campaign_id)
+            if ok:
+                return _make_response(True, f"Campaign `{campaign_id}` is now ACTIVE.")
+            return _make_response(False, f"Cannot activate campaign `{campaign_id}`.")
+
+        if action == "pause" and len(args) >= 2:
+            campaign_id = args[1]
+            ok = cp.pause_campaign(campaign_id)
+            if ok:
+                return _make_response(True, f"Campaign `{campaign_id}` paused.")
+            return _make_response(False, f"Cannot pause campaign `{campaign_id}`.")
+
+        if action == "suppress" and len(args) >= 2:
+            contact_id = args[1]
+            reason = args[2] if len(args) >= 3 else "manual"
+            cp.add_to_suppression(contact_id, reason)
+            return _make_response(True, f"Contact `{contact_id}` added to suppression list (reason: {reason}).")
+
+        if action == "suppressed" and len(args) >= 2:
+            contact_id = args[1]
+            is_sup = cp.is_suppressed(contact_id)
+            return _make_response(
+                True,
+                f"Contact `{contact_id}` is {'**suppressed**' if is_sup else 'not suppressed'}.",
+            )
+
+        if action == "audit":
+            limit = int(args[1]) if len(args) >= 2 else 10
+            log = cp.get_audit_log(limit=limit)
+            lines = [f"## Campaign Audit Log (last {limit})\n"]
+            for entry in log:
+                lines.append(f"- `{entry.get('action')}` at {entry.get('at', '')} — {entry.get('context', {})}")
+            return _make_response(True, "\n".join(lines) if len(lines) > 1 else "No audit log entries.")
+
+        return _make_response(
+            False,
+            "Usage: `!murphy campaign [health|list|activate CAMPAIGN_ID|pause CAMPAIGN_ID"
+            "|suppress CONTACT_ID [REASON]|suppressed CONTACT_ID|audit [LIMIT]]`",
+        )
+    except Exception as exc:
+        return _make_response(False, f"Campaign planner error: {exc}")
+
+
 MANAGEMENT_COMMAND_HANDLERS = {
     "board": handle_board,
     "status-label": handle_status,
@@ -2480,6 +2696,8 @@ MANAGEMENT_COMMAND_HANDLERS = {
     "schedule": handle_schedule,
     "skm": handle_skm,
     "automation": handle_automation,
+    "production": handle_production,
+    "campaign": handle_campaign,
 }
 
 __all__ = [
@@ -2498,6 +2716,8 @@ __all__ = [
     "handle_schedule",
     "handle_skm",
     "handle_automation",
+    "handle_production",
+    "handle_campaign",
     "reset_engines",
     "MANAGEMENT_COMMAND_HANDLERS",
 ]

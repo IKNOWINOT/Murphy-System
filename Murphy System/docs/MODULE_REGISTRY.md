@@ -81,6 +81,7 @@ See [WINGMAN_PROTOCOL.md](WINGMAN_PROTOCOL.md) for full architecture documentati
 | `hitl_graduation_engine.py` | `src/hitl_graduation_engine.py` | Human-to-automation handoff pipeline — register, evaluate, graduate, rollback | ✅ | — |
 | `functionality_heatmap.py` | `src/functionality_heatmap.py` | Activity recording, cold/hot-spot analysis, coverage dashboard | 📋 Planned | — |
 | `agentic_onboarding_engine.py` | `src/agentic_onboarding_engine.py` | Autonomous onboarding with adaptive path selection | 📋 Planned | — |
+| `production_assistant.py` | `src/production_assistant.py` | Production Assistant (PROD-001): proposal validation at 99% confidence, HITL gate requirements (certifications, licensing, experience, discipline accountability), work-order deliverable matching, lifecycle management (created→in_review→approved→in_progress→delivered→verified), regulatory completeness checks; integrates ProductionOutputCalibrator, SafetyGate, ComplianceEngine | ✅ | `production_output_calibrator`, `thread_safe_operations`, `strategic.murphy_confidence.gates` |
 | `code_generation_gateway.py` | `src/code_generation_gateway.py` | LLM-powered code generation gateway | ✅ | — |
 | `auto_documentation_engine.py` | `src/auto_documentation_engine.py` | Automated docstring and README generation | ✅ | — |
 | `domain_gate_generator.py` | `src/domain_gate_generator.py` | Dynamic gate generation per domain | ✅ | — |
@@ -88,6 +89,7 @@ See [WINGMAN_PROTOCOL.md](WINGMAN_PROTOCOL.md) for full architecture documentati
 | `content_pipeline_engine.py` | `src/content_pipeline_engine.py` | Multi-stage content processing pipeline | ✅ | — |
 | `concept_graph_engine.py` | `src/concept_graph_engine.py` | Concept graph construction and traversal | ✅ | — |
 | `adaptive_campaign_engine.py` | `src/adaptive_campaign_engine.py` | Adaptive campaign strategy engine | ✅ | — |
+| `outreach_campaign_planner.py` | `src/outreach_campaign_planner.py` | Campaign Planner (CAMP-001): self-advertising outreach with META_PROOF self-referential messaging, multi-channel cadence (email→LinkedIn→SMS), CampaignPlan/CadenceStep/AudienceSegment models, business-type personalisation for 12 verticals, 3-day free-trial offers, shadow-agent deployment, suppression list management, audit trail; enforces 30-day/7-day cooldowns, permanent DNC, CAN-SPAM/TCPA/GDPR/CCPA/CASL via ContactComplianceGovernor | ✅ | `contact_compliance_governor`, `outreach_compliance_integration`, `self_selling_engine`, `thread_safe_operations` |
 | `competitive_intelligence_engine.py` | `src/competitive_intelligence_engine.py` | Market and competitor analysis engine | ✅ | — |
 | `alert_rules_engine.py` | `src/alert_rules_engine.py` | Configurable alert rules and notification routing | ✅ | — |
 

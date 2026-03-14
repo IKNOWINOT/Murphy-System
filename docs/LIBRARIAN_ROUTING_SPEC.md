@@ -1416,3 +1416,116 @@ The `librarian_bot` is started as part of `setup_and_start.sh`. If it is unavail
 ---
 
 *End of Librarian Routing Specification — Murphy System v1.0*
+
+---
+
+## Registered Capabilities: Production Assistant & Campaign Planner
+
+The following capabilities are registered with the SystemLibrarian as of this document revision
+and are available for routing by `TaskRouter`.
+
+### PROD-001 — Production Assistant
+
+| Attribute | Value |
+|-----------|-------|
+| **Capability ID** | `production_assistant` |
+| **Module** | `src/production_assistant.py` |
+| **Design Label** | PROD-001 |
+| **Gate Types** | `COMPLIANCE`, `HITL` |
+| **Confidence Threshold** | 0.99 (hard-coded `PRODUCTION_CONFIDENCE_THRESHOLD`) |
+| **Domain Tags** | `production`, `validation`, `compliance`, `hitl`, `proposal`, `work_order` |
+
+**Routable commands:**
+
+| Natural-language intent | Resolved capability | Key parameters |
+|-------------------------|---------------------|----------------|
+| "submit production proposal" | `production_assistant.submit_proposal` | `regulatory_location`, `regulatory_industry`, `regulatory_functions`, `deliverable_spec` |
+| "validate proposal" | `production_assistant.validate_proposal` | `proposal_id` |
+| "create work order" | `production_assistant.submit_work_order` | `proposal_id`, `actual_deliverable` |
+| "validate work order / match deliverable" | `production_assistant.validate_work_order` | `work_order_id` |
+| "advance production lifecycle" | `production_assistant.advance_lifecycle` | `profile_id`, `new_state` |
+| "list production profiles" | `production_assistant.list_profiles` | — |
+| "list proposals" | `production_assistant.list_proposals` | — |
+| "get production audit log" | `production_assistant.get_audit_log` | `limit` |
+
+**Gate evaluation flow:**
+
+```
+submit_proposal()
+    ↓
+validate_proposal()
+    ├── regulatory_ok?  (location + industry + functions non-empty)
+    ├── deliverable_ok? (deliverable_spec non-empty)
+    ├── hitl_ok?        (each HITLGateRequirement has discipline OR certifications)
+    ├── compliance_engine.check() [optional, non-blocking if unavailable]
+    ├── calibrator_spec_score OR heuristic_spec_score
+    └── SafetyGate(GateType.COMPLIANCE | HITL, threshold=0.99).evaluate()
+            ↓
+        ValidationResult.passed = True  →  ProposalStatus.APPROVED
+        ValidationResult.passed = False →  ProposalStatus.REJECTED
+```
+
+**HITL gate requirements** on proposals can carry:
+- `certifications_required` — list of professional certifications (e.g. `["CA_PE_License", "OSHA_30"]`)
+- `licenses_required` — list of business/professional licences
+- `experience_criteria` — free-text minimum experience (e.g. `"5+ years structural engineering"`)
+- `discipline` — trade or profession (e.g. `"Civil Engineering"`)
+- `accountability_framework` — accountability standard (e.g. `"ASCE_Code_of_Ethics"`)
+
+---
+
+### CAMP-001 — Outreach Campaign Planner
+
+| Attribute | Value |
+|-----------|-------|
+| **Capability ID** | `outreach_campaign_planner` |
+| **Module** | `src/outreach_campaign_planner.py` |
+| **Design Label** | CAMP-001 |
+| **Gate Types** | `COMPLIANCE` (via ContactComplianceGovernor) |
+| **Confidence Threshold** | Delegated to ContactComplianceGovernor (30-day / 7-day cooldowns + DNC) |
+| **Domain Tags** | `outreach`, `campaign`, `marketing`, `compliance`, `self-selling`, `CAN-SPAM`, `GDPR`, `TCPA` |
+
+**Routable commands:**
+
+| Natural-language intent | Resolved capability | Key parameters |
+|-------------------------|---------------------|----------------|
+| "check campaign system health" | `outreach_campaign_planner.campaign_health_check` | — |
+| "create outreach campaign for segment" | `outreach_campaign_planner.generate_campaign_for_segment` | `name`, `segment`, `cadence`, `cooldown_type` |
+| "execute campaign step" | `outreach_campaign_planner.execute_campaign_step` | `campaign_id`, `step_number`, `contact_id`, `contact_email` |
+| "add contact to suppression" | `outreach_campaign_planner.add_to_suppression` | `contact_id`, `reason` |
+| "is contact suppressed?" | `outreach_campaign_planner.is_suppressed` | `contact_id` |
+| "list campaigns" | `outreach_campaign_planner.list_campaigns` | — |
+| "activate campaign" | `outreach_campaign_planner.activate_campaign` | `campaign_id` |
+| "pause campaign" | `outreach_campaign_planner.pause_campaign` | `campaign_id` |
+| "get outreach audit log" | `outreach_campaign_planner.get_audit_log` | `limit` |
+| "get execution history" | `outreach_campaign_planner.get_execution_history` | `limit` |
+
+**Compliance enforcement flow per step:**
+
+```
+execute_campaign_step()
+    ├── suppression_list.contains(contact_id)?  → BLOCKED (DNC)
+    ├── compliance_gate.check_and_record()       → BLOCKED (regulation) | ALLOW
+    │       └── falls back to governor.validate_outreach() if gate unavailable
+    │               ├── DNC check           → BLOCKED permanently
+    │               ├── Cooldown check      → BLOCKED (30d non-customer / 7d customer)
+    │               └── Regulatory check    → CAN-SPAM / TCPA / GDPR / CCPA / CASL
+    └── ALLOW → render message (META_PROOF + personalisation + live stats + trial offer)
+                record outreach contact for future cooldown tracking
+```
+
+**Default multi-channel cadence:**
+
+| Step | Channel | Delay | META_PROOF |
+|------|---------|-------|-----------|
+| 1 | email | Day 0 | ✅ |
+| 2 | linkedin | Day 3 | ❌ |
+| 3 | sms | Day 7 | ❌ (STOP opt-out included) |
+
+**Business-type personalisation** uses `BUSINESS_TYPE_CONSTRAINTS` for 12 verticals:
+`consulting`, `ecommerce`, `law_firm`, `restaurant`, `healthcare`, `construction`,
+`real_estate`, `manufacturing`, `logistics`, `education`, `nonprofit`, `agriculture`.
+
+---
+
+*End of Librarian Routing Specification — Murphy System v1.0*
