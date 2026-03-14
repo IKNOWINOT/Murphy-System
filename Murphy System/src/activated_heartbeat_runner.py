@@ -69,6 +69,7 @@ from full_automation_controller import (
 from persistence_replay_completeness import PersistenceReplayCompleteness
 from rosetta.rosetta_models import BusinessPlanMath, UnitEconomics
 from rosetta_stone_heartbeat import RosettaStoneHeartbeat
+from ceo_branch_activation import CEOBranch
 from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
@@ -240,6 +241,7 @@ class ActivatedHeartbeatRunner:
         tick_interval: float = 5.0,
         ki: float = 0.1,
         action_executor: Optional[Callable[[WorkOrder], bool]] = None,
+        ceo_branch: Optional[CEOBranch] = None,
     ) -> None:
         """Initialise the activated heartbeat runner.
 
@@ -303,6 +305,9 @@ class ActivatedHeartbeatRunner:
 
         # ── work orders ──
         self._work_orders: List[WorkOrder] = []
+
+        # ── CEO branch (optional extension) ──
+        self._ceo_branch: Optional[CEOBranch] = ceo_branch
 
         logger.info(
             "ActivatedHeartbeatRunner initialised (interval=%.1fs, ki=%.3f)",
@@ -476,6 +481,17 @@ class ActivatedHeartbeatRunner:
                     state_dict=state_dict,
                     work_orders=work_orders,
                 )
+
+                # 8. CEO branch tick (if configured) — runs autonomously
+                #    alongside the control loop without blocking the audit.
+                if self._ceo_branch is not None:
+                    try:
+                        self._ceo_branch.run_tick()
+                    except Exception as _ceo_exc:  # noqa: BLE001
+                        logger.warning(
+                            "CEOBranch tick error (non-fatal): %s",
+                            str(_ceo_exc)[:200],
+                        )
 
                 return record
 
@@ -847,6 +863,11 @@ class ActivatedHeartbeatRunner:
     def get_status(self) -> Dict[str, Any]:
         """Return a summary of the runner's current state."""
         with self._lock:
+            ceo_status = (
+                self._ceo_branch.get_status()
+                if self._ceo_branch is not None
+                else None
+            )
             return {
                 "running": self._running,
                 "tick_count": self._tick_count,
@@ -859,6 +880,7 @@ class ActivatedHeartbeatRunner:
                 "audit_log_size": len(self._audit_log),
                 "work_orders_total": len(self._work_orders),
                 "ki": self._ki,
+                "ceo_branch": ceo_status,
             }
 
 
