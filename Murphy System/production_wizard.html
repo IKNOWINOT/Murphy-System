@@ -480,8 +480,7 @@
 
 // ── Config ────────────────────────────────────────────────────
 const params = new URLSearchParams(location.search);
-const API_PORT = parseInt(params.get('apiPort') || '8000', 10);
-const BASE = `http://localhost:${API_PORT}`;
+const BASE = params.get('apiBase') || window.location.origin;
 const log = (msg) => {
   const el = document.getElementById('prod-log');
   if (el) el.textContent += `\n[${new Date().toISOString()}] ${msg}`;
