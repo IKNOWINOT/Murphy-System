@@ -205,6 +205,23 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
 .lp-clr-cyan{color:#00ffff;}
 .lp-demo-btns{margin-top:1.5rem;display:flex;gap:.75rem;flex-wrap:wrap;}
 .lp-flex-center{flex:1;justify-content:center;}
+/* ── Reviews section ────────────────────────────────────────── */
+.review-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.25rem;margin-top:2rem;}
+.review-card{background:var(--bg2,#161b22);border:1px solid var(--border,#30363d);border-radius:10px;padding:1.25rem;text-align:left;}
+.review-stars{color:#f5a623;font-size:1.1rem;letter-spacing:2px;}
+.review-title{font-weight:700;margin:.5rem 0 .25rem;font-size:1rem;}
+.review-text{font-size:.9rem;color:var(--fg2,#8b949e);line-height:1.5;}
+.review-author{margin-top:.75rem;font-size:.8rem;color:var(--fg3,#6e7681);}
+.review-mod-response{margin-top:.75rem;padding:.75rem;background:var(--bg3,#0d1117);border-left:3px solid #00D4AA;border-radius:4px;font-size:.85rem;}
+.review-mod-response strong{color:#00D4AA;}
+.review-form{max-width:600px;margin:2rem auto 0;text-align:left;}
+.review-form label{display:block;font-weight:600;margin-top:1rem;font-size:.9rem;}
+.review-form input,.review-form textarea,.review-form select{width:100%;padding:.6rem;border:1px solid var(--border,#30363d);border-radius:6px;background:var(--bg2,#161b22);color:var(--fg,#c9d1d9);font-family:var(--font-ui,Inter,sans-serif);margin-top:.25rem;}
+.review-form textarea{min-height:80px;resize:vertical;}
+.review-submit{margin-top:1.25rem;padding:.7rem 2rem;background:#00D4AA;color:#0a0e17;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-family:var(--font-ui,Inter,sans-serif);}
+.review-submit:hover{background:#00eebb;}
+.review-referral{margin-top:1.5rem;padding:1rem;background:var(--bg2,#161b22);border:1px solid var(--border,#30363d);border-radius:8px;text-align:center;}
+.review-referral a{color:#00D4AA;font-weight:600;text-decoration:underline;}
 /* ── Partner CTA ───────────────────────────────────────────── */
 .btn-partner{display:inline-flex;align-items:center;gap:.5rem;padding:.75rem 1.5rem;border:2px solid #00D4AA;border-radius:8px;color:#00D4AA;font-weight:600;font-family:var(--font-ui,Inter,sans-serif);text-decoration:none;transition:all .2s;}
 .btn-partner:hover{background:#00D4AA;color:#0a0e17;}
@@ -551,6 +568,58 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
   </div>
 </section>
 
+<!-- REVIEWS -->
+<section id="reviews" class="lp-bg3" aria-labelledby="reviews-h">
+  <div class="si">
+    <span class="slabel">Community</span>
+    <h2 class="stitle" id="reviews-h">What Our Users Say</h2>
+    <div id="reviews-grid" class="review-grid" role="list" aria-label="User reviews">
+      <article class="review-card" role="listitem">
+        <div class="review-stars" aria-label="5 stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <div class="review-title">Transformed our operations</div>
+        <div class="review-text">Murphy automated our entire client onboarding in days. What used to take our team 3 hours now happens in 5 minutes.</div>
+        <div class="review-author">&mdash; Sarah K., Operations Director</div>
+      </article>
+      <article class="review-card" role="listitem">
+        <div class="review-stars" aria-label="5 stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <div class="review-title">Best automation platform</div>
+        <div class="review-text">The shadow learning feature is incredible. Murphy watches how we work and suggests improvements we never thought of.</div>
+        <div class="review-author">&mdash; James T., CTO</div>
+      </article>
+      <article class="review-card" role="listitem">
+        <div class="review-stars" aria-label="4 stars">&#9733;&#9733;&#9733;&#9733;&#9734;</div>
+        <div class="review-title">Solid platform, great support</div>
+        <div class="review-text">Integration was smooth and the HITL review gives us confidence that nothing ships without human approval.</div>
+        <div class="review-author">&mdash; Maria L., Quality Manager</div>
+      </article>
+    </div>
+    <div class="review-referral">
+      &#127873; <strong>Refer a friend</strong> &mdash; Both you and your referral get <strong>1 month free</strong> of Solo!
+      <a href="signup.html">Get your referral link</a>
+    </div>
+    <details class="review-form">
+      <summary class="review-submit">&#9997;&#65039; Write a Review</summary>
+      <form id="review-form" onsubmit="submitReview(event)">
+        <label for="rv-name">Your Name</label>
+        <input id="rv-name" type="text" required placeholder="Jane Doe">
+        <label for="rv-rating">Rating</label>
+        <select id="rv-rating" required>
+          <option value="5">&#9733;&#9733;&#9733;&#9733;&#9733; Excellent</option>
+          <option value="4">&#9733;&#9733;&#9733;&#9733;&#9734; Good</option>
+          <option value="3">&#9733;&#9733;&#9733;&#9734;&#9734; Average</option>
+          <option value="2">&#9733;&#9733;&#9734;&#9734;&#9734; Below Average</option>
+          <option value="1">&#9733;&#9734;&#9734;&#9734;&#9734; Poor</option>
+        </select>
+        <label for="rv-title">Title</label>
+        <input id="rv-title" type="text" required placeholder="Summary of your experience">
+        <label for="rv-comment">Your Review</label>
+        <textarea id="rv-comment" required placeholder="Tell us about your experience..."></textarea>
+        <button type="submit" class="review-submit">Submit Review</button>
+      </form>
+    </details>
+  </div>
+</section>
+
 <!-- GUARANTEE -->
 <section id="guarantee" aria-labelledby="guar-h">
   <div class="si">
@@ -642,6 +711,63 @@ document.querySelectorAll('#main-nav a').forEach(function(a){a.addEventListener(
 // Librarian chat
 var api = new MurphyAPI('/api');
 var librarian = new MurphyLibrarianChat(api);
+
+// ── Review system ──────────────────────────────────────────
+function submitReview(e) {
+  e.preventDefault();
+  var base = window.location.origin;
+  var payload = {
+    user: document.getElementById('rv-name').value,
+    rating: parseInt(document.getElementById('rv-rating').value),
+    title: document.getElementById('rv-title').value,
+    comment: document.getElementById('rv-comment').value,
+  };
+  fetch(base + '/api/reviews/submit', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload),
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    if (data.ok) {
+      document.getElementById('review-form').reset();
+      loadReviews();
+      if (data.review && data.review.rating <= 2 && data.review.moderator_response) {
+        fetch(base + '/api/automation/review-response', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({review_id: data.id}),
+        });
+      }
+    }
+  });
+}
+
+function loadReviews() {
+  var base = window.location.origin;
+  fetch(base + '/api/reviews')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if (!data.ok) return;
+      var grid = document.getElementById('reviews-grid');
+      if (!grid || !data.reviews.length) return;
+      var html = '';
+      data.reviews.forEach(function(rv){
+        var stars = '';
+        for (var i=0; i<5; i++) stars += i < rv.rating ? '&#9733;' : '&#9734;';
+        html += '<article class="review-card" role="listitem">';
+        html += '<div class="review-stars">' + stars + '</div>';
+        html += '<div class="review-title">' + (rv.title||'') + '</div>';
+        html += '<div class="review-text">' + (rv.comment||'') + '</div>';
+        html += '<div class="review-author">&mdash; ' + (rv.user||'Anonymous') + '</div>';
+        if (rv.moderator_response) {
+          html += '<div class="review-mod-response"><strong>Murphy Team:</strong> ' + rv.moderator_response.message + '</div>';
+        }
+        html += '</article>';
+      });
+      grid.innerHTML += html;
+    })
+    .catch(function(){});
+}
+loadReviews();
 </script>
 </body>
 </html>
