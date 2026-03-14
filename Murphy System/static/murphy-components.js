@@ -1686,10 +1686,11 @@ const MurphyMarkdown = {
     html = html.replace(/^\d+\. (.+)$/gm, '<li class="murphy-md-oli">$1</li>');
     html = html.replace(/((?:<li class="murphy-md-oli">.*<\/li>\n?)+)/g, '<ol class="murphy-md-ol">$1</ol>');
 
-    // Links: [text](url) — safe: no javascript: protocol
+    // Links: [text](url) — whitelist safe protocols only
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, text, url) => {
-      if (/^javascript:/i.test(url.trim())) return text;
-      const safeUrl = this._escapeHtml(url);
+      const trimmed = url.trim();
+      if (!/^(https?:|mailto:|\/)/i.test(trimmed)) return text;
+      const safeUrl = this._escapeHtml(trimmed);
       return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="murphy-md-link">${text}</a>`;
     });
 
