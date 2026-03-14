@@ -91,6 +91,8 @@ Safety invariants:
   - Salesperson name/title validated with _SAFE_NAME_RE (no control chars or HTML, CWE-20)
   - Salesperson email validated with RFC-5321 regex + 254-char cap; NEVER logged or returned (PII)
   - Salesperson LinkedIn URL validated: HTTPS only, linkedin.com/in/ prefix enforced (CWE-20)
+  - MarketPositioningEngine wired in: content cycles and B2B pitches enriched with
+    vertical-specific topics and capability intelligence (non-fatal fallback on error)
 
 Copyright © 2020 Inoni Limited Liability Company
 Creator: Corey Post
@@ -108,6 +110,10 @@ from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
+from market_positioning_engine import (
+    MarketPositioningEngine,
+    get_default_positioning_engine,
+)
 from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
@@ -924,6 +930,7 @@ class SelfMarketingOrchestrator:
         event_backbone: Any = None,
         persistence_manager: Any = None,
         desired_offerings: Optional[List[Dict[str, Any]]] = None,
+        positioning_engine: Optional[MarketPositioningEngine] = None,
     ) -> None:
         self._content_engine = content_engine
         self._seo_engine = seo_engine
@@ -932,6 +939,14 @@ class SelfMarketingOrchestrator:
         self._compliance_gate = compliance_gate
         self._backbone = event_backbone
         self._pm = persistence_manager
+
+        # Market positioning engine — used to enrich content topics and B2B pitches.
+        # Falls back to the module-level default singleton if not explicitly provided.
+        self._positioning = (
+            positioning_engine
+            if positioning_engine is not None
+            else get_default_positioning_engine()
+        )
 
         self._lock = threading.Lock()
 
@@ -1037,12 +1052,42 @@ class SelfMarketingOrchestrator:
         pieces_pending_review = 0
         seo_scores: List[float] = []
 
-        # Pick this cycle's category
+        # Pick this cycle's category and determine active vertical
         with self._lock:
             category = _CATEGORY_ROTATION[self._category_index % len(_CATEGORY_ROTATION)]
             self._category_index += 1
 
         topics = CONTENT_CATEGORIES[category]
+
+        # Enrich topic pool with vertical-specific topics from the positioning engine.
+        # Map content category names to the closest industry vertical and pull its
+        # curated topics in — these are already SEO-optimised for the target buyer.
+        _CATEGORY_TO_VERTICAL: Dict[str, str] = {
+            "ai_automation": "technology",
+            "developer_tools": "technology",
+            "industrial_iot": "manufacturing",
+            "business_automation": "professional_services",
+            "case_studies": "technology",
+            "thought_leadership": "financial_services",
+        }
+        vertical_id = _CATEGORY_TO_VERTICAL.get(category)
+        vertical_topics: List[str] = []
+        if vertical_id:
+            try:
+                vertical_topics = self._positioning.get_content_topics_for_vertical(vertical_id)
+            except (ValueError, Exception):  # noqa: BLE001
+                pass  # positioning engine failure is non-fatal for content cycle
+
+        # Merge: use vertical topics first (highest signal), then category templates
+        combined_topics: List[str] = list(vertical_topics[:3]) + list(topics)
+        # Deduplicate while preserving order
+        seen_topics: set = set()
+        unique_topics: List[str] = []
+        for t in combined_topics:
+            if t not in seen_topics:
+                seen_topics.add(t)
+                unique_topics.append(t)
+        topics = unique_topics
 
         for topic_template in topics:
             topic = topic_template.replace("{industry}", "manufacturing")
@@ -1768,6 +1813,25 @@ class SelfMarketingOrchestrator:
         else:
             greeting = f"Hi {partner.contact_role.replace('_', ' ').title()} Team,"
 
+        # Use the positioning engine to get richer offering context —
+        # falls back gracefully if positioning engine raises (e.g. unknown type).
+        positioning_section = ""
+        try:
+            pos_data = self._positioning.get_positioning_for_offering_types(
+                list(partner.offering_types[:6])
+            )
+            rel_caps = pos_data.get("relevant_capabilities", [])[:3]
+            if rel_caps:
+                cap_lines = "\n".join(
+                    f"  • {c['name']}: {c['description']}"
+                    for c in rel_caps
+                )
+                positioning_section = (
+                    f"\nWhy Murphy is the right fit:\n{cap_lines}\n"
+                )
+        except Exception:  # noqa: BLE001
+            pass  # positioning enrichment is non-fatal
+
         body = (
             f"{greeting}\n\n"
             f"I'm reaching out from Murphy System (murphy.inoni.ai) — an AI automation "
@@ -1776,7 +1840,8 @@ class SelfMarketingOrchestrator:
             f"governance.\n\n"
             f"We'd love to explore {offering_str} with {partner.company}.\n\n"
             f"Why it's a great fit:\n"
-            f"{partner.pitch_angle}\n\n"
+            f"{partner.pitch_angle}\n"
+            f"{positioning_section}\n"
             f"What we're proposing:\n"
             + "\n".join(f"  • {offering_labels.get(t, t).capitalize()}" for t in partner.offering_types)
             + "\n\n"
@@ -2058,6 +2123,15 @@ class SelfMarketingOrchestrator:
                 "case_studies_drafted": b2b_case_studies,
                 "contacts_identified": b2b_contacts_identified,
                 "b2b_cycles_run": b2b_cycles_count,
+            },
+            "market_position": {
+                "positioning_statement": self._positioning.get_market_position().positioning_statement,
+                "tagline": self._positioning.get_market_position().tagline,
+                "target_segments": list(self._positioning.get_market_position().target_segments),
+                "differentiation_pillars": list(self._positioning.get_market_position().differentiation_pillars),
+                "total_capabilities": len(self._positioning.list_capabilities()),
+                "total_verticals": len(self._positioning.list_verticals()),
+                "vertical_summary": self._positioning.get_vertical_summary(),
             },
             "cycles": {
                 "content_cycles_run": content_cycles,
@@ -2629,4 +2703,7 @@ __all__ = [
     "OutreachCycleResult",
     "DeveloperAttractionResult",
     "B2BPartnershipCycleResult",
+    # Re-exported from market_positioning_engine for convenience
+    "MarketPositioningEngine",
+    "get_default_positioning_engine",
 ]
