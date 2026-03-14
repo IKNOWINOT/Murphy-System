@@ -216,6 +216,15 @@ MODULE_MANIFEST: List[ModuleEntry] = [
         consumes=[],
         description="Gate bypass controller",
     ),
+    ModuleEntry(
+        module="outreach_compliance_integration",
+        room="outreach-compliance-integration",
+        commands=["compliance check", "compliance status"],
+        persona="GovernanceBot",
+        emits=["outreach_checked"],
+        consumes=["outreach_requested"],
+        description="Outreach compliance integration — wires governor into all outreach paths",
+    ),
 
     # ── Safety & HITL ─────────────────────────────────────────────────────────
     ModuleEntry(
