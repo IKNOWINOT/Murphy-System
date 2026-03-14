@@ -745,9 +745,9 @@ class TestStatusMdCounts:
         assert "585+" not in content, "Stale test count '585+' found in STATUS.md"
 
     def test_updated_test_count_present(self):
-        """STATUS.md should reference 627+ test files."""
+        """STATUS.md should reference 644+ test files."""
         content = self._content()
-        assert "627" in content, "STATUS.md should mention 627 test files"
+        assert "644" in content, "STATUS.md should mention 644 test files"
 
 
 # ---------------------------------------------------------------------------
@@ -1084,4 +1084,123 @@ class TestScalingGuideImageTag:
             content = fh.read()
         assert "murphy-system:latest" not in content, (
             "SCALING_GUIDE.md still uses :latest — production guides should use version tags"
+        )
+
+
+# ===================================================================
+# Round 5: Deeper cross-file consistency checks
+# ===================================================================
+
+# ---------------------------------------------------------------------------
+# 28. docker-compose.yml Redis version pinning
+# ---------------------------------------------------------------------------
+
+class TestDockerComposeMainRedis:
+    """docker-compose.yml Redis must be pinned to match docker-compose.murphy.yml."""
+
+    def test_redis_version_pinned(self):
+        path = os.path.join(_PROJECT_ROOT, "docker-compose.yml")
+        with open(path) as fh:
+            content = fh.read()
+        assert "redis:7-alpine" not in content, (
+            "docker-compose.yml Redis should be pinned to specific version (e.g., 7.2-alpine)"
+        )
+        assert "redis:7." in content, "Redis version should be pinned"
+
+
+# ---------------------------------------------------------------------------
+# 29. docker-compose.scale.yml image consistency
+# ---------------------------------------------------------------------------
+
+class TestDockerComposeScaleImages:
+    """docker-compose.scale.yml images must be consistent with main compose files."""
+
+    def _content(self) -> str:
+        path = os.path.join(
+            _PROJECT_ROOT, "strategic", "gap_closure", "launch",
+            "docker-compose.scale.yml"
+        )
+        with open(path) as fh:
+            return fh.read()
+
+    def test_no_latest_murphy_image(self):
+        """Murphy image should not use :latest tag."""
+        content = self._content()
+        assert "murphy-system:latest" not in content, (
+            "docker-compose.scale.yml uses :latest — must use versioned tag"
+        )
+
+    def test_redis_version_pinned(self):
+        content = self._content()
+        assert "redis:7-alpine" not in content, (
+            "docker-compose.scale.yml Redis should be pinned (e.g., redis:7.2-alpine)"
+        )
+
+    def test_prometheus_version_current(self):
+        content = self._content()
+        assert "v2.50.0" not in content, (
+            "docker-compose.scale.yml Prometheus is outdated (v2.50.0)"
+        )
+        assert "v2.53.0" in content, "Prometheus should be v2.53.0"
+
+    def test_grafana_version_current(self):
+        content = self._content()
+        assert "grafana:10." not in content, (
+            "docker-compose.scale.yml Grafana is outdated (10.x)"
+        )
+        assert "grafana:11.1.0" in content, "Grafana should be 11.1.0"
+
+
+# ---------------------------------------------------------------------------
+# 30. start_murphy_1.0.sh Python version consistency
+# ---------------------------------------------------------------------------
+
+class TestStartMurphyPythonVersion:
+    """start_murphy_1.0.sh Python requirement must match pyproject.toml (>=3.10)."""
+
+    def test_requires_python_3_10(self):
+        path = os.path.join(_PROJECT_ROOT, "start_murphy_1.0.sh")
+        with open(path) as fh:
+            content = fh.read()
+        assert 'REQUIRED_VERSION="3.10"' in content, (
+            "start_murphy_1.0.sh should require Python 3.10 (matching pyproject.toml)"
+        )
+
+    def test_not_requiring_3_11(self):
+        path = os.path.join(_PROJECT_ROOT, "start_murphy_1.0.sh")
+        with open(path) as fh:
+            content = fh.read()
+        assert 'REQUIRED_VERSION="3.11"' not in content, (
+            "start_murphy_1.0.sh should not require 3.11 — pyproject.toml allows 3.10+"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 31. Root README stale module/test counts
+# ---------------------------------------------------------------------------
+
+class TestRootReadmeStatsCurrent:
+    """Root README.md stats section must reflect current module/test counts."""
+
+    def _content(self) -> str:
+        path = os.path.join(_REPO_ROOT, "README.md")
+        with open(path) as fh:
+            return fh.read()
+
+    def test_no_stale_625_module_count(self):
+        content = self._content()
+        assert "625+" not in content and "625 Python" not in content, (
+            "Root README.md still has stale '625+' module count"
+        )
+
+    def test_source_files_shows_978(self):
+        content = self._content()
+        assert "978" in content, (
+            "Root README.md stats section should show 978 Python modules"
+        )
+
+    def test_test_files_updated(self):
+        content = self._content()
+        assert "627 test files" not in content, (
+            "Root README.md still shows stale 627 test file count"
         )

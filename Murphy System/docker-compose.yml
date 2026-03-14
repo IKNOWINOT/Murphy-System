@@ -70,7 +70,7 @@ services:
 
   # ── Redis ──────────────────────────────────────────────────────────────
   redis:
-    image: redis:7-alpine
+    image: redis:7.2-alpine
     container_name: murphy-redis
     restart: unless-stopped
     command: >
