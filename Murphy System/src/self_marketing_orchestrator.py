@@ -88,6 +88,9 @@ Safety invariants:
   - PII redacted from logs — email addresses masked before emission
   - B2B partner contacts subject to the same compliance layer as regular outreach
   - B2B case-study briefs queued for HITL review before sending to partner
+  - Salesperson name/title validated with _SAFE_NAME_RE (no control chars or HTML, CWE-20)
+  - Salesperson email validated with RFC-5321 regex + 254-char cap; NEVER logged or returned (PII)
+  - Salesperson LinkedIn URL validated: HTTPS only, linkedin.com/in/ prefix enforced (CWE-20)
 
 Copyright © 2020 Inoni Limited Liability Company
 Creator: Corey Post
@@ -165,6 +168,32 @@ _MAX_ERROR_MSG_LEN = 200
 _MAX_DNC_ENTRIES = 100_000       # DNC set — same limit as COMPL-002
 _MAX_LAST_CONTACTED = 100_000    # cooldown tracking dict
 _MAX_CONTENT_ITEMS = 50_000      # content catalogue dict
+
+# ---------------------------------------------------------------------------
+# Salesperson contact field validation (CWE-20)
+# ---------------------------------------------------------------------------
+
+# Maximum length for salesperson name and job title strings.
+_MAX_NAME_LEN = 200
+
+# Salesperson name / title: printable chars; no raw control characters or HTML
+# injection characters.  Allows letters, digits, spaces, hyphens, apostrophes,
+# dots, commas, and parentheses — sufficient for any real person's name or
+# professional title.
+_SAFE_NAME_RE = re.compile(r"^[^\x00-\x1f\x7f<>&\"\\]{1,200}$")
+
+# Email address (RFC 5321 simplified, consistent with COMPL-002).
+# Raw salesperson_email values are NEVER logged or returned in API responses.
+_EMAIL_RE_B2B = re.compile(
+    r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$"
+)
+_MAX_EMAIL_LEN = 254              # RFC 5321 hard cap
+
+# LinkedIn profile URL — HTTPS only; must be a profile URL under linkedin.com/in/.
+_LINKEDIN_URL_RE = re.compile(
+    r"^https://(www\.)?linkedin\.com/in/[a-zA-Z0-9_\-%.]{1,200}/?$"
+)
+_MAX_LINKEDIN_URL_LEN = 500
 
 # ---------------------------------------------------------------------------
 # Content topic calendar — rotated weekly
@@ -278,6 +307,72 @@ def _sanitize_error(exc: BaseException) -> str:
     )
     combined = f"{type(exc).__name__}: {detail}"
     return combined[:_MAX_ERROR_MSG_LEN]
+
+
+def _validate_salesperson_name(value: str, *, param: str = "salesperson_name") -> str:
+    """Validate and return a salesperson name or job title (CWE-20).
+
+    Strips leading/trailing whitespace and null bytes, enforces _MAX_NAME_LEN,
+    and rejects strings containing raw HTML/control characters.
+    Raises ValueError for invalid input.
+    """
+    if not isinstance(value, str):
+        raise ValueError(f"{param} must be a string")
+    value = value.replace("\x00", "").strip()
+    if not value:
+        raise ValueError(f"{param} must not be empty")
+    if len(value) > _MAX_NAME_LEN:
+        raise ValueError(
+            f"{param} exceeds maximum length of {_MAX_NAME_LEN} characters"
+        )
+    if not _SAFE_NAME_RE.match(value):
+        raise ValueError(
+            f"{param} contains disallowed characters (no control chars or HTML)"
+        )
+    return value
+
+
+def _validate_salesperson_email(email: str) -> str:
+    """Validate a salesperson email address (CWE-20, PII).
+
+    Applies the same RFC-5321 simplified check used by COMPL-002.
+    Raw email is NEVER logged by callers — only the validated, opaque value
+    is stored in PartnershipProspect.salesperson_email.
+    Raises ValueError for invalid input.
+    """
+    if not isinstance(email, str):
+        raise ValueError("salesperson_email must be a string")
+    email = email.strip().replace("\x00", "")
+    if len(email) > _MAX_EMAIL_LEN:
+        raise ValueError(
+            f"salesperson_email exceeds RFC-5321 maximum of {_MAX_EMAIL_LEN} characters"
+        )
+    if not _EMAIL_RE_B2B.match(email):
+        raise ValueError(
+            "salesperson_email is not a valid RFC-5321 email address"
+        )
+    return email
+
+
+def _validate_linkedin_url(url: str) -> str:
+    """Validate a LinkedIn profile URL (CWE-20).
+
+    Accepts only HTTPS profile URLs under linkedin.com/in/.  Rejects
+    HTTP, javascript:, data:, and non-LinkedIn domains.
+    Raises ValueError for invalid input.
+    """
+    if not isinstance(url, str):
+        raise ValueError("salesperson_linkedin must be a string")
+    url = url.strip().replace("\x00", "")
+    if len(url) > _MAX_LINKEDIN_URL_LEN:
+        raise ValueError(
+            f"salesperson_linkedin exceeds maximum of {_MAX_LINKEDIN_URL_LEN} characters"
+        )
+    if not _LINKEDIN_URL_RE.match(url):
+        raise ValueError(
+            "salesperson_linkedin must be an HTTPS linkedin.com/in/<profile> URL"
+        )
+    return url
 
 
 # ---------------------------------------------------------------------------
@@ -537,6 +632,10 @@ DEFAULT_DESIRED_OFFERINGS: List[Dict[str, Any]] = [
         "partner_id": "hubspot",
         "company": "HubSpot",
         "contact_role": "partnerships",
+        "salesperson_name": "Head of Technology Partnerships",
+        "salesperson_title": "Head of Technology Partnerships, HubSpot",
+        "salesperson_email": None,
+        "salesperson_linkedin": None,
         "channel": "linkedin",
         "offering_types": ["case_study", "integration_featuring"],
         "pitch_angle": (
@@ -548,6 +647,10 @@ DEFAULT_DESIRED_OFFERINGS: List[Dict[str, Any]] = [
         "partner_id": "zapier",
         "company": "Zapier",
         "contact_role": "developer_relations",
+        "salesperson_name": "Director of Developer Relations",
+        "salesperson_title": "Director, Developer Relations — Zapier",
+        "salesperson_email": None,
+        "salesperson_linkedin": None,
         "channel": "email",
         "offering_types": ["featuring", "co_marketing"],
         "pitch_angle": (
@@ -559,6 +662,10 @@ DEFAULT_DESIRED_OFFERINGS: List[Dict[str, Any]] = [
         "partner_id": "make",
         "company": "Make (Integromat)",
         "contact_role": "partnerships",
+        "salesperson_name": "Head of Partner Ecosystem",
+        "salesperson_title": "Head of Partner Ecosystem, Make",
+        "salesperson_email": None,
+        "salesperson_linkedin": None,
         "channel": "linkedin",
         "offering_types": ["case_study", "featuring"],
         "pitch_angle": (
@@ -570,6 +677,10 @@ DEFAULT_DESIRED_OFFERINGS: List[Dict[str, Any]] = [
         "partner_id": "n8n",
         "company": "n8n",
         "contact_role": "developer_relations",
+        "salesperson_name": "Developer Relations Lead",
+        "salesperson_title": "Developer Relations Lead, n8n",
+        "salesperson_email": None,
+        "salesperson_linkedin": None,
         "channel": "email",
         "offering_types": ["co_marketing", "integration_featuring"],
         "pitch_angle": (
@@ -581,6 +692,10 @@ DEFAULT_DESIRED_OFFERINGS: List[Dict[str, Any]] = [
         "partner_id": "salesforce",
         "company": "Salesforce",
         "contact_role": "ISV_partnerships",
+        "salesperson_name": "Director of ISV Partnerships",
+        "salesperson_title": "Director, ISV & AppExchange Partnerships — Salesforce",
+        "salesperson_email": None,
+        "salesperson_linkedin": None,
         "channel": "email",
         "offering_types": ["case_study", "integration_featuring"],
         "pitch_angle": (
@@ -592,6 +707,10 @@ DEFAULT_DESIRED_OFFERINGS: List[Dict[str, Any]] = [
         "partner_id": "microsoft_365",
         "company": "Microsoft 365",
         "contact_role": "partner_network",
+        "salesperson_name": "Partner Business Development Manager",
+        "salesperson_title": "Partner Business Development Manager, Microsoft 365",
+        "salesperson_email": None,
+        "salesperson_linkedin": None,
         "channel": "email",
         "offering_types": ["featuring", "case_study"],
         "pitch_angle": (
@@ -603,6 +722,10 @@ DEFAULT_DESIRED_OFFERINGS: List[Dict[str, Any]] = [
         "partner_id": "notion",
         "company": "Notion",
         "contact_role": "partnerships",
+        "salesperson_name": "Head of Integrations & Partnerships",
+        "salesperson_title": "Head of Integrations & Partnerships, Notion",
+        "salesperson_email": None,
+        "salesperson_linkedin": None,
         "channel": "linkedin",
         "offering_types": ["co_marketing", "featuring"],
         "pitch_angle": (
@@ -614,6 +737,10 @@ DEFAULT_DESIRED_OFFERINGS: List[Dict[str, Any]] = [
         "partner_id": "linear",
         "company": "Linear",
         "contact_role": "developer_relations",
+        "salesperson_name": "Developer Relations Lead",
+        "salesperson_title": "Developer Relations Lead, Linear",
+        "salesperson_email": None,
+        "salesperson_linkedin": None,
         "channel": "email",
         "offering_types": ["integration_featuring", "podcast_guest"],
         "pitch_angle": (
@@ -625,6 +752,10 @@ DEFAULT_DESIRED_OFFERINGS: List[Dict[str, Any]] = [
         "partner_id": "datadog",
         "company": "Datadog",
         "contact_role": "technology_partnerships",
+        "salesperson_name": "Director of Technology Alliances",
+        "salesperson_title": "Director, Technology Alliances — Datadog",
+        "salesperson_email": None,
+        "salesperson_linkedin": None,
         "channel": "email",
         "offering_types": ["case_study", "integration_featuring"],
         "pitch_angle": (
@@ -636,6 +767,10 @@ DEFAULT_DESIRED_OFFERINGS: List[Dict[str, Any]] = [
         "partner_id": "github",
         "company": "GitHub",
         "contact_role": "ecosystem_partnerships",
+        "salesperson_name": "Head of Ecosystem Partnerships",
+        "salesperson_title": "Head of Ecosystem Partnerships, GitHub",
+        "salesperson_email": None,
+        "salesperson_linkedin": None,
         "channel": "email",
         "offering_types": ["featuring", "press_mention"],
         "pitch_angle": (
@@ -659,7 +794,20 @@ class PartnershipStatus(str, Enum):
 
 @dataclass
 class PartnershipProspect:
-    """A B2B partnership opportunity being tracked."""
+    """A B2B partnership opportunity being tracked.
+
+    Salesperson contact fields
+    --------------------------
+    salesperson_name    : The named individual to address pitches to.
+                          Use `add_salesperson_contact()` to set this at runtime
+                          once the actual contact person is identified.
+                          Defaults to a role-based name from DEFAULT_DESIRED_OFFERINGS.
+    salesperson_title   : The contact's job title at the partner company.
+    salesperson_email   : Email address — PII.  NEVER returned from to_dict() or
+                          included in API responses / event payloads.  Stored
+                          internally only for channel routing.
+    salesperson_linkedin: LinkedIn profile URL for linkedin channel routing.
+    """
 
     partner_id: str
     company: str
@@ -675,6 +823,11 @@ class PartnershipProspect:
     created_at: str = field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
+    # Named salesperson contact (CWE-20 validated on write; PII-safe on read)
+    salesperson_name: Optional[str] = None
+    salesperson_title: Optional[str] = None
+    salesperson_email: Optional[str] = None      # PII — never serialised
+    salesperson_linkedin: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -690,6 +843,11 @@ class PartnershipProspect:
             "case_study_content_id": self.case_study_content_id,
             "notes": self.notes,
             "created_at": self.created_at,
+            # Named contact (name / title / linkedin — email excluded as PII)
+            "salesperson_name": self.salesperson_name,
+            "salesperson_title": self.salesperson_title,
+            "salesperson_linkedin": self.salesperson_linkedin,
+            "has_named_contact": self.salesperson_name is not None,
         }
 
 
@@ -812,6 +970,43 @@ class SelfMarketingOrchestrator:
         for offering in offerings:
             pid = offering.get("partner_id", "")
             if pid and pid not in self._partnerships:
+                # Validate optional salesperson contact fields — log warnings on
+                # bad values but don't crash so a single bad entry doesn't block
+                # the whole list.
+                sp_name: Optional[str] = None
+                sp_title: Optional[str] = None
+                sp_email: Optional[str] = None
+                sp_linkedin: Optional[str] = None
+
+                if offering.get("salesperson_name"):
+                    try:
+                        sp_name = _validate_salesperson_name(
+                            offering["salesperson_name"], param="salesperson_name"
+                        )
+                    except ValueError as e:
+                        logger.warning("Offering '%s' salesperson_name rejected: %s", pid, e)
+
+                if offering.get("salesperson_title"):
+                    try:
+                        sp_title = _validate_salesperson_name(
+                            offering["salesperson_title"], param="salesperson_title"
+                        )
+                    except ValueError as e:
+                        logger.warning("Offering '%s' salesperson_title rejected: %s", pid, e)
+
+                if offering.get("salesperson_email"):
+                    try:
+                        sp_email = _validate_salesperson_email(offering["salesperson_email"])
+                    except ValueError as e:
+                        logger.warning("Offering '%s' salesperson_email rejected (not logged)", pid)
+                        # Intentionally do NOT log e — it may contain the raw email (PII)
+
+                if offering.get("salesperson_linkedin"):
+                    try:
+                        sp_linkedin = _validate_linkedin_url(offering["salesperson_linkedin"])
+                    except ValueError as e:
+                        logger.warning("Offering '%s' salesperson_linkedin rejected: %s", pid, e)
+
                 self._partnerships[pid] = PartnershipProspect(
                     partner_id=pid,
                     company=offering.get("company", pid),
@@ -819,6 +1014,10 @@ class SelfMarketingOrchestrator:
                     channel=offering.get("channel", "email"),
                     offering_types=list(offering.get("offering_types", [])),
                     pitch_angle=offering.get("pitch_angle", ""),
+                    salesperson_name=sp_name,
+                    salesperson_title=sp_title,
+                    salesperson_email=sp_email,
+                    salesperson_linkedin=sp_linkedin,
                 )
 
     # ── Content Cycle ─────────────────────────────────────────────────────
@@ -1540,7 +1739,11 @@ class SelfMarketingOrchestrator:
         """Compose a personalised B2B pitch for a partnership prospect.
 
         Returns a pitch dict containing the subject line, body, and metadata.
-        The body is tailored to each offering_type the partner is interested in.
+        The body is tailored to each offering_type the partner is interested in
+        and addressed to the named salesperson when one is known.
+
+        Note: the pitch dict deliberately excludes salesperson_email (PII) —
+        channel routing uses the internally-held field and never exposes it.
         """
         offering_labels = {
             "case_study": "a joint case study",
@@ -1558,8 +1761,15 @@ class SelfMarketingOrchestrator:
             f"B2B Partnership Opportunity: Murphy System × {partner.company} — "
             f"{offering_str.capitalize()}"
         )
+
+        # Personalise the greeting — use the named individual when known.
+        if partner.salesperson_name:
+            greeting = f"Hi {partner.salesperson_name},"
+        else:
+            greeting = f"Hi {partner.contact_role.replace('_', ' ').title()} Team,"
+
         body = (
-            f"Hi {partner.contact_role.replace('_', ' ').title()},\n\n"
+            f"{greeting}\n\n"
             f"I'm reaching out from Murphy System (murphy.inoni.ai) — an AI automation "
             f"platform that enables teams to automate any workflow by describing it in "
             f"plain English, with confidence-gated execution and full human-in-the-loop "
@@ -1586,6 +1796,11 @@ class SelfMarketingOrchestrator:
             "subject": subject,
             "body": body,
             "offering_types": list(partner.offering_types),
+            # Named contact metadata (not email — PII excluded from return value)
+            "salesperson_name": partner.salesperson_name,
+            "salesperson_title": partner.salesperson_title,
+            "salesperson_linkedin": partner.salesperson_linkedin,
+            "has_named_contact": partner.salesperson_name is not None,
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
 
@@ -1665,17 +1880,85 @@ class SelfMarketingOrchestrator:
             "is_opt_out": is_opt_out,
         }
 
+    def add_salesperson_contact(
+        self,
+        partner_id: str,
+        *,
+        name: Optional[str] = None,
+        title: Optional[str] = None,
+        email: Optional[str] = None,
+        linkedin: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Add or update the named salesperson contact for a known partner.
+
+        All fields are individually validated.  The update is atomic under the
+        instance lock.  Returns the updated partner dict (email excluded — PII).
+
+        Raises ValueError for:
+          - Invalid partner_id format
+          - Unknown partner_id
+          - Any invalid contact field value
+        """
+        if not isinstance(partner_id, str) or not _PARTNER_ID_RE.match(partner_id):
+            raise ValueError(f"Invalid partner_id format (len={len(str(partner_id))})")
+
+        validated_name: Optional[str] = None
+        validated_title: Optional[str] = None
+        validated_email: Optional[str] = None
+        validated_linkedin: Optional[str] = None
+
+        if name is not None:
+            validated_name = _validate_salesperson_name(name, param="name")
+        if title is not None:
+            validated_title = _validate_salesperson_name(title, param="title")
+        if email is not None:
+            validated_email = _validate_salesperson_email(email)
+        if linkedin is not None:
+            validated_linkedin = _validate_linkedin_url(linkedin)
+
+        with self._lock:
+            partner = self._partnerships.get(partner_id)
+            if partner is None:
+                raise ValueError(f"Unknown partner_id: {partner_id!r}")
+
+            if validated_name is not None:
+                self._partnerships[partner_id].salesperson_name = validated_name
+            if validated_title is not None:
+                self._partnerships[partner_id].salesperson_title = validated_title
+            if validated_email is not None:
+                self._partnerships[partner_id].salesperson_email = validated_email
+            if validated_linkedin is not None:
+                self._partnerships[partner_id].salesperson_linkedin = validated_linkedin
+
+            updated = self._partnerships[partner_id].to_dict()
+
+        logger.info(
+            "Salesperson contact updated for partner '%s' — has_name=%s has_linkedin=%s",
+            partner_id,
+            updated.get("has_named_contact"),
+            updated.get("salesperson_linkedin") is not None,
+        )
+        self._publish_event("b2b_contact_updated", {
+            "partner_id": partner_id,
+            "has_named_contact": updated.get("has_named_contact"),
+        })
+        return updated
+
     def get_partnership_pipeline(self) -> Dict[str, Any]:
         """Return the full B2B partnership pipeline status."""
         with self._lock:
             all_partners = [p.to_dict() for p in self._partnerships.values()]
             by_status: Dict[str, int] = {}
+            contacts_identified = 0
             for p in self._partnerships.values():
                 by_status[p.status] = by_status.get(p.status, 0) + 1
+                if p.salesperson_name is not None:
+                    contacts_identified += 1
 
         return {
             "total_partners": len(all_partners),
             "by_status": by_status,
+            "contacts_identified": contacts_identified,
             "partners": all_partners,
             "cycles_run": len(self._b2b_cycles),
         }
@@ -1746,6 +2029,10 @@ class SelfMarketingOrchestrator:
                 if p.case_study_content_id is not None
             )
             b2b_cycles_count = len(self._b2b_cycles)
+            b2b_contacts_identified = sum(
+                1 for p in self._partnerships.values()
+                if p.salesperson_name is not None
+            )
 
         return {
             "content": {
@@ -1769,6 +2056,7 @@ class SelfMarketingOrchestrator:
                 "interested": b2b_interested,
                 "declined": b2b_declined,
                 "case_studies_drafted": b2b_case_studies,
+                "contacts_identified": b2b_contacts_identified,
                 "b2b_cycles_run": b2b_cycles_count,
             },
             "cycles": {
@@ -1939,6 +2227,41 @@ class SelfMarketingOrchestrator:
             for pd in state.get("partnerships", {}).values():
                 pid = pd.get("partner_id", "")
                 if pid and _PARTNER_ID_RE.match(pid):
+                    # Validate optional salesperson contact fields on restore
+                    sp_name: Optional[str] = None
+                    sp_title: Optional[str] = None
+                    sp_email: Optional[str] = None
+                    sp_linkedin: Optional[str] = None
+                    try:
+                        if pd.get("salesperson_name"):
+                            sp_name = _validate_salesperson_name(
+                                str(pd["salesperson_name"])[:_MAX_NAME_LEN],
+                                param="salesperson_name",
+                            )
+                    except ValueError:
+                        pass
+                    try:
+                        if pd.get("salesperson_title"):
+                            sp_title = _validate_salesperson_name(
+                                str(pd["salesperson_title"])[:_MAX_NAME_LEN],
+                                param="salesperson_title",
+                            )
+                    except ValueError:
+                        pass
+                    try:
+                        if pd.get("salesperson_email"):
+                            sp_email = _validate_salesperson_email(
+                                str(pd["salesperson_email"])
+                            )
+                    except ValueError:
+                        pass  # do NOT log: raw email is PII
+                    try:
+                        if pd.get("salesperson_linkedin"):
+                            sp_linkedin = _validate_linkedin_url(
+                                str(pd["salesperson_linkedin"])
+                            )
+                    except ValueError:
+                        pass
                     self._partnerships[pid] = PartnershipProspect(
                         partner_id=pid,
                         company=str(pd.get("company", pid))[:200],
@@ -1952,6 +2275,10 @@ class SelfMarketingOrchestrator:
                         case_study_content_id=pd.get("case_study_content_id"),
                         notes=str(pd.get("notes", ""))[:1000],
                         created_at=pd.get("created_at", ""),
+                        salesperson_name=sp_name,
+                        salesperson_title=sp_title,
+                        salesperson_email=sp_email,
+                        salesperson_linkedin=sp_linkedin,
                     )
 
         logger.info(
