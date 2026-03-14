@@ -20,6 +20,7 @@ resources:
   - ../network-policy.yaml
   - ../pdb.yaml
   - ../redis.yaml
+  - ../postgres.yaml
   - ../resource-quota.yaml
 
 namePrefix: staging-
@@ -97,3 +98,11 @@ patches:
       - op: replace
         path: /spec/hard/pods
         value: "15"
+
+  - target:
+      kind: Deployment
+      name: postgres
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 1

@@ -104,6 +104,8 @@ Or verify manually:
 - [ ] **Grafana accessible**: Grafana dashboard loads and shows Murphy metrics
 - [ ] **Backup CronJob scheduled**: `kubectl get cronjob murphy-backup -n murphy-system`
 - [ ] **Redis connected**: `kubectl exec -n murphy-system deploy/murphy-redis -- redis-cli ping` returns `PONG`
+- [ ] **PostgreSQL connected**: `kubectl exec -n murphy-system deploy/postgres -- pg_isready -U murphy -d murphy_db` returns `accepting connections`
+- [ ] **PostgreSQL PVC bound**: `kubectl get pvc postgres-data -n murphy-system` shows `Bound`
 - [ ] **HPA active**: `kubectl get hpa murphy-api -n murphy-system` shows current/desired replicas
 - [ ] **PDB enforced**: `kubectl get pdb murphy-api -n murphy-system` shows `1` allowed disruptions
 - [ ] **ResourceQuota applied**: `kubectl describe resourcequota murphy-system-quota -n murphy-system`
