@@ -74,6 +74,12 @@ murphy_system_1.0_runtime.py
 | `state_schema` | (none — leaf module) | `test_state_schema.py` |
 | `feedback_integrator` | `persistence_manager`, `confidence_engine` | `test_feedback_integrator.py` |
 | `recovery_coordinator` | `persistence_manager`, `self_fix_loop` | `test_correction_loop.py` |
+| `self_introspection_module` (INTRO-001) | `event_backbone`, `thread_safe_operations` | `test_module_wiring_integration.py` |
+| `self_codebase_swarm` (SCS-001) | `event_backbone`, `cutsheet_engine` | `test_module_wiring_integration.py` |
+| `cutsheet_engine` (CSE-001) | `event_backbone`, `thread_safe_operations` | `test_module_wiring_integration.py` |
+| `visual_swarm_builder` (VSB-001) | `event_backbone`, `thread_safe_operations` | `test_module_wiring_integration.py` |
+| `ceo_branch_activation` (CEO-002) | `event_backbone`, `thread_safe_operations`, `ceo_activation_plan` | `test_module_wiring_integration.py` |
+| `production_assistant_engine` (PROD-ENG-001) | `event_backbone`, `thread_safe_operations` | `test_module_wiring_integration.py` |
 
 ---
 
