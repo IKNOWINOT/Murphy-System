@@ -33,8 +33,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: murphy-api
-          image: ghcr.io/iknowinot/murphy-system/murphy-system:latest
-          imagePullPolicy: Always
+          image: ghcr.io/iknowinot/murphy-system/murphy-system:v1.0.0
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8000
               protocol: TCP

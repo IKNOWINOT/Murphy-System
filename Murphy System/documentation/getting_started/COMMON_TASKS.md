@@ -23,13 +23,13 @@
 
 ```bash
 # Default port (8000)
-python demo/api_server_v2.py
+python murphy_system_1.0_runtime.py
 
 # Custom port
-python demo/api_server_v2.py --port 8053
+python murphy_system_1.0_runtime.py --port 8053
 
 # With logging
-python demo/api_server_v2.py --log-level DEBUG
+python murphy_system_1.0_runtime.py --log-level DEBUG
 ```
 
 ### Check System Health

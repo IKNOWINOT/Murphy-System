@@ -49,7 +49,7 @@ The Murphy System Runtime is a fully functional autonomous AI system that helps 
 
 1. **Start the API Server**:
    ```bash
-   python demo/api_server_v2.py
+   python murphy_system_1.0_runtime.py
    ```
 
 2. **Test the System**:
@@ -596,7 +596,7 @@ lsof -i :8000
 kill -9 <PID>
 
 # Try different port
-python demo/api_server_v2.py --port 8053
+python murphy_system_1.0_runtime.py --port 8053
 ```
 
 ### No Experts Generated

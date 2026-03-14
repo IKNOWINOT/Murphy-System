@@ -148,10 +148,10 @@ telemetry:
 
 ```bash
 # Start API server
-python demo/api_server_v2.py
+python murphy_system_1.0_runtime.py
 
 # Or with custom configuration
-python demo/api_server_v2.py --config config/config.yaml
+python murphy_system_1.0_runtime.py --config config/config.yaml
 ```
 
 ### Step 4: Verify Deployment
@@ -242,7 +242,7 @@ User=murphy
 Group=murphy
 WorkingDirectory=/opt/murphy-staging
 Environment="PATH=/opt/murphy-staging/venv/bin"
-ExecStart=/opt/murphy-staging/venv/bin/python demo/api_server_v2.py
+ExecStart=/opt/murphy-staging/venv/bin/python murphy_system_1.0_runtime.py
 Restart=always
 RestartSec=10
 
@@ -431,7 +431,7 @@ Group=murphy
 WorkingDirectory=/opt/murphy-production
 Environment="PATH=/opt/murphy-production/venv/bin"
 EnvironmentFile=/etc/murphy-production/environment
-ExecStart=/opt/murphy-production/venv/bin/python demo/api_server_v2.py
+ExecStart=/opt/murphy-production/venv/bin/python murphy_system_1.0_runtime.py
 Restart=always
 RestartSec=10
 
@@ -671,7 +671,7 @@ Set up comprehensive monitoring:
   "containerDefinitions": [
     {
       "name": "murphy-runtime",
-      "image": "your-registry/murphy-runtime:latest",
+      "image": "your-registry/murphy-runtime:v1.0.0",
       "portMappings": [
         {
           "containerPort": 8000,
@@ -702,7 +702,7 @@ gcloud run deploy murphy-runtime \
 az container create \
   --resource-group myResourceGroup \
   --name murphy-runtime \
-  --image your-registry/murphy-runtime:latest \
+  --image your-registry/murphy-runtime:v1.0.0 \
   --cpu 4 \
   --memory 8 \
   --ports 8000
@@ -852,6 +852,46 @@ sudo ufw status
 - [Configuration](CONFIGURATION.md) - Detailed configuration options
 - [Scaling](SCALING.md) - Scaling strategies
 - [Maintenance](MAINTENANCE.md) - Ongoing maintenance procedures
+
+---
+
+## Production Security Hardening Checklist
+
+Before deploying to production, verify every item below:
+
+### Credentials & Secrets
+
+- [ ] `POSTGRES_PASSWORD` is set to a strong, random value (not the default)
+- [ ] `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` are set (no defaults)
+- [ ] `REDIS_PASSWORD` is set for authenticated Redis access
+- [ ] `JWT_SECRET_KEY` is at least 32 characters and not a default value
+- [ ] `MURPHY_API_KEYS` is set with production API key(s)
+- [ ] `MURPHY_CREDENTIAL_MASTER_KEY` is set (Fernet key)
+- [ ] `PAYPAL_WEBHOOK_SECRET` and `COINBASE_WEBHOOK_SECRET` are set
+- [ ] No secrets are committed to source control (check `.gitignore`)
+
+### Network Security
+
+- [ ] PostgreSQL port (5432) is **not** exposed to the public internet
+- [ ] Redis port (6379) is **not** exposed to the public internet
+- [ ] Prometheus port (9090) is **not** exposed to the public internet
+- [ ] Grafana (3000) is behind a reverse proxy with TLS
+- [ ] Murphy API (8000) is behind a reverse proxy with TLS
+- [ ] `MURPHY_CORS_ORIGINS` is set to your production domain(s) only (not `*`)
+
+### Application Configuration
+
+- [ ] `MURPHY_ENV` is set to `production` (authentication is enforced)
+- [ ] `DATABASE_URL` points to PostgreSQL (not SQLite)
+- [ ] Deployment readiness check passes: `curl /api/readiness`
+- [ ] Health check endpoint is accessible: `curl /api/health`
+
+### Monitoring
+
+- [ ] Prometheus is collecting Murphy System metrics
+- [ ] Grafana dashboards are configured and accessible
+- [ ] Alert rules are configured for critical failures
+- [ ] Log aggregation is operational
 
 ---
 

@@ -34,9 +34,10 @@ try:
 except ImportError:
     _load_dotenv = None
 
-# B-001: Actually call load_dotenv() so .env variables are loaded at import time
+# B-001: Actually call load_dotenv() so .env variables are loaded at import time.
+# Resolve to project root (Murphy System/) — three levels up from src/runtime/_deps.py.
 if _load_dotenv is not None:
-    _load_dotenv(Path(__file__).resolve().parent / ".env", override=False)
+    _load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env", override=False)
 
 from threading import Lock
 
@@ -47,8 +48,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent))
+# Add project root (Murphy System/) to path so both ``src.*`` and bare
+# module names resolve correctly.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 # Core imports
 from src.modular_runtime import ModularRuntime
