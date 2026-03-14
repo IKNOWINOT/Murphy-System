@@ -87,6 +87,23 @@ class TestGateG1ArchitectureCompleteness:
         k8s_files = list(k8s_dir.glob("*.yaml"))
         assert len(k8s_files) >= 5, f"Expected 5+ K8s manifests, found {len(k8s_files)}"
 
+    @pytest.mark.parametrize(
+        "module_file",
+        [
+            "self_introspection_module.py",
+            "self_codebase_swarm.py",
+            "cutsheet_engine.py",
+            "visual_swarm_builder.py",
+            "ceo_branch_activation.py",
+            "production_assistant_engine.py",
+        ],
+    )
+    def test_new_modules_exist_in_src(self, src_dir, module_file):
+        """@arch-lead: All 6 new 2026-03-14 modules must be present in src/."""
+        assert (src_dir / module_file).exists(), (
+            f"New module '{module_file}' not found in src/"
+        )
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Gate G2 — Test Coverage (15%)
@@ -322,6 +339,27 @@ class TestGateG8Documentation:
         """@doc-lead: Commissioning implementation plan exists."""
         plan = project_root / "docs" / "commissioning" / "MURPHY_COMMISSIONING_IMPLEMENTATION_PLAN.md"
         assert plan.exists()
+
+    @pytest.mark.parametrize(
+        "module_name",
+        [
+            "Self-Introspection",
+            "Self-Codebase Swarm",
+            "Cut Sheet Engine",
+            "Visual Swarm Builder",
+            "CEO Branch Activation",
+            "Production Assistant Engine",
+        ],
+    )
+    def test_readme_subsystem_lookup_new_modules(self, module_name):
+        """@doc-lead: Root README Subsystem Lookup table contains all 6 new modules."""
+        import re as _re
+        repo_root = Path(__file__).parent.parent.parent.parent
+        readme = repo_root / "README.md"
+        content = readme.read_text(encoding="utf-8")
+        assert module_name in content, (
+            f"README.md Subsystem Lookup table is missing entry for '{module_name}'"
+        )
 
 
 # ═══════════════════════════════════════════════════════════════════════════
