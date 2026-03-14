@@ -157,7 +157,7 @@ echo.
 echo For more information:
 echo   * See GETTING_STARTED.md for detailed instructions
 echo   * See .env.example for all configuration options
-echo   * Run demo: python demo_murphy.py
+echo   * Run demo: make demo   (or)   python scripts\quick_demo.py
 echo.
 echo Happy automating! 🚀
 echo.
