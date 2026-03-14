@@ -27,6 +27,10 @@ Safety invariants:
     - Audit log is append-only and capped at _MAX_AUDIT_ENTRIES.
     - save_state / load_state follow the PersistenceManager pattern used
       by SelfImprovementEngine and SelfAutomationOrchestrator.
+    - All public inputs are validated before processing (CWE-20).
+    - Collection sizes are hard-capped to prevent memory exhaustion (CWE-400).
+    - Raw email addresses are never written to log files (PII protection).
+    - reply_text is capped before regex evaluation to prevent ReDoS (CWE-400).
 """
 
 from __future__ import annotations
@@ -44,6 +48,32 @@ from thread_safe_operations import capped_append
 
 logger = logging.getLogger(__name__)
 
+
+# ---------------------------------------------------------------------------
+# Input validation constants  [CWE-20]
+# ---------------------------------------------------------------------------
+
+# contact_id — alphanumeric + limited safe punctuation, 1–200 chars
+_CONTACT_ID_RE = re.compile(r"^[a-zA-Z0-9_@.\-]{1,200}$")
+
+# email — conservative RFC-5321 pattern, max 254 chars
+_EMAIL_RE = re.compile(r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$")
+_MAX_EMAIL_LEN = 254  # RFC 5321 hard limit
+
+# String field length caps
+_MAX_REASON_LEN = 500           # DNC / audit reason
+_MAX_ADDED_BY_LEN = 100         # add_to_dnc: added_by field
+_MAX_CONSENT_PROOF_LEN = 500    # remove_from_dnc: consent_proof
+_MAX_REPLY_TEXT_LEN = 50_000    # reply text before regex  [CWE-400 / ReDoS]
+
+# message_metadata caps  [CWE-400]
+_MAX_META_KEYS = 50
+_MAX_META_KEY_LEN = 100
+_MAX_META_VALUE_LEN = 1_000
+
+# Collection hard caps  [CWE-400]
+_MAX_DNC_ENTRIES = 10_000
+_MAX_TRACKED_CONTACTS = 100_000
 
 # ---------------------------------------------------------------------------
 # Enums
@@ -81,6 +111,12 @@ class OutreachType(str, Enum):
     MARKETING = "marketing"
     SERVICE = "service"
     TRANSACTIONAL = "transactional"
+
+
+# Derived allowsets used by validators (built once at import time)
+_VALID_CHANNELS: frozenset = frozenset(ch.value for ch in Channel)
+_VALID_OUTREACH_TYPES: frozenset = frozenset(ot.value for ot in OutreachType)
+_VALID_REGIONS: frozenset = frozenset({"", "US", "EU", "CA_US", "CA"})
 
 
 # ---------------------------------------------------------------------------
@@ -157,6 +193,19 @@ class ContactComplianceGovernor:
 
     Thread-safety: all mutations are protected by ``self._lock``.
     Persistence: ``save_state`` / ``load_state`` via PersistenceManager.
+
+    Hardening invariants (CWE-20 / CWE-400):
+        - contact_id validated against ``_CONTACT_ID_RE`` before any processing.
+        - contact_email validated against ``_EMAIL_RE``, max 254 chars.
+        - channel and outreach_type validated against closed allowlists.
+        - contact_region validated against closed allowlist.
+        - reply_text capped at ``_MAX_REPLY_TEXT_LEN`` before regex to prevent ReDoS.
+        - message_metadata capped at ``_MAX_META_KEYS`` keys / ``_MAX_META_KEY_LEN`` key
+          chars / ``_MAX_META_VALUE_LEN`` value chars.
+        - DNC list hard-capped at ``_MAX_DNC_ENTRIES`` (CWE-400).
+        - Contact tracking hard-capped at ``_MAX_TRACKED_CONTACTS`` (CWE-400).
+        - Raw email never written to log files (PII protection).
+        - load_state caps loaded collections to prevent persistence-based OOM.
     """
 
     _PERSIST_DOC_ID = "contact_compliance_governor_state"
@@ -184,6 +233,88 @@ class ContactComplianceGovernor:
 
         # Immutable append-only audit trail
         self._audit_log: List[Dict[str, Any]] = []
+
+    # ------------------------------------------------------------------
+    # Input validators  [CWE-20]
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _validate_contact_id(contact_id: str) -> str:
+        """Validate contact_id matches safe pattern (CWE-20).
+
+        Raises ValueError on invalid input.
+        """
+        if not isinstance(contact_id, str) or not _CONTACT_ID_RE.match(contact_id):
+            raise ValueError("Invalid contact_id format")
+        return contact_id
+
+    @staticmethod
+    def _validate_email(contact_email: str) -> str:
+        """Validate email format and length (CWE-20). Never log raw value (PII).
+
+        Raises ValueError on invalid input.
+        """
+        if not isinstance(contact_email, str):
+            raise ValueError("Invalid contact_email")
+        if len(contact_email) > _MAX_EMAIL_LEN:
+            raise ValueError("contact_email exceeds maximum length")
+        if not _EMAIL_RE.match(contact_email):
+            raise ValueError("Invalid contact_email format")
+        return contact_email
+
+    @staticmethod
+    def _validate_channel(channel: str) -> str:
+        """Validate channel is in the closed allowlist (CWE-20).
+
+        Raises ValueError on invalid input.
+        """
+        if not isinstance(channel, str) or channel.lower() not in _VALID_CHANNELS:
+            raise ValueError(
+                f"Invalid channel — must be one of {sorted(_VALID_CHANNELS)}"
+            )
+        return channel.lower()
+
+    @staticmethod
+    def _validate_outreach_type(outreach_type: str) -> str:
+        """Validate outreach_type is in the closed allowlist (CWE-20).
+
+        Raises ValueError on invalid input.
+        """
+        if not isinstance(outreach_type, str) or outreach_type.lower() not in _VALID_OUTREACH_TYPES:
+            raise ValueError(
+                f"Invalid outreach_type — must be one of {sorted(_VALID_OUTREACH_TYPES)}"
+            )
+        return outreach_type.lower()
+
+    @staticmethod
+    def _validate_region(contact_region: str) -> str:
+        """Validate contact_region is in the closed allowlist (CWE-20).
+
+        Raises ValueError on invalid input.
+        """
+        if not isinstance(contact_region, str):
+            raise ValueError("Invalid contact_region")
+        region = contact_region.upper()
+        if region not in _VALID_REGIONS:
+            raise ValueError(
+                f"Invalid contact_region — must be one of {sorted(_VALID_REGIONS)}"
+            )
+        return region
+
+    @staticmethod
+    def _sanitize_metadata(meta: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        """Cap message_metadata keys, key lengths, and value lengths (CWE-400)."""
+        if not isinstance(meta, dict):
+            return {}
+        result: Dict[str, Any] = {}
+        for k, v in list(meta.items())[:_MAX_META_KEYS]:
+            if not isinstance(k, str):
+                continue
+            k = k[:_MAX_META_KEY_LEN]
+            if isinstance(v, str):
+                v = v[:_MAX_META_VALUE_LEN]
+            result[k] = v
+        return result
 
     # ------------------------------------------------------------------
     # Public API
@@ -221,9 +352,21 @@ class ContactComplianceGovernor:
         Returns:
             :class:`OutreachDecision` with ``allowed``, ``decision``,
             ``reason``, ``regulation``, and ``cooldown_remaining_days``.
+
+        Raises:
+            ValueError: if contact_id, contact_email, channel, outreach_type,
+                        or contact_region fail validation (CWE-20).
         """
+        # -- Input validation (CWE-20) ------------------------------------
+        contact_id = self._validate_contact_id(contact_id)
+        self._validate_email(contact_email)         # validate but don't re-bind (PII)
+        channel = self._validate_channel(channel)
+        outreach_type = self._validate_outreach_type(outreach_type)
+        contact_region = self._validate_region(contact_region)
+        meta = self._sanitize_metadata(message_metadata)
+        # -----------------------------------------------------------------
+
         checked_at = datetime.now(timezone.utc).isoformat()
-        meta = message_metadata or {}
 
         def _block(reason: str, regulation: Regulation, cooldown: int = 0) -> OutreachDecision:
             decision = OutreachDecision(
@@ -338,7 +481,25 @@ class ContactComplianceGovernor:
 
         DNC entries are immutable once added.  Only
         :meth:`remove_from_dnc_with_consent` can remove them.
+
+        Raises:
+            ValueError: if contact_id or contact_email fail validation (CWE-20).
+            ValueError: if the DNC list is at capacity (CWE-400).
         """
+        contact_id = self._validate_contact_id(contact_id)
+        self._validate_email(contact_email)  # validate; raw email not logged (PII)
+
+        # Cap free-text fields (CWE-400)
+        reason = str(reason)[:_MAX_REASON_LEN] if reason else ""
+        added_by = str(added_by)[:_MAX_ADDED_BY_LEN] if added_by else "system"
+
+        with self._lock:
+            if len(self._dnc) >= _MAX_DNC_ENTRIES:
+                raise ValueError(
+                    f"DNC list has reached capacity ({_MAX_DNC_ENTRIES} entries). "
+                    "Contact an administrator to resolve."
+                )
+
         entry = DNCEntry(
             contact_id=contact_id,
             contact_email=contact_email,
@@ -349,10 +510,10 @@ class ContactComplianceGovernor:
         )
         with self._lock:
             self._dnc[contact_id] = entry
-        logger.info("DNC: added contact %s (reason: %s)", contact_id, reason)
+        # Log contact_id only — never log raw email (PII)
+        logger.info("DNC: added contact %s", contact_id)
         self._publish("DNC_ADDED", {
             "contact_id": contact_id,
-            "contact_email": contact_email,
             "reason": reason,
             "added_by": added_by,
         })
@@ -371,10 +532,16 @@ class ContactComplianceGovernor:
 
         Returns:
             True if removed, False if not found or consent_proof empty.
+
+        Raises:
+            ValueError: if contact_id fails validation (CWE-20).
         """
+        contact_id = self._validate_contact_id(contact_id)
         if not consent_proof or not consent_proof.strip():
             logger.warning("DNC removal refused — consent_proof required for %s", contact_id)
             return False
+        # Cap consent_proof length (CWE-400)
+        consent_proof = consent_proof[:_MAX_CONSENT_PROOF_LEN]
         with self._lock:
             if contact_id not in self._dnc:
                 return False
@@ -383,13 +550,26 @@ class ContactComplianceGovernor:
         return True
 
     def is_on_dnc(self, contact_id: str) -> bool:
-        """Return True if the contact is on the DNC list."""
+        """Return True if the contact is on the DNC list.
+
+        Raises:
+            ValueError: if contact_id fails validation (CWE-20).
+        """
+        contact_id = self._validate_contact_id(contact_id)
         with self._lock:
             return contact_id in self._dnc
 
     def detect_optout_intent(self, reply_text: str) -> bool:
-        """Return True if *reply_text* contains opt-out intent."""
-        return bool(_OPTOUT_RE.search(reply_text))
+        """Return True if *reply_text* contains opt-out intent.
+
+        Caps input at ``_MAX_REPLY_TEXT_LEN`` before regex to prevent ReDoS
+        (CWE-400).
+        """
+        if not isinstance(reply_text, str):
+            return False
+        # Cap before regex to prevent ReDoS on arbitrarily large input (CWE-400)
+        capped = reply_text[:_MAX_REPLY_TEXT_LEN]
+        return bool(_OPTOUT_RE.search(capped))
 
     def process_reply_for_optout(
         self,
@@ -400,7 +580,12 @@ class ContactComplianceGovernor:
         """If *reply_text* signals opt-out, add contact to DNC automatically.
 
         Returns True if contact was added to DNC, False otherwise.
+
+        Raises:
+            ValueError: if contact_id or contact_email fail validation (CWE-20).
         """
+        contact_id = self._validate_contact_id(contact_id)
+        self._validate_email(contact_email)
         if self.detect_optout_intent(reply_text):
             self.add_to_dnc(
                 contact_id=contact_id,
@@ -410,7 +595,6 @@ class ContactComplianceGovernor:
             )
             self._publish("CONTACT_SUPPRESSED", {
                 "contact_id": contact_id,
-                "contact_email": contact_email,
                 "trigger": "reply_optout",
             })
             return True
@@ -483,17 +667,21 @@ class ContactComplianceGovernor:
             logger.debug("No prior ContactComplianceGovernor state found")
             return False
         with self._lock:
+            # Cap loaded DNC entries to hard limit (CWE-400)
+            dnc_items = list(state.get("dnc", {}).items())[:_MAX_DNC_ENTRIES]
             self._dnc = {
                 cid: DNCEntry(
                     contact_id=e["contact_id"],
                     contact_email=e["contact_email"],
                     added_at=e["added_at"],
-                    reason=e["reason"],
-                    added_by=e.get("added_by", "system"),
+                    reason=str(e.get("reason", ""))[:_MAX_REASON_LEN],
+                    added_by=str(e.get("added_by", "system"))[:_MAX_ADDED_BY_LEN],
                     consent_proof=e.get("consent_proof"),
                 )
-                for cid, e in state.get("dnc", {}).items()
+                for cid, e in dnc_items
             }
+            # Cap loaded contacts to hard limit (CWE-400)
+            contact_items = list(state.get("contacts", {}).items())[:_MAX_TRACKED_CONTACTS]
             self._contacts = {
                 cid: {
                     ch: ContactRecord(
@@ -506,9 +694,10 @@ class ContactComplianceGovernor:
                     )
                     for ch, r in channels.items()
                 }
-                for cid, channels in state.get("contacts", {}).items()
+                for cid, channels in contact_items
             }
-            self._audit_log = list(state.get("audit_log", []))
+            # Cap loaded audit log to hard limit (CWE-400)
+            self._audit_log = list(state.get("audit_log", []))[:self._MAX_AUDIT_ENTRIES]
         logger.info(
             "ContactComplianceGovernor state restored (%d DNC, %d contacts, %d audit entries)",
             len(self._dnc), len(self._contacts), len(self._audit_log),
@@ -657,9 +846,23 @@ class ContactComplianceGovernor:
         is_existing_customer: bool,
         has_explicit_consent: bool,
     ) -> None:
-        """Update the last-contact timestamp for contact+channel."""
+        """Update the last-contact timestamp for contact+channel.
+
+        Enforces ``_MAX_TRACKED_CONTACTS`` hard cap by evicting the oldest
+        10% of contacts when capacity is reached (CWE-400).
+        """
         with self._lock:
             if contact_id not in self._contacts:
+                if len(self._contacts) >= _MAX_TRACKED_CONTACTS:
+                    # Evict oldest 10% of tracked contacts (CWE-400)
+                    evict_count = _MAX_TRACKED_CONTACTS // 10
+                    evict_keys = list(self._contacts.keys())[:evict_count]
+                    for k in evict_keys:
+                        del self._contacts[k]
+                    logger.debug(
+                        "ContactComplianceGovernor: evicted %d contact records (cap=%d)",
+                        evict_count, _MAX_TRACKED_CONTACTS,
+                    )
                 self._contacts[contact_id] = {}
             self._contacts[contact_id][channel] = ContactRecord(
                 contact_id=contact_id,
