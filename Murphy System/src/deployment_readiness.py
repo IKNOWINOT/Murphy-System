@@ -151,6 +151,39 @@ def _check_jwt_secret():
     return _checker
 
 
+def _check_production_secrets():
+    """Verify that critical secrets are present in production/staging."""
+    def _checker():
+        env = os.environ.get("MURPHY_ENV", "development").lower()
+        if env not in ("production", "staging"):
+            return True, f"Secret enforcement skipped (env={env})"
+        required = [
+            "MURPHY_API_KEYS",
+            "MURPHY_CREDENTIAL_MASTER_KEY",
+            "JWT_SECRET_KEY",
+            "POSTGRES_PASSWORD",
+        ]
+        missing = [k for k in required if not os.environ.get(k)]
+        if missing:
+            return False, f"Missing required secrets for {env}: {', '.join(missing)}"
+        return True, "All required production secrets are set"
+    return _checker
+
+
+def _check_webhook_secrets_in_production():
+    """Verify webhook secrets are set in production/staging."""
+    def _checker():
+        env = os.environ.get("MURPHY_ENV", "development").lower()
+        if env not in ("production", "staging"):
+            return True, f"Webhook secret check skipped (env={env})"
+        secrets = ["PAYPAL_WEBHOOK_SECRET", "COINBASE_WEBHOOK_SECRET"]
+        missing = [s for s in secrets if not os.environ.get(s)]
+        if missing:
+            return False, f"Webhook secrets missing in {env}: {', '.join(missing)}"
+        return True, "Webhook secrets configured"
+    return _checker
+
+
 # ---------------------------------------------------------------------------
 # DeploymentReadinessChecker
 # ---------------------------------------------------------------------------
@@ -201,6 +234,8 @@ class DeploymentReadinessChecker:
             # Security
             ReadinessCheck("cors_config", "security", _check_cors_not_wildcard()),
             ReadinessCheck("jwt_secret", "security", _check_jwt_secret()),
+            ReadinessCheck("production_secrets", "security", _check_production_secrets()),
+            ReadinessCheck("webhook_secrets", "security", _check_webhook_secrets_in_production()),
         ]
         return checks
 

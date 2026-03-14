@@ -32,6 +32,7 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 filterwarnings = [
     "ignore::DeprecationWarning",
+    "ignore::pytest.PytestCollectionWarning",
 ]
 addopts = "--cov=src --cov-fail-under=85 --cov-report=term-missing"
 markers = [

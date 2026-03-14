@@ -13,7 +13,7 @@ with open("README_INSTALL.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="mfgc-ai",
-    version="0.1.0",
+    version="1.0.0",
     author="Inoni LLC",
     author_email="corey.gfc@gmail.com",
     description="Murphy-Free Generative Control AI - Autonomous AI with Provable Safety Guarantees",
@@ -34,12 +34,12 @@ setup(
     ],
     python_requires=">=3.10",
     install_requires=[
-        "transformers>=4.30.0",
-        "torch>=2.0.0",
-        "sentencepiece>=0.1.99",
+        "transformers>=4.48.0",
+        "torch>=2.6.0",
+        "sentencepiece>=0.2.1",
         "numpy>=1.24.0",
         "networkx>=3.1",
-        "cryptography>=41.0.0",
+        "cryptography>=46.0.5",
         "rich>=13.0.0",
         "pyfiglet>=1.0.0",
         "prompt-toolkit>=3.0.0",
