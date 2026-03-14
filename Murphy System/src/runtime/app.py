@@ -2410,8 +2410,8 @@ def create_app() -> FastAPI:
         # Build workflow nodes from the proposal
         nodes = []
         edges = []
-        y_base = 80
-        x_step = 240
+        y_base = 80   # Initial vertical offset in pixels for node layout
+        x_step = 240  # Horizontal spacing between nodes in pixels
 
         # 1. Trigger node — incoming request
         nodes.append({

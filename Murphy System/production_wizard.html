@@ -577,7 +577,7 @@ document.getElementById('proposal-form').addEventListener('submit', async (e) =>
     // Bind the workflow-open button
     if (wf) {
       document.getElementById('btn-open-workflow').addEventListener('click', () => {
-        try { localStorage.setItem('murphy_production_workflow', wfJson); } catch(_) {}
+        try { localStorage.setItem('murphy_production_workflow', wfJson); } catch(e) { console.warn('localStorage unavailable:', e.message); }
         window.open('workflow_canvas.html?production=' + encodeURIComponent(id), '_blank');
       });
     }

@@ -102,7 +102,7 @@
           <div class="palette-item" draggable="true" data-type="production" data-subtype="workorder">📋 Work Order</div>
           <div class="palette-item" draggable="true" data-type="production" data-subtype="validate">✅ Validate</div>
           <div class="palette-item" draggable="true" data-type="production" data-subtype="deliver">📦 Deliver</div>
-          <div class="palette-item murphy-sidebar-item" style="cursor:pointer" onclick="window.open('production_wizard.html','_blank')">🏭 Open Production Wizard ↗</div>
+          <div class="palette-item murphy-sidebar-item" style="cursor:pointer" id="btn-open-prod-wizard">🏭 Open Production Wizard ↗</div>
         </div>
 
         <div class="palette-section" id="integration-nodes">
@@ -855,6 +855,14 @@
       canvas.render();
     });
 
+    /* ── Open Production Wizard from palette ──────────── */
+    var $prodWizBtn = document.getElementById('btn-open-prod-wizard');
+    if ($prodWizBtn) {
+      $prodWizBtn.addEventListener('click', function () {
+        window.open('production_wizard.html', '_blank');
+      });
+    }
+
     /* ── Load integrations from API ─────────────────────── */
     (function loadIntegrations() {
       api.get('/integrations/list')
@@ -986,7 +994,7 @@
       var prodId = params.get('production');
       if (!prodId) return;
       var stored = null;
-      try { stored = localStorage.getItem('murphy_production_workflow'); } catch(_) {}
+      try { stored = localStorage.getItem('murphy_production_workflow'); } catch(e) { console.warn('localStorage unavailable:', e.message); }
       if (stored) {
         try {
           var wf = JSON.parse(stored);
@@ -996,7 +1004,7 @@
           terminal.output('🏭 Production workflow loaded: ' + prodId);
           terminal.output('   ' + (wf.nodes ? wf.nodes.length : 0) + ' nodes, ' + (wf.edges ? wf.edges.length : 0) + ' connections');
           terminal.output('   Edit nodes, drag to rearrange, then Save when ready.');
-          try { localStorage.removeItem('murphy_production_workflow'); } catch(_) {}
+          try { localStorage.removeItem('murphy_production_workflow'); } catch(e) { console.warn('localStorage unavailable:', e.message); }
         } catch(e) {
           terminal.output('✗ Failed to parse production workflow: ' + e.message);
         }
