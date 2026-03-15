@@ -4404,7 +4404,7 @@ def create_app() -> FastAPI:
     # so that /ui/... routes advertised by /api/ui/links are actually reachable.
 
     try:
-        from starlette.responses import FileResponse as _FileResponse
+        from starlette.responses import FileResponse as _FileResponse, RedirectResponse as _RedirectResponse
         from starlette.staticfiles import StaticFiles as _StaticFiles
 
         _project_root = Path(__file__).resolve().parent.parent.parent  # src/runtime/ → Murphy System/
@@ -4461,6 +4461,14 @@ def create_app() -> FastAPI:
                     methods=["GET"], include_in_schema=False,
                 )
                 _mounted_count += 1
+
+        # Redirect /ui/ to /ui/landing so users hitting the base UI path
+        # get the landing page instead of a 404.  Must be registered before
+        # the StaticFiles mounts below which would shadow it.
+        async def _ui_root_redirect():
+            return _RedirectResponse("/ui/landing", status_code=307)
+
+        app.add_api_route("/ui/", _ui_root_redirect, methods=["GET"], include_in_schema=False)
 
         # Also serve any remaining .html files under /ui/<filename> for
         # cross-page relative links (e.g. terminal_enhanced.html links
