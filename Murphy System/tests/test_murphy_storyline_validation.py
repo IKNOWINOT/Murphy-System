@@ -39,6 +39,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+pytestmark = pytest.mark.storyline
+
 # ---------------------------------------------------------------------------
 # Path setup — ensure the src/ and project root are importable
 # ---------------------------------------------------------------------------

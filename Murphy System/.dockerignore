@@ -29,12 +29,18 @@ htmlcov/
 *.swo
 *~
 
+# Documentation
+*.md
+README*
+
 # Project directories not needed in image
 archive/
 bots/
 docs/
 documentation/
-scripts/
+tests/
+telemetry_evidence/
+strategic/
 
 # HTML / static assets not needed in runtime
 *.html
