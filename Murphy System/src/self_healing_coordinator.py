@@ -122,6 +122,11 @@ class SelfHealingCoordinator:
         self._max_history = max_history
         self._event_backbone = event_backbone
 
+        # Per-handler metrics: attempts, successes, total_duration_ms
+        self._handler_attempts: Dict[str, int] = {}
+        self._handler_successes: Dict[str, int] = {}
+        self._handler_total_ms: Dict[str, float] = {}
+
         # Wire EventBackbone subscriptions
         if self._event_backbone is not None:
             self._subscribe_events()
@@ -238,6 +243,11 @@ class SelfHealingCoordinator:
                 self._consecutive_failures[proc_id] = 0
             else:
                 self._consecutive_failures[proc_id] = self._consecutive_failures.get(proc_id, 0) + 1
+            # Per-handler metrics
+            self._handler_attempts[proc_id] = self._handler_attempts.get(proc_id, 0) + 1
+            if status == RecoveryStatus.SUCCESS:
+                self._handler_successes[proc_id] = self._handler_successes.get(proc_id, 0) + 1
+            self._handler_total_ms[proc_id] = self._handler_total_ms.get(proc_id, 0.0) + elapsed_ms
             self._record_attempt(attempt)
 
         # Publish recovery result
@@ -272,6 +282,18 @@ class SelfHealingCoordinator:
             total = len(self._attempts)
             successes = sum(1 for a in self._attempts if a.status == RecoveryStatus.SUCCESS)
             failures = sum(1 for a in self._attempts if a.status == RecoveryStatus.FAILED)
+            handler_metrics: Dict[str, Any] = {}
+            for proc_id, proc in self._procedures.items():
+                attempts = self._handler_attempts.get(proc_id, 0)
+                success_count = self._handler_successes.get(proc_id, 0)
+                total_ms = self._handler_total_ms.get(proc_id, 0.0)
+                handler_metrics[proc.category] = {
+                    "procedure_id": proc_id,
+                    "attempts": attempts,
+                    "successes": success_count,
+                    "success_rate": round(success_count / attempts, 2) if attempts else 0.0,
+                    "mean_time_to_recovery_ms": round(total_ms / success_count, 2) if success_count else 0.0,
+                }
             return {
                 "registered_procedures": len(self._procedures),
                 "categories": sorted(self._category_index.keys()),
@@ -280,6 +302,7 @@ class SelfHealingCoordinator:
                 "failed_recoveries": failures,
                 "consecutive_failures": dict(self._consecutive_failures),
                 "event_backbone_attached": self._event_backbone is not None,
+                "handler_metrics": handler_metrics,
             }
 
     def reset_failure_counter(self, category: str) -> bool:

@@ -1,6 +1,6 @@
 # Murphy System — Project Status
 
-> **Last updated**: 2026-03-08
+> **Last updated**: 2026-03-15
 > **License**: BSL 1.1 (Business Source License)
 > Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post
 
@@ -20,6 +20,7 @@
 | Setup Wizard | ✅ Operational | 6 deployment presets, guided onboarding |
 | Execution Engines | ✅ Operational | Task executor, workflow orchestrator, sandbox manager |
 | Learning Engine | ⚠️ Partial | Pattern detector, outcome tracker operational; full ML loop pending |
+| **Self-Healing Coordinator** | ✅ **Operational** | 5 wired recovery handlers (LLM timeout, gate confidence, external API, sandbox, auth token); circuit breaker; per-handler metrics; MTTR tracking; EventBackbone TASK_FAILED wired |
 | Concept Graph Engine | ✅ New | 7 node/edge types, graph health, GCS metric |
 | Unified Control Protocol | ✅ New | 10-engine pipeline, 7 states, rollback support |
 | Session Context Manager | ✅ New | Per-session locking, expiry, RM0–RM6 tracking |
@@ -57,6 +58,7 @@ Murphy System is **aligned with** (not formally attested to) the following frame
 | ID | Gap | Priority | Actionable Path |
 |----|-----|----------|-----------------|
 | ~~G-004~~ | ~~Full ML feedback loop not wired~~ | ~~Medium~~ | ✅ **RESOLVED** — `record_outcome()` added to `GeographicLoadBalancer`, wiring feedback signals into `capacity_weight` via configurable learning rate |
+| ~~G-012~~ | ~~SelfHealingCoordinator had zero recovery handlers~~ | ~~High~~ | ✅ **RESOLVED** — 5 concrete handlers wired (`LLM_PROVIDER_TIMEOUT`, `GATE_CONFIDENCE_TOO_LOW`, `EXTERNAL_API_UNAVAILABLE`, `SANDBOX_RESOURCE_EXCEEDED`, `AUTH_TOKEN_EXPIRED`); circuit breaker, exponential backoff, per-handler metrics (success rate, MTTR), EventBackbone TASK_FAILED subscription |
 | G-005 | Dashboard UI incomplete | Medium | Complete React/terminal dashboard with live metrics |
 | G-006 | Formal security pen-test | High | Engage third-party security firm for penetration testing |
 | G-007 | ~~Database persistence JSON-only~~ | ~~Critical~~ | ✅ **IMPROVED** — PostgreSQL wired via DATABASE_URL; SQLite fallback; Alembic migrations; connection pooling configured |
