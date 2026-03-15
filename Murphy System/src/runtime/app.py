@@ -4400,7 +4400,9 @@ def create_app() -> FastAPI:
         _llm_calls_total = _safe_counter(
             "murphy_llm_calls",
             "Total LLM API calls",
-            ["provider"],
+            # "status" label required by MurphyLLMCallFailures alert rule
+            # which filters on {status="error"}
+            ["provider", "status"],
         )
         _gate_evaluations_total = _safe_counter(
             "murphy_gate_evaluations",
@@ -4410,12 +4412,52 @@ def create_app() -> FastAPI:
             "murphy_task_queue_depth",
             "Current depth of the task processing queue",
         )
+        # murphy_uptime_seconds — referenced by Grafana "API Uptime" panel.
+        # Use a Gauge with a callback so Prometheus always sees the current value.
+        _uptime_gauge = _safe_gauge(
+            "murphy_uptime_seconds",
+            "System uptime in seconds",
+        )
+        _prom_start = time.monotonic()
+
+        def _update_uptime():
+            _uptime_gauge.set(time.monotonic() - _prom_start)
+
+        # murphy_confidence_score — referenced by Grafana "Confidence Score
+        # Distribution" panel.  Populated at inference time via
+        # metrics.observe_histogram() / _confidence_score histogram.
+        _confidence_score = _safe_histogram(
+            "murphy_confidence_score",
+            "Confidence score distribution",
+            ["domain"],
+        )
+        # murphy_response_size_bytes — referenced by Grafana "Response Size
+        # Distribution" panel.  Populated by the request middleware below.
+        _response_size = _safe_histogram(
+            "murphy_response_size_bytes",
+            "HTTP response body size in bytes",
+            ["endpoint"],
+        )
+
+        # Collect prometheus_client objects in a dict so the middleware closure
+        # below can increment them without relying on variable names that only
+        # exist inside the try block.
+        _prom_metrics = {
+            "requests_total": _requests_total,
+            "request_duration": _request_duration,
+            "response_size": _response_size,
+            "update_uptime": _update_uptime,
+        }
         logger.info("Prometheus metrics endpoint mounted at /metrics")
     except ImportError:
         # prometheus_client not installed — expose src/metrics.py directly.
         logger.warning(
             "prometheus_client not installed — falling back to built-in /metrics endpoint"
         )
+        _prom_metrics = {}  # no prometheus_client objects available
+
+        # Seed in-process metrics that Grafana panels reference
+        _src_metrics.set_gauge("murphy_uptime_seconds", 0.0)
 
         from starlette.responses import Response as _PlainResponse
 
@@ -4443,18 +4485,15 @@ def create_app() -> FastAPI:
             _request_start = time.monotonic()
             response = await call_next(request)
             response.headers["X-Trace-ID"] = trace_id
-            # Bridge request metrics into the canonical src.metrics module so
-            # /metrics always reflects real traffic regardless of whether
-            # prometheus_client is installed.
+            _elapsed = time.monotonic() - _request_start
+            _status_str = str(response.status_code)
+            _endpoint = request.url.path
+
+            # ── src/metrics.py (always available) ─────────────────────────
             try:
-                _elapsed = time.monotonic() - _request_start
-                _status_str = str(response.status_code)
                 _src_metrics.inc_counter(
                     "murphy_requests_total",
-                    labels={
-                        "method": request.method,
-                        "status": _status_str,
-                    },
+                    labels={"method": request.method, "status": _status_str},
                 )
                 _src_metrics.observe_histogram(
                     "murphy_request_duration_seconds",
@@ -4462,6 +4501,28 @@ def create_app() -> FastAPI:
                 )
             except Exception:
                 pass
+
+            # ── prometheus_client objects (available when installed) ────────
+            try:
+                if _prom_metrics:
+                    _prom_metrics["requests_total"].labels(
+                        method=request.method,
+                        endpoint=_endpoint,
+                        status=_status_str,
+                    ).inc()
+                    _prom_metrics["request_duration"].labels(
+                        method=request.method,
+                        endpoint=_endpoint,
+                    ).observe(_elapsed)
+                    _content_len = response.headers.get("content-length")
+                    if _content_len:
+                        _prom_metrics["response_size"].labels(
+                            endpoint=_endpoint
+                        ).observe(float(_content_len))
+                    _prom_metrics["update_uptime"]()
+            except Exception:
+                pass
+
             return response
 
     app.add_middleware(_TraceIdMiddleware)
