@@ -1,0 +1,401 @@
+<!-- Murphy System — Legal / Terms of Service / © 2020 Inoni Limited Liability Company by Corey Post / License: BSL 1.1 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — Legal &amp; Terms of Service</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
+<style>
+  /* Neon terminal theme */
+  /* Color Key: green=#00ff41, cyan=#00ffff, teal=#00D4AA, bg=#0a0a0a */
+  .murphy-terminal, .murphy-output, pre, code {
+    font-family: var(--font-code, 'JetBrains Mono', monospace);
+    color: #00ff41;
+    background: #0a0a0a;
+  }
+  *:focus-visible { outline: 2px solid #00ff41; outline-offset: 2px; }
+
+  .legal-page {
+    min-height: 100vh;
+    background: #0a0a0a;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .legal-layout {
+    flex: 1;
+    display: flex;
+    max-width: 1100px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 2.5rem 1rem 4rem;
+    gap: 2.5rem;
+  }
+
+  /* ── Sidebar ── */
+  .legal-sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 72px;
+    align-self: flex-start;
+    max-height: calc(100vh - 90px);
+    overflow-y: auto;
+  }
+
+  .legal-sidebar-title {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-tertiary);
+    margin-bottom: 0.5rem;
+  }
+
+  .legal-toc-link {
+    display: block;
+    padding: 0.35rem 0.5rem;
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color var(--transition-base), background var(--transition-base);
+  }
+
+  .legal-toc-link:hover { color: var(--teal); background: rgba(0, 212, 170, 0.08); }
+
+  /* ── Main content ── */
+  .legal-main {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .legal-hero {
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .legal-hero h1 {
+    font-size: var(--text-3xl);
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+  }
+
+  .legal-hero p {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+  }
+
+  .legal-section {
+    margin-bottom: 2.5rem;
+  }
+
+  .legal-section h2 {
+    font-size: var(--text-xl);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .legal-section h3 {
+    font-size: var(--text-base);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 1.25rem 0 0.5rem;
+  }
+
+  .legal-section p {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin-bottom: 0.875rem;
+  }
+
+  .legal-section ul, .legal-section ol {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin-bottom: 0.875rem;
+    padding-left: 1.5rem;
+  }
+
+  .legal-section li { margin-bottom: 0.375rem; }
+
+  .legal-callout {
+    background: rgba(0, 212, 170, 0.05);
+    border: 1px solid rgba(0, 212, 170, 0.2);
+    border-left: 3px solid var(--teal);
+    border-radius: var(--radius-md);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  .legal-callout strong { color: var(--teal); }
+
+  .legal-badge {
+    display: inline-block;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.2rem 0.625rem;
+    border-radius: var(--radius-full);
+    background: rgba(0, 212, 170, 0.1);
+    border: 1px solid rgba(0, 212, 170, 0.25);
+    color: var(--teal);
+    margin-bottom: 1rem;
+  }
+
+  @media (max-width: 768px) {
+    .legal-layout { flex-direction: column; }
+    .legal-sidebar { width: 100%; position: static; max-height: none; }
+  }
+</style>
+</head>
+<body class="murphy-no-sidebar legal-page">
+
+<a class="murphy-skip-link" href="#legal-main">Skip to content</a>
+
+<!-- ── Top Navigation Bar ── -->
+<nav class="murphy-topbar" role="navigation" aria-label="Main navigation">
+  <div class="murphy-topbar-left flex items-center gap-3">
+    <a href="/ui/landing" class="murphy-topbar-brand">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect width="32" height="32" rx="8" fill="var(--teal)"/>
+        <text x="16" y="22" text-anchor="middle" fill="#0C1017" font-size="18" font-weight="700" font-family="Inter, sans-serif">M</text>
+      </svg>
+      <span class="murphy-topbar-brand-name">Murphy System</span>
+    </a>
+    <div class="murphy-nav-links nav-links-desktop">
+      <a href="/ui/landing#features" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Features</a>
+      <a href="/ui/pricing" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Pricing</a>
+      <a href="/ui/docs" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Docs</a>
+    </div>
+  </div>
+  <div class="murphy-topbar-right flex items-center gap-2">
+    <button class="murphy-btn murphy-btn-ghost murphy-btn-icon" id="theme-toggle-btn" aria-label="Toggle theme" title="Toggle theme">🌙</button>
+    <a href="/ui/login" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Sign In</a>
+    <a href="/ui/signup" class="murphy-btn murphy-btn-primary murphy-btn-sm">Get Started</a>
+  </div>
+</nav>
+
+<!-- ── Layout ── -->
+<div class="legal-layout">
+
+  <!-- Sidebar TOC -->
+  <aside class="legal-sidebar" aria-label="Table of contents">
+    <div class="legal-sidebar-title">On this page</div>
+    <a href="#tos" class="legal-toc-link">Terms of Service</a>
+    <a href="#license" class="legal-toc-link">License (BSL 1.1)</a>
+    <a href="#aup" class="legal-toc-link">Acceptable Use</a>
+    <a href="#sla" class="legal-toc-link">Service Level</a>
+    <a href="#ip" class="legal-toc-link">Intellectual Property</a>
+    <a href="#limitation" class="legal-toc-link">Limitation of Liability</a>
+    <a href="#termination" class="legal-toc-link">Termination</a>
+    <a href="#governing-law" class="legal-toc-link">Governing Law</a>
+    <a href="#contact-legal" class="legal-toc-link">Contact</a>
+  </aside>
+
+  <!-- Main content -->
+  <main id="legal-main" class="legal-main" role="main" aria-label="Legal documents">
+
+    <div class="legal-hero">
+      <div class="legal-badge">Legal</div>
+      <h1>Terms of Service</h1>
+      <p>Last updated: March 1, 2025 · Effective: March 1, 2025</p>
+    </div>
+
+    <div class="legal-callout">
+      <strong>Plain-English summary:</strong> By using Murphy System you agree to these terms. Your data is yours. We protect it. You can't use Murphy to harm others or circumvent the license.
+    </div>
+
+    <!-- Terms of Service -->
+    <section class="legal-section" id="tos" aria-labelledby="tos-heading">
+      <h2 id="tos-heading">1. Terms of Service</h2>
+      <p>
+        These Terms of Service ("Terms") govern your use of Murphy System, operated by Inoni Limited Liability Company 
+        ("Inoni", "we", "our", "us"). By accessing or using the Murphy System platform, API, or any associated 
+        services (collectively, "the Service"), you agree to be bound by these Terms.
+      </p>
+      <p>
+        If you are accessing the Service on behalf of an organisation, you represent that you have the authority to 
+        bind that organisation to these Terms.
+      </p>
+      <h3>1.1 Account Registration</h3>
+      <p>
+        You must provide accurate, current, and complete information when creating an account. You are responsible 
+        for maintaining the confidentiality of your credentials and for all activities that occur under your account.
+      </p>
+      <h3>1.2 Changes to Terms</h3>
+      <p>
+        We may update these Terms at any time. We will notify you of material changes via email or an in-app 
+        notification. Continued use of the Service after such notice constitutes acceptance of the updated Terms.
+      </p>
+    </section>
+
+    <!-- License -->
+    <section class="legal-section" id="license" aria-labelledby="license-heading">
+      <h2 id="license-heading">2. License — Business Source License 1.1 (BSL 1.1)</h2>
+      <p>
+        Murphy System source code is licensed under the <strong>Business Source License 1.1 (BSL 1.1)</strong>, 
+        copyright © 2020 Inoni Limited Liability Company by Corey Post.
+      </p>
+      <h3>2.1 What BSL 1.1 Means</h3>
+      <ul>
+        <li><strong>You may</strong> use, copy, modify, and distribute the code for non-production use.</li>
+        <li><strong>You may not</strong> use the code in production to provide a competing commercial service without a commercial licence from Inoni.</li>
+        <li><strong>Change Date:</strong> Four years from the release date of each version, the code automatically converts to the Apache 2.0 licence.</li>
+        <li><strong>Additional Use Grant:</strong> You may run Murphy System in production for your own internal business operations.</li>
+      </ul>
+      <h3>2.2 Commercial Licence</h3>
+      <p>
+        If you wish to offer Murphy System as a service to third parties, embed it in a competing product, or 
+        require rights beyond BSL 1.1, please contact <a href="mailto:legal@murphy.ai" style="color:var(--teal)">legal@murphy.ai</a> 
+        to discuss a commercial licence.
+      </p>
+    </section>
+
+    <!-- Acceptable Use -->
+    <section class="legal-section" id="aup" aria-labelledby="aup-heading">
+      <h2 id="aup-heading">3. Acceptable Use Policy</h2>
+      <p>You agree not to use the Service to:</p>
+      <ul>
+        <li>Violate any applicable law, regulation, or third-party right</li>
+        <li>Transmit malicious code, viruses, or any software designed to damage systems</li>
+        <li>Conduct denial-of-service attacks or interfere with system integrity</li>
+        <li>Scrape, harvest, or systematically extract data without authorisation</li>
+        <li>Impersonate any person or entity, or misrepresent your affiliation</li>
+        <li>Use Murphy's AI agents to generate harmful, illegal, or deceptive content</li>
+        <li>Circumvent authentication, rate limiting, or access controls</li>
+        <li>Resell or sublicense access to the Service without Inoni's written consent</li>
+      </ul>
+      <p>
+        We reserve the right to suspend or terminate accounts that violate this policy without notice.
+      </p>
+    </section>
+
+    <!-- SLA -->
+    <section class="legal-section" id="sla" aria-labelledby="sla-heading">
+      <h2 id="sla-heading">4. Service Level</h2>
+      <h3>4.1 Uptime Target</h3>
+      <p>
+        Inoni targets 99.9% monthly uptime for the Murphy System API and UI for paid plans. Scheduled maintenance 
+        windows are excluded from uptime calculations and will be announced at least 24 hours in advance.
+      </p>
+      <h3>4.2 Support</h3>
+      <p>
+        Support response times vary by plan:
+      </p>
+      <ul>
+        <li><strong>Solo:</strong> Community support via the Murphy Forum</li>
+        <li><strong>Team:</strong> Email support — response within 2 business days</li>
+        <li><strong>Business:</strong> Priority email support — response within 1 business day</li>
+        <li><strong>Enterprise:</strong> Dedicated support channel — 4-hour response SLA</li>
+      </ul>
+      <h3>4.3 Disclaimer</h3>
+      <p>
+        The Service is provided "as is" without warranties of any kind, express or implied. Inoni does not warrant 
+        that the Service will be error-free or uninterrupted.
+      </p>
+    </section>
+
+    <!-- IP -->
+    <section class="legal-section" id="ip" aria-labelledby="ip-heading">
+      <h2 id="ip-heading">5. Intellectual Property</h2>
+      <p>
+        Inoni retains all rights, title, and interest in Murphy System, including all associated intellectual property.
+        Murphy does <strong>not</strong> claim intellectual property rights over user-created channels, workflows, 
+        automations, or the data flowing through them. Your business data is yours.
+      </p>
+      <p>
+        By submitting feedback, suggestions, or contributions you grant Inoni a perpetual, royalty-free licence to 
+        use that feedback to improve the Service.
+      </p>
+    </section>
+
+    <!-- Limitation -->
+    <section class="legal-section" id="limitation" aria-labelledby="limitation-heading">
+      <h2 id="limitation-heading">6. Limitation of Liability</h2>
+      <p>
+        To the maximum extent permitted by law, Inoni's total liability arising out of or related to these Terms 
+        shall not exceed the fees paid by you in the 12 months preceding the claim. In no event shall Inoni be 
+        liable for indirect, incidental, special, consequential, or punitive damages.
+      </p>
+    </section>
+
+    <!-- Termination -->
+    <section class="legal-section" id="termination" aria-labelledby="termination-heading">
+      <h2 id="termination-heading">7. Termination</h2>
+      <p>
+        You may terminate your account at any time from account settings or by contacting support. We may 
+        terminate or suspend access for violations of these Terms. Upon termination, your data will be retained 
+        for 30 days to allow export, then permanently deleted.
+      </p>
+    </section>
+
+    <!-- Governing Law -->
+    <section class="legal-section" id="governing-law" aria-labelledby="law-heading">
+      <h2 id="law-heading">8. Governing Law</h2>
+      <p>
+        These Terms are governed by the laws of the United States. Any disputes shall be resolved through binding 
+        arbitration, except where prohibited by law.
+      </p>
+    </section>
+
+    <!-- Contact -->
+    <section class="legal-section" id="contact-legal" aria-labelledby="contact-heading">
+      <h2 id="contact-heading">9. Contact</h2>
+      <p>
+        For legal enquiries: <a href="mailto:legal@murphy.ai" style="color:var(--teal)">legal@murphy.ai</a><br>
+        Inoni Limited Liability Company · United States
+      </p>
+      <p>
+        For privacy-related requests see our <a href="/ui/privacy" style="color:var(--teal)">Privacy Policy</a>.
+      </p>
+    </section>
+
+  </main>
+</div>
+
+<!-- ── Footer ── -->
+<footer class="murphy-footer" role="contentinfo">
+  <div class="murphy-footer-inner">
+    <nav class="murphy-footer-links" aria-label="Footer navigation">
+      <a href="/ui/terminal-unified">Dashboard</a>
+      <a href="/ui/landing#features">Features</a>
+      <a href="/ui/pricing">Pricing</a>
+      <a href="/ui/docs">Docs</a>
+      <a href="/ui/blog">Blog</a>
+      <a href="/ui/careers">Careers</a>
+      <a href="/ui/legal">Legal</a>
+      <a href="/ui/privacy">Privacy</a>
+      <a href="/ui/partner">Partner</a>
+      <a href="mailto:contact@murphy.ai">Contact</a>
+    </nav>
+    <p class="murphy-footer-copy">© 2020 Inoni Limited Liability Company by Corey Post. Licensed under BSL 1.1.</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+  var themeBtn = document.getElementById('theme-toggle-btn');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', function () {
+      document.documentElement.classList.toggle('murphy-light');
+      themeBtn.textContent = document.documentElement.classList.contains('murphy-light') ? '☀️' : '🌙';
+    });
+  }
+})();
+</script>
+</body>
+</html>
