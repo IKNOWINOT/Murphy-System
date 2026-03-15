@@ -145,14 +145,14 @@ def publish(
 # ---------------------------------------------------------------------------
 
 
-def _iter_event_types():  # type: ignore[return]
-    """Yield all EventType members, returning empty iter on import failure."""
+def _iter_event_types():
+    """Yield all EventType members; yields nothing on ImportError."""
     try:
         from event_backbone import EventType  # noqa: PLC0415
 
         yield from EventType
     except ImportError:
-        return
+        pass
 
 
 __all__ = ["set_backbone", "get_backbone", "publish"]

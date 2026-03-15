@@ -895,15 +895,20 @@ class ContactComplianceGovernor:
             capped_append(self._audit_log, entry, max_size=self._MAX_AUDIT_ENTRIES)
 
     def _publish(self, event_name: str, payload: Dict[str, Any]) -> None:
-        """Publish an event to EventBackbone if available (best-effort)."""
+        """Publish an event to EventBackbone if available (best-effort).
+
+        The merged payload always includes ``source`` and ``action`` keys.
+        Caller-supplied keys with the same names will be overwritten by the
+        envelope values.
+        """
         try:
             from event_backbone_client import publish as _bb_publish  # noqa: PLC0415
             _bb_publish(
                 event_name,
                 {
+                    **payload,
                     "source": "contact_compliance_governor",
                     "action": event_name.lower(),
-                    **payload,
                 },
                 source="contact_compliance_governor",
                 backbone=self._backbone,
