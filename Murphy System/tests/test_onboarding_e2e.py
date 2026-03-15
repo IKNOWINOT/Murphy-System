@@ -849,5 +849,188 @@ class TestLandingPageIntegration(unittest.TestCase):
         self.assertIn("terminal_unified", content)
 
 
-if __name__ == "__main__":
+# ============================================================================
+# 11. Infinite Loop Regression Tests (Bug Fix Validation)
+# ============================================================================
+
+class TestOnboardingLoopFixes(unittest.TestCase):
+    """Regression tests for the onboarding infinite-loop bugs.
+
+    These tests verify that:
+    1. The profile summary is shown at most once and then the session
+       transitions to normal chat routing (Bug 1 fix).
+    2. Escape commands break out of the onboarding loop (Bug 3 fix).
+    3. Bot/system responses are never fed into the dimension extractor
+       as user data (Bug 2 fix).
+    4. Post-summary messages are routed to the normal intent handler
+       rather than re-rendering the profile summary (Bug 1 & 4 fix).
+    5. A second call with an unchanged score and unchanged dimensions
+       does NOT re-display the full profile summary (Bug 4 fix).
+    """
+
+    def setUp(self):
+        self.murphy = _get_murphy()
+
+    # ------------------------------------------------------------------
+    # Helper: force profile to >=85% readiness
+    # ------------------------------------------------------------------
+    def _fill_profile_to_85(self, session: str) -> None:
+        """Manually fill enough dimensions to reach 85% readiness."""
+        profile = self.murphy._get_onboarding_profile(session)
+        high_weight = sorted(
+            self.murphy._ONBOARDING_DIMENSIONS.items(),
+            key=lambda x: x[1]["weight"],
+            reverse=True,
+        )
+        earned = 0
+        total_weight = sum(d["weight"] for d in self.murphy._ONBOARDING_DIMENSIONS.values())
+        for dim, info in high_weight:
+            profile["collected"][dim] = "test_value"
+            earned += info["weight"]
+            if (earned / total_weight) * 100 >= 85:
+                break
+
+    # ------------------------------------------------------------------
+    # Test 1 — Profile summary not repeated
+    # ------------------------------------------------------------------
+    def test_profile_summary_not_repeated(self):
+        """After the profile summary is shown once, the next 3 messages
+        should NOT contain the full profile summary again.  They should
+        be routed to normal chat (Bug 1 regression)."""
+        session = "regression-no-repeat"
+        self._fill_profile_to_85(session)
+
+        # First message — should trigger the profile summary
+        r1 = self.murphy.librarian_ask("what else?", session_id=session)
+        self.assertIn("MFGC/5U Readiness", r1["message"],
+                      "First message at 85%+ should show the profile summary")
+
+        # Subsequent messages must NOT re-display the full summary
+        for i, msg in enumerate(["what else?", "no way!", "are you?"], start=2):
+            r = self.murphy.librarian_ask(msg, session_id=session)
+            self.assertNotIn(
+                "Your profile summary",
+                r["message"],
+                f"Message {i} should NOT contain 'Your profile summary' (got: {r['message'][:200]})",
+            )
+            self.assertNotIn(
+                "MFGC/5U Readiness",
+                r["message"],
+                f"Message {i} should NOT contain the readiness score header (got: {r['message'][:200]})",
+            )
+
+    # ------------------------------------------------------------------
+    # Test 2 — Escape commands break the onboarding loop
+    # ------------------------------------------------------------------
+    def test_escape_commands_break_onboarding_loop(self):
+        """Sending 'done', 'stop', 'cancel', or 'exit' during onboarding
+        should transition the session to normal chat and NOT re-enter
+        the dimension-extraction loop (Bug 3 regression)."""
+        escape_words = ["done", "stop", "cancel", "exit", "skip"]
+        for cmd in escape_words:
+            with self.subTest(command=cmd):
+                session = f"regression-escape-{cmd}"
+                # Partially fill the profile so we are in onboarding state
+                profile = self.murphy._get_onboarding_profile(session)
+                profile["collected"]["business_name"] = "Escape Corp"
+                profile["state"] = "onboarding"
+
+                r = self.murphy.librarian_ask(cmd, session_id=session)
+
+                # The response should acknowledge the escape
+                self.assertIn(
+                    "Onboarding paused",
+                    r["message"],
+                    f"'{cmd}' should trigger escape message, got: {r['message'][:200]}",
+                )
+                # State must be updated
+                updated_profile = self.murphy._get_onboarding_profile(session)
+                self.assertNotEqual(
+                    updated_profile.get("state"), "onboarding",
+                    f"After '{cmd}', state should not be 'onboarding'",
+                )
+
+    # ------------------------------------------------------------------
+    # Test 3 — Bot responses not extracted as dimensions
+    # ------------------------------------------------------------------
+    def test_bot_responses_not_extracted_as_dimensions(self):
+        """Messages that look like bot/system output must not be parsed
+        as user-provided dimension values (Bug 2 regression)."""
+        murphy = self.murphy
+        bot_like_messages = [
+            "Copilot said: Got it. Now I understand what you're doing",
+            "📊 MFGC/5U Readiness: 88% ✅",
+            "Murphy: I can help you with that",
+            "📐 Magnify x3 applied — domain depth: 45",
+            "✅ Ready to generate your plan!",
+            "Excellent! I have enough information to build a tailored automation plan",
+            "Your profile summary:\n• Business Name: Acme Corp",
+            "Click Continue to Plan → to see your recommended modules",
+            "Got it — \"some input\". Thanks for that information!",
+        ]
+        for msg in bot_like_messages:
+            with self.subTest(msg=msg[:60]):
+                profile = murphy._get_onboarding_profile(f"regression-bot-{abs(hash(msg))}")
+                dims = murphy._extract_dimensions_from_message(msg, profile)
+                self.assertEqual(
+                    dims, {},
+                    f"Bot-like message should extract NO dimensions, got {dims}: '{msg[:80]}'",
+                )
+
+    # ------------------------------------------------------------------
+    # Test 4 — Post-summary messages route to intent handler
+    # ------------------------------------------------------------------
+    def test_post_summary_messages_route_to_intent_handler(self):
+        """After the profile summary is shown, follow-up messages like
+        'help' or 'status' should return meaningful, non-summary responses
+        (Bug 1 & 4 regression)."""
+        session = "regression-post-summary"
+        self._fill_profile_to_85(session)
+
+        # Trigger the initial summary
+        self.murphy.librarian_ask("show me the plan", session_id=session)
+
+        # Now subsequent messages must NOT contain the profile summary
+        for follow_up in ["help", "what can you do", "are you?", "no way!"]:
+            r = self.murphy.librarian_ask(follow_up, session_id=session)
+            self.assertNotIn(
+                "Your profile summary",
+                r["message"],
+                f"Post-summary message '{follow_up}' re-displayed profile summary",
+            )
+
+    # ------------------------------------------------------------------
+    # Test 5 — Summary only shown when score / dimensions change
+    # ------------------------------------------------------------------
+    def test_summary_only_shown_when_score_changes(self):
+        """If the score has not changed and no new dimensions were added,
+        re-entering the onboarding handler must NOT re-display the full
+        profile summary (Bug 4 regression)."""
+        session = "regression-no-rehash"
+        self._fill_profile_to_85(session)
+
+        # First call — shows the summary and marks summary_shown=True
+        r1 = self.murphy.librarian_ask("what else?", session_id=session)
+        self.assertIn("MFGC/5U Readiness", r1["message"])
+
+        # Verify state was properly updated after the first render
+        profile = self.murphy._get_onboarding_profile(session)
+        self.assertTrue(profile.get("summary_shown"),
+                        "summary_shown should be True after first render")
+        self.assertEqual(profile.get("state"), "plan_offered",
+                         "state should be 'plan_offered' after first render")
+
+        # A second direct call to _build_readiness_reply with unchanged data
+        # should return the short "already ready" message instead of the full summary
+        score = self.murphy._score_mfgc_readiness(profile)
+        reply2 = self.murphy._build_readiness_reply(profile, score)
+        self.assertNotIn(
+            "Your profile summary",
+            reply2,
+            "Second _build_readiness_reply call with unchanged data should NOT re-render full summary",
+        )
+
+
+
+if __name__ == '__main__':
     unittest.main()
