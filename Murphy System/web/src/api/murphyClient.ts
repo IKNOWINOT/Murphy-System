@@ -1,7 +1,7 @@
 /**
  * murphyClient.ts — TypeScript API client for the Murphy System backend.
  *
- * Mirrors the behaviour of the vanilla-JS MurphyAPI class:
+ * Mirrors the behavior of the vanilla-JS MurphyAPI class:
  *  - Reads API key from localStorage or VITE_MURPHY_API_KEY env
  *  - Sends X-API-Key and Content-Type: application/json headers
  *  - 3 retries with exponential backoff for 5xx responses

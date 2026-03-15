@@ -444,7 +444,7 @@ class MurphyAPI {
 
         const parsed = this._parseResponse(data, response.status);
         if (!response.ok) {
-          const errMsg = parsed?.error?.message || parsed?.error || data?.error || data?.message || `HTTP ${response.status}`;
+          const errMsg = parsed?.error?.message || `HTTP ${response.status}`;
           return { ok: false, data: parsed, error: errMsg, status: response.status };
         }
         return { ok: true, data: parsed, error: null, status: response.status };

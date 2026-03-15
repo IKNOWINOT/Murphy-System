@@ -493,14 +493,14 @@ const appLog = (msg) => console.info(`[Matrix] ${msg}`);
 const _matrixApi = new MurphyAPI(BASE + '/api');
 const apiFetch = async (path, opts = {}) => {
   const method = (opts.method || 'GET').toUpperCase();
+  const apiPath = path.replace(/^\/api/, '');
+  let body;
+  try { body = opts.body ? JSON.parse(opts.body) : undefined; } catch (_) { body = opts.body; }
   let result;
-  if (method === 'POST' || method === 'PUT') {
-    let body;
-    try { body = opts.body ? JSON.parse(opts.body) : undefined; } catch (_) { body = opts.body; }
-    result = await _matrixApi.post(path.replace(/^\/api/, ''), body);
-  } else {
-    result = await _matrixApi.get(path.replace(/^\/api/, ''));
-  }
+  if (method === 'POST') result = await _matrixApi.post(apiPath, body);
+  else if (method === 'PUT') result = await _matrixApi.put(apiPath, body);
+  else if (method === 'DELETE') result = await _matrixApi.delete(apiPath);
+  else result = await _matrixApi.get(apiPath);
   if (!result.ok) throw new Error(result.error || `HTTP error`);
   return result.data;
 };
