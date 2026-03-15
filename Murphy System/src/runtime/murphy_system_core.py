@@ -11945,8 +11945,23 @@ class MurphySystem:
 
     # -- LLM status ----------------------------------------------------------
 
+    # Onboard LLM provider entry — always listed as available
+    _ONBOARD_PROVIDER_ENTRY: Dict[str, Any] = {
+        "name": "Murphy Onboard LLM",
+        "provider": "onboard",
+        "model": "murphy-onboard",
+        "status": "active",
+        "temperature": 0.7,
+        "max_tokens": 2048,
+        "description": "Always-available offline LLM (aristotle, wulfrum, groq providers) — no API key required.",
+    }
+
     def _get_llm_status(self) -> Dict[str, Any]:
-        """Return current LLM provider configuration and health."""
+        """Return current LLM provider configuration and health.
+
+        The onboard LLM is always available and is always included in the
+        ``providers`` list regardless of whether a cloud API key is set.
+        """
         provider = os.environ.get("MURPHY_LLM_PROVIDER", "").strip().lower()
         model = os.environ.get("MURPHY_LLM_MODEL", "").strip()
         if not provider:
@@ -11962,12 +11977,20 @@ class MurphySystem:
             elif anthropic_key:
                 provider = "anthropic"
             else:
+                # No cloud key — report onboard as the active provider.
+                # enabled=False so _try_llm_generate falls through to the
+                # deterministic path (which already generates rich contextual
+                # responses via _build_reflection_reply).  The providers list
+                # ensures the LLM Config UI always shows the onboard entry.
                 return {
                     "enabled": False,
-                    "provider": None,
-                    "model": None,
-                    "healthy": False,
-                    "error": "MURPHY_LLM_PROVIDER not set",
+                    "provider": "onboard",
+                    "model": "murphy-onboard",
+                    "healthy": True,
+                    "onboard_available": True,
+                    "mode": "onboard",
+                    "llm_provider": "onboard",
+                    "providers": [self._ONBOARD_PROVIDER_ENTRY],
                 }
             os.environ["MURPHY_LLM_PROVIDER"] = provider
         # Validate provider-specific keys
@@ -11976,16 +11999,42 @@ class MurphySystem:
             if not api_key:
                 return {
                     "enabled": False,
-                    "provider": provider,
-                    "model": model or None,
-                    "healthy": False,
-                    "error": "GROQ_API_KEY not set",
+                    "provider": "onboard",
+                    "model": "murphy-onboard",
+                    "healthy": True,
+                    "onboard_available": True,
+                    "mode": "onboard",
+                    "llm_provider": "onboard",
+                    "providers": [self._ONBOARD_PROVIDER_ENTRY],
                 }
             return {
                 "enabled": True,
                 "provider": provider,
                 "model": model or "llama3-8b-8192",
                 "healthy": True,
+                "onboard_available": True,
+                "providers": [
+                    {
+                        "name": "Groq",
+                        "provider": "groq",
+                        "model": model or "llama3-8b-8192",
+                        "status": "active",
+                        "temperature": 0.7,
+                        "max_tokens": 8192,
+                    },
+                    self._ONBOARD_PROVIDER_ENTRY,
+                ],
+            }
+        if provider == "onboard":
+            return {
+                "enabled": False,
+                "provider": "onboard",
+                "model": "murphy-onboard",
+                "healthy": True,
+                "onboard_available": True,
+                "mode": "onboard",
+                "llm_provider": "onboard",
+                "providers": [self._ONBOARD_PROVIDER_ENTRY],
             }
         # Generic provider — enabled but health unknown
         return {
@@ -11993,6 +12042,16 @@ class MurphySystem:
             "provider": provider,
             "model": model or None,
             "healthy": True,
+            "onboard_available": True,
+            "providers": [
+                {
+                    "name": provider.title(),
+                    "provider": provider,
+                    "model": model or None,
+                    "status": "active",
+                },
+                self._ONBOARD_PROVIDER_ENTRY,
+            ],
         }
 
     def _get_librarian_status(self) -> Dict[str, Any]:
@@ -12039,12 +12098,18 @@ class MurphySystem:
         return "general"
 
     def _try_llm_generate(self, prompt: str, context: str = "") -> Tuple[Optional[str], Optional[str]]:
-        """Attempt to generate a response via the configured LLM provider.
+        """Attempt to generate a response via the configured cloud LLM provider.
 
         Returns a tuple ``(text, error)`` where:
         - ``(text, None)`` on success
-        - ``(None, None)`` when LLM is not configured (no key set)
+        - ``(None, None)`` when LLM is not configured (no key set) or provider
+          is ``"onboard"`` — falls through to the deterministic path in the caller
         - ``(None, error_message)`` when LLM was attempted but failed (e.g. 401)
+
+        When no cloud API key is set ``_get_llm_status`` returns
+        ``enabled=False`` so this method immediately returns ``(None, None)``,
+        leaving ``librarian_ask`` to fall back to the rich deterministic
+        response (``_build_reflection_reply`` / ``_build_followup_reply``).
         """
         llm_status = self._get_llm_status()
         if not llm_status.get("enabled") or not llm_status.get("healthy"):
@@ -12290,16 +12355,6 @@ class MurphySystem:
             fallback_reply = self._knowledge_reply(message, nl_intent)
         else:
             fallback_reply = self._deterministic_reply(message, nl_intent, session_id=session_id)
-        llm_status = self._get_llm_status()
-        # Show LLM upgrade notice once per session (librarian is always active)
-        if not llm_status.get("enabled") and not session.get("_llm_notice_shown"):
-            fallback_reply += (
-                "\n\n_Librarian is operating in **onboard** mode using built-in "
-                "system knowledge. To upgrade to LLM-powered responses: set "
-                "MURPHY_LLM_PROVIDER and the appropriate API key "
-                "(e.g. GROQ_API_KEY). Get a free key at https://console.groq.com/keys_"
-            )
-            session["_llm_notice_shown"] = True
         result = {
             "success": True,
             "session_id": session_id,
@@ -12581,10 +12636,25 @@ class MurphySystem:
         if any(sk in lower for sk in success_kw) and "success_metric" not in profile.get("collected", {}):
             extracted["success_metric"] = message.strip()
 
+        # Fallback: if nothing was extracted but the user gave a substantive
+        # answer (> 2 chars), accept it as the answer to the dimension that was
+        # last asked about.  This ensures short answers like "automation" or
+        # "Dallas" are still captured even when they don't match any keyword.
+        if not extracted and len(message.strip()) > 2:
+            last_dim = profile.get("_last_asked_dim")
+            if last_dim and last_dim not in profile.get("collected", {}):
+                extracted[last_dim] = message.strip()
+
         return extracted
 
     def _next_onboarding_question(self, profile: Dict[str, Any]) -> Optional[str]:
-        """Pick the highest-weight unanswered dimension and return its question."""
+        """Pick the highest-weight unanswered dimension, record it in the profile,
+        and return its question text.
+
+        Storing ``_last_asked_dim`` enables ``_extract_dimensions_from_message``
+        to fall back to accepting the user's raw answer when keyword matching
+        fails — so short answers like "automation" or "Dallas" are still captured.
+        """
         collected = set(profile.get("collected", {}).keys())
         candidates = [
             (dim, info)
@@ -12592,10 +12662,13 @@ class MurphySystem:
             if dim not in collected
         ]
         if not candidates:
+            profile["_last_asked_dim"] = None
             return None
         # Sort by weight descending — ask the most important questions first
         candidates.sort(key=lambda x: x[1]["weight"], reverse=True)
-        return candidates[0][1]["question"]
+        next_dim, next_info = candidates[0]
+        profile["_last_asked_dim"] = next_dim
+        return next_info["question"]
 
     def _knowledge_reply(self, message: str, nl_intent: str) -> str:
         """Generate a knowledge-base answer without onboarding dimension extraction.
