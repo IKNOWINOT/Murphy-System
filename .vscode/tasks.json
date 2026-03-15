@@ -4,7 +4,7 @@
         {
             "label": "Murphy: Start Server",
             "type": "shell",
-            "command": "cd 'Murphy System' && ./start.sh",
+            "command": "./start.sh",
             "problemMatcher": [],
             "presentation": {
                 "reveal": "always",
@@ -20,13 +20,13 @@
         {
             "label": "Murphy: Install Dependencies",
             "type": "shell",
-            "command": "cd 'Murphy System' && pip install -r requirements_murphy_1.0.txt",
+            "command": "pip install -r requirements_murphy_1.0.txt",
             "problemMatcher": []
         },
         {
             "label": "Murphy: Run Quick Demo",
             "type": "shell",
-            "command": "cd 'Murphy System' && python scripts/quick_demo.py",
+            "command": "python scripts/quick_demo.py",
             "problemMatcher": [],
             "presentation": {
                 "reveal": "always",
@@ -48,7 +48,7 @@
         {
             "label": "Murphy: Run Tests",
             "type": "shell",
-            "command": "cd 'Murphy System' && python -m pytest tests/ -v --no-cov --timeout=60",
+            "command": "python -m pytest tests/ -v --no-cov --timeout=60",
             "problemMatcher": []
         }
     ]

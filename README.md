@@ -226,3 +226,53 @@ Murphy-System/
 ├── .env                           # Runtime environment variables
 └── *.html                         # 14 web interface files + smoke test
 ```
+
+---
+
+## Subsystem Lookup
+
+| Subsystem | Primary Module | Notes |
+| --- | --- | --- |
+| **Gate + Confidence** | `src/confidence_engine/` | G/D/H + 5D uncertainty |
+| **Learning + Corrections** | `src/learning_engine/` | Shadow agent training pipeline |
+| **Integration Engine** | `src/integration_engine/` | GitHub ingestion + HITL approvals |
+| **Swarm System** | `src/true_swarm_system.py` | Dynamic swarm generation |
+| **Governance** | `src/governance_framework/` | Scheduler + authority bands |
+| **Persistence** | `src/persistence_manager.py`, `src/db.py` | JSON, SQLite, PostgreSQL backends; Alembic migrations |
+| **Event Backbone** | `src/event_backbone.py` | Durable queues, retry, circuit breakers |
+| **Delivery Adapters** | `src/delivery_adapters.py` | Document/email/chat/voice/translation |
+| **Gate Execution** | `src/gate_execution_wiring.py` | Runtime gate enforcement + policy modes |
+| **Self-Improvement** | `src/self_improvement_engine.py` | Feedback loops, calibration, remediation |
+| **SLO Tracker** | `src/operational_slo_tracker.py` | Success rate, latency percentiles, SLO compliance |
+| **Automation Scheduler** | `src/automation_scheduler.py` | Multi-project priority scheduling + load balancing |
+| **Capability Map** | `src/capability_map.py` | AST-based module inventory, gap analysis, remediation |
+| **Compliance Engine** | `src/compliance_engine.py` | GDPR/SOC2/HIPAA/PCI-DSS sensors, HITL approvals |
+| **RBAC Governance** | `src/rbac_governance.py` | Multi-tenant RBAC, shadow agent governance |
+| **Wingman Protocol** | `src/wingman_protocol.py` | Executor/validator pairing, deterministic validation |
+| **Runtime Profile Compiler** | `src/runtime_profile_compiler.py` | Onboarding-to-profile, safety/autonomy controls |
+| **Governance Kernel** | `src/governance_kernel.py` | Non-LLM enforcement, budget tracking, audit emission |
+| **Control Plane Separation** | `src/control_plane_separation.py` | Planning/execution plane split, mode switching |
+| **Durable Swarm Orchestrator** | `src/durable_swarm_orchestrator.py` | Budget-aware swarms, idempotency, circuit breaker |
+| **Golden Path Bridge** | `src/golden_path_bridge.py` | Execution path capture, replay, similarity matching |
+| **Org Chart Enforcement** | `src/org_chart_enforcement.py` | Role-bound permissions, escalation chains |
+| **Shadow Agent Integration** | `src/shadow_agent_integration.py` | Shadow-agent org-chart parity, account/user controls |
+| **Triage Rollcall Adapter** | `src/triage_rollcall_adapter.py` | Capability rollcall before swarm expansion, candidate ranking |
+| **Rubix Evidence Adapter** | `src/rubix_evidence_adapter.py` | Deterministic evidence lane: CI, Bayesian, Monte Carlo, forecast |
+| **HITL Autonomy Controller** | `src/hitl_autonomy_controller.py` | HITL arming/disarming, confidence-gated autonomy |
+| **Freelancer Validator** | `src/freelancer_validator/` | Fiverr/Upwork adapters, org budgets, credential verification |
+| **Platform Connector Framework** | `src/platform_connector_framework.py` | 90+ platform connectors (Slack, Jira, Salesforce, GitHub, AWS, …) |
+| **Workflow DAG Engine** | `src/workflow_dag_engine.py` | DAG workflows: topological sort, parallel groups, conditional branching |
+| **Security Hardening Config** | `src/security_hardening_config.py` | XSS/SQLi/path-traversal sanitization, CORS, rate limiting, CSP |
+| **Authorization Enhancer** | `src/security_plane/authorization_enhancer.py` | Per-request ownership verification, audit trail |
+| **Log Sanitizer** | `src/security_plane/log_sanitizer.py` | PII detection (8 types), automated redaction |
+| **Bot Resource Quotas** | `src/security_plane/bot_resource_quotas.py` | Per-bot quotas, swarm aggregate limits, auto-suspension |
+| **Swarm Communication Monitor** | `src/security_plane/swarm_communication_monitor.py` | DFS cycle detection, rate limiting, pattern detection |
+| **Bot Identity Verifier** | `src/security_plane/bot_identity_verifier.py` | HMAC-SHA256 signing, identity registry, key revocation |
+| **Bot Anomaly Detector** | `src/security_plane/bot_anomaly_detector.py` | Z-score anomaly detection, resource spikes |
+| **Security Dashboard** | `src/security_plane/security_dashboard.py` | Unified event view, correlation, compliance reports |
+| **Self-Introspection** | `src/self_introspection_module.py` | Runtime self-analysis and codebase scanning |
+| **Self-Codebase Swarm** | `src/self_codebase_swarm.py` | Autonomous BMS spec generation and RFP parsing |
+| **Cut Sheet Engine** | `src/cutsheet_engine.py` | Manufacturer data parsing and wiring diagram generation |
+| **Visual Swarm Builder** | `src/visual_swarm_builder.py` | Visual pipeline construction for swarm workflows |
+| **CEO Branch Activation** | `src/ceo_branch_activation.py` | Top-level autonomous decision-making and planning |
+| **Production Assistant Engine** | `src/production_assistant_engine.py` | Request lifecycle and deliverable gate validation |

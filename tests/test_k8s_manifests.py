@@ -17,10 +17,16 @@ _K8S_DIR = os.path.join(os.path.dirname(__file__), "..", "k8s")
 
 
 def _load(filename: str) -> dict:
-    """Load and parse a YAML manifest file."""
+    """Load and parse a YAML manifest file.
+
+    Handles both single-document and multi-document YAML files
+    (e.g. network-policy.yaml which contains several --- delimited docs).
+    Returns only the first document to maintain backward compatibility with
+    tests that call this helper and inspect a single Kubernetes object.
+    """
     path = os.path.join(_K8S_DIR, filename)
     with open(path, encoding="utf-8") as f:
-        return yaml.safe_load(f)
+        return next(yaml.safe_load_all(f), None)
 
 
 def _get(obj, *keys, default=None):
@@ -150,7 +156,10 @@ class TestSecretManifest(unittest.TestCase):
         "JWT_SECRET",
         "ENCRYPTION_KEY",
         "GITHUB_TOKEN",
-        "STRIPE_API_KEY",
+        "PAYPAL_CLIENT_ID",
+        "PAYPAL_CLIENT_SECRET",
+        "PAYPAL_WEBHOOK_SECRET",
+        "COINBASE_WEBHOOK_SECRET",
         "MURPHY_API_KEYS",
         "MURPHY_CREDENTIAL_MASTER_KEY",
     ]

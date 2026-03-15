@@ -5,22 +5,22 @@
             "name": "Murphy: Quick Demo (2 min)",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/Murphy System/scripts/quick_demo.py",
+            "program": "${workspaceFolder}/scripts/quick_demo.py",
             "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}/Murphy System",
+            "cwd": "${workspaceFolder}",
             "env": {
-                "PYTHONPATH": "${workspaceFolder}/Murphy System"
+                "PYTHONPATH": "${workspaceFolder}"
             }
         },
         {
             "name": "Murphy: Start Server (Debug)",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/Murphy System/murphy_system_1.0_runtime.py",
+            "program": "${workspaceFolder}/murphy_system_1.0_runtime.py",
             "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}/Murphy System",
+            "cwd": "${workspaceFolder}",
             "env": {
-                "PYTHONPATH": "${workspaceFolder}/Murphy System",
+                "PYTHONPATH": "${workspaceFolder}",
                 "MURPHY_DEBUG": "1"
             }
         },
@@ -31,9 +31,9 @@
             "module": "pytest",
             "args": ["tests/", "-v", "--no-cov", "--timeout=60"],
             "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}/Murphy System",
+            "cwd": "${workspaceFolder}",
             "env": {
-                "PYTHONPATH": "${workspaceFolder}/Murphy System"
+                "PYTHONPATH": "${workspaceFolder}"
             }
         }
     ]

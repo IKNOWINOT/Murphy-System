@@ -64,3 +64,4 @@ eqemu-assets/
 *.sql.gz
 eqemu-server-*.zip
 data/mfm_shadow_logs/
+.murphy_keys.enc
