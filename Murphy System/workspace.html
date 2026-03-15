@@ -2278,6 +2278,7 @@
     isVideo: false,
     micMuted: false,
     cameraOff: true,
+    cameraStarting: false,
     screenSharing: false,
     murphyListening: false,
     callStartTime: null,
@@ -2322,8 +2323,10 @@
       var raw = localStorage.getItem('murphy_user');
       if (!raw) return;
       var u = JSON.parse(raw);
-      state.localInitials = (u.name || u.full_name || 'Me')
-        .split(' ').map(function (p) { return p[0]; }).join('').slice(0, 2).toUpperCase();
+      var displayName = (u.name || u.full_name || '').trim();
+      if (!displayName) { state.localInitials = 'Me'; } else {
+        state.localInitials = displayName.split(' ').filter(Boolean).map(function (p) { return p[0]; }).join('').slice(0, 2).toUpperCase() || 'Me';
+      }
       state.localAvatar = u.avatarUrl || u.avatar_url || null;
     } catch (_) {}
     renderLocalTile();
@@ -2544,8 +2547,11 @@
 
   function startCamera() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+    if (state.cameraStarting) return;   // guard against concurrent calls
+    state.cameraStarting = true;
     navigator.mediaDevices.getUserMedia({ video: true, audio: true })
       .then(function (stream) {
+        state.cameraStarting = false;
         state.localStream = stream;
         localVideo.srcObject = stream;
         if (!state.cameraOff) {
@@ -2557,6 +2563,7 @@
         }
       })
       .catch(function (err) {
+        state.cameraStarting = false;
         console.warn('Camera/mic not available:', err.message);
       });
   }
