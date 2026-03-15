@@ -26,7 +26,7 @@
   // ---------------------------------------------------------------------------
 
   const DEFAULT_PORT = 8000;
-  const LANDING_PAGE = "murphy_landing_page.html";
+  const LANDING_PAGE = "/ui/landing";
   const PROFILE_ENDPOINT = "/api/profiles/me";
   const TERMINAL_CONFIG_ENDPOINT = "/api/profiles/me/terminal-config";
 

@@ -79,14 +79,14 @@ class MurphySidebar extends HTMLElement {
     const active = this.getAttribute('active') || '';
 
     const navItems = [
-      { icon: '⬡', label: 'ORCHESTRATOR', href: '/ui/terminal_orchestrator.html' },
-      { icon: '✦', label: 'ORG CHART',    href: '/ui/terminal_orgchart.html' },
-      { icon: '⬢', label: 'INTEGRATIONS', href: '/ui/terminal_integrations.html' },
-      { icon: '◈', label: 'ARCHITECT',    href: '/ui/terminal_architect.html' },
-      { icon: '◎', label: 'WORKER',       href: '/ui/terminal_worker.html' },
-      { icon: '⊞', label: 'COSTS',        href: '/ui/terminal_costs.html' },
-      { icon: '⋮', label: 'WORKFLOWS',    href: '/ui/workflow_canvas.html' },
-      { icon: '🏭', label: 'PRODUCTION',   href: '/ui/production_wizard.html' },
+      { icon: '⬡', label: 'ORCHESTRATOR', href: '/ui/terminal-orchestrator' },
+      { icon: '✦', label: 'ORG CHART',    href: '/ui/terminal-orgchart' },
+      { icon: '⬢', label: 'INTEGRATIONS', href: '/ui/terminal-integrations' },
+      { icon: '◈', label: 'ARCHITECT',    href: '/ui/terminal-architect' },
+      { icon: '◎', label: 'WORKER',       href: '/ui/terminal-worker' },
+      { icon: '⊞', label: 'COSTS',        href: '/ui/terminal-costs' },
+      { icon: '⋮', label: 'WORKFLOWS',    href: '/ui/workflow-canvas' },
+      { icon: '🏭', label: 'PRODUCTION',   href: '/ui/production-wizard' },
     ];
 
     const links = navItems.map(item => `
@@ -172,13 +172,13 @@ class MurphyCommandPalette extends HTMLElement {
       </div>`;
 
     this._commands = [
-      { icon:'⬡', label:'Orchestrator Dashboard',  href:'/ui/terminal_orchestrator.html',   shortcut:'' },
-      { icon:'✦', label:'Org Chart',               href:'/ui/terminal_orgchart.html',        shortcut:'' },
-      { icon:'⬢', label:'Integration Wiring',      href:'/ui/terminal_integrations.html',   shortcut:'' },
-      { icon:'◈', label:'Architect Terminal',       href:'/ui/terminal_architect.html',       shortcut:'' },
-      { icon:'◎', label:'Worker Terminal',          href:'/ui/terminal_worker.html',          shortcut:'' },
-      { icon:'⊞', label:'Cost Dashboard',           href:'/ui/terminal_costs.html',           shortcut:'' },
-      { icon:'⋮', label:'Workflow Builder',         href:'/ui/workflow_canvas.html', shortcut:'' },
+      { icon:'⬡', label:'Orchestrator Dashboard',  href:'/ui/terminal-orchestrator',   shortcut:'' },
+      { icon:'✦', label:'Org Chart',               href:'/ui/terminal-orgchart',        shortcut:'' },
+      { icon:'⬢', label:'Integration Wiring',      href:'/ui/terminal-integrations',   shortcut:'' },
+      { icon:'◈', label:'Architect Terminal',       href:'/ui/terminal-architect',       shortcut:'' },
+      { icon:'◎', label:'Worker Terminal',          href:'/ui/terminal-worker',          shortcut:'' },
+      { icon:'⊞', label:'Cost Dashboard',           href:'/ui/terminal-costs',           shortcut:'' },
+      { icon:'⋮', label:'Workflow Builder',         href:'/ui/workflow-canvas', shortcut:'' },
     ];
 
     this._selected = 0;
