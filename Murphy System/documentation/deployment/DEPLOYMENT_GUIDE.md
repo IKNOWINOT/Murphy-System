@@ -115,33 +115,30 @@ pip install -r requirements_murphy_1.0.txt
 
 ### Step 2: Configure Development Settings
 
-Create `config/config.yaml`:
+Edit `config/murphy.yaml` to override development defaults:
 
 ```yaml
-# Development Configuration
-mode: development
+# config/murphy.yaml — development overrides
+system:
+  env: development
 
-# Server Settings
-server:
+api:
   host: "localhost"
   port: 8000
-  workers: 1
 
-# Logging
 logging:
   level: DEBUG
-  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  format: text
 
-# Cache Settings
 cache:
-  enabled: true
-  level: 1  # L1 cache only
-  ttl: 300  # 5 minutes
+  enabled: false
+  ttl: 300
+```
 
-# Telemetry
-telemetry:
-  enabled: true
-  metrics_interval: 60  # seconds
+You can also override individual settings via environment variables (env vars always win over YAML):
+```bash
+export LOG_LEVEL=DEBUG
+export MURPHY_ENV=development
 ```
 
 ### Step 3: Start the Server
@@ -150,8 +147,8 @@ telemetry:
 # Start API server
 python murphy_system_1.0_runtime.py
 
-# Or with custom configuration
-python murphy_system_1.0_runtime.py --config config/config.yaml
+# Or start with an explicit environment override
+MURPHY_ENV=development python murphy_system_1.0_runtime.py
 ```
 
 ### Step 4: Verify Deployment
@@ -191,40 +188,31 @@ pip install -r requirements_murphy_1.0.txt
 
 ### Step 2: Configure Staging Settings
 
-Create `config/config.yaml`:
+Edit `config/murphy.yaml` to set staging defaults (or use environment variables — env vars always win):
 
 ```yaml
-# Staging Configuration
-mode: staging
+# config/murphy.yaml — staging overrides
+system:
+  env: staging
 
-# Server Settings
-server:
+api:
   host: "0.0.0.0"
   port: 8000
-  workers: 4
 
-# Logging
 logging:
   level: INFO
-  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  format: json
   file: "/var/log/murphy-staging.log"
 
-# Cache Settings
 cache:
   enabled: true
-  level: 2  # L1 and L2 cache
-  ttl: 3600  # 1 hour
+  ttl: 3600
+```
 
-# Persistence
-persistence:
-  enabled: true
-  type: "sqlite"
-  path: "/var/lib/murphy-staging/data.db"
-
-# Telemetry
-telemetry:
-  enabled: true
-  metrics_interval: 30  # seconds
+For secrets and per-deployment values, use environment variables or a `.env` file — never the YAML file:
+```bash
+export MURPHY_ENV=staging
+export DATABASE_URL=sqlite:////var/lib/murphy-staging/data.db
 ```
 
 ### Step 3: Set Up System Service
@@ -333,70 +321,47 @@ pip install --no-cache-dir -r requirements_murphy_1.0.txt
 
 ### Step 2: Configure Production Settings
 
-Create `config/config.yaml`:
+Edit `config/murphy.yaml` for production defaults:
 
 ```yaml
-# Production Configuration
-mode: production
+# config/murphy.yaml — production overrides
+system:
+  env: production
 
-# Server Settings
-server:
+api:
   host: "0.0.0.0"
   port: 8000
-  workers: 8
 
-# Logging
 logging:
   level: WARNING
-  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  format: json
   file: "/var/log/murphy-production.log"
-  rotation: daily
-  retention: 30  # days
+  backup_count: 30
 
-# Cache Settings
 cache:
   enabled: true
-  level: 3  # L1, L2, L3 cache
-  ttl: 86400  # 24 hours
-  max_size: 1024  # MB
+  ttl: 86400
 
-# Persistence
-persistence:
-  enabled: true
-  type: "postgresql"
-  host: "localhost"
-  port: 5432
-  database: "murphy_production"
-  username: "murphy_user"
-  password: "${MURPHY_DB_PASSWORD}"
-
-# Security
-security:
-  secret_key: "${MURPHY_SECRET_KEY}"
-  allowed_origins:
-    - "https://yourdomain.com"
-  rate_limiting:
-    enabled: true
-    requests_per_minute: 1000
-
-# Telemetry
-telemetry:
-  enabled: true
-  metrics_interval: 10  # seconds
-  export_to:
-    - prometheus
-    - datadog
-
-# Monitoring
-monitoring:
-  enabled: true
-  health_check_interval: 30  # seconds
-  alerting:
-    enabled: true
-    slack_webhook: "${MURPHY_SLACK_WEBHOOK}"
-    email_recipients:
-      - "ops@yourdomain.com"
+safety:
+  fail_closed: true
+  governance_strict: true
 ```
+
+> **Important:** Production secrets (`DATABASE_URL`, `MURPHY_API_KEYS`,
+> `MURPHY_CREDENTIAL_MASTER_KEY`, `JWT_SECRET`) must **never** be stored in
+> `config/murphy.yaml`. Use environment variables loaded from a secrets manager:
+>
+> ```bash
+> # Docker Swarm secrets
+> docker secret create murphy_api_key ./api_key.txt
+>
+> # Kubernetes secrets
+> kubectl create secret generic murphy-secrets \
+>   --from-literal=DATABASE_URL="postgresql://..."
+>
+> # HashiCorp Vault
+> vault kv put secret/murphy DATABASE_URL="postgresql://..."
+> ```
 
 ### Step 3: Set Up Database (PostgreSQL)
 
@@ -786,8 +751,8 @@ sudo systemctl start murphy-production
 # Check logs
 sudo journalctl -u murphy-production -n 50
 
-# Check configuration
-python -c "import yaml; yaml.safe_load(open('config/config.yaml'))"
+# Check configuration (validate YAML syntax)
+python -c "import yaml; yaml.safe_load(open('config/murphy.yaml'))"
 
 # Check ports
 sudo netstat -tuln | grep 8000
@@ -802,10 +767,12 @@ sudo netstat -tuln | grep 8000
 # Check memory usage
 ps aux | grep murphy
 
-# Reduce cache size
-# Edit config/config.yaml
-cache:
-  max_size: 512  # Reduce from 1024
+# Reduce cache TTL in config/murphy.yaml:
+# cache:
+#   ttl: 1800  # Reduce from 3600
+
+# Or via environment variable (takes precedence):
+export MURPHY_CACHE__TTL=1800
 
 # Restart service
 sudo systemctl restart murphy-production
@@ -823,10 +790,10 @@ htop
 # Check database queries
 sudo -u postgres psql -c "SELECT * FROM pg_stat_activity;"
 
-# Enable caching
-# Edit config/config.yaml
-cache:
-  level: 3  # Enable L3 cache
+# Enable caching in config/murphy.yaml:
+# cache:
+#   enabled: true
+#   ttl: 86400
 ```
 
 ### Database Connection Issues
