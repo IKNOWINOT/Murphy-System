@@ -12123,15 +12123,71 @@ class MurphySystem:
 
         Pipeline:
         1. Classify the intent
-        2. Extract MFGC/5U dimensions from the user's message (skipped in ask mode)
-        3. Gather session / onboarding context for richer answers
-        4. Try LLM-backed response generation (with conversation profile)
-        5. Fall back to conversational deterministic guidance if LLM is unavailable
+        2. Check for escape commands or post-onboarding state routing
+        3. Extract MFGC/5U dimensions from the user's message (skipped in ask mode)
+        4. Gather session / onboarding context for richer answers
+        5. Try LLM-backed response generation (with conversation profile)
+        6. Fall back to conversational deterministic guidance if LLM is unavailable
         """
         session_id = session_id or "default"
         nl_intent = self._classify_nl_intent(message)
 
         profile = self._get_onboarding_profile(session_id)
+        profile["_session_id"] = session_id  # for logging in sub-methods
+
+        # --- Bug 3 Fix: Escape command detection BEFORE dimension extraction ---
+        _ESCAPE_COMMANDS = {
+            "done", "stop", "cancel", "exit", "skip",
+            "exit onboarding", "stop onboarding", "cancel onboarding",
+            "no thanks", "not now", "later",
+        }
+        msg_lower_cmd = message.strip().lower()
+        if msg_lower_cmd in _ESCAPE_COMMANDS and profile.get("state") == "onboarding":
+            profile["state"] = "ready"
+            profile["summary_shown"] = True
+            logger.info(
+                "onboarding_escape_triggered session=%s command=%r",
+                session_id, message.strip(),
+            )
+            escape_reply = (
+                "Onboarding paused. You can resume anytime by typing "
+                "**'start interview'**. How can I help you today?"
+            )
+            profile.setdefault("history", []).append((message, escape_reply[:100]))
+            return {
+                "success": True,
+                "session_id": session_id,
+                "reply_text": escape_reply,
+                "response": escape_reply,
+                "message": escape_reply,
+                "intent": "escape_onboarding",
+                "mode": "onboard",
+                "librarian_mode": mode or "onboard",
+                "mfgc_score": self._score_mfgc_readiness(profile),
+                "suggested_commands": self._suggest_commands(nl_intent),
+            }
+
+        # --- Bug 1 & 5 Fix: Route post-onboarding messages to normal chat ---
+        # Both conditions are checked for back-compatibility: older profiles may
+        # have summary_shown=True without state being set to "plan_offered".
+        if profile.get("state") in ("ready", "plan_offered") or profile.get("summary_shown"):
+            # Profile summary was already shown — don't re-enter onboarding loop.
+            # Fall through to normal intent / knowledge routing below.
+            result = self._knowledge_reply(message, nl_intent)
+            fallback_result = {
+                "success": True,
+                "session_id": session_id,
+                "reply_text": result,
+                "response": result,
+                "message": result,
+                "intent": nl_intent,
+                "mode": "onboard",
+                "librarian_mode": mode or "onboard",
+                "mfgc_score": self._score_mfgc_readiness(profile),
+                "suggested_commands": self._suggest_commands(nl_intent),
+            }
+            profile.setdefault("history", []).append((message, result[:100]))
+            return fallback_result
 
         # In "ask" mode, skip dimension extraction — treat as pure knowledge query
         if mode != "ask":
@@ -12346,7 +12402,18 @@ class MurphySystem:
                 "collected": {},       # dimension → value
                 "history": [],         # list of (user_msg, assistant_msg)
                 "exchange_count": 0,
+                "summary_shown": False,     # True once the profile summary has been displayed
+                "state": "onboarding",      # "onboarding" | "ready" | "plan_offered"
+                "last_summary_hash": None,  # hash of collected dims at last summary render
+                "summary_render_count": 0,  # guard: max 2 renders without new dimension data
             }
+        else:
+            # Back-fill fields for profiles created before this fix
+            p = session["_onboarding_profile"]
+            p.setdefault("summary_shown", False)
+            p.setdefault("state", "onboarding")
+            p.setdefault("last_summary_hash", None)
+            p.setdefault("summary_render_count", 0)
         return session["_onboarding_profile"]
 
     def _score_mfgc_readiness(self, profile: Dict[str, Any]) -> float:
@@ -12369,12 +12436,30 @@ class MurphySystem:
 
         Uses keyword heuristics to detect what business information the user
         is sharing, mapping it to the appropriate MFGC/5U dimension.
+
+        Guard: returns empty dict for messages that look like bot/system replies
+        so that Murphy's own previous responses are never fed back as dimension
+        values (Bug 2 fix).
         """
+        import re as _re
+
+        # --- Guard: skip messages that look like bot/system output ---
+        _BOT_PREFIXES = (
+            "murphy:", "i'm murphy", "i am murphy",
+            "📊", "📐", "🔒", "✅",
+            "copilot said:", "copilot:", "got it. now i understand",
+            "got it — ", "excellent!", "your profile summary",
+            "click continue to plan",
+        )
+        msg_stripped = message.strip()
+        msg_lower_check = msg_stripped.lower()
+        if any(msg_lower_check.startswith(prefix) for prefix in _BOT_PREFIXES):
+            return {}
+
         lower = message.lower()
         extracted: Dict[str, str] = {}
 
         # Business name detection — quoted text or "I run/own X"
-        import re as _re
         name_match = _re.search(r"(?:called|named|i run|i own|my (?:company|business|shop|store) is)\s+[\"']?([A-Z][A-Za-z0-9 &'.,-]+)", message)
         if name_match and "business_name" not in profile.get("collected", {}):
             extracted["business_name"] = name_match.group(1).strip().rstrip(".,")
@@ -12899,11 +12984,40 @@ class MurphySystem:
         return reply
 
     def _build_readiness_reply(self, profile: Dict[str, Any], score: float) -> str:
-        """Generate a plan-ready summary when MFGC/5U score >= 85%."""
+        """Generate a plan-ready summary when MFGC/5U score >= 85%.
+
+        Marks the session as post-onboarding (``summary_shown = True``,
+        ``state = "plan_offered"``) so subsequent messages are routed to
+        normal chat and the same summary is never re-rendered unless the
+        collected dimensions have changed (Bug 1 & Bug 4 fix).
+        """
+        import hashlib as _hashlib
+
         collected = profile.get("collected", {})
         biz = collected.get("business_name", "your business")
         industry = collected.get("industry", "your industry")
-        goal = collected.get("business_goal", collected.get("automation_goal", "your automation goals"))
+
+        # --- Bug 4 Fix: de-duplicate summary ---
+        current_hash = _hashlib.md5(
+            json.dumps(collected, sort_keys=True).encode()
+        ).hexdigest()
+
+        render_count = profile.get("summary_render_count", 0)
+        _short_reply = (
+            "I already have your profile ready. "
+            "Click **Continue to Plan →** or keep chatting to refine. "
+            "Type **'done'** to move on."
+        )
+        # Nothing changed since last render, OR safety cap (max 2 renders without new data)
+        if profile.get("last_summary_hash") == current_hash and (
+            profile.get("summary_shown") or render_count >= 2
+        ):
+            if render_count >= 2:
+                logger.warning(
+                    "profile_summary_render_cap_hit session=%s renders=%d",
+                    profile.get("_session_id", "unknown"), render_count,
+                )
+            return _short_reply
 
         reply = (
             f"📊 **MFGC/5U Readiness: {score:.0f}%** ✅\n\n"
@@ -12920,6 +13034,13 @@ class MurphySystem:
             "\nClick **Continue to Plan →** to see your recommended modules and integrations, "
             "or keep chatting to refine your setup."
         )
+
+        # --- Bug 1 Fix: transition session out of onboarding loop ---
+        profile["summary_shown"] = True
+        profile["state"] = "plan_offered"
+        profile["last_summary_hash"] = current_hash
+        profile["summary_render_count"] = render_count + 1
+
         return reply
 
     def _build_first_greeting(self, message: str, nl_intent: str,
