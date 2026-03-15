@@ -98,7 +98,7 @@ def check_storyline_conformance() -> bool:
                 "-v",
                 "--tb=short",
                 "--timeout=120",
-                "--no-cov",
+                "--override-ini=addopts=",  # strip coverage flags from pyproject.toml
                 "--no-header",
             ],
             capture_output=True,
@@ -108,13 +108,18 @@ def check_storyline_conformance() -> bool:
         output = result.stdout + result.stderr
         print(output)
 
-        # Parse per-chapter results from pytest -v output
-        passed: list[str] = re.findall(r"PASSED\s+(.*)", output)
-        failed: list[str] = re.findall(r"FAILED\s+(.*)", output)
+        # Parse per-chapter results from pytest -v output.
+        # pytest -v format: "tests/file.py::Class::method PASSED [  3%]"
+        passed: list[str] = re.findall(r"(tests/\S+)\s+PASSED", output)
+        failed: list[str] = re.findall(r"(tests/\S+)\s+FAILED", output)
         errors_found: list[str] = re.findall(r"ERROR\s+(.*)", output)
 
         if passed:
-            notice("Storyline Conformance", f"{len(passed)} chapter(s) PASSED: " + ", ".join(passed[:10]))
+            notice(
+                "Storyline Conformance",
+                f"{len(passed)} test(s) PASSED: " + ", ".join(passed[:10])
+                + ("..." if len(passed) > 10 else ""),
+            )
 
         if not passed and not failed and not errors_found:
             warn(
@@ -128,11 +133,11 @@ def check_storyline_conformance() -> bool:
             failing = failed + errors_found
             error(
                 "Storyline Conformance",
-                f"{len(failing)} chapter(s) FAILED:\n" + "\n".join(failing[:20]),
+                f"{len(failing)} test(s) FAILED:\n" + "\n".join(failing[:20]),
             )
             return False
 
-        print(f"  ✅ Storyline conformance: {len(passed)} chapters passed.")
+        print(f"  ✅ Storyline conformance: {len(passed)} tests passed.")
         return True
 
     except FileNotFoundError:
