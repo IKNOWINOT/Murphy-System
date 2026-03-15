@@ -454,7 +454,10 @@ class TestLandingPageFeatures(unittest.TestCase):
     def test_terminal_links_exist(self):
         """Landing page must link to terminal views."""
         content = _read_html('murphy_landing_page.html')
-        self.assertIn('terminal_unified.html', content)
+        self.assertTrue(
+            'terminal_unified.html' in content or 'terminal-unified' in content,
+            "Landing page must link to terminal-unified (URL or filename)"
+        )
 
     def test_no_inline_styles(self):
         """Landing page should use zero inline styles (design system only)."""
