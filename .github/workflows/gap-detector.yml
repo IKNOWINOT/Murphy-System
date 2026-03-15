@@ -63,7 +63,8 @@ jobs:
       - name: Run storyline conformance tests
         id: storyline
         run: |
-          python -m pytest -m storyline -v --tb=short --timeout=120 --no-cov \
+          python -m pytest -m storyline -v --tb=short --timeout=120 \
+            --override-ini="addopts=" \
             --junit-xml=storyline-results.xml \
             || true
         continue-on-error: true
