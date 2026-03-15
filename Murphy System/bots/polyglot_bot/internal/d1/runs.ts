@@ -1,1 +1,0 @@
-export async function logRun(_db:any,_row:any){ return true }

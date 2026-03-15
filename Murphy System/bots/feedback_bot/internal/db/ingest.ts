@@ -1,1 +1,0 @@
-export async function ingestEvents(db:any, events:any[]){ return true; }

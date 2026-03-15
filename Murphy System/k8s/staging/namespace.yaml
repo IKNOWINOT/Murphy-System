@@ -1,8 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: murphy-staging
-  labels:
-    app: murphy-system
-    team: murphy
-    environment: staging

@@ -1,2 +1,0 @@
-export function spectralCentroid(samples:number[]){ // toy proxy: average absolute difference
- let s=0; for(let i=1;i<samples.length;i++){ s+=Math.abs(samples[i]-samples[i-1]); } return s/Math.max(1,(samples.length-1)); }

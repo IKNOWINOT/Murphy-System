@@ -1,1 +1,0 @@
-export function dr(rewards:number[], prop:number[], q:number[]){ let s=0; for(let i=0;i<rewards.length;i++){ s+= q[i] + (rewards[i]-q[i])/Math.max(1e-6,prop[i]); } return s/rewards.length; }

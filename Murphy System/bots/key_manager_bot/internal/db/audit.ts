@@ -1,1 +1,0 @@
-export async function audit(db:D1Database, event:string, actor:string, data:any){ try{ await db.prepare(`INSERT INTO audit_events (id, ts, event, actor, data_json) VALUES (?1,?2,?3,?4,?5)`).bind('ae_'+Date.now(), new Date().toISOString(), event, actor, JSON.stringify(data||{})).run(); }catch(err){ console.error('audit write failed', err); } }

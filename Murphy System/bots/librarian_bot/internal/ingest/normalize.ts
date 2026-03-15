@@ -1,1 +1,0 @@
-export function normalizeText(s:string){ return (s||'').normalize('NFC').replace(/[\u0000-\u001F]/g,' ').trim(); }

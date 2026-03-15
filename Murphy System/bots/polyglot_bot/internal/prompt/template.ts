@@ -1,1 +1,0 @@
-export function buildTemplate(style:any, glossary:any, nt:string[]){ return { style: style||{}, glossary:glossary||{}, no_translate: nt||[] }; }
