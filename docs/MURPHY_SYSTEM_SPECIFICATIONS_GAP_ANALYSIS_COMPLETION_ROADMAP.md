@@ -268,7 +268,7 @@ System. Each step is annotated with what works and what breaks.
 
 User runs:
   git clone https://github.com/IKNOWINOT/Murphy-System.git
-  cd Murphy-System/Murphy\ System
+  Murphy\ System
   bash ../setup_and_start.sh
 
 WHAT HAPPENS:
@@ -859,8 +859,8 @@ SMALLEST MODULES (potential stubs):
   4. mock_compatible_local_llm.py          400 bytes  ← STUB
 
 DOCUMENTATION FILES:
-  • README.md (root and Murphy System/)
-  • GETTING_STARTED.md (root and Murphy System/)
+  • README.md (repository root)
+  • GETTING_STARTED.md (repository root)
   • USER_MANUAL.md
   • ARCHITECTURE_MAP.md
   • MURPHY_SYSTEM_1.0_SPECIFICATION.md

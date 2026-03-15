@@ -793,10 +793,6 @@ hr {
   transition: left var(--transition-base);
 }
 
-body.murphy-light .murphy-topbar {
-  background: rgba(244, 246, 248, 0.85);
-}
-
 .murphy-sidebar-collapsed ~ .murphy-topbar,
 .murphy-sidebar-collapsed + .murphy-topbar {
   left: 56px;

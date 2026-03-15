@@ -3,7 +3,7 @@
 **Last Updated:** 2026-03-02
 **Source:** [Gap Analysis](GAP_ANALYSIS.md)
 **Repository:** IKNOWINOT/Murphy-System
-**Runtime Directory:** `Murphy System/`
+**Runtime Directory:** repo root (`./`)
 
 ---
 

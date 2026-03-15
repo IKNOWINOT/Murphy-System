@@ -97,7 +97,7 @@ Then open <http://localhost:9090> and <http://localhost:3000>.
 Or use the verification script to check everything and print the full URL directory:
 
 ```bash
-bash "Murphy System/scripts/verify_monitoring.sh" --namespace murphy-system --port-forward
+bash "scripts/verify_monitoring.sh" --namespace murphy-system --port-forward
 ```
 
 ---

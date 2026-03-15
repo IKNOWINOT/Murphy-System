@@ -7,7 +7,7 @@ Enterprise integration, compliance, and governance test suites for the Murphy Sy
 ## Overview
 
 The enterprise test suite validates multi-tenant isolation, RBAC enforcement, compliance
-frameworks, and governance policies. All tests live under `Murphy System/tests/` and can
+frameworks, and governance policies. All tests live under `tests/` and can
 be run with pytest.
 
 ```bash

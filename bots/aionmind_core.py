@@ -61,7 +61,7 @@ def route_with_cache(task: Dict[str, Any]) -> Dict[str, Any]:
     cached = get_cache(key)
     if cached is not None:
         return {"status": "success", "result": cached}
-    result = route_with_cache(task)
+    result = dispatch(task)
     if result.get("status") == "success":
         set_cache(key, result["result"])  # default TTL
     return result

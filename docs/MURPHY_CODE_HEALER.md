@@ -74,8 +74,8 @@ supervisor = DiagnosticSupervisor(
     bug_detector=detector,
     improvement_engine=engine,
     healing_coordinator=coordinator,
-    src_root="Murphy System/src",
-    tests_root="Murphy System/tests",
+    src_root="src",
+    tests_root="tests",
 )
 gaps = supervisor.collect_gaps()
 ```
@@ -90,7 +90,7 @@ Parses Python source files to build a structural map:
 - Spectrum-based fault localisation (suspects ranked by score)
 
 ```python
-ci = CodeIntelligence(src_root="Murphy System/src")
+ci = CodeIntelligence(src_root="src")
 ci.build_map()
 context = ci.get_context(gap)
 suspects = ci.localise_fault(gap)
@@ -179,8 +179,8 @@ healer = MurphyCodeHealer(
     healing_coordinator=coordinator,
     event_backbone=backbone,
     persistence_manager=pm,
-    src_root="Murphy System/src",
-    tests_root="Murphy System/tests",
+    src_root="src",
+    tests_root="tests",
 )
 
 report = healer.run_healing_cycle(max_gaps=50)
@@ -194,7 +194,7 @@ from self_fix_loop import SelfFixLoop
 from murphy_code_healer import MurphyCodeHealer
 
 loop = SelfFixLoop(improvement_engine=engine, ...)
-healer = MurphyCodeHealer(src_root="Murphy System/src", ...)
+healer = MurphyCodeHealer(src_root="src", ...)
 
 # Bridge: SelfFixLoop delegates source-level gaps to MurphyCodeHealer
 bridge = healer.bridge_to_code_healer()

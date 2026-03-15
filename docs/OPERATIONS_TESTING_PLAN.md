@@ -3,7 +3,7 @@
 **Murphy System — Iterative Operations, Testing & Documentation Cycle**
 **Date:** 2026-02-26
 **Repository:** IKNOWINOT/Murphy-System
-**Runtime Directory:** `Murphy System/`
+**Runtime Directory:** repo root (`./`)
 
 ---
 
@@ -28,7 +28,7 @@ Each phase below is executed iteratively — when a fix is applied, the cycle re
 ### 1.1 Install Dependencies
 
 ```bash
-cd "Murphy System/"
+cd "."
 pip install -r requirements_murphy_1.0.txt
 ```
 
@@ -36,7 +36,7 @@ Verify all packages install without errors. Resolve any version conflicts before
 
 ### 1.2 Configure Environment
 
-Create `.env` in the `Murphy System/` directory with required keys:
+Create `.env` in the repository root (`./`) directory with required keys:
 
 ```bash
 GROQ_API_KEY=<your-groq-api-key>
@@ -47,7 +47,7 @@ MURPHY_ENV=development
 ### 1.3 Start Murphy System
 
 ```bash
-cd "Murphy System/"
+cd "."
 bash start_murphy_1.0.sh
 ```
 
