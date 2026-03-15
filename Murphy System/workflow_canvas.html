@@ -855,8 +855,8 @@
 
     /* ── Theme toggle ───────────────────────────────────── */
     $btnTheme.addEventListener('click', function () {
-      var current = theme.getTheme();
-      theme.setTheme(current === 'dark' ? 'light' : 'dark');
+      var current = theme.get();
+      theme.toggle();
       canvas.render();
     });
 

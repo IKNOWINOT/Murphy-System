@@ -539,6 +539,22 @@
     navigator.clipboard.writeText(addr).then(function () {
       copyHint.textContent = '✓ Copied!';
       setTimeout(function () { copyHint.textContent = 'Click address to copy'; }, 2500);
+    }).catch(function () {
+      /* Fallback for non-secure contexts or denied permissions */
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = addr;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        copyHint.textContent = '✓ Copied!';
+        setTimeout(function () { copyHint.textContent = 'Click address to copy'; }, 2500);
+      } catch (_) {
+        copyHint.textContent = 'Copy not available';
+      }
     });
   }
   if (addrEl) {
