@@ -568,6 +568,17 @@ def create_app() -> FastAPI:
         overall = "healthy" if all(v != "error" for v in str_checks) else "degraded"
         http_status = 200 if not critical_failed else 503
 
+        # Merge registered-module health from the canonical metrics registry.
+        try:
+            from src import metrics as _health_metrics
+            module_health = _health_metrics.get_system_health()
+            checks["registered_modules"] = module_health.get("modules", {})
+            checks["uptime_seconds"] = module_health.get("uptime_seconds")
+            if module_health.get("status") == "degraded":
+                overall = "degraded"
+        except Exception as _mh_exc:
+            logger.debug("Module health aggregation skipped: %s", _mh_exc)
+
         return JSONResponse(
             {"status": overall, "checks": checks, "critical_failures": critical_failed},
             status_code=http_status,
@@ -4401,6 +4412,77 @@ def create_app() -> FastAPI:
         logger.warning("Key harvester router not available: %s", _kh_exc)
 
     # ==================== PROMETHEUS METRICS (Phase 4-A) ====================
+    # src/metrics.py is the canonical metrics module.  When prometheus_client
+    # is installed we keep it as the scrape target (richer Prometheus types),
+    # but we ALSO bridge every request through src.metrics so the lightweight
+    # in-process registry always reflects real traffic.  When prometheus_client
+    # is NOT installed we fall back to a native FastAPI /metrics endpoint that
+    # renders directly from src.metrics.
+
+    from src import metrics as _src_metrics  # canonical metrics module
+
+    # Pre-seed the gauges that Grafana / alert-rules reference so they appear
+    # in /metrics output even before the first real observation.
+    _src_metrics.set_gauge("murphy_task_queue_depth", 0.0)
+
+    # Register key subsystem health providers so /api/health?deep=true and
+    # /api/health/modules can aggregate their status.
+    def _register_startup_modules():
+        """Wire subsystem health callbacks into the canonical metrics registry."""
+        # EventBackbone — check live by constructing a fresh instance each call
+        try:
+            from src.integration_bus import IntegrationBus as _IntegrationBus
+            def _event_backbone_health():
+                try:
+                    bus = _IntegrationBus()
+                    return {"status": "ok" if bus is not None else "error"}
+                except Exception as exc:
+                    return {"status": "error", "error": str(exc)}
+
+            _src_metrics.register_module_health("event_backbone", _event_backbone_health)
+        except Exception as _eb_exc:
+            logger.debug("EventBackbone health registration skipped: %s", _eb_exc)
+
+        # Database
+        def _db_health():
+            if os.environ.get("DATABASE_URL"):
+                try:
+                    from src.db import check_database
+                    result = check_database()
+                    if isinstance(result, str) and result == "error":
+                        return {"status": "error"}
+                    return {"status": "ok"}
+                except Exception as exc:
+                    return {"status": "error", "error": str(exc)}
+            return {"status": os.environ.get("MURPHY_DB_MODE", "stub")}
+
+        _src_metrics.register_module_health("database", _db_health)
+
+        # LLM provider
+        def _llm_health():
+            try:
+                status = murphy._get_llm_status()
+                return {"status": "ok" if status.get("enabled") else "unavailable"}
+            except Exception as exc:
+                return {"status": "unavailable", "error": str(exc)}
+
+        _src_metrics.register_module_health("llm_provider", _llm_health)
+
+        # Security Plane
+        def _security_health():
+            try:
+                from src.fastapi_security import get_security_status
+                return {"status": "ok", **get_security_status()}
+            except Exception:
+                try:
+                    from src.fastapi_security import MurphySecurityMiddleware
+                    return {"status": "ok"}
+                except Exception:
+                    return {"status": "not_configured"}
+
+        _src_metrics.register_module_health("security_plane", _security_health)
+
+    _register_startup_modules()
 
     try:
         from prometheus_client import (
@@ -4408,6 +4490,7 @@ def create_app() -> FastAPI:
         )
         from prometheus_client import (
             Counter,
+            Gauge,
             Histogram,
         )
         from prometheus_client import (
@@ -4422,6 +4505,13 @@ def create_app() -> FastAPI:
             if collector is not None:
                 return collector
             return Counter(name, desc, labels or [])
+
+        def _safe_gauge(name, desc, labels=None):
+            """Create or reuse a prometheus Gauge (safe for repeated create_app calls)."""
+            collector = _prom_registry._names_to_collectors.get(name)
+            if collector is not None:
+                return collector
+            return Gauge(name, desc, labels or [])
 
         def _safe_histogram(name, desc, labels=None):
             """Create or reuse a prometheus Histogram (safe for repeated create_app calls)."""
@@ -4443,15 +4533,75 @@ def create_app() -> FastAPI:
         _llm_calls_total = _safe_counter(
             "murphy_llm_calls",
             "Total LLM API calls",
-            ["provider"],
+            # "status" label required by MurphyLLMCallFailures alert rule
+            # which filters on {status="error"}
+            ["provider", "status"],
         )
         _gate_evaluations_total = _safe_counter(
             "murphy_gate_evaluations",
             "Total gate evaluations",
         )
+        _task_queue_depth = _safe_gauge(
+            "murphy_task_queue_depth",
+            "Current depth of the task processing queue",
+        )
+        # murphy_uptime_seconds — referenced by Grafana "API Uptime" panel.
+        # Use a Gauge with a callback so Prometheus always sees the current value.
+        _uptime_gauge = _safe_gauge(
+            "murphy_uptime_seconds",
+            "System uptime in seconds",
+        )
+        _prom_start = time.monotonic()
+
+        def _update_uptime():
+            _uptime_gauge.set(time.monotonic() - _prom_start)
+
+        # murphy_confidence_score — referenced by Grafana "Confidence Score
+        # Distribution" panel.  Populated at inference time via
+        # metrics.observe_histogram() / _confidence_score histogram.
+        _confidence_score = _safe_histogram(
+            "murphy_confidence_score",
+            "Confidence score distribution",
+            ["domain"],
+        )
+        # murphy_response_size_bytes — referenced by Grafana "Response Size
+        # Distribution" panel.  Populated by the request middleware below.
+        _response_size = _safe_histogram(
+            "murphy_response_size_bytes",
+            "HTTP response body size in bytes",
+            ["endpoint"],
+        )
+
+        # Collect prometheus_client objects in a dict so the middleware closure
+        # below can increment them without relying on variable names that only
+        # exist inside the try block.
+        _prom_metrics = {
+            "requests_total": _requests_total,
+            "request_duration": _request_duration,
+            "response_size": _response_size,
+            "update_uptime": _update_uptime,
+        }
         logger.info("Prometheus metrics endpoint mounted at /metrics")
     except ImportError:
-        logger.warning("prometheus_client not installed — /metrics endpoint unavailable")
+        # prometheus_client not installed — expose src/metrics.py directly.
+        logger.warning(
+            "prometheus_client not installed — falling back to built-in /metrics endpoint"
+        )
+        _prom_metrics = {}  # no prometheus_client objects available
+
+        # Seed in-process metrics that Grafana panels reference
+        _src_metrics.set_gauge("murphy_uptime_seconds", 0.0)
+
+        from starlette.responses import Response as _PlainResponse
+
+        @app.get("/metrics", include_in_schema=False)
+        async def prometheus_metrics_fallback():
+            """Prometheus text-format scrape endpoint (built-in fallback)."""
+            body = _src_metrics.render_metrics()
+            return _PlainResponse(
+                content=body,
+                media_type="text/plain; version=0.0.4; charset=utf-8",
+            )
 
     # ==================== STRUCTURED LOGGING MIDDLEWARE (Phase 4-B) ====================
 
@@ -4460,13 +4610,52 @@ def create_app() -> FastAPI:
     from starlette.middleware.base import BaseHTTPMiddleware as _BaseHTTPMiddleware
 
     class _TraceIdMiddleware(_BaseHTTPMiddleware):
-        """Injects a trace_id into each request for structured logging."""
+        """Injects a trace_id into each request and records request metrics."""
 
         async def dispatch(self, request: Request, call_next):
             trace_id = request.headers.get("X-Trace-ID", str(_uuid.uuid4()))
             request.state.trace_id = trace_id
+            _request_start = time.monotonic()
             response = await call_next(request)
             response.headers["X-Trace-ID"] = trace_id
+            _elapsed = time.monotonic() - _request_start
+            _status_str = str(response.status_code)
+            _endpoint = request.url.path
+
+            # ── src/metrics.py (always available) ─────────────────────────
+            try:
+                _src_metrics.inc_counter(
+                    "murphy_requests_total",
+                    labels={"method": request.method, "status": _status_str},
+                )
+                _src_metrics.observe_histogram(
+                    "murphy_request_duration_seconds",
+                    _elapsed,
+                )
+            except Exception:
+                pass
+
+            # ── prometheus_client objects (available when installed) ────────
+            try:
+                if _prom_metrics:
+                    _prom_metrics["requests_total"].labels(
+                        method=request.method,
+                        endpoint=_endpoint,
+                        status=_status_str,
+                    ).inc()
+                    _prom_metrics["request_duration"].labels(
+                        method=request.method,
+                        endpoint=_endpoint,
+                    ).observe(_elapsed)
+                    _content_len = response.headers.get("content-length")
+                    if _content_len:
+                        _prom_metrics["response_size"].labels(
+                            endpoint=_endpoint
+                        ).observe(float(_content_len))
+                    _prom_metrics["update_uptime"]()
+            except Exception:
+                pass
+
             return response
 
     app.add_middleware(_TraceIdMiddleware)
