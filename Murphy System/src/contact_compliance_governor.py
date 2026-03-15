@@ -896,23 +896,17 @@ class ContactComplianceGovernor:
 
     def _publish(self, event_name: str, payload: Dict[str, Any]) -> None:
         """Publish an event to EventBackbone if available (best-effort)."""
-        if self._backbone is None:
-            return
         try:
-            from event_backbone import EventType
-            # Map event names to existing EventType values or fall back to LEARNING_FEEDBACK
-            event_type_map: Dict[str, Any] = {}
-            et = event_type_map.get(event_name)
-            if et is None:
-                et = EventType.LEARNING_FEEDBACK
-            self._backbone.publish(
-                event_type=et,
-                payload={
+            from event_backbone_client import publish as _bb_publish  # noqa: PLC0415
+            _bb_publish(
+                event_name,
+                {
                     "source": "contact_compliance_governor",
                     "action": event_name.lower(),
                     **payload,
                 },
                 source="contact_compliance_governor",
+                backbone=self._backbone,
             )
         except Exception as exc:
             logger.debug("ContactComplianceGovernor: event publish skipped: %s", exc)

@@ -804,15 +804,14 @@ class WorkflowLicenseManager:
 
     def _publish_event(self, event_name: str, payload: Dict[str, Any]) -> None:
         """Publish a LAM event to the EventBackbone if available."""
-        if self._backbone is None:
-            return
         try:
-            from event_backbone import EventType
-            event_type_map: Dict[str, Any] = {}
-            et = event_type_map.get(event_name)
-            if et is None:
-                return
-            self._backbone.publish(event_type=et, payload=payload)
+            from event_backbone_client import publish as _bb_publish  # noqa: PLC0415
+            _bb_publish(
+                event_name,
+                payload,
+                source="workflow_license_manager",
+                backbone=self._backbone,
+            )
         except Exception as exc:
             logger.debug("EventBackbone publish skipped: %s", exc)
 
