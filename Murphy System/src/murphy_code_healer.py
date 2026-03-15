@@ -1820,12 +1820,16 @@ class MurphyCodeHealer:
         - ``TEST_FAILED`` — a test suite failure was reported.
         - ``DOC_DRIFT`` — documentation drift was detected externally.
 
-        Each event is processed in the background thread to avoid blocking
-        the event dispatch loop.  Safe to call multiple times; duplicate
-        subscriptions are idempotent (tracked via ``_subscription_ids``).
+        Each event is processed in a background thread to avoid blocking
+        the event dispatch loop.  Calling this method a second time is a
+        no-op if subscriptions have already been registered.
         """
         if self._backbone is None:
             logger.debug("MurphyCodeHealer: no EventBackbone — skipping subscriptions")
+            return
+
+        if self._subscription_ids:
+            logger.debug("MurphyCodeHealer: already subscribed — skipping duplicate subscription")
             return
 
         try:

@@ -1268,6 +1268,19 @@ def create_app() -> FastAPI:
     @app.post("/api/corrections/proposals/{proposal_id}/approve")
     async def corrections_proposal_approve(proposal_id: str):
         """Mark a code proposal as approved for human-supervised application."""
+        if _code_healer is None:
+            return JSONResponse(
+                {"success": False, "error": "MurphyCodeHealer not available"},
+                status_code=503,
+            )
+        # Validate proposal_id exists in healer proposals
+        proposals = _code_healer.get_proposals(limit=500)
+        known_ids = {p.get("proposal_id") for p in proposals}
+        if proposal_id not in known_ids:
+            return JSONResponse(
+                {"success": False, "error": f"Proposal '{proposal_id}' not found"},
+                status_code=404,
+            )
         return JSONResponse({
             "success": True,
             "proposal_id": proposal_id,
@@ -1279,11 +1292,24 @@ def create_app() -> FastAPI:
     @app.post("/api/corrections/proposals/{proposal_id}/reject")
     async def corrections_proposal_reject(proposal_id: str, request: Request):
         """Reject a code repair proposal."""
+        if _code_healer is None:
+            return JSONResponse(
+                {"success": False, "error": "MurphyCodeHealer not available"},
+                status_code=503,
+            )
         data = {}
         try:
             data = await request.json()
         except Exception:
             pass
+        # Validate proposal_id exists
+        proposals = _code_healer.get_proposals(limit=500)
+        known_ids = {p.get("proposal_id") for p in proposals}
+        if proposal_id not in known_ids:
+            return JSONResponse(
+                {"success": False, "error": f"Proposal '{proposal_id}' not found"},
+                status_code=404,
+            )
         return JSONResponse({
             "success": True,
             "proposal_id": proposal_id,
