@@ -721,6 +721,179 @@
     color: #ffc400; cursor: pointer; padding: 2px 10px; font-size: var(--text-xs); font-weight: 600;
   }
   .ws-call-btn-inline:hover { background: rgba(255,196,0,.15); }
+
+  /* ═══════════════════════════════════════════════════════
+     SHADOW AI MEETING INTELLIGENCE PANEL
+     ═══════════════════════════════════════════════════════ */
+  .shadowai-panel { background: #060608; display: none; }
+  .shadowai-panel.active { display: flex !important; }
+  .sai-layout {
+    display: flex; flex: 1; overflow: hidden; height: 100%;
+  }
+
+  /* Left column — transcript */
+  .sai-left {
+    width: 42%; border-right: 1px solid var(--border); display: flex;
+    flex-direction: column; overflow: hidden; flex-shrink: 0;
+  }
+  .sai-section-head {
+    display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+    background: var(--bg-surface); border-bottom: 1px solid var(--border); flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+  .sai-badge-live {
+    font-size: 10px; font-weight: 700; letter-spacing: .06em;
+    padding: 2px 8px; border-radius: var(--radius-full);
+    background: rgba(255,68,68,.15); color: #ff4444; border: 1px solid rgba(255,68,68,.3);
+    animation: sai-live-blink 1.8s ease-in-out infinite;
+  }
+  .sai-badge-live.active { background: rgba(0,255,65,.1); color: #00ff41; border-color: rgba(0,255,65,.3); animation: sai-live-blink 1.4s ease-in-out infinite; }
+  @keyframes sai-live-blink { 0%,100%{opacity:1}50%{opacity:.55} }
+  .sai-session-label { font-size: var(--text-xs); color: var(--text-muted); flex: 1; }
+  .sai-start-btn { font-size: 11px; padding: 4px 10px; }
+  .sai-start-btn.active { background: rgba(255,68,68,.15); color: #ff4444; border-color: rgba(255,68,68,.3); }
+
+  /* Swarm agents */
+  .sai-agents {
+    display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 12px;
+    background: rgba(0,212,170,.03); border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .sai-agent {
+    display: flex; align-items: center; gap: 5px; padding: 4px 8px;
+    background: var(--bg-elevated); border: 1px solid var(--border);
+    border-radius: var(--radius-full); font-size: 11px; color: var(--text-secondary);
+    transition: border-color var(--transition-fast);
+  }
+  .sai-agent.active { border-color: rgba(0,212,170,.4); color: var(--teal); }
+  .sai-agent.thinking { border-color: rgba(0,255,65,.35); color: #00ff41; animation: sai-think .8s ease-in-out infinite; }
+  @keyframes sai-think { 0%,100%{opacity:1}50%{opacity:.6} }
+  .sai-agent-avatar {
+    width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700;
+    background: rgba(0,212,170,.15); color: var(--teal); background-size: cover; background-position: center;
+  }
+  .sai-agent-avatar.murphy { background: rgba(0,255,65,.1); color: #00ff41; }
+  .sai-agent-dots { display: flex; gap: 2px; }
+  .sai-agent-dot { width: 3px; height: 3px; border-radius: 50%; background: currentColor; animation: sai-dot .9s ease-in-out infinite; }
+  .sai-agent-dot:nth-child(2){animation-delay:.2s}.sai-agent-dot:nth-child(3){animation-delay:.4s}
+  @keyframes sai-dot{0%,100%{transform:scale(1)}50%{transform:scale(1.6)}}
+
+  /* Transcript */
+  .sai-transcript-head { font-size: 11px; font-weight: 600; color: var(--text-tertiary); padding: 6px 12px; text-transform: uppercase; letter-spacing: .05em; background: var(--bg-surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .sai-transcript { flex: 1; overflow-y: auto; padding: 8px 12px; font-size: var(--text-xs); line-height: 1.6; }
+  .sai-transcript-placeholder { color: var(--text-tertiary); font-style: italic; padding: 12px 0; }
+  .sai-tx-line { margin-bottom: 6px; }
+  .sai-tx-speaker { font-weight: 600; color: var(--teal); margin-right: 5px; }
+  .sai-tx-speaker.murphy-speaker { color: #00ff41; }
+  .sai-tx-time { font-size: 10px; color: var(--text-tertiary); margin-left: 5px; }
+  .sai-tx-text { color: var(--text-primary); }
+
+  /* Right column */
+  .sai-right { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* Org header */
+  .sai-org-header {
+    display: flex; align-items: center; gap: 6px; padding: 6px 12px;
+    background: rgba(0,212,170,.05); border-bottom: 1px solid rgba(0,212,170,.15);
+    font-size: 11px; color: var(--teal); flex-shrink: 0;
+  }
+  .sai-org-capability { margin-left: auto; background: rgba(0,212,170,.12); padding: 1px 8px; border-radius: var(--radius-full); font-size: 10px; font-weight: 600; }
+
+  /* Confidence */
+  .sai-confidence-block { padding: 10px 12px; background: var(--bg-surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .sai-confidence-label { display: flex; justify-content: space-between; font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+  .sai-confidence-value { font-size: 13px; font-weight: 700; color: var(--teal); }
+  .sai-confidence-track { height: 6px; background: var(--bg-elevated); border-radius: 3px; overflow: hidden; border: 1px solid var(--border); }
+  .sai-confidence-bar { height: 100%; width: 0%; border-radius: 3px; background: linear-gradient(90deg, rgba(0,212,170,.5), var(--teal)); transition: width .8s cubic-bezier(.4,0,.2,1), background .8s; }
+  .sai-confidence-bar.low   { background: linear-gradient(90deg, rgba(255,68,68,.5), #ff4444); }
+  .sai-confidence-bar.mid   { background: linear-gradient(90deg, rgba(255,196,0,.5), #ffc400); }
+  .sai-confidence-bar.high  { background: linear-gradient(90deg, rgba(0,212,170,.5), var(--teal)); }
+  .sai-confidence-sub { font-size: 10px; color: var(--text-tertiary); margin-top: 4px; }
+
+  /* Suggestions */
+  .sai-suggestions-head { display: flex; align-items: center; justify-content: space-between; font-size: 11px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: .05em; padding: 6px 12px; background: var(--bg-surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .sai-suggestion-count { background: rgba(0,212,170,.15); color: var(--teal); border-radius: var(--radius-full); padding: 1px 7px; font-size: 10px; font-weight: 700; }
+  .sai-suggestions { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+  .sai-empty-state { font-size: var(--text-xs); color: var(--text-tertiary); font-style: italic; padding: 12px; text-align: center; }
+  .sai-suggestion {
+    background: var(--bg-surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 10px 12px;
+    animation: sai-slide-in .4s ease;
+    transition: border-color var(--transition-fast);
+  }
+  @keyframes sai-slide-in { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  .sai-suggestion:hover { border-color: rgba(0,212,170,.3); }
+  .sai-suggestion.accepted { border-color: rgba(0,255,65,.4); background: rgba(0,255,65,.04); }
+  .sai-suggestion.dismissed { opacity: .4; border-style: dashed; }
+  .sai-sug-header { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .sai-sug-type {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+    padding: 2px 7px; border-radius: var(--radius-full);
+  }
+  .sai-sug-type.action   { background: rgba(0,212,170,.12); color: var(--teal); }
+  .sai-sug-type.proposal { background: rgba(98,126,234,.15); color: #627eea; }
+  .sai-sug-type.risk     { background: rgba(255,68,68,.12); color: #ff4444; }
+  .sai-sug-type.insight  { background: rgba(0,255,65,.1); color: #00ff41; }
+  .sai-sug-type.draft    { background: rgba(255,196,0,.12); color: #ffc400; }
+  .sai-sug-confidence { margin-left: auto; font-size: 10px; font-weight: 600; color: var(--text-muted); }
+  .sai-sug-confidence.high   { color: #00ff41; }
+  .sai-sug-confidence.mid    { color: #ffc400; }
+  .sai-sug-confidence.low    { color: #ff4444; }
+  .sai-sug-agent { font-size: 10px; color: var(--text-tertiary); }
+  .sai-sug-text { font-size: var(--text-xs); color: var(--text-primary); line-height: 1.55; margin-bottom: 8px; }
+  .sai-sug-actions { display: flex; gap: 5px; }
+  .sai-sug-btn {
+    padding: 3px 9px; border-radius: var(--radius-sm); font-size: 11px; font-weight: 500;
+    cursor: pointer; border: 1px solid var(--border); background: var(--bg-elevated); color: var(--text-secondary);
+    transition: all var(--transition-fast);
+  }
+  .sai-sug-btn:hover { color: var(--text-primary); background: var(--bg-surface); }
+  .sai-sug-btn.accept  { border-color: rgba(0,255,65,.3); color: #00ff41; }
+  .sai-sug-btn.accept:hover  { background: rgba(0,255,65,.1); }
+  .sai-sug-btn.flag    { border-color: rgba(255,196,0,.3); color: #ffc400; }
+  .sai-sug-btn.flag:hover    { background: rgba(255,196,0,.1); }
+  .sai-sug-btn.dismiss { border-color: rgba(255,68,68,.3); color: #ff4444; }
+  .sai-sug-btn.dismiss:hover { background: rgba(255,68,68,.1); }
+  .sai-sug-btn.mm-btn  { border-color: rgba(0,212,170,.3); color: var(--teal); }
+  .sai-sug-btn.mm-btn:hover  { background: rgba(0,212,170,.1); }
+
+  /* Draft section */
+  .sai-draft-section { padding: 8px; background: var(--bg-surface); border-top: 1px solid var(--border); flex-shrink: 0; }
+  .sai-draft-head { display: flex; align-items: center; justify-content: space-between; font-size: 11px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; }
+  .sai-generate-btn { font-size: 11px; padding: 4px 10px; }
+  .sai-generate-btn:disabled { opacity: .45; cursor: not-allowed; }
+  .sai-draft-types { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 8px; }
+  .sai-draft-card {
+    display: flex; align-items: center; gap: 7px; padding: 7px 10px;
+    background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-md);
+    cursor: pointer; transition: border-color var(--transition-fast);
+  }
+  .sai-draft-card:hover { border-color: rgba(0,212,170,.3); }
+  .sai-draft-card.ready { border-color: rgba(0,255,65,.3); cursor: pointer; }
+  .sai-draft-icon { font-size: 16px; }
+  .sai-draft-name { font-size: 11px; font-weight: 600; color: var(--text-primary); }
+  .sai-draft-status { font-size: 10px; color: var(--text-tertiary); margin-top: 1px; }
+  .sai-draft-status.ready { color: #00ff41; }
+  .sai-review-btn {
+    display: block; text-align: center; padding: 7px; background: rgba(0,212,170,.1);
+    border: 1px solid rgba(0,212,170,.3); border-radius: var(--radius-md); color: var(--teal);
+    font-size: var(--text-xs); font-weight: 600; text-decoration: none;
+    transition: background var(--transition-fast);
+  }
+  .sai-review-btn:hover { background: rgba(0,212,170,.2); }
+
+  /* License notice */
+  .sai-license-notice {
+    display: flex; align-items: flex-start; gap: 7px; padding: 7px 12px;
+    background: rgba(255,196,0,.04); border-top: 1px solid rgba(255,196,0,.15);
+    font-size: 10px; color: var(--text-tertiary); line-height: 1.5; flex-shrink: 0;
+  }
+  .sai-license-icon { flex-shrink: 0; font-size: 13px; }
+
+  @media (max-width: 700px) {
+    .sai-layout { flex-direction: column; }
+    .sai-left { width: 100%; height: 40%; border-right: none; border-bottom: 1px solid var(--border); }
+  }
 </style>
 </head>
 <body>
@@ -922,6 +1095,7 @@
     <button class="ws-call-tab"        data-panel="mindmap"    role="tab" aria-selected="false" aria-controls="panel-mindmap">🧠 Mind Map</button>
     <button class="ws-call-tab"        data-panel="notes"      role="tab" aria-selected="false" aria-controls="panel-notes">📝 Notes</button>
     <button class="ws-call-tab"        data-panel="prezi"      role="tab" aria-selected="false" aria-controls="panel-prezi">🎞️ Prezi</button>
+    <button class="ws-call-tab"        data-panel="shadowai"   role="tab" aria-selected="false" aria-controls="panel-shadowai">🤖 Shadow AI</button>
   </div>
 
   <!-- ── VIDEO PANEL ── -->
@@ -1037,6 +1211,98 @@
       <button class="wb-tool-btn" id="prezi-prev" aria-label="Previous slide">← Prev</button>
       <span class="prezi-slide-count" id="prezi-slide-count" aria-live="polite"></span>
       <button class="wb-tool-btn" id="prezi-next" aria-label="Next slide">Next →</button>
+    </div>
+  </div>
+
+  <!-- ── SHADOW AI MEETING INTELLIGENCE PANEL ── -->
+  <div class="ws-call-panel shadowai-panel" id="panel-shadowai" role="tabpanel" aria-label="Shadow AI Meeting Intelligence" hidden>
+    <div class="sai-layout">
+
+      <!-- Left: Live transcript + swarm status -->
+      <div class="sai-left">
+        <div class="sai-section-head">
+          <span class="sai-badge sai-badge-live" id="sai-badge-live" aria-live="polite">● LISTENING</span>
+          <span class="sai-session-label" id="sai-session-label">Session not started</span>
+          <button class="wb-tool-btn sai-start-btn" id="sai-start-btn" aria-label="Start Shadow AI session">Start Session</button>
+        </div>
+
+        <!-- Swarm agents -->
+        <div class="sai-agents" id="sai-agents" aria-label="Shadow AI agents per participant">
+          <!-- Injected per participant by JS -->
+        </div>
+
+        <!-- Live transcript -->
+        <div class="sai-transcript-head">Live Transcript</div>
+        <div class="sai-transcript" id="sai-transcript" role="log" aria-live="polite" aria-label="Live meeting transcript">
+          <div class="sai-transcript-placeholder">Shadow AI will transcribe the conversation here…</div>
+        </div>
+      </div>
+
+      <!-- Right: Suggestions + confidence + drafts -->
+      <div class="sai-right">
+
+        <!-- Org intel header -->
+        <div class="sai-org-header" id="sai-org-header">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span id="sai-org-name">Organization Intelligence</span>
+          <span class="sai-org-capability" id="sai-org-capability" title="Sessions completed">0 sessions</span>
+        </div>
+
+        <!-- Confidence meter -->
+        <div class="sai-confidence-block" role="region" aria-label="Group confidence meter">
+          <div class="sai-confidence-label">
+            Group Confidence
+            <span class="sai-confidence-value" id="sai-confidence-val" aria-live="polite">–%</span>
+          </div>
+          <div class="sai-confidence-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="sai-confidence-track">
+            <div class="sai-confidence-bar" id="sai-confidence-bar"></div>
+          </div>
+          <div class="sai-confidence-sub" id="sai-confidence-sub">Confidence will fluctuate as discussion evolves</div>
+        </div>
+
+        <!-- Live suggestions -->
+        <div class="sai-suggestions-head">
+          Shadow Suggestions
+          <span class="sai-suggestion-count" id="sai-suggestion-count" aria-live="polite">0</span>
+        </div>
+        <div class="sai-suggestions" id="sai-suggestions" role="list" aria-label="AI-generated suggestions">
+          <div class="sai-empty-state" id="sai-empty-state">Shadow agents will surface suggestions as the discussion evolves…</div>
+        </div>
+
+        <!-- Draft generation -->
+        <div class="sai-draft-section" id="sai-draft-section">
+          <div class="sai-draft-head">
+            Session Drafts
+            <button class="wb-tool-btn sai-generate-btn" id="sai-generate-drafts" aria-label="Generate session drafts now" disabled>✨ Generate Drafts</button>
+          </div>
+          <div class="sai-draft-types" id="sai-draft-types" role="list" aria-label="Draft documents">
+            <div class="sai-draft-card" data-draft="action-plan" role="listitem">
+              <div class="sai-draft-icon" aria-hidden="true">📋</div>
+              <div class="sai-draft-info"><div class="sai-draft-name">Action Plan</div><div class="sai-draft-status" id="draft-status-action-plan">Pending</div></div>
+            </div>
+            <div class="sai-draft-card" data-draft="decision-record" role="listitem">
+              <div class="sai-draft-icon" aria-hidden="true">⚖️</div>
+              <div class="sai-draft-info"><div class="sai-draft-name">Decision Record</div><div class="sai-draft-status" id="draft-status-decision-record">Pending</div></div>
+            </div>
+            <div class="sai-draft-card" data-draft="proposal" role="listitem">
+              <div class="sai-draft-icon" aria-hidden="true">📄</div>
+              <div class="sai-draft-info"><div class="sai-draft-name">Proposal</div><div class="sai-draft-status" id="draft-status-proposal">Pending</div></div>
+            </div>
+            <div class="sai-draft-card" data-draft="risk-register" role="listitem">
+              <div class="sai-draft-icon" aria-hidden="true">🛡️</div>
+              <div class="sai-draft-info"><div class="sai-draft-name">Risk Register</div><div class="sai-draft-status" id="draft-status-risk-register">Pending</div></div>
+            </div>
+          </div>
+          <a href="/ui/meeting-intelligence" id="sai-review-link" class="sai-review-btn" hidden aria-label="Review full meeting intelligence report">Open Full Review →</a>
+        </div>
+
+        <!-- Licensing notice -->
+        <div class="sai-license-notice" role="note" aria-label="Shadow agent licensing notice">
+          <span class="sai-license-icon" aria-hidden="true">⚖️</span>
+          Shadow agent contributions are tracked per session. Accepted insights generate royalty credits for contributing users under BSL 1.1.
+        </div>
+
+      </div>
     </div>
   </div>
 
