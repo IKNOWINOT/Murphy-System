@@ -1,0 +1,89 @@
+name: Murphy System Gap Detector
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Allow one concurrent run per ref; cancel superseded runs
+concurrency:
+  group: gap-detector-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  MURPHY_ENV: test
+  PYTHONPATH: "${{ github.workspace }}/Murphy System:${{ github.workspace }}/Murphy System/src"
+  # Configurable debt-marker threshold (override via repository/env variable)
+  TODO_THRESHOLD: ${{ vars.TODO_THRESHOLD || '500' }}
+
+jobs:
+  gap-detector:
+    name: Gap Detector
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    defaults:
+      run:
+        working-directory: "Murphy System"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements_ci.txt
+          pip install pytest pytest-asyncio pytest-timeout
+
+      # -----------------------------------------------------------------------
+      # Run the gap detector script — it handles all 7 checks and emits
+      # ::warning / ::error GitHub Actions annotations for every finding.
+      # -----------------------------------------------------------------------
+      - name: Run gap detector
+        id: gap_detector
+        env:
+          TODO_THRESHOLD: ${{ env.TODO_THRESHOLD }}
+        run: |
+          python scripts/gap_detector.py
+        continue-on-error: true
+
+      # -----------------------------------------------------------------------
+      # Check 1: Storyline conformance — run as a dedicated step so GitHub
+      # renders per-test pass/fail in the Actions UI.
+      # -----------------------------------------------------------------------
+      - name: Run storyline conformance tests
+        id: storyline
+        run: |
+          python -m pytest -m storyline -v --tb=short --timeout=120 \
+            --override-ini="addopts=" \
+            --junit-xml=storyline-results.xml \
+            || true
+        continue-on-error: true
+
+      - name: Upload storyline test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: storyline-test-results
+          path: "Murphy System/storyline-results.xml"
+          if-no-files-found: ignore
+          retention-days: 14
+
+      # -----------------------------------------------------------------------
+      # Fail the job if the gap detector itself exited non-zero
+      # (hard failures: capability drift removals, debt threshold exceeded)
+      # -----------------------------------------------------------------------
+      - name: Check gap detector exit code
+        if: steps.gap_detector.outcome == 'failure'
+        run: |
+          echo "::error title=Gap Detector::gap_detector.py exited with a non-zero status — see annotations above."
+          exit 1

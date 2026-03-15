@@ -21,6 +21,8 @@ from typing import Any, Dict, List, Optional
 
 import pytest
 
+pytestmark = pytest.mark.storyline
+
 # ---------------------------------------------------------------------------
 # Path setup
 # ---------------------------------------------------------------------------
