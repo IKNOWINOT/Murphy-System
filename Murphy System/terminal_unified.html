@@ -1358,6 +1358,7 @@
       var btnSave  = document.getElementById('btn-uni-save-llm');
       var selProv  = document.getElementById('llm-uni-provider-select');
       var inpKey   = document.getElementById('llm-uni-api-key-input');
+      var SAVE_BTN_LABEL = 'Save & Activate';
       if (btnSave) {
         btnSave.addEventListener('click', async function () {
           var provider = selProv ? selProv.value : '';
@@ -1365,13 +1366,15 @@
           if (!provider) { alert('Please select a provider.'); return; }
           if (!apiKey)   { alert('Please enter an API key.'); return; }
           btnSave.disabled    = true;
-          btnSave.textContent = 'Saving…';
+          btnSave.textContent = 'Saving\u2026';
+          btnSave.setAttribute('aria-busy', 'true');
           try {
             await api.post('/llm/configure', { provider: provider, api_key: apiKey });
             renderLLM();
           } catch (err) {
             btnSave.disabled    = false;
-            btnSave.textContent = 'Save & Activate';
+            btnSave.textContent = SAVE_BTN_LABEL;
+            btnSave.setAttribute('aria-busy', 'false');
             alert('Error saving provider: ' + (err.message || err));
           }
         });
