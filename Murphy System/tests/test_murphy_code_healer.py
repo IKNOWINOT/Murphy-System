@@ -969,6 +969,13 @@ class TestIntegrationCollectGaps:
 # ---------------------------------------------------------------------------
 
 
+class _MockEventType:
+    """Lightweight EventType stand-in for unit tests."""
+    TASK_FAILED = "TASK_FAILED"
+    TEST_FAILED = "TEST_FAILED"
+    DOC_DRIFT = "DOC_DRIFT"
+
+
 class TestEventSubscriptions:
     """Tests for MurphyCodeHealer.subscribe_to_events()."""
 
@@ -986,19 +993,20 @@ class TestEventSubscriptions:
         assert backbone.subscribe.call_count == 3
         assert len(healer._subscription_ids) == 3
 
-    def test_subscribe_idempotent_call(self):
+    def test_subscribe_is_idempotent(self):
+        """Calling subscribe_to_events() twice registers handlers only once."""
         backbone = MagicMock()
         backbone.subscribe.return_value = "sub-id-mock"
         healer = MurphyCodeHealer(event_backbone=backbone)
         healer.subscribe_to_events()
         healer.subscribe_to_events()
-        # Two calls → six subscriptions total (idempotent in terms of not crashing)
-        assert backbone.subscribe.call_count == 6
+        # Second call is a no-op: still exactly 3 subscriptions
+        assert backbone.subscribe.call_count == 3
+        assert len(healer._subscription_ids) == 3
 
-    def test_task_failed_handler_creates_proposal(self):
-        """Simulate TASK_FAILED event arriving via the backbone."""
+    def _make_healer_with_mock_handlers(self):
+        """Create a healer with a backbone that captures registered handlers."""
         backbone = MagicMock()
-        # Capture the handler registered for TASK_FAILED
         handlers = {}
 
         def _sub(event_type, handler):
@@ -1006,63 +1014,45 @@ class TestEventSubscriptions:
             return f"sub-{event_type}"
 
         backbone.subscribe.side_effect = _sub
-
         healer = MurphyCodeHealer(event_backbone=backbone)
-
-        # Patch subscribe to use our mock EventType
-        from unittest.mock import patch as _patch
-        import sys
-
-        # Use a simple mock EventType object
-        class _MockEventType:
-            TASK_FAILED = "TASK_FAILED"
-            TEST_FAILED = "TEST_FAILED"
-            DOC_DRIFT = "DOC_DRIFT"
-
-        with _patch.dict(sys.modules, {"event_backbone": MagicMock(EventType=_MockEventType)}):
+        with patch.dict(
+            __import__("sys").modules,
+            {"event_backbone": MagicMock(EventType=_MockEventType)},
+        ):
             healer.subscribe_to_events()
+        return healer, handlers
 
-        # Simulate the TASK_FAILED handler being called
+    def test_task_failed_handler_creates_proposal(self):
+        """Simulate TASK_FAILED event arriving via the backbone."""
+        healer, handlers = self._make_healer_with_mock_handlers()
         mock_event = MagicMock()
         mock_event.event_id = "evt-001"
         mock_event.payload = {"task_type": "execute", "file_path": "/fake/file.py"}
 
         if "TASK_FAILED" in handlers:
-            # Execute in main thread for test synchronicity
             handlers["TASK_FAILED"](mock_event)
-            # Give the background thread a moment
             time.sleep(0.1)
 
     def test_doc_drift_event_does_not_raise(self):
         """DOC_DRIFT events should be handled without errors."""
-        backbone = MagicMock()
-        handlers = {}
-
-        def _sub(event_type, handler):
-            handlers[event_type] = handler
-            return f"sub-{event_type}"
-
-        backbone.subscribe.side_effect = _sub
-
-        healer = MurphyCodeHealer(event_backbone=backbone)
-
-        import sys
-        from unittest.mock import patch as _patch
-
-        class _MockEventType:
-            TASK_FAILED = "TASK_FAILED"
-            TEST_FAILED = "TEST_FAILED"
-            DOC_DRIFT = "DOC_DRIFT"
-
-        with _patch.dict(sys.modules, {"event_backbone": MagicMock(EventType=_MockEventType)}):
-            healer.subscribe_to_events()
-
+        healer, handlers = self._make_healer_with_mock_handlers()
         mock_event = MagicMock()
         mock_event.event_id = "evt-002"
         mock_event.payload = {"description": "README references missing file"}
 
         if "DOC_DRIFT" in handlers:
             handlers["DOC_DRIFT"](mock_event)
+            time.sleep(0.1)
+
+    def test_test_failed_handler_does_not_raise(self):
+        """TEST_FAILED events should be handled without errors."""
+        healer, handlers = self._make_healer_with_mock_handlers()
+        mock_event = MagicMock()
+        mock_event.event_id = "evt-003"
+        mock_event.payload = {"test_name": "test_foo", "file_path": "/tests/test_foo.py"}
+
+        if "TEST_FAILED" in handlers:
+            handlers["TEST_FAILED"](mock_event)
             time.sleep(0.1)
 
 
@@ -1178,20 +1168,14 @@ class TestEventBackboneNewEventTypes:
     """Verify new EventType values are importable and valid."""
 
     def test_test_failed_in_event_type(self):
-        import sys
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
         from event_backbone import EventType
         assert EventType.TEST_FAILED.value == "test_failed"
 
     def test_doc_drift_in_event_type(self):
-        import sys
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
         from event_backbone import EventType
         assert EventType.DOC_DRIFT.value == "doc_drift"
 
     def test_code_healer_events_in_event_type(self):
-        import sys
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
         from event_backbone import EventType
         assert EventType.CODE_HEALER_STARTED.value == "code_healer_started"
         assert EventType.CODE_HEALER_COMPLETED.value == "code_healer_completed"
