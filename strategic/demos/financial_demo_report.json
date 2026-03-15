@@ -1,0 +1,260 @@
+{
+  "demo": "financial_compliance",
+  "generated": "2026-03-05T01:38:38.387362",
+  "verified_by": "Corey Post \u2014 Inoni LLC",
+  "summary": {
+    "total": 4,
+    "approved": 0,
+    "blocked": 4
+  },
+  "trades": [
+    {
+      "trade_id": "TRD-001",
+      "description": "Large-cap equity purchase \u2014 AAPL $2M block trade",
+      "confidence": {
+        "score": 0.7115,
+        "phase": "EXECUTE",
+        "action": "REQUIRE_HUMAN_APPROVAL",
+        "allowed": false,
+        "rationale": "[BLOCKED] Phase=EXECUTE | C=0.7115 (threshold=0.85) | Action=REQUIRE_HUMAN_APPROVAL | G=0.930 w_g=0.25 | D=0.900 w_d=0.55 | H=0.080 \u03ba=0.20",
+        "weights": {
+          "w_g": 0.25,
+          "w_d": 0.55,
+          "kappa": 0.2
+        },
+        "timestamp": "2026-03-05T01:38:38.387117"
+      },
+      "budget_gate": {
+        "gate_id": "budget_risk",
+        "gate_type": "BUDGET",
+        "blocking": true,
+        "threshold": 0.88,
+        "passed": false,
+        "confidence_score": 0.7115,
+        "action": "BLOCK_EXECUTION",
+        "message": "Gate 'budget_risk' (BUDGET) FAILED [BLOCKING] \u2014 confidence 0.7115 < threshold 0.8800"
+      },
+      "sox_gate": {
+        "gate_id": "sox_compliance",
+        "gate_type": "COMPLIANCE",
+        "blocking": true,
+        "threshold": 0.88,
+        "passed": false,
+        "confidence_score": 0.7115,
+        "action": "BLOCK_EXECUTION",
+        "message": "Gate 'sox_compliance' (COMPLIANCE) FAILED [BLOCKING] \u2014 confidence 0.7115 < threshold 0.8800"
+      },
+      "aml_gate": {
+        "gate_id": "aml_kyc",
+        "gate_type": "HITL",
+        "blocking": true,
+        "threshold": 0.8,
+        "passed": false,
+        "confidence_score": 0.7115,
+        "action": "BLOCK_EXECUTION",
+        "message": "Gate 'aml_kyc' (HITL) FAILED [BLOCKING] \u2014 confidence 0.7115 < threshold 0.8000"
+      },
+      "exec_gate": {
+        "gate_id": "exec_approval",
+        "gate_type": "EXECUTIVE",
+        "blocking": false,
+        "threshold": 0.92,
+        "passed": false,
+        "confidence_score": 0.7115,
+        "action": "REQUIRE_HUMAN_APPROVAL",
+        "message": "Gate 'exec_approval' (EXECUTIVE) FAILED [NON-BLOCKING] \u2014 confidence 0.7115 < threshold 0.9200"
+      },
+      "compiled_gates": 5,
+      "final_decision": "TRADE BLOCKED \u2014 escalated to compliance desk",
+      "blocked": true
+    },
+    {
+      "trade_id": "TRD-002",
+      "description": "Emerging market FX swap \u2014 high volatility window",
+      "confidence": {
+        "score": 0.3825,
+        "phase": "EXECUTE",
+        "action": "BLOCK_EXECUTION",
+        "allowed": false,
+        "rationale": "[BLOCKED] Phase=EXECUTE | C=0.3825 (threshold=0.85) | Action=BLOCK_EXECUTION | G=0.650 w_g=0.25 | D=0.600 w_d=0.55 | H=0.550 \u03ba=0.20",
+        "weights": {
+          "w_g": 0.25,
+          "w_d": 0.55,
+          "kappa": 0.2
+        },
+        "timestamp": "2026-03-05T01:38:38.387176"
+      },
+      "budget_gate": {
+        "gate_id": "budget_risk",
+        "gate_type": "BUDGET",
+        "blocking": true,
+        "threshold": 0.88,
+        "passed": false,
+        "confidence_score": 0.3825,
+        "action": "BLOCK_EXECUTION",
+        "message": "Gate 'budget_risk' (BUDGET) FAILED [BLOCKING] \u2014 confidence 0.3825 < threshold 0.8800"
+      },
+      "sox_gate": {
+        "gate_id": "sox_compliance",
+        "gate_type": "COMPLIANCE",
+        "blocking": true,
+        "threshold": 0.88,
+        "passed": false,
+        "confidence_score": 0.3825,
+        "action": "BLOCK_EXECUTION",
+        "message": "Gate 'sox_compliance' (COMPLIANCE) FAILED [BLOCKING] \u2014 confidence 0.3825 < threshold 0.8800"
+      },
+      "aml_gate": {
+        "gate_id": "aml_kyc",
+        "gate_type": "HITL",
+        "blocking": true,
+        "threshold": 0.8,
+        "passed": false,
+        "confidence_score": 0.3825,
+        "action": "BLOCK_EXECUTION",
+        "message": "Gate 'aml_kyc' (HITL) FAILED [BLOCKING] \u2014 confidence 0.3825 < threshold 0.8000"
+      },
+      "exec_gate": {
+        "gate_id": "exec_approval",
+        "gate_type": "EXECUTIVE",
+        "blocking": false,
+        "threshold": 0.92,
+        "passed": false,
+        "confidence_score": 0.3825,
+        "action": "REQUIRE_HUMAN_APPROVAL",
+        "message": "Gate 'exec_approval' (EXECUTIVE) FAILED [NON-BLOCKING] \u2014 confidence 0.3825 < threshold 0.9200"
+      },
+      "compiled_gates": 5,
+      "final_decision": "TRADE BLOCKED \u2014 escalated to compliance desk",
+      "blocked": true
+    },
+    {
+      "trade_id": "TRD-003",
+      "description": "Routine ETF rebalancing \u2014 S&P 500 index fund",
+      "confidence": {
+        "score": 0.759,
+        "phase": "EXECUTE",
+        "action": "REQUIRE_HUMAN_APPROVAL",
+        "allowed": false,
+        "rationale": "[BLOCKED] Phase=EXECUTE | C=0.7590 (threshold=0.85) | Action=REQUIRE_HUMAN_APPROVAL | G=0.970 w_g=0.25 | D=0.950 w_d=0.55 | H=0.030 \u03ba=0.20",
+        "weights": {
+          "w_g": 0.25,
+          "w_d": 0.55,
+          "kappa": 0.2
+        },
+        "timestamp": "2026-03-05T01:38:38.387225"
+      },
+      "budget_gate": {
+        "gate_id": "budget_risk",
+        "gate_type": "BUDGET",
+        "blocking": true,
+        "threshold": 0.75,
+        "passed": true,
+        "confidence_score": 0.759,
+        "action": "REQUIRE_HUMAN_APPROVAL",
+        "message": "Gate 'budget_risk' (BUDGET) PASSED \u2014 confidence 0.7590 \u2265 threshold 0.7500"
+      },
+      "sox_gate": {
+        "gate_id": "sox_compliance",
+        "gate_type": "COMPLIANCE",
+        "blocking": true,
+        "threshold": 0.88,
+        "passed": false,
+        "confidence_score": 0.759,
+        "action": "BLOCK_EXECUTION",
+        "message": "Gate 'sox_compliance' (COMPLIANCE) FAILED [BLOCKING] \u2014 confidence 0.7590 < threshold 0.8800"
+      },
+      "aml_gate": {
+        "gate_id": "aml_kyc",
+        "gate_type": "HITL",
+        "blocking": true,
+        "threshold": 0.8,
+        "passed": false,
+        "confidence_score": 0.759,
+        "action": "BLOCK_EXECUTION",
+        "message": "Gate 'aml_kyc' (HITL) FAILED [BLOCKING] \u2014 confidence 0.7590 < threshold 0.8000"
+      },
+      "exec_gate": {
+        "gate_id": "exec_approval",
+        "gate_type": "EXECUTIVE",
+        "blocking": false,
+        "threshold": 0.92,
+        "passed": false,
+        "confidence_score": 0.759,
+        "action": "REQUIRE_HUMAN_APPROVAL",
+        "message": "Gate 'exec_approval' (EXECUTIVE) FAILED [NON-BLOCKING] \u2014 confidence 0.7590 < threshold 0.9200"
+      },
+      "compiled_gates": 5,
+      "final_decision": "TRADE BLOCKED \u2014 escalated to compliance desk",
+      "blocked": true
+    },
+    {
+      "trade_id": "TRD-004",
+      "description": "OTC derivative \u2014 counterparty KYC incomplete",
+      "confidence": {
+        "score": 0.29,
+        "phase": "CONSTRAIN",
+        "action": "BLOCK_EXECUTION",
+        "allowed": false,
+        "rationale": "[BLOCKED] Phase=CONSTRAIN | C=0.2900 (threshold=0.65) | Action=BLOCK_EXECUTION | G=0.500 w_g=0.40 | D=0.450 w_d=0.45 | H=0.750 \u03ba=0.15",
+        "weights": {
+          "w_g": 0.4,
+          "w_d": 0.45,
+          "kappa": 0.15
+        },
+        "timestamp": "2026-03-05T01:38:38.387314"
+      },
+      "budget_gate": {
+        "gate_id": "budget_risk",
+        "gate_type": "BUDGET",
+        "blocking": true,
+        "threshold": 0.9,
+        "passed": false,
+        "confidence_score": 0.29,
+        "action": "BLOCK_EXECUTION",
+        "message": "Gate 'budget_risk' (BUDGET) FAILED [BLOCKING] \u2014 confidence 0.2900 < threshold 0.9000"
+      },
+      "sox_gate": {
+        "gate_id": "sox_compliance",
+        "gate_type": "COMPLIANCE",
+        "blocking": true,
+        "threshold": 0.88,
+        "passed": false,
+        "confidence_score": 0.29,
+        "action": "BLOCK_EXECUTION",
+        "message": "Gate 'sox_compliance' (COMPLIANCE) FAILED [BLOCKING] \u2014 confidence 0.2900 < threshold 0.8800"
+      },
+      "aml_gate": {
+        "gate_id": "aml_kyc",
+        "gate_type": "HITL",
+        "blocking": true,
+        "threshold": 0.8,
+        "passed": false,
+        "confidence_score": 0.29,
+        "action": "BLOCK_EXECUTION",
+        "message": "Gate 'aml_kyc' (HITL) FAILED [BLOCKING] \u2014 confidence 0.2900 < threshold 0.8000"
+      },
+      "exec_gate": {
+        "gate_id": "exec_approval",
+        "gate_type": "EXECUTIVE",
+        "blocking": false,
+        "threshold": 0.92,
+        "passed": false,
+        "confidence_score": 0.29,
+        "action": "REQUIRE_HUMAN_APPROVAL",
+        "message": "Gate 'exec_approval' (EXECUTIVE) FAILED [NON-BLOCKING] \u2014 confidence 0.2900 < threshold 0.9200"
+      },
+      "compiled_gates": 4,
+      "final_decision": "TRADE BLOCKED \u2014 escalated to compliance desk",
+      "blocked": true
+    }
+  ],
+  "test_gaps": [
+    "Real-time market liquidity data not integrated into D(x) domain score",
+    "Cross-border regulatory mapping (MiFID II vs. SEC) incomplete",
+    "Wash-trade pattern detection requires dedicated hazard sub-model",
+    "Counterparty credit risk scoring uses static proxy \u2014 not live data",
+    "Intraday position limits not yet wired to budget gate thresholds",
+    "Dark pool order routing compliance rules pending legal review"
+  ]
+}

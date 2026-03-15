@@ -1,0 +1,820 @@
+<!-- Murphy System — Sign Up / © 2020 Inoni Limited Liability Company by Corey Post / License: BSL 1.1 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — Sign Up</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
+<style>
+  /* Neon terminal theme */
+  /* Color Key: green=#00ff41, cyan=#00ffff, teal=#00D4AA, bg=#0a0a0a */
+  .murphy-terminal, .murphy-output, pre, code {
+    font-family: var(--font-code, 'JetBrains Mono', monospace);
+    color: #00ff41;
+    background: #0a0a0a;
+  }
+  *:focus-visible { outline: 2px solid #00ff41; outline-offset: 2px; }
+
+  /* ── Page layout ── */
+  .signup-page {
+    min-height: 100vh;
+    background: #0a0a0a;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .signup-content {
+    flex: 1;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 3rem 1rem 4rem;
+  }
+
+  .signup-card {
+    width: 100%;
+    max-width: 480px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-xl);
+    padding: 2.5rem 2rem;
+    box-shadow: var(--shadow-lg), 0 0 40px rgba(0, 212, 170, 0.06);
+  }
+
+  .signup-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .signup-header h1 {
+    font-size: var(--text-2xl);
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    font-family: var(--font-ui);
+  }
+
+  .signup-header p {
+    color: var(--text-secondary);
+    font-size: var(--text-base);
+  }
+
+  /* ── OAuth buttons ── */
+  .oauth-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .oauth-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: border-color var(--transition-base), background var(--transition-base);
+  }
+
+  .oauth-btn:hover, .oauth-btn:focus-visible {
+    border-color: var(--teal);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+  }
+
+  .oauth-btn svg { flex-shrink: 0; }
+
+  .oauth-btn-label { flex: 1; text-align: center; }
+
+  /* ── Separator ── */
+  .signup-separator {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .signup-separator::before,
+  .signup-separator::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-subtle);
+  }
+
+  /* ── Tab toggle ── */
+  .input-tabs {
+    display: flex;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    margin-bottom: 1.25rem;
+  }
+
+  .input-tab {
+    flex: 1;
+    padding: 0.5rem 1rem;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-family: var(--font-ui);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: background var(--transition-fast), color var(--transition-fast);
+    text-align: center;
+  }
+
+  .input-tab[aria-selected="true"] {
+    background: var(--teal);
+    color: #0C1017;
+  }
+
+  .input-tab:hover:not([aria-selected="true"]) {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+  }
+
+  /* ── Form fields ── */
+  .form-field {
+    margin-bottom: 1rem;
+  }
+
+  .form-field label {
+    display: block;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 0.375rem;
+    font-family: var(--font-ui);
+  }
+
+  .form-field input,
+  .form-field select {
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    background: var(--bg-input);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: var(--text-base);
+    transition: border-color var(--transition-fast);
+  }
+
+  .form-field input:focus,
+  .form-field select:focus {
+    outline: none;
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.12);
+  }
+
+  .form-field input::placeholder { color: var(--text-muted); }
+
+  .password-wrapper {
+    position: relative;
+  }
+  .password-wrapper input {
+    padding-right: 2.75rem;
+  }
+  .password-toggle {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0.25rem;
+    font-size: 1.1rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    transition: color var(--transition-base);
+  }
+  .password-toggle:hover { color: var(--teal); }
+  .password-toggle:focus-visible { outline: 2px solid #00ff41; outline-offset: 2px; }
+
+  .phone-row {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .phone-row .country-code {
+    width: 110px;
+    flex-shrink: 0;
+  }
+
+  .phone-row .phone-number { flex: 1; }
+
+  .field-error {
+    display: none;
+    margin-top: 0.25rem;
+    font-size: var(--text-xs);
+    color: var(--danger);
+    font-family: var(--font-ui);
+  }
+
+  .field-error.visible { display: block; }
+
+  /* ── EULA checkbox ── */
+  .eula-field {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .eula-field input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    accent-color: var(--teal);
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  .eula-field label {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    font-family: var(--font-ui);
+    line-height: 1.5;
+    cursor: pointer;
+  }
+
+  .eula-field a {
+    color: var(--teal);
+    text-decoration: none;
+  }
+
+  .eula-field a:hover { text-decoration: underline; }
+
+  /* ── Submit button ── */
+  .signup-submit {
+    width: 100%;
+    padding: 0.875rem;
+    background: var(--teal);
+    border: none;
+    border-radius: var(--radius-md);
+    color: #0C1017;
+    font-family: var(--font-ui);
+    font-size: var(--text-base);
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity var(--transition-fast), transform var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .signup-submit:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+  .signup-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  .spinner {
+    display: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(12, 16, 23, 0.3);
+    border-top-color: #0C1017;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .signup-submit.loading .spinner { display: block; }
+  .signup-submit.loading .btn-text { opacity: 0.7; }
+
+  /* ── Form-level error ── */
+  .form-error {
+    display: none;
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: var(--radius-md);
+    color: var(--danger);
+    font-size: var(--text-sm);
+    font-family: var(--font-ui);
+  }
+
+  .form-error.visible { display: block; }
+
+  /* ── Footer link ── */
+  .signup-footer-link {
+    text-align: center;
+    margin-top: 1.5rem;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    font-family: var(--font-ui);
+  }
+
+  .signup-footer-link a {
+    color: var(--teal);
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .signup-footer-link a:hover { text-decoration: underline; }
+
+  /* ── Hidden panel ── */
+  .input-panel { display: none; }
+  .input-panel.active { display: block; }
+
+  /* ── Responsive ── */
+  @media (max-width: 480px) {
+    .signup-card { padding: 1.75rem 1.25rem; }
+    .signup-header h1 { font-size: var(--text-xl); }
+    .phone-row { flex-direction: column; }
+    .phone-row .country-code { width: 100%; }
+  }
+</style>
+</head>
+<body class="murphy-no-sidebar signup-page">
+
+<a class="murphy-skip-link" href="#signup-content">Skip to content</a>
+
+<!-- ── Top Navigation Bar ── -->
+<nav class="murphy-topbar" role="navigation" aria-label="Main navigation">
+  <div class="murphy-topbar-left flex items-center gap-3">
+    <a href="/ui/landing" class="murphy-topbar-brand">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect width="32" height="32" rx="8" fill="var(--teal)"/>
+        <text x="16" y="22" text-anchor="middle" fill="#0C1017" font-size="18" font-weight="700" font-family="Inter, sans-serif">M</text>
+      </svg>
+      <span class="murphy-topbar-brand-name">Murphy System</span>
+    </a>
+    <div class="murphy-nav-links nav-links-desktop">
+      <a href="/ui/landing#features" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Features</a>
+      <a href="/ui/pricing" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Pricing</a>
+      <a href="/ui/landing#terminals" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Terminals</a>
+    </div>
+  </div>
+  <div class="murphy-topbar-right flex items-center gap-2">
+    <button class="murphy-btn murphy-btn-ghost murphy-btn-icon" id="theme-toggle-btn" aria-label="Toggle theme" title="Toggle theme">🌙</button>
+    <a href="/ui/terminal-unified" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Sign In</a>
+    <a href="/ui/pricing" class="murphy-btn murphy-btn-primary murphy-btn-sm">View Pricing</a>
+  </div>
+</nav>
+
+<!-- ── Main Content ── -->
+<main id="signup-content" role="main" aria-label="Sign up" class="signup-content">
+  <div class="signup-card">
+
+    <!-- Header -->
+    <header class="signup-header">
+      <h1>Join Murphy System</h1>
+      <p>Automate your entire business.</p>
+    </header>
+
+    <!-- OAuth buttons -->
+    <div class="oauth-group" role="group" aria-label="Sign up with social account">
+
+      <a href="/api/auth/oauth/google" class="oauth-btn" aria-label="Sign up with Google">
+        <!-- Google logo SVG -->
+        <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+        <span class="oauth-btn-label">Continue with Google</span>
+      </a>
+
+      <a href="/api/auth/oauth/meta" class="oauth-btn" aria-label="Sign up with Meta">
+        <!-- Meta logo SVG -->
+        <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="#0081FB" d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z"/>
+        </svg>
+        <span class="oauth-btn-label">Continue with Meta</span>
+      </a>
+
+      <a href="/api/auth/oauth/linkedin" class="oauth-btn" aria-label="Sign up with LinkedIn">
+        <!-- LinkedIn logo SVG -->
+        <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="#0A66C2" d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+        </svg>
+        <span class="oauth-btn-label">Continue with LinkedIn</span>
+      </a>
+
+      <a href="/api/auth/oauth/apple" class="oauth-btn" aria-label="Sign up with Apple">
+        <!-- Apple logo SVG -->
+        <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="#E6ECF2" d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.33.07 2.26.73 3.03.78 1.15-.23 2.25-.91 3.47-.84 1.47.11 2.58.7 3.31 1.77-3.03 1.82-2.34 5.82.35 6.93-.65 1.61-1.48 3.2-2.16 4.24zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+        </svg>
+        <span class="oauth-btn-label">Continue with Apple</span>
+      </a>
+
+      <a href="/api/auth/oauth/github" class="oauth-btn" aria-label="Sign up with GitHub">
+        <!-- GitHub logo SVG -->
+        <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="#E6ECF2" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/>
+        </svg>
+        <span class="oauth-btn-label">Continue with GitHub</span>
+      </a>
+
+    </div>
+
+    <!-- Separator -->
+    <div class="signup-separator" aria-hidden="true">or continue with</div>
+
+    <!-- Email / Phone toggle -->
+    <div role="tablist" aria-label="Contact method" class="input-tabs">
+      <button
+        role="tab"
+        id="tab-email"
+        aria-selected="true"
+        aria-controls="panel-email"
+        class="input-tab"
+      >Email</button>
+      <button
+        role="tab"
+        id="tab-phone"
+        aria-selected="false"
+        aria-controls="panel-phone"
+        class="input-tab"
+      >Phone Number</button>
+    </div>
+
+    <!-- Sign-up form -->
+    <form id="signup-form" novalidate aria-label="Create account form">
+      <div id="form-error" class="form-error" role="alert" aria-live="assertive"></div>
+
+      <!-- Full Name -->
+      <div class="form-field">
+        <label for="full-name">Full Name <span aria-hidden="true">*</span></label>
+        <input
+          type="text"
+          id="full-name"
+          name="full_name"
+          autocomplete="name"
+          required
+          aria-required="true"
+          placeholder="Jane Smith"
+        >
+        <span class="field-error" id="full-name-error" role="alert"></span>
+      </div>
+
+      <!-- Email panel -->
+      <div id="panel-email" role="tabpanel" aria-labelledby="tab-email" class="input-panel active">
+        <div class="form-field">
+          <label for="email">Email Address <span aria-hidden="true">*</span></label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            autocomplete="email"
+            aria-required="true"
+            placeholder="you@company.com"
+          >
+          <span class="field-error" id="email-error" role="alert"></span>
+        </div>
+      </div>
+
+      <!-- Phone panel -->
+      <div id="panel-phone" role="tabpanel" aria-labelledby="tab-phone" class="input-panel">
+        <div class="form-field">
+          <label for="phone-number">Phone Number <span aria-hidden="true">*</span></label>
+          <div class="phone-row">
+            <select id="country-code" name="country_code" class="country-code" aria-label="Country code">
+              <option value="+1">🇺🇸 +1</option>
+              <option value="+44">🇬🇧 +44</option>
+              <option value="+33">🇫🇷 +33</option>
+              <option value="+49">🇩🇪 +49</option>
+              <option value="+81">🇯🇵 +81</option>
+              <option value="+86">🇨🇳 +86</option>
+              <option value="+91">🇮🇳 +91</option>
+              <option value="+55">🇧🇷 +55</option>
+              <option value="+61">🇦🇺 +61</option>
+              <option value="+52">🇲🇽 +52</option>
+              <option value="+34">🇪🇸 +34</option>
+              <option value="+39">🇮🇹 +39</option>
+              <option value="+7">🇷🇺 +7</option>
+              <option value="+82">🇰🇷 +82</option>
+              <option value="+27">🇿🇦 +27</option>
+            </select>
+            <input
+              type="tel"
+              id="phone-number"
+              name="phone"
+              autocomplete="tel-national"
+              class="phone-number"
+              placeholder="555-000-1234"
+              aria-label="Phone number"
+            >
+          </div>
+          <span class="field-error" id="phone-error" role="alert"></span>
+        </div>
+      </div>
+
+      <!-- Position / Job Title -->
+      <div class="form-field">
+        <label for="job-title">Position / Job Title <span aria-hidden="true">*</span></label>
+        <input
+          type="text"
+          id="job-title"
+          name="job_title"
+          autocomplete="organization-title"
+          required
+          aria-required="true"
+          placeholder="Chief Operations Officer"
+        >
+        <span class="field-error" id="job-title-error" role="alert"></span>
+      </div>
+
+      <!-- Company -->
+      <div class="form-field">
+        <label for="company">Company / Organization <span aria-hidden="true">*</span></label>
+        <input
+          type="text"
+          id="company"
+          name="company"
+          autocomplete="organization"
+          required
+          aria-required="true"
+          placeholder="Acme Corp"
+        >
+        <span class="field-error" id="company-error" role="alert"></span>
+      </div>
+
+      <!-- Password (shown only in email mode) -->
+      <div class="form-field" id="password-field">
+        <label for="password">Password</label>
+        <div class="password-wrapper">
+          <input
+            type="password"
+            id="password"
+            name="password"
+            autocomplete="new-password"
+            placeholder="Min. 8 characters"
+            aria-describedby="password-hint"
+          >
+          <button type="button" class="password-toggle" id="toggle-password" aria-label="Toggle password visibility" tabindex="0">
+            <svg id="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg id="eye-off-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/></svg>
+          </button>
+        </div>
+        <span id="password-hint" style="font-size:var(--text-xs);color:var(--text-muted);margin-top:0.25rem;display:block;">
+          Must be at least 8 characters.
+        </span>
+        <span class="field-error" id="password-error" role="alert"></span>
+      </div>
+
+      <!-- EULA -->
+      <div class="eula-field">
+        <input
+          type="checkbox"
+          id="eula"
+          name="eula"
+          required
+          aria-required="true"
+        >
+        <label for="eula">
+          I agree to the <a href="#" aria-label="Terms of Service">Terms of Service</a>
+          and <a href="#" aria-label="Privacy Policy">Privacy Policy</a>
+        </label>
+      </div>
+      <span class="field-error" id="eula-error" role="alert" style="margin-top:-0.75rem;margin-bottom:1rem;display:none;"></span>
+
+      <!-- Submit -->
+      <button type="submit" class="signup-submit" aria-label="Create account">
+        <span class="spinner" aria-hidden="true"></span>
+        <span class="btn-text">Create Account</span>
+      </button>
+    </form>
+
+    <!-- Footer link -->
+    <p class="signup-footer-link">
+      Already have an account? <a href="/ui/terminal-unified">Sign in →</a>
+    </p>
+
+  </div>
+</main>
+
+<!-- ── Footer ── -->
+<footer class="murphy-footer">
+  <p class="text-secondary">© 2020 Inoni Limited Liability Company by Corey Post</p>
+  <p class="text-secondary murphy-footer-legal">Licensed under BSL 1.1</p>
+  <div class="flex justify-center flex-wrap gap-3">
+    <a href="https://github.com/Inoni-LLC/Murphy-System" class="murphy-btn murphy-btn-ghost murphy-btn-sm" target="_blank" rel="noopener">GitHub</a>
+    <a href="docs/" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Documentation</a>
+    <a href="/ui/pricing" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Pricing</a>
+  </div>
+</footer>
+
+<script src="static/murphy-components.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  // ── Password visibility toggle ──────────────────────
+  var pwdToggleBtn = document.getElementById('toggle-password');
+  var pwdInput = document.getElementById('password');
+  var eyeIcon = document.getElementById('eye-icon');
+  var eyeOffIcon = document.getElementById('eye-off-icon');
+  if (pwdToggleBtn && pwdInput) {
+    pwdToggleBtn.addEventListener('click', function () {
+      var isHidden = pwdInput.type === 'password';
+      pwdInput.type = isHidden ? 'text' : 'password';
+      eyeIcon.style.display = isHidden ? 'none' : 'block';
+      eyeOffIcon.style.display = isHidden ? 'block' : 'none';
+      pwdToggleBtn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+    });
+  }
+
+  var theme = new MurphyTheme();
+  theme.init();
+
+  var toggleBtn = document.getElementById('theme-toggle-btn');
+  function updateThemeIcon() {
+    toggleBtn.textContent = theme.get() === 'dark' ? '🌙' : '☀️';
+  }
+  updateThemeIcon();
+  theme.onChange(updateThemeIcon);
+  toggleBtn.addEventListener('click', function () { theme.toggle(); });
+
+  // ── Tab toggle ──────────────────────────────────────────
+  var tabEmail  = document.getElementById('tab-email');
+  var tabPhone  = document.getElementById('tab-phone');
+  var panelEmail = document.getElementById('panel-email');
+  var panelPhone = document.getElementById('panel-phone');
+  var passwordField = document.getElementById('password-field');
+  var emailInput = document.getElementById('email');
+  var phoneInput = document.getElementById('phone-number');
+
+  function activateTab(tab) {
+    var isEmail = tab === 'email';
+    tabEmail.setAttribute('aria-selected', isEmail ? 'true' : 'false');
+    tabPhone.setAttribute('aria-selected', isEmail ? 'false' : 'true');
+    panelEmail.classList.toggle('active', isEmail);
+    panelPhone.classList.toggle('active', !isEmail);
+    passwordField.style.display = isEmail ? '' : 'none';
+    // Update required attrs so validation reflects active panel
+    emailInput.required = isEmail;
+    emailInput.setAttribute('aria-required', isEmail ? 'true' : 'false');
+    phoneInput.required = !isEmail;
+    phoneInput.setAttribute('aria-required', isEmail ? 'false' : 'true');
+  }
+
+  // Initialise
+  activateTab('email');
+
+  tabEmail.addEventListener('click', function () { activateTab('email'); });
+  tabPhone.addEventListener('click', function () { activateTab('phone'); });
+
+  tabEmail.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight') { tabPhone.focus(); activateTab('phone'); }
+  });
+  tabPhone.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowLeft') { tabEmail.focus(); activateTab('email'); }
+  });
+
+  // ── Inline field validation helpers ────────────────────
+  function showError(id, msg) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.add('visible');
+    el.style.display = 'block';
+  }
+
+  function clearError(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = '';
+    el.classList.remove('visible');
+    el.style.display = 'none';
+  }
+
+  function showFormError(msg) {
+    var el = document.getElementById('form-error');
+    el.textContent = msg;
+    el.classList.add('visible');
+  }
+
+  function clearFormError() {
+    var el = document.getElementById('form-error');
+    el.textContent = '';
+    el.classList.remove('visible');
+  }
+
+  // Live clear on input
+  ['full-name', 'email', 'phone-number', 'job-title', 'company', 'password'].forEach(function (id) {
+    var field = document.getElementById(id);
+    if (field) field.addEventListener('input', function () { clearError(id + '-error'); });
+  });
+
+  // ── Form validation ─────────────────────────────────────
+  function validate() {
+    var ok = true;
+    var isEmailTab = tabEmail.getAttribute('aria-selected') === 'true';
+
+    var fullName = document.getElementById('full-name').value.trim();
+    if (!fullName) { showError('full-name-error', 'Full name is required.'); ok = false; }
+    else clearError('full-name-error');
+
+    if (isEmailTab) {
+      var email = document.getElementById('email').value.trim();
+      if (!email) { showError('email-error', 'Email address is required.'); ok = false; }
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showError('email-error', 'Enter a valid email address.'); ok = false; }
+      else clearError('email-error');
+
+      var pwd = document.getElementById('password').value;
+      if (pwd && pwd.length < 8) { showError('password-error', 'Password must be at least 8 characters.'); ok = false; }
+      else clearError('password-error');
+    } else {
+      var phone = document.getElementById('phone-number').value.trim();
+      if (!phone) { showError('phone-error', 'Phone number is required.'); ok = false; }
+      else clearError('phone-error');
+    }
+
+    var jobTitle = document.getElementById('job-title').value.trim();
+    if (!jobTitle) { showError('job-title-error', 'Job title is required.'); ok = false; }
+    else clearError('job-title-error');
+
+    var company = document.getElementById('company').value.trim();
+    if (!company) { showError('company-error', 'Company name is required.'); ok = false; }
+    else clearError('company-error');
+
+    var eula = document.getElementById('eula').checked;
+    if (!eula) { showError('eula-error', 'You must agree to the Terms of Service and Privacy Policy.'); ok = false; }
+    else clearError('eula-error');
+
+    return ok;
+  }
+
+  // ── Form submission ─────────────────────────────────────
+  var form = document.getElementById('signup-form');
+  var submitBtn = form.querySelector('.signup-submit');
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    clearFormError();
+    if (!validate()) return;
+
+    var isEmailTab = tabEmail.getAttribute('aria-selected') === 'true';
+    var payload = {
+      full_name:  document.getElementById('full-name').value.trim(),
+      job_title:  document.getElementById('job-title').value.trim(),
+      company:    document.getElementById('company').value.trim()
+    };
+
+    if (isEmailTab) {
+      payload.email    = document.getElementById('email').value.trim();
+      payload.password = document.getElementById('password').value;
+    } else {
+      var countryCode = document.getElementById('country-code').value;
+      var phoneNum    = document.getElementById('phone-number').value.trim();
+      payload.phone   = countryCode + phoneNum;
+    }
+
+    submitBtn.classList.add('loading');
+    submitBtn.disabled = true;
+
+    fetch('/api/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    .then(function (res) {
+      return res.json().then(function (data) { return { status: res.status, data: data }; });
+    })
+    .then(function (result) {
+      submitBtn.classList.remove('loading');
+      submitBtn.disabled = false;
+      if (result.status >= 200 && result.status < 300) {
+        window.location.href = '/ui/onboarding';
+      } else {
+        showFormError(result.data.message || result.data.error || 'Signup failed. Please try again.');
+      }
+    })
+    .catch(function () {
+      submitBtn.classList.remove('loading');
+      submitBtn.disabled = false;
+      showFormError('Network error — please check your connection and try again.');
+    });
+  });
+
+})();
+</script>
+</body>
+</html>
