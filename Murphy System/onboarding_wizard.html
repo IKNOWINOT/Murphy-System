@@ -70,7 +70,7 @@
   var selectedIntegrations = [];
   var credentials = {};
   var safetyLevel = 3;
-  var recommendedTerminal = 'terminal_unified.html';
+  var recommendedTerminal = '/ui/terminal-unified';
   var librarianConfig = null;
 
   // ── DOM refs ───────────────────────────────────────────
@@ -374,18 +374,37 @@
     container.appendChild(modGrid);
 
     // Integrations section
+    var intHeader = el('div', { className: 'flex justify-between items-center', style: 'margin-bottom:0.75rem;' });
     var intLabel = el('h2', {
       className: 'font-medium',
       textContent: 'Integrations',
-      style: 'font-size:1.1rem;margin-bottom:0.75rem;'
+      style: 'font-size:1.1rem;margin:0;'
     });
-    container.appendChild(intLabel);
+    intHeader.appendChild(intLabel);
+    var browseAllBtn = el('button', {
+      className: 'murphy-btn murphy-btn-secondary',
+      textContent: '📋 Browse All Integrations',
+      id: 'btn-browse-all-integrations',
+      style: 'font-size:0.8rem;padding:0.3rem 0.75rem;'
+    });
+    browseAllBtn.addEventListener('click', function () { toggleFullCatalog(); });
+    intHeader.appendChild(browseAllBtn);
+    container.appendChild(intHeader);
 
-    var intGrid = el('div', { className: 'grid gap-3', style: 'grid-template-columns:repeat(auto-fill,minmax(200px,1fr));margin-bottom:1.5rem;' });
+    var intGrid = el('div', { className: 'grid gap-3', style: 'grid-template-columns:repeat(auto-fill,minmax(200px,1fr));margin-bottom:1rem;' });
     selectedIntegrations.forEach(function (integ, idx) {
       intGrid.appendChild(planCard(integ, 'integration', idx));
     });
     container.appendChild(intGrid);
+
+    // Full catalog panel (hidden by default)
+    var catalogPanel = el('div', {
+      id: 'full-catalog-panel',
+      style: 'display:none;margin-bottom:1.5rem;border:1px solid #30363d;border-radius:8px;padding:1rem;background:#0d1117;max-height:400px;overflow-y:auto;'
+    });
+    var catalogLoading = el('p', { textContent: 'Loading full catalog…', style: 'color:#8b949e;' });
+    catalogPanel.appendChild(catalogLoading);
+    container.appendChild(catalogPanel);
 
     // "Anything else?" input
     var extraRow = el('div', { className: 'flex gap-2', style: 'margin-bottom:1rem;' });
@@ -427,6 +446,80 @@
       next: function () { goToStep(3); },
       nextLabel: 'Looks good! →'
     }));
+  }
+
+  var _catalogLoaded = false;
+  function toggleFullCatalog() {
+    var panel = document.getElementById('full-catalog-panel');
+    if (!panel) return;
+    var visible = panel.style.display !== 'none';
+    if (visible) { panel.style.display = 'none'; return; }
+    panel.style.display = 'block';
+    if (_catalogLoaded) return;
+
+    // Fetch from both the core catalog and the universal adapter
+    var base = window.location.origin;
+    Promise.all([
+      fetch(base + '/api/integrations').then(function (r) { return r.json(); }).catch(function () { return { integrations: [] }; }),
+      fetch(base + '/api/universal-integrations/services').then(function (r) { return r.json(); }).catch(function () { return { services: [] }; })
+    ]).then(function (results) {
+      var core = results[0].integrations || [];
+      var universal = (results[1].services || []).map(function (s) {
+        return { id: s.name || s.id, name: s.name, type: s.category || 'other', description: s.description || '' };
+      });
+
+      // Merge and deduplicate by id/name
+      var seen = {};
+      var all = [];
+      core.concat(universal).forEach(function (item) {
+        var key = (item.id || item.name || '').toLowerCase();
+        if (key && !seen[key]) { seen[key] = true; all.push(item); }
+      });
+
+      // Group by type/category
+      var groups = {};
+      all.forEach(function (item) {
+        var cat = (item.type || item.category || 'other').toLowerCase();
+        if (!groups[cat]) groups[cat] = [];
+        groups[cat].push(item);
+      });
+
+      panel.innerHTML = '';
+      var heading = el('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;' });
+      heading.appendChild(el('h3', { textContent: 'All Available Integrations (' + all.length + ')', style: 'margin:0;font-size:1rem;color:#00D4AA;' }));
+      var closeBtn = el('button', { textContent: '✕', className: 'murphy-btn murphy-btn-ghost', style: 'padding:0.2rem 0.5rem;font-size:0.9rem;' });
+      closeBtn.addEventListener('click', function () { panel.style.display = 'none'; });
+      heading.appendChild(closeBtn);
+      panel.appendChild(heading);
+
+      Object.keys(groups).sort().forEach(function (cat) {
+        var catLabel = el('h4', { textContent: cat.charAt(0).toUpperCase() + cat.slice(1).replace(/_/g, ' '), style: 'font-size:0.85rem;color:#8b949e;margin:0.75rem 0 0.4rem;text-transform:uppercase;letter-spacing:0.05em;' });
+        panel.appendChild(catLabel);
+
+        var catGrid = el('div', { style: 'display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:0.5rem;' });
+        groups[cat].forEach(function (item) {
+          var isSelected = selectedIntegrations.some(function (si) {
+            return si.id === item.id || si.name === item.name;
+          });
+          var btn = el('button', {
+            className: 'murphy-btn ' + (isSelected ? 'murphy-btn-primary' : 'murphy-btn-ghost'),
+            textContent: (item.icon ? item.icon + ' ' : '') + (item.name || item.id),
+            title: item.description || '',
+            style: 'font-size:0.8rem;padding:0.35rem 0.6rem;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'
+          });
+          btn.addEventListener('click', function () {
+            if (isSelected) return;
+            selectedIntegrations.push({ id: item.id || item.name, name: item.name, description: item.description || '', enabled: true });
+            _catalogLoaded = false;
+            goToStep(2);
+          });
+          catGrid.appendChild(btn);
+        });
+        panel.appendChild(catGrid);
+      });
+
+      _catalogLoaded = true;
+    });
   }
 
   function planCard(item, type, idx) {
@@ -674,10 +767,10 @@
     }));
 
     var dashboards = [
-      { value: 'terminal_unified.html', label: 'Unified Dashboard', desc: 'Full overview of everything' },
-      { value: 'terminal_worker.html', label: 'Worker Dashboard', desc: 'Task-focused view' },
-      { value: 'terminal_manager.html', label: 'Manager Dashboard', desc: 'Team and project oversight' },
-      { value: 'terminal_admin.html', label: 'Admin Dashboard', desc: 'System configuration and control' }
+      { value: '/ui/terminal-unified', label: 'Unified Dashboard', desc: 'Full overview of everything' },
+      { value: '/ui/terminal-worker', label: 'Worker Dashboard', desc: 'Task-focused view' },
+      { value: '/ui/terminal-enhanced', label: 'Manager Dashboard', desc: 'Team and project oversight' },
+      { value: '/ui/terminal-architect', label: 'Admin Dashboard', desc: 'System configuration and control' }
     ];
 
     dashboards.forEach(function (db) {
@@ -789,11 +882,11 @@
         api.post('/onboarding/wizard/generate-config', config)
           .then(function () {
             try { localStorage.setItem('murphy_onboarded', '1'); } catch(e) { console.warn('localStorage unavailable:', e.message); }
-            window.location.href = 'production_wizard.html';
+            window.location.href = '/ui/production-wizard';
           })
           .catch(function () {
             try { localStorage.setItem('murphy_onboarded', '1'); } catch(e) { console.warn('localStorage unavailable:', e.message); }
-            window.location.href = 'production_wizard.html';
+            window.location.href = '/ui/production-wizard';
           });
       }
     });

@@ -1626,6 +1626,9 @@ def create_app() -> FastAPI:
     except Exception:
         _onboarding_engine = None
 
+    # Persisted onboarding config (read by production wizard + workflow canvas)
+    _onboarding_config: Dict[str, Any] = {}
+
     @app.get("/api/onboarding/wizard/questions")
     async def onboarding_wizard_questions():
         """Get all setup wizard questions for no-code configuration."""
@@ -1666,20 +1669,66 @@ def create_app() -> FastAPI:
         return JSONResponse({"success": True, **result})
 
     @app.post("/api/onboarding/wizard/generate-config")
-    async def onboarding_wizard_generate_config():
-        """Generate a complete Murphy System configuration from wizard answers."""
+    async def onboarding_wizard_generate_config(request: Request):
+        """Generate a complete Murphy System configuration from wizard answers.
+
+        Accepts the wizard's selected modules, integrations, safety level,
+        and chat history.  Stores the resulting config in-memory so the
+        production wizard and workflow canvas can read it back via
+        ``GET /api/onboarding/wizard/config``.
+        """
+        body: Dict[str, Any] = {}
+        try:
+            body = await request.json()
+        except Exception:
+            pass  # body remains {} — the endpoint also works without a body
+
         if _setup_wizard is None:
-            return JSONResponse({"success": False, "error": "Setup wizard not available"}, status_code=503)
+            # Fallback: build config directly from the submitted body
+            config = {
+                "modules": body.get("modules", []),
+                "integrations": body.get("integrations", []),
+                "safety_level": body.get("safety_level", 3),
+                "terminal": body.get("terminal", "/ui/terminal-unified"),
+            }
+            _onboarding_config.update(config)
+            _onboarding_config["chat_history"] = body.get("chat_history", [])
+            _onboarding_config["created_at"] = _now_iso()
+            return JSONResponse({"success": True, "config": config})
+
         profile = _setup_wizard.get_profile()
         validation = _setup_wizard.validate_profile(profile)
         config = _setup_wizard.generate_config(profile)
         summary = _setup_wizard.summarize(profile)
+
+        # Merge wizard selections from the request body into config
+        if body.get("modules"):
+            config["modules"] = body["modules"]
+        if body.get("integrations"):
+            config["integrations"] = body["integrations"]
+        if body.get("safety_level") is not None:
+            config["safety_level"] = body["safety_level"]
+
+        # Persist so production wizard can read it
+        _onboarding_config.update(config)
+        _onboarding_config["chat_history"] = body.get("chat_history", [])
+        _onboarding_config["validation"] = validation
+        _onboarding_config["summary"] = summary
+        _onboarding_config["created_at"] = _now_iso()
+
         return JSONResponse({
             "success": True,
             "config": config,
             "validation": validation,
             "summary": summary,
         })
+
+    @app.get("/api/onboarding/wizard/config")
+    async def onboarding_wizard_get_config():
+        """Return the persisted onboarding config so production wizard can use it."""
+        if not _onboarding_config:
+            return JSONResponse({"success": False, "error": "No onboarding config yet"}, status_code=404)
+        return JSONResponse({"success": True, **_onboarding_config})
 
     @app.get("/api/onboarding/wizard/summary")
     async def onboarding_wizard_summary():
@@ -2536,6 +2585,12 @@ def create_app() -> FastAPI:
         location = body.get("regulatory_location", "US")
         spec = body.get("deliverable_spec", "")
 
+        # Merge onboarding config if available (modules, integrations, safety)
+        ob_cfg = dict(_onboarding_config)  # snapshot
+        integrations = body.get("integrations", ob_cfg.get("integrations", [])) or []
+        modules = body.get("modules", ob_cfg.get("modules", [])) or []
+        safety_level = body.get("safety_level", ob_cfg.get("safety_level", 3))
+
         # Build workflow nodes from the proposal
         nodes = []
         edges = []
@@ -2598,8 +2653,36 @@ def create_app() -> FastAPI:
             "animated": True,
         })
 
+        # 3b. Integration nodes (from onboarding selections)
+        int_prev_node = proc_id
+        int_prev_port = f"{proc_id}-out"
+        int_x = proc_x
+        for j, intg in enumerate(integrations):
+            intg_name = intg if isinstance(intg, str) else intg.get("name", intg.get("id", f"integration-{j}"))
+            intg_id_safe = intg_name.lower().replace(" ", "_").replace("/", "_")[:30]
+            int_nid = f"{pid}-int-{intg_id_safe}"
+            int_x += x_step
+            nodes.append({
+                "id": int_nid, "x": int_x, "y": y_base + 100,
+                "type": "action", "label": intg_name,
+                "icon": "🔌", "health": "idle",
+                "data": {"subtype": "integration", "integration": intg_name},
+                "ports": [
+                    {"id": f"{int_nid}-in", "type": "input", "label": "in", "side": "left"},
+                    {"id": f"{int_nid}-out", "type": "output", "label": "out", "side": "right"},
+                ],
+            })
+            edges.append({
+                "id": f"{pid}-edge-int-{j}",
+                "sourceNodeId": int_prev_node, "sourcePortId": int_prev_port,
+                "targetNodeId": int_nid, "targetPortId": f"{int_nid}-in",
+                "animated": True,
+            })
+            int_prev_node = int_nid
+            int_prev_port = f"{int_nid}-out"
+
         # 4. HITL review node
-        hitl_x = proc_x + x_step
+        hitl_x = max(proc_x, int_x) + x_step
         hitl_id = f"{pid}-hitl"
         nodes.append({
             "id": hitl_id, "x": hitl_x, "y": y_base,
@@ -2614,7 +2697,8 @@ def create_app() -> FastAPI:
         })
         edges.append({
             "id": f"{pid}-edge-hitl",
-            "sourceNodeId": proc_id, "sourcePortId": f"{proc_id}-out",
+            "sourceNodeId": int_prev_node if integrations else proc_id,
+            "sourcePortId": int_prev_port if integrations else f"{proc_id}-out",
             "targetNodeId": hitl_id, "targetPortId": f"{hitl_id}-in",
             "animated": True,
         })
@@ -2681,6 +2765,9 @@ def create_app() -> FastAPI:
             "functions": funcs,
             "spec": spec,
             "gates": gates,
+            "modules": modules,
+            "integrations": [i if isinstance(i, str) else i.get("name", str(i)) for i in integrations],
+            "safety_level": safety_level,
             "status": "pending",
             "workflow": workflow,
             "created_at": datetime.now(timezone.utc).isoformat(),
@@ -4502,6 +4589,21 @@ def create_app() -> FastAPI:
     _community_messages: dict = {}
     _org_memberships: dict = {}
 
+    # Seed default community channels so the page isn't empty
+    for _seed_ch in [
+        {"id": "general", "name": "general", "type": "text", "org_id": "murphy", "description": "General discussion", "created_by": "Murphy System", "members": ["Murphy System"], "created": _now_iso()},
+        {"id": "announcements", "name": "announcements", "type": "text", "org_id": "murphy", "description": "Official announcements", "created_by": "Murphy System", "members": ["Murphy System"], "created": _now_iso()},
+        {"id": "support", "name": "support", "type": "text", "org_id": "murphy", "description": "Get help from the community", "created_by": "Murphy System", "members": ["Murphy System"], "created": _now_iso()},
+        {"id": "integrations", "name": "integrations", "type": "text", "org_id": "murphy", "description": "Integration discussions", "created_by": "Murphy System", "members": ["Murphy System"], "created": _now_iso()},
+        {"id": "voice-lounge", "name": "voice-lounge", "type": "voice", "org_id": "murphy", "description": "Voice chat lounge", "created_by": "Murphy System", "members": ["Murphy System"], "created": _now_iso()},
+    ]:
+        _community_channels[_seed_ch["id"]] = _seed_ch
+        _community_messages[_seed_ch["id"]] = [
+            {"id": "welcome-" + _seed_ch["id"], "channel_id": _seed_ch["id"], "user": "Murphy System",
+             "content": "Welcome to #" + _seed_ch["name"] + "! " + _seed_ch["description"],
+             "created": _now_iso(), "reactions": {}, "thread_replies": []},
+        ]
+
     @app.post("/api/community/channels")
     async def community_create_channel(request: Request):
         """Create a community channel (forum topic or org group)."""
@@ -4549,6 +4651,39 @@ def create_app() -> FastAPI:
     async def community_get_messages(cid: str):
         msgs = _community_messages.get(cid, [])
         return JSONResponse({"ok": True, "messages": msgs})
+
+    @app.post("/api/community/channels/{cid}/messages/{mid}/reactions")
+    async def community_add_reaction(cid: str, mid: str, request: Request):
+        """Add a reaction to a message."""
+        body = await request.json()
+        emoji = body.get("emoji", "👍")
+        msgs = _community_messages.get(cid, [])
+        for msg in msgs:
+            if msg["id"] == mid:
+                if emoji not in msg["reactions"]:
+                    msg["reactions"][emoji] = 0
+                msg["reactions"][emoji] += 1
+                return JSONResponse({"ok": True, "reactions": msg["reactions"]})
+        return JSONResponse({"ok": False, "error": "Message not found"}, 404)
+
+    @app.get("/api/community/channels/{cid}/members")
+    async def community_channel_members(cid: str):
+        """List members of a community channel."""
+        ch = _community_channels.get(cid)
+        if not ch:
+            return JSONResponse({"ok": False, "error": "Channel not found"}, 404)
+        members = [{"id": m, "name": m, "role": "admin" if m == "Murphy System" else "member", "status": "online"} for m in ch.get("members", [])]
+        return JSONResponse({"ok": True, "members": members})
+
+    @app.get("/api/org/info")
+    async def org_info():
+        """Get org metadata."""
+        return JSONResponse({
+            "ok": True,
+            "name": "Murphy System",
+            "member_count": sum(len(o.get("members", [])) for o in _org_memberships.values()) or 1,
+            "channel_count": len(_community_channels),
+        })
 
     @app.post("/api/org/join")
     async def org_join(request: Request):
@@ -4870,6 +5005,7 @@ def create_app() -> FastAPI:
             "/": "murphy_landing_page.html",
             "/ui/landing": "murphy_landing_page.html",
             "/ui/terminal-unified": "terminal_unified.html",
+            "/ui/terminal": "terminal_unified.html",
             "/ui/terminal-integrated": "terminal_integrated.html",
             "/ui/terminal-architect": "terminal_architect.html",
             "/ui/terminal-enhanced": "terminal_enhanced.html",
@@ -4966,6 +5102,169 @@ def create_app() -> FastAPI:
 
     except Exception as _ui_exc:
         logger.warning("HTML UI route mounting failed: %s", _ui_exc)
+
+    # ==================== WALLET / CRYPTO ENDPOINTS ====================
+
+    _wallet_balances: Dict[str, Dict[str, float]] = {
+        "default": {
+            "ETH": 0.0, "BTC": 0.0, "SOL": 0.0,
+            "USDC": 0.0, "USDT": 0.0, "MURPHY": 0.0,
+        }
+    }
+    _wallet_transactions: List[Dict[str, Any]] = []
+    _wallet_addresses: Dict[str, Dict[str, str]] = {
+        "default": {
+            "ETH": "0x4a2e7B9c1Df3E8F5a0c6D1E9B2A4F7C0E3D6B9A2",
+            "BTC": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
+            "SOL": "5K2jDrRXJLSKDJGsN7ZhT9aaN7f3VYwBsHJbcXnf8mn",
+        }
+    }
+
+    @app.get("/api/wallet/balances")
+    async def wallet_balances():
+        """Return current wallet balances for all chains."""
+        balances = _wallet_balances.get("default", {})
+        total_usd = 0.0  # Requires price feed integration for real conversion
+        return JSONResponse({
+            "success": True,
+            "balances": balances,
+            "total_usd": total_usd,
+            "updated_at": _now_iso(),
+        })
+
+    @app.get("/api/wallet/addresses")
+    async def wallet_addresses():
+        """Return wallet receive addresses for all chains."""
+        return JSONResponse({
+            "success": True,
+            "addresses": _wallet_addresses.get("default", {}),
+        })
+
+    @app.get("/api/wallet/transactions")
+    async def wallet_transactions():
+        """Return wallet transaction history."""
+        return JSONResponse({
+            "success": True,
+            "transactions": _wallet_transactions,
+            "count": len(_wallet_transactions),
+        })
+
+    @app.post("/api/wallet/send")
+    async def wallet_send(request: Request):
+        """Submit a wallet send transaction."""
+        body = await request.json()
+        asset = (body.get("asset") or "ETH").upper()
+        amount = float(body.get("amount", 0))
+        to_addr = body.get("to", "")
+        if not to_addr:
+            return JSONResponse({"success": False, "error": "Recipient address required"}, 400)
+        if amount <= 0:
+            return JSONResponse({"success": False, "error": "Amount must be positive"}, 400)
+        balances = _wallet_balances.get("default", {})
+        if balances.get(asset, 0) < amount:
+            return JSONResponse({"success": False, "error": f"Insufficient {asset} balance"}, 400)
+
+        balances[asset] = round(balances[asset] - amount, 8)
+        tx = {
+            "id": str(uuid4()),
+            "type": "send",
+            "asset": asset,
+            "amount": amount,
+            "to": to_addr,
+            "status": "pending",
+            "created_at": _now_iso(),
+        }
+        _wallet_transactions.insert(0, tx)
+        return JSONResponse({"success": True, "transaction": tx})
+
+    @app.post("/api/wallet/receive")
+    async def wallet_receive(request: Request):
+        """Simulate receiving funds (for testing)."""
+        body = await request.json()
+        asset = (body.get("asset") or "ETH").upper()
+        amount = float(body.get("amount", 0))
+        if amount <= 0:
+            return JSONResponse({"success": False, "error": "Amount must be positive"}, 400)
+        balances = _wallet_balances.get("default", {})
+        balances[asset] = round(balances.get(asset, 0) + amount, 8)
+        tx = {
+            "id": str(uuid4()),
+            "type": "receive",
+            "asset": asset,
+            "amount": amount,
+            "status": "confirmed",
+            "created_at": _now_iso(),
+        }
+        _wallet_transactions.insert(0, tx)
+        return JSONResponse({"success": True, "transaction": tx, "new_balance": balances[asset]})
+
+    # ==================== ACCOUNT / SUBSCRIPTION ENDPOINTS ====================
+
+    _account_data: Dict[str, Any] = {
+        "id": "acct_default",
+        "email": "admin@murphy.system",
+        "name": "Murphy Admin",
+        "plan": "free",
+        "plan_name": "Free Tier",
+        "billing_cycle": "monthly",
+        "next_billing_date": None,
+        "created_at": _now_iso(),
+    }
+    _account_statements: List[Dict[str, Any]] = []
+
+    @app.get("/api/account/profile")
+    async def account_profile():
+        """Get account profile and subscription info."""
+        return JSONResponse({"success": True, **_account_data})
+
+    @app.put("/api/account/profile")
+    async def account_update_profile(request: Request):
+        """Update account profile."""
+        body = await request.json()
+        for key in ("name", "email"):
+            if body.get(key):
+                _account_data[key] = body[key]
+        _account_data["updated_at"] = _now_iso()
+        return JSONResponse({"success": True, **_account_data})
+
+    @app.get("/api/account/subscription")
+    async def account_subscription():
+        """Get current subscription details."""
+        return JSONResponse({
+            "success": True,
+            "plan": _account_data.get("plan", "free"),
+            "plan_name": _account_data.get("plan_name", "Free Tier"),
+            "billing_cycle": _account_data.get("billing_cycle", "monthly"),
+            "next_billing_date": _account_data.get("next_billing_date"),
+            "features": {
+                "crypto_wallet": True,
+                "ai_chat": True,
+                "workflow_canvas": True,
+                "org_chart": True,
+                "integrations": _account_data.get("plan") != "free",
+                "production_wizard": _account_data.get("plan") != "free",
+                "meeting_intelligence": _account_data.get("plan") in ("professional", "enterprise"),
+                "ambient_intelligence": _account_data.get("plan") in ("professional", "enterprise"),
+            },
+        })
+
+    @app.post("/api/account/subscription/cancel")
+    async def account_cancel_subscription():
+        """Cancel the current subscription."""
+        _account_data["plan"] = "free"
+        _account_data["plan_name"] = "Free Tier"
+        _account_data["next_billing_date"] = None
+        _account_data["cancelled_at"] = _now_iso()
+        return JSONResponse({"success": True, "message": "Subscription cancelled. You are now on the Free Tier."})
+
+    @app.get("/api/account/statements")
+    async def account_statements():
+        """Get billing statements / invoices."""
+        return JSONResponse({
+            "success": True,
+            "statements": _account_statements,
+            "count": len(_account_statements),
+        })
 
     return app
 

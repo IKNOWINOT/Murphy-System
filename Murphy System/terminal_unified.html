@@ -162,15 +162,15 @@
 
     <!-- Graphical (external links) -->
     <div class="murphy-sidebar-section" aria-label="Graphical">Graphical</div>
-    <a href="workflow_canvas.html" class="murphy-sidebar-item" target="_blank" rel="noopener" aria-label="Workflow Canvas (opens in new tab)">
+    <a href="/ui/workflow-canvas" class="murphy-sidebar-item" target="_blank" rel="noopener" aria-label="Workflow Canvas (opens in new tab)">
       <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-topology"></use></svg>
       <span>Workflow Canvas</span>
     </a>
-    <a href="system_visualizer.html" class="murphy-sidebar-item" target="_blank" rel="noopener" aria-label="System Visualizer (opens in new tab)">
+    <a href="/ui/system-visualizer" class="murphy-sidebar-item" target="_blank" rel="noopener" aria-label="System Visualizer (opens in new tab)">
       <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-code"></use></svg>
       <span>System Visualizer</span>
     </a>
-    <a href="production_wizard.html" class="murphy-sidebar-item" target="_blank" rel="noopener" aria-label="Production Wizard (opens in new tab)">
+    <a href="/ui/production-wizard" class="murphy-sidebar-item" target="_blank" rel="noopener" aria-label="Production Wizard (opens in new tab)">
       <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-execute"></use></svg>
       <span>Production Wizard</span>
     </a>
@@ -201,6 +201,27 @@
     <button class="murphy-btn murphy-btn-icon" id="btn-notifications" aria-label="Notifications" title="Notifications">
       <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-bell"></use></svg>
     </button>
+    <div class="relative" id="user-menu-wrapper">
+      <button class="murphy-btn murphy-btn-icon" id="btn-user-profile" aria-label="User profile" title="User profile" aria-haspopup="true" aria-expanded="false">
+        <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-user"></use></svg>
+      </button>
+      <div id="user-menu-dropdown" role="menu" aria-label="User menu"
+        style="display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:220px;background:var(--bg-secondary,#1a1a2e);border:1px solid var(--border-dim,#333);border-radius:8px;padding:8px 0;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,.4);">
+        <div style="padding:12px 16px;border-bottom:1px solid var(--border-dim,#333);font-size:13px;color:var(--text-dim,#888);">
+          <div style="font-weight:600;color:var(--text-primary,#e6ecf2);">Murphy User</div>
+          <div>admin@murphy.system</div>
+        </div>
+        <a href="/ui/management" role="menuitem" style="display:block;padding:8px 16px;color:var(--text-primary,#e6ecf2);text-decoration:none;font-size:13px;">⚙ Account Settings</a>
+        <a href="/ui/management#billing" role="menuitem" style="display:block;padding:8px 16px;color:var(--text-primary,#e6ecf2);text-decoration:none;font-size:13px;">💳 Billing &amp; Subscription</a>
+        <a href="/ui/management#statements" role="menuitem" style="display:block;padding:8px 16px;color:var(--text-primary,#e6ecf2);text-decoration:none;font-size:13px;">📄 Statements &amp; Invoices</a>
+        <a href="/ui/wallet" role="menuitem" style="display:block;padding:8px 16px;color:var(--text-primary,#e6ecf2);text-decoration:none;font-size:13px;">💰 Wallet</a>
+        <a href="/ui/compliance" role="menuitem" style="display:block;padding:8px 16px;color:var(--text-primary,#e6ecf2);text-decoration:none;font-size:13px;">🛡 Compliance</a>
+        <a href="/ui/calendar" role="menuitem" style="display:block;padding:8px 16px;color:var(--text-primary,#e6ecf2);text-decoration:none;font-size:13px;">📅 Calendar</a>
+        <div style="border-top:1px solid var(--border-dim,#333);margin-top:4px;padding-top:4px;">
+          <a href="/ui/login" role="menuitem" style="display:block;padding:8px 16px;color:#F87171;text-decoration:none;font-size:13px;">↩ Sign Out</a>
+        </div>
+      </div>
+    </div>
   </div>
 </header>
 
@@ -381,6 +402,38 @@
 
   document.getElementById('btn-theme-toggle').addEventListener('click', function () {
     theme.toggle();
+  });
+
+  /* ── User profile menu toggle ── */
+  (function () {
+    var btn = document.getElementById('btn-user-profile');
+    var menu = document.getElementById('user-menu-dropdown');
+    if (!btn || !menu) return;
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var open = menu.style.display !== 'none';
+      menu.style.display = open ? 'none' : 'block';
+      btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+    });
+    document.addEventListener('click', function () { menu.style.display = 'none'; btn.setAttribute('aria-expanded', 'false'); });
+    menu.addEventListener('click', function (e) { e.stopPropagation(); });
+  })();
+
+  /* ── Notifications panel toggle ── */
+  document.getElementById('btn-notifications').addEventListener('click', function () {
+    var panel = document.getElementById('notifications-panel');
+    if (panel) { panel.style.display = panel.style.display === 'none' ? 'block' : 'none'; return; }
+    var p = document.createElement('div');
+    p.id = 'notifications-panel';
+    p.setAttribute('role', 'dialog');
+    p.setAttribute('aria-label', 'Notifications');
+    p.style.cssText = 'position:fixed;top:var(--topbar-height,56px);right:12px;width:340px;max-height:400px;overflow-y:auto;background:var(--bg-secondary,#1a1a2e);border:1px solid var(--border-dim,#333);border-radius:8px;padding:0;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,.4);';
+    p.innerHTML = '<div style="padding:12px 16px;border-bottom:1px solid var(--border-dim,#333);font-weight:600;font-size:14px;">Notifications</div>' +
+      '<div style="padding:24px 16px;text-align:center;color:var(--text-dim,#888);font-size:13px;">No new notifications</div>';
+    document.body.appendChild(p);
+    document.addEventListener('click', function handler(e) {
+      if (!p.contains(e.target) && e.target !== document.getElementById('btn-notifications')) { p.style.display = 'none'; }
+    });
   });
 
   /* ===========================================================

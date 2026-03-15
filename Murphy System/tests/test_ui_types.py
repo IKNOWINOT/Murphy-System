@@ -454,7 +454,10 @@ class TestLandingPageFeatures(unittest.TestCase):
     def test_terminal_links_exist(self):
         """Landing page must link to terminal views."""
         content = _read_html('murphy_landing_page.html')
-        self.assertIn('terminal_unified.html', content)
+        self.assertTrue(
+            'terminal_unified.html' in content or 'terminal-unified' in content,
+            "Landing page must link to terminal-unified (URL or filename)"
+        )
 
     def test_no_inline_styles(self):
         """Landing page should use zero inline styles (design system only)."""
@@ -579,7 +582,10 @@ class TestArchitectTerminalFeatures(unittest.TestCase):
     def test_has_topology_link(self):
         """Architect terminal should link to system visualizer."""
         content = _read_html('terminal_architect.html')
-        self.assertIn('system_visualizer', content.lower())
+        self.assertTrue(
+            'system_visualizer' in content.lower() or 'system-visualizer' in content.lower(),
+            "Architect terminal must link to system visualizer"
+        )
 
 
 class TestWorkerTerminalFeatures(unittest.TestCase):

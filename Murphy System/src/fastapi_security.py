@@ -146,6 +146,26 @@ def _is_health_endpoint(path: str) -> bool:
     return any(normalized.endswith(s) or normalized == s[1:] for s in exempt_suffixes)
 
 
+def _is_static_or_ui_page(path: str) -> bool:
+    """Check if the request is for static assets or UI HTML pages.
+
+    Static files and UI page loads should not be rate-limited because:
+    1. Each page load triggers multiple asset requests (CSS, JS, SVG).
+    2. Rate-limiting page loads degrades the user experience.
+    """
+    normalized = path.rstrip("/")
+    # Static asset paths
+    if normalized.startswith("/static/") or normalized.startswith("/ui/static/"):
+        return True
+    # UI HTML page routes (not API calls)
+    if normalized.startswith("/ui/") and "/api/" not in normalized:
+        return True
+    # Root landing page
+    if normalized == "" or normalized == "/":
+        return True
+    return False
+
+
 # ── Rate Limiting ────────────────────────────────────────────────────
 
 class _FastAPIRateLimiter:
@@ -378,6 +398,11 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             response = await call_next(request)
             return response
         if _is_health_endpoint(request.url.path):
+            response = await call_next(request)
+            self._add_security_headers(response)
+            return response
+        # Skip rate limiting / auth for static assets and UI page loads
+        if _is_static_or_ui_page(request.url.path):
             response = await call_next(request)
             self._add_security_headers(response)
             return response

@@ -513,6 +513,30 @@
 (function () {
   'use strict';
 
+  /* ── Refresh balances from API ── */
+  var balances = { eth: '0', btc: '0', sol: '0' };
+  function refreshBalances() {
+    fetch('/api/wallet/balances')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.success) return;
+        var b = d.balances || {};
+        balances.eth = String(b.ETH || 0);
+        balances.btc = String(b.BTC || 0);
+        balances.sol = String(b.SOL || 0);
+        var networthEl = document.querySelector('.wallet-networth-value');
+        if (networthEl) networthEl.textContent = '$' + (d.total_usd || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.querySelectorAll('.asset-balance').forEach(function (el) {
+          var asset = (el.closest('.asset-card') || {}).dataset;
+          if (asset && asset.asset && b[asset.asset.toUpperCase()] != null) {
+            el.textContent = b[asset.asset.toUpperCase()];
+          }
+        });
+      })
+      .catch(function () {});
+  }
+  refreshBalances();
+
   /* ── Theme ── */
   var themeBtn = document.getElementById('theme-toggle-btn');
   if (themeBtn) themeBtn.addEventListener('click', function () {
@@ -539,6 +563,22 @@
     navigator.clipboard.writeText(addr).then(function () {
       copyHint.textContent = '✓ Copied!';
       setTimeout(function () { copyHint.textContent = 'Click address to copy'; }, 2500);
+    }).catch(function () {
+      /* Fallback for non-secure contexts or denied permissions */
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = addr;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        copyHint.textContent = '✓ Copied!';
+        setTimeout(function () { copyHint.textContent = 'Click address to copy'; }, 2500);
+      } catch (_) {
+        copyHint.textContent = 'Copy not available';
+      }
     });
   }
   if (addrEl) {
@@ -553,16 +593,31 @@
     document.getElementById('send-amount').value = balances[asset] || '0';
   });
 
-  /* ── Send confirm (stub) ── */
+  /* ── Send confirm (real API call) ── */
   document.getElementById('btn-send-confirm').addEventListener('click', function () {
     var to     = document.getElementById('send-to').value.trim();
     var amount = document.getElementById('send-amount').value.trim();
     var asset  = document.getElementById('send-asset').value.toUpperCase();
     if (!to) { alert('Please enter a recipient address.'); return; }
     if (!amount || parseFloat(amount) <= 0) { alert('Please enter a valid amount.'); return; }
-    if (confirm('Send ' + amount + ' ' + asset + ' to\n' + to + '?\n\nThis action cannot be undone.')) {
-      alert('Transaction submitted! (Demo mode — no real funds moved.)');
-    }
+    if (!confirm('Send ' + amount + ' ' + asset + ' to\n' + to + '?\n\nThis action cannot be undone.')) return;
+    fetch('/api/wallet/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ asset: asset, amount: parseFloat(amount), to: to })
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (d.success) {
+        alert('✅ Transaction submitted! TX ID: ' + (d.transaction && d.transaction.id || 'pending'));
+        document.getElementById('send-to').value = '';
+        document.getElementById('send-amount').value = '';
+        refreshBalances();
+      } else {
+        alert('❌ ' + (d.error || 'Transaction failed'));
+      }
+    })
+    .catch(function () { alert('❌ Network error — could not submit transaction.'); });
   });
 
   /* ── Receive asset change (update address stub) ── */
