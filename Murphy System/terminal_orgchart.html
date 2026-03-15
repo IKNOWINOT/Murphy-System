@@ -383,12 +383,25 @@
       var res   = await api.get('/status');
       var gRes  = await api.get('/mfgc/state');
       var data  = (res && res.data)  || res  || {};
-      var gates = (gRes && gRes.data) || gRes || {};
+      var gateObj = (gRes && gRes.data) || gRes || {};
+      var mfgcState = gateObj.state || gateObj || {};
 
-      var activeWf  = data.active_workflows  != null ? data.active_workflows : '\u2014';
-      var hitlPend  = data.hitl_pending      != null ? data.hitl_pending     : '\u2014';
-      var healthPct = data.health            != null ? data.health + '%'     : '\u2014';
-      var agentCnt  = data.active_agents     != null ? data.active_agents    : '\u2014';
+      /* ── Extract real stats from /api/status response ── */
+      var components = data.components || {};
+      var activeCount = 0;
+      Object.values(components).forEach(function (v) { if (v === 'active') activeCount++; });
+
+      var activeWf  = data.active_workflows  != null ? data.active_workflows : activeCount;
+      var hitlPend  = data.hitl_pending      != null ? data.hitl_pending     : 0;
+      var healthPct = data.health            != null ? data.health + '%'     : (data.status === 'running' ? '100%' : '\u2014');
+      var agentCnt  = data.active_agents     != null ? data.active_agents    : activeCount;
+
+      /* ── Also try /api/orgchart/live for real agent count ── */
+      try {
+        var orgRes = await api.get('/orgchart/live');
+        var orgData = (orgRes && orgRes.data) || orgRes || {};
+        if (orgData.count != null) agentCnt = orgData.count;
+      } catch (_e) { /* no orgchart data */ }
 
       var html = sectionHeader('Dashboard', 'Organisation overview and quick actions');
 
@@ -410,8 +423,9 @@
 
       html += '<div class="murphy-card mb-6"><div class="murphy-card-header">MFGC Gate Status</div>';
       html += '<div class="murphy-card-body"><div class="flex flex-wrap gap-4">';
+      var gateData = mfgcState.gates || mfgcState.mfgc_config || {};
       gateNames.forEach(function (g) {
-        var s = gates[g.key] || gates[g.label] || 'closed';
+        var s = gateData[g.key] || gateData[g.label] || (gateData.enabled === true ? 'open' : 'closed');
         html += gateIndicator(g.label, s, g.css);
       });
       html += '</div></div></div>';
@@ -456,25 +470,50 @@
 
       var html = sectionHeader('System Status', 'Health and module information');
 
+      var uptimeStr = '\u2014';
+      if (data.uptime_seconds != null) {
+        var secs = Math.floor(data.uptime_seconds);
+        var hrs = Math.floor(secs / 3600); var mins = Math.floor((secs % 3600) / 60);
+        uptimeStr = hrs + 'h ' + mins + 'm ' + (secs % 60) + 's';
+      }
+      var healthStr = hData.status === 'healthy' ? '100' : (hData.health || data.health || '\u2014');
+
       html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">';
-      html += statCard('Overall Health', (hData.health || data.health || '\u2014') + '%');
-      html += statCard('Uptime', hData.uptime || data.uptime || '\u2014');
-      html += statCard('API Latency', (hData.latency_ms || data.latency_ms || '\u2014') + ' ms');
+      html += statCard('Overall Health', healthStr + '%');
+      html += statCard('Uptime', uptimeStr);
+      html += statCard('Version', data.version || '\u2014');
+      html += statCard('Status', data.status || '\u2014');
       html += '</div>';
 
+      /* Build module table from components */
+      var components = data.components || {};
       var modules = data.modules || hData.modules || [];
+      if (!modules.length && Object.keys(components).length) {
+        modules = Object.entries(components).map(function (entry) {
+          return { name: entry[0].replace(/_/g, ' '), status: entry[1], version: data.version || '' };
+        });
+      }
       if (modules.length) {
-        html += cardWrap('Modules', tableHTML(
+        html += cardWrap('Components (' + modules.length + ')', tableHTML(
           [
-            { key: 'name', label: 'Module' },
-            { key: 'status', label: 'Status', render: function (v) { return badge(v || 'unknown', v === 'running' || v === 'healthy' ? 'success' : (v === 'error' ? 'danger' : 'warning')); } },
-            { key: 'version', label: 'Version' }
+            { key: 'name', label: 'Component', render: function (v) { return esc((v || '').replace(/_/g, ' ')); } },
+            { key: 'status', label: 'Status', render: function (v) { return badge(v || 'unknown', v === 'active' || v === 'running' || v === 'healthy' ? 'success' : (v === 'error' ? 'danger' : 'warning')); } },
           ],
           modules
         ));
       } else {
         html += emptyState('No Modules', 'Module status data is not available.');
       }
+
+      /* LLM & Librarian status */
+      var llm = data.llm || {};
+      var lib = data.librarian || {};
+      html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">';
+      html += statCard('LLM Provider', llm.provider || 'not set');
+      html += statCard('LLM Healthy', llm.healthy ? 'Yes' : 'No');
+      html += statCard('Librarian Mode', lib.mode || '\u2014');
+      html += statCard('Librarian Healthy', lib.healthy ? 'Yes' : 'No');
+      html += '</div>';
 
       contentEl.innerHTML = html;
     } catch (e) {
@@ -491,7 +530,30 @@
       var res  = await api.get('/onboarding-flow/status');
       var data = (res && res.data) || res || {};
       var steps = data.steps || data.items || (Array.isArray(data) ? data : []);
-      var html  = sectionHeader('Org Chart', 'Onboarding flow and organisational status');
+      var html  = sectionHeader('Org Chart', 'Live agents and organisational status');
+
+      /* ── Live agents from /api/orgchart/live ── */
+      try {
+        var orgRes = await api.get('/orgchart/live');
+        var orgData = (orgRes && orgRes.data) || orgRes || {};
+        var agents = orgData.agents || [];
+        if (agents.length) {
+          html += cardWrap('Live Agents (' + agents.length + ')', tableHTML(
+            [
+              { key: 'id',          label: 'Agent ID',   render: function (v) { return esc(v || '\u2014'); } },
+              { key: 'role',        label: 'Role',       render: function (v, row) { return esc(v || row.role_title || row.primary_role_id || '\u2014'); } },
+              { key: 'department',  label: 'Department', render: function (v) { return esc(v || '\u2014'); } },
+              { key: 'status',      label: 'Status',     render: function (v) {
+                var variant = v === 'active' || v === 'ACTIVE' ? 'success' : (v === 'suspended' ? 'warning' : 'neutral');
+                return badge(v || 'unknown', variant);
+              }}
+            ],
+            agents
+          ));
+        } else {
+          html += emptyState('No Agents', 'No shadow agents have been assigned yet. Complete onboarding to create agents.');
+        }
+      } catch (_e) { /* orgchart/live not available — skip agent table */ }
 
       if (data.progress != null) {
         var pct = Math.min(100, Math.max(0, Number(data.progress)));
