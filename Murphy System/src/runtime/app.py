@@ -5266,6 +5266,930 @@ def create_app() -> FastAPI:
             "count": len(_account_statements),
         })
 
+    # ══════════════════════════════════════════════════════════════════════
+    # UNIFIED GATEWAY — Flask services ported to native FastAPI endpoints
+    # Each sub-section replaces a standalone Flask Blueprint/app so that
+    # all routes are reachable via the single FastAPI runtime on port 8000.
+    # ══════════════════════════════════════════════════════════════════════
+
+    # ── Module Compiler (was: src/module_compiler/api/endpoints.py) ────────
+
+    try:
+        import sys as _sys
+        _sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+        from module_compiler import ModuleCompiler as _ModuleCompiler, ModuleRegistry as _ModuleRegistry
+
+        _mc_compiler = _ModuleCompiler()
+        _mc_registry = _ModuleRegistry()
+
+        @app.post("/api/module-compiler/compile")
+        async def mc_compile(request: Request):
+            """Compile a module from source path."""
+            try:
+                data = await request.json()
+                if not data or "source_path" not in data:
+                    return JSONResponse({"success": False, "error": {"code": "MISSING_FIELD", "message": "Missing required field: source_path"}}, status_code=400)
+                source_path = data["source_path"]
+                if not os.path.exists(source_path):
+                    return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": f"Source file not found: {source_path}"}}, status_code=404)
+                spec = _mc_compiler.compile_module(source_path=source_path, requested_capabilities=data.get("requested_capabilities"))
+                _mc_registry.register(spec)
+                return JSONResponse({"success": True, "data": {
+                    "module_id": spec.module_id, "source_path": spec.source_path,
+                    "version_hash": spec.version_hash,
+                    "capabilities": [{"name": c.name, "description": c.description, "deterministic": c.is_deterministic(), "requires_network": c.requires_network(), "timeout_seconds": c.resource_profile.timeout_seconds} for c in spec.capabilities],
+                    "sandbox_profile": spec.sandbox_profile.to_dict(),
+                    "verification_status": spec.verification_status,
+                    "is_partial": spec.is_partial,
+                    "requires_manual_review": spec.requires_manual_review,
+                    "uncertainty_flags": spec.uncertainty_flags,
+                    "compiled_at": spec.compiled_at,
+                }})
+            except Exception as exc:
+                logger.error("mc_compile error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.post("/api/module-compiler/compile-directory")
+        async def mc_compile_directory(request: Request):
+            """Compile all modules in a directory."""
+            try:
+                data = await request.json()
+                if not data or "directory_path" not in data:
+                    return JSONResponse({"success": False, "error": {"code": "MISSING_FIELD", "message": "Missing required field: directory_path"}}, status_code=400)
+                directory_path = data["directory_path"]
+                if not os.path.isdir(directory_path):
+                    return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": f"Directory not found: {directory_path}"}}, status_code=404)
+                specs = _mc_compiler.compile_directory(directory_path, data.get("pattern", "*.py"))
+                compiled, failed = 0, 0
+                for spec in specs:
+                    if _mc_registry.register(spec) and not spec.is_partial:
+                        compiled += 1
+                    else:
+                        failed += 1
+                return JSONResponse({"success": True, "data": {"compiled": compiled, "failed": failed, "total": len(specs), "modules": [{"module_id": s.module_id, "capabilities": len(s.capabilities), "verification_status": s.verification_status} for s in specs]}})
+            except Exception as exc:
+                logger.error("mc_compile_directory error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.get("/api/module-compiler/modules")
+        async def mc_list_modules(request: Request):
+            """List all registered modules."""
+            try:
+                a = request.query_params
+                modules = _mc_registry.list_modules(
+                    deterministic_only=a.get("deterministic", "").lower() == "true",
+                    network_required=None if not a.get("network") else a.get("network", "").lower() == "true",
+                    verification_status=a.get("status"),
+                )
+                return JSONResponse({"success": True, "data": {"count": len(modules), "modules": modules}})
+            except Exception as exc:
+                logger.error("mc_list_modules error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.get("/api/module-compiler/modules/{module_id}")
+        async def mc_get_module(module_id: str):
+            """Get detailed module specification."""
+            try:
+                spec = _mc_registry.get(module_id)
+                if not spec:
+                    return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": f"Module not found: {module_id}"}}, status_code=404)
+                return JSONResponse({"success": True, "data": {"module": spec.to_dict()}})
+            except Exception as exc:
+                logger.error("mc_get_module error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.delete("/api/module-compiler/modules/{module_id}")
+        async def mc_delete_module(module_id: str):
+            """Remove module from registry."""
+            try:
+                if not _mc_registry.remove(module_id):
+                    return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": f"Failed to remove module: {module_id}"}}, status_code=500)
+                return JSONResponse({"success": True, "data": {"message": f"Module removed: {module_id}"}})
+            except Exception as exc:
+                logger.error("mc_delete_module error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.get("/api/module-compiler/capabilities")
+        async def mc_search_capabilities(request: Request):
+            """Search for capabilities."""
+            try:
+                a = request.query_params
+                query = a.get("q", "")
+                if not query:
+                    return JSONResponse({"success": False, "error": {"code": "MISSING_FIELD", "message": "Missing required parameter: q"}}, status_code=400)
+                results = _mc_registry.search_capabilities(query, a.get("deterministic", "").lower() == "true")
+                return JSONResponse({"success": True, "data": {"count": len(results), "query": query, "capabilities": results}})
+            except Exception as exc:
+                logger.error("mc_search_capabilities error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.get("/api/module-compiler/capabilities/{capability_name}")
+        async def mc_get_capability(capability_name: str):
+            """Get detailed capability information."""
+            try:
+                cap = _mc_registry.get_capability(capability_name)
+                if not cap:
+                    return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": f"Capability not found: {capability_name}"}}, status_code=404)
+                return JSONResponse({"success": True, "data": {"capability": cap.to_dict()}})
+            except Exception as exc:
+                logger.error("mc_get_capability error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.get("/api/module-compiler/stats")
+        async def mc_get_stats():
+            """Get registry statistics."""
+            try:
+                return JSONResponse({"success": True, "data": {"stats": _mc_registry.get_stats()}})
+            except Exception as exc:
+                logger.error("mc_get_stats error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.get("/api/module-compiler/health")
+        async def mc_health():
+            """Module compiler health check."""
+            try:
+                stats = _mc_registry.get_stats()
+                return JSONResponse({"success": True, "data": {"status": "healthy", "compiler_version": _mc_compiler.compiler_version, "registry_modules": stats["total_modules"], "registry_capabilities": stats["total_capabilities"]}})
+            except Exception as exc:
+                logger.error("mc_health error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        logger.info("Module Compiler API registered at /api/module-compiler/*")
+    except Exception as _mc_exc:
+        logger.warning("Module Compiler API unavailable: %s", _mc_exc)
+
+    # ── Compute Plane (was: src/compute_plane/api/endpoints.py) ────────────
+
+    try:
+        from compute_plane.service import ComputeService as _ComputeService
+        from compute_plane.models.compute_request import ComputeRequest as _ComputeRequest
+
+        _cp_service = _ComputeService(enable_caching=True)
+
+        @app.get("/api/compute-plane/health")
+        async def cp_health():
+            """Compute plane health check."""
+            return JSONResponse({"success": True, "data": {"status": "healthy", "service": "compute-plane"}})
+
+        @app.post("/api/compute-plane/compute")
+        async def cp_submit(request: Request):
+            """Submit a computation request."""
+            try:
+                data = await request.json()
+                req = _ComputeRequest(
+                    expression=data["expression"],
+                    language=data["language"],
+                    assumptions=data.get("assumptions", {}),
+                    precision=data.get("precision", 10),
+                    timeout=data.get("timeout", 30),
+                    metadata=data.get("metadata", {}),
+                )
+                request_id = _cp_service.submit_request(req)
+                return JSONResponse({"success": True, "data": {"request_id": request_id, "status": "pending"}}, status_code=202)
+            except Exception as exc:
+                logger.error("cp_submit error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "BAD_REQUEST", "message": str(exc)}}, status_code=400)
+
+        @app.get("/api/compute-plane/compute/{request_id}")
+        async def cp_get_result(request_id: str):
+            """Get computation result."""
+            result = _cp_service.get_result(request_id)
+            if result is None:
+                return JSONResponse({"success": True, "data": {"request_id": request_id, "status": "pending"}}, status_code=202)
+            return JSONResponse({"success": True, "data": result.to_dict()})
+
+        @app.get("/api/compute-plane/compute/{request_id}/steps")
+        async def cp_get_steps(request_id: str):
+            """Get derivation steps for computation."""
+            result = _cp_service.get_result(request_id)
+            if result is None:
+                return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Request not found or still pending"}}, status_code=404)
+            return JSONResponse({"success": True, "data": {"request_id": request_id, "derivation_steps": result.derivation_steps}})
+
+        @app.post("/api/compute-plane/compute/validate")
+        async def cp_validate(request: Request):
+            """Validate expression syntax."""
+            try:
+                data = await request.json()
+                validation = _cp_service.validate_expression(data["expression"], data["language"])
+                return JSONResponse({"success": True, "data": validation})
+            except Exception as exc:
+                logger.error("cp_validate error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "BAD_REQUEST", "message": str(exc)}}, status_code=400)
+
+        @app.get("/api/compute-plane/statistics")
+        async def cp_statistics():
+            """Get compute service statistics."""
+            return JSONResponse({"success": True, "data": _cp_service.get_statistics()})
+
+        logger.info("Compute Plane API registered at /api/compute-plane/*")
+    except Exception as _cp_exc:
+        logger.warning("Compute Plane API unavailable: %s", _cp_exc)
+
+    # ── Gate Synthesis (was: src/gate_synthesis/api_server.py) ─────────────
+
+    try:
+        from gate_synthesis.failure_mode_enumerator import FailureModeEnumerator as _FME
+        from gate_synthesis.gate_generator import GateGenerator as _GateGenerator
+        from gate_synthesis.gate_lifecycle_manager import GateLifecycleManager as _GLM
+        from gate_synthesis.models import (
+            ExposureSignal as _ExposureSignal,
+            FailureMode as _FailureMode,
+            FailureModeType as _FailureModeType,
+            GateCategory as _GateCategory,
+            GateState as _GateState,
+        )
+        from gate_synthesis.murphy_estimator import MurphyProbabilityEstimator as _MPE
+        from confidence_engine.models import (
+            ArtifactGraph as _ArtifactGraph,
+            ArtifactNode as _ArtifactNode,
+            ArtifactSource as _ArtifactSource,
+            ArtifactType as _ArtifactType,
+            AuthorityBand as _AuthorityBand,
+            ConfidenceState as _ConfidenceState,
+            Phase as _Phase,
+        )
+
+        _gs_fme = _FME()
+        _gs_mpe = _MPE()
+        _gs_gg = _GateGenerator()
+        _gs_glm = _GLM()
+        _gs_artifact_graph = _ArtifactGraph()
+
+        @app.post("/api/gate-synthesis/failure-modes/enumerate")
+        async def gs_enumerate_failure_modes(request: Request):
+            """Enumerate failure modes for current state."""
+            try:
+                data = await request.json()
+                cs_data = data["confidence_state"]
+                confidence_state = _ConfidenceState(
+                    confidence=cs_data["confidence"],
+                    generative_score=cs_data["generative_score"],
+                    deterministic_score=cs_data["deterministic_score"],
+                    epistemic_instability=cs_data["epistemic_instability"],
+                    phase=_Phase(cs_data["phase"]),
+                )
+                confidence_state.verified_artifacts = cs_data.get("verified_artifacts", 0)
+                confidence_state.total_artifacts = cs_data.get("total_artifacts", 0)
+                authority_band = _AuthorityBand(data["authority_band"])
+                exposure_signal = None
+                if "exposure_signal" in data:
+                    ed = data["exposure_signal"]
+                    exposure_signal = _ExposureSignal(
+                        signal_id=ed.get("signal_id", "default"),
+                        external_side_effects=ed["external_side_effects"],
+                        reversibility=ed["reversibility"],
+                        blast_radius_estimate=ed["blast_radius_estimate"],
+                        affected_systems=ed.get("affected_systems", []),
+                    )
+                fms = _gs_fme.enumerate_failure_modes(_gs_artifact_graph, confidence_state, authority_band, exposure_signal)
+                return JSONResponse({"success": True, "data": {"failure_modes": [fm.to_dict() for fm in fms], "count": len(fms)}})
+            except Exception as exc:
+                logger.error("gs_enumerate_failure_modes error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.post("/api/gate-synthesis/murphy/estimate")
+        async def gs_estimate_murphy(request: Request):
+            """Estimate Murphy probability for risk vector."""
+            try:
+                from gate_synthesis.models import RiskVector as _RiskVector
+                data = await request.json()
+                rv = _RiskVector(**data["risk_vector"])
+                prob = _gs_mpe.estimate_murphy_probability(rv)
+                return JSONResponse({"success": True, "data": {"murphy_probability": prob, "gate_required": _gs_mpe.requires_gate(prob), "high_risk": _gs_mpe.is_high_risk(prob), "risk_vector": rv.to_dict()}})
+            except Exception as exc:
+                logger.error("gs_estimate_murphy error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.post("/api/gate-synthesis/murphy/analyze-exposure")
+        async def gs_analyze_exposure(request: Request):
+            """Analyze exposure signal."""
+            try:
+                data = await request.json()
+                es = _ExposureSignal(
+                    signal_id=data.get("signal_id", "default"),
+                    external_side_effects=data["external_side_effects"],
+                    reversibility=data["reversibility"],
+                    blast_radius_estimate=data["blast_radius_estimate"],
+                    affected_systems=data.get("affected_systems", []),
+                )
+                return JSONResponse({"success": True, "data": {"analysis": _gs_mpe.analyze_exposure(es)}})
+            except Exception as exc:
+                logger.error("gs_analyze_exposure error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.post("/api/gate-synthesis/gates/generate")
+        async def gs_generate_gates(request: Request):
+            """Generate gates for failure modes."""
+            try:
+                from gate_synthesis.models import RiskVector as _RiskVector
+                data = await request.json()
+                failure_modes = []
+                for fmd in data["failure_modes"]:
+                    rv = _RiskVector(**fmd["risk_vector"])
+                    fm = _FailureMode(id=fmd["id"], type=_FailureModeType(fmd["type"]), probability=fmd["probability"], impact=fmd["impact"], risk_vector=rv, description=fmd["description"], affected_artifacts=fmd.get("affected_artifacts", []))
+                    failure_modes.append(fm)
+                current_phase = _Phase(data["current_phase"])
+                current_authority = _AuthorityBand(data["current_authority"])
+                murphy_probs = {fm.id: _gs_mpe.estimate_failure_mode_probability(fm) for fm in failure_modes}
+                gates = _gs_gg.generate_gates(failure_modes, current_phase, current_authority, murphy_probs)
+                for gate in gates:
+                    _gs_glm.add_gate(gate)
+                return JSONResponse({"success": True, "data": {"gates": [g.to_dict() for g in gates], "count": len(gates)}})
+            except Exception as exc:
+                logger.error("gs_generate_gates error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.post("/api/gate-synthesis/gates/activate/{gate_id}")
+        async def gs_activate_gate(gate_id: str):
+            """Activate a specific gate."""
+            if not _gs_glm.activate_gate(gate_id):
+                return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Gate not found or cannot be activated"}}, status_code=404)
+            return JSONResponse({"success": True, "data": {"gate_id": gate_id, "message": "Gate activated"}})
+
+        @app.post("/api/gate-synthesis/gates/activate-all")
+        async def gs_activate_all_gates():
+            """Activate all proposed gates."""
+            activated = _gs_glm.activate_all_proposed_gates()
+            return JSONResponse({"success": True, "data": {"activated_gates": activated, "count": len(activated)}})
+
+        @app.post("/api/gate-synthesis/gates/retire/{gate_id}")
+        async def gs_retire_gate(gate_id: str, request: Request):
+            """Retire a specific gate."""
+            data = {}
+            try:
+                data = await request.json()
+            except Exception:
+                pass
+            if not _gs_glm.retire_gate(gate_id, data.get("reason", "")):
+                return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Gate not found or cannot be retired"}}, status_code=404)
+            return JSONResponse({"success": True, "data": {"gate_id": gate_id, "message": "Gate retired"}})
+
+        @app.post("/api/gate-synthesis/gates/check-expiry")
+        async def gs_check_expiry():
+            """Check and retire expired gates."""
+            expired = _gs_glm.check_and_retire_expired_gates()
+            return JSONResponse({"success": True, "data": {"expired_gates": expired, "count": len(expired)}})
+
+        @app.post("/api/gate-synthesis/gates/update-retirement-conditions")
+        async def gs_update_retirement_conditions(request: Request):
+            """Update retirement conditions for gates."""
+            try:
+                data = await request.json()
+                retired = _gs_glm.check_all_retirement_conditions(data["condition_values"])
+                return JSONResponse({"success": True, "data": {"retired_gates": retired, "count": len(retired)}})
+            except Exception as exc:
+                logger.error("gs_update_retirement_conditions error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.get("/api/gate-synthesis/gates/list")
+        async def gs_list_gates(request: Request):
+            """List all gates."""
+            a = request.query_params
+            gates = list(_gs_glm.registry.gates.values())
+            if a.get("state"):
+                gates = [g for g in gates if g.state == _GateState(a["state"])]
+            if a.get("category"):
+                gates = [g for g in gates if g.category == _GateCategory(a["category"])]
+            return JSONResponse({"success": True, "data": {"gates": [g.to_dict() for g in gates], "count": len(gates)}})
+
+        @app.get("/api/gate-synthesis/gates/active")
+        async def gs_get_active_gates():
+            """Get all active gates."""
+            active = _gs_glm.registry.get_active_gates()
+            return JSONResponse({"success": True, "data": {"gates": [g.to_dict() for g in active], "count": len(active)}})
+
+        @app.get("/api/gate-synthesis/gates/by-target/{target}")
+        async def gs_get_gates_by_target(target: str):
+            """Get gates for specific target."""
+            gates = _gs_glm.get_active_gates_for_target(target)
+            return JSONResponse({"success": True, "data": {"target": target, "gates": [g.to_dict() for g in gates], "count": len(gates)}})
+
+        @app.get("/api/gate-synthesis/gates/{gate_id}")
+        async def gs_get_gate(gate_id: str):
+            """Get specific gate."""
+            gate = _gs_glm.registry.get_gate(gate_id)
+            if not gate:
+                return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Gate not found"}}, status_code=404)
+            return JSONResponse({"success": True, "data": {"gate": gate.to_dict()}})
+
+        @app.get("/api/gate-synthesis/statistics")
+        async def gs_statistics():
+            """Get gate statistics."""
+            return JSONResponse({"success": True, "data": {"statistics": _gs_glm.get_gate_statistics()}})
+
+        @app.get("/api/gate-synthesis/logs/activation")
+        async def gs_activation_log(request: Request):
+            """Get activation log."""
+            limit = request.query_params.get("limit")
+            log = _gs_glm.get_activation_log(int(limit) if limit else None)
+            return JSONResponse({"success": True, "data": {"log": log, "count": len(log)}})
+
+        @app.get("/api/gate-synthesis/logs/retirement")
+        async def gs_retirement_log(request: Request):
+            """Get retirement log."""
+            limit = request.query_params.get("limit")
+            log = _gs_glm.get_retirement_log(int(limit) if limit else None)
+            return JSONResponse({"success": True, "data": {"log": log, "count": len(log)}})
+
+        @app.post("/api/gate-synthesis/artifacts/add")
+        async def gs_add_artifact(request: Request):
+            """Add artifact to graph."""
+            try:
+                data = await request.json()
+                node = _ArtifactNode(id=data.get("id", ""), type=_ArtifactType(data["type"]), source=_ArtifactSource(data["source"]), content=data["content"], confidence_weight=data.get("confidence_weight", 1.0), dependencies=data.get("dependencies", []))
+                _gs_artifact_graph.add_node(node)
+                return JSONResponse({"success": True, "data": {"artifact_id": node.id}})
+            except Exception as exc:
+                logger.error("gs_add_artifact error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.get("/api/gate-synthesis/health")
+        async def gs_health():
+            """Gate synthesis health check."""
+            return JSONResponse({"success": True, "data": {"status": "healthy", "service": "gate-synthesis-engine", "timestamp": _now_iso(), "components": {"failure_mode_enumerator": "operational", "murphy_estimator": "operational", "gate_generator": "operational", "gate_lifecycle_manager": "operational"}}})
+
+        @app.post("/api/gate-synthesis/reset")
+        async def gs_reset():
+            """Reset all gate synthesis state (for testing)."""
+            nonlocal _gs_artifact_graph, _gs_glm
+            _gs_artifact_graph = _ArtifactGraph()
+            _gs_glm = _GLM()
+            return JSONResponse({"success": True, "data": {"message": "State reset successfully"}})
+
+        logger.info("Gate Synthesis API registered at /api/gate-synthesis/*")
+    except Exception as _gs_exc:
+        logger.warning("Gate Synthesis API unavailable: %s", _gs_exc)
+
+    # ── Cost Optimization Advisor (was: src/cost_optimization_advisor.py) ──
+
+    try:
+        from src.cost_optimization_advisor import CostOptimizationAdvisor as _COAAdvisor
+
+        _coa = _COAAdvisor()
+
+        @app.post("/api/coa/resources")
+        async def coa_register_resource(request: Request):
+            """Register a cloud resource."""
+            try:
+                b = await request.json() or {}
+                if not b.get("name"):
+                    return JSONResponse({"success": False, "error": {"code": "MISSING_FIELD", "message": "Missing required field: name"}}, status_code=400)
+                r = _coa.register_resource(name=b["name"], provider=b.get("provider", "aws"), resource_kind=b.get("resource_kind", "compute"), region=b.get("region", ""), monthly_cost=float(b.get("monthly_cost", 0)), currency=b.get("currency", "USD"), utilization_pct=float(b.get("utilization_pct", 0)), tags=b.get("tags", {}))
+                return JSONResponse({"success": True, "data": r.to_dict()}, status_code=201)
+            except Exception as exc:
+                logger.error("coa_register_resource error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.get("/api/coa/resources")
+        async def coa_list_resources(request: Request):
+            """List cloud resources."""
+            a = request.query_params
+            resources = _coa.list_resources(provider=a.get("provider"), resource_kind=a.get("resource_kind"), region=a.get("region"), limit=int(a.get("limit", 100)))
+            return JSONResponse({"success": True, "data": [r.to_dict() for r in resources]})
+
+        @app.get("/api/coa/resources/{resource_id}")
+        async def coa_get_resource(resource_id: str):
+            """Get a cloud resource."""
+            res = _coa.get_resource(resource_id)
+            if res is None:
+                return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Resource not found"}}, status_code=404)
+            return JSONResponse({"success": True, "data": res.to_dict()})
+
+        @app.put("/api/coa/resources/{resource_id}")
+        async def coa_update_resource(resource_id: str, request: Request):
+            """Update a cloud resource."""
+            b = await request.json() or {}
+            res = _coa.update_resource(resource_id, monthly_cost=b.get("monthly_cost"), utilization_pct=b.get("utilization_pct"))
+            if res is None:
+                return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Resource not found"}}, status_code=404)
+            return JSONResponse({"success": True, "data": res.to_dict()})
+
+        @app.delete("/api/coa/resources/{resource_id}")
+        async def coa_delete_resource(resource_id: str):
+            """Delete a cloud resource."""
+            if not _coa.delete_resource(resource_id):
+                return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Resource not found"}}, status_code=404)
+            return JSONResponse({"success": True, "data": {"deleted": True}})
+
+        @app.post("/api/coa/spend")
+        async def coa_record_spend(request: Request):
+            """Record a spend entry."""
+            try:
+                b = await request.json() or {}
+                for k in ("resource_id", "amount", "period"):
+                    if not b.get(k) and b.get(k) != 0:
+                        return JSONResponse({"success": False, "error": {"code": "MISSING_FIELD", "message": f"Missing required field: {k}"}}, status_code=400)
+                rec = _coa.record_spend(resource_id=b["resource_id"], amount=float(b["amount"]), period=b["period"], category=b.get("category", ""), currency=b.get("currency", "USD"))
+                return JSONResponse({"success": True, "data": rec.to_dict()}, status_code=201)
+            except Exception as exc:
+                logger.error("coa_record_spend error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.get("/api/coa/spend")
+        async def coa_get_spend(request: Request):
+            """Get spend records."""
+            a = request.query_params
+            records = _coa.get_spend(resource_id=a.get("resource_id"), provider=a.get("provider"), period=a.get("period"), limit=int(a.get("limit", 100)))
+            return JSONResponse({"success": True, "data": [r.to_dict() for r in records]})
+
+        @app.post("/api/coa/analyze/{resource_id}")
+        async def coa_analyze_rightsizing(resource_id: str):
+            """Analyze rightsizing for a resource."""
+            rec = _coa.analyze_rightsizing(resource_id)
+            return JSONResponse({"success": True, "data": rec.to_dict()})
+
+        @app.post("/api/coa/spot/scan")
+        async def coa_scan_spot(request: Request):
+            """Scan for spot instance opportunities."""
+            b = {}
+            try:
+                b = await request.json() or {}
+            except Exception:
+                pass
+            opps = _coa.scan_spot_opportunities(provider=b.get("provider"), region=b.get("region"))
+            return JSONResponse({"success": True, "data": [o.to_dict() for o in opps]})
+
+        @app.get("/api/coa/recommendations")
+        async def coa_get_recommendations(request: Request):
+            """Get cost optimization recommendations."""
+            a = request.query_params
+            recs = _coa.get_recommendations(resource_id=a.get("resource_id"), severity=a.get("severity"), status=a.get("status"), limit=int(a.get("limit", 100)))
+            return JSONResponse({"success": True, "data": [r.to_dict() for r in recs]})
+
+        @app.put("/api/coa/recommendations/{rec_id}/status")
+        async def coa_update_rec_status(rec_id: str, request: Request):
+            """Update recommendation status."""
+            b = await request.json() or {}
+            if not b.get("status"):
+                return JSONResponse({"success": False, "error": {"code": "MISSING_FIELD", "message": "Missing required field: status"}}, status_code=400)
+            rec = _coa.update_recommendation_status(rec_id, b["status"])
+            if rec is None:
+                return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Recommendation not found"}}, status_code=404)
+            return JSONResponse({"success": True, "data": rec.to_dict()})
+
+        @app.post("/api/coa/budgets")
+        async def coa_set_budget(request: Request):
+            """Set a budget."""
+            b = await request.json() or {}
+            for k in ("budget_name", "budget_limit"):
+                if not b.get(k) and b.get(k) != 0:
+                    return JSONResponse({"success": False, "error": {"code": "MISSING_FIELD", "message": f"Missing required field: {k}"}}, status_code=400)
+            ba = _coa.set_budget(budget_name=b["budget_name"], budget_limit=float(b["budget_limit"]))
+            return JSONResponse({"success": True, "data": ba.to_dict()}, status_code=201)
+
+        @app.get("/api/coa/budgets/check")
+        async def coa_check_budgets():
+            """Check budget alerts."""
+            alerts = _coa.check_budgets()
+            return JSONResponse({"success": True, "data": [a.to_dict() for a in alerts]})
+
+        @app.get("/api/coa/summary")
+        async def coa_summary(request: Request):
+            """Get cost summary."""
+            summary = _coa.get_cost_summary(provider=request.query_params.get("provider"))
+            return JSONResponse({"success": True, "data": summary.to_dict()})
+
+        @app.post("/api/coa/export")
+        async def coa_export():
+            """Export COA state."""
+            return JSONResponse({"success": True, "data": _coa.export_state()})
+
+        @app.get("/api/coa/health")
+        async def coa_health():
+            """COA health check."""
+            resources = _coa.list_resources()
+            return JSONResponse({"success": True, "data": {"status": "healthy", "module": "COA-001", "tracked_resources": len(resources)}})
+
+        logger.info("Cost Optimization Advisor API registered at /api/coa/*")
+    except Exception as _coa_exc:
+        logger.warning("Cost Optimization Advisor API unavailable: %s", _coa_exc)
+
+    # ── Compliance as Code Engine (was: src/compliance_as_code_engine.py) ──
+
+    try:
+        from src.compliance_as_code_engine import ComplianceAsCodeEngine as _CCEEngine
+
+        _cce = _CCEEngine()
+
+        @app.post("/api/cce/rules")
+        async def cce_create_rule(request: Request):
+            """Create a compliance rule."""
+            try:
+                b = await request.json() or {}
+                for k in ("name", "expression"):
+                    if not b.get(k):
+                        return JSONResponse({"success": False, "error": {"code": "MISSING_FIELD", "message": f"Missing required field: {k}"}}, status_code=400)
+                r = _cce.create_rule(name=b["name"], description=b.get("description", ""), framework=b.get("framework", "custom"), severity=b.get("severity", "medium"), expression=b["expression"], remediation=b.get("remediation", ""), tags=b.get("tags", {}))
+                return JSONResponse({"success": True, "data": r.to_dict()}, status_code=201)
+            except Exception as exc:
+                logger.error("cce_create_rule error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.get("/api/cce/rules")
+        async def cce_list_rules(request: Request):
+            """List compliance rules."""
+            a = request.query_params
+            rules = _cce.list_rules(framework=a.get("framework"), severity=a.get("severity"), status=a.get("status"), limit=int(a.get("limit", 100)))
+            return JSONResponse({"success": True, "data": [r.to_dict() for r in rules]})
+
+        @app.get("/api/cce/rules/{rule_id}")
+        async def cce_get_rule(rule_id: str):
+            """Get a compliance rule."""
+            rule = _cce.get_rule(rule_id)
+            if rule is None:
+                return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Rule not found"}}, status_code=404)
+            return JSONResponse({"success": True, "data": rule.to_dict()})
+
+        @app.put("/api/cce/rules/{rule_id}")
+        async def cce_update_rule(rule_id: str, request: Request):
+            """Update a compliance rule."""
+            b = await request.json() or {}
+            rule = _cce.update_rule(rule_id, status=b.get("status"), severity=b.get("severity"), expression=b.get("expression"), remediation=b.get("remediation"))
+            if rule is None:
+                return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Rule not found"}}, status_code=404)
+            return JSONResponse({"success": True, "data": rule.to_dict()})
+
+        @app.delete("/api/cce/rules/{rule_id}")
+        async def cce_delete_rule(rule_id: str):
+            """Delete a compliance rule."""
+            if not _cce.delete_rule(rule_id):
+                return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Rule not found"}}, status_code=404)
+            return JSONResponse({"success": True, "data": {"deleted": True}})
+
+        @app.post("/api/cce/check/{rule_id}")
+        async def cce_check_rule(rule_id: str, request: Request):
+            """Run a single compliance rule check."""
+            b = await request.json() or {}
+            exe = _cce.check_rule(rule_id, b)
+            return JSONResponse({"success": True, "data": exe.to_dict()})
+
+        @app.post("/api/cce/scan")
+        async def cce_run_scan(request: Request):
+            """Run a compliance scan."""
+            try:
+                b = await request.json() or {}
+                if not b.get("name"):
+                    return JSONResponse({"success": False, "error": {"code": "MISSING_FIELD", "message": "Missing required field: name"}}, status_code=400)
+                scan = _cce.run_scan(name=b["name"], framework_filter=b.get("framework_filter"), context=b.get("context", {}))
+                return JSONResponse({"success": True, "data": scan.to_dict()}, status_code=201)
+            except Exception as exc:
+                logger.error("cce_run_scan error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.get("/api/cce/scans")
+        async def cce_list_scans(request: Request):
+            """List compliance scans."""
+            a = request.query_params
+            scans = _cce.list_scans(framework=a.get("framework"), status=a.get("status"), limit=int(a.get("limit", 50)))
+            return JSONResponse({"success": True, "data": [s.to_dict() for s in scans]})
+
+        @app.get("/api/cce/scans/{scan_id}")
+        async def cce_get_scan(scan_id: str):
+            """Get a compliance scan."""
+            scan = _cce.get_scan(scan_id)
+            if scan is None:
+                return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Scan not found"}}, status_code=404)
+            return JSONResponse({"success": True, "data": scan.to_dict()})
+
+        @app.get("/api/cce/scans/{scan_id}/report")
+        async def cce_generate_report(scan_id: str):
+            """Generate compliance report for a scan."""
+            report = _cce.generate_report(scan_id)
+            if report is None:
+                return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Scan not found"}}, status_code=404)
+            return JSONResponse({"success": True, "data": report.to_dict()})
+
+        @app.post("/api/cce/remediations")
+        async def cce_create_remediation(request: Request):
+            """Create a remediation action."""
+            try:
+                b = await request.json() or {}
+                for k in ("rule_id", "scan_id", "description"):
+                    if not b.get(k):
+                        return JSONResponse({"success": False, "error": {"code": "MISSING_FIELD", "message": f"Missing required field: {k}"}}, status_code=400)
+                action = _cce.create_remediation(rule_id=b["rule_id"], scan_id=b["scan_id"], description=b["description"], priority=b.get("priority", "medium"), assigned_to=b.get("assigned_to", ""))
+                return JSONResponse({"success": True, "data": action.to_dict()}, status_code=201)
+            except Exception as exc:
+                logger.error("cce_create_remediation error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.get("/api/cce/remediations")
+        async def cce_list_remediations(request: Request):
+            """List remediation actions."""
+            a = request.query_params
+            completed = None
+            if a.get("completed") is not None:
+                completed = a.get("completed", "").lower() == "true"
+            actions = _cce.list_remediations(rule_id=a.get("rule_id"), scan_id=a.get("scan_id"), completed=completed, limit=int(a.get("limit", 100)))
+            return JSONResponse({"success": True, "data": [r.to_dict() for r in actions]})
+
+        @app.post("/api/cce/remediations/{remediation_id}/complete")
+        async def cce_complete_remediation(remediation_id: str):
+            """Complete a remediation action."""
+            action = _cce.complete_remediation(remediation_id)
+            if action is None:
+                return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Remediation not found"}}, status_code=404)
+            return JSONResponse({"success": True, "data": action.to_dict()})
+
+        @app.get("/api/cce/summary")
+        async def cce_summary(request: Request):
+            """Get compliance summary."""
+            summary = _cce.get_compliance_summary(framework=request.query_params.get("framework"))
+            return JSONResponse({"success": True, "data": summary})
+
+        @app.post("/api/cce/export")
+        async def cce_export():
+            """Export CCE state."""
+            return JSONResponse({"success": True, "data": _cce.export_state()})
+
+        @app.get("/api/cce/health")
+        async def cce_health():
+            """CCE health check."""
+            rules = _cce.list_rules()
+            return JSONResponse({"success": True, "data": {"status": "healthy", "module": "CCE-001", "tracked_rules": len(rules)}})
+
+        logger.info("Compliance as Code Engine API registered at /api/cce/*")
+    except Exception as _cce_exc:
+        logger.warning("Compliance as Code Engine API unavailable: %s", _cce_exc)
+
+    # ── Blockchain Audit Trail (was: src/blockchain_audit_trail.py) ─────────
+
+    try:
+        from src.blockchain_audit_trail import BlockchainAuditTrail as _BATEngine, EntryType as _EntryType
+
+        _bat = _BATEngine()
+
+        @app.get("/api/bat/health")
+        async def bat_health():
+            """BAT health check."""
+            return JSONResponse({"success": True, "data": {"status": "healthy", "module": "BAT-001"}})
+
+        @app.post("/api/bat/entries")
+        async def bat_record_entry(request: Request):
+            """Record an audit entry."""
+            try:
+                b = await request.json() or {}
+                for k in ("entry_type", "actor", "action"):
+                    if not b.get(k):
+                        return JSONResponse({"success": False, "error": {"code": "MISSING_FIELD", "message": f"{k} required"}}, status_code=400)
+                try:
+                    et = _EntryType(b["entry_type"])
+                except ValueError:
+                    return JSONResponse({"success": False, "error": {"code": "INVALID_FIELD", "message": "Invalid entry_type"}}, status_code=400)
+                entry = _bat.record_entry(entry_type=et, actor=b["actor"], action=b["action"], resource=b.get("resource", ""), details=b.get("details", {}), ip_address=b.get("ip_address", ""), outcome=b.get("outcome", "success"))
+                return JSONResponse({"success": True, "data": entry.to_dict()}, status_code=201)
+            except Exception as exc:
+                logger.error("bat_record_entry error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.get("/api/bat/entries/search")
+        async def bat_search_entries(request: Request):
+            """Search audit entries."""
+            a = request.query_params
+            results = _bat.search_entries(entry_type=a.get("entry_type"), actor=a.get("actor"), resource=a.get("resource"), action=a.get("action"), limit=int(a.get("limit", 100)))
+            return JSONResponse({"success": True, "data": [e.to_dict() for e in results]})
+
+        @app.get("/api/bat/blocks")
+        async def bat_list_blocks(request: Request):
+            """List blockchain blocks."""
+            a = request.query_params
+            blocks = _bat.list_blocks(limit=int(a.get("limit", 50)), offset=int(a.get("offset", 0)))
+            return JSONResponse({"success": True, "data": [bl.to_dict() for bl in blocks]})
+
+        @app.get("/api/bat/blocks/seal")
+        async def bat_get_seal_info():
+            """Get seal info (GET variant)."""
+            return JSONResponse({"success": True, "data": {"message": "Use POST /api/bat/blocks/seal to seal the current block"}})
+
+        @app.post("/api/bat/blocks/seal")
+        async def bat_seal_block():
+            """Seal the current block."""
+            bl = _bat.seal_current_block()
+            if not bl:
+                return JSONResponse({"success": False, "error": {"code": "BAT_EMPTY", "message": "No pending entries"}}, status_code=400)
+            return JSONResponse({"success": True, "data": bl.to_dict()}, status_code=201)
+
+        @app.get("/api/bat/blocks/index/{idx}")
+        async def bat_get_block_by_index(idx: int):
+            """Get block by index."""
+            bl = _bat.get_block_by_index(idx)
+            if not bl:
+                return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Block not found at index"}}, status_code=404)
+            return JSONResponse({"success": True, "data": bl.to_dict()})
+
+        @app.get("/api/bat/blocks/{block_id}")
+        async def bat_get_block(block_id: str):
+            """Get a specific block."""
+            bl = _bat.get_block(block_id)
+            if not bl:
+                return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Block not found"}}, status_code=404)
+            return JSONResponse({"success": True, "data": bl.to_dict()})
+
+        @app.get("/api/bat/verify")
+        async def bat_verify_chain():
+            """Verify blockchain integrity."""
+            result = _bat.verify_chain()
+            return JSONResponse({"success": True, "data": result.to_dict()})
+
+        @app.get("/api/bat/export")
+        async def bat_export_chain():
+            """Export the full blockchain."""
+            return JSONResponse({"success": True, "data": _bat.export_chain()})
+
+        @app.get("/api/bat/stats")
+        async def bat_stats():
+            """Get blockchain statistics."""
+            return JSONResponse({"success": True, "data": _bat.get_stats().to_dict()})
+
+        logger.info("Blockchain Audit Trail API registered at /api/bat/*")
+    except Exception as _bat_exc:
+        logger.warning("Blockchain Audit Trail API unavailable: %s", _bat_exc)
+
+    # ══════════════════════════════════════════════════════════════════════
+    # AUTH MIDDLEWARE — unified X-API-Key enforcement for all /api/* routes
+    # Permissive when MURPHY_API_KEY env var is not set (development mode).
+    # ══════════════════════════════════════════════════════════════════════
+
+    from starlette.middleware.base import BaseHTTPMiddleware as _BHMW
+
+    class _APIKeyMiddleware(_BHMW):
+        """Unified API key enforcement for all /api/* routes."""
+
+        EXEMPT_PATHS = {"/api/health", "/api/info", "/api/manifest"}
+
+        async def dispatch(self, request: Request, call_next):
+            if request.url.path.startswith("/api/") and request.url.path not in self.EXEMPT_PATHS:
+                expected_key = os.environ.get("MURPHY_API_KEY", "")
+                if expected_key:
+                    api_key = request.headers.get("x-api-key", "")
+                    if api_key != expected_key:
+                        return JSONResponse(
+                            {"success": False, "error": {"code": "AUTH_REQUIRED", "message": "Valid X-API-Key header required"}},
+                            status_code=401,
+                        )
+            return await call_next(request)
+
+    app.add_middleware(_APIKeyMiddleware)
+
+    # ══════════════════════════════════════════════════════════════════════
+    # EXCEPTION HANDLERS — normalise all error formats into standard envelope
+    # ══════════════════════════════════════════════════════════════════════
+
+    from fastapi import Request as _FARequest
+    from fastapi.exceptions import RequestValidationError as _RVE
+    from starlette.exceptions import HTTPException as _SHTTPException
+
+    @app.exception_handler(_SHTTPException)
+    async def _http_exception_handler(_req: _FARequest, exc: _SHTTPException):
+        return JSONResponse(
+            {"success": False, "error": {"code": f"HTTP_{exc.status_code}", "message": str(exc.detail)}},
+            status_code=exc.status_code,
+        )
+
+    @app.exception_handler(_RVE)
+    async def _validation_exception_handler(_req: _FARequest, exc: _RVE):
+        return JSONResponse(
+            {"success": False, "error": {"code": "VALIDATION_ERROR", "message": str(exc)}},
+            status_code=422,
+        )
+
+    @app.exception_handler(Exception)
+    async def _general_exception_handler(_req: _FARequest, exc: Exception):
+        logger.error("Unhandled exception: %s", exc, exc_info=True)
+        return JSONResponse(
+            {"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}},
+            status_code=500,
+        )
+
+    # ══════════════════════════════════════════════════════════════════════
+    # STUB ENDPOINTS — frontend calls that are not yet fully implemented
+    # All return 501 Not Implemented with a clear error code.
+    # ══════════════════════════════════════════════════════════════════════
+
+    @app.post("/api/analyze-domain")
+    async def stub_analyze_domain():
+        """Stub: analyze domain not yet implemented."""
+        return JSONResponse({"success": False, "error": {"code": "NOT_IMPLEMENTED", "message": "Analyze domain not yet implemented"}}, status_code=501)
+
+    # ══════════════════════════════════════════════════════════════════════
+    # API MANIFEST — machine-readable registry of all registered endpoints
+    # ══════════════════════════════════════════════════════════════════════
+
+    @app.get("/api/manifest")
+    async def api_manifest():
+        """Return a machine-readable manifest of all registered API endpoints."""
+        routes = []
+        for route in app.routes:
+            if hasattr(route, "path") and route.path.startswith("/api/"):
+                methods = sorted((route.methods or set()) - {"HEAD", "OPTIONS"})
+                routes.append({
+                    "path": route.path,
+                    "methods": methods,
+                    "name": getattr(route, "name", ""),
+                })
+        return JSONResponse({"success": True, "data": {"endpoints": sorted(routes, key=lambda r: r["path"])}})
+
     return app
 
 
