@@ -110,9 +110,9 @@ Located at `tests/e2e/`. These tests spin up a real FastAPI test client (`TestCl
 ```python
 # tests/e2e/test_api_endpoints_e2e.py
 from fastapi.testclient import TestClient
-from murphy_system_1.0_runtime import app
+from src.runtime.app import create_app
 
-client = TestClient(app)
+client = TestClient(create_app())
 
 def test_health():
     resp = client.get("/api/health")
@@ -252,9 +252,9 @@ from fastapi.testclient import TestClient
 
 os.environ.setdefault("MURPHY_ENV", "test")
 
-from murphy_system_1.0_runtime import app  # noqa: E402
+from src.runtime.app import create_app  # noqa: E402
 
-client = TestClient(app)
+client = TestClient(create_app())
 
 
 def test_my_endpoint_returns_200():
@@ -414,7 +414,7 @@ omit =
     */tests/*
     */conftest.py
     setup.py
-    murphy_system_1.0_runtime.py   # entry point — covered by e2e tests
+    murphy_system_1.0_runtime.py   # thin entry point — covered by e2e tests
 ```
 
 ---

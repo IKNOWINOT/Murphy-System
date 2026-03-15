@@ -16,28 +16,33 @@ and edge cases.
 ## Dependency Graph (Top-Level)
 
 ```
-murphy_system_1.0_runtime.py
-├── src/llm_controller.py
-│   └── src/llm_integration_layer.py
-│       └── src/safe_llm_wrapper.py
-├── src/confidence_engine/
-│   ├── src/domain_engine.py
-│   └── src/inference_gate_engine.py
-├── src/gate_execution_wiring.py
-│   ├── src/governance_kernel.py
-│   ├── src/compliance_engine.py
-│   └── src/flask_security.py / fastapi_security.py
-├── src/self_fix_loop.py
-│   ├── src/persistence_manager.py
-│   └── src/event_backbone.py
-├── src/module_compiler/
-│   └── src/capability_map.py
-├── src/niche_business_generator.py
-│   └── src/niche_viability_gate.py
-│       ├── src/mss_controls.py
-│       └── src/inference_gate_engine.py
-└── src/aionmind/
-    └── src/compute_plane/
+murphy_system_1.0_runtime.py  (thin entry-point)
+└── src/runtime/
+    ├── app.py               (FastAPI application factory, all API endpoints)
+    ├── murphy_system_core.py (MurphySystem orchestration class)
+    ├── living_document.py   (LivingDocument block-command model)
+    └── _deps.py             (shared dependency imports)
+        ├── src/llm_controller.py
+        │   └── src/llm_integration_layer.py
+        │       └── src/safe_llm_wrapper.py
+        ├── src/confidence_engine/
+        │   ├── src/domain_engine.py
+        │   └── src/inference_gate_engine.py
+        ├── src/gate_execution_wiring.py
+        │   ├── src/governance_kernel.py
+        │   ├── src/compliance_engine.py
+        │   └── src/flask_security.py / fastapi_security.py
+        ├── src/self_fix_loop.py
+        │   ├── src/persistence_manager.py
+        │   └── src/event_backbone.py
+        ├── src/module_compiler/
+        │   └── src/capability_map.py
+        ├── src/niche_business_generator.py
+        │   └── src/niche_viability_gate.py
+        │       ├── src/mss_controls.py
+        │       └── src/inference_gate_engine.py
+        └── src/aionmind/
+            └── src/compute_plane/
 ```
 
 ---
