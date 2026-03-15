@@ -315,7 +315,7 @@ def update_status_md(
 
     content = status_path.read_text(encoding="utf-8")
 
-    # Locate the G-009 row and update its status column
+    # Locate the G-009 row and update its status column (per-phase)
     for entry in PARITY_TESTS:
         phase = entry["phase"]
         name = entry["name"]
@@ -327,8 +327,10 @@ def update_status_md(
         status_icon = "✅" if passed else "❌"
         test_summary = f"{tests - failed}/{tests} tests passing" if tests > 0 else "0 tests run"
 
-        # Build the acceptance criteria line pattern for this phase
-        # We look for a Phase N marker and update the line
+        # Match table rows referencing this phase number, e.g.:
+        #   | G-NNN | ... Phase N ... | priority | action path |
+        # Group 1 captures everything up to and including the last "|" before the
+        # action-path column; group 2 captures the rest of the row up to the next "|".
         phase_pattern = re.compile(
             rf"(\|\s*(?:G-\d+|PARITY-{phase})\s*\|[^|]*Phase\s+{phase}[^|]*\|[^|]*\|)([^|]*\|)",
             re.IGNORECASE,
@@ -338,13 +340,16 @@ def update_status_md(
         if n > 0:
             content = new_content
 
-    # Update the G-009 overall row
     overall_passed = results.get("passed", False)
     overall_icon = "✅" if overall_passed else "❌"
     total = results.get("total", 0)
     passed_count = results.get("passed_count", 0)
 
-    # Replace G-009 action path with latest run result
+    # Update the G-009 overall row.
+    # The row uses strikethrough (~~G-009~~) because the gap was previously
+    # marked resolved; we overwrite the action-path column with the latest
+    # automated test result so the status always reflects real evidence.
+    # Pattern: captures (prefix up to last "|"), (action-path text), (closing "|").
     g009_pattern = re.compile(
         r"(\|\s*~~G-009~~\s*\|[^|]*\|[^|]*\|)(.*?)(\|)",
         re.DOTALL,
