@@ -38,7 +38,7 @@ addopts = "--cov=src --cov-fail-under=85 --cov-report=term-missing"
 markers = [
     "sla: SLA enforcement tests that gate production releases",
     "benchmark: Performance benchmark tests",
-    "parity: Management parity acceptance tests validating Phases 2–8 feature completeness",
+    "storyline: Storyline conformance tests — validates each chapter maps to working code",
 ]
 
 [tool.mypy]

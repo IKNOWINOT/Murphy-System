@@ -501,39 +501,45 @@ top -p $(pgrep -f murphy_system_1.0_runtime)
 
 **Diagnosis**:
 ```bash
-# Check config file exists
-ls -la config/config.yaml
+# Check YAML config files exist
+ls -la config/murphy.yaml
+ls -la config/engines.yaml
 
 # Validate YAML syntax
-python -c "import yaml; yaml.safe_load(open('config/config.yaml'))"
+python -c "import yaml; yaml.safe_load(open('config/murphy.yaml'))"
 ```
 
 **Solutions**:
 
-1. **Verify Config File**:
+1. **Verify Config Files**:
    ```bash
-   # Check file exists
-   ls -l config/config.yaml
+   # Check files exist
+   ls -l config/murphy.yaml config/engines.yaml
 
    # Check permissions
-   chmod 644 config/config.yaml
+   chmod 644 config/murphy.yaml config/engines.yaml
    ```
 
 2. **Validate YAML Syntax**:
    ```bash
    # Validate YAML
-   python -c "import yaml; yaml.safe_load(open('config/config.yaml'))"
+   python -c "import yaml; yaml.safe_load(open('config/murphy.yaml'))"
    ```
 
-3. **Check Config Path**:
+3. **Override via Environment Variable**:
    ```bash
-   # Specify config explicitly
-   python murphy_system_1.0_runtime.py --config config/config.yaml
+   # Environment variables always override YAML values
+   # Use namespaced syntax: MURPHY_<SECTION>__<KEY>
+   export MURPHY_API__PORT=9000
+   export MURPHY_THRESHOLDS__CONFIDENCE=0.90
+   python murphy_system_1.0_runtime.py
    ```
 
 4. **Use Environment Variables**:
    ```bash
-   export MURPHY_CONFIG=/path/to/config.yaml
+   # Legacy flat names also work
+   export LOG_LEVEL=DEBUG
+   export MURPHY_LLM_PROVIDER=groq
    python murphy_system_1.0_runtime.py
    ```
 
@@ -547,40 +553,41 @@ python -c "import yaml; yaml.safe_load(open('config/config.yaml'))"
 
 **Diagnosis**:
 ```bash
-# Check config file
-cat config/config.yaml
+# Check config files
+cat config/murphy.yaml
+cat config/engines.yaml
 ```
 
 **Solutions**:
 
 1. **Validate Configuration**:
    ```yaml
-   # Check values are valid
-   server:
-     port: 8000  # Must be 1-65535
-     workers: 8  # Must be positive integer
+   # config/murphy.yaml — check values are valid
+   api:
+     port: 8000          # Must be 1-65535
+   thresholds:
+     confidence: 0.85    # Must be 0.0–1.0
    ```
 
 2. **Check Data Types**:
    ```yaml
    # Ensure correct types
    cache:
-     enabled: true  # boolean
-     level: 3  # integer
-     max_size: 1024  # integer
+     enabled: true   # boolean
+     ttl: 3600       # integer (seconds)
    ```
 
 3. **Use Example Config**:
    ```bash
-   # Start with example
-   cp config/config.example.yaml config/config.yaml
+   # Start from the annotated example
+   cp config/murphy.yaml.example config/murphy.yaml
    # Then modify
    ```
 
 4. **Validate with Schema**:
    ```python
    from pydantic import BaseModel
-   
+
    class Config(BaseModel):
        port: int
        workers: int
