@@ -528,3 +528,84 @@ class TestThreadSafety:
         for t in threads:
             t.join()
         assert errors == []
+
+
+# ---------------------------------------------------------------------------
+# Founder infrastructure swarm session
+# ---------------------------------------------------------------------------
+
+class TestFounderInfraSession:
+    def test_returns_session_dict(self, swarm_permissive):
+        result = swarm_permissive.start_founder_infra_session()
+        assert "session_id" in result
+        assert result["founder_gated"] is True
+        assert result["focus_area"] == "general"
+
+    def test_custom_focus_area(self, swarm_permissive):
+        result = swarm_permissive.start_founder_infra_session(
+            focus_area="security"
+        )
+        assert result["focus_area"] == "security"
+
+    def test_invalid_focus_area_raises(self, swarm_permissive):
+        with pytest.raises(ValueError, match="focus_area"):
+            swarm_permissive.start_founder_infra_session(focus_area="invalid")
+
+    def test_objectives_in_action_plan(self, swarm_permissive):
+        result = swarm_permissive.start_founder_infra_session(
+            objectives=["Improve test coverage", "Harden auth module"]
+        )
+        assert len(result["action_plan"]) == 2
+        assert result["action_plan"][0]["objective"] == "Improve test coverage"
+        assert result["action_plan"][1]["objective"] == "Harden auth module"
+
+    def test_agents_activated(self, swarm_permissive):
+        result = swarm_permissive.start_founder_infra_session()
+        assert len(result["agents_active"]) >= 5
+        roles = {a["role"] for a in result["agents_active"]}
+        assert "architect" in roles
+        assert "code_gen" in roles
+        assert "deploy" in roles
+
+    def test_recommendations_included(self, swarm_permissive):
+        result = swarm_permissive.start_founder_infra_session()
+        assert isinstance(result["recommendations"], list)
+
+    def test_session_retrievable(self, swarm_permissive):
+        result = swarm_permissive.start_founder_infra_session()
+        session = swarm_permissive.get_session(result["session_id"])
+        assert session is not None
+        assert session.session_id == result["session_id"]
+
+    def test_audit_log_entry(self, swarm_permissive):
+        swarm_permissive.start_founder_infra_session()
+        log = swarm_permissive.get_audit_log()
+        actions = [e["action"] for e in log]
+        assert "start_founder_infra_session" in actions
+
+
+# ---------------------------------------------------------------------------
+# list_proposals / get_session helpers
+# ---------------------------------------------------------------------------
+
+class TestListProposals:
+    def test_initially_empty(self, swarm_permissive):
+        assert swarm_permissive.list_proposals() == []
+
+    def test_after_propose(self, swarm_permissive):
+        swarm_permissive.propose_change("change A")
+        swarm_permissive.propose_change("change B")
+        proposals = swarm_permissive.list_proposals()
+        assert len(proposals) == 2
+        assert all("proposal_id" in p for p in proposals)
+
+
+class TestGetSession:
+    def test_returns_none_for_unknown(self, swarm_permissive):
+        assert swarm_permissive.get_session("nonexistentid123") is None
+
+    def test_returns_session_after_swarm_on_project(self, swarm_permissive):
+        session = swarm_permissive.swarm_on_project({"repo": "test"})
+        retrieved = swarm_permissive.get_session(session.session_id)
+        assert retrieved is not None
+        assert retrieved.session_id == session.session_id

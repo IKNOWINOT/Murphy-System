@@ -18,6 +18,7 @@ from src.runtime._deps import (
     Dict,
     # Web framework
     FastAPI,
+    HTTPException,
     # Image / integration types
     ImageRequest,
     ImageStyle,
@@ -920,6 +921,15 @@ def create_app() -> FastAPI:
             {"command": "signup", "category": "auth", "description": "Create a new Murphy account", "api": "/api/auth/signup", "ui": "/ui/signup"},
             {"command": "oauth google", "category": "auth", "description": "Sign up or login with Google", "api": "/api/auth/oauth/google", "ui": "/ui/signup"},
             {"command": "oauth github", "category": "auth", "description": "Sign up or login with GitHub", "api": "/api/auth/oauth/github", "ui": "/ui/signup"},
+            # ── Swarm (Founder Infrastructure) ──────────────────────
+            {"command": "swarm session start", "category": "swarm", "description": "Start a founder-gated infrastructure swarm session", "api": "/api/swarm/founder/session", "ui": "/ui/terminal-architect"},
+            {"command": "swarm session status", "category": "swarm", "description": "Get status of a swarm session", "api": "/api/swarm/founder/session/{id}", "ui": "/ui/terminal-architect"},
+            {"command": "swarm propose", "category": "swarm", "description": "Propose an infrastructure change via the swarm", "api": "/api/swarm/founder/propose", "ui": "/ui/terminal-architect"},
+            {"command": "swarm execute", "category": "swarm", "description": "Execute an approved swarm proposal", "api": "/api/swarm/founder/execute/{id}", "ui": "/ui/terminal-architect"},
+            {"command": "swarm agents", "category": "swarm", "description": "List active swarm agents", "api": "/api/swarm/founder/agents", "ui": "/ui/terminal-architect"},
+            {"command": "swarm recommendations", "category": "swarm", "description": "Get infrastructure improvement recommendations", "api": "/api/swarm/founder/recommendations", "ui": "/ui/terminal-architect"},
+            {"command": "swarm proposals", "category": "swarm", "description": "List all swarm proposals", "api": "/api/swarm/founder/proposals", "ui": "/ui/terminal-architect"},
+            {"command": "swarm audit", "category": "swarm", "description": "View swarm audit log", "api": "/api/swarm/founder/audit", "ui": "/ui/terminal-architect"},
         ]
 
         categories = {}
@@ -5265,6 +5275,131 @@ def create_app() -> FastAPI:
             "statements": _account_statements,
             "count": len(_account_statements),
         })
+
+    # ==================== SWARM FOUNDER INFRASTRUCTURE ===================
+
+    try:
+        from src.self_codebase_swarm import SelfCodebaseSwarm
+        _founder_swarm = SelfCodebaseSwarm()
+    except Exception:
+        _founder_swarm = None
+        logger.warning("SelfCodebaseSwarm unavailable — swarm endpoints disabled")
+
+    def _require_founder(request: Request) -> str:
+        """Verify the caller has founder / owner role.
+
+        Returns the role string on success; raises 403 otherwise.
+        """
+        role = (
+            request.headers.get("X-User-Role", "")
+            .strip()
+            .lower()
+        )
+        if role not in ("founder", "founder_admin", "owner"):
+            raise HTTPException(
+                status_code=403,
+                detail="Founder-level access required for swarm infrastructure endpoints",
+            )
+        return role
+
+    @app.post("/api/swarm/founder/session")
+    async def swarm_founder_session(request: Request):
+        """Start a founder-gated infrastructure swarm session on Murphy's own codebase."""
+        _require_founder(request)
+        if _founder_swarm is None:
+            return JSONResponse({"ok": False, "error": "swarm_unavailable"}, status_code=503)
+        body = await request.json()
+        focus_area = body.get("focus_area", "general")
+        objectives = body.get("objectives", [])
+        if not isinstance(objectives, list):
+            objectives = []
+        try:
+            result = _founder_swarm.start_founder_infra_session(
+                focus_area=focus_area,
+                objectives=objectives,
+            )
+        except ValueError as exc:
+            return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
+        return JSONResponse({"ok": True, **result})
+
+    @app.get("/api/swarm/founder/session/{session_id}")
+    async def swarm_founder_session_status(session_id: str, request: Request):
+        """Get the status of a founder swarm session."""
+        _require_founder(request)
+        if _founder_swarm is None:
+            return JSONResponse({"ok": False, "error": "swarm_unavailable"}, status_code=503)
+        session = _founder_swarm.get_session(session_id)
+        if session is None:
+            return JSONResponse({"ok": False, "error": "Session not found"}, status_code=404)
+        return JSONResponse({"ok": True, "session": session.to_dict()})
+
+    @app.post("/api/swarm/founder/propose")
+    async def swarm_founder_propose(request: Request):
+        """Propose an infrastructure change via the swarm (founder only)."""
+        _require_founder(request)
+        if _founder_swarm is None:
+            return JSONResponse({"ok": False, "error": "swarm_unavailable"}, status_code=503)
+        body = await request.json()
+        description = body.get("description", "")
+        if not description:
+            return JSONResponse({"ok": False, "error": "description is required"}, status_code=400)
+        try:
+            proposal = _founder_swarm.propose_change(description)
+        except Exception as exc:
+            return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
+        return JSONResponse({"ok": True, "proposal": proposal.to_dict()})
+
+    @app.post("/api/swarm/founder/execute/{proposal_id}")
+    async def swarm_founder_execute(proposal_id: str, request: Request):
+        """Execute an approved swarm proposal (founder only)."""
+        _require_founder(request)
+        if _founder_swarm is None:
+            return JSONResponse({"ok": False, "error": "swarm_unavailable"}, status_code=503)
+        try:
+            result = _founder_swarm.execute_change(proposal_id)
+        except ValueError as exc:
+            return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
+        return JSONResponse({"ok": True, "result": result.to_dict()})
+
+    @app.get("/api/swarm/founder/agents")
+    async def swarm_founder_agents(request: Request):
+        """List active swarm agents (founder only)."""
+        _require_founder(request)
+        if _founder_swarm is None:
+            return JSONResponse({"ok": False, "error": "swarm_unavailable"}, status_code=503)
+        agents = _founder_swarm.list_agents()
+        return JSONResponse({"ok": True, "agents": agents, "count": len(agents)})
+
+    @app.get("/api/swarm/founder/recommendations")
+    async def swarm_founder_recommendations(request: Request):
+        """Get infrastructure improvement recommendations (founder only)."""
+        _require_founder(request)
+        if _founder_swarm is None:
+            return JSONResponse({"ok": False, "error": "swarm_unavailable"}, status_code=503)
+        recs = _founder_swarm.get_recommendations()
+        return JSONResponse({
+            "ok": True,
+            "recommendations": [r.to_dict() for r in recs],
+            "count": len(recs),
+        })
+
+    @app.get("/api/swarm/founder/proposals")
+    async def swarm_founder_proposals(request: Request):
+        """List all swarm proposals (founder only)."""
+        _require_founder(request)
+        if _founder_swarm is None:
+            return JSONResponse({"ok": False, "error": "swarm_unavailable"}, status_code=503)
+        proposals = _founder_swarm.list_proposals()
+        return JSONResponse({"ok": True, "proposals": proposals, "count": len(proposals)})
+
+    @app.get("/api/swarm/founder/audit")
+    async def swarm_founder_audit(request: Request):
+        """View the swarm audit log (founder only)."""
+        _require_founder(request)
+        if _founder_swarm is None:
+            return JSONResponse({"ok": False, "error": "swarm_unavailable"}, status_code=503)
+        log = _founder_swarm.get_audit_log()
+        return JSONResponse({"ok": True, "audit_log": log, "count": len(log)})
 
     return app
 

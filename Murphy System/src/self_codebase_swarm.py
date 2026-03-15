@@ -1420,6 +1420,17 @@ class SelfCodebaseSwarm:
         with self._lock:
             return self._proposals.get(pid)
 
+    def list_proposals(self) -> List[Dict[str, Any]]:
+        """Return all proposals as serialisable dicts."""
+        with self._lock:
+            return [p.to_dict() for p in self._proposals.values()]
+
+    def get_session(self, session_id: str) -> Optional[SwarmSession]:
+        """Retrieve a swarm session by ID."""
+        sid = _validate_id(session_id, "session_id")
+        with self._lock:
+            return self._sessions.get(sid)
+
     def get_package(self, package_id: str) -> Optional[DeliverablePackage]:
         _validate_id(package_id, "package_id")
         with self._lock:
@@ -1432,6 +1443,106 @@ class SelfCodebaseSwarm:
     def get_audit_log(self) -> List[Dict[str, Any]]:
         with self._lock:
             return list(self._audit_log)
+
+    # ------------------------------------------------------------------
+    # Founder infrastructure swarm session
+    # ------------------------------------------------------------------
+
+    def start_founder_infra_session(
+        self,
+        focus_area: str = "general",
+        objectives: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """Start a founder-gated swarm session targeting Murphy's own infrastructure.
+
+        This creates a coordinated session where the Architect, CodeGen, Test,
+        Review, and Deploy agents collaborate on Murphy System's own codebase
+        changes.  It is intended **exclusively** for founder use.
+
+        Args:
+            focus_area: one of ``"general"``, ``"performance"``,
+                ``"security"``, ``"architecture"``, ``"testing"``,
+                ``"integrations"``.
+            objectives: optional list of human-readable objectives
+                describing what the swarm should work on.
+
+        Returns:
+            Dict containing ``session_id``, agent statuses, initial
+            recommendations, and a proposed action plan.
+        """
+        allowed_areas = {
+            "general", "performance", "security",
+            "architecture", "testing", "integrations",
+        }
+        if focus_area not in allowed_areas:
+            raise ValueError(
+                f"focus_area must be one of {sorted(allowed_areas)}"
+            )
+
+        session = SwarmSession(
+            target_project={
+                "type": "murphy_infrastructure",
+                "focus_area": focus_area,
+                "objectives": list(objectives or []),
+                "founder_gated": True,
+            },
+        )
+        with self._lock:
+            if len(self._sessions) >= _MAX_SESSIONS:
+                raise RuntimeError("SCS-001: session store at capacity")
+            self._sessions[session.session_id] = session
+
+        # Activate agents for this session
+        agent_statuses: List[Dict[str, Any]] = []
+        infra_roles = [
+            AgentRole.ARCHITECT, AgentRole.CODE_GEN,
+            AgentRole.TEST, AgentRole.REVIEW, AgentRole.DEPLOY,
+        ]
+        with self._lock:
+            for agent in self._agents.values():
+                if agent.role in infra_roles:
+                    agent.status = "active"
+                    agent.last_action = f"joined_infra_session_{session.session_id[:8]}"
+                    agent.last_action_at = _ts()
+                    agent_statuses.append(agent.to_dict())
+
+        # Gather recommendations scoped to focus area
+        recs = self.get_recommendations()
+        if focus_area != "general":
+            recs = [r for r in recs if r.category == focus_area] or recs
+
+        # Build action plan from objectives
+        plan_steps: List[Dict[str, Any]] = []
+        for idx, obj in enumerate(objectives or ["Analyse current codebase health"], 1):
+            plan_steps.append({
+                "step": idx,
+                "objective": obj[:500],
+                "status": "pending",
+                "assigned_agents": [
+                    a["agent_id"] for a in agent_statuses[:2]
+                ],
+            })
+
+        self._audit(
+            "start_founder_infra_session",
+            session_id=session.session_id,
+            focus_area=focus_area,
+            objective_count=len(objectives or []),
+        )
+        logger.info(
+            "SCS-001 founder_infra_session started session=%s focus=%s",
+            session.session_id, focus_area,
+        )
+
+        return {
+            "session_id": session.session_id,
+            "focus_area": focus_area,
+            "founder_gated": True,
+            "agents_active": agent_statuses,
+            "recommendations": [r.to_dict() for r in recs[:10]],
+            "action_plan": plan_steps,
+            "created_at": session.created_at,
+        }
 
     # ------------------------------------------------------------------
     # Cut sheet integration (CSE-001)
