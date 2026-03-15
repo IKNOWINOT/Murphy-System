@@ -442,10 +442,12 @@ class MurphyAPI {
           data = await response.text();
         }
 
+        const parsed = this._parseResponse(data, response.status);
         if (!response.ok) {
-          return { ok: false, data, error: data?.error || data?.message || `HTTP ${response.status}`, status: response.status };
+          const errMsg = parsed?.error?.message || parsed?.error || data?.error || data?.message || `HTTP ${response.status}`;
+          return { ok: false, data: parsed, error: errMsg, status: response.status };
         }
-        return { ok: true, data, error: null, status: response.status };
+        return { ok: true, data: parsed, error: null, status: response.status };
 
       } catch (err) {
         clearTimeout(timeoutId);
@@ -463,6 +465,34 @@ class MurphyAPI {
   _backoff(attempt) {
     const ms = Math.min(1000 * Math.pow(2, attempt), 8000);
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Normalise various backend error formats into the standard envelope.
+   * Handles: Flask {status/message}, FastAPI {detail}, custom {error/code},
+   * and the standard {success, data/error} envelope.
+   * @param {*} data  Parsed response body.
+   * @param {number} status HTTP status code.
+   * @returns {{success:boolean, data?:*, error?:{code:string,message:string}}}
+   */
+  _parseResponse(data, status) {
+    if (data === null || data === undefined) return { success: status < 400, data };
+    if (typeof data !== 'object') return { success: status < 400, data };
+    // Already standard envelope
+    if ('success' in data) return data;
+    // Flask legacy: { status: 'error', message: '...' }
+    if ('status' in data && data.status === 'error') {
+      return { success: false, error: { code: 'LEGACY_ERROR', message: data.message || 'Unknown error' } };
+    }
+    // FastAPI validation: { detail: '...' }
+    if ('detail' in data) {
+      return { success: false, error: { code: `HTTP_${status}`, message: String(data.detail) } };
+    }
+    // Custom: { error: '...', code: '...' }
+    if ('error' in data && typeof data.error === 'string') {
+      return { success: false, error: { code: data.code || 'ERROR', message: data.error } };
+    }
+    return { success: status < 400, data };
   }
 }
 
@@ -1826,7 +1856,65 @@ const MurphyMarkdown = {
  *  SECTION 3 — EXPORTS & GLOBALS
  * ═══════════════════════════════════════════════════════════════════ */
 
+/* ── MurphyWebSocket ──────────────────────────────────────────────── */
+/**
+ * WebSocket client with automatic reconnection and exponential backoff.
+ * Usage:
+ *   const ws = new MurphyWebSocket('/ws/terminal')
+ *     .on('message', data => console.log(data))
+ *     .connect();
+ */
+class MurphyWebSocket {
+  constructor(path, options = {}) {
+    this._path = path;
+    this._reconnectDelay = options.reconnectDelay || 3000;
+    this._maxReconnectDelay = options.maxReconnectDelay || 30000;
+    this._currentDelay = this._reconnectDelay;
+    this._handlers = { message: [], open: [], close: [], error: [] };
+    this._ws = null;
+    this._shouldReconnect = true;
+  }
+
+  /** Open the WebSocket connection. Returns `this` for chaining. */
+  connect() {
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    this._ws = new WebSocket(`${protocol}//${location.host}${this._path}`);
+    this._ws.onopen = (e) => { this._currentDelay = this._reconnectDelay; this._emit('open', e); };
+    this._ws.onmessage = (e) => {
+      let data = e.data;
+      try { data = JSON.parse(e.data); } catch (_) { /* leave as string */ }
+      this._emit('message', data);
+    };
+    this._ws.onclose = (e) => { this._emit('close', e); if (this._shouldReconnect) this._reconnect(); };
+    this._ws.onerror = (e) => { this._emit('error', e); };
+    return this;
+  }
+
+  /** Send a JSON-serialisable message. */
+  send(data) {
+    if (this._ws && this._ws.readyState === WebSocket.OPEN) {
+      this._ws.send(JSON.stringify(data));
+    }
+  }
+
+  /** Register an event handler. Returns `this` for chaining. */
+  on(event, handler) { (this._handlers[event] = this._handlers[event] || []).push(handler); return this; }
+
+  /** Close the connection and disable auto-reconnect. */
+  disconnect() { this._shouldReconnect = false; if (this._ws) this._ws.close(); }
+
+  _emit(event, data) { (this._handlers[event] || []).forEach(h => h(data)); }
+
+  _reconnect() {
+    setTimeout(() => {
+      this._currentDelay = Math.min(this._currentDelay * 1.5, this._maxReconnectDelay);
+      this.connect();
+    }, this._currentDelay);
+  }
+}
+
 window.MurphyAPI            = MurphyAPI;
+window.MurphyWebSocket      = MurphyWebSocket;
 window.MurphyToast          = MurphyToast;
 window.MurphyModal          = MurphyModal;
 window.MurphyHealth         = MurphyHealth;
