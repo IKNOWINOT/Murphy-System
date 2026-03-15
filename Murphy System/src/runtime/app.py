@@ -3626,24 +3626,80 @@ def create_app() -> FastAPI:
 
     # ==================== COMPLIANCE ENDPOINTS ====================
 
-    _compliance_toggles: Dict[str, bool] = {}
+    try:
+        from src.compliance_toggle_manager import (
+            ComplianceToggleManager as _ComplianceToggleManager,
+            COMPLIANCE_ENGINE_MAP as _COMPLIANCE_ENGINE_MAP,
+        )
+        _compliance_toggle_manager = _ComplianceToggleManager()
+    except ImportError:
+        _compliance_toggle_manager = None  # type: ignore[assignment]
+        _COMPLIANCE_ENGINE_MAP = {}
+
+    _DEFAULT_TENANT_ID = "default"
+
+    def _get_tenant_id(request: "Request") -> str:
+        """Extract tenant ID from request headers or fall back to default."""
+        return request.headers.get("X-Tenant-ID", _DEFAULT_TENANT_ID) or _DEFAULT_TENANT_ID
+
+    def _get_tenant_compliance_frameworks(tenant_id: str) -> "List[Any]":
+        """Return the enabled ComplianceFramework enum values for a tenant.
+
+        Maps toggle string IDs (e.g. ``"gdpr"``, ``"hipaa"``) to their
+        corresponding ``ComplianceFramework`` enum members.  Frameworks that
+        have no mapping in the native engine are silently skipped.
+        """
+        if _compliance_toggle_manager is None:
+            return []
+        try:
+            from src.compliance_engine import ComplianceFramework as _CF
+            enabled_ids = _compliance_toggle_manager.get_tenant_frameworks(tenant_id)
+            frameworks = []
+            for fw_id in enabled_ids:
+                native_id = _COMPLIANCE_ENGINE_MAP.get(fw_id)
+                if native_id:
+                    try:
+                        frameworks.append(_CF(native_id))
+                    except ValueError:
+                        pass
+            return frameworks
+        except ImportError:
+            return []
 
     @app.get("/api/compliance/toggles")
-    async def compliance_toggles_get():
+    async def compliance_toggles_get(request: Request):
         """Return the current compliance framework toggle states."""
-        return JSONResponse({"success": True, "toggles": _compliance_toggles})
+        if _compliance_toggle_manager is None:
+            return JSONResponse({"success": True, "enabled": []})
+        tenant_id = _get_tenant_id(request)
+        enabled = _compliance_toggle_manager.get_tenant_frameworks(tenant_id)
+        return JSONResponse({"success": True, "enabled": enabled})
 
     @app.post("/api/compliance/toggles")
     async def compliance_toggles_save(request: Request):
         """Save compliance framework toggle states."""
         try:
             data = await request.json()
-            toggles = data.get("toggles", {})
-            _compliance_toggles.update(toggles)
+            # Accept the array format sent by the frontend: {"enabled": ["gdpr", ...]}
+            raw_enabled = data.get("enabled", [])
+            # Also accept legacy dict format: {"toggles": {"gdpr": true, ...}}
+            if not raw_enabled and "toggles" in data:
+                toggles_dict = data.get("toggles", {})
+                raw_enabled = [k for k, v in toggles_dict.items() if v]
+            # Ensure all items are strings (discard non-string entries)
+            enabled_ids: List[str] = [str(f) for f in raw_enabled if isinstance(f, str)]
+            tenant_id = _get_tenant_id(request)
+            if _compliance_toggle_manager is None:
+                return JSONResponse({
+                    "success": True,
+                    "enabled": enabled_ids,
+                    "saved_at": _now_iso(),
+                })
+            cfg = _compliance_toggle_manager.save_tenant_frameworks(tenant_id, enabled_ids)
             return JSONResponse({
                 "success": True,
-                "toggles": _compliance_toggles,
-                "saved_at": datetime.now(timezone.utc).isoformat(),
+                "enabled": cfg.enabled_frameworks,
+                "saved_at": cfg.last_updated,
             })
         except Exception as exc:
             logger.exception("Failed to save compliance toggles")
@@ -3652,42 +3708,38 @@ def create_app() -> FastAPI:
     @app.get("/api/compliance/recommended")
     async def compliance_recommended(country: str = "US", industry: str = "general"):
         """Return recommended compliance frameworks for a given country/industry."""
-        recommendations: Dict[str, list] = {
-            "US": ["SOC2", "CCPA", "HIPAA"],
-            "EU": ["GDPR", "NIS2", "DORA"],
-            "UK": ["UK_GDPR", "FCA"],
-            "AU": ["APPs", "CPS234"],
-        }
-        industry_map: Dict[str, list] = {
-            "healthcare": ["HIPAA", "HITECH"],
-            "finance": ["SOC2", "PCI_DSS", "SOX"],
-            "government": ["FedRAMP", "CMMC", "ITAR"],
-            "general": [],
-        }
-        country_recs = recommendations.get(country.upper(), recommendations["US"])
-        industry_recs = industry_map.get(industry.lower(), [])
-        combined = list(dict.fromkeys(country_recs + industry_recs))
+        if _compliance_toggle_manager is None:
+            return JSONResponse({
+                "success": True,
+                "country": country,
+                "industry": industry,
+                "recommended": [],
+            })
+        recommended = _compliance_toggle_manager.get_recommended_frameworks(country, industry)
         return JSONResponse({
             "success": True,
             "country": country,
             "industry": industry,
-            "recommended": combined,
+            "recommended": recommended,
         })
 
     @app.get("/api/compliance/report")
-    async def compliance_report():
+    async def compliance_report(request: Request):
         """Generate a compliance posture report."""
-        enabled = [k for k, v in _compliance_toggles.items() if v]
-        return JSONResponse({
-            "success": True,
-            "report": {
-                "enabled_frameworks": enabled,
-                "total_enabled": len(enabled),
-                "total_available": 42,
-                "posture_score": round(len(enabled) / 42 * 100, 1) if enabled else 0,
-                "generated_at": datetime.now(timezone.utc).isoformat(),
-            },
-        })
+        if _compliance_toggle_manager is None:
+            return JSONResponse({
+                "success": True,
+                "report": {
+                    "enabled_frameworks": [],
+                    "total_enabled": 0,
+                    "total_available": 42,
+                    "posture_score": 0,
+                    "generated_at": _now_iso(),
+                },
+            })
+        tenant_id = _get_tenant_id(request)
+        report = _compliance_toggle_manager.generate_compliance_report(tenant_id)
+        return JSONResponse({"success": True, "report": report})
 
     # ==================== TEST MODE ====================
 
