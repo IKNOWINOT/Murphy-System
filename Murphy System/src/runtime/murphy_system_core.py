@@ -12168,6 +12168,8 @@ class MurphySystem:
             }
 
         # --- Bug 1 & 5 Fix: Route post-onboarding messages to normal chat ---
+        # Both conditions are checked for back-compatibility: older profiles may
+        # have summary_shown=True without state being set to "plan_offered".
         if profile.get("state") in ("ready", "plan_offered") or profile.get("summary_shown"):
             # Profile summary was already shown — don't re-enter onboarding loop.
             # Fall through to normal intent / knowledge routing below.
@@ -13001,28 +13003,21 @@ class MurphySystem:
         ).hexdigest()
 
         render_count = profile.get("summary_render_count", 0)
-        if (
-            profile.get("summary_shown")
-            and profile.get("last_summary_hash") == current_hash
+        _short_reply = (
+            "I already have your profile ready. "
+            "Click **Continue to Plan →** or keep chatting to refine. "
+            "Type **'done'** to move on."
+        )
+        # Nothing changed since last render, OR safety cap (max 2 renders without new data)
+        if profile.get("last_summary_hash") == current_hash and (
+            profile.get("summary_shown") or render_count >= 2
         ):
-            # Nothing changed — return a short conversational prompt instead
-            return (
-                "I already have your profile ready. "
-                "Click **Continue to Plan →** or keep chatting to refine. "
-                "Type **'done'** to move on."
-            )
-
-        # Safety cap: never show the full summary more than 2× without new data
-        if render_count >= 2 and profile.get("last_summary_hash") == current_hash:
-            logger.warning(
-                "profile_summary_render_cap_hit session=%s renders=%d",
-                profile.get("_session_id", "unknown"), render_count,
-            )
-            return (
-                "I already have your profile ready. "
-                "Click **Continue to Plan →** or keep chatting to refine. "
-                "Type **'done'** to move on."
-            )
+            if render_count >= 2:
+                logger.warning(
+                    "profile_summary_render_cap_hit session=%s renders=%d",
+                    profile.get("_session_id", "unknown"), render_count,
+                )
+            return _short_reply
 
         reply = (
             f"📊 **MFGC/5U Readiness: {score:.0f}%** ✅\n\n"
