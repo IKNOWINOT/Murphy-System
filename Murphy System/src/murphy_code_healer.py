@@ -2063,8 +2063,12 @@ class MurphyCodeHealer:
                 logger.debug("Proposal persistence skipped: %s", exc)
 
     def _publish_event(self, event_name: str, payload: Dict[str, Any]) -> None:
-        if self._backbone is None:
-            return
+        """Publish a code-healer event to EventBackbone.
+
+        The merged payload always includes ``event``, ``source``, and
+        ``correlation_id`` envelope keys — they take precedence over any
+        same-named keys in *payload*.
+        """
         try:
             # Map healer event names → EventType enum members
             try:
@@ -2094,11 +2098,17 @@ class MurphyCodeHealer:
             self._backbone.publish(
                 event_type=event_type,
                 payload={
+            from event_backbone_client import publish as _bb_publish  # noqa: PLC0415
+            _bb_publish(
+                event_name,
+                {
+                    **payload,
                     "event": event_name,
                     "source": "murphy_code_healer",
                     "correlation_id": uuid.uuid4().hex,
-                    **payload,
                 },
+                source="murphy_code_healer",
+                backbone=self._backbone,
             )
         except Exception as exc:
             logger.debug("Event publish skipped (%s): %s", event_name, exc)
