@@ -634,17 +634,35 @@ The Murphy System Runtime exposes a FastAPI-based REST API. Start the server wit
 
 ## ⚙️ Configuration
 
-The following environment variables control Murphy System behaviour. Copy `.env.example` to `.env` and fill in the values.
+Murphy System supports two complementary configuration mechanisms. **Environment variables always take precedence.**
+
+### YAML Files (recommended starting point)
+
+```bash
+# Edit main settings (LLM provider, thresholds, safety levels, logging):
+nano "Murphy System/config/murphy.yaml"
+
+# Edit engine settings (swarm, gates, orchestrator, self-healing):
+nano "Murphy System/config/engines.yaml"
+```
+
+See `Murphy System/config/murphy.yaml.example` and `Murphy System/config/engines.yaml.example` for fully-annotated documentation of every setting.
+
+### Environment Variables
+
+Copy `Murphy System/.env.example` to `Murphy System/.env` and fill in the values. Environment variables override YAML defaults.
 
 | Variable | Default | Description |
 | --- | --- | --- |
 | `GROQ_API_KEY` | *(none)* | Groq API key — enables Mixtral/Llama/Gemma cloud LLMs. Optional: the onboard local LLM works without this. |
-| `MURPHY_LLM_PROVIDER` | `groq` | LLM provider to use: `groq`, `openai`, or `local`. |
+| `MURPHY_LLM_PROVIDER` | `local` | LLM provider to use: `local`, `groq`, `openai`, or `anthropic`. |
 | `MURPHY_ENV` | `development` | Runtime environment: `development` (auth optional) or `production` (auth required). |
 | `MURPHY_API_KEYS` | *(none)* | Comma-separated API keys for request authentication in production mode. |
-| `MURPHY_CORS_ORIGINS` | `http://localhost:3000,...` | Comma-separated list of allowed CORS origins. Defaults to common localhost ports. |
+| `MURPHY_CORS_ORIGINS` | `http://localhost:3000,...` | Comma-separated list of allowed CORS origins. |
 | `MURPHY_RATE_LIMIT_RPM` | `60` | Maximum requests per minute per client IP (token-bucket rate limiter). |
 | `MURPHY_RATE_LIMIT_BURST` | `20` | Maximum burst size for rate limiter. |
+
+> **Secrets** (API keys, passwords, tokens) must never be placed in YAML files. Use `.env` (development) or a secrets manager (production).
 
 ---
 

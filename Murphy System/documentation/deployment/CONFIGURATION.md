@@ -23,18 +23,51 @@ How to configure the Murphy System for development, staging, and production depl
 
 ## 1. Configuration Overview
 
-All runtime configuration is supplied through **environment variables**. The canonical reference is `.env.example` in the `Murphy System/` directory.
+Murphy System supports two complementary configuration mechanisms. **Environment variables always take precedence** (twelve-factor app style).
 
-**Setup:**
+### YAML Configuration Files (recommended starting point)
+
+The `config/` directory contains YAML files that supply sensible defaults for all runtime settings:
+
+| File | Purpose |
+|------|---------|
+| `config/murphy.yaml` | Main system defaults — LLM provider, confidence thresholds, safety levels, logging, tenant limits, self-learning |
+| `config/engines.yaml` | Engine defaults — domain engines, swarm parameters, learning engine settings, gate parameters |
+| `config/murphy.yaml.example` | Fully-annotated reference for `murphy.yaml` |
+| `config/engines.yaml.example` | Fully-annotated reference for `engines.yaml` |
+| `config/config_loader.py` | Loader that reads YAML files and applies env-var overrides |
+
+Edit the YAML files to change defaults:
 ```bash
 cd "Murphy System"
+nano config/murphy.yaml    # LLM provider, thresholds, logging, tenant settings
+nano config/engines.yaml   # Swarm size, gate parameters, orchestrator timeouts
+```
+
+### Environment Variables (overrides)
+
+Environment variables (set in your shell or `.env`) **always override YAML values**:
+
+```bash
+# Legacy flat names (well-known shortcuts):
+export MURPHY_LLM_PROVIDER=groq
+export LOG_LEVEL=DEBUG
+export CONFIDENCE_THRESHOLD=0.90
+
+# Namespaced names (MURPHY_<SECTION>__<KEY>):
+export MURPHY_API__PORT=9000
+export MURPHY_THRESHOLDS__CONFIDENCE=0.90
+```
+
+The `.env` file approach:
+```bash
 cp .env.example .env
 # Edit .env with your values
 ```
 
 The `setup_and_start.sh` (Linux/macOS) and `setup_and_start.bat` (Windows) scripts will create the virtual environment, install dependencies from `requirements_murphy_1.0.txt`, and source `.env` automatically.
 
-> **Security:** Never commit `.env` to version control. Use a secrets manager (AWS Secrets Manager, HashiCorp Vault, GitHub Actions secrets) for production values.
+> **Security:** Never commit `.env` to version control. Never store secrets (API keys, passwords) in YAML files. Use a secrets manager (AWS Secrets Manager, HashiCorp Vault, GitHub Actions secrets) for production values.
 
 ---
 
