@@ -72,6 +72,23 @@ def _safe_error_response(exc: Exception, status_code: int = 500) -> "JSONRespons
     return JSONResponse(body, status_code=status_code)
 
 
+def _normalize_mss_context(raw_context: "Any") -> "Optional[Dict[str, Any]]":
+    """Coerce *raw_context* to a dict or None for MSS operations.
+
+    The Librarian panel sends ``context`` as a plain string (e.g.
+    ``"graduation"``).  MSS internals expect ``Optional[Dict[str, Any]]``.
+    Passing a bare string causes ``AttributeError: 'str' object has no
+    attribute 'get'`` deep inside ``mss_controls.py``.
+    """
+    if raw_context is None:
+        return None
+    if isinstance(raw_context, dict):
+        return raw_context
+    if isinstance(raw_context, str):
+        return {"page": raw_context} if raw_context else None
+    return None
+
+
 def create_app() -> FastAPI:
     """Create FastAPI application"""
 
@@ -2101,42 +2118,54 @@ def create_app() -> FastAPI:
         """Magnify — increase resolution of input text."""
         if _mss_controller is None:
             return JSONResponse({"success": False, "error": "MSS controls not available"}, status_code=503)
-        data = await request.json()
-        text = data.get("text", "")
-        context = data.get("context")
-        if not text:
-            return JSONResponse({"success": False, "error": "text is required"}, status_code=400)
-        from dataclasses import asdict as _asdict
-        result = _mss_controller.magnify(text, context)
-        return JSONResponse({"success": True, "result": _asdict(result)})
+        try:
+            data = await request.json()
+            text = data.get("text", "")
+            context = _normalize_mss_context(data.get("context"))
+            if not text:
+                return JSONResponse({"success": False, "error": "text is required"}, status_code=400)
+            from dataclasses import asdict as _asdict
+            result = _mss_controller.magnify(text, context)
+            return JSONResponse({"success": True, "result": _asdict(result)})
+        except Exception as exc:
+            logger.exception("MSS magnify failed")
+            return _safe_error_response(exc, 500)
 
     @app.post("/api/mss/simplify")
     async def mss_simplify(request: Request):
         """Simplify — decrease resolution of input text."""
         if _mss_controller is None:
             return JSONResponse({"success": False, "error": "MSS controls not available"}, status_code=503)
-        data = await request.json()
-        text = data.get("text", "")
-        context = data.get("context")
-        if not text:
-            return JSONResponse({"success": False, "error": "text is required"}, status_code=400)
-        from dataclasses import asdict as _asdict
-        result = _mss_controller.simplify(text, context)
-        return JSONResponse({"success": True, "result": _asdict(result)})
+        try:
+            data = await request.json()
+            text = data.get("text", "")
+            context = _normalize_mss_context(data.get("context"))
+            if not text:
+                return JSONResponse({"success": False, "error": "text is required"}, status_code=400)
+            from dataclasses import asdict as _asdict
+            result = _mss_controller.simplify(text, context)
+            return JSONResponse({"success": True, "result": _asdict(result)})
+        except Exception as exc:
+            logger.exception("MSS simplify failed")
+            return _safe_error_response(exc, 500)
 
     @app.post("/api/mss/solidify")
     async def mss_solidify(request: Request):
         """Solidify — convert input text to implementation plan."""
         if _mss_controller is None:
             return JSONResponse({"success": False, "error": "MSS controls not available"}, status_code=503)
-        data = await request.json()
-        text = data.get("text", "")
-        context = data.get("context")
-        if not text:
-            return JSONResponse({"success": False, "error": "text is required"}, status_code=400)
-        from dataclasses import asdict as _asdict
-        result = _mss_controller.solidify(text, context)
-        return JSONResponse({"success": True, "result": _asdict(result)})
+        try:
+            data = await request.json()
+            text = data.get("text", "")
+            context = _normalize_mss_context(data.get("context"))
+            if not text:
+                return JSONResponse({"success": False, "error": "text is required"}, status_code=400)
+            from dataclasses import asdict as _asdict
+            result = _mss_controller.solidify(text, context)
+            return JSONResponse({"success": True, "result": _asdict(result)})
+        except Exception as exc:
+            logger.exception("MSS solidify failed")
+            return _safe_error_response(exc, 500)
 
     @app.post("/api/mss/score")
     async def mss_score(request: Request):
@@ -3633,7 +3662,7 @@ def create_app() -> FastAPI:
         )
         _compliance_toggle_manager = _ComplianceToggleManager()
     except ImportError:
-        _compliance_toggle_manager = None  # type: ignore[assignment]
+        _compliance_toggle_manager = None
         _COMPLIANCE_ENGINE_MAP = {}
 
     _DEFAULT_TENANT_ID = "default"
@@ -3687,7 +3716,7 @@ def create_app() -> FastAPI:
                 toggles_dict = data.get("toggles", {})
                 raw_enabled = [k for k, v in toggles_dict.items() if v]
             # Ensure all items are strings (discard non-string entries)
-            enabled_ids: List[str] = [str(f) for f in raw_enabled if isinstance(f, str)]
+            enabled_ids: List[str] = [f for f in raw_enabled if isinstance(f, str)]
             tenant_id = _get_tenant_id(request)
             if _compliance_toggle_manager is None:
                 return JSONResponse({
