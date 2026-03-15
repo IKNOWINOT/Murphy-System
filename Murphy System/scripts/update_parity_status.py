@@ -97,6 +97,9 @@ PARITY_MARKER = "parity"
 def run_parity_tests(repo_root: Path, verbose: bool = False) -> Dict[str, Any]:
     """Run all parity-marked tests with pytest and return a parsed result dict.
 
+    Uses plain ``-v`` output (no optional plugins required) for reliable
+    per-phase result parsing.
+
     Returns::
 
         {
@@ -116,60 +119,7 @@ def run_parity_tests(repo_root: Path, verbose: bool = False) -> Dict[str, Any]:
         str(repo_root / entry["test_file"])
         for entry in PARITY_TESTS
     ]
-
-    cmd = [
-        sys.executable, "-m", "pytest",
-        f"-m", PARITY_MARKER,
-        "--tb=short",
-        "--no-cov",
-        "--json-report",
-        "--json-report-file=-",  # write JSON to stdout
-        "-q",
-    ] + test_paths
-
-    if verbose:
-        cmd.append("-v")
-
-    env = os.environ.copy()
-    env["PYTHONPATH"] = str(repo_root / "src") + os.pathsep + env.get("PYTHONPATH", "")
-
-    try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            cwd=str(repo_root),
-            env=env,
-            timeout=300,
-        )
-    except FileNotFoundError:
-        # pytest-json-report may not be installed; fall back to plain pytest
-        return _run_parity_tests_plain(repo_root, test_paths, verbose)
-    except subprocess.TimeoutExpired:
-        return {
-            "passed": False,
-            "total": 0,
-            "passed_count": 0,
-            "failed_count": 0,
-            "error_count": 1,
-            "phases": {entry["phase"]: {"passed": False, "tests": 0, "failed": 0}
-                       for entry in PARITY_TESTS},
-            "raw_output": "Test run timed out after 300 seconds.",
-        }
-
-    raw_output = result.stdout + result.stderr
-
-    # Try to parse JSON report from stdout (pytest-json-report writes to stdout
-    # when --json-report-file=-)
-    try:
-        json_start = raw_output.index("{")
-        json_data = json.loads(raw_output[json_start:])
-        return _parse_json_report(json_data)
-    except (ValueError, json.JSONDecodeError):
-        pass
-
-    # Fall back to plain-text parsing
-    return _parse_plain_output(result.returncode, raw_output)
+    return _run_parity_tests_plain(repo_root, test_paths, verbose)
 
 
 def _run_parity_tests_plain(
@@ -279,8 +229,9 @@ def _parse_plain_output(returncode: int, output: str) -> Dict[str, Any]:
         file_lines = [line for line in output.splitlines() if file_tag in line]
         phase_tests = len([l for l in file_lines if "PASSED" in l or "FAILED" in l or "ERROR" in l])
         phase_failed = len([l for l in file_lines if "FAILED" in l or "ERROR" in l])
+        # Phase only passes when tests were collected AND all of them passed
         phase_results[phase] = {
-            "passed": phase_failed == 0,
+            "passed": phase_tests > 0 and phase_failed == 0,
             "tests": phase_tests,
             "failed": phase_failed,
         }
