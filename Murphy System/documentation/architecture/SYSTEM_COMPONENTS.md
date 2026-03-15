@@ -8,7 +8,7 @@ Overview of the core components that make up the Murphy System architecture.
 
 | Component | Module | Description |
 |-----------|--------|-------------|
-| **Runtime Server** | `murphy_system_1.0_runtime.py` | FastAPI production runtime — single entry point |
+| **Runtime Server** | `murphy_system_1.0_runtime.py` → `src/runtime/` | Thin entry-point; implementation in `src/runtime/app.py` (FastAPI), `src/runtime/murphy_system_core.py` (orchestration), `src/runtime/living_document.py` |
 | **CLI Tool** | `murphy` | Start/stop/status/help CLI |
 | **Configuration** | `src/config.py` | Pydantic `BaseSettings` — loads `.env` |
 

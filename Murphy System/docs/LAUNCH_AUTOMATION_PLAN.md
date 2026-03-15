@@ -31,7 +31,7 @@ This document defines the strategy to use **Murphy System to automate its own la
 
 | File / Path | Purpose |
 |-------------|---------|
-| `Murphy System/murphy_system_1.0_runtime.py` | Core runtime (~17,000 lines) — agent orchestration engine |
+| `Murphy System/murphy_system_1.0_runtime.py` | Thin entry-point — delegates to `src/runtime/` package (`app.py`, `murphy_system_core.py`, `living_document.py`) |
 | `Murphy System/start_murphy_1.0.sh` | Startup script — bootstraps all subsystems |
 | `Murphy System/requirements_murphy_1.0.txt` | Python dependency manifest (100+ packages) |
 | `Murphy System/.env.example` | Configuration template — API keys, secrets |
