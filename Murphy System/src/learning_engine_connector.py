@@ -130,6 +130,8 @@ class LearningEngineConnector:
             feedback_collector=collector,
             performance_predictor=predictor,
             gate_registry={"gate-1": domain_gate_obj, ...},
+            confidence_calculator=calc,
+            gate_generator=generator,
         )
         # Events are queued automatically via subscriptions.
         # Call run_cycle() to drain the queue and execute the full loop.
@@ -138,6 +140,14 @@ class LearningEngineConnector:
     *gate_registry* is an optional ``dict[gate_id, DomainGate]`` —
     gates whose ``confidence_threshold`` will be auto-adjusted when the
     predictor recommends a new threshold for the corresponding key.
+
+    *confidence_calculator* is an optional :class:`ConfidenceCalculator`
+    whose adaptive thresholds (bootstrap floor, sparse threshold) are
+    updated when the predictor recommends a global threshold change.
+
+    *gate_generator* is an optional :class:`DomainGateGenerator` whose
+    ``default_confidence_threshold`` is updated so that all newly
+    generated gates inherit the learned threshold.
 
     All constructor arguments are optional; missing components cause the
     relevant pipeline stage to be skipped gracefully.
@@ -152,6 +162,8 @@ class LearningEngineConnector:
         performance_predictor=None,
         gate_registry: Optional[Dict[str, Any]] = None,
         state_vector=None,
+        confidence_calculator=None,
+        gate_generator=None,
     ) -> None:
         self._lock = threading.Lock()
         self._backbone = event_backbone
@@ -161,6 +173,8 @@ class LearningEngineConnector:
         self._predictor = performance_predictor
         self._gate_registry: Dict[str, Any] = gate_registry or {}
         self._state_vector = state_vector
+        self._confidence_calculator = confidence_calculator
+        self._gate_generator = gate_generator
 
         # Incoming event queue (drained during run_cycle)
         self._pending_events: List[Dict[str, Any]] = []
@@ -176,6 +190,8 @@ class LearningEngineConnector:
             "threshold_drift_total": 0.0,
             "gate_evolution_count": 0,
             "events_processed_total": 0,
+            "confidence_calculator_updates": 0,
+            "gate_generator_updates": 0,
         }
 
         if self._backbone is not None:
@@ -376,6 +392,11 @@ class LearningEngineConnector:
                 )
 
         # 5 — Gate evolution: apply threshold recommendations
+        # Compute global (average) recommended threshold across all predictions
+        # for updating ConfidenceCalculator and DomainGateGenerator.
+        global_threshold_sum = 0.0
+        global_threshold_count = 0
+
         for pred in prediction_results:
             key = pred.key
             new_threshold = pred.recommended_threshold
@@ -412,6 +433,44 @@ class LearningEngineConnector:
             if abs(delta) > 1e-6:
                 thresholds_updated += 1
                 self._publish_threshold_updated(key, new_threshold, delta)
+
+            global_threshold_sum += new_threshold
+            global_threshold_count += 1
+
+        # 5b — Update ConfidenceCalculator and DomainGateGenerator with the
+        #      global (averaged) threshold from all predictions this cycle.
+        if global_threshold_count > 0:
+            global_avg = global_threshold_sum / global_threshold_count
+            if self._confidence_calculator is not None:
+                try:
+                    self._confidence_calculator.update_thresholds(
+                        bootstrap_floor=global_avg * 0.6,  # floor = 60 % of threshold
+                    )
+                    with self._lock:
+                        self._metrics["confidence_calculator_updates"] += 1
+                    logger.debug(
+                        "ConfidenceCalculator bootstrap_floor updated to %.4f",
+                        global_avg * 0.6,
+                    )
+                except Exception as exc:
+                    logger.warning(
+                        "LearningEngineConnector: ConfidenceCalculator update failed: %s",
+                        exc,
+                    )
+            if self._gate_generator is not None:
+                try:
+                    self._gate_generator.update_default_threshold(global_avg)
+                    with self._lock:
+                        self._metrics["gate_generator_updates"] += 1
+                    logger.debug(
+                        "DomainGateGenerator default threshold updated to %.4f",
+                        global_avg,
+                    )
+                except Exception as exc:
+                    logger.warning(
+                        "LearningEngineConnector: DomainGateGenerator update failed: %s",
+                        exc,
+                    )
 
         # 6 — Update connector-level metrics
         self._update_ema_metrics(events_drained, patterns_detected)
@@ -459,6 +518,8 @@ class LearningEngineConnector:
                 "pattern_recognizer_attached": self._pattern_recognizer is not None,
                 "feedback_collector_attached": self._feedback_collector is not None,
                 "predictor_attached": self._predictor is not None,
+                "confidence_calculator_attached": self._confidence_calculator is not None,
+                "gate_generator_attached": self._gate_generator is not None,
                 "metrics": dict(self._metrics),
             }
 
