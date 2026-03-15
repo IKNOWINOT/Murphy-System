@@ -1,6 +1,6 @@
 # Murphy System — Project Status
 
-> **Last updated**: 2026-03-08
+> **Last updated**: 2026-03-15
 > **License**: BSL 1.1 (Business Source License)
 > Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post
 
@@ -25,6 +25,7 @@
 | Session Context Manager | ✅ New | Per-session locking, expiry, RM0–RM6 tracking |
 | **Crypto Trading Subsystem** | ✅ **New** | Coinbase v3, multi-exchange, HITL-gated bots, 6 strategies, risk manager |
 | **Shadow Learning System** | ✅ **New** | Paper bots practice vs live prices; winning weeks save patterns; human reviews before promoting |
+| **MurphyCodeHealer** | ✅ **Operational** | ARCH-006 autonomous repair loop: DiagnosticSupervisor → CodeIntelligence → CodeProposal → ChaosRunner; subscribed to TASK_FAILED/TEST_FAILED/DOC_DRIFT events; proposals surfaced via `/api/corrections/*` |
 | UI / Landing Page | ⚠️ Partial | Landing page, terminal UIs exist; dashboard incomplete |
 | Documentation | ✅ Complete | API docs, architecture docs, deployment guides, testing guide complete |
 

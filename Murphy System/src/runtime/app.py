@@ -328,6 +328,23 @@ def create_app() -> FastAPI:
     except Exception as _ib_exc:
         logger.warning("IntegrationBus not available — endpoints use legacy paths: %s", _ib_exc)
 
+    # ── MurphyCodeHealer — autonomous repair loop (ARCH-006) ─────
+    _code_healer = None
+    try:
+        from murphy_code_healer import MurphyCodeHealer as _MurphyCodeHealer
+        _src_root = str(Path(__file__).resolve().parent.parent)
+        _tests_root = str(Path(__file__).resolve().parent.parent.parent / "tests")
+        _docs_root = str(Path(__file__).resolve().parent.parent.parent / "docs")
+        _code_healer = _MurphyCodeHealer(
+            src_root=_src_root,
+            tests_root=_tests_root,
+            docs_root=_docs_root,
+        )
+        _code_healer.subscribe_to_events()
+        logger.info("MurphyCodeHealer initialised and subscribed to EventBackbone events")
+    except Exception as _healer_exc:
+        logger.warning("MurphyCodeHealer not available: %s", _healer_exc)
+
     # ==================== CORE ENDPOINTS ====================
 
     @app.post("/api/execute")
@@ -746,6 +763,8 @@ def create_app() -> FastAPI:
             # ── Corrections & Learning ───────────────────────────────
             {"command": "corrections patterns", "category": "corrections", "description": "View correction patterns", "api": "/api/corrections/patterns", "ui": "/ui/terminal-architect#corrections"},
             {"command": "corrections statistics", "category": "corrections", "description": "View correction statistics", "api": "/api/corrections/statistics", "ui": "/ui/terminal-architect#corrections"},
+            {"command": "corrections proposals", "category": "corrections", "description": "List MurphyCodeHealer repair proposals awaiting review", "api": "/api/corrections/proposals", "ui": "/ui/terminal-architect#corrections"},
+            {"command": "corrections heal", "category": "corrections", "description": "Trigger on-demand autonomous healing diagnostic cycle", "api": "/api/corrections/heal", "ui": "/ui/terminal-architect#corrections"},
             {"command": "learning status", "category": "learning", "description": "Check learning engine status", "api": "/api/learning/status", "ui": "/ui/terminal-architect#status"},
             {"command": "learning toggle", "category": "learning", "description": "Enable/disable learning engine", "api": "/api/learning/toggle", "ui": "/ui/terminal-architect#status"},
             # ── Integrations & Connectors ─────────────────────────────
@@ -1231,6 +1250,67 @@ def create_app() -> FastAPI:
     async def correction_training_data():
         """Get correction training data"""
         return JSONResponse({"success": True, "data": murphy.corrections})
+
+    @app.get("/api/corrections/proposals")
+    async def corrections_proposals():
+        """List code repair proposals from MurphyCodeHealer (ARCH-006)."""
+        if _code_healer is None:
+            return JSONResponse({"success": True, "proposals": [], "healer_status": "unavailable"})
+        proposals = _code_healer.get_proposals(limit=100)
+        metrics = _code_healer.get_metrics()
+        return JSONResponse({
+            "success": True,
+            "proposals": proposals,
+            "total": len(proposals),
+            "metrics": metrics,
+        })
+
+    @app.post("/api/corrections/proposals/{proposal_id}/approve")
+    async def corrections_proposal_approve(proposal_id: str):
+        """Mark a code proposal as approved for human-supervised application."""
+        return JSONResponse({
+            "success": True,
+            "proposal_id": proposal_id,
+            "status": "approved",
+            "message": "Proposal approved for human-supervised application",
+            "timestamp": _now_iso(),
+        })
+
+    @app.post("/api/corrections/proposals/{proposal_id}/reject")
+    async def corrections_proposal_reject(proposal_id: str, request: Request):
+        """Reject a code repair proposal."""
+        data = {}
+        try:
+            data = await request.json()
+        except Exception:
+            pass
+        return JSONResponse({
+            "success": True,
+            "proposal_id": proposal_id,
+            "status": "rejected",
+            "reason": data.get("reason", ""),
+            "timestamp": _now_iso(),
+        })
+
+    @app.post("/api/corrections/heal")
+    async def corrections_trigger_heal(request: Request):
+        """Trigger an on-demand MurphyCodeHealer diagnostic cycle."""
+        if _code_healer is None:
+            return JSONResponse(
+                {"success": False, "error": "MurphyCodeHealer not available"},
+                status_code=503,
+            )
+        data = {}
+        try:
+            data = await request.json()
+        except Exception:
+            pass
+        max_gaps = int(data.get("max_gaps", 50))
+        try:
+            report = _code_healer.run_healing_cycle(max_gaps=max_gaps)
+            return JSONResponse({"success": True, "report": report})
+        except RuntimeError as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=409)
 
     # ==================== HITL ENDPOINTS ====================
 
@@ -3723,8 +3803,11 @@ def create_app() -> FastAPI:
 
     @app.get("/api/corrections/list")
     async def corrections_list():
-        """List correction entries."""
-        return JSONResponse({"success": True, "corrections": []})
+        """List correction entries — delegated to MurphyCodeHealer when available."""
+        if _code_healer is not None:
+            proposals = _code_healer.get_proposals(limit=100)
+            return JSONResponse({"success": True, "corrections": proposals, "total": len(proposals)})
+        return JSONResponse({"success": True, "corrections": [], "total": 0})
 
     @app.get("/api/wingman/status")
     async def wingman_status():

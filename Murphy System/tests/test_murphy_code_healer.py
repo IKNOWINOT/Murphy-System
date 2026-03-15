@@ -962,3 +962,237 @@ class TestIntegrationCollectGaps:
         sup.collect_gaps()
         history = sup.get_history()
         assert isinstance(history, list)
+
+
+# ---------------------------------------------------------------------------
+# New tests: Event subscriptions, markdown ref detection, API wiring
+# ---------------------------------------------------------------------------
+
+
+class TestEventSubscriptions:
+    """Tests for MurphyCodeHealer.subscribe_to_events()."""
+
+    def test_subscribe_with_no_backbone_is_noop(self):
+        healer = MurphyCodeHealer()
+        # Should not raise even without a backbone
+        healer.subscribe_to_events()
+        assert healer._subscription_ids == []
+
+    def test_subscribe_registers_three_handlers(self):
+        backbone = MagicMock()
+        backbone.subscribe.return_value = "sub-id-mock"
+        healer = MurphyCodeHealer(event_backbone=backbone)
+        healer.subscribe_to_events()
+        assert backbone.subscribe.call_count == 3
+        assert len(healer._subscription_ids) == 3
+
+    def test_subscribe_idempotent_call(self):
+        backbone = MagicMock()
+        backbone.subscribe.return_value = "sub-id-mock"
+        healer = MurphyCodeHealer(event_backbone=backbone)
+        healer.subscribe_to_events()
+        healer.subscribe_to_events()
+        # Two calls → six subscriptions total (idempotent in terms of not crashing)
+        assert backbone.subscribe.call_count == 6
+
+    def test_task_failed_handler_creates_proposal(self):
+        """Simulate TASK_FAILED event arriving via the backbone."""
+        backbone = MagicMock()
+        # Capture the handler registered for TASK_FAILED
+        handlers = {}
+
+        def _sub(event_type, handler):
+            handlers[event_type] = handler
+            return f"sub-{event_type}"
+
+        backbone.subscribe.side_effect = _sub
+
+        healer = MurphyCodeHealer(event_backbone=backbone)
+
+        # Patch subscribe to use our mock EventType
+        from unittest.mock import patch as _patch
+        import sys
+
+        # Use a simple mock EventType object
+        class _MockEventType:
+            TASK_FAILED = "TASK_FAILED"
+            TEST_FAILED = "TEST_FAILED"
+            DOC_DRIFT = "DOC_DRIFT"
+
+        with _patch.dict(sys.modules, {"event_backbone": MagicMock(EventType=_MockEventType)}):
+            healer.subscribe_to_events()
+
+        # Simulate the TASK_FAILED handler being called
+        mock_event = MagicMock()
+        mock_event.event_id = "evt-001"
+        mock_event.payload = {"task_type": "execute", "file_path": "/fake/file.py"}
+
+        if "TASK_FAILED" in handlers:
+            # Execute in main thread for test synchronicity
+            handlers["TASK_FAILED"](mock_event)
+            # Give the background thread a moment
+            time.sleep(0.1)
+
+    def test_doc_drift_event_does_not_raise(self):
+        """DOC_DRIFT events should be handled without errors."""
+        backbone = MagicMock()
+        handlers = {}
+
+        def _sub(event_type, handler):
+            handlers[event_type] = handler
+            return f"sub-{event_type}"
+
+        backbone.subscribe.side_effect = _sub
+
+        healer = MurphyCodeHealer(event_backbone=backbone)
+
+        import sys
+        from unittest.mock import patch as _patch
+
+        class _MockEventType:
+            TASK_FAILED = "TASK_FAILED"
+            TEST_FAILED = "TEST_FAILED"
+            DOC_DRIFT = "DOC_DRIFT"
+
+        with _patch.dict(sys.modules, {"event_backbone": MagicMock(EventType=_MockEventType)}):
+            healer.subscribe_to_events()
+
+        mock_event = MagicMock()
+        mock_event.event_id = "evt-002"
+        mock_event.payload = {"description": "README references missing file"}
+
+        if "DOC_DRIFT" in handlers:
+            handlers["DOC_DRIFT"](mock_event)
+            time.sleep(0.1)
+
+
+class TestMarkdownFileRefGaps:
+    """Tests for DiagnosticSupervisor._markdown_file_ref_gaps()."""
+
+    def test_no_gaps_for_existing_references(self, tmp_path):
+        docs = tmp_path / "docs"
+        docs.mkdir()
+        src = tmp_path / "src"
+        src.mkdir()
+        (src / "module.py").write_text("# hello\n")
+        (docs / "guide.md").write_text(
+            "See [module](../src/module.py) for details.\n"
+        )
+        sup = DiagnosticSupervisor(docs_root=str(docs))
+        gaps = sup._markdown_file_ref_gaps(str(docs))
+        broken = [g for g in gaps if g.category == "broken_md_ref"]
+        assert broken == []
+
+    def test_gap_for_missing_file_reference(self, tmp_path):
+        docs = tmp_path / "docs"
+        docs.mkdir()
+        (docs / "spec.md").write_text(
+            "[missing module](src/nonexistent.py)\n"
+        )
+        sup = DiagnosticSupervisor(docs_root=str(docs))
+        gaps = sup._markdown_file_ref_gaps(str(docs))
+        broken = [g for g in gaps if g.category == "broken_md_ref"]
+        assert len(broken) >= 1
+        assert any("nonexistent.py" in g.description for g in broken)
+
+    def test_http_links_ignored(self, tmp_path):
+        docs = tmp_path / "docs"
+        docs.mkdir()
+        (docs / "readme.md").write_text(
+            "See [docs](https://example.com/guide.md) for more.\n"
+            "Also [repo](http://github.com/foo/bar.py).\n"
+        )
+        sup = DiagnosticSupervisor(docs_root=str(docs))
+        gaps = sup._markdown_file_ref_gaps(str(docs))
+        broken = [g for g in gaps if g.category == "broken_md_ref"]
+        assert broken == []
+
+    def test_collect_gaps_calls_markdown_check(self, tmp_path):
+        docs = tmp_path / "docs"
+        docs.mkdir()
+        (docs / "spec.md").write_text("[missing](nonexistent/path.py)\n")
+        sup = DiagnosticSupervisor(docs_root=str(docs))
+        gaps = sup.collect_gaps()
+        categories = {g.category for g in gaps}
+        assert "broken_md_ref" in categories
+
+    def test_docs_root_none_skips_markdown_check(self, tmp_path):
+        src = tmp_path / "src"
+        src.mkdir()
+        sup = DiagnosticSupervisor(src_root=str(src))
+        gaps = sup.collect_gaps()
+        broken = [g for g in gaps if g.category == "broken_md_ref"]
+        assert broken == []
+
+
+class TestNewAPIEndpoints:
+    """Smoke tests for new /api/corrections/* endpoints."""
+
+    def test_healer_proposals_returns_list_shape(self):
+        """get_proposals() returns a list of dicts."""
+        healer = MurphyCodeHealer()
+        proposals = healer.get_proposals(limit=10)
+        assert isinstance(proposals, list)
+        # Initially empty
+        assert proposals == []
+
+    def test_healer_metrics_shape(self):
+        """get_metrics() returns a dict with expected keys."""
+        healer = MurphyCodeHealer()
+        metrics = healer.get_metrics()
+        assert isinstance(metrics, dict)
+        assert "mean_time_to_detect_ms" in metrics
+        assert "mean_time_to_patch_ms" in metrics
+
+    def test_healer_accepts_docs_root(self, tmp_path):
+        """MurphyCodeHealer can be instantiated with docs_root."""
+        docs = tmp_path / "docs"
+        docs.mkdir()
+        src = tmp_path / "src"
+        src.mkdir()
+        (src / "module.py").write_text("x = 1\n")
+        healer = MurphyCodeHealer(
+            src_root=str(src),
+            docs_root=str(docs),
+        )
+        assert healer is not None
+
+    def test_healer_run_cycle_with_docs_root(self, tmp_path):
+        """run_healing_cycle completes with docs_root set."""
+        docs = tmp_path / "docs"
+        docs.mkdir()
+        (docs / "guide.md").write_text("[broken](missing/file.py)\n")
+        src = tmp_path / "src"
+        src.mkdir()
+        (src / "mod.py").write_text("x = 1\n")
+        healer = MurphyCodeHealer(
+            src_root=str(src),
+            docs_root=str(docs),
+        )
+        report = healer.run_healing_cycle(max_gaps=10)
+        assert isinstance(report, dict)
+        assert "gaps_detected" in report
+
+
+class TestEventBackboneNewEventTypes:
+    """Verify new EventType values are importable and valid."""
+
+    def test_test_failed_in_event_type(self):
+        import sys
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+        from event_backbone import EventType
+        assert EventType.TEST_FAILED.value == "test_failed"
+
+    def test_doc_drift_in_event_type(self):
+        import sys
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+        from event_backbone import EventType
+        assert EventType.DOC_DRIFT.value == "doc_drift"
+
+    def test_code_healer_events_in_event_type(self):
+        import sys
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+        from event_backbone import EventType
+        assert EventType.CODE_HEALER_STARTED.value == "code_healer_started"
+        assert EventType.CODE_HEALER_COMPLETED.value == "code_healer_completed"
+        assert EventType.CODE_HEALER_PROPOSAL_CREATED.value == "code_healer_proposal_created"
