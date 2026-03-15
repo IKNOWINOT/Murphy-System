@@ -819,7 +819,7 @@ def create_app() -> FastAPI:
             {"command": "golden-path", "category": "workflows", "description": "View golden-path workflow recommendations", "api": "/api/golden-path", "ui": "/ui/terminal-orchestrator"},
             # ── Agents & Tasks ───────────────────────────────────────
             {"command": "agents list", "category": "agents", "description": "List all AI agents", "api": "/api/agents", "ui": "/ui/terminal-integrated#agents"},
-            {"command": "agent dashboard", "category": "agents", "description": "View agent dashboard snapshot", "api": "/api/agent-dashboard/snapshot", "ui": "/ui/terminal-integrated#agents"},
+            {"command": "agent dashboard", "category": "agents", "description": "Open the full agent monitoring dashboard (health, pipeline, agents, metrics, onboarding)", "api": "/api/agent-dashboard/snapshot", "ui": "/ui/dashboard"},
             {"command": "tasks list", "category": "agents", "description": "List active tasks", "api": "/api/tasks", "ui": "/ui/terminal-orchestrator"},
             {"command": "production queue", "category": "agents", "description": "View production queue", "api": "/api/production/queue", "ui": "/ui/terminal-orchestrator"},
             {"command": "production wizard", "category": "production", "description": "Open the production wizard for proposals, work orders, and deliverables", "api": "/api/production/queue", "ui": "/ui/production-wizard"},
@@ -5018,6 +5018,7 @@ def create_app() -> FastAPI:
             "/ui/workflow-canvas": "workflow_canvas.html",
             "/ui/system-visualizer": "system_visualizer.html",
             "/ui/dashboard": "murphy_ui_integrated.html",
+            "/dashboard": "murphy_ui_integrated.html",
             "/ui/smoke-test": "murphy-smoke-test.html",
             "/ui/signup": "signup.html",
             "/ui/login": "login.html",
