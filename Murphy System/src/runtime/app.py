@@ -5018,6 +5018,7 @@ def create_app() -> FastAPI:
             "/ui/workflow-canvas": "workflow_canvas.html",
             "/ui/system-visualizer": "system_visualizer.html",
             "/ui/dashboard": "murphy_ui_integrated.html",
+            "/dashboard": "murphy_ui_integrated.html",
             "/ui/smoke-test": "murphy-smoke-test.html",
             "/ui/signup": "signup.html",
             "/ui/login": "login.html",

@@ -25,7 +25,7 @@
 | Session Context Manager | ✅ New | Per-session locking, expiry, RM0–RM6 tracking |
 | **Crypto Trading Subsystem** | ✅ **New** | Coinbase v3, multi-exchange, HITL-gated bots, 6 strategies, risk manager |
 | **Shadow Learning System** | ✅ **New** | Paper bots practice vs live prices; winning weeks save patterns; human reviews before promoting |
-| UI / Landing Page | ⚠️ Partial | Landing page, terminal UIs exist; dashboard incomplete |
+| UI / Landing Page | ✅ Complete | Landing page, terminal UIs, and agent monitoring dashboard all complete |
 | Documentation | ✅ Complete | API docs, architecture docs, deployment guides, testing guide complete |
 
 ## Regulatory Alignment
@@ -57,7 +57,7 @@ Murphy System is **aligned with** (not formally attested to) the following frame
 | ID | Gap | Priority | Actionable Path |
 |----|-----|----------|-----------------|
 | ~~G-004~~ | ~~Full ML feedback loop not wired~~ | ~~Medium~~ | ✅ **RESOLVED** — `record_outcome()` added to `GeographicLoadBalancer`, wiring feedback signals into `capacity_weight` via configurable learning rate |
-| G-005 | Dashboard UI incomplete | Medium | Complete React/terminal dashboard with live metrics |
+| ~~G-005~~ | ~~Dashboard UI incomplete~~ | ~~Medium~~ | ✅ **RESOLVED** — Full agent monitoring dashboard at `/dashboard` and `/ui/dashboard`: system health overview, task pipeline visualization, agent monitoring grid, onboarding wizard, metrics charts — all wired to `/api/agent-dashboard/*` endpoints |
 | G-006 | Formal security pen-test | High | Engage third-party security firm for penetration testing |
 | G-007 | ~~Database persistence JSON-only~~ | ~~Critical~~ | ✅ **IMPROVED** — PostgreSQL wired via DATABASE_URL; SQLite fallback; Alembic migrations; connection pooling configured |
 | G-008 | E2EE encryption is stubbed | Critical | Integrate matrix-nio SDK for real encryption |
