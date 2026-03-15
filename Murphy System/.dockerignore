@@ -38,6 +38,10 @@ archive/
 bots/
 docs/
 documentation/
+# Exclude utility scripts except database migration script needed in containers
+scripts/*.sh
+scripts/*.py
+!scripts/db_migrate.sh
 tests/
 telemetry_evidence/
 strategic/
