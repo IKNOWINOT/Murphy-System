@@ -261,7 +261,7 @@ _DEFAULT_TIER_CAMPAIGNS: Dict[str, Dict[str, Any]] = {
         "channels": ["email_outreach", "linkedin_ads", "google_ads", "webinars"],
         "demographics": ["smb_owners", "startup_founders", "ops_managers", "freelancers"],
         "messaging": (
-            "$99/mo — managed cloud hosting, priority support, "
+            "$299/mo — managed cloud hosting, priority support, "
             "advanced analytics, custom connectors."
         ),
     },
@@ -285,7 +285,7 @@ _DEFAULT_TIER_CAMPAIGNS: Dict[str, Dict[str, Any]] = {
         "channels": ["email_outreach", "social_dm", "youtube_ads", "agency_partnerships"],
         "demographics": ["agency_owners", "top_creators", "multi_platform_creators", "talent_managers"],
         "messaging": (
-            "$99/mo — full automation suite, priority AI support, "
+            "$299/mo — full automation suite, priority AI support, "
             "multi-platform scheduling, advanced analytics."
         ),
     },

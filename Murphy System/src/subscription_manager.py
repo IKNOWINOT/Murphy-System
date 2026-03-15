@@ -181,8 +181,8 @@ PRICING_PLANS: Dict[SubscriptionTier, PricingPlan] = {
     SubscriptionTier.BUSINESS: PricingPlan(
         tier=SubscriptionTier.BUSINESS,
         name="Business",
-        monthly_price=99.00,
-        annual_price=79.00,
+        monthly_price=299.00,
+        annual_price=249.00,
         max_users=10,
         max_automations=-1,
         stripe_price_id_monthly=os.environ.get("STRIPE_PRICE_BUSINESS_MONTHLY", ""),
@@ -201,8 +201,8 @@ PRICING_PLANS: Dict[SubscriptionTier, PricingPlan] = {
     SubscriptionTier.PROFESSIONAL: PricingPlan(
         tier=SubscriptionTier.PROFESSIONAL,
         name="Professional",
-        monthly_price=299.00,
-        annual_price=249.00,
+        monthly_price=0.00,   # custom pricing — contact sales
+        annual_price=0.00,
         max_users=-1,
         max_automations=-1,
         stripe_price_id_monthly=os.environ.get("STRIPE_PRICE_PRO_MONTHLY", ""),
@@ -705,6 +705,224 @@ class SubscriptionManager:
             "current_automations": 0, # populate from automation registry in production
             "api_calls_this_period": 0,
             "generated_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+    # ------------------------------------------------------------------
+    # Tier enforcement
+    # ------------------------------------------------------------------
+
+    # Feature availability by tier — controls what each tier can access.
+    # True = available, False = locked.
+    TIER_FEATURES: Dict[SubscriptionTier, Dict[str, bool]] = {
+        SubscriptionTier.SOLO: {
+            "terminal_access": True,
+            "basic_compliance": True,      # GDPR, SOC2 only
+            "advanced_compliance": False,
+            "all_compliance_frameworks": False,
+            "api_access": False,
+            "webhooks": False,
+            "integrations_core": True,
+            "integrations_all": False,
+            "shadow_agent_training": False,
+            "hitl_graduation": False,
+            "white_label": False,
+            "dedicated_onboarding": False,
+            "sla_guaranteed": False,
+            "production_wizard": True,
+            "workflow_canvas": True,
+            "matrix_bridge": False,
+            "custom_workflows": False,
+            "priority_support": False,
+        },
+        SubscriptionTier.BUSINESS: {
+            "terminal_access": True,
+            "basic_compliance": True,
+            "advanced_compliance": True,
+            "all_compliance_frameworks": False,
+            "api_access": True,
+            "webhooks": False,
+            "integrations_core": True,
+            "integrations_all": True,
+            "shadow_agent_training": True,
+            "hitl_graduation": False,
+            "white_label": False,
+            "dedicated_onboarding": False,
+            "sla_guaranteed": False,
+            "production_wizard": True,
+            "workflow_canvas": True,
+            "matrix_bridge": True,
+            "custom_workflows": True,
+            "priority_support": True,
+        },
+        SubscriptionTier.PROFESSIONAL: {
+            "terminal_access": True,
+            "basic_compliance": True,
+            "advanced_compliance": True,
+            "all_compliance_frameworks": True,
+            "api_access": True,
+            "webhooks": True,
+            "integrations_core": True,
+            "integrations_all": True,
+            "shadow_agent_training": True,
+            "hitl_graduation": True,
+            "white_label": True,
+            "dedicated_onboarding": True,
+            "sla_guaranteed": True,
+            "production_wizard": True,
+            "workflow_canvas": True,
+            "matrix_bridge": True,
+            "custom_workflows": True,
+            "priority_support": True,
+        },
+        SubscriptionTier.ENTERPRISE: {
+            "terminal_access": True,
+            "basic_compliance": True,
+            "advanced_compliance": True,
+            "all_compliance_frameworks": True,
+            "api_access": True,
+            "webhooks": True,
+            "integrations_core": True,
+            "integrations_all": True,
+            "shadow_agent_training": True,
+            "hitl_graduation": True,
+            "white_label": True,
+            "dedicated_onboarding": True,
+            "sla_guaranteed": True,
+            "production_wizard": True,
+            "workflow_canvas": True,
+            "matrix_bridge": True,
+            "custom_workflows": True,
+            "priority_support": True,
+        },
+    }
+
+    def check_tier_limit(
+        self,
+        account_id: str,
+        resource: str,
+        current_count: int = 0,
+    ) -> Dict[str, Any]:
+        """Check if an account can create/use a resource based on tier limits.
+
+        Returns a dict with 'allowed' (bool), 'reason' (str), and limit info.
+        resource: 'users' or 'automations'
+        """
+        sub = self.get_subscription(account_id)
+        if not sub or not sub.is_active():
+            return {
+                "allowed": False,
+                "reason": "No active subscription",
+                "tier": None,
+                "limit": 0,
+                "current": current_count,
+            }
+
+        plan = PRICING_PLANS.get(sub.tier)
+        if not plan:
+            return {
+                "allowed": False,
+                "reason": "Unknown tier",
+                "tier": sub.tier.value,
+                "limit": 0,
+                "current": current_count,
+            }
+
+        if resource == "users":
+            limit = plan.max_users
+        elif resource == "automations":
+            limit = plan.max_automations
+        else:
+            return {
+                "allowed": True,
+                "reason": "Unknown resource type — no limit enforced",
+                "tier": sub.tier.value,
+                "limit": -1,
+                "current": current_count,
+            }
+
+        # -1 means unlimited
+        if limit == -1:
+            return {
+                "allowed": True,
+                "reason": "Unlimited",
+                "tier": sub.tier.value,
+                "limit": -1,
+                "current": current_count,
+            }
+
+        allowed = current_count < limit
+        return {
+            "allowed": allowed,
+            "reason": (
+                f"OK ({current_count}/{limit})"
+                if allowed
+                else f"Limit reached: {current_count}/{limit}. Upgrade to increase."
+            ),
+            "tier": sub.tier.value,
+            "limit": limit,
+            "current": current_count,
+        }
+
+    def check_feature_access(
+        self, account_id: str, feature: str,
+    ) -> Dict[str, Any]:
+        """Check if an account's tier allows access to a specific feature.
+
+        Returns dict with 'allowed' (bool) and upgrade suggestion.
+        """
+        sub = self.get_subscription(account_id)
+        tier = sub.tier if sub and sub.is_active() else SubscriptionTier.SOLO
+
+        features = self.TIER_FEATURES.get(tier, {})
+        allowed = features.get(feature, False)
+
+        # Find the cheapest tier that provides this feature
+        upgrade_to = None
+        if not allowed:
+            for t in [
+                SubscriptionTier.SOLO,
+                SubscriptionTier.BUSINESS,
+                SubscriptionTier.PROFESSIONAL,
+                SubscriptionTier.ENTERPRISE,
+            ]:
+                if self.TIER_FEATURES.get(t, {}).get(feature, False):
+                    upgrade_to = t.value
+                    break
+
+        return {
+            "allowed": allowed,
+            "feature": feature,
+            "tier": tier.value,
+            "upgrade_to": upgrade_to,
+            "reason": (
+                "Access granted"
+                if allowed
+                else f"Requires {upgrade_to or 'higher'} tier. Current: {tier.value}"
+            ),
+        }
+
+    def get_tier_details(self, tier_name: str) -> Dict[str, Any]:
+        """Return full details for a tier: limits, features, pricing."""
+        try:
+            tier = SubscriptionTier(tier_name.lower())
+        except ValueError:
+            return {"error": f"Unknown tier: {tier_name}"}
+
+        plan = PRICING_PLANS.get(tier)
+        if not plan:
+            return {"error": f"No plan found for {tier_name}"}
+
+        features = self.TIER_FEATURES.get(tier, {})
+        return {
+            "tier": tier.value,
+            "name": plan.name,
+            "monthly_price": plan.monthly_price,
+            "annual_price": plan.annual_price,
+            "max_users": plan.max_users,
+            "max_automations": plan.max_automations,
+            "features_list": plan.features,
+            "feature_flags": features,
+            "is_custom_pricing": plan.monthly_price == 0.0,
         }
 
     # ------------------------------------------------------------------

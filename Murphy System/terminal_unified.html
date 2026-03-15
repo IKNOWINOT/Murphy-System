@@ -14,8 +14,11 @@
 <link rel="stylesheet" href="static/murphy-design-system.css">
 <style>
   /* Neon terminal theme */
-  .murphy-terminal, .murphy-output, pre, code, textarea, input[type="text"] {
-    font-family: 'Courier New', Courier, monospace;
+  .murphy-terminal, .murphy-output, pre, code {
+    font-family: var(--font-code, 'JetBrains Mono', monospace);
+  }
+  textarea, input[type="text"] {
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
     color: #00ff00;
     background: #0a0a0a;
   }
@@ -166,6 +169,10 @@
     <a href="system_visualizer.html" class="murphy-sidebar-item" target="_blank" rel="noopener" aria-label="System Visualizer (opens in new tab)">
       <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-code"></use></svg>
       <span>System Visualizer</span>
+    </a>
+    <a href="production_wizard.html" class="murphy-sidebar-item" target="_blank" rel="noopener" aria-label="Production Wizard (opens in new tab)">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-execute"></use></svg>
+      <span>Production Wizard</span>
     </a>
   </div>
 
@@ -793,7 +800,17 @@
       var cls = role === 'user' ? 'murphy-chat-bubble-user' : 'murphy-chat-bubble-assistant';
       var el  = document.createElement('div');
       el.className = 'murphy-chat-bubble ' + cls;
-      el.textContent = text;
+      if (role === 'user') {
+        el.textContent = text;
+      } else {
+        // Render assistant messages with markdown formatting
+        if (typeof MurphyMarkdown !== 'undefined') {
+          MurphyMarkdown.injectStyles();
+          el.innerHTML = MurphyMarkdown.render(text);
+        } else {
+          el.textContent = text;
+        }
+      }
       chatMsgs.appendChild(el);
       chatMsgs.scrollTop = chatMsgs.scrollHeight;
     }

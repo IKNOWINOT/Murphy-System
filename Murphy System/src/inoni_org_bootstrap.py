@@ -65,7 +65,7 @@ class InoniOrgBootstrap:
     Revenue Model:
     - Free tier: Trade services for marketing (creator promotes Inoni)
     - Subscription: $20/mo monthly (Creator Starter)
-    - Pro tier: $99/mo direct subscription
+    - Business tier: $299/mo direct subscription
     - Enterprise: Contact us for agencies managing 10+ creators
     """
 
@@ -539,7 +539,7 @@ class InoniOrgBootstrap:
         Revenue model:
         - Free tier: Service traded for marketing exposure
         - Starter: $20/mo monthly
-        - Pro: $99/mo flat rate
+        - Business: $299/mo flat rate
         - Agency: Contact us for 10+ creator management
         """
         campaign = self.campaigns.create_campaign(
@@ -582,7 +582,7 @@ class InoniOrgBootstrap:
                         "AI-powered content scheduling, "
                         "auto-moderation, fan engagement"
                     ),
-                    "offer": "Free tier (promote Murphy) or $99/mo Pro",
+                    "offer": "Free tier (promote Murphy) or $299/mo Business",
                     "agent": "outreach_specialist",
                 },
                 "phase_3": {
@@ -592,7 +592,7 @@ class InoniOrgBootstrap:
                         "Automated stream moderation, clip creation, "
                         "multi-platform scheduling"
                     ),
-                    "offer": "Free for marketing partnership, Pro $99/mo",
+                    "offer": "Free for marketing partnership, Business $299/mo",
                     "agent": "vp_marketing",
                 },
                 "phase_4": {
@@ -623,8 +623,8 @@ class InoniOrgBootstrap:
                     ),
                 },
                 {
-                    "name": "Pro",
-                    "price": "$99/mo",
+                    "name": "Business",
+                    "price": "$299/mo",
                     "terms": "Full automation suite, priority support",
                 },
                 {
@@ -728,7 +728,7 @@ class InoniOrgBootstrap:
                         "content moderation, scheduling, and fan "
                         "engagement for creators.\n\n"
                         "It's free if you're willing to mention us in "
-                        "a post. Or $99/mo for the full Pro suite.\n\n"
+                        "a post. Or $299/mo for the full Business suite.\n\n"
                         "Want to try it? Takes 5 minutes to set up."
                         "\n\nCorey\nInoni LLC"
                     ),
@@ -835,7 +835,7 @@ class InoniOrgBootstrap:
                     "• Free tier — trade services for a marketing "
                     "mention\n"
                     "• Starter — $20/mo monthly\n"
-                    "• Pro — $99/mo flat rate\n"
+                    "• Business — $299/mo flat rate\n"
                     "• Agency — Contact us for 10+ creators\n\n"
                     "Which sounds closest to what you need?"
                 ),

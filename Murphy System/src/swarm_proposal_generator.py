@@ -508,19 +508,42 @@ Format: {{"steps": [...]}}
         agents: List[SwarmAgent],
         execution_plan: List[SwarmStep]
     ) -> Dict[str, Any]:
-        """Estimate resource requirements"""
+        """Estimate resource requirements for a swarm proposal.
+
+        Cost model:
+        - Base compute: ``$0.10 / minute`` of total estimated execution time.
+        - Parallel steps get a coordination overhead multiplier because
+          concurrent agents require state synchronisation, message passing,
+          and additional compute for the orchestrator.
+        """
 
         total_time = sum(step.estimated_time for step in execution_plan)
+        parallel_steps = [s for s in execution_plan if not s.dependencies]
 
-        # Estimate costs based on agents and time
-        estimated_cost = total_time * 0.1  # $0.10 per minute average
+        # Base compute cost
+        base_cost = total_time * 0.1  # $0.10 per minute average
+
+        # Swarm coordination overhead — scales with agent count and
+        # parallelism. Each concurrent agent adds ~$0.02/min of
+        # coordination cost (message routing, state sync, health checks).
+        agent_count = len(agents)
+        parallel_count = len(parallel_steps)
+        coordination_cost_per_min = agent_count * 0.02
+        coordination_cost = coordination_cost_per_min * (
+            sum(s.estimated_time for s in parallel_steps) if parallel_steps
+            else 0
+        )
+
+        estimated_cost = base_cost + coordination_cost
 
         return {
             'estimated_time_minutes': total_time,
             'estimated_cost_usd': estimated_cost,
-            'agent_count': len(agents),
+            'base_compute_cost_usd': base_cost,
+            'coordination_overhead_usd': round(coordination_cost, 4),
+            'agent_count': agent_count,
             'step_count': len(execution_plan),
-            'parallel_steps': len([s for s in execution_plan if not s.dependencies])
+            'parallel_steps': parallel_count,
         }
 
     def _estimate_cost(
@@ -528,16 +551,22 @@ Format: {{"steps": [...]}}
         agents: List[SwarmAgent],
         execution_plan: List[SwarmStep]
     ) -> float:
-        """Estimate total cost of proposal execution"""
+        """Estimate total cost of proposal execution.
 
-        # Base cost from resource estimates
+        Cost breakdown:
+        - **Base compute** — ``$0.10/min × execution time``
+        - **Coordination overhead** — ``$0.02/min × agents × parallel time``
+        - **Safety gate overhead** — ``$0.05 × number of steps``
+        - **Confidence overhead** — ``10%`` of base + coordination cost
+        """
+
         resource_estimates = self._estimate_resources(agents, execution_plan)
         base_cost = resource_estimates['estimated_cost_usd']
 
-        # Add safety gate overhead
+        # Safety gate overhead — each step goes through MFGC gates
         safety_gate_cost = len(execution_plan) * 0.05
 
-        # Add confidence overhead
+        # Confidence overhead — margin for re-runs / retries
         confidence_overhead = base_cost * 0.1
 
         total_cost = base_cost + safety_gate_cost + confidence_overhead

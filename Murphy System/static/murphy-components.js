@@ -86,6 +86,7 @@ class MurphySidebar extends HTMLElement {
       { icon: '◎', label: 'WORKER',       href: '/ui/terminal_worker.html' },
       { icon: '⊞', label: 'COSTS',        href: '/ui/terminal_costs.html' },
       { icon: '⋮', label: 'WORKFLOWS',    href: '/ui/workflow_canvas.html' },
+      { icon: '🏭', label: 'PRODUCTION',   href: '/ui/production_wizard.html' },
     ];
 
     const links = navItems.map(item => `
@@ -1500,6 +1501,7 @@ class MurphyLibrarianChat {
     this._api     = api;
     this._context = '';
     this._open    = false;
+    this._mode    = 'ask';   // 'ask' (knowledge) or 'execute' (action)
     this._history = this._loadHistory();
     this._createButton();
     this._createPanel();
@@ -1512,11 +1514,16 @@ class MurphyLibrarianChat {
   async send(message) {
     const trimmed = message.trim();
     if (!trimmed) return;
-    this._addBubble(trimmed, 'user');
-    this._history.push({ role: 'user', text: trimmed });
+    const modeLabel = this._mode === 'ask' ? '📖' : '⚡';
+    this._addBubble(`${modeLabel} ${trimmed}`, 'user');
+    this._history.push({ role: 'user', text: `${modeLabel} ${trimmed}` });
     this._saveHistory();
 
-    const result = await this._api.post('/librarian/ask', { query: trimmed, context: this._context });
+    const result = await this._api.post('/librarian/ask', {
+      query: trimmed,
+      context: this._context,
+      mode: this._mode,
+    });
     if (result.ok) {
       const reply = result.data?.answer ?? result.data?.response ?? (typeof result.data === 'string' ? result.data : JSON.stringify(result.data));
       this._addBubble(reply, 'assistant');
@@ -1529,11 +1536,63 @@ class MurphyLibrarianChat {
   }
 
   /**
+   * Apply an MSS operator (magnify/simplify/solidify) to the last assistant message.
+   * @param {'magnify'|'simplify'|'solidify'} op MSS operator name.
+   */
+  async applyMSS(op) {
+    const lastMsg = this._getLastAssistantText();
+    if (!lastMsg) {
+      this._addBubble('No previous response to apply ' + op + ' to. Send a message first.', 'assistant');
+      return;
+    }
+    const labels = { magnify: '🔍 Magnify', simplify: '✂️ Simplify', solidify: '🔒 Solidify' };
+    this._addBubble(labels[op] + ' applied…', 'user');
+    this._history.push({ role: 'user', text: labels[op] + ' applied…' });
+    this._saveHistory();
+
+    const result = await this._api.post('/mss/' + op, { text: lastMsg, context: this._context });
+    if (result.ok) {
+      const r = result.data?.result || result.data || {};
+      const output = r.output || r.text || r.plan || JSON.stringify(r, null, 2);
+      this._addBubble(output, 'assistant');
+      this._history.push({ role: 'assistant', text: output });
+    } else {
+      const errMsg = result.data?.error || result.error || 'MSS operator not available';
+      this._addBubble('Error: ' + errMsg, 'assistant');
+      this._history.push({ role: 'assistant', text: 'Error: ' + errMsg });
+    }
+    this._saveHistory();
+  }
+
+  _getLastAssistantText() {
+    for (let i = this._history.length - 1; i >= 0; i--) {
+      if (this._history[i].role === 'assistant') return this._history[i].text;
+    }
+    return '';
+  }
+
+  /**
    * Update the current page context sent with queries.
    * @param {string} context Identifier for the current view.
    */
   setContext(context) {
     this._context = context;
+  }
+
+  _setMode(mode) {
+    this._mode = mode;
+    const askBtn = this._panel.querySelector('.murphy-mode-ask');
+    const execBtn = this._panel.querySelector('.murphy-mode-execute');
+    if (askBtn && execBtn) {
+      const activeStyle = 'background:#0d9488;color:#fff;';
+      const inactiveStyle = 'background:transparent;color:var(--text-secondary,#aaa);';
+      askBtn.style.cssText = askBtn.style.cssText.replace(/background:[^;]+;color:[^;]+;/, mode === 'ask' ? activeStyle : inactiveStyle);
+      execBtn.style.cssText = execBtn.style.cssText.replace(/background:[^;]+;color:[^;]+;/, mode === 'execute' ? activeStyle : inactiveStyle);
+    }
+    const input = this._panel.querySelector('.murphy-chat-input');
+    if (input) {
+      input.placeholder = mode === 'ask' ? 'Ask a question…' : 'Describe a task to execute…';
+    }
   }
 
   _createButton() {
@@ -1560,14 +1619,28 @@ class MurphyLibrarianChat {
         <span style="font-weight:600;font-size:13px;color:var(--text-primary,#eee);letter-spacing:1px;">MURPHY LIBRARIAN</span>
         <button class="murphy-chat-close" style="background:none;border:none;color:var(--text-secondary,#aaa);cursor:pointer;font-size:18px;" aria-label="Close">&times;</button>
       </div>
+      <div style="display:flex;gap:0;padding:0;border-bottom:1px solid var(--border-dim,#333);background:var(--bg-secondary,#1a1a2e);">
+        <button class="murphy-mode-ask" style="flex:1;padding:8px 0;border:none;cursor:pointer;font-size:12px;font-weight:600;border-radius:0;background:#0d9488;color:#fff;transition:background .15s;" aria-label="Ask mode" title="Ask a question — get knowledge answers">📖 Ask</button>
+        <button class="murphy-mode-execute" style="flex:1;padding:8px 0;border:none;cursor:pointer;font-size:12px;font-weight:600;border-radius:0;background:transparent;color:var(--text-secondary,#aaa);transition:background .15s;" aria-label="Execute mode" title="Execute a task — run commands and automations">⚡ Execute</button>
+      </div>
+      <div style="display:flex;gap:4px;padding:6px 14px;border-bottom:1px solid var(--border-dim,#333);background:var(--bg-primary,#0d0d1a);">
+        <button class="murphy-mss-magnify" style="flex:1;padding:6px 0;border:1px solid #6366f1;background:transparent;color:#a5b4fc;cursor:pointer;font-size:11px;font-weight:600;border-radius:4px;transition:background .15s;" title="Magnify — expand detail and resolution on the last response">🔍 Magnify</button>
+        <button class="murphy-mss-simplify" style="flex:1;padding:6px 0;border:1px solid #f59e0b;background:transparent;color:#fcd34d;cursor:pointer;font-size:11px;font-weight:600;border-radius:4px;transition:background .15s;" title="Simplify — reduce noise and complexity">✂️ Simplify</button>
+        <button class="murphy-mss-solidify" style="flex:1;padding:6px 0;border:1px solid #10b981;background:transparent;color:#6ee7b7;cursor:pointer;font-size:11px;font-weight:600;border-radius:4px;transition:background .15s;" title="Solidify — lock into actionable plan">🔒 Solidify</button>
+      </div>
       <div class="murphy-chat-messages" style="flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px;"></div>
       <div style="padding:10px 14px;border-top:1px solid var(--border-dim,#333);display:flex;gap:8px;">
-        <input type="text" class="murphy-chat-input" placeholder="Ask the Librarian…"
+        <input type="text" class="murphy-chat-input" placeholder="Ask a question…"
           style="flex:1;padding:8px 10px;background:var(--bg-secondary,#1a1a2e);color:var(--text-primary,#eee);border:1px solid var(--border-dim,#333);border-radius:3px;font-size:12px;outline:none;" autocomplete="off">
         <button class="murphy-chat-send" style="padding:6px 14px;background:#0d9488;color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:12px;">Send</button>
       </div>`;
 
     this._panel.querySelector('.murphy-chat-close').addEventListener('click', () => this._toggle());
+    this._panel.querySelector('.murphy-mode-ask').addEventListener('click', () => this._setMode('ask'));
+    this._panel.querySelector('.murphy-mode-execute').addEventListener('click', () => this._setMode('execute'));
+    this._panel.querySelector('.murphy-mss-magnify').addEventListener('click', () => this.applyMSS('magnify'));
+    this._panel.querySelector('.murphy-mss-simplify').addEventListener('click', () => this.applyMSS('simplify'));
+    this._panel.querySelector('.murphy-mss-solidify').addEventListener('click', () => this.applyMSS('solidify'));
 
     const input   = this._panel.querySelector('.murphy-chat-input');
     const sendBtn = this._panel.querySelector('.murphy-chat-send');
@@ -1598,7 +1671,17 @@ class MurphyLibrarianChat {
     bubble.className = `murphy-chat-bubble murphy-chat-${role}`;
     const align = role === 'user' ? 'align-self:flex-end;background:#0d9488;' : 'align-self:flex-start;background:var(--bg-secondary,#1a1a2e);border:1px solid var(--border-dim,#333);';
     bubble.style.cssText = `max-width:85%;padding:8px 12px;border-radius:8px;font-size:12px;line-height:1.5;color:var(--text-primary,#eee);${align}word-wrap:break-word;`;
-    bubble.textContent = text;
+    if (role === 'user') {
+      bubble.textContent = text;
+    } else {
+      // Render assistant messages with markdown formatting
+      if (typeof MurphyMarkdown !== 'undefined') {
+        MurphyMarkdown.injectStyles();
+        bubble.innerHTML = MurphyMarkdown.render(text);
+      } else {
+        bubble.textContent = text;
+      }
+    }
     messages.appendChild(bubble);
     messages.scrollTop = messages.scrollHeight;
   }
@@ -1623,6 +1706,123 @@ class MurphyLibrarianChat {
 
 
 /* ═══════════════════════════════════════════════════════════════════
+ *  SECTION 2b — LLM OUTPUT FORMATTER (Markdown → safe HTML)
+ *  Renders LLM responses with professional formatting similar to
+ *  ChatGPT/Claude: headings, bold, italic, code blocks, lists, links.
+ * ═══════════════════════════════════════════════════════════════════ */
+
+const MurphyMarkdown = {
+  /**
+   * Convert markdown text to safe HTML for LLM output display.
+   * Handles: headers, bold, italic, code blocks, inline code,
+   * unordered/ordered lists, horizontal rules, links, line breaks.
+   */
+  render(text) {
+    if (!text) return '';
+    let html = this._escapeHtml(text);
+
+    // Fenced code blocks: ```lang\n...\n```
+    html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) =>
+      `<pre class="murphy-md-code-block"><code class="murphy-md-code-lang-${lang || 'text'}">${code.trim()}</code></pre>`
+    );
+
+    // Inline code: `code`
+    html = html.replace(/`([^`\n]+)`/g, '<code class="murphy-md-inline-code">$1</code>');
+
+    // Headings (### → h5, ## → h4, # → h3) — only at line start
+    html = html.replace(/^#### (.+)$/gm, '<h6 class="murphy-md-h6">$1</h6>');
+    html = html.replace(/^### (.+)$/gm, '<h5 class="murphy-md-h5">$1</h5>');
+    html = html.replace(/^## (.+)$/gm, '<h4 class="murphy-md-h4">$1</h4>');
+    html = html.replace(/^# (.+)$/gm, '<h3 class="murphy-md-h3">$1</h3>');
+
+    // Bold + italic: ***text*** or ___text___
+    html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+    html = html.replace(/___(.+?)___/g, '<strong><em>$1</em></strong>');
+
+    // Bold: **text** or __text__
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
+
+    // Italic: *text* or _text_  (not inside words)
+    html = html.replace(/(?<!\w)\*([^*\n]+)\*(?!\w)/g, '<em>$1</em>');
+    html = html.replace(/(?<!\w)_([^_\n]+)_(?!\w)/g, '<em>$1</em>');
+
+    // Horizontal rule: --- or ***
+    html = html.replace(/^(---|\*\*\*)$/gm, '<hr class="murphy-md-hr">');
+
+    // Unordered lists: - item or * item
+    html = html.replace(/^[\-\*] (.+)$/gm, '<li class="murphy-md-li">$1</li>');
+    html = html.replace(/((?:<li class="murphy-md-li">.*<\/li>\n?)+)/g, '<ul class="murphy-md-ul">$1</ul>');
+
+    // Ordered lists: 1. item
+    html = html.replace(/^\d+\. (.+)$/gm, '<li class="murphy-md-oli">$1</li>');
+    html = html.replace(/((?:<li class="murphy-md-oli">.*<\/li>\n?)+)/g, '<ol class="murphy-md-ol">$1</ol>');
+
+    // Links: [text](url) — whitelist safe protocols only
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, text, url) => {
+      const trimmed = url.trim();
+      if (!/^(https?:|mailto:|\/)/i.test(trimmed)) return text;
+      const safeUrl = this._escapeHtml(trimmed);
+      return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="murphy-md-link">${text}</a>`;
+    });
+
+    // Line breaks: double newline → paragraph break, single → <br>
+    html = html.replace(/\n\n/g, '</p><p class="murphy-md-p">');
+    html = html.replace(/\n/g, '<br>');
+
+    // Wrap in container
+    return `<div class="murphy-md"><p class="murphy-md-p">${html}</p></div>`;
+  },
+
+  /** Escape HTML entities to prevent XSS */
+  _escapeHtml(text) {
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+    return String(text).replace(/[&<>"']/g, c => map[c]);
+  },
+
+  /** Inject styles into the document (idempotent) */
+  injectStyles() {
+    if (document.getElementById('murphy-md-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'murphy-md-styles';
+    style.textContent = `
+      .murphy-md { line-height: 1.6; word-wrap: break-word; }
+      .murphy-md p.murphy-md-p { margin: 0 0 0.5em 0; }
+      .murphy-md p.murphy-md-p:last-child { margin-bottom: 0; }
+      .murphy-md h3.murphy-md-h3, .murphy-md h4.murphy-md-h4,
+      .murphy-md h5.murphy-md-h5, .murphy-md h6.murphy-md-h6 {
+        margin: 0.8em 0 0.3em; font-weight: 700; line-height: 1.3;
+        color: var(--text-primary, #eee);
+      }
+      .murphy-md h3.murphy-md-h3 { font-size: 1.15em; }
+      .murphy-md h4.murphy-md-h4 { font-size: 1.05em; }
+      .murphy-md h5.murphy-md-h5 { font-size: 0.95em; }
+      .murphy-md h6.murphy-md-h6 { font-size: 0.9em; color: var(--text-dim, #aaa); }
+      .murphy-md strong { font-weight: 700; color: var(--text-primary, #fff); }
+      .murphy-md em { font-style: italic; }
+      .murphy-md-inline-code {
+        background: var(--bg-elevated, #1e293b); padding: 1px 5px;
+        border-radius: 3px; font-family: 'SF Mono', 'Fira Code', monospace;
+        font-size: 0.88em; color: var(--color-success, #0d9488);
+      }
+      .murphy-md-code-block {
+        background: var(--bg-elevated, #0f172a); border: 1px solid var(--border-dim, #334155);
+        border-radius: 6px; padding: 0.75em 1em; margin: 0.5em 0;
+        overflow-x: auto; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.85em;
+        line-height: 1.5; color: var(--text-primary, #e2e8f0);
+      }
+      .murphy-md-code-block code { background: none; padding: 0; }
+      .murphy-md-ul, .murphy-md-ol { margin: 0.4em 0 0.4em 1.5em; padding: 0; }
+      .murphy-md-li, .murphy-md-oli { margin: 0.15em 0; }
+      .murphy-md-hr { border: none; border-top: 1px solid var(--border-dim, #334155); margin: 0.8em 0; }
+      .murphy-md-link { color: var(--color-success, #0d9488); text-decoration: underline; }
+      .murphy-md-link:hover { opacity: 0.8; }
+    `;
+    document.head.appendChild(style);
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════════════
  *  SECTION 3 — EXPORTS & GLOBALS
  * ═══════════════════════════════════════════════════════════════════ */
 
@@ -1637,6 +1837,7 @@ window.MurphyJargon         = MurphyJargon;
 window.MurphyKeyboard       = MurphyKeyboard;
 window.MurphyTerminalPanel  = MurphyTerminalPanel;
 window.MurphyLibrarianChat  = MurphyLibrarianChat;
+window.MurphyMarkdown       = MurphyMarkdown;
 
 /* ES module export — only when loaded as type="module" */
 try {
