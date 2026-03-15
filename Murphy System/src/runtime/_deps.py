@@ -549,6 +549,12 @@ try:
 except ImportError:
     logger.warning("FastAPI not installed. Install with: pip install fastapi uvicorn")
     FastAPI = None
+    uvicorn = None
+    CORSMiddleware = None
+    HTTPException = None
+    JSONResponse = None
+    Depends = None
+    Request = None
 
 # Dynamic Assist Engine (PR #195)
 try:
