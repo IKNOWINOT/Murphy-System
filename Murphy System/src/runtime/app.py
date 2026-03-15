@@ -88,6 +88,14 @@ def create_app() -> FastAPI:
     def _now_iso():
         return datetime.now(timezone.utc).isoformat()
 
+    # ── Shared OAuth provider registry (singleton for the lifetime of this
+    #    app instance so begin_auth_flow / complete_auth_flow share state) ──
+    try:
+        from src.account_management.oauth_provider_registry import OAuthProviderRegistry as _OAuthProviderRegistry
+        _oauth_registry: "Optional[_OAuthProviderRegistry]" = _OAuthProviderRegistry()
+    except Exception:  # pragma: no cover
+        _oauth_registry = None
+
     # Apply security hardening (CORS allowlist, API key auth, rate limiting, headers)
     try:
         from src.fastapi_security import configure_secure_fastapi
@@ -3753,9 +3761,9 @@ def create_app() -> FastAPI:
                     {"error": "Missing code or state parameter"},
                     status_code=400,
                 )
-            from src.account_management.oauth_provider_registry import OAuthProviderRegistry
-            registry = OAuthProviderRegistry()
-            token = registry.complete_auth_flow(state, code)
+            if _oauth_registry is None:
+                return JSONResponse({"error": "OAuth registry unavailable"}, status_code=503)
+            token = _oauth_registry.complete_auth_flow(state, code)
             return JSONResponse({
                 "success": True,
                 "provider": token.provider.value,
@@ -3794,25 +3802,40 @@ def create_app() -> FastAPI:
     @app.get("/api/auth/oauth/{provider}")
     async def auth_oauth_redirect(provider: str):
         """Redirect to OAuth provider for signup/login."""
-        _oauth_urls = {
-            "google": "https://accounts.google.com/o/oauth2/auth",
-            "github": "https://github.com/login/oauth/authorize",
-            "meta": "https://www.facebook.com/v18.0/dialog/oauth",
-            "linkedin": "https://www.linkedin.com/oauth/v2/authorization",
-            "apple": "https://appleid.apple.com/auth/authorize",
-        }
-        if provider.lower() not in _oauth_urls:
-            return JSONResponse(
-                {"success": False, "error": f"Unsupported provider: {provider}"},
-                status_code=400,
+        from starlette.responses import RedirectResponse
+        from src.account_management.models import OAuthProvider
+
+        _supported = {p.value for p in OAuthProvider if p != OAuthProvider.CUSTOM}
+        provider_key = provider.lower()
+
+        if provider_key not in _supported:
+            return RedirectResponse(
+                f"/login.html?error=unsupported_provider&provider={provider_key}",
+                status_code=302,
             )
-        # In production, this would redirect to the provider's auth URL
-        return JSONResponse({
-            "success": True,
-            "provider": provider,
-            "message": f"OAuth flow for {provider} initiated. Configure OAuth credentials to enable.",
-            "redirect_url": _oauth_urls[provider.lower()],
-        })
+
+        if _oauth_registry is None:
+            return RedirectResponse(
+                f"/login.html?error=oauth_unavailable&provider={provider_key}",
+                status_code=302,
+            )
+
+        try:
+            oauth_provider = OAuthProvider(provider_key)
+            authorize_url, _state = _oauth_registry.begin_auth_flow(oauth_provider)
+            return RedirectResponse(authorize_url, status_code=302)
+        except ValueError as exc:
+            logger.warning("OAuth flow could not be started for %s: %s", provider_key, exc)
+            return RedirectResponse(
+                f"/login.html?error=oauth_not_configured&provider={provider_key}",
+                status_code=302,
+            )
+        except Exception as exc:
+            logger.exception("Unexpected error starting OAuth flow for %s", provider_key)
+            return RedirectResponse(
+                f"/login.html?error=oauth_error&provider={provider_key}",
+                status_code=302,
+            )
 
     # ==================== READINESS SCANNER ====================
 
