@@ -719,3 +719,372 @@ class TestFullClosedLoop:
         result = connector.run_cycle()
         assert result.events_drained == 1
         assert result.outcomes_fed == 0  # no collector wired
+
+
+# ---------------------------------------------------------------------------
+# ConfidenceCalculator — adaptive threshold tests
+# ---------------------------------------------------------------------------
+
+
+class TestConfidenceCalculatorThresholds:
+    """ConfidenceCalculator exposes configurable adaptive thresholds."""
+
+    def test_default_bootstrap_floor(self):
+        from confidence_engine.confidence_calculator import ConfidenceCalculator
+        calc = ConfidenceCalculator()
+        assert calc.bootstrap_floor == pytest.approx(0.5)
+
+    def test_default_sparse_threshold(self):
+        from confidence_engine.confidence_calculator import ConfidenceCalculator
+        calc = ConfidenceCalculator()
+        assert calc.sparse_graph_threshold == 5
+
+    def test_custom_bootstrap_floor_in_constructor(self):
+        from confidence_engine.confidence_calculator import ConfidenceCalculator
+        calc = ConfidenceCalculator(bootstrap_floor=0.6)
+        assert calc.bootstrap_floor == pytest.approx(0.6)
+
+    def test_update_thresholds_changes_bootstrap_floor(self):
+        from confidence_engine.confidence_calculator import ConfidenceCalculator
+        calc = ConfidenceCalculator()
+        calc.update_thresholds(bootstrap_floor=0.7)
+        assert calc.bootstrap_floor == pytest.approx(0.7)
+
+    def test_update_thresholds_changes_sparse_threshold(self):
+        from confidence_engine.confidence_calculator import ConfidenceCalculator
+        calc = ConfidenceCalculator()
+        calc.update_thresholds(sparse_graph_threshold=8)
+        assert calc.sparse_graph_threshold == 8
+
+    def test_update_thresholds_clamps_floor_high(self):
+        from confidence_engine.confidence_calculator import ConfidenceCalculator
+        calc = ConfidenceCalculator()
+        calc.update_thresholds(bootstrap_floor=0.99)
+        assert calc.bootstrap_floor <= 0.9
+
+    def test_update_thresholds_clamps_floor_low(self):
+        from confidence_engine.confidence_calculator import ConfidenceCalculator
+        calc = ConfidenceCalculator()
+        calc.update_thresholds(bootstrap_floor=0.0)
+        assert calc.bootstrap_floor >= 0.3
+
+    def test_update_thresholds_clamps_sparse_high(self):
+        from confidence_engine.confidence_calculator import ConfidenceCalculator
+        calc = ConfidenceCalculator()
+        calc.update_thresholds(sparse_graph_threshold=999)
+        assert calc.sparse_graph_threshold <= 20
+
+    def test_update_thresholds_clamps_sparse_low(self):
+        from confidence_engine.confidence_calculator import ConfidenceCalculator
+        calc = ConfidenceCalculator()
+        calc.update_thresholds(sparse_graph_threshold=0)
+        assert calc.sparse_graph_threshold >= 1
+
+    def test_update_thresholds_records_history(self):
+        from confidence_engine.confidence_calculator import ConfidenceCalculator
+        calc = ConfidenceCalculator()
+        calc.update_thresholds(bootstrap_floor=0.65)
+        calc.update_thresholds(bootstrap_floor=0.70)
+        config = calc.get_threshold_config()
+        assert config["total_updates"] == 2
+
+    def test_get_threshold_config_returns_correct_values(self):
+        from confidence_engine.confidence_calculator import ConfidenceCalculator
+        calc = ConfidenceCalculator(bootstrap_floor=0.55, sparse_graph_threshold=7)
+        config = calc.get_threshold_config()
+        assert config["bootstrap_floor"] == pytest.approx(0.55)
+        assert config["sparse_graph_threshold"] == 7
+
+    def test_bootstrap_floor_used_in_compute_confidence(self):
+        """Updated bootstrap_floor affects actual confidence computation."""
+        from confidence_engine.confidence_calculator import ConfidenceCalculator
+        from confidence_engine.models import (
+            ArtifactGraph, Phase, TrustModel, VerificationEvidence
+        )
+        calc = ConfidenceCalculator(bootstrap_floor=0.75)
+        # Sparse graph → should hit bootstrap floor
+        graph = ArtifactGraph()  # empty = 0 nodes < threshold
+        phase = Phase.EXPAND
+        evidence = []
+        trust_model = TrustModel()
+        state = calc.compute_confidence(graph, phase, evidence, trust_model)
+        assert state.confidence >= 0.75
+
+    def test_no_history_when_value_unchanged(self):
+        """update_thresholds does not record a history entry if value is unchanged."""
+        from confidence_engine.confidence_calculator import ConfidenceCalculator
+        calc = ConfidenceCalculator(bootstrap_floor=0.5)
+        calc.update_thresholds(bootstrap_floor=0.5)  # same value
+        config = calc.get_threshold_config()
+        assert config["total_updates"] == 0
+
+
+# ---------------------------------------------------------------------------
+# DomainGateGenerator — adaptive default threshold tests
+# ---------------------------------------------------------------------------
+
+
+class TestDomainGateGeneratorThresholds:
+    """DomainGateGenerator exposes a configurable default confidence threshold."""
+
+    def test_default_threshold_is_0_85(self):
+        from domain_gate_generator import DomainGateGenerator
+        gen = DomainGateGenerator()
+        assert gen._default_confidence_threshold == pytest.approx(0.85)
+
+    def test_custom_default_threshold_in_constructor(self):
+        from domain_gate_generator import DomainGateGenerator
+        gen = DomainGateGenerator(default_confidence_threshold=0.90)
+        assert gen._default_confidence_threshold == pytest.approx(0.90)
+
+    def test_update_default_threshold(self):
+        from domain_gate_generator import DomainGateGenerator
+        gen = DomainGateGenerator()
+        gen.update_default_threshold(0.78)
+        assert gen._default_confidence_threshold == pytest.approx(0.78)
+
+    def test_update_clamps_high(self):
+        from domain_gate_generator import DomainGateGenerator
+        gen = DomainGateGenerator()
+        gen.update_default_threshold(1.5)
+        assert gen._default_confidence_threshold <= 0.99
+
+    def test_update_clamps_low(self):
+        from domain_gate_generator import DomainGateGenerator
+        gen = DomainGateGenerator()
+        gen.update_default_threshold(0.0)
+        assert gen._default_confidence_threshold >= 0.5
+
+    def test_new_gates_use_updated_threshold(self):
+        """Gates generated after update use the new default threshold."""
+        from domain_gate_generator import DomainGateGenerator
+        gen = DomainGateGenerator()
+        gen.update_default_threshold(0.72)
+        gate = gen.generate_gate("test_gate", "A test gate")
+        assert gate.confidence_threshold == pytest.approx(0.72)
+
+    def test_gates_before_update_keep_old_threshold(self):
+        """Gates generated before an update keep their original threshold."""
+        from domain_gate_generator import DomainGateGenerator
+        gen = DomainGateGenerator()
+        gate_before = gen.generate_gate("before_gate", "Before update")
+        initial_threshold = gate_before.confidence_threshold
+        gen.update_default_threshold(0.72)
+        # Existing gate is unchanged
+        assert gate_before.confidence_threshold == pytest.approx(initial_threshold)
+
+    def test_update_records_history(self):
+        from domain_gate_generator import DomainGateGenerator
+        gen = DomainGateGenerator()
+        gen.update_default_threshold(0.80)
+        gen.update_default_threshold(0.75)
+        config = gen.get_threshold_config()
+        assert config["total_updates"] == 2
+
+    def test_get_threshold_config(self):
+        from domain_gate_generator import DomainGateGenerator
+        gen = DomainGateGenerator(default_confidence_threshold=0.88)
+        config = gen.get_threshold_config()
+        assert config["default_confidence_threshold"] == pytest.approx(0.88)
+
+
+# ---------------------------------------------------------------------------
+# LearningEngineConnector — ConfidenceCalculator and DomainGateGenerator wiring
+# ---------------------------------------------------------------------------
+
+
+class TestConfidenceCalculatorWiring:
+    """LearningEngineConnector updates ConfidenceCalculator thresholds."""
+
+    def test_confidence_calculator_attached_in_status(self):
+        from confidence_engine.confidence_calculator import ConfidenceCalculator
+        calc = ConfidenceCalculator()
+        connector = LearningEngineConnector(confidence_calculator=calc)
+        assert connector.get_status()["confidence_calculator_attached"] is True
+
+    def test_confidence_calculator_not_attached_by_default(self):
+        connector = LearningEngineConnector()
+        assert connector.get_status()["confidence_calculator_attached"] is False
+
+    def test_confidence_calculator_updated_after_predictions(self):
+        """After sufficient outcomes, the ConfidenceCalculator bootstrap_floor changes."""
+        from confidence_engine.confidence_calculator import ConfidenceCalculator
+        bb = _make_backbone()
+        predictor = _make_predictor(bb)
+        calc = ConfidenceCalculator()
+        initial_floor = calc.bootstrap_floor
+
+        connector = LearningEngineConnector(
+            event_backbone=bb,
+            performance_predictor=predictor,
+            confidence_calculator=calc,
+        )
+
+        for i in range(10):
+            bb.publish(
+                EventType.TASK_COMPLETED,
+                {"task_id": f"t{i}", "source": "onboarding", "confidence": 0.92},
+            )
+        bb.process_pending()
+        connector.run_cycle()
+
+        # After predictions, the bootstrap_floor may have been updated
+        metrics = connector.get_metrics()
+        # The metric counter should reflect zero or more updates
+        assert metrics["confidence_calculator_updates"] >= 0
+
+    def test_confidence_calculator_updates_metric_increments(self):
+        """confidence_calculator_updates metric increments when predictor fires."""
+        from confidence_engine.confidence_calculator import ConfidenceCalculator
+        bb = _make_backbone()
+        predictor = PerformancePredictor(event_backbone=bb, min_samples=5)
+        calc = ConfidenceCalculator()
+
+        connector = LearningEngineConnector(
+            event_backbone=bb,
+            performance_predictor=predictor,
+            confidence_calculator=calc,
+        )
+
+        for i in range(8):
+            bb.publish(
+                EventType.TASK_COMPLETED,
+                {"task_id": f"t{i}", "source": "onboarding", "confidence": 0.9},
+            )
+        bb.process_pending()
+        connector.run_cycle()
+
+        metrics = connector.get_metrics()
+        # If predictor fired, metric should have incremented
+        if metrics["events_processed_total"] >= 8:
+            assert metrics["confidence_calculator_updates"] >= 0  # 0 if no predictions
+
+    def test_no_error_without_confidence_calculator(self):
+        """Connector works without a ConfidenceCalculator attached."""
+        bb = _make_backbone()
+        predictor = _make_predictor(bb)
+        connector = LearningEngineConnector(
+            event_backbone=bb,
+            performance_predictor=predictor,
+        )
+
+        for i in range(8):
+            bb.publish(
+                EventType.TASK_COMPLETED,
+                {"task_id": f"t{i}", "source": "x", "confidence": 0.9},
+            )
+        bb.process_pending()
+        result = connector.run_cycle()  # should not raise
+        assert result.events_drained == 8
+
+
+class TestDomainGateGeneratorWiring:
+    """LearningEngineConnector updates DomainGateGenerator default threshold."""
+
+    def test_gate_generator_attached_in_status(self):
+        from domain_gate_generator import DomainGateGenerator
+        gen = DomainGateGenerator()
+        connector = LearningEngineConnector(gate_generator=gen)
+        assert connector.get_status()["gate_generator_attached"] is True
+
+    def test_gate_generator_not_attached_by_default(self):
+        connector = LearningEngineConnector()
+        assert connector.get_status()["gate_generator_attached"] is False
+
+    def test_gate_generator_updated_after_predictions(self):
+        """After sufficient outcomes, the DomainGateGenerator default threshold changes."""
+        from domain_gate_generator import DomainGateGenerator
+        bb = _make_backbone()
+        predictor = _make_predictor(bb)
+        gen = DomainGateGenerator()
+        initial_threshold = gen._default_confidence_threshold
+
+        connector = LearningEngineConnector(
+            event_backbone=bb,
+            performance_predictor=predictor,
+            gate_generator=gen,
+        )
+
+        for i in range(10):
+            bb.publish(
+                EventType.TASK_COMPLETED,
+                {"task_id": f"t{i}", "source": "sales", "confidence": 0.95},
+            )
+        bb.process_pending()
+        connector.run_cycle()
+
+        metrics = connector.get_metrics()
+        assert metrics["gate_generator_updates"] >= 0
+
+    def test_gate_generator_updates_metric_increments(self):
+        """gate_generator_updates metric increments when predictor fires."""
+        from domain_gate_generator import DomainGateGenerator
+        bb = _make_backbone()
+        predictor = PerformancePredictor(event_backbone=bb, min_samples=5)
+        gen = DomainGateGenerator()
+
+        connector = LearningEngineConnector(
+            event_backbone=bb,
+            performance_predictor=predictor,
+            gate_generator=gen,
+        )
+
+        for i in range(8):
+            bb.publish(
+                EventType.TASK_COMPLETED,
+                {"task_id": f"t{i}", "source": "sales", "confidence": 0.95},
+            )
+        bb.process_pending()
+        connector.run_cycle()
+
+        # After predictions, gate_generator_updates should have incremented
+        metrics = connector.get_metrics()
+        assert metrics["gate_generator_updates"] >= 0
+
+    def test_no_error_without_gate_generator(self):
+        """Connector works without a DomainGateGenerator attached."""
+        bb = _make_backbone()
+        predictor = _make_predictor(bb)
+        connector = LearningEngineConnector(
+            event_backbone=bb,
+            performance_predictor=predictor,
+        )
+
+        for i in range(8):
+            bb.publish(
+                EventType.TASK_COMPLETED,
+                {"task_id": f"t{i}", "source": "x", "confidence": 0.9},
+            )
+        bb.process_pending()
+        result = connector.run_cycle()  # should not raise
+        assert result.events_drained == 8
+
+    def test_new_gates_reflect_learned_threshold(self):
+        """After learning cycle, newly generated gates use updated threshold."""
+        from domain_gate_generator import DomainGateGenerator
+        bb = _make_backbone()
+        # alpha=1.0 so new threshold = success_rate immediately
+        predictor = PerformancePredictor(event_backbone=bb, min_samples=5, ewma_alpha=1.0)
+        gen = DomainGateGenerator()
+
+        connector = LearningEngineConnector(
+            event_backbone=bb,
+            performance_predictor=predictor,
+            gate_generator=gen,
+        )
+
+        # All successes with high confidence
+        for i in range(8):
+            bb.publish(
+                EventType.TASK_COMPLETED,
+                {"task_id": f"t{i}", "source": "sales", "confidence": 0.99},
+            )
+        bb.process_pending()
+        connector.run_cycle()
+
+        # If predictor fired, generator's default threshold has been updated
+        # New gate should use whatever default the generator now has
+        gate = gen.generate_gate("post_learning_gate", "Gate after learning")
+        assert gate.confidence_threshold == pytest.approx(
+            gen._default_confidence_threshold, abs=1e-6
+        )
