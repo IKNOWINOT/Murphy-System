@@ -18,6 +18,8 @@ from typing import Any, Dict, List
 
 import pytest
 
+pytestmark = pytest.mark.storyline
+
 # ---------------------------------------------------------------------------
 # Path setup
 # ---------------------------------------------------------------------------
