@@ -16,6 +16,7 @@
 | Confidence Engine | ✅ Operational | Bayesian scoring, Murphy Index, artifact graphs |
 | Security Plane | ⚠️ Partial | Authentication, authorization, DLP implemented; formal pen-test pending |
 | AUAR Pipeline | ✅ Operational | 7-layer routing with ML optimization |
+| **Librarian Routing** | ✅ **Implemented** | `TaskRouter`, `SystemLibrarian.find_capabilities()`, `SolutionPathRegistry` wired; `IntegrationBus` delegates to `TaskRouter` with legacy fallback |
 | AionMind Kernel | ✅ Operational | Context engine, reasoning engine, orchestration engine |
 | Setup Wizard | ✅ Operational | 6 deployment presets, guided onboarding |
 | Execution Engines | ✅ Operational | Task executor, workflow orchestrator, sandbox manager |
@@ -65,6 +66,7 @@ Murphy System is **aligned with** (not formally attested to) the following frame
 | G-010 | ~~JWT/OAuth not in production~~ | ~~High~~ | ✅ **RESOLVED** — JWT token validation added to FastAPI and Flask security middleware |
 | G-011 | ~~Documentation placeholders~~ | ~~Medium~~ | ✅ **RESOLVED** — All 12+ placeholder docs filled with real content |
 | ~~G-008~~ | ~~Production deployment hardening~~ | ~~Medium~~ | ✅ **RESOLVED** — `SecurityContext`, `PodDisruptionBudget`, `NetworkPolicy` added to `kubernetes_deployment.py` with YAML rendering |
+| ~~G-012~~ | ~~Librarian-driven routing not wired~~ | ~~Critical~~ | ✅ **RESOLVED** — `TaskRouter`, `SolutionPathRegistry`, `SystemLibrarian.find_capabilities()` implemented; `IntegrationBus._process_execute()` delegates to `TaskRouter` with graceful fallback to legacy chain; `FeedbackIntegrator` connected via `SolutionPathRegistry.record_outcome()`; 30 unit tests added |
 
 ## Infrastructure Deferred Items
 
