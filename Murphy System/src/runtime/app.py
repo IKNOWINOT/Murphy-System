@@ -117,24 +117,6 @@ def create_app() -> FastAPI:
     except Exception:  # pragma: no cover
         _oauth_registry = None
 
-    # Apply security hardening (CORS allowlist, API key auth, rate limiting, headers)
-    try:
-        from src.fastapi_security import configure_secure_fastapi
-        configure_secure_fastapi(app, service_name="murphy-system-1.0")
-    except ImportError:
-        logger.warning("fastapi_security not available — falling back to env-based CORS")
-        _cors_origins = os.environ.get(
-            "MURPHY_CORS_ORIGINS",
-            "http://localhost:3000,http://localhost:8080,http://localhost:8000",
-        ).split(",")
-        app.add_middleware(
-            CORSMiddleware,
-            allow_origins=[o.strip() for o in _cors_origins],
-            allow_credentials=True,
-            allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            allow_headers=["*"],
-        )
-
     # Load .env before initialising MurphySystem so env vars like
     # MURPHY_LLM_PROVIDER and GROQ_API_KEY are available from the start.
     # Resolve to the project root (Murphy System/) — three levels up from
@@ -146,19 +128,19 @@ def create_app() -> FastAPI:
     # Initialize Murphy System
     murphy = MurphySystem()
 
-    # ── Database Initialisation (Phase 1-A) ──────────────────────
+    # ── Shared mutable state for critical subsystem references ────
+    # These variables are read throughout the endpoint closures below.
+    # Loader functions update them via `nonlocal` so that each subsystem
+    # is initialised exactly once and in a controlled order through the
+    # module loader, while remaining directly accessible to all closures
+    # inside create_app() without requiring app.state look-ups.
     _db_available = False
-    if os.environ.get("DATABASE_URL"):
-        try:
-            from src.db import create_tables
-            create_tables()
-            _db_available = True
-            logger.info("Relational persistence initialised (DATABASE_URL set)")
-        except Exception as _db_exc:
-            logger.warning("Database init failed — falling back to JSON persistence: %s", _db_exc)
+    _cache_client = None
+    _integration_bus = None
+    _aionmind_kernel = None
 
     # ── Cache Initialisation (Phase 1-B) ─────────────────────────
-    _cache_client = None
+    # Cache is optional — no router, no critical dependency.
     try:
         from src.cache import CacheClient
         _cache_client = CacheClient()
@@ -166,17 +148,72 @@ def create_app() -> FastAPI:
         logger.warning("CacheClient init failed: %s", _cache_exc)
 
     # ── Module registrations (ML-001) ────────────────────────────
-    # All sub-router modules are registered here.  Critical modules cause a
-    # hard abort on failure; optional modules degrade gracefully.
+    # CRITICAL modules: Security Plane, EventBackbone, Database,
+    # GovernanceKernel, IntegrationBus — any failure aborts startup.
+    # OPTIONAL modules: all sub-router packages — degrade gracefully.
+
+    # --- CRITICAL: Security Plane ---
+    def _load_security_plane(_app):
+        """Apply security hardening middleware (CORS, API-key auth, rate-limit, headers)."""
+        from src.fastapi_security import configure_secure_fastapi
+        configure_secure_fastapi(_app, service_name="murphy-system-1.0")
+        return False  # middleware applied; no APIRouter registered
+
+    # --- CRITICAL: EventBackbone ---
+    def _load_event_backbone(_app):
+        """Verify EventBackbone was successfully initialised inside MurphySystem."""
+        if getattr(murphy, "event_backbone", None) is None:
+            raise RuntimeError(
+                "EventBackbone did not initialise — check src.event_backbone import "
+                "and MurphySystem startup logs"
+            )
+        return False
+
+    # --- CRITICAL: GovernanceKernel ---
+    def _load_governance_kernel(_app):
+        """Verify GovernanceKernel was successfully initialised inside MurphySystem."""
+        if getattr(murphy, "governance_kernel", None) is None:
+            raise RuntimeError(
+                "GovernanceKernel did not initialise — check src.governance_kernel import "
+                "and MurphySystem startup logs"
+            )
+        return False
+
+    # --- CRITICAL: Database (only when DATABASE_URL is configured) ---
+    def _load_database(_app):
+        """Create schema tables when a relational DATABASE_URL is configured."""
+        nonlocal _db_available
+        from src.db import create_tables
+        create_tables()
+        _db_available = True
+        logger.info("Relational persistence initialised (DATABASE_URL set)")
+        return False
+
+    # --- CRITICAL: IntegrationBus (EventBackbone wiring layer) ---
+    def _load_integration_bus(_app):
+        """Initialise IntegrationBus — wires src/ modules into the runtime."""
+        nonlocal _integration_bus
+        from src.integration_bus import IntegrationBus
+        _integration_bus = IntegrationBus()
+        _integration_bus.initialize()
+        logger.info("IntegrationBus initialised: %s", _integration_bus.get_status())
+        return False
+
+    _module_loader.register("security_plane", ModulePriority.CRITICAL, _load_security_plane)
+    _module_loader.register("event_backbone", ModulePriority.CRITICAL, _load_event_backbone)
+    _module_loader.register("governance_kernel", ModulePriority.CRITICAL, _load_governance_kernel)
+    if os.environ.get("DATABASE_URL"):
+        _module_loader.register("database", ModulePriority.CRITICAL, _load_database)
+    _module_loader.register("integration_bus", ModulePriority.CRITICAL, _load_integration_bus)
 
     def _load_aionmind(_app):
+        nonlocal _aionmind_kernel
         from aionmind import api as aionmind_api
         from aionmind.runtime_kernel import AionMindKernel
         _kernel = AionMindKernel(auto_bridge_bots=True, auto_discover_rsc=True)
         aionmind_api.init_kernel(_kernel)
         _app.include_router(aionmind_api.router)
-        # Persist kernel on app state to prevent garbage collection
-        _app.state.aionmind_kernel = _kernel
+        _aionmind_kernel = _kernel
         logger.info("AionMind 2.0 cognitive pipeline initialised (%d capabilities).",
                     _kernel.registry.count())
         return True
@@ -302,15 +339,6 @@ def create_app() -> FastAPI:
     except ImportError:
         _perm_execute = _noop_dep
         _perm_configure = _noop_dep
-    # ── Integration Bus — wires src/ modules into the runtime ────────
-    _integration_bus = None
-    try:
-        from src.integration_bus import IntegrationBus
-        _integration_bus = IntegrationBus()
-        _integration_bus.initialize()
-        logger.info("IntegrationBus initialised: %s", _integration_bus.get_status())
-    except Exception as _ib_exc:
-        logger.warning("IntegrationBus not available — endpoints use legacy paths: %s", _ib_exc)
 
     # ==================== CORE ENDPOINTS ====================
 

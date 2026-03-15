@@ -147,8 +147,9 @@ class ModuleLoaderResult:
 class _ModuleEntry:
     name: str
     priority: ModulePriority
-    # Callable that receives the FastAPI app and registers the router.
-    # Returns True when the router was successfully registered.
+    # Callable that receives the FastAPI app and performs the load action.
+    # Returns True when an APIRouter was registered via app.include_router().
+    # Returns False for middleware-only or infrastructure modules (no router).
     loader: Callable[..., bool]
 
 
@@ -158,6 +159,15 @@ class _ModuleEntry:
 
 class ModuleLoader:
     """Framework for loading optional and critical FastAPI sub-routers.
+
+    Each registered loader callable receives the FastAPI ``app`` instance and
+    performs its load action (typically ``app.include_router(...)`` or middleware
+    registration).  It should return:
+
+    - ``True``  — an ``APIRouter`` was registered via ``app.include_router()``.
+    - ``False`` — the module loaded successfully but added no router (e.g. it
+                  applied middleware, initialised an infrastructure subsystem, or
+                  performed a validation check).
 
     Usage::
 
