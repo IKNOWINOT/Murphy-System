@@ -598,7 +598,7 @@ The module registry may not have loaded correctly. Check for errors in the serve
 ## Test Suite
 
 The project includes 118 gap-closure test files and 14,800+ total tests.
-Run the full suite with `python -m pytest tests/ -v` from the `Murphy System/` directory.
+Run the full suite with `python -m pytest tests/ -v` from the repository root.
 
 ---
 

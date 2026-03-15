@@ -3,22 +3,22 @@
 PHASE 3: Test all web interfaces by loading them and checking HTTP 200.
 
 FILES TESTED:
-  - Murphy System/murphy_landing_page.html         → Public front door
-  - Murphy System/onboarding_wizard.html            → New user onboarding
-  - Murphy System/murphy_ui_integrated.html         → Integrated UI
-  - Murphy System/murphy_ui_integrated_terminal.html→ Integrated terminal
-  - Murphy System/terminal_unified.html             → Unified terminal
-  - Murphy System/terminal_enhanced.html            → Enhanced terminal
-  - Murphy System/terminal_integrated.html          → Integrated terminal view
-  - Murphy System/terminal_architect.html           → Architect terminal
-  - Murphy System/terminal_costs.html               → Cost terminal
-  - Murphy System/terminal_integrations.html        → Integrations terminal
-  - Murphy System/terminal_orchestrator.html        → Orchestrator terminal
-  - Murphy System/terminal_orgchart.html            → Org chart terminal
-  - Murphy System/terminal_worker.html              → Worker terminal
-  - Murphy System/workflow_canvas.html              → Workflow canvas
-  - Murphy System/system_visualizer.html            → System visualizer
-  - Murphy System/murphy-smoke-test.html            → Smoke test page
+  - murphy_landing_page.html         → Public front door
+  - onboarding_wizard.html            → New user onboarding
+  - murphy_ui_integrated.html         → Integrated UI
+  - murphy_ui_integrated_terminal.html→ Integrated terminal
+  - terminal_unified.html             → Unified terminal
+  - terminal_enhanced.html            → Enhanced terminal
+  - terminal_integrated.html          → Integrated terminal view
+  - terminal_architect.html           → Architect terminal
+  - terminal_costs.html               → Cost terminal
+  - terminal_integrations.html        → Integrations terminal
+  - terminal_orchestrator.html        → Orchestrator terminal
+  - terminal_orgchart.html            → Org chart terminal
+  - terminal_worker.html              → Worker terminal
+  - repository root/workflow_canvas.html              → Workflow canvas
+  - repository root/system_visualizer.html            → System visualizer
+  - repository root/murphy-smoke-test.html            → Smoke test page
 """
 
 import json

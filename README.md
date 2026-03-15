@@ -1,11 +1,18 @@
-# Murphy System — Runtime Directory
+# Murphy System
 
-> **📖 Canonical documentation:** See the [root README](../README.md) for full
-> project documentation, architecture, and getting-started instructions.
+This is the Murphy System repository — the autonomous business-operations platform.
+It contains the FastAPI server, 978 source modules across 81 packages in `src/`, 644 test files,
+web interfaces, and deployment configuration.
 
-This is the primary runtime directory for the Murphy System. It contains the
-FastAPI server, 978 source modules across 81 packages in `src/`, web interfaces,
-tests, and deployment configuration.
+## 📊 Stats
+
+| Metric | Value |
+|--------|-------|
+| **Source modules** | 978 |
+| **Packages** | 81 subsystem directories |
+| **Test files** | 644 |
+| **Test functions** | 17,368+ |
+| **Web interfaces** | 16 |
 
 ---
 
@@ -192,7 +199,7 @@ kubectl apply -f k8s/
 ## Directory Structure
 
 ```
-Murphy System/
+Murphy-System/
 ├── murphy_system_1.0_runtime.py   # Entry point — FastAPI server
 ├── murphy_terminal.py             # Optional Textual TUI
 ├── src/                           # 978 modules, 81 packages

@@ -24,7 +24,7 @@ You make all implementation decisions using **industry best practices** from FAA
 This work is governed by the **"MURPHY SYSTEM — SPECIFICATIONS, GAP ANALYSIS & COMPLETION ROADMAP"** document, located at:
 
 ```
-Murphy System/docs/MURPHY_SYSTEM_SPECIFICATIONS_GAP_ANALYSIS_COMPLETION_ROADMAP.md
+docs/MURPHY_SYSTEM_SPECIFICATIONS_GAP_ANALYSIS_COMPLETION_ROADMAP.md
 ```
 
 That document defines:
@@ -57,7 +57,7 @@ Recursively scan the repository to determine which of the 20 INC items and 19 ga
 | Server startup prints feature-availability summary based on env vars | INC-06 CLOSED |
 | All 6 Rosetta P3 wiring tasks have code AND tests | INC-07 CLOSED |
 | `playwright_task_definitions.py` is >5KB AND imports playwright | INC-08 CLOSED |
-| `docker-compose.yml` exists at repo root or `Murphy System/` | INC-09 CLOSED |
+| `docker-compose.yml` exists at repo root | INC-09 CLOSED |
 | No duplicate directory pairs (comms/comms_system, supervisor/supervisor_system, etc.) | INC-10 CLOSED |
 | A real SMTP/SendGrid integration exists with test | INC-11 CLOSED |
 | Webhook receiver has E2E test proving inbound→trigger→execute | INC-12 CLOSED |
@@ -283,6 +283,6 @@ This prompt is designed to be **entered repeatedly**. Each session:
 
 ---
 
-*Reference: Murphy System/docs/MURPHY_SYSTEM_SPECIFICATIONS_GAP_ANALYSIS_COMPLETION_ROADMAP.md*
+*Reference: docs/MURPHY_SYSTEM_SPECIFICATIONS_GAP_ANALYSIS_COMPLETION_ROADMAP.md*
 *Repository: IKNOWINOT/Murphy-System*
 *License: BSL 1.1 — © 2020-2026 Inoni LLC — Created by Corey Post*

@@ -37,7 +37,7 @@ echo -e "${CYAN}${BOLD}╚══════════════════
 echo ""
 
 # ---- locate repo root ------------------------------------------------------
-# Work whether invoked from the repo root, from "Murphy System/", or via
+# Work whether invoked from the repository root or via
 # an absolute path to this script.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 

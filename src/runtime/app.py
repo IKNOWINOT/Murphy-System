@@ -136,7 +136,7 @@ def create_app() -> FastAPI:
     # Resolve to the project root — two levels up from
     # src/runtime/app.py — so it works regardless of CWD.
     if _load_dotenv is not None:
-        _env_path = Path(__file__).resolve().parent.parent / ".env"
+        _env_path = Path(__file__).resolve().parent.parent.parent / ".env"
         _load_dotenv(_env_path, override=True)
 
     # Initialize Murphy System
@@ -633,7 +633,7 @@ def create_app() -> FastAPI:
             os.environ[env_var] = api_key
         os.environ["MURPHY_LLM_PROVIDER"] = provider
         # Persist key to .env so it survives restarts
-        _env_path = Path(__file__).resolve().parent.parent / ".env"
+        _env_path = Path(__file__).resolve().parent.parent.parent / ".env"
         try:
             from src.env_manager import write_env_key as _write_env_key
             if env_var and api_key:
@@ -668,7 +668,7 @@ def create_app() -> FastAPI:
     async def llm_reload():
         """Re-read .env and reinitialise LLM config — called on terminal reconnect."""
         if _load_dotenv is not None:
-            _load_dotenv(Path(__file__).resolve().parent.parent / ".env", override=True)
+            _load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env", override=True)
         # Refresh LLMController model availability after env reload
         try:
             from src.llm_controller import LLMController as _LLMController
@@ -4990,7 +4990,7 @@ def create_app() -> FastAPI:
         from starlette.responses import FileResponse as _FileResponse, RedirectResponse as _RedirectResponse
         from starlette.staticfiles import StaticFiles as _StaticFiles
 
-        _project_root = Path(__file__).resolve().parent.parent  # src/runtime/ → project root
+        _project_root = Path(__file__).resolve().parent.parent.parent  # src/runtime/ → project root
 
         _static_dir = _project_root / "static"
         if _static_dir.is_dir():

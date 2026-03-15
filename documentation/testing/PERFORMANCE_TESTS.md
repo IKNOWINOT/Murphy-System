@@ -7,10 +7,9 @@ and expected baseline numbers.
 
 ## Quick Start
 
-Run the in-process benchmarks from the `Murphy System/` directory:
+Run the in-process benchmarks from the repository root:
 
 ```bash
-cd "Murphy System"
 python -m pytest tests/benchmarks/test_api_throughput.py -v
 ```
 

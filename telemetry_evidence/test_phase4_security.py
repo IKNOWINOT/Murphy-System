@@ -3,14 +3,14 @@
 PHASE 4: Security hardening verification.
 
 FILES TESTED:
-  - Murphy System/src/security_hardening_config.py                → XSS/SQLi/path traversal
-  - Murphy System/src/security_plane/authorization_enhancer.py    → ownership verification
-  - Murphy System/src/security_plane/log_sanitizer.py             → PII redaction
-  - Murphy System/src/security_plane/bot_resource_quotas.py       → bot limits
-  - Murphy System/src/security_plane/bot_identity_verifier.py     → HMAC identity
-  - Murphy System/src/security_plane/bot_anomaly_detector.py      → anomaly detection
-  - Murphy System/src/security_plane/security_dashboard.py        → unified dashboard
-  - Murphy System/src/security_plane/swarm_communication_monitor.py → DFS cycles
+  - src/security_hardening_config.py                → XSS/SQLi/path traversal
+  - src/security_plane/authorization_enhancer.py    → ownership verification
+  - src/security_plane/log_sanitizer.py             → PII redaction
+  - src/security_plane/bot_resource_quotas.py       → bot limits
+  - src/security_plane/bot_identity_verifier.py     → HMAC identity
+  - src/security_plane/bot_anomaly_detector.py      → anomaly detection
+  - src/security_plane/security_dashboard.py        → unified dashboard
+  - src/security_plane/swarm_communication_monitor.py → DFS cycles
 """
 
 import json

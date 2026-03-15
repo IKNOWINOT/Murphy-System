@@ -6,7 +6,7 @@
 Owner: Platform Engineering
 
 A comprehensive registry mapping **every** file and directory under
-``Murphy System/src/`` to its Matrix room/space, HiveMind bot domain, and
+``src/`` to its Matrix room/space, HiveMind bot domain, and
 set of supported commands.
 
 Each :class:`SubsystemEntry` records:

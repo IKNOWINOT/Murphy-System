@@ -1,7 +1,7 @@
 # Rosetta Agent State Document — Schema & Template
 
 **Document Version:** 1.0.0  
-**Runtime Scope:** `Murphy System/Murphy System/` only  
+**Runtime Scope:** repository root only  
 **Storage Path:** `.murphy_persistence/rosetta/<agent_id>.json`  
 **Owner:** Inoni LLC / Corey Post  
 

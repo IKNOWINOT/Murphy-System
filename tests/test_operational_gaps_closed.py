@@ -25,7 +25,7 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Resolve the project root (Murphy System/) for file-based assertions.
+# Resolve the project root for file-based assertions.
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Resolve the repository root (flattened — same as project root).
@@ -485,19 +485,19 @@ class TestReadmeModuleCounts:
             return fh.read()
 
     def _root_readme(self) -> str:
-        root = os.path.dirname(_PROJECT_ROOT)
-        with open(os.path.join(root, "README.md")) as fh:
+        # After flattening, the root README is the same as the project README.
+        with open(os.path.join(_PROJECT_ROOT, "README.md")) as fh:
             return fh.read()
 
     def test_murphy_readme_module_count_current(self):
-        """Murphy System/README.md should not reference stale module counts."""
+        """README.md should not reference stale module counts."""
         content = self._murphy_readme()
         # The old counts were 922 and 753 — both should be updated
         assert "922 source modules" not in content, "Stale module count 922 found"
         assert "753 modules" not in content, "Stale module count 753 found"
 
     def test_murphy_readme_package_count_current(self):
-        """Murphy System/README.md should not reference stale package counts."""
+        """README.md should not reference stale package counts."""
         content = self._murphy_readme()
         assert "77 packages" not in content, "Stale package count 77 found"
         assert "60 packages" not in content, "Stale package count 60 found"
@@ -523,7 +523,7 @@ class TestReadmeModuleCounts:
 # ---------------------------------------------------------------------------
 
 class TestEnvPathResolution:
-    """.env loading must resolve to the project root (Murphy System/.env),
+    """.env loading must resolve to the project root (.env),
     not to src/runtime/.env."""
 
     def test_deps_env_path_resolves_to_project_root(self):

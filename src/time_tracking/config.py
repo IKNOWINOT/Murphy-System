@@ -4,7 +4,7 @@ Time Tracking – Configuration
 ================================
 
 Singleton configuration class backed by environment variables, following
-the same pattern as ``Murphy System/src/config.py``.
+the same pattern as ``src/config.py``.
 
 Environment variables
 ---------------------

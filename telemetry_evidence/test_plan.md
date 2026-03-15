@@ -55,9 +55,9 @@ telemetry_evidence/
 - `setup_and_start.sh` — One-step venv + deps + .env + server launch
 - `install.sh` — Curl-pipe installer (alternative)
 - `requirements.txt` — Core dependencies
-- `Murphy System/murphy_system_1.0_runtime.py` — FastAPI entry point
-- `Murphy System/src/runtime/app.py` — `create_app()` factory
-- `Murphy System/src/config.py` — Pydantic BaseSettings
+- `murphy_system_1.0_runtime.py` — FastAPI entry point
+- `src/runtime/app.py` — `create_app()` factory
+- `src/config.py` — Pydantic BaseSettings
 
 ### Phase 1: Health & Telemetry Baseline (`test_phase1_health.py`)
 
@@ -74,8 +74,8 @@ telemetry_evidence/
 - Track pass/fail for every endpoint
 
 **Files Tested:**
-- `Murphy System/src/runtime/app.py` — All route handlers
-- `Murphy System/src/form_intake/handlers.py` — `/api/forms/*`
+- `src/runtime/app.py` — All route handlers
+- `src/form_intake/handlers.py` — `/api/forms/*`
 
 ### Phase 3: UI Interface Testing (`test_phase3_ui.py`)
 
@@ -91,8 +91,8 @@ telemetry_evidence/
 - Verify HTTP security headers on API responses
 
 **Files Tested:**
-- `Murphy System/src/security_hardening_config.py`
-- `Murphy System/src/security_plane/*.py` (18 modules)
+- `src/security_hardening_config.py`
+- `src/security_plane/*.py` (18 modules)
 
 ### Phase 5: Self-Healing & Test Suite (`test_phase5_self_healing.sh`)
 
@@ -102,10 +102,10 @@ telemetry_evidence/
 - Generate test suite statistics
 
 **Files Tested:**
-- `Murphy System/tests/` — 568+ test files
-- `Murphy System/src/self_fix_loop.py`
-- `Murphy System/src/murphy_immune_engine.py`
-- `Murphy System/src/bug_pattern_detector.py`
+- `tests/` — 568+ test files
+- `src/self_fix_loop.py`
+- `src/murphy_immune_engine.py`
+- `src/bug_pattern_detector.py`
 
 ### Phase 6: Sales Readiness Demo (`test_phase6_sales_demo.py`)
 
@@ -177,45 +177,45 @@ python3 telemetry_evidence/generate_final_report.py
 
 | Category | File Path | Purpose |
 |----------|-----------|---------|
-| Entry Point | `Murphy System/murphy_system_1.0_runtime.py` | FastAPI server bootstrap |
-| App Factory | `Murphy System/src/runtime/app.py` | `create_app()` + route registration |
-| Config | `Murphy System/src/config.py` | Pydantic BaseSettings |
+| Entry Point | `murphy_system_1.0_runtime.py` | FastAPI server bootstrap |
+| App Factory | `src/runtime/app.py` | `create_app()` + route registration |
+| Config | `src/config.py` | Pydantic BaseSettings |
 | Setup | `setup_and_start.sh` | One-step installer |
-| Confidence | `Murphy System/src/confidence_engine/` | G/D/H + 5D uncertainty |
-| Execution | `Murphy System/src/execution_engine/` | Task execution pipeline |
-| Forms | `Murphy System/src/form_intake/handlers.py` | Form intake handlers |
-| Learning | `Murphy System/src/learning_engine/` | Shadow agent training |
-| HITL | `Murphy System/src/supervisor_system/` | Human-in-the-loop monitor |
-| Governance | `Murphy System/src/governance_framework/` | Scheduler + authority |
-| Gate Wiring | `Murphy System/src/gate_execution_wiring.py` | Runtime gate enforcement |
-| Persistence | `Murphy System/src/persistence_manager.py` | Durable JSON storage |
-| Events | `Murphy System/src/event_backbone.py` | Pub/sub + circuit breaker |
-| Delivery | `Murphy System/src/delivery_adapters.py` | Doc/email/chat/voice |
-| Self-Improve | `Murphy System/src/self_improvement_engine.py` | Feedback loops |
-| Self-Fix | `Murphy System/src/self_fix_loop.py` | Autonomous fix cycle |
-| Immune | `Murphy System/src/murphy_immune_engine.py` | 11-phase immune cycle |
-| Bug Detect | `Murphy System/src/bug_pattern_detector.py` | Pattern classification |
-| SLO | `Murphy System/src/operational_slo_tracker.py` | Latency + success rate |
-| Compliance | `Murphy System/src/compliance_engine.py` | GDPR/SOC2/HIPAA/PCI |
-| RBAC | `Murphy System/src/rbac_governance.py` | Multi-tenant RBAC |
-| Wingman | `Murphy System/src/wingman_protocol.py` | Executor/validator pairs |
-| Routing | `Murphy System/src/deterministic_routing_engine.py` | Policy routing |
-| Connectors | `Murphy System/src/platform_connector_framework.py` | 20 platforms |
-| DAG | `Murphy System/src/workflow_dag_engine.py` | Workflow execution |
-| Templates | `Murphy System/src/automation_type_registry.py` | 16 automation types |
-| ML | `Murphy System/src/ml_strategy_engine.py` | Anomaly/forecast/RL |
-| Analytics | `Murphy System/src/analytics_dashboard.py` | Metrics dashboard |
-| Security | `Murphy System/src/security_hardening_config.py` | XSS/SQLi/CORS |
-| Auth | `Murphy System/src/security_plane/authorization_enhancer.py` | Ownership |
-| PII | `Murphy System/src/security_plane/log_sanitizer.py` | Redaction |
-| Quotas | `Murphy System/src/security_plane/bot_resource_quotas.py` | Bot limits |
-| Cycles | `Murphy System/src/security_plane/swarm_communication_monitor.py` | DFS |
-| Identity | `Murphy System/src/security_plane/bot_identity_verifier.py` | HMAC |
-| Anomaly | `Murphy System/src/security_plane/bot_anomaly_detector.py` | Z-score |
-| Dashboard | `Murphy System/src/security_plane/security_dashboard.py` | Unified view |
-| Tests | `Murphy System/tests/` | 568 files, 8,843+ test functions |
-| UIs | `Murphy System/*.html` | 16 web interfaces |
-| Design | `Murphy System/static/murphy-design-system.css` | CSS tokens |
-| Components | `Murphy System/static/murphy-components.js` | JS components |
-| Canvas | `Murphy System/static/murphy-canvas.js` | Graphical renderer |
-| Icons | `Murphy System/static/murphy-icons.svg` | 42 SVG icons |
+| Confidence | `src/confidence_engine/` | G/D/H + 5D uncertainty |
+| Execution | `src/execution_engine/` | Task execution pipeline |
+| Forms | `src/form_intake/handlers.py` | Form intake handlers |
+| Learning | `src/learning_engine/` | Shadow agent training |
+| HITL | `src/supervisor_system/` | Human-in-the-loop monitor |
+| Governance | `src/governance_framework/` | Scheduler + authority |
+| Gate Wiring | `src/gate_execution_wiring.py` | Runtime gate enforcement |
+| Persistence | `src/persistence_manager.py` | Durable JSON storage |
+| Events | `src/event_backbone.py` | Pub/sub + circuit breaker |
+| Delivery | `src/delivery_adapters.py` | Doc/email/chat/voice |
+| Self-Improve | `src/self_improvement_engine.py` | Feedback loops |
+| Self-Fix | `src/self_fix_loop.py` | Autonomous fix cycle |
+| Immune | `src/murphy_immune_engine.py` | 11-phase immune cycle |
+| Bug Detect | `src/bug_pattern_detector.py` | Pattern classification |
+| SLO | `src/operational_slo_tracker.py` | Latency + success rate |
+| Compliance | `src/compliance_engine.py` | GDPR/SOC2/HIPAA/PCI |
+| RBAC | `src/rbac_governance.py` | Multi-tenant RBAC |
+| Wingman | `src/wingman_protocol.py` | Executor/validator pairs |
+| Routing | `src/deterministic_routing_engine.py` | Policy routing |
+| Connectors | `src/platform_connector_framework.py` | 20 platforms |
+| DAG | `src/workflow_dag_engine.py` | Workflow execution |
+| Templates | `src/automation_type_registry.py` | 16 automation types |
+| ML | `src/ml_strategy_engine.py` | Anomaly/forecast/RL |
+| Analytics | `src/analytics_dashboard.py` | Metrics dashboard |
+| Security | `src/security_hardening_config.py` | XSS/SQLi/CORS |
+| Auth | `src/security_plane/authorization_enhancer.py` | Ownership |
+| PII | `src/security_plane/log_sanitizer.py` | Redaction |
+| Quotas | `src/security_plane/bot_resource_quotas.py` | Bot limits |
+| Cycles | `src/security_plane/swarm_communication_monitor.py` | DFS |
+| Identity | `src/security_plane/bot_identity_verifier.py` | HMAC |
+| Anomaly | `src/security_plane/bot_anomaly_detector.py` | Z-score |
+| Dashboard | `src/security_plane/security_dashboard.py` | Unified view |
+| Tests | `tests/` | 568 files, 8,843+ test functions |
+| UIs | `*.html` | 16 web interfaces |
+| Design | `static/murphy-design-system.css` | CSS tokens |
+| Components | `static/murphy-components.js` | JS components |
+| Canvas | `static/murphy-canvas.js` | Graphical renderer |
+| Icons | `static/murphy-icons.svg` | 42 SVG icons |

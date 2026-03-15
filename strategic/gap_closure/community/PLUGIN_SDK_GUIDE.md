@@ -930,10 +930,10 @@ Before submitting, ensure your plugin meets these requirements:
    git checkout -b plugin/your-plugin-name
    ```
 
-3. **Place your plugin** under `Murphy System/plugins/<your_plugin_name>/`
+3. **Place your plugin** under `plugins/<your_plugin_name>/`
 
    ```
-   Murphy System/plugins/slack_notification/
+   plugins/slack_notification/
    ├── __init__.py
    ├── slack_notification_plugin.py
    ├── requirements.txt

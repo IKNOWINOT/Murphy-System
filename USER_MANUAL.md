@@ -955,9 +955,9 @@ All HTML interfaces are static files. Open them directly in a browser:
 
 ```bash
 # Open the onboarding wizard
-open "Murphy System/onboarding_wizard.html"       # macOS
-xdg-open "Murphy System/onboarding_wizard.html"   # Linux
-start "Murphy System\onboarding_wizard.html"       # Windows
+open "onboarding_wizard.html"       # macOS
+xdg-open "onboarding_wizard.html"   # Linux
+start "onboarding_wizard.html"       # Windows
 ```
 
 Or serve them via the API when the server is running at `http://localhost:8000/`.

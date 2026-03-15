@@ -23,11 +23,10 @@ How to configure the Murphy System for development, staging, and production depl
 
 ## 1. Configuration Overview
 
-All runtime configuration is supplied through **environment variables**. The canonical reference is `.env.example` in the `Murphy System/` directory.
+All runtime configuration is supplied through **environment variables**. The canonical reference is `.env.example` at the repository root.
 
 **Setup:**
 ```bash
-cd "Murphy System"
 cp .env.example .env
 # Edit .env with your values
 ```

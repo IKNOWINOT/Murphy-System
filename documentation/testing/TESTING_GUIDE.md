@@ -24,8 +24,7 @@ How to run, write, and maintain tests for the Murphy System.
 ## 1. Quick Start
 
 ```bash
-# From the Murphy System/ directory:
-cd "Murphy System"
+# From the repository root:
 source venv/bin/activate           # Linux/macOS
 # venv\Scripts\activate            # Windows
 
@@ -43,7 +42,7 @@ All 250+ test files run in isolation. A passing suite prints a summary line like
 ## 2. Test Suite Overview
 
 ```
-Murphy System/
+Murphy-System/
 └── tests/
     ├── conftest.py                  # global fixtures
     ├── e2e/                         # end-to-end API tests
@@ -424,12 +423,12 @@ omit =
 ### `ModuleNotFoundError` when running pytest
 
 ```bash
-# Ensure PYTHONPATH includes the Murphy System directory
-export PYTHONPATH="/path/to/Murphy System"
+# Run from the repository root — PYTHONPATH is set automatically
+export PYTHONPATH="/path/to/Murphy-System"
 python -m pytest ...
 ```
 
-Or run pytest from inside the `Murphy System/` directory (recommended).
+Or run pytest from the repository root (recommended).
 
 ### Tests hang (timeout)
 

@@ -4,10 +4,10 @@
 #           invoke self-fix loop for any failures.
 #
 # FILES TESTED:
-#   Murphy System/tests/                → 568+ test files, 8843 functions
-#   Murphy System/src/self_fix_loop.py  → Autonomous fix cycle
-#   Murphy System/src/murphy_immune_engine.py → 11-phase immune cycle
-#   Murphy System/src/bug_pattern_detector.py → Pattern classification
+#   tests/                → 568+ test files, 8843 functions
+#   src/self_fix_loop.py  → Autonomous fix cycle
+#   src/murphy_immune_engine.py → 11-phase immune cycle
+#   src/bug_pattern_detector.py → Pattern classification
 # ============================================================
 
 set -uo pipefail

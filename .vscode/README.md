@@ -51,9 +51,9 @@ Lightweight API smoke-test that exercises core endpoints:
 
 - **/.vscode/launch.json** - Debug configurations
 - **/.vscode/tasks.json** - Task definitions
-- **/Murphy System/scripts/quick_demo.py** - Demo orchestrator
-- **/Murphy System/DEMO_GUIDE.md** - Complete demo guide
-- **/Murphy System/start.sh** - Server startup script
+- **/scripts/quick_demo.py** - Demo orchestrator
+- **/DEMO_GUIDE.md** - Complete demo guide
+- **/start.sh** - Server startup script
 
 ## Usage
 

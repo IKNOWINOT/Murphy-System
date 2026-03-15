@@ -203,7 +203,7 @@ if u_t.ask_question:
 ## Testing
 
 ```bash
-python -m pytest "Murphy System/tests/test_control_plane.py" -v
+python -m pytest "tests/test_control_plane.py" -v
 ```
 
-All tests are located in `Murphy System/tests/test_control_plane.py`.
+All tests are located in `tests/test_control_plane.py`.

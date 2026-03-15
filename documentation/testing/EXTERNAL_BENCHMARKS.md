@@ -74,20 +74,20 @@ Murphy System is evaluated against seven major public benchmarks covering its fu
 
 ```bash
 # Install benchmark dependencies (separate from core CI deps)
-pip install -r "Murphy System/requirements_benchmarks.txt"
+pip install -r "requirements_benchmarks.txt"
 ```
 
 ### Quick Start
 
 ```bash
 # Run all benchmarks
-bash "Murphy System/scripts/run_benchmarks.sh" all
+bash "scripts/run_benchmarks.sh" all
 
 # Run a single benchmark
-bash "Murphy System/scripts/run_benchmarks.sh" swe-bench
+bash "scripts/run_benchmarks.sh" swe-bench
 
 # Run multiple benchmarks
-bash "Murphy System/scripts/run_benchmarks.sh" gaia agent-bench tool-bench
+bash "scripts/run_benchmarks.sh" gaia agent-bench tool-bench
 ```
 
 ### Using pytest directly

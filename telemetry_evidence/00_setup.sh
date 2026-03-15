@@ -6,9 +6,9 @@
 #   setup_and_start.sh          → One-step venv + deps + .env + server launch
 #   install.sh                  → Curl-pipe installer (alternative)
 #   requirements.txt            → Core dependencies
-#   Murphy System/murphy_system_1.0_runtime.py  → FastAPI entry point
-#   Murphy System/src/runtime/app.py            → create_app() factory
-#   Murphy System/src/config.py                 → Pydantic BaseSettings
+#   murphy_system_1.0_runtime.py  → FastAPI entry point
+#   src/runtime/app.py            → create_app() factory
+#   src/config.py                 → Pydantic BaseSettings
 # ============================================================
 
 set -euo pipefail

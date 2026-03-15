@@ -3,7 +3,7 @@
 **Last Updated:** 2026-03-08
 **Comparison Baseline:** [Launch Automation Plan](LAUNCH_AUTOMATION_PLAN.md) + [Operations Testing Plan](OPERATIONS_TESTING_PLAN.md)
 **Repository:** IKNOWINOT/Murphy-System
-**Runtime Directory:** `Murphy System/`
+**Runtime Directory:** repository root
 
 ---
 

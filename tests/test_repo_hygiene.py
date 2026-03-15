@@ -4,7 +4,7 @@ Test Suite: Repository Hygiene — DEFICIENCY-7
 Verifies:
   - .vscode/ is in the root .gitignore
   - murphy_system_archive.md does NOT exist at repo root
-  - full_system_assessment.md does NOT exist in Murphy System/ root
+  - full_system_assessment.md does NOT exist in repository root/ root
 
 Copyright © 2020 Inoni Limited Liability Company
 Creator: Corey Post
@@ -19,7 +19,7 @@ from pathlib import Path
 import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-REPO_ROOT = PROJECT_ROOT  # repo root (flattened — no more Murphy System/ subdir)
+REPO_ROOT = PROJECT_ROOT  # repo root (flattened — no more repository root/ subdir)
 
 
 class TestRepoHygiene:
@@ -43,7 +43,7 @@ class TestRepoHygiene:
     def test_full_system_assessment_not_in_murphy_system_root(self):
         assessment_at_root = PROJECT_ROOT / "full_system_assessment.md"
         assert not assessment_at_root.exists(), (
-            "full_system_assessment.md should not exist in Murphy System/ root; "
+            "full_system_assessment.md should not exist in repository root/ root; "
             "it should be in docs/archive/internal/"
         )
 

@@ -4,9 +4,9 @@ PHASE 1: Health checks, telemetry baseline, system introspection.
 Screenshot every response. Log to telemetry_log.jsonl.
 
 FILES TESTED:
-  - Murphy System/src/runtime/app.py         → /api/health, /api/status, /api/info
-  - Murphy System/src/runtime/murphy_system_core.py → MurphySystem class
-  - Murphy System/src/config.py               → Pydantic BaseSettings
+  - src/runtime/app.py         → /api/health, /api/status, /api/info
+  - src/runtime/murphy_system_core.py → MurphySystem class
+  - src/config.py               → Pydantic BaseSettings
 """
 
 import json

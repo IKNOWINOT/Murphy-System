@@ -8,7 +8,7 @@ Design Label: INTRO-001 — Self-Introspection Engine
 Owner: Platform Engineering / Architecture
 
 Provides Murphy System with full self-visibility into its own codebase:
-  - AST-based scanning of every .py file under Murphy System/src/
+  - AST-based scanning of every .py file under src/
   - Module dependency graph construction from import analysis
   - Complexity reporting (LOC, class/function counts, cyclomatic estimate)
   - Capability search across docstrings and function names

@@ -219,7 +219,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 **Testing**
 - 250+ test files across unit, integration, and end-to-end categories
 - CI via GitHub Actions (`ci.yml`): lint, syntax check, full pytest suite
-- Test command: `python -m pytest --timeout=60 -v --tb=short` (run from `Murphy System/`)
+- Test command: `python -m pytest --timeout=60 -v --tb=short` (run from repository root)
 
 **Documentation**
 - `docs/API_REFERENCE.md` — full endpoint reference

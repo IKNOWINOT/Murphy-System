@@ -3,8 +3,8 @@
 **Design Label:** OBS-010 — Unified Observability Dashboard Engine  
 **Owner:** Platform Engineering / DevOps Team  
 **License:** BSL 1.1  
-**Source:** `Murphy System/src/unified_observability_engine.py`  
-**Tests:** `Murphy System/tests/test_unified_observability_engine.py`
+**Source:** `src/unified_observability_engine.py`  
+**Tests:** `tests/test_unified_observability_engine.py`
 
 ---
 

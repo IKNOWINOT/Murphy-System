@@ -37,7 +37,7 @@ except ImportError:
 # B-001: Actually call load_dotenv() so .env variables are loaded at import time.
 # Resolve to project root — two levels up from src/runtime/_deps.py.
 if _load_dotenv is not None:
-    _load_dotenv(Path(__file__).resolve().parent.parent / ".env", override=False)
+    _load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env", override=False)
 
 from threading import Lock
 
@@ -50,7 +50,7 @@ logger = logging.getLogger(__name__)
 
 # Add project root to path so both ``src.*`` and bare
 # module names resolve correctly.
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 # Core imports
 from src.modular_runtime import ModularRuntime

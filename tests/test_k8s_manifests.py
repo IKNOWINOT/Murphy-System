@@ -3,7 +3,7 @@
 """
 Murphy System — Kubernetes Manifest Validation Tests
 
-Validates that all K8s manifests in Murphy System/k8s/ meet production requirements.
+Validates that all K8s manifests in k8s/ meet production requirements.
 Requires PyYAML (already in requirements_murphy_1.0.txt as pyyaml>=6.0.1).
 """
 

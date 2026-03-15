@@ -10,6 +10,8 @@
 
 Thank you for your interest in contributing to Murphy System! This guide explains how to report bugs, suggest features, set up a development environment, and submit changes.
 
+Murphy System has **978 source modules across 81 packages** in `src/`, 644 test files, and 16 web interfaces.
+
 ---
 
 ## Table of Contents
@@ -76,7 +78,7 @@ Feature requests are evaluated against the project roadmap and BSL 1.1 licensing
 
 ```bash
 git clone https://github.com/<your-username>/Murphy-System.git
-cd Murphy-System/Murphy\ System
+cd Murphy-System
 ```
 
 ### 2. Create a virtual environment
@@ -140,7 +142,7 @@ docker compose up -d
 | Prometheus | <http://localhost:9090> | Metrics collection |
 | Grafana | <http://localhost:3000> | Dashboards — admin / admin |
 
-**UI Pages** (served by `python -m http.server 8090` from `Murphy System/`):
+**UI Pages** (served by `python -m http.server 8090` from the repository root):
 
 | Page | URL | Role |
 |------|-----|------|
@@ -173,7 +175,7 @@ docker compose up -d
 ## Running Tests
 
 ```bash
-# From Murphy System/ directory
+# From repository root
 python -m pytest --timeout=60 -v --tb=short
 ```
 
