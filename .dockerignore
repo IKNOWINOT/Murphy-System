@@ -1,0 +1,52 @@
+# Root-level .dockerignore for Murphy System
+# Prevents docs, tests, and dev artifacts from entering the production image.
+
+# Version control
+.git
+.gitignore
+
+# Python artifacts
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+dist/
+build/
+*.eggs
+
+# Documentation
+docs/
+*.md
+README*
+
+# Tests
+tests/
+.pytest_cache
+.coverage
+htmlcov/
+.tox/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Telemetry / strategic (large, not needed at runtime)
+telemetry_evidence/
+strategic/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker meta-files (not needed inside the image)
+Dockerfile
+docker-compose*.yml
+.dockerignore

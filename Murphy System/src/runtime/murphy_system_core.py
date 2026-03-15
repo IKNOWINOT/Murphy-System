@@ -1421,6 +1421,13 @@ class MurphySystem:
             try:
                 self.event_backbone = EventBackbone()
                 logger.info("Event backbone initialized")
+                try:
+                    from event_backbone_client import set_backbone  # noqa: PLC0415
+                    set_backbone(self.event_backbone)
+                except Exception as _wiring_exc:  # noqa: BLE001
+                    logger.warning(
+                        "EventBackboneClient wiring failed: %s", _wiring_exc
+                    )
             except Exception as exc:
                 logger.warning("Event backbone initialization failed: %s", exc)
                 self.event_backbone = None

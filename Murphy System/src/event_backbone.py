@@ -81,6 +81,29 @@ class EventType(Enum):
     CHAOS_VALIDATED = "chaos_validated"
     CASCADE_CHECKED = "cascade_checked"
 
+    @classmethod
+    def from_string(cls, name: str) -> "EventType":
+        """Convert a string to EventType, trying value then name lookup.
+
+        Args:
+            name: Either the enum value (e.g. ``"task_submitted"``) or the
+                  enum member name (e.g. ``"TASK_SUBMITTED"``).
+
+        Raises:
+            ValueError: If no matching EventType is found.
+        """
+        # Try by value first (lowercase match, e.g. "task_submitted")
+        try:
+            return cls(name.lower())
+        except ValueError:
+            pass
+        # Try by name (uppercase match, e.g. "TASK_SUBMITTED")
+        try:
+            return cls[name.upper()]
+        except KeyError:
+            pass
+        raise ValueError(f"No EventType matching {name!r}")
+
 
 @dataclass
 class Event:
