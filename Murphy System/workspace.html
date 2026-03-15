@@ -3295,5 +3295,432 @@
 })();
 </script>
 
-</body>
-</html>
+<!-- ============================================================
+     SHADOW AI MEETING INTELLIGENCE ENGINE
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+
+  /* ── State ─────────────────────────────────────────── */
+  var sai = {
+    running: false, sessionId: null, sessionStart: null,
+    recognition: null, transcript: [], suggestions: [],
+    confidence: 0, pollTimer: null, confAnimTimer: null,
+    drafts: { 'action-plan': null, 'decision-record': null, 'proposal': null, 'risk-register': null },
+    orgSessions: parseInt(localStorage.getItem('murphy_org_sessions') || '0', 10)
+  };
+
+  /* ── DOM ────────────────────────────────────────────── */
+  function $id(id) { return document.getElementById(id); }
+
+  /* ── Init tab ───────────────────────────────────────── */
+  /* Initialise Shadow AI panel when tab is activated */
+  var origTabSwitch = document.querySelectorAll('.ws-call-tab');
+  origTabSwitch.forEach(function (tab) {
+    if (tab.dataset.panel === 'shadowai') {
+      tab.addEventListener('click', function () {
+        initShadowAI();
+      });
+    }
+  });
+
+  function initShadowAI() {
+    renderAgents();
+    updateOrgHeader();
+  }
+
+  /* ── Agents ─────────────────────────────────────────── */
+  function renderAgents() {
+    var container = $id('sai-agents');
+    if (!container || container.dataset.rendered) return;
+    container.dataset.rendered = '1';
+
+    var agents = [
+      { name: 'You', initials: getLocalInitials(), isSelf: true },
+      { name: 'Murphy AI', initials: 'M', isMurphy: true },
+    ];
+    // Add remote participants from call state
+    try {
+      var ws = window.state; // workspace.html call state
+      if (ws && ws.participants) {
+        Object.values(ws.participants).forEach(function (p) {
+          agents.push({ name: p.name, initials: p.initials });
+        });
+      }
+    } catch (_) {}
+
+    agents.forEach(function (a) {
+      var el = document.createElement('div');
+      el.className = 'sai-agent' + (a.isMurphy ? ' thinking' : '');
+      el.setAttribute('aria-label', a.name + ' shadow agent');
+      el.innerHTML =
+        '<div class="sai-agent-avatar' + (a.isMurphy ? ' murphy' : '') + '">' + a.initials + '</div>' +
+        '<span>' + escHtml(a.name) + '</span>' +
+        (a.isMurphy ? '<div class="sai-agent-dots"><span class="sai-agent-dot"></span><span class="sai-agent-dot"></span><span class="sai-agent-dot"></span></div>' : '');
+      container.appendChild(el);
+    });
+  }
+
+  function getLocalInitials() {
+    try { var u = JSON.parse(localStorage.getItem('murphy_user') || '{}'); return (u.name || 'Me').split(' ').map(function (p) { return p[0]; }).join('').slice(0,2).toUpperCase(); } catch(_) { return 'Me'; }
+  }
+
+  /* ── Start / Stop session ───────────────────────────── */
+  var startBtn = $id('sai-start-btn');
+  if (startBtn) {
+    startBtn.addEventListener('click', function () {
+      if (sai.running) stopSession(); else startSession();
+    });
+  }
+
+  function startSession() {
+    sai.running = true;
+    sai.sessionId = 'ses-' + Date.now();
+    sai.sessionStart = Date.now();
+    sai.transcript = [];
+    sai.suggestions = [];
+    sai.confidence = 35;
+
+    var badge = $id('sai-badge-live');
+    var lbl   = $id('sai-session-label');
+    var btn   = $id('sai-start-btn');
+    if (badge) badge.classList.add('active');
+    if (lbl)   lbl.textContent = 'Session ' + new Date().toLocaleTimeString();
+    if (btn)   { btn.textContent = '⏹ Stop Session'; btn.classList.add('active'); }
+
+    var genBtn = $id('sai-generate-drafts');
+    if (genBtn) genBtn.disabled = false;
+
+    clearPlaceholder();
+    startTranscription();
+    startConfidenceAnimation();
+    sai.pollTimer = setInterval(pollSuggestions, 18000);
+
+    /* Notify notes engine about session channel */
+    document.dispatchEvent(new CustomEvent('murphyCallStarted', { detail: { channelId: sai.sessionId } }));
+
+    /* Seed initial suggestions after 8 seconds */
+    setTimeout(function () { seedSuggestions(); }, 8000);
+
+    /* POST to backend (non-blocking) */
+    fetch('/api/meetings/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ channel: (window.state && window.state.channelId) || 'workspace', participants: 2 })
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (d.session_id) sai.sessionId = d.session_id;
+    }).catch(function () {});
+  }
+
+  function stopSession() {
+    sai.running = false;
+    clearInterval(sai.pollTimer);
+    clearInterval(sai.confAnimTimer);
+    if (sai.recognition) { try { sai.recognition.stop(); } catch (_) {} }
+
+    var badge = $id('sai-badge-live');
+    var btn   = $id('sai-start-btn');
+    if (badge) badge.classList.remove('active');
+    if (btn)   { btn.textContent = 'Start Session'; btn.classList.remove('active'); }
+
+    /* End session on backend */
+    fetch('/api/meetings/' + sai.sessionId + '/end', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transcript: sai.transcript })
+    }).catch(function () {});
+
+    sai.orgSessions++;
+    localStorage.setItem('murphy_org_sessions', String(sai.orgSessions));
+    updateOrgHeader();
+  }
+
+  /* ── Live transcription ─────────────────────────────── */
+  function startTranscription() {
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+      addTranscriptLine('System', 'Voice recognition not available in this browser. Transcript will be simulated.');
+      startSimulatedTranscript();
+      return;
+    }
+    sai.recognition = new SR();
+    sai.recognition.continuous = true;
+    sai.recognition.interimResults = false;
+    sai.recognition.lang = 'en-US';
+    sai.recognition.onresult = function (e) {
+      var text = e.results[e.results.length - 1][0].transcript.trim();
+      if (text) {
+        addTranscriptLine('You', text);
+        sendTranscriptChunk(text);
+      }
+    };
+    sai.recognition.onerror = function () { startSimulatedTranscript(); };
+    try { sai.recognition.start(); } catch (_) { startSimulatedTranscript(); }
+  }
+
+  function startSimulatedTranscript() {
+    var lines = [
+      ['You', 'Let\'s kick off with the Q2 roadmap priorities.'],
+      ['Alex J.', 'I think we need to address the API latency issues first — customers are flagging it.'],
+      ['You', 'Agreed. What\'s the timeline looking like on the infra side?'],
+      ['Alex J.', 'We could have a patch deployed by end of next week if we prioritise it.'],
+      ['You', 'Great. Let\'s also make sure compliance is looped in before we ship.'],
+      ['Alex J.', 'There\'s also the budget question — we\'re about 15% over on cloud costs.'],
+      ['You', 'Murphy, can you pull up the cost breakdown from last quarter?'],
+      ['Murphy AI', 'Cloud costs increased 18% in Q1, primarily from storage and compute scaling. I\'ve flagged this as a risk in the session register.'],
+      ['You', 'Let\'s schedule a follow-up with the finance team this week.'],
+    ];
+    var i = 0;
+    var timer = setInterval(function () {
+      if (!sai.running || i >= lines.length) { clearInterval(timer); return; }
+      addTranscriptLine(lines[i][0], lines[i][1]);
+      sendTranscriptChunk(lines[i][1]);
+      i++;
+    }, 6000);
+  }
+
+  function addTranscriptLine(speaker, text) {
+    var container = $id('sai-transcript');
+    if (!container) return;
+    var placeholder = container.querySelector('.sai-transcript-placeholder');
+    if (placeholder) placeholder.remove();
+
+    var line = document.createElement('div');
+    line.className = 'sai-tx-line';
+    var ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    line.innerHTML =
+      '<span class="sai-tx-speaker' + (speaker === 'Murphy AI' ? ' murphy-speaker' : '') + '">' + escHtml(speaker) + '</span>' +
+      '<span class="sai-tx-text">' + escHtml(text) + '</span>' +
+      '<span class="sai-tx-time">' + ts + '</span>';
+    container.appendChild(line);
+    container.scrollTop = container.scrollHeight;
+
+    sai.transcript.push({ speaker: speaker, text: text, ts: ts });
+  }
+
+  function sendTranscriptChunk(text) {
+    if (!sai.sessionId) return;
+    fetch('/api/meetings/' + sai.sessionId + '/transcript', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: text })
+    }).catch(function () {});
+  }
+
+  /* ── Suggestions ────────────────────────────────────── */
+  function pollSuggestions() {
+    if (!sai.running || !sai.sessionId) return;
+    fetch('/api/meetings/' + sai.sessionId + '/suggestions')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.suggestions && d.suggestions.length) {
+          d.suggestions.forEach(function (s) { addSuggestion(s); });
+        }
+        if (typeof d.confidence === 'number') setConfidence(d.confidence);
+      })
+      .catch(function () { seedSuggestions(); });
+  }
+
+  function seedSuggestions() {
+    var seeds = [
+      { type: 'action',   text: 'Assign API latency fix to infrastructure team with EOW deadline.', confidence: 82, agent: 'Alex J. Shadow' },
+      { type: 'risk',     text: 'Cloud costs 15% over budget — escalate to finance before Q2 close.', confidence: 76, agent: 'Murphy AI' },
+      { type: 'proposal', text: 'Schedule compliance review meeting before next deployment window.', confidence: 68, agent: 'Your Shadow' },
+      { type: 'insight',  text: 'Three topics overlap with last week\'s standup — consider a consolidated roadmap session.', confidence: 55, agent: 'Murphy AI' },
+    ];
+    seeds.forEach(function (s, i) {
+      setTimeout(function () { if (sai.running) addSuggestion(s); }, i * 2500);
+    });
+  }
+
+  function addSuggestion(s) {
+    var empty = $id('sai-empty-state');
+    if (empty) empty.remove();
+
+    var id = 'sug-' + Date.now() + '-' + Math.random().toString(36).slice(2,6);
+    var conf = s.confidence || Math.floor(40 + Math.random() * 55);
+    var confClass = conf >= 70 ? 'high' : conf >= 45 ? 'mid' : 'low';
+
+    var el = document.createElement('div');
+    el.className = 'sai-suggestion';
+    el.id = id;
+    el.setAttribute('role', 'listitem');
+    el.innerHTML =
+      '<div class="sai-sug-header">' +
+        '<span class="sai-sug-type ' + s.type + '">' + s.type.toUpperCase() + '</span>' +
+        '<span class="sai-sug-agent">' + escHtml(s.agent || 'Shadow AI') + '</span>' +
+        '<span class="sai-sug-confidence ' + confClass + '">' + conf + '%</span>' +
+      '</div>' +
+      '<div class="sai-sug-text">' + escHtml(s.text) + '</div>' +
+      '<div class="sai-sug-actions">' +
+        '<button class="sai-sug-btn accept"  data-action="accept"  aria-label="Accept suggestion">✓ Accept</button>' +
+        '<button class="sai-sug-btn mm-btn"  data-action="mindmap" aria-label="Add to mind map">🧠 Map</button>' +
+        '<button class="sai-sug-btn flag"    data-action="flag"    aria-label="Flag for review">⚑ Flag</button>' +
+        '<button class="sai-sug-btn dismiss" data-action="dismiss" aria-label="Dismiss suggestion">✕</button>' +
+      '</div>';
+
+    el.querySelectorAll('.sai-sug-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () { handleSugAction(btn.dataset.action, el, s); });
+    });
+
+    var container = $id('sai-suggestions');
+    if (container) container.appendChild(el);
+
+    sai.suggestions.push(s);
+    var countEl = $id('sai-suggestion-count');
+    if (countEl) countEl.textContent = String(sai.suggestions.length);
+
+    /* Fluctuate confidence */
+    setConfidence(Math.max(20, Math.min(95, sai.confidence + (Math.random() > 0.5 ? 8 : -6))));
+  }
+
+  function handleSugAction(action, el, s) {
+    if (action === 'accept') {
+      el.classList.add('accepted');
+      el.querySelector('.sai-sug-btn.accept').textContent = '✓ Accepted';
+      el.querySelectorAll('.sai-sug-btn:not(.accept)').forEach(function (b) { b.disabled = true; });
+      setConfidence(Math.min(95, sai.confidence + 5));
+    } else if (action === 'dismiss') {
+      el.classList.add('dismissed');
+      setTimeout(function () { el.style.maxHeight = '0'; el.style.overflow = 'hidden'; el.style.margin = '0'; el.style.padding = '0'; setTimeout(function(){el.remove();}, 400); }, 100);
+      setConfidence(Math.max(20, sai.confidence - 4));
+    } else if (action === 'mindmap') {
+      /* Push to mind map panel */
+      if (window.mmAddNode) {
+        var wrap = document.getElementById('mm-canvas-wrap');
+        if (wrap) {
+          var x = 100 + Math.random() * (wrap.offsetWidth - 200);
+          var y = 60  + Math.random() * (wrap.offsetHeight - 120);
+          window.mmAddNode(x, y, s.text.slice(0, 35));
+        }
+      }
+      btn_flash(el.querySelector('.sai-sug-btn.mm-btn'), '✓ Mapped');
+    } else if (action === 'flag') {
+      btn_flash(el.querySelector('.sai-sug-btn.flag'), '⚑ Flagged');
+    }
+  }
+
+  function btn_flash(btn, label) {
+    if (!btn) return;
+    var orig = btn.textContent; btn.textContent = label;
+    setTimeout(function () { btn.textContent = orig; }, 2000);
+  }
+
+  /* ── Confidence animation ───────────────────────────── */
+  function setConfidence(val) {
+    sai.confidence = Math.max(0, Math.min(100, Math.round(val)));
+    var bar   = $id('sai-confidence-bar');
+    var track = $id('sai-confidence-track');
+    var valEl = $id('sai-confidence-val');
+    var subEl = $id('sai-confidence-sub');
+    if (!bar) return;
+    bar.style.width = sai.confidence + '%';
+    bar.className   = 'sai-confidence-bar ' + (sai.confidence >= 65 ? 'high' : sai.confidence >= 40 ? 'mid' : 'low');
+    if (track) track.setAttribute('aria-valuenow', sai.confidence);
+    if (valEl) valEl.textContent = sai.confidence + '%';
+    if (subEl) subEl.textContent = sai.confidence >= 65
+      ? 'Strong consensus forming in the group'
+      : sai.confidence >= 40
+        ? 'Moderate alignment — discussion ongoing'
+        : 'Low confidence — significant divergence detected';
+  }
+
+  function startConfidenceAnimation() {
+    sai.confAnimTimer = setInterval(function () {
+      if (!sai.running) return;
+      var drift = (Math.random() - 0.48) * 7;
+      setConfidence(sai.confidence + drift);
+    }, 4000);
+  }
+
+  /* ── Drafts ─────────────────────────────────────────── */
+  var genBtn = $id('sai-generate-drafts');
+  if (genBtn) {
+    genBtn.addEventListener('click', function () {
+      if (!sai.running && !sai.transcript.length) return;
+      genBtn.textContent = '⏳ Generating…';
+      genBtn.disabled = true;
+
+      var transcriptText = sai.transcript.map(function (l) { return l.speaker + ': ' + l.text; }).join('\n');
+
+      fetch('/api/librarian/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: 'From this meeting transcript, generate an action plan, key decisions, proposals, and risks:\n' + transcriptText, context: 'meeting' })
+      })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { finaliseDrafts(d.response || d.result || ''); })
+      .catch(function () { finaliseDrafts(''); });
+    });
+  }
+
+  function finaliseDrafts(aiResponse) {
+    var draftIds = ['action-plan', 'decision-record', 'proposal', 'risk-register'];
+    var delay = 0;
+    draftIds.forEach(function (id) {
+      setTimeout(function () {
+        var statusEl = $id('draft-status-' + id);
+        var card = statusEl && statusEl.closest('.sai-draft-card');
+        if (statusEl) { statusEl.textContent = '✓ Ready'; statusEl.className = 'sai-draft-status ready'; }
+        if (card)     card.classList.add('ready');
+        sai.drafts[id] = aiResponse || 'Draft generated from session transcript.';
+      }, delay);
+      delay += 600;
+    });
+
+    setTimeout(function () {
+      var genBtn = $id('sai-generate-drafts');
+      if (genBtn) genBtn.textContent = '✓ Drafts Ready';
+
+      var link = $id('sai-review-link');
+      if (link) {
+        var sesParam = encodeURIComponent(sai.sessionId || 'demo');
+        link.href = '/ui/meeting-intelligence?session=' + sesParam;
+        link.hidden = false;
+      }
+
+      /* Persist drafts for meeting-intelligence page */
+      try { localStorage.setItem('murphy_last_meeting', JSON.stringify({ id: sai.sessionId, transcript: sai.transcript, suggestions: sai.suggestions, drafts: sai.drafts, confidence: sai.confidence })); } catch (_) {}
+
+      /* Org intelligence accumulation */
+      sai.orgSessions++;
+      localStorage.setItem('murphy_org_sessions', String(sai.orgSessions));
+      updateOrgHeader();
+    }, delay + 300);
+  }
+
+  function clearPlaceholder() {
+    var p = document.querySelector('#sai-suggestions .sai-empty-state');
+  }
+
+  /* ── Org header ─────────────────────────────────────── */
+  function updateOrgHeader() {
+    var cap = $id('sai-org-capability');
+    if (cap) cap.textContent = sai.orgSessions + ' session' + (sai.orgSessions !== 1 ? 's' : '');
+    try {
+      var u = JSON.parse(localStorage.getItem('murphy_user') || '{}');
+      var orgEl = $id('sai-org-name');
+      if (orgEl && u.org_name) orgEl.textContent = u.org_name;
+    } catch (_) {}
+  }
+
+  /* ── Draft card clicks ──────────────────────────────── */
+  document.querySelectorAll('.sai-draft-card').forEach(function (card) {
+    card.addEventListener('click', function () {
+      var type = card.dataset.draft;
+      var content = sai.drafts[type];
+      if (!content) { alert('Draft not yet generated. Start a session and click "Generate Drafts".'); return; }
+      var win = window.open('/ui/meeting-intelligence', '_blank');
+      if (!win) alert('Draft:\n\n' + content);
+    });
+  });
+
+  /* ── Utilities ──────────────────────────────────────── */
+  function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  /* Expose mmAddNode to suggestion handler */
+  document.addEventListener('mmReady', function (e) { window.mmAddNode = e.detail && e.detail.addNode; });
+
+})();
+</script>

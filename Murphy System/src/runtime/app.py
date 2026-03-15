@@ -4404,7 +4404,7 @@ def create_app() -> FastAPI:
     # so that /ui/... routes advertised by /api/ui/links are actually reachable.
 
     try:
-        from starlette.responses import FileResponse as _FileResponse
+        from starlette.responses import FileResponse as _FileResponse, RedirectResponse as _RedirectResponse
         from starlette.staticfiles import StaticFiles as _StaticFiles
 
         _project_root = Path(__file__).resolve().parent.parent.parent  # src/runtime/ → Murphy System/
@@ -4436,6 +4436,7 @@ def create_app() -> FastAPI:
             "/ui/dashboard": "murphy_ui_integrated.html",
             "/ui/smoke-test": "murphy-smoke-test.html",
             "/ui/signup": "signup.html",
+            "/ui/login": "login.html",
             "/ui/pricing": "pricing.html",
             "/ui/compliance": "compliance_dashboard.html",
             "/ui/matrix": "matrix_integration.html",
@@ -4443,7 +4444,21 @@ def create_app() -> FastAPI:
             "/ui/production-wizard": "production_wizard.html",
             "/ui/partner": "partner_request.html",
             "/ui/community": "community_forum.html",
+            "/ui/docs": "docs.html",
+            "/ui/blog": "blog.html",
+            "/ui/careers": "careers.html",
+            "/ui/legal": "legal.html",
+            "/ui/privacy": "privacy.html",
+            "/ui/wallet": "wallet.html",
+            "/ui/management": "management.html",
+            "/ui/calendar": "calendar.html",
+            "/ui/meeting-intelligence": "meeting_intelligence.html",
         }
+
+        # Redirect bare /ui/ to /ui/landing
+        async def _ui_root_redirect():
+            return _RedirectResponse("/ui/landing", status_code=307)
+        app.add_api_route("/ui/", _ui_root_redirect, methods=["GET"], include_in_schema=False)
 
         _mounted_count = 0
 
