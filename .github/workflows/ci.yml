@@ -8,7 +8,7 @@ on:
 
 env:
   MURPHY_ENV: test
-  PYTHONPATH: "${{ github.workspace }}/Murphy System:${{ github.workspace }}/Murphy System/src"
+  PYTHONPATH: "${{ github.workspace }}:${{ github.workspace }}/src"
 
 jobs:
   lint:
@@ -16,9 +16,6 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
-    defaults:
-      run:
-        working-directory: "Murphy System"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -51,9 +48,6 @@ jobs:
     strategy:
       matrix:
         python-version: ['3.10', '3.11', '3.12']
-    defaults:
-      run:
-        working-directory: "Murphy System"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -79,7 +73,7 @@ jobs:
       - name: Upload coverage
         uses: codecov/codecov-action@v4
         with:
-          file: "Murphy System/coverage.xml"
+          file: "coverage.xml"
           flags: unittests
 
   integration:
@@ -88,9 +82,6 @@ jobs:
     needs: lint
     permissions:
       contents: read
-    defaults:
-      run:
-        working-directory: "Murphy System"
     env:
       MURPHY_ENV: test
       MURPHY_PERSISTENCE_DIR: /tmp/murphy_test_persistence
@@ -118,9 +109,6 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
-    defaults:
-      run:
-        working-directory: "Murphy System"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -148,9 +136,6 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: read
-    defaults:
-      run:
-        working-directory: "Murphy System"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

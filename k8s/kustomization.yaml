@@ -2,7 +2,7 @@
 # Copyright © 2020 Inoni Limited Liability Company
 # License: BSL-1.1
 #
-# Usage: kubectl apply -k "Murphy System/k8s/"
+# Usage: kubectl apply -k "k8s/"
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 

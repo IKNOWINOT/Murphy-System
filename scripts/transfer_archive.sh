@@ -22,7 +22,7 @@
 # ─────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
-ARCHIVE_SRC="Murphy System/archive"
+ARCHIVE_SRC="archive"
 TARGET_REPO="https://github.com/IKNOWINOT/murphy-system-archive.git"
 WORK_DIR=$(mktemp -d)
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

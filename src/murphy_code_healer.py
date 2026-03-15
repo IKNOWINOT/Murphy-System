@@ -1557,8 +1557,8 @@ class MurphyCodeHealer:
             healing_coordinator=coordinator,
             event_backbone=backbone,
             persistence_manager=pm,
-            src_root="Murphy System/src",
-            tests_root="Murphy System/tests",
+            src_root="src",
+            tests_root="tests",
         )
         report = healer.run_healing_cycle()
     """

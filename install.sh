@@ -91,7 +91,7 @@ ok "git available"
 # ---- download --------------------------------------------------------------
 step 2 "Downloading Murphy System"
 
-if [ -d "$INSTALL_DIR/Murphy System" ]; then
+if [ -d "$INSTALL_DIR/.git" ]; then
   warn "Existing installation found at $INSTALL_DIR"
   info "Pulling latest changes…"
   (cd "$INSTALL_DIR" && git pull --ff-only 2>/dev/null) || true
@@ -104,7 +104,7 @@ ok "Murphy System downloaded to ${INSTALL_DIR}"
 # ---- virtual-env -----------------------------------------------------------
 step 3 "Setting up Python environment"
 
-VENV_DIR="$INSTALL_DIR/Murphy System/venv"
+VENV_DIR="$INSTALL_DIR/venv"
 if [ ! -d "$VENV_DIR" ]; then
   $PY -m venv "$VENV_DIR"
 fi
@@ -116,7 +116,7 @@ ok "Virtual environment ready"
 # ---- dependencies ----------------------------------------------------------
 step 4 "Installing dependencies (this may take 1-2 minutes)"
 
-cd "$INSTALL_DIR/Murphy System"
+cd "$INSTALL_DIR"
 pip install -q fastapi uvicorn pydantic aiohttp httpx rich pyyaml python-dotenv 2>&1 | \
   grep -v "already satisfied" || true
 
@@ -153,7 +153,7 @@ ok "Runtime directories ready"
 # ---- CLI wrapper -----------------------------------------------------------
 step 6 "Installing 'murphy' CLI"
 
-CLI_BIN="$INSTALL_DIR/Murphy System/murphy"
+CLI_BIN="$INSTALL_DIR/murphy"
 cat > "$CLI_BIN" <<'CLIFEOF'
 #!/usr/bin/env bash
 # Murphy System CLI — quick commands
@@ -308,7 +308,7 @@ echo -e "${GREEN}${BOLD}══════════════════�
 echo -e "${GREEN}${BOLD}  ✓  Murphy System installed successfully!${NC}"
 echo -e "${GREEN}${BOLD}════════════════════════════════════════════════════════════════${NC}"
 echo ""
-echo -e "  ${BOLD}Install location:${NC}  $INSTALL_DIR/Murphy System"
+echo -e "  ${BOLD}Install location:${NC}  $INSTALL_DIR"
 echo -e "  ${BOLD}Start Murphy:${NC}      ${CYAN}murphy start${NC}"
 echo -e "  ${BOLD}Start as daemon:${NC}   ${CYAN}murphy start -d${NC}"
 echo -e "  ${BOLD}Check status:${NC}      ${CYAN}murphy status${NC}"

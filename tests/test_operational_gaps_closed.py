@@ -28,8 +28,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # Resolve the project root (Murphy System/) for file-based assertions.
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# Resolve the repository root (parent of Murphy System/).
-_REPO_ROOT = os.path.dirname(_PROJECT_ROOT)
+# Resolve the repository root (flattened — same as project root).
+_REPO_ROOT = _PROJECT_ROOT
 
 
 # ---------------------------------------------------------------------------
@@ -454,8 +454,8 @@ class TestDepsPathSetup:
     def test_deps_adds_project_root_to_path(self):
         with open(os.path.join(_PROJECT_ROOT, "src", "runtime", "_deps.py")) as fh:
             source = fh.read()
-        # Must use parent.parent.parent to get Murphy System/ from src/runtime/_deps.py
-        assert "parent.parent.parent" in source
+        # Uses parent.parent to get project root from src/runtime/_deps.py
+        assert "parent.parent" in source
 
 
 # ---------------------------------------------------------------------------
@@ -530,7 +530,7 @@ class TestEnvPathResolution:
         """_deps.py must load .env from three levels up (project root)."""
         with open(os.path.join(_PROJECT_ROOT, "src", "runtime", "_deps.py")) as fh:
             source = fh.read()
-        # Should use parent.parent.parent to reach Murphy System/ from src/runtime/
+        # Should use parent.parent to reach project root from src/runtime/
         assert 'parent.parent.parent / ".env"' in source, (
             "_deps.py .env path should resolve to project root via parent.parent.parent"
         )

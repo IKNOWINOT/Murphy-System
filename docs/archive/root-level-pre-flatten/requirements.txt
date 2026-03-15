@@ -1,0 +1,16 @@
+# Root requirements entrypoint — unified install.
+# Use this from the repository root:
+#   pip install -r requirements.txt
+#
+# Installs both the base requirements and the comprehensive Murphy 1.0
+# requirements so that all features work out of the box.
+
+-r "Murphy System/requirements.txt"
+-r "Murphy System/requirements_murphy_1.0.txt"
+
+# Extras commonly needed at runtime but not listed elsewhere
+watchdog>=3.0.0
+matplotlib>=3.7.0
+
+# Statistical benchmarking (supplements pytest-cov already in Murphy System/requirements.txt)
+pytest-benchmark>=4.0.0

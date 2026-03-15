@@ -562,7 +562,7 @@ class HetznerDeployPlanGenerator:
                 risk_level=RiskLevel.MEDIUM,
                 command=(
                     f'docker build -t {self._image_ref()} '
-                    f'-f "Murphy System/Dockerfile" "Murphy System/"'
+                    f'-f "Dockerfile" "."'
                 ),
                 liability_note="You approved this action. Murphy executed it as instructed.",
             ))
@@ -777,7 +777,7 @@ class HetznerDeployPlanGenerator:
             description="Run production readiness check script to validate all resources",
             risk_level=RiskLevel.LOW,
             command=(
-                f'bash "Murphy System/scripts/production_readiness_check.sh" '
+                f'bash "scripts/production_readiness_check.sh" '
                 f'{self.namespace}'
             ),
             liability_note="Read-only verification. No system change.",
@@ -796,7 +796,7 @@ class HetznerDeployPlanGenerator:
             risk_level=RiskLevel.MEDIUM,
             command=(
                 f'docker build -t {self._image_ref()} '
-                f'-f "Murphy System/Dockerfile" "Murphy System/"'
+                f'-f "Dockerfile" "."'
             ),
             liability_note="You approved this action. Murphy executed it as instructed.",
         ))
@@ -991,15 +991,15 @@ jobs:
       contents: read
     env:
       MURPHY_ENV: test
-      PYTHONPATH: "${{ github.workspace }}/Murphy System:${{ github.workspace }}/Murphy System/src"
+      PYTHONPATH: "${{ github.workspace }}:${{ github.workspace }}/src"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -r "Murphy System/requirements_murphy_1.0.txt"
+      - run: pip install -r "requirements_murphy_1.0.txt"
       - run: pip install pytest pytest-asyncio pytest-timeout
-      - run: python -m pytest "Murphy System/tests/" --timeout=300 -x -q --ignore="Murphy System/tests/e2e"
+      - run: python -m pytest "tests/" --timeout=300 -x -q --ignore="tests/e2e"
 
   build-and-deploy:
     needs: test
