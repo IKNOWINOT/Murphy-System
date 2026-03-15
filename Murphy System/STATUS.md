@@ -1,6 +1,6 @@
 # Murphy System — Project Status
 
-> **Last updated**: 2026-03-08
+> **Last updated**: 2026-03-15
 > **License**: BSL 1.1 (Business Source License)
 > Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post
 
@@ -14,7 +14,7 @@
 | Control Plane | ✅ Operational | Execution packets, state vectors, formal constraints |
 | Governance Framework | ✅ Operational | HITL gates, governance kernel, compliance scheduling |
 | Confidence Engine | ✅ Operational | Bayesian scoring, Murphy Index, artifact graphs |
-| Security Plane | ⚠️ Partial | Authentication, authorization, DLP implemented; formal pen-test pending |
+| Security Plane | ✅ Integrated | RBAC, risk classification, DLP, auth, rate limiting wired as ASGI middleware on all /api/* routes; fail-closed; formal pen-test pending |
 | AUAR Pipeline | ✅ Operational | 7-layer routing with ML optimization |
 | AionMind Kernel | ✅ Operational | Context engine, reasoning engine, orchestration engine |
 | Setup Wizard | ✅ Operational | 6 deployment presets, guided onboarding |
