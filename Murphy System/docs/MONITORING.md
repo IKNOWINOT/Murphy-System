@@ -12,10 +12,41 @@
 
 ## Overview
 
-Murphy System ships a complete observability stack: **Prometheus** for metrics collection and alerting, and **Grafana** for dashboards. The Murphy API (`src/prometheus_metrics_exporter.py`) exposes metrics at `/metrics` in Prometheus text format.
+Murphy System ships a unified observability stack: **`src/metrics.py`** is the single canonical metrics module. All counters, gauges, and histograms flow through it; the `/metrics` endpoint exposes them in Prometheus text format for Grafana and alert evaluation.
+
+### Unified metrics architecture
+
+```
+             HTTP requests
+                   │
+                   ▼
+        _TraceIdMiddleware  (src/runtime/app.py)
+          ├─ inc_counter("murphy_requests_total", ...)
+          └─ observe_histogram("murphy_request_duration_seconds", ...)
+                   │
+                   ▼
+          ┌─────────────────────────────┐
+          │      src/metrics.py         │  ← single source of truth
+          │  _counters / _gauges /      │
+          │  _histograms / _module_health│
+          └─────────────┬───────────────┘
+                        │
+          ┌─────────────┴──────────────────────────────┐
+          │                                            │
+    GET /metrics                           GET /api/health?deep=true
+  (Prometheus text format)              (aggregates registered modules)
+          │
+    Prometheus scrapes → Grafana dashboards + alert rules
+```
+
+`src/prometheus_metrics_exporter.py` (Flask Blueprint) also bridges its
+`/metrics` output with `src/metrics.py` so both surfaces share the same data.
 
 | Component | Purpose |
 |-----------|---------|
+| `src/metrics.py` | **Canonical** in-process counters, gauges, histograms, health aggregation |
+| `src/prometheus_metrics_exporter.py` | Flask Blueprint — bridges to `src/metrics.py` |
+| `src/runtime/app.py` | FastAPI app — mounts `/metrics`, wires `_TraceIdMiddleware` |
 | `prometheus.yml` | Scrape config (local Docker Compose) |
 | `prometheus-rules/murphy-alerts.yml` | Alert rules (error rate, latency, resources, LLM, queue) |
 | `grafana/provisioning/` | Auto-provisioned datasource and dashboard |
@@ -129,7 +160,45 @@ POST /api/metrics/register
 
 ---
 
-## Alert Descriptions & Runbooks
+## Module Health Registration
+
+Key subsystems register a health callback on startup so `GET /api/health?deep=true` can aggregate their status:
+
+| Module | Registered Name | Health key |
+|--------|----------------|------------|
+| EventBackbone / IntegrationBus | `event_backbone` | `status: ok \| error` |
+| Database (DATABASE_URL or stub) | `database` | `status: ok \| stub \| error` |
+| LLM provider | `llm_provider` | `status: ok \| unavailable` |
+| Security Plane | `security_plane` | `status: ok \| not_configured` |
+
+Register additional modules in application code:
+
+```python
+from src import metrics
+
+metrics.register_module_health(
+    "my_subsystem",
+    lambda: {"status": "ok", "queue_depth": 0},
+)
+```
+
+---
+
+## Alert Rules Validation
+
+All metrics referenced in `prometheus-rules/murphy-alerts.yml` are emitted by
+the Murphy API. The table below maps each alert to its source:
+
+| Alert rule metric | Emitted by | Notes |
+|---|---|---|
+| `murphy_requests_total` | `_TraceIdMiddleware` → `src/metrics.py` + `prometheus_client` Counter | `_total` suffix added by prometheus_client |
+| `murphy_request_duration_seconds_bucket` | `_TraceIdMiddleware` → `src/metrics.py` + `prometheus_client` Histogram | `_bucket` suffix added by prometheus_client |
+| `murphy_llm_calls_total` | `prometheus_client` Counter `murphy_llm_calls` | Must be incremented from LLM call sites |
+| `murphy_task_queue_depth` | `src/metrics.py` Gauge (seeded at 0 on startup) | Update via `metrics.set_gauge("murphy_task_queue_depth", n)` |
+
+---
+
+
 
 | Alert | Severity | Condition | Action |
 |-------|----------|-----------|--------|
