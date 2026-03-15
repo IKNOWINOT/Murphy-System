@@ -12292,7 +12292,7 @@ class MurphySystem:
         return {
             "modules": modules,
             "integrations": integrations,
-            "recommended_terminal": "terminal_unified.html",
+            "recommended_terminal": "/ui/terminal-unified",
             "mfgc_score": self._score_mfgc_readiness(profile),
             "business_profile": collected,
         }

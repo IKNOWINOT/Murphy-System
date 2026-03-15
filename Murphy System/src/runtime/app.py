@@ -1598,6 +1598,9 @@ def create_app() -> FastAPI:
     except Exception:
         _onboarding_engine = None
 
+    # Persisted onboarding config (read by production wizard + workflow canvas)
+    _onboarding_config: Dict[str, Any] = {}
+
     @app.get("/api/onboarding/wizard/questions")
     async def onboarding_wizard_questions():
         """Get all setup wizard questions for no-code configuration."""
@@ -1638,20 +1641,66 @@ def create_app() -> FastAPI:
         return JSONResponse({"success": True, **result})
 
     @app.post("/api/onboarding/wizard/generate-config")
-    async def onboarding_wizard_generate_config():
-        """Generate a complete Murphy System configuration from wizard answers."""
+    async def onboarding_wizard_generate_config(request: Request):
+        """Generate a complete Murphy System configuration from wizard answers.
+
+        Accepts the wizard's selected modules, integrations, safety level,
+        and chat history.  Stores the resulting config in-memory so the
+        production wizard and workflow canvas can read it back via
+        ``GET /api/onboarding/wizard/config``.
+        """
+        body: Dict[str, Any] = {}
+        try:
+            body = await request.json()
+        except Exception:
+            pass  # body remains {} — the endpoint also works without a body
+
         if _setup_wizard is None:
-            return JSONResponse({"success": False, "error": "Setup wizard not available"}, status_code=503)
+            # Fallback: build config directly from the submitted body
+            config = {
+                "modules": body.get("modules", []),
+                "integrations": body.get("integrations", []),
+                "safety_level": body.get("safety_level", 3),
+                "terminal": body.get("terminal", "/ui/terminal-unified"),
+            }
+            _onboarding_config.update(config)
+            _onboarding_config["chat_history"] = body.get("chat_history", [])
+            _onboarding_config["created_at"] = _now_iso()
+            return JSONResponse({"success": True, "config": config})
+
         profile = _setup_wizard.get_profile()
         validation = _setup_wizard.validate_profile(profile)
         config = _setup_wizard.generate_config(profile)
         summary = _setup_wizard.summarize(profile)
+
+        # Merge wizard selections from the request body into config
+        if body.get("modules"):
+            config["modules"] = body["modules"]
+        if body.get("integrations"):
+            config["integrations"] = body["integrations"]
+        if body.get("safety_level") is not None:
+            config["safety_level"] = body["safety_level"]
+
+        # Persist so production wizard can read it
+        _onboarding_config.update(config)
+        _onboarding_config["chat_history"] = body.get("chat_history", [])
+        _onboarding_config["validation"] = validation
+        _onboarding_config["summary"] = summary
+        _onboarding_config["created_at"] = _now_iso()
+
         return JSONResponse({
             "success": True,
             "config": config,
             "validation": validation,
             "summary": summary,
         })
+
+    @app.get("/api/onboarding/wizard/config")
+    async def onboarding_wizard_get_config():
+        """Return the persisted onboarding config so production wizard can use it."""
+        if not _onboarding_config:
+            return JSONResponse({"success": False, "error": "No onboarding config yet"}, status_code=404)
+        return JSONResponse({"success": True, **_onboarding_config})
 
     @app.get("/api/onboarding/wizard/summary")
     async def onboarding_wizard_summary():
@@ -2496,6 +2545,12 @@ def create_app() -> FastAPI:
         location = body.get("regulatory_location", "US")
         spec = body.get("deliverable_spec", "")
 
+        # Merge onboarding config if available (modules, integrations, safety)
+        ob_cfg = dict(_onboarding_config)  # snapshot
+        integrations = body.get("integrations", ob_cfg.get("integrations", []))
+        modules = body.get("modules", ob_cfg.get("modules", []))
+        safety_level = body.get("safety_level", ob_cfg.get("safety_level", 3))
+
         # Build workflow nodes from the proposal
         nodes = []
         edges = []
@@ -2558,8 +2613,36 @@ def create_app() -> FastAPI:
             "animated": True,
         })
 
+        # 3b. Integration nodes (from onboarding selections)
+        int_prev_node = proc_id
+        int_prev_port = f"{proc_id}-out"
+        int_x = proc_x
+        for j, intg in enumerate(integrations):
+            intg_name = intg if isinstance(intg, str) else intg.get("name", intg.get("id", f"integration-{j}"))
+            intg_id_safe = intg_name.lower().replace(" ", "_").replace("/", "_")[:30]
+            int_nid = f"{pid}-int-{intg_id_safe}"
+            int_x += x_step
+            nodes.append({
+                "id": int_nid, "x": int_x, "y": y_base + 100,
+                "type": "action", "label": intg_name,
+                "icon": "🔌", "health": "idle",
+                "data": {"subtype": "integration", "integration": intg_name},
+                "ports": [
+                    {"id": f"{int_nid}-in", "type": "input", "label": "in", "side": "left"},
+                    {"id": f"{int_nid}-out", "type": "output", "label": "out", "side": "right"},
+                ],
+            })
+            edges.append({
+                "id": f"{pid}-edge-int-{j}",
+                "sourceNodeId": int_prev_node, "sourcePortId": int_prev_port,
+                "targetNodeId": int_nid, "targetPortId": f"{int_nid}-in",
+                "animated": True,
+            })
+            int_prev_node = int_nid
+            int_prev_port = f"{int_nid}-out"
+
         # 4. HITL review node
-        hitl_x = proc_x + x_step
+        hitl_x = max(proc_x, int_x) + x_step
         hitl_id = f"{pid}-hitl"
         nodes.append({
             "id": hitl_id, "x": hitl_x, "y": y_base,
@@ -2574,7 +2657,8 @@ def create_app() -> FastAPI:
         })
         edges.append({
             "id": f"{pid}-edge-hitl",
-            "sourceNodeId": proc_id, "sourcePortId": f"{proc_id}-out",
+            "sourceNodeId": int_prev_node if integrations else proc_id,
+            "sourcePortId": int_prev_port if integrations else f"{proc_id}-out",
             "targetNodeId": hitl_id, "targetPortId": f"{hitl_id}-in",
             "animated": True,
         })
@@ -2641,6 +2725,9 @@ def create_app() -> FastAPI:
             "functions": funcs,
             "spec": spec,
             "gates": gates,
+            "modules": modules,
+            "integrations": [i if isinstance(i, str) else i.get("name", str(i)) for i in integrations],
+            "safety_level": safety_level,
             "status": "pending",
             "workflow": workflow,
             "created_at": datetime.now(timezone.utc).isoformat(),
