@@ -777,6 +777,7 @@
 </footer>
 
 <script src="static/murphy-components.js"></script>
+<script src="murphy_auth.js"></script>
 <script>
 (function () {
   'use strict';
@@ -813,32 +814,30 @@
   btnAnnual.addEventListener('click',  function () { updatePrices('annual');  });
 
   // ── Checkout buttons ─────────────────────────────────────
+  var _pricingApi = new MurphyAPI(window.location.origin + '/api');
   document.querySelectorAll('.pricing-cta[data-tier]').forEach(function (btn) {
     btn.addEventListener('click', function () {
       var tier = btn.getAttribute('data-tier');
       btn.disabled = true;
       btn.textContent = 'Loading…';
 
-      fetch('/api/billing/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tier: tier, interval: currentInterval })
-      })
-      .then(function (res) { return res.json(); })
-      .then(function (data) {
-        if (data.url) {
-          window.location.href = data.url;
-        } else {
+      _pricingApi.post('/billing/checkout', { tier: tier, interval: currentInterval })
+        .then(function (result) {
+          var data = result.data || {};
+          if (data.url) {
+            window.location.href = data.url;
+          } else {
+            btn.disabled = false;
+            btn.textContent = 'Start Free Trial';
+            var errMsg = (result.error) || data.message || data.error || 'Unable to start checkout. Please try again.';
+            alert(errMsg);
+          }
+        })
+        .catch(function () {
           btn.disabled = false;
           btn.textContent = 'Start Free Trial';
-          alert(data.message || data.error || 'Unable to start checkout. Please try again.');
-        }
-      })
-      .catch(function () {
-        btn.disabled = false;
-        btn.textContent = 'Start Free Trial';
-        alert('Network error — please check your connection and try again.');
-      });
+          alert('Network error — please check your connection and try again.');
+        });
     });
   });
 
