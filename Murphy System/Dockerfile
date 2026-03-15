@@ -44,10 +44,12 @@ RUN apt-get update \
 COPY src/ ./src/
 COPY setup.py requirements_murphy_1.0.txt ./
 COPY murphy_system_1.0_runtime.py ./
+COPY scripts/docker-entrypoint.sh ./docker-entrypoint.sh
 
 # Create persistent data directories
 RUN mkdir -p /app/data /app/logs \
-    && chown -R murphy:murphy /app
+    && chown -R murphy:murphy /app \
+    && chmod +x /app/docker-entrypoint.sh
 
 # Environment configuration
 ENV PYTHONPATH=/app
@@ -61,7 +63,7 @@ USER murphy
 
 EXPOSE 8000
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD curl -f http://localhost:8000/api/health || exit 1
 
-CMD ["python", "murphy_system_1.0_runtime.py"]
+CMD ["/app/docker-entrypoint.sh"]
