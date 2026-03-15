@@ -1,1 +1,0 @@
-export async function emit(e:string,d:any={},ctx?:{emit?:(e:string,d:any)=>any}){try{if(ctx?.emit)return ctx.emit(e,d);}catch{}try{console.log('[json_bot/emit]',e,JSON.stringify(d).slice(0,2000));}catch{}}

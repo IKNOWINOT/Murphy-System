@@ -1,2 +1,0 @@
-export function roughTempo(samples:number[], sr:number=44100){ // naive energy peaks
- let peaks=0; for(let i=1;i<samples.length-1;i++){ const e=Math.abs(samples[i])-Math.abs(samples[i-1]); if (e>1000) peaks++; } const bpm = Math.min(200, Math.max(40, peaks*6)); return bpm; }

@@ -1,1 +1,0 @@
-export function zcr(samples:number[]){ let z=0; for(let i=1;i<samples.length;i++){ if ((samples[i-1]>=0)!==(samples[i]>=0)) z++; } return z/(samples.length-1||1); }

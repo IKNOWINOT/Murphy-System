@@ -1,1 +1,0 @@
-export function wireDeps(tree:any[]){ const deps:string[][]=[]; const ids:string[]=[]; const walk=(n:any)=>{ ids.push(n.id); (n.children||[]).forEach(walk); }; (tree||[]).forEach(walk); for(let i=1;i<ids.length;i++){ deps.push([ids[i], ids[i-1]]);} return deps; }

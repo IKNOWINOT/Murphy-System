@@ -1,1 +1,0 @@
-const mem=new Map<string,{exp:number,data:any}>(); export async function getCache(_kv:any,k:string){const v=mem.get(k); if(v&&v.exp>Date.now()) return v.data; return null;} export async function setCache(_kv:any,k:string,d:any,ttl_s:number){mem.set(k,{exp:Date.now()+ttl_s*1000,data:d});}

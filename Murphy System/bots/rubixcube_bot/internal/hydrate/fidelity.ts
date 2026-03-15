@@ -1,1 +1,0 @@
-export function fidelity(original:number[], hydrated:number[]){ const n=Math.min(original.length, hydrated.length)||1; let dot=0,a=0,b=0,mse=0; for(let i=0;i<n;i++){ const x=original[i], y=hydrated[i]; dot+=x*y; a+=x*x; b+=y*y; const d=x-y; mse+=d*d; } const cos = dot/Math.max(1e-8, Math.sqrt(a*b)); return { cos, mse: mse/n, passed: cos>0.95 }; }
