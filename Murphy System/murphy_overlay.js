@@ -30,7 +30,7 @@
 
   const POLL_INTERVAL_MS = 5000;
   const OVERLAY_API_BASE = "/api/overlay";
-  const MARKETPLACE_URL = "murphy_landing_page.html#marketplace";
+  const MARKETPLACE_URL = "/ui/landing#marketplace";
   const HIGHLIGHT_COLORS = {
     automation: "rgba(0, 255, 65, 0.25)",
     api_call: "rgba(0, 200, 255, 0.25)",

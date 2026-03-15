@@ -70,7 +70,7 @@
   var selectedIntegrations = [];
   var credentials = {};
   var safetyLevel = 3;
-  var recommendedTerminal = 'terminal_unified.html';
+  var recommendedTerminal = '/ui/terminal-unified';
   var librarianConfig = null;
 
   // ── DOM refs ───────────────────────────────────────────
@@ -767,10 +767,10 @@
     }));
 
     var dashboards = [
-      { value: 'terminal_unified.html', label: 'Unified Dashboard', desc: 'Full overview of everything' },
-      { value: 'terminal_worker.html', label: 'Worker Dashboard', desc: 'Task-focused view' },
-      { value: 'terminal_manager.html', label: 'Manager Dashboard', desc: 'Team and project oversight' },
-      { value: 'terminal_admin.html', label: 'Admin Dashboard', desc: 'System configuration and control' }
+      { value: '/ui/terminal-unified', label: 'Unified Dashboard', desc: 'Full overview of everything' },
+      { value: '/ui/terminal-worker', label: 'Worker Dashboard', desc: 'Task-focused view' },
+      { value: '/ui/terminal-enhanced', label: 'Manager Dashboard', desc: 'Team and project oversight' },
+      { value: '/ui/terminal-architect', label: 'Admin Dashboard', desc: 'System configuration and control' }
     ];
 
     dashboards.forEach(function (db) {
@@ -882,11 +882,11 @@
         api.post('/onboarding/wizard/generate-config', config)
           .then(function () {
             try { localStorage.setItem('murphy_onboarded', '1'); } catch(e) { console.warn('localStorage unavailable:', e.message); }
-            window.location.href = 'production_wizard.html';
+            window.location.href = '/ui/production-wizard';
           })
           .catch(function () {
             try { localStorage.setItem('murphy_onboarded', '1'); } catch(e) { console.warn('localStorage unavailable:', e.message); }
-            window.location.href = 'production_wizard.html';
+            window.location.href = '/ui/production-wizard';
           });
       }
     });
