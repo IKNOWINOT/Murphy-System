@@ -40,8 +40,8 @@ export function convertFlowToStateGraph(graph: FlowGraph): Record<string, unknow
 
 export async function executeFlow(
   graph: FlowGraph,
-  // apiBase kept for backwards compatibility but murphyClient reads from env
-  _apiBase = ""
+  /** @deprecated apiBase is ignored; murphyClient reads base URL from VITE_API_BASE env var */
+  _deprecatedApiBase = ""
 ): Promise<FlowExecutionResult> {
   const stateGraph = convertFlowToStateGraph(graph);
   const result = await post<{ output?: unknown; trace_id?: string }>("/api/execute", { state_graph: stateGraph });
@@ -50,18 +50,19 @@ export async function executeFlow(
     return { success: false, error: result.error?.message ?? "Execute failed" };
   }
 
-  const data = result.data ?? {};
+  const data = result.data as Record<string, unknown> ?? {};
   return {
     success: true,
-    output: (data as Record<string, unknown>).output ?? data,
-    trace_id: (data as Record<string, unknown>).trace_id as string | undefined,
+    output: data.output ?? data,
+    trace_id: data.trace_id as string | undefined,
   };
 }
 
 export async function saveFlow(
   graph: FlowGraph,
   name: string,
-  _apiBase = ""
+  /** @deprecated apiBase is ignored; murphyClient reads base URL from VITE_API_BASE env var */
+  _deprecatedApiBase = ""
 ): Promise<{ success: boolean; template_id?: string }> {
   const stateGraph = convertFlowToStateGraph(graph);
   const result = await post<{ template_id?: string; id?: string }>("/api/templates/publish", {
@@ -71,13 +72,14 @@ export async function saveFlow(
   });
 
   if (!result.success) return { success: false };
-  const d = result.data ?? {};
-  return { success: true, template_id: (d as Record<string, unknown>).template_id as string | undefined ?? (d as Record<string, unknown>).id as string | undefined };
+  const d = result.data as Record<string, unknown> ?? {};
+  return { success: true, template_id: (d.template_id ?? d.id) as string | undefined };
 }
 
 export async function loadFlow(
   templateId: string,
-  _apiBase = ""
+  /** @deprecated apiBase is ignored; murphyClient reads base URL from VITE_API_BASE env var */
+  _deprecatedApiBase = ""
 ): Promise<FlowGraph> {
   const result = await get<{ flow_graph?: FlowGraph } | FlowGraph>(`/api/templates/${templateId}`);
 
