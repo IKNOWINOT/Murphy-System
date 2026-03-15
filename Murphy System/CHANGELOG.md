@@ -17,7 +17,34 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Added — Beta Hardening (Production Safety Guards)
+### Added — Unified Flask→FastAPI Gateway
+
+- **feat(gateway):** Ported all standalone Flask services into the main FastAPI runtime (`src/runtime/app.py`) — no separate servers on ports 8053/8054/8056 are required. Ported services and their new route prefixes:
+  - `src/cost_optimization_advisor.py` → `/api/coa/*` (16 endpoints: resources CRUD, cost analysis, recommendations, budget tracking, export)
+  - `src/compliance_as_code_engine.py` → `/api/cce/*` (16 endpoints: rules CRUD, rule checking, compliance reports, toggles, export)
+  - `src/blockchain_audit_trail.py` → `/api/bat/*` (10 endpoints: entries, blocks, seal, verify, search, stats)
+  - `src/gate_synthesis/api_server.py` → `/api/gate-synthesis/*` (19 endpoints: gates list/create/activate/retire, statistics, lifecycle manager)
+  - `src/module_compiler/api/endpoints.py` → `/api/module-compiler/*` (9 endpoints: compile, validate, list, registry)
+  - `src/compute_plane/api/endpoints.py` → `/api/compute-plane/*` (6 endpoints: solvers, capabilities, health)
+- **feat(auth):** `_APIKeyMiddleware` — unified `X-API-Key` enforcement on all `/api/*` routes in FastAPI; permissive when `MURPHY_API_KEY` env var is unset (development mode). Exempt paths: `/api/health`, `/api/info`, `/api/manifest`.
+- **feat(errors):** `src/error_envelope.py` — `success_response(data, status_code)` / `error_response(code, message, status_code)` factory functions. FastAPI exception handlers added for `StarletteHTTPException`, `RequestValidationError`, and bare `Exception` — all normalised to `{"success": bool, "error": {"code": str, "message": str}}`.
+- **feat(manifest):** `GET /api/manifest` — machine-readable list of all registered API routes (path, methods, name). HEAD and OPTIONS excluded. Auth-exempt.
+- **feat(stubs):** `POST /api/analyze-domain` — 501 stub endpoint for previously-orphaned frontend call.
+- **feat(websocket):** `MurphyWebSocket` class in `static/murphy-components.js` — reconnecting WebSocket client with exponential backoff (3 s → 30 s), `connect/send/on/disconnect` API, exported as `window.MurphyWebSocket`.
+- **feat(parse):** `MurphyAPI._parseResponse()` in `static/murphy-components.js` — normalises all three legacy error formats (Flask `{status/message}`, FastAPI `{detail}`, custom `{error/code}`) into the standard `{success, error}` envelope.
+- **feat(frontend):** `matrix_integration.html` and `production_wizard.html` — `apiFetch` wrapper replaced with `MurphyAPI`; handles GET, POST, PUT, and DELETE.
+- **feat(ts):** `web/src/api/murphyClient.ts` — TypeScript API client mirroring `MurphyAPI`: retry (3×, exponential backoff), circuit breaker (5 failures → open, 30 s half-open), `X-API-Key` from `localStorage`/env, standard envelope parsing. Exports `get`, `post`, `put`, `del`.
+- **feat(ts):** `web/src/api/types.ts` — TypeScript interfaces matching backend Pydantic models: `ApiResponse<T>`, `FormSubmissionResult`, `FlowExecutionResult`, `ModuleSpec`, `HealthStatus`, and gateway-specific types.
+- **feat(ts):** `web/src/components/FlowCanvas/flowApi.ts` updated to import from `murphyClient.ts` instead of raw `fetch()`; deprecated `apiBase` parameters annotated with `@deprecated` JSDoc.
+- **feat(js):** `static/murphy-schemas.js` — JSDoc-typed `validateApiResponse()` and `assertOk()` helpers for vanilla-JS HTML pages; exported on `window`.
+- **feat(auth-html):** `murphy_auth.js` added to all 20 API-calling HTML pages: `terminal_unified`, `terminal_costs`, `terminal_integrated`, `terminal_integrations`, `terminal_architect`, `terminal_worker`, `terminal_orchestrator`, `terminal_enhanced`, `terminal_orgchart`, `matrix_integration`, `production_wizard`, `onboarding_wizard`, `compliance_dashboard`, `workflow_canvas`, `calendar`, `meeting_intelligence`, `ambient_intelligence`, `system_visualizer`, `management`, `wallet`.
+- **docs:** `API_ROUTES.md` — canonical reference documenting all 557 API endpoints with method, auth requirement, and framework origin.
+- **test:** `tests/test_gap_closure_unified_gateway.py` — 150 tests proving all 10 frontend/backend correlation gaps are closed: dual-framework unification, API fetch standardisation, stub endpoints, auth middleware, shared types, error normalisation, manifest endpoint, WebSocket class, route documentation, and auth-script inclusion.
+
+### Changed — Unified Gateway
+- **chore(docs):** `documentation/api/AUTHENTICATION.md` — updated to reflect unified FastAPI gateway; removed stale "Flask API servers" reference; documented `MURPHY_API_KEY` and exempt paths.
+- **chore(docs):** `documentation/architecture/INTERFACES.md` — `Multi-Tenant API` section updated from `Flask Blueprint` to `FastAPI APIRouter`; standard error envelope updated to new format.
+
 
 #### Critical — Simulated Backend Safety Guards
 - **feat(db):** `integrations/database_connectors.py` — `stub_mode_allowed()` helper; startup `RuntimeError` when `MURPHY_DB_MODE=stub` in `production`/`staging`; loud `WARNING` in `development`. (`MURPHY_DB_MODE`, `MURPHY_ENV`)

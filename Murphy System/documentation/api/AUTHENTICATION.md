@@ -2,15 +2,22 @@
 
 ## Current Implementation Status
 
-> **Security Hardening Applied (2026-02):** All Murphy System Flask API servers now enforce
+> **Security Hardening Applied (2026-02):** All Murphy System API servers now enforce
 > authentication, CORS origin allowlisting, rate limiting, input sanitization, and security
-> headers via `src/flask_security.py`. See `docs/QA_AUDIT_REPORT.md` for full details.
+> headers via `src/fastapi_security.py` and the unified `_APIKeyMiddleware` in `src/runtime/app.py`.
+> See `docs/QA_AUDIT_REPORT.md` for full details.
+>
+> **Unified Gateway (2026-03):** All previously-standalone services (Cost Optimization Advisor,
+> Compliance as Code Engine, Blockchain Audit Trail, Gate Synthesis, Module Compiler, Compute Plane)
+> are now served by the single FastAPI runtime on port 8000 under their respective `/api/` prefixes.
+> No separate Flask servers need to be started.
 >
 > **Quick Start:**
 > - In **development** mode (`MURPHY_ENV=development`): Auth is optional — requests without API keys are allowed.
-> - In **production** mode (`MURPHY_ENV=production`): All non-health endpoints require a valid API key via `Authorization: Bearer <key>` or `X-API-Key` header.
-> - Configure keys via `MURPHY_API_KEYS` environment variable (comma-separated).
+> - In **production** mode (`MURPHY_ENV=production`): All non-health endpoints require a valid API key via `X-API-Key` header.
+> - Configure the API key via `MURPHY_API_KEY` environment variable (single key) or `MURPHY_API_KEYS` (comma-separated list).
 > - Configure allowed CORS origins via `MURPHY_CORS_ORIGINS` environment variable.
+> - Exempt paths (no key required): `/api/health`, `/api/info`, `/api/manifest`.
 
 ## Overview
 

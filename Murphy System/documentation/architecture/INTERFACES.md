@@ -93,15 +93,19 @@ if a module is not installed.
 
 ---
 
-## Multi-Tenant API (Flask Blueprint)
+## Multi-Tenant API (FastAPI Router)
 
 `create_multi_tenant_api(manager)` in `src/multi_tenant_workspace.py` returns a
-Flask `Blueprint` with REST endpoints for tenant management. All endpoints enforce
+FastAPI `APIRouter` with REST endpoints for tenant management. All endpoints enforce
 tenant-boundary permission checks and return errors in the standard envelope:
 
 ```json
-{"error": "message", "code": "ERROR_CODE"}
+{"success": false, "error": {"code": "ERROR_CODE", "message": "message"}}
 ```
+
+> **Upgrade note (2026-03):** This module previously exposed a Flask `Blueprint`.
+> It now ships as a FastAPI `APIRouter` mounted directly by `create_app()` in
+> `src/runtime/app.py`. The REST API surface is unchanged.
 
 ---
 
