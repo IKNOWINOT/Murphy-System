@@ -3052,10 +3052,14 @@ class SelfMarketingOrchestrator:
 
     def _publish_event(self, event_type: str, payload: Dict[str, Any]) -> None:
         """Publish an event to EventBackbone if wired."""
-        if self._backbone is None:
-            return
         try:
-            self._backbone.publish(event_type=event_type, payload=payload)
+            from event_backbone_client import publish as _bb_publish  # noqa: PLC0415
+            _bb_publish(
+                event_type,
+                payload,
+                source="self_marketing_orchestrator",
+                backbone=self._backbone,
+            )
         except Exception as exc:  # noqa: BLE001
             logger.debug("Event publish skipped: %s", exc)
 

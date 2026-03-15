@@ -1313,17 +1313,13 @@ class AutonomousRepairSystem:
 
     def _publish_event(self, event_name: str, payload: Dict[str, Any]) -> None:
         """Publish an event to the EventBackbone if available."""
-        if self._backbone is None:
-            return
         try:
-            from event_backbone import Event, EventType
-            event = Event(
-                event_id=str(uuid.uuid4()),
-                event_type=EventType.SYSTEM_HEALTH,
-                payload={"event_name": event_name, **payload},
-                timestamp=datetime.now(timezone.utc).isoformat(),
+            from event_backbone_client import publish as _bb_publish  # noqa: PLC0415
+            _bb_publish(
+                "system_health",
+                {"event_name": event_name, **payload},
                 source="autonomous_repair_system",
+                backbone=self._backbone,
             )
-            self._backbone.publish(event)
         except Exception as exc:
             logger.debug("EventBackbone publish failed: %s", exc)

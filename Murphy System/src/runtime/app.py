@@ -101,6 +101,10 @@ def create_app() -> FastAPI:
         version="1.0.0"
     )
 
+    # ── Module loader (ML-001) ────────────────────────────────────
+    from src.runtime.module_loader import ModuleLoader, ModulePriority
+    _module_loader = ModuleLoader()
+
     # ── Utility: ISO timestamp helper ───────────────────────────
     def _now_iso():
         return datetime.now(timezone.utc).isoformat()
@@ -113,24 +117,6 @@ def create_app() -> FastAPI:
     except Exception:  # pragma: no cover
         _oauth_registry = None
 
-    # Apply security hardening (CORS allowlist, API key auth, rate limiting, headers)
-    try:
-        from src.fastapi_security import configure_secure_fastapi
-        configure_secure_fastapi(app, service_name="murphy-system-1.0")
-    except ImportError:
-        logger.warning("fastapi_security not available — falling back to env-based CORS")
-        _cors_origins = os.environ.get(
-            "MURPHY_CORS_ORIGINS",
-            "http://localhost:3000,http://localhost:8080,http://localhost:8000",
-        ).split(",")
-        app.add_middleware(
-            CORSMiddleware,
-            allow_origins=[o.strip() for o in _cors_origins],
-            allow_credentials=True,
-            allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            allow_headers=["*"],
-        )
-
     # Load .env before initialising MurphySystem so env vars like
     # MURPHY_LLM_PROVIDER and GROQ_API_KEY are available from the start.
     # Resolve to the project root (Murphy System/) — three levels up from
@@ -142,160 +128,195 @@ def create_app() -> FastAPI:
     # Initialize Murphy System
     murphy = MurphySystem()
 
-    # ── Database Initialisation (Phase 1-A) ──────────────────────
+    # ── Shared mutable state for critical subsystem references ────
+    # These variables are read throughout the endpoint closures below.
+    # Loader functions update them via `nonlocal` so that each subsystem
+    # is initialised exactly once and in a controlled order through the
+    # module loader, while remaining directly accessible to all closures
+    # inside create_app() without requiring app.state look-ups.
     _db_available = False
-    if os.environ.get("DATABASE_URL"):
-        try:
-            from src.db import create_tables
-            create_tables()
-            _db_available = True
-            logger.info("Relational persistence initialised (DATABASE_URL set)")
-        except Exception as _db_exc:
-            logger.warning("Database init failed — falling back to JSON persistence: %s", _db_exc)
+    _cache_client = None
+    _integration_bus = None
+    _aionmind_kernel = None
 
     # ── Cache Initialisation (Phase 1-B) ─────────────────────────
-    _cache_client = None
+    # Cache is optional — no router, no critical dependency.
     try:
         from src.cache import CacheClient
         _cache_client = CacheClient()
     except Exception as _cache_exc:
         logger.warning("CacheClient init failed: %s", _cache_exc)
 
-    # ── AionMind 2.0 Cognitive Pipeline Integration (Gap 5) ──────
-    _aionmind_kernel = None
-    try:
+    # ── Module registrations (ML-001) ────────────────────────────
+    # CRITICAL modules: Security Plane, EventBackbone, Database,
+    # GovernanceKernel, IntegrationBus — any failure aborts startup.
+    # OPTIONAL modules: all sub-router packages — degrade gracefully.
+
+    # --- CRITICAL: Security Plane ---
+    def _load_security_plane(_app):
+        """Apply security hardening middleware (CORS, API-key auth, rate-limit, headers)."""
+        from src.fastapi_security import configure_secure_fastapi
+        configure_secure_fastapi(_app, service_name="murphy-system-1.0")
+        return False  # middleware applied; no APIRouter registered
+
+    # --- CRITICAL: EventBackbone ---
+    def _load_event_backbone(_app):
+        """Verify EventBackbone was successfully initialised inside MurphySystem."""
+        if getattr(murphy, "event_backbone", None) is None:
+            raise RuntimeError(
+                "EventBackbone did not initialise — check src.event_backbone import "
+                "and MurphySystem startup logs"
+            )
+        return False
+
+    # --- CRITICAL: GovernanceKernel ---
+    def _load_governance_kernel(_app):
+        """Verify GovernanceKernel was successfully initialised inside MurphySystem."""
+        if getattr(murphy, "governance_kernel", None) is None:
+            raise RuntimeError(
+                "GovernanceKernel did not initialise — check src.governance_kernel import "
+                "and MurphySystem startup logs"
+            )
+        return False
+
+    # --- CRITICAL: Database (only when DATABASE_URL is configured) ---
+    def _load_database(_app):
+        """Create schema tables when a relational DATABASE_URL is configured."""
+        nonlocal _db_available
+        from src.db import create_tables
+        create_tables()
+        _db_available = True
+        logger.info("Relational persistence initialised (DATABASE_URL set)")
+        return False
+
+    # --- CRITICAL: IntegrationBus (EventBackbone wiring layer) ---
+    def _load_integration_bus(_app):
+        """Initialise IntegrationBus — wires src/ modules into the runtime."""
+        nonlocal _integration_bus
+        from src.integration_bus import IntegrationBus
+        _integration_bus = IntegrationBus()
+        _integration_bus.initialize()
+        logger.info("IntegrationBus initialised: %s", _integration_bus.get_status())
+        return False
+
+    _module_loader.register("security_plane", ModulePriority.CRITICAL, _load_security_plane)
+    _module_loader.register("event_backbone", ModulePriority.CRITICAL, _load_event_backbone)
+    _module_loader.register("governance_kernel", ModulePriority.CRITICAL, _load_governance_kernel)
+    if os.environ.get("DATABASE_URL"):
+        _module_loader.register("database", ModulePriority.CRITICAL, _load_database)
+    _module_loader.register("integration_bus", ModulePriority.CRITICAL, _load_integration_bus)
+
+    def _load_aionmind(_app):
+        nonlocal _aionmind_kernel
         from aionmind import api as aionmind_api
         from aionmind.runtime_kernel import AionMindKernel
-
-        _aionmind_kernel = AionMindKernel(
-            auto_bridge_bots=True,
-            auto_discover_rsc=True,
-        )
-        aionmind_api.init_kernel(_aionmind_kernel)
-        # Mount AionMind 2.0 endpoints at /api/aionmind/*
-        # (status, context, orchestrate, execute, proposals, memory)
-        app.include_router(aionmind_api.router)
+        _kernel = AionMindKernel(auto_bridge_bots=True, auto_discover_rsc=True)
+        aionmind_api.init_kernel(_kernel)
+        _app.include_router(aionmind_api.router)
+        _aionmind_kernel = _kernel
         logger.info("AionMind 2.0 cognitive pipeline initialised (%d capabilities).",
-                     _aionmind_kernel.registry.count())
-    except Exception as _aim_exc:
-        logger.warning("AionMind kernel not available — endpoints use legacy path only: %s", _aim_exc)
+                    _kernel.registry.count())
+        return True
 
-    # ── Board System (Phase 1 – Monday.com parity) ────────────────
-    try:
+    def _load_board_system(_app):
         from board_system.api import create_board_router
-        _board_router = create_board_router()
-        app.include_router(_board_router)
+        _app.include_router(create_board_router())
         logger.info("Board System API registered at /api/boards")
-    except Exception as _bs_exc:
-        logger.warning("Board System not available: %s", _bs_exc)
+        return True
 
-    # ── Collaboration System (Phase 2 – Monday.com parity) ────────
-    try:
+    def _load_collaboration(_app):
         from collaboration.api import create_collaboration_router
-        _collab_router = create_collaboration_router()
-        app.include_router(_collab_router)
+        _app.include_router(create_collaboration_router())
         logger.info("Collaboration API registered at /api/collaboration")
-    except Exception as _co_exc:
-        logger.warning("Collaboration System not available: %s", _co_exc)
+        return True
 
-    # ── Dashboards (Phase 3 – Monday.com parity) ───────────────────
-    try:
+    def _load_dashboards(_app):
         from dashboards.api import create_dashboard_router
-        _dash_router = create_dashboard_router()
-        app.include_router(_dash_router)
+        _app.include_router(create_dashboard_router())
         logger.info("Dashboards API registered at /api/dashboards")
-    except Exception as _da_exc:
-        logger.warning("Dashboards not available: %s", _da_exc)
+        return True
 
-    # ── Portfolio Management (Phase 4 – Monday.com parity) ─────────
-    try:
+    def _load_portfolio(_app):
         from portfolio.api import create_portfolio_router
-        _port_router = create_portfolio_router()
-        app.include_router(_port_router)
+        _app.include_router(create_portfolio_router())
         logger.info("Portfolio API registered at /api/portfolio")
-    except Exception as _po_exc:
-        logger.warning("Portfolio Management not available: %s", _po_exc)
+        return True
 
-    # ── Workdocs (Phase 5 – Monday.com parity) ────────────────────
-    try:
+    def _load_workdocs(_app):
         from workdocs.api import create_workdocs_router
-        _wd_router = create_workdocs_router()
-        app.include_router(_wd_router)
+        _app.include_router(create_workdocs_router())
         logger.info("Workdocs API registered at /api/workdocs")
-    except Exception as _wd_exc:
-        logger.warning("Workdocs not available: %s", _wd_exc)
+        return True
 
-    # ── Time Tracking (Phase 6 – Monday.com parity) ────────────────
-    try:
+    def _load_time_tracking(_app):
         from time_tracking.api import create_time_tracking_router
-        _tt_router = create_time_tracking_router()
-        app.include_router(_tt_router)
+        _app.include_router(create_time_tracking_router())
         logger.info("Time Tracking API registered at /api/time-tracking")
-    except Exception as _tt_exc:
-        logger.warning("Time Tracking not available: %s", _tt_exc)
+        return True
 
-    # ── Automations (Phase 7 – Monday.com parity) ──────────────────
-    try:
+    def _load_automations(_app):
         from automations.api import create_automations_router
-        _auto_router = create_automations_router()
-        app.include_router(_auto_router)
+        _app.include_router(create_automations_router())
         logger.info("Automations API registered at /api/automations")
-    except Exception as _auto_exc:
-        logger.warning("Automations not available: %s", _auto_exc)
+        return True
 
-    # ── CRM Module (Phase 8 – Monday.com parity) ──────────────────
-    try:
+    def _load_crm(_app):
         from crm.api import create_crm_router
-        _crm_router = create_crm_router()
-        app.include_router(_crm_router)
+        _app.include_router(create_crm_router())
         logger.info("CRM API registered at /api/crm")
-    except Exception as _crm_exc:
-        logger.warning("CRM not available: %s", _crm_exc)
+        return True
 
-    # ── Dev Module (Phase 9 – Monday.com parity) ─────────────────
-    try:
+    def _load_dev_module(_app):
         from dev_module.api import create_dev_router
-        _dev_router = create_dev_router()
-        app.include_router(_dev_router)
+        _app.include_router(create_dev_router())
         logger.info("Dev Module API registered at /api/dev")
-    except Exception as _dev_exc:
-        logger.warning("Dev Module not available: %s", _dev_exc)
+        return True
 
-    # ── Service Module (Phase 10 – Monday.com parity) ──────────────
-    try:
+    def _load_service_module(_app):
         from service_module.api import create_service_router
-        _svc_router = create_service_router()
-        app.include_router(_svc_router)
+        _app.include_router(create_service_router())
         logger.info("Service Module API registered at /api/service")
-    except Exception as _svc_exc:
-        logger.warning("Service Module not available: %s", _svc_exc)
+        return True
 
-    # ── Guest Collaboration (Phase 11 – Monday.com parity) ─────────
-    try:
+    def _load_guest_collab(_app):
         from guest_collab.api import create_guest_router
-        _guest_router = create_guest_router()
-        app.include_router(_guest_router)
+        _app.include_router(create_guest_router())
         logger.info("Guest Collaboration API registered at /api/guest")
-    except Exception as _guest_exc:
-        logger.warning("Guest Collaboration not available: %s", _guest_exc)
+        return True
 
-    # ── Mobile App Backend (Phase 12 – Monday.com parity) ──────────
-    try:
+    def _load_mobile(_app):
         from mobile.api import create_mobile_router
-        _mobile_router = create_mobile_router()
-        app.include_router(_mobile_router)
+        _app.include_router(create_mobile_router())
         logger.info("Mobile API registered at /api/mobile")
-    except Exception as _mobile_exc:
-        logger.warning("Mobile API not available: %s", _mobile_exc)
+        return True
 
-    # ── Billing API (PayPal + Crypto, multi-currency, Japan discount) ──
-    try:
+    def _load_billing(_app):
         from src.billing.api import create_billing_router
-        _billing_router = create_billing_router()
-        app.include_router(_billing_router)
+        _app.include_router(create_billing_router())
         logger.info("Billing API registered at /api/billing")
-    except Exception as _bill_exc:
-        logger.warning("Billing API not available: %s", _bill_exc)
+        return True
+
+    _module_loader.register("aionmind", ModulePriority.OPTIONAL, _load_aionmind)
+    _module_loader.register("board_system", ModulePriority.OPTIONAL, _load_board_system)
+    _module_loader.register("collaboration", ModulePriority.OPTIONAL, _load_collaboration)
+    _module_loader.register("dashboards", ModulePriority.OPTIONAL, _load_dashboards)
+    _module_loader.register("portfolio", ModulePriority.OPTIONAL, _load_portfolio)
+    _module_loader.register("workdocs", ModulePriority.OPTIONAL, _load_workdocs)
+    _module_loader.register("time_tracking", ModulePriority.OPTIONAL, _load_time_tracking)
+    _module_loader.register("automations", ModulePriority.OPTIONAL, _load_automations)
+    _module_loader.register("crm", ModulePriority.OPTIONAL, _load_crm)
+    _module_loader.register("dev_module", ModulePriority.OPTIONAL, _load_dev_module)
+    _module_loader.register("service_module", ModulePriority.OPTIONAL, _load_service_module)
+    _module_loader.register("guest_collab", ModulePriority.OPTIONAL, _load_guest_collab)
+    _module_loader.register("mobile", ModulePriority.OPTIONAL, _load_mobile)
+    _module_loader.register("billing", ModulePriority.OPTIONAL, _load_billing)
+
+    # Load all registered modules (aborts on critical failures).
+    _module_load_result = _module_loader.load_all(app)
+
+    # Print startup banner with module load summary
+    for _banner_line in _module_load_result.banner_lines():
+        print(_banner_line)
 
     # Register RBAC governance with security layer (SEC-005)
     rbac = getattr(murphy, 'rbac_governance', None)
@@ -318,15 +339,6 @@ def create_app() -> FastAPI:
     except ImportError:
         _perm_execute = _noop_dep
         _perm_configure = _noop_dep
-    # ── Integration Bus — wires src/ modules into the runtime ────────
-    _integration_bus = None
-    try:
-        from src.integration_bus import IntegrationBus
-        _integration_bus = IntegrationBus()
-        _integration_bus.initialize()
-        logger.info("IntegrationBus initialised: %s", _integration_bus.get_status())
-    except Exception as _ib_exc:
-        logger.warning("IntegrationBus not available — endpoints use legacy paths: %s", _ib_exc)
 
     # ==================== CORE ENDPOINTS ====================
 
@@ -531,6 +543,9 @@ def create_app() -> FastAPI:
 
         checks["version"] = murphy.version
 
+        # Module load report (ML-001)
+        checks["module_load_report"] = _module_load_result.as_dict()
+
         # Determine overall status
         str_checks = [v for v in checks.values() if isinstance(v, str)]
         overall = "healthy" if all(v != "error" for v in str_checks) else "degraded"
@@ -540,6 +555,15 @@ def create_app() -> FastAPI:
             {"status": overall, "checks": checks, "critical_failures": critical_failed},
             status_code=http_status,
         )
+
+    @app.get("/api/modules")
+    async def list_modules():
+        """Return the full module inventory with load status (ML-001).
+
+        Includes each module's name, priority (critical/optional), load status
+        (loaded/failed/skipped), error message (if any), and load time.
+        """
+        return JSONResponse(_module_load_result.as_dict())
 
     # ── Deployment Readiness & Bootstrap Status ────────────────────
     @app.get("/api/readiness")
@@ -819,7 +843,7 @@ def create_app() -> FastAPI:
             {"command": "golden-path", "category": "workflows", "description": "View golden-path workflow recommendations", "api": "/api/golden-path", "ui": "/ui/terminal-orchestrator"},
             # ── Agents & Tasks ───────────────────────────────────────
             {"command": "agents list", "category": "agents", "description": "List all AI agents", "api": "/api/agents", "ui": "/ui/terminal-integrated#agents"},
-            {"command": "agent dashboard", "category": "agents", "description": "View agent dashboard snapshot", "api": "/api/agent-dashboard/snapshot", "ui": "/ui/terminal-integrated#agents"},
+            {"command": "agent dashboard", "category": "agents", "description": "Open the full agent monitoring dashboard (health, pipeline, agents, metrics, onboarding)", "api": "/api/agent-dashboard/snapshot", "ui": "/ui/dashboard"},
             {"command": "tasks list", "category": "agents", "description": "List active tasks", "api": "/api/tasks", "ui": "/ui/terminal-orchestrator"},
             {"command": "production queue", "category": "agents", "description": "View production queue", "api": "/api/production/queue", "ui": "/ui/terminal-orchestrator"},
             {"command": "production wizard", "category": "production", "description": "Open the production wizard for proposals, work orders, and deliverables", "api": "/api/production/queue", "ui": "/ui/production-wizard"},
@@ -5018,6 +5042,7 @@ def create_app() -> FastAPI:
             "/ui/workflow-canvas": "workflow_canvas.html",
             "/ui/system-visualizer": "system_visualizer.html",
             "/ui/dashboard": "murphy_ui_integrated.html",
+            "/dashboard": "murphy_ui_integrated.html",
             "/ui/smoke-test": "murphy-smoke-test.html",
             "/ui/signup": "signup.html",
             "/ui/login": "login.html",
