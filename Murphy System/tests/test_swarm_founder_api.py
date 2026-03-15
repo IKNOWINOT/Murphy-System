@@ -60,6 +60,14 @@ class TestFounderGating:
         )
         assert resp.status_code == 403
 
+    def test_founder_admin_role_accepted(self, client):
+        """founder_admin is a valid role in signup_gateway / inoni_org_bootstrap."""
+        resp = client.get(
+            "/api/swarm/founder/agents",
+            headers={"X-User-Role": "founder_admin"},
+        )
+        assert resp.status_code == 200
+
     def test_agents_requires_founder(self, client):
         resp = client.get("/api/swarm/founder/agents", headers=VIEWER_HEADERS)
         assert resp.status_code == 403
