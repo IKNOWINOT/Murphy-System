@@ -292,3 +292,126 @@ class TestGetPendingMigrations:
         result = db_mod._get_pending_migrations(_FakeCfg())
         # Should return None (not raise)
         assert result is None
+
+
+# ---------------------------------------------------------------------------
+# End-to-end migration tests (real alembic.ini + SQLite)
+# ---------------------------------------------------------------------------
+
+class TestEndToEndMigrations:
+    """End-to-end migration tests using the real alembic.ini and a temp SQLite DB."""
+
+    @pytest.fixture()
+    def alembic_cfg(self, tmp_path):
+        """Return an Alembic Config pointing at the real scripts but a temp DB."""
+        try:
+            import alembic.config  # noqa: PLC0415
+        except ImportError:
+            pytest.skip("alembic not installed")
+
+        ini_path = os.path.join(
+            os.path.dirname(__file__), "..", "alembic.ini"
+        )
+        if not os.path.isfile(ini_path):
+            pytest.skip("alembic.ini not found")
+
+        db_url = f"sqlite:///{tmp_path / 'e2e.db'}"
+        cfg = alembic.config.Config(ini_path)
+        cfg.set_main_option("sqlalchemy.url", db_url)
+        return cfg, db_url
+
+    @pytest.fixture(autouse=True)
+    def _reset_db_engine(self):
+        """Reset src.db._engine before and after each E2E test.
+
+        The SQLAlchemy engine in src.db is a module-level singleton.  Tests
+        that call init_database() or create_tables() initialise it with
+        whatever DATABASE_URL was current at that moment.  Resetting it here
+        ensures each E2E test gets a fresh engine pointing at its own temp DB.
+        """
+        try:
+            import src.db as _db_mod  # noqa: PLC0415
+            _db_mod._engine = None
+            _db_mod._SessionFactory = None
+        except Exception:
+            pass
+        yield
+        try:
+            import src.db as _db_mod  # noqa: PLC0415
+            if _db_mod._engine is not None:
+                try:
+                    _db_mod._engine.dispose()
+                except Exception:
+                    pass
+            _db_mod._engine = None
+            _db_mod._SessionFactory = None
+        except Exception:
+            pass
+
+    def test_pending_migrations_detected_on_fresh_db(self, alembic_cfg):
+        """A fresh DB (no alembic_version table) must report pending migrations."""
+        import src.database as db_mod
+        importlib.reload(db_mod)
+
+        cfg, db_url = alembic_cfg
+        pending = db_mod._get_pending_migrations(cfg)
+        assert pending is not None
+        assert len(pending) > 0, "Expected at least one pending migration on a fresh DB"
+
+    def test_no_pending_after_upgrade(self, alembic_cfg, monkeypatch):
+        """After running upgrade to head, _get_pending_migrations must return []."""
+        try:
+            from alembic import command as alembic_cmd  # noqa: PLC0415
+        except ImportError:
+            pytest.skip("alembic not installed")
+
+        import src.database as db_mod
+
+        cfg, db_url = alembic_cfg
+        monkeypatch.setenv("DATABASE_URL", db_url)
+        importlib.reload(db_mod)
+
+        # Apply all migrations
+        alembic_cmd.upgrade(cfg, "head")
+
+        # No pending migrations should remain
+        pending = db_mod._get_pending_migrations(cfg)
+        assert pending is not None
+        assert pending == [], f"Expected no pending migrations, got: {pending}"
+
+    def test_run_pending_migrations_returns_ok(self, alembic_cfg, monkeypatch):
+        """run_pending_migrations() must return 'ok' when alembic.ini is present."""
+        import src.database as db_mod
+
+        cfg, db_url = alembic_cfg
+        monkeypatch.setenv("DATABASE_URL", db_url)
+        importlib.reload(db_mod)
+
+        result = db_mod.run_pending_migrations()
+        assert result == "ok", f"Expected 'ok', got: {result!r}"
+
+    def test_run_pending_migrations_idempotent(self, alembic_cfg, monkeypatch):
+        """run_pending_migrations() must return 'ok' even when called twice."""
+        import src.database as db_mod
+
+        cfg, db_url = alembic_cfg
+        monkeypatch.setenv("DATABASE_URL", db_url)
+        importlib.reload(db_mod)
+
+        first = db_mod.run_pending_migrations()
+        second = db_mod.run_pending_migrations()
+        assert first == "ok"
+        assert second == "ok"
+
+    def test_init_database_runs_migrations(self, alembic_cfg, monkeypatch):
+        """init_database(run_migrations=True) must report migrations='ok'."""
+        import src.database as db_mod
+
+        cfg, db_url = alembic_cfg
+        monkeypatch.setenv("DATABASE_URL", db_url)
+        monkeypatch.setenv("MURPHY_DB_MODE", "live")
+        importlib.reload(db_mod)
+
+        status = db_mod.init_database(run_migrations=True)
+        assert status["orm"] == "ok"
+        assert status["migrations"] == "ok"
