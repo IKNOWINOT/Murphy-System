@@ -1,6 +1,6 @@
 # Murphy System — Project Status
 
-> **Last updated**: 2026-03-08
+> **Last updated**: 2026-03-15
 > **License**: BSL 1.1 (Business Source License)
 > Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post
 
@@ -18,6 +18,7 @@
 | AUAR Pipeline | ✅ Operational | 7-layer routing with ML optimization |
 | AionMind Kernel | ✅ Operational | Context engine, reasoning engine, orchestration engine |
 | Setup Wizard | ✅ Operational | 6 deployment presets, guided onboarding |
+| **Module Loading** | ✅ **Instrumented** | `ModuleLoader` framework (ML-001): structured load reports, critical/optional classification, fail-fast on critical failures, `/api/modules` inventory endpoint, `/api/health` includes module report, startup banner summary |
 | Execution Engines | ✅ Operational | Task executor, workflow orchestrator, sandbox manager |
 | Learning Engine | ⚠️ Partial | Pattern detector, outcome tracker operational; full ML loop pending |
 | Concept Graph Engine | ✅ New | 7 node/edge types, graph health, GCS metric |
@@ -65,6 +66,7 @@ Murphy System is **aligned with** (not formally attested to) the following frame
 | G-010 | ~~JWT/OAuth not in production~~ | ~~High~~ | ✅ **RESOLVED** — JWT token validation added to FastAPI and Flask security middleware |
 | G-011 | ~~Documentation placeholders~~ | ~~Medium~~ | ✅ **RESOLVED** — All 12+ placeholder docs filled with real content |
 | ~~G-008~~ | ~~Production deployment hardening~~ | ~~Medium~~ | ✅ **RESOLVED** — `SecurityContext`, `PodDisruptionBudget`, `NetworkPolicy` added to `kubernetes_deployment.py` with YAML rendering |
+| ~~G-012~~ | ~~FastAPI silently degrades when module imports fail~~ | ~~High~~ | ✅ **RESOLVED** — `ModuleLoader` framework (ML-001) in `src/runtime/module_loader.py`: `ModuleLoadReport` dataclass, critical/optional classification, fail-fast on critical failures, structured report at `/api/health` and `/api/modules`, startup banner, 23 unit tests |
 
 ## Infrastructure Deferred Items
 
