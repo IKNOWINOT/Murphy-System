@@ -1421,11 +1421,29 @@ class MurphySystem:
             try:
                 self.event_backbone = EventBackbone()
                 logger.info("Event backbone initialized")
+                try:
+                    from event_backbone_client import set_backbone  # noqa: PLC0415
+                    set_backbone(self.event_backbone)
+                except Exception as _wiring_exc:  # noqa: BLE001
+                    logger.warning(
+                        "EventBackboneClient wiring failed: %s", _wiring_exc
+                    )
             except Exception as exc:
                 logger.warning("Event backbone initialization failed: %s", exc)
                 self.event_backbone = None
         else:
             self.event_backbone = None
+
+        # Self-Healing Coordinator (wired to EventBackbone)
+        try:
+            from self_healing_startup import bootstrap_self_healing
+            self.self_healing_coordinator = bootstrap_self_healing(
+                event_backbone=self.event_backbone
+            )
+            logger.info("SelfHealingCoordinator bootstrapped with recovery handlers")
+        except Exception as exc:
+            logger.warning("SelfHealingCoordinator bootstrap failed: %s", exc)
+            self.self_healing_coordinator = None
 
         # Delivery Orchestrator
         if DeliveryOrchestrator:
