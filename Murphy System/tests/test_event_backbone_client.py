@@ -321,10 +321,14 @@ class TestAutomationIntegrationHubPublish:
 
 class TestGapDetection:
     def test_no_empty_event_type_map(self):
-        """Detect any _publish method that uses an empty event_type_map.
+        """Detect any file using both an empty event_type_map and event_type_map.get().
 
-        An empty dict means *no* event is ever actually published — a silent
-        bug.  All such patterns must be replaced with the facade.
+        When a module builds an empty dict (``event_type_map = {}``) and then
+        calls ``event_type_map.get(event_name)`` to resolve the EventType, the
+        lookup always returns ``None`` and no event is ever published — a
+        silent bug.  This pattern has been replaced with the
+        ``event_backbone_client`` facade in all known locations.  This test
+        ensures no new occurrences are added.
         """
         src_dir = os.path.join(os.path.dirname(__file__), "..", "src")
         broken: list = []
