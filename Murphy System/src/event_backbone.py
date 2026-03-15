@@ -84,6 +84,12 @@ class EventType(Enum):
     IMMUNITY_RECALLED = "immunity_recalled"
     CHAOS_VALIDATED = "chaos_validated"
     CASCADE_CHECKED = "cascade_checked"
+    TEST_FAILED = "test_failed"
+    DOC_DRIFT = "doc_drift"
+    CODE_HEALER_STARTED = "code_healer_started"
+    CODE_HEALER_COMPLETED = "code_healer_completed"
+    CODE_HEALER_PROPOSAL_CREATED = "code_healer_proposal_created"
+    CODE_HEALER_GAP_LOW_CONFIDENCE = "code_healer_gap_low_confidence"
 
     @classmethod
     def from_string(cls, name: str) -> "EventType":
