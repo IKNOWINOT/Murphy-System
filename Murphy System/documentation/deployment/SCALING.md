@@ -60,7 +60,8 @@ Murphy is served by **Uvicorn** (development) or **Gunicorn + Uvicorn workers** 
 ### Uvicorn multi-process (simple)
 
 ```bash
-uvicorn murphy_system_1.0_runtime:app \
+uvicorn src.runtime.app:create_app \
+  --factory \
   --host 0.0.0.0 \
   --port 8000 \
   --workers 4 \
@@ -73,8 +74,9 @@ Rule of thumb: **`workers = 2 × CPU_cores + 1`**
 ### Gunicorn + Uvicorn workers (recommended for production)
 
 ```bash
-gunicorn murphy_system_1.0_runtime:app \
+gunicorn src.runtime.app:create_app \
   --worker-class uvicorn.workers.UvicornWorker \
+  --factory \
   --workers 8 \
   --bind 0.0.0.0:8000 \
   --timeout 120 \

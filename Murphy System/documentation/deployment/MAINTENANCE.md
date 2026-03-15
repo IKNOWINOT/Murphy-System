@@ -352,8 +352,8 @@ pip install -r requirements_murphy_1.0.txt
 **Symptom:** `ImportError` for a specific module
 
 ```bash
-# Run the import test
-python -c "import murphy_system_1.0_runtime"
+# Run the import test (thin entry point delegates to src/runtime/)
+python -c "from src.runtime.app import create_app; create_app()"
 # Review traceback for the failing dependency
 ```
 

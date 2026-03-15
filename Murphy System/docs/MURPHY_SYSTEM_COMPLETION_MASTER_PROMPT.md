@@ -168,7 +168,7 @@ PHASE 3 — FIRST REAL AUTOMATION (proves the system works)
   12. INC-15 — RAG/Vector Knowledge Base
 
 PHASE 4 — ROBUSTNESS (makes it reliable)
-  13. INC-13 (L-02, H-04) — Refactor Runtime
+  13. ✅ INC-13 (L-02, H-04) — Refactor Runtime (COMPLETE — see src/runtime/)
   14. INC-14 (M-05) — Test Coverage to 80%+
   15. INC-08 (M-03) — Playwright Automation
   16. M-06 — WebSocket Verification

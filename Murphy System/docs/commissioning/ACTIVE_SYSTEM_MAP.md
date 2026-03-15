@@ -19,7 +19,7 @@ This document maps all active components in the Murphy System 1.0 codebase, thei
 
 | Component | File | Role | Status |
 |-----------|------|------|--------|
-| Murphy 1.0 Runtime | `murphy_system_1.0_runtime.py` | Main orchestrator — integrates all subsystems | ✅ Active |
+| Murphy 1.0 Runtime | `murphy_system_1.0_runtime.py` → `src/runtime/` | Thin entry-point; implementation in `src/runtime/app.py`, `murphy_system_core.py`, `living_document.py` | ✅ Active |
 | Universal Control Plane | `universal_control_plane.py` | 7 modular engines for session-based automation | ✅ Active |
 | Inoni Business Automation | `inoni_business_automation.py` | 5 business engines (Sales, Marketing, R&D, Biz Mgmt, Production) | ✅ Active |
 | Two-Phase Orchestrator | `two_phase_orchestrator.py` | Generative setup → Production execution | ✅ Active |

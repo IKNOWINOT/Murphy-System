@@ -32,7 +32,7 @@ sandboxed production environment — learning from every execution.
 
 CURRENT STATE:
 - The repository contains ~649 Python modules + 56 packages in src/
-- Core runtime is a single 700+ KB file: murphy_system_1.0_runtime.py
+- Core runtime is `murphy_system_1.0_runtime.py` — a thin entry-point that delegates to `src/runtime/` (INC-13 ✅ CLOSED)
 - FastAPI server on port 8000 with documented endpoints
 - Extensive documentation (README, User Manual, Architecture Map, Storyline)
 - Language composition: 92.8% Python, 3.5% TypeScript, 2.4% HTML, 0.7% JS
@@ -295,7 +295,7 @@ Expected output:
 WHAT HAPPENS:
   ✅ FastAPI server structure exists
   ✅ Health endpoint at /api/health
-  ⚠️ 700+ KB runtime file — single point of failure for import errors
+  ✅ Runtime refactored into `src/runtime/` package (INC-13 closed) — import errors no longer kill the whole file
   ⚠️ If ANY module in src/ has an import error, server may fail to start
   ❌ BLOCKER: No CI/CD pipeline validates that the server actually starts
      successfully from a clean checkout
@@ -524,10 +524,10 @@ L-01  MODULE DUPLICATION/OVERLAP
       - execution/ vs execution_engine/ vs execution_orchestrator/
       This creates confusion about which is canonical.
 
-L-02  LARGE FILE RISK
-      murphy_system_1.0_runtime.py at 700+ KB is extremely large.
-      Any syntax error or import failure in this file kills the
-      entire system. Should be refactored into sub-modules.
+L-02  LARGE FILE RISK (✅ RESOLVED — INC-13)
+      `murphy_system_1.0_runtime.py` has been refactored into the `src/runtime/`
+      package (`app.py`, `murphy_system_core.py`, `living_document.py`, `_deps.py`).
+      The entry-point file is now a thin ~1 KB shim.
 
 L-03  DOCUMENTATION SPRAWL
       Multiple README files, GETTING_STARTED files, QUICK_START files
@@ -746,13 +746,13 @@ These are all framework/interface code. Real IoT automation would need:
   (42KB) exist — need to be verified and tested end-to-end.
   Estimated effort: 3-5 days
 
-[INC-13] REFACTOR RUNTIME FILE
-  Action: Break murphy_system_1.0_runtime.py (700+ KB) into:
-    • runtime/server.py (FastAPI app & routes)
-    • runtime/orchestrator.py (two-phase orchestration)
-    • runtime/control_plane.py (engine selection)
-    • runtime/module_loader.py (module registry)
-  Estimated effort: 1-2 weeks
+[INC-13] REFACTOR RUNTIME FILE ✅ COMPLETE
+  The refactor is done. `murphy_system_1.0_runtime.py` is now a thin entry-point.
+  Implementation is in:
+    • src/runtime/app.py (FastAPI app, all routes & endpoints)
+    • src/runtime/murphy_system_core.py (MurphySystem orchestration class)
+    • src/runtime/living_document.py (LivingDocument block-command model)
+    • src/runtime/_deps.py (shared dependency imports)
 
 [INC-14] ADD COMPREHENSIVE TEST SUITE
   Target: 80%+ coverage on core paths:
@@ -818,7 +818,7 @@ WEEK 3-4: First Real Automation
 
 MONTH 2: Robustness
 ────────────────────
-  □ INC-13: Refactor runtime file
+  ☑ INC-13: Refactor runtime file ✅ COMPLETE
   □ INC-14: Comprehensive test suite
   □ INC-15: RAG/vector knowledge base
   □ INC-08: Playwright browser automation

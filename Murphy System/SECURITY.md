@@ -58,7 +58,9 @@ We follow a coordinated disclosure model. We will work with you to agree on a di
 
 The following are **in scope** for security testing:
 
-- `murphy_system_1.0_runtime.py` — FastAPI runtime and all API endpoints
+- `murphy_system_1.0_runtime.py` — thin entry-point (delegates to `src/runtime/`)
+- `src/runtime/app.py` — FastAPI application factory and all API endpoints
+- `src/runtime/murphy_system_core.py` — MurphySystem orchestration class
 - `src/fastapi_security.py` — Authentication, CORS, rate limiting
 - `src/` — All source modules
 - `bots/` — Bot modules and agents

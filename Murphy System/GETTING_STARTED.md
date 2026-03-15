@@ -29,7 +29,14 @@ Every action Murphy takes passes through a governance pipeline that scores confi
 
 ### Core runtime
 
-The heart of Murphy System is `murphy_system_1.0_runtime.py` — a 700+ KB single Python file that implements the full server, orchestration layer, and control plane. It is large by design: the runtime is the integration surface. All domain logic lives in the module library (`src/`), which the runtime loads, governs, and orchestrates.
+The heart of Murphy System is `murphy_system_1.0_runtime.py` — a thin entry-point that starts the server and re-exports all public symbols for backward compatibility. The full implementation lives in the `src/runtime/` package (refactored per INC-13 / H-04 / L-02 for maintainability):
+
+- `src/runtime/app.py` — FastAPI application factory (`create_app()`) and all API endpoints
+- `src/runtime/murphy_system_core.py` — `MurphySystem` orchestration class
+- `src/runtime/living_document.py` — `LivingDocument` block-command workflow model
+- `src/runtime/_deps.py` — shared dependency imports
+
+All domain logic lives in the module library (`src/`), which the runtime loads, governs, and orchestrates.
 
 ### Two-phase execution model
 
