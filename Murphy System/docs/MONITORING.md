@@ -186,15 +186,22 @@ metrics.register_module_health(
 
 ## Alert Rules Validation
 
-All metrics referenced in `prometheus-rules/murphy-alerts.yml` are emitted by
-the Murphy API. The table below maps each alert to its source:
+All metrics referenced in `prometheus-rules/murphy-alerts.yml` and the Grafana dashboard are
+emitted by the Murphy API. The table below maps each metric to its source and confirms no
+mismatches remain.
 
-| Alert rule metric | Emitted by | Notes |
-|---|---|---|
-| `murphy_requests_total` | `_TraceIdMiddleware` → `src/metrics.py` + `prometheus_client` Counter | `_total` suffix added by prometheus_client |
-| `murphy_request_duration_seconds_bucket` | `_TraceIdMiddleware` → `src/metrics.py` + `prometheus_client` Histogram | `_bucket` suffix added by prometheus_client |
-| `murphy_llm_calls_total` | `prometheus_client` Counter `murphy_llm_calls` | Must be incremented from LLM call sites |
-| `murphy_task_queue_depth` | `src/metrics.py` Gauge (seeded at 0 on startup) | Update via `metrics.set_gauge("murphy_task_queue_depth", n)` |
+| Metric | Prometheus name | Emitted by | Notes |
+|--------|----------------|-----------|-------|
+| `murphy_requests_total` | Counter | `_TraceIdMiddleware` → `src/metrics.py` + `prometheus_client` Counter `murphy_requests` | `_total` suffix added by prometheus_client |
+| `murphy_request_duration_seconds` | Histogram | `_TraceIdMiddleware` → `src/metrics.py` + `prometheus_client` Histogram | `_bucket/_sum/_count` suffixes added automatically |
+| `murphy_llm_calls_total` | Counter | `prometheus_client` Counter `murphy_llm_calls` with `["provider", "status"]` labels | `status` label required by `MurphyLLMCallFailures` alert rule `{status="error"}` |
+| `murphy_task_queue_depth` | Gauge | Seeded at 0 on startup; update via `metrics.set_gauge("murphy_task_queue_depth", n)` | |
+| `murphy_uptime_seconds` | Gauge | `prometheus_client` Gauge updated on every request via `_update_uptime()`; also in `src/metrics.py` fallback | Grafana "API Uptime" panel |
+| `murphy_confidence_score` | Histogram | `prometheus_client` Histogram with `["domain"]` label | Grafana "Confidence Score Distribution" panel; increment from inference paths |
+| `murphy_response_size_bytes` | Histogram | `_TraceIdMiddleware` → `prometheus_client` Histogram with `["endpoint"]` label | Grafana "Response Size Distribution" panel |
+
+A validation test in `tests/test_alert_rules_validation.py` enforces that every metric
+referenced in alert rules and the Grafana dashboard is registered.
 
 ---
 
