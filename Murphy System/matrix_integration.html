@@ -66,7 +66,7 @@
     margin-bottom: var(--space-2);
   }
   .matrix-log {
-    font-family: 'Courier New', monospace;
+    font-family: var(--font-code, 'JetBrains Mono', monospace);
     font-size: 11px;
     background: #0a0a0a;
     color: #00d4aa;
@@ -486,8 +486,7 @@
 
 // ── Config ────────────────────────────────────────────────────
 const params = new URLSearchParams(location.search);
-const API_PORT = parseInt(params.get('apiPort') || '8000', 10);
-const BASE = `http://localhost:${API_PORT}`;
+const BASE = params.get('apiBase') || window.location.origin;
 
 const appLog = (msg) => console.info(`[Matrix] ${msg}`);
 const apiFetch = async (path, opts = {}) => {

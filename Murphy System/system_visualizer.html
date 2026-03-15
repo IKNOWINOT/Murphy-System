@@ -26,8 +26,11 @@
   <link rel="stylesheet" href="static/murphy-design-system.css">
 <style>
   /* Neon terminal theme */
-  .murphy-terminal, .murphy-output, pre, code, textarea, input[type="text"] {
-    font-family: 'Courier New', Courier, monospace;
+  .murphy-terminal, .murphy-output, pre, code {
+    font-family: var(--font-code, 'JetBrains Mono', monospace);
+  }
+  textarea, input[type="text"] {
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
     color: #00ff00;
     background: #0a0a0a;
   }
@@ -82,7 +85,7 @@
     var POLL_INTERVAL_MS = 10000;
     var SPLIT_DEFAULT_RATIO = 0.70;
 
-    var HEALTH_COLORS = {
+    var TOPO_HEALTH_COLORS = {
       healthy:  '#34D399',
       degraded: '#FBBF24',
       error:    '#F87171',
@@ -166,7 +169,7 @@
     /* ------------------------------------------------------------------ */
 
     function getHealthColor(h) {
-      return HEALTH_COLORS[h] || HEALTH_COLORS.unknown;
+      return TOPO_HEALTH_COLORS[h] || TOPO_HEALTH_COLORS.unknown;
     }
 
     function getGateColor(gate) {

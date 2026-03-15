@@ -154,7 +154,7 @@ class TestGateG2TestCoverage:
 
     def test_test_infrastructure_config(self, project_root):
         """@test-lead: pytest configuration exists."""
-        assert (project_root / "pytest.ini").exists()
+        assert (project_root / "pyproject.toml").exists()
         assert (project_root / "tests" / "conftest.py").exists()
 
 

@@ -1666,3 +1666,317 @@ class TestDeploymentGuideNoLatestTag:
         assert ":latest" not in content, (
             "DEPLOYMENT_GUIDE.md still uses :latest Docker tag"
         )
+
+
+# ---------------------------------------------------------------------------
+# 48. docker-compose.scale.yml must not contain hardcoded database credentials
+# ---------------------------------------------------------------------------
+
+class TestDockerComposeScaleCredentials:
+    """docker-compose.scale.yml must not contain hardcoded database passwords."""
+
+    def _content(self) -> str:
+        path = os.path.join(
+            _PROJECT_ROOT, "strategic", "gap_closure", "launch",
+            "docker-compose.scale.yml",
+        )
+        with open(path) as fh:
+            return fh.read()
+
+    def test_no_hardcoded_postgres_password(self):
+        content = self._content()
+        assert "POSTGRES_PASSWORD=murphy_pass" not in content, (
+            "docker-compose.scale.yml has hardcoded POSTGRES_PASSWORD"
+        )
+
+    def test_postgres_password_uses_required_var(self):
+        content = self._content()
+        assert "POSTGRES_PASSWORD:?" in content, (
+            "docker-compose.scale.yml must use :? syntax for POSTGRES_PASSWORD"
+        )
+
+    def test_no_hardcoded_database_url(self):
+        content = self._content()
+        assert "murphy_pass" not in content, (
+            "docker-compose.scale.yml still contains hardcoded password 'murphy_pass'"
+        )
+
+    def test_database_url_uses_required_var(self):
+        content = self._content()
+        assert "DATABASE_URL:?" in content or "DATABASE_URL=${DATABASE_URL:?" in content, (
+            "docker-compose.scale.yml must use :? syntax for DATABASE_URL"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 49. K8s manifests must have imagePullPolicy on all containers
+# ---------------------------------------------------------------------------
+
+class TestK8sImagePullPolicyPresent:
+    """All K8s manifests with container images must specify imagePullPolicy."""
+
+    def test_postgres_has_pull_policy(self):
+        path = os.path.join(_PROJECT_ROOT, "k8s", "postgres.yaml")
+        with open(path) as fh:
+            content = fh.read()
+        assert "imagePullPolicy:" in content, (
+            "k8s/postgres.yaml missing imagePullPolicy"
+        )
+
+    def test_redis_has_pull_policy(self):
+        path = os.path.join(_PROJECT_ROOT, "k8s", "redis.yaml")
+        with open(path) as fh:
+            content = fh.read()
+        assert "imagePullPolicy:" in content, (
+            "k8s/redis.yaml missing imagePullPolicy"
+        )
+
+    def test_grafana_has_pull_policy(self):
+        path = os.path.join(
+            _PROJECT_ROOT, "k8s", "monitoring", "grafana-deployment.yaml",
+        )
+        with open(path) as fh:
+            content = fh.read()
+        assert "imagePullPolicy:" in content, (
+            "k8s/monitoring/grafana-deployment.yaml missing imagePullPolicy"
+        )
+
+    def test_prometheus_has_pull_policy(self):
+        path = os.path.join(
+            _PROJECT_ROOT, "k8s", "monitoring", "prometheus-deployment.yaml",
+        )
+        with open(path) as fh:
+            content = fh.read()
+        assert "imagePullPolicy:" in content, (
+            "k8s/monitoring/prometheus-deployment.yaml missing imagePullPolicy"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 50. All terminal HTML pages must have a topbar with sidebar toggle
+# ---------------------------------------------------------------------------
+
+class TestTerminalTopbarsPresent:
+    """Terminal HTML pages with sidebar JS must have btn-sidebar-toggle element."""
+
+    @staticmethod
+    def _discover_terminals():
+        """Dynamically discover terminal_*.html files in the project root."""
+        import glob as _glob
+        return [
+            os.path.basename(f)
+            for f in _glob.glob(os.path.join(_PROJECT_ROOT, "terminal_*.html"))
+        ]
+
+    def test_topbar_element_exists(self):
+        for fname in self._discover_terminals():
+            path = os.path.join(_PROJECT_ROOT, fname)
+            with open(path) as fh:
+                content = fh.read()
+            assert 'class="murphy-topbar"' in content or '<murphy-header' in content, (
+                f"{fname} missing topbar header element"
+            )
+
+    def test_sidebar_toggle_wired(self):
+        for fname in self._discover_terminals():
+            path = os.path.join(_PROJECT_ROOT, fname)
+            with open(path) as fh:
+                content = fh.read()
+            if 'btn-sidebar-toggle' in content:
+                assert 'id="btn-sidebar-toggle"' in content, (
+                    f"{fname} references btn-sidebar-toggle in JS but has no HTML element"
+                )
+
+
+# ---------------------------------------------------------------------------
+# 51. Static file serving must be configured in create_app()
+# ---------------------------------------------------------------------------
+
+class TestStaticFilesAndHTMLRoutes:
+    """create_app() must mount static files and HTML UI routes."""
+
+    def _app_content(self) -> str:
+        path = os.path.join(_PROJECT_ROOT, "src", "runtime", "app.py")
+        with open(path) as fh:
+            return fh.read()
+
+    def test_static_files_mounted(self):
+        content = self._app_content()
+        assert "StaticFiles" in content, (
+            "app.py must mount StaticFiles for static/ directory"
+        )
+        assert "/ui/static" in content, (
+            "app.py must mount static files at /ui/static for relative asset paths"
+        )
+
+    def test_html_routes_defined(self):
+        content = self._app_content()
+        assert "murphy_landing_page.html" in content, (
+            "app.py must register the landing page HTML route"
+        )
+        assert "terminal_architect.html" in content, (
+            "app.py must register the architect terminal HTML route"
+        )
+
+    def test_matrix_api_endpoints_exist(self):
+        content = self._app_content()
+        for endpoint in ["/api/matrix/status", "/api/matrix/rooms",
+                         "/api/matrix/send", "/api/matrix/stats"]:
+            assert endpoint in content, (
+                f"app.py missing Matrix bridge endpoint: {endpoint}"
+            )
+
+    def test_librarian_commands_endpoint_exists(self):
+        content = self._app_content()
+        assert "/api/librarian/commands" in content, (
+            "app.py must have /api/librarian/commands endpoint for command catalog"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 52. Compliance API endpoints must exist
+# ---------------------------------------------------------------------------
+
+class TestComplianceEndpoints:
+    """Compliance dashboard requires backend API endpoints."""
+
+    def _app_content(self) -> str:
+        path = os.path.join(_PROJECT_ROOT, "src", "runtime", "app.py")
+        with open(path) as fh:
+            return fh.read()
+
+    def test_compliance_toggles_endpoint(self):
+        content = self._app_content()
+        assert "/api/compliance/toggles" in content, (
+            "app.py must have /api/compliance/toggles endpoint"
+        )
+
+    def test_compliance_recommended_endpoint(self):
+        content = self._app_content()
+        assert "/api/compliance/recommended" in content, (
+            "app.py must have /api/compliance/recommended endpoint"
+        )
+
+    def test_compliance_report_endpoint(self):
+        content = self._app_content()
+        assert "/api/compliance/report" in content, (
+            "app.py must have /api/compliance/report endpoint"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 53. No hardcoded localhost API URLs in HTML pages
+# ---------------------------------------------------------------------------
+
+class TestNoHardcodedLocalhostURLs:
+    """HTML pages must use relative URLs or window.location.origin, not hardcoded localhost."""
+
+    def test_matrix_integration_no_hardcoded_port(self):
+        path = os.path.join(_PROJECT_ROOT, "matrix_integration.html")
+        with open(path) as fh:
+            content = fh.read()
+        assert "http://localhost:" not in content and "http://127.0.0.1:" not in content, (
+            "matrix_integration.html must not use hardcoded localhost API URLs"
+        )
+
+    def test_production_wizard_no_hardcoded_port(self):
+        path = os.path.join(_PROJECT_ROOT, "production_wizard.html")
+        with open(path) as fh:
+            content = fh.read()
+        assert "http://localhost:" not in content and "http://127.0.0.1:" not in content, (
+            "production_wizard.html must not use hardcoded localhost API URLs"
+        )
+
+    def test_murphy_auth_no_hardcoded_base(self):
+        path = os.path.join(_PROJECT_ROOT, "murphy_auth.js")
+        with open(path) as fh:
+            content = fh.read()
+        assert "http://127.0.0.1:" not in content and "http://localhost:" not in content, (
+            "murphy_auth.js must not use hardcoded localhost API URLs"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 54. CSP headers must allow Google Fonts
+# ---------------------------------------------------------------------------
+
+class TestCSPGoogleFonts:
+    """CSP headers must include Google Fonts domains for proper font loading."""
+
+    def test_fastapi_csp_allows_google_fonts(self):
+        path = os.path.join(_PROJECT_ROOT, "src", "fastapi_security.py")
+        with open(path) as fh:
+            content = fh.read()
+        assert "fonts.googleapis.com" in content, (
+            "fastapi_security.py CSP must allow fonts.googleapis.com in style-src"
+        )
+        assert "fonts.gstatic.com" in content, (
+            "fastapi_security.py CSP must allow fonts.gstatic.com in font-src"
+        )
+
+    def test_flask_csp_allows_google_fonts(self):
+        path = os.path.join(_PROJECT_ROOT, "src", "flask_security.py")
+        with open(path) as fh:
+            content = fh.read()
+        assert "fonts.googleapis.com" in content, (
+            "flask_security.py CSP must allow fonts.googleapis.com in style-src"
+        )
+        assert "fonts.gstatic.com" in content, (
+            "flask_security.py CSP must allow fonts.gstatic.com in font-src"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 55. Events/SSE endpoints must exist for workspace
+# ---------------------------------------------------------------------------
+
+class TestEventsEndpoints:
+    """Workspace requires events API endpoints."""
+
+    def _app_content(self) -> str:
+        path = os.path.join(_PROJECT_ROOT, "src", "runtime", "app.py")
+        with open(path) as fh:
+            return fh.read()
+
+    def test_events_subscribe_endpoint(self):
+        content = self._app_content()
+        assert "/api/events/subscribe" in content, (
+            "app.py must have /api/events/subscribe endpoint"
+        )
+
+    def test_events_stream_endpoint(self):
+        content = self._app_content()
+        assert "/api/events/stream/" in content, (
+            "app.py must have /api/events/stream/{subscriber_id} endpoint"
+        )
+
+    def test_events_history_endpoint(self):
+        content = self._app_content()
+        assert "/api/events/history/" in content, (
+            "app.py must have /api/events/history/{subscriber_id} endpoint"
+        )
+
+    def test_security_events_endpoint(self):
+        content = self._app_content()
+        assert "/api/security/events" in content, (
+            "app.py must have /api/security/events endpoint"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 56. JS files at project root must be served under /ui/ path
+# ---------------------------------------------------------------------------
+
+class TestJSFileServing:
+    """Root-level JS files must be served under /ui/ for relative path resolution."""
+
+    def _app_content(self) -> str:
+        path = os.path.join(_PROJECT_ROOT, "src", "runtime", "app.py")
+        with open(path) as fh:
+            return fh.read()
+
+    def test_js_files_served_under_ui(self):
+        content = self._app_content()
+        assert '*.js' in content or 'glob("*.js")' in content, (
+            "app.py must serve root-level .js files under /ui/ for relative path resolution"
+        )

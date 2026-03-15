@@ -96,8 +96,8 @@ Murphy's hero flow is already built. This roadmap is about getting it in front o
 | Tier | Monthly | Annual/mo | Users | Automations |
 |---|---|---|---|---|
 | **Solo** | $29 | $24 | 1 | 3 |
-| **Business** | $99 | $79 | 10 | Unlimited |
-| **Professional** | $299 | $249 | Unlimited | Unlimited |
+| **Business** | $299 | $249 | 10 | Unlimited |
+| **Professional** | Custom | Custom | Unlimited | Unlimited |
 | **Enterprise** | Custom | Custom | Unlimited | Unlimited |
 
 > **Self-hosted is always free for development** (BSL 1.1). Production licensing starts at Solo $29/mo.

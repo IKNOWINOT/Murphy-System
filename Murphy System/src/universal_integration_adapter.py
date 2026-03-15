@@ -86,6 +86,7 @@ class IntegrationCategory(enum.Enum):
     DEVELOPER_TOOLS = "developer_tools"
     CLOUD_INFRASTRUCTURE = "cloud_infrastructure"
     CUSTOM = "custom"
+    WEBSITE_BUILDER = "website_builder"
 
 
 class IntegrationStatus(enum.Enum):
@@ -1374,6 +1375,89 @@ def _default_integration_templates() -> List[IntegrationSpec]:
                 IntegrationAction("get_battery_status", "Get battery storage status", "GET", "/ems/battery"),
                 IntegrationAction("generate_report", "Generate energy report", "POST", "/ems/reports"),
                 IntegrationAction("health_check", "Check EMS connection", "GET", "/ems/health"),
+            ],
+        ),
+        # --- Website Builders / CMS ---
+        IntegrationSpec(
+            service_id="wordpress",
+            name="WordPress", category=IntegrationCategory.WEBSITE_BUILDER,
+            description="WordPress CMS — pull pages, posts, forms, WooCommerce orders, and site analytics as automation inputs",
+            base_url="https://{site}/wp-json",
+            auth_method=IntegrationAuthMethod.BASIC_AUTH,
+            actions=[
+                IntegrationAction("list_posts", "List published posts", "GET", "/wp/v2/posts"),
+                IntegrationAction("get_post", "Get a single post", "GET", "/wp/v2/posts/{post_id}"),
+                IntegrationAction("create_post", "Create a new post", "POST", "/wp/v2/posts"),
+                IntegrationAction("update_post", "Update an existing post", "PUT", "/wp/v2/posts/{post_id}"),
+                IntegrationAction("list_pages", "List published pages", "GET", "/wp/v2/pages"),
+                IntegrationAction("list_media", "List media library items", "GET", "/wp/v2/media"),
+                IntegrationAction("list_users", "List site users", "GET", "/wp/v2/users"),
+                IntegrationAction("list_comments", "List comments", "GET", "/wp/v2/comments"),
+                IntegrationAction("get_site_settings", "Get site settings", "GET", "/wp/v2/settings"),
+                IntegrationAction("list_form_entries", "List form entries (Contact Form 7 / Gravity Forms)", "GET", "/gf/v2/entries"),
+                IntegrationAction("list_wc_orders", "List WooCommerce orders", "GET", "/wc/v3/orders"),
+                IntegrationAction("list_wc_products", "List WooCommerce products", "GET", "/wc/v3/products"),
+                IntegrationAction("list_wc_customers", "List WooCommerce customers", "GET", "/wc/v3/customers"),
+                IntegrationAction("get_analytics", "Get site analytics summary", "GET", "/wp-site-health/v1/tests/background-updates"),
+                IntegrationAction("health_check", "Check WordPress REST API connectivity", "GET", "/wp/v2"),
+            ],
+        ),
+        IntegrationSpec(
+            service_id="wix",
+            name="Wix", category=IntegrationCategory.WEBSITE_BUILDER,
+            description="Wix website platform — pull site content, form submissions, bookings, e-commerce orders, and contacts as automation inputs",
+            base_url="https://www.wixapis.com",
+            auth_method=IntegrationAuthMethod.BEARER_TOKEN,
+            actions=[
+                IntegrationAction("list_site_pages", "List site pages", "GET", "/site-properties/v4/properties"),
+                IntegrationAction("list_blog_posts", "List blog posts", "GET", "/blog/v3/posts"),
+                IntegrationAction("get_blog_post", "Get a blog post", "GET", "/blog/v3/posts/{post_id}"),
+                IntegrationAction("list_form_submissions", "List form submissions", "GET", "/forms/v4/submissions"),
+                IntegrationAction("list_contacts", "List CRM contacts", "GET", "/contacts/v4/contacts"),
+                IntegrationAction("create_contact", "Create a CRM contact", "POST", "/contacts/v4/contacts"),
+                IntegrationAction("list_orders", "List e-commerce orders", "GET", "/stores/v2/orders"),
+                IntegrationAction("list_products", "List e-commerce products", "GET", "/stores/v1/products"),
+                IntegrationAction("list_bookings", "List bookings / appointments", "GET", "/bookings/v2/bookings"),
+                IntegrationAction("list_members", "List site members", "GET", "/members/v1/members"),
+                IntegrationAction("get_site_properties", "Get site properties", "GET", "/site-properties/v4/properties"),
+                IntegrationAction("list_collections", "List CMS data collections", "GET", "/data/v2/collections"),
+                IntegrationAction("query_collection", "Query items in a CMS collection", "POST", "/data/v2/items/query"),
+                IntegrationAction("health_check", "Check Wix API connectivity", "GET", "/site-properties/v4/properties"),
+            ],
+        ),
+        IntegrationSpec(
+            service_id="squarespace",
+            name="Squarespace", category=IntegrationCategory.WEBSITE_BUILDER,
+            description="Squarespace website platform — pull pages, blog posts, e-commerce orders, form submissions, and inventory as automation inputs",
+            base_url="https://api.squarespace.com/1.0",
+            auth_method=IntegrationAuthMethod.BEARER_TOKEN,
+            actions=[
+                IntegrationAction("list_orders", "List e-commerce orders", "GET", "/commerce/orders"),
+                IntegrationAction("get_order", "Get a single order", "GET", "/commerce/orders/{order_id}"),
+                IntegrationAction("list_products", "List products", "GET", "/commerce/products"),
+                IntegrationAction("list_inventory", "List inventory levels", "GET", "/commerce/inventory"),
+                IntegrationAction("list_profiles", "List customer profiles", "GET", "/profiles"),
+                IntegrationAction("list_form_submissions", "List form submissions", "GET", "/forms/submissions"),
+                IntegrationAction("get_site_info", "Get site information", "GET", "/sites"),
+                IntegrationAction("health_check", "Check Squarespace API connectivity", "GET", "/sites"),
+            ],
+        ),
+        IntegrationSpec(
+            service_id="webflow",
+            name="Webflow", category=IntegrationCategory.WEBSITE_BUILDER,
+            description="Webflow website builder — pull CMS collections, form submissions, e-commerce orders, and site structure as automation inputs",
+            base_url="https://api.webflow.com/v2",
+            auth_method=IntegrationAuthMethod.BEARER_TOKEN,
+            actions=[
+                IntegrationAction("list_sites", "List sites", "GET", "/sites"),
+                IntegrationAction("get_site", "Get site details", "GET", "/sites/{site_id}"),
+                IntegrationAction("list_collections", "List CMS collections", "GET", "/sites/{site_id}/collections"),
+                IntegrationAction("list_collection_items", "List items in a CMS collection", "GET", "/collections/{collection_id}/items"),
+                IntegrationAction("create_collection_item", "Create a CMS item", "POST", "/collections/{collection_id}/items"),
+                IntegrationAction("list_form_submissions", "List form submissions", "GET", "/sites/{site_id}/form-submissions"),
+                IntegrationAction("list_orders", "List e-commerce orders", "GET", "/sites/{site_id}/orders"),
+                IntegrationAction("list_products", "List e-commerce products", "GET", "/sites/{site_id}/products"),
+                IntegrationAction("health_check", "Check Webflow API connectivity", "GET", "/sites"),
             ],
         ),
     ]
