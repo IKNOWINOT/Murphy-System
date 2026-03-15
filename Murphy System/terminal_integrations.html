@@ -518,11 +518,12 @@
 
       var html = sectionHeader('LLM Config', 'Language model provider configuration');
 
+      var cloudProvider = (data.provider && data.provider !== 'onboard') ? data.provider : 'None';
       // ── Active provider summary ───────────────────────────
       html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">';
-      html += statCard('Active Provider', data.provider || 'onboard');
-      html += statCard('Active Model',    data.model    || data.active_model || 'murphy-onboard');
-      html += statCard('Onboard LLM',     'Always Available');
+      html += statCard('Cloud Provider', cloudProvider);
+      html += statCard('Active Model',   data.model    || data.active_model || 'murphy-onboard');
+      html += statCard('Onboard LLM',    'Always Available');
       html += '</div>';
 
       // ── Provider cards ────────────────────────────────────
@@ -559,7 +560,7 @@
       html += cardWrap(
         '<div class="flex items-center justify-between">' +
           '<span class="font-bold">Add Cloud Provider</span>' +
-          '<span class="text-xs text-secondary">Onboard LLM is always active — cloud adds more power</span>' +
+          '<span class="text-xs text-secondary">Onboard LLM is always active &mdash; cloud adds more power</span>' +
         '</div>',
         '<div class="flex flex-col gap-3">' +
           '<div class="flex gap-2">' +
