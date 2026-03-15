@@ -1,6 +1,6 @@
 # Murphy System — Project Status
 
-> **Last updated**: 2026-03-08
+> **Last updated**: 2026-03-15
 > **License**: BSL 1.1 (Business Source License)
 > Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post
 
@@ -18,14 +18,17 @@
 | AUAR Pipeline | ✅ Operational | 7-layer routing with ML optimization |
 | AionMind Kernel | ✅ Operational | Context engine, reasoning engine, orchestration engine |
 | Setup Wizard | ✅ Operational | 6 deployment presets, guided onboarding |
+| **Module Loading** | ✅ **Instrumented** | `ModuleLoader` framework (ML-001): structured load reports, critical/optional classification, fail-fast on critical failures, `/api/modules` inventory endpoint, `/api/health` includes module report, startup banner summary |
 | Execution Engines | ✅ Operational | Task executor, workflow orchestrator, sandbox manager |
+| Learning Engine | ✅ Operational | Full ML closed loop wired: EventBackbone → FeedbackIntegrator → PatternRecognizer → PerformancePredictor → threshold auto-adjustment → gate evolution |
 | Learning Engine | ⚠️ Partial | Pattern detector, outcome tracker operational; full ML loop pending |
+| **Self-Healing Coordinator** | ✅ **Operational** | 5 wired recovery handlers (LLM timeout, gate confidence, external API, sandbox, auth token); circuit breaker; per-handler metrics; MTTR tracking; EventBackbone TASK_FAILED wired |
 | Concept Graph Engine | ✅ New | 7 node/edge types, graph health, GCS metric |
 | Unified Control Protocol | ✅ New | 10-engine pipeline, 7 states, rollback support |
 | Session Context Manager | ✅ New | Per-session locking, expiry, RM0–RM6 tracking |
 | **Crypto Trading Subsystem** | ✅ **New** | Coinbase v3, multi-exchange, HITL-gated bots, 6 strategies, risk manager |
 | **Shadow Learning System** | ✅ **New** | Paper bots practice vs live prices; winning weeks save patterns; human reviews before promoting |
-| UI / Landing Page | ⚠️ Partial | Landing page, terminal UIs exist; dashboard incomplete |
+| UI / Landing Page | ✅ Complete | Landing page, terminal UIs, and agent monitoring dashboard all complete |
 | Documentation | ✅ Complete | API docs, architecture docs, deployment guides, testing guide complete |
 
 ## Regulatory Alignment
@@ -56,8 +59,11 @@ Murphy System is **aligned with** (not formally attested to) the following frame
 
 | ID | Gap | Priority | Actionable Path |
 |----|-----|----------|-----------------|
+| ~~G-004~~ | ~~Full ML feedback loop not wired~~ | ~~Medium~~ | ✅ **RESOLVED** — `LearningEngineConnector` wires `TASK_COMPLETED`, `TASK_FAILED`, `GATE_EVALUATED`, `AUTOMATION_EXECUTED` events on `EventBackbone` through `FeedbackIntegrator` → `PatternRecognizer` → `PerformancePredictor` → threshold auto-adjustment → `DomainGate.confidence_threshold` evolution. 41 unit tests covering the full loop. |
 | ~~G-004~~ | ~~Full ML feedback loop not wired~~ | ~~Medium~~ | ✅ **RESOLVED** — `record_outcome()` added to `GeographicLoadBalancer`, wiring feedback signals into `capacity_weight` via configurable learning rate |
+| ~~G-012~~ | ~~SelfHealingCoordinator had zero recovery handlers~~ | ~~High~~ | ✅ **RESOLVED** — 5 concrete handlers wired (`LLM_PROVIDER_TIMEOUT`, `GATE_CONFIDENCE_TOO_LOW`, `EXTERNAL_API_UNAVAILABLE`, `SANDBOX_RESOURCE_EXCEEDED`, `AUTH_TOKEN_EXPIRED`); circuit breaker, exponential backoff, per-handler metrics (success rate, MTTR), EventBackbone TASK_FAILED subscription |
 | G-005 | Dashboard UI incomplete | Medium | Complete React/terminal dashboard with live metrics |
+| ~~G-005~~ | ~~Dashboard UI incomplete~~ | ~~Medium~~ | ✅ **RESOLVED** — Full agent monitoring dashboard at `/dashboard` and `/ui/dashboard`: system health overview, task pipeline visualization, agent monitoring grid, onboarding wizard, metrics charts — all wired to `/api/agent-dashboard/*` endpoints |
 | G-006 | Formal security pen-test | High | Engage third-party security firm for penetration testing |
 | G-007 | ~~Database persistence JSON-only~~ | ~~Critical~~ | ✅ **IMPROVED** — PostgreSQL wired via DATABASE_URL; SQLite fallback; Alembic migrations; connection pooling configured |
 | G-008 | E2EE encryption is stubbed | Critical | Integrate matrix-nio SDK for real encryption |
@@ -65,6 +71,7 @@ Murphy System is **aligned with** (not formally attested to) the following frame
 | G-010 | ~~JWT/OAuth not in production~~ | ~~High~~ | ✅ **RESOLVED** — JWT token validation added to FastAPI and Flask security middleware |
 | G-011 | ~~Documentation placeholders~~ | ~~Medium~~ | ✅ **RESOLVED** — All 12+ placeholder docs filled with real content |
 | ~~G-008~~ | ~~Production deployment hardening~~ | ~~Medium~~ | ✅ **RESOLVED** — `SecurityContext`, `PodDisruptionBudget`, `NetworkPolicy` added to `kubernetes_deployment.py` with YAML rendering |
+| ~~G-012~~ | ~~FastAPI silently degrades when module imports fail~~ | ~~High~~ | ✅ **RESOLVED** — `ModuleLoader` framework (ML-001) in `src/runtime/module_loader.py`: `ModuleLoadReport` dataclass, critical/optional classification, fail-fast on critical failures, structured report at `/api/health` and `/api/modules`, startup banner, 23 unit tests |
 
 ## Infrastructure Deferred Items
 

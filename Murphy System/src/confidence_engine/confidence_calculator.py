@@ -29,8 +29,65 @@ class ConfidenceCalculator:
     - Epistemic instability H(x_t)
     """
 
-    def __init__(self):
+    def __init__(
+        self,
+        bootstrap_floor: float = 0.5,
+        sparse_graph_threshold: int = 5,
+    ):
         self.graph_analyzer = GraphAnalyzer()
+        # Adaptive parameters — can be updated by the learning engine
+        self.bootstrap_floor: float = max(0.0, min(1.0, bootstrap_floor))
+        self.sparse_graph_threshold: int = max(1, sparse_graph_threshold)
+        # Threshold drift history for learning observability
+        self._threshold_updates: List[dict] = []
+
+    def update_thresholds(
+        self,
+        bootstrap_floor: float = None,
+        sparse_graph_threshold: int = None,
+    ) -> None:
+        """Update adaptive threshold parameters from learning engine feedback.
+
+        Called by :class:`LearningEngineConnector` when
+        :class:`PerformancePredictor` issues a new threshold recommendation.
+        Changes are bounded to keep the calculator in a safe operating range.
+
+        Args:
+            bootstrap_floor: New minimum confidence for cold-start graphs.
+                Clamped to [0.3, 0.9].
+            sparse_graph_threshold: New node-count ceiling below which the
+                bootstrap floor applies.  Clamped to [1, 20].
+        """
+        import datetime
+        changed = {}
+        if bootstrap_floor is not None:
+            new_floor = max(0.3, min(0.9, float(bootstrap_floor)))
+            if abs(new_floor - self.bootstrap_floor) > 1e-6:
+                changed["bootstrap_floor"] = (self.bootstrap_floor, new_floor)
+                self.bootstrap_floor = new_floor
+        if sparse_graph_threshold is not None:
+            new_thresh = max(1, min(20, int(sparse_graph_threshold)))
+            if new_thresh != self.sparse_graph_threshold:
+                changed["sparse_graph_threshold"] = (
+                    self.sparse_graph_threshold, new_thresh
+                )
+                self.sparse_graph_threshold = new_thresh
+        if changed:
+            self._threshold_updates.append({
+                "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                "changes": changed,
+            })
+            # Keep only the last 100 updates
+            if len(self._threshold_updates) > 100:
+                self._threshold_updates = self._threshold_updates[-100:]
+
+    def get_threshold_config(self) -> dict:
+        """Return current adaptive threshold configuration."""
+        return {
+            "bootstrap_floor": self.bootstrap_floor,
+            "sparse_graph_threshold": self.sparse_graph_threshold,
+            "total_updates": len(self._threshold_updates),
+        }
 
     def compute_confidence(
         self,
@@ -69,13 +126,11 @@ class ConfidenceCalculator:
         confidence = w_g * G_score + w_d * D_score
 
         # Bootstrap confidence floor: sparse graphs at EXPAND phase get a
-        # minimum confidence of 0.5 to prevent cold-start blocking.
-        # This ensures early exploration isn't gated by insufficient data.
+        # minimum confidence to prevent cold-start blocking.
+        # The floor and threshold are adaptive — updated by the learning engine.
         # (Case Study Tuning Recommendation #5)
-        SPARSE_GRAPH_THRESHOLD = 5
-        BOOTSTRAP_FLOOR = 0.5
-        if phase == Phase.EXPAND and len(graph.nodes) < SPARSE_GRAPH_THRESHOLD:
-            confidence = max(confidence, BOOTSTRAP_FLOOR)
+        if phase == Phase.EXPAND and len(graph.nodes) < self.sparse_graph_threshold:
+            confidence = max(confidence, self.bootstrap_floor)
 
         # Clamp to [0, 1]
         confidence = max(0.0, min(1.0, confidence))
