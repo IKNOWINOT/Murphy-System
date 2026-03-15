@@ -192,3 +192,46 @@ def check_database() -> str:
     except Exception as exc:
         logger.warning("Database health check failed: %s", exc)
         return "error"
+
+
+def get_pool_status() -> dict:
+    """Return connection-pool metrics for monitoring and health checks.
+
+    For SQLite (which uses a ``StaticPool`` or ``NullPool``) the pool
+    attributes are not available; a minimal dict is returned instead.
+
+    Returns
+    -------
+    dict
+        Keys:
+
+        * ``pool_size``     — configured pool size (0 for SQLite).
+        * ``checked_in``    — connections currently idle in the pool.
+        * ``checked_out``   — connections currently in use.
+        * ``overflow``      — connections opened above ``pool_size``.
+        * ``invalid``       — connections that failed a pre-ping.
+        * ``url``           — redacted database URL.
+    """
+    engine = _get_engine()
+    pool = engine.pool
+
+    try:
+        # QueuePool (PostgreSQL, MySQL, etc.) exposes these attributes
+        return {
+            "pool_size": pool.size(),
+            "checked_in": pool.checkedin(),
+            "checked_out": pool.checkedout(),
+            "overflow": pool.overflow(),
+            "invalid": pool.invalid(),
+            "url": DATABASE_URL.split("@")[-1] if "@" in DATABASE_URL else DATABASE_URL,
+        }
+    except AttributeError:
+        # StaticPool / NullPool (SQLite) do not expose these attributes
+        return {
+            "pool_size": 0,
+            "checked_in": 0,
+            "checked_out": 0,
+            "overflow": 0,
+            "invalid": 0,
+            "url": DATABASE_URL,
+        }
