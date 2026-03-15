@@ -144,14 +144,24 @@ def create_app() -> FastAPI:
 
     # ── Database Initialisation (Phase 1-A) ──────────────────────
     _db_available = False
-    if os.environ.get("DATABASE_URL"):
-        try:
-            from src.db import create_tables
-            create_tables()
-            _db_available = True
-            logger.info("Relational persistence initialised (DATABASE_URL set)")
-        except Exception as _db_exc:
-            logger.warning("Database init failed — falling back to JSON persistence: %s", _db_exc)
+    try:
+        from src.database import init_database as _init_database  # noqa: PLC0415
+        _db_init_status = _init_database()
+        _db_available = _db_init_status.get("orm") == "ok"
+        if _db_available:
+            logger.info(
+                "Relational persistence initialised (url=%s, migrations=%s)",
+                _db_init_status.get("database_url", "?"),
+                _db_init_status.get("migrations", "skipped"),
+            )
+        else:
+            logger.warning(
+                "Database init status: orm=%s, migrations=%s",
+                _db_init_status.get("orm"),
+                _db_init_status.get("migrations"),
+            )
+    except Exception as _db_exc:
+        logger.warning("Database init failed — falling back to JSON persistence: %s", _db_exc)
 
     # ── Cache Initialisation (Phase 1-B) ─────────────────────────
     _cache_client = None
@@ -453,9 +463,15 @@ def create_app() -> FastAPI:
 
         Suitable for Kubernetes liveness (shallow) and readiness (deep) probes.
         """
+        _db_mode = os.environ.get("MURPHY_DB_MODE", "stub").lower()
+
         # Shallow liveness probe — instant, no I/O
         if not deep:
-            return JSONResponse({"status": "healthy", "version": murphy.version})
+            return JSONResponse({
+                "status": "healthy",
+                "version": murphy.version,
+                "db_mode": _db_mode,
+            })
 
         # Deep readiness probe — checks all critical subsystems
         checks: dict = {"runtime": "ok"}
@@ -476,19 +492,20 @@ def create_app() -> FastAPI:
             checks["persistence"] = "error"
             critical_failed.append(f"persistence: {_pe}")
 
-        # Database check (if not stub mode)
-        if os.environ.get("DATABASE_URL"):
-            try:
-                from src.db import check_database
-                checks["database"] = check_database()
-                if checks["database"] == "error":
-                    critical_failed.append("database: connection test failed")
-            except Exception as _dbe:
-                checks["database"] = "error"
-                critical_failed.append(f"database: {_dbe}")
-        else:
-            _db_mode = os.environ.get("MURPHY_DB_MODE", "stub").lower()
-            checks["database"] = "stub" if _db_mode == "stub" else "not_configured"
+        # Database check — always reported; uses unified database layer
+        try:
+            from src.database import get_database_status  # noqa: PLC0415
+            _db_status = get_database_status()
+            checks["database"] = _db_status.get("orm", _db_mode)
+            checks["db_mode"] = _db_status.get("db_mode", _db_mode)
+            if _db_status.get("pool"):
+                checks["db_pool"] = _db_status["pool"]
+            if checks["database"] == "error":
+                critical_failed.append("database: connection test failed")
+        except Exception as _dbe:
+            checks["database"] = "error"
+            checks["db_mode"] = _db_mode
+            critical_failed.append(f"database: {_dbe}")
 
         # Redis / cache check
         if _cache_client is not None:

@@ -415,6 +415,36 @@ GRANT ALL PRIVILEGES ON DATABASE murphy_production TO murphy_user;
 \q
 ```
 
+Set the database connection in your environment file:
+
+> **Security:** Never commit credentials to version control.  Use your
+> platform's secrets manager (AWS Secrets Manager, HashiCorp Vault,
+> Kubernetes Secrets, etc.) or a protected `.env` file with restricted
+> permissions (`chmod 600`) that is listed in `.gitignore`.
+
+```bash
+export DATABASE_URL=postgresql://murphy_user:your_password@localhost:5432/murphy_production
+export MURPHY_DB_MODE=live
+export MURPHY_ENV=production
+export MURPHY_AUTO_MIGRATE=false   # Migrate explicitly before each deploy
+```
+
+**Run Alembic migrations before starting the service:**
+
+```bash
+cd /opt/murphy-production/Murphy\ System
+bash scripts/db_migrate.sh status   # Check current state
+bash scripts/db_migrate.sh          # Apply all pending migrations
+```
+
+> **⚠️ Important:** Never run with `MURPHY_DB_MODE=stub` in production.
+> Murphy System will raise a `RuntimeError` at startup if stub mode is
+> detected in a `production` or `staging` environment.
+
+> **Note:** `MURPHY_AUTO_MIGRATE=false` is the default in production and
+> staging.  Always run `scripts/db_migrate.sh` explicitly as part of your
+> deployment pipeline before restarting the service.
+
 ### Step 4: Set Up System Service
 
 Create `/etc/systemd/system/murphy-production.service`:
