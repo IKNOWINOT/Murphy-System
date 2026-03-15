@@ -12425,6 +12425,11 @@ class MurphySystem:
 
     # The 5 Universals (5U) and MFGC dimensions that need to be satisfied
     # before generating an effective automation plan.
+
+    # Minimum character length for an answer to be accepted via the
+    # last-asked-dimension fallback in _extract_dimensions_from_message.
+    _MIN_ANSWER_LENGTH: int = 2
+
     _ONBOARDING_DIMENSIONS = {
         "business_name":     {"weight": 8,  "question": "What's the name of your business?",  "category": "5U-Identity"},
         "industry":          {"weight": 10, "question": "What industry do you operate in?",    "category": "5U-Context"},
@@ -12637,10 +12642,11 @@ class MurphySystem:
             extracted["success_metric"] = message.strip()
 
         # Fallback: if nothing was extracted but the user gave a substantive
-        # answer (> 2 chars), accept it as the answer to the dimension that was
-        # last asked about.  This ensures short answers like "automation" or
-        # "Dallas" are still captured even when they don't match any keyword.
-        if not extracted and len(message.strip()) > 2:
+        # answer (> _MIN_ANSWER_LENGTH chars), accept it as the answer to the
+        # dimension that was last asked about.  This ensures short answers like
+        # "automation" or "Dallas" are still captured even when they don't
+        # match any keyword.
+        if not extracted and len(message.strip()) > self._MIN_ANSWER_LENGTH:
             last_dim = profile.get("_last_asked_dim")
             if last_dim and last_dim not in profile.get("collected", {}):
                 extracted[last_dim] = message.strip()

@@ -584,20 +584,23 @@
       var btnSave  = document.getElementById('btn-save-llm');
       var selProv  = document.getElementById('llm-provider-select');
       var inpKey   = document.getElementById('llm-api-key-input');
+      var SAVE_BTN_LABEL = 'Save & Activate';
       if (btnSave) {
         btnSave.addEventListener('click', async function () {
           var provider = selProv ? selProv.value : '';
           var apiKey   = inpKey  ? inpKey.value.trim() : '';
           if (!provider) { alert('Please select a provider.'); return; }
           if (!apiKey)   { alert('Please enter an API key.'); return; }
-          btnSave.disabled  = true;
-          btnSave.textContent = 'Saving…';
+          btnSave.disabled    = true;
+          btnSave.textContent = 'Saving\u2026';
+          btnSave.setAttribute('aria-busy', 'true');
           try {
             await api.post('/llm/configure', { provider: provider, api_key: apiKey });
             renderLLMConfig();
           } catch (err) {
-            btnSave.disabled  = false;
-            btnSave.textContent = 'Save & Activate';
+            btnSave.disabled    = false;
+            btnSave.textContent = SAVE_BTN_LABEL;
+            btnSave.setAttribute('aria-busy', 'false');
             alert('Error saving provider: ' + (err.message || err));
           }
         });
