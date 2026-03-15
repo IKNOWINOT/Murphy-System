@@ -20,6 +20,7 @@
 | Setup Wizard | ✅ Operational | 6 deployment presets, guided onboarding |
 | **Module Loading** | ✅ **Instrumented** | `ModuleLoader` framework (ML-001): structured load reports, critical/optional classification, fail-fast on critical failures, `/api/modules` inventory endpoint, `/api/health` includes module report, startup banner summary |
 | Execution Engines | ✅ Operational | Task executor, workflow orchestrator, sandbox manager |
+| Learning Engine | ✅ Operational | Full ML closed loop wired: EventBackbone → FeedbackIntegrator → PatternRecognizer → PerformancePredictor → threshold auto-adjustment → gate evolution |
 | Learning Engine | ⚠️ Partial | Pattern detector, outcome tracker operational; full ML loop pending |
 | **Self-Healing Coordinator** | ✅ **Operational** | 5 wired recovery handlers (LLM timeout, gate confidence, external API, sandbox, auth token); circuit breaker; per-handler metrics; MTTR tracking; EventBackbone TASK_FAILED wired |
 | Concept Graph Engine | ✅ New | 7 node/edge types, graph health, GCS metric |
@@ -58,6 +59,7 @@ Murphy System is **aligned with** (not formally attested to) the following frame
 
 | ID | Gap | Priority | Actionable Path |
 |----|-----|----------|-----------------|
+| ~~G-004~~ | ~~Full ML feedback loop not wired~~ | ~~Medium~~ | ✅ **RESOLVED** — `LearningEngineConnector` wires `TASK_COMPLETED`, `TASK_FAILED`, `GATE_EVALUATED`, `AUTOMATION_EXECUTED` events on `EventBackbone` through `FeedbackIntegrator` → `PatternRecognizer` → `PerformancePredictor` → threshold auto-adjustment → `DomainGate.confidence_threshold` evolution. 41 unit tests covering the full loop. |
 | ~~G-004~~ | ~~Full ML feedback loop not wired~~ | ~~Medium~~ | ✅ **RESOLVED** — `record_outcome()` added to `GeographicLoadBalancer`, wiring feedback signals into `capacity_weight` via configurable learning rate |
 | ~~G-012~~ | ~~SelfHealingCoordinator had zero recovery handlers~~ | ~~High~~ | ✅ **RESOLVED** — 5 concrete handlers wired (`LLM_PROVIDER_TIMEOUT`, `GATE_CONFIDENCE_TOO_LOW`, `EXTERNAL_API_UNAVAILABLE`, `SANDBOX_RESOURCE_EXCEEDED`, `AUTH_TOKEN_EXPIRED`); circuit breaker, exponential backoff, per-handler metrics (success rate, MTTR), EventBackbone TASK_FAILED subscription |
 | G-005 | Dashboard UI incomplete | Medium | Complete React/terminal dashboard with live metrics |
