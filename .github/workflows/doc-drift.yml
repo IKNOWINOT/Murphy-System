@@ -93,11 +93,15 @@ jobs:
           """
           Count Python modules in src/ and verify STATUS.md mentions a
           plausible count.  Auto-computes the current count; flags if the
-          documented count is off by more than 10%.
+          documented count is off by more than 15%.
           """
           import re
           import sys
           from pathlib import Path
+
+          # Tolerance policy constants
+          COUNT_TOLERANCE_PCT = 0.15   # 15% relative tolerance
+          COUNT_TOLERANCE_MIN = 50     # minimum absolute tolerance
 
           src_root = Path("src")
           if not src_root.exists():
@@ -120,12 +124,12 @@ jobs:
               sys.exit(0)
 
           documented = max(matches)
-          tolerance = max(50, int(actual_count * 0.15))
+          tolerance = max(COUNT_TOLERANCE_MIN, int(actual_count * COUNT_TOLERANCE_PCT))
           if abs(documented - actual_count) > tolerance:
               print(
                   f"::warning::STATUS.md documents {documented} modules but "
                   f"{actual_count} found in src/. "
-                  f"Consider updating STATUS.md."
+                  f"Consider running: python scripts/sync_module_counts.py"
               )
           else:
               print(
@@ -133,3 +137,38 @@ jobs:
                   f"tolerance of actual count ({actual_count})."
               )
           PYEOF
+
+  doc-sync:
+    name: Auto-sync Module Counts
+    runs-on: ubuntu-latest
+    # Only run on pushes to main (not on PRs) to auto-commit updated counts
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: "Murphy System"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run sync_module_counts.py
+        run: python scripts/sync_module_counts.py
+
+      - name: Commit updated module counts (if changed)
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git diff --quiet && echo "No changes to commit" || \
+            (git add README.md STATUS.md CONTRIBUTING.md && \
+             git commit -m "docs: auto-sync module counts [skip ci]" && \
+             git push)

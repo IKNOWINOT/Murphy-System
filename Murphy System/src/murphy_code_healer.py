@@ -351,6 +351,7 @@ class DiagnosticSupervisor:
                     self._test_coverage_gaps(self._src_root, self._tests_root)
                 )
             gaps.extend(self._doc_drift_gaps(self._src_root))
+            gaps.extend(self._dead_code_gaps(self._src_root))
         if self._docs_root:
             gaps.extend(self._markdown_file_ref_gaps(self._docs_root))
         gaps = self._correlate_gaps(gaps)
@@ -678,6 +679,115 @@ class DiagnosticSupervisor:
                             context={"missing_ref": ref, "md_file": str(md_file)},
                         )
                     )
+        return gaps
+
+    def _dead_code_gaps(self, src_root: str) -> List[CodeGap]:
+        """Detect public functions and classes that are never imported or called.
+
+        Pass 4 of DiagnosticSupervisor: dead code detection.
+
+        Strategy (file-level cross-reference):
+        1. Collect every top-level ``def``/``class`` definition (non-private, i.e.
+           not starting with ``_``) from each Python file, noting the source file.
+        2. Scan all Python files and collect every name that appears in:
+           - ``import`` or ``from … import`` statements (imported symbols), OR
+           - any ``Name`` or ``Attribute`` AST node (called/referenced symbols).
+        3. Flag any definition whose name never appears in any *other* file's
+           reference set as a potential dead-code symbol.
+
+        This is an intentionally conservative heuristic — it only flags
+        *public* names that are completely absent from the cross-file reference
+        set, which avoids false positives from ``__all__`` or dynamic access while
+        still catching obvious orphans.  Private symbols (``_`` prefix) and
+        ``__dunder__`` names are skipped entirely.
+        """
+        src_path = Path(src_root)
+        py_files = list(src_path.rglob("*.py"))
+
+        # Step 1: collect definitions {name -> (file_path, lineno, kind)}
+        Defn = Dict[str, Any]
+        definitions: Dict[str, List[Defn]] = {}  # name → list of def records
+
+        for py_file in py_files:
+            try:
+                source = py_file.read_text(encoding="utf-8", errors="replace")
+                tree = ast.parse(source)
+            except Exception:
+                continue
+            for node in ast.walk(tree):
+                # Only top-level and class-level definitions
+                if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                    continue
+                name = node.name
+                # Skip private/dunder/test functions
+                if name.startswith("_") or name.startswith("test_"):
+                    continue
+                definitions.setdefault(name, []).append({
+                    "file_path": str(py_file),
+                    "line_number": node.lineno,
+                    "kind": "function" if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) else "class",
+                })
+
+        if not definitions:
+            return []
+
+        # Step 2: collect all referenced names across ALL files
+        all_refs: Set[str] = set()
+        for py_file in py_files:
+            try:
+                source = py_file.read_text(encoding="utf-8", errors="replace")
+                tree = ast.parse(source)
+            except Exception:
+                continue
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Name):
+                    all_refs.add(node.id)
+                elif isinstance(node, ast.Attribute):
+                    all_refs.add(node.attr)
+                elif isinstance(node, ast.alias):
+                    # import foo as bar → both are referenced
+                    all_refs.add(node.name.split(".")[0])
+                    if node.asname:
+                        all_refs.add(node.asname)
+                elif isinstance(node, ast.ImportFrom):
+                    for alias in node.names:
+                        all_refs.add(alias.name)
+                        if alias.asname:
+                            all_refs.add(alias.asname)
+
+        # Step 3: flag definitions whose name never appears in any reference
+        # Use a high cross-file threshold: name must be absent from ALL refs
+        # to avoid flagging symbols that are only used via dynamic dispatch
+        gaps: List[CodeGap] = []
+        reported_names: Set[str] = set()
+        for name, defn_list in definitions.items():
+            if name in reported_names:
+                continue
+            if name in all_refs:
+                continue
+            # Additional safety: skip names that are clearly module-level
+            # exports (uppercase constants, common patterns)
+            if name.isupper():
+                continue
+            for defn in defn_list:
+                gaps.append(
+                    CodeGap(
+                        gap_id=f"gap-dc-{uuid.uuid4().hex[:8]}",
+                        description=(
+                            f"Potential dead code: {defn['kind']} '{name}' "
+                            f"is never referenced outside its defining file"
+                        ),
+                        source="dead_code",
+                        severity="low",
+                        category="dead_code",
+                        file_path=defn["file_path"],
+                        line_number=defn["line_number"],
+                        function_name=name if defn["kind"] == "function" else "",
+                        class_name=name if defn["kind"] == "class" else "",
+                        context={"symbol_kind": defn["kind"], "symbol_name": name},
+                    )
+                )
+            reported_names.add(name)
         return gaps
 
     def _correlate_gaps(self, gaps: List[CodeGap]) -> List[CodeGap]:
@@ -1956,8 +2066,33 @@ class MurphyCodeHealer:
         if self._backbone is None:
             return
         try:
+            # Map healer event names → EventType enum members
+            try:
+                from event_backbone import EventType as _ET
+            except ImportError:
+                try:
+                    from src.event_backbone import EventType as _ET
+                except ImportError:
+                    logger.debug("EventType not importable — skipping publish for %s", event_name)
+                    return
+
+            _NAME_TO_EVENT_TYPE = {
+                "CODE_HEALER_STARTED": "CODE_HEALER_STARTED",
+                "CODE_HEALER_COMPLETED": "CODE_HEALER_COMPLETED",
+                "CODE_HEALER_PROPOSAL_CREATED": "CODE_HEALER_PROPOSAL_CREATED",
+                "CODE_HEALER_GAP_LOW_CONFIDENCE": "CODE_HEALER_GAP_LOW_CONFIDENCE",
+            }
+            et_name = _NAME_TO_EVENT_TYPE.get(event_name)
+            if et_name is None:
+                # Unmapped event — skip publishing rather than pass None
+                logger.debug("No EventType mapping for %s — skipping publish", event_name)
+                return
+            event_type = getattr(_ET, et_name, None)
+            if event_type is None:
+                logger.debug("EventType.%s not found — skipping publish", et_name)
+                return
             self._backbone.publish(
-                event_type=None,
+                event_type=event_type,
                 payload={
                     "event": event_name,
                     "source": "murphy_code_healer",

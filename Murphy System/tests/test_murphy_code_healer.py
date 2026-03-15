@@ -965,8 +965,166 @@ class TestIntegrationCollectGaps:
 
 
 # ---------------------------------------------------------------------------
-# New tests: Event subscriptions, markdown ref detection, API wiring
+# Dead code detection
 # ---------------------------------------------------------------------------
+
+
+class TestDeadCodeGaps:
+    """Tests for DiagnosticSupervisor._dead_code_gaps()."""
+
+    def test_orphaned_public_function_flagged(self, tmp_path):
+        """A public function that is never referenced elsewhere is flagged."""
+        (tmp_path / "module_a.py").write_text(
+            "def OrphanedFunction():\n    pass\n"
+        )
+        (tmp_path / "module_b.py").write_text(
+            "x = 1\n"
+        )
+        sup = DiagnosticSupervisor(src_root=str(tmp_path))
+        gaps = sup._dead_code_gaps(str(tmp_path))
+        names = {g.context.get("symbol_name") for g in gaps if g.category == "dead_code"}
+        assert "OrphanedFunction" in names
+
+    def test_referenced_function_not_flagged(self, tmp_path):
+        """A function used in another file is NOT flagged as dead code."""
+        (tmp_path / "utils.py").write_text(
+            "def UsedHelper():\n    return 42\n"
+        )
+        (tmp_path / "main.py").write_text(
+            "from utils import UsedHelper\nresult = UsedHelper()\n"
+        )
+        sup = DiagnosticSupervisor(src_root=str(tmp_path))
+        gaps = sup._dead_code_gaps(str(tmp_path))
+        names = {g.context.get("symbol_name") for g in gaps if g.category == "dead_code"}
+        assert "UsedHelper" not in names
+
+    def test_private_functions_not_flagged(self, tmp_path):
+        """Private functions (underscore prefix) are never reported as dead code."""
+        (tmp_path / "module.py").write_text(
+            "def _internal():\n    pass\n"
+            "def __dunder__():\n    pass\n"
+        )
+        sup = DiagnosticSupervisor(src_root=str(tmp_path))
+        gaps = sup._dead_code_gaps(str(tmp_path))
+        names = {g.context.get("symbol_name") for g in gaps if g.category == "dead_code"}
+        assert "_internal" not in names
+        assert "__dunder__" not in names
+
+    def test_orphaned_class_flagged(self, tmp_path):
+        """A public class never used outside its file is flagged."""
+        (tmp_path / "models.py").write_text(
+            "class OrphanedModel:\n    pass\n"
+        )
+        (tmp_path / "other.py").write_text(
+            "x = 1\n"
+        )
+        sup = DiagnosticSupervisor(src_root=str(tmp_path))
+        gaps = sup._dead_code_gaps(str(tmp_path))
+        names = {g.context.get("symbol_name") for g in gaps if g.category == "dead_code"}
+        assert "OrphanedModel" in names
+
+    def test_empty_src_returns_no_gaps(self, tmp_path):
+        """An empty or non-Python src directory produces no dead code gaps."""
+        (tmp_path / "data.txt").write_text("hello\n")
+        sup = DiagnosticSupervisor(src_root=str(tmp_path))
+        gaps = sup._dead_code_gaps(str(tmp_path))
+        assert gaps == []
+
+    def test_collect_gaps_includes_dead_code(self, tmp_path):
+        """collect_gaps() includes dead_code category when src_root is set."""
+        (tmp_path / "module.py").write_text(
+            "def OrphanedFunc():\n    pass\n"
+        )
+        sup = DiagnosticSupervisor(src_root=str(tmp_path))
+        gaps = sup.collect_gaps()
+        categories = {g.category for g in gaps}
+        assert "dead_code" in categories
+
+    def test_constant_names_not_flagged(self, tmp_path):
+        """All-uppercase names (constants) are never flagged as dead code."""
+        (tmp_path / "constants.py").write_text(
+            "MAX_SIZE = 100\n"
+            "def MAX_SIZE_FUNC():\n    pass\n"  # ALL CAPS function → skipped
+        )
+        sup = DiagnosticSupervisor(src_root=str(tmp_path))
+        gaps = sup._dead_code_gaps(str(tmp_path))
+        names = {g.context.get("symbol_name") for g in gaps if g.category == "dead_code"}
+        assert "MAX_SIZE_FUNC" not in names
+
+
+# ---------------------------------------------------------------------------
+# sync_module_counts.py script tests
+# ---------------------------------------------------------------------------
+
+
+class TestSyncModuleCounts:
+    """Tests for scripts/sync_module_counts.py."""
+
+    def _get_sync_module(self):
+        """Import sync_module_counts from scripts/."""
+        import importlib.util
+        script_path = Path(__file__).resolve().parent.parent / "scripts" / "sync_module_counts.py"
+        spec = importlib.util.spec_from_file_location("sync_module_counts", script_path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+
+    def test_count_modules_counts_py_files(self, tmp_path):
+        sync = self._get_sync_module()
+        (tmp_path / "a.py").write_text("x = 1\n")
+        (tmp_path / "b.py").write_text("y = 2\n")
+        (tmp_path / "__init__.py").write_text("")  # should not count
+        assert sync.count_modules(tmp_path) == 2
+
+    def test_update_file_replaces_count(self, tmp_path):
+        sync = self._get_sync_module()
+        f = tmp_path / "README.md"
+        f.write_text("Murphy has **620+ modules** and counting.\n")
+        changed, n = sync.update_file(f, 911)
+        assert changed is True
+        assert n >= 1
+        assert "911" in f.read_text()
+
+    def test_update_file_no_change_when_current(self, tmp_path):
+        sync = self._get_sync_module()
+        f = tmp_path / "STATUS.md"
+        f.write_text("620+ modules loaded.\n")
+        changed, n = sync.update_file(f, 620)
+        # Count is already 620 — no change needed
+        assert changed is False
+
+    def test_update_file_dry_run_does_not_write(self, tmp_path):
+        sync = self._get_sync_module()
+        f = tmp_path / "README.md"
+        original = "Has 620+ modules.\n"
+        f.write_text(original)
+        changed, n = sync.update_file(f, 911, dry_run=True)
+        assert changed is True  # would change
+        assert f.read_text() == original  # but not written
+
+    def test_update_file_missing_file_is_skipped(self, tmp_path):
+        sync = self._get_sync_module()
+        f = tmp_path / "nonexistent.md"
+        changed, n = sync.update_file(f, 911)
+        assert changed is False
+        assert n == 0
+
+    def test_sync_updates_status_md(self, tmp_path):
+        sync = self._get_sync_module()
+        src = tmp_path / "src"
+        src.mkdir()
+        for i in range(5):
+            (src / f"m{i}.py").write_text("x = 1\n")
+        status = tmp_path / "STATUS.md"
+        status.write_text("Core Runtime | 620+ modules\n")
+        (tmp_path / "README.md").write_text("No count here.\n")
+        (tmp_path / "CONTRIBUTING.md").write_text("No count here.\n")
+
+        summary = sync.sync(tmp_path)
+        assert summary["actual_count"] == 5
+        assert "5" in status.read_text()
+
+
 
 
 class _MockEventType:
