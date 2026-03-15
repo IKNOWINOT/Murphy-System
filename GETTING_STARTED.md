@@ -166,14 +166,42 @@ Murphy System exposes a FastAPI server on **port 8000**. All endpoints return JS
 curl http://localhost:8000/api/health
 ```
 
-Expected:
+Expected (shallow probe, always 200):
 
 ```json
 {
-  "status": "ok",
+  "status": "healthy",
   "version": "1.0.0",
-  "modules_loaded": 922,
-  "uptime_seconds": 4
+  "db_mode": "stub"
+}
+```
+
+The `db_mode` field shows the current database mode (`stub` by default; `live` when `DATABASE_URL` is set with `MURPHY_DB_MODE=live`).
+
+For a full deep readiness check:
+
+```bash
+curl "http://localhost:8000/api/health?deep=true"
+```
+
+Returns all subsystem states including database connectivity and connection-pool metrics:
+
+```json
+{
+  "status": "healthy",
+  "checks": {
+    "runtime":        "ok",
+    "persistence":    "ok",
+    "database":       "ok",
+    "db_mode":        "live",
+    "db_pool":        {"pool_size": 5, "checked_in": 5, "checked_out": 0, "overflow": 0, "invalid": 0},
+    "redis":          "not_configured",
+    "llm":            "ok",
+    "event_backbone": "ok",
+    "modules_loaded": 922,
+    "version":        "1.0.0"
+  },
+  "critical_failures": []
 }
 ```
 
@@ -607,7 +635,69 @@ The module registry may not have loaded correctly. Check for errors in the serve
 
 ---
 
-## 10. Test Suite
+## 10. Database Setup
+
+> **Important:** Murphy System runs in **stub mode** by default — all SQL
+> operations return fake fixture data and nothing is persisted.  Follow
+> the steps below to connect a real database.
+
+### Quick start (SQLite — zero config)
+
+Add two lines to your `.env` file (in the `Murphy-System/` directory):
+
+```bash
+DATABASE_URL=sqlite:///murphy_logs.db
+MURPHY_DB_MODE=live
+```
+
+Restart the server.  A real SQLite database file will be created automatically.
+
+### PostgreSQL (recommended for production)
+
+```bash
+DATABASE_URL=postgresql://username:password@localhost:5432/murphy
+MURPHY_DB_MODE=live
+MURPHY_ENV=production
+MURPHY_AUTO_MIGRATE=false   # Run migrations explicitly in production
+```
+
+### Running Alembic migrations
+
+Auto-migration is **on by default** in development/test (controlled by `MURPHY_AUTO_MIGRATE`).
+In production, run migrations manually before each deploy:
+
+```bash
+cd Murphy-System
+bash Murphy\ System/scripts/db_migrate.sh              # Apply all pending
+bash Murphy\ System/scripts/db_migrate.sh status       # Check current state
+bash Murphy\ System/scripts/db_migrate.sh history      # Full history
+bash Murphy\ System/scripts/db_migrate.sh downgrade -1 # Revert last
+```
+
+### Database modes
+
+| Mode | `MURPHY_DB_MODE` | Behaviour |
+|------|-----------------|-----------|
+| **Stub** (default) | `stub` | All SQL returns fake data; large WARNING in logs |
+| **Live / SQLite** | `live` | Real DB, no server required |
+| **Live / PostgreSQL** | `live` | Real DB, production-grade |
+
+> Stub mode is **rejected at startup** in `production` and `staging`
+> environments with a `RuntimeError`.
+
+### Database troubleshooting
+
+**Server logs show stub mode banner:** Set `DATABASE_URL` and `MURPHY_DB_MODE=live` in `.env`.
+
+**Migration error at startup:** Check that `DATABASE_URL` is reachable and run
+`bash Murphy\ System/scripts/db_migrate.sh status` to inspect the current state.
+
+**Pool exhaustion (`checked_out` equals `pool_size` in health check):** Increase
+`MURPHY_DB_POOL_SIZE` (default 5) and `MURPHY_DB_MAX_OVERFLOW` (default 10).
+
+---
+
+## 11. Test Suite
 
 The project includes 118 gap-closure test files and 14,800+ total tests.
 Run the full suite with `python -m pytest tests/ -v` from the `Murphy System/` directory.

@@ -198,7 +198,13 @@ def run_pending_migrations() -> str:
 
 
 def _get_pending_migrations(cfg: "alembic.config.Config") -> "Optional[list]":
-    """Return a list of pending Alembic revision IDs, or None on error."""
+    """Return a list of pending Alembic revision IDs, or None on error.
+
+    Uses ``ScriptDirectory.iterate_revisions`` to walk only the revisions
+    between the current database state and the script heads — this correctly
+    excludes already-applied ancestor revisions that ``walk_revisions``
+    would otherwise include.
+    """
     try:
         from alembic.runtime.migration import MigrationContext  # noqa: PLC0415
         from alembic.script import ScriptDirectory  # noqa: PLC0415
@@ -218,11 +224,16 @@ def _get_pending_migrations(cfg: "alembic.config.Config") -> "Optional[list]":
             all_heads = set(script.get_heads())
             if current_heads == all_heads:
                 return []
-            # Collect revisions between current and head
-            pending = []
-            for rev in script.walk_revisions():
-                if rev.revision not in current_heads:
-                    pending.append(rev.revision)
+            # Walk only the revisions strictly between current state and head.
+            # iterate_revisions(upper, lower) yields revisions from upper down
+            # to (but not including) lower — exactly the "unapplied" set.
+            lower: "Union[tuple, str]" = (
+                tuple(current_heads) if current_heads else "base"
+            )
+            pending = [
+                rev.revision
+                for rev in script.iterate_revisions("heads", lower)
+            ]
             return pending
     except Exception as exc:
         logger.debug("Could not determine pending migrations: %s", exc)
