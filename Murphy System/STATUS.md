@@ -19,13 +19,13 @@
 | AionMind Kernel | ✅ Operational | Context engine, reasoning engine, orchestration engine |
 | Setup Wizard | ✅ Operational | 6 deployment presets, guided onboarding |
 | Execution Engines | ✅ Operational | Task executor, workflow orchestrator, sandbox manager |
-| Learning Engine | ⚠️ Partial | Pattern detector, outcome tracker operational; full ML loop pending |
+| Learning Engine | ✅ Operational | Pattern detector, outcome tracker, PatternRecognizer operational; closed-loop ML wiring complete via LearningEngineConnector (EventBackbone → LearningEngine → AdaptiveDecisionEngine) |
 | Concept Graph Engine | ✅ New | 7 node/edge types, graph health, GCS metric |
 | Unified Control Protocol | ✅ New | 10-engine pipeline, 7 states, rollback support |
 | Session Context Manager | ✅ New | Per-session locking, expiry, RM0–RM6 tracking |
 | **Crypto Trading Subsystem** | ✅ **New** | Coinbase v3, multi-exchange, HITL-gated bots, 6 strategies, risk manager |
 | **Shadow Learning System** | ✅ **New** | Paper bots practice vs live prices; winning weeks save patterns; human reviews before promoting |
-| UI / Landing Page | ⚠️ Partial | Landing page, terminal UIs exist; dashboard incomplete |
+| UI / Landing Page | ✅ Operational | Landing page, terminal UIs, live dashboard (/ui/dashboard) with SSE metric streaming, management, calendar, meeting intelligence, ambient pages all present |
 | Documentation | ✅ Complete | API docs, architecture docs, deployment guides, testing guide complete |
 
 ## Regulatory Alignment
@@ -57,7 +57,7 @@ Murphy System is **aligned with** (not formally attested to) the following frame
 | ID | Gap | Priority | Actionable Path |
 |----|-----|----------|-----------------|
 | ~~G-004~~ | ~~Full ML feedback loop not wired~~ | ~~Medium~~ | ✅ **RESOLVED** — `record_outcome()` added to `GeographicLoadBalancer`, wiring feedback signals into `capacity_weight` via configurable learning rate |
-| G-005 | Dashboard UI incomplete | Medium | Complete React/terminal dashboard with live metrics |
+| G-005 | ~~Dashboard UI incomplete~~ | ~~Medium~~ | ✅ **RESOLVED** — `/ui/dashboard` live dashboard page with SSE metric stream, uptime sparkline, learning connector status, and snapshot history table |
 | G-006 | Formal security pen-test | High | Engage third-party security firm for penetration testing |
 | G-007 | ~~Database persistence JSON-only~~ | ~~Critical~~ | ✅ **IMPROVED** — PostgreSQL wired via DATABASE_URL; SQLite fallback; Alembic migrations; connection pooling configured |
 | G-008 | E2EE encryption is stubbed | Critical | Integrate matrix-nio SDK for real encryption |

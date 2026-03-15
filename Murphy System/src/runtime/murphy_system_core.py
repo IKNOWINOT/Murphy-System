@@ -1398,6 +1398,19 @@ class MurphySystem:
         # Initialize new integrated modules
         self._initialize_integrated_modules()
 
+        # Bootstrap closed-loop learning connector
+        try:
+            from src.learning_engine_connector import bootstrap_learning_connector
+            backbone = getattr(self, "event_backbone", None)
+            self._learning_connector = bootstrap_learning_connector(backbone=backbone)
+            logger.info(
+                "Learning engine connector started: %s",
+                self._learning_connector.status(),
+            )
+        except Exception as exc:
+            logger.warning("Learning engine connector bootstrap failed: %s", exc)
+            self._learning_connector = None
+
         logger.info("="*80)
         logger.info(f"MURPHY SYSTEM {self.version} - READY")
         logger.info("="*80)
