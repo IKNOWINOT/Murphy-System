@@ -1179,7 +1179,7 @@ class MurphyTheme {
   }
 
   _apply() {
-    document.body.classList.remove('murphy-light');
+    /* Murphy System is dark-only; no action needed on theme class application. */
   }
 }
 

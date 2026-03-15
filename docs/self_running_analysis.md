@@ -2,7 +2,7 @@
 
 **Date:** 2025-02-26  
 **Repository:** IKNOWINOT/Murphy-System  
-**Runtime Directory:** `Murphy System/`
+**Runtime Directory:** repo root (`./`)
 
 ---
 

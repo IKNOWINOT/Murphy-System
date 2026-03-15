@@ -26,7 +26,7 @@ Legend:
 
 | Module | Path | Description | Status | Key Dependencies |
 |--------|------|-------------|--------|-----------------|
-| `murphy_system_1.0_runtime.py` | `Murphy System/` | Thin entry-point; re-exports all public symbols — implementation lives in `src/runtime/` (INC-13 closed) | ✅ | fastapi, uvicorn, pydantic |
+| `murphy_system_1.0_runtime.py` | `` | Thin entry-point; re-exports all public symbols — implementation lives in `src/runtime/` (INC-13 closed) | ✅ | fastapi, uvicorn, pydantic |
 | `config.py` | `src/config.py` | Pydantic `BaseSettings`; loads `.env`, provides typed config | ✅ | pydantic-settings |
 | `command_system.py` | `src/command_system.py` | CLI command dispatcher | ✅ | — |
 | `command_parser.py` | `src/command_parser.py` | Natural-language command parser | ✅ | — |
