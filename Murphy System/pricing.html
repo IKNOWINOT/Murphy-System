@@ -816,29 +816,7 @@
   document.querySelectorAll('.pricing-cta[data-tier]').forEach(function (btn) {
     btn.addEventListener('click', function () {
       var tier = btn.getAttribute('data-tier');
-      btn.disabled = true;
-      btn.textContent = 'Loading…';
-
-      fetch('/api/billing/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tier: tier, interval: currentInterval })
-      })
-      .then(function (res) { return res.json(); })
-      .then(function (data) {
-        if (data.url) {
-          window.location.href = data.url;
-        } else {
-          btn.disabled = false;
-          btn.textContent = 'Start Free Trial';
-          alert(data.message || data.error || 'Unable to start checkout. Please try again.');
-        }
-      })
-      .catch(function () {
-        btn.disabled = false;
-        btn.textContent = 'Start Free Trial';
-        alert('Network error — please check your connection and try again.');
-      });
+      window.location.href = '/ui/signup?tier=' + encodeURIComponent(tier) + '&interval=' + encodeURIComponent(currentInterval);
     });
   });
 
