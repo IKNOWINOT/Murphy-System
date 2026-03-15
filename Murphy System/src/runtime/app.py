@@ -72,6 +72,23 @@ def _safe_error_response(exc: Exception, status_code: int = 500) -> "JSONRespons
     return JSONResponse(body, status_code=status_code)
 
 
+def _normalize_mss_context(raw_context: "Any") -> "Optional[Dict[str, Any]]":
+    """Coerce *raw_context* to a dict or None for MSS operations.
+
+    The Librarian panel sends ``context`` as a plain string (e.g.
+    ``"graduation"``).  MSS internals expect ``Optional[Dict[str, Any]]``.
+    Passing a bare string causes ``AttributeError: 'str' object has no
+    attribute 'get'`` deep inside ``mss_controls.py``.
+    """
+    if raw_context is None:
+        return None
+    if isinstance(raw_context, dict):
+        return raw_context
+    if isinstance(raw_context, str):
+        return {"page": raw_context} if raw_context else None
+    return None
+
+
 def create_app() -> FastAPI:
     """Create FastAPI application"""
 
@@ -822,6 +839,16 @@ def create_app() -> FastAPI:
             {"command": "costs by-bot", "category": "costs", "description": "View costs by bot/agent", "api": "/api/costs/by-bot", "ui": "/ui/terminal-costs#bots"},
             {"command": "costs assign", "category": "costs", "description": "Assign costs to department/project", "api": "/api/costs/assign", "ui": "/ui/terminal-costs#assign"},
             {"command": "costs budget", "category": "costs", "description": "Set or update budget", "api": "/api/costs/budget", "ui": "/ui/terminal-costs#budget"},
+            {"command": "efficiency metrics", "category": "analytics", "description": "View performance and efficiency metrics", "api": "/api/efficiency/metrics", "ui": "/ui/terminal-unified#efficiency"},
+            {"command": "efficiency costs", "category": "analytics", "description": "View budget and spending overview", "api": "/api/efficiency/costs", "ui": "/ui/terminal-unified#costs"},
+            {"command": "heatmap data", "category": "analytics", "description": "View activity heatmap visualization", "api": "/api/heatmap/data", "ui": "/ui/terminal-unified#heatmap"},
+            {"command": "supply status", "category": "analytics", "description": "View supply chain resource status", "api": "/api/supply/status", "ui": "/ui/terminal-unified#supply"},
+            {"command": "safety status", "category": "safety", "description": "View safety monitoring score and active alerts", "api": "/api/safety/status", "ui": "/ui/terminal-unified#safety"},
+            {"command": "causality analysis", "category": "analytics", "description": "View causality engine analysis chains", "api": "/api/causality/analysis", "ui": "/ui/terminal-unified#causality"},
+            {"command": "causality graph", "category": "analytics", "description": "View causality dependency graph", "api": "/api/causality/graph", "ui": "/ui/terminal-unified#causality"},
+            {"command": "wingman suggestions", "category": "intelligence", "description": "Get AI Wingman co-pilot suggestions", "api": "/api/wingman/suggestions", "ui": "/ui/terminal-unified#wingman"},
+            {"command": "wingman status", "category": "intelligence", "description": "Get Wingman co-pilot status", "api": "/api/wingman/status", "ui": "/ui/terminal-unified#wingman"},
+            {"command": "hitl graduation candidates", "category": "hitl", "description": "List HITL graduation candidates", "api": "/api/hitl-graduation/candidates", "ui": "/ui/terminal-unified#graduation"},
             # ── Images ───────────────────────────────────────────────
             {"command": "images generate", "category": "images", "description": "Generate an image with AI", "api": "/api/images/generate", "ui": "/ui/terminal-enhanced#execute"},
             {"command": "images styles", "category": "images", "description": "List available image styles", "api": "/api/images/styles", "ui": "/ui/terminal-enhanced#execute"},
@@ -888,6 +915,7 @@ def create_app() -> FastAPI:
             {"command": "compliance toggles", "category": "compliance", "description": "View and manage compliance framework toggles", "api": "/api/compliance/toggles", "ui": "/ui/compliance"},
             {"command": "compliance recommended", "category": "compliance", "description": "Get recommended compliance frameworks for your country/industry", "api": "/api/compliance/recommended", "ui": "/ui/compliance"},
             {"command": "compliance report", "category": "compliance", "description": "Generate a compliance posture report", "api": "/api/compliance/report", "ui": "/ui/compliance"},
+            {"command": "compliance scan", "category": "compliance", "description": "Run compliance-as-code scan filtered to enabled frameworks", "api": "/api/compliance/scan", "ui": "/ui/compliance"},
             # ── Signup & Auth ────────────────────────────────────────
             {"command": "signup", "category": "auth", "description": "Create a new Murphy account", "api": "/api/auth/signup", "ui": "/ui/signup"},
             {"command": "oauth google", "category": "auth", "description": "Sign up or login with Google", "api": "/api/auth/oauth/google", "ui": "/ui/signup"},
@@ -2109,42 +2137,54 @@ def create_app() -> FastAPI:
         """Magnify — increase resolution of input text."""
         if _mss_controller is None:
             return JSONResponse({"success": False, "error": "MSS controls not available"}, status_code=503)
-        data = await request.json()
-        text = data.get("text", "")
-        context = data.get("context")
-        if not text:
-            return JSONResponse({"success": False, "error": "text is required"}, status_code=400)
-        from dataclasses import asdict as _asdict
-        result = _mss_controller.magnify(text, context)
-        return JSONResponse({"success": True, "result": _asdict(result)})
+        try:
+            data = await request.json()
+            text = data.get("text", "")
+            context = _normalize_mss_context(data.get("context"))
+            if not text:
+                return JSONResponse({"success": False, "error": "text is required"}, status_code=400)
+            from dataclasses import asdict as _asdict
+            result = _mss_controller.magnify(text, context)
+            return JSONResponse({"success": True, "result": _asdict(result)})
+        except Exception as exc:
+            logger.exception("MSS magnify failed")
+            return _safe_error_response(exc, 500)
 
     @app.post("/api/mss/simplify")
     async def mss_simplify(request: Request):
         """Simplify — decrease resolution of input text."""
         if _mss_controller is None:
             return JSONResponse({"success": False, "error": "MSS controls not available"}, status_code=503)
-        data = await request.json()
-        text = data.get("text", "")
-        context = data.get("context")
-        if not text:
-            return JSONResponse({"success": False, "error": "text is required"}, status_code=400)
-        from dataclasses import asdict as _asdict
-        result = _mss_controller.simplify(text, context)
-        return JSONResponse({"success": True, "result": _asdict(result)})
+        try:
+            data = await request.json()
+            text = data.get("text", "")
+            context = _normalize_mss_context(data.get("context"))
+            if not text:
+                return JSONResponse({"success": False, "error": "text is required"}, status_code=400)
+            from dataclasses import asdict as _asdict
+            result = _mss_controller.simplify(text, context)
+            return JSONResponse({"success": True, "result": _asdict(result)})
+        except Exception as exc:
+            logger.exception("MSS simplify failed")
+            return _safe_error_response(exc, 500)
 
     @app.post("/api/mss/solidify")
     async def mss_solidify(request: Request):
         """Solidify — convert input text to implementation plan."""
         if _mss_controller is None:
             return JSONResponse({"success": False, "error": "MSS controls not available"}, status_code=503)
-        data = await request.json()
-        text = data.get("text", "")
-        context = data.get("context")
-        if not text:
-            return JSONResponse({"success": False, "error": "text is required"}, status_code=400)
-        from dataclasses import asdict as _asdict
-        result = _mss_controller.solidify(text, context)
-        return JSONResponse({"success": True, "result": _asdict(result)})
+        try:
+            data = await request.json()
+            text = data.get("text", "")
+            context = _normalize_mss_context(data.get("context"))
+            if not text:
+                return JSONResponse({"success": False, "error": "text is required"}, status_code=400)
+            from dataclasses import asdict as _asdict
+            result = _mss_controller.solidify(text, context)
+            return JSONResponse({"success": True, "result": _asdict(result)})
+        except Exception as exc:
+            logger.exception("MSS solidify failed")
+            return _safe_error_response(exc, 500)
 
     @app.post("/api/mss/score")
     async def mss_score(request: Request):
@@ -3607,18 +3647,89 @@ def create_app() -> FastAPI:
             "active_session": None, "suggestions": [],
         })
 
+    @app.get("/api/wingman/suggestions")
+    async def wingman_suggestions():
+        """Return Wingman AI assistant suggestions for the current session."""
+        return JSONResponse({"success": True, "suggestions": []})
+
     @app.get("/api/causality/graph")
     async def causality_graph():
         """Return causality dependency graph."""
         return JSONResponse({"success": True, "nodes": [], "edges": []})
 
-    @app.get("/api/efficiency/metrics")
-    async def efficiency_metrics():
-        """Return efficiency metrics."""
+    @app.get("/api/causality/analysis")
+    async def causality_analysis():
+        """Return causality engine analysis chains."""
+        return JSONResponse({"success": True, "chains": [], "analyses": []})
+
+    @app.get("/api/safety/status")
+    async def safety_status():
+        """Return safety monitoring status and open alerts."""
         return JSONResponse({
             "success": True,
-            "automation_rate": 0.0, "time_saved_hours": 0,
-            "cost_saved_usd": 0.0, "tasks_automated": 0,
+            "score": 100,
+            "safety_score": 100,
+            "last_check": _now_iso(),
+            "alerts": [],
+        })
+
+    @app.get("/api/heatmap/data")
+    async def heatmap_data():
+        """Return activity heatmap data."""
+        return JSONResponse({
+            "success": True,
+            "entries": [],
+            "max": 100,
+        })
+
+    @app.get("/api/efficiency/metrics")
+    async def efficiency_metrics():
+        """Return efficiency and performance metrics."""
+        return JSONResponse({
+            "success": True,
+            "throughput": 0,
+            "avg_latency": 0,
+            "latency": 0,
+            "error_rate": 0.0,
+            "utilization": 0.0,
+            "automation_rate": 0.0,
+            "time_saved_hours": 0,
+            "cost_saved_usd": 0.0,
+            "tasks_automated": 0,
+            "breakdown": [],
+        })
+
+    @app.get("/api/efficiency/costs")
+    async def efficiency_costs():
+        """Return budget and spending overview."""
+        return JSONResponse({
+            "success": True,
+            "total": 0,
+            "total_spend": 0,
+            "budget": 0,
+            "remaining": 0,
+            "items": [],
+        })
+
+    @app.get("/api/supply/status")
+    async def supply_status():
+        """Return supply chain resource status."""
+        return JSONResponse({
+            "success": True,
+            "total": 0,
+            "available": 0,
+            "pending": 0,
+            "items": [],
+        })
+
+    @app.get("/api/hitl-graduation/candidates")
+    async def hitl_graduation_candidates():
+        """Return HITL graduation candidate list."""
+        return JSONResponse({
+            "success": True,
+            "total": 0,
+            "total_graduated": 0,
+            "candidates": [],
         })
 
     @app.get("/api/forms/list")
@@ -3634,24 +3745,80 @@ def create_app() -> FastAPI:
 
     # ==================== COMPLIANCE ENDPOINTS ====================
 
-    _compliance_toggles: Dict[str, bool] = {}
+    try:
+        from src.compliance_toggle_manager import (
+            ComplianceToggleManager as _ComplianceToggleManager,
+            COMPLIANCE_ENGINE_MAP as _COMPLIANCE_ENGINE_MAP,
+        )
+        _compliance_toggle_manager = _ComplianceToggleManager()
+    except ImportError:
+        _compliance_toggle_manager = None
+        _COMPLIANCE_ENGINE_MAP = {}
+
+    _DEFAULT_TENANT_ID = "default"
+
+    def _get_tenant_id(request: "Request") -> str:
+        """Extract tenant ID from request headers or fall back to default."""
+        return request.headers.get("X-Tenant-ID", _DEFAULT_TENANT_ID) or _DEFAULT_TENANT_ID
+
+    def _get_tenant_compliance_frameworks(tenant_id: str) -> "List[Any]":
+        """Return the enabled ComplianceFramework enum values for a tenant.
+
+        Maps toggle string IDs (e.g. ``"gdpr"``, ``"hipaa"``) to their
+        corresponding ``ComplianceFramework`` enum members.  Frameworks that
+        have no mapping in the native engine are silently skipped.
+        """
+        if _compliance_toggle_manager is None:
+            return []
+        try:
+            from src.compliance_engine import ComplianceFramework as _CF
+            enabled_ids = _compliance_toggle_manager.get_tenant_frameworks(tenant_id)
+            frameworks = []
+            for fw_id in enabled_ids:
+                native_id = _COMPLIANCE_ENGINE_MAP.get(fw_id)
+                if native_id:
+                    try:
+                        frameworks.append(_CF(native_id))
+                    except ValueError:
+                        pass
+            return frameworks
+        except ImportError:
+            return []
 
     @app.get("/api/compliance/toggles")
-    async def compliance_toggles_get():
+    async def compliance_toggles_get(request: Request):
         """Return the current compliance framework toggle states."""
-        return JSONResponse({"success": True, "toggles": _compliance_toggles})
+        if _compliance_toggle_manager is None:
+            return JSONResponse({"success": True, "enabled": []})
+        tenant_id = _get_tenant_id(request)
+        enabled = _compliance_toggle_manager.get_tenant_frameworks(tenant_id)
+        return JSONResponse({"success": True, "enabled": enabled})
 
     @app.post("/api/compliance/toggles")
     async def compliance_toggles_save(request: Request):
         """Save compliance framework toggle states."""
         try:
             data = await request.json()
-            toggles = data.get("toggles", {})
-            _compliance_toggles.update(toggles)
+            # Accept the array format sent by the frontend: {"enabled": ["gdpr", ...]}
+            raw_enabled = data.get("enabled", [])
+            # Also accept legacy dict format: {"toggles": {"gdpr": true, ...}}
+            if not raw_enabled and "toggles" in data:
+                toggles_dict = data.get("toggles", {})
+                raw_enabled = [k for k, v in toggles_dict.items() if v]
+            # Ensure all items are strings (discard non-string entries)
+            enabled_ids: List[str] = [f for f in raw_enabled if isinstance(f, str)]
+            tenant_id = _get_tenant_id(request)
+            if _compliance_toggle_manager is None:
+                return JSONResponse({
+                    "success": True,
+                    "enabled": enabled_ids,
+                    "saved_at": _now_iso(),
+                })
+            cfg = _compliance_toggle_manager.save_tenant_frameworks(tenant_id, enabled_ids)
             return JSONResponse({
                 "success": True,
-                "toggles": _compliance_toggles,
-                "saved_at": datetime.now(timezone.utc).isoformat(),
+                "enabled": cfg.enabled_frameworks,
+                "saved_at": cfg.last_updated,
             })
         except Exception as exc:
             logger.exception("Failed to save compliance toggles")
@@ -3660,42 +3827,192 @@ def create_app() -> FastAPI:
     @app.get("/api/compliance/recommended")
     async def compliance_recommended(country: str = "US", industry: str = "general"):
         """Return recommended compliance frameworks for a given country/industry."""
-        recommendations: Dict[str, list] = {
-            "US": ["SOC2", "CCPA", "HIPAA"],
-            "EU": ["GDPR", "NIS2", "DORA"],
-            "UK": ["UK_GDPR", "FCA"],
-            "AU": ["APPs", "CPS234"],
-        }
-        industry_map: Dict[str, list] = {
-            "healthcare": ["HIPAA", "HITECH"],
-            "finance": ["SOC2", "PCI_DSS", "SOX"],
-            "government": ["FedRAMP", "CMMC", "ITAR"],
-            "general": [],
-        }
-        country_recs = recommendations.get(country.upper(), recommendations["US"])
-        industry_recs = industry_map.get(industry.lower(), [])
-        combined = list(dict.fromkeys(country_recs + industry_recs))
+        if _compliance_toggle_manager is None:
+            return JSONResponse({
+                "success": True,
+                "country": country,
+                "industry": industry,
+                "recommended": [],
+            })
+        recommended = _compliance_toggle_manager.get_recommended_frameworks(country, industry)
         return JSONResponse({
             "success": True,
             "country": country,
             "industry": industry,
-            "recommended": combined,
+            "recommended": recommended,
         })
 
     @app.get("/api/compliance/report")
-    async def compliance_report():
+    async def compliance_report(request: Request):
         """Generate a compliance posture report."""
-        enabled = [k for k, v in _compliance_toggles.items() if v]
-        return JSONResponse({
-            "success": True,
-            "report": {
-                "enabled_frameworks": enabled,
-                "total_enabled": len(enabled),
-                "total_available": 42,
-                "posture_score": round(len(enabled) / 42 * 100, 1) if enabled else 0,
-                "generated_at": datetime.now(timezone.utc).isoformat(),
-            },
-        })
+        if _compliance_toggle_manager is None:
+            return JSONResponse({
+                "success": True,
+                "report": {
+                    "enabled_frameworks": [],
+                    "total_enabled": 0,
+                    "total_available": 42,
+                    "posture_score": 0,
+                    "generated_at": _now_iso(),
+                },
+            })
+        tenant_id = _get_tenant_id(request)
+        report = _compliance_toggle_manager.generate_compliance_report(tenant_id)
+        return JSONResponse({"success": True, "report": report})
+
+    # ── Layer 3: ComplianceAsCodeEngine scan endpoint ──────────────────────
+
+    try:
+        from src.compliance_as_code_engine import ComplianceAsCodeEngine as _ComplianceAsCodeEngine
+        _cac_engine = _ComplianceAsCodeEngine()
+    except ImportError:
+        _cac_engine = None
+
+    @app.post("/api/compliance/scan")
+    async def compliance_scan(request: Request):
+        """Run a compliance-as-code scan filtered to the tenant's enabled frameworks.
+
+        Accepts optional ``name`` and ``context`` fields in the JSON body.
+        When the tenant has enabled frameworks, one scan is run per framework
+        using ``ComplianceAsCodeEngine.run_scan(framework_filter=...)``.
+        When no frameworks are enabled an unfiltered scan is run.
+        """
+        if _cac_engine is None:
+            return JSONResponse(
+                {"success": False, "error": "Compliance-as-code engine not available"},
+                status_code=503,
+            )
+        try:
+            data = await request.json()
+            tenant_id = _get_tenant_id(request)
+            name = data.get("name") or f"scan-{_now_iso()}"
+            context = data.get("context") or {}
+            if not isinstance(context, dict):
+                context = {}
+
+            enabled_ids: List[str] = (
+                _compliance_toggle_manager.get_tenant_frameworks(tenant_id)
+                if _compliance_toggle_manager is not None
+                else []
+            )
+
+            if not enabled_ids:
+                scan = _cac_engine.run_scan(name=name, context=context)
+                return JSONResponse({
+                    "success": True,
+                    "scans": [scan.to_dict()],
+                    "frameworks_applied": [],
+                })
+
+            # run_scan accepts a single framework_filter string; iterate per framework
+            scans = []
+            for fw_id in enabled_ids:
+                fw_scan = _cac_engine.run_scan(
+                    name=f"{name}-{fw_id}",
+                    framework_filter=fw_id,
+                    context=context,
+                )
+                scans.append(fw_scan.to_dict())
+
+            return JSONResponse({
+                "success": True,
+                "scans": scans,
+                "frameworks_applied": enabled_ids,
+            })
+        except Exception as exc:
+            logger.exception("Compliance scan failed")
+            return _safe_error_response(exc, 500)
+
+    # ── Layer 2: Register compliance gate with GateExecutionWiring ─────────
+
+    _gate_wiring = getattr(murphy, "gate_wiring", None)
+    _compliance_engine_inst = getattr(murphy, "compliance_engine", None)
+    if _gate_wiring is not None:
+        try:
+            import uuid as _uuid_mod
+            from src.gate_execution_wiring import (
+                GateDecision as _GateDecision,
+                GateEvaluation as _GateEvaluation,
+                GatePolicy as _GatePolicy,
+                GateType as _GateType,
+            )
+
+            def _compliance_gate_evaluator(
+                task: Dict[str, Any], session_id: str
+            ) -> "_GateEvaluation":
+                """Evaluate the tenant's enabled compliance frameworks before execution.
+
+                Reads the enabled frameworks for the tenant from
+                ``_compliance_toggle_manager`` and runs
+                ``ComplianceEngine.check_deliverable()`` filtered to those
+                frameworks.  Returns APPROVED when compliant, NEEDS_REVIEW
+                when human sign-off is required, and BLOCKED when violations
+                are found.  If no frameworks are enabled the gate always
+                approves.
+                """
+                tenant_id = task.get("tenant_id") or _DEFAULT_TENANT_ID
+                frameworks = _get_tenant_compliance_frameworks(tenant_id)
+
+                if _compliance_engine_inst is None or not frameworks:
+                    return _GateEvaluation(
+                        gate_id=str(_uuid_mod.uuid4()),
+                        gate_type=_GateType.COMPLIANCE,
+                        decision=_GateDecision.APPROVED,
+                        reason="No compliance frameworks enabled — gate skipped",
+                        policy=_GatePolicy.WARN,
+                        evaluated_at=_now_iso(),
+                    )
+
+                deliverable = dict(task)
+                deliverable["session_id"] = session_id
+                try:
+                    report = _compliance_engine_inst.check_deliverable(
+                        deliverable, frameworks=frameworks
+                    )
+                except Exception as exc:
+                    logger.warning("Compliance gate check failed: %s", exc)
+                    return _GateEvaluation(
+                        gate_id=str(_uuid_mod.uuid4()),
+                        gate_type=_GateType.COMPLIANCE,
+                        decision=_GateDecision.APPROVED,
+                        reason=f"Compliance check error (allowing): {exc}",
+                        policy=_GatePolicy.WARN,
+                        evaluated_at=_now_iso(),
+                    )
+
+                overall = report.get("overall_status", "compliant")
+                fw_names = ", ".join(f.value for f in frameworks)
+                if overall == "non_compliant":
+                    decision = _GateDecision.BLOCKED
+                    reason = f"Compliance check failed for: {fw_names}"
+                elif overall == "needs_review":
+                    decision = _GateDecision.NEEDS_REVIEW
+                    reason = f"Compliance check needs review for: {fw_names}"
+                else:
+                    decision = _GateDecision.APPROVED
+                    reason = f"Compliance check passed for: {fw_names}"
+
+                return _GateEvaluation(
+                    gate_id=str(_uuid_mod.uuid4()),
+                    gate_type=_GateType.COMPLIANCE,
+                    decision=decision,
+                    reason=reason,
+                    policy=_GatePolicy.WARN,
+                    evaluated_at=_now_iso(),
+                    metadata={
+                        "overall_status": overall,
+                        "enabled_frameworks": [f.value for f in frameworks],
+                    },
+                )
+
+            _gate_wiring.register_gate(
+                _GateType.COMPLIANCE,
+                _compliance_gate_evaluator,
+                _GatePolicy.WARN,
+            )
+            logger.info("Compliance gate evaluator registered with gate wiring")
+        except ImportError as exc:
+            logger.warning("Could not register compliance gate evaluator: %s", exc)
 
     # ==================== TEST MODE ====================
 
