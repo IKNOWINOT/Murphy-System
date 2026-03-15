@@ -323,12 +323,14 @@ class DiagnosticSupervisor:
         healing_coordinator=None,
         src_root: Optional[str] = None,
         tests_root: Optional[str] = None,
+        docs_root: Optional[str] = None,
     ) -> None:
         self._bug_detector = bug_detector
         self._engine = improvement_engine
         self._coordinator = healing_coordinator
         self._src_root = src_root
         self._tests_root = tests_root
+        self._docs_root = docs_root
         self._lock = threading.Lock()
         self._gap_history: List[CodeGap] = []
 
@@ -349,6 +351,9 @@ class DiagnosticSupervisor:
                     self._test_coverage_gaps(self._src_root, self._tests_root)
                 )
             gaps.extend(self._doc_drift_gaps(self._src_root))
+            gaps.extend(self._dead_code_gaps(self._src_root))
+        if self._docs_root:
+            gaps.extend(self._markdown_file_ref_gaps(self._docs_root))
         gaps = self._correlate_gaps(gaps)
         with self._lock:
             for g in gaps:
@@ -618,6 +623,171 @@ class DiagnosticSupervisor:
                             context={"drift_params": list(drift)},
                         )
                     )
+        return gaps
+
+    def _markdown_file_ref_gaps(self, docs_root: str) -> List[CodeGap]:
+        """Parse all *.md files under *docs_root* for file path references.
+
+        Looks for markdown links ``[text](path)`` and inline backtick paths
+        like ``src/foo.py`` and checks whether each referenced path exists
+        on disk (resolved relative to *docs_root*).  Missing paths are
+        reported as ``doc_drift`` gaps.
+        """
+        gaps: List[CodeGap] = []
+        docs_path = Path(docs_root)
+        # Regex: markdown link targets  [label](some/path.ext)
+        _md_link_re = re.compile(r"\[([^\]]*)\]\(([^)#?\s]+)\)")
+        # Regex: bare file-like tokens  e.g. `src/foo.py`  or  src/foo.py
+        _bare_path_re = re.compile(
+            r"(?:^|[\s`'\"])([a-zA-Z0-9_./-]+\.(?:py|md|yaml|yml|json|toml|sh|txt))"
+        )
+
+        for md_file in docs_path.rglob("*.md"):
+            try:
+                content = md_file.read_text(encoding="utf-8", errors="replace")
+            except Exception as exc:
+                logger.debug("Skipping %s: %s", md_file, exc)
+                continue
+
+            refs: List[str] = []
+            for _label, target in _md_link_re.findall(content):
+                # Skip URLs and anchors
+                if target.startswith(("http://", "https://", "#", "mailto:")):
+                    continue
+                refs.append(target)
+            for m in _bare_path_re.finditer(content):
+                candidate = m.group(1).strip("`'\" \t")
+                if "/" in candidate and not candidate.startswith("http"):
+                    refs.append(candidate)
+
+            for ref in refs:
+                # Resolve relative to the docs_root first, then the md_file dir
+                resolved = docs_path / ref
+                if not resolved.exists():
+                    resolved = md_file.parent / ref
+                if not resolved.exists():
+                    gaps.append(
+                        CodeGap(
+                            gap_id=f"gap-mdr-{uuid.uuid4().hex[:8]}",
+                            description=(
+                                f"Broken file reference '{ref}' in {md_file.name}"
+                            ),
+                            source="doc_drift",
+                            severity="low",
+                            category="broken_md_ref",
+                            file_path=str(md_file),
+                            context={"missing_ref": ref, "md_file": str(md_file)},
+                        )
+                    )
+        return gaps
+
+    def _dead_code_gaps(self, src_root: str) -> List[CodeGap]:
+        """Detect public functions and classes that are never imported or called.
+
+        Pass 4 of DiagnosticSupervisor: dead code detection.
+
+        Strategy (file-level cross-reference):
+        1. Collect every top-level ``def``/``class`` definition (non-private, i.e.
+           not starting with ``_``) from each Python file, noting the source file.
+        2. Scan all Python files and collect every name that appears in:
+           - ``import`` or ``from … import`` statements (imported symbols), OR
+           - any ``Name`` or ``Attribute`` AST node (called/referenced symbols).
+        3. Flag any definition whose name never appears in any *other* file's
+           reference set as a potential dead-code symbol.
+
+        This is an intentionally conservative heuristic — it only flags
+        *public* names that are completely absent from the cross-file reference
+        set, which avoids false positives from ``__all__`` or dynamic access while
+        still catching obvious orphans.  Private symbols (``_`` prefix) and
+        ``__dunder__`` names are skipped entirely.
+        """
+        src_path = Path(src_root)
+        py_files = list(src_path.rglob("*.py"))
+
+        # Step 1: collect definitions {name -> (file_path, lineno, kind)}
+        Defn = Dict[str, Any]
+        definitions: Dict[str, List[Defn]] = {}  # name → list of def records
+
+        for py_file in py_files:
+            try:
+                source = py_file.read_text(encoding="utf-8", errors="replace")
+                tree = ast.parse(source)
+            except Exception:
+                continue
+            for node in ast.walk(tree):
+                # Only top-level and class-level definitions
+                if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                    continue
+                name = node.name
+                # Skip private/dunder/test functions
+                if name.startswith("_") or name.startswith("test_"):
+                    continue
+                definitions.setdefault(name, []).append({
+                    "file_path": str(py_file),
+                    "line_number": node.lineno,
+                    "kind": "function" if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) else "class",
+                })
+
+        if not definitions:
+            return []
+
+        # Step 2: collect all referenced names across ALL files
+        all_refs: Set[str] = set()
+        for py_file in py_files:
+            try:
+                source = py_file.read_text(encoding="utf-8", errors="replace")
+                tree = ast.parse(source)
+            except Exception:
+                continue
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Name):
+                    all_refs.add(node.id)
+                elif isinstance(node, ast.Attribute):
+                    all_refs.add(node.attr)
+                elif isinstance(node, ast.alias):
+                    # import foo as bar → both are referenced
+                    all_refs.add(node.name.split(".")[0])
+                    if node.asname:
+                        all_refs.add(node.asname)
+                elif isinstance(node, ast.ImportFrom):
+                    for alias in node.names:
+                        all_refs.add(alias.name)
+                        if alias.asname:
+                            all_refs.add(alias.asname)
+
+        # Step 3: flag definitions whose name never appears in any reference
+        # Use a high cross-file threshold: name must be absent from ALL refs
+        # to avoid flagging symbols that are only used via dynamic dispatch
+        gaps: List[CodeGap] = []
+        reported_names: Set[str] = set()
+        for name, defn_list in definitions.items():
+            if name in reported_names:
+                continue
+            if name in all_refs:
+                continue
+            # Additional safety: skip names that are clearly module-level
+            # exports (uppercase constants, common patterns)
+            if name.isupper():
+                continue
+            for defn in defn_list:
+                gaps.append(
+                    CodeGap(
+                        gap_id=f"gap-dc-{uuid.uuid4().hex[:8]}",
+                        description=(
+                            f"Potential dead code: {defn['kind']} '{name}' "
+                            f"is never referenced outside its defining file"
+                        ),
+                        source="dead_code",
+                        severity="low",
+                        category="dead_code",
+                        file_path=defn["file_path"],
+                        line_number=defn["line_number"],
+                        function_name=name if defn["kind"] == "function" else "",
+                        class_name=name if defn["kind"] == "class" else "",
+                        context={"symbol_kind": defn["kind"], "symbol_name": name},
+                    )
+                )
+            reported_names.add(name)
         return gaps
 
     def _correlate_gaps(self, gaps: List[CodeGap]) -> List[CodeGap]:
@@ -1574,11 +1744,13 @@ class MurphyCodeHealer:
         governance_framework=None,
         src_root: Optional[str] = None,
         tests_root: Optional[str] = None,
+        docs_root: Optional[str] = None,
     ) -> None:
         self._backbone = event_backbone
         self._pm = persistence_manager
         self._lock = threading.Lock()
         self._running = False
+        self._subscription_ids: List[str] = []
 
         self.diagnostic = DiagnosticSupervisor(
             bug_detector=bug_detector,
@@ -1586,6 +1758,7 @@ class MurphyCodeHealer:
             healing_coordinator=healing_coordinator,
             src_root=src_root,
             tests_root=tests_root,
+            docs_root=docs_root,
         )
         self.intelligence = CodeIntelligence(src_root=src_root)
         self.planner = BayesianFixPlanner()
@@ -1749,9 +1922,138 @@ class MurphyCodeHealer:
         """
         return self.analyze_and_propose
 
+    def subscribe_to_events(self) -> None:
+        """Subscribe to EventBackbone events that trigger healing cycles.
+
+        Handles:
+        - ``TASK_FAILED`` — a runtime task failed; trigger gap detection.
+        - ``TEST_FAILED`` — a test suite failure was reported.
+        - ``DOC_DRIFT`` — documentation drift was detected externally.
+
+        Each event is processed in a background thread to avoid blocking
+        the event dispatch loop.  Calling this method a second time is a
+        no-op if subscriptions have already been registered.
+        """
+        if self._backbone is None:
+            logger.debug("MurphyCodeHealer: no EventBackbone — skipping subscriptions")
+            return
+
+        if self._subscription_ids:
+            logger.debug("MurphyCodeHealer: already subscribed — skipping duplicate subscription")
+            return
+
+        try:
+            from event_backbone import EventType
+        except ImportError:
+            try:
+                from src.event_backbone import EventType
+            except ImportError:
+                logger.warning("MurphyCodeHealer: EventType not importable — cannot subscribe")
+                return
+
+        def _handle_task_failed(event) -> None:
+            payload = event.payload if hasattr(event, "payload") else {}
+            logger.info(
+                "MurphyCodeHealer triggered by TASK_FAILED (event=%s)",
+                getattr(event, "event_id", "?"),
+            )
+            gap = CodeGap(
+                gap_id=f"gap-tf-{uuid.uuid4().hex[:8]}",
+                description=(
+                    f"Task failure detected: {payload.get('task_type', 'unknown')}"
+                ),
+                source="task_failed_event",
+                severity="high",
+                category="task_failure",
+                file_path=payload.get("file_path", ""),
+                function_name=payload.get("function_name", ""),
+                context={"event_payload": payload},
+            )
+            threading.Thread(
+                target=self._safe_analyze_and_propose,
+                args=(gap,),
+                daemon=True,
+                name="healer-task-failed",
+            ).start()
+
+        def _handle_test_failed(event) -> None:
+            payload = event.payload if hasattr(event, "payload") else {}
+            logger.info(
+                "MurphyCodeHealer triggered by TEST_FAILED (event=%s)",
+                getattr(event, "event_id", "?"),
+            )
+            gap = CodeGap(
+                gap_id=f"gap-testf-{uuid.uuid4().hex[:8]}",
+                description=(
+                    f"Test failure: {payload.get('test_name', 'unknown')}"
+                ),
+                source="test_failed_event",
+                severity="high",
+                category="test_failure",
+                file_path=payload.get("file_path", ""),
+                function_name=payload.get("test_name", ""),
+                context={"event_payload": payload},
+            )
+            threading.Thread(
+                target=self._safe_analyze_and_propose,
+                args=(gap,),
+                daemon=True,
+                name="healer-test-failed",
+            ).start()
+
+        def _handle_doc_drift(event) -> None:
+            payload = event.payload if hasattr(event, "payload") else {}
+            logger.info(
+                "MurphyCodeHealer triggered by DOC_DRIFT (event=%s)",
+                getattr(event, "event_id", "?"),
+            )
+            gap = CodeGap(
+                gap_id=f"gap-dd-{uuid.uuid4().hex[:8]}",
+                description=(
+                    f"Documentation drift: {payload.get('description', 'unknown')}"
+                ),
+                source="doc_drift_event",
+                severity="low",
+                category="doc_drift",
+                file_path=payload.get("file_path", ""),
+                context={"event_payload": payload},
+            )
+            threading.Thread(
+                target=self._safe_analyze_and_propose,
+                args=(gap,),
+                daemon=True,
+                name="healer-doc-drift",
+            ).start()
+
+        try:
+            sub_ids = [
+                self._backbone.subscribe(EventType.TASK_FAILED, _handle_task_failed),
+                self._backbone.subscribe(EventType.TEST_FAILED, _handle_test_failed),
+                self._backbone.subscribe(EventType.DOC_DRIFT, _handle_doc_drift),
+            ]
+            self._subscription_ids.extend(sub_ids)
+            logger.info(
+                "MurphyCodeHealer subscribed to TASK_FAILED, TEST_FAILED, DOC_DRIFT "
+                "(ids=%s)",
+                sub_ids,
+            )
+        except Exception as exc:
+            logger.warning("MurphyCodeHealer event subscription failed: %s", exc)
+
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+
+    def _safe_analyze_and_propose(self, gap: CodeGap) -> None:
+        """Run analyze_and_propose in a safe wrapper (used by event handlers)."""
+        try:
+            self.analyze_and_propose(gap)
+        except Exception as exc:
+            logger.warning(
+                "MurphyCodeHealer._safe_analyze_and_propose failed for gap %s: %s",
+                gap.gap_id,
+                exc,
+            )
 
     def _persist_proposal(self, proposal: CodeProposal) -> None:
         if self._pm is not None:
@@ -1768,6 +2070,34 @@ class MurphyCodeHealer:
         same-named keys in *payload*.
         """
         try:
+            # Map healer event names → EventType enum members
+            try:
+                from event_backbone import EventType as _ET
+            except ImportError:
+                try:
+                    from src.event_backbone import EventType as _ET
+                except ImportError:
+                    logger.debug("EventType not importable — skipping publish for %s", event_name)
+                    return
+
+            _NAME_TO_EVENT_TYPE = {
+                "CODE_HEALER_STARTED": "CODE_HEALER_STARTED",
+                "CODE_HEALER_COMPLETED": "CODE_HEALER_COMPLETED",
+                "CODE_HEALER_PROPOSAL_CREATED": "CODE_HEALER_PROPOSAL_CREATED",
+                "CODE_HEALER_GAP_LOW_CONFIDENCE": "CODE_HEALER_GAP_LOW_CONFIDENCE",
+            }
+            et_name = _NAME_TO_EVENT_TYPE.get(event_name)
+            if et_name is None:
+                # Unmapped event — skip publishing rather than pass None
+                logger.debug("No EventType mapping for %s — skipping publish", event_name)
+                return
+            event_type = getattr(_ET, et_name, None)
+            if event_type is None:
+                logger.debug("EventType.%s not found — skipping publish", et_name)
+                return
+            self._backbone.publish(
+                event_type=event_type,
+                payload={
             from event_backbone_client import publish as _bb_publish  # noqa: PLC0415
             _bb_publish(
                 event_name,
