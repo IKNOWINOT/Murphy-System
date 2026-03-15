@@ -52,6 +52,32 @@ INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
 
 ---
 
+## 1b. Configure (Optional)
+
+The `Murphy System/config/` directory contains YAML files with sensible defaults for all runtime settings. You can customise them before starting:
+
+```bash
+# Edit main system settings (LLM provider, thresholds, logging, tenant limits):
+nano "Murphy System/config/murphy.yaml"
+
+# Edit engine settings (swarm parameters, gate thresholds, orchestrator timeouts):
+nano "Murphy System/config/engines.yaml"
+```
+
+Environment variables **always override YAML values** — so you can also override individual settings without touching any file:
+
+```bash
+export MURPHY_LLM_PROVIDER=groq   # override LLM provider
+export LOG_LEVEL=DEBUG             # override log level
+export MURPHY_API__PORT=9000       # override API port (namespaced syntax)
+```
+
+See `Murphy System/config/murphy.yaml.example` and `Murphy System/config/engines.yaml.example` for a fully-annotated reference of every available setting.
+
+> **Secrets** (API keys, passwords) must never go in YAML files. Add them to `Murphy System/.env` or use a secrets manager.
+
+---
+
 ## 2. What You Get
 
 Murphy System is a universal AI-governed automation platform that applies formal control theory — confidence scoring, safety gates, and human-in-the-loop checkpoints — to any operational domain.
