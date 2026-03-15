@@ -1,0 +1,599 @@
+<!-- Murphy System — Calendar / © 2020 Inoni Limited Liability Company by Corey Post / License: BSL 1.1 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — Calendar</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-ui);overflow:hidden;height:100vh;display:flex;flex-direction:column}
+
+/* TOPBAR */
+.c-topbar{height:52px;background:var(--bg-surface);border-bottom:1px solid var(--border-default);display:flex;align-items:center;justify-content:space-between;padding:0 16px;flex-shrink:0;z-index:200}
+.c-brand{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--teal);font-weight:700;font-size:1rem;letter-spacing:.05em}
+.c-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--radius-md);border:1px solid var(--border-default);background:var(--bg-elevated);color:var(--text-primary);font-size:13px;cursor:pointer;font-family:var(--font-ui);transition:background var(--transition-fast)}
+.c-btn:hover{background:var(--bg-input);border-color:var(--teal)}
+.c-btn-primary{background:var(--teal);color:#000;border-color:var(--teal);font-weight:600}
+.c-btn-primary:hover{background:#00b890}
+.c-btn-icon{padding:6px;border:none;background:none;color:var(--text-secondary);cursor:pointer;border-radius:var(--radius-sm);display:flex;align-items:center}
+.c-btn-icon:hover{background:var(--bg-elevated);color:var(--text-primary)}
+
+/* SHELL */
+.c-shell{display:flex;flex:1;overflow:hidden}
+
+/* SIDEBAR */
+.c-sidebar{width:220px;background:var(--bg-surface);border-right:1px solid var(--border-default);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;padding-bottom:16px}
+.c-sidebar-section{padding:12px 0}
+.c-sidebar-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;padding:8px 14px 4px}
+
+/* MINI CALENDAR */
+.mini-cal{padding:10px 14px}
+.mini-cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.mini-cal-title{font-size:13px;font-weight:600}
+.mini-cal-nav{background:none;border:none;color:var(--text-muted);cursor:pointer;padding:2px 4px;border-radius:var(--radius-sm)}
+.mini-cal-nav:hover{color:var(--text-primary)}
+.mini-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;text-align:center}
+.mini-day-head{font-size:10px;color:var(--text-muted);padding:2px 0}
+.mini-day{font-size:11px;padding:4px 2px;border-radius:var(--radius-sm);cursor:pointer;color:var(--text-secondary)}
+.mini-day:hover{background:var(--bg-elevated)}
+.mini-day.today{background:var(--teal);color:#000;font-weight:700}
+.mini-day.other-month{color:var(--text-muted);opacity:.4}
+.mini-day.has-events::after{content:'•';display:block;color:var(--teal);font-size:8px;margin-top:-2px}
+
+/* CALENDARS LIST */
+.cal-item{display:flex;align-items:center;gap:8px;padding:5px 14px;font-size:13px;color:var(--text-secondary);cursor:pointer}
+.cal-item:hover{background:var(--bg-elevated)}
+.cal-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.cal-item input[type=checkbox]{accent-color:var(--teal)}
+
+/* UPCOMING */
+.upcoming-event{padding:8px 14px;border-bottom:1px solid var(--border-subtle)}
+.upcoming-title{font-size:12px;font-weight:500;color:var(--text-primary)}
+.upcoming-time{font-size:11px;color:var(--text-muted);margin-top:2px}
+.upcoming-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:3px}
+
+/* AI WIDGET */
+.ai-widget{margin:12px;background:linear-gradient(135deg,rgba(0,212,170,.1),rgba(59,158,255,.05));border:1px solid rgba(0,212,170,.25);border-radius:var(--radius-md);padding:12px}
+.ai-widget-title{font-size:11px;font-weight:600;color:var(--teal);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.ai-widget-body{font-size:12px;color:var(--text-secondary);line-height:1.5}
+.ai-widget-actions{display:flex;gap:8px;margin-top:8px}
+.ai-link{font-size:12px;color:var(--teal);cursor:pointer;background:none;border:none;font-family:var(--font-ui)}
+
+/* MAIN */
+.c-main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.c-main-header{padding:10px 16px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:10px;flex-shrink:0;background:var(--bg-surface)}
+.c-period{font-size:16px;font-weight:700;color:var(--text-primary);min-width:160px}
+.c-tabs{display:flex;gap:2px;background:var(--bg-elevated);border-radius:var(--radius-md);padding:3px}
+.c-tab{padding:5px 12px;border-radius:var(--radius-sm);border:none;background:none;color:var(--text-secondary);font-size:13px;cursor:pointer;font-family:var(--font-ui)}
+.c-tab.active{background:var(--bg-surface);color:var(--text-primary);font-weight:500}
+.c-search{background:var(--bg-elevated);border:1px solid var(--border-default);color:var(--text-primary);padding:6px 10px;border-radius:var(--radius-md);font-size:13px;font-family:var(--font-ui);width:180px;margin-left:auto}
+.c-search:focus{outline:none;border-color:var(--teal)}
+
+/* CALENDAR CONTENT */
+.c-content{flex:1;overflow:auto;padding:0}
+.view-panel{display:none}
+.view-panel.active{display:block;height:100%}
+
+/* MONTH VIEW */
+.month-grid{display:grid;grid-template-columns:repeat(7,1fr);height:100%;grid-template-rows:36px repeat(6,1fr)}
+.month-day-head{background:var(--bg-surface);border-right:1px solid var(--border-subtle);border-bottom:1px solid var(--border-default);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+.month-cell{border-right:1px solid var(--border-subtle);border-bottom:1px solid var(--border-subtle);padding:4px;overflow:hidden;cursor:pointer;transition:background var(--transition-fast)}
+.month-cell:hover{background:var(--bg-elevated)}
+.month-cell.today .cell-num{background:var(--teal);color:#000;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center}
+.month-cell.other-month .cell-num{color:var(--text-muted)}
+.cell-num{font-size:13px;font-weight:500;margin-bottom:3px;width:24px;height:24px;display:flex;align-items:center;justify-content:center}
+.event-pill{border-radius:3px;padding:2px 6px;font-size:11px;font-weight:500;margin-bottom:2px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#000}
+
+/* WEEK VIEW */
+.week-wrap{display:grid;grid-template-columns:52px repeat(7,1fr);height:100%}
+.week-time-col{border-right:1px solid var(--border-subtle)}
+.week-time-slot{height:48px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:flex-start;justify-content:flex-end;padding:2px 6px;font-size:10px;color:var(--text-muted)}
+.week-day-col{border-right:1px solid var(--border-subtle);position:relative}
+.week-day-head{height:40px;background:var(--bg-surface);border-bottom:1px solid var(--border-default);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;color:var(--text-secondary);position:sticky;top:0;z-index:1}
+.week-day-head.today{color:var(--teal)}
+.week-day-num{font-size:20px;font-weight:700}
+.week-event-block{position:absolute;left:2px;right:2px;border-radius:var(--radius-sm);padding:3px 6px;font-size:11px;font-weight:500;color:#000;overflow:hidden;cursor:pointer;z-index:2}
+.time-indicator{position:absolute;left:0;right:0;height:2px;background:#ef4444;z-index:3}
+.time-indicator::before{content:'';position:absolute;left:-4px;top:-4px;width:10px;height:10px;border-radius:50%;background:#ef4444}
+
+/* AGENDA VIEW */
+.agenda-day-group{margin:16px 20px}
+.agenda-date-label{font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border-subtle)}
+.agenda-event{display:flex;align-items:flex-start;gap:12px;padding:10px 12px;border-radius:var(--radius-md);margin-bottom:4px;cursor:pointer;transition:background var(--transition-fast)}
+.agenda-event:hover{background:var(--bg-elevated)}
+.agenda-time{font-size:12px;color:var(--text-muted);width:80px;flex-shrink:0;padding-top:2px}
+.agenda-color-bar{width:4px;border-radius:2px;flex-shrink:0;align-self:stretch;min-height:20px}
+.agenda-title{font-size:14px;font-weight:500;color:var(--text-primary)}
+.agenda-meta{font-size:12px;color:var(--text-muted);margin-top:2px}
+
+/* EVENT POPUP */
+.event-popup{position:fixed;background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);padding:16px;width:280px;z-index:400}
+.event-popup[hidden]{display:none}
+.event-popup-color{height:4px;border-radius:2px;margin-bottom:12px}
+.event-popup-title{font-size:15px;font-weight:600;margin-bottom:4px}
+.event-popup-meta{font-size:12px;color:var(--text-muted);margin-bottom:8px}
+.attendee-row{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.attendee-avatar{width:24px;height:24px;border-radius:50%;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#000}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;display:flex;align-items:center;justify-content:center}
+.modal-overlay[hidden]{display:none}
+.modal{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-xl);width:540px;max-height:90vh;overflow-y:auto;padding:24px}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:20px}
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:12px;color:var(--text-muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em}
+.form-input,.form-select,.form-textarea{width:100%;background:var(--bg-elevated);border:1px solid var(--border-default);color:var(--text-primary);padding:8px 10px;border-radius:var(--radius-md);font-family:var(--font-ui);font-size:13px;outline:none}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--teal)}
+.form-textarea{resize:vertical;min-height:70px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border-subtle)}
+.meet-type-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.meet-type-btn{padding:8px;border:1px solid var(--border-default);border-radius:var(--radius-md);background:var(--bg-elevated);color:var(--text-secondary);font-size:12px;cursor:pointer;text-align:center;transition:all var(--transition-fast)}
+.meet-type-btn.active{border-color:var(--teal);color:var(--teal);background:var(--teal-glow)}
+.attendee-tag{display:inline-flex;align-items:center;gap:6px;background:var(--bg-elevated);border:1px solid var(--border-default);border-radius:var(--radius-full);padding:3px 10px;font-size:12px;margin:2px}
+.attendee-tag button{background:none;border:none;color:var(--text-muted);cursor:pointer;padding:0;font-size:14px;line-height:1}
+.duration-chips{display:flex;gap:6px;flex-wrap:wrap}
+.dur-chip{padding:4px 10px;border-radius:var(--radius-full);border:1px solid var(--border-default);font-size:12px;cursor:pointer;color:var(--text-secondary);background:none}
+.dur-chip.active{border-color:var(--teal);color:var(--teal);background:var(--teal-glow)}
+.ai-time-slot{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--bg-elevated);border-radius:var(--radius-md);margin-bottom:6px;font-size:13px}
+.ai-time-available{font-size:11px;color:#22c55e}
+
+/* FOOTER */
+.c-footer{padding:10px 16px;border-top:1px solid var(--border-subtle);display:flex;gap:16px;font-size:12px;color:var(--text-muted);background:var(--bg-surface);flex-shrink:0}
+.c-footer a{color:var(--text-muted);text-decoration:none}
+.c-footer a:hover{color:var(--teal)}
+</style>
+</head>
+<body>
+<a href="#cal-main" class="murphy-skip-link">Skip to main content</a>
+
+<!-- TOPBAR -->
+<header class="c-topbar" role="banner">
+  <div style="display:flex;align-items:center;gap:12px">
+    <a href="/ui/landing" class="c-brand" aria-label="Murphy System home">
+      <svg width="24" height="24" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#00D4AA"/><text x="12" y="17" text-anchor="middle" fill="#000" font-size="13" font-weight="700" font-family="Inter,sans-serif">M</text></svg>
+      <span>MURPHY</span>
+    </a>
+  </div>
+  <nav style="display:flex;align-items:center;gap:8px" aria-label="Top navigation">
+    <a href="/ui/management" class="c-btn">Management</a>
+    <a href="/ui/workspace" class="c-btn">Workspace</a>
+    <div style="width:32px;height:32px;border-radius:50%;background:var(--teal);color:#000;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center" aria-label="User: Corey Post">CP</div>
+  </nav>
+</header>
+
+<!-- SHELL -->
+<div class="c-shell">
+
+  <!-- SIDEBAR -->
+  <aside class="c-sidebar" aria-label="Calendar sidebar">
+
+    <!-- Mini calendars -->
+    <div class="mini-cal" id="mini-cal-container"></div>
+
+    <!-- My Calendars -->
+    <div class="c-sidebar-section">
+      <div class="c-sidebar-label">My Calendars</div>
+      <label class="cal-item"><input type="checkbox" checked data-cal="personal"> <span class="cal-dot" style="background:#00D4AA"></span> Personal</label>
+      <label class="cal-item"><input type="checkbox" checked data-cal="work"> <span class="cal-dot" style="background:#3b9eff"></span> Work</label>
+      <label class="cal-item"><input type="checkbox" checked data-cal="team"> <span class="cal-dot" style="background:#e879f9"></span> Team</label>
+      <label class="cal-item"><input type="checkbox" checked data-cal="murphy"> <span class="cal-dot" style="background:#ffa63e"></span> Murphy AI</label>
+      <button class="c-btn" style="margin:4px 14px;font-size:12px;width:calc(100% - 28px)">+ Add Calendar</button>
+    </div>
+
+    <!-- Upcoming -->
+    <div class="c-sidebar-section">
+      <div class="c-sidebar-label">Upcoming</div>
+      <div id="upcoming-events"></div>
+    </div>
+
+    <!-- AI Widget -->
+    <div class="ai-widget">
+      <div class="ai-widget-title">🤖 Murphy AI</div>
+      <div class="ai-widget-body">Based on #general activity, I've drafted a meeting agenda for your 3pm standup.</div>
+      <div class="ai-widget-actions">
+        <button class="ai-link" onclick="alert('Opening draft agenda…')">Preview</button>
+        <button class="ai-link" style="color:var(--text-muted)">Dismiss</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="c-main" id="cal-main">
+    <div class="c-main-header">
+      <button class="c-btn" onclick="goToday()">Today</button>
+      <button class="c-btn-icon" onclick="navigate(-1)" aria-label="Previous">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <button class="c-btn-icon" onclick="navigate(1)" aria-label="Next">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <span class="c-period" id="period-label"></span>
+      <div class="c-tabs" role="tablist">
+        <button class="c-tab active" role="tab" data-view="month" onclick="switchView('month')">Month</button>
+        <button class="c-tab" role="tab" data-view="week" onclick="switchView('week')">Week</button>
+        <button class="c-tab" role="tab" data-view="day" onclick="switchView('day')">Day</button>
+        <button class="c-tab" role="tab" data-view="agenda" onclick="switchView('agenda')">Agenda</button>
+      </div>
+      <input type="search" class="c-search" placeholder="Search events…" aria-label="Search events">
+      <button class="c-btn-primary c-btn" onclick="openEventModal()">+ New Event</button>
+    </div>
+
+    <div class="c-content">
+      <div class="view-panel active" id="view-month" role="tabpanel" aria-label="Month view"></div>
+      <div class="view-panel" id="view-week" role="tabpanel" aria-label="Week view"></div>
+      <div class="view-panel" id="view-day" role="tabpanel" aria-label="Day view"></div>
+      <div class="view-panel" id="view-agenda" role="tabpanel" aria-label="Agenda view"></div>
+    </div>
+  </main>
+</div>
+
+<!-- EVENT POPUP -->
+<div class="event-popup" id="event-popup" hidden role="dialog" aria-modal="true" aria-labelledby="popup-title">
+  <div class="event-popup-color" id="popup-color"></div>
+  <h3 class="event-popup-title" id="popup-title"></h3>
+  <div class="event-popup-meta" id="popup-meta"></div>
+  <div id="popup-attendees" style="margin-bottom:10px"></div>
+  <div id="popup-desc" style="font-size:12px;color:var(--text-secondary);margin-bottom:10px"></div>
+  <div style="display:flex;gap:6px">
+    <button class="c-btn" id="popup-join" style="display:none">Join Meeting</button>
+    <button class="c-btn" onclick="hidePopup()">Close</button>
+    <button class="c-btn" onclick="hidePopup()">Edit</button>
+    <button class="c-btn" style="color:var(--danger);border-color:var(--danger)" onclick="hidePopup()">Delete</button>
+  </div>
+</div>
+
+<!-- EVENT MODAL -->
+<div class="modal-overlay" id="event-modal" hidden role="dialog" aria-modal="true" aria-labelledby="event-modal-title">
+  <div class="modal">
+    <h2 class="modal-title" id="event-modal-title">New Event</h2>
+    <div class="form-group"><label class="form-label">Title</label><input class="form-input" id="ev-title" placeholder="Event title…"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Start Date & Time</label><input type="datetime-local" class="form-input" id="ev-start"></div>
+      <div class="form-group"><label class="form-label">End Date & Time</label><input type="datetime-local" class="form-input" id="ev-end"></div>
+    </div>
+    <div class="form-group">
+      <div class="form-label">Duration</div>
+      <div class="duration-chips">
+        <span class="dur-chip" onclick="setDuration(30)">30 min</span>
+        <span class="dur-chip active" onclick="setDuration(60)">1 hr</span>
+        <span class="dur-chip" onclick="setDuration(120)">2 hr</span>
+        <span class="dur-chip" onclick="setDuration(0)">Custom</span>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Description / Agenda</label><textarea class="form-textarea" id="ev-desc" placeholder="Add agenda or notes…"></textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Location</label><input class="form-input" id="ev-location" placeholder="Room or address…"></div>
+      <div class="form-group"><label class="form-label">Calendar</label>
+        <select class="form-select" id="ev-calendar">
+          <option value="personal">Personal</option><option value="work" selected>Work</option>
+          <option value="team">Team</option><option value="murphy">Murphy AI</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <div class="form-label">Meeting Type</div>
+      <div class="meet-type-grid">
+        <button class="meet-type-btn" onclick="selectMeetType(this,'inperson')">📍 In-person</button>
+        <button class="meet-type-btn" onclick="selectMeetType(this,'voice')">📞 Voice Call</button>
+        <button class="meet-type-btn active" onclick="selectMeetType(this,'video')">📹 Video Call</button>
+        <button class="meet-type-btn" onclick="selectMeetType(this,'murphy')">⚡ Murphy Channel</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Invite Attendees</label>
+      <input class="form-input" id="attendee-input" placeholder="Name or email…" onkeydown="addAttendeeKey(event)">
+      <div id="attendee-tags" style="margin-top:6px"></div>
+      <button class="ai-link" style="margin-top:6px;color:var(--teal)" onclick="murphySuggestAttendees()">🤖 Murphy AI: Suggest who to invite</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Recurrence</label>
+        <select class="form-select" id="ev-recur">
+          <option>One-time</option><option>Daily</option><option>Weekly</option><option>Monthly</option><option>Custom</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Reminder</label>
+        <select class="form-select" id="ev-reminder">
+          <option>10 min before</option><option>30 min before</option><option>1 hr before</option><option>1 day before</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <div class="form-label">Murphy AI — Find Best Time</div>
+      <button class="c-btn" style="width:100%;justify-content:center;margin-bottom:10px" onclick="findBestTime()">🤖 Find Best Time for All Attendees</button>
+      <div id="ai-time-slots" style="display:none">
+        <div class="ai-time-slot"><span>Today 2:00 PM – 3:00 PM</span><span class="ai-time-available">✓ All available</span><button class="c-btn" style="padding:3px 8px;font-size:11px" onclick="selectSlot(this,'Today 2:00 PM')">Select</button></div>
+        <div class="ai-time-slot"><span>Tomorrow 10:00 AM – 11:00 AM</span><span class="ai-time-available">✓ All available</span><button class="c-btn" style="padding:3px 8px;font-size:11px" onclick="selectSlot(this,'Tomorrow 10:00 AM')">Select</button></div>
+        <div class="ai-time-slot"><span>Thu 3:00 PM – 4:00 PM</span><span style="font-size:11px;color:#ffa63e">⚠ 1 conflict</span><button class="c-btn" style="padding:3px 8px;font-size:11px" onclick="selectSlot(this,'Thu 3:00 PM')">Select</button></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="c-btn" onclick="closeEventModal()">Cancel</button>
+      <button class="c-btn" onclick="sendInvites()">Send Invites</button>
+      <button class="c-btn-primary c-btn" onclick="saveEvent()">Save Event</button>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="c-footer" role="contentinfo">
+  <a href="/ui/landing">Home</a>
+  <a href="/ui/workspace">Workspace</a>
+  <a href="/ui/management">Management</a>
+  <a href="/ui/calendar">Calendar</a>
+  <a href="/ui/meeting-intelligence">Meeting AI</a>
+  <a href="/ui/ambient">Ambient AI</a>
+  <a href="/ui/wallet">Wallet</a>
+  <a href="/ui/docs">Docs</a>
+  <span style="margin-left:auto">© 2020 Inoni LLC · BSL 1.1</span>
+</footer>
+
+<script src="static/murphy-components.js"></script>
+<script>
+const CAL_COLORS = {personal:'#00D4AA',work:'#3b9eff',team:'#e879f9',murphy:'#ffa63e'};
+let currentView = 'month';
+let currentDate = new Date();
+let attendees = [];
+let events = [];
+
+function defaultEvents() {
+  const y = currentDate.getFullYear(), m = currentDate.getMonth();
+  return [
+    {id:'e1',title:'Daily Standup',date:new Date(y,m,3,9,0),end:new Date(y,m,3,9,15),cal:'team',attendees:['CP','JL','MR'],desc:'15-minute team sync'},
+    {id:'e2',title:'Murphy Platform Sprint Review',date:new Date(y,m,5,14,0),end:new Date(y,m,5,15,30),cal:'work',attendees:['CP','SR','JL'],desc:'Sprint review and demo'},
+    {id:'e3',title:'1:1 with Jordan',date:new Date(y,m,7,11,0),end:new Date(y,m,7,12,0),cal:'personal',attendees:['CP','JL'],desc:'Weekly 1:1 check-in'},
+    {id:'e4',title:'All-Hands Meeting',date:new Date(y,m,10,10,0),end:new Date(y,m,10,11,30),cal:'team',attendees:['CP','JL','MR','SR','KW'],desc:'Monthly all-hands'},
+    {id:'e5',title:'Product Roadmap Planning',date:new Date(y,m,12,13,0),end:new Date(y,m,12,15,0),cal:'work',attendees:['CP','MR'],desc:'Q3 roadmap planning session'},
+    {id:'e6',title:'Murphy AI Demo',date:new Date(y,m,14,15,0),end:new Date(y,m,14,16,0),cal:'murphy',attendees:['CP','SR'],desc:'Demo ambient intelligence to stakeholders'},
+    {id:'e7',title:'Design Review',date:new Date(y,m,16,10,0),end:new Date(y,m,16,11,0),cal:'work',attendees:['CP','KW'],desc:'UI/UX design review'},
+    {id:'e8',title:'Board Meeting',date:new Date(y,m,18,9,0),end:new Date(y,m,18,11,0),cal:'team',attendees:['CP','SR','JL','MR'],desc:'Quarterly board update'},
+    {id:'e9',title:'Engineering Sync',date:new Date(y,m,20,14,0),end:new Date(y,m,20,15,0),cal:'work',attendees:['CP','JL'],desc:'Weekly engineering alignment'},
+    {id:'e10',title:'Marketing Campaign Kickoff',date:new Date(y,m,22,11,0),end:new Date(y,m,22,12,0),cal:'team',attendees:['CP','SR'],desc:'Launch campaign planning'},
+    {id:'e11',title:'Lunch & Learn',date:new Date(y,m,24,12,0),end:new Date(y,m,24,13,0),cal:'personal',attendees:['CP','JL','MR'],desc:'Murphy AI knowledge sharing'},
+    {id:'e12',title:'Investor Update Call',date:new Date(y,m,26,15,0),end:new Date(y,m,26,16,0),cal:'work',attendees:['CP'],desc:'Monthly investor update'},
+  ];
+}
+
+function loadEvents() {
+  const saved = localStorage.getItem('murphy-calendar-events');
+  events = saved ? JSON.parse(saved).map(e=>{e.date=new Date(e.date);e.end=new Date(e.end);return e;}) : defaultEvents();
+}
+function saveEvents() { localStorage.setItem('murphy-calendar-events', JSON.stringify(events)); }
+
+// ── MONTH VIEW ────────────────────────────────────────────────────
+function renderMonth() {
+  const y = currentDate.getFullYear(), m = currentDate.getMonth();
+  document.getElementById('period-label').textContent = new Date(y,m,1).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  const firstDay = new Date(y,m,1).getDay();
+  const daysInMonth = new Date(y,m+1,0).getDate();
+  const today = new Date();
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  let html = `<div class="month-grid">`;
+  days.forEach(d=>html+=`<div class="month-day-head">${d}</div>`);
+  // Pad start
+  for(let i=0;i<firstDay;i++) {
+    const prevDate = new Date(y,m,1-firstDay+i);
+    html+=`<div class="month-cell other-month"><div class="cell-num">${prevDate.getDate()}</div></div>`;
+  }
+  for(let d=1;d<=daysInMonth;d++) {
+    const isToday = today.getFullYear()===y && today.getMonth()===m && today.getDate()===d;
+    const dayEvts = events.filter(e=>e.date.getFullYear()===y && e.date.getMonth()===m && e.date.getDate()===d);
+    html+=`<div class="month-cell${isToday?' today':''}" onclick="dayClick(${y},${m},${d})" aria-label="${y}-${m+1}-${d}">
+      <div class="cell-num">${d}</div>
+      ${dayEvts.slice(0,3).map(e=>`<div class="event-pill" style="background:${CAL_COLORS[e.cal]}" onclick="showPopup(event,'${e.id}')" title="${e.title}">${e.title}</div>`).join('')}
+      ${dayEvts.length>3?`<div style="font-size:10px;color:var(--text-muted)">+${dayEvts.length-3} more</div>`:''}
+    </div>`;
+  }
+  // Pad end
+  const remaining = 42 - firstDay - daysInMonth;
+  for(let d=1;d<=remaining;d++) html+=`<div class="month-cell other-month"><div class="cell-num">${d}</div></div>`;
+  html+=`</div>`;
+  document.getElementById('view-month').innerHTML=html;
+}
+
+// ── WEEK VIEW ─────────────────────────────────────────────────────
+function renderWeek() {
+  const weekStart = new Date(currentDate);
+  weekStart.setDate(currentDate.getDate() - currentDate.getDay());
+  const days = Array.from({length:7},(_,i)=>{const d=new Date(weekStart);d.setDate(weekStart.getDate()+i);return d;});
+  document.getElementById('period-label').textContent = `${days[0].toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${days[6].toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`;
+  const today = new Date();
+  const SLOT_H = 48, START_H = 7;
+  let html=`<div class="week-wrap" style="overflow-y:auto;height:100%">
+    <div class="week-time-col">
+      <div style="height:40px;border-bottom:1px solid var(--border-default)"></div>
+      ${Array.from({length:14},(_,i)=>`<div class="week-time-slot">${((START_H+i)%12||12)}${(START_H+i)<12||START_H+i===24?'am':'pm'}</div>`).join('')}
+    </div>`;
+  days.forEach(day=>{
+    const isToday = day.toDateString()===today.toDateString();
+    const dayEvts = events.filter(e=>e.date.toDateString()===day.toDateString());
+    html+=`<div class="week-day-col">
+      <div class="week-day-head${isToday?' today':('')}">
+        <div>${day.toLocaleDateString('en-US',{weekday:'short'})}</div>
+        <div class="week-day-num">${day.getDate()}</div>
+      </div>
+      <div style="position:relative;height:${14*SLOT_H}px">
+        ${Array.from({length:14},()=>`<div style="height:${SLOT_H}px;border-bottom:1px solid var(--border-subtle)"></div>`).join('')}
+        ${dayEvts.map(e=>{
+          const top=((e.date.getHours()-START_H)*60+e.date.getMinutes())/30*24;
+          const dur=(e.end-e.date)/1000/60/2;
+          return `<div class="week-event-block" style="top:${top}px;height:${Math.max(dur,20)}px;background:${CAL_COLORS[e.cal]}" onclick="showPopup(event,'${e.id}')" title="${e.title}">${e.title}</div>`;
+        }).join('')}
+        ${isToday?`<div class="time-indicator" style="top:${((today.getHours()-START_H)*60+today.getMinutes())/30*24}px"></div>`:''}
+      </div>
+    </div>`;
+  });
+  html+=`</div>`;
+  document.getElementById('view-week').innerHTML=html;
+}
+
+// ── AGENDA VIEW ───────────────────────────────────────────────────
+function renderAgenda() {
+  document.getElementById('period-label').textContent = 'Upcoming Events';
+  const sorted = [...events].sort((a,b)=>a.date-b.date);
+  const groups = {};
+  sorted.forEach(e=>{
+    const key=e.date.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+    if(!groups[key]) groups[key]=[];
+    groups[key].push(e);
+  });
+  document.getElementById('view-agenda').innerHTML = Object.entries(groups).map(([date,evts])=>`
+    <div class="agenda-day-group">
+      <div class="agenda-date-label">${date}</div>
+      ${evts.map(e=>`
+        <div class="agenda-event" onclick="showPopup(event,'${e.id}')">
+          <div class="agenda-time">${e.date.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}</div>
+          <div class="agenda-color-bar" style="background:${CAL_COLORS[e.cal]}"></div>
+          <div>
+            <div class="agenda-title">${e.title}</div>
+            <div class="agenda-meta">${e.attendees.length} attendees · ${e.desc}</div>
+          </div>
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+function renderDay() {
+  document.getElementById('period-label').textContent = currentDate.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  document.getElementById('view-day').innerHTML=`<div style="padding:16px;color:var(--text-secondary);font-size:14px">(Day view — same layout as week for a single day)</div>`;
+}
+
+// ── MINI CALENDAR ─────────────────────────────────────────────────
+function renderMiniCal() {
+  const y=currentDate.getFullYear(),m=currentDate.getMonth();
+  const html=buildMiniCal(y,m,'mini-cal-container');
+  document.getElementById('mini-cal-container').innerHTML=html;
+}
+function buildMiniCal(y,m) {
+  const first=new Date(y,m,1).getDay(), days=new Date(y,m+1,0).getDate();
+  const month=new Date(y,m,1).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  const today=new Date();
+  let g=`<div class="mini-cal-header">
+    <span class="mini-cal-title">${month}</span>
+    <button class="mini-cal-nav" onclick="navigateMini(-1)">‹</button>
+    <button class="mini-cal-nav" onclick="navigateMini(1)">›</button>
+  </div>
+  <div class="mini-grid">
+    ${'SMTWTFS'.split('').map(d=>`<div class="mini-day-head">${d}</div>`).join('')}`;
+  for(let i=0;i<first;i++) g+=`<div class="mini-day other-month"></div>`;
+  for(let d=1;d<=days;d++){
+    const isToday=today.getFullYear()===y&&today.getMonth()===m&&today.getDate()===d;
+    const hasE=events.some(e=>e.date.getFullYear()===y&&e.date.getMonth()===m&&e.date.getDate()===d);
+    g+=`<div class="mini-day${isToday?' today':''}${hasE?' has-events':''}" onclick="jumpToDay(${y},${m},${d})">${d}</div>`;
+  }
+  g+=`</div>`;
+  return g;
+}
+let miniOffset=0;
+function navigateMini(dir){miniOffset+=dir;const d=new Date(currentDate.getFullYear(),currentDate.getMonth()+miniOffset,1);document.getElementById('mini-cal-container').innerHTML=buildMiniCal(d.getFullYear(),d.getMonth());}
+function jumpToDay(y,m,d){currentDate=new Date(y,m,d);miniOffset=0;renderView();}
+
+// ── UPCOMING ──────────────────────────────────────────────────────
+function renderUpcoming() {
+  const sorted=[...events].sort((a,b)=>a.date-b.date).filter(e=>e.date>=new Date()).slice(0,5);
+  document.getElementById('upcoming-events').innerHTML=sorted.map(e=>`
+    <div class="upcoming-event" onclick="showPopup(event,'${e.id}')" style="cursor:pointer">
+      <div style="display:flex;align-items:flex-start;gap:8px">
+        <div class="upcoming-dot" style="background:${CAL_COLORS[e.cal]}"></div>
+        <div>
+          <div class="upcoming-title">${e.title}</div>
+          <div class="upcoming-time">${e.date.toLocaleDateString('en-US',{month:'short',day:'numeric'})} · ${e.date.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}</div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// ── EVENT POPUP ───────────────────────────────────────────────────
+function showPopup(evt,id) {
+  evt.stopPropagation();
+  const e=events.find(x=>x.id===id);
+  if(!e) return;
+  const popup=document.getElementById('event-popup');
+  document.getElementById('popup-color').style.background=CAL_COLORS[e.cal];
+  document.getElementById('popup-title').textContent=e.title;
+  document.getElementById('popup-meta').textContent=`${e.date.toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})} – ${e.end.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}`;
+  document.getElementById('popup-desc').textContent=e.desc||'';
+  document.getElementById('popup-attendees').innerHTML=e.attendees.map(a=>`<div class="attendee-row"><div class="attendee-avatar" style="background:var(--teal)">${a}</div><span style="font-size:12px">${a}</span></div>`).join('');
+  popup.style.top=(evt.clientY+10)+'px';
+  popup.style.left=Math.min(evt.clientX,window.innerWidth-300)+'px';
+  popup.hidden=false;
+}
+function hidePopup(){document.getElementById('event-popup').hidden=true;}
+document.addEventListener('click',e=>{if(!e.target.closest('.event-popup'))hidePopup();});
+
+// ── EVENT MODAL ───────────────────────────────────────────────────
+function openEventModal(y,m,d){
+  if(y!==undefined){
+    const dt=new Date(y,m,d,9,0);
+    document.getElementById('ev-start').value=dt.toISOString().slice(0,16);
+  }
+  document.getElementById('event-modal').hidden=false;
+}
+function closeEventModal(){document.getElementById('event-modal').hidden=true;}
+document.getElementById('event-modal').addEventListener('click',e=>{if(e.target===document.getElementById('event-modal'))closeEventModal();});
+
+function setDuration(min) {
+  document.querySelectorAll('.dur-chip').forEach(c=>c.classList.remove('active'));
+  event.target.classList.add('active');
+  if(min&&document.getElementById('ev-start').value){
+    const start=new Date(document.getElementById('ev-start').value);
+    start.setMinutes(start.getMinutes()+min);
+    document.getElementById('ev-end').value=start.toISOString().slice(0,16);
+  }
+}
+function selectMeetType(btn,type){document.querySelectorAll('.meet-type-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
+function addAttendeeKey(e){if(e.key==='Enter'){const v=e.target.value.trim();if(v){attendees.push(v);e.target.value='';renderAttendeeTags();}}}
+function renderAttendeeTags(){
+  document.getElementById('attendee-tags').innerHTML=attendees.map((a,i)=>`<span class="attendee-tag">${a}<button onclick="removeAttendee(${i})" aria-label="Remove ${a}">×</button></span>`).join('');
+}
+function removeAttendee(i){attendees.splice(i,1);renderAttendeeTags();}
+function murphySuggestAttendees(){attendees=['Jordan Lee','Maria Rodriguez','Sam Rivera'];renderAttendeeTags();alert('Murphy AI: Suggested attendees based on project context.');}
+function findBestTime(){
+  fetch('/api/librarian/query',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:'find best meeting time'})}).catch(()=>{});
+  document.getElementById('ai-time-slots').style.display='block';
+}
+function selectSlot(btn,label){document.getElementById('ev-title').placeholder=`Meeting at ${label}`;alert(`Selected: ${label}`);}
+function sendInvites(){alert(`Invites sent to: ${attendees.join(', ')||'no attendees added'}`);}
+function saveEvent(){
+  const title=document.getElementById('ev-title').value.trim();
+  if(!title){alert('Please enter a title');return;}
+  const start=new Date(document.getElementById('ev-start').value||Date.now());
+  const end=new Date(document.getElementById('ev-end').value||Date.now()+3600000);
+  events.push({id:'ev'+Date.now(),title,date:start,end,cal:document.getElementById('ev-calendar').value,attendees:[...attendees,'CP'],desc:document.getElementById('ev-desc').value});
+  saveEvents();closeEventModal();attendees=[];renderView();renderUpcoming();
+}
+function dayClick(y,m,d){openEventModal(y,m,d);}
+
+// ── NAVIGATION ────────────────────────────────────────────────────
+function navigate(dir) {
+  if(currentView==='month'){currentDate.setMonth(currentDate.getMonth()+dir);}
+  else if(currentView==='week'){currentDate.setDate(currentDate.getDate()+dir*7);}
+  else{currentDate.setDate(currentDate.getDate()+dir);}
+  renderView();
+}
+function goToday(){currentDate=new Date();renderView();}
+function switchView(v) {
+  currentView=v;
+  document.querySelectorAll('.view-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.c-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.querySelector(`[data-view="${v}"]`).classList.add('active');
+  renderView();
+}
+function renderView() {
+  if(currentView==='month') renderMonth();
+  else if(currentView==='week') renderWeek();
+  else if(currentView==='day') renderDay();
+  else if(currentView==='agenda') renderAgenda();
+  renderMiniCal();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+loadEvents();
+renderView();
+renderUpcoming();
+</script>
+</body>
+</html>

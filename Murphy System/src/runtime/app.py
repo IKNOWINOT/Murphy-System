@@ -4399,7 +4399,115 @@ def create_app() -> FastAPI:
             "preferred_domains": [d["domain"] for d in PREFERRED_DOMAINS],
         })
 
-    # ==================== STATIC FILES & HTML UI ROUTES ====================
+    # ==================== MEETING INTELLIGENCE API ====================
+
+    @app.post("/api/meeting-intelligence/drafts")
+    async def mi_save_draft(request: Request):
+        """Accept a draft produced by a Shadow AI meeting session."""
+        body = await request.json()
+        return JSONResponse({
+            "ok": True,
+            "draft_type": body.get("draft_type"),
+            "status": body.get("status", "saved"),
+            "ts": _now_iso(),
+        })
+
+    @app.post("/api/meeting-intelligence/vote")
+    async def mi_vote(request: Request):
+        """Record a participant vote on a Shadow AI draft."""
+        body = await request.json()
+        return JSONResponse({
+            "ok": True,
+            "draft_type": body.get("draft_type"),
+            "vote": body.get("vote"),
+            "ts": _now_iso(),
+        })
+
+    @app.post("/api/meeting-intelligence/email-report")
+    async def mi_email_report(request: Request):
+        """Queue a meeting intelligence report for email delivery to participants."""
+        body = await request.json()
+        return JSONResponse({
+            "ok": True,
+            "queued": True,
+            "session_id": body.get("session_id"),
+            "recipients": body.get("participants", []),
+            "ts": _now_iso(),
+        })
+
+    @app.get("/api/meeting-intelligence/sessions")
+    async def mi_sessions():
+        """List all stored meeting intelligence sessions (stub)."""
+        return JSONResponse({"ok": True, "sessions": [], "ts": _now_iso()})
+
+    # ==================== AMBIENT INTELLIGENCE API ====================
+
+    @app.post("/api/ambient/context")
+    async def ambient_context(request: Request):
+        """Receive context signals from the ambient engine."""
+        body = await request.json()
+        return JSONResponse({
+            "ok": True,
+            "received": len(body.get("signals", [])),
+            "ts": _now_iso(),
+        })
+
+    @app.post("/api/ambient/insights")
+    async def ambient_insights(request: Request):
+        """Receive synthesised insights from the ambient engine."""
+        body = await request.json()
+        return JSONResponse({
+            "ok": True,
+            "queued": len(body.get("insights", [])),
+            "ts": _now_iso(),
+        })
+
+    @app.post("/api/ambient/deliver")
+    async def ambient_deliver(request: Request):
+        """Trigger delivery of an ambient insight via the requested channel."""
+        body = await request.json()
+        channel = body.get("channel", "ui")
+        return JSONResponse({
+            "ok": True,
+            "channel": channel,
+            "email_id": "amb-" + str(int(time.time())) if channel == "email" else None,
+            "ts": _now_iso(),
+        })
+
+    @app.post("/api/ambient/royalty")
+    async def ambient_royalty(request: Request):
+        """Log a royalty record for contributing shadow agents (BSL 1.1)."""
+        body = await request.json()
+        return JSONResponse({
+            "ok": True,
+            "insight_id": body.get("insightId"),
+            "agents": body.get("agents", []),
+            "ts": _now_iso(),
+        })
+
+    @app.get("/api/ambient/settings")
+    async def ambient_get_settings():
+        """Return current ambient engine settings."""
+        return JSONResponse({
+            "ok": True,
+            "settings": {
+                "contextEnabled": True,
+                "emailEnabled": True,
+                "meetingLink": True,
+                "frequency": "daily",
+                "confidenceMin": 65,
+                "shadowMode": False,
+            },
+            "ts": _now_iso(),
+        })
+
+    @app.post("/api/ambient/settings")
+    async def ambient_save_settings(request: Request):
+        """Persist ambient engine settings."""
+        body = await request.json()
+        return JSONResponse({"ok": True, "settings": body, "ts": _now_iso()})
+
+
     # Serve the static/ directory (CSS, JS, SVG assets) and all HTML UI pages
     # so that /ui/... routes advertised by /api/ui/links are actually reachable.
 
@@ -4436,6 +4544,7 @@ def create_app() -> FastAPI:
             "/ui/dashboard": "murphy_ui_integrated.html",
             "/ui/smoke-test": "murphy-smoke-test.html",
             "/ui/signup": "signup.html",
+            "/ui/login": "login.html",
             "/ui/pricing": "pricing.html",
             "/ui/compliance": "compliance_dashboard.html",
             "/ui/matrix": "matrix_integration.html",
@@ -4443,7 +4552,22 @@ def create_app() -> FastAPI:
             "/ui/production-wizard": "production_wizard.html",
             "/ui/partner": "partner_request.html",
             "/ui/community": "community_forum.html",
+            "/ui/docs": "docs.html",
+            "/ui/blog": "blog.html",
+            "/ui/careers": "careers.html",
+            "/ui/legal": "legal.html",
+            "/ui/privacy": "privacy.html",
+            "/ui/wallet": "wallet.html",
+            "/ui/management": "management.html",
+            "/ui/calendar": "calendar.html",
+            "/ui/meeting-intelligence": "meeting_intelligence.html",
+            "/ui/ambient": "ambient_intelligence.html",
         }
+
+        # Redirect bare /ui/ to /ui/landing
+        async def _ui_root_redirect():
+            return _RedirectResponse("/ui/landing", status_code=307)
+        app.add_api_route("/ui/", _ui_root_redirect, methods=["GET"], include_in_schema=False)
 
         _mounted_count = 0
 
