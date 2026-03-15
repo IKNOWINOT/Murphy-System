@@ -47,7 +47,7 @@ PRESET = IndustryPreset(
             "automation_priorities": ["content", "data"],
         },
         {
-            "name": "Fulfillment",
+            "name": "fulfillment",
             "head_name": "Fulfillment Manager",
             "head_email": "fulfillment@retail.com",
             "headcount": 12,
@@ -56,7 +56,7 @@ PRESET = IndustryPreset(
             "automation_priorities": ["business", "system"],
         },
         {
-            "name": "Customer Support",
+            "name": "customer_support",
             "head_name": "Customer Support Lead",
             "head_email": "support@retail.com",
             "headcount": 8,

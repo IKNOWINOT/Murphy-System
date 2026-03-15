@@ -29,7 +29,7 @@ PRESET = IndustryPreset(
     recommended_frameworks=["SOC2", "PCI_DSS", "GDPR"],
     default_departments=[
         {
-            "name": "Trading",
+            "name": "trading",
             "head_name": "Head of Trading",
             "head_email": "trading@company.com",
             "headcount": 15,
@@ -38,7 +38,7 @@ PRESET = IndustryPreset(
             "automation_priorities": ["data", "business"],
         },
         {
-            "name": "Compliance",
+            "name": "compliance",
             "head_name": "Chief Compliance Officer",
             "head_email": "compliance@company.com",
             "headcount": 8,
@@ -47,7 +47,7 @@ PRESET = IndustryPreset(
             "automation_priorities": ["data", "agent"],
         },
         {
-            "name": "Risk",
+            "name": "risk",
             "head_name": "Chief Risk Officer",
             "head_email": "risk@company.com",
             "headcount": 6,
@@ -56,7 +56,7 @@ PRESET = IndustryPreset(
             "automation_priorities": ["data", "agent"],
         },
         {
-            "name": "Client Services",
+            "name": "client_services",
             "head_name": "VP of Client Services",
             "head_email": "clients@company.com",
             "headcount": 20,

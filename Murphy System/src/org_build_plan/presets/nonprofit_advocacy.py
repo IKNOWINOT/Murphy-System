@@ -28,7 +28,7 @@ PRESET = IndustryPreset(
     recommended_frameworks=["CAN_SPAM", "GDPR"],
     default_departments=[
         {
-            "name": "Programs",
+            "name": "programs",
             "head_name": "Programs Director",
             "head_email": "programs@nonprofit.org",
             "headcount": 8,
@@ -37,7 +37,7 @@ PRESET = IndustryPreset(
             "automation_priorities": ["data", "agent"],
         },
         {
-            "name": "Fundraising",
+            "name": "fundraising",
             "head_name": "Development Director",
             "head_email": "fundraising@nonprofit.org",
             "headcount": 5,
@@ -46,7 +46,7 @@ PRESET = IndustryPreset(
             "automation_priorities": ["business", "content"],
         },
         {
-            "name": "Communications",
+            "name": "communications",
             "head_name": "Communications Manager",
             "head_email": "comms@nonprofit.org",
             "headcount": 4,
@@ -55,7 +55,7 @@ PRESET = IndustryPreset(
             "automation_priorities": ["content", "data"],
         },
         {
-            "name": "Volunteer Coordination",
+            "name": "volunteer_coordination",
             "head_name": "Volunteer Coordinator",
             "head_email": "volunteers@nonprofit.org",
             "headcount": 3,

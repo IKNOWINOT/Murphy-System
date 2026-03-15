@@ -48,7 +48,7 @@ PRESET = IndustryPreset(
             "automation_priorities": ["factory_iot", "system"],
         },
         {
-            "name": "Safety",
+            "name": "safety",
             "head_name": "Safety Manager",
             "head_email": "safety@company.com",
             "headcount": 5,
@@ -66,7 +66,7 @@ PRESET = IndustryPreset(
             "automation_priorities": ["business", "data"],
         },
         {
-            "name": "Logistics",
+            "name": "logistics",
             "head_name": "Logistics Manager",
             "head_email": "logistics@company.com",
             "headcount": 15,
