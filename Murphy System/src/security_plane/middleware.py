@@ -856,6 +856,7 @@ class ExecutionOrchestratorMiddleware(SecurityMiddleware):
 # Guard: only define ASGI middleware when Starlette is available
 try:
     import os as _os
+    import time as _time
     from starlette.middleware.base import BaseHTTPMiddleware as _BaseHTTPMiddleware
     from starlette.requests import Request as _Request
     from starlette.responses import JSONResponse as _JSONResponse
@@ -1249,6 +1250,175 @@ if _STARLETTE_AVAILABLE:
                 media_type=response.media_type,
             )
 
+    class PerUserRateLimitMiddleware(_BaseHTTPMiddleware):
+        """ASGI middleware that enforces per-user and per-endpoint-tier rate limits.
+
+        Complements the per-client-IP rate limiting in
+        :class:`~src.fastapi_security.SecurityMiddleware` with two additional
+        dimensions:
+
+        * **Per-user**: keyed on ``X-User-ID`` header (or ``anonymous`` when absent).
+          Prevents a single authenticated user from flooding the API regardless of
+          how many IPs they use.
+        * **Per-endpoint tier**: endpoints are grouped into tiers with different RPM
+          budgets.  Sensitive write-heavy endpoints (``/api/execute``,
+          ``/api/admin``) have stricter limits than read-only endpoints.
+
+        Configuration via environment variables (all optional):
+
+        =====================================  ==============================  ==============
+        Variable                               Meaning                         Default
+        =====================================  ==============================  ==============
+        ``MURPHY_USER_RATE_LIMIT_RPM``         Global per-user RPM budget      ``120``
+        ``MURPHY_USER_RATE_LIMIT_BURST``       Initial burst tokens            ``30``
+        ``MURPHY_EXEC_RATE_LIMIT_RPM``         RPM for /api/execute tier       ``10``
+        ``MURPHY_EXEC_RATE_LIMIT_BURST``       Burst for /api/execute tier     ``5``
+        ``MURPHY_ADMIN_RATE_LIMIT_RPM``        RPM for /api/admin/* tier       ``20``
+        ``MURPHY_ADMIN_RATE_LIMIT_BURST``      Burst for /api/admin/* tier     ``5``
+        =====================================  ==============================  ==============
+
+        Fail-closed: any unexpected error returns 429 rather than allowing the
+        request through.
+        """
+
+        _BUCKET_TTL_SECONDS = 3600
+        _CLEANUP_INTERVAL = 300
+
+        # Endpoint-tier definitions: (path_prefix, rpm, burst)
+        # More specific prefixes must appear before broader ones.
+        _ENDPOINT_TIERS: list = []  # populated in __init__ from env
+
+        def __init__(self, app):
+            super().__init__(app)
+            # Global per-user limiter
+            self._global_rpm = int(_os.environ.get("MURPHY_USER_RATE_LIMIT_RPM", "120"))
+            self._global_burst = int(_os.environ.get("MURPHY_USER_RATE_LIMIT_BURST", "30"))
+
+            # Endpoint-tier limiters (separate bucket namespace per tier)
+            self._endpoint_tiers: list = [
+                (
+                    "/api/execute",
+                    int(_os.environ.get("MURPHY_EXEC_RATE_LIMIT_RPM", "10")),
+                    int(_os.environ.get("MURPHY_EXEC_RATE_LIMIT_BURST", "5")),
+                ),
+                (
+                    "/api/admin",
+                    int(_os.environ.get("MURPHY_ADMIN_RATE_LIMIT_RPM", "20")),
+                    int(_os.environ.get("MURPHY_ADMIN_RATE_LIMIT_BURST", "5")),
+                ),
+                (
+                    "/api/automations",
+                    int(_os.environ.get("MURPHY_EXEC_RATE_LIMIT_RPM", "10")),
+                    int(_os.environ.get("MURPHY_EXEC_RATE_LIMIT_BURST", "5")),
+                ),
+            ]
+
+            # Token buckets: keyed by "user_id:bucket_name"
+            self._buckets: dict = {}
+            self._last_cleanup: float = _time.monotonic()
+
+        # ------------------------------------------------------------------
+        # Token bucket helpers
+        # ------------------------------------------------------------------
+
+        def _check(self, key: str, rpm: int, burst: int) -> dict:
+            """Token-bucket rate check for *key* with given *rpm* and *burst*."""
+            now = _time.monotonic()
+
+            if now - self._last_cleanup > self._CLEANUP_INTERVAL:
+                stale = [
+                    k for k, b in self._buckets.items()
+                    if now - b["last_refill"] > self._BUCKET_TTL_SECONDS
+                ]
+                for k in stale:
+                    del self._buckets[k]
+                self._last_cleanup = now
+
+            if key not in self._buckets:
+                self._buckets[key] = {"tokens": float(burst), "last_refill": now}
+
+            bucket = self._buckets[key]
+            elapsed = now - bucket["last_refill"]
+            bucket["tokens"] = min(float(burst), bucket["tokens"] + elapsed * (rpm / 60.0))
+            bucket["last_refill"] = now
+
+            if bucket["tokens"] >= 1.0:
+                bucket["tokens"] -= 1.0
+                return {"allowed": True, "remaining": int(bucket["tokens"])}
+
+            return {
+                "allowed": False,
+                "remaining": 0,
+                "retry_after_seconds": (1.0 - bucket["tokens"]) * (60.0 / max(rpm, 1)),
+            }
+
+        # ------------------------------------------------------------------
+        # Middleware dispatch
+        # ------------------------------------------------------------------
+
+        async def dispatch(self, request: _Request, call_next):
+            path = request.url.path
+
+            # Exempt public and non-API paths
+            if _is_exempt(path) or not _is_api_path(path):
+                return await call_next(request)
+
+            # Skip OPTIONS (CORS preflight)
+            if request.method == "OPTIONS":
+                return await call_next(request)
+
+            try:
+                user_id = request.headers.get("X-User-ID", "").strip() or "anonymous"
+
+                # 1. Per-endpoint-tier check (stricter limits for sensitive endpoints)
+                for prefix, rpm, burst in self._endpoint_tiers:
+                    if path.startswith(prefix):
+                        tier_key = f"{user_id}:{prefix}"
+                        result = self._check(tier_key, rpm, burst)
+                        if not result["allowed"]:
+                            logger.warning(
+                                "PerUserRateLimitMiddleware: endpoint-tier limit exceeded "
+                                "user=%s path=%s tier=%s retry_after=%.1fs",
+                                user_id, path, prefix,
+                                result.get("retry_after_seconds", 0),
+                            )
+                            return _JSONResponse(
+                                status_code=429,
+                                content={
+                                    "error": "Rate limit exceeded for this endpoint",
+                                    "tier": prefix,
+                                    "retry_after_seconds": result.get("retry_after_seconds", 60),
+                                },
+                            )
+                        break  # matched — no need to check other tiers
+
+                # 2. Global per-user check
+                global_key = f"{user_id}:global"
+                result = self._check(global_key, self._global_rpm, self._global_burst)
+                if not result["allowed"]:
+                    logger.warning(
+                        "PerUserRateLimitMiddleware: global user limit exceeded "
+                        "user=%s path=%s retry_after=%.1fs",
+                        user_id, path,
+                        result.get("retry_after_seconds", 0),
+                    )
+                    return _JSONResponse(
+                        status_code=429,
+                        content={
+                            "error": "Rate limit exceeded",
+                            "retry_after_seconds": result.get("retry_after_seconds", 60),
+                        },
+                    )
+
+            except Exception as exc:  # fail-closed on unexpected errors
+                logger.error("PerUserRateLimitMiddleware: unexpected error — denying: %s", exc)
+                return _JSONResponse(
+                    status_code=429,
+                    content={"error": "Rate limit check failed"},
+                )
+
+            return await call_next(request)
+
     def wire_security_plane_middleware(app) -> None:
         """Wire all Security Plane ASGI middleware onto a FastAPI app.
 
@@ -1256,6 +1426,7 @@ if _STARLETTE_AVAILABLE:
         so the middleware insertion order matches the intended execution order:
 
             rate-limit + auth (SecurityMiddleware, outermost)
+            → per-user + per-endpoint rate limit (PerUserRateLimitMiddleware)
             → RBAC (RBACMiddleware)
             → risk classification (RiskClassificationMiddleware)
             → DLP scan (DLPScannerMiddleware, innermost among security layers)
@@ -1270,6 +1441,9 @@ if _STARLETTE_AVAILABLE:
         app.add_middleware(RiskClassificationMiddleware)
         # RBAC
         app.add_middleware(RBACMiddleware)
+        # Per-user + per-endpoint rate limiting (outermost of the Security Plane layers)
+        app.add_middleware(PerUserRateLimitMiddleware)
         logger.info(
-            "Security Plane ASGI middleware registered: DLP → risk classification → RBAC"
+            "Security Plane ASGI middleware registered: "
+            "per-user rate limit → RBAC → risk classification → DLP"
         )

@@ -526,3 +526,238 @@ class TestConfigureSecureDocstring:
         from src.fastapi_security import configure_secure_fastapi
         doc = configure_secure_fastapi.__doc__ or ""
         assert "fail-closed" in doc.lower() or "fail closed" in doc.lower()
+
+    def test_docstring_mentions_per_user_rate_limit(self):
+        from src.fastapi_security import configure_secure_fastapi
+        doc = configure_secure_fastapi.__doc__ or ""
+        assert "per-user" in doc.lower() or "per user" in doc.lower()
+
+
+# ---------------------------------------------------------------------------
+# Test: PerUserRateLimitMiddleware
+# ---------------------------------------------------------------------------
+
+class TestPerUserRateLimitMiddleware:
+    """PerUserRateLimitMiddleware enforces per-user and per-endpoint-tier rate limits."""
+
+    def test_per_user_rate_limit_middleware_registered(self):
+        """configure_secure_fastapi registers PerUserRateLimitMiddleware."""
+        app = _make_app(configure=True)
+        mw_names = [
+            (m.cls.__name__ if hasattr(m, "cls") else type(m).__name__)
+            for m in app.user_middleware
+        ]
+        assert "PerUserRateLimitMiddleware" in mw_names, (
+            f"PerUserRateLimitMiddleware not found in middleware stack: {mw_names}"
+        )
+
+    def test_per_user_rate_limit_middleware_wired_before_rbac(self):
+        """PerUserRateLimitMiddleware must be outermost of the Security Plane layers
+        (i.e., lower index than RBACMiddleware in user_middleware list).
+        """
+        app = _make_app(configure=True)
+        mw_names = [
+            (m.cls.__name__ if hasattr(m, "cls") else type(m).__name__)
+            for m in app.user_middleware
+        ]
+        if "PerUserRateLimitMiddleware" in mw_names and "RBACMiddleware" in mw_names:
+            per_user_idx = mw_names.index("PerUserRateLimitMiddleware")
+            rbac_idx = mw_names.index("RBACMiddleware")
+            assert per_user_idx < rbac_idx, (
+                f"PerUserRateLimitMiddleware (idx {per_user_idx}) should be outermost "
+                f"(before RBACMiddleware idx {rbac_idx})"
+            )
+
+    def test_per_user_allows_requests_within_limit(self):
+        """Requests within the rate limit are allowed."""
+        with patch.dict(os.environ, {
+            "MURPHY_ENV": "test",
+            "MURPHY_USER_RATE_LIMIT_BURST": "5",
+            "MURPHY_USER_RATE_LIMIT_RPM": "60",
+        }):
+            app = _make_app(configure=True)
+            client = TestClient(app, raise_server_exceptions=False)
+            for _ in range(3):
+                resp = client.get("/api/data", headers={"X-User-ID": "user-ok"})
+                assert resp.status_code == 200
+
+    def test_per_user_blocks_after_burst_exhausted(self):
+        """Requests beyond the burst budget are blocked with 429."""
+        with patch.dict(os.environ, {
+            "MURPHY_ENV": "test",
+            "MURPHY_USER_RATE_LIMIT_RPM": "60",
+            "MURPHY_USER_RATE_LIMIT_BURST": "2",
+        }):
+            from src.security_plane.middleware import PerUserRateLimitMiddleware
+            app = FastAPI()
+            app.add_middleware(PerUserRateLimitMiddleware)
+
+            @app.get("/api/data")
+            def data():
+                return {"data": "value"}
+
+            client = TestClient(app, raise_server_exceptions=False)
+            r1 = client.get("/api/data", headers={"X-User-ID": "user-burst"})
+            r2 = client.get("/api/data", headers={"X-User-ID": "user-burst"})
+            r3 = client.get("/api/data", headers={"X-User-ID": "user-burst"})
+
+        assert r1.status_code == 200
+        assert r2.status_code == 200
+        assert r3.status_code == 429
+
+    def test_per_user_different_users_have_independent_buckets(self):
+        """Different user IDs have independent token buckets."""
+        with patch.dict(os.environ, {
+            "MURPHY_ENV": "test",
+            "MURPHY_USER_RATE_LIMIT_RPM": "60",
+            "MURPHY_USER_RATE_LIMIT_BURST": "1",
+        }):
+            from src.security_plane.middleware import PerUserRateLimitMiddleware
+            app = FastAPI()
+            app.add_middleware(PerUserRateLimitMiddleware)
+
+            @app.get("/api/data")
+            def data():
+                return {"data": "value"}
+
+            client = TestClient(app, raise_server_exceptions=False)
+            # User A uses up their budget
+            client.get("/api/data", headers={"X-User-ID": "user-a"})
+            r_a = client.get("/api/data", headers={"X-User-ID": "user-a"})
+            # User B should still be allowed
+            r_b = client.get("/api/data", headers={"X-User-ID": "user-b"})
+
+        assert r_a.status_code == 429
+        assert r_b.status_code == 200
+
+    def test_endpoint_tier_limits_execute_endpoint(self):
+        """The /api/execute endpoint tier has its own tighter budget."""
+        with patch.dict(os.environ, {
+            "MURPHY_ENV": "test",
+            "MURPHY_EXEC_RATE_LIMIT_RPM": "10",
+            "MURPHY_EXEC_RATE_LIMIT_BURST": "1",
+            "MURPHY_USER_RATE_LIMIT_BURST": "100",  # global is generous
+        }):
+            from src.security_plane.middleware import PerUserRateLimitMiddleware
+            app = FastAPI()
+            app.add_middleware(PerUserRateLimitMiddleware)
+
+            @app.post("/api/execute")
+            def execute():
+                return {"result": "ok"}
+
+            client = TestClient(app, raise_server_exceptions=False)
+            r1 = client.post("/api/execute", headers={"X-User-ID": "exec-user"})
+            r2 = client.post("/api/execute", headers={"X-User-ID": "exec-user"})
+
+        assert r1.status_code == 200
+        assert r2.status_code == 429  # tier limit exhausted
+
+    def test_per_user_health_endpoint_exempt(self):
+        """Health endpoint bypasses per-user rate limiting."""
+        with patch.dict(os.environ, {
+            "MURPHY_ENV": "test",
+            "MURPHY_USER_RATE_LIMIT_BURST": "0",  # zero budget
+            "MURPHY_USER_RATE_LIMIT_RPM": "1",
+        }):
+            from src.security_plane.middleware import PerUserRateLimitMiddleware
+            app = FastAPI()
+            app.add_middleware(PerUserRateLimitMiddleware)
+
+            @app.get("/health")
+            def health():
+                return {"status": "ok"}
+
+            client = TestClient(app, raise_server_exceptions=False)
+            resp = client.get("/health")
+        assert resp.status_code == 200
+
+    def test_per_user_anonymous_bucket_for_missing_user_id(self):
+        """Requests without X-User-ID are grouped into the 'anonymous' bucket."""
+        with patch.dict(os.environ, {
+            "MURPHY_ENV": "test",
+            "MURPHY_USER_RATE_LIMIT_RPM": "60",
+            "MURPHY_USER_RATE_LIMIT_BURST": "2",
+        }):
+            from src.security_plane.middleware import PerUserRateLimitMiddleware
+            app = FastAPI()
+            app.add_middleware(PerUserRateLimitMiddleware)
+
+            @app.get("/api/data")
+            def data():
+                return {"data": "value"}
+
+            client = TestClient(app, raise_server_exceptions=False)
+            r1 = client.get("/api/data")  # no X-User-ID
+            r2 = client.get("/api/data")
+            r3 = client.get("/api/data")
+
+        assert r1.status_code == 200
+        assert r2.status_code == 200
+        assert r3.status_code == 429
+
+    def test_per_user_rate_limit_token_bucket_check(self):
+        """PerUserRateLimitMiddleware._check allows up to burst then blocks."""
+        from src.security_plane.middleware import PerUserRateLimitMiddleware
+
+        mw = object.__new__(PerUserRateLimitMiddleware)
+        mw._global_rpm = 60
+        mw._global_burst = 3
+        mw._endpoint_tiers = []
+        mw._buckets = {}
+        import time as _t
+        mw._last_cleanup = _t.monotonic()
+
+        r1 = mw._check("user-x:global", rpm=60, burst=3)
+        r2 = mw._check("user-x:global", rpm=60, burst=3)
+        r3 = mw._check("user-x:global", rpm=60, burst=3)
+        r4 = mw._check("user-x:global", rpm=60, burst=3)
+
+        assert r1["allowed"] is True
+        assert r2["allowed"] is True
+        assert r3["allowed"] is True
+        assert r4["allowed"] is False
+        assert "retry_after_seconds" in r4
+
+    def test_per_user_fail_closed_on_exception(self):
+        """PerUserRateLimitMiddleware must return 429 if an internal error occurs."""
+        with patch.dict(os.environ, {"MURPHY_ENV": "test"}):
+            app = FastAPI()
+            from src.security_plane.middleware import PerUserRateLimitMiddleware
+
+            class _BrokenPerUserMW(PerUserRateLimitMiddleware):
+                def _check(self, key, rpm, burst):
+                    raise RuntimeError("forced bucket error")
+
+            app.add_middleware(_BrokenPerUserMW)
+
+            @app.get("/api/data")
+            def data():
+                return {"data": "value"}
+
+            client = TestClient(app, raise_server_exceptions=False)
+            resp = client.get("/api/data", headers={"X-User-ID": "broken-user"})
+        assert resp.status_code == 429
+
+    def test_retry_after_seconds_included_in_response(self):
+        """429 responses include retry_after_seconds in the body."""
+        with patch.dict(os.environ, {
+            "MURPHY_ENV": "test",
+            "MURPHY_USER_RATE_LIMIT_RPM": "60",
+            "MURPHY_USER_RATE_LIMIT_BURST": "1",
+        }):
+            from src.security_plane.middleware import PerUserRateLimitMiddleware
+            app = FastAPI()
+            app.add_middleware(PerUserRateLimitMiddleware)
+
+            @app.get("/api/data")
+            def data():
+                return {"data": "value"}
+
+            client = TestClient(app, raise_server_exceptions=False)
+            client.get("/api/data", headers={"X-User-ID": "retry-user"})
+            resp = client.get("/api/data", headers={"X-User-ID": "retry-user"})
+
+        assert resp.status_code == 429
+        body = resp.json()
+        assert "retry_after_seconds" in body
