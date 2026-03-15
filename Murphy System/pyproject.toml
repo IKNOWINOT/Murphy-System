@@ -27,8 +27,15 @@ terminal = ["textual>=0.40", "pywin32; sys_platform == 'win32'"]
 dev = ["pytest>=7.0", "pytest-cov", "ruff", "mypy"]
 all = ["murphy-system[llm,security,terminal,dev]"]
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Add the project root and src/ to sys.path so both "from src.xxx import xxx"
+# and "from confidence_engine.xxx import xxx" work without sys.path hacks.
+pythonpath = [".", "src"]
 asyncio_mode = "auto"
 filterwarnings = [
     "ignore::DeprecationWarning",

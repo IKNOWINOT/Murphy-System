@@ -6,19 +6,13 @@ REST API for module compilation, capability discovery, and registry management.
 Owner: INONI LLC / Corey Post (corey.gfc@gmail.com)
 """
 
-import os
-import sys
+import logging
 from typing import Any, Dict, List, Optional
 
 from flask import Blueprint, jsonify, request
 
-# Add src to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
-
-import logging
-
-from module_compiler import ModuleCompiler, ModuleRegistry
-from module_compiler.models.module_spec import ModuleSpec
+from src.module_compiler import ModuleCompiler, ModuleRegistry
+from src.module_compiler.models.module_spec import ModuleSpec
 
 logger = logging.getLogger(__name__)
 

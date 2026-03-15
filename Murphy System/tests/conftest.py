@@ -1,15 +1,8 @@
 """
 Test configuration for Murphy System.
 
-Adds src/ to sys.path so modules can be imported without
-manual PYTHONPATH manipulation.
+sys.path is configured via pyproject.toml [tool.pytest.ini_options] pythonpath,
+which adds both the project root (".") and "src/" so that both
+``from src.xxx import xxx`` and ``from xxx import xxx`` work without
+manual sys.path manipulation in individual test files.
 """
-
-import os
-import sys
-
-# Add src/ to the Python path
-_src_dir = os.path.join(os.path.dirname(__file__), '..', 'src')
-_src_dir = os.path.abspath(_src_dir)
-if _src_dir not in sys.path:
-    sys.path.insert(0, _src_dir)
