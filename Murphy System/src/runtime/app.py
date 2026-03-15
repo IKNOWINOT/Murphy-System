@@ -897,6 +897,7 @@ def create_app() -> FastAPI:
             {"command": "compliance toggles", "category": "compliance", "description": "View and manage compliance framework toggles", "api": "/api/compliance/toggles", "ui": "/ui/compliance"},
             {"command": "compliance recommended", "category": "compliance", "description": "Get recommended compliance frameworks for your country/industry", "api": "/api/compliance/recommended", "ui": "/ui/compliance"},
             {"command": "compliance report", "category": "compliance", "description": "Generate a compliance posture report", "api": "/api/compliance/report", "ui": "/ui/compliance"},
+            {"command": "compliance scan", "category": "compliance", "description": "Run compliance-as-code scan filtered to enabled frameworks", "api": "/api/compliance/scan", "ui": "/ui/compliance"},
             # ── Signup & Auth ────────────────────────────────────────
             {"command": "signup", "category": "auth", "description": "Create a new Murphy account", "api": "/api/auth/signup", "ui": "/ui/signup"},
             {"command": "oauth google", "category": "auth", "description": "Sign up or login with Google", "api": "/api/auth/oauth/google", "ui": "/ui/signup"},
@@ -3769,6 +3770,160 @@ def create_app() -> FastAPI:
         tenant_id = _get_tenant_id(request)
         report = _compliance_toggle_manager.generate_compliance_report(tenant_id)
         return JSONResponse({"success": True, "report": report})
+
+    # ── Layer 3: ComplianceAsCodeEngine scan endpoint ──────────────────────
+
+    try:
+        from src.compliance_as_code_engine import ComplianceAsCodeEngine as _ComplianceAsCodeEngine
+        _cac_engine = _ComplianceAsCodeEngine()
+    except ImportError:
+        _cac_engine = None
+
+    @app.post("/api/compliance/scan")
+    async def compliance_scan(request: Request):
+        """Run a compliance-as-code scan filtered to the tenant's enabled frameworks.
+
+        Accepts optional ``name`` and ``context`` fields in the JSON body.
+        When the tenant has enabled frameworks, one scan is run per framework
+        using ``ComplianceAsCodeEngine.run_scan(framework_filter=...)``.
+        When no frameworks are enabled an unfiltered scan is run.
+        """
+        if _cac_engine is None:
+            return JSONResponse(
+                {"success": False, "error": "Compliance-as-code engine not available"},
+                status_code=503,
+            )
+        try:
+            data = await request.json()
+            tenant_id = _get_tenant_id(request)
+            name = data.get("name") or f"scan-{_now_iso()}"
+            context = data.get("context") or {}
+            if not isinstance(context, dict):
+                context = {}
+
+            enabled_ids: List[str] = (
+                _compliance_toggle_manager.get_tenant_frameworks(tenant_id)
+                if _compliance_toggle_manager is not None
+                else []
+            )
+
+            if not enabled_ids:
+                scan = _cac_engine.run_scan(name=name, context=context)
+                return JSONResponse({
+                    "success": True,
+                    "scans": [scan.to_dict()],
+                    "frameworks_applied": [],
+                })
+
+            # run_scan accepts a single framework_filter string; iterate per framework
+            scans = []
+            for fw_id in enabled_ids:
+                fw_scan = _cac_engine.run_scan(
+                    name=f"{name}-{fw_id}",
+                    framework_filter=fw_id,
+                    context=context,
+                )
+                scans.append(fw_scan.to_dict())
+
+            return JSONResponse({
+                "success": True,
+                "scans": scans,
+                "frameworks_applied": enabled_ids,
+            })
+        except Exception as exc:
+            logger.exception("Compliance scan failed")
+            return _safe_error_response(exc, 500)
+
+    # ── Layer 2: Register compliance gate with GateExecutionWiring ─────────
+
+    _gate_wiring = getattr(murphy, "gate_wiring", None)
+    _compliance_engine_inst = getattr(murphy, "compliance_engine", None)
+    if _gate_wiring is not None:
+        try:
+            import uuid as _uuid_mod
+            from src.gate_execution_wiring import (
+                GateDecision as _GateDecision,
+                GateEvaluation as _GateEvaluation,
+                GatePolicy as _GatePolicy,
+                GateType as _GateType,
+            )
+
+            def _compliance_gate_evaluator(
+                task: Dict[str, Any], session_id: str
+            ) -> "_GateEvaluation":
+                """Evaluate the tenant's enabled compliance frameworks before execution.
+
+                Reads the enabled frameworks for the tenant from
+                ``_compliance_toggle_manager`` and runs
+                ``ComplianceEngine.check_deliverable()`` filtered to those
+                frameworks.  Returns APPROVED when compliant, NEEDS_REVIEW
+                when human sign-off is required, and BLOCKED when violations
+                are found.  If no frameworks are enabled the gate always
+                approves.
+                """
+                tenant_id = task.get("tenant_id") or _DEFAULT_TENANT_ID
+                frameworks = _get_tenant_compliance_frameworks(tenant_id)
+
+                if _compliance_engine_inst is None or not frameworks:
+                    return _GateEvaluation(
+                        gate_id=str(_uuid_mod.uuid4()),
+                        gate_type=_GateType.COMPLIANCE,
+                        decision=_GateDecision.APPROVED,
+                        reason="No compliance frameworks enabled — gate skipped",
+                        policy=_GatePolicy.WARN,
+                        evaluated_at=_now_iso(),
+                    )
+
+                deliverable = dict(task)
+                deliverable["session_id"] = session_id
+                try:
+                    report = _compliance_engine_inst.check_deliverable(
+                        deliverable, frameworks=frameworks
+                    )
+                except Exception as exc:
+                    logger.warning("Compliance gate check failed: %s", exc)
+                    return _GateEvaluation(
+                        gate_id=str(_uuid_mod.uuid4()),
+                        gate_type=_GateType.COMPLIANCE,
+                        decision=_GateDecision.APPROVED,
+                        reason=f"Compliance check error (allowing): {exc}",
+                        policy=_GatePolicy.WARN,
+                        evaluated_at=_now_iso(),
+                    )
+
+                overall = report.get("overall_status", "compliant")
+                fw_names = ", ".join(f.value for f in frameworks)
+                if overall == "non_compliant":
+                    decision = _GateDecision.BLOCKED
+                    reason = f"Compliance check failed for: {fw_names}"
+                elif overall == "needs_review":
+                    decision = _GateDecision.NEEDS_REVIEW
+                    reason = f"Compliance check needs review for: {fw_names}"
+                else:
+                    decision = _GateDecision.APPROVED
+                    reason = f"Compliance check passed for: {fw_names}"
+
+                return _GateEvaluation(
+                    gate_id=str(_uuid_mod.uuid4()),
+                    gate_type=_GateType.COMPLIANCE,
+                    decision=decision,
+                    reason=reason,
+                    policy=_GatePolicy.WARN,
+                    evaluated_at=_now_iso(),
+                    metadata={
+                        "overall_status": overall,
+                        "enabled_frameworks": [f.value for f in frameworks],
+                    },
+                )
+
+            _gate_wiring.register_gate(
+                _GateType.COMPLIANCE,
+                _compliance_gate_evaluator,
+                _GatePolicy.WARN,
+            )
+            logger.info("Compliance gate evaluator registered with gate wiring")
+        except ImportError as exc:
+            logger.warning("Could not register compliance gate evaluator: %s", exc)
 
     # ==================== TEST MODE ====================
 
