@@ -228,7 +228,7 @@ Murphy System/
 │   ├── murphy.yaml.example        # Annotated example for murphy.yaml
 │   ├── engines.yaml.example       # Annotated example for engines.yaml
 │   └── config_loader.py           # YAML + env-var overlay loader
-├── src/                           # 978 modules, 81 packages
+├── src/                           # 917 modules, 81 packages
 │   ├── config.py                  # Pydantic settings (legacy path)
 ├── src/                           # 917 modules, 81 packages
 │   ├── config.py                  # Pydantic settings
