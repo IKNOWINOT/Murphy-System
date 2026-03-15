@@ -3480,8 +3480,9 @@
   function fLoadPrezi() {
     var url = document.getElementById('forum-prezi-url-input').value.trim();
     if (!url) { alert('Please paste a Prezi share URL.'); return; }
-    var embedUrl = url.replace('prezi.com/p/', 'prezi.com/view/').replace(/\/$/, '');
-    if (!embedUrl.includes('/view/')) embedUrl = url;
+    var embedUrl = url.includes('prezi.com/p/')
+      ? url.replace('prezi.com/p/', 'prezi.com/view/').replace(/\/$/, '')
+      : url.replace(/\/$/, '');
     var iframe = document.getElementById('forum-prezi-iframe');
     var placeholder = document.getElementById('forum-prezi-placeholder');
     var navBar = document.getElementById('forum-prezi-nav-bar');
