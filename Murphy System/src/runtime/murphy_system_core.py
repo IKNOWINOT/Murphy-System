@@ -12191,9 +12191,22 @@ class MurphySystem:
 
         # In "ask" mode, skip dimension extraction — treat as pure knowledge query
         if mode != "ask":
+            msg_stripped = message.strip()
             new_dims = self._extract_dimensions_from_message(message, profile)
+            # --- Loop fix: if extraction found nothing, map the answer to the last
+            # asked dimension so the conversation always advances. ---
+            if not new_dims:
+                last_dim = profile.get("_last_asked_dimension")
+                if (
+                    last_dim
+                    and last_dim not in profile.get("collected", {})
+                    and msg_stripped
+                ):
+                    new_dims = {last_dim: msg_stripped}
             if new_dims:
                 profile["collected"].update(new_dims)
+                # Clear the pending dimension once it has been answered
+                profile.pop("_last_asked_dimension", None)
                 session = self.chat_sessions.setdefault(session_id, {})
                 session.setdefault("answers", {}).update(new_dims)
             # Store extracted dims for _deterministic_reply to use
@@ -12583,8 +12596,14 @@ class MurphySystem:
 
         return extracted
 
-    def _next_onboarding_question(self, profile: Dict[str, Any]) -> Optional[str]:
-        """Pick the highest-weight unanswered dimension and return its question."""
+    def _next_onboarding_dim_and_question(
+        self, profile: Dict[str, Any]
+    ) -> "tuple[Optional[str], Optional[str]]":
+        """Pick the highest-weight unanswered dimension.
+
+        Returns a ``(dimension_key, question_text)`` tuple, or
+        ``(None, None)`` when all dimensions are collected.
+        """
         collected = set(profile.get("collected", {}).keys())
         candidates = [
             (dim, info)
@@ -12592,10 +12611,15 @@ class MurphySystem:
             if dim not in collected
         ]
         if not candidates:
-            return None
-        # Sort by weight descending — ask the most important questions first
+            return (None, None)
         candidates.sort(key=lambda x: x[1]["weight"], reverse=True)
-        return candidates[0][1]["question"]
+        dim, info = candidates[0]
+        return (dim, info["question"])
+
+    def _next_onboarding_question(self, profile: Dict[str, Any]) -> Optional[str]:
+        """Pick the highest-weight unanswered dimension and return its question."""
+        _dim, question = self._next_onboarding_dim_and_question(profile)
+        return question
 
     def _knowledge_reply(self, message: str, nl_intent: str) -> str:
         """Generate a knowledge-base answer without onboarding dimension extraction.
@@ -12865,8 +12889,9 @@ class MurphySystem:
                 "and integrations, or keep chatting to refine."
             )
         else:
-            next_q = self._next_onboarding_question(profile)
+            next_dim, next_q = self._next_onboarding_dim_and_question(profile)
             if next_q:
+                profile["_last_asked_dimension"] = next_dim
                 reply += f"\n\n**Next:** {next_q}"
 
         # Mark solidified so subsequent messages don't re-solidify
@@ -12971,8 +12996,9 @@ class MurphySystem:
         reply += f"\n\n📊 **MFGC/5U Readiness:** {score:.0f}%"
         if score < 85:
             reply += " (need 85% to generate your automation plan)"
-            next_q = self._next_onboarding_question(profile)
+            next_dim, next_q = self._next_onboarding_dim_and_question(profile)
             if next_q:
+                profile["_last_asked_dimension"] = next_dim
                 reply += f"\n\n**Next up:** {next_q}"
         else:
             reply += " ✅ Ready to generate your plan!"
@@ -13098,8 +13124,12 @@ class MurphySystem:
         if len(message.strip()) > 5:
             ack = f"Got it — *\"{message[:80]}\"*. "
 
-        # Pick the next question based on what's missing
-        next_q = self._next_onboarding_question(profile)
+        # Pick the next question based on what's missing; also track which
+        # dimension is being asked so that the next message can be mapped to
+        # it when the user's reply doesn't trigger any extraction rule.
+        next_dim, next_q = self._next_onboarding_dim_and_question(profile)
+        if next_dim:
+            profile["_last_asked_dimension"] = next_dim
 
         if next_q:
             reply = (
