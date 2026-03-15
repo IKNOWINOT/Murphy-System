@@ -397,6 +397,75 @@ INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
 
 ---
 
+## Configuration
+
+Murphy System supports two complementary configuration mechanisms that can be used together. **Environment variables always take precedence.**
+
+### YAML Configuration Files (recommended starting point)
+
+The `config/` directory contains YAML files that supply defaults for every runtime setting:
+
+| File | Purpose |
+|---|---|
+| `config/murphy.yaml` | Main system defaults — LLM provider, confidence thresholds, safety levels, logging, tenant limits, self-learning |
+| `config/engines.yaml` | Engine defaults — domain engines, swarm parameters, learning engine settings, gate parameters, orchestrator timeouts |
+| `config/murphy.yaml.example` | Fully-annotated reference for `murphy.yaml` |
+| `config/engines.yaml.example` | Fully-annotated reference for `engines.yaml` |
+| `config/config_loader.py` | The loader that reads YAML files and applies env-var overrides |
+
+To customise a setting, edit the relevant YAML file:
+
+```bash
+# Open the main config and change LLM provider, thresholds, logging, etc.
+nano config/murphy.yaml
+
+# Open the engine config and change swarm size, gate parameters, etc.
+nano config/engines.yaml
+```
+
+### Environment Variable Overrides
+
+Environment variables (set in your shell or in `.env`) **always override YAML values**. Two syntaxes are supported:
+
+```bash
+# Legacy flat names (well-known shortcuts):
+export MURPHY_LLM_PROVIDER=groq
+export LOG_LEVEL=DEBUG
+export CONFIDENCE_THRESHOLD=0.90
+
+# Namespaced names (MURPHY_<SECTION>__<KEY>):
+export MURPHY_API__PORT=9000
+export MURPHY_THRESHOLDS__CONFIDENCE=0.90
+export MURPHY_SWARM__EXPLORATION_AGENTS=5
+```
+
+### Configuration Priority
+
+```
+Environment variables  ← always win
+       ↑
+config/murphy.yaml + config/engines.yaml  ← YAML defaults
+       ↑
+Built-in defaults in the YAML files
+```
+
+### Secrets
+
+Secrets (API keys, passwords, tokens) **must never** be placed in YAML files. Use `.env` (development) or a secrets manager (production):
+
+```bash
+# Development — add to .env:
+GROQ_API_KEY=gsk_...
+MURPHY_API_KEYS=murphy_key1,murphy_key2
+
+# Production — use a secrets manager:
+# Docker: docker secret create murphy_api_key ./api_key.txt
+# K8s:    kubectl create secret generic murphy-secrets --from-literal=api-key=...
+# Vault:  vault kv put secret/murphy api_key=...
+```
+
+---
+
 ## Verifying the Installation
 
 ### Health check
