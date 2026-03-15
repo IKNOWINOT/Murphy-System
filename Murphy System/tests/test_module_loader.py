@@ -248,3 +248,65 @@ class TestModuleLoader:
         loader.register("test", ModulePriority.OPTIONAL, _capture_app)
         loader.load_all(sentinel)
         assert received == [sentinel]
+
+    def test_critical_before_optional_classification(self):
+        """Critical modules registered before optional ones abort correctly."""
+        loader = ModuleLoader()
+        loader.register("security_plane", ModulePriority.CRITICAL, _succeeding_loader)
+        loader.register("event_backbone", ModulePriority.CRITICAL, _succeeding_loader)
+        loader.register("governance_kernel", ModulePriority.CRITICAL, _succeeding_loader)
+        loader.register("integration_bus", ModulePriority.CRITICAL, _succeeding_loader)
+        loader.register("crm", ModulePriority.OPTIONAL, _succeeding_loader)
+        loader.register("mobile", ModulePriority.OPTIONAL, _succeeding_loader)
+        loader.register("guest_collab", ModulePriority.OPTIONAL, _succeeding_loader)
+        result = loader.load_all(object())
+        assert len(result.critical_failures) == 0
+        assert len(result.loaded) == 7
+        critical_names = [r.name for r in result.reports if r.priority == ModulePriority.CRITICAL]
+        assert set(critical_names) == {"security_plane", "event_backbone", "governance_kernel", "integration_bus"}
+        optional_names = [r.name for r in result.reports if r.priority == ModulePriority.OPTIONAL]
+        assert set(optional_names) == {"crm", "mobile", "guest_collab"}
+
+    def test_critical_security_plane_fail_aborts(self):
+        """Security Plane is CRITICAL — startup must abort if it fails."""
+        loader = ModuleLoader()
+        loader.register("security_plane", ModulePriority.CRITICAL, _failing_loader)
+        loader.register("crm", ModulePriority.OPTIONAL, _succeeding_loader)
+        with pytest.raises(SystemError, match="security_plane"):
+            loader.load_all(object())
+
+    def test_critical_event_backbone_fail_aborts(self):
+        """EventBackbone is CRITICAL — startup must abort if it fails."""
+        loader = ModuleLoader()
+        loader.register("event_backbone", ModulePriority.CRITICAL, _failing_loader)
+        with pytest.raises(SystemError, match="event_backbone"):
+            loader.load_all(object())
+
+    def test_critical_governance_kernel_fail_aborts(self):
+        """GovernanceKernel is CRITICAL — startup must abort if it fails."""
+        loader = ModuleLoader()
+        loader.register("governance_kernel", ModulePriority.CRITICAL, _failing_loader)
+        with pytest.raises(SystemError, match="governance_kernel"):
+            loader.load_all(object())
+
+    def test_optional_crm_mobile_guest_do_not_abort(self):
+        """CRM, Mobile, Guest Collab are OPTIONAL — failures must not abort startup."""
+        loader = ModuleLoader()
+        loader.register("crm", ModulePriority.OPTIONAL, _failing_loader)
+        loader.register("mobile", ModulePriority.OPTIONAL, _failing_loader)
+        loader.register("guest_collab", ModulePriority.OPTIONAL, _failing_loader)
+        result = loader.load_all(object())
+        assert len(result.critical_failures) == 0
+        assert len(result.optional_failures) == 3
+        assert len(result.failed) == 3
+
+    def test_multiple_critical_failures_reported_together(self):
+        """All critical failures are collected into the SystemError message."""
+        loader = ModuleLoader()
+        loader.register("event_backbone", ModulePriority.CRITICAL, _failing_loader)
+        loader.register("governance_kernel", ModulePriority.CRITICAL, _failing_loader)
+        with pytest.raises(SystemError) as exc_info:
+            loader.load_all(object())
+        msg = str(exc_info.value)
+        assert "event_backbone" in msg
+        assert "governance_kernel" in msg
