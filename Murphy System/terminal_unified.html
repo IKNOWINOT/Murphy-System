@@ -1297,15 +1297,15 @@
       var models = data.models || data.providers || (Array.isArray(data) ? data : []);
       var html   = sectionHeader('LLM Config', 'Language model settings');
 
-      // Onboard LLM is always available — reflect that in the summary row
-      var activeProvider = data.provider || 'onboard';
-      var activeModel    = data.active_model || data.model || 'murphy-onboard';
+      // Show cloud provider (distinct from the always-available onboard LLM)
+      var cloudProvider = (data.provider && data.provider !== 'onboard') ? data.provider : 'None';
+      var activeModel   = data.active_model || data.model || 'murphy-onboard';
 
       html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">';
-      html += statCard('Active Provider', activeProvider);
-      html += statCard('Active Model',    activeModel);
-      html += statCard('Onboard LLM',     'Always Available');
-      html += statCard('Requests Today',  data.requests_today || '\u2014');
+      html += statCard('Cloud Provider', cloudProvider);
+      html += statCard('Active Model',   activeModel);
+      html += statCard('Onboard LLM',    'Always Available');
+      html += statCard('Requests Today', data.requests_today || '\u2014');
       html += '</div>';
 
       // Ensure onboard is always shown in the models list

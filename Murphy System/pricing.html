@@ -813,9 +813,11 @@
   btnAnnual.addEventListener('click',  function () { updatePrices('annual');  });
 
   // ── Checkout buttons ─────────────────────────────────────
-  // Unauthenticated visitors are redirected to the signup page with the
-  // selected plan pre-filled so they can create an account first.
-  // After signup, the billing flow completes with the account_id available.
+  // Public pricing page visitors (unauthenticated or authenticated) are
+  // directed to the signup/login flow first, with the selected tier and
+  // billing interval passed as query params. The signup page uses those
+  // params to pre-select the plan and, once an account_id is available,
+  // complete the billing checkout via /api/billing/checkout.
   document.querySelectorAll('.pricing-cta[data-tier]').forEach(function (btn) {
     btn.addEventListener('click', function () {
       var tier     = btn.getAttribute('data-tier');
