@@ -1403,15 +1403,14 @@ class MurphyImmuneEngine:
 
     def _publish(self, event_name: str, payload: Dict[str, Any]) -> None:
         """Publish an event to the EventBackbone if available."""
-        if self._backbone is None:
-            return
         try:
-            from event_backbone import EventType
-            evt = getattr(EventType, event_name, None)
-            if evt is None:
-                logger.debug("MurphyImmuneEngine: unknown EventType '%s'", event_name)
-                return
-            self._backbone.publish(evt, payload, source="murphy_immune_engine")
+            from event_backbone_client import publish as _bb_publish  # noqa: PLC0415
+            _bb_publish(
+                event_name,
+                payload,
+                source="murphy_immune_engine",
+                backbone=self._backbone,
+            )
         except Exception as exc:
             logger.debug("MurphyImmuneEngine: event publish failed (%s): %s", event_name, exc)
 
