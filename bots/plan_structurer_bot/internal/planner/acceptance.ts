@@ -1,0 +1,1 @@
+export function collectAcceptance(tree:any[]){ const acc:any[]=[]; const walk=(n:any)=>{ if (n.acceptance_tests) for (const t of n.acceptance_tests) acc.push({id:`A_${n.id}`, text:t}); (n.children||[]).forEach(walk); }; (tree||[]).forEach(walk); return acc; }

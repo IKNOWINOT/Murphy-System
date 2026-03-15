@@ -1,0 +1,3733 @@
+<!--
+  Murphy System — Unified Workspace
+  © 2020 Inoni Limited Liability Company
+  Creator: Corey Post
+  License: BSL 1.1
+
+  Murphy does NOT claim intellectual property rights over user-created
+  channels or the data flowing through them. Channels and their content
+  remain the sole property of the creating organization.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — Workspace</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
+<style>
+  /* =====================================================
+     WORKSPACE LAYOUT — three-column shell
+     ===================================================== */
+  :root {
+    --workspace-channel-width: 224px;
+    --workspace-assistant-width: 320px;
+    --topbar-height: 52px;
+  }
+
+  /* Full-bleed body — no default sidebar margin */
+  body {
+    margin: 0;
+    background: var(--bg-base);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    overflow: hidden;
+  }
+
+  /* ── Top bar ─────────────────────────────────────── */
+  .ws-topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: var(--topbar-height);
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--space-4);
+    z-index: 100;
+    gap: var(--space-3);
+  }
+
+  .ws-topbar-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex-shrink: 0;
+  }
+
+  .ws-topbar-brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    text-decoration: none;
+    color: var(--teal);
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 0.05em;
+  }
+
+  .ws-topbar-brand img {
+    width: 28px;
+    height: 28px;
+  }
+
+  .ws-topbar-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .ws-conn-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--success);
+    flex-shrink: 0;
+    transition: background 0.3s;
+  }
+  .ws-conn-dot.disconnected { background: var(--danger); }
+
+  .ws-notif-btn {
+    position: relative;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: var(--space-1);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .ws-notif-btn:hover { color: var(--text-primary); background: var(--bg-elevated); }
+
+  .ws-notif-badge {
+    position: absolute;
+    top: -2px; right: -2px;
+    background: var(--danger);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+    line-height: 1;
+  }
+  .ws-notif-badge[hidden] { display: none; }
+
+  .ws-user-pill {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius);
+    cursor: default;
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+  }
+  .ws-user-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--teal);
+    color: var(--bg-base);
+    font-weight: 700;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* ── Channel sidebar ──────────────────────────────── */
+  .ws-channels {
+    position: fixed;
+    top: var(--topbar-height);
+    left: 0;
+    bottom: 0;
+    width: var(--workspace-channel-width);
+    background: var(--bg-surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 90;
+    transition: transform 0.2s ease, width 0.2s ease;
+  }
+
+  .ws-channels-header {
+    padding: var(--space-3) var(--space-3) var(--space-2);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    flex-shrink: 0;
+  }
+
+  .ws-channels-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 var(--space-2) var(--space-4);
+  }
+
+  .ws-channels-section {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: var(--space-3) var(--space-2) var(--space-1);
+  }
+
+  .ws-channel-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 6px var(--space-2);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    transition: background 0.15s, color 0.15s;
+    position: relative;
+    user-select: none;
+  }
+  .ws-channel-item:hover {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+  }
+  .ws-channel-item.active {
+    background: var(--teal-glow);
+    color: var(--teal);
+    font-weight: 600;
+  }
+
+  /* Colored status dot */
+  .ws-ch-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: background 0.4s;
+  }
+  .ws-ch-dot.status-success  { background: var(--success); }
+  .ws-ch-dot.status-warning  { background: var(--warning); }
+  .ws-ch-dot.status-danger   { background: var(--danger); }
+  .ws-ch-dot.status-idle     { background: var(--text-muted); }
+  .ws-ch-dot.status-learning { background: var(--accent-violet); }
+  .ws-ch-dot.status-info     { background: var(--info); }
+
+  @keyframes pulse-dot {
+    0%   { box-shadow: 0 0 0 0 currentColor; }
+    70%  { box-shadow: 0 0 0 5px transparent; }
+    100% { box-shadow: 0 0 0 0 transparent; }
+  }
+  .ws-ch-dot.pulsing { animation: pulse-dot 0.6s ease-out; }
+
+  .ws-ch-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .ws-ch-badge {
+    background: var(--danger);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+    flex-shrink: 0;
+  }
+  .ws-ch-badge[hidden] { display: none; }
+
+  .ws-add-channel-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 6px var(--space-2);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 0.8125rem;
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    transition: color 0.15s, background 0.15s;
+  }
+  .ws-add-channel-btn:hover { color: var(--teal); background: var(--bg-elevated); }
+
+  /* ── Main content ────────────────────────────────── */
+  .ws-main {
+    position: fixed;
+    top: var(--topbar-height);
+    left: var(--workspace-channel-width);
+    right: var(--workspace-assistant-width);
+    bottom: 0;
+    overflow-y: auto;
+    padding: var(--space-5);
+    transition: left 0.2s ease, right 0.2s ease;
+  }
+
+  /* ── Right assistant panel ───────────────────────── */
+  .ws-assistant {
+    position: fixed;
+    top: var(--topbar-height);
+    right: 0;
+    bottom: 0;
+    width: var(--workspace-assistant-width);
+    background: var(--bg-surface);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    z-index: 90;
+    transition: transform 0.2s ease;
+  }
+
+  .ws-assistant-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .ws-assistant-title {
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: var(--teal);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .ws-assistant-body {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Make murphy-librarian-chat fill the panel */
+  murphy-librarian-chat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Channel header inside main ──────────────────── */
+  .ws-channel-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-5);
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .ws-channel-header-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .ws-channel-header-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+  }
+
+  .ws-channel-header-desc {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    margin-left: auto;
+  }
+
+  /* ── Create channel modal ────────────────────────── */
+  .ws-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.65);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-4);
+  }
+  .ws-modal-backdrop[hidden] { display: none; }
+
+  .ws-modal {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    width: 100%;
+    max-width: 480px;
+    box-shadow: var(--shadow-xl);
+  }
+
+  .ws-modal-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    margin-bottom: var(--space-4);
+  }
+
+  .ws-modal-footer {
+    display: flex;
+    gap: var(--space-3);
+    justify-content: flex-end;
+    margin-top: var(--space-5);
+  }
+
+  /* ── Responsive ──────────────────────────────────── */
+  @media (max-width: 900px) {
+    .ws-assistant {
+      transform: translateX(100%);
+    }
+    .ws-assistant.open {
+      transform: translateX(0);
+    }
+    .ws-main {
+      right: 0;
+    }
+    .ws-btn-toggle-assistant {
+      display: flex !important;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .ws-channels {
+      transform: translateX(-100%);
+    }
+    .ws-channels.open {
+      transform: translateX(0);
+      z-index: 150;
+    }
+    .ws-main {
+      left: 0;
+      right: 0;
+      padding: var(--space-3);
+    }
+    .ws-btn-toggle-channels {
+      display: flex !important;
+    }
+  }
+
+  .ws-btn-toggle-assistant,
+  .ws-btn-toggle-channels {
+    display: none;
+  }
+
+  /* ── Utility ──────────────────────────────────────── */
+  .grid-stat { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--space-4); margin-bottom: var(--space-5); }
+  .feed-item { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border); font-size: 0.875rem; }
+  .feed-item:last-child { border-bottom: none; }
+  .feed-item-time { font-size: 0.75rem; color: var(--text-muted); }
+  .feed-item-channel { font-size: 0.75rem; color: var(--teal); font-family: var(--font-mono); }
+
+  /* ── Voice channel items ─────────────────────────── */
+  .ws-voice-channel-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 5px var(--space-3);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    transition: background var(--transition-fast), color var(--transition-fast);
+    user-select: none;
+  }
+  .ws-voice-channel-item:hover { background: var(--bg-elevated); color: var(--text-primary); }
+  .ws-voice-channel-item.active { background: rgba(0,212,170,.12); color: var(--teal); }
+  .ws-voice-channel-item.active .ws-voice-icon { color: var(--teal); }
+  .ws-voice-icon { width: 16px; height: 16px; flex-shrink: 0; color: var(--text-muted); }
+  .ws-voice-participants { display: flex; gap: 2px; margin-left: auto; }
+  .ws-voice-participant-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--teal); opacity: .7;
+  }
+  .ws-voice-channel-users {
+    padding: 2px var(--space-3) var(--space-2) 36px;
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .ws-voice-channel-user {
+    font-size: var(--text-xs); color: var(--text-muted);
+    display: flex; align-items: center; gap: 5px;
+  }
+  .ws-voice-channel-user .ws-speaking { color: var(--teal); }
+
+  /* ── Voice/Video status bar (bottom of sidebar) ──── */
+  .ws-voice-status {
+    position: fixed;
+    bottom: 0; left: 0;
+    width: var(--workspace-channel-width);
+    background: rgba(0,212,170,.08);
+    border-top: 1px solid rgba(0,212,170,.3);
+    padding: 8px var(--space-3);
+    z-index: 90;
+    display: none;
+  }
+  .ws-voice-status.active { display: block; }
+  .ws-voice-status-label {
+    font-size: var(--text-xs); color: var(--teal);
+    font-weight: 600; margin-bottom: 6px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .ws-voice-status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--teal);
+    animation: voice-pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes voice-pulse {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50% { opacity: .5; transform: scale(.85); }
+  }
+  .ws-voice-controls {
+    display: flex; gap: 6px;
+  }
+  .ws-voice-ctrl-btn {
+    flex: 1; padding: 6px 0;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    cursor: pointer; font-size: 14px;
+    transition: background var(--transition-fast), color var(--transition-fast);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ws-voice-ctrl-btn:hover { background: var(--bg-surface); color: var(--text-primary); }
+  .ws-voice-ctrl-btn.active { background: rgba(0,212,170,.15); color: var(--teal); border-color: rgba(0,212,170,.4); }
+  .ws-voice-ctrl-btn.danger:hover { background: rgba(255,68,68,.15); color: #ff4444; border-color: rgba(255,68,68,.4); }
+
+  /* ── Full call overlay ───────────────────────────── */
+  .ws-call-overlay {
+    display: none;
+    position: fixed;
+    inset: var(--topbar-height) 0 0 0;
+    background: #050505;
+    z-index: 200;
+    flex-direction: column;
+  }
+  .ws-call-overlay.open { display: flex; }
+  .ws-call-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 20px;
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .ws-call-header-title { font-size: var(--text-sm); font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
+  .ws-call-header-meta { font-size: var(--text-xs); color: var(--text-muted); }
+  .ws-call-timer { font-family: var(--font-mono); color: var(--teal); font-size: var(--text-sm); }
+  .ws-call-grid {
+    flex: 1; display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 8px; padding: 16px; overflow-y: auto;
+    align-content: start;
+  }
+  .ws-call-tile {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    aspect-ratio: 16/9;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+  }
+  .ws-call-tile.speaking { border-color: var(--teal); box-shadow: 0 0 0 2px rgba(0,212,170,.3); }
+  .ws-call-tile video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: var(--radius-lg); }
+  .ws-call-tile-avatar {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: rgba(0,212,170,.15); border: 2px solid rgba(0,212,170,.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; font-weight: 700; color: var(--teal);
+    font-family: var(--font-ui);
+  }
+  .ws-call-tile-name {
+    position: absolute; bottom: 8px; left: 10px;
+    font-size: var(--text-xs); font-weight: 600; color: #fff;
+    background: rgba(0,0,0,.6); border-radius: var(--radius-sm);
+    padding: 2px 7px; display: flex; align-items: center; gap: 5px;
+  }
+  .ws-call-tile-muted { color: #ff4444; }
+  .ws-call-tile.murphy-tile { border-color: rgba(0,255,65,.3); }
+  .ws-call-tile.murphy-tile .ws-call-tile-avatar { background: rgba(0,255,65,.1); border-color: rgba(0,255,65,.3); color: #00ff41; }
+  /* Murphy waveform animation */
+  .murphy-voice-wave { display: flex; gap: 3px; align-items: center; height: 24px; }
+  .murphy-voice-wave span {
+    display: block; width: 3px; background: #00ff41;
+    border-radius: 2px; animation: wave-bar 1s ease-in-out infinite;
+  }
+  .murphy-voice-wave span:nth-child(1) { animation-delay: 0s;   height: 40%; }
+  .murphy-voice-wave span:nth-child(2) { animation-delay: .15s; height: 80%; }
+  .murphy-voice-wave span:nth-child(3) { animation-delay: .3s;  height: 60%; }
+  .murphy-voice-wave span:nth-child(4) { animation-delay: .15s; height: 100%; }
+  .murphy-voice-wave span:nth-child(5) { animation-delay: 0s;   height: 50%; }
+  @keyframes wave-bar { 0%,100% { transform: scaleY(1); } 50% { transform: scaleY(.35); } }
+  .murphy-voice-wave.idle span { animation: none; height: 3px; }
+  .ws-call-controls {
+    padding: 16px 20px;
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    flex-wrap: wrap;
+  }
+  .ws-call-btn {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: var(--bg-elevated); border: 1px solid var(--border);
+    color: var(--text-secondary); cursor: pointer; font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all var(--transition-fast); position: relative;
+  }
+  .ws-call-btn:hover { background: var(--bg-surface); color: var(--text-primary); transform: scale(1.08); }
+  .ws-call-btn.active { background: rgba(0,212,170,.15); color: var(--teal); border-color: rgba(0,212,170,.4); }
+  .ws-call-btn.danger { background: rgba(255,68,68,.15); color: #ff4444; border-color: rgba(255,68,68,.3); }
+  .ws-call-btn.danger:hover { background: rgba(255,68,68,.25); transform: scale(1.08); }
+  .ws-call-btn-label { font-size: 10px; color: var(--text-muted); margin-top: 4px; text-align: center; white-space: nowrap; }
+  .ws-call-btn-wrap { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .ws-call-murphy-btn { width: 56px; height: 56px; background: rgba(0,255,65,.08); border-color: rgba(0,255,65,.3); color: #00ff41; }
+  .ws-call-murphy-btn.listening { background: rgba(0,255,65,.2); animation: murphy-pulse .8s ease-in-out infinite; }
+  @keyframes murphy-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(0,255,65,.4); } 50% { box-shadow: 0 0 0 8px rgba(0,255,65,0); } }
+
+  /* ── Call overlay tabs ───────────────────────────── */
+  .ws-call-tabs {
+    display: flex; gap: 2px; padding: 0 12px;
+    background: var(--bg-surface); border-bottom: 1px solid var(--border);
+    overflow-x: auto; flex-shrink: 0;
+  }
+  .ws-call-tab {
+    padding: 8px 16px; background: none; border: none;
+    border-bottom: 2px solid transparent; color: var(--text-muted);
+    font-family: var(--font-ui); font-size: var(--text-sm); font-weight: 500;
+    cursor: pointer; white-space: nowrap;
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+  }
+  .ws-call-tab:hover { color: var(--text-primary); }
+  .ws-call-tab.active { color: var(--teal); border-bottom-color: var(--teal); }
+  .ws-call-panel { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+  .ws-call-panel.active { display: flex; }
+
+  /* ── Whiteboard ──────────────────────────────────── */
+  .whiteboard-panel { background: #111; }
+  .wb-toolbar {
+    display: flex; align-items: center; gap: 4px; padding: 6px 10px;
+    background: var(--bg-surface); border-bottom: 1px solid var(--border);
+    overflow-x: auto; flex-shrink: 0; flex-wrap: wrap;
+  }
+  .wb-tool-btn {
+    padding: 5px 9px; background: var(--bg-elevated); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text-secondary); cursor: pointer;
+    font-size: 13px; font-family: var(--font-ui); font-weight: 500;
+    transition: all var(--transition-fast); white-space: nowrap;
+  }
+  .wb-tool-btn:hover { background: var(--bg-surface); color: var(--text-primary); }
+  .wb-tool-btn.active { background: rgba(0,212,170,.15); color: var(--teal); border-color: rgba(0,212,170,.4); }
+  .wb-color-swatch {
+    width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent;
+    cursor: pointer; flex-shrink: 0; transition: border-color var(--transition-fast), transform var(--transition-fast);
+  }
+  .wb-color-swatch:hover { transform: scale(1.2); }
+  .wb-color-swatch.active { border-color: #fff; transform: scale(1.15); }
+  .wb-sep { width: 1px; height: 22px; background: var(--border); margin: 0 4px; flex-shrink: 0; }
+  .wb-size-label { font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
+  .wb-size-slider { width: 80px; cursor: pointer; accent-color: var(--teal); }
+  #wb-canvas { background: #0d0d0d; touch-action: none; }
+
+  /* ── Mind map ────────────────────────────────────── */
+  .mindmap-panel { background: #0a0a0a; }
+  .mm-canvas-wrap { flex: 1; overflow: hidden; position: relative; cursor: crosshair; }
+  #mm-svg { display: block; width: 100%; height: 100%; }
+  .mm-node-rect { rx: 10; fill: var(--bg-surface); stroke: var(--teal); stroke-width: 1.5; cursor: move; }
+  .mm-node-text { fill: var(--text-primary); font-family: var(--font-ui); font-size: 13px; dominant-baseline: middle; text-anchor: middle; pointer-events: none; user-select: none; }
+  .mm-edge { stroke: rgba(0,212,170,0.5); stroke-width: 1.5; fill: none; marker-end: url(#mm-arrow); }
+  .mm-topic-input {
+    flex: 1; min-width: 160px; max-width: 280px; padding: 5px 9px;
+    background: var(--bg-elevated); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text-primary);
+    font-family: var(--font-ui); font-size: 13px;
+  }
+  .mm-topic-input:focus { outline: none; border-color: var(--teal); }
+  .mm-hint { padding: 4px 12px; font-size: 11px; color: var(--text-muted); background: var(--bg-surface); border-top: 1px solid var(--border); flex-shrink: 0; }
+
+  /* ── Notes ───────────────────────────────────────── */
+  .notes-panel { background: #0d0d0d; }
+  .notes-toolbar { display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: var(--bg-surface); border-bottom: 1px solid var(--border); flex-shrink: 0; flex-wrap: wrap; }
+  .notes-autosave-status { margin-left: auto; font-size: 11px; color: var(--text-muted); }
+  .notes-area {
+    flex: 1; width: 100%; box-sizing: border-box; padding: 16px;
+    background: #0d0d0d; border: none; color: var(--text-primary);
+    font-family: var(--font-code, 'JetBrains Mono', monospace); font-size: 13px;
+    line-height: 1.6; resize: none; caret-color: var(--teal); outline: none;
+  }
+
+  /* ── Prezi ───────────────────────────────────────── */
+  .prezi-panel { background: #050505; }
+  .prezi-url-bar { display: flex; gap: 8px; padding: 8px 12px; background: var(--bg-surface); border-bottom: 1px solid var(--border); flex-shrink: 0; align-items: center; flex-wrap: wrap; }
+  .prezi-url-bar .wallet-input { flex: 1; min-width: 200px; padding: 6px 10px; }
+  .prezi-frame-wrap { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .prezi-iframe { width: 100%; height: 100%; border: none; }
+  .prezi-placeholder { text-align: center; max-width: 440px; padding: 2rem; }
+  .prezi-placeholder-icon { font-size: 3rem; margin-bottom: 1rem; }
+  .prezi-placeholder p { color: var(--text-secondary); font-size: var(--text-sm); line-height: 1.6; margin-bottom: .5rem; }
+  .prezi-hint { color: var(--text-tertiary) !important; font-size: var(--text-xs) !important; }
+  .prezi-nav-bar { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 8px; background: var(--bg-surface); border-top: 1px solid var(--border); flex-shrink: 0; }
+  .prezi-slide-count { font-size: var(--text-xs); color: var(--text-muted); min-width: 60px; text-align: center; }
+
+  /* ── Screen share / remote control ──────────────── */
+  .screen-share-controls {
+    display: flex; align-items: center; gap: 12px; padding: 6px 12px;
+    background: rgba(0,212,170,.05); border-top: 1px solid rgba(0,212,170,.2);
+    font-size: var(--text-xs); color: var(--text-secondary); flex-shrink: 0; flex-wrap: wrap;
+  }
+  .ws-remote-ctrl-toggle { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: var(--text-xs); color: var(--text-secondary); }
+  .ws-remote-ctrl-slider {
+    width: 32px; height: 18px; background: var(--bg-elevated); border-radius: 9px;
+    position: relative; transition: background var(--transition-fast); border: 1px solid var(--border);
+  }
+  .ws-remote-ctrl-slider::after {
+    content: ''; position: absolute; width: 12px; height: 12px;
+    background: var(--text-muted); border-radius: 50%; top: 2px; left: 2px;
+    transition: transform var(--transition-fast), background var(--transition-fast);
+  }
+  #toggle-remote-ctrl:checked + .ws-remote-ctrl-slider { background: rgba(0,212,170,.3); border-color: rgba(0,212,170,.5); }
+  #toggle-remote-ctrl:checked + .ws-remote-ctrl-slider::after { transform: translateX(14px); background: var(--teal); }
+  #toggle-remote-ctrl { position: absolute; opacity: 0; width: 0; height: 0; }
+  .remote-ctrl-status { color: #00ff41; font-weight: 600; animation: blink-status 1.5s ease-in-out infinite; }
+  @keyframes blink-status { 0%,100%{opacity:1} 50%{opacity:.5} }
+  .remote-control-bar {
+    background: rgba(255,196,0,.12); border-bottom: 1px solid rgba(255,196,0,.3);
+    padding: 6px 16px; font-size: var(--text-sm); color: #ffc400;
+    display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  }
+  .ws-call-btn-inline {
+    background: transparent; border: 1px solid rgba(255,196,0,.4); border-radius: var(--radius-sm);
+    color: #ffc400; cursor: pointer; padding: 2px 10px; font-size: var(--text-xs); font-weight: 600;
+  }
+  .ws-call-btn-inline:hover { background: rgba(255,196,0,.15); }
+
+  /* ═══════════════════════════════════════════════════════
+     SHADOW AI MEETING INTELLIGENCE PANEL
+     ═══════════════════════════════════════════════════════ */
+  .shadowai-panel { background: #060608; display: none; }
+  .shadowai-panel.active { display: flex !important; }
+  .sai-layout {
+    display: flex; flex: 1; overflow: hidden; height: 100%;
+  }
+
+  /* Left column — transcript */
+  .sai-left {
+    width: 42%; border-right: 1px solid var(--border); display: flex;
+    flex-direction: column; overflow: hidden; flex-shrink: 0;
+  }
+  .sai-section-head {
+    display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+    background: var(--bg-surface); border-bottom: 1px solid var(--border); flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+  .sai-badge-live {
+    font-size: 10px; font-weight: 700; letter-spacing: .06em;
+    padding: 2px 8px; border-radius: var(--radius-full);
+    background: rgba(255,68,68,.15); color: #ff4444; border: 1px solid rgba(255,68,68,.3);
+    animation: sai-live-blink 1.8s ease-in-out infinite;
+  }
+  .sai-badge-live.active { background: rgba(0,255,65,.1); color: #00ff41; border-color: rgba(0,255,65,.3); animation: sai-live-blink 1.4s ease-in-out infinite; }
+  @keyframes sai-live-blink { 0%,100%{opacity:1}50%{opacity:.55} }
+  .sai-session-label { font-size: var(--text-xs); color: var(--text-muted); flex: 1; }
+  .sai-start-btn { font-size: 11px; padding: 4px 10px; }
+  .sai-start-btn.active { background: rgba(255,68,68,.15); color: #ff4444; border-color: rgba(255,68,68,.3); }
+
+  /* Swarm agents */
+  .sai-agents {
+    display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 12px;
+    background: rgba(0,212,170,.03); border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .sai-agent {
+    display: flex; align-items: center; gap: 5px; padding: 4px 8px;
+    background: var(--bg-elevated); border: 1px solid var(--border);
+    border-radius: var(--radius-full); font-size: 11px; color: var(--text-secondary);
+    transition: border-color var(--transition-fast);
+  }
+  .sai-agent.active { border-color: rgba(0,212,170,.4); color: var(--teal); }
+  .sai-agent.thinking { border-color: rgba(0,255,65,.35); color: #00ff41; animation: sai-think .8s ease-in-out infinite; }
+  @keyframes sai-think { 0%,100%{opacity:1}50%{opacity:.6} }
+  .sai-agent-avatar {
+    width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700;
+    background: rgba(0,212,170,.15); color: var(--teal); background-size: cover; background-position: center;
+  }
+  .sai-agent-avatar.murphy { background: rgba(0,255,65,.1); color: #00ff41; }
+  .sai-agent-dots { display: flex; gap: 2px; }
+  .sai-agent-dot { width: 3px; height: 3px; border-radius: 50%; background: currentColor; animation: sai-dot .9s ease-in-out infinite; }
+  .sai-agent-dot:nth-child(2){animation-delay:.2s}.sai-agent-dot:nth-child(3){animation-delay:.4s}
+  @keyframes sai-dot{0%,100%{transform:scale(1)}50%{transform:scale(1.6)}}
+
+  /* Transcript */
+  .sai-transcript-head { font-size: 11px; font-weight: 600; color: var(--text-tertiary); padding: 6px 12px; text-transform: uppercase; letter-spacing: .05em; background: var(--bg-surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .sai-transcript { flex: 1; overflow-y: auto; padding: 8px 12px; font-size: var(--text-xs); line-height: 1.6; }
+  .sai-transcript-placeholder { color: var(--text-tertiary); font-style: italic; padding: 12px 0; }
+  .sai-tx-line { margin-bottom: 6px; }
+  .sai-tx-speaker { font-weight: 600; color: var(--teal); margin-right: 5px; }
+  .sai-tx-speaker.murphy-speaker { color: #00ff41; }
+  .sai-tx-time { font-size: 10px; color: var(--text-tertiary); margin-left: 5px; }
+  .sai-tx-text { color: var(--text-primary); }
+
+  /* Right column */
+  .sai-right { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* Org header */
+  .sai-org-header {
+    display: flex; align-items: center; gap: 6px; padding: 6px 12px;
+    background: rgba(0,212,170,.05); border-bottom: 1px solid rgba(0,212,170,.15);
+    font-size: 11px; color: var(--teal); flex-shrink: 0;
+  }
+  .sai-org-capability { margin-left: auto; background: rgba(0,212,170,.12); padding: 1px 8px; border-radius: var(--radius-full); font-size: 10px; font-weight: 600; }
+
+  /* Confidence */
+  .sai-confidence-block { padding: 10px 12px; background: var(--bg-surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .sai-confidence-label { display: flex; justify-content: space-between; font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+  .sai-confidence-value { font-size: 13px; font-weight: 700; color: var(--teal); }
+  .sai-confidence-track { height: 6px; background: var(--bg-elevated); border-radius: 3px; overflow: hidden; border: 1px solid var(--border); }
+  .sai-confidence-bar { height: 100%; width: 0%; border-radius: 3px; background: linear-gradient(90deg, rgba(0,212,170,.5), var(--teal)); transition: width .8s cubic-bezier(.4,0,.2,1), background .8s; }
+  .sai-confidence-bar.low   { background: linear-gradient(90deg, rgba(255,68,68,.5), #ff4444); }
+  .sai-confidence-bar.mid   { background: linear-gradient(90deg, rgba(255,196,0,.5), #ffc400); }
+  .sai-confidence-bar.high  { background: linear-gradient(90deg, rgba(0,212,170,.5), var(--teal)); }
+  .sai-confidence-sub { font-size: 10px; color: var(--text-tertiary); margin-top: 4px; }
+
+  /* Suggestions */
+  .sai-suggestions-head { display: flex; align-items: center; justify-content: space-between; font-size: 11px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: .05em; padding: 6px 12px; background: var(--bg-surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .sai-suggestion-count { background: rgba(0,212,170,.15); color: var(--teal); border-radius: var(--radius-full); padding: 1px 7px; font-size: 10px; font-weight: 700; }
+  .sai-suggestions { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+  .sai-empty-state { font-size: var(--text-xs); color: var(--text-tertiary); font-style: italic; padding: 12px; text-align: center; }
+  .sai-suggestion {
+    background: var(--bg-surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 10px 12px;
+    animation: sai-slide-in .4s ease;
+    transition: border-color var(--transition-fast);
+  }
+  @keyframes sai-slide-in { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  .sai-suggestion:hover { border-color: rgba(0,212,170,.3); }
+  .sai-suggestion.accepted { border-color: rgba(0,255,65,.4); background: rgba(0,255,65,.04); }
+  .sai-suggestion.dismissed { opacity: .4; border-style: dashed; }
+  .sai-sug-header { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .sai-sug-type {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+    padding: 2px 7px; border-radius: var(--radius-full);
+  }
+  .sai-sug-type.action   { background: rgba(0,212,170,.12); color: var(--teal); }
+  .sai-sug-type.proposal { background: rgba(98,126,234,.15); color: #627eea; }
+  .sai-sug-type.risk     { background: rgba(255,68,68,.12); color: #ff4444; }
+  .sai-sug-type.insight  { background: rgba(0,255,65,.1); color: #00ff41; }
+  .sai-sug-type.draft    { background: rgba(255,196,0,.12); color: #ffc400; }
+  .sai-sug-confidence { margin-left: auto; font-size: 10px; font-weight: 600; color: var(--text-muted); }
+  .sai-sug-confidence.high   { color: #00ff41; }
+  .sai-sug-confidence.mid    { color: #ffc400; }
+  .sai-sug-confidence.low    { color: #ff4444; }
+  .sai-sug-agent { font-size: 10px; color: var(--text-tertiary); }
+  .sai-sug-text { font-size: var(--text-xs); color: var(--text-primary); line-height: 1.55; margin-bottom: 8px; }
+  .sai-sug-actions { display: flex; gap: 5px; }
+  .sai-sug-btn {
+    padding: 3px 9px; border-radius: var(--radius-sm); font-size: 11px; font-weight: 500;
+    cursor: pointer; border: 1px solid var(--border); background: var(--bg-elevated); color: var(--text-secondary);
+    transition: all var(--transition-fast);
+  }
+  .sai-sug-btn:hover { color: var(--text-primary); background: var(--bg-surface); }
+  .sai-sug-btn.accept  { border-color: rgba(0,255,65,.3); color: #00ff41; }
+  .sai-sug-btn.accept:hover  { background: rgba(0,255,65,.1); }
+  .sai-sug-btn.flag    { border-color: rgba(255,196,0,.3); color: #ffc400; }
+  .sai-sug-btn.flag:hover    { background: rgba(255,196,0,.1); }
+  .sai-sug-btn.dismiss { border-color: rgba(255,68,68,.3); color: #ff4444; }
+  .sai-sug-btn.dismiss:hover { background: rgba(255,68,68,.1); }
+  .sai-sug-btn.mm-btn  { border-color: rgba(0,212,170,.3); color: var(--teal); }
+  .sai-sug-btn.mm-btn:hover  { background: rgba(0,212,170,.1); }
+
+  /* Draft section */
+  .sai-draft-section { padding: 8px; background: var(--bg-surface); border-top: 1px solid var(--border); flex-shrink: 0; }
+  .sai-draft-head { display: flex; align-items: center; justify-content: space-between; font-size: 11px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; }
+  .sai-generate-btn { font-size: 11px; padding: 4px 10px; }
+  .sai-generate-btn:disabled { opacity: .45; cursor: not-allowed; }
+  .sai-draft-types { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 8px; }
+  .sai-draft-card {
+    display: flex; align-items: center; gap: 7px; padding: 7px 10px;
+    background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-md);
+    cursor: pointer; transition: border-color var(--transition-fast);
+  }
+  .sai-draft-card:hover { border-color: rgba(0,212,170,.3); }
+  .sai-draft-card.ready { border-color: rgba(0,255,65,.3); cursor: pointer; }
+  .sai-draft-icon { font-size: 16px; }
+  .sai-draft-name { font-size: 11px; font-weight: 600; color: var(--text-primary); }
+  .sai-draft-status { font-size: 10px; color: var(--text-tertiary); margin-top: 1px; }
+  .sai-draft-status.ready { color: #00ff41; }
+  .sai-review-btn {
+    display: block; text-align: center; padding: 7px; background: rgba(0,212,170,.1);
+    border: 1px solid rgba(0,212,170,.3); border-radius: var(--radius-md); color: var(--teal);
+    font-size: var(--text-xs); font-weight: 600; text-decoration: none;
+    transition: background var(--transition-fast);
+  }
+  .sai-review-btn:hover { background: rgba(0,212,170,.2); }
+
+  /* License notice */
+  .sai-license-notice {
+    display: flex; align-items: flex-start; gap: 7px; padding: 7px 12px;
+    background: rgba(255,196,0,.04); border-top: 1px solid rgba(255,196,0,.15);
+    font-size: 10px; color: var(--text-tertiary); line-height: 1.5; flex-shrink: 0;
+  }
+  .sai-license-icon { flex-shrink: 0; font-size: 13px; }
+
+  @media (max-width: 700px) {
+    .sai-layout { flex-direction: column; }
+    .sai-left { width: 100%; height: 40%; border-right: none; border-bottom: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+
+<!-- Skip link for accessibility -->
+<a href="#ws-main" class="murphy-skip-link">Skip to content</a>
+
+<!-- ============================================================
+     TOP BAR
+     ============================================================ -->
+<header class="ws-topbar" role="banner" aria-label="Workspace top bar">
+  <div class="ws-topbar-left">
+    <!-- Mobile: toggle channel sidebar -->
+    <button class="murphy-btn murphy-btn-icon ws-btn-toggle-channels" id="btn-toggle-channels" aria-label="Toggle channels">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-menu"></use></svg>
+    </button>
+
+    <!-- Brand -->
+    <a href="/ui/landing" class="ws-topbar-brand" aria-label="Murphy System home">
+      <img src="static/favicon.svg" alt="Murphy gear+eye logo">
+      <span>MURPHY</span>
+    </a>
+  </div>
+
+  <div class="ws-topbar-right">
+    <!-- Connection status -->
+    <div class="ws-conn-dot" id="conn-dot" aria-label="Connection status: connected" title="SSE connected"></div>
+
+    <!-- Notification bell -->
+    <button class="ws-notif-btn" id="btn-notifications" aria-label="Notifications">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-bell"></use></svg>
+      <span class="ws-notif-badge" id="global-notif-badge" hidden aria-live="polite">0</span>
+    </button>
+
+    <!-- Mobile: toggle assistant -->
+    <button class="murphy-btn murphy-btn-icon ws-btn-toggle-assistant" id="btn-toggle-assistant" aria-label="Toggle assistant panel">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-message-circle"></use></svg>
+    </button>
+
+    <!-- User pill -->
+    <div class="ws-user-pill" id="user-pill" aria-label="Current user">
+      <div class="ws-user-avatar" id="user-avatar">?</div>
+      <span id="user-name">Loading…</span>
+    </div>
+  </div>
+</header>
+
+<!-- ============================================================
+     CHANNEL SIDEBAR
+     ============================================================ -->
+<nav class="ws-channels" id="ws-channels" role="navigation" aria-label="Channel list">
+  <div class="ws-channels-header">Workspace</div>
+  <div class="ws-channels-scroll" id="channels-scroll">
+
+    <!-- System Channels -->
+    <div class="ws-channels-section">System Channels</div>
+
+    <a href="#system" class="ws-channel-item" data-channel="system" aria-label="system channel">
+      <span class="ws-ch-dot status-success" data-ch="system"></span>
+      <span class="ws-ch-name">#system</span>
+      <span class="ws-ch-badge" id="badge-system" hidden>0</span>
+    </a>
+
+    <a href="#hitl" class="ws-channel-item" data-channel="hitl" aria-label="hitl channel">
+      <span class="ws-ch-dot status-idle" data-ch="hitl"></span>
+      <span class="ws-ch-name">#hitl</span>
+      <span class="ws-ch-badge" id="badge-hitl" hidden>0</span>
+    </a>
+
+    <a href="#workflows" class="ws-channel-item" data-channel="workflows" aria-label="workflows channel">
+      <span class="ws-ch-dot status-idle" data-ch="workflows"></span>
+      <span class="ws-ch-name">#workflows</span>
+      <span class="ws-ch-badge" id="badge-workflows" hidden>0</span>
+    </a>
+
+    <a href="#security" class="ws-channel-item" data-channel="security" aria-label="security channel">
+      <span class="ws-ch-dot status-idle" data-ch="security"></span>
+      <span class="ws-ch-name">#security</span>
+      <span class="ws-ch-badge" id="badge-security" hidden>0</span>
+    </a>
+
+    <a href="#costs" class="ws-channel-item" data-channel="costs" aria-label="costs channel">
+      <span class="ws-ch-dot status-idle" data-ch="costs"></span>
+      <span class="ws-ch-name">#costs</span>
+      <span class="ws-ch-badge" id="badge-costs" hidden>0</span>
+    </a>
+
+    <a href="#agents" class="ws-channel-item" data-channel="agents" aria-label="agents channel">
+      <span class="ws-ch-dot status-idle" data-ch="agents"></span>
+      <span class="ws-ch-name">#agents</span>
+      <span class="ws-ch-badge" id="badge-agents" hidden>0</span>
+    </a>
+
+    <!-- Founder-only: hidden until auth confirms founder_admin -->
+    <a href="#architect" class="ws-channel-item" data-channel="architect" id="ch-architect"
+       aria-label="architect channel" style="display:none;">
+      <span class="ws-ch-dot status-learning" data-ch="architect"></span>
+      <span class="ws-ch-name">#architect</span>
+      <span class="ws-ch-badge" id="badge-architect" hidden>0</span>
+    </a>
+
+    <!-- Custom Channels -->
+    <div class="ws-channels-section">Custom Channels</div>
+
+    <div id="custom-channels-list">
+      <!-- Dynamic custom channels injected here -->
+    </div>
+
+    <button class="ws-add-channel-btn" id="btn-add-channel" aria-label="Create new channel">
+      <svg width="14" height="14"><use href="static/murphy-icons.svg#icon-plus"></use></svg>
+      Create Channel
+    </button>
+
+    <!-- ── Voice Channels ───────────────────────── -->
+    <div class="ws-channels-section">Voice Channels</div>
+
+    <div class="ws-voice-channel-item" data-voice-channel="general-voice" id="vc-general-voice"
+         role="button" tabindex="0" aria-label="Join General voice channel">
+      <svg class="ws-voice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.07 1.18 2 2 0 012.07 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
+      </svg>
+      <span>General Voice</span>
+      <div class="ws-voice-participants" id="vc-dots-general-voice"></div>
+    </div>
+
+    <div class="ws-voice-channel-item" data-voice-channel="team-standup" id="vc-team-standup"
+         role="button" tabindex="0" aria-label="Join Team Standup voice channel">
+      <svg class="ws-voice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.07 1.18 2 2 0 012.07 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
+      </svg>
+      <span>Team Standup</span>
+      <div class="ws-voice-participants" id="vc-dots-team-standup"></div>
+    </div>
+
+    <!-- ── Video Channels ───────────────────────── -->
+    <div class="ws-channels-section">Video Channels</div>
+
+    <div class="ws-voice-channel-item" data-voice-channel="all-hands" data-video="true" id="vc-all-hands"
+         role="button" tabindex="0" aria-label="Join All Hands video channel">
+      <svg class="ws-voice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+      </svg>
+      <span>All Hands</span>
+      <div class="ws-voice-participants" id="vc-dots-all-hands"></div>
+    </div>
+
+    <div class="ws-voice-channel-item" data-voice-channel="client-calls" data-video="true" id="vc-client-calls"
+         role="button" tabindex="0" aria-label="Join Client Calls video channel">
+      <svg class="ws-voice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+      </svg>
+      <span>Client Calls</span>
+      <div class="ws-voice-participants" id="vc-dots-client-calls"></div>
+    </div>
+
+  </div>
+</nav>
+
+<!-- ============================================================
+     VOICE STATUS BAR (shows when connected to a voice channel)
+     ============================================================ -->
+<div class="ws-voice-status" id="ws-voice-status" role="status" aria-live="polite" aria-label="Voice channel status">
+  <div class="ws-voice-status-label">
+    <span class="ws-voice-status-dot"></span>
+    <span id="voice-status-channel-name">Voice Connected</span>
+  </div>
+  <div class="ws-voice-controls">
+    <button class="ws-voice-ctrl-btn" id="vsb-mute" title="Mute / Unmute" aria-label="Mute microphone">🎙️</button>
+    <button class="ws-voice-ctrl-btn" id="vsb-camera" title="Camera on/off" aria-label="Toggle camera">📷</button>
+    <button class="ws-voice-ctrl-btn" id="vsb-expand" title="Expand call view" aria-label="Expand call view">⛶</button>
+    <button class="ws-voice-ctrl-btn danger" id="vsb-hangup" title="Leave channel" aria-label="Leave voice channel">📵</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     FULL CALL OVERLAY
+     ============================================================ -->
+<div class="ws-call-overlay" id="ws-call-overlay" role="dialog" aria-modal="true" aria-label="Call in progress">
+
+  <!-- Remote control banner (shown when someone has control) -->
+  <div class="remote-control-bar" id="remote-ctrl-bar" hidden role="alert" aria-live="assertive">
+    🖱️ <strong id="remote-ctrl-user">Alex J.</strong> is controlling your screen — <button id="btn-revoke-control" class="ws-call-btn-inline">Revoke Control</button>
+  </div>
+
+  <!-- Call header + tabs -->
+  <div class="ws-call-header">
+    <div class="ws-call-header-title">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.07 1.18 2 2 0 012.07 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+      <span id="call-overlay-channel-name">General Voice</span>
+      <span class="ws-call-header-meta" id="call-overlay-count">1 participant</span>
+    </div>
+    <span class="ws-call-timer" id="call-timer" aria-label="Call duration">00:00</span>
+  </div>
+
+  <!-- Tab navigation -->
+  <div class="ws-call-tabs" role="tablist" aria-label="Call panels">
+    <button class="ws-call-tab active" data-panel="video"      role="tab" aria-selected="true"  aria-controls="panel-video">📹 Video</button>
+    <button class="ws-call-tab"        data-panel="whiteboard" role="tab" aria-selected="false" aria-controls="panel-whiteboard">🖊️ Whiteboard</button>
+    <button class="ws-call-tab"        data-panel="mindmap"    role="tab" aria-selected="false" aria-controls="panel-mindmap">🧠 Mind Map</button>
+    <button class="ws-call-tab"        data-panel="notes"      role="tab" aria-selected="false" aria-controls="panel-notes">📝 Notes</button>
+    <button class="ws-call-tab"        data-panel="prezi"      role="tab" aria-selected="false" aria-controls="panel-prezi">🎞️ Prezi</button>
+    <button class="ws-call-tab"        data-panel="shadowai"   role="tab" aria-selected="false" aria-controls="panel-shadowai">🤖 Shadow AI</button>
+  </div>
+
+  <!-- ── VIDEO PANEL ── -->
+  <div class="ws-call-panel video-panel active" id="panel-video" role="tabpanel" aria-label="Video participants">
+    <div class="ws-call-grid" id="call-grid" role="list" aria-label="Call participants">
+      <div class="ws-call-tile" id="call-tile-local" role="listitem">
+        <video id="local-video" autoplay muted playsinline hidden></video>
+        <div class="ws-call-tile-avatar" id="call-local-avatar">?</div>
+        <span class="ws-call-tile-name" id="call-local-name">You</span>
+      </div>
+      <div class="ws-call-tile murphy-tile" id="call-tile-murphy" role="listitem" aria-label="Murphy AI participant">
+        <div class="ws-call-tile-avatar" id="murphy-tile-avatar">M</div>
+        <div class="murphy-voice-wave idle" id="murphy-wave" aria-hidden="true">
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <span class="ws-call-tile-name">Murphy AI</span>
+      </div>
+      <div id="remote-tiles"></div>
+    </div>
+    <!-- Screen share remote control row -->
+    <div class="screen-share-controls" id="screen-share-controls" hidden>
+      <span id="screen-share-label">🖥️ Sharing screen</span>
+      <label class="ws-remote-ctrl-toggle" for="toggle-remote-ctrl">
+        <input type="checkbox" id="toggle-remote-ctrl" aria-label="Allow remote control of your screen">
+        <span class="ws-remote-ctrl-slider"></span>
+        Allow Remote Control
+      </label>
+      <span class="remote-ctrl-status" id="remote-ctrl-status" hidden>⚡ Remote control active</span>
+    </div>
+  </div>
+
+  <!-- ── WHITEBOARD PANEL ── -->
+  <div class="ws-call-panel whiteboard-panel" id="panel-whiteboard" role="tabpanel" aria-label="Collaborative whiteboard" hidden>
+    <div class="wb-toolbar" role="toolbar" aria-label="Whiteboard tools">
+      <button class="wb-tool-btn active" data-tool="pen"    title="Pen"     aria-label="Pen tool"     aria-pressed="true">✏️</button>
+      <button class="wb-tool-btn"        data-tool="eraser" title="Eraser"  aria-label="Eraser tool"  aria-pressed="false">🧹</button>
+      <button class="wb-tool-btn"        data-tool="line"   title="Line"    aria-label="Line tool"    aria-pressed="false">╱</button>
+      <button class="wb-tool-btn"        data-tool="rect"   title="Rect"    aria-label="Rectangle"    aria-pressed="false">▭</button>
+      <button class="wb-tool-btn"        data-tool="circle" title="Circle"  aria-label="Circle tool"  aria-pressed="false">◯</button>
+      <button class="wb-tool-btn"        data-tool="arrow"  title="Arrow"   aria-label="Arrow tool"   aria-pressed="false">→</button>
+      <button class="wb-tool-btn"        data-tool="text"   title="Text"    aria-label="Text tool"    aria-pressed="false">T</button>
+      <div class="wb-sep" aria-hidden="true"></div>
+      <button class="wb-color-swatch active" data-color="#00D4AA" style="background:#00D4AA" title="Teal"  aria-label="Teal colour"   aria-pressed="true"></button>
+      <button class="wb-color-swatch"        data-color="#00ff41" style="background:#00ff41" title="Green" aria-label="Green colour"  aria-pressed="false"></button>
+      <button class="wb-color-swatch"        data-color="#00ffff" style="background:#00ffff" title="Cyan"  aria-label="Cyan colour"   aria-pressed="false"></button>
+      <button class="wb-color-swatch"        data-color="#ffffff" style="background:#ffffff" title="White" aria-label="White colour"  aria-pressed="false"></button>
+      <button class="wb-color-swatch"        data-color="#ff4444" style="background:#ff4444" title="Red"   aria-label="Red colour"    aria-pressed="false"></button>
+      <button class="wb-color-swatch"        data-color="#ffc400" style="background:#ffc400" title="Amber" aria-label="Amber colour"  aria-pressed="false"></button>
+      <div class="wb-sep" aria-hidden="true"></div>
+      <label class="wb-size-label" for="wb-stroke-size">Size</label>
+      <input type="range" id="wb-stroke-size" class="wb-size-slider" min="1" max="40" value="3" aria-label="Stroke size">
+      <div class="wb-sep" aria-hidden="true"></div>
+      <button class="wb-tool-btn" id="wb-undo"     title="Undo"     aria-label="Undo">↩</button>
+      <button class="wb-tool-btn" id="wb-redo"     title="Redo"     aria-label="Redo">↪</button>
+      <button class="wb-tool-btn" id="wb-clear"    title="Clear"    aria-label="Clear canvas">🗑️</button>
+      <button class="wb-tool-btn" id="wb-download" title="Download" aria-label="Download as PNG">💾</button>
+    </div>
+    <canvas id="wb-canvas" aria-label="Collaborative drawing canvas" style="cursor:crosshair;display:block;width:100%;flex:1;"></canvas>
+  </div>
+
+  <!-- ── MIND MAP PANEL ── -->
+  <div class="ws-call-panel mindmap-panel" id="panel-mindmap" role="tabpanel" aria-label="Mind map" hidden>
+    <div class="mm-toolbar" role="toolbar" aria-label="Mind map tools">
+      <button class="wb-tool-btn" id="mm-add-node"    aria-label="Add node">＋ Node</button>
+      <button class="wb-tool-btn" id="mm-auto-layout" aria-label="Auto layout">⟳ Layout</button>
+      <button class="wb-tool-btn" id="mm-clear"       aria-label="Clear mind map">🗑️ Clear</button>
+      <button class="wb-tool-btn" id="mm-export-svg"  aria-label="Export SVG">💾 Export</button>
+      <div class="wb-sep" aria-hidden="true"></div>
+      <input type="text" id="mm-murphy-topic" class="mm-topic-input" placeholder="Topic for Murphy AI…" aria-label="Topic for Murphy AI to generate mind map">
+      <button class="wb-tool-btn" id="mm-murphy-gen" aria-label="Generate mind map with Murphy AI">✨ Generate</button>
+    </div>
+    <div class="mm-canvas-wrap" id="mm-canvas-wrap" aria-label="Mind map canvas (click to add nodes, drag to move, double-click to rename, right-click to delete)">
+      <svg id="mm-svg" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="mm-arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L9,3 z" fill="rgba(0,212,170,0.7)"/>
+          </marker>
+        </defs>
+        <g id="mm-edges"></g>
+        <g id="mm-nodes"></g>
+      </svg>
+    </div>
+    <div class="mm-hint" aria-live="polite" id="mm-hint">Click canvas to add a node · Drag to move · Double-click to rename · Right-click to delete · Shift+click two nodes to connect</div>
+  </div>
+
+  <!-- ── NOTES PANEL ── -->
+  <div class="ws-call-panel notes-panel" id="panel-notes" role="tabpanel" aria-label="Call notes" hidden>
+    <div class="notes-toolbar" role="toolbar" aria-label="Notes tools">
+      <button class="wb-tool-btn" id="notes-timestamp" aria-label="Insert timestamp">⏱ Timestamp</button>
+      <button class="wb-tool-btn" id="notes-clear"     aria-label="Clear notes">🗑️ Clear</button>
+      <button class="wb-tool-btn" id="notes-export"    aria-label="Export notes as text file">💾 Export</button>
+      <span class="notes-autosave-status" id="notes-save-status" aria-live="polite">Auto-saved</span>
+    </div>
+    <textarea id="notes-area" class="notes-area" placeholder="Take notes here… auto-saved per channel." aria-label="Call notes textarea" spellcheck="true"></textarea>
+  </div>
+
+  <!-- ── PREZI PANEL ── -->
+  <div class="ws-call-panel prezi-panel" id="panel-prezi" role="tabpanel" aria-label="Prezi presentation" hidden>
+    <div class="prezi-url-bar">
+      <input type="url" id="prezi-url-input" class="wallet-input" placeholder="Paste your Prezi share URL (e.g. https://prezi.com/view/…)" aria-label="Prezi presentation URL">
+      <button class="wb-tool-btn" id="prezi-load-btn" aria-label="Load Prezi presentation">▶ Load</button>
+      <button class="wb-tool-btn" id="prezi-fs-btn"   aria-label="Toggle fullscreen Prezi">⛶ Fullscreen</button>
+    </div>
+    <div class="prezi-frame-wrap" id="prezi-frame-wrap">
+      <div class="prezi-placeholder" id="prezi-placeholder" role="status">
+        <div class="prezi-placeholder-icon" aria-hidden="true">🎞️</div>
+        <p>Paste a Prezi share link above and click <strong>Load</strong> to embed your presentation.</p>
+        <p class="prezi-hint">Tip: In Prezi, click Share → Copy Link, then paste it here.</p>
+      </div>
+      <iframe id="prezi-iframe" class="prezi-iframe" hidden allowfullscreen allow="fullscreen" title="Prezi Presentation" aria-label="Prezi presentation frame"></iframe>
+    </div>
+    <div class="prezi-nav-bar" id="prezi-nav-bar" hidden role="toolbar" aria-label="Prezi navigation">
+      <button class="wb-tool-btn" id="prezi-prev" aria-label="Previous slide">← Prev</button>
+      <span class="prezi-slide-count" id="prezi-slide-count" aria-live="polite"></span>
+      <button class="wb-tool-btn" id="prezi-next" aria-label="Next slide">Next →</button>
+    </div>
+  </div>
+
+  <!-- ── SHADOW AI MEETING INTELLIGENCE PANEL ── -->
+  <div class="ws-call-panel shadowai-panel" id="panel-shadowai" role="tabpanel" aria-label="Shadow AI Meeting Intelligence" hidden>
+    <div class="sai-layout">
+
+      <!-- Left: Live transcript + swarm status -->
+      <div class="sai-left">
+        <div class="sai-section-head">
+          <span class="sai-badge sai-badge-live" id="sai-badge-live" aria-live="polite">● LISTENING</span>
+          <span class="sai-session-label" id="sai-session-label">Session not started</span>
+          <button class="wb-tool-btn sai-start-btn" id="sai-start-btn" aria-label="Start Shadow AI session">Start Session</button>
+        </div>
+
+        <!-- Swarm agents -->
+        <div class="sai-agents" id="sai-agents" aria-label="Shadow AI agents per participant">
+          <!-- Injected per participant by JS -->
+        </div>
+
+        <!-- Live transcript -->
+        <div class="sai-transcript-head">Live Transcript</div>
+        <div class="sai-transcript" id="sai-transcript" role="log" aria-live="polite" aria-label="Live meeting transcript">
+          <div class="sai-transcript-placeholder">Shadow AI will transcribe the conversation here…</div>
+        </div>
+      </div>
+
+      <!-- Right: Suggestions + confidence + drafts -->
+      <div class="sai-right">
+
+        <!-- Org intel header -->
+        <div class="sai-org-header" id="sai-org-header">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span id="sai-org-name">Organization Intelligence</span>
+          <span class="sai-org-capability" id="sai-org-capability" title="Sessions completed">0 sessions</span>
+        </div>
+
+        <!-- Confidence meter -->
+        <div class="sai-confidence-block" role="region" aria-label="Group confidence meter">
+          <div class="sai-confidence-label">
+            Group Confidence
+            <span class="sai-confidence-value" id="sai-confidence-val" aria-live="polite">–%</span>
+          </div>
+          <div class="sai-confidence-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="sai-confidence-track">
+            <div class="sai-confidence-bar" id="sai-confidence-bar"></div>
+          </div>
+          <div class="sai-confidence-sub" id="sai-confidence-sub">Confidence will fluctuate as discussion evolves</div>
+        </div>
+
+        <!-- Live suggestions -->
+        <div class="sai-suggestions-head">
+          Shadow Suggestions
+          <span class="sai-suggestion-count" id="sai-suggestion-count" aria-live="polite">0</span>
+        </div>
+        <div class="sai-suggestions" id="sai-suggestions" role="list" aria-label="AI-generated suggestions">
+          <div class="sai-empty-state" id="sai-empty-state">Shadow agents will surface suggestions as the discussion evolves…</div>
+        </div>
+
+        <!-- Draft generation -->
+        <div class="sai-draft-section" id="sai-draft-section">
+          <div class="sai-draft-head">
+            Session Drafts
+            <button class="wb-tool-btn sai-generate-btn" id="sai-generate-drafts" aria-label="Generate session drafts now" disabled>✨ Generate Drafts</button>
+          </div>
+          <div class="sai-draft-types" id="sai-draft-types" role="list" aria-label="Draft documents">
+            <div class="sai-draft-card" data-draft="action-plan" role="listitem">
+              <div class="sai-draft-icon" aria-hidden="true">📋</div>
+              <div class="sai-draft-info"><div class="sai-draft-name">Action Plan</div><div class="sai-draft-status" id="draft-status-action-plan">Pending</div></div>
+            </div>
+            <div class="sai-draft-card" data-draft="decision-record" role="listitem">
+              <div class="sai-draft-icon" aria-hidden="true">⚖️</div>
+              <div class="sai-draft-info"><div class="sai-draft-name">Decision Record</div><div class="sai-draft-status" id="draft-status-decision-record">Pending</div></div>
+            </div>
+            <div class="sai-draft-card" data-draft="proposal" role="listitem">
+              <div class="sai-draft-icon" aria-hidden="true">📄</div>
+              <div class="sai-draft-info"><div class="sai-draft-name">Proposal</div><div class="sai-draft-status" id="draft-status-proposal">Pending</div></div>
+            </div>
+            <div class="sai-draft-card" data-draft="risk-register" role="listitem">
+              <div class="sai-draft-icon" aria-hidden="true">🛡️</div>
+              <div class="sai-draft-info"><div class="sai-draft-name">Risk Register</div><div class="sai-draft-status" id="draft-status-risk-register">Pending</div></div>
+            </div>
+          </div>
+          <a href="/ui/meeting-intelligence" id="sai-review-link" class="sai-review-btn" hidden aria-label="Review full meeting intelligence report">Open Full Review →</a>
+        </div>
+
+        <!-- Licensing notice -->
+        <div class="sai-license-notice" role="note" aria-label="Shadow agent licensing notice">
+          <span class="sai-license-icon" aria-hidden="true">⚖️</span>
+          Shadow agent contributions are tracked per session. Accepted insights generate royalty credits for contributing users under BSL 1.1.
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Call controls (always visible) -->
+  <div class="ws-call-controls" role="toolbar" aria-label="Call controls">
+    <div class="ws-call-btn-wrap">
+      <button class="ws-call-btn active" id="call-btn-mic"          aria-label="Mute microphone" title="Mute">🎙️</button>
+      <div class="ws-call-btn-label">Mute</div>
+    </div>
+    <div class="ws-call-btn-wrap">
+      <button class="ws-call-btn" id="call-btn-camera"              aria-label="Toggle camera" title="Camera">📷</button>
+      <div class="ws-call-btn-label">Camera</div>
+    </div>
+    <div class="ws-call-btn-wrap">
+      <button class="ws-call-btn" id="call-btn-screen"              aria-label="Share screen" title="Share Screen">🖥️</button>
+      <div class="ws-call-btn-label">Share</div>
+    </div>
+    <div class="ws-call-btn-wrap">
+      <button class="ws-call-btn ws-call-murphy-btn" id="call-btn-murphy-voice" aria-label="Ask Murphy AI" title="Ask Murphy">
+        <svg width="20" height="20" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect width="32" height="32" rx="8" fill="rgba(0,255,65,.15)"/><text x="16" y="22" text-anchor="middle" fill="#00ff41" font-size="16" font-weight="700" font-family="Inter,sans-serif">M</text></svg>
+      </button>
+      <div class="ws-call-btn-label">Murphy</div>
+    </div>
+    <div class="ws-call-btn-wrap">
+      <button class="ws-call-btn" id="call-btn-react"               aria-label="Reactions" title="React">👋</button>
+      <div class="ws-call-btn-label">React</div>
+    </div>
+    <div class="ws-call-btn-wrap">
+      <button class="ws-call-btn" id="call-btn-collapse"            aria-label="Collapse call view" title="Minimise">⊟</button>
+      <div class="ws-call-btn-label">Minimise</div>
+    </div>
+    <div class="ws-call-btn-wrap">
+      <button class="ws-call-btn danger" id="call-btn-hangup"       aria-label="Leave call" title="Leave">📵</button>
+      <div class="ws-call-btn-label">Leave</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================================================
+     MAIN CONTENT AREA
+     ============================================================ -->
+<main class="ws-main" id="ws-main" role="main" aria-label="Channel content" aria-live="polite">
+  <!-- Content is rendered here by the JS router -->
+</main>
+
+<!-- ============================================================
+     RIGHT PANEL — MURPHY ASSISTANT
+     ============================================================ -->
+<aside class="ws-assistant" id="ws-assistant" role="complementary" aria-label="Murphy Assistant">
+  <div class="ws-assistant-header">
+    <div class="ws-assistant-title">
+      <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-message-circle"></use></svg>
+      Murphy Assistant
+    </div>
+    <button class="murphy-btn murphy-btn-icon" id="btn-close-assistant" aria-label="Close assistant panel" title="Close">
+      <svg width="16" height="16"><use href="static/murphy-icons.svg#icon-x"></use></svg>
+    </button>
+  </div>
+  <div class="ws-assistant-body">
+    <murphy-librarian-chat id="ws-librarian"></murphy-librarian-chat>
+  </div>
+</aside>
+
+<!-- ============================================================
+     CREATE CHANNEL MODAL
+     ============================================================ -->
+<div class="ws-modal-backdrop" id="create-channel-modal" hidden role="dialog"
+     aria-modal="true" aria-labelledby="modal-title">
+  <div class="ws-modal">
+    <div class="ws-modal-title" id="modal-title">
+      <svg width="18" height="18" style="vertical-align:middle;margin-right:6px;"><use href="static/murphy-icons.svg#icon-plus"></use></svg>
+      Create Channel
+    </div>
+    <p class="text-sm text-secondary" style="margin-bottom:var(--space-4);">
+      Describe what this channel should do in plain language. Murphy will set it up.
+    </p>
+    <div class="murphy-form-group">
+      <label class="murphy-label" for="new-channel-desc">What should this channel do?</label>
+      <input type="text" id="new-channel-desc" class="murphy-input"
+             placeholder="e.g. Watch for errors in the production deployment pipeline"
+             autocomplete="off">
+    </div>
+    <div id="create-channel-status" class="text-sm" style="min-height:1.25rem;"></div>
+    <div class="ws-modal-footer">
+      <button class="murphy-btn" id="btn-modal-cancel">Cancel</button>
+      <button class="murphy-btn murphy-btn-primary" id="btn-modal-create">
+        <svg width="14" height="14"><use href="static/murphy-icons.svg#icon-zap"></use></svg>
+        Create
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+<script src="static/murphy-components.js"></script>
+<script src="murphy_auth.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* ===========================================================
+     1. API + SHARED COMPONENTS
+     =========================================================== */
+  var api      = new MurphyAPI('/api');
+  var toast    = new MurphyToast();
+  var theme    = new MurphyTheme();
+  var keyboard = new MurphyKeyboard();
+  theme.init();
+  keyboard.init();
+
+  /* ===========================================================
+     2. DOM REFS
+     =========================================================== */
+  var channelsNav   = document.getElementById('ws-channels');
+  var mainEl        = document.getElementById('ws-main');
+  var assistantEl   = document.getElementById('ws-assistant');
+  var connDot       = document.getElementById('conn-dot');
+  var globalBadge   = document.getElementById('global-notif-badge');
+  var librarianEl   = document.getElementById('ws-librarian');
+  var createModal   = document.getElementById('create-channel-modal');
+  var newChDesc     = document.getElementById('new-channel-desc');
+  var createStatus  = document.getElementById('create-channel-status');
+  var userAvatar    = document.getElementById('user-avatar');
+  var userNameEl    = document.getElementById('user-name');
+
+  // Delegated handler for retry buttons rendered inside channel views
+  mainEl.addEventListener('click', function (e) {
+    var btn = e.target.closest('.ws-retry-btn');
+    if (btn) navigate(btn.getAttribute('data-channel') || currentChannel);
+  });
+
+  /* ===========================================================
+     3. HTML HELPERS  (same patterns as terminal_unified.html)
+     =========================================================== */
+  function esc(s) {
+    var d = document.createElement('div');
+    d.textContent = (s == null ? '' : String(s));
+    return d.innerHTML;
+  }
+
+  function icon(name, size) {
+    size = size || 18;
+    return '<svg width="' + size + '" height="' + size + '"><use href="static/murphy-icons.svg#icon-' + esc(name) + '"></use></svg>';
+  }
+
+  function badge(text, variant) {
+    variant = variant || 'neutral';
+    return '<span class="murphy-badge murphy-badge-' + esc(variant) + '">' + esc(text) + '</span>';
+  }
+
+  function statCard(label, value, trendDir, trendText) {
+    var tc = trendDir === 'up' ? 'murphy-stat-card-trend-up'
+           : trendDir === 'down' ? 'murphy-stat-card-trend-down' : '';
+    var th = trendText ? '<div class="murphy-stat-card-trend ' + tc + '">' + esc(trendText) + '</div>' : '';
+    return '<div class="murphy-stat-card">' +
+      '<div class="murphy-stat-card-label">' + esc(label) + '</div>' +
+      '<div class="murphy-stat-card-value">' + esc(value) + '</div>' +
+      th + '</div>';
+  }
+
+  function sectionHeader(title, subtitle) {
+    return '<div class="flex items-center justify-between mb-4">' +
+      '<div>' +
+      '<h2 class="text-xl font-bold">' + esc(title) + '</h2>' +
+      (subtitle ? '<p class="text-sm text-secondary">' + esc(subtitle) + '</p>' : '') +
+      '</div></div>';
+  }
+
+  function tableHTML(columns, rows) {
+    var h = '<div class="murphy-table murphy-table-striped"><div class="murphy-table-header">';
+    columns.forEach(function (c) { h += '<div>' + esc(c.label) + '</div>'; });
+    h += '</div>';
+    if (!rows || rows.length === 0) {
+      h += '<div class="p-6 text-center text-muted text-sm">No data available</div>';
+    } else {
+      rows.forEach(function (row) {
+        h += '<div class="murphy-table-row">';
+        columns.forEach(function (c) {
+          var val = row[c.key];
+          h += '<div>' + (c.render ? c.render(val, row) : esc(val)) + '</div>';
+        });
+        h += '</div>';
+      });
+    }
+    h += '</div>';
+    return h;
+  }
+
+  function skeletonCards(n) {
+    var h = '';
+    for (var i = 0; i < (n || 4); i++) h += '<div class="murphy-skeleton-card murphy-skeleton"></div>';
+    return '<div class="grid-stat">' + h + '</div>';
+  }
+
+  function skeletonRows(n) {
+    var h = '';
+    for (var i = 0; i < (n || 6); i++) h += '<div class="murphy-skeleton murphy-skeleton-text"></div>';
+    return '<div class="flex flex-col gap-3 p-4">' + h + '</div>';
+  }
+
+  function emptyState(title, msg) {
+    return '<div class="murphy-empty-state">' +
+      '<div class="murphy-empty-state-icon">' + icon('search', 48) + '</div>' +
+      '<div class="murphy-empty-state-title">' + esc(title) + '</div>' +
+      '<div class="murphy-empty-state-message">' + esc(msg) + '</div>' +
+      '</div>';
+  }
+
+  function errorCard(msg, retryChannel) {
+    var ch = esc(retryChannel || currentChannel);
+    return '<div class="murphy-card"><div class="murphy-card-body flex flex-col items-center gap-4 p-6">' +
+      '<div class="text-danger text-lg font-bold">' + icon('alert', 32) + ' Error</div>' +
+      '<p class="text-secondary text-sm">' + esc(msg) + '</p>' +
+      '<button class="murphy-btn murphy-btn-primary ws-retry-btn" data-channel="' + ch + '">Retry</button>' +
+      '</div></div>';
+  }
+
+  function channelHeaderHTML(ch, dotClass, desc) {
+    return '<div class="ws-channel-header">' +
+      '<span class="ws-channel-header-dot ' + esc(dotClass) + '"></span>' +
+      '<span class="ws-channel-header-title">#' + esc(ch) + '</span>' +
+      (desc ? '<span class="ws-channel-header-desc">' + esc(desc) + '</span>' : '') +
+      '</div>';
+  }
+
+  /* ===========================================================
+     4. CHANNEL STATUS MANAGEMENT
+     ===================================================== */
+  // Map from channel id → current status class
+  var channelStatus = {
+    system:    'status-success',
+    hitl:      'status-idle',
+    workflows: 'status-idle',
+    security:  'status-idle',
+    costs:     'status-idle',
+    agents:    'status-idle',
+    architect: 'status-learning'
+  };
+
+  // Unread counts per channel
+  var unreadCounts = {};
+
+  function setChannelStatus(chId, statusClass) {
+    channelStatus[chId] = statusClass;
+    var dots = document.querySelectorAll('[data-ch="' + chId + '"]');
+    dots.forEach(function (dot) {
+      dot.className = 'ws-ch-dot ' + statusClass;
+      // Pulse animation on change
+      dot.classList.add('pulsing');
+      setTimeout(function () { dot.classList.remove('pulsing'); }, 700);
+    });
+  }
+
+  function incrementUnread(chId) {
+    if (chId === currentChannel) return; // Don't count active channel
+    unreadCounts[chId] = (unreadCounts[chId] || 0) + 1;
+    var badgeEl = document.getElementById('badge-' + chId);
+    if (badgeEl) {
+      badgeEl.textContent = unreadCounts[chId] > 99 ? '99+' : String(unreadCounts[chId]);
+      badgeEl.hidden = false;
+    }
+    updateGlobalBadge();
+  }
+
+  function clearUnread(chId) {
+    unreadCounts[chId] = 0;
+    var badgeEl = document.getElementById('badge-' + chId);
+    if (badgeEl) badgeEl.hidden = true;
+    updateGlobalBadge();
+  }
+
+  function updateGlobalBadge() {
+    var total = Object.values(unreadCounts).reduce(function (a, b) { return a + b; }, 0);
+    if (total > 0) {
+      globalBadge.textContent = total > 99 ? '99+' : String(total);
+      globalBadge.hidden = false;
+    } else {
+      globalBadge.hidden = true;
+    }
+  }
+
+  /* ===========================================================
+     5. HASH ROUTER
+     ===================================================== */
+  var currentChannel = '';
+
+  var channelViews = {
+    system:    renderSystem,
+    hitl:      renderHitl,
+    workflows: renderWorkflows,
+    security:  renderSecurity,
+    costs:     renderCosts,
+    agents:    renderAgents,
+    architect: renderArchitect
+  };
+
+  window.navigate = navigate;
+
+  function navigate(chId) {
+    chId = chId || 'system';
+
+    // Custom channels not in the built-in map — fall back to system only if truly unknown
+    if (!channelViews[chId] && !customChannels[chId]) {
+      chId = 'system';
+    }
+
+    currentChannel = chId;
+
+    // Update active sidebar item
+    document.querySelectorAll('.ws-channel-item').forEach(function (el) {
+      el.classList.toggle('active', el.getAttribute('data-channel') === chId);
+    });
+
+    // Clear unread for this channel
+    clearUnread(chId);
+
+    // Set assistant context
+    if (librarianEl && librarianEl.setContext) {
+      librarianEl.setContext('workspace#' + chId);
+    }
+
+    // Render content
+    if (channelViews[chId]) {
+      channelViews[chId]();
+    } else if (customChannels[chId]) {
+      renderCustomChannel(chId);
+    } else {
+      renderSystem();
+    }
+  }
+
+  window.addEventListener('hashchange', function () {
+    navigate(location.hash.slice(1) || 'system');
+  });
+
+  /* ===========================================================
+     6. CHANNEL VIEW RENDERERS
+     ===================================================== */
+
+  /* ── #system ── */
+  async function renderSystem() {
+    var dot = channelStatus['system'] || 'status-success';
+    mainEl.innerHTML = channelHeaderHTML('system', dot, 'System overview and health') +
+      sectionHeader('Dashboard', 'Live system status') + skeletonCards(4);
+    try {
+      var res = await api.get('/status');
+      var data = res || {};
+      var hData = data.health || {};
+      var html = channelHeaderHTML('system', dot, 'System overview and health') +
+        sectionHeader('Dashboard', 'Live system status');
+      html += '<div class="grid-stat">';
+      html += statCard('System Health', (hData.health || data.health || '—') + '%');
+      html += statCard('Uptime', hData.uptime || data.uptime || '—');
+      html += statCard('API Latency', (hData.latency_ms || data.latency_ms || '—') + ' ms');
+      html += statCard('Active Modules', (data.modules ? Object.keys(data.modules).length : '—'));
+      html += '</div>';
+
+      // Module status table
+      if (data.modules) {
+        var modules = Object.entries(data.modules).map(function (kv) { return { name: kv[0], status: kv[1] }; });
+        html += sectionHeader('Modules', 'Module health status');
+        html += tableHTML(
+          [
+            { key: 'name', label: 'Module' },
+            { key: 'status', label: 'Status', render: function (v) {
+              return badge(v || 'unknown', v === 'running' || v === 'healthy' ? 'success' : v === 'error' ? 'danger' : 'warning');
+            }}
+          ],
+          modules
+        );
+      }
+
+      // Update dot based on health
+      var healthPct = parseFloat(hData.health || data.health || 100);
+      if (healthPct < 50) setChannelStatus('system', 'status-danger');
+      else if (healthPct < 80) setChannelStatus('system', 'status-warning');
+      else setChannelStatus('system', 'status-success');
+
+      mainEl.innerHTML = html;
+    } catch (e) {
+      mainEl.innerHTML = channelHeaderHTML('system', dot, '') + errorCard(e.message, 'system');
+    }
+  }
+
+  /* ── #hitl ── */
+  async function renderHitl() {
+    var dot = channelStatus['hitl'] || 'status-idle';
+    mainEl.innerHTML = channelHeaderHTML('hitl', dot, 'Human-in-the-loop queue') +
+      sectionHeader('HITL Queue', 'Items awaiting human review') + skeletonRows(6);
+    try {
+      var res  = await api.get('/hitl/interventions');
+      var items = Array.isArray(res) ? res : (res.items || res.interventions || []);
+      var html = channelHeaderHTML('hitl', dot, 'Human-in-the-loop queue') +
+        sectionHeader('HITL Queue', items.length + ' items awaiting review');
+
+      // Status dot
+      var hasCritical = items.some(function (i) { return (i.priority || '') === 'critical'; });
+      var hasPending  = items.some(function (i) { return (i.status || '') === 'pending'; });
+      if (hasCritical) setChannelStatus('hitl', 'status-danger');
+      else if (hasPending) setChannelStatus('hitl', 'status-warning');
+      else if (items.length > 0) setChannelStatus('hitl', 'status-info');
+      else setChannelStatus('hitl', 'status-idle');
+
+      html += '<div class="grid-stat">';
+      var pending  = items.filter(function (i) { return i.status === 'pending'; }).length;
+      var critical = items.filter(function (i) { return (i.priority || '') === 'critical'; }).length;
+      html += statCard('Total Items', items.length);
+      html += statCard('Pending', pending, pending > 5 ? 'up' : null, pending > 5 ? 'High' : '');
+      html += statCard('Critical', critical, critical > 0 ? 'up' : null, critical > 0 ? 'Urgent' : '');
+      html += '</div>';
+
+      html += tableHTML(
+        [
+          { key: 'id',          label: 'ID',       render: function (v) { return '<code class="text-xs">' + esc(String(v || '').slice(0, 8)) + '</code>'; }},
+          { key: 'task',        label: 'Task',      render: function (v) { return esc(v || 'N/A'); }},
+          { key: 'priority',    label: 'Priority',  render: function (v) { return badge(v || 'normal', v === 'critical' ? 'danger' : v === 'high' ? 'warning' : 'neutral'); }},
+          { key: 'status',      label: 'Status',    render: function (v) { return badge(v || 'pending', v === 'approved' ? 'success' : v === 'rejected' ? 'danger' : 'warning'); }},
+          { key: 'created_at',  label: 'Created',   render: function (v) { return v ? new Date(v).toLocaleString() : '—'; }}
+        ],
+        items
+      );
+      mainEl.innerHTML = html;
+    } catch (e) {
+      mainEl.innerHTML = channelHeaderHTML('hitl', dot, '') + errorCard(e.message, 'hitl');
+    }
+  }
+
+  /* ── #workflows ── */
+  async function renderWorkflows() {
+    var dot = channelStatus['workflows'] || 'status-idle';
+    mainEl.innerHTML = channelHeaderHTML('workflows', dot, 'Workflow management') +
+      sectionHeader('Workflows', 'Active and recent workflows') + skeletonRows(8);
+    try {
+      var res   = await api.get('/workflows');
+      var items = Array.isArray(res) ? res : (res.workflows || res.items || []);
+      var html  = channelHeaderHTML('workflows', dot, 'Workflow management') +
+        sectionHeader('Workflows', items.length + ' workflows');
+
+      var running = items.filter(function (i) { return i.status === 'running' || i.status === 'active'; }).length;
+      var failed  = items.filter(function (i) { return i.status === 'failed' || i.status === 'error'; }).length;
+      if (failed > 0) setChannelStatus('workflows', 'status-danger');
+      else if (running > 0) setChannelStatus('workflows', 'status-info');
+      else setChannelStatus('workflows', 'status-idle');
+
+      html += '<div class="grid-stat">';
+      html += statCard('Total', items.length);
+      html += statCard('Running', running, running > 0 ? 'up' : null, running > 0 ? 'In progress' : '');
+      html += statCard('Failed', failed, failed > 0 ? 'up' : null, failed > 0 ? 'Needs attention' : '');
+      html += '</div>';
+
+      html += tableHTML(
+        [
+          { key: 'id',          label: 'ID',     render: function (v) { return '<code class="text-xs">' + esc(String(v || '').slice(0, 8)) + '</code>'; }},
+          { key: 'name',        label: 'Name' },
+          { key: 'status',      label: 'Status', render: function (v) { return badge(v, v === 'active' || v === 'running' ? 'success' : v === 'failed' || v === 'error' ? 'danger' : 'neutral'); }},
+          { key: 'updated_at',  label: 'Updated', render: function (v) { return v ? new Date(v).toLocaleString() : '—'; }}
+        ],
+        items
+      );
+      mainEl.innerHTML = html;
+    } catch (e) {
+      mainEl.innerHTML = channelHeaderHTML('workflows', dot, '') + errorCard(e.message, 'workflows');
+    }
+  }
+
+  /* ── #security ── */
+  async function renderSecurity() {
+    var dot = channelStatus['security'] || 'status-idle';
+    mainEl.innerHTML = channelHeaderHTML('security', dot, 'Security events and alerts') +
+      sectionHeader('Security', 'Recent security events') + skeletonRows(6);
+    try {
+      var res   = await api.get('/security/events');
+      var items = Array.isArray(res) ? res : (res.events || res.items || []);
+      var html  = channelHeaderHTML('security', dot, 'Security events and alerts') +
+        sectionHeader('Security', items.length + ' events');
+
+      var alerts  = items.filter(function (i) { return (i.severity || '') === 'critical' || (i.severity || '') === 'high'; }).length;
+      if (alerts > 0) setChannelStatus('security', 'status-danger');
+      else if (items.length > 0) setChannelStatus('security', 'status-warning');
+      else setChannelStatus('security', 'status-idle');
+
+      html += '<div class="grid-stat">';
+      html += statCard('Total Events', items.length);
+      html += statCard('High/Critical', alerts, alerts > 0 ? 'up' : null, alerts > 0 ? 'Review required' : '');
+      html += '</div>';
+
+      if (items.length === 0) {
+        html += emptyState('No security events', 'The system is clean — no recent alerts.');
+      } else {
+        html += tableHTML(
+          [
+            { key: 'id',         label: 'ID',       render: function (v) { return '<code class="text-xs">' + esc(String(v || '').slice(0, 8)) + '</code>'; }},
+            { key: 'type',       label: 'Type' },
+            { key: 'severity',   label: 'Severity',  render: function (v) { return badge(v || 'info', v === 'critical' ? 'danger' : v === 'high' ? 'warning' : 'neutral'); }},
+            { key: 'message',    label: 'Message',   render: function (v) { return esc(String(v || '').slice(0, 80)); }},
+            { key: 'created_at', label: 'Time',      render: function (v) { return v ? new Date(v).toLocaleString() : '—'; }}
+          ],
+          items
+        );
+      }
+      mainEl.innerHTML = html;
+    } catch (e) {
+      mainEl.innerHTML = channelHeaderHTML('security', dot, '') + errorCard(e.message, 'security');
+    }
+  }
+
+  /* ── #costs ── */
+  async function renderCosts() {
+    var dot = channelStatus['costs'] || 'status-idle';
+    mainEl.innerHTML = channelHeaderHTML('costs', dot, 'Cost dashboard') +
+      sectionHeader('Costs', 'API usage and budget tracking') + skeletonCards(4);
+    try {
+      var res  = await api.get('/costs/summary');
+      var data = res || {};
+      var html = channelHeaderHTML('costs', dot, 'Cost dashboard') +
+        sectionHeader('Costs', 'API usage and budget tracking');
+
+      // Budget warning
+      var budget   = parseFloat(data.budget || 0);
+      var spent    = parseFloat(data.total_cost || data.spent || 0);
+      var pct      = budget > 0 ? Math.round((spent / budget) * 100) : 0;
+      if (pct > 90) setChannelStatus('costs', 'status-danger');
+      else if (pct > 70) setChannelStatus('costs', 'status-warning');
+      else setChannelStatus('costs', 'status-success');
+
+      html += '<div class="grid-stat">';
+      html += statCard('Total Spent', '$' + (spent).toFixed(2));
+      html += statCard('Budget', '$' + (budget).toFixed(2));
+      html += statCard('Budget Used', pct + '%', pct > 80 ? 'up' : null, pct > 80 ? 'Over limit' : '');
+      html += statCard('Requests', data.total_requests || '—');
+      html += '</div>';
+
+      // By model breakdown
+      if (data.by_model && Object.keys(data.by_model).length > 0) {
+        html += sectionHeader('By Model', 'Cost breakdown per LLM model');
+        var modelRows = Object.entries(data.by_model).map(function (kv) {
+          return { model: kv[0], cost: kv[1].cost || kv[1], requests: kv[1].requests || '—' };
+        });
+        html += tableHTML(
+          [
+            { key: 'model',    label: 'Model' },
+            { key: 'requests', label: 'Requests' },
+            { key: 'cost',     label: 'Cost', render: function (v) { return '$' + parseFloat(v || 0).toFixed(4); }}
+          ],
+          modelRows
+        );
+      }
+      mainEl.innerHTML = html;
+    } catch (e) {
+      mainEl.innerHTML = channelHeaderHTML('costs', dot, '') + errorCard(e.message, 'costs');
+    }
+  }
+
+  /* ── #agents ── */
+  async function renderAgents() {
+    var dot = channelStatus['agents'] || 'status-idle';
+    mainEl.innerHTML = channelHeaderHTML('agents', dot, 'Agent dashboard') +
+      sectionHeader('Agents', 'Active agent instances') + skeletonCards(6);
+    try {
+      var res   = await api.get('/agents');
+      var items = Array.isArray(res) ? res : (res.agents || res.items || []);
+      var html  = channelHeaderHTML('agents', dot, 'Agent dashboard') +
+        sectionHeader('Agents', items.length + ' agents');
+
+      var active  = items.filter(function (a) { return a.status === 'active'; }).length;
+      var shadow  = items.filter(function (a) { return a.type === 'shadow' || a.mode === 'shadow'; }).length;
+      if (active > 0) setChannelStatus('agents', 'status-success');
+      else setChannelStatus('agents', 'status-idle');
+
+      html += '<div class="grid-stat">';
+      html += statCard('Total Agents', items.length);
+      html += statCard('Active', active);
+      html += statCard('Shadow', shadow);
+      html += '</div>';
+
+      html += '<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:var(--space-4);">';
+      items.forEach(function (a) {
+        html += '<div class="murphy-card">' +
+          '<div class="murphy-card-header" style="display:flex;align-items:center;gap:8px;">' +
+            icon('users', 16) + '<strong>' + esc(a.name || a.id || 'Agent') + '</strong>' +
+            '<span style="margin-left:auto;">' + badge(a.status || 'idle', a.status === 'active' ? 'success' : 'neutral') + '</span>' +
+          '</div>' +
+          '<div class="murphy-card-body text-sm">' +
+            '<div class="text-muted">Type: ' + esc(a.type || a.mode || '—') + '</div>' +
+            '<div class="text-muted">Role: ' + esc(a.role || '—') + '</div>' +
+            (a.last_action ? '<div class="text-muted">Last: ' + esc(a.last_action) + '</div>' : '') +
+          '</div>' +
+          '</div>';
+      });
+      if (items.length === 0) html += emptyState('No agents', 'No agent instances are registered.');
+      html += '</div>';
+      mainEl.innerHTML = html;
+    } catch (e) {
+      mainEl.innerHTML = channelHeaderHTML('agents', dot, '') + errorCard(e.message, 'agents');
+    }
+  }
+
+  /* ── #architect (founder-only) ── */
+  async function renderArchitect() {
+    var dot = channelStatus['architect'] || 'status-learning';
+    mainEl.innerHTML = channelHeaderHTML('architect', dot, 'Architecture overview — founder only') +
+      sectionHeader('Architecture', 'System architecture and governance') + skeletonRows(8);
+    try {
+      var res  = await api.get('/architect/overview');
+      var data = res || {};
+      var html = channelHeaderHTML('architect', dot, 'Architecture overview — founder only') +
+        sectionHeader('Architecture', 'System architecture and governance');
+
+      // Render any summary data returned
+      if (data.summary) {
+        html += '<div class="murphy-card"><div class="murphy-card-body"><pre style="white-space:pre-wrap;font-size:0.8125rem;">' + esc(JSON.stringify(data.summary, null, 2)) + '</pre></div></div>';
+      } else {
+        html += '<div class="murphy-card"><div class="murphy-card-body">' +
+          '<pre style="white-space:pre-wrap;font-size:0.8125rem;color:var(--teal);">' + esc(JSON.stringify(data, null, 2)) + '</pre>' +
+          '</div></div>';
+      }
+      mainEl.innerHTML = html;
+    } catch (e) {
+      mainEl.innerHTML = channelHeaderHTML('architect', dot, '') + errorCard(e.message, 'architect');
+    }
+  }
+
+  /* ── Custom channel feed ── */
+  async function renderCustomChannel(chId) {
+    var ch   = customChannels[chId] || {};
+    var dot  = channelStatus[chId]  || 'status-idle';
+    mainEl.innerHTML = channelHeaderHTML(chId, dot, ch.description || 'Custom channel') +
+      sectionHeader('#' + chId, ch.description || '') + skeletonRows(6);
+    try {
+      // Fetch events for this subscriber
+      var res   = await api.get('/events/history/' + (ch.subscriberId || chId));
+      var items = Array.isArray(res) ? res : (res.events || res.items || []);
+      var html  = channelHeaderHTML(chId, dot, ch.description || 'Custom channel') +
+        sectionHeader('#' + chId, ch.description || '');
+
+      if (items.length === 0) {
+        html += emptyState('No events yet', 'Events matching this channel\'s filter will appear here.');
+      } else {
+        html += '<div class="murphy-card">';
+        items.forEach(function (ev) {
+          html += '<div class="feed-item">' +
+            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">' +
+              badge(ev.channel || ev.type || 'event', 'info') +
+              '<span class="feed-item-time">' + (ev.timestamp ? new Date(ev.timestamp).toLocaleString() : '') + '</span>' +
+            '</div>' +
+            '<div>' + esc(ev.message || JSON.stringify(ev.data || ev)) + '</div>' +
+            '</div>';
+        });
+        html += '</div>';
+      }
+      mainEl.innerHTML = html;
+    } catch (e) {
+      mainEl.innerHTML = channelHeaderHTML(chId, dot, '') + errorCard(e.message, chId);
+    }
+  }
+
+  /* ===========================================================
+     7. CUSTOM CHANNELS STATE
+     ===================================================== */
+  var customChannels = {}; // { id: { name, description, subscriberId } }
+
+  function addCustomChannelToSidebar(chId, ch) {
+    var list = document.getElementById('custom-channels-list');
+    var existing = list.querySelector('[data-channel="' + chId + '"]');
+    if (existing) return;
+
+    var el = document.createElement('a');
+    el.href = '#' + chId;
+    el.className = 'ws-channel-item';
+    el.setAttribute('data-channel', chId);
+    el.setAttribute('aria-label', chId + ' channel');
+    el.innerHTML =
+      '<span class="ws-ch-dot status-idle" data-ch="' + esc(chId) + '"></span>' +
+      '<span class="ws-ch-name">#' + esc(ch.name || chId) + '</span>' +
+      '<span class="ws-ch-badge" id="badge-' + esc(chId) + '" hidden>0</span>';
+    list.appendChild(el);
+
+    // Register in channelViews so the router handles it
+    channelViews[chId] = function () { renderCustomChannel(chId); };
+    channelStatus[chId] = 'status-idle';
+  }
+
+  /* ===========================================================
+     8. CREATE CHANNEL MODAL
+     ===================================================== */
+  document.getElementById('btn-add-channel').addEventListener('click', function () {
+    createModal.hidden = false;
+    newChDesc.value = '';
+    createStatus.textContent = '';
+    newChDesc.focus();
+  });
+
+  document.getElementById('btn-modal-cancel').addEventListener('click', function () {
+    createModal.hidden = true;
+  });
+
+  // Close on backdrop click
+  createModal.addEventListener('click', function (e) {
+    if (e.target === createModal) createModal.hidden = true;
+  });
+
+  // Close on Escape
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !createModal.hidden) createModal.hidden = true;
+  });
+
+  document.getElementById('btn-modal-create').addEventListener('click', createChannel);
+  newChDesc.addEventListener('keydown', function (e) { if (e.key === 'Enter') createChannel(); });
+
+  async function createChannel() {
+    var desc = newChDesc.value.trim();
+    if (!desc) {
+      createStatus.innerHTML = '<span class="text-warning">Please describe what this channel should do.</span>';
+      return;
+    }
+    createStatus.innerHTML = '<span class="text-muted">Asking Murphy…</span>';
+    document.getElementById('btn-modal-create').disabled = true;
+
+    try {
+      // Ask Murphy to create the channel via /api/librarian/ask or /api/chat
+      var chatRes = await api.post('/librarian/ask', {
+        question: 'Create an event channel for: ' + desc + '. Reply with JSON only: { "channel_name": "slug", "filter": { "channels": ["eventbus_channel"] }, "description": "short desc" }',
+        context: 'workspace#create_channel'
+      });
+
+      var chData = null;
+      try {
+        var answer = chatRes.answer || chatRes.response || chatRes.message || '';
+        var jsonMatch = answer.match(/\{[\s\S]*\}/);
+        if (jsonMatch) chData = JSON.parse(jsonMatch[0]);
+      } catch (_) {}
+
+      if (!chData || !chData.channel_name) {
+        // Fallback: derive slug from description (only alphanumeric + hyphens)
+        chData = {
+          channel_name: desc.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 32),
+          filter: { channels: ['custom'] },
+          description: desc
+        };
+      }
+
+      var slug = (chData.channel_name || '').replace(/[^a-z0-9-]/g, '').slice(0, 32);
+      if (!slug) {
+        createStatus.innerHTML = '<span class="text-warning">Could not generate a valid channel name. Please use letters and numbers in your description.</span>';
+        document.getElementById('btn-modal-create').disabled = false;
+        return;
+      }
+
+      // Subscribe to the event bus
+      var subRes = await api.post('/events/subscribe', {
+        subscriber_id: 'workspace_' + slug + '_' + Date.now(),
+        channels: chData.filter.channels || ['custom'],
+        description: chData.description || desc
+      });
+
+      var subscriberId = subRes.subscriber_id || subRes.id || ('workspace_' + slug);
+
+      // Register locally
+      customChannels[slug] = {
+        name: slug,
+        description: chData.description || desc,
+        subscriberId: subscriberId
+      };
+      addCustomChannelToSidebar(slug, customChannels[slug]);
+
+      createModal.hidden = true;
+      toast.show('Channel #' + slug + ' created!', 'success');
+      navigate(slug);
+    } catch (e) {
+      createStatus.innerHTML = '<span class="text-danger">Failed: ' + esc(e.message) + '</span>';
+    } finally {
+      document.getElementById('btn-modal-create').disabled = false;
+    }
+  }
+
+  /* ===========================================================
+     9. SSE — REAL-TIME CHANNEL STATUS
+     ===================================================== */
+  var sseSubscriberId = null;
+  var sseSource       = null;
+
+  async function startSSE() {
+    // Subscribe to the event bus
+    try {
+      var res = await api.post('/events/subscribe', {
+        subscriber_id: 'workspace_main_' + Date.now(),
+        channels: ['system', 'security', 'workflow', 'health', 'metrics', 'user_action', 'custom']
+      });
+      sseSubscriberId = res.subscriber_id || res.id;
+    } catch (_) {
+      // If subscribe fails, try with a static ID
+      sseSubscriberId = 'workspace_main';
+    }
+
+    connectSSE();
+  }
+
+  function connectSSE() {
+    if (sseSource) { try { sseSource.close(); } catch (_) {} }
+
+    var url = '/api/events/stream/' + encodeURIComponent(sseSubscriberId || 'workspace_main');
+    sseSource = new EventSource(url);
+
+    sseSource.onopen = function () {
+      connDot.classList.remove('disconnected');
+      connDot.title = 'SSE connected';
+      connDot.setAttribute('aria-label', 'Connection status: connected');
+    };
+
+    sseSource.onmessage = function (e) {
+      try {
+        var ev = JSON.parse(e.data);
+        handleSSEEvent(ev);
+      } catch (_) {}
+    };
+
+    sseSource.addEventListener('event', function (e) {
+      try {
+        var ev = JSON.parse(e.data);
+        handleSSEEvent(ev);
+      } catch (_) {}
+    });
+
+    sseSource.onerror = function () {
+      connDot.classList.add('disconnected');
+      connDot.title = 'SSE disconnected — reconnecting…';
+      connDot.setAttribute('aria-label', 'Connection status: disconnected');
+      // Auto-reconnect after 5 s
+      setTimeout(connectSSE, 5000);
+    };
+  }
+
+  // Map EventBus channel names to workspace channels
+  var CHANNEL_MAP = {
+    system:      'system',
+    health:      'system',
+    metrics:     'system',
+    security:    'security',
+    workflow:    'workflows',
+    user_action: 'hitl',
+    custom:      null  // handled by subscriber id
+  };
+
+  function handleSSEEvent(ev) {
+    var evChannel = ev.channel || ev.type || '';
+    var wsCh      = CHANNEL_MAP[evChannel] || evChannel;
+
+    // Update dot color based on severity
+    var severity = ev.severity || ev.level || '';
+    var dotClass;
+    if (severity === 'error' || severity === 'critical') dotClass = 'status-danger';
+    else if (severity === 'warning' || severity === 'warn') dotClass = 'status-warning';
+    else if (severity === 'info' || severity === 'success') dotClass = 'status-success';
+    else dotClass = 'status-info';
+
+    if (wsCh && channelStatus[wsCh] !== undefined) {
+      setChannelStatus(wsCh, dotClass);
+      incrementUnread(wsCh);
+    }
+
+    // If we're on the active channel, refresh content
+    if (wsCh === currentChannel) {
+      // Debounced refresh
+      clearTimeout(autoRefreshTimer);
+      autoRefreshTimer = setTimeout(function () { navigate(currentChannel); }, 2000);
+    }
+  }
+
+  var autoRefreshTimer = null;
+
+  /* ===========================================================
+     10. SIDEBAR & PANEL TOGGLES (mobile)
+     ===================================================== */
+  document.getElementById('btn-toggle-channels').addEventListener('click', function () {
+    channelsNav.classList.toggle('open');
+  });
+
+  document.getElementById('btn-toggle-assistant').addEventListener('click', function () {
+    assistantEl.classList.toggle('open');
+  });
+
+  document.getElementById('btn-close-assistant').addEventListener('click', function () {
+    assistantEl.classList.remove('open');
+  });
+
+  // Close channel sidebar when a channel is clicked on mobile
+  channelsNav.addEventListener('click', function (e) {
+    var item = e.target.closest('.ws-channel-item');
+    if (item && window.innerWidth <= 640) {
+      channelsNav.classList.remove('open');
+    }
+    if (item) {
+      e.preventDefault();
+      var chId = item.getAttribute('data-channel');
+      if (chId) {
+        location.hash = chId;
+        navigate(chId);
+      }
+    }
+  });
+
+  /* ===========================================================
+     11. AUTH — show/hide #architect, fill user info
+     ===================================================== */
+  window.addEventListener('murphy:profile_loaded', function (e) {
+    var profile = e.detail || {};
+
+    // Show/hide #architect
+    var archEl = document.getElementById('ch-architect');
+    if (profile.role === 'founder_admin') {
+      archEl.style.display = '';
+    }
+
+    // Populate user pill
+    var name = profile.name || profile.email || 'User';
+    userNameEl.textContent = name;
+    userAvatar.textContent = name.charAt(0).toUpperCase();
+  });
+
+  // If auth is unavailable (dev mode), still show a fallback name
+  setTimeout(function () {
+    if (userNameEl.textContent === 'Loading…') {
+      userNameEl.textContent = 'User';
+      userAvatar.textContent = 'U';
+    }
+  }, 3000);
+
+  /* ===========================================================
+     12. NOTIFICATIONS BELL
+     ===================================================== */
+  document.getElementById('btn-notifications').addEventListener('click', function () {
+    // Navigate to a view that surfaces all recent events
+    // For now, navigate to #system as the global overview
+    navigate('system');
+    // Clear global badge
+    Object.keys(unreadCounts).forEach(function (k) { unreadCounts[k] = 0; });
+    document.querySelectorAll('.ws-ch-badge').forEach(function (b) { b.hidden = true; });
+    globalBadge.hidden = true;
+  });
+
+  /* ===========================================================
+     13. INIT
+     ===================================================== */
+  // Wire up the MurphyLibrarianChat web component if it exposes an init() method
+  // (the custom element normally self-initialises; this handles any manual init path)
+  if (librarianEl && typeof librarianEl.init === 'function') {
+    librarianEl.init(api);
+  }
+
+  // Start SSE (non-blocking)
+  startSSE().catch(function () {});
+
+  // Initial navigation based on hash or default to #system
+  navigate(location.hash.slice(1) || 'system');
+
+})();
+</script>
+
+<!-- ============================================================
+     VOICE / VIDEO CALL ENGINE  (WebRTC + Avatar Support)
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+
+  /* ── State ─────────────────────────────────────────────── */
+  var state = {
+    inCall: false,
+    channelId: null,
+    isVideo: false,
+    micMuted: false,
+    cameraOff: true,
+    cameraStarting: false,
+    screenSharing: false,
+    murphyListening: false,
+    callStartTime: null,
+    timerInterval: null,
+    localStream: null,
+    peerConnections: {},   // peerId → RTCPeerConnection (signalling stubs)
+    participants: {},      // peerId → { name, avatarUrl, initials, speaking, muted }
+    murphySpeaking: false,
+    localAvatar: null,     /* data-URL or null */
+    localInitials: '?'
+  };
+
+  /* ── DOM refs ───────────────────────────────────────────── */
+  var overlay        = document.getElementById('ws-call-overlay');
+  var statusBar      = document.getElementById('ws-voice-status');
+  var callGrid       = document.getElementById('call-grid');
+  var remoteTiles    = document.getElementById('remote-tiles');
+  var localVideo     = document.getElementById('local-video');
+  var localAvatar    = document.getElementById('call-local-avatar');
+  var localNameEl    = document.getElementById('call-local-name');
+  var channelNameEl  = document.getElementById('call-overlay-channel-name');
+  var countEl        = document.getElementById('call-overlay-count');
+  var statusLabel    = document.getElementById('voice-status-channel-name');
+  var timerEl        = document.getElementById('call-timer');
+  var murphyWave     = document.getElementById('murphy-wave');
+
+  /* ── Buttons ─────────────────────────────────────────────  */
+  var btnMic          = document.getElementById('call-btn-mic');
+  var btnCamera       = document.getElementById('call-btn-camera');
+  var btnScreen       = document.getElementById('call-btn-screen');
+  var btnMurphy       = document.getElementById('call-btn-murphy-voice');
+  var btnCollapse     = document.getElementById('call-btn-collapse');
+  var btnHangup       = document.getElementById('call-btn-hangup');
+  var vsbMute         = document.getElementById('vsb-mute');
+  var vsbCamera       = document.getElementById('vsb-camera');
+  var vsbExpand       = document.getElementById('vsb-expand');
+  var vsbHangup       = document.getElementById('vsb-hangup');
+
+  /* ── Load user profile (avatar/initials) ─────────────────  */
+  function loadLocalProfile() {
+    try {
+      var raw = localStorage.getItem('murphy_user');
+      if (!raw) return;
+      var u = JSON.parse(raw);
+      var displayName = (u.name || u.full_name || '').trim();
+      if (!displayName) { state.localInitials = 'Me'; } else {
+        state.localInitials = displayName.split(' ').filter(Boolean).map(function (p) { return p[0]; }).join('').slice(0, 2).toUpperCase() || 'Me';
+      }
+      state.localAvatar = u.avatarUrl || u.avatar_url || null;
+    } catch (_) {}
+    renderLocalTile();
+  }
+
+  function renderLocalTile() {
+    localNameEl.textContent = 'You';
+    if (state.localAvatar) {
+      localAvatar.style.backgroundImage = 'url(' + state.localAvatar + ')';
+      localAvatar.style.backgroundSize = 'cover';
+      localAvatar.style.backgroundPosition = 'center';
+      localAvatar.textContent = '';
+    } else {
+      localAvatar.textContent = state.localInitials || 'Me';
+    }
+  }
+
+  /* ── Avatar upload for local user ────────────────────────  */
+  // Allow clicking on the local tile avatar to change it
+  if (localAvatar) {
+    localAvatar.style.cursor = 'pointer';
+    localAvatar.title = 'Click to change your avatar';
+    localAvatar.addEventListener('click', function () {
+      var inp = document.createElement('input');
+      inp.type = 'file'; inp.accept = 'image/*';
+      inp.addEventListener('change', function () {
+        var file = inp.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function (e) {
+          state.localAvatar = e.target.result;
+          // persist to localStorage
+          try {
+            var raw = localStorage.getItem('murphy_user') || '{}';
+            var u = JSON.parse(raw);
+            u.avatarUrl = state.localAvatar;
+            localStorage.setItem('murphy_user', JSON.stringify(u));
+          } catch (_) {}
+          renderLocalTile();
+          if (state.localAvatar) {
+            var tileAv = document.getElementById('call-tile-local-img');
+            if (tileAv) { tileAv.src = state.localAvatar; tileAv.hidden = false; }
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+      inp.click();
+    });
+  }
+
+  /* ── Voice channel click ─────────────────────────────────  */
+  document.querySelectorAll('.ws-voice-channel-item').forEach(function (el) {
+    el.addEventListener('click', function () { joinVoiceChannel(el); });
+    el.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); joinVoiceChannel(el); }
+    });
+  });
+
+  function joinVoiceChannel(el) {
+    var channelId = el.dataset.voiceChannel;
+    var isVideo   = el.dataset.video === 'true';
+    var label     = el.querySelector('span').textContent;
+
+    // If already in this channel, open overlay
+    if (state.inCall && state.channelId === channelId) {
+      openOverlay(); return;
+    }
+    // Leave current call first
+    if (state.inCall) leaveCall(true);
+
+    state.inCall = true;
+    state.channelId = channelId;
+    state.isVideo   = isVideo;
+    state.callStartTime = Date.now();
+
+    el.classList.add('active');
+    channelNameEl.textContent  = label;
+    statusLabel.textContent    = '🔊 ' + label;
+    statusBar.classList.add('active');
+
+    startTimer();
+    loadLocalProfile();
+    seedRemoteParticipants();   // demo: add placeholder peers
+
+    if (isVideo) {
+      startCamera();
+    }
+
+    openOverlay();
+    updateParticipantCount();
+  }
+
+  function openOverlay() {
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function collapseOverlay() {
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  /* ── Simulated remote participants (demo) ───────────────── */
+  function seedRemoteParticipants() {
+    var names = ['Alex J.', 'Sam K.'];
+    names.forEach(function (n, i) {
+      var id = 'peer-' + i;
+      state.participants[id] = {
+        name: n,
+        initials: n.split(' ').map(function (p) { return p[0]; }).join('').toUpperCase(),
+        avatarUrl: null,
+        speaking: false,
+        muted: false
+      };
+      renderRemoteTile(id);
+    });
+    // Dot indicators in sidebar
+    updateSidebarDots();
+  }
+
+  function renderRemoteTile(peerId) {
+    var p = state.participants[peerId];
+    var existing = document.getElementById('tile-' + peerId);
+    if (existing) existing.remove();
+
+    var tile = document.createElement('div');
+    tile.className = 'ws-call-tile';
+    tile.id = 'tile-' + peerId;
+    tile.setAttribute('role', 'listitem');
+    tile.setAttribute('aria-label', p.name + ' participant');
+
+    var av = document.createElement('div');
+    av.className = 'ws-call-tile-avatar';
+    av.id = 'avatar-' + peerId;
+
+    if (p.avatarUrl) {
+      av.style.backgroundImage = 'url(' + p.avatarUrl + ')';
+      av.style.backgroundSize = 'cover';
+      av.style.backgroundPosition = 'center';
+    } else {
+      av.textContent = p.initials;
+    }
+
+    var nameBar = document.createElement('span');
+    nameBar.className = 'ws-call-tile-name';
+    nameBar.textContent = p.name;
+    if (p.muted) {
+      var muteIcon = document.createElement('span');
+      muteIcon.className = 'ws-call-tile-muted';
+      muteIcon.textContent = '🔇';
+      nameBar.appendChild(muteIcon);
+    }
+
+    tile.appendChild(av);
+    tile.appendChild(nameBar);
+    remoteTiles.appendChild(tile);
+
+    // Random speaking simulation
+    setTimeout(function () { simulateSpeaking(peerId); }, 2000 + Math.random() * 3000);
+  }
+
+  function simulateSpeaking(peerId) {
+    if (!state.inCall) return;
+    var tile = document.getElementById('tile-' + peerId);
+    if (!tile) return;
+    tile.classList.add('speaking');
+    setTimeout(function () {
+      tile.classList.remove('speaking');
+      setTimeout(function () { simulateSpeaking(peerId); }, 3000 + Math.random() * 5000);
+    }, 1500 + Math.random() * 2000);
+  }
+
+  function updateSidebarDots() {
+    var count = Object.keys(state.participants).length + 1; // +1 for local
+    var container = document.getElementById('vc-dots-' + state.channelId);
+    if (!container) return;
+    container.innerHTML = '';
+    for (var i = 0; i < Math.min(count, 4); i++) {
+      var dot = document.createElement('div');
+      dot.className = 'ws-voice-participant-dot';
+      container.appendChild(dot);
+    }
+  }
+
+  function updateParticipantCount() {
+    var n = Object.keys(state.participants).length + 1;
+    countEl.textContent = n + ' participant' + (n !== 1 ? 's' : '');
+  }
+
+  /* ── Mic toggle ─────────────────────────────────────────── */
+  function toggleMic() {
+    state.micMuted = !state.micMuted;
+    if (state.localStream) {
+      state.localStream.getAudioTracks().forEach(function (t) { t.enabled = !state.micMuted; });
+    }
+    btnMic.classList.toggle('active', !state.micMuted);
+    btnMic.textContent = state.micMuted ? '🔇' : '🎙️';
+    vsbMute.textContent = state.micMuted ? '🔇' : '🎙️';
+    btnMic.setAttribute('aria-label', state.micMuted ? 'Unmute microphone' : 'Mute microphone');
+  }
+
+  /* ── Camera toggle ──────────────────────────────────────── */
+  function toggleCamera() {
+    state.cameraOff = !state.cameraOff;
+    if (state.localStream) {
+      state.localStream.getVideoTracks().forEach(function (t) { t.enabled = !state.cameraOff; });
+    }
+    btnCamera.classList.toggle('active', !state.cameraOff);
+    btnCamera.textContent = state.cameraOff ? '📷' : '🎥';
+    vsbCamera.textContent = state.cameraOff ? '📷' : '🎥';
+    var localTileAv = document.getElementById('call-local-avatar');
+    if (localVideo && localTileAv) {
+      localVideo.hidden = state.cameraOff;
+      localTileAv.style.display = state.cameraOff ? 'flex' : 'none';
+    }
+    if (!state.cameraOff && !state.localStream) startCamera();
+  }
+
+  function startCamera() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+    if (state.cameraStarting) return;   // guard against concurrent calls
+    state.cameraStarting = true;
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+      .then(function (stream) {
+        state.cameraStarting = false;
+        state.localStream = stream;
+        localVideo.srcObject = stream;
+        if (!state.cameraOff) {
+          localVideo.hidden = false;
+          if (localAvatar) localAvatar.style.display = 'none';
+        }
+        if (!state.micMuted) {
+          stream.getAudioTracks().forEach(function (t) { t.enabled = true; });
+        }
+      })
+      .catch(function (err) {
+        state.cameraStarting = false;
+        console.warn('Camera/mic not available:', err.message);
+      });
+  }
+
+  /* ── Screen share ───────────────────────────────────────── */
+  function toggleScreenShare() {
+    if (state.screenSharing) {
+      if (state.localStream) { state.localStream.getTracks().forEach(function (t) { t.stop(); }); }
+      state.screenSharing = false;
+      btnScreen.classList.remove('active');
+      btnScreen.setAttribute('aria-label', 'Share screen');
+      return;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+      alert('Screen sharing is not supported in this browser.');
+      return;
+    }
+    navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })
+      .then(function (stream) {
+        state.screenSharing = true;
+        localVideo.srcObject = stream;
+        localVideo.hidden = false;
+        if (localAvatar) localAvatar.style.display = 'none';
+        btnScreen.classList.add('active');
+        btnScreen.setAttribute('aria-label', 'Stop sharing screen');
+        stream.getVideoTracks()[0].addEventListener('ended', function () {
+          state.screenSharing = false;
+          btnScreen.classList.remove('active');
+        });
+      })
+      .catch(function () { /* user cancelled */ });
+  }
+
+  /* ── Murphy AI voice ────────────────────────────────────── */
+  var murphyRecognition = null;
+
+  function toggleMurphyVoice() {
+    if (state.murphyListening) {
+      stopMurphy();
+    } else {
+      startMurphy();
+    }
+  }
+
+  function startMurphy() {
+    var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      showMurphyResponse('Voice recognition is not supported in this browser. Please use Chrome or Edge.');
+      return;
+    }
+    state.murphyListening = true;
+    btnMurphy.classList.add('listening');
+    btnMurphy.setAttribute('aria-label', 'Murphy is listening — click to stop');
+    murphyWave.classList.remove('idle');
+
+    murphyRecognition = new SpeechRecognition();
+    murphyRecognition.continuous = false;
+    murphyRecognition.interimResults = false;
+    murphyRecognition.lang = 'en-US';
+
+    murphyRecognition.onresult = function (e) {
+      var transcript = e.results[0][0].transcript;
+      stopMurphy();
+      sendToMurphy(transcript);
+    };
+    murphyRecognition.onerror = function () { stopMurphy(); };
+    murphyRecognition.onend   = function () { if (state.murphyListening) stopMurphy(); };
+    murphyRecognition.start();
+  }
+
+  function stopMurphy() {
+    state.murphyListening = false;
+    btnMurphy.classList.remove('listening');
+    btnMurphy.setAttribute('aria-label', 'Ask Murphy AI');
+    murphyWave.classList.add('idle');
+    if (murphyRecognition) { try { murphyRecognition.stop(); } catch (_) {} }
+  }
+
+  function sendToMurphy(query) {
+    murphyWave.classList.remove('idle');
+    fetch('/api/librarian/query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: query, channel: state.channelId || 'voice' })
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (d) { showMurphyResponse(d.response || d.result || 'Done!'); })
+    .catch(function () { showMurphyResponse('Could not reach Murphy right now.'); })
+    .finally(function () { murphyWave.classList.add('idle'); });
+  }
+
+  function showMurphyResponse(text) {
+    // Briefly animate Murphy's wave then show a toast
+    murphyWave.classList.remove('idle');
+    // Speak via browser TTS if available
+    if (window.speechSynthesis && text) {
+      var utter = new SpeechSynthesisUtterance(text);
+      utter.rate = 1; utter.pitch = 1;
+      window.speechSynthesis.speak(utter);
+    }
+    // Overlay toast
+    var toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);'
+      + 'background:var(--bg-surface);border:1px solid var(--teal);border-radius:var(--radius-lg);'
+      + 'padding:12px 20px;max-width:480px;font-size:0.85rem;color:var(--text-primary);'
+      + 'z-index:999;box-shadow:0 4px 24px rgba(0,212,170,.2);line-height:1.5;';
+    toast.innerHTML = '<strong style="color:var(--teal)">Murphy:</strong> ' + escHtml(text);
+    document.body.appendChild(toast);
+    setTimeout(function () {
+      murphyWave.classList.add('idle');
+      toast.remove();
+    }, 7000);
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  /* ── Call timer ─────────────────────────────────────────── */
+  function startTimer() {
+    clearInterval(state.timerInterval);
+    state.timerInterval = setInterval(function () {
+      if (!state.callStartTime) return;
+      var secs = Math.floor((Date.now() - state.callStartTime) / 1000);
+      var m = String(Math.floor(secs / 60)).padStart(2, '0');
+      var s = String(secs % 60).padStart(2, '0');
+      timerEl.textContent = m + ':' + s;
+    }, 1000);
+  }
+
+  /* ── Leave call ─────────────────────────────────────────── */
+  function leaveCall(silent) {
+    stopMurphy();
+    clearInterval(state.timerInterval);
+    if (state.localStream) {
+      state.localStream.getTracks().forEach(function (t) { t.stop(); });
+      state.localStream = null;
+    }
+    document.querySelectorAll('.ws-voice-channel-item').forEach(function (el) {
+      el.classList.remove('active');
+    });
+    // Clear sidebar dots
+    document.querySelectorAll('.ws-voice-participants').forEach(function (d) { d.innerHTML = ''; });
+    remoteTiles.innerHTML = '';
+    state.participants = {};
+    state.inCall = false;
+    state.channelId = null;
+    state.callStartTime = null;
+    timerEl.textContent = '00:00';
+    localVideo.srcObject = null;
+    localVideo.hidden = true;
+    if (localAvatar) localAvatar.style.display = 'flex';
+    btnMic.classList.add('active'); btnMic.textContent = '🎙️';
+    btnCamera.classList.remove('active'); btnCamera.textContent = '📷';
+    btnScreen.classList.remove('active');
+    statusBar.classList.remove('active');
+    collapseOverlay();
+  }
+
+  /* ── Button wiring ──────────────────────────────────────── */
+  if (btnMic)      btnMic.addEventListener('click', toggleMic);
+  if (btnCamera)   btnCamera.addEventListener('click', toggleCamera);
+  if (btnScreen)   btnScreen.addEventListener('click', toggleScreenShare);
+  if (btnMurphy)   btnMurphy.addEventListener('click', toggleMurphyVoice);
+  if (btnCollapse) btnCollapse.addEventListener('click', collapseOverlay);
+  if (btnHangup)   btnHangup.addEventListener('click', function () { leaveCall(false); });
+  if (vsbMute)     vsbMute.addEventListener('click', toggleMic);
+  if (vsbCamera)   vsbCamera.addEventListener('click', toggleCamera);
+  if (vsbExpand)   vsbExpand.addEventListener('click', function () { if (state.inCall) openOverlay(); });
+  if (vsbHangup)   vsbHangup.addEventListener('click', function () { leaveCall(false); });
+
+  // Keyboard: Escape closes overlay (but stays in call)
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && overlay.classList.contains('open')) collapseOverlay();
+  });
+
+  // Load profile on page load
+  loadLocalProfile();
+
+})();
+</script>
+
+<!-- ============================================================
+     CALL PANELS ENGINE  (Whiteboard · Mind Map · Notes · Prezi · Remote Control)
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+
+  /* ═══════════════════════════════════════════════════════════
+     1. TAB SWITCHING
+     ═══════════════════════════════════════════════════════════ */
+  document.querySelectorAll('.ws-call-tab').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      document.querySelectorAll('.ws-call-tab').forEach(function (t) {
+        t.classList.remove('active'); t.setAttribute('aria-selected', 'false');
+      });
+      document.querySelectorAll('.ws-call-panel').forEach(function (p) {
+        p.classList.remove('active'); p.hidden = true;
+      });
+      tab.classList.add('active'); tab.setAttribute('aria-selected', 'true');
+      var target = document.getElementById('panel-' + tab.dataset.panel);
+      if (target) { target.classList.add('active'); target.hidden = false; }
+      if (tab.dataset.panel === 'whiteboard') initWhiteboard();
+      if (tab.dataset.panel === 'mindmap')    initMindMap();
+      if (tab.dataset.panel === 'notes')      loadNotes();
+    });
+  });
+
+  /* ═══════════════════════════════════════════════════════════
+     2. WHITEBOARD
+     ═══════════════════════════════════════════════════════════ */
+  var wbState = {
+    tool: 'pen', color: '#00D4AA', size: 3,
+    drawing: false, startX: 0, startY: 0,
+    undoStack: [], redoStack: [], snapshot: null,
+    textInput: null
+  };
+  var wbCanvas, wbCtx;
+
+  function initWhiteboard() {
+    if (wbCtx) { resizeWbCanvas(); return; }
+    wbCanvas = document.getElementById('wb-canvas');
+    wbCtx    = wbCanvas.getContext('2d');
+    resizeWbCanvas();
+    new ResizeObserver(resizeWbCanvas).observe(wbCanvas.parentElement);
+
+    document.querySelectorAll('.wb-tool-btn[data-tool]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('.wb-tool-btn[data-tool]').forEach(function (b) { b.classList.remove('active'); b.setAttribute('aria-pressed','false'); });
+        btn.classList.add('active'); btn.setAttribute('aria-pressed','true');
+        wbState.tool = btn.dataset.tool;
+        wbCanvas.style.cursor = wbState.tool === 'eraser' ? 'cell' : wbState.tool === 'text' ? 'text' : 'crosshair';
+      });
+    });
+
+    document.querySelectorAll('.wb-color-swatch').forEach(function (sw) {
+      sw.addEventListener('click', function () {
+        document.querySelectorAll('.wb-color-swatch').forEach(function (s) { s.classList.remove('active'); s.setAttribute('aria-pressed','false'); });
+        sw.classList.add('active'); sw.setAttribute('aria-pressed','true');
+        wbState.color = sw.dataset.color;
+      });
+    });
+
+    document.getElementById('wb-stroke-size').addEventListener('input', function () {
+      wbState.size = parseInt(this.value, 10);
+    });
+
+    document.getElementById('wb-undo').addEventListener('click', wbUndo);
+    document.getElementById('wb-redo').addEventListener('click', wbRedo);
+    document.getElementById('wb-clear').addEventListener('click', function () {
+      if (confirm('Clear the whiteboard?')) { wbSaveUndo(); wbCtx.clearRect(0,0,wbCanvas.width,wbCanvas.height); wbState.redoStack = []; }
+    });
+    document.getElementById('wb-download').addEventListener('click', function () {
+      var a = document.createElement('a'); a.download = 'murphy-whiteboard.png'; a.href = wbCanvas.toDataURL(); a.click();
+    });
+
+    wbCanvas.addEventListener('pointerdown',  wbPointerDown);
+    wbCanvas.addEventListener('pointermove',  wbPointerMove);
+    wbCanvas.addEventListener('pointerup',    wbPointerUp);
+    wbCanvas.addEventListener('pointerleave', wbPointerUp);
+  }
+
+  function resizeWbCanvas() {
+    if (!wbCanvas) return;
+    var wrap = wbCanvas.parentElement;
+    var img = wbCtx ? wbCtx.getImageData(0, 0, wbCanvas.width, wbCanvas.height) : null;
+    wbCanvas.width  = wrap.clientWidth  || wrap.offsetWidth  || 800;
+    wbCanvas.height = wrap.clientHeight || wrap.offsetHeight || 500;
+    if (img) wbCtx.putImageData(img, 0, 0);
+  }
+
+  function wbCoords(e) {
+    var r = wbCanvas.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * (wbCanvas.width / r.width), y: (e.clientY - r.top) * (wbCanvas.height / r.height) };
+  }
+
+  function wbSaveUndo() {
+    wbState.undoStack.push(wbCtx.getImageData(0, 0, wbCanvas.width, wbCanvas.height));
+    if (wbState.undoStack.length > 40) wbState.undoStack.shift();
+    wbState.redoStack = [];
+  }
+
+  function wbUndo() { if (!wbState.undoStack.length) return; wbState.redoStack.push(wbCtx.getImageData(0,0,wbCanvas.width,wbCanvas.height)); wbCtx.putImageData(wbState.undoStack.pop(),0,0); }
+  function wbRedo() { if (!wbState.redoStack.length) return; wbState.undoStack.push(wbCtx.getImageData(0,0,wbCanvas.width,wbCanvas.height)); wbCtx.putImageData(wbState.redoStack.pop(),0,0); }
+
+  function wbSetStyle() {
+    wbCtx.strokeStyle = wbState.tool === 'eraser' ? '#0d0d0d' : wbState.color;
+    wbCtx.lineWidth   = wbState.tool === 'eraser' ? wbState.size * 4 : wbState.size;
+    wbCtx.lineCap = wbCtx.lineJoin = 'round';
+    wbCtx.fillStyle = wbState.color;
+    wbCtx.font = (Math.max(wbState.size * 5, 16)) + 'px var(--font-ui, Inter, sans-serif)';
+  }
+
+  function wbPointerDown(e) {
+    if (wbState.tool === 'text') { wbAddText(e); return; }
+    wbSaveUndo();
+    wbState.drawing = true;
+    wbCanvas.setPointerCapture(e.pointerId);
+    var c = wbCoords(e);
+    wbState.startX = c.x; wbState.startY = c.y;
+    wbState.snapshot = wbCtx.getImageData(0, 0, wbCanvas.width, wbCanvas.height);
+    if (wbState.tool === 'pen' || wbState.tool === 'eraser') {
+      wbSetStyle(); wbCtx.beginPath(); wbCtx.moveTo(c.x, c.y);
+    }
+  }
+
+  function wbPointerMove(e) {
+    if (!wbState.drawing) return;
+    var c = wbCoords(e);
+    wbSetStyle();
+    if (wbState.tool === 'pen' || wbState.tool === 'eraser') {
+      wbCtx.lineTo(c.x, c.y); wbCtx.stroke();
+    } else {
+      wbCtx.putImageData(wbState.snapshot, 0, 0);
+      wbDrawShape(wbState.tool, wbState.startX, wbState.startY, c.x, c.y);
+    }
+  }
+
+  function wbPointerUp(e) {
+    if (!wbState.drawing) return;
+    wbState.drawing = false;
+    var c = wbCoords(e);
+    wbSetStyle();
+    if (wbState.tool !== 'pen' && wbState.tool !== 'eraser') {
+      wbCtx.putImageData(wbState.snapshot, 0, 0);
+      wbDrawShape(wbState.tool, wbState.startX, wbState.startY, c.x, c.y);
+    }
+  }
+
+  function wbDrawShape(tool, x1, y1, x2, y2) {
+    wbCtx.beginPath();
+    if (tool === 'line') {
+      wbCtx.moveTo(x1, y1); wbCtx.lineTo(x2, y2); wbCtx.stroke();
+    } else if (tool === 'rect') {
+      wbCtx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+    } else if (tool === 'circle') {
+      var rx = (x2 - x1) / 2, ry = (y2 - y1) / 2;
+      wbCtx.ellipse(x1 + rx, y1 + ry, Math.abs(rx), Math.abs(ry), 0, 0, 2 * Math.PI);
+      wbCtx.stroke();
+    } else if (tool === 'arrow') {
+      var dx = x2 - x1, dy = y2 - y1, angle = Math.atan2(dy, dx), hLen = 16;
+      wbCtx.moveTo(x1, y1); wbCtx.lineTo(x2, y2); wbCtx.stroke();
+      wbCtx.beginPath();
+      wbCtx.moveTo(x2, y2);
+      wbCtx.lineTo(x2 - hLen * Math.cos(angle - Math.PI / 6), y2 - hLen * Math.sin(angle - Math.PI / 6));
+      wbCtx.moveTo(x2, y2);
+      wbCtx.lineTo(x2 - hLen * Math.cos(angle + Math.PI / 6), y2 - hLen * Math.sin(angle + Math.PI / 6));
+      wbCtx.stroke();
+    }
+  }
+
+  function wbAddText(e) {
+    var c = wbCoords(e);
+    var inp = document.createElement('input');
+    inp.type = 'text';
+    inp.style.cssText = 'position:fixed;background:transparent;border:none;border-bottom:1px dashed ' + wbState.color + ';color:' + wbState.color + ';font-size:' + Math.max(wbState.size * 5, 16) + 'px;font-family:var(--font-ui,Inter,sans-serif);outline:none;min-width:100px;z-index:999;';
+    var r = wbCanvas.getBoundingClientRect();
+    inp.style.left = (r.left + c.x * r.width / wbCanvas.width) + 'px';
+    inp.style.top  = (r.top  + c.y * r.height / wbCanvas.height - 20) + 'px';
+    document.body.appendChild(inp); inp.focus();
+    function commit() {
+      if (inp.value) { wbSaveUndo(); wbSetStyle(); wbCtx.fillText(inp.value, c.x, c.y); }
+      inp.remove();
+    }
+    inp.addEventListener('blur', commit);
+    inp.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') commit(); if (ev.key === 'Escape') inp.remove(); });
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (!document.getElementById('panel-whiteboard') || !document.getElementById('panel-whiteboard').classList.contains('active')) return;
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); wbUndo(); }
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) { e.preventDefault(); wbRedo(); }
+  });
+
+  /* ═══════════════════════════════════════════════════════════
+     3. MIND MAP
+     ═══════════════════════════════════════════════════════════ */
+  var mm = {
+    nodes: [], edges: [], nextId: 1,
+    dragging: null, dragOffX: 0, dragOffY: 0,
+    connectMode: false, connectFirst: null
+  };
+
+  function initMindMap() {
+    var svg  = document.getElementById('mm-svg');
+    var wrap = document.getElementById('mm-canvas-wrap');
+    if (!svg || mm._init) return;
+    mm._init = true;
+
+    if (!mm.nodes.length) mmAddNode(wrap.offsetWidth / 2, wrap.offsetHeight / 2, 'Topic');
+
+    svg.addEventListener('click', function (e) {
+      if (e.target === svg || e.target.closest('g') === document.getElementById('mm-edges')) {
+        if (mm.connectMode) { mm.connectMode = false; mm.connectFirst = null; mmRenderHint('Connect mode off.'); return; }
+        var r = svg.getBoundingClientRect();
+        mmAddNode(e.clientX - r.left, e.clientY - r.top, 'Node ' + mm.nextId);
+      }
+    });
+
+    document.getElementById('mm-add-node').addEventListener('click', function () {
+      var w = document.getElementById('mm-canvas-wrap');
+      mmAddNode(80 + Math.random() * (w.offsetWidth - 160), 60 + Math.random() * (w.offsetHeight - 120), 'Node ' + mm.nextId);
+    });
+    document.getElementById('mm-auto-layout').addEventListener('click', mmAutoLayout);
+    document.getElementById('mm-clear').addEventListener('click', function () { if (confirm('Clear mind map?')) { mm.nodes = []; mm.edges = []; mm.nextId = 1; mmRender(); } });
+    document.getElementById('mm-export-svg').addEventListener('click', function () {
+      var s = new XMLSerializer().serializeToString(document.getElementById('mm-svg'));
+      var a = document.createElement('a'); a.download = 'murphy-mindmap.svg'; a.href = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s); a.click();
+    });
+    document.getElementById('mm-murphy-gen').addEventListener('click', mmMurphyGenerate);
+  }
+
+  function mmAddNode(x, y, label) {
+    var node = { id: mm.nextId++, x: x, y: y, label: label, w: Math.max(label.length * 8 + 24, 90), h: 36 };
+    mm.nodes.push(node);
+    mmRender();
+    return node;
+  }
+
+  function mmRender() {
+    var svg    = document.getElementById('mm-svg');
+    var edges  = document.getElementById('mm-edges');
+    var nodes  = document.getElementById('mm-nodes');
+    if (!edges || !nodes) return;
+    edges.innerHTML = ''; nodes.innerHTML = '';
+
+    mm.edges.forEach(function (e) {
+      var src = mm.nodes.find(function (n) { return n.id === e.from; });
+      var tgt = mm.nodes.find(function (n) { return n.id === e.to; });
+      if (!src || !tgt) return;
+      var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', src.x); line.setAttribute('y1', src.y);
+      line.setAttribute('x2', tgt.x); line.setAttribute('y2', tgt.y);
+      line.setAttribute('class', 'mm-edge');
+      edges.appendChild(line);
+    });
+
+    mm.nodes.forEach(function (node) {
+      var g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.setAttribute('transform', 'translate(' + node.x + ',' + node.y + ')');
+      g.setAttribute('data-id', node.id);
+      g.style.cursor = 'move';
+
+      var rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      rect.setAttribute('x', -node.w / 2); rect.setAttribute('y', -node.h / 2);
+      rect.setAttribute('width', node.w); rect.setAttribute('height', node.h);
+      rect.setAttribute('rx', 10);
+      rect.setAttribute('fill', 'var(--bg-surface)');
+      rect.setAttribute('stroke', 'var(--teal)'); rect.setAttribute('stroke-width', '1.5');
+      rect.style.cursor = 'move';
+
+      var text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', 0); text.setAttribute('y', 0);
+      text.setAttribute('class', 'mm-node-text');
+      text.textContent = node.label;
+
+      g.appendChild(rect); g.appendChild(text);
+
+      g.addEventListener('pointerdown', function (e) {
+        if (e.button !== 0) return;
+        e.stopPropagation();
+        if (e.shiftKey) { mmConnectNode(node); return; }
+        mm.dragging = node;
+        var svgR = svg.getBoundingClientRect();
+        mm.dragOffX = e.clientX - svgR.left - node.x;
+        mm.dragOffY = e.clientY - svgR.top  - node.y;
+        svg.setPointerCapture(e.pointerId);
+      });
+
+      g.addEventListener('dblclick', function (e) {
+        e.stopPropagation();
+        var newLabel = prompt('Rename node:', node.label);
+        if (newLabel !== null && newLabel.trim()) {
+          node.label = newLabel.trim();
+          node.w = Math.max(node.label.length * 8 + 24, 90);
+          mmRender();
+        }
+      });
+
+      g.addEventListener('contextmenu', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        mm.nodes = mm.nodes.filter(function (n) { return n.id !== node.id; });
+        mm.edges = mm.edges.filter(function (edge) { return edge.from !== node.id && edge.to !== node.id; });
+        mmRender();
+      });
+
+      nodes.appendChild(g);
+    });
+
+    if (!mm._svgDragBound) {
+      mm._svgDragBound = true;
+      svg.addEventListener('pointermove', function (e) {
+        if (!mm.dragging) return;
+        var r = svg.getBoundingClientRect();
+        mm.dragging.x = e.clientX - r.left - mm.dragOffX;
+        mm.dragging.y = e.clientY - r.top  - mm.dragOffY;
+        mmRender();
+      });
+      svg.addEventListener('pointerup', function () { mm.dragging = null; });
+    }
+  }
+
+  function mmConnectNode(node) {
+    if (!mm.connectFirst) {
+      mm.connectFirst = node;
+      mmRenderHint('Node "' + node.label + '" selected — Shift+click another node to connect.');
+    } else {
+      if (mm.connectFirst.id !== node.id) {
+        mm.edges.push({ from: mm.connectFirst.id, to: node.id });
+        mmRender();
+      }
+      mm.connectFirst = null;
+      mmRenderHint('Connected. Shift+click two nodes to connect · Right-click to delete');
+    }
+  }
+
+  function mmAutoLayout() {
+    var cx = 400, cy = 300, root = mm.nodes[0];
+    if (!root) return;
+    root.x = cx; root.y = cy;
+    var rest = mm.nodes.slice(1);
+    var angleStep = (2 * Math.PI) / Math.max(rest.length, 1);
+    rest.forEach(function (n, i) {
+      n.x = cx + 200 * Math.cos(i * angleStep);
+      n.y = cy + 180 * Math.sin(i * angleStep);
+    });
+    mmRender();
+  }
+
+  function mmRenderHint(msg) {
+    var h = document.getElementById('mm-hint');
+    if (h) h.textContent = msg;
+  }
+
+  function mmMurphyGenerate() {
+    var topic = document.getElementById('mm-murphy-topic').value.trim();
+    if (!topic) { alert('Enter a topic first.'); return; }
+    document.getElementById('mm-murphy-gen').textContent = '⏳ Generating…';
+    fetch('/api/librarian/query', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: 'Generate a mind map with 6 nodes for: ' + topic, context: 'mindmap' })
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      document.getElementById('mm-murphy-gen').textContent = '✨ Generate';
+      var text  = d.response || d.result || '';
+      var items = text.match(/[\-\*\d\.\)]\s*(.+)/g) || [];
+      if (!items.length) items = [topic + ' Overview', 'Key Point 1', 'Key Point 2', 'Key Point 3', 'Key Point 4', 'Action Items'];
+      mm.nodes = []; mm.edges = [];
+      var labels = [topic].concat(items.slice(0, 6).map(function (s) { return s.replace(/^[\-\*\d\.\)\s]+/, '').slice(0, 30); }));
+      var wrap = document.getElementById('mm-canvas-wrap');
+      var cx = wrap.offsetWidth / 2, cy = wrap.offsetHeight / 2;
+      var root = mmAddNode(cx, cy, labels[0]);
+      var angle = 0, step = (2 * Math.PI) / Math.max(labels.length - 1, 1);
+      for (var i = 1; i < labels.length; i++) {
+        var n = mmAddNode(cx + 200 * Math.cos(angle), cy + 160 * Math.sin(angle), labels[i]);
+        mm.edges.push({ from: root.id, to: n.id });
+        angle += step;
+      }
+      mmRender();
+    })
+    .catch(function () {
+      document.getElementById('mm-murphy-gen').textContent = '✨ Generate';
+      mm.nodes = []; mm.edges = [];
+      var wrap = document.getElementById('mm-canvas-wrap');
+      var cx = wrap.offsetWidth / 2, cy = wrap.offsetHeight / 2;
+      var labels = [topic, 'Sub-topic 1', 'Sub-topic 2', 'Sub-topic 3', 'Sub-topic 4', 'Sub-topic 5'];
+      var root = mmAddNode(cx, cy, labels[0]);
+      var step2 = (2 * Math.PI) / 5;
+      for (var i = 1; i < labels.length; i++) {
+        var n = mmAddNode(cx + 200 * Math.cos(i * step2), cy + 160 * Math.sin(i * step2), labels[i]);
+        mm.edges.push({ from: root.id, to: n.id });
+      }
+      mmRender();
+    });
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     4. NOTES
+     ═══════════════════════════════════════════════════════════ */
+  var notesKey = 'murphy_call_notes_default';
+  var notesSaveTimer = null;
+
+  function loadNotes() {
+    var ta = document.getElementById('notes-area');
+    if (!ta || ta._bound) return;
+    ta._bound = true;
+    ta.value = localStorage.getItem(notesKey) || '';
+    ta.addEventListener('input', function () {
+      clearTimeout(notesSaveTimer);
+      document.getElementById('notes-save-status').textContent = 'Saving…';
+      notesSaveTimer = setTimeout(function () {
+        localStorage.setItem(notesKey, ta.value);
+        document.getElementById('notes-save-status').textContent = '✓ Auto-saved';
+      }, 800);
+    });
+    document.getElementById('notes-timestamp').addEventListener('click', function () {
+      var ts = new Date().toLocaleTimeString();
+      var pos = ta.selectionStart;
+      var before = ta.value.slice(0, pos), after = ta.value.slice(pos);
+      ta.value = before + '\n[' + ts + '] ' + after;
+      ta.selectionStart = ta.selectionEnd = pos + ts.length + 4;
+      ta.focus(); ta.dispatchEvent(new Event('input'));
+    });
+    document.getElementById('notes-clear').addEventListener('click', function () {
+      if (confirm('Clear all notes?')) { ta.value = ''; localStorage.removeItem(notesKey); document.getElementById('notes-save-status').textContent = 'Cleared'; }
+    });
+    document.getElementById('notes-export').addEventListener('click', function () {
+      var blob = new Blob([ta.value], { type: 'text/plain' });
+      var a = document.createElement('a'); a.download = 'murphy-call-notes.txt'; a.href = URL.createObjectURL(blob); a.click();
+    });
+  }
+
+  document.addEventListener('murphyCallStarted', function (e) {
+    notesKey = 'murphy_call_notes_' + (e.detail && e.detail.channelId ? e.detail.channelId : 'default');
+    var ta = document.getElementById('notes-area');
+    if (ta) ta.value = localStorage.getItem(notesKey) || '';
+  });
+
+  /* ═══════════════════════════════════════════════════════════
+     5. PREZI
+     ═══════════════════════════════════════════════════════════ */
+  var preziSlide = 1;
+
+  document.getElementById('prezi-load-btn').addEventListener('click', loadPrezi);
+  document.getElementById('prezi-url-input').addEventListener('keydown', function (e) { if (e.key === 'Enter') loadPrezi(); });
+
+  function loadPrezi() {
+    var url = document.getElementById('prezi-url-input').value.trim();
+    if (!url) { alert('Please paste a Prezi share URL.'); return; }
+    var embedUrl = url.includes('prezi.com/p/')
+      ? url.replace('prezi.com/p/', 'prezi.com/view/').replace(/\/$/, '')
+      : url.replace(/\/$/, '');
+    var iframe = document.getElementById('prezi-iframe');
+    var placeholder = document.getElementById('prezi-placeholder');
+    var navBar = document.getElementById('prezi-nav-bar');
+    iframe.src = embedUrl;
+    iframe.hidden = false;
+    placeholder.hidden = true;
+    navBar.hidden = false;
+    preziSlide = 1;
+    document.getElementById('prezi-slide-count').textContent = 'Slide 1';
+  }
+
+  document.getElementById('prezi-fs-btn').addEventListener('click', function () {
+    var iframe = document.getElementById('prezi-iframe');
+    if (iframe.requestFullscreen) iframe.requestFullscreen();
+    else if (iframe.webkitRequestFullscreen) iframe.webkitRequestFullscreen();
+  });
+
+  document.getElementById('prezi-prev').addEventListener('click', function () {
+    if (preziSlide > 1) { preziSlide--; document.getElementById('prezi-slide-count').textContent = 'Slide ' + preziSlide; }
+  });
+  document.getElementById('prezi-next').addEventListener('click', function () {
+    preziSlide++;
+    document.getElementById('prezi-slide-count').textContent = 'Slide ' + preziSlide;
+  });
+
+  /* ═══════════════════════════════════════════════════════════
+     6. REMOTE CONTROL
+     ═══════════════════════════════════════════════════════════ */
+  var remoteCtrlEnabled = false;
+  var remoteCtrlOverlay = null;
+
+  document.getElementById('toggle-remote-ctrl').addEventListener('change', function () {
+    remoteCtrlEnabled = this.checked;
+    var statusEl = document.getElementById('remote-ctrl-status');
+    if (remoteCtrlEnabled) {
+      statusEl.hidden = false;
+      activateRemoteControl();
+    } else {
+      statusEl.hidden = true;
+      deactivateRemoteControl();
+    }
+  });
+
+  document.getElementById('btn-revoke-control').addEventListener('click', function () {
+    document.getElementById('remote-ctrl-bar').hidden = true;
+    document.getElementById('toggle-remote-ctrl').checked = false;
+    remoteCtrlEnabled = false;
+    document.getElementById('remote-ctrl-status').hidden = true;
+    deactivateRemoteControl();
+  });
+
+  function activateRemoteControl() {
+    if (remoteCtrlOverlay) return;
+    remoteCtrlOverlay = document.createElement('div');
+    remoteCtrlOverlay.id = 'remote-ctrl-overlay';
+    remoteCtrlOverlay.style.cssText = 'position:fixed;inset:0;z-index:9999;cursor:none;background:transparent;';
+    remoteCtrlOverlay.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(remoteCtrlOverlay);
+
+    var cursor = document.createElement('div');
+    cursor.id = 'remote-ctrl-cursor';
+    cursor.style.cssText = 'position:fixed;width:16px;height:16px;border-radius:50%;background:rgba(255,196,0,.8);border:2px solid #ffc400;pointer-events:none;z-index:10000;transform:translate(-50%,-50%);transition:top .05s,left .05s;';
+    cursor.innerHTML = '<span style="position:absolute;top:18px;left:0;font-size:10px;color:#ffc400;white-space:nowrap;font-family:sans-serif;">Remote</span>';
+    document.body.appendChild(cursor);
+
+    remoteCtrlOverlay.addEventListener('pointermove', function (e) {
+      cursor.style.left = e.clientX + 'px';
+      cursor.style.top  = e.clientY + 'px';
+    });
+    remoteCtrlOverlay.addEventListener('click', function (e) {
+      remoteCtrlOverlay.style.pointerEvents = 'none';
+      var el = document.elementFromPoint(e.clientX, e.clientY);
+      if (el) el.click();
+      remoteCtrlOverlay.style.pointerEvents = 'auto';
+    });
+
+    var bar = document.getElementById('remote-ctrl-bar');
+    bar.hidden = false;
+    document.getElementById('remote-ctrl-user').textContent = 'Remote Participant';
+  }
+
+  function deactivateRemoteControl() {
+    if (remoteCtrlOverlay) { remoteCtrlOverlay.remove(); remoteCtrlOverlay = null; }
+    var c = document.getElementById('remote-ctrl-cursor');
+    if (c) c.remove();
+  }
+
+  document.getElementById('call-btn-screen').addEventListener('click', function () {
+    setTimeout(function () {
+      var sharing = document.getElementById('call-btn-screen').classList.contains('active');
+      var row = document.getElementById('screen-share-controls');
+      if (row) row.hidden = !sharing;
+      if (!sharing) {
+        document.getElementById('toggle-remote-ctrl').checked = false;
+        document.getElementById('remote-ctrl-status').hidden = true;
+        document.getElementById('remote-ctrl-bar').hidden = true;
+        deactivateRemoteControl();
+      }
+    }, 300);
+  }, true);
+
+})();
+</script>
+
+<!-- ============================================================
+     SHADOW AI MEETING INTELLIGENCE ENGINE
+     ============================================================ -->
+<script>
+(function () {
+  'use strict';
+
+  /* ── State ─────────────────────────────────────────── */
+  var sai = {
+    running: false, sessionId: null, sessionStart: null,
+    recognition: null, transcript: [], suggestions: [],
+    confidence: 0, pollTimer: null, confAnimTimer: null,
+    drafts: { 'action-plan': null, 'decision-record': null, 'proposal': null, 'risk-register': null },
+    orgSessions: parseInt(localStorage.getItem('murphy_org_sessions') || '0', 10)
+  };
+
+  /* ── DOM ────────────────────────────────────────────── */
+  function $id(id) { return document.getElementById(id); }
+
+  /* ── Init tab ───────────────────────────────────────── */
+  /* Initialise Shadow AI panel when tab is activated */
+  var origTabSwitch = document.querySelectorAll('.ws-call-tab');
+  origTabSwitch.forEach(function (tab) {
+    if (tab.dataset.panel === 'shadowai') {
+      tab.addEventListener('click', function () {
+        initShadowAI();
+      });
+    }
+  });
+
+  function initShadowAI() {
+    renderAgents();
+    updateOrgHeader();
+  }
+
+  /* ── Agents ─────────────────────────────────────────── */
+  function renderAgents() {
+    var container = $id('sai-agents');
+    if (!container || container.dataset.rendered) return;
+    container.dataset.rendered = '1';
+
+    var agents = [
+      { name: 'You', initials: getLocalInitials(), isSelf: true },
+      { name: 'Murphy AI', initials: 'M', isMurphy: true },
+    ];
+    // Add remote participants from call state
+    try {
+      var ws = window.state; // workspace.html call state
+      if (ws && ws.participants) {
+        Object.values(ws.participants).forEach(function (p) {
+          agents.push({ name: p.name, initials: p.initials });
+        });
+      }
+    } catch (_) {}
+
+    agents.forEach(function (a) {
+      var el = document.createElement('div');
+      el.className = 'sai-agent' + (a.isMurphy ? ' thinking' : '');
+      el.setAttribute('aria-label', a.name + ' shadow agent');
+      el.innerHTML =
+        '<div class="sai-agent-avatar' + (a.isMurphy ? ' murphy' : '') + '">' + a.initials + '</div>' +
+        '<span>' + escHtml(a.name) + '</span>' +
+        (a.isMurphy ? '<div class="sai-agent-dots"><span class="sai-agent-dot"></span><span class="sai-agent-dot"></span><span class="sai-agent-dot"></span></div>' : '');
+      container.appendChild(el);
+    });
+  }
+
+  function getLocalInitials() {
+    try { var u = JSON.parse(localStorage.getItem('murphy_user') || '{}'); return (u.name || 'Me').split(' ').map(function (p) { return p[0]; }).join('').slice(0,2).toUpperCase(); } catch(_) { return 'Me'; }
+  }
+
+  /* ── Start / Stop session ───────────────────────────── */
+  var startBtn = $id('sai-start-btn');
+  if (startBtn) {
+    startBtn.addEventListener('click', function () {
+      if (sai.running) stopSession(); else startSession();
+    });
+  }
+
+  function startSession() {
+    sai.running = true;
+    sai.sessionId = 'ses-' + Date.now();
+    sai.sessionStart = Date.now();
+    sai.transcript = [];
+    sai.suggestions = [];
+    sai.confidence = 35;
+
+    var badge = $id('sai-badge-live');
+    var lbl   = $id('sai-session-label');
+    var btn   = $id('sai-start-btn');
+    if (badge) badge.classList.add('active');
+    if (lbl)   lbl.textContent = 'Session ' + new Date().toLocaleTimeString();
+    if (btn)   { btn.textContent = '⏹ Stop Session'; btn.classList.add('active'); }
+
+    var genBtn = $id('sai-generate-drafts');
+    if (genBtn) genBtn.disabled = false;
+
+    clearPlaceholder();
+    startTranscription();
+    startConfidenceAnimation();
+    sai.pollTimer = setInterval(pollSuggestions, 18000);
+
+    /* Notify notes engine about session channel */
+    document.dispatchEvent(new CustomEvent('murphyCallStarted', { detail: { channelId: sai.sessionId } }));
+
+    /* Seed initial suggestions after 8 seconds */
+    setTimeout(function () { seedSuggestions(); }, 8000);
+
+    /* POST to backend (non-blocking) */
+    fetch('/api/meetings/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ channel: (window.state && window.state.channelId) || 'workspace', participants: 2 })
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (d.session_id) sai.sessionId = d.session_id;
+    }).catch(function () {});
+  }
+
+  function stopSession() {
+    sai.running = false;
+    clearInterval(sai.pollTimer);
+    clearInterval(sai.confAnimTimer);
+    if (sai.recognition) { try { sai.recognition.stop(); } catch (_) {} }
+
+    var badge = $id('sai-badge-live');
+    var btn   = $id('sai-start-btn');
+    if (badge) badge.classList.remove('active');
+    if (btn)   { btn.textContent = 'Start Session'; btn.classList.remove('active'); }
+
+    /* End session on backend */
+    fetch('/api/meetings/' + sai.sessionId + '/end', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transcript: sai.transcript })
+    }).catch(function () {});
+
+    sai.orgSessions++;
+    localStorage.setItem('murphy_org_sessions', String(sai.orgSessions));
+    updateOrgHeader();
+  }
+
+  /* ── Live transcription ─────────────────────────────── */
+  function startTranscription() {
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+      addTranscriptLine('System', 'Voice recognition not available in this browser. Transcript will be simulated.');
+      startSimulatedTranscript();
+      return;
+    }
+    sai.recognition = new SR();
+    sai.recognition.continuous = true;
+    sai.recognition.interimResults = false;
+    sai.recognition.lang = 'en-US';
+    sai.recognition.onresult = function (e) {
+      var text = e.results[e.results.length - 1][0].transcript.trim();
+      if (text) {
+        addTranscriptLine('You', text);
+        sendTranscriptChunk(text);
+      }
+    };
+    sai.recognition.onerror = function () { startSimulatedTranscript(); };
+    try { sai.recognition.start(); } catch (_) { startSimulatedTranscript(); }
+  }
+
+  function startSimulatedTranscript() {
+    var lines = [
+      ['You', 'Let\'s kick off with the Q2 roadmap priorities.'],
+      ['Alex J.', 'I think we need to address the API latency issues first — customers are flagging it.'],
+      ['You', 'Agreed. What\'s the timeline looking like on the infra side?'],
+      ['Alex J.', 'We could have a patch deployed by end of next week if we prioritise it.'],
+      ['You', 'Great. Let\'s also make sure compliance is looped in before we ship.'],
+      ['Alex J.', 'There\'s also the budget question — we\'re about 15% over on cloud costs.'],
+      ['You', 'Murphy, can you pull up the cost breakdown from last quarter?'],
+      ['Murphy AI', 'Cloud costs increased 18% in Q1, primarily from storage and compute scaling. I\'ve flagged this as a risk in the session register.'],
+      ['You', 'Let\'s schedule a follow-up with the finance team this week.'],
+    ];
+    var i = 0;
+    var timer = setInterval(function () {
+      if (!sai.running || i >= lines.length) { clearInterval(timer); return; }
+      addTranscriptLine(lines[i][0], lines[i][1]);
+      sendTranscriptChunk(lines[i][1]);
+      i++;
+    }, 6000);
+  }
+
+  function addTranscriptLine(speaker, text) {
+    var container = $id('sai-transcript');
+    if (!container) return;
+    var placeholder = container.querySelector('.sai-transcript-placeholder');
+    if (placeholder) placeholder.remove();
+
+    var line = document.createElement('div');
+    line.className = 'sai-tx-line';
+    var ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    line.innerHTML =
+      '<span class="sai-tx-speaker' + (speaker === 'Murphy AI' ? ' murphy-speaker' : '') + '">' + escHtml(speaker) + '</span>' +
+      '<span class="sai-tx-text">' + escHtml(text) + '</span>' +
+      '<span class="sai-tx-time">' + ts + '</span>';
+    container.appendChild(line);
+    container.scrollTop = container.scrollHeight;
+
+    sai.transcript.push({ speaker: speaker, text: text, ts: ts });
+  }
+
+  function sendTranscriptChunk(text) {
+    if (!sai.sessionId) return;
+    fetch('/api/meetings/' + sai.sessionId + '/transcript', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: text })
+    }).catch(function () {});
+  }
+
+  /* ── Suggestions ────────────────────────────────────── */
+  function pollSuggestions() {
+    if (!sai.running || !sai.sessionId) return;
+    fetch('/api/meetings/' + sai.sessionId + '/suggestions')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.suggestions && d.suggestions.length) {
+          d.suggestions.forEach(function (s) { addSuggestion(s); });
+        }
+        if (typeof d.confidence === 'number') setConfidence(d.confidence);
+      })
+      .catch(function () { seedSuggestions(); });
+  }
+
+  function seedSuggestions() {
+    var seeds = [
+      { type: 'action',   text: 'Assign API latency fix to infrastructure team with EOW deadline.', confidence: 82, agent: 'Alex J. Shadow' },
+      { type: 'risk',     text: 'Cloud costs 15% over budget — escalate to finance before Q2 close.', confidence: 76, agent: 'Murphy AI' },
+      { type: 'proposal', text: 'Schedule compliance review meeting before next deployment window.', confidence: 68, agent: 'Your Shadow' },
+      { type: 'insight',  text: 'Three topics overlap with last week\'s standup — consider a consolidated roadmap session.', confidence: 55, agent: 'Murphy AI' },
+    ];
+    seeds.forEach(function (s, i) {
+      setTimeout(function () { if (sai.running) addSuggestion(s); }, i * 2500);
+    });
+  }
+
+  function addSuggestion(s) {
+    var empty = $id('sai-empty-state');
+    if (empty) empty.remove();
+
+    var id = 'sug-' + Date.now() + '-' + Math.random().toString(36).slice(2,6);
+    var conf = s.confidence || Math.floor(40 + Math.random() * 55);
+    var confClass = conf >= 70 ? 'high' : conf >= 45 ? 'mid' : 'low';
+
+    var el = document.createElement('div');
+    el.className = 'sai-suggestion';
+    el.id = id;
+    el.setAttribute('role', 'listitem');
+    el.innerHTML =
+      '<div class="sai-sug-header">' +
+        '<span class="sai-sug-type ' + s.type + '">' + s.type.toUpperCase() + '</span>' +
+        '<span class="sai-sug-agent">' + escHtml(s.agent || 'Shadow AI') + '</span>' +
+        '<span class="sai-sug-confidence ' + confClass + '">' + conf + '%</span>' +
+      '</div>' +
+      '<div class="sai-sug-text">' + escHtml(s.text) + '</div>' +
+      '<div class="sai-sug-actions">' +
+        '<button class="sai-sug-btn accept"  data-action="accept"  aria-label="Accept suggestion">✓ Accept</button>' +
+        '<button class="sai-sug-btn mm-btn"  data-action="mindmap" aria-label="Add to mind map">🧠 Map</button>' +
+        '<button class="sai-sug-btn flag"    data-action="flag"    aria-label="Flag for review">⚑ Flag</button>' +
+        '<button class="sai-sug-btn dismiss" data-action="dismiss" aria-label="Dismiss suggestion">✕</button>' +
+      '</div>';
+
+    el.querySelectorAll('.sai-sug-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () { handleSugAction(btn.dataset.action, el, s); });
+    });
+
+    var container = $id('sai-suggestions');
+    if (container) container.appendChild(el);
+
+    sai.suggestions.push(s);
+    var countEl = $id('sai-suggestion-count');
+    if (countEl) countEl.textContent = String(sai.suggestions.length);
+
+    /* Fluctuate confidence */
+    setConfidence(Math.max(20, Math.min(95, sai.confidence + (Math.random() > 0.5 ? 8 : -6))));
+  }
+
+  function handleSugAction(action, el, s) {
+    if (action === 'accept') {
+      el.classList.add('accepted');
+      el.querySelector('.sai-sug-btn.accept').textContent = '✓ Accepted';
+      el.querySelectorAll('.sai-sug-btn:not(.accept)').forEach(function (b) { b.disabled = true; });
+      setConfidence(Math.min(95, sai.confidence + 5));
+    } else if (action === 'dismiss') {
+      el.classList.add('dismissed');
+      setTimeout(function () { el.style.maxHeight = '0'; el.style.overflow = 'hidden'; el.style.margin = '0'; el.style.padding = '0'; setTimeout(function(){el.remove();}, 400); }, 100);
+      setConfidence(Math.max(20, sai.confidence - 4));
+    } else if (action === 'mindmap') {
+      /* Push to mind map panel */
+      if (window.mmAddNode) {
+        var wrap = document.getElementById('mm-canvas-wrap');
+        if (wrap) {
+          var x = 100 + Math.random() * (wrap.offsetWidth - 200);
+          var y = 60  + Math.random() * (wrap.offsetHeight - 120);
+          window.mmAddNode(x, y, s.text.slice(0, 35));
+        }
+      }
+      btn_flash(el.querySelector('.sai-sug-btn.mm-btn'), '✓ Mapped');
+    } else if (action === 'flag') {
+      btn_flash(el.querySelector('.sai-sug-btn.flag'), '⚑ Flagged');
+    }
+  }
+
+  function btn_flash(btn, label) {
+    if (!btn) return;
+    var orig = btn.textContent; btn.textContent = label;
+    setTimeout(function () { btn.textContent = orig; }, 2000);
+  }
+
+  /* ── Confidence animation ───────────────────────────── */
+  function setConfidence(val) {
+    sai.confidence = Math.max(0, Math.min(100, Math.round(val)));
+    var bar   = $id('sai-confidence-bar');
+    var track = $id('sai-confidence-track');
+    var valEl = $id('sai-confidence-val');
+    var subEl = $id('sai-confidence-sub');
+    if (!bar) return;
+    bar.style.width = sai.confidence + '%';
+    bar.className   = 'sai-confidence-bar ' + (sai.confidence >= 65 ? 'high' : sai.confidence >= 40 ? 'mid' : 'low');
+    if (track) track.setAttribute('aria-valuenow', sai.confidence);
+    if (valEl) valEl.textContent = sai.confidence + '%';
+    if (subEl) subEl.textContent = sai.confidence >= 65
+      ? 'Strong consensus forming in the group'
+      : sai.confidence >= 40
+        ? 'Moderate alignment — discussion ongoing'
+        : 'Low confidence — significant divergence detected';
+  }
+
+  function startConfidenceAnimation() {
+    sai.confAnimTimer = setInterval(function () {
+      if (!sai.running) return;
+      var drift = (Math.random() - 0.48) * 7;
+      setConfidence(sai.confidence + drift);
+    }, 4000);
+  }
+
+  /* ── Drafts ─────────────────────────────────────────── */
+  var genBtn = $id('sai-generate-drafts');
+  if (genBtn) {
+    genBtn.addEventListener('click', function () {
+      if (!sai.running && !sai.transcript.length) return;
+      genBtn.textContent = '⏳ Generating…';
+      genBtn.disabled = true;
+
+      var transcriptText = sai.transcript.map(function (l) { return l.speaker + ': ' + l.text; }).join('\n');
+
+      fetch('/api/librarian/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: 'From this meeting transcript, generate an action plan, key decisions, proposals, and risks:\n' + transcriptText, context: 'meeting' })
+      })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { finaliseDrafts(d.response || d.result || ''); })
+      .catch(function () { finaliseDrafts(''); });
+    });
+  }
+
+  function finaliseDrafts(aiResponse) {
+    var draftIds = ['action-plan', 'decision-record', 'proposal', 'risk-register'];
+    var delay = 0;
+    draftIds.forEach(function (id) {
+      setTimeout(function () {
+        var statusEl = $id('draft-status-' + id);
+        var card = statusEl && statusEl.closest('.sai-draft-card');
+        if (statusEl) { statusEl.textContent = '✓ Ready'; statusEl.className = 'sai-draft-status ready'; }
+        if (card)     card.classList.add('ready');
+        sai.drafts[id] = aiResponse || 'Draft generated from session transcript.';
+      }, delay);
+      delay += 600;
+    });
+
+    setTimeout(function () {
+      var genBtn = $id('sai-generate-drafts');
+      if (genBtn) genBtn.textContent = '✓ Drafts Ready';
+
+      var link = $id('sai-review-link');
+      if (link) {
+        var sesParam = encodeURIComponent(sai.sessionId || 'demo');
+        link.href = '/ui/meeting-intelligence?session=' + sesParam;
+        link.hidden = false;
+      }
+
+      /* Persist drafts for meeting-intelligence page */
+      try { localStorage.setItem('murphy_last_meeting', JSON.stringify({ id: sai.sessionId, transcript: sai.transcript, suggestions: sai.suggestions, drafts: sai.drafts, confidence: sai.confidence })); } catch (_) {}
+
+      /* Org intelligence accumulation */
+      sai.orgSessions++;
+      localStorage.setItem('murphy_org_sessions', String(sai.orgSessions));
+      updateOrgHeader();
+    }, delay + 300);
+  }
+
+  function clearPlaceholder() {
+    var p = document.querySelector('#sai-suggestions .sai-empty-state');
+  }
+
+  /* ── Org header ─────────────────────────────────────── */
+  function updateOrgHeader() {
+    var cap = $id('sai-org-capability');
+    if (cap) cap.textContent = sai.orgSessions + ' session' + (sai.orgSessions !== 1 ? 's' : '');
+    try {
+      var u = JSON.parse(localStorage.getItem('murphy_user') || '{}');
+      var orgEl = $id('sai-org-name');
+      if (orgEl && u.org_name) orgEl.textContent = u.org_name;
+    } catch (_) {}
+  }
+
+  /* ── Draft card clicks ──────────────────────────────── */
+  document.querySelectorAll('.sai-draft-card').forEach(function (card) {
+    card.addEventListener('click', function () {
+      var type = card.dataset.draft;
+      var content = sai.drafts[type];
+      if (!content) { alert('Draft not yet generated. Start a session and click "Generate Drafts".'); return; }
+      var win = window.open('/ui/meeting-intelligence', '_blank');
+      if (!win) alert('Draft:\n\n' + content);
+    });
+  });
+
+  /* ── Utilities ──────────────────────────────────────── */
+  function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  /* Expose mmAddNode to suggestion handler */
+  document.addEventListener('mmReady', function (e) { window.mmAddNode = e.detail && e.detail.addNode; });
+
+})();
+</script>

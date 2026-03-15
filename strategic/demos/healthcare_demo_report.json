@@ -1,0 +1,219 @@
+{
+  "demo": "healthcare_ai_safety",
+  "generated": "2026-03-05T01:38:38.385658",
+  "verified_by": "Corey Post \u2014 Inoni LLC",
+  "summary": {
+    "total": 4,
+    "approved": 0,
+    "blocked": 4
+  },
+  "cases": [
+    {
+      "patient_id": "P-001",
+      "recommendation": "Initiate STEMI protocol",
+      "confidence": {
+        "score": 0.6815,
+        "phase": "EXECUTE",
+        "action": "REQUIRE_HUMAN_APPROVAL",
+        "allowed": false,
+        "rationale": "[BLOCKED] Phase=EXECUTE | C=0.6815 (threshold=0.85) | Action=REQUIRE_HUMAN_APPROVAL | G=0.910 w_g=0.25 | D=0.880 w_d=0.55 | H=0.150 \u03ba=0.20",
+        "weights": {
+          "w_g": 0.25,
+          "w_d": 0.55,
+          "kappa": 0.2
+        },
+        "timestamp": "2026-03-05T01:38:38.385463"
+      },
+      "hipaa_gate": {
+        "gate_id": "hipaa_phi",
+        "gate_type": "COMPLIANCE",
+        "blocking": true,
+        "threshold": 0.85,
+        "passed": false,
+        "confidence_score": 0.6815,
+        "action": "BLOCK_EXECUTION",
+        "message": "Gate 'hipaa_phi' (COMPLIANCE) FAILED [BLOCKING] \u2014 confidence 0.6815 < threshold 0.8500"
+      },
+      "clinical_gate": {
+        "gate_id": "clinical_safety",
+        "gate_type": "HITL",
+        "blocking": true,
+        "threshold": 0.8,
+        "passed": false,
+        "confidence_score": 0.6815,
+        "action": "BLOCK_EXECUTION",
+        "message": "Gate 'clinical_safety' (HITL) FAILED [BLOCKING] \u2014 confidence 0.6815 < threshold 0.8000"
+      },
+      "human_gate": {
+        "gate_id": "human_approval",
+        "gate_type": "EXECUTIVE",
+        "blocking": false,
+        "threshold": 0.88,
+        "passed": false,
+        "confidence_score": 0.6815,
+        "action": "REQUIRE_HUMAN_APPROVAL",
+        "message": "Gate 'human_approval' (EXECUTIVE) FAILED [NON-BLOCKING] \u2014 confidence 0.6815 < threshold 0.8800"
+      },
+      "compiled_gates": 4,
+      "final_decision": "BLOCKED \u2014 requires physician override",
+      "blocked": true
+    },
+    {
+      "patient_id": "P-002",
+      "recommendation": "Administer prophylactic antibiotics",
+      "confidence": {
+        "score": 0.4375,
+        "phase": "EXECUTE",
+        "action": "REQUIRE_HUMAN_APPROVAL",
+        "allowed": false,
+        "rationale": "[BLOCKED] Phase=EXECUTE | C=0.4375 (threshold=0.85) | Action=REQUIRE_HUMAN_APPROVAL | G=0.720 w_g=0.25 | D=0.650 w_d=0.55 | H=0.500 \u03ba=0.20",
+        "weights": {
+          "w_g": 0.25,
+          "w_d": 0.55,
+          "kappa": 0.2
+        },
+        "timestamp": "2026-03-05T01:38:38.385529"
+      },
+      "hipaa_gate": {
+        "gate_id": "hipaa_phi",
+        "gate_type": "COMPLIANCE",
+        "blocking": true,
+        "threshold": 0.85,
+        "passed": false,
+        "confidence_score": 0.4375,
+        "action": "BLOCK_EXECUTION",
+        "message": "Gate 'hipaa_phi' (COMPLIANCE) FAILED [BLOCKING] \u2014 confidence 0.4375 < threshold 0.8500"
+      },
+      "clinical_gate": {
+        "gate_id": "clinical_safety",
+        "gate_type": "HITL",
+        "blocking": true,
+        "threshold": 0.8,
+        "passed": false,
+        "confidence_score": 0.4375,
+        "action": "BLOCK_EXECUTION",
+        "message": "Gate 'clinical_safety' (HITL) FAILED [BLOCKING] \u2014 confidence 0.4375 < threshold 0.8000"
+      },
+      "human_gate": {
+        "gate_id": "human_approval",
+        "gate_type": "EXECUTIVE",
+        "blocking": false,
+        "threshold": 0.88,
+        "passed": false,
+        "confidence_score": 0.4375,
+        "action": "REQUIRE_HUMAN_APPROVAL",
+        "message": "Gate 'human_approval' (EXECUTIVE) FAILED [NON-BLOCKING] \u2014 confidence 0.4375 < threshold 0.8800"
+      },
+      "compiled_gates": 4,
+      "final_decision": "BLOCKED \u2014 requires physician override",
+      "blocked": true
+    },
+    {
+      "patient_id": "P-003",
+      "recommendation": "Renew lisinopril 10 mg daily",
+      "confidence": {
+        "score": 0.747,
+        "phase": "EXECUTE",
+        "action": "REQUIRE_HUMAN_APPROVAL",
+        "allowed": false,
+        "rationale": "[BLOCKED] Phase=EXECUTE | C=0.7470 (threshold=0.85) | Action=REQUIRE_HUMAN_APPROVAL | G=0.960 w_g=0.25 | D=0.940 w_d=0.55 | H=0.050 \u03ba=0.20",
+        "weights": {
+          "w_g": 0.25,
+          "w_d": 0.55,
+          "kappa": 0.2
+        },
+        "timestamp": "2026-03-05T01:38:38.385582"
+      },
+      "hipaa_gate": {
+        "gate_id": "hipaa_phi",
+        "gate_type": "COMPLIANCE",
+        "blocking": true,
+        "threshold": 0.85,
+        "passed": false,
+        "confidence_score": 0.747,
+        "action": "BLOCK_EXECUTION",
+        "message": "Gate 'hipaa_phi' (COMPLIANCE) FAILED [BLOCKING] \u2014 confidence 0.7470 < threshold 0.8500"
+      },
+      "clinical_gate": {
+        "gate_id": "clinical_safety",
+        "gate_type": "HITL",
+        "blocking": true,
+        "threshold": 0.8,
+        "passed": false,
+        "confidence_score": 0.747,
+        "action": "BLOCK_EXECUTION",
+        "message": "Gate 'clinical_safety' (HITL) FAILED [BLOCKING] \u2014 confidence 0.7470 < threshold 0.8000"
+      },
+      "human_gate": {
+        "gate_id": "human_approval",
+        "gate_type": "EXECUTIVE",
+        "blocking": false,
+        "threshold": 0.88,
+        "passed": false,
+        "confidence_score": 0.747,
+        "action": "REQUIRE_HUMAN_APPROVAL",
+        "message": "Gate 'human_approval' (EXECUTIVE) FAILED [NON-BLOCKING] \u2014 confidence 0.7470 < threshold 0.8800"
+      },
+      "compiled_gates": 3,
+      "final_decision": "BLOCKED \u2014 requires physician override",
+      "blocked": true
+    },
+    {
+      "patient_id": "P-004",
+      "recommendation": "Begin pembrolizumab regimen",
+      "confidence": {
+        "score": 0.3825,
+        "phase": "CONSTRAIN",
+        "action": "BLOCK_EXECUTION",
+        "allowed": false,
+        "rationale": "[BLOCKED] Phase=CONSTRAIN | C=0.3825 (threshold=0.65) | Action=BLOCK_EXECUTION | G=0.600 w_g=0.40 | D=0.550 w_d=0.45 | H=0.700 \u03ba=0.15",
+        "weights": {
+          "w_g": 0.4,
+          "w_d": 0.45,
+          "kappa": 0.15
+        },
+        "timestamp": "2026-03-05T01:38:38.385619"
+      },
+      "hipaa_gate": {
+        "gate_id": "hipaa_phi",
+        "gate_type": "COMPLIANCE",
+        "blocking": true,
+        "threshold": 0.85,
+        "passed": false,
+        "confidence_score": 0.3825,
+        "action": "BLOCK_EXECUTION",
+        "message": "Gate 'hipaa_phi' (COMPLIANCE) FAILED [BLOCKING] \u2014 confidence 0.3825 < threshold 0.8500"
+      },
+      "clinical_gate": {
+        "gate_id": "clinical_safety",
+        "gate_type": "HITL",
+        "blocking": true,
+        "threshold": 0.8,
+        "passed": false,
+        "confidence_score": 0.3825,
+        "action": "BLOCK_EXECUTION",
+        "message": "Gate 'clinical_safety' (HITL) FAILED [BLOCKING] \u2014 confidence 0.3825 < threshold 0.8000"
+      },
+      "human_gate": {
+        "gate_id": "human_approval",
+        "gate_type": "EXECUTIVE",
+        "blocking": false,
+        "threshold": 0.88,
+        "passed": false,
+        "confidence_score": 0.3825,
+        "action": "REQUIRE_HUMAN_APPROVAL",
+        "message": "Gate 'human_approval' (EXECUTIVE) FAILED [NON-BLOCKING] \u2014 confidence 0.3825 < threshold 0.8800"
+      },
+      "compiled_gates": 3,
+      "final_decision": "BLOCKED \u2014 requires physician override",
+      "blocked": true
+    }
+  ],
+  "test_gaps": [
+    "Drug-drug interaction confidence scoring not yet implemented",
+    "Allergy cross-reference domain model pending clinical validation",
+    "Real EHR integration (HL7 FHIR) requires certified connector",
+    "Longitudinal patient history not factored into G(x) score",
+    "Paediatric dosing weight-adjustments need specialised domain model"
+  ]
+}
