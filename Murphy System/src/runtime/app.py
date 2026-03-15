@@ -318,6 +318,27 @@ def create_app() -> FastAPI:
     except ImportError:
         _perm_execute = _noop_dep
         _perm_configure = _noop_dep
+    # ── EventBackbone — background processing loop ───────────────────
+    _event_backbone = None
+    try:
+        from src.event_backbone import get_event_backbone as _get_event_backbone
+        _event_backbone = _get_event_backbone()
+        logger.info("EventBackbone initialised")
+    except Exception as _eb_exc:
+        logger.warning("EventBackbone not available: %s", _eb_exc)
+
+    @app.on_event("startup")
+    async def _start_event_backbone():
+        if _event_backbone is not None:
+            _event_backbone.start()
+            logger.info("EventBackbone background loop started")
+
+    @app.on_event("shutdown")
+    async def _stop_event_backbone():
+        if _event_backbone is not None:
+            _event_backbone.stop()
+            logger.info("EventBackbone background loop stopped")
+
     # ── Integration Bus — wires src/ modules into the runtime ────────
     _integration_bus = None
     try:
@@ -5305,6 +5326,17 @@ def main():
             _shutdown_mgr.register_cleanup_handler(
                 lambda: getattr(_rl, "save_state", lambda: None)(),
                 "rate_limiter_state_save",
+            )
+        except Exception as exc:
+            logger.debug("Shutdown handler registration skipped: %s", exc)
+
+        # EventBackbone graceful stop
+        try:
+            from src.event_backbone import get_event_backbone as _get_eb_main
+            _eb_main = _get_eb_main()
+            _shutdown_mgr.register_cleanup_handler(
+                _eb_main.stop,
+                "event_backbone_stop",
             )
         except Exception as exc:
             logger.debug("Shutdown handler registration skipped: %s", exc)

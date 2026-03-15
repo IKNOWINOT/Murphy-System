@@ -1,6 +1,6 @@
 # Murphy System — Project Status
 
-> **Last updated**: 2026-03-08
+> **Last updated**: 2026-03-15
 > **License**: BSL 1.1 (Business Source License)
 > Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post
 
@@ -20,6 +20,7 @@
 | Setup Wizard | ✅ Operational | 6 deployment presets, guided onboarding |
 | Execution Engines | ✅ Operational | Task executor, workflow orchestrator, sandbox manager |
 | Learning Engine | ⚠️ Partial | Pattern detector, outcome tracker operational; full ML loop pending |
+| **Event Backbone** | ✅ **Operational** | Background daemon loop, backpressure handling, metrics; wired into FastAPI startup/shutdown and ShutdownManager |
 | Concept Graph Engine | ✅ New | 7 node/edge types, graph health, GCS metric |
 | Unified Control Protocol | ✅ New | 10-engine pipeline, 7 states, rollback support |
 | Session Context Manager | ✅ New | Per-session locking, expiry, RM0–RM6 tracking |
