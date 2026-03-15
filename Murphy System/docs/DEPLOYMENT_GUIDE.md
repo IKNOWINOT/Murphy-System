@@ -61,6 +61,11 @@ python murphy_terminal.py
 
 ## Docker Deployment
 
+The Dockerfile uses a multi-stage build.  Stage 1 (`deps`) compiles Python
+wheels; Stage 2 (`production`) copies only the installed packages and
+application source — no build tools, no dev dependencies, no docs, tests, or
+`.git` history enter the final image.
+
 ### Build and run
 
 ```bash
@@ -78,9 +83,41 @@ docker run -d \
   murphy-system:1.0.0
 ```
 
-### Health check
+### Production entrypoint
+
+The container starts via `scripts/docker-entrypoint.sh`.  Key environment
+variables that control startup behaviour:
+
+| Variable | Default | Description |
+|---|---|---|
+| `MURPHY_AUTO_MIGRATE` | `false` | Set to `true` to run Alembic migrations before the server starts |
+| `MURPHY_WORKERS` | `$(nproc)` | Number of uvicorn worker processes |
+| `MURPHY_PORT` | `8000` | Port the server listens on |
+| `MURPHY_LOG_LEVEL` | `warning` | uvicorn log level (`debug`, `info`, `warning`, `error`) |
+
+Example — single container with auto-migration and 4 workers:
 
 ```bash
+docker run -d \
+  --name murphy \
+  --env-file .env \
+  -e MURPHY_AUTO_MIGRATE=true \
+  -e MURPHY_WORKERS=4 \
+  -p 8000:8000 \
+  --restart unless-stopped \
+  murphy-system:1.0.0
+```
+
+### Health check
+
+The Dockerfile contains a built-in `HEALTHCHECK` that polls `/api/health`
+every 30 seconds with a 5-second timeout:
+
+```bash
+# Inspect health status
+docker inspect --format='{{.State.Health.Status}}' murphy
+
+# Manual probe
 docker exec murphy curl -s http://localhost:8000/api/health
 ```
 
@@ -98,7 +135,7 @@ docker stop murphy && docker rm murphy
 
 ---
 
-## Docker Compose (Production)
+## Docker Compose (Development)
 
 ```bash
 cd "Murphy System"
@@ -110,10 +147,42 @@ Services started by `docker-compose.yml`:
 
 | Service | Port | Description |
 |---|---|---|
-| `murphy` | 8000 | FastAPI application server |
+| `murphy-api` | 8000 | FastAPI application server |
+| `postgres` | 5432 | PostgreSQL database |
 | `redis` | 6379 | Task queue / rate-limit store |
 | `prometheus` | 9090 | Metrics scraping |
 | `grafana` | 3000 | Dashboards |
+
+---
+
+## Docker Compose (Production)
+
+For production, apply the `docker-compose.prod.yml` override on top of the
+base file.  The override adds:
+
+- **Multi-replica** `murphy-api` (controlled by `MURPHY_REPLICAS`, default 2)
+- **Stricter resource limits** (4 CPU / 4 GB for murphy-api)
+- **Structured JSON logging** with rotation (`json-file`, max 5 × 50 MB)
+- **Auto-migration** enabled (`MURPHY_AUTO_MIGRATE=true`)
+- **Rolling update** with automatic rollback on failure
+
+```bash
+cd "Murphy System"
+cp .env.example .env        # fill in all secrets
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  up -d
+```
+
+Scale replicas without restarting:
+
+```bash
+MURPHY_REPLICAS=4 docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  up -d --scale murphy-api=4
+```
 
 ---
 

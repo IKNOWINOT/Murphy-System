@@ -1,0 +1,101 @@
+# Copyright © 2020 Inoni Limited Liability Company
+# Creator: Corey Post
+# License: BSL 1.1
+# Murphy System — Main System Configuration
+# config/murphy.yaml
+#
+# This file supplies default values for all Murphy System runtime settings.
+# Environment variables (from .env or the shell) ALWAYS override values set here.
+# Secrets (API keys, passwords) must NEVER be placed in this file; use .env or
+# a secrets manager (HashiCorp Vault, AWS Secrets Manager, K8s Secrets).
+#
+# See config/murphy.yaml.example for annotated examples of every setting.
+
+# ── Runtime Environment ──────────────────────────────────────────────────────
+system:
+  env: development            # development | staging | production
+  version: "1.0.0"
+  persistence_dir: .murphy_persistence
+
+# ── API Server ────────────────────────────────────────────────────────────────
+api:
+  host: "127.0.0.1"
+  port: 8000
+  debug: false
+  max_response_size_mb: 10
+  cors_origins:
+    - "http://localhost:3000"
+    - "http://localhost:8080"
+    - "http://localhost:8000"
+
+# ── LLM Provider ─────────────────────────────────────────────────────────────
+llm:
+  provider: local             # local | groq | openai | anthropic
+  timeout: 30                 # seconds
+  max_retries: 3
+  use_key_rotation: true
+
+# ── Safety & Confidence Thresholds (MFGC-AI Core) ────────────────────────────
+thresholds:
+  confidence: 0.85            # minimum confidence score to auto-execute (0.0–1.0)
+  murphy_index: 0.50          # maximum Murphy index (risk) allowed (0.0–1.0)
+  gate_satisfaction: 0.70     # minimum gate-satisfaction percentage (0.0–1.0)
+  max_unknowns: 2             # maximum unknown factors before HITL escalation
+
+# ── Safety Levels ─────────────────────────────────────────────────────────────
+safety:
+  level: standard             # minimal | standard | strict | paranoid
+  fail_closed: true           # reject requests when safety evaluation cannot complete
+  governance_strict: true     # enforce governance gates in all environments
+
+# ── Database ──────────────────────────────────────────────────────────────────
+database:
+  path: murphy_logs.db        # SQLite path (used when DATABASE_URL is not set)
+  timeout: 30.0               # connection timeout in seconds
+  mode: stub                  # stub (dev) | live (production — requires DATABASE_URL)
+
+# ── Cache ─────────────────────────────────────────────────────────────────────
+cache:
+  enabled: false
+  ttl: 3600                   # cache TTL in seconds
+  # redis_url is intentionally omitted; set REDIS_URL env var
+
+# ── Rate Limiting ─────────────────────────────────────────────────────────────
+rate_limiting:
+  storage: "memory://"        # memory:// or redis://...
+  chat: "10 per minute"
+  governance: "20 per minute"
+  monitoring: "100 per minute"
+  global: "200 per hour"
+
+# ── Conversation Manager ──────────────────────────────────────────────────────
+conversation:
+  max_messages: 100
+  max_age_hours: 24
+  cleanup_interval: 3600      # seconds
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+logging:
+  level: INFO                 # DEBUG | INFO | WARNING | ERROR | CRITICAL
+  format: text                # text | json
+  file: murphy_system.log
+  max_bytes: 10485760         # 10 MB
+  backup_count: 5
+
+# ── Tenant Settings ───────────────────────────────────────────────────────────
+tenant:
+  default_plan: starter       # starter | professional | enterprise
+  max_automations: 50
+  max_concurrent_tasks: 5
+  allow_self_learning: false
+
+# ── Self-Learning ─────────────────────────────────────────────────────────────
+self_learning:
+  enabled: false              # master toggle for all self-learning subsystems
+  mfm_mode: disabled          # disabled | collecting | shadow | canary | production
+  mfm_base_model: "microsoft/Phi-3-mini-4k-instruct"
+  checkpoint_dir: ./checkpoints/mfm
+  trace_dir: ./data/action_traces
+  retrain_threshold: 10000
+  shadow_min_accuracy: 0.80
+  canary_traffic_percent: 10
