@@ -1434,6 +1434,17 @@ class MurphySystem:
         else:
             self.event_backbone = None
 
+        # Self-Healing Coordinator (wired to EventBackbone)
+        try:
+            from self_healing_startup import bootstrap_self_healing
+            self.self_healing_coordinator = bootstrap_self_healing(
+                event_backbone=self.event_backbone
+            )
+            logger.info("SelfHealingCoordinator bootstrapped with recovery handlers")
+        except Exception as exc:
+            logger.warning("SelfHealingCoordinator bootstrap failed: %s", exc)
+            self.self_healing_coordinator = None
+
         # Delivery Orchestrator
         if DeliveryOrchestrator:
             try:
