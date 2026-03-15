@@ -87,11 +87,20 @@ source venv/bin/activate        # Linux/macOS
 # venv\Scripts\activate         # Windows
 ```
 
-### 3. Install dependencies
+### 3. Install the package in editable mode
+
+This makes `from src.xxx import yyy` imports work from any directory,
+including scripts and the REPL:
 
 ```bash
+pip install -e .
 pip install -r requirements_murphy_1.0.txt
 ```
+
+> **Why editable install?**  
+> Murphy System uses a `src/` package layout.  `pip install -e .` registers
+> the `src` package in your Python environment so all `from src.xxx import yyy`
+> style imports resolve correctly — with no `sys.path` hacks needed.
 
 ### 4. Configure the environment
 
@@ -190,6 +199,54 @@ python -m pytest --timeout=60 --cov=. --cov-report=term-missing
 ```
 
 See the full [Testing Guide](documentation/testing/TESTING_GUIDE.md) for test categories, writing new tests, and CI configuration.
+
+---
+
+## Import Strategy
+
+Murphy System uses a `src/` package layout.  All production code lives under
+`src/` and the package is named `src`.
+
+### The golden rule — no `sys.path` hacks
+
+**Never** add `sys.path.insert()` or `sys.path.append()` to source files.  The
+test `tests/test_no_sys_path_hacks.py` will fail CI if any `src/` file
+contains such a call.
+
+### Correct import style
+
+```python
+# Always use the full src.xxx prefix for absolute imports
+from src.confidence_engine.models import ConfidenceState
+from src.module_manager import module_manager
+```
+
+Within a sub-package you may also use relative imports:
+
+```python
+# Relative import (only within the same sub-package)
+from .models import MyModel
+from ..confidence_engine.models import ConfidenceState
+```
+
+### Why this works
+
+- `pip install -e .` registers the `src` package in your Python environment so
+  `from src.xxx import yyy` resolves in any context.
+- `pyproject.toml` sets `pythonpath = [".", "src"]` for pytest so both
+  `from src.xxx import yyy` and `from xxx import yyy` (bare sub-package name)
+  work in test code.
+- **`sys.path` manipulation is only permitted in `sandbox_quarantine.py`**
+  (legitimate isolation use).
+
+### Scripts
+
+Scripts in `scripts/` import from the `src` package.  Run `pip install -e .`
+first, then:
+
+```bash
+python scripts/compile_shims.py
+```
 
 ---
 
