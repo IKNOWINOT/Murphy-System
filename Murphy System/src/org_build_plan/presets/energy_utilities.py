@@ -30,7 +30,7 @@ PRESET = IndustryPreset(
     recommended_frameworks=["NERC", "EPA", "OSHA"],
     default_departments=[
         {
-            "name": "Grid Operations",
+            "name": "grid_operations",
             "head_name": "VP of Grid Operations",
             "head_email": "grid@energy.com",
             "headcount": 50,
@@ -39,7 +39,7 @@ PRESET = IndustryPreset(
             "automation_priorities": ["factory_iot", "data"],
         },
         {
-            "name": "Plant Maintenance",
+            "name": "plant_maintenance",
             "head_name": "Director of Plant Maintenance",
             "head_email": "maintenance@energy.com",
             "headcount": 30,
@@ -57,7 +57,7 @@ PRESET = IndustryPreset(
             "automation_priorities": ["data", "system"],
         },
         {
-            "name": "Safety",
+            "name": "safety",
             "head_name": "VP of Safety",
             "head_email": "safety@energy.com",
             "headcount": 15,
@@ -66,7 +66,7 @@ PRESET = IndustryPreset(
             "automation_priorities": ["data", "agent"],
         },
         {
-            "name": "Regulatory Affairs",
+            "name": "regulatory_affairs",
             "head_name": "Director of Regulatory Affairs",
             "head_email": "regulatory@energy.com",
             "headcount": 8,

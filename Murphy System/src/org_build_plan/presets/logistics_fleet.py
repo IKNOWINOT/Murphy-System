@@ -27,7 +27,7 @@ PRESET = IndustryPreset(
     recommended_frameworks=["DOT", "FMCSA", "OSHA"],
     default_departments=[
         {
-            "name": "Fleet Operations",
+            "name": "fleet_operations",
             "head_name": "Fleet Operations Manager",
             "head_email": "fleet@company.com",
             "headcount": 25,
@@ -36,7 +36,7 @@ PRESET = IndustryPreset(
             "automation_priorities": ["data", "business"],
         },
         {
-            "name": "Dispatch",
+            "name": "dispatch",
             "head_name": "Dispatch Supervisor",
             "head_email": "dispatch@company.com",
             "headcount": 10,
@@ -45,7 +45,7 @@ PRESET = IndustryPreset(
             "automation_priorities": ["data", "agent"],
         },
         {
-            "name": "Maintenance",
+            "name": "maintenance",
             "head_name": "Maintenance Manager",
             "head_email": "maintenance@company.com",
             "headcount": 12,
@@ -54,7 +54,7 @@ PRESET = IndustryPreset(
             "automation_priorities": ["system", "data"],
         },
         {
-            "name": "Safety",
+            "name": "safety",
             "head_name": "Safety Director",
             "head_email": "safety@company.com",
             "headcount": 5,
@@ -63,7 +63,7 @@ PRESET = IndustryPreset(
             "automation_priorities": ["data", "agent"],
         },
         {
-            "name": "Administration",
+            "name": "administration",
             "head_name": "Operations Administrator",
             "head_email": "admin@company.com",
             "headcount": 6,
