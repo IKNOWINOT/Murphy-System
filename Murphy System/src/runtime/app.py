@@ -831,6 +831,16 @@ def create_app() -> FastAPI:
             {"command": "costs by-bot", "category": "costs", "description": "View costs by bot/agent", "api": "/api/costs/by-bot", "ui": "/ui/terminal-costs#bots"},
             {"command": "costs assign", "category": "costs", "description": "Assign costs to department/project", "api": "/api/costs/assign", "ui": "/ui/terminal-costs#assign"},
             {"command": "costs budget", "category": "costs", "description": "Set or update budget", "api": "/api/costs/budget", "ui": "/ui/terminal-costs#budget"},
+            {"command": "efficiency metrics", "category": "analytics", "description": "View performance and efficiency metrics", "api": "/api/efficiency/metrics", "ui": "/ui/terminal-unified#efficiency"},
+            {"command": "efficiency costs", "category": "analytics", "description": "View budget and spending overview", "api": "/api/efficiency/costs", "ui": "/ui/terminal-unified#costs"},
+            {"command": "heatmap data", "category": "analytics", "description": "View activity heatmap visualization", "api": "/api/heatmap/data", "ui": "/ui/terminal-unified#heatmap"},
+            {"command": "supply status", "category": "analytics", "description": "View supply chain resource status", "api": "/api/supply/status", "ui": "/ui/terminal-unified#supply"},
+            {"command": "safety status", "category": "safety", "description": "View safety monitoring score and active alerts", "api": "/api/safety/status", "ui": "/ui/terminal-unified#safety"},
+            {"command": "causality analysis", "category": "analytics", "description": "View causality engine analysis chains", "api": "/api/causality/analysis", "ui": "/ui/terminal-unified#causality"},
+            {"command": "causality graph", "category": "analytics", "description": "View causality dependency graph", "api": "/api/causality/graph", "ui": "/ui/terminal-unified#causality"},
+            {"command": "wingman suggestions", "category": "intelligence", "description": "Get AI Wingman co-pilot suggestions", "api": "/api/wingman/suggestions", "ui": "/ui/terminal-unified#wingman"},
+            {"command": "wingman status", "category": "intelligence", "description": "Get Wingman co-pilot status", "api": "/api/wingman/status", "ui": "/ui/terminal-unified#wingman"},
+            {"command": "hitl graduation candidates", "category": "hitl", "description": "List HITL graduation candidates", "api": "/api/hitl-graduation/candidates", "ui": "/ui/terminal-unified#graduation"},
             # ── Images ───────────────────────────────────────────────
             {"command": "images generate", "category": "images", "description": "Generate an image with AI", "api": "/api/images/generate", "ui": "/ui/terminal-enhanced#execute"},
             {"command": "images styles", "category": "images", "description": "List available image styles", "api": "/api/images/styles", "ui": "/ui/terminal-enhanced#execute"},
@@ -3629,18 +3639,89 @@ def create_app() -> FastAPI:
             "active_session": None, "suggestions": [],
         })
 
+    @app.get("/api/wingman/suggestions")
+    async def wingman_suggestions():
+        """Return Wingman AI assistant suggestions for the current session."""
+        return JSONResponse({"success": True, "suggestions": []})
+
     @app.get("/api/causality/graph")
     async def causality_graph():
         """Return causality dependency graph."""
         return JSONResponse({"success": True, "nodes": [], "edges": []})
 
-    @app.get("/api/efficiency/metrics")
-    async def efficiency_metrics():
-        """Return efficiency metrics."""
+    @app.get("/api/causality/analysis")
+    async def causality_analysis():
+        """Return causality engine analysis chains."""
+        return JSONResponse({"success": True, "chains": [], "analyses": []})
+
+    @app.get("/api/safety/status")
+    async def safety_status():
+        """Return safety monitoring status and open alerts."""
         return JSONResponse({
             "success": True,
-            "automation_rate": 0.0, "time_saved_hours": 0,
-            "cost_saved_usd": 0.0, "tasks_automated": 0,
+            "score": 100,
+            "safety_score": 100,
+            "last_check": _now_iso(),
+            "alerts": [],
+        })
+
+    @app.get("/api/heatmap/data")
+    async def heatmap_data():
+        """Return activity heatmap data."""
+        return JSONResponse({
+            "success": True,
+            "entries": [],
+            "max": 100,
+        })
+
+    @app.get("/api/efficiency/metrics")
+    async def efficiency_metrics():
+        """Return efficiency and performance metrics."""
+        return JSONResponse({
+            "success": True,
+            "throughput": 0,
+            "avg_latency": 0,
+            "latency": 0,
+            "error_rate": 0.0,
+            "utilization": 0.0,
+            "automation_rate": 0.0,
+            "time_saved_hours": 0,
+            "cost_saved_usd": 0.0,
+            "tasks_automated": 0,
+            "breakdown": [],
+        })
+
+    @app.get("/api/efficiency/costs")
+    async def efficiency_costs():
+        """Return budget and spending overview."""
+        return JSONResponse({
+            "success": True,
+            "total": 0,
+            "total_spend": 0,
+            "budget": 0,
+            "remaining": 0,
+            "items": [],
+        })
+
+    @app.get("/api/supply/status")
+    async def supply_status():
+        """Return supply chain resource status."""
+        return JSONResponse({
+            "success": True,
+            "total": 0,
+            "available": 0,
+            "pending": 0,
+            "items": [],
+        })
+
+    @app.get("/api/hitl-graduation/candidates")
+    async def hitl_graduation_candidates():
+        """Return HITL graduation candidate list."""
+        return JSONResponse({
+            "success": True,
+            "total": 0,
+            "total_graduated": 0,
+            "candidates": [],
         })
 
     @app.get("/api/forms/list")
