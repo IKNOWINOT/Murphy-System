@@ -550,9 +550,6 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);ove
     renderOrgCapabilities();
   }
 
-  /* Load first session automatically */
-  if (allSessions.length) loadSession(allSessions[0]);
-
   /* ── Render drafts ── */
   var DRAFT_META = {
     'action-plan':    { icon: '📋', title: 'Action Plan', sub: 'Concrete next steps' },
@@ -749,6 +746,9 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);ove
   }
 
   /* ── Tabs ── */
+  /* Load first session automatically (after all render functions are defined) */
+  if (allSessions.length) loadSession(allSessions[0]);
+
   document.querySelectorAll('.mi-tab').forEach(function (tab) {
     tab.addEventListener('click', function () {
       document.querySelectorAll('.mi-tab').forEach(function (t) { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });

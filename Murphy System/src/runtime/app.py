@@ -4553,6 +4553,7 @@ def create_app() -> FastAPI:
             "/": "murphy_landing_page.html",
             "/ui/landing": "murphy_landing_page.html",
             "/ui/terminal-unified": "terminal_unified.html",
+            "/ui/terminal": "terminal_unified.html",
             "/ui/terminal-integrated": "terminal_integrated.html",
             "/ui/terminal-architect": "terminal_architect.html",
             "/ui/terminal-enhanced": "terminal_enhanced.html",
