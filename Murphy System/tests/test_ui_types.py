@@ -582,7 +582,10 @@ class TestArchitectTerminalFeatures(unittest.TestCase):
     def test_has_topology_link(self):
         """Architect terminal should link to system visualizer."""
         content = _read_html('terminal_architect.html')
-        self.assertIn('system_visualizer', content.lower())
+        self.assertTrue(
+            'system_visualizer' in content.lower() or 'system-visualizer' in content.lower(),
+            "Architect terminal must link to system visualizer"
+        )
 
 
 class TestWorkerTerminalFeatures(unittest.TestCase):

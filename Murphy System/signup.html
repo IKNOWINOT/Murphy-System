@@ -802,7 +802,7 @@
       submitBtn.classList.remove('loading');
       submitBtn.disabled = false;
       if (result.status >= 200 && result.status < 300) {
-        window.location.href = 'onboarding_wizard.html';
+        window.location.href = '/ui/onboarding';
       } else {
         showFormError(result.data.message || result.data.error || 'Signup failed. Please try again.');
       }
