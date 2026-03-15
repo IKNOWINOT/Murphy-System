@@ -315,6 +315,161 @@ class TestAutomationIntegrationHubPublish:
 
 
 # ---------------------------------------------------------------------------
+# Module-level integration: MurphyCodeHealer
+# ---------------------------------------------------------------------------
+
+
+class TestMurphyCodeHealerPublish:
+    def setup_method(self):
+        _reset_global_backbone()
+
+    def _make_healer(self, backbone=None):
+        from murphy_code_healer import MurphyCodeHealer
+        healer = MurphyCodeHealer()
+        healer._backbone = backbone
+        return healer
+
+    def test_publish_event_with_injected_backbone(self):
+        """Previously used event_type=None which caused TypeError — now fixed."""
+        bb = _fresh_backbone()
+        healer = self._make_healer(backbone=bb)
+        healer._publish_event("learning_feedback", {"gap": "test-gap"})
+        assert bb.get_status()["events_published"] == 1
+
+    def test_publish_event_uses_global_backbone_when_not_injected(self):
+        bb = _fresh_backbone()
+        event_backbone_client.set_backbone(bb)
+        healer = self._make_healer(backbone=None)
+        healer._publish_event("learning_feedback", {"gap": "test-gap"})
+        assert bb.get_status()["events_published"] == 1
+
+    def test_publish_event_logs_warning_when_no_backbone(self, caplog):
+        healer = self._make_healer(backbone=None)
+        with caplog.at_level(logging.WARNING, logger="event_backbone_client"):
+            healer._publish_event("learning_feedback", {})
+        assert "no backbone available" in caplog.text
+
+
+# ---------------------------------------------------------------------------
+# Module-level integration: CEOBranchActivation
+# ---------------------------------------------------------------------------
+
+
+class TestCEOBranchActivationEmitTelemetry:
+    def setup_method(self):
+        _reset_global_backbone()
+
+    def _make_branch(self, backbone=None):
+        from ceo_branch_activation import CEOBranch
+        branch = CEOBranch()
+        branch._backbone = backbone
+        return branch
+
+    def test_emit_telemetry_with_injected_backbone(self):
+        """Previously called publish(string, dict) — string was silently rejected."""
+        bb = _fresh_backbone()
+        branch = self._make_branch(backbone=bb)
+        branch._emit_telemetry("learning_feedback", {"detail": "ok"})
+        assert bb.get_status()["events_published"] == 1
+
+    def test_emit_telemetry_uses_global_backbone_when_not_injected(self):
+        bb = _fresh_backbone()
+        event_backbone_client.set_backbone(bb)
+        branch = self._make_branch(backbone=None)
+        branch._emit_telemetry("learning_feedback", {"detail": "ok"})
+        assert bb.get_status()["events_published"] == 1
+
+    def test_emit_telemetry_logs_warning_when_no_backbone(self, caplog):
+        branch = self._make_branch(backbone=None)
+        with caplog.at_level(logging.WARNING, logger="event_backbone_client"):
+            branch._emit_telemetry("learning_feedback", {})
+        assert "no backbone available" in caplog.text
+
+
+# ---------------------------------------------------------------------------
+# Module-level integration: AutonomousRepairSystem
+# ---------------------------------------------------------------------------
+
+
+class TestAutonomousRepairSystemPublish:
+    def setup_method(self):
+        _reset_global_backbone()
+
+    def _make_repair_system(self, backbone=None):
+        from autonomous_repair_system import AutonomousRepairSystem
+        ars = AutonomousRepairSystem()
+        ars._backbone = backbone
+        return ars
+
+    def test_publish_event_with_injected_backbone(self):
+        """Previously called publish(Event_object) — Event object is not EventType."""
+        bb = _fresh_backbone()
+        ars = self._make_repair_system(backbone=bb)
+        ars._publish_event("system_health", {"status": "ok"})
+        assert bb.get_status()["events_published"] == 1
+
+    def test_publish_event_uses_global_backbone_when_not_injected(self):
+        bb = _fresh_backbone()
+        event_backbone_client.set_backbone(bb)
+        ars = self._make_repair_system(backbone=None)
+        ars._publish_event("system_health", {"status": "ok"})
+        assert bb.get_status()["events_published"] == 1
+
+    def test_publish_event_logs_warning_when_no_backbone(self, caplog):
+        ars = self._make_repair_system(backbone=None)
+        with caplog.at_level(logging.WARNING, logger="event_backbone_client"):
+            ars._publish_event("system_health", {})
+        assert "no backbone available" in caplog.text
+
+
+# ---------------------------------------------------------------------------
+# Module-level integration: MurphyImmuneEngine
+# ---------------------------------------------------------------------------
+
+
+class TestMurphyImmuneEnginePublish:
+    def setup_method(self):
+        _reset_global_backbone()
+
+    def _make_immune_engine(self, backbone=None):
+        from murphy_immune_engine import MurphyImmuneEngine
+        engine = MurphyImmuneEngine()
+        engine._backbone = backbone
+        return engine
+
+    def test_publish_with_injected_backbone(self):
+        """Previously used getattr fallback; now uses facade with from_string."""
+        bb = _fresh_backbone()
+        engine = self._make_immune_engine(backbone=bb)
+        engine._publish("IMMUNE_CYCLE_STARTED", {"cycle": 1})
+        assert bb.get_status()["events_published"] == 1
+
+    def test_publish_event_and_subscriber_receives_it(self):
+        """End-to-end: event published via facade is received by a subscriber."""
+        bb = _fresh_backbone()
+        received = []
+        bb.subscribe(EventType.IMMUNE_CYCLE_STARTED, lambda e: received.append(e))
+        engine = self._make_immune_engine(backbone=bb)
+        engine._publish("IMMUNE_CYCLE_STARTED", {"cycle": 1})
+        bb.process_pending()
+        assert len(received) == 1
+        assert received[0].source == "murphy_immune_engine"
+
+    def test_publish_uses_global_backbone_when_not_injected(self):
+        bb = _fresh_backbone()
+        event_backbone_client.set_backbone(bb)
+        engine = self._make_immune_engine(backbone=None)
+        engine._publish("IMMUNE_CYCLE_COMPLETED", {"status": "ok"})
+        assert bb.get_status()["events_published"] == 1
+
+    def test_publish_logs_warning_when_no_backbone(self, caplog):
+        engine = self._make_immune_engine(backbone=None)
+        with caplog.at_level(logging.WARNING, logger="event_backbone_client"):
+            engine._publish("IMMUNE_CYCLE_STARTED", {})
+        assert "no backbone available" in caplog.text
+
+
+# ---------------------------------------------------------------------------
 # Gap-detection: no module should have an empty event_type_map
 # ---------------------------------------------------------------------------
 
