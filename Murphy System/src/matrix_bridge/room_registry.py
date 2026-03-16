@@ -350,6 +350,9 @@ SUBSYSTEM_ROOMS: Dict[str, _RoomSpec] = {
     "ceo-branch":                       ("additional", False),
     "cutsheet-engine":                  ("additional", False),
     "production-assistant-engine":      ("additional", False),
+    # Collaborative Task Orchestrator + UI Trainer spaces (added 2026-03-16)
+    "murphy-swarm-coordinator":         ("swarm-agents", False),
+    "murphy-ui-trainer":                ("ui-trainer", False),
 
     # ── Well-known system rooms ───────────────────────────────────────────────
     "system-status":                    ("system", False),
