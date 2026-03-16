@@ -777,9 +777,9 @@ def create_app() -> FastAPI:
         # Phase 2 — TaskRouter routing decision (best-effort)
         routing: dict = {}
         try:
-            from task_router import TaskRouter  # type: ignore[import]
             from solution_path_registry import SolutionPathRegistry  # type: ignore[import]
             from system_librarian import SystemLibrarian as _SL2  # type: ignore[import]
+            from task_router import TaskRouter  # type: ignore[import]
 
             _router = TaskRouter(
                 librarian=_SL2(),
@@ -1567,7 +1567,8 @@ def create_app() -> FastAPI:
     }
 
     try:
-        from src.matrix_bridge import MatrixBridgeSettings, get_settings as _get_matrix_settings
+        from src.matrix_bridge import MatrixBridgeSettings
+        from src.matrix_bridge import get_settings as _get_matrix_settings
         _mx_settings = _get_matrix_settings()
         _matrix_bridge_state["homeserver"] = _mx_settings.homeserver_url
         logger.info("Matrix bridge settings loaded")
@@ -3294,7 +3295,7 @@ def create_app() -> FastAPI:
                 "id": f"sched-{pid}-intake",
                 "proposal_id": pid,
                 "stage": "intake",
-                "label": f"Receive & validate incoming request",
+                "label": "Receive & validate incoming request",
                 "industry": p.get("industry", ""),
                 "scheduled_at": base_time.isoformat(),
                 "status": "ready",
@@ -4135,8 +4136,10 @@ def create_app() -> FastAPI:
 
     try:
         from src.compliance_toggle_manager import (
-            ComplianceToggleManager as _ComplianceToggleManager,
             COMPLIANCE_ENGINE_MAP as _COMPLIANCE_ENGINE_MAP,
+        )
+        from src.compliance_toggle_manager import (
+            ComplianceToggleManager as _ComplianceToggleManager,
         )
         _compliance_toggle_manager = _ComplianceToggleManager()
     except ImportError:
@@ -4318,10 +4321,17 @@ def create_app() -> FastAPI:
     if _gate_wiring is not None:
         try:
             import uuid as _uuid_mod
+
             from src.gate_execution_wiring import (
                 GateDecision as _GateDecision,
+            )
+            from src.gate_execution_wiring import (
                 GateEvaluation as _GateEvaluation,
+            )
+            from src.gate_execution_wiring import (
                 GatePolicy as _GatePolicy,
+            )
+            from src.gate_execution_wiring import (
                 GateType as _GateType,
             )
 
@@ -4508,6 +4518,7 @@ def create_app() -> FastAPI:
     async def auth_oauth_redirect(provider: str):
         """Redirect to OAuth provider for signup/login."""
         from starlette.responses import RedirectResponse
+
         from src.account_management.models import OAuthProvider
 
         _supported = {p.value for p in OAuthProvider if p != OAuthProvider.CUSTOM}
@@ -5466,7 +5477,8 @@ def create_app() -> FastAPI:
     # so that /ui/... routes advertised by /api/ui/links are actually reachable.
 
     try:
-        from starlette.responses import FileResponse as _FileResponse, RedirectResponse as _RedirectResponse
+        from starlette.responses import FileResponse as _FileResponse
+        from starlette.responses import RedirectResponse as _RedirectResponse
         from starlette.staticfiles import StaticFiles as _StaticFiles
 
         _project_root = Path(__file__).resolve().parent.parent.parent  # src/runtime/ → Murphy System/

@@ -16,6 +16,7 @@ import os
 import json
 import unittest
 
+MURPHY_DIR = os.path.normpath(os.path.join(os.path.dirname(__file__), ".."))
 
 
 def _get_murphy():

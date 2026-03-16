@@ -40,6 +40,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from setup_retry_amplifier import SetupRetryAmplifier
+
 try:
     from thread_safe_operations import capped_append
 except ImportError:

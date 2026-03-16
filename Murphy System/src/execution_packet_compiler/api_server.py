@@ -11,6 +11,9 @@ from typing import Any, Dict, List, Optional
 
 from flask import Flask, jsonify, request
 
+from flask_security import configure_secure_app, is_debug_mode
+from src.confidence_engine.models import ArtifactGraph, ArtifactNode, ArtifactSource, ArtifactType
+
 from .dependency_resolver import DependencyResolver
 from .determinism_enforcer import DeterminismEnforcer
 from .models import (
@@ -32,9 +35,6 @@ from .packet_sealer import PacketSealer
 from .post_compilation_enforcer import PostCompilationEnforcer
 from .risk_bounder import RiskBounder
 from .scope_freezer import ScopeFreezer
-
-from src.confidence_engine.models import ArtifactGraph, ArtifactNode, ArtifactSource, ArtifactType
-from flask_security import configure_secure_app, is_debug_mode
 
 # Initialize Flask app
 app = Flask(__name__)

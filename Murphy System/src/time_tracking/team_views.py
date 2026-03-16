@@ -16,7 +16,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Set
 
 from .models import EntryStatus, TimeEntry
-from .summary_statistics import SummaryStatisticsService, _parse_dt, _REPORTABLE_STATUSES
+from .summary_statistics import _REPORTABLE_STATUSES, SummaryStatisticsService, _parse_dt
 
 _UTC = timezone.utc
 

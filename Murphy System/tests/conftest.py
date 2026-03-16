@@ -9,17 +9,14 @@ Preferred import style in tests:
     from confidence_engine.xxx import yyy  # works (src/ in path)
     from murphy_confidence.xxx import yyy  # works (strategic/ in path)
 
-Do NOT add ``sys.path`` hacks in test files — the pyproject.toml
+Do NOT add ``sys.path`` hacks in test files -- the pyproject.toml
 pythonpath setting handles it automatically.
-"""
-Adds src/ to sys.path so modules can be imported without
-manual PYTHONPATH manipulation.
 
 Also provides:
   - ``textual_available`` session fixture: skips any test that requires the
     optional ``textual`` TUI dependency when it is not installed.
   - ``pytest_terminal_summary`` hook: after a test run that includes any
-    ``@pytest.mark.storyline`` tests, prints a chapter → module → pass/fail
+    ``@pytest.mark.storyline`` tests, prints a chapter -> module -> pass/fail
     table so stakeholders can see at a glance which storyline promises hold.
 """
 
