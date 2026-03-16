@@ -21,4 +21,11 @@ from src.runtime.app import create_app, main  # noqa: F401
 
 
 if __name__ == "__main__":
+    # INC-06 / H-01: Print feature-availability summary before starting
+    import logging as _logging
+    try:
+        from src.startup_feature_summary import print_feature_summary
+        print_feature_summary()
+    except Exception as _exc:
+        _logging.getLogger(__name__).debug("Feature summary skipped: %s", _exc)
     main()
