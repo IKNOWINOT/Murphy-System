@@ -546,12 +546,12 @@ WORKFLOW_PHASE_CHANGED = "workflow_phase_changed"
 
 ### Priority 3 — Subsystem Wiring (Week 3)
 
-- [ ] **P3-001** Wire `SelfImprovementEngine.extract_patterns()` output into `RosettaStateManager.update_after_task()`
-- [ ] **P3-002** Wire `SelfAutomationOrchestrator` cycle records into `automation_progress.workflows[]`
-- [ ] **P3-003** Wire `RAGVectorIntegration.ingest_document()` call into `RosettaStateManager.save_agent_doc()`
-- [ ] **P3-004** Wire `EventBackbone` subscription in `RosettaStateManager` — subscribe to `TASK_COMPLETED`, `TASK_FAILED`, `GATE_EVALUATED`
-- [ ] **P3-005** Wire `StateManager` sync — on `SystemState` update, push delta to Rosetta document
-- [ ] **P3-006** Write `tests/test_rosetta_subsystem_wiring.py`
+- [x] **P3-001** Wire `SelfImprovementEngine.extract_patterns()` output into `RosettaStateManager.update_after_task()`
+- [x] **P3-002** Wire `SelfAutomationOrchestrator` cycle records into `automation_progress.workflows[]`
+- [x] **P3-003** Wire `RAGVectorIntegration.ingest_document()` call into `RosettaStateManager.save_agent_doc()`
+- [x] **P3-004** Wire `EventBackbone` subscription in `RosettaStateManager` — subscribe to `TASK_COMPLETED`, `TASK_FAILED`, `GATE_EVALUATED`
+- [x] **P3-005** Wire `StateManager` sync — on `SystemState` update, push delta to Rosetta document
+- [x] **P3-006** Write `tests/test_rosetta_subsystem_wiring.py`
 
 ### Priority 4 — Self-Improvement Persistence (Week 4)
 

@@ -1,6 +1,6 @@
 # Murphy System — Project Status
 
-> **Last updated**: 2026-03-08
+> **Last updated**: 2026-03-16
 > **License**: BSL 1.1 (Business Source License)
 > Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post
 
@@ -25,6 +25,8 @@
 | Session Context Manager | ✅ New | Per-session locking, expiry, RM0–RM6 tracking |
 | **Crypto Trading Subsystem** | ✅ **New** | Coinbase v3, multi-exchange, HITL-gated bots, 6 strategies, risk manager |
 | **Shadow Learning System** | ✅ **New** | Paper bots practice vs live prices; winning weeks save patterns; human reviews before promoting |
+| **Email Delivery** | ✅ **New** | Real SMTP (`aiosmtplib`) + SendGrid (`httpx`) — no mock path. 29 tests using live `aiosmtpd` + `respx`. |
+| **Rosetta State Wiring** | ✅ **New** | INC-07 complete: P3-001→P3-006 wired. `subsystem_wiring.py` + 38 tests. |
 | UI / Landing Page | ⚠️ Partial | Landing page, terminal UIs exist; dashboard incomplete |
 | Documentation | ✅ Complete | API docs, architecture docs, deployment guides, testing guide complete |
 
@@ -47,10 +49,10 @@ Murphy System is **aligned with** (not formally attested to) the following frame
 
 ## Test Coverage
 
-- **Total test files**: 644+
+- **Total test files**: 646+
 - **CI configuration**: `python -m pytest --timeout=60 -v --tb=short`
 - **CI pipeline**: GitHub Actions runs lint, test (Python 3.10/3.11/3.12), integration, security, and build jobs
-- **Key test suites**: concept graph engine (48), unified control protocol (62), session context (37), crypto trading system (102), shadow learning + real-money guard (48)
+- **Key test suites**: concept graph engine (48), unified control protocol (62), session context (37), crypto trading system (102), shadow learning + real-money guard (48), email integration real-SMTP/SendGrid (29), Rosetta subsystem wiring (38)
 
 ## Known Gaps
 
