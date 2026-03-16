@@ -1,5 +1,8 @@
 [run]
-source = src
+branch = true
+source =
+    rosetta_subsystem_wiring
+    startup_feature_summary
 omit =
     src/tests/*
     src/*_test.py
@@ -12,3 +15,5 @@ exclude_lines =
     def __repr__
     raise NotImplementedError
     if __name__ == .__main__
+    @abstractmethod
+    if TYPE_CHECKING:
