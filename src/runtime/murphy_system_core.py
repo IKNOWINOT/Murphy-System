@@ -1359,8 +1359,8 @@ class MurphySystem:
             else:
                 self.telemetry_bus = None
                 self.telemetry_ingester = None
-        except Exception as e:
-            logger.warning(f"Some original components not available: {e}")
+        except Exception as exc:
+            logger.warning(f"Some original components not available: {exc}")
             self.org_chart_system = None
 
         # Initialize MFGC adapter for execution wiring
@@ -4280,14 +4280,14 @@ class MurphySystem:
             self._persist_execution_result(session_id, task_description, task_type, orchestrator_result)
             return orchestrator_result
 
-        except Exception as e:
-            logger.error(f"Task execution failed: {e}")
+        except Exception as exc:
+            logger.error(f"Task execution failed: {exc}")
             import traceback
             traceback.print_exc()
             exception_duration = time.perf_counter() - execution_start
             self._publish_execution_event(
                 "TASK_FAILED",
-                {"task_description": task_description, "error": str(e), "mode": "exception"},
+                {"task_description": task_description, "error": str(exc), "mode": "exception"},
                 session_id=session_id,
             )
             self._record_self_improvement_outcome(
@@ -11508,8 +11508,8 @@ class MurphySystem:
                     f"**Pipeline stages:** score → qualify → recommend edition → demo → proposal",
                     session_id, intent=intent
                 )
-            except Exception as e:
-                return self._chat_response(f"Sales module error: {e}", session_id, intent=intent)
+            except Exception as exc:
+                return self._chat_response(f"Sales module error: {exc}", session_id, intent=intent)
         if intent == "billing":
             return self._chat_response(
                 "**Billing Tiers:**\n\n"

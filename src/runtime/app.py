@@ -3127,8 +3127,8 @@ def create_app() -> FastAPI:
                 details = mgr.get_tier_details(tier_enum.value)
                 tiers.append(details)
             return JSONResponse({"success": True, "tiers": tiers})
-        except Exception as e:
-            return JSONResponse({"success": False, "error": str(e)}, 500)
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, 500)
 
     @app.get("/api/billing/account/{account_id}")
     async def billing_account(account_id: str):
@@ -3148,8 +3148,8 @@ def create_app() -> FastAPI:
                 "usage": usage,
                 "tier_details": details,
             })
-        except Exception as e:
-            return JSONResponse({"success": False, "error": str(e)}, 500)
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, 500)
 
     @app.post("/api/billing/check-limit")
     async def billing_check_limit(request: Request):
@@ -3168,8 +3168,8 @@ def create_app() -> FastAPI:
                 current_count=body.get("current_count", 0),
             )
             return JSONResponse({"success": True, **result})
-        except Exception as e:
-            return JSONResponse({"success": False, "error": str(e)}, 500)
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, 500)
 
     @app.post("/api/billing/check-feature")
     async def billing_check_feature(request: Request):
@@ -3187,8 +3187,8 @@ def create_app() -> FastAPI:
                 feature=body.get("feature", ""),
             )
             return JSONResponse({"success": True, **result})
-        except Exception as e:
-            return JSONResponse({"success": False, "error": str(e)}, 500)
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, 500)
 
     # ==================== TELEMETRY ENDPOINT ====================
 
