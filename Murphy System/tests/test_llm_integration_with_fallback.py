@@ -4,12 +4,9 @@ Tests both online API mode and offline fallback mode
 """
 
 import pytest
-import sys
 import os
 
 # Add workspace to path
-sys.path.insert(0, '/workspace')
-
 from src.llm_integration_layer import LLMIntegrationLayer, LLMProvider, DomainType
 from src.enhanced_local_llm import EnhancedLocalLLM
 

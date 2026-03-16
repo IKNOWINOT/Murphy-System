@@ -27,8 +27,15 @@ terminal = ["textual>=0.40", "pywin32; sys_platform == 'win32'"]
 dev = ["pytest>=7.0", "pytest-cov", "ruff", "mypy"]
 all = ["murphy-system[llm,security,terminal,dev]"]
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src", "src.*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Add the project root, src/, and strategic/ to sys.path so all import styles
+# work without sys.path hacks in individual test files.
+pythonpath = [".", "src", "strategic"]
 asyncio_mode = "auto"
 filterwarnings = [
     "ignore::DeprecationWarning",
@@ -38,6 +45,7 @@ addopts = "--cov=src --cov-fail-under=85 --cov-report=term-missing"
 markers = [
     "sla: SLA enforcement tests that gate production releases",
     "benchmark: Performance benchmark tests",
+    "storyline: Storyline conformance tests — validates each chapter maps to working code",
 ]
 
 [tool.mypy]

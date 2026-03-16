@@ -1,10 +1,8 @@
 """Tests for ai_workflow_generator.py"""
 
-import sys
 import os
 import unittest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 from ai_workflow_generator import AIWorkflowGenerator, WORKFLOW_TEMPLATES
 
 

@@ -8,10 +8,8 @@ functionality, heartbeat propagation, and UI file production specs.
 import os
 import re
 import unittest
-import sys
 
 # Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 
 # ===================================================================

@@ -32,12 +32,13 @@ License: BSL 1.1
 import json
 import os
 import re
-import sys
 import uuid
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+
+pytestmark = pytest.mark.storyline
 
 # ---------------------------------------------------------------------------
 # Path setup — ensure the src/ and project root are importable
@@ -46,8 +47,6 @@ import pytest
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SRC_DIR = PROJECT_ROOT / "src"
 
-sys.path.insert(0, str(PROJECT_ROOT))
-sys.path.insert(0, str(SRC_DIR))
 
 # Optional dependency flags
 try:

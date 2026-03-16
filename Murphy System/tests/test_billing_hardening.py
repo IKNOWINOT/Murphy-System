@@ -26,14 +26,12 @@ import hashlib
 import hmac
 import json
 import os
-import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 os.environ.setdefault("MURPHY_ENV", "test")
 

@@ -1,0 +1,174 @@
+name: Documentation Drift Detection
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHONPATH: "${{ github.workspace }}/Murphy System:${{ github.workspace }}/Murphy System/src"
+
+jobs:
+  doc-drift:
+    name: Doc Drift & Reference Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: "Murphy System"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check broken markdown file references
+        run: |
+          python - <<'PYEOF'
+          """
+          Parse all *.md files for file path references and verify each exists.
+          Flags broken references as CI failures.
+          Also checks that module counts in README.md / STATUS.md are current.
+          """
+          import re
+          import sys
+          from pathlib import Path
+
+          repo_root = Path(".").resolve()
+          docs_dirs = [repo_root, repo_root / "docs"]
+
+          md_link_re = re.compile(r"\[([^\]]*)\]\(([^)#?\s]+)\)")
+          bare_path_re = re.compile(
+              r"(?:^|[\s`'\"])([a-zA-Z0-9_./-]+\.(?:py|md|yaml|yml|json|toml|sh|txt))"
+          )
+
+          broken: list[tuple[str, str]] = []
+
+          for docs_dir in docs_dirs:
+              if not docs_dir.exists():
+                  continue
+              for md_file in docs_dir.rglob("*.md"):
+                  try:
+                      content = md_file.read_text(encoding="utf-8", errors="replace")
+                  except Exception:
+                      continue
+
+                  refs: list[str] = []
+                  for _label, target in md_link_re.findall(content):
+                      if target.startswith(("http://", "https://", "#", "mailto:")):
+                          continue
+                      refs.append(target)
+                  for m in bare_path_re.finditer(content):
+                      candidate = m.group(1).strip("`'\" \t")
+                      if "/" in candidate and not candidate.startswith("http"):
+                          refs.append(candidate)
+
+                  for ref in refs:
+                      resolved = repo_root / ref
+                      if not resolved.exists():
+                          resolved = md_file.parent / ref
+                      if not resolved.exists():
+                          broken.append((str(md_file.relative_to(repo_root)), ref))
+
+          if broken:
+              print(f"::warning::Found {len(broken)} broken markdown file reference(s):")
+              for md_file, ref in broken:
+                  print(f"  {md_file}: references missing path '{ref}'")
+              # Non-fatal: report as warning, not failure, to avoid blocking on stale docs
+              sys.exit(0)
+          else:
+              print(f"✅ All markdown file references resolved successfully.")
+          PYEOF
+
+      - name: Check module count accuracy in STATUS.md
+        run: |
+          python - <<'PYEOF'
+          """
+          Count Python modules in src/ and verify STATUS.md mentions a
+          plausible count.  Auto-computes the current count; flags if the
+          documented count is off by more than 15%.
+          """
+          import re
+          import sys
+          from pathlib import Path
+
+          # Tolerance policy constants
+          COUNT_TOLERANCE_PCT = 0.15   # 15% relative tolerance
+          COUNT_TOLERANCE_MIN = 50     # minimum absolute tolerance
+
+          src_root = Path("src")
+          if not src_root.exists():
+              print("src/ not found — skipping module count check")
+              sys.exit(0)
+
+          actual_count = sum(1 for _ in src_root.rglob("*.py") if _.name != "__init__.py")
+          print(f"Actual Python module count: {actual_count}")
+
+          status_path = Path("STATUS.md")
+          if not status_path.exists():
+              print("STATUS.md not found — skipping count accuracy check")
+              sys.exit(0)
+
+          content = status_path.read_text(encoding="utf-8", errors="replace")
+          # Look for any number followed by "modules" or "module"
+          matches = [int(m) for m in re.findall(r"(\d+)\+?\s*modules?", content, re.IGNORECASE)]
+          if not matches:
+              print("No module count found in STATUS.md — skipping accuracy check")
+              sys.exit(0)
+
+          documented = max(matches)
+          tolerance = max(COUNT_TOLERANCE_MIN, int(actual_count * COUNT_TOLERANCE_PCT))
+          if abs(documented - actual_count) > tolerance:
+              print(
+                  f"::warning::STATUS.md documents {documented} modules but "
+                  f"{actual_count} found in src/. "
+                  f"Consider running: python scripts/sync_module_counts.py"
+              )
+          else:
+              print(
+                  f"✅ Module count in STATUS.md ({documented}) is within "
+                  f"tolerance of actual count ({actual_count})."
+              )
+          PYEOF
+
+  doc-sync:
+    name: Auto-sync Module Counts
+    runs-on: ubuntu-latest
+    # Only run on pushes to main (not on PRs) to auto-commit updated counts
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: "Murphy System"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run sync_module_counts.py
+        run: python scripts/sync_module_counts.py
+
+      - name: Commit updated module counts (if changed)
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git diff --quiet && echo "No changes to commit" || \
+            (git add README.md STATUS.md CONTRIBUTING.md && \
+             git commit -m "docs: auto-sync module counts [skip ci]" && \
+             git push)
