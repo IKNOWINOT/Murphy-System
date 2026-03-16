@@ -435,6 +435,8 @@ class NoCodeWorkflowTerminal:
     def __init__(self):
         self.sessions: dict[str, LibrarianSession] = {}
         self.max_sessions = 100
+        self._deliverable_wizards: Dict[str, Any] = {}
+        self._org_chart_generators: Dict[str, Any] = {}
 
     def create_session(
         self,
@@ -1040,6 +1042,25 @@ class NoCodeWorkflowTerminal:
                     self._org_chart_generators[session.session_id] = ocg
                 except Exception as exc:
                     logger.debug("OrgChartGenerator init failed: %s", exc)
+            
+            # If deliverable is manufacturing/industrial/BAS-related, also instantiate IndustryAutomationWizard
+            if dw_sess and dw_sess.industry_type and dw_sess.deliverable_type in ["workflow", "automation"]:
+                try:
+                    from industry_automation_wizard import IndustryAutomationWizard  # type: ignore[import]
+                    if not hasattr(self, "_industry_wizards"):
+                        self._industry_wizards: Dict[str, Any] = {}
+                    iaw = IndustryAutomationWizard()
+                    # Pre-populate industry from onboarding or detected industry_type
+                    industry_str = dw_sess.industry_type or session.onboarding_context.get("industry", "")
+                    ia_session = iaw.create_session(
+                        industry=industry_str,
+                        onboarding_context=session.onboarding_context
+                    )
+                    session.requirements_gathered["_industry_automation_session_id"] = ia_session.session_id
+                    self._industry_wizards[session.session_id] = iaw
+                    logger.debug("IndustryAutomationWizard initialized for industry: %s", industry_str)
+                except Exception as exc:
+                    logger.debug("IndustryAutomationWizard init failed: %s", exc)
 
         # Get the next question
         next_q = dw.next_question(dw_session_id)
