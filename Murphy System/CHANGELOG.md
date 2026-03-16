@@ -17,6 +17,50 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added — Collaborative Task Orchestration Pipeline (2026-03-16)
+
+#### Gap 1: WorkflowDAGEngine — Parallel Execution
+- **feat(dag):** `src/workflow_dag_engine.py` — Added `execute_workflow_parallel(execution_id, step_timeout=120s, total_timeout=600s, strict_mode=False)` that uses `get_parallel_groups()` and `ThreadPoolExecutor` to run each parallel group concurrently. Added private `_run_step()` helper shared by sequential and parallel paths.
+- Steps within a group run simultaneously; the next group waits for the current group to fully complete. Step failures are error-isolated — one failure does not cancel sibling steps.
+
+#### Gap 2: SwarmProposalGenerator — execute_proposal()
+- **feat(swarm):** `src/swarm_proposal_generator.py` — Added `SwarmExecutionResult` dataclass and `execute_proposal(proposal, budget=100.0)` method.
+- Pre-flight safety-gate check blocks execution when `gate.action=="block"` and `gate.severity>=0.7`. Steps are executed in topological order respecting `SwarmStep.dependencies`. Budget exhaustion marks remaining steps as skipped and returns `status="partial"`.
+
+#### Gaps 3–5: CollaborativeTaskOrchestrator (new module)
+- **feat(orchestrator):** Created `src/collaborative_task_orchestrator.py` as the unifying orchestration layer.
+  - **`CollaborativeTaskOrchestrator.orchestrate(task, budget, idempotency_key)`** — NL task → SwarmProposalGenerator → WorkflowDAGEngine → SplitScreenLayout selection → DurableSwarmOrchestrator → SplitScreenCoordinator → ResultSynthesizer → WorkspaceMemoryBridge → CollaborativeExecutionReport.
+  - **`ResultSynthesizer`** (Gap 4) — Replaces naive list concatenation in `HybridExecutionEngine._merge_results`. Detects conflicts (same field, different values), applies confidence-weighted voting, validates via Wingman pattern.
+  - **`WorkspaceMemoryBridge`** (Gap 5) — Bridges TypedGenerativeWorkspace and MemoryArtifactSystem: TGW writes auto-promote to MAS sandbox; verified artifacts promote sandbox→working; unified query across both systems.
+  - Layout selection: 1→SINGLE, 2→DUAL_H, 3→TRIPLE_H, 4→QUAD, ≤6→HEXA, >6→CUSTOM.
+  - Hardened: thread-safe locks, CWE-770 bounded history (MAX_HISTORY=1000), step_timeout=120s, total_timeout=600s, idempotency key dedup, graceful degradation for all Murphy subsystems.
+
+#### Trainer / Overlay System Wiring
+- **feat(overlay):** `src/runtime/app.py` — Added full REST API for `highlight_overlay.OverlayManager`:
+  - `GET /api/overlay/suggestions` — pending glow-key/click hints (polled by `murphy_overlay.js`)
+  - `POST /api/overlay/suggestions` — shadow agents submit new hints
+  - `POST /api/overlay/suggestions/{id}/accept` — user accepts and automates
+  - `POST /api/overlay/suggestions/{id}/ignore` — user dismisses
+  - `GET /api/overlay/summary` — stats for the overlay status bar
+- **feat(trainer):** `src/runtime/app.py` — Added shadow trainer API:
+  - `GET /api/trainer/status` — current policy, action values, buffer size
+  - `POST /api/trainer/reward` — record a reward signal to update the ShadowPolicy
+- **feat(ui):** `murphy_overlay.js` included in `terminal_orchestrator.html`, `terminal_worker.html`, `terminal_enhanced.html`, and `terminal_integrated.html` so glow-key hints render in all terminal views.
+
+#### Ancillary Wiring
+- **feat(manifest):** `src/matrix_bridge/module_manifest.py` — Added entries for `collaborative_task_orchestrator`, `highlight_overlay`, and `golden_path_engine`.
+- **feat(topology):** `src/matrix_bridge/room_topology.py` — Added `collaborative_task_orchestrator` to `murphy-swarm-coordinator` subsystems; added new `murphy-ui-trainer` space with `highlight_overlay`, `golden_path_engine`, and `murphy_shadow_trainer`.
+- **feat(registry):** `src/matrix_bridge/room_registry.py` — Registered `murphy-swarm-coordinator` and `murphy-ui-trainer` rooms.
+- **feat(bus):** `src/integration_bus.py` — Wired `CollaborativeTaskOrchestrator` and `OverlayManager` into the integration bus with lazy loaders, `get_status()` reporting, and a new `"orchestrate"` request type in `process()`.
+
+#### Tests
+- **test:** `tests/test_collaborative_task_orchestrator.py` — 31 comprehensive tests across 5 classes covering parallel DAG execution, swarm proposal execution, end-to-end orchestration, result synthesis, and workspace memory bridging. All 31 tests pass.
+
+### Fixed — WorkspaceMemoryBridge API Alignment (2026-03-16)
+- **fix(bridge):** `src/collaborative_task_orchestrator.py` — Fixed `WorkspaceMemoryBridge.write_artifact()` to construct proper `Artifact` objects for both TGW and MAS (was incorrectly passing kwargs directly to `write_artifact()`/`write_sandbox()`).
+- **fix(bridge):** Fixed `verify_and_promote()` to use correct `MemoryArtifactSystem.verify_artifact(artifact_id, VerificationSource, evidence)` and `promote_to_working(artifact_id, phase_legal, coherent)` signatures.
+- **fix(bridge):** Updated MAS import to include `Artifact`, `ArtifactState`, `MemoryPlane`, and `VerificationSource` classes.
+
 ### Fixed — System Scan & Critical Error Corrections
 
 #### Critical Syntax Errors
