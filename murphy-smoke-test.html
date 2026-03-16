@@ -1,0 +1,274 @@
+<!--
+  Murphy System — API Smoke Test
+  © 2020 Inoni Limited Liability Company by Corey Post
+  License: BSL 1.1 (Business Source License 1.1)
+  See LICENSE file in repository root for full terms.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — API Smoke Test</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
+<style>
+  /* Neon terminal theme */
+  .murphy-terminal, .murphy-output, pre, code {
+    font-family: var(--font-code, 'JetBrains Mono', monospace);
+  }
+  textarea, input[type="text"] {
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
+    color: #00ff00;
+    background: #0a0a0a;
+  }
+</style>
+</head>
+<body class="murphy-no-sidebar">
+
+<header class="murphy-topbar" role="banner">
+  <div class="murphy-topbar-left">
+    <h1 class="murphy-topbar-title">API Smoke Test</h1>
+  </div>
+  <div class="murphy-topbar-right">
+    <button class="murphy-btn murphy-btn-primary" id="btn-run-all">Run All</button>
+    <button class="murphy-btn murphy-btn-icon" id="btn-theme-toggle" aria-label="Toggle theme">
+      <svg id="theme-icon" width="18" height="18"><use href="static/murphy-icons.svg#icon-moon"></use></svg>
+    </button>
+  </div>
+</header>
+
+<main id="content" role="main" class="murphy-smoke-content">
+
+  <div id="summary" class="grid gap-4 mb-6 murphy-smoke-summary"></div>
+
+  <div id="grid" class="grid gap-4 murphy-smoke-grid"></div>
+
+</main>
+
+<script src="static/murphy-components.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var API_BASE = '/api';
+
+  var ENDPOINTS = [
+    { method: 'GET',  path: '/api/health' },
+    { method: 'GET',  path: '/api/status' },
+    { method: 'GET',  path: '/api/system/info' },
+    { method: 'POST', path: '/api/execute',                  body: { command: 'echo test' } },
+    { method: 'POST', path: '/api/chat',                     body: { message: 'hello' } },
+    { method: 'GET',  path: '/api/forms/list' },
+    { method: 'GET',  path: '/api/onboarding/wizard/questions' },
+    { method: 'GET',  path: '/api/onboarding-flow/status' },
+    { method: 'GET',  path: '/api/workflow-terminal/list' },
+    { method: 'GET',  path: '/api/agent-dashboard/agents' },
+    { method: 'GET',  path: '/api/ip/assets' },
+    { method: 'GET',  path: '/api/credentials/list' },
+    { method: 'POST', path: '/api/librarian/ask',            body: { question: 'What can Murphy do?' } },
+    { method: 'GET',  path: '/api/documents/list' },
+    { method: 'GET',  path: '/api/integrations/list' },
+    { method: 'GET',  path: '/api/llm/providers' },
+    { method: 'GET',  path: '/api/hitl/queue' },
+    { method: 'GET',  path: '/api/mfgc/gates' },
+    { method: 'GET',  path: '/api/corrections/list' },
+    { method: 'GET',  path: '/api/wingman/status' },
+    { method: 'GET',  path: '/api/causality/graph' },
+    { method: 'GET',  path: '/api/hitl-graduation/status' },
+    { method: 'GET',  path: '/api/heatmap/data' },
+    { method: 'GET',  path: '/api/safety/status' },
+    { method: 'GET',  path: '/api/efficiency/metrics' },
+    { method: 'GET',  path: '/api/supply/status' }
+  ];
+
+  var api = new MurphyAPI(API_BASE);
+  var theme = new MurphyTheme();
+  theme.init();
+
+  /* Librarian Chat — floating help widget */
+  var librarian = new MurphyLibrarianChat(api);
+
+  /* Health polling */
+  var health = new MurphyHealth(api);
+  health.start();
+
+  var themeIcon = document.getElementById('theme-icon');
+  function updateThemeIcon() {
+    var useEl = themeIcon.querySelector('use');
+    useEl.setAttribute('href', 'static/murphy-icons.svg#icon-' +
+      (theme.get() === 'dark' ? 'moon' : 'sun'));
+  }
+  theme.onChange(updateThemeIcon);
+  updateThemeIcon();
+
+  document.getElementById('btn-theme-toggle').addEventListener('click', function () {
+    theme.toggle();
+  });
+
+  /* ---- state ---- */
+  var results = ENDPOINTS.map(function (ep) {
+    return { path: ep.path, method: ep.method, status: 0, latency: 0, ok: null, preview: '' };
+  });
+  var running = false;
+
+  /* ---- helpers ---- */
+  function badgeClass(result) {
+    if (result.ok === null) return 'murphy-badge-neutral';
+    if (result.ok)          return 'murphy-badge-success';
+    if (result.status >= 400 && result.status < 500) return 'murphy-badge-warning';
+    return 'murphy-badge-danger';
+  }
+
+  function badgeLabel(result) {
+    if (result.ok === null) return 'Pending';
+    if (result.ok)          return String(result.status);
+    if (result.status > 0)  return String(result.status);
+    return 'Error';
+  }
+
+  function escapeHtml(text) {
+    var el = document.createElement('span');
+    el.textContent = text;
+    return el.innerHTML;
+  }
+
+  /* ---- render summary ---- */
+  function renderSummary() {
+    var total   = results.length;
+    var passed  = results.filter(function (r) { return r.ok === true; }).length;
+    var failed  = results.filter(function (r) { return r.ok === false; }).length;
+    var skipped = results.filter(function (r) { return r.ok === null; }).length;
+
+    var tested   = results.filter(function (r) { return r.ok !== null; });
+    var avgMs    = tested.length
+      ? Math.round(tested.reduce(function (s, r) { return s + r.latency; }, 0) / tested.length)
+      : 0;
+
+    var stats = [
+      { label: 'Total',      value: total,            trend: '' },
+      { label: 'Passed',     value: passed,           trend: total ? Math.round(passed / total * 100) + '%' : '' },
+      { label: 'Failed',     value: failed,           trend: '' },
+      { label: 'Skipped',    value: skipped,          trend: '' },
+      { label: 'Avg Latency', value: avgMs + ' ms',  trend: '' }
+    ];
+
+    var html = '';
+    stats.forEach(function (s) {
+      var trendClass = '';
+      if (s.label === 'Passed' && s.trend)  trendClass = 'murphy-stat-card-trend-up';
+      if (s.label === 'Failed' && failed)   trendClass = 'murphy-stat-card-trend-down';
+
+      html += '<div class="murphy-stat-card">' +
+        '<div class="murphy-stat-card-label">' + escapeHtml(s.label) + '</div>' +
+        '<div class="murphy-stat-card-value">' + escapeHtml(String(s.value)) + '</div>' +
+        (s.trend ? '<div class="murphy-stat-card-trend ' + trendClass + '">' + escapeHtml(s.trend) + '</div>' : '') +
+        '</div>';
+    });
+
+    document.getElementById('summary').innerHTML = html;
+  }
+
+  /* ---- render grid ---- */
+  function renderGrid() {
+    var html = '';
+    results.forEach(function (r) {
+      var preview = r.preview ? escapeHtml(r.preview) : '&mdash;';
+
+      html += '<div class="murphy-card">' +
+        '<div class="murphy-card-header flex items-center justify-between">' +
+          '<span class="font-bold text-sm truncate" title="' + escapeHtml(r.path) + '">' + escapeHtml(r.path) + '</span>' +
+          '<span class="murphy-badge ' + badgeClass(r) + '">' + badgeLabel(r) + '</span>' +
+        '</div>' +
+        '<div class="murphy-card-body">' +
+          '<div class="flex items-center gap-3 mb-4">' +
+            '<span class="murphy-badge murphy-badge-info">' + escapeHtml(r.method) + '</span>' +
+            '<span class="text-xs text-muted">' + (r.ok !== null ? r.latency + ' ms' : '') + '</span>' +
+          '</div>' +
+          '<div class="text-xs text-muted truncate" title="' + escapeHtml(r.preview) + '">' + preview + '</div>' +
+        '</div>' +
+      '</div>';
+    });
+
+    document.getElementById('grid').innerHTML = html;
+  }
+
+  /* ---- test runner ---- */
+  async function testEndpoint(endpoint) {
+    var start = performance.now();
+    try {
+      var res;
+      var apiPath = endpoint.path.replace(API_BASE, '');
+      if (endpoint.method === 'POST') {
+        res = await api.post(apiPath, endpoint.body || {});
+      } else {
+        res = await api.get(apiPath);
+      }
+      var latency = Math.round(performance.now() - start);
+      if (res.ok) {
+        return {
+          path: endpoint.path,
+          method: endpoint.method,
+          status: res.status || 200,
+          latency: latency,
+          ok: true,
+          preview: JSON.stringify(res.data).substring(0, 100)
+        };
+      }
+      return {
+        path: endpoint.path,
+        method: endpoint.method,
+        status: res.status || 0,
+        latency: latency,
+        ok: false,
+        preview: res.error || 'Request failed'
+      };
+    } catch (e) {
+      var lat = Math.round(performance.now() - start);
+      return {
+        path: endpoint.path,
+        method: endpoint.method,
+        status: (e.status || 0),
+        latency: lat,
+        ok: false,
+        preview: e.message || 'Connection failed'
+      };
+    }
+  }
+
+  async function runAll() {
+    if (running) return;
+    running = true;
+
+    var btn = document.getElementById('btn-run-all');
+    btn.textContent = 'Running\u2026';
+    btn.disabled = true;
+
+    results = ENDPOINTS.map(function (ep) {
+      return { path: ep.path, method: ep.method, status: 0, latency: 0, ok: null, preview: '' };
+    });
+    renderSummary();
+    renderGrid();
+
+    for (var i = 0; i < ENDPOINTS.length; i++) {
+      var result = await testEndpoint(ENDPOINTS[i]);
+      results[i] = result;
+      renderSummary();
+      renderGrid();
+    }
+
+    btn.textContent = 'Run All';
+    btn.disabled = false;
+    running = false;
+  }
+
+  document.getElementById('btn-run-all').addEventListener('click', runAll);
+
+  /* initial render */
+  renderSummary();
+  renderGrid();
+})();
+</script>
+
+</body>
+</html>

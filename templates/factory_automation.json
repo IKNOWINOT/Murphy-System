@@ -1,0 +1,59 @@
+{
+  "template_id": "factory_automation_v1",
+  "name": "Factory Automation Pipeline",
+  "description": "End-to-end manufacturing process automation covering sensor ingestion, quality control checks, defect routing, and production reporting.",
+  "version": "1.0.0",
+  "author": "Murphy System",
+  "tags": ["manufacturing", "automation", "quality-control", "iot", "reporting"],
+  "category": "FACTORY",
+  "flow_json": {
+    "nodes": [
+      {
+        "id": "sensor_ingest",
+        "type": "trigger",
+        "label": "Sensor Data Ingest",
+        "description": "Receives real-time telemetry from factory floor sensors via MQTT or HTTP.",
+        "config": { "source": "mqtt", "topic": "factory/sensors/+", "batch_size": 50 }
+      },
+      {
+        "id": "quality_check",
+        "type": "agent",
+        "label": "Quality Control Agent",
+        "description": "Analyzes sensor readings against tolerance thresholds and flags anomalies.",
+        "config": { "model": "gpt-4o-mini", "threshold_config": "quality_thresholds.json" }
+      },
+      {
+        "id": "defect_router",
+        "type": "router",
+        "label": "Defect Router",
+        "description": "Routes items to rework, reject, or pass lanes based on QC agent output.",
+        "config": { "pass_lane": "production_report", "fail_lane": "rework_queue" }
+      },
+      {
+        "id": "rework_queue",
+        "type": "action",
+        "label": "Rework Queue",
+        "description": "Logs defective items and triggers rework workflow tickets.",
+        "config": { "ticket_system": "jira", "priority": "high" }
+      },
+      {
+        "id": "production_report",
+        "type": "output",
+        "label": "Production Report",
+        "description": "Aggregates pass/fail metrics and publishes shift summary to dashboard.",
+        "config": { "dashboard": "grafana", "interval_minutes": 60 }
+      }
+    ],
+    "edges": [
+      { "id": "e1", "source": "sensor_ingest", "target": "quality_check" },
+      { "id": "e2", "source": "quality_check", "target": "defect_router" },
+      { "id": "e3", "source": "defect_router", "target": "rework_queue", "label": "defect" },
+      { "id": "e4", "source": "defect_router", "target": "production_report", "label": "pass" }
+    ]
+  },
+  "requirements": ["mqtt-client", "pytest", "uvicorn", "openai"],
+  "rating": 4.5,
+  "downloads": 0,
+  "created_at": "2024-01-01T00:00:00+00:00",
+  "updated_at": "2024-01-01T00:00:00+00:00"
+}

@@ -1,0 +1,1 @@
+export function ucb1(stats:{n:number,win:number}[], total:number){ return stats.map((s,i)=> ({i, score: (s.win/Math.max(1,s.n)) + Math.sqrt(2*Math.log(Math.max(2,total))/Math.max(1,s.n))})).sort((a,b)=>b.score-a.score)[0].i }

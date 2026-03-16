@@ -7,7 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+### Added — Round 51 — Documentation Gap Closure (GAP-4/5/6/7/8 All Closed)
+
+- **docs(auar):** `docs/AUAR_TECHNICAL_PROPOSAL.md` Appendix C — documents UCB1 algorithm (vs. original epsilon-greedy), pluggable persistence layer (`FileStateBackend`/`MemoryStateBackend`), admin security controls (`AUAR_ADMIN_TOKEN`, audit logging, rate limiting, Pydantic validation), and AUAR-specific config vars table. Proposal version updated 0.1.0 → 0.2.0. **Closes GAP-4.**
+- **docs(packages):** Added `README.md` to all 50 remaining `src/` packages (was 15/65, now 65/65). Added `src/README.md` top-level overview covering all 459 files across 8 architectural layers. **Fully closes GAP-5.**
+- **docs(config):** `documentation/deployment/CONFIGURATION.md` — all 96 environment variables now documented. New §11 MFM (9 vars), §12 Matrix Integration (17 vars), §13 Backend Modes (4 vars), §14 Complete Variable Index. Added variable tables to §2-§9. Fixed stale `cd "Murphy System"` path. **Closes GAP-7.**
+- **docs(gaps):** GAP-6 (Groq test suite) and GAP-8 (specialized module docs) both marked ✅ resolved. All 8 documentation gaps are now closed.
+- **test:** `tests/test_gap_closure_round51.py` — 38 tests verifying GAP-4, GAP-5, GAP-6, GAP-7 are all closed; all pass.
+- **docs(audit):** `docs/AUDIT_AND_COMPLETION_REPORT.md` — all GAPs (1-8) marked ✅ RESOLVED; documentation coverage updated to ~95%.
+
+### Added — PR #277: Real Email Delivery, Rosetta P3 Wiring, Doc Gap Closure (GAP-1/2/3/5)
+
+- **docs(llm):** `documentation/components/LLM_SUBSYSTEM.md` — full LLM subsystem reference covering `LLMController` model inventory + capability routing, `LLMIntegrationLayer` domain-to-provider routing matrix (8 domains × 4 providers), `GroqKeyRotator` round-robin + auto-disable + statistics, `OpenAICompatibleProvider` all 8 provider types, and environment variable table. **Closes GAP-1.**
+- **docs(api):** `documentation/api/ENDPOINTS.md` — added 7 MFM endpoints: `GET /api/mfm/status`, `GET /api/mfm/metrics`, `GET /api/mfm/traces/stats`, `POST /api/mfm/retrain`, `POST /api/mfm/promote`, `POST /api/mfm/rollback`, `GET /api/mfm/versions`. Each includes request/response JSON examples. **Closes GAP-2.**
+- **docs(security):** `documentation/architecture/SECURITY_PLANE.md` — consolidated security architecture reference: all 6 security principles, FIDO2/mTLS authentication, zero-trust RBAC, post-quantum hybrid cryptography, DLP scanning, ASGI middleware stack (4 classes), adaptive defense, anti-surveillance, packet protection, environment variables, and ASCII architecture diagram. **Closes GAP-3.**
+- **docs(packages):** Added `README.md` to 12 packages (`security_plane`, `aionmind`, `confidence_engine`, `auar`, `governance_framework`, `rosetta`, `gate_synthesis`, `learning_engine`, `execution_engine`, `integration_engine`, `dashboards`, `runtime`). Packages with READMEs: 15/83 (up from 3). **Partially closes GAP-5.**
+- **docs(audit):** `docs/AUDIT_AND_COMPLETION_REPORT.md` — GAP-1/2/3 marked ✅ resolved; GAP-5 marked partially resolved.
+- **feat(email):** `src/email_integration.py` — removed `MockEmailBackend` and `DisabledEmailBackend`; replaced with `UnconfiguredEmailBackend` that returns `success=False` with actionable config instructions. No silent fake-delivery path exists. `EmailService.from_env()` selects `SendGridBackend` → `SMTPBackend` → `UnconfiguredEmailBackend` in priority order. New deps: `aiosmtplib>=3.0.0`, `aiosmtpd>=1.4.0`, `respx>=0.21.0`.
+- **test(email):** `tests/test_email_integration.py` — fully rewritten; all 29 tests exercise real delivery paths. SMTP tests use a live in-process `aiosmtpd` server. SendGrid tests use `respx` HTTP transport interception.
+- **feat(rosetta/INC-07):** `src/rosetta/subsystem_wiring.py` — implements all P3 wiring tasks (P3-001 through P3-005): `SelfImprovementEngine` → `RosettaManager`, automation cycle records, RAG document ingestion, `EventBackbone` subscriptions, and `StateManager` heartbeat delta push. 38 tests in `tests/test_rosetta_subsystem_wiring.py`, all pass.
+- **feat(gateway):** Ported all standalone Flask services into the main FastAPI runtime (`src/runtime/app.py`): cost optimisation advisor, compliance-as-code engine, blockchain audit trail, gate synthesis, module compiler, compute plane. `_APIKeyMiddleware` for unified `X-API-Key` enforcement. `GET /api/manifest` for machine-readable route listing.
+- **feat(errors):** `src/error_envelope.py` — `success_response()` / `error_response()` factory functions; FastAPI exception handlers normalise all errors to `{"success": bool, "error": {"code": str, "message": str}}`.
+- **deps:** `requirements.txt` — added `aiosmtplib>=3.0.0`, `aiosmtpd>=1.4.0`, `respx>=0.21.0` for real email delivery.
+
+### Added — Round 48 — Production Output Calibration Engine (CAL-001)
 - **Round 48 — Production Output Calibration Engine (CAL-001)**:
   - `production_output_calibrator.py` — dual-loop calibration system for any production output
   - Loop 1: Compare against 10 professional examples, extract best practices per quality

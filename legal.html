@@ -1,0 +1,584 @@
+<!-- Murphy System — End User Agreement / © 2020 Inoni Limited Liability Company by Corey Post / License: BSL 1.1 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — End User Agreement</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
+<style>
+  /* Neon terminal theme */
+  /* Color Key: green=#00ff41, cyan=#00ffff, teal=#00D4AA, bg=#0a0a0a */
+  .murphy-terminal, .murphy-output, pre, code {
+    font-family: var(--font-code, 'JetBrains Mono', monospace);
+    color: #00ff41;
+    background: #0a0a0a;
+  }
+  *:focus-visible { outline: 2px solid #00ff41; outline-offset: 2px; }
+
+  .legal-page {
+    min-height: 100vh;
+    background: #0a0a0a;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .legal-layout {
+    flex: 1;
+    display: flex;
+    max-width: 1100px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 2.5rem 1rem 4rem;
+    gap: 2.5rem;
+  }
+
+  /* ── Sidebar ── */
+  .legal-sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 72px;
+    align-self: flex-start;
+    max-height: calc(100vh - 90px);
+    overflow-y: auto;
+  }
+
+  .legal-sidebar-title {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-tertiary);
+    margin-bottom: 0.5rem;
+  }
+
+  .legal-toc-link {
+    display: block;
+    padding: 0.35rem 0.5rem;
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color var(--transition-base), background var(--transition-base);
+  }
+
+  .legal-toc-link:hover { color: var(--teal); background: rgba(0, 212, 170, 0.08); }
+
+  /* ── Main content ── */
+  .legal-main {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .legal-hero {
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .legal-hero h1 {
+    font-size: var(--text-3xl);
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+  }
+
+  .legal-hero p {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+  }
+
+  .legal-section {
+    margin-bottom: 2.5rem;
+  }
+
+  .legal-section h2 {
+    font-size: var(--text-xl);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .legal-section h3 {
+    font-size: var(--text-base);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 1.25rem 0 0.5rem;
+  }
+
+  .legal-section p {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin-bottom: 0.875rem;
+  }
+
+  .legal-section ul, .legal-section ol {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin-bottom: 0.875rem;
+    padding-left: 1.5rem;
+  }
+
+  .legal-section li { margin-bottom: 0.375rem; }
+
+  .legal-callout {
+    background: rgba(0, 212, 170, 0.05);
+    border: 1px solid rgba(0, 212, 170, 0.2);
+    border-left: 3px solid var(--teal);
+    border-radius: var(--radius-md);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  .legal-callout strong { color: var(--teal); }
+
+  .legal-badge {
+    display: inline-block;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.2rem 0.625rem;
+    border-radius: var(--radius-full);
+    background: rgba(0, 212, 170, 0.1);
+    border: 1px solid rgba(0, 212, 170, 0.25);
+    color: var(--teal);
+    margin-bottom: 1rem;
+  }
+
+  @media (max-width: 768px) {
+    .legal-layout { flex-direction: column; }
+    .legal-sidebar { width: 100%; position: static; max-height: none; }
+  }
+</style>
+</head>
+<body class="murphy-no-sidebar legal-page">
+
+<a class="murphy-skip-link" href="#legal-main">Skip to content</a>
+
+<!-- ── Top Navigation Bar ── -->
+<nav class="murphy-topbar" role="navigation" aria-label="Main navigation">
+  <div class="murphy-topbar-left flex items-center gap-3">
+    <a href="/ui/landing" class="murphy-topbar-brand">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect width="32" height="32" rx="8" fill="var(--teal)"/>
+        <text x="16" y="22" text-anchor="middle" fill="#0C1017" font-size="18" font-weight="700" font-family="Inter, sans-serif">M</text>
+      </svg>
+      <span class="murphy-topbar-brand-name">Murphy System</span>
+    </a>
+    <div class="murphy-nav-links nav-links-desktop">
+      <a href="/ui/landing#features" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Features</a>
+      <a href="/ui/pricing" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Pricing</a>
+      <a href="/ui/docs" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Docs</a>
+    </div>
+  </div>
+  <div class="murphy-topbar-right flex items-center gap-2">
+    <button class="murphy-btn murphy-btn-ghost murphy-btn-icon" id="theme-toggle-btn" aria-label="Toggle theme" title="Toggle theme">🌙</button>
+    <a href="/ui/login" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Sign In</a>
+    <a href="/ui/signup" class="murphy-btn murphy-btn-primary murphy-btn-sm">Get Started</a>
+  </div>
+</nav>
+
+<!-- ── Layout ── -->
+<div class="legal-layout">
+
+  <!-- Sidebar TOC -->
+  <aside class="legal-sidebar" aria-label="Table of contents">
+    <div class="legal-sidebar-title">On this page</div>
+    <a href="#s1-alpha" class="legal-toc-link">1. Alpha Software Disclaimer</a>
+    <a href="#s2-liability" class="legal-toc-link">2. Liability Split</a>
+    <a href="#s3-data" class="legal-toc-link">3. Data and Logs</a>
+    <a href="#s4-scope" class="legal-toc-link">4. Scope of Automation</a>
+    <a href="#s5-acceptance" class="legal-toc-link">5. Automation Acceptance</a>
+    <a href="#s6-inoni-liability" class="legal-toc-link">6. Limitation of Liability</a>
+    <a href="#s7-risk" class="legal-toc-link">7. Risk Transfer</a>
+    <a href="#s8-privacy" class="legal-toc-link">8. Data Privacy</a>
+    <a href="#s9-contractor" class="legal-toc-link">9. Contractor Responsibility</a>
+    <a href="#s10-credential" class="legal-toc-link">10. Credentialed HITL</a>
+    <a href="#s11-dispute" class="legal-toc-link">11. Dispute Resolution</a>
+    <a href="#s12-license" class="legal-toc-link">12. License (BSL 1.1)</a>
+    <a href="#s13-ip" class="legal-toc-link">13. Intellectual Property</a>
+    <a href="#s14-shadow" class="legal-toc-link">14. Shadow Agent &amp; Forfeiture</a>
+    <a href="#s15-general" class="legal-toc-link">15. General Provisions</a>
+    <a href="#s16-contact" class="legal-toc-link">16. Contact</a>
+  </aside>
+
+  <!-- Main content -->
+  <main id="legal-main" class="legal-main" role="main" aria-label="End User Agreement">
+
+    <div class="legal-hero">
+      <div class="legal-badge">End User Agreement — Version 1.1-alpha</div>
+      <h1>End User Agreement</h1>
+      <p>Last updated: March 15, 2025 · Effective: March 15, 2025</p>
+    </div>
+
+    <div class="legal-callout">
+      <strong>IMPORTANT: READ CAREFULLY BEFORE PROCEEDING.</strong> This Agreement contains binding arbitration, limitation of liability, and intellectual property forfeiture provisions that affect your legal rights. Murphy System is alpha software provided <strong>"AS IS"</strong> with <strong>NO WARRANTY OF ANY KIND</strong>. By accessing or using Murphy System you agree to be bound by this End User Agreement in full. If you do not agree, do not use the platform.
+    </div>
+
+    <!-- Section 1: Alpha Software Disclaimer -->
+    <section class="legal-section" id="s1-alpha" aria-labelledby="s1-heading">
+      <h2 id="s1-heading">1. Alpha Software Disclaimer</h2>
+      <p>
+        Murphy System is alpha software provided <strong>"AS IS"</strong> with <strong>NO WARRANTY OF ANY KIND,
+        EXPRESS OR IMPLIED, STATUTORY OR OTHERWISE</strong>. Inoni LLC expressly disclaims all warranties,
+        including but not limited to merchantability, fitness for a particular purpose, title, accuracy,
+        quiet enjoyment, and non-infringement. Murphy System may contain bugs, errors, and incomplete
+        features. Output generated by the system is not professional, legal, financial, medical, or
+        regulatory advice. <strong>USE AT YOUR OWN RISK.</strong> No oral or written statements by Inoni LLC
+        or its representatives create any warranty not stated herein.
+      </p>
+    </section>
+
+    <!-- Section 2: Liability Split -->
+    <section class="legal-section" id="s2-liability" aria-labelledby="s2-heading">
+      <h2 id="s2-heading">2. Liability Split and Limitations</h2>
+      <ul>
+        <li><strong>HITL Validators</strong> are solely and exclusively liable for every validation decision they make within the platform. The act of HITL approval is an affirmative legal act by the Validator.</li>
+        <li><strong>The subscribing Business / Organisation</strong> is solely liable for all business decisions, commercial actions, and downstream consequences arising from or in connection with Murphy System outputs.</li>
+        <li><strong>Inoni LLC's aggregate liability</strong> to any User for any and all claims shall not exceed the greater of (i) total fees paid in the 12 calendar months preceding the claim or (ii) USD 100.00.</li>
+        <li><strong>IN NO EVENT</strong> shall Inoni LLC be liable for any indirect, incidental, special, consequential, punitive, or exemplary damages — including loss of profits, revenue, data, goodwill, or business interruption — even if advised of their possibility. This limitation applies to all theories of liability including contract, tort, negligence, strict liability, and statute.</li>
+      </ul>
+    </section>
+
+    <!-- Section 3: Data and Logs -->
+    <section class="legal-section" id="s3-data" aria-labelledby="s3-heading">
+      <h2 id="s3-heading">3. Data, Logs, and System Telemetry</h2>
+      <ul>
+        <li>All system logs, interaction data, API telemetry, error reports, and aggregated usage statistics are available to Inoni LLC for platform diagnostics, improvements, abuse prevention, and security monitoring.</li>
+        <li>Individual user data is <strong>not</strong> sold, rented, or transferred to third parties for advertising, profiling, or commercial purposes unrelated to operating the platform.</li>
+        <li>Free-tier users receive the same data-privacy protections as paid users. Inoni LLC does not engage in predatory data monetisation. Free-tier community spaces are operated on a <strong>non-extractive basis</strong> consistent with the principles of open collaborative platforms.</li>
+      </ul>
+    </section>
+
+    <!-- Section 4: Scope of Automation -->
+    <section class="legal-section" id="s4-scope" aria-labelledby="s4-heading">
+      <h2 id="s4-heading">4. Scope of Automation</h2>
+      <p>
+        Murphy System, operated by Inoni Limited Liability Company, provides AI-powered business generation,
+        document creation, data analysis, and workflow automation services. Murphy generates; it does not
+        physically execute regulated or physical-world activities. Any such activities require a qualified
+        human professional as described in this Agreement.
+      </p>
+    </section>
+
+    <!-- Section 5: Automation Acceptance & Operator Responsibility -->
+    <section class="legal-section" id="s5-acceptance" aria-labelledby="s5-heading">
+      <h2 id="s5-heading">5. Automation Acceptance &amp; Operator Responsibility</h2>
+      <p>
+        By activating any automated operation through Murphy System, the authorising operator
+        ("<strong>the Approver</strong>") acknowledges that:
+      </p>
+      <ol type="a">
+        <li>they have reviewed the generated output and approve its deployment;</li>
+        <li>they accept responsibility for outcomes arising from their approval;</li>
+        <li>the Human-in-the-Loop ("<strong>HITL</strong>") approval is binding and constitutes the Approver's
+            explicit acceptance of the financial and operational risk described in this Agreement.</li>
+      </ol>
+    </section>
+
+    <!-- Section 6: Limitation of Inoni LLC Liability -->
+    <section class="legal-section" id="s6-inoni-liability" aria-labelledby="s6-heading">
+      <h2 id="s6-heading">6. Limitation of Inoni LLC Liability</h2>
+      <p>
+        Inoni Limited Liability Company's liability is strictly limited to the scope of Murphy System's
+        generation and automation services. Inoni is <strong>not</strong> liable for:
+      </p>
+      <ol type="a">
+        <li>market outcomes, revenue shortfalls, or business performance of the generated niche;</li>
+        <li>the actions or omissions of third-party contractors dispatched through the system;</li>
+        <li>the accuracy of regulatory information generated by Murphy (human review required);</li>
+        <li>any loss arising after the Approver's HITL acceptance.</li>
+      </ol>
+    </section>
+
+    <!-- Section 7: Risk Transfer -->
+    <section class="legal-section" id="s7-risk" aria-labelledby="s7-heading">
+      <h2 id="s7-heading">7. Risk Transfer Upon HITL Approval</h2>
+      <p>
+        Upon approval of any Human-in-the-Loop (HITL) request, <strong>ALL</strong> operational and financial
+        risk associated with the approved deployment is transferred to the Approver. This transfer is
+        irrevocable for the approved operation. The Approver warrants that they have the authority and
+        expertise to approve the described activity, and that they accept personal and professional
+        responsibility for its outcome.
+      </p>
+    </section>
+
+    <!-- Section 8: Data Privacy -->
+    <section class="legal-section" id="s8-privacy" aria-labelledby="s8-heading">
+      <h2 id="s8-heading">8. Data Privacy and Regulatory Alignment</h2>
+      <p>
+        Murphy System is designed to be aligned with GDPR, SOC 2, HIPAA, and PCI DSS frameworks.
+        Alignment means Murphy's design follows these standards' principles; it does not constitute
+        formal certification or attestation. The Approver is responsible for ensuring that their use of
+        generated outputs meets applicable regulatory requirements in their jurisdiction.
+      </p>
+      <p>
+        For full details on data collection, retention, and your rights see our
+        <a href="/ui/privacy" style="color:var(--teal)">Privacy Policy</a>.
+      </p>
+    </section>
+
+    <!-- Section 9: Contractor Responsibility -->
+    <section class="legal-section" id="s9-contractor" aria-labelledby="s9-heading">
+      <h2 id="s9-heading">9. Contractor Sole Responsibility</h2>
+      <p>
+        Any contractor dispatched through the system to perform physical-world tasks (inspection,
+        notarization, filing, calibration, etc.) is an independent professional solely responsible for
+        their licensed work. The contractor's acceptance of a task constitutes their agreement to perform
+        the work in accordance with their professional licence and the applicable regulatory body's
+        standards. Inoni LLC is not liable for any errors, omissions, or professional failures by
+        dispatched contractors.
+      </p>
+    </section>
+
+    <!-- Section 10: Credentialed HITL Validation -->
+    <section class="legal-section" id="s10-credential" aria-labelledby="s10-heading">
+      <h2 id="s10-heading">10. Credentialed Human-in-the-Loop Validation</h2>
+      <p>
+        Activities requiring a certification, licence, or regulatory body oversight must be validated by a
+        human professional holding the relevant credential. As part of their HITL acceptance, the validating
+        professional provides their credential information (licence number, issuing body, expiry date) which
+        is recorded in the system. By providing this information and accepting the task, the professional:
+      </p>
+      <ol type="a">
+        <li>warrants that their credential is current and valid;</li>
+        <li>accepts full professional responsibility for the regulated activity;</li>
+        <li>agrees that any failure in their professional duty is their sole liability and not that of
+            Inoni LLC or Murphy System.</li>
+      </ol>
+    </section>
+
+    <!-- Section 11: Dispute Resolution -->
+    <section class="legal-section" id="s11-dispute" aria-labelledby="s11-heading">
+      <h2 id="s11-heading">11. Dispute Resolution</h2>
+      <p>
+        Any dispute arising from a niche business operation shall first be referred to the HITL approver
+        who authorised the relevant operation, as the recorded risk-accepting party. Inoni LLC is not the
+        primary respondent in disputes arising from approved automations. All HITL approvals, COYA records,
+        and negotiation documents are maintained as the definitive record of what was agreed, approved, and
+        executed.
+      </p>
+      <p>
+        If a dispute cannot be resolved with the HITL approver, the parties agree to mediation and, failing
+        that, binding arbitration under the rules of the American Arbitration Association (AAA).
+      </p>
+    </section>
+
+    <!-- Section 12: License -->
+    <section class="legal-section" id="s12-license" aria-labelledby="s12-heading">
+      <h2 id="s12-heading">12. License — Business Source License 1.1 (BSL 1.1)</h2>
+      <p>
+        Murphy System source code is licensed under the <strong>Business Source License 1.1 (BSL 1.1)</strong>,
+        copyright © 2020 Inoni Limited Liability Company by Corey Post.
+      </p>
+      <h3>12.1 What BSL 1.1 Means</h3>
+      <ul>
+        <li><strong>You may</strong> use, copy, modify, and distribute the code for non-production use.</li>
+        <li><strong>You may not</strong> use the code in production to provide a competing commercial service without a commercial licence from Inoni.</li>
+        <li><strong>Change Date:</strong> Four years from the release date of each version, the code automatically converts to the Apache 2.0 licence.</li>
+        <li><strong>Additional Use Grant:</strong> You may run Murphy System in production for your own internal business operations.</li>
+      </ul>
+      <h3>12.2 Commercial Licence</h3>
+      <p>
+        If you wish to offer Murphy System as a service to third parties, embed it in a competing product, or
+        require rights beyond BSL 1.1, please contact <a href="mailto:legal@murphy.ai" style="color:var(--teal)">legal@murphy.ai</a>
+        to discuss a commercial licence.
+      </p>
+    </section>
+
+    <!-- Section 13: Intellectual Property -->
+    <section class="legal-section" id="s13-ip" aria-labelledby="s13-heading">
+      <h2 id="s13-heading">13. Intellectual Property</h2>
+      <h3>13.1 Licence Grant — Inoni Licenses Murphy to You</h3>
+      <p>
+        Subject to your acceptance of and compliance with this Agreement, Inoni LLC grants you a
+        <strong>limited, non-exclusive, non-transferable, revocable licence</strong> to access and use
+        Murphy System solely for your own internal business or personal purposes. No rights are granted
+        except as expressly stated in this Agreement.
+      </p>
+      <h3>13.2 System IP — Inoni Ownership</h3>
+      <p>
+        Murphy System, all underlying and future technology, algorithms, AI models, shadow agent engine,
+        automation frameworks, code, interfaces, brand assets, and the Murphy System design language are
+        and shall remain the <strong>exclusive intellectual property of Inoni LLC</strong>. All rights
+        reserved worldwide under applicable copyright, trade secret, patent, and trademark law.
+        <strong>You acquire no ownership interest in the platform by using it.</strong>
+      </p>
+      <h3>13.3 Your Data — User Ownership</h3>
+      <p>
+        All data you input into Murphy System ("<strong>Input Data</strong>") and all output data generated
+        by the system on your behalf ("<strong>Output Data</strong>") are and remain <strong>your exclusive
+        property</strong>. Inoni LLC makes no claim of intellectual property ownership over your Input Data
+        or Output Data. Inoni LLC's right to process your data is limited to what is necessary to operate
+        the platform as described in <a href="#s3-data" style="color:var(--teal)">Section 3</a> and the
+        Privacy Policy.
+      </p>
+      <h3>13.4 Community Forum Content</h3>
+      <p>
+        Posts, discussions, ideas, and content submitted to community forums or group spaces belong
+        exclusively to the posting user or their organisation/group. Inoni LLC makes <strong>no claim
+        of ownership</strong> over community forum content. Community spaces are operated on a
+        <strong>non-extractive basis</strong> — Inoni LLC will not commercialise or appropriate individual
+        users' forum ideas. This principle applies equally to free-tier and paid community spaces.
+      </p>
+      <h3>13.5 Feedback Submitted Directly to Inoni</h3>
+      <p>
+        Suggestions, bug reports, and improvement requests submitted directly to Inoni LLC through official
+        support or feedback channels (not community forums) grant Inoni LLC a perpetual, irrevocable,
+        worldwide, royalty-free, sublicensable licence to use, incorporate, and build upon that feedback to
+        improve the Service, without any obligation of attribution or compensation.
+      </p>
+    </section>
+
+    <!-- Section 14: Shadow Agent Constructs and Five-Year Forfeiture -->
+    <section class="legal-section" id="s14-shadow" aria-labelledby="s14-heading">
+      <h2 id="s14-heading">14. Shadow Agent Constructs &amp; Five-Year Forfeiture</h2>
+      <div class="legal-callout">
+        <strong>Plain English:</strong> Inoni licenses the Murphy platform to you. Your data inputs and outputs are yours — always. The system engine is ours. Shadow automation <em>constructs</em> (workflow configurations) are licensed to you while you use them. Build something and never deploy it within 5 years? The construct forfeits to Inoni. Your actual data is never affected.
+      </div>
+      <h3>14.1 Shadow Automation Constructs — Licensed to You</h3>
+      <p>
+        Workflow configurations and automation templates you build using the shadow agent
+        ("<strong>Shadow Automation Constructs</strong>") are system artifacts created on top of Inoni's
+        licensed platform. You are granted a licence to use, operate, and modify your Shadow Automation
+        Constructs for as long as your account is active and the construct is deployed in a production
+        workflow. The underlying system technology that powers those constructs remains
+        <strong>Inoni's exclusive property</strong> at all times.
+      </p>
+      <h3>14.2 Forfeiture of Unmade Constructs</h3>
+      <p>
+        Any Shadow Automation Construct that has <strong>not been deployed or activated</strong> in a
+        production workflow within <strong>five (5) years</strong> of its creation date
+        ("<strong>Unmade Construct</strong>") is automatically and irrevocably forfeited to Inoni LLC
+        upon expiry of that five-year period, without any further notice or compensation. Upon forfeiture,
+        the licence for that construct terminates and Inoni LLC may use, develop, or commercialise the
+        Unmade Construct without restriction.
+      </p>
+      <p>
+        <strong>User data is not affected:</strong> Input Data and Output Data that flowed through any
+        previously active constructs remain your property and are not subject to this forfeiture provision.
+      </p>
+      <h3>14.3 Corporate and Org-Chart Automation Constructs</h3>
+      <p>
+        Automation constructs created within an organisation's workspace are licensed to that organisation
+        and are subject to the same five-year forfeiture clause for Unmade Constructs under
+        section 14.2 above. The organisation's underlying business data is not affected.
+      </p>
+    </section>
+
+    <!-- Section 15: General Provisions -->
+    <section class="legal-section" id="s15-general" aria-labelledby="s15-heading">
+      <h2 id="s15-heading">15. General Provisions</h2>
+      <h3>15.1 Governing Law</h3>
+      <p>
+        This Agreement is governed by and construed in accordance with the laws of the
+        <strong>State of Delaware, United States of America</strong>, without regard to conflict-of-law
+        principles. For users located in the European Union or United Kingdom, mandatory
+        consumer-protection provisions of applicable local law are not excluded by this choice-of-law clause.
+      </p>
+      <h3>15.2 Binding Arbitration and Class Action Waiver</h3>
+      <p>
+        Except for claims that qualify for small-claims court, all disputes arising out of or relating to
+        this Agreement shall be resolved by binding arbitration administered by the
+        <strong>American Arbitration Association (AAA)</strong> under its Commercial Arbitration Rules.
+        Arbitration shall take place in Delaware, USA, or by remote hearing at Inoni LLC's election.
+        The arbitrator's award shall be final and binding and may be entered as a judgment in any court
+        of competent jurisdiction.
+      </p>
+      <p>
+        <strong>CLASS ACTION WAIVER:</strong> You waive any right to bring or participate in a
+        class-action lawsuit or class-wide arbitration against Inoni LLC.
+      </p>
+      <h3>15.3 Severability</h3>
+      <p>
+        If any provision of this Agreement is held invalid, illegal, or unenforceable by a court or
+        arbitrator of competent jurisdiction, that provision shall be limited or eliminated to the minimum
+        extent necessary, and the remaining provisions shall continue in full force and effect.
+      </p>
+      <h3>15.4 No Waiver</h3>
+      <p>
+        Inoni LLC's failure to enforce any right or provision of this Agreement does not constitute a
+        waiver of that right or provision. A waiver is effective only if made in writing signed by an
+        authorised representative of Inoni LLC.
+      </p>
+      <h3>15.5 Entire Agreement</h3>
+      <p>
+        This Agreement, together with the Privacy Policy and any applicable Order Form or Subscription
+        Agreement, constitutes the <strong>entire agreement</strong> between you and Inoni LLC with respect
+        to Murphy System and supersedes all prior and contemporaneous agreements, representations,
+        warranties, and understandings, whether written or oral.
+      </p>
+      <h3>15.6 Language</h3>
+      <p>
+        This Agreement is written in English. Translated versions are provided for convenience only.
+        In the event of any conflict between the English version and a translation, the
+        <strong>English version controls</strong>.
+      </p>
+      <h3>15.7 Updates to This Agreement</h3>
+      <p>
+        Inoni LLC may update this Agreement at any time. Material changes will be communicated via
+        in-platform notice or email at least <strong>14 days</strong> before taking effect for existing
+        users. Your continued use of the platform after the effective date of any update constitutes
+        acceptance of the revised Agreement. If you do not agree to an update, your sole remedy is to
+        discontinue use and close your account.
+      </p>
+    </section>
+
+    <!-- Section 16: Contact -->
+    <section class="legal-section" id="s16-contact" aria-labelledby="s16-heading">
+      <h2 id="s16-heading">16. Contact</h2>
+      <p>
+        For legal enquiries: <a href="mailto:legal@murphy.ai" style="color:var(--teal)">legal@murphy.ai</a><br>
+        Inoni Limited Liability Company · Delaware, United States of America
+      </p>
+      <p>
+        For privacy-related requests see our <a href="/ui/privacy" style="color:var(--teal)">Privacy Policy</a>.
+      </p>
+    </section>
+
+  </main>
+</div>
+
+<!-- ── Footer ── -->
+<footer class="murphy-footer" role="contentinfo">
+  <div class="murphy-footer-inner">
+    <nav class="murphy-footer-links" aria-label="Footer navigation">
+      <a href="/ui/terminal-unified">Dashboard</a>
+      <a href="/ui/landing#features">Features</a>
+      <a href="/ui/pricing">Pricing</a>
+      <a href="/ui/docs">Docs</a>
+      <a href="/ui/blog">Blog</a>
+      <a href="/ui/careers">Careers</a>
+      <a href="/ui/legal">Legal</a>
+      <a href="/ui/privacy">Privacy</a>
+      <a href="/ui/partner">Partner</a>
+      <a href="mailto:contact@murphy.ai">Contact</a>
+    </nav>
+    <p class="murphy-footer-copy">© 2020 Inoni Limited Liability Company by Corey Post. Licensed under BSL 1.1.</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+  var themeBtn = document.getElementById('theme-toggle-btn');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', function () {
+      document.documentElement.classList.toggle('murphy-light');
+      themeBtn.textContent = document.documentElement.classList.contains('murphy-light') ? '☀️' : '🌙';
+    });
+  }
+})();
+</script>
+</body>
+</html>

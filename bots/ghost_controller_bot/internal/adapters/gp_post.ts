@@ -1,0 +1,1 @@
+export async function postGoldenPath(endpoint:string, payload:any){ try{ const res = await fetch(endpoint,{method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)}); return {ok:res.ok, status:res.status}; }catch(e:any){ return {ok:false, error:String(e)} } }
