@@ -18,6 +18,12 @@ How to configure the Murphy System for development, staging, and production depl
 8. [Integration Configuration](#8-integration-configuration)
 9. [Monitoring and Logging Configuration](#9-monitoring-and-logging-configuration)
 10. [Per-environment Profiles](#10-per-environment-profiles)
+11. [MFM Configuration](#11-mfm-murphy-foundation-model-configuration)
+12. [Matrix Bridge Configuration](#12-matrix-bridge-configuration)
+13. [Third-party Integration Variables](#13-third-party-integration-variables)
+14. [Backend Mode Controls](#14-backend-mode-controls)
+15. [Docker Compose Credentials](#15-docker-compose-credentials)
+16. [Response and Logging Controls](#16-response-and-logging-controls)
 
 ---
 
@@ -445,6 +451,187 @@ AUTO_RELOAD=false
 SENTRY_DSN=https://your_dsn@sentry.io/id
 PROMETHEUS_PORT=9090
 ```
+
+---
+
+## 11. MFM (Murphy Foundation Model) Configuration
+
+The Murphy Foundation Model subsystem is disabled by default and can be
+progressively enabled as training data accumulates.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MFM_ENABLED` | `false` | Enable the MFM subsystem |
+| `MFM_MODE` | `disabled` | `disabled` \| `collecting` \| `shadow` \| `canary` \| `production` |
+| `MFM_BASE_MODEL` | `microsoft/Phi-3-mini-4k-instruct` | Base model for fine-tuning |
+| `MFM_CHECKPOINT_DIR` | `./checkpoints/mfm` | Where to store model checkpoints |
+| `MFM_TRACE_DIR` | `./data/action_traces` | Where to store action traces for training |
+| `MFM_RETRAIN_THRESHOLD` | `10000` | Number of traces before triggering auto-retrain |
+| `MFM_SHADOW_MIN_ACCURACY` | `0.80` | Minimum accuracy required before promoting from shadow |
+| `MFM_CANARY_TRAFFIC_PERCENT` | `10` | Percentage of live traffic routed to the canary model |
+| `MFM_DEVICE` | `auto` | Compute device: `cuda` \| `cpu` \| `auto` |
+
+### MFM Modes
+
+| Mode | Behaviour |
+|------|-----------|
+| `disabled` | MFM is completely inactive; all inference uses the configured LLM provider |
+| `collecting` | Traces are collected and stored; no inference changes |
+| `shadow` | MFM runs in parallel with the primary LLM; results are logged but not served |
+| `canary` | `MFM_CANARY_TRAFFIC_PERCENT`% of requests are routed to MFM |
+| `production` | All inference uses the fine-tuned MFM |
+
+---
+
+## 12. Matrix Bridge Configuration
+
+Required to enable the Murphy ↔ Matrix homeserver integration
+(see `src/matrix_bridge/`).  Install the SDK with:
+`pip install 'matrix-nio[e2e]'`
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `MATRIX_HOMESERVER_URL` | Yes | URL of the Matrix homeserver (e.g. `https://matrix.example.com`) |
+| `MATRIX_BOT_USER` | Yes | Matrix user ID for the Murphy bot (e.g. `@murphy:example.com`) |
+| `MATRIX_BOT_TOKEN` | Yes (or password) | Access token for the bot account |
+| `MATRIX_BOT_PASSWORD` | Yes (or token) | Password for the bot account |
+| `MATRIX_DEVICE_ID` | No | Stable device ID for E2EE session resumption |
+| `MATRIX_E2E_ENABLED` | `false` | Enable end-to-end encryption |
+| `MATRIX_HOMESERVER_DOMAIN` | No | Matrix server domain (derived from URL if omitted) |
+| `MATRIX_AUTO_CREATE_ROOMS` | `true` | Automatically create missing subsystem rooms |
+| `MATRIX_SPACE_NAME` | `Murphy System` | Display name for the Matrix space |
+| `MATRIX_ADMIN_USERS` | No | Comma-separated Matrix user IDs with admin rights |
+| `MATRIX_CB_THRESHOLD` | `5` | Circuit-breaker failure threshold before opening |
+| `MATRIX_CB_TIMEOUT` | `60` | Seconds the circuit breaker stays open |
+| `E2EE_STUB_ALLOWED` | `true` | Allow stub E2EE ciphertext in dev/test (`false` in production) |
+
+### Webhook Receiver
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `WEBHOOK_HOST` | `0.0.0.0` | Bind address for the webhook receiver |
+| `WEBHOOK_PORT` | `8765` | Port for the webhook receiver |
+| `WEBHOOK_SECRET_GITHUB` | — | HMAC secret for verifying GitHub webhooks |
+| `WEBHOOK_SECRET_STRIPE` | — | HMAC secret for verifying Stripe webhooks |
+
+---
+
+## 13. Third-party Integration Variables
+
+### Payment Processing
+
+| Variable | Provider | Description |
+|----------|----------|-------------|
+| `PAYPAL_CLIENT_ID` | PayPal | OAuth client ID |
+| `PAYPAL_CLIENT_SECRET` | PayPal | OAuth client secret |
+| `PAYPAL_WEBHOOK_SECRET` | PayPal | Webhook HMAC secret |
+| `COINBASE_WEBHOOK_SECRET` | Coinbase Commerce | Webhook HMAC secret |
+| `STRIPE_API_KEY` | Stripe (optional) | Secret key — **not used by default; PayPal/Coinbase are primary** |
+| `STRIPE_PUBLISHABLE_KEY` | Stripe (optional) | Publishable key |
+
+### Email and Messaging
+
+| Variable | Provider | Description |
+|----------|----------|-------------|
+| `SENDGRID_API_KEY` | SendGrid | API key for transactional email |
+| `AWS_SES_ACCESS_KEY` | AWS SES | IAM access key |
+| `AWS_SES_SECRET_KEY` | AWS SES | IAM secret key |
+| `AWS_SES_REGION` | AWS SES | Region (e.g. `us-east-1`) |
+| `TWILIO_ACCOUNT_SID` | Twilio | Account SID for SMS |
+| `TWILIO_AUTH_TOKEN` | Twilio | Auth token |
+| `TWILIO_PHONE_NUMBER` | Twilio | Sender phone number |
+
+### CRM
+
+| Variable | Provider | Description |
+|----------|----------|-------------|
+| `SALESFORCE_CLIENT_ID` | Salesforce | Connected App client ID |
+| `SALESFORCE_CLIENT_SECRET` | Salesforce | Connected App client secret |
+| `SALESFORCE_USERNAME` | Salesforce | Login username |
+| `SALESFORCE_PASSWORD` | Salesforce | Login password |
+| `HUBSPOT_API_KEY` | HubSpot | Private app API key |
+| `PIPEDRIVE_API_TOKEN` | Pipedrive | Personal API token |
+
+### Social Media
+
+| Variable | Provider | Description |
+|----------|----------|-------------|
+| `TWITTER_API_KEY` | Twitter/X | API key (consumer key) |
+| `TWITTER_API_SECRET` | Twitter/X | API secret |
+| `TWITTER_ACCESS_TOKEN` | Twitter/X | OAuth access token |
+| `TWITTER_ACCESS_SECRET` | Twitter/X | OAuth access token secret |
+| `LINKEDIN_CLIENT_ID` | LinkedIn | OAuth app client ID |
+| `LINKEDIN_CLIENT_SECRET` | LinkedIn | OAuth app client secret |
+| `FACEBOOK_APP_ID` | Facebook | App ID |
+| `FACEBOOK_APP_SECRET` | Facebook | App secret |
+| `FACEBOOK_ACCESS_TOKEN` | Facebook | Page access token |
+
+### Analytics and Content Management
+
+| Variable | Provider | Description |
+|----------|----------|-------------|
+| `GOOGLE_ANALYTICS_ID` | Google Analytics | Measurement / UA ID |
+| `GOOGLE_ANALYTICS_KEY` | Google Analytics | Service account key |
+| `WORDPRESS_URL` | WordPress | Site base URL |
+| `WORDPRESS_USERNAME` | WordPress | Admin username |
+| `WORDPRESS_PASSWORD` | WordPress | Application password |
+| `MEDIUM_ACCESS_TOKEN` | Medium | Integration token |
+
+### Version Control
+
+| Variable | Provider | Description |
+|----------|----------|-------------|
+| `GITHUB_TOKEN` | GitHub | Personal Access Token — required for private repos and higher rate limits |
+
+---
+
+## 14. Backend Mode Controls
+
+These variables control whether stub/simulated backends are permitted.
+In `production` and `staging`, stubs are **rejected at startup** unless
+the relevant variable is explicitly set.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MURPHY_DB_MODE` | `live` | `live` = real SQLAlchemy DB; `stub` = in-memory (rejected in staging/production) |
+| `MURPHY_AUTO_MIGRATE` | `true` (dev) | `true` = apply Alembic migrations on startup; `false` = manual |
+| `MURPHY_DB_POOL_SIZE` | `5` | SQLAlchemy connection pool size (PostgreSQL/MySQL) |
+| `MURPHY_DB_MAX_OVERFLOW` | `10` | Max extra connections above pool size |
+| `MURPHY_POOL_MODE` | `real` | `real` = httpx pools; `simulated` = in-memory stubs (rejected in staging/production) |
+| `MURPHY_EMAIL_REQUIRED` | `true` (staging/prod) | `true` = a real email backend is required; `false` = allow fallback to mock |
+| `MURPHY_ENABLED_PROTOCOLS` | `` | Comma-separated industrial protocols to enforce (e.g. `bacnet,modbus,opcua`) |
+| `E2EE_STUB_ALLOWED` | `true` | Allow stub E2EE ciphertext — set `false` in production |
+
+---
+
+## 15. Docker Compose Credentials
+
+These variables are **required** when starting the system with `docker compose up`.
+
+| Variable | Description |
+|----------|-------------|
+| `POSTGRES_PASSWORD` | PostgreSQL superuser password — **change from default** |
+| `GRAFANA_ADMIN_USER` | Grafana admin username (default: `admin`) |
+| `GRAFANA_ADMIN_PASSWORD` | Grafana admin password — **change from default** |
+| `REDIS_PASSWORD` | Redis AUTH password (optional but recommended for production) |
+
+Generate strong passwords:
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(24))"
+```
+
+---
+
+## 16. Response and Logging Controls
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MURPHY_MAX_RESPONSE_SIZE_MB` | `10` | Maximum API response size in MB; larger responses return `413` |
+| `MURPHY_LOG_FORMAT` | `text` (dev) / `json` (prod) | `text` = human-readable; `json` = structured JSON lines for log aggregators |
+| `AUTO_RELOAD` | `true` | Hot-reload on code changes (development only) |
+| `ENABLE_CORS` | `true` | Enable CORS headers |
+| `MURPHY_CORS_ORIGINS` | `http://localhost:3000,...` | Comma-separated allowed origins — **never use `*` in production** |
+| `DEBUG` | `false` | Enable verbose debug output |
 
 ---
 
