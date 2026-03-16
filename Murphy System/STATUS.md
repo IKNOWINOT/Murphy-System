@@ -26,6 +26,7 @@
 | Session Context Manager | ✅ New | Per-session locking, expiry, RM0–RM6 tracking |
 | **Crypto Trading Subsystem** | ✅ **New** | Coinbase v3, multi-exchange, HITL-gated bots, 6 strategies, risk manager |
 | **Shadow Learning System** | ✅ **New** | Paper bots practice vs live prices; winning weeks save patterns; human reviews before promoting |
+| **Rosetta Subsystem Wiring** | ✅ **New** | P3-001–P3-005 wired: ImprovementEngine→Rosetta, Orchestrator cycles→progress, RAG ingestion, EventBackbone subscriptions, SystemState sync; 29 tests |
 | UI / Landing Page | ⚠️ Partial | Landing page, terminal UIs exist; dashboard incomplete |
 | Documentation | ✅ Complete | API docs, architecture docs, deployment guides, testing guide complete |
 
