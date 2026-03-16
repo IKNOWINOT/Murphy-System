@@ -3862,12 +3862,14 @@ def create_app() -> FastAPI:
 
     @app.get("/api/llm/providers")
     async def llm_providers_list():
-        """List configured LLM providers."""
+        """List configured LLM providers — onboard is always present."""
+        status = murphy._get_llm_status()
+        providers = status.get("providers", [])
         return JSONResponse({
             "success": True,
-            "providers": [],
-            "active": None,
-            "message": "Configure MURPHY_LLM_PROVIDER to enable LLM integration",
+            "providers": providers,
+            "active": status.get("provider"),
+            "onboard_available": True,
         })
 
     @app.get("/api/hitl/queue")
