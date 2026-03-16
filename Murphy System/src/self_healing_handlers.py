@@ -20,8 +20,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import time
 import threading
+import time
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional
@@ -358,9 +358,9 @@ def handle_external_api_unavailable(ctx: Dict[str, Any]) -> bool:
 def _retry_external_request(endpoint: str, payload: Dict[str, Any]) -> bool:
     """Attempt to re-issue the request to *endpoint*. Returns True on success."""
     try:
-        import urllib.request
-        import urllib.error
         import json as _json
+        import urllib.error
+        import urllib.request
         data = _json.dumps(payload).encode("utf-8") if payload else b""
         req = urllib.request.Request(
             endpoint,
@@ -560,9 +560,9 @@ def _refresh_credential(credential_id: str, service_name: str) -> Optional[str]:
 def _retry_with_new_token(endpoint: str, payload: Dict[str, Any], token: str) -> bool:
     """Retry the original request with the refreshed *token*."""
     try:
-        import urllib.request
-        import urllib.error
         import json as _json
+        import urllib.error
+        import urllib.request
         data = _json.dumps(payload).encode("utf-8") if payload else b""
         req = urllib.request.Request(
             endpoint,

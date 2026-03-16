@@ -874,7 +874,8 @@ class SystemLibrarian:
         except ImportError:
             # Fallback: define a minimal CapabilityMatch locally if task_router
             # is not yet on sys.path (e.g. during isolated unit tests)
-            from dataclasses import dataclass, field as _field
+            from dataclasses import dataclass
+            from dataclasses import field as _field
 
             @dataclass  # type: ignore[no-redef]
             class CapabilityMatch:  # type: ignore[no-redef]

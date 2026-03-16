@@ -10,10 +10,6 @@ import time
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
-# Add murphy_runtime_analysis to path for imports
-from .execution_context import ExecutionContext
-from .form_execution_models import ExecutionResult, ExecutionStatus, PhaseResult
-
 from src.confidence_engine.models import (
     ConfidenceState,
 )
@@ -22,6 +18,10 @@ from src.confidence_engine.models import (
 )
 from src.confidence_engine.murphy_models import Phase
 from src.confidence_engine.murphy_validator import MurphyValidator
+
+# Add murphy_runtime_analysis to path for imports
+from .execution_context import ExecutionContext
+from .form_execution_models import ExecutionResult, ExecutionStatus, PhaseResult
 
 logger = logging.getLogger(__name__)
 

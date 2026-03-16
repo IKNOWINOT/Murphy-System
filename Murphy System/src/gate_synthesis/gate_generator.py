@@ -10,6 +10,8 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
+from src.confidence_engine.models import AuthorityBand, Phase
+
 from .models import (
     FailureMode,
     FailureModeType,
@@ -20,8 +22,6 @@ from .models import (
     RetirementCondition,
     RiskVector,
 )
-
-from src.confidence_engine.models import AuthorityBand, Phase
 
 logger = logging.getLogger(__name__)
 

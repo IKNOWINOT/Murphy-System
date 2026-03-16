@@ -23,6 +23,8 @@ import pytest
 
 
 import importlib
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "bots"))
 import analytics as analytics_mod  # noqa: E402
 
 

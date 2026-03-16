@@ -11,9 +11,9 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
-from .models import ExecutionScope
-
 from src.confidence_engine.models import ArtifactGraph, ArtifactNode, ArtifactType
+
+from .models import ExecutionScope
 
 logger = logging.getLogger(__name__)
 

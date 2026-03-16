@@ -96,7 +96,8 @@ def init_database(
 
     # ── ORM initialisation ───────────────────────────────────────────────
     try:
-        from src.db import create_tables, DATABASE_URL as orm_url  # noqa: PLC0415
+        from src.db import DATABASE_URL as orm_url
+        from src.db import create_tables  # noqa: PLC0415
 
         # Verify both subsystems share the same URL
         if orm_url != DATABASE_URL:
@@ -148,6 +149,7 @@ def run_pending_migrations() -> str:
     """
     try:
         import alembic.config  # noqa: PLC0415
+
         from alembic import command as alembic_command  # noqa: PLC0415
     except ImportError:
         logger.warning(

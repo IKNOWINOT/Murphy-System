@@ -10,9 +10,9 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from .models import ExecutionGraph, ExecutionScope, ExecutionStep, StepType
-
 from src.confidence_engine.models import ArtifactGraph, ArtifactNode, ArtifactType
+
+from .models import ExecutionGraph, ExecutionScope, ExecutionStep, StepType
 
 logger = logging.getLogger(__name__)
 
