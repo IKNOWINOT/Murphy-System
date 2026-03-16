@@ -675,6 +675,115 @@ def create_app() -> FastAPI:
         )
         return JSONResponse(result)
 
+    @app.post("/api/librarian/query")
+    async def librarian_query(request: Request):
+        """Return ranked capability matches for a natural-language query.
+
+        Uses the new ``TaskRouter`` / ``SystemLibrarian.find_capabilities()``
+        pipeline introduced in Phases 9–12 of the Flattening Plan.
+
+        Request body:
+        ```json
+        {
+          "query": "generate an invoice for a consulting project",
+          "top_n": 5
+        }
+        ```
+
+        Response:
+        ```json
+        {
+          "success": true,
+          "query": "generate an invoice ...",
+          "matches": [
+            {
+              "capability_id": "generate_invoice",
+              "module_path": "src.invoice_processing_pipeline",
+              "score": 0.94,
+              "match_reasons": ["keyword overlap: ['invoice']"],
+              "cost_estimate": "low",
+              "determinism": "deterministic",
+              "filtered": false
+            }
+          ],
+          "routing": {
+            "status": "approved",
+            "capability_id": "generate_invoice",
+            "score": 0.94
+          }
+        }
+        ```
+        """
+        try:
+            data = await request.json()
+        except Exception:
+            data = {}
+
+        query = (data.get("query") or data.get("task") or "").strip()
+        top_n = int(data.get("top_n", 5))
+
+        if not query:
+            return JSONResponse(
+                {"success": False, "error": "query is required"},
+                status_code=400,
+            )
+
+        task_dict = {"task": query}
+
+        # Phase 1 — capability discovery via SystemLibrarian
+        matches: list = []
+        try:
+            librarian = murphy.librarian if hasattr(murphy, "librarian") else None
+            if librarian is None:
+                from system_librarian import SystemLibrarian as _SL  # type: ignore[import]
+                librarian = _SL()
+            raw_matches = librarian.find_capabilities(task_dict, top_n=top_n)
+            matches = [
+                {
+                    "capability_id": m.capability_id,
+                    "module_path": m.module_path,
+                    "score": m.score,
+                    "match_reasons": m.match_reasons,
+                    "cost_estimate": m.cost_estimate,
+                    "determinism": m.determinism,
+                    "filtered": m.filtered,
+                    "filter_reason": m.filter_reason,
+                }
+                for m in raw_matches
+            ]
+        except Exception as exc:
+            logger.warning("librarian_query: find_capabilities error: %s", exc)
+
+        # Phase 2 — TaskRouter routing decision (best-effort)
+        routing: dict = {}
+        try:
+            from task_router import TaskRouter  # type: ignore[import]
+            from solution_path_registry import SolutionPathRegistry  # type: ignore[import]
+            from system_librarian import SystemLibrarian as _SL2  # type: ignore[import]
+
+            _router = TaskRouter(
+                librarian=_SL2(),
+                solution_registry=SolutionPathRegistry(),
+            )
+            result = _router.route_sync(task_dict)
+            routing = {
+                "status": result.status.value,
+                "capability_id": result.solution_path.capability_id if result.solution_path else None,
+                "score": result.solution_path.combined_score if result.solution_path else None,
+            }
+        except Exception as exc:
+            logger.debug("librarian_query: TaskRouter error: %s", exc)
+            routing = {"status": "unavailable", "error": str(exc)}
+
+        return JSONResponse(
+            {
+                "success": True,
+                "query": query,
+                "matches": matches,
+                "routing": routing,
+            }
+        )
+
     @app.get("/api/librarian/status")
     async def librarian_status():
         """Return librarian health status."""
@@ -792,6 +901,7 @@ def create_app() -> FastAPI:
             {"command": "bootstrap", "category": "core", "description": "First-run bootstrap status", "api": "/api/bootstrap", "ui": "/ui/onboarding"},
             # ── Librarian & LLM ──────────────────────────────────────
             {"command": "librarian ask", "category": "librarian", "description": "Ask the Librarian any question about the system", "api": "/api/librarian/ask", "ui": "/ui/terminal-integrated#chat"},
+            {"command": "librarian query", "category": "librarian", "description": "Query the Librarian for ranked capability matches (TaskRouter)", "api": "/api/librarian/query", "ui": "/ui/terminal-integrated#chat"},
             {"command": "librarian status", "category": "librarian", "description": "Check Librarian health", "api": "/api/librarian/status", "ui": "/ui/terminal-integrated#status"},
             {"command": "llm status", "category": "librarian", "description": "Check LLM provider configuration", "api": "/api/llm/status", "ui": "/ui/terminal-integrations#llm"},
             {"command": "llm configure", "category": "librarian", "description": "Configure LLM provider and API key", "api": "/api/llm/configure", "ui": "/ui/terminal-integrations#llm"},

@@ -17,21 +17,30 @@ import pytest
 _src_dir = os.path.join(os.path.dirname(__file__), "..", "src")
 
 from playwright_task_definitions import (
+    APICallTask,
     BrowserConfig,
     BrowserType,
     ClickTask,
+    CursorContext,
+    DesktopActionTask,
     ExtractTask,
     FillTask,
+    MultiCursorDesktop,
+    MultiCursorTask,
     NavigateTask,
     PlaywrightTask,
     PlaywrightTaskRunner,
+    ScreenZone,
     ScreenshotTask,
     SequenceTask,
+    SplitScreenLayout,
+    SplitScreenSequenceTask,
     TaskResult,
     TaskStatus,
     TaskType,
     WaitTask,
 )
+from murphy_native_automation import ActionType
 
 
 class TestPlaywrightModule:
@@ -44,13 +53,22 @@ class TestPlaywrightModule:
         size = os.path.getsize(path)
         assert size > 5000, f"Module is {size} bytes, expected >5000"
 
-    def test_imports_playwright(self) -> None:
+    def test_uses_murphy_native_stack(self) -> None:
+        """File must use Murphy native automation, NOT Playwright."""
         import playwright_task_definitions
         path = playwright_task_definitions.__file__
         assert path is not None
         with open(path) as f:
             source = f.read()
-        assert "from playwright" in source or "import playwright" in source
+        # Must import from murphy_native_automation (our stack)
+        assert "from murphy_native_automation import" in source, (
+            "playwright_task_definitions must use Murphy native stack"
+        )
+        # Must NOT import or require playwright as a hard dependency
+        assert "_PLAYWRIGHT_AVAILABLE = False" in source, (
+            "playwright_task_definitions must set _PLAYWRIGHT_AVAILABLE = False "
+            "(no Playwright dependency)"
+        )
 
 
 class TestTaskTypes:

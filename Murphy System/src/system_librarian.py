@@ -494,7 +494,31 @@ class SystemLibrarian:
                 "Generate stub implementations",
                 "Diff engineering schemas",
                 "Provide engineering calculation helpers"
-            ]
+            ],
+            # PROD-001 — Production Assistant
+            "production_assistant": [
+                "Submit production proposal",
+                "Validate proposal",
+                "Create work order",
+                "Validate work order match deliverable",
+                "Advance production lifecycle",
+                "List production profiles",
+                "List proposals",
+                "Get production audit log",
+            ],
+            # CAMP-001 — Outreach Campaign Planner
+            "outreach_campaign_planner": [
+                "Check campaign system health",
+                "Create outreach campaign for segment",
+                "Execute campaign step",
+                "Add contact to suppression list",
+                "Check contact suppression status",
+                "List campaigns",
+                "Activate campaign",
+                "Pause campaign",
+                "Get outreach audit log",
+                "Get execution history",
+            ],
         }
 
     def log_transcript(
@@ -810,6 +834,118 @@ class SystemLibrarian:
             })
             count += 1
         return count
+
+    # ------------------------------------------------------------------
+    # Librarian-driven routing support
+    # ------------------------------------------------------------------
+
+    def find_capabilities(
+        self,
+        task: Dict[str, Any],
+        top_n: int = 5,
+        module_registry: Optional[Any] = None,
+    ) -> List[Any]:
+        """Return a ranked list of :class:`~task_router.CapabilityMatch` objects.
+
+        Two-phase discovery:
+
+        **Phase 1 — Pre-filter**: capabilities incompatible with the task domain
+        are flagged but still returned (with ``filtered=True``) so operators can
+        see what was excluded and why.
+
+        **Phase 2 — Score and rank**: surviving capabilities are scored using
+        keyword overlap between the task text and the capability description.
+        The top *top_n* matches are returned, sorted by descending score.
+
+        Args:
+            task: Task dict, e.g. ``{"task": "generate invoice for Acme $5000"}``.
+            top_n: Maximum number of unfiltered matches to return.
+            module_registry: Optional :class:`~module_registry.ModuleRegistry`
+                instance.  When supplied its live capability map is merged with
+                the built-in ``module_capabilities`` map for broader coverage.
+
+        Returns:
+            List of ``CapabilityMatch`` instances (unfiltered ones first, sorted
+            by descending score; filtered ones appended at the end).
+        """
+        # Import here to avoid circular imports at module load time
+        try:
+            from task_router import CapabilityMatch  # type: ignore[import]
+        except ImportError:
+            # Fallback: define a minimal CapabilityMatch locally if task_router
+            # is not yet on sys.path (e.g. during isolated unit tests)
+            from dataclasses import dataclass, field as _field
+
+            @dataclass  # type: ignore[no-redef]
+            class CapabilityMatch:  # type: ignore[no-redef]
+                capability_id: str
+                module_path: str
+                score: float
+                match_reasons: List[str] = _field(default_factory=list)
+                cost_estimate: str = "medium"
+                determinism: str = "deterministic"
+                gate_compatibility: Dict[str, str] = _field(default_factory=dict)
+                filtered: bool = False
+                filter_reason: Optional[str] = None
+
+        task_text = str(task.get("task", task.get("description", ""))).lower()
+        task_words = set(task_text.split())
+
+        # Build the combined capability map
+        combined: Dict[str, List[str]] = {}
+        # 1. Built-in per-module capability descriptions
+        for module_name, cap_list in self.module_capabilities.items():
+            for cap in cap_list:
+                cap_key = cap.lower().replace(" ", "_")
+                combined.setdefault(cap_key, []).append(module_name)
+
+        # 2. Live ModuleRegistry capabilities (tag-style)
+        if module_registry is not None:
+            try:
+                live_caps = module_registry.get_capabilities()
+                if isinstance(live_caps, dict):
+                    for cap_tag, modules in live_caps.items():
+                        mods = modules if isinstance(modules, list) else [modules]
+                        combined.setdefault(cap_tag.lower(), []).extend(mods)
+            except Exception as exc:
+                logger.debug("SystemLibrarian.find_capabilities: registry error: %s", exc)
+
+        matches: List[Any] = []
+        seen_caps: set = set()
+
+        for cap_key, modules in combined.items():
+            if cap_key in seen_caps:
+                continue
+            seen_caps.add(cap_key)
+
+            cap_words = set(cap_key.replace("_", " ").split())
+            overlap = task_words & cap_words
+            if not task_words:
+                score = 0.0
+            else:
+                score = len(overlap) / max(len(task_words), len(cap_words))
+
+            module_name = modules[0] if modules else "unknown"
+            match = CapabilityMatch(
+                capability_id=cap_key,
+                module_path=f"src.{module_name}",
+                score=round(score, 4),
+                match_reasons=[f"keyword overlap: {sorted(overlap)}"] if overlap else ["no direct overlap"],
+                cost_estimate="medium",
+                determinism="deterministic",
+                gate_compatibility={},
+                filtered=False,
+                filter_reason=None,
+            )
+            matches.append(match)
+
+        # Sort by descending score
+        matches.sort(key=lambda m: m.score, reverse=True)
+
+        # Return top_n unfiltered + all filtered ones
+        unfiltered = [m for m in matches if not m.filtered][:top_n]
+        filtered = [m for m in matches if m.filtered]
+        return unfiltered + filtered
 
 
 if __name__ == "__main__":
