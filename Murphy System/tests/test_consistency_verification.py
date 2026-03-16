@@ -8,6 +8,7 @@ import os
 import re
 import unittest
 
+ROOT = os.path.join(os.path.dirname(__file__), "..")
 
 
 def _load_runtime_source():

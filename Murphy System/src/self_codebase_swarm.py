@@ -64,12 +64,12 @@ logger = logging.getLogger(__name__)
 # Lazy import so the swarm still loads if cutsheet_engine is unavailable
 try:
     from cutsheet_engine import (
+        ControlDiagram,
         CutSheetEngine,
         CutSheetSpec,
         DeviceConfig,
-        ControlDiagram,
-        WiringDiagram,
         VerificationResult,
+        WiringDiagram,
     )
     _CUTSHEET_AVAILABLE = True
 except ImportError:  # pragma: no cover

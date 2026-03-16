@@ -11,6 +11,17 @@ from typing import Any, Dict, List, Optional
 
 from flask import Flask, jsonify, request
 
+from flask_security import configure_secure_app, is_debug_mode
+from src.confidence_engine.models import (
+    ArtifactGraph,
+    ArtifactNode,
+    ArtifactSource,
+    ArtifactType,
+    AuthorityBand,
+    ConfidenceState,
+    Phase,
+)
+
 from .failure_mode_enumerator import FailureModeEnumerator
 from .gate_generator import GateGenerator
 from .gate_lifecycle_manager import GateLifecycleManager
@@ -26,17 +37,6 @@ from .models import (
     RiskVector,
 )
 from .murphy_estimator import MurphyProbabilityEstimator
-
-from src.confidence_engine.models import (
-    ArtifactGraph,
-    ArtifactNode,
-    ArtifactSource,
-    ArtifactType,
-    AuthorityBand,
-    ConfidenceState,
-    Phase,
-)
-from flask_security import configure_secure_app, is_debug_mode
 
 # Initialize Flask app
 app = Flask(__name__)
