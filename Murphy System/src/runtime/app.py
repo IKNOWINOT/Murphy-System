@@ -3623,6 +3623,138 @@ def create_app() -> FastAPI:
         path = _gpe.get_critical_path(workflow_id)
         return JSONResponse({"workflow_id": workflow_id, "critical_path": path})
 
+    # ── Highlight Overlay (Trainer system — glow-key / left-click hints) ──
+    try:
+        from src.highlight_overlay import OverlayManager as _OverlayManager
+        _overlay_mgr = _OverlayManager()
+    except Exception:  # noqa: BLE001
+        _overlay_mgr = None
+
+    @app.get("/api/overlay/suggestions")
+    async def overlay_get_suggestions(request: Request):
+        """Return pending highlight suggestions for the current user (polled by murphy_overlay.js)."""
+        if _overlay_mgr is None:
+            return JSONResponse({"suggestions": [], "error": "overlay_manager unavailable"})
+        user_id = request.query_params.get("user_id")
+        state = request.query_params.get("state", "pending")
+        try:
+            if state == "accepted":
+                sugs = _overlay_mgr.get_accepted_suggestions(user_id=user_id or None)
+            else:
+                sugs = _overlay_mgr.get_pending_suggestions(user_id=user_id or None)
+            return JSONResponse({"suggestions": [s.to_dict() for s in sugs]})
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Non-critical error in overlay suggestions: %s", exc)
+            return JSONResponse({"suggestions": [], "error": str(exc)})
+
+    @app.post("/api/overlay/suggestions")
+    async def overlay_add_suggestion(request: Request):
+        """Add a highlight suggestion (called by shadow agents)."""
+        if _overlay_mgr is None:
+            return JSONResponse({"success": False, "error": "overlay_manager unavailable"})
+        try:
+            body = await request.json()
+            sug = _overlay_mgr.add_suggestion(
+                agent_id=body.get("agent_id", "shadow"),
+                user_id=body.get("user_id", ""),
+                highlighted_text=body.get("highlighted_text", ""),
+                title=body.get("title", ""),
+                description=body.get("description", ""),
+                confidence=float(body.get("confidence", 0.5)),
+                automation_spec=body.get("automation_spec"),
+                marketplace_listing_id=body.get("marketplace_listing_id"),
+            )
+            return JSONResponse({"success": True, "suggestion_id": sug.suggestion_id})
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Non-critical error in overlay add: %s", exc)
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=400)
+
+    @app.post("/api/overlay/suggestions/{suggestion_id}/accept")
+    async def overlay_accept_suggestion(suggestion_id: str, request: Request):
+        """Accept a highlight suggestion — user clicked 'Accept and automate'."""
+        if _overlay_mgr is None:
+            return JSONResponse({"success": False, "error": "overlay_manager unavailable"})
+        resolved_by = (await request.json()).get("resolved_by", "") if request.headers.get("content-type", "").startswith("application/json") else ""
+        ok = _overlay_mgr.accept_suggestion(suggestion_id, resolved_by=resolved_by)
+        return JSONResponse({"success": ok, "suggestion_id": suggestion_id})
+
+    @app.post("/api/overlay/suggestions/{suggestion_id}/ignore")
+    async def overlay_ignore_suggestion(suggestion_id: str, request: Request):
+        """Ignore a highlight suggestion — user clicked 'Ignore this suggestion'."""
+        if _overlay_mgr is None:
+            return JSONResponse({"success": False, "error": "overlay_manager unavailable"})
+        resolved_by = (await request.json()).get("resolved_by", "") if request.headers.get("content-type", "").startswith("application/json") else ""
+        ok = _overlay_mgr.ignore_suggestion(suggestion_id, resolved_by=resolved_by)
+        return JSONResponse({"success": ok, "suggestion_id": suggestion_id})
+
+    @app.get("/api/overlay/summary")
+    async def overlay_summary(request: Request):
+        """Return overlay statistics summary for the status bar."""
+        if _overlay_mgr is None:
+            return JSONResponse({"total": 0, "by_state": {}, "pending": 0})
+        user_id = request.query_params.get("user_id")
+        return JSONResponse(_overlay_mgr.summary(user_id=user_id or None))
+
+    # ── Shadow Trainer Status ──────────────────────────────────────────
+    try:
+        from src.murphy_shadow_trainer import create_shadow_trainer as _create_shadow_trainer, get_global_policy as _get_global_policy
+        _shadow_trainer_loop, _shadow_trainer_policy, _shadow_trainer_buffer = _create_shadow_trainer()
+        _shadow_trainer_available = True
+    except Exception:  # noqa: BLE001
+        _shadow_trainer_available = False
+        _shadow_trainer_policy = None
+        _shadow_trainer_buffer = None
+
+    @app.get("/api/trainer/status")
+    async def trainer_status():
+        """Return shadow trainer status: current policy, exploration ratio, buffer size."""
+        if not _shadow_trainer_available or _shadow_trainer_policy is None:
+            return JSONResponse({"available": False, "error": "shadow_trainer unavailable"})
+        try:
+            policy_dict = _shadow_trainer_policy.to_dict()
+            buf_size = _shadow_trainer_buffer.size() if _shadow_trainer_buffer else 0
+            return JSONResponse({
+                "available": True,
+                "policy_id": policy_dict.get("policy_id"),
+                "action_count": len(policy_dict.get("action_values", {})),
+                "buffer_size": buf_size,
+                "top_actions": sorted(
+                    policy_dict.get("action_values", {}).items(),
+                    key=lambda x: x[1], reverse=True
+                )[:5],
+            })
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Non-critical error in trainer status: %s", exc)
+            return JSONResponse({"available": False, "error": str(exc)})
+
+    @app.post("/api/trainer/reward")
+    async def trainer_record_reward(request: Request):
+        """Record a reward signal to update shadow trainer policy."""
+        if not _shadow_trainer_available:
+            return JSONResponse({"success": False, "error": "shadow_trainer unavailable"})
+        try:
+            from src.murphy_shadow_trainer import RewardSignal as _RewardSignal, PolicyUpdater as _PolicyUpdater
+            body = await request.json()
+            signal = _RewardSignal(
+                task_id=body.get("task_id", ""),
+                action_taken=body.get("action_taken", ""),
+                task_success=bool(body.get("task_success", False)),
+                confidence_before=float(body.get("confidence_before", 0.5)),
+                confidence_after=float(body.get("confidence_after", 0.5)),
+                latency_ms_before=float(body.get("latency_ms_before", 100.0)),
+                latency_ms_after=float(body.get("latency_ms_after", 100.0)),
+                cost_before=float(body.get("cost_before", 1.0)),
+                cost_after=float(body.get("cost_after", 1.0)),
+                human_approval_rate=float(body.get("human_approval_rate", 1.0)),
+            )
+            updater = _PolicyUpdater(policy=_shadow_trainer_policy)
+            reward = updater.compute_reward(signal)
+            signal.computed_reward = reward
+            return JSONResponse({"success": True, "computed_reward": reward})
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Non-critical error in trainer reward: %s", exc)
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=400)
+
     # ── Orchestrator ──────────────────────────────────────────────────
     @app.get("/api/orchestrator/overview")
     async def orchestrator_overview():

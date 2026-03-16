@@ -2648,6 +2648,67 @@ MODULE_MANIFEST: List[ModuleEntry] = [
         consumes=["task_submitted"],
         description="Production assistant engine — request lifecycle management with deliverable gate validation via EventBackbone",
     ),
+
+    # ── Collaborative Task Orchestrator ──────────────────────────────────────
+    ModuleEntry(
+        module="collaborative_task_orchestrator",
+        room="murphy-swarm-coordinator",
+        commands=[
+            "orchestrate task",
+            "orchestrate status",
+            "orchestrate report",
+            "synthesize results",
+            "bridge memory",
+        ],
+        persona="ExecutionBot",
+        emits=["task_completed", "task_failed", "swarm_spawned", "metric_recorded"],
+        consumes=["task_submitted", "swarm_spawned"],
+        description=(
+            "Collaborative Task Orchestrator — unifying layer that wires "
+            "SwarmProposalGenerator → WorkflowDAGEngine → SplitScreenCoordinator "
+            "→ DurableSwarmOrchestrator → ResultSynthesizer → WorkspaceMemoryBridge. "
+            "Closes integration Gaps 1–5."
+        ),
+    ),
+
+    # ── Highlight Overlay (trainer / glow-key / left-click hints) ────────────
+    ModuleEntry(
+        module="highlight_overlay",
+        room="murphy-ui-trainer",
+        commands=[
+            "overlay pending",
+            "overlay accept",
+            "overlay ignore",
+            "overlay summary",
+        ],
+        persona="TriageBot",
+        emits=["suggestion_accepted", "suggestion_ignored", "suggestion_expired"],
+        consumes=["task_completed", "automation_executed"],
+        description=(
+            "Highlight Overlay — backend state manager for the shadow-agent "
+            "trainer system. Tracks automation suggestions surfaced as coloured "
+            "text highlights / glow-key hints; serves /api/overlay/* for "
+            "murphy_overlay.js."
+        ),
+    ),
+
+    # ── Golden Path Engine (gold-glow UI recommendations) ────────────────────
+    ModuleEntry(
+        module="golden_path_engine",
+        room="murphy-ui-trainer",
+        commands=[
+            "golden-path recommendations",
+            "golden-path critical-path",
+        ],
+        persona="TriageBot",
+        emits=["recommendation_surfaced"],
+        consumes=["hitl_pending", "workflow_stuck", "config_gap"],
+        description=(
+            "Golden Path Engine — drives the gold-glow recommendation system. "
+            "Returns prioritised next-action recommendations per user role; "
+            "powers the pulsing golden highlight in terminal_orchestrator.html."
+        ),
+    ),
 ]
 
 

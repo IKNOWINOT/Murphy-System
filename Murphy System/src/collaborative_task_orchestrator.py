@@ -77,11 +77,21 @@ except ImportError:
     Phase = None  # type: ignore[assignment,misc]
 
 try:
-    from memory_artifact_system import MemoryArtifactSystem
+    from memory_artifact_system import (
+        MemoryArtifactSystem,
+        Artifact as MASArtifact,
+        ArtifactState as MASArtifactState,
+        MemoryPlane as MASMemoryPlane,
+        VerificationSource as MASVerificationSource,
+    )
     _MAS_AVAILABLE = True
 except ImportError:
     _MAS_AVAILABLE = False
     MemoryArtifactSystem = None  # type: ignore[assignment,misc]
+    MASArtifact = None  # type: ignore[assignment,misc]
+    MASArtifactState = None  # type: ignore[assignment,misc]
+    MASMemoryPlane = None  # type: ignore[assignment,misc]
+    MASVerificationSource = None  # type: ignore[assignment,misc]
 
 try:
     from llm_routing_completeness import HybridExecutionEngine
@@ -257,73 +267,89 @@ class WorkspaceMemoryBridge:
         phase_name: str = "expand",
         confidence_impact: float = 0.5,
     ) -> str:
+        """Write content to both TGW and MAS sandbox, returning the artifact_id."""
         artifact_id = str(uuid.uuid4())
         with self._lock:
-            # Write to TGW
-            if self._tgw is not None:
+            # Write to TGW using the correct Artifact constructor
+            if self._tgw is not None and _TGW_AVAILABLE and Artifact is not None:
                 try:
-                    kwargs: Dict[str, Any] = {
-                        "content": content,
-                        "source_agent": source_agent,
-                        "confidence_impact": confidence_impact,
-                    }
-                    if _TGW_AVAILABLE and ArtifactType is not None:
+                    atype = ArtifactType.HYPOTHESIS
+                    if ArtifactType is not None:
                         try:
-                            kwargs["artifact_type"] = ArtifactType[artifact_type_name.upper()]
+                            atype = ArtifactType[artifact_type_name.upper()]
                         except (KeyError, AttributeError):
                             pass
-                    if _TGW_AVAILABLE and Phase is not None:
+                    aphase = Phase.EXPAND
+                    if Phase is not None:
                         try:
-                            kwargs["phase"] = Phase[phase_name.upper()]
+                            aphase = Phase[phase_name.upper()]
                         except (KeyError, AttributeError):
                             pass
-                    result = self._tgw.write_artifact(**kwargs)
-                    if result and hasattr(result, "artifact_id"):
-                        artifact_id = result.artifact_id
-                    elif isinstance(result, str):
+                    tgw_artifact = Artifact(
+                        id=artifact_id,
+                        content=content,
+                        artifact_type=atype,
+                        phase=aphase,
+                        source_agent=source_agent,
+                        confidence_impact=confidence_impact,
+                        deterministic_bindings={},
+                        timestamp=time.time(),
+                    )
+                    result = self._tgw.write_artifact(tgw_artifact)
+                    if isinstance(result, str) and result:
                         artifact_id = result
                 except Exception as exc:
                     logger.warning("WorkspaceMemoryBridge: TGW write failed: %s", exc)
 
-            # Auto-promote to MAS sandbox
-            if self._mas is not None:
+            # Auto-promote to MAS sandbox using the correct Artifact constructor
+            if self._mas is not None and _MAS_AVAILABLE and MASArtifact is not None:
                 try:
-                    self._mas.write_sandbox(
-                        artifact_id=artifact_id,
+                    mas_artifact = MASArtifact(
+                        id=artifact_id,
+                        phase=phase_name,
+                        artifact_type=artifact_type_name,
                         content=content,
-                        metadata={
-                            "artifact_type": artifact_type_name,
-                            "source_agent": source_agent,
-                            "phase": phase_name,
-                            "confidence_impact": confidence_impact,
-                        },
+                        dependencies=[],
+                        verification_status="unverified",
+                        confidence_delta=confidence_impact,
+                        provenance=source_agent,
+                        timestamp=time.time(),
+                        state=MASArtifactState.DRAFT,
+                        memory_plane=MASMemoryPlane.SANDBOX,
+                        metadata={"source_agent": source_agent},
                     )
+                    self._mas.write_sandbox(mas_artifact)
                 except Exception as exc:
                     logger.warning("WorkspaceMemoryBridge: MAS sandbox write failed: %s", exc)
 
         return artifact_id
 
     def verify_and_promote(self, artifact_id: str) -> bool:
+        """Verify a TGW artifact and promote it from MAS sandbox to working memory."""
         with self._lock:
-            # Check TGW
+            # Check TGW — use the artifacts dict directly since there's no get_artifact method
             tgw_ok = False
             if self._tgw is not None:
                 try:
-                    artifact = self._tgw.get_artifact(artifact_id)
-                    tgw_ok = artifact is not None
+                    tgw_ok = artifact_id in getattr(self._tgw, "artifacts", {})
                 except Exception:
                     tgw_ok = False
 
             if not tgw_ok:
                 return False
 
-            # Promote in MAS
-            if self._mas is not None:
+            # Verify and promote in MAS
+            if self._mas is not None and _MAS_AVAILABLE and MASVerificationSource is not None:
                 try:
-                    verified = self._mas.verify_artifact(artifact_id)
-                    if verified:
-                        self._mas.promote_to_working(artifact_id)
-                        return True
+                    self._mas.verify_artifact(
+                        artifact_id,
+                        MASVerificationSource.DETERMINISTIC_CHECK,
+                        evidence={"tgw_verified": True},
+                    )
+                    result = self._mas.promote_to_working(
+                        artifact_id, phase_legal=True, coherent=True
+                    )
+                    return result is not None
                 except Exception as exc:
                     logger.warning("WorkspaceMemoryBridge: promote failed: %s", exc)
                     return False
@@ -335,32 +361,51 @@ class WorkspaceMemoryBridge:
         artifact_type_name: Optional[str] = None,
         phase_name: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
+        """Query artifacts from both TGW and MAS, returning a unified list."""
         combined: List[Dict[str, Any]] = []
         with self._lock:
             if self._tgw is not None:
                 try:
-                    kwargs: Dict[str, Any] = {}
+                    # Use get_artifacts_by_type when type is specified
                     if artifact_type_name and _TGW_AVAILABLE and ArtifactType is not None:
                         try:
-                            kwargs["artifact_type"] = ArtifactType[artifact_type_name.upper()]
+                            atype = ArtifactType[artifact_type_name.upper()]
+                            aphase = None
+                            if phase_name and Phase is not None:
+                                try:
+                                    aphase = Phase[phase_name.upper()]
+                                except (KeyError, AttributeError):
+                                    pass
+                            tgw_results = self._tgw.get_artifacts_by_type(atype, phase=aphase)
                         except (KeyError, AttributeError):
-                            pass
-                    if phase_name and _TGW_AVAILABLE and Phase is not None:
-                        try:
-                            kwargs["phase"] = Phase[phase_name.upper()]
-                        except (KeyError, AttributeError):
-                            pass
-                    tgw_results = self._tgw.query_artifacts(**kwargs) if kwargs else self._tgw.query_artifacts()
+                            tgw_results = list(getattr(self._tgw, "artifacts", {}).values())
+                    else:
+                        # Return all artifacts from TGW
+                        tgw_results = list(getattr(self._tgw, "artifacts", {}).values())
                     for r in tgw_results or []:
-                        combined.append(r if isinstance(r, dict) else vars(r))
+                        combined.append(
+                            r if isinstance(r, dict) else
+                            {k: getattr(r, k, None) for k in
+                             ["id", "content", "artifact_type", "phase", "source_agent"]}
+                        )
                 except Exception as exc:
                     logger.warning("WorkspaceMemoryBridge: TGW query failed: %s", exc)
 
             if self._mas is not None:
                 try:
-                    mas_results = self._mas.list_artifacts(artifact_type=artifact_type_name)
-                    for r in mas_results or []:
-                        combined.append(r if isinstance(r, dict) else vars(r))
+                    # Use read_all from sandbox + working planes
+                    sandbox_arts = getattr(self._mas.sandbox, "read_all", lambda: [])()
+                    working_arts = list(getattr(self._mas.working, "artifacts", {}).values())
+                    all_arts = (sandbox_arts or []) + (working_arts or [])
+                    for r in all_arts:
+                        if artifact_type_name and hasattr(r, "artifact_type"):
+                            if str(getattr(r, "artifact_type", "")) != artifact_type_name:
+                                continue
+                        combined.append(
+                            r if isinstance(r, dict) else
+                            {k: getattr(r, k, None) for k in
+                             ["id", "content", "artifact_type", "phase", "provenance"]}
+                        )
                 except Exception as exc:
                     logger.warning("WorkspaceMemoryBridge: MAS query failed: %s", exc)
 
