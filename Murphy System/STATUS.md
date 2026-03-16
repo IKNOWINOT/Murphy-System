@@ -34,7 +34,6 @@
 | **Rosetta Subsystem Wiring** | ✅ **New** | P3-001–P3-005 wired: ImprovementEngine→Rosetta, Orchestrator cycles→progress, RAG ingestion, EventBackbone subscriptions, SystemState sync; 38 tests |
 | **CI/CD Pipeline** | ✅ **New** | GitHub Actions CI: lint (ruff), test matrix (Python 3.10/3.11/3.12), security scan (bandit), Docker build smoke |
 | **Core Path Coverage** | ✅ **New** | pytest --cov on core paths (rosetta_subsystem_wiring + startup_feature_summary) reports 90%+ (>80% threshold) |
-| UI / Landing Page | ⚠️ Partial | Landing page, terminal UIs exist; dashboard incomplete |
 | UI / Landing Page | ✅ Complete | Landing page, terminal UIs, and agent monitoring dashboard all complete |
 | Documentation | ✅ Complete | API docs, architecture docs, deployment guides, testing guide complete |
 
