@@ -498,45 +498,114 @@
   async function renderLLMConfig() {
     contentEl.innerHTML = sectionHeader('LLM Config') + skeletonCards(4);
     try {
-      var res   = await api.get('/llm/config');
+      var res   = await api.get('/llm/status');
       var data  = (res && res.data) || res || {};
       var items = data.providers || data.models || data.items || (Array.isArray(data) ? data : []);
 
-      var html = sectionHeader('LLM Config', 'Language model provider configuration');
-
-      if (!items.length) {
-        html += emptyState('No LLM Providers', 'No language model providers have been configured.');
-      } else {
-        html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr));">';
-        items.forEach(function (p) {
-          var statusBadge = badge(
-            p.status || 'unknown',
-            p.status === 'active' || p.status === 'connected' ? 'success' : (p.status === 'error' ? 'danger' : 'warning')
-          );
-          html += cardWrap(
-            '<div class="flex items-center gap-2">' + icon('cpu') + ' <span class="font-bold">' + esc(p.name || p.provider || 'Provider') + '</span> ' + statusBadge + '</div>',
-            '<div class="flex flex-col gap-2 text-sm">' +
-            '<div class="flex justify-between"><span class="text-secondary">Model</span><span>' + esc(p.model || '\u2014') + '</span></div>' +
-            '<div class="flex justify-between"><span class="text-secondary">Temperature</span><span>' + esc(p.temperature != null ? p.temperature : '\u2014') + '</span></div>' +
-            '<div class="flex justify-between"><span class="text-secondary">Max Tokens</span><span>' + esc(p.max_tokens != null ? p.max_tokens : '\u2014') + '</span></div>' +
-            '</div>'
-          );
-        });
-        html += '</div>';
-
-        html += cardWrap('Provider Summary', tableHTML(
-          [
-            { key: 'name', label: 'Provider', render: function (v, row) { return esc(v || row.provider || ''); } },
-            { key: 'model', label: 'Model' },
-            { key: 'status', label: 'Status', render: function (v) { return badge(v || 'unknown', v === 'active' || v === 'connected' ? 'success' : (v === 'error' ? 'danger' : 'warning')); } },
-            { key: 'temperature', label: 'Temperature' },
-            { key: 'max_tokens', label: 'Max Tokens' }
-          ],
-          items
-        ));
+      // Onboard LLM is always available — ensure it appears even when no
+      // cloud API keys are configured.
+      var hasOnboard = items.some(function (p) { return (p.provider || p.name || '').toLowerCase() === 'onboard'; });
+      if (!hasOnboard) {
+        items = items.concat([{
+          name: 'Murphy Onboard LLM',
+          provider: 'onboard',
+          model: 'murphy-onboard',
+          status: 'active',
+          temperature: 0.7,
+          max_tokens: 2048,
+        }]);
       }
 
+      var html = sectionHeader('LLM Config', 'Language model provider configuration');
+
+      var cloudProvider = (data.provider && data.provider !== 'onboard') ? data.provider : 'None';
+      // ── Active provider summary ───────────────────────────
+      html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">';
+      html += statCard('Cloud Provider', cloudProvider);
+      html += statCard('Active Model',   data.model    || data.active_model || 'murphy-onboard');
+      html += statCard('Onboard LLM',    'Always Available');
+      html += '</div>';
+
+      // ── Provider cards ────────────────────────────────────
+      html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr));">';
+      items.forEach(function (p) {
+        var statusBadge = badge(
+          p.status || 'unknown',
+          p.status === 'active' || p.status === 'connected' ? 'success' : (p.status === 'error' ? 'danger' : 'warning')
+        );
+        html += cardWrap(
+          '<div class="flex items-center gap-2">' + icon('cpu') + ' <span class="font-bold">' + esc(p.name || p.provider || 'Provider') + '</span> ' + statusBadge + '</div>',
+          '<div class="flex flex-col gap-2 text-sm">' +
+          '<div class="flex justify-between"><span class="text-secondary">Model</span><span>' + esc(p.model || '\u2014') + '</span></div>' +
+          '<div class="flex justify-between"><span class="text-secondary">Temperature</span><span>' + esc(p.temperature != null ? p.temperature : '\u2014') + '</span></div>' +
+          '<div class="flex justify-between"><span class="text-secondary">Max Tokens</span><span>' + esc(p.max_tokens != null ? p.max_tokens : '\u2014') + '</span></div>' +
+          (p.description ? '<div class="text-secondary text-xs mt-1">' + esc(p.description) + '</div>' : '') +
+          '</div>'
+        );
+      });
+      html += '</div>';
+
+      html += cardWrap('Provider Summary', tableHTML(
+        [
+          { key: 'name', label: 'Provider', render: function (v, row) { return esc(v || row.provider || ''); } },
+          { key: 'model', label: 'Model' },
+          { key: 'status', label: 'Status', render: function (v) { return badge(v || 'unknown', v === 'active' || v === 'connected' ? 'success' : (v === 'error' ? 'danger' : 'warning')); } },
+          { key: 'temperature', label: 'Temperature' },
+          { key: 'max_tokens', label: 'Max Tokens' }
+        ],
+        items
+      ));
+
+      // ── Add / Configure provider form ─────────────────────
+      html += cardWrap(
+        '<div class="flex items-center justify-between">' +
+          '<span class="font-bold">Add Cloud Provider</span>' +
+          '<span class="text-xs text-secondary">Onboard LLM is always active &mdash; cloud adds more power</span>' +
+        '</div>',
+        '<div class="flex flex-col gap-3">' +
+          '<div class="flex gap-2">' +
+            '<select id="llm-provider-select" class="murphy-input flex-1">' +
+              '<option value="">Select provider…</option>' +
+              '<option value="groq">Groq (free — llama3-8b-8192)</option>' +
+              '<option value="openai">OpenAI (gpt-4o)</option>' +
+              '<option value="anthropic">Anthropic (claude-3-5-sonnet)</option>' +
+            '</select>' +
+          '</div>' +
+          '<input id="llm-api-key-input" type="password" placeholder="Paste API key here…" class="murphy-input" autocomplete="off" />' +
+          '<button id="btn-save-llm" class="murphy-btn murphy-btn-primary">' + icon('plus') + ' Save &amp; Activate</button>' +
+          '<p class="text-xs text-secondary">Get a free Groq key at ' +
+            '<a href="https://console.groq.com/keys" target="_blank" rel="noopener" class="murphy-link">console.groq.com/keys</a>' +
+          '</p>' +
+        '</div>'
+      );
+
       contentEl.innerHTML = html;
+
+      // ── Wire up Save button ───────────────────────────────
+      var btnSave  = document.getElementById('btn-save-llm');
+      var selProv  = document.getElementById('llm-provider-select');
+      var inpKey   = document.getElementById('llm-api-key-input');
+      var SAVE_BTN_LABEL = 'Save & Activate';
+      if (btnSave) {
+        btnSave.addEventListener('click', async function () {
+          var provider = selProv ? selProv.value : '';
+          var apiKey   = inpKey  ? inpKey.value.trim() : '';
+          if (!provider) { alert('Please select a provider.'); return; }
+          if (!apiKey)   { alert('Please enter an API key.'); return; }
+          btnSave.disabled    = true;
+          btnSave.textContent = 'Saving\u2026';
+          btnSave.setAttribute('aria-busy', 'true');
+          try {
+            await api.post('/llm/configure', { provider: provider, api_key: apiKey });
+            renderLLMConfig();
+          } catch (err) {
+            btnSave.disabled    = false;
+            btnSave.textContent = SAVE_BTN_LABEL;
+            btnSave.setAttribute('aria-busy', 'false');
+            alert('Error saving provider: ' + (err.message || err));
+          }
+        });
+      }
     } catch (e) {
       contentEl.innerHTML = sectionHeader('LLM Config') + errorCard(e.message, '#llm');
     }
