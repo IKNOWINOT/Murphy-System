@@ -118,6 +118,7 @@ from market_positioning_engine import (
     MarketPositioningEngine,
     get_default_positioning_engine,
 )
+
 try:
     from thread_safe_operations import capped_append
 except ImportError:

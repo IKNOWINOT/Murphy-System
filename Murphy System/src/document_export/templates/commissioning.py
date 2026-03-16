@@ -49,7 +49,7 @@ def _cover_page(plan: Dict[str, Any], brand: Optional[Any]) -> str:
     today = date.today().isoformat()
     lines = [
         "---",
-        f"# Commissioning Plan Report",
+        "# Commissioning Plan Report",
         "",
         f"**Project Site:** {site}",
         f"**System:** {system}",
@@ -376,7 +376,7 @@ def fpt_report(plan: Dict[str, Any], brand: Optional[Any] = None) -> str:
     system = plan.get("system", "N/A")
     company = brand.company_name if brand else "Murphy System"
 
-    parts.append(f"# Functional Performance Test Report\n")
+    parts.append("# Functional Performance Test Report\n")
     parts.append(f"**Site:** {site}  |  **System:** {system}  |  **Prepared by:** {company}\n")
     parts.append(f"**Date:** {date.today().isoformat()}\n")
     parts.append("---\n")
@@ -429,7 +429,7 @@ def cx_punch_list(plan: Dict[str, Any], brand: Optional[Any] = None) -> str:
     site = plan.get("site", "N/A")
     company = brand.company_name if brand else "Murphy System"
 
-    parts.append(f"# Commissioning Punch List\n")
+    parts.append("# Commissioning Punch List\n")
     parts.append(f"**Site:** {site}  |  **Prepared by:** {company}  |  **Date:** {date.today().isoformat()}\n")
     parts.append("---\n")
 
@@ -473,7 +473,7 @@ def cx_summary(plan: Dict[str, Any], brand: Optional[Any] = None) -> str:
     system = plan.get("system", "N/A")
     company = brand.company_name if brand else "Murphy System"
 
-    parts.append(f"# Commissioning Executive Summary\n")
+    parts.append("# Commissioning Executive Summary\n")
     parts.append(f"**Site:** {site}  |  **System:** {system}  |  **Prepared by:** {company}\n")
     parts.append(f"**Date:** {date.today().isoformat()}\n")
     parts.append("---\n")
@@ -494,7 +494,7 @@ def cx_summary(plan: Dict[str, Any], brand: Optional[Any] = None) -> str:
     schedule = plan.get("schedule", {})
     window = schedule.get("window", {}) if isinstance(schedule, dict) else {}
     if isinstance(window, dict) and (window.get("start") or window.get("end")):
-        parts.append(f"\n## Schedule\n")
+        parts.append("\n## Schedule\n")
         parts.append(f"- **Start:** {window.get('start', 'TBD')}")
         parts.append(f"- **End:** {window.get('end', 'TBD')}")
 
@@ -508,7 +508,7 @@ def cx_summary(plan: Dict[str, Any], brand: Optional[Any] = None) -> str:
     risk_register = plan.get("risk_register", {})
     risks = risk_register.get("items", []) if isinstance(risk_register, dict) else []
     if risks:
-        parts.append(f"\n## Risk Summary\n")
+        parts.append("\n## Risk Summary\n")
         parts.append(f"Total risks identified: **{len(risks)}**\n")
         high = [r for r in risks if str(r.get("severity", "")).lower() in ("high", "critical")]
         if high:

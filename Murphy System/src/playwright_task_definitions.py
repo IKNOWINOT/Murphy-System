@@ -52,8 +52,9 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Murphy-native imports — the ONLY automation dependency
 # ---------------------------------------------------------------------------
-import sys as _sys
 import os as _os
+import sys as _sys
+
 _src = _os.path.dirname(__file__)
 if _src not in _sys.path:
     _sys.path.insert(0, _src)
@@ -77,8 +78,12 @@ from murphy_native_automation import (  # noqa: F401  -- Murphy native stack, no
     ScreenZone,
     SplitScreenLayout,
     SplitScreenManager,
-    TaskStatus as NativeTaskStatus,
     TaskStep,
+)
+from murphy_native_automation import (
+    TaskStatus as NativeTaskStatus,
+)
+from murphy_native_automation import (
     TaskType as NativeTaskType,
 )
 

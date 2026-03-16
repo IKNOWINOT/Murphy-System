@@ -10,9 +10,9 @@ from typing import Any, Dict
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
+from flask_security import configure_secure_app, is_debug_mode
 from src.compute_plane.models.compute_request import ComputeRequest
 from src.compute_plane.service import ComputeService
-from flask_security import configure_secure_app, is_debug_mode
 
 logger = logging.getLogger(__name__)
 

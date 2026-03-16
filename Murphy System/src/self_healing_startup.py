@@ -36,18 +36,18 @@ def bootstrap_self_healing(event_backbone: Optional[Any] = None) -> Any:
 
     Returns the configured SelfHealingCoordinator instance.
     """
-    from self_healing_coordinator import SelfHealingCoordinator, RecoveryProcedure
+    from self_healing_coordinator import RecoveryProcedure, SelfHealingCoordinator
     from self_healing_handlers import (
-        LLM_PROVIDER_TIMEOUT,
-        GATE_CONFIDENCE_TOO_LOW,
-        EXTERNAL_API_UNAVAILABLE,
-        SANDBOX_RESOURCE_EXCEEDED,
         AUTH_TOKEN_EXPIRED,
-        handle_llm_provider_timeout,
-        handle_gate_confidence_too_low,
-        handle_external_api_unavailable,
-        handle_sandbox_resource_exceeded,
+        EXTERNAL_API_UNAVAILABLE,
+        GATE_CONFIDENCE_TOO_LOW,
+        LLM_PROVIDER_TIMEOUT,
+        SANDBOX_RESOURCE_EXCEEDED,
         handle_auth_token_expired,
+        handle_external_api_unavailable,
+        handle_gate_confidence_too_low,
+        handle_llm_provider_timeout,
+        handle_sandbox_resource_exceeded,
     )
 
     coordinator = SelfHealingCoordinator(event_backbone=event_backbone)

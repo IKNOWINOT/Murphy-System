@@ -411,7 +411,7 @@ class SplitScreenCoordinator:
             )
         if report.flagged_zones:
             lines.append(
-                f"  Flagged zones: "
+                "  Flagged zones: "
                 + ", ".join(z.zone_label or z.zone_name for z in report.flagged_zones)
             )
         return "\n".join(lines)

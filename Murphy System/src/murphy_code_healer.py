@@ -2098,17 +2098,12 @@ class MurphyCodeHealer:
             self._backbone.publish(
                 event_type=event_type,
                 payload={
-            from event_backbone_client import publish as _bb_publish  # noqa: PLC0415
-            _bb_publish(
-                event_name,
-                {
                     **payload,
                     "event": event_name,
                     "source": "murphy_code_healer",
                     "correlation_id": uuid.uuid4().hex,
                 },
                 source="murphy_code_healer",
-                backbone=self._backbone,
             )
         except Exception as exc:
             logger.debug("Event publish skipped (%s): %s", event_name, exc)
