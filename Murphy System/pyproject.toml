@@ -29,7 +29,7 @@ all = ["murphy-system[llm,security,terminal,dev]"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["src*"]
+include = ["src", "src.*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
