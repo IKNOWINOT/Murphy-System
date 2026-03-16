@@ -12,16 +12,11 @@ This is the main orchestrator that:
 
 import json
 import logging
-import os
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger("integration_engine.unified_engine")
-
-# Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from bots.swisskiss_loader import SwissKissLoader
 from src.integrations.integration_framework import IntegrationFramework

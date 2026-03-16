@@ -8,14 +8,12 @@ Proves:
   - check_all() aggregates both types.
 """
 
-import sys
 import os
 import unittest
 from datetime import datetime, timezone
 
 import numpy as np
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from control_theory.drift_detector import DriftAlert, DriftDetector
 from control_theory.infinity_metric import EntropyTracker, UncertaintyBudget

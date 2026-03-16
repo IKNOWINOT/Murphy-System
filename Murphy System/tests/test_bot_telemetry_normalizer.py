@@ -1,8 +1,6 @@
 """Tests for the Bot Telemetry Normalizer."""
 
-import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import pytest
 from src.bot_telemetry_normalizer import (

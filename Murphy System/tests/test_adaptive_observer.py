@@ -7,13 +7,11 @@ Proves:
   - Loop terminates when entropy target is reached.
 """
 
-import sys
 import os
 import unittest
 
 import numpy as np
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from control_theory.canonical_state import CanonicalStateVector
 from control_theory.infinity_metric import (

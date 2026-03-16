@@ -11,11 +11,9 @@ Proves:
 - reload_settings() creates a fresh instance
 """
 
-import sys
 import os
 import unittest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 
 class TestSettingsDefaults(unittest.TestCase):

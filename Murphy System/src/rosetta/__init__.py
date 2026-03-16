@@ -8,6 +8,7 @@ from .subsystem_wiring import (
     RosettaSubsystemWiring,
     bootstrap_wiring,
 )
+from .subsystem_wiring import RosettaSubsystemWiring, bootstrap_wiring
 
 __all__ = [
     "RosettaAgentState",
@@ -17,9 +18,6 @@ __all__ = [
     "Goal",
     "Task",
     "RosettaManager",
-    "WiringPoint",
-    "WiringResult",
-    "WiringStatus",
     "RosettaSubsystemWiring",
     "bootstrap_wiring",
 ]

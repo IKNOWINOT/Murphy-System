@@ -1,8 +1,6 @@
 """Tests for the Dynamic Assist Engine module."""
 
-import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import pytest
 from src.dynamic_assist_engine import DynamicAssistEngine, DynamicAssistInput

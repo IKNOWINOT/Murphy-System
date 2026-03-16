@@ -8,10 +8,9 @@ Integrates with: deterministic_routing_engine.py, api_gateway_adapter.py
 """
 
 import functools
-import importlib
+import importlib.util
 import logging
 import os
-import sys
 import time
 import uuid
 from threading import Lock
@@ -513,9 +512,6 @@ def discover_actions(src_dir: str) -> int:
     Number of actions registered in the global registry after scanning.
     """
     src_dir = os.path.abspath(src_dir)
-    if src_dir not in sys.path:
-        sys.path.insert(0, src_dir)
-
     before = len(_GLOBAL_REGISTRY.list_all())
     loaded = 0
 
@@ -523,8 +519,13 @@ def discover_actions(src_dir: str) -> int:
         if not entry.endswith(".py") or entry.startswith("_"):
             continue
         module_name = entry[:-3]
+        module_path = os.path.join(src_dir, entry)
         try:
-            importlib.import_module(module_name)
+            spec = importlib.util.spec_from_file_location(module_name, module_path)
+            if spec is None or spec.loader is None:
+                continue
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
             loaded += 1
         except ImportError as exc:
             logger.warning("discover_actions: could not import '%s': %s", module_name, exc)

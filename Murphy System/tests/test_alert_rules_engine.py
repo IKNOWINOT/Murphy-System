@@ -8,11 +8,9 @@ Design Label: TEST-027 / SAF-004
 Owner: QA Team
 """
 
-import sys
 import os
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from alert_rules_engine import (
     AlertRulesEngine,

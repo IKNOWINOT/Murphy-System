@@ -6,9 +6,9 @@ License: BSL 1.1
 
 from __future__ import annotations
 
+import logging
 import math
 import uuid
-import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -1334,14 +1334,14 @@ class DrawingApprovalIntegration:
 # ---------------------------------------------------------------------------
 
 from murphy_drawing_engine_extensions import (  # noqa: E402
-    EngineeringSymbol,
-    DrawingBorder,
-    build_pump_ga_drawing,
-    IsometricProjector,
-    ExplodedViewBuilder,
     BalloonCallout,
     BOMTableRenderer,
     CuttingPlaneLine,
+    DrawingBorder,
+    EngineeringSymbol,
+    ExplodedViewBuilder,
+    IsometricProjector,
     SpeakerAssemblyDrawing,
+    build_pump_ga_drawing,
 )
 

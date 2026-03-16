@@ -64,6 +64,7 @@ from environment_setup_agent import (
     StepStatus,
 )
 from signup_gateway import AuthError, SignupGateway, UserProfile
+
 try:
     from thread_safe_operations import capped_append
 except ImportError:

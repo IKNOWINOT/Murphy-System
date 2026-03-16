@@ -4,12 +4,10 @@ Validates task management, cycle lifecycle, gap analysis,
 prompt generation, dependency resolution, and status reporting.
 """
 
-import sys
 import os
 import unittest
 
 # Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from self_automation_orchestrator import (
     SelfAutomationOrchestrator,

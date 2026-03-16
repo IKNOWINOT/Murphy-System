@@ -8,13 +8,11 @@ creation, spike routing to causal analysis, and decay daemon behaviour.
 from __future__ import annotations
 
 import os
-import sys
 import threading
 import time
 import uuid
 import unittest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 
 def _unit_vec(dim=4, idx=0):

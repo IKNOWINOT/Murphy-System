@@ -8,11 +8,9 @@ Design Label: TEST-001 / ARCH-002
 Owner: QA Team
 """
 
-import sys
 import os
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from self_automation_orchestrator import (
     SelfAutomationOrchestrator,

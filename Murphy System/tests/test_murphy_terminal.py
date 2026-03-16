@@ -7,7 +7,6 @@ without requiring a running backend (uses mocking).
 
 import json
 import os
-import sys
 import re
 from unittest.mock import patch, MagicMock
 
@@ -15,7 +14,6 @@ import requests
 import pytest
 
 # Ensure the parent directory (containing murphy_terminal.py) is on the path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 pytest.importorskip("textual", reason="textual not installed — skipping terminal UI tests")
 

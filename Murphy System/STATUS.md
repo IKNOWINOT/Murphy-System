@@ -10,23 +10,33 @@
 
 | Area | Status | Notes |
 |------|--------|-------|
-| Core Runtime | ✅ Operational | FastAPI server, 620+ modules, modular engine architecture |
+| Core Runtime | ✅ Operational | FastAPI server, 922+ modules, modular engine architecture |
 | Control Plane | ✅ Operational | Execution packets, state vectors, formal constraints |
 | Governance Framework | ✅ Operational | HITL gates, governance kernel, compliance scheduling |
 | Confidence Engine | ✅ Operational | Bayesian scoring, Murphy Index, artifact graphs |
 | Security Plane | ✅ Integrated | RBAC, risk classification, DLP, auth, rate limiting wired as ASGI middleware on all /api/* routes; fail-closed; formal pen-test pending |
 | AUAR Pipeline | ✅ Operational | 7-layer routing with ML optimization |
+| **Librarian Routing** | ✅ **Implemented** | `TaskRouter`, `SystemLibrarian.find_capabilities()`, `SolutionPathRegistry` wired; `IntegrationBus` delegates to `TaskRouter` with legacy fallback; `POST /api/librarian/query` live; PROD-001 + CAMP-001 capabilities registered |
 | AionMind Kernel | ✅ Operational | Context engine, reasoning engine, orchestration engine |
 | Setup Wizard | ✅ Operational | 6 deployment presets, guided onboarding |
+| **Module Loading** | ✅ **Instrumented** | `ModuleLoader` framework (ML-001): structured load reports, critical/optional classification, fail-fast on critical failures, `/api/modules` inventory endpoint, `/api/health` includes module report, startup banner summary |
 | Execution Engines | ✅ Operational | Task executor, workflow orchestrator, sandbox manager |
-| Learning Engine | ✅ Operational | Pattern detector, outcome tracker, PatternRecognizer operational; closed-loop ML wiring complete via LearningEngineConnector (EventBackbone → LearningEngine → AdaptiveDecisionEngine) |
+| Learning Engine | ✅ Operational | Full ML closed loop wired: EventBackbone → FeedbackIntegrator → PatternRecognizer → PerformancePredictor → threshold auto-adjustment → gate evolution |
+| Learning Engine | ⚠️ Partial | Pattern detector, outcome tracker operational; full ML loop pending |
+| **Event Backbone** | ✅ **Operational** | Background daemon loop, backpressure handling, metrics; wired into FastAPI startup/shutdown and ShutdownManager |
+| **Self-Healing Coordinator** | ✅ **Operational** | 5 wired recovery handlers (LLM timeout, gate confidence, external API, sandbox, auth token); circuit breaker; per-handler metrics; MTTR tracking; EventBackbone TASK_FAILED wired |
 | Concept Graph Engine | ✅ New | 7 node/edge types, graph health, GCS metric |
 | Unified Control Protocol | ✅ New | 10-engine pipeline, 7 states, rollback support |
 | Session Context Manager | ✅ New | Per-session locking, expiry, RM0–RM6 tracking |
 | **Multi-Cursor Split-Screen** | ✅ **New** | 7-layout zone system (SINGLE/DUAL_H/DUAL_V/TRIPLE_H/QUAD/HEXA/CUSTOM), thread-safe cursor pool, SplitScreenCoordinator session lifecycle |
 | **Rosetta Subsystem Wiring** | ✅ **New** | INC-07 P3 complete: 5 wiring points (EventBackbone, ConfidenceEngine, LearningEngine, GovernanceKernel, SecurityPlane); bootstrap_wiring(); adapter injection; strict mode |
 | **Crypto Trading Subsystem** | ✅ **New** | Coinbase v3, multi-exchange, HITL-gated bots, 6 strategies, risk manager |
-| **Shadow Learning System** | ✅ **New** | Paper bots practice vs live prices; winning weeks save patterns; human reviews before promoting | Landing page, terminal UIs, live dashboard (/ui/dashboard) with SSE metric streaming, management, calendar, meeting intelligence, ambient pages all present |
+| **Shadow Learning System** | ✅ **New** | Paper bots practice vs live prices; winning weeks save patterns; human reviews before promoting |
+| **Rosetta Subsystem Wiring** | ✅ **New** | P3-001–P3-005 wired: ImprovementEngine→Rosetta, Orchestrator cycles→progress, RAG ingestion, EventBackbone subscriptions, SystemState sync; 38 tests |
+| **CI/CD Pipeline** | ✅ **New** | GitHub Actions CI: lint (ruff), test matrix (Python 3.10/3.11/3.12), security scan (bandit), Docker build smoke |
+| **Core Path Coverage** | ✅ **New** | pytest --cov on core paths (rosetta_subsystem_wiring + startup_feature_summary) reports 90%+ (>80% threshold) |
+| UI / Landing Page | ⚠️ Partial | Landing page, terminal UIs exist; dashboard incomplete |
+| UI / Landing Page | ✅ Complete | Landing page, terminal UIs, and agent monitoring dashboard all complete |
 | Documentation | ✅ Complete | API docs, architecture docs, deployment guides, testing guide complete |
 
 ## Regulatory Alignment
@@ -50,15 +60,19 @@ Murphy System is **aligned with** (not formally attested to) the following frame
 
 - **Total test files**: 598+
 - **CI configuration**: `python -m pytest --timeout=60 -v --tb=short`
-- **CI pipeline**: GitHub Actions runs lint, test (Python 3.10/3.11/3.12), integration, security, and build jobs
-- **Key test suites**: concept graph engine (48), unified control protocol (62), session context (37), crypto trading system (102), shadow learning + real-money guard (48), multi-cursor split-screen (121), Rosetta subsystem wiring (38), gap closure round 49 (22)
+- **CI pipeline**: GitHub Actions (`.github/workflows/ci.yml`) runs lint (ruff), test matrix (Python 3.10/3.11/3.12), security scan (bandit), and Docker build smoke
+- **Core path coverage**: 90%+ on `rosetta_subsystem_wiring` + `startup_feature_summary` (INC-14 / M-05 ✅)
+- **Key test suites**: concept graph engine (48), unified control protocol (62), session context (37), crypto trading system (102), shadow learning + real-money guard (48), rosetta wiring (38)
 
 ## Known Gaps
 
 | ID | Gap | Priority | Actionable Path |
 |----|-----|----------|-----------------|
+| ~~G-004~~ | ~~Full ML feedback loop not wired~~ | ~~Medium~~ | ✅ **RESOLVED** — `LearningEngineConnector` wires `TASK_COMPLETED`, `TASK_FAILED`, `GATE_EVALUATED`, `AUTOMATION_EXECUTED` events on `EventBackbone` through `FeedbackIntegrator` → `PatternRecognizer` → `PerformancePredictor` → threshold auto-adjustment → `DomainGate.confidence_threshold` evolution. 41 unit tests covering the full loop. |
 | ~~G-004~~ | ~~Full ML feedback loop not wired~~ | ~~Medium~~ | ✅ **RESOLVED** — `record_outcome()` added to `GeographicLoadBalancer`, wiring feedback signals into `capacity_weight` via configurable learning rate |
-| G-005 | ~~Dashboard UI incomplete~~ | ~~Medium~~ | ✅ **RESOLVED** — `/ui/dashboard` live dashboard page with SSE metric stream, uptime sparkline, learning connector status, and snapshot history table |
+| ~~G-012~~ | ~~SelfHealingCoordinator had zero recovery handlers~~ | ~~High~~ | ✅ **RESOLVED** — 5 concrete handlers wired (`LLM_PROVIDER_TIMEOUT`, `GATE_CONFIDENCE_TOO_LOW`, `EXTERNAL_API_UNAVAILABLE`, `SANDBOX_RESOURCE_EXCEEDED`, `AUTH_TOKEN_EXPIRED`); circuit breaker, exponential backoff, per-handler metrics (success rate, MTTR), EventBackbone TASK_FAILED subscription |
+| G-005 | Dashboard UI incomplete | Medium | Complete React/terminal dashboard with live metrics |
+| ~~G-005~~ | ~~Dashboard UI incomplete~~ | ~~Medium~~ | ✅ **RESOLVED** — Full agent monitoring dashboard at `/dashboard` and `/ui/dashboard`: system health overview, task pipeline visualization, agent monitoring grid, onboarding wizard, metrics charts — all wired to `/api/agent-dashboard/*` endpoints |
 | G-006 | Formal security pen-test | High | Engage third-party security firm for penetration testing |
 | G-007 | ~~Database persistence JSON-only~~ | ~~Critical~~ | ✅ **IMPROVED** — PostgreSQL wired via DATABASE_URL; SQLite fallback; Alembic migrations; connection pooling configured |
 | G-008 | E2EE encryption is stubbed | Critical | Integrate matrix-nio SDK for real encryption |
@@ -66,10 +80,8 @@ Murphy System is **aligned with** (not formally attested to) the following frame
 | G-010 | ~~JWT/OAuth not in production~~ | ~~High~~ | ✅ **RESOLVED** — JWT token validation added to FastAPI and Flask security middleware |
 | G-011 | ~~Documentation placeholders~~ | ~~Medium~~ | ✅ **RESOLVED** — All 12+ placeholder docs filled with real content |
 | ~~G-008~~ | ~~Production deployment hardening~~ | ~~Medium~~ | ✅ **RESOLVED** — `SecurityContext`, `PodDisruptionBudget`, `NetworkPolicy` added to `kubernetes_deployment.py` with YAML rendering |
-| ~~G-012~~ | ~~HTTP error detail leaks internal exceptions (CWE-209)~~ | ~~High~~ | ✅ **RESOLVED** — `detail=str(exc)` removed from `billing/api.py`, `document_export/api.py`, `self_marketing_orchestrator.py`; opaque messages returned |
-| ~~G-013~~ | ~~Matrix Bridge room registry gaps~~ | ~~Medium~~ | ✅ **RESOLVED** — 9 missing rooms added to `room_registry.py`; all manifest entries now have registered rooms |
-| ~~G-014~~ | ~~Multi-cursor split-screen missing~~ | ~~High~~ | ✅ **RESOLVED** — `SplitScreenLayout`, `ScreenZone`, `CursorContext`, `MultiCursorDesktop`, `SplitScreenManager`, `SplitScreenCoordinator` implemented; 121 tests pass |
-| ~~G-015~~ | ~~Rosetta subsystem wiring not implemented (INC-07 P3)~~ | ~~High~~ | ✅ **RESOLVED** — `RosettaSubsystemWiring` with 5 P3 points, adapter injection, strict mode, `bootstrap_wiring()`; 38 tests pass |
+| ~~G-012~~ | ~~Librarian-driven routing not wired~~ | ~~Critical~~ | ✅ **RESOLVED** — `TaskRouter`, `SolutionPathRegistry`, `SystemLibrarian.find_capabilities()` implemented; `IntegrationBus._process_execute()` delegates to `TaskRouter` with graceful fallback to legacy chain; `FeedbackIntegrator` connected via `SolutionPathRegistry.record_outcome()`; 30 unit tests added; `POST /api/librarian/query` endpoint live; PROD-001 (`production_assistant`) and CAMP-001 (`outreach_campaign_planner`) capabilities registered in `SystemLibrarian` |
+| ~~G-012~~ | ~~FastAPI silently degrades when module imports fail~~ | ~~High~~ | ✅ **RESOLVED** — `ModuleLoader` framework (ML-001) in `src/runtime/module_loader.py`: `ModuleLoadReport` dataclass, critical/optional classification, fail-fast on critical failures, structured report at `/api/health` and `/api/modules`, startup banner, 23 unit tests |
 
 ## Infrastructure Deferred Items
 

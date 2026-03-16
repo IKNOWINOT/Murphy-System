@@ -13,7 +13,6 @@ import math
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
-
 # ---------------------------------------------------------------------------
 # Engineering Symbol Library (ISA 5.1 / IEC 60617 conventions)
 # ---------------------------------------------------------------------------
@@ -158,8 +157,14 @@ def build_pump_ga_drawing():  # type: ignore[return]
     Returns a DrawingProject ready for SVG/DXF export.
     """
     from murphy_drawing_engine import (
-        DrawingProject, DrawingSheet, DrawingElement,
-        TitleBlock, ElementType, Discipline, SheetSize, LineStyle,
+        Discipline,
+        DrawingElement,
+        DrawingProject,
+        DrawingSheet,
+        ElementType,
+        LineStyle,
+        SheetSize,
+        TitleBlock,
     )
     project = DrawingProject(
         name="Centrifugal Pump \u2014 General Arrangement",
@@ -775,8 +780,11 @@ class SpeakerAssemblyDrawing:
     def build(self) -> Any:
         """Build the complete speaker assembly drawing project and return it."""
         from murphy_drawing_engine import (
-            DrawingProject, DrawingSheet, TitleBlock,
-            Discipline, SheetSize,
+            Discipline,
+            DrawingProject,
+            DrawingSheet,
+            SheetSize,
+            TitleBlock,
         )
 
         project = DrawingProject(
