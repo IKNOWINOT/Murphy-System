@@ -902,6 +902,17 @@ class ContactComplianceGovernor:
         envelope values.
         """
         try:
+            from event_backbone import EventType
+            # Map known event names to EventType values
+            event_type_map: Dict[str, Any] = {
+                "OUTREACH_BLOCKED": EventType.TASK_FAILED,
+                "DNC_ADDED": EventType.LEARNING_FEEDBACK,
+                "CONTACT_SUPPRESSED": EventType.TASK_FAILED,
+            }
+            et = event_type_map.get(event_name, EventType.LEARNING_FEEDBACK)
+            self._backbone.publish(
+                event_type=et,
+                payload={
             from event_backbone_client import publish as _bb_publish  # noqa: PLC0415
             _bb_publish(
                 event_name,

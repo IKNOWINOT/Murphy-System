@@ -847,3 +847,603 @@ class ExecutionOrchestratorMiddleware(SecurityMiddleware):
 
 
 # Add more component-specific middleware as needed...
+
+
+# ============================================================================
+# ASGI / FASTAPI MIDDLEWARE — wired into the FastAPI app via add_middleware()
+# ============================================================================
+
+# Guard: only define ASGI middleware when Starlette is available
+try:
+    import os as _os
+    import time as _time
+    from starlette.middleware.base import BaseHTTPMiddleware as _BaseHTTPMiddleware
+    from starlette.requests import Request as _Request
+    from starlette.responses import JSONResponse as _JSONResponse
+    _STARLETTE_AVAILABLE = True
+except ImportError:  # pragma: no cover
+    _STARLETTE_AVAILABLE = False
+
+
+# ---------------------------------------------------------------------------
+# Public exemption list — paths that bypass all security-plane checks
+# ---------------------------------------------------------------------------
+
+_PUBLIC_PATHS: tuple = (
+    "/health",
+    "/healthz",
+    "/ready",
+    "/metrics",
+    "/docs",
+    "/openapi.json",
+    "/redoc",
+)
+
+
+def _is_exempt(path: str) -> bool:
+    """Return True when *path* is a public/health endpoint that skips security checks."""
+    normalized = path.rstrip("/") or "/"
+    return any(
+        normalized == p or normalized.startswith(p + "/")
+        for p in _PUBLIC_PATHS
+    )
+
+
+def _is_api_path(path: str) -> bool:
+    """Return True when *path* is under the /api/* namespace."""
+    return path.startswith("/api/")
+
+
+if _STARLETTE_AVAILABLE:
+
+    class RBACMiddleware(_BaseHTTPMiddleware):
+        """ASGI middleware that enforces role-based access control on /api/* routes.
+
+        Reads ``X-User-ID`` and (optionally) ``X-Role`` from the incoming request.
+        Resolves the required permission from a configurable endpoint → permission
+        mapping, then delegates to the live ``RBACGovernance`` instance (if
+        registered via :func:`register_rbac_middleware_governance`).
+
+        Fail-closed: any unexpected error during the RBAC check causes a 403
+        rather than allowing the request through.
+        """
+
+        # Singleton RBAC instance set via register_rbac_middleware_governance()
+        _rbac_instance = None
+
+        # Mapping from path prefix to required Permission value.
+        # More-specific prefixes must appear before shorter ones.
+        _ENDPOINT_PERMISSION_MAP: list = [
+            ("/api/execute",         "execute_task"),
+            ("/api/automations",     "execute_task"),
+            ("/api/admin",           "admin_access"),
+            ("/api/users",           "manage_users"),
+            ("/api/settings",        "manage_settings"),
+            ("/api/billing",         "manage_billing"),
+            ("/api/rbac",            "manage_rbac"),
+            ("/api/security",        "view_security_events"),
+            ("/api/corrections",     "view_corrections"),
+        ]
+
+        def __init__(self, app, rbac_instance=None):
+            super().__init__(app)
+            if rbac_instance is not None:
+                RBACMiddleware._rbac_instance = rbac_instance
+
+        async def dispatch(self, request: _Request, call_next):
+            path = request.url.path
+
+            # Exempt public and non-API paths
+            if _is_exempt(path) or not _is_api_path(path):
+                return await call_next(request)
+
+            # Skip OPTIONS (CORS preflight)
+            if request.method == "OPTIONS":
+                return await call_next(request)
+
+            # No RBAC instance registered → permissive in dev/test
+            if RBACMiddleware._rbac_instance is None:
+                murphy_env = _os.environ.get("MURPHY_ENV", "development")
+                if murphy_env in ("development", "test"):
+                    return await call_next(request)
+                # Fail-closed in staging/production when RBAC not configured
+                logger.warning("RBACMiddleware: no RBAC instance registered — denying request to %s", path)
+                return _JSONResponse(
+                    status_code=503,
+                    content={"error": "Authorization service unavailable"},
+                )
+
+            # Identify required permission for this endpoint
+            required_permission = self._resolve_permission(path)
+            if required_permission is None:
+                # No specific permission mapped → allow through
+                return await call_next(request)
+
+            user_id = request.headers.get("X-User-ID", "").strip()
+            if not user_id:
+                murphy_env = _os.environ.get("MURPHY_ENV", "development")
+                if murphy_env in ("development", "test"):
+                    return await call_next(request)
+                logger.warning("RBACMiddleware: missing X-User-ID header for %s", path)
+                return _JSONResponse(
+                    status_code=401,
+                    content={"error": "X-User-ID header required for API access"},
+                )
+
+            try:
+                from src.rbac_governance import Permission as _Permission
+                perm = _Permission(required_permission)
+                allowed, reason = RBACMiddleware._rbac_instance.check_permission(user_id, perm)
+                if not allowed:
+                    logger.warning(
+                        "RBACMiddleware: access denied for user=%s path=%s reason=%s",
+                        user_id, path, reason,
+                    )
+                    return _JSONResponse(
+                        status_code=403,
+                        content={"error": "Forbidden", "detail": reason},
+                    )
+            except ImportError:
+                logger.warning("RBACMiddleware: rbac_governance not available — allowing request")
+            except ValueError:
+                logger.warning(
+                    "RBACMiddleware: unknown permission '%s' for path %s — allowing request",
+                    required_permission, path,
+                )
+            except Exception as exc:  # fail-closed
+                logger.error("RBACMiddleware: unexpected error — denying request: %s", exc)
+                return _JSONResponse(
+                    status_code=403,
+                    content={"error": "Authorization check failed"},
+                )
+
+            return await call_next(request)
+
+        @classmethod
+        def _resolve_permission(cls, path: str):
+            """Return the permission string required for *path*, or None."""
+            for prefix, permission in cls._ENDPOINT_PERMISSION_MAP:
+                if path.startswith(prefix):
+                    return permission
+            return None
+
+    # Public helper to register the RBAC instance
+    def register_rbac_middleware_governance(rbac_instance) -> None:
+        """Register the live ``RBACGovernance`` instance used by :class:`RBACMiddleware`."""
+        RBACMiddleware._rbac_instance = rbac_instance
+        logger.info("RBACMiddleware: governance instance registered")
+
+    class RiskClassificationMiddleware(_BaseHTTPMiddleware):
+        """ASGI middleware that classifies each /api/* request by risk level.
+
+        Risk levels (ascending): low → medium → high → critical.
+        Requests classified as ``critical`` are denied immediately (fail-closed).
+        Risk level is stored in ``request.state.risk_level`` for downstream use.
+        """
+
+        # Risk level constants
+        LOW = "low"
+        MEDIUM = "medium"
+        HIGH = "high"
+        CRITICAL = "critical"
+
+        # Patterns that elevate risk to HIGH
+        _HIGH_RISK_PREFIXES: tuple = (
+            "/api/execute",
+            "/api/admin",
+            "/api/rbac",
+            "/api/billing",
+            "/api/security/events",
+        )
+
+        # Patterns that elevate risk to CRITICAL (blocked immediately)
+        _CRITICAL_RISK_PREFIXES: tuple = (
+            "/api/admin/delete",
+            "/api/rbac/delete",
+        )
+
+        # Threshold for body size that elevates risk (bytes)
+        _HIGH_BODY_SIZE_BYTES: int = 512 * 1024  # 512 KB
+
+        async def dispatch(self, request: _Request, call_next):
+            path = request.url.path
+
+            # Exempt public and non-API paths
+            if _is_exempt(path) or not _is_api_path(path):
+                return await call_next(request)
+
+            try:
+                risk = self._classify_risk(request)
+                request.state.risk_level = risk
+
+                if risk == self.CRITICAL:
+                    logger.warning(
+                        "RiskClassificationMiddleware: CRITICAL risk request blocked — path=%s method=%s",
+                        path, request.method,
+                    )
+                    return _JSONResponse(
+                        status_code=403,
+                        content={"error": "Request blocked: critical risk classification"},
+                    )
+
+                logger.debug(
+                    "RiskClassificationMiddleware: path=%s risk=%s", path, risk
+                )
+            except Exception as exc:  # fail-closed
+                logger.error(
+                    "RiskClassificationMiddleware: error during classification — denying request: %s", exc
+                )
+                return _JSONResponse(
+                    status_code=500,
+                    content={"error": "Risk classification failed"},
+                )
+
+            return await call_next(request)
+
+        def _classify_risk(self, request: _Request) -> str:
+            """Return the risk level for the given request."""
+            path = request.url.path
+            method = request.method
+
+            # Critical paths
+            for prefix in self._CRITICAL_RISK_PREFIXES:
+                if path.startswith(prefix):
+                    return self.CRITICAL
+
+            # High risk paths or destructive methods
+            for prefix in self._HIGH_RISK_PREFIXES:
+                if path.startswith(prefix):
+                    return self.HIGH
+
+            if method in ("DELETE", "PATCH"):
+                return self.HIGH
+
+            # Body size elevation
+            content_length_str = request.headers.get("content-length", "0")
+            try:
+                content_length = int(content_length_str)
+                if content_length >= self._HIGH_BODY_SIZE_BYTES:
+                    return self.HIGH
+            except ValueError:
+                pass
+
+            # Write operations are medium risk
+            if method in ("POST", "PUT"):
+                return self.MEDIUM
+
+            return self.LOW
+
+    class DLPScannerMiddleware(_BaseHTTPMiddleware):
+        """ASGI middleware that scans request and response bodies for sensitive data.
+
+        Uses the existing :class:`DLPMiddleware` classifier to detect PII, credentials,
+        and other sensitive content.  Sensitive data in *responses* is blocked to
+        prevent accidental data leakage (fail-closed).  Sensitive data *requests* are
+        logged and tagged so downstream handlers can take appropriate action.
+        """
+
+        # Patterns indicating sensitive data in plain text
+        _SENSITIVE_PATTERNS: list = []
+
+        def __init__(self, app, config: "Optional[SecurityMiddlewareConfig]" = None):
+            super().__init__(app)
+            self._dlp_config = config or SecurityMiddlewareConfig(
+                # Only enable DLP scanning — other aspects handled elsewhere
+                require_authentication=False,
+                require_encryption=False,
+                enable_audit_logging=False,
+                enable_timing_normalization=False,
+                enable_dlp=True,
+                block_sensitive_data=True,
+                enable_anti_surveillance=False,
+            )
+            self._dlp = DLPMiddleware(self._dlp_config)
+
+        async def dispatch(self, request: _Request, call_next):
+            path = request.url.path
+
+            # Exempt public and non-API paths
+            if _is_exempt(path) or not _is_api_path(path):
+                return await call_next(request)
+
+            try:
+                # Scan request body for sensitive data
+                await self._scan_request(request)
+            except Exception as exc:  # fail-closed on scan error
+                logger.error("DLPScannerMiddleware: request scan error — denying: %s", exc)
+                return _JSONResponse(
+                    status_code=400,
+                    content={"error": "Request body scan failed"},
+                )
+
+            response = await call_next(request)
+
+            # Scan response body for sensitive data leakage
+            try:
+                response = await self._scan_response(response, path)
+            except Exception as exc:
+                logger.error("DLPScannerMiddleware: response scan error: %s", exc)
+                # Fail-closed: block response if scan errors
+                return _JSONResponse(
+                    status_code=500,
+                    content={"error": "Response DLP scan failed"},
+                )
+
+            return response
+
+        async def _scan_request(self, request: _Request) -> None:
+            """Scan request body and tag request state with DLP classification."""
+            content_type = request.headers.get("content-type", "")
+            if "application/json" not in content_type and "text/" not in content_type:
+                request.state.dlp_classification = "PUBLIC"
+                request.state.dlp_sensitive = False
+                return
+
+            # Read up to 64 KB for scanning (avoid large body buffering)
+            try:
+                body_bytes = await request.body()
+                body_sample = body_bytes[:65536].decode("utf-8", errors="replace")
+            except Exception:
+                request.state.dlp_classification = "UNKNOWN"
+                request.state.dlp_sensitive = False
+                return
+
+            ctx = SecurityContext(
+                request_id=getattr(request.state, "trace_id", secrets.token_hex(8)),
+                timestamp=datetime.now(timezone.utc),
+            )
+            self._dlp.classify_data({"body": body_sample}, ctx)
+            request.state.dlp_classification = ctx.data_classification or "PUBLIC"
+            request.state.dlp_sensitive = ctx.sensitive_data_detected
+
+            if ctx.sensitive_data_detected:
+                logger.warning(
+                    "DLPScannerMiddleware: sensitive data detected in request — path=%s classification=%s",
+                    request.url.path,
+                    ctx.data_classification,
+                )
+
+        async def _scan_response(self, response, path: str):
+            """Scan response body for sensitive data leakage.
+
+            Only JSON/text responses are scanned.  If sensitive data is found in a
+            response the middleware replaces the body with an error to prevent leakage.
+            """
+            content_type = response.headers.get("content-type", "")
+            if "application/json" not in content_type and "text/" not in content_type:
+                return response
+
+            # Collect the response body without consuming the stream permanently
+            body_chunks: list = []
+            async for chunk in response.body_iterator:
+                body_chunks.append(chunk if isinstance(chunk, bytes) else chunk.encode())
+            body_bytes = b"".join(body_chunks)
+            body_sample = body_bytes[:65536].decode("utf-8", errors="replace")
+
+            ctx = SecurityContext(
+                request_id=secrets.token_hex(8),
+                timestamp=datetime.now(timezone.utc),
+            )
+            self._dlp.classify_data({"body": body_sample}, ctx)
+
+            if ctx.sensitive_data_detected:
+                logger.warning(
+                    "DLPScannerMiddleware: sensitive data detected in response — path=%s classification=%s",
+                    path,
+                    ctx.data_classification,
+                )
+                # Block the response to prevent leakage
+                return _JSONResponse(
+                    status_code=500,
+                    content={
+                        "error": "Response blocked: sensitive data detected",
+                        "classification": ctx.data_classification,
+                    },
+                )
+
+            # Re-wrap body in a new response with original headers
+            from starlette.responses import Response as _StarletteResponse
+            return _StarletteResponse(
+                content=body_bytes,
+                status_code=response.status_code,
+                headers=dict(response.headers),
+                media_type=response.media_type,
+            )
+
+    class PerUserRateLimitMiddleware(_BaseHTTPMiddleware):
+        """ASGI middleware that enforces per-user and per-endpoint-tier rate limits.
+
+        Complements the per-client-IP rate limiting in
+        :class:`~src.fastapi_security.SecurityMiddleware` with two additional
+        dimensions:
+
+        * **Per-user**: keyed on ``X-User-ID`` header (or ``anonymous`` when absent).
+          Prevents a single authenticated user from flooding the API regardless of
+          how many IPs they use.
+        * **Per-endpoint tier**: endpoints are grouped into tiers with different RPM
+          budgets.  Sensitive write-heavy endpoints (``/api/execute``,
+          ``/api/admin``) have stricter limits than read-only endpoints.
+
+        Configuration via environment variables (all optional):
+
+        =====================================  ==============================  ==============
+        Variable                               Meaning                         Default
+        =====================================  ==============================  ==============
+        ``MURPHY_USER_RATE_LIMIT_RPM``         Global per-user RPM budget      ``120``
+        ``MURPHY_USER_RATE_LIMIT_BURST``       Initial burst tokens            ``30``
+        ``MURPHY_EXEC_RATE_LIMIT_RPM``         RPM for /api/execute tier       ``10``
+        ``MURPHY_EXEC_RATE_LIMIT_BURST``       Burst for /api/execute tier     ``5``
+        ``MURPHY_ADMIN_RATE_LIMIT_RPM``        RPM for /api/admin/* tier       ``20``
+        ``MURPHY_ADMIN_RATE_LIMIT_BURST``      Burst for /api/admin/* tier     ``5``
+        =====================================  ==============================  ==============
+
+        Fail-closed: any unexpected error returns 429 rather than allowing the
+        request through.
+        """
+
+        _BUCKET_TTL_SECONDS = 3600
+        _CLEANUP_INTERVAL = 300
+
+        # Endpoint-tier definitions: (path_prefix, rpm, burst)
+        # More specific prefixes must appear before broader ones.
+        _ENDPOINT_TIERS: list = []  # populated in __init__ from env
+
+        def __init__(self, app):
+            super().__init__(app)
+            # Global per-user limiter
+            self._global_rpm = int(_os.environ.get("MURPHY_USER_RATE_LIMIT_RPM", "120"))
+            self._global_burst = int(_os.environ.get("MURPHY_USER_RATE_LIMIT_BURST", "30"))
+
+            # Endpoint-tier limiters (separate bucket namespace per tier)
+            self._endpoint_tiers: list = [
+                (
+                    "/api/execute",
+                    int(_os.environ.get("MURPHY_EXEC_RATE_LIMIT_RPM", "10")),
+                    int(_os.environ.get("MURPHY_EXEC_RATE_LIMIT_BURST", "5")),
+                ),
+                (
+                    "/api/admin",
+                    int(_os.environ.get("MURPHY_ADMIN_RATE_LIMIT_RPM", "20")),
+                    int(_os.environ.get("MURPHY_ADMIN_RATE_LIMIT_BURST", "5")),
+                ),
+                (
+                    "/api/automations",
+                    int(_os.environ.get("MURPHY_EXEC_RATE_LIMIT_RPM", "10")),
+                    int(_os.environ.get("MURPHY_EXEC_RATE_LIMIT_BURST", "5")),
+                ),
+            ]
+
+            # Token buckets: keyed by "user_id:bucket_name"
+            self._buckets: dict = {}
+            self._last_cleanup: float = _time.monotonic()
+
+        # ------------------------------------------------------------------
+        # Token bucket helpers
+        # ------------------------------------------------------------------
+
+        def _check(self, key: str, rpm: int, burst: int) -> dict:
+            """Token-bucket rate check for *key* with given *rpm* and *burst*."""
+            now = _time.monotonic()
+
+            if now - self._last_cleanup > self._CLEANUP_INTERVAL:
+                stale = [
+                    k for k, b in self._buckets.items()
+                    if now - b["last_refill"] > self._BUCKET_TTL_SECONDS
+                ]
+                for k in stale:
+                    del self._buckets[k]
+                self._last_cleanup = now
+
+            if key not in self._buckets:
+                self._buckets[key] = {"tokens": float(burst), "last_refill": now}
+
+            bucket = self._buckets[key]
+            elapsed = now - bucket["last_refill"]
+            bucket["tokens"] = min(float(burst), bucket["tokens"] + elapsed * (rpm / 60.0))
+            bucket["last_refill"] = now
+
+            if bucket["tokens"] >= 1.0:
+                bucket["tokens"] -= 1.0
+                return {"allowed": True, "remaining": int(bucket["tokens"])}
+
+            return {
+                "allowed": False,
+                "remaining": 0,
+                "retry_after_seconds": (1.0 - bucket["tokens"]) * (60.0 / max(rpm, 1)),
+            }
+
+        # ------------------------------------------------------------------
+        # Middleware dispatch
+        # ------------------------------------------------------------------
+
+        async def dispatch(self, request: _Request, call_next):
+            path = request.url.path
+
+            # Exempt public and non-API paths
+            if _is_exempt(path) or not _is_api_path(path):
+                return await call_next(request)
+
+            # Skip OPTIONS (CORS preflight)
+            if request.method == "OPTIONS":
+                return await call_next(request)
+
+            try:
+                user_id = request.headers.get("X-User-ID", "").strip() or "anonymous"
+
+                # 1. Per-endpoint-tier check (stricter limits for sensitive endpoints)
+                for prefix, rpm, burst in self._endpoint_tiers:
+                    if path.startswith(prefix):
+                        tier_key = f"{user_id}:{prefix}"
+                        result = self._check(tier_key, rpm, burst)
+                        if not result["allowed"]:
+                            logger.warning(
+                                "PerUserRateLimitMiddleware: endpoint-tier limit exceeded "
+                                "user=%s path=%s tier=%s retry_after=%.1fs",
+                                user_id, path, prefix,
+                                result.get("retry_after_seconds", 0),
+                            )
+                            return _JSONResponse(
+                                status_code=429,
+                                content={
+                                    "error": "Rate limit exceeded for this endpoint",
+                                    "tier": prefix,
+                                    "retry_after_seconds": result.get("retry_after_seconds", 60),
+                                },
+                            )
+                        break  # matched — no need to check other tiers
+
+                # 2. Global per-user check
+                global_key = f"{user_id}:global"
+                result = self._check(global_key, self._global_rpm, self._global_burst)
+                if not result["allowed"]:
+                    logger.warning(
+                        "PerUserRateLimitMiddleware: global user limit exceeded "
+                        "user=%s path=%s retry_after=%.1fs",
+                        user_id, path,
+                        result.get("retry_after_seconds", 0),
+                    )
+                    return _JSONResponse(
+                        status_code=429,
+                        content={
+                            "error": "Rate limit exceeded",
+                            "retry_after_seconds": result.get("retry_after_seconds", 60),
+                        },
+                    )
+
+            except Exception as exc:  # fail-closed on unexpected errors
+                logger.error("PerUserRateLimitMiddleware: unexpected error — denying: %s", exc)
+                return _JSONResponse(
+                    status_code=429,
+                    content={"error": "Rate limit check failed"},
+                )
+
+            return await call_next(request)
+
+    def wire_security_plane_middleware(app) -> None:
+        """Wire all Security Plane ASGI middleware onto a FastAPI app.
+
+        Call this **after** :func:`~src.fastapi_security.configure_secure_fastapi`
+        so the middleware insertion order matches the intended execution order:
+
+            rate-limit + auth (SecurityMiddleware, outermost)
+            → per-user + per-endpoint rate limit (PerUserRateLimitMiddleware)
+            → RBAC (RBACMiddleware)
+            → risk classification (RiskClassificationMiddleware)
+            → DLP scan (DLPScannerMiddleware, innermost among security layers)
+            → routes
+
+        Starlette processes middleware in *reverse* add_middleware order, so each
+        middleware is added in innermost-first order here.
+        """
+        # DLP — innermost (added first)
+        app.add_middleware(DLPScannerMiddleware)
+        # Risk classification
+        app.add_middleware(RiskClassificationMiddleware)
+        # RBAC
+        app.add_middleware(RBACMiddleware)
+        # Per-user + per-endpoint rate limiting (outermost of the Security Plane layers)
+        app.add_middleware(PerUserRateLimitMiddleware)
+        logger.info(
+            "Security Plane ASGI middleware registered: "
+            "per-user rate limit → RBAC → risk classification → DLP"
+        )
