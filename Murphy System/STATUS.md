@@ -22,7 +22,6 @@
 | **Module Loading** | ✅ **Instrumented** | `ModuleLoader` framework (ML-001): structured load reports, critical/optional classification, fail-fast on critical failures, `/api/modules` inventory endpoint, `/api/health` includes module report, startup banner summary |
 | Execution Engines | ✅ Operational | Task executor, workflow orchestrator, sandbox manager |
 | Learning Engine | ✅ Operational | Full ML closed loop wired: EventBackbone → FeedbackIntegrator → PatternRecognizer → PerformancePredictor → threshold auto-adjustment → gate evolution |
-| Learning Engine | ⚠️ Partial | Pattern detector, outcome tracker operational; full ML loop pending |
 | **Event Backbone** | ✅ **Operational** | Background daemon loop, backpressure handling, metrics; wired into FastAPI startup/shutdown and ShutdownManager |
 | **Self-Healing Coordinator** | ✅ **Operational** | 5 wired recovery handlers (LLM timeout, gate confidence, external API, sandbox, auth token); circuit breaker; per-handler metrics; MTTR tracking; EventBackbone TASK_FAILED wired |
 | Concept Graph Engine | ✅ New | 7 node/edge types, graph health, GCS metric |
@@ -80,6 +79,25 @@ Murphy System is **aligned with** (not formally attested to) the following frame
 | ~~G-008~~ | ~~Production deployment hardening~~ | ~~Medium~~ | ✅ **RESOLVED** — `SecurityContext`, `PodDisruptionBudget`, `NetworkPolicy` added to `kubernetes_deployment.py` with YAML rendering |
 | ~~G-012~~ | ~~Librarian-driven routing not wired~~ | ~~Critical~~ | ✅ **RESOLVED** — `TaskRouter`, `SolutionPathRegistry`, `SystemLibrarian.find_capabilities()` implemented; `IntegrationBus._process_execute()` delegates to `TaskRouter` with graceful fallback to legacy chain; `FeedbackIntegrator` connected via `SolutionPathRegistry.record_outcome()`; 30 unit tests added; `POST /api/librarian/query` endpoint live; PROD-001 (`production_assistant`) and CAMP-001 (`outreach_campaign_planner`) capabilities registered in `SystemLibrarian` |
 | ~~G-012~~ | ~~FastAPI silently degrades when module imports fail~~ | ~~High~~ | ✅ **RESOLVED** — `ModuleLoader` framework (ML-001) in `src/runtime/module_loader.py`: `ModuleLoadReport` dataclass, critical/optional classification, fail-fast on critical failures, structured report at `/api/health` and `/api/modules`, startup banner, 23 unit tests |
+
+## Current Optimal Flow Status
+
+The Murphy System is designed around the **Describe → Execute → Refine** hero path.
+The table below reflects whether this end-to-end path works today.
+
+| Step | Status | Notes |
+|------|--------|-------|
+| **DESCRIBE** — `POST /api/workflow-terminal/message` | ✅ Code wired | `nocode_workflow_terminal.py` + Librarian interface operational |
+| **GENERATE** — `POST /api/forms/plan-generation` | ✅ Code wired | `ai_workflow_generator.py` 3-tier strategy (template → keyword → generic) + topological sort |
+| **EXECUTE** — `POST /api/execute` | ✅ Code wired | `workflow_orchestrator.py` + `gate_execution_wiring.py` (6 gates) + AionMind kernel |
+| **REFINE** — `workflow_canvas.html` | ✅ Code wired | Visual DAG editor for post-generation modification |
+| **E2E hero flow validation** | ⚠️ Pending | Each step works in isolation; full Describe→Generate→Execute integration test with a real user flow has not yet been completed |
+
+> **Bottom line:** The code for the full hero path is wired end-to-end.
+> Integration testing and real-user validation of the complete flow remain the
+> primary gap before the system can be declared production-ready on this dimension.
+
+---
 
 ## Infrastructure Deferred Items
 
