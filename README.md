@@ -276,3 +276,121 @@ Murphy-System/
 | **Visual Swarm Builder** | `src/visual_swarm_builder.py` | Visual pipeline construction for swarm workflows |
 | **CEO Branch Activation** | `src/ceo_branch_activation.py` | Top-level autonomous decision-making and planning |
 | **Production Assistant Engine** | `src/production_assistant_engine.py` | Request lifecycle and deliverable gate validation |
+
+---
+
+## Features
+
+- **Autonomous Business Operations** — 978 source modules across 81 packages orchestrate end-to-end workflows without manual intervention
+- **Multi-LLM Routing** — First-class support for Groq, OpenAI, Anthropic, Mistral, Gemini, and local models with automatic fallback
+- **MFGC / 5U Gate System** — Murphy Formula Gate Confidence scoring gates every deliverable through confidence, validation, and human-review bands
+- **Event-Driven Architecture** — Durable EventBackbone with retry, circuit breakers, and dead-letter queues
+- **Security Hardening** — RBAC, ASGI middleware (RBACMiddleware, DLPScannerMiddleware, RiskClassification, PerUserRateLimit), HMAC signing, PII redaction
+- **Self-Healing & Self-Improvement** — Autonomous repair, feedback loops, LearningEngineConnector, PatternRecognizer, PerformancePredictor
+- **Compliance Engine** — GDPR, SOC2, HIPAA, PCI-DSS sensors with human-in-the-loop approvals
+- **Multi-Tenant Workspaces** — Isolated tenant environments with per-user and per-bot resource quotas
+- **Observability** — Prometheus metrics, Grafana dashboards, SLO tracker, alert rules
+- **Kubernetes-Ready** — Helm chart, k8s manifests, Hetzner and Cloudflare deploy scripts
+
+---
+
+## Architecture
+
+```
+src/
+├── runtime/           # FastAPI app, module loader, dependency bootstrap
+│   ├── app.py         # 5 400+ line main application
+│   └── murphy_system_core.py  # 11 000+ line core orchestrator
+├── security_plane/    # RBAC, DLP, bot identity, anomaly detection
+├── governance_kernel/ # Budget tracking, non-LLM enforcement, audit
+├── event_backbone.py  # Durable pub/sub with circuit breakers
+├── task_router.py     # Capability routing + SystemLibrarian
+├── persistence_manager.py  # JSON / SQLite / PostgreSQL / WAL
+└── ...978 modules total
+```
+
+**Request flow:**  
+`POST /api/execute` → `TaskRouter` → `GovernanceKernel` → `AutomationIntegrationHub` → `EventBackbone` → workers → `FeedbackIntegrator` → `LearningEngineConnector`
+
+---
+
+## API Endpoints
+
+See the [API Reference](#api-reference) section above for the full endpoint table, or visit **http://localhost:8000/docs** for the live Swagger UI.
+
+| Category | Base Path | Description |
+|---|---|---|
+| Core | `/api/health`, `/api/status`, `/api/execute`, `/api/chat` | Health, status, execution, chat |
+| Onboarding | `/api/onboarding/*`, `/api/onboarding-flow/*` | Wizard and corporate flow |
+| Workflow | `/api/workflow-terminal/*`, `/api/forms/*` | No-code Librarian, plan generation |
+| Security | `/api/credentials/*`, `/api/hitl/*` | HITL approvals, credential profiles |
+| Observability | `/api/metrics`, `/api/dashboards/*` | Prometheus metrics, live dashboards |
+| Swarm | `/api/swarm/*` | Founder-gated swarm orchestration |
+
+---
+
+## Configuration
+
+All settings are provided via environment variables. Copy `.env.example` to `.env` and fill in values.
+
+| Variable | Required | Description |
+|---|---|---|
+| `MURPHY_ENV` | yes | `development`, `staging`, or `production` |
+| `MURPHY_API_KEYS` | yes | Comma-separated bearer tokens for API auth |
+| `MURPHY_CORS_ORIGINS` | yes | Allowed CORS origins (comma-separated) |
+| `GROQ_API_KEY` | recommended | Groq LLM API key — get free key at https://console.groq.com/keys |
+| `OPENAI_API_KEY` | optional | OpenAI API key |
+| `ANTHROPIC_API_KEY` | optional | Anthropic Claude API key |
+| `DATABASE_URL` | optional | PostgreSQL URL — defaults to SQLite |
+| `REDIS_URL` | optional | Redis URL for caching and pub/sub |
+| `SECRET_KEY` | yes | HMAC signing secret (min 32 chars) |
+
+---
+
+## Testing
+
+```bash
+# Full test suite
+python -m pytest tests/ --timeout=60 -q
+
+# Specific module
+python -m pytest tests/test_task_router.py -q
+
+# Commissioning / launch-readiness gates
+python -m pytest tests/commissioning/ -q
+```
+
+Coverage is enforced at ≥85% via `--cov-fail-under=85`.
+
+---
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed contribution guidelines, code style, and the PR checklist.
+
+Quick summary:
+1. Fork and create a feature branch
+2. Add tests for new functionality
+3. Ensure `python -m pytest tests/` passes
+4. Submit a pull request — all PRs run the full CI matrix
+
+---
+
+## Security
+
+Security issues should be reported privately to the maintainers — do **not** open a public issue.
+
+Key security controls implemented:
+- ASGI middleware stack: RBAC, DLP scanning, risk classification, per-user rate limiting
+- HMAC-SHA256 bot identity signing with key rotation
+- PII detection and automated redaction in all log statements
+- Per-bot and per-swarm resource quotas with auto-suspension
+- CSP headers, XSS/SQLi/path-traversal sanitization
+
+See [security_hardening_config.py](src/security_hardening_config.py) and `src/security_plane/` for implementation details.
+
+---
+
+## License
+
+Proprietary — All rights reserved. See [LICENSE](LICENSE) for terms.
