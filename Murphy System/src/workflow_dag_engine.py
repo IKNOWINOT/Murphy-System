@@ -13,7 +13,7 @@ import logging
 import threading
 import time
 from collections import defaultdict, deque
-from concurrent.futures import ThreadPoolExecutor, wait as futures_wait, TimeoutError as FuturesTimeoutError
+from concurrent.futures import ThreadPoolExecutor, wait as futures_wait
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
@@ -352,7 +352,10 @@ class WorkflowDAGEngine:
                 step_exec.result = result
                 step_exec.status = StepStatus.COMPLETED
             except Exception as exc:
-                logger.debug("Caught exception: %s", exc)
+                logger.debug(
+                    "Step '%s' (action='%s') raised: %s",
+                    step_def.step_id, step_def.action, exc,
+                )
                 step_exec.error = str(exc)
                 step_exec.status = StepStatus.FAILED
         else:

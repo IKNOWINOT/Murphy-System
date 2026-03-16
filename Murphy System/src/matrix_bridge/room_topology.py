@@ -763,7 +763,7 @@ _CANONICAL_SPACES: List[SpaceDefinition] = [
                 room_type=RoomType.COORDINATION,
                 description=(
                     "Shadow-agent automation suggestions rendered as "
-                    "coloured highlights / glow-key hints. "
+                    "colored highlights / glow-key hints. "
                     "Served by OverlayManager via /api/overlay/*."
                 ),
                 subsystems=[
