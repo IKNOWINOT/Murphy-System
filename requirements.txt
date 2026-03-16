@@ -14,3 +14,10 @@ matplotlib>=3.7.0
 
 # Statistical benchmarking (supplements pytest-cov already in Murphy System/requirements.txt)
 pytest-benchmark>=4.0.0
+
+# Email delivery — real SMTP + SendGrid (no mock backends)
+aiosmtplib>=3.0.0
+aiosmtpd>=1.4.0
+
+# HTTP transport interception for SendGrid tests
+respx>=0.21.0
