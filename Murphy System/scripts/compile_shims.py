@@ -9,8 +9,12 @@ Usage:
     python scripts/compile_shims.py --config path/to/bot_manifests.yaml
 
 Prerequisites:
-    Run ``pip install -e .`` from the project root before executing this script
-    so that ``src`` package imports resolve correctly.
+    Run ``pip install -e .`` from the ``Murphy System/`` project directory
+    (the one that contains ``pyproject.toml``) before executing this script,
+    so that ``src`` package imports resolve correctly::
+
+        cd "Murphy System"
+        pip install -e .
 
 Exit codes:
     0  all shims up-to-date or successfully written
