@@ -297,6 +297,28 @@ class CommandDispatcher:
         self.register_handler("schedule", _handle_schedule, "Business loop scheduling (loops, configure, status)")
         self.register_handler("skm", _handle_skm, "Sense-Know-Model loop (status, sense, know, model, cycle)")
         self.register_handler("automation", _handle_automation, "Unified automation view and control (list, summary, types, mode, hub, rbac, readiness, scale, loop, scheduler, marketplace, native, self, onboard-engine, building, manufacturing, sales, compliance-bridge, full, deploy)")
+        # ── Subsystem stub handlers ──────────────────────────────────────────────
+        self.register_handler("swarm", _handle_swarm, "Swarm system commands (propose, status, build, domain, orchestrate, crew)")
+        self.register_handler("workflow", _handle_workflow, "Workflow commands (generate, templates, dag)")
+        self.register_handler("agents", _handle_agents, "Agent subsystem commands (list, monitor, personas, runs, history)")
+        self.register_handler("heal", _handle_heal, "Self-healing commands (status, fix, code, blackstart)")
+        self.register_handler("research", _handle_research, "Research subsystem commands (run, query, advanced, multi)")
+        self.register_handler("monitor", _handle_monitor, "Monitoring commands (health, logs, slo, telemetry, heartbeat)")
+        self.register_handler("exec", _handle_exec, "Execution subsystem commands (run, status, packet, plan)")
+        self.register_handler("confidence", _handle_confidence, "Confidence engine commands (status, score, gate)")
+        self.register_handler("security", _handle_security, "Security subsystem commands (scan, audit, rbac, harden)")
+        self.register_handler("compliance", _handle_compliance_cmd, "Compliance commands (status, scan, report, recommended)")
+        self.register_handler("governance", _handle_governance, "Governance commands (status, authority, bypass)")
+        self.register_handler("hitl", _handle_hitl, "Human-in-the-loop commands (status, graduate, level, approve)")
+        self.register_handler("safety", _handle_safety, "Safety subsystem commands (status, validate, orchestrate)")
+        self.register_handler("llm", _handle_llm, "LLM subsystem commands (status, route, gate, swarm, validate)")
+        self.register_handler("kb", _handle_kb, "Knowledge base commands (status, search, query, generate)")
+        self.register_handler("integrations", _handle_integrations, "Integration commands (list, status, add, system)")
+        self.register_handler("finance", _handle_finance, "Finance commands (report, portfolio, trading, invoice, budget)")
+        self.register_handler("trading", _handle_trading, "Trading bot commands (status, approve, strategy, lifecycle)")
+        self.register_handler("infra", _handle_infra, "Infrastructure commands (k8s, docker, deploy, fleet, capacity)")
+        self.register_handler("org", _handle_org, "Organisation commands (chart, compile, enforce, context)")
+        self.register_handler("data", _handle_data, "Data pipeline commands (pipeline, archive, sync, schema)")
 
 
 # ---------------------------------------------------------------------------
@@ -506,3 +528,243 @@ def _handle_automation(
     """Handle ``!murphy automation`` — delegate to management_systems.management_commands."""
     from management_systems.management_commands import handle_automation
     return handle_automation(dispatcher, cmd)
+
+
+# ---------------------------------------------------------------------------
+# Subsystem stub handlers (added by command registration audit)
+# ---------------------------------------------------------------------------
+
+
+def _handle_swarm(dispatcher: CommandDispatcher, cmd: ParsedCommand) -> CommandResponse:
+    """Route SWARM subsystem commands."""
+    sub = cmd.subcommand or ""
+    args_str = " ".join(cmd.args)
+    return CommandResponse(
+        success=True,
+        message=f"[SWARM] {sub} {args_str} — route to swarm subsystem handler".strip(),
+        format="text",
+    )
+
+
+def _handle_workflow(dispatcher: CommandDispatcher, cmd: ParsedCommand) -> CommandResponse:
+    """Route WORKFLOW subsystem commands."""
+    sub = cmd.subcommand or ""
+    args_str = " ".join(cmd.args)
+    return CommandResponse(
+        success=True,
+        message=f"[WORKFLOW] {sub} {args_str} — route to workflow subsystem handler".strip(),
+        format="text",
+    )
+
+
+def _handle_agents(dispatcher: CommandDispatcher, cmd: ParsedCommand) -> CommandResponse:
+    """Route AGENTS subsystem commands."""
+    sub = cmd.subcommand or ""
+    args_str = " ".join(cmd.args)
+    return CommandResponse(
+        success=True,
+        message=f"[AGENTS] {sub} {args_str} — route to agents subsystem handler".strip(),
+        format="text",
+    )
+
+
+def _handle_heal(dispatcher: CommandDispatcher, cmd: ParsedCommand) -> CommandResponse:
+    """Route HEAL subsystem commands."""
+    sub = cmd.subcommand or ""
+    args_str = " ".join(cmd.args)
+    return CommandResponse(
+        success=True,
+        message=f"[HEAL] {sub} {args_str} — route to self-healing subsystem handler".strip(),
+        format="text",
+    )
+
+
+def _handle_research(dispatcher: CommandDispatcher, cmd: ParsedCommand) -> CommandResponse:
+    """Route RESEARCH subsystem commands."""
+    sub = cmd.subcommand or ""
+    args_str = " ".join(cmd.args)
+    return CommandResponse(
+        success=True,
+        message=f"[RESEARCH] {sub} {args_str} — route to research subsystem handler".strip(),
+        format="text",
+    )
+
+
+def _handle_monitor(dispatcher: CommandDispatcher, cmd: ParsedCommand) -> CommandResponse:
+    """Route MONITOR subsystem commands."""
+    sub = cmd.subcommand or ""
+    args_str = " ".join(cmd.args)
+    return CommandResponse(
+        success=True,
+        message=f"[MONITOR] {sub} {args_str} — route to monitoring subsystem handler".strip(),
+        format="text",
+    )
+
+
+def _handle_exec(dispatcher: CommandDispatcher, cmd: ParsedCommand) -> CommandResponse:
+    """Route EXEC subsystem commands."""
+    sub = cmd.subcommand or ""
+    args_str = " ".join(cmd.args)
+    return CommandResponse(
+        success=True,
+        message=f"[EXEC] {sub} {args_str} — route to execution subsystem handler".strip(),
+        format="text",
+    )
+
+
+def _handle_confidence(dispatcher: CommandDispatcher, cmd: ParsedCommand) -> CommandResponse:
+    """Route CONFIDENCE subsystem commands."""
+    sub = cmd.subcommand or ""
+    args_str = " ".join(cmd.args)
+    return CommandResponse(
+        success=True,
+        message=f"[CONFIDENCE] {sub} {args_str} — route to confidence subsystem handler".strip(),
+        format="text",
+    )
+
+
+def _handle_security(dispatcher: CommandDispatcher, cmd: ParsedCommand) -> CommandResponse:
+    """Route SECURITY subsystem commands."""
+    sub = cmd.subcommand or ""
+    args_str = " ".join(cmd.args)
+    return CommandResponse(
+        success=True,
+        message=f"[SECURITY] {sub} {args_str} — route to security subsystem handler".strip(),
+        format="text",
+    )
+
+
+def _handle_compliance_cmd(
+    dispatcher: CommandDispatcher, cmd: ParsedCommand
+) -> CommandResponse:
+    """Route COMPLIANCE subsystem commands."""
+    sub = cmd.subcommand or ""
+    args_str = " ".join(cmd.args)
+    return CommandResponse(
+        success=True,
+        message=f"[COMPLIANCE] {sub} {args_str} — route to compliance subsystem handler".strip(),
+        format="text",
+    )
+
+
+def _handle_governance(dispatcher: CommandDispatcher, cmd: ParsedCommand) -> CommandResponse:
+    """Route GOVERNANCE subsystem commands."""
+    sub = cmd.subcommand or ""
+    args_str = " ".join(cmd.args)
+    return CommandResponse(
+        success=True,
+        message=f"[GOVERNANCE] {sub} {args_str} — route to governance subsystem handler".strip(),
+        format="text",
+    )
+
+
+def _handle_hitl(dispatcher: CommandDispatcher, cmd: ParsedCommand) -> CommandResponse:
+    """Route HITL subsystem commands."""
+    sub = cmd.subcommand or ""
+    args_str = " ".join(cmd.args)
+    return CommandResponse(
+        success=True,
+        message=f"[HITL] {sub} {args_str} — route to HITL subsystem handler".strip(),
+        format="text",
+    )
+
+
+def _handle_safety(dispatcher: CommandDispatcher, cmd: ParsedCommand) -> CommandResponse:
+    """Route SAFETY subsystem commands."""
+    sub = cmd.subcommand or ""
+    args_str = " ".join(cmd.args)
+    return CommandResponse(
+        success=True,
+        message=f"[SAFETY] {sub} {args_str} — route to safety subsystem handler".strip(),
+        format="text",
+    )
+
+
+def _handle_llm(dispatcher: CommandDispatcher, cmd: ParsedCommand) -> CommandResponse:
+    """Route LLM subsystem commands."""
+    sub = cmd.subcommand or ""
+    args_str = " ".join(cmd.args)
+    return CommandResponse(
+        success=True,
+        message=f"[LLM] {sub} {args_str} — route to LLM subsystem handler".strip(),
+        format="text",
+    )
+
+
+def _handle_kb(dispatcher: CommandDispatcher, cmd: ParsedCommand) -> CommandResponse:
+    """Route KB (knowledge base) subsystem commands."""
+    sub = cmd.subcommand or ""
+    args_str = " ".join(cmd.args)
+    return CommandResponse(
+        success=True,
+        message=f"[KB] {sub} {args_str} — route to knowledge subsystem handler".strip(),
+        format="text",
+    )
+
+
+def _handle_integrations(
+    dispatcher: CommandDispatcher, cmd: ParsedCommand
+) -> CommandResponse:
+    """Route INTEGRATIONS subsystem commands."""
+    sub = cmd.subcommand or ""
+    args_str = " ".join(cmd.args)
+    return CommandResponse(
+        success=True,
+        message=f"[INTEGRATIONS] {sub} {args_str} — route to integrations subsystem handler".strip(),
+        format="text",
+    )
+
+
+def _handle_finance(dispatcher: CommandDispatcher, cmd: ParsedCommand) -> CommandResponse:
+    """Route FINANCE subsystem commands."""
+    sub = cmd.subcommand or ""
+    args_str = " ".join(cmd.args)
+    return CommandResponse(
+        success=True,
+        message=f"[FINANCE] {sub} {args_str} — route to finance subsystem handler".strip(),
+        format="text",
+    )
+
+
+def _handle_trading(dispatcher: CommandDispatcher, cmd: ParsedCommand) -> CommandResponse:
+    """Route TRADING subsystem commands."""
+    sub = cmd.subcommand or ""
+    args_str = " ".join(cmd.args)
+    return CommandResponse(
+        success=True,
+        message=f"[TRADING] {sub} {args_str} — route to trading subsystem handler".strip(),
+        format="text",
+    )
+
+
+def _handle_infra(dispatcher: CommandDispatcher, cmd: ParsedCommand) -> CommandResponse:
+    """Route INFRA subsystem commands."""
+    sub = cmd.subcommand or ""
+    args_str = " ".join(cmd.args)
+    return CommandResponse(
+        success=True,
+        message=f"[INFRA] {sub} {args_str} — route to infrastructure subsystem handler".strip(),
+        format="text",
+    )
+
+
+def _handle_org(dispatcher: CommandDispatcher, cmd: ParsedCommand) -> CommandResponse:
+    """Route ORG subsystem commands."""
+    sub = cmd.subcommand or ""
+    args_str = " ".join(cmd.args)
+    return CommandResponse(
+        success=True,
+        message=f"[ORG] {sub} {args_str} — route to organisation subsystem handler".strip(),
+        format="text",
+    )
+
+
+def _handle_data(dispatcher: CommandDispatcher, cmd: ParsedCommand) -> CommandResponse:
+    """Route DATA subsystem commands."""
+    sub = cmd.subcommand or ""
+    args_str = " ".join(cmd.args)
+    return CommandResponse(
+        success=True,
+        message=f"[DATA] {sub} {args_str} — route to data subsystem handler".strip(),
+        format="text",
+    )
