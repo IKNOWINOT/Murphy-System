@@ -128,11 +128,13 @@ class TriageResult:
 # ---------------------------------------------------------------------------
 
 #: How many guided questions each mode asks before building steps.
-_MODE_QUESTION_BUDGET: Dict[str, int] = {
-    LibrarianMode.ASK.value:        0,   # zero — answer directly
-    LibrarianMode.ONBOARDING.value: 3,   # full wizard
-    LibrarianMode.PRODUCTION.value: 1,   # one clarifying question at most
-    LibrarianMode.ASSISTANT.value:  2,   # moderate
+#: ``None`` means unlimited — the wizard keeps asking until the user
+#: explicitly finishes or all required categories are covered.
+_MODE_QUESTION_BUDGET: Dict[str, Optional[int]] = {
+    LibrarianMode.ASK.value:        0,      # zero — answer directly
+    LibrarianMode.ONBOARDING.value: None,   # unlimited — as many as needed
+    LibrarianMode.PRODUCTION.value: None,   # unlimited — deliverable wizard
+    LibrarianMode.ASSISTANT.value:  2,      # moderate
 }
 
 #: Whether each mode skips the GATHERING_REQUIREMENTS state entirely.
@@ -143,19 +145,19 @@ _MODE_SKIP_GATHERING: Dict[str, bool] = {
     LibrarianMode.ASSISTANT.value:  False,
 }
 
-#: Greeting text for each mode.
 _MODE_GREETINGS: Dict[str, str] = {
     LibrarianMode.ASK.value: (
         "Ready. Describe what you need and I'll generate the command or workflow directly. "
         "Say 'triage' at any point to escalate to execution."
     ),
     LibrarianMode.ONBOARDING.value: (
-        "Welcome to the Murphy No-Code Workflow Builder. "
-        "I'm your Librarian — I'll guide you through building your first automation "
-        "step by step. What would you like to automate today?"
+        "Welcome! I'm your Librarian. I'll guide you through setting up your Murphy System — "
+        "this may take a few questions so I can build the right automations for you. "
+        "Let's start: what is your name?"
     ),
     LibrarianMode.PRODUCTION.value: (
-        "Librarian ready. Describe the automation and I'll build it immediately."
+        "Production Wizard ready. What would you like to produce today? "
+        "(report / dashboard / workflow / document / api_integration / analysis / automation / org_chart)"
     ),
     LibrarianMode.ASSISTANT.value: (
         "Hello! I'm your Murphy assistant. How can I help you today?"
@@ -291,6 +293,28 @@ class LibrarianSession:
     requirements_gathered: dict = field(default_factory=dict)
     inferences: list = field(default_factory=list)
     triage_history: List[Dict[str, Any]] = field(default_factory=list)
+
+    # ------------------------------------------------------------------
+    # Onboarding / Production wizard fields
+    # ------------------------------------------------------------------
+
+    #: Snapshot of onboarding answers — injected when a PRODUCTION session
+    #: is created so the production wizard can skip redundant questions.
+    onboarding_context: Dict[str, Any] = field(default_factory=dict)
+
+    #: Structured Q&A captured during ONBOARDING or PRODUCTION wizard flows.
+    #: Keys are question ``category`` values; values are answer strings.
+    wizard_answers: Dict[str, str] = field(default_factory=dict)
+
+    #: Categories the ONBOARDING wizard has fully covered.
+    onboarding_categories_done: List[str] = field(default_factory=list)
+
+    #: DeliverableWizard session_id — populated when PRODUCTION mode starts.
+    deliverable_session_id: Optional[str] = None
+
+    #: OrgChartGenerator session_id — populated when org_chart deliverable chosen.
+    org_chart_session_id: Optional[str] = None
+
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
     def to_dict(self) -> dict:
@@ -306,6 +330,11 @@ class LibrarianSession:
             "requirements_gathered": self.requirements_gathered,
             "inferences": self.inferences,
             "triage_history": self.triage_history,
+            "wizard_answers": self.wizard_answers,
+            "onboarding_context": self.onboarding_context,
+            "onboarding_categories_done": self.onboarding_categories_done,
+            "deliverable_session_id": self.deliverable_session_id,
+            "org_chart_session_id": self.org_chart_session_id,
             "created_at": self.created_at,
         }
 
@@ -411,6 +440,7 @@ class NoCodeWorkflowTerminal:
         self,
         mode: LibrarianMode = LibrarianMode.ASK,
         assistant_profile: Optional[Dict[str, Any]] = None,
+        onboarding_context: Optional[Dict[str, Any]] = None,
     ) -> LibrarianSession:
         """Create a new Librarian session.
 
@@ -418,6 +448,9 @@ class NoCodeWorkflowTerminal:
             mode: Operating mode that controls guidance behaviour.
             assistant_profile: Optional personality dict for
                 ``ASSISTANT`` mode (e.g. ``{"name": "HR Bot", "focus": "hr"}``).
+            onboarding_context: Optional dict of onboarding answers to inject
+                into a PRODUCTION session so already-answered questions are
+                pre-filled (e.g. ``{"tools": "github,slack", "position": "engineer"}``).
 
         Returns:
             A fresh :class:`LibrarianSession`.
@@ -429,6 +462,7 @@ class NoCodeWorkflowTerminal:
         session = LibrarianSession(
             mode=mode,
             assistant_profile=assistant_profile or {},
+            onboarding_context=onboarding_context or {},
         )
         self.sessions[session.session_id] = session
 
@@ -442,6 +476,22 @@ class NoCodeWorkflowTerminal:
 
         greeting = ConversationTurn(role="librarian", message=greeting_text)
         session.conversation_history.append(greeting)
+
+        # For PRODUCTION mode: pre-create a DeliverableWizard session so
+        # onboarding context can be injected immediately.
+        if mode == LibrarianMode.PRODUCTION:
+            try:
+                from production_deliverable_wizard import DeliverableWizard  # type: ignore[import]
+                dw = DeliverableWizard()
+                dw_session = dw.create_session(onboarding_context=session.onboarding_context)
+                session.deliverable_session_id = dw_session.session_id
+                # Store the wizard in a simple registry on this terminal instance
+                if not hasattr(self, "_deliverable_wizards"):
+                    self._deliverable_wizards: Dict[str, Any] = {}
+                self._deliverable_wizards[session.session_id] = dw
+            except Exception as exc:
+                logger.debug("Could not initialise DeliverableWizard: %s", exc)
+
         return session
 
     def get_session(self, session_id: str) -> Optional[LibrarianSession]:
@@ -524,10 +574,22 @@ class NoCodeWorkflowTerminal:
     def _process_message(self, session: LibrarianSession, message: str) -> dict:
         """Route message processing based on conversation state and mode.
 
-        In **ASK** and **PRODUCTION** modes the GATHERING_REQUIREMENTS state
-        is skipped — intent is inferred immediately and steps are built.
+        * **ASK** — skips all guided questions; infers and builds immediately.
+        * **ONBOARDING** — unlimited guided wizard; ask as many questions as
+          needed until all required categories are covered.
+        * **PRODUCTION** — unlimited deliverable wizard; routes through
+          :class:`production_deliverable_wizard.DeliverableWizard`.
+        * **ASSISTANT** — moderate guided questions, then build.
         """
         mode = session.mode
+
+        # ONBOARDING mode: drive the unlimited onboarding wizard
+        if mode == LibrarianMode.ONBOARDING:
+            return self._handle_onboarding_wizard(session, message)
+
+        # PRODUCTION mode: drive the deliverable wizard
+        if mode == LibrarianMode.PRODUCTION:
+            return self._handle_production_wizard(session, message)
 
         # ASK mode: always go straight to description handling (no questions)
         if mode == LibrarianMode.ASK and session.state in (
@@ -536,7 +598,7 @@ class NoCodeWorkflowTerminal:
         ):
             return self._handle_initial_description(session, message)
 
-        # Handle state transitions
+        # Handle state transitions (ASSISTANT + fallback)
         if session.state == ConversationState.GREETING:
             return self._handle_initial_description(session, message)
         elif session.state == ConversationState.GATHERING_REQUIREMENTS:
@@ -653,6 +715,410 @@ class NoCodeWorkflowTerminal:
         session.requirements_gathered["intents"] = intents
         session.requirements_gathered["refined_description"] = message
         return self._handle_initial_description(session, message)
+
+    # ------------------------------------------------------------------
+    # ONBOARDING wizard — unlimited structured Q&A
+    # ------------------------------------------------------------------
+
+    # The onboarding wizard is driven by these question categories, in order.
+    # It asks all required ones plus optional ones that are relevant to the
+    # answers already given.  There is NO question budget — it asks as many
+    # as needed until all required categories are covered.
+    _ONBOARDING_WIZARD_QUESTIONS: List[Dict[str, Any]] = [
+        {
+            "id": "ob_name",
+            "category": "personal",
+            "question": "What is your full name?",
+            "required": True,
+            "help": "This personalises your shadow agent.",
+        },
+        {
+            "id": "ob_role",
+            "category": "role",
+            "question": "What is your job title or role?",
+            "required": True,
+            "help": "E.g. 'Software Engineer', 'CEO', 'Sales Manager'.",
+        },
+        {
+            "id": "ob_department",
+            "category": "department",
+            "question": "Which department are you in?",
+            "required": True,
+            "options": ["engineering", "product", "sales", "marketing", "finance", "hr", "operations", "legal", "customer_success", "executive", "other"],
+            "help": "Determines which workflow templates are pre-loaded for you.",
+        },
+        {
+            "id": "ob_company",
+            "category": "company",
+            "question": "What is your company name and what does it do?",
+            "required": True,
+            "help": "E.g. 'Acme Corp — B2B SaaS for HR teams'. Used to seed your shadow agent's context.",
+        },
+        {
+            "id": "ob_manager",
+            "category": "reporting",
+            "question": "Who is your direct manager? (name or email)",
+            "required": True,
+            "help": "Sets up the reporting chain for your shadow agent.",
+        },
+        {
+            "id": "ob_responsibilities",
+            "category": "responsibilities",
+            "question": "What are your 3-5 primary job responsibilities?",
+            "required": True,
+            "help": "Describe what you actually do day-to-day. Your shadow agent will learn from these.",
+        },
+        {
+            "id": "ob_tools",
+            "category": "tools",
+            "question": "Which tools and systems do you use regularly?",
+            "required": False,
+            "options": ["GitHub", "Jira", "Slack", "Salesforce", "HubSpot", "Confluence", "Figma", "Excel", "Google Workspace", "AWS", "Azure", "Custom CRM", "Other"],
+            "help": "Your shadow agent will be pre-wired with integrations for these tools.",
+        },
+        {
+            "id": "ob_automation",
+            "category": "automation",
+            "question": "What repetitive tasks do you want to automate first?",
+            "required": False,
+            "help": "E.g. 'weekly status reports, lead follow-up emails, ticket triage'. No limit — list as many as you like.",
+        },
+        {
+            "id": "ob_communication",
+            "category": "communication_preference",
+            "question": "How do you prefer to receive notifications and updates?",
+            "required": False,
+            "options": ["Slack", "Email", "SMS", "In-app notification", "Dashboard only", "Teams"],
+            "help": "Your shadow agent will use this channel for alerts and reports.",
+        },
+        {
+            "id": "ob_compliance",
+            "category": "compliance",
+            "question": "Are there any compliance or security requirements for your role?",
+            "required": False,
+            "options": ["HIPAA", "SOC 2", "GDPR", "PCI-DSS", "ISO 27001", "None specific"],
+            "help": "Enables compliance gates in your workflows.",
+        },
+        {
+            "id": "ob_goals",
+            "category": "goals",
+            "question": "What does success look like for you in the next 90 days?",
+            "required": False,
+            "help": "Your shadow agent will track progress toward these goals and surface relevant automations.",
+        },
+    ]
+
+    # Required categories that must be answered before ONBOARDING completes
+    _ONBOARDING_REQUIRED_CATEGORIES: set = {
+        "personal", "role", "department", "company", "reporting", "responsibilities",
+    }
+
+    def _handle_onboarding_wizard(
+        self,
+        session: LibrarianSession,
+        message: str,
+    ) -> dict:
+        """Drive the unlimited ONBOARDING wizard.
+
+        Every call:
+        1. Records the user's answer to the last question asked.
+        2. Checks which required categories are still uncovered.
+        3. Asks the next unanswered question.
+        4. When all required categories are done, offers to continue to
+           optional questions or transition to the workflow builder.
+
+        The user can type ``done`` at any point to skip remaining optional
+        questions and proceed.
+        """
+        msg_lower = message.lower().strip()
+
+        # Determine which question was last asked (last librarian turn with a "?")
+        last_question_id = session.requirements_gathered.get("_last_ob_question_id")
+
+        # Record the answer if a question was pending
+        if last_question_id:
+            q_def = next(
+                (q for q in self._ONBOARDING_WIZARD_QUESTIONS if q["id"] == last_question_id),
+                None,
+            )
+            if q_def:
+                category = q_def["category"]
+                session.wizard_answers[category] = message
+                session.requirements_gathered[f"ob_{category}"] = message
+                if category not in session.onboarding_categories_done:
+                    session.onboarding_categories_done.append(category)
+
+        # Check if user wants to skip remaining optional questions
+        done_words = {"done", "finish", "proceed", "next", "continue", "skip", "build it", "let's go"}
+        user_wants_to_proceed = any(w in msg_lower for w in done_words)
+
+        required_remaining = [
+            cat for cat in self._ONBOARDING_REQUIRED_CATEGORIES
+            if cat not in session.onboarding_categories_done
+        ]
+
+        if required_remaining and not user_wants_to_proceed:
+            # Find the next required question
+            next_q = next(
+                (q for q in self._ONBOARDING_WIZARD_QUESTIONS
+                 if q["category"] in required_remaining and q["category"] not in session.onboarding_categories_done),
+                None,
+            )
+            if next_q:
+                session.requirements_gathered["_last_ob_question_id"] = next_q["id"]
+                options_text = ""
+                if next_q.get("options"):
+                    options_text = f"\n  Options: {', '.join(next_q['options'])}"
+                session.state = ConversationState.GATHERING_REQUIREMENTS
+                return {
+                    "message": f"{next_q['question']}{options_text}\n_{next_q.get('help', '')}_",
+                    "inferences": [f"Onboarding: asking '{next_q['category']}' question"],
+                    "actions": [f"ob_question:{next_q['id']}"],
+                }
+
+        # All required done — try optional questions unless user said done
+        if not user_wants_to_proceed:
+            optional_q = next(
+                (q for q in self._ONBOARDING_WIZARD_QUESTIONS
+                 if not q["required"] and q["category"] not in session.onboarding_categories_done),
+                None,
+            )
+            if optional_q:
+                session.requirements_gathered["_last_ob_question_id"] = optional_q["id"]
+                options_text = ""
+                if optional_q.get("options"):
+                    options_text = f"\n  Options: {', '.join(optional_q['options'])}"
+                session.state = ConversationState.GATHERING_REQUIREMENTS
+                return {
+                    "message": (
+                        f"(Optional — type 'done' to skip) {optional_q['question']}{options_text}\n"
+                        f"_{optional_q.get('help', '')}_"
+                    ),
+                    "inferences": [f"Onboarding: asking optional '{optional_q['category']}' question"],
+                    "actions": [f"ob_optional_question:{optional_q['id']}"],
+                }
+
+        # Onboarding complete — build shadow agent context and transition
+        shadow_capabilities = self._infer_capabilities_from_wizard(session.wizard_answers)
+        session.requirements_gathered["shadow_capabilities"] = shadow_capabilities
+        session.requirements_gathered["_last_ob_question_id"] = None
+        session.state = ConversationState.BUILDING_STEPS
+
+        # Generate a starter workflow description from what we learned
+        name = session.wizard_answers.get("personal", "you")
+        role = session.wizard_answers.get("role", "your role")
+        automation = session.wizard_answers.get("automation", "")
+        description = (
+            automation
+            or f"Workflow for {role} in {session.wizard_answers.get('department', 'your department')}"
+        )
+        session.workflow_description = description
+        session.workflow_name = f"{name}'s {role} Automation"
+
+        # Build steps from capabilities
+        intents = self._infer_intents(description) or ["onboarding"]
+        for intent in intents:
+            step = self._create_step_from_intent(intent, description)
+            session.steps.append(step)
+            self._assign_agent(session, step)
+
+        categories_summary = ", ".join(session.onboarding_categories_done)
+        return {
+            "message": (
+                f"Onboarding complete! Here's what I've learned about you:\n"
+                f"  • Categories captured: {categories_summary}\n"
+                f"  • Shadow agent capabilities: {', '.join(shadow_capabilities) or 'configuring...'}\n\n"
+                f"I've created an initial workflow based on your answers. "
+                f"You can refine it by describing more automation needs, "
+                f"say 'review' to inspect it, or 'triage' to send it straight to execution."
+            ),
+            "inferences": [f"Onboarding wizard complete — {len(session.onboarding_categories_done)} categories captured"],
+            "actions": ["onboarding_complete", "shadow_agent_configured"],
+            "wizard_answers": dict(session.wizard_answers),
+            "shadow_capabilities": shadow_capabilities,
+        }
+
+    def _infer_capabilities_from_wizard(self, wizard_answers: Dict[str, str]) -> List[str]:
+        """Infer automation capabilities from ONBOARDING wizard answers.
+
+        Mirrors ``OnboardingFlow._infer_capabilities()`` but operates on
+        the richer wizard_answers dict.
+        """
+        capabilities: List[str] = []
+        tools = wizard_answers.get("tools", "").lower()
+        if "github" in tools:
+            capabilities.append("code_management")
+        if "jira" in tools:
+            capabilities.append("project_tracking")
+        if "slack" in tools:
+            capabilities.append("communication_automation")
+        if "salesforce" in tools or "hubspot" in tools:
+            capabilities.append("crm_automation")
+        if "excel" in tools or "google" in tools:
+            capabilities.append("data_processing")
+        if "aws" in tools or "azure" in tools:
+            capabilities.append("cloud_operations")
+
+        automation = wizard_answers.get("automation", "").lower()
+        if any(w in automation for w in ["email", "message", "notify", "report"]):
+            capabilities.append("notification_automation")
+        if any(w in automation for w in ["dashboard", "analytics", "metric", "kpi"]):
+            capabilities.append("reporting_automation")
+        if any(w in automation for w in ["schedule", "meeting", "calendar", "reminder"]):
+            capabilities.append("scheduling_automation")
+        if any(w in automation for w in ["lead", "customer", "deal", "pipeline"]):
+            capabilities.append("crm_automation")
+        if any(w in automation for w in ["ticket", "issue", "bug", "incident"]):
+            capabilities.append("incident_management")
+
+        dept = wizard_answers.get("department", "").lower()
+        if dept in ("engineering", "it"):
+            capabilities.extend(["build_monitoring", "deployment_automation"])
+        elif dept in ("sales", "marketing"):
+            capabilities.extend(["pipeline_tracking", "lead_scoring"])
+        elif dept == "finance":
+            capabilities.extend(["financial_reporting", "invoice_processing"])
+        elif dept in ("hr", "operations"):
+            capabilities.extend(["onboarding_automation", "policy_distribution"])
+
+        return list(dict.fromkeys(capabilities))  # deduplicate, preserve order
+
+    # ------------------------------------------------------------------
+    # PRODUCTION wizard — deliverable-driven Q&A
+    # ------------------------------------------------------------------
+
+    def _handle_production_wizard(
+        self,
+        session: LibrarianSession,
+        message: str,
+    ) -> dict:
+        """Drive the PRODUCTION deliverable wizard.
+
+        Delegates to :class:`production_deliverable_wizard.DeliverableWizard`.
+        Uses onboarding context to skip redundant questions.
+        When the wizard has enough information, generates a
+        :class:`~production_deliverable_wizard.DeliverableSpec` and
+        returns it in the response.
+        """
+        try:
+            from production_deliverable_wizard import DeliverableWizard  # type: ignore[import]
+        except ImportError:
+            logger.warning("ProductionWizard: DeliverableWizard not available")
+            return self._handle_initial_description(session, message)
+
+        # Retrieve or create the deliverable wizard
+        if not hasattr(self, "_deliverable_wizards"):
+            self._deliverable_wizards = {}
+
+        dw: Optional[Any] = self._deliverable_wizards.get(session.session_id)
+        if dw is None:
+            dw = DeliverableWizard()
+            dw_session = dw.create_session(onboarding_context=session.onboarding_context)
+            session.deliverable_session_id = dw_session.session_id
+            self._deliverable_wizards[session.session_id] = dw
+
+        dw_session_id = session.deliverable_session_id
+        if not dw_session_id:
+            return {"message": "Production wizard could not start. Please try again.", "actions": []}
+
+        # Record the user's answer to the pending question
+        pending_qid = session.requirements_gathered.get("_last_prod_question_id")
+        if pending_qid:
+            result = dw.answer(dw_session_id, pending_qid, message)
+            session.requirements_gathered["_last_prod_question_id"] = None
+
+            # If the deliverable type is org_chart, also launch OrgChartGenerator
+            dw_sess = dw.get_session(dw_session_id)
+            if dw_sess and dw_sess.deliverable_type == "org_chart" and not session.org_chart_session_id:
+                try:
+                    from org_chart_generator import OrgChartGenerator  # type: ignore[import]
+                    if not hasattr(self, "_org_chart_generators"):
+                        self._org_chart_generators: Dict[str, Any] = {}
+                    ocg = OrgChartGenerator()
+                    oc_session = ocg.create_session()
+                    session.org_chart_session_id = oc_session.session_id
+                    self._org_chart_generators[session.session_id] = ocg
+                except Exception as exc:
+                    logger.debug("OrgChartGenerator init failed: %s", exc)
+
+        # Get the next question
+        next_q = dw.next_question(dw_session_id)
+
+        if next_q is None:
+            # All questions answered — generate the spec
+            spec = dw.generate_spec(dw_session_id)
+            if spec:
+                session.workflow_description = spec.description or spec.title
+                session.workflow_name = spec.title
+                session.state = ConversationState.BUILDING_STEPS
+
+                # Build workflow steps from the spec
+                for step_def in spec.workflow_steps:
+                    intent = self._map_step_type_to_intent(step_def.get("type", ""))
+                    step = self._create_step_from_intent(intent, spec.description)
+                    step.name = step_def.get("name", step.name)
+                    session.steps.append(step)
+                    self._assign_agent(session, step)
+
+                ctx_summary = ""
+                if spec.onboarding_context_used:
+                    n = spec.onboarding_context_used.get("pre_filled_questions", 0)
+                    if n:
+                        ctx_summary = f" ({n} question(s) pre-filled from your onboarding profile)"
+
+                return {
+                    "message": (
+                        f"Production spec complete{ctx_summary}!\n\n"
+                        f"  Deliverable: {spec.deliverable_type}\n"
+                        f"  Title: {spec.title}\n"
+                        f"  Format: {spec.output_format}\n"
+                        f"  Audience: {spec.audience or 'not specified'}\n"
+                        f"  Steps: {len(spec.workflow_steps)}\n\n"
+                        f"Workflow has been built. Say 'review' to inspect, "
+                        f"'refine' to adjust, or 'triage' to send to execution."
+                    ),
+                    "inferences": ["Production wizard complete — spec generated"],
+                    "actions": ["production_spec_generated"],
+                    "spec": spec.to_dict(),
+                }
+            else:
+                return {
+                    "message": "Spec generation failed. Please describe what you need.",
+                    "actions": [],
+                }
+
+        # Ask the next question
+        session.requirements_gathered["_last_prod_question_id"] = next_q["question_id"]
+        options_text = ""
+        if next_q.get("options"):
+            options_text = f"\n  Options: {', '.join(next_q['options'])}"
+
+        dw_sess = dw.get_session(dw_session_id)
+        prefilled_note = ""
+        if dw_sess and next_q["question_id"] in (dw_sess.pre_filled or {}):
+            prefilled_note = " _(pre-filled from your onboarding profile — press Enter to accept or type to override)_"
+
+        session.state = ConversationState.GATHERING_REQUIREMENTS
+        return {
+            "message": f"{next_q['question']}{options_text}{prefilled_note}\n_{next_q.get('help_text', '')}_",
+            "inferences": [f"Production wizard: asking '{next_q['category']}' question"],
+            "actions": [f"prod_question:{next_q['question_id']}"],
+        }
+
+    def _map_step_type_to_intent(self, step_type: str) -> str:
+        """Map a DeliverableWizard step type string to an INTENT_KEYWORDS key."""
+        mapping = {
+            "data_fetch": "data_processing",
+            "transform": "data_processing",
+            "content_generation": "content_generation",
+            "notification": "notification",
+            "connector": "api_integration",
+            "deployment": "deployment",
+            "approval": "approval",
+            "trigger": "scheduling",
+            "action": "data_processing",
+        }
+        return mapping.get(step_type, "data_processing")
 
     def _handle_building(self, session: LibrarianSession, message: str) -> dict:
         """Handle building phase - add/modify steps."""
