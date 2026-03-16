@@ -65,11 +65,49 @@ This is Murphy's hero flow — start here.
 | **Safety Orchestrator** | `/api/safety/*` | Safety checks, compliance reports, safety dashboard |
 | **Efficiency Orchestrator** | `/api/efficiency/*` | Efficiency readings, scoring, optimisation recommendations |
 | **Supply Orchestrator** | `/api/supply/*` | Inventory registration, usage tracking, reorder management |
+| **Industry Automation** | `/api/industry/*` | BAS/IoT ingestion, energy audit, interview, configure, as-built, decide, climate |
 | **Time Tracking — Settings** | `/api/time/settings` (GET, PUT), `/api/time/settings/validate` | Get/update time tracking settings, validate current settings |
 | **Time Tracking — Billing** | `/api/time/billing/summary`, `/api/time/billing/summary/<client_id>`, `/api/time/billing/invoice`, `/api/time/billing/invoice/preview`, `/api/time/billing/rates`, `/api/time/billing/rates/<client_id>`, `/api/time/billing/audit-log` | Billing summaries, invoice generation and preview, rate management, audit log |
 | **Time Tracking — Dashboard** | `/api/time/dashboard/summary/user/<user_id>`, `/api/time/dashboard/summary/team`, `/api/time/dashboard/summary/project/<project_id>`, `/api/time/dashboard/summary/system`, `/api/time/team/<manager_id>/dashboard` | User, team, project, and system dashboard summaries; team manager dashboard |
 
 Full auto-generated docs: **http://localhost:8000/docs**
+
+---
+
+## Industry Automation Suite
+
+Murphy includes a full Industry Automation Suite for BAS/IoT, manufacturing, healthcare, energy management, and more across 10 industries.
+
+### Modules
+
+| Module | Description |
+|--------|-------------|
+| `src/energy_efficiency_framework.py` | 25-ECM CEM catalog, ASHRAE Level I/II/III energy audit, MSS rubric (Magnify/Simplify/Solidify), ROI/NPV/IRR |
+| `src/synthetic_interview_engine.py` | 21-question structured elicitation × 6 reading levels, 43 LLM inference rules |
+| `src/system_configuration_engine.py` | 16 system types (AHU/RTU/Chiller/Boiler/VAV/PLC/SCADA…), STRATEGY_TEMPLATES |
+| `src/as_built_generator.py` | DrawingDatabase deduplication, ControlDiagram, PointScheduleEntry |
+| `src/pro_con_decision_engine.py` | Hard safety/compliance constraints first, 4 criteria sets, pros−cons scoring |
+| `src/universal_ingestion_framework.py` | 7 protocol adapters (BACnet EDE, Modbus, OPC-UA, CSV, JSON, MQTT, Grainger) |
+| `src/climate_resilience_engine.py` | 15 ASHRAE 169-2021 climate zones, resilience factors, design recommendations |
+| `src/org_chart_generator.py` | Virtual employee management, shadow agent assignment |
+| `src/production_deliverable_wizard.py` | 8 deliverable types, onboarding context injection |
+| `src/industry_automation_wizard.py` | 10 industries × 66 automation types |
+| `src/bas_equipment_ingestion.py` | CSV/JSON/EDE → EquipmentSpec, AI/AO/DI/DO classification |
+| `src/virtual_controller.py` | Wiring verification, 5 rules, report generation |
+
+### REST API (`/api/industry/*`)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/industry/ingest` | Auto-detect protocol and ingest BAS/IoT data |
+| GET | `/api/industry/climate/{city}` | ASHRAE climate zone + resilience factors for a city |
+| POST | `/api/industry/energy-audit` | CEM energy audit with ECM recommendations |
+| POST | `/api/industry/interview` | Drive a 21-question structured interview session |
+| POST | `/api/industry/configure` | Detect system type and return configuration strategy |
+| POST | `/api/industry/as-built` | Generate control diagram from equipment spec |
+| POST | `/api/industry/decide` | Pro/con decision analysis with safety constraints |
+
+See [`documentation/modules/INDUSTRY_AUTOMATION.md`](documentation/modules/INDUSTRY_AUTOMATION.md) for the full reference.
 
 ---
 
