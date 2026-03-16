@@ -147,6 +147,7 @@ class DeliverableSpec:
     workflow_steps: List[Dict[str, Any]] = field(default_factory=list)
     onboarding_context_used: Dict[str, Any] = field(default_factory=dict)
     raw_answers: Dict[str, Any] = field(default_factory=dict)
+    industry_type: str = ""
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
     def to_dict(self) -> Dict[str, Any]:
@@ -165,6 +166,7 @@ class DeliverableSpec:
             "workflow_steps": self.workflow_steps,
             "onboarding_context_used": self.onboarding_context_used,
             "raw_answers": self.raw_answers,
+            "industry_type": self.industry_type,
             "created_at": self.created_at,
         }
 
@@ -181,6 +183,7 @@ class DeliverableSession:
     """
     session_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     deliverable_type: str = DeliverableType.UNKNOWN.value
+    industry_type: str = ""
     questions_answered: Dict[str, Dict[str, Any]] = field(default_factory=dict)
     onboarding_context: Dict[str, Any] = field(default_factory=dict)
     """Onboarding answers injected at session creation."""
@@ -650,6 +653,16 @@ class DeliverableWizard:
             dt = answer.strip().lower()
             valid = {t.value for t in DeliverableType}
             session.deliverable_type = dt if dt in valid else DeliverableType.UNKNOWN.value
+            
+            # Detect industry type for manufacturing/BAS/industrial-related deliverables
+            if dt in ["workflow", "automation", "org_chart"]:
+                # Check if this is BAS/industrial related from context or answer
+                answer_lower = answer.lower()
+                if any(kw in answer_lower for kw in ["manufacturing", "bas", "hvac", "plc", "scada", "energy", "building"]):
+                    session.industry_type = "Manufacturing"
+                # Could also check onboarding_context
+                elif "industry" in session.onboarding_context:
+                    session.industry_type = session.onboarding_context["industry"]
 
         # Calculate remaining required questions for the current type
         required_remaining = self._count_required_remaining(session)
@@ -733,7 +746,11 @@ class DeliverableWizard:
             workflow_steps=list(steps),
             onboarding_context_used=onboarding_context_used,
             raw_answers=dict(session.questions_answered),
+            industry_type=session.industry_type,
         )
+        
+        # NOTE: If industry_type is set, the IndustryAutomationWizard should be consulted
+        # for industry-specific automation setup (e.g., BAS/manufacturing workflows)
 
         session.spec = spec
         session.status = DeliverableStatus.READY
