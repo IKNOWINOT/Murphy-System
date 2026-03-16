@@ -4,7 +4,7 @@
 > project documentation, architecture, and getting-started instructions.
 
 This is the primary runtime directory for the Murphy System. It contains the
-FastAPI server, 922 source modules across 81 packages in `src/`, web interfaces,
+FastAPI server, 923 source modules across 81 packages in `src/`, web interfaces,
 tests, and deployment configuration.
 
 ---
@@ -228,9 +228,9 @@ Murphy System/
 │   ├── murphy.yaml.example        # Annotated example for murphy.yaml
 │   ├── engines.yaml.example       # Annotated example for engines.yaml
 │   └── config_loader.py           # YAML + env-var overlay loader
-├── src/                           # 922 modules, 81 packages
+├── src/                           # 923 modules, 81 packages
 │   ├── config.py                  # Pydantic settings (legacy path)
-├── src/                           # 922 modules, 81 packages
+├── src/                           # 923 modules, 81 packages
 │   ├── config.py                  # Pydantic settings
 │   ├── confidence_engine/         # Murphy Formula / Gate / Confidence
 │   ├── execution_engine/          # Task execution
