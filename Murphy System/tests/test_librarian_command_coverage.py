@@ -67,16 +67,37 @@ def _registry_b_commands() -> set[str]:
 
 
 def _subsystem_rooms() -> set[str]:
-    """Extract room keys from SUBSYSTEM_ROOMS via regex."""
+    """Extract room keys from SUBSYSTEM_ROOMS via regex.
+
+    Anchors to the SUBSYSTEM_ROOMS dict definition to avoid matching
+    unrelated string literals elsewhere in the file.
+    """
     registry_path = _SRC / "matrix_bridge" / "room_registry.py"
     content = registry_path.read_text(encoding="utf-8")
-    # SUBSYSTEM_ROOMS is a dict[str, ...]; extract string keys
-    return set(re.findall(r'"([a-z][a-z0-9-]+)"', content))
+    # Find the SUBSYSTEM_ROOMS assignment block and extract its keys only
+    match = re.search(r"SUBSYSTEM_ROOMS\s*[:=][^{]*\{(.*?)\}", content, re.DOTALL)
+    if match:
+        block = match.group(1)
+        return set(re.findall(r'"([a-z][a-z0-9-]+)"', block))
+    # Fallback: scan the whole file for hyphenated room-style strings
+    return set(re.findall(r'"(murphy-[a-z][a-z0-9-]+)"', content))
 
 
-# ---------------------------------------------------------------------------
-# Tests
-# ---------------------------------------------------------------------------
+# Threshold constants
+# The manifest intentionally shares ~8 command strings across related modules
+# (e.g. 'compliance status' from both compliance_engine and outreach_compliance_integration).
+# Set slightly above the known count to allow a small buffer.
+_MAX_COMMAND_OVERLAPS = 15
+
+# Registry _e() calls use short single-token cmds (e.g. 'blackstart') while
+# manifest uses multi-word forms (e.g. 'heal blackstart').  Some registry tokens
+# are low-level plumbing that never appear in the manifest.  Allow up to 40% for
+# now; this threshold should be tightened as coverage matures.
+_MAX_REGISTRY_ORPHAN_RATE = 0.40
+
+# A handful of manifest rooms may reference auxiliary dicts not parsed by the
+# regex (e.g. rooms defined in room_registry.py outside SUBSYSTEM_ROOMS).
+_MAX_UNKNOWN_ROOMS = 5
 
 
 class TestManifestEntries:
@@ -108,8 +129,8 @@ class TestManifestEntries:
                     dupes.append((cmd, seen[cmd], e["module"]))
                 else:
                     seen[cmd] = e["module"]
-        assert len(dupes) < 15, (
-            f"{len(dupes)} duplicate command(s) found across modules (threshold 15): "
+        assert len(dupes) < _MAX_COMMAND_OVERLAPS, (
+            f"{len(dupes)} duplicate command(s) found across modules (threshold {_MAX_COMMAND_OVERLAPS}): "
             + ", ".join(f"'{c}' ({a} and {b})" for c, a, b in dupes[:8])
         )
 
@@ -174,7 +195,7 @@ class TestRegistryConsistency:
             if c not in manifest_cmds and c not in manifest_tokens
         }
         orphan_rate = len(orphan) / max(len(registry_cmds), 1)
-        assert orphan_rate < 0.40, (
+        assert orphan_rate < _MAX_REGISTRY_ORPHAN_RATE, (
             f"{len(orphan)} registry command(s) not found in manifest "
             f"({orphan_rate:.0%}): {sorted(orphan)[:10]}"
         )
@@ -187,7 +208,7 @@ class TestRegistryConsistency:
 
         unknown = {e["room"] for e in entries if e["room"] and e["room"] not in rooms}
         # Allow a small number of rooms that may be defined in a separate dict
-        assert len(unknown) < 5, (
+        assert len(unknown) < _MAX_UNKNOWN_ROOMS, (
             f"{len(unknown)} manifest room(s) not found in SUBSYSTEM_ROOMS: "
             + ", ".join(sorted(unknown)[:10])
         )
