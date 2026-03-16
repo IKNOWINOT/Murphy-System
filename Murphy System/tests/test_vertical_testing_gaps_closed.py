@@ -15,13 +15,8 @@ Covers:
 Total: 22 vertical gaps + 5 cross-system gaps = 27 gaps tested
 """
 
-import os
-import sys
 import unittest
 from datetime import datetime, timedelta
-
-# Ensure murphy_confidence is importable
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'strategic'))
 
 from murphy_confidence.engine import ConfidenceEngine, compute_confidence
 from murphy_confidence.compiler import GateCompiler

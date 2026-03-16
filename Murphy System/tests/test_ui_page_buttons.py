@@ -23,11 +23,6 @@ from pathlib import Path
 @pytest.fixture(scope="module")
 def client():
     """Create a test client for the FastAPI app."""
-    import sys
-    root = Path(__file__).resolve().parent.parent
-    if str(root) not in sys.path:
-        sys.path.insert(0, str(root))
-
     from src.runtime.app import create_app
     from starlette.testclient import TestClient
 

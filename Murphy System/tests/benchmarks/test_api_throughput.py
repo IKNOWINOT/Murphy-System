@@ -11,14 +11,11 @@ deployment (see documentation/deployment/SCALING.md).
 
 GAP 2 closure: validates in-process performance with measured data.
 """
-import sys
 import time
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "src"))
 
 # In-process operations/s target (single core, no network I/O).
 # The documented 1,000+ req/s target applies to HTTP requests against

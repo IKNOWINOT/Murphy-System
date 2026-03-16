@@ -33,9 +33,9 @@ include = ["src*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-# Add the project root and src/ to sys.path so both "from src.xxx import xxx"
-# and "from confidence_engine.xxx import xxx" work without sys.path hacks.
-pythonpath = [".", "src"]
+# Add the project root, src/, and strategic/ to sys.path so all import styles
+# work without sys.path hacks in individual test files.
+pythonpath = [".", "src", "strategic"]
 asyncio_mode = "auto"
 filterwarnings = [
     "ignore::DeprecationWarning",

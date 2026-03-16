@@ -8,11 +8,9 @@ Design Label: TEST-011 / DEV-004
 Owner: QA Team
 """
 
-import sys
 import os
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from bug_pattern_detector import (
     BugPatternDetector,

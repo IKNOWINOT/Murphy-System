@@ -1,13 +1,11 @@
 """Tests for analytics_dashboard module."""
 
-import sys
 import os
 import threading
 import time
 import unittest
 
 # Ensure src is importable
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from analytics_dashboard import (
     AlertRulesEngine,

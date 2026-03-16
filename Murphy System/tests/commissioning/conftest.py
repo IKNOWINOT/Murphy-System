@@ -21,7 +21,6 @@ from datetime import datetime
 # ── Path setup (matches existing tests/conftest.py pattern) ──────────────
 SRC_DIR = Path(__file__).resolve().parent.parent.parent / "src"
 if str(SRC_DIR) not in sys.path:
-    sys.path.insert(0, str(SRC_DIR))
 
 TESTS_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent

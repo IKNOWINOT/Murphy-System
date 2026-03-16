@@ -11,13 +11,11 @@ Covers all five subsystems:
 Plus the unified LLMRoutingCompleteness facade.
 """
 
-import sys
 import os
 import threading
 import unittest
 
 # Ensure src/ is importable
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from llm_routing_completeness import (
     ModelProfile,

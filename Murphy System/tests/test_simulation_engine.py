@@ -1,8 +1,6 @@
 """Tests for StrategicSimulationEngine."""
 
-import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import pytest
 from src.simulation_engine import StrategicSimulationEngine, SimulationResult

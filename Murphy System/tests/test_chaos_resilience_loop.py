@@ -10,14 +10,12 @@ Owner: QA Team
 """
 
 import os
-import sys
 import threading
 import time
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from thread_safe_operations import capped_append
 

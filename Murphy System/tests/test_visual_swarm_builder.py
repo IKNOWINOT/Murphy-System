@@ -17,13 +17,11 @@ License: BSL 1.1
 """
 from __future__ import annotations
 
-import sys
 import os
 import threading
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from visual_swarm_builder import (
     ProjectAnalysis,
