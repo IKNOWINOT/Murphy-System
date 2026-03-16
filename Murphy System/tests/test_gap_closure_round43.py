@@ -31,7 +31,6 @@ import pytest
 # ---------------------------------------------------------------------------
 _PROJ_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 _SRC_DIR = os.path.join(_PROJ_ROOT, "src")
-if _SRC_DIR not in sys.path:
 
 from persistence_manager import PersistenceManager
 from reasoning_engine import ReasoningEngine

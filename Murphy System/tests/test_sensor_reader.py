@@ -15,7 +15,6 @@ import sys
 import pytest
 
 _src_dir = os.path.join(os.path.dirname(__file__), "..", "src")
-if os.path.abspath(_src_dir) not in sys.path:
 
 from sensor_reader import SensorConfig, SensorReader, SensorReading
 

@@ -18,7 +18,6 @@ import pytest
 # Ensure src/ is on the path (mirrors conftest.py behavior)
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 SRC_DIR = os.path.join(PROJECT_ROOT, "src")
-if SRC_DIR not in sys.path:
 
 
 class TestGapClosureRound30:
