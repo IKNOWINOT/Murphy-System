@@ -11,12 +11,10 @@ Module     : src/enhanced_local_llm.py
 Fixed In   : EnhancedLocalLLM._safe_eval_arithmetic / _safe_eval_node
 """
 
-import sys
 import os
 import re
 import unittest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from enhanced_local_llm import EnhancedLocalLLM
 

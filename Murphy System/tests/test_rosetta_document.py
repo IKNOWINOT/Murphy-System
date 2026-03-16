@@ -16,11 +16,9 @@ import pytest
 from datetime import datetime, timezone
 from typing import Optional
 
-import sys
 import os
 
 # Ensure src is on the path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from pydantic import ValidationError
 

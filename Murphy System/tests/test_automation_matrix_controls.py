@@ -8,10 +8,8 @@ Covers all 17+ automation type subcommands added to !murphy automation:
   - building, manufacturing, sales, compliance-bridge, full, deploy
 """
 
-import sys
 import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 import pytest
 from types import SimpleNamespace

@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import ast
 import os
-import sys
 import textwrap
 import threading
 import time
@@ -26,7 +25,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from murphy_code_healer import (
     BeliefState,

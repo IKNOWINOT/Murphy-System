@@ -8,11 +8,9 @@ Design Label: TEST-003 / SUP-001
 Owner: QA Team
 """
 
-import sys
 import os
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from ticket_triage_engine import TicketTriageEngine, TriageResult
 from ticketing_adapter import TicketingAdapter, TicketStatus

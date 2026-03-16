@@ -5,7 +5,6 @@ Final corrected version with proper API signatures
 
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from src.org_compiler.schemas import AuthorityLevel, ArtifactType
 from src.org_compiler.compiler import RoleTemplateCompiler

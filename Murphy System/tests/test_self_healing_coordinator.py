@@ -8,12 +8,10 @@ Design Label: TEST-002 / OBS-004
 Owner: QA Team
 """
 
-import sys
 import os
 import time
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from self_healing_coordinator import (
     SelfHealingCoordinator,

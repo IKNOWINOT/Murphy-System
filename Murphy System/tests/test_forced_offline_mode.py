@@ -2,9 +2,6 @@
 Test forced offline mode by simulating API failure
 """
 
-import sys
-sys.path.insert(0, '/workspace')
-
 from src.llm_integration_layer import LLMIntegrationLayer, LLMProvider, DomainType
 
 

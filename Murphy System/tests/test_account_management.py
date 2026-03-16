@@ -17,8 +17,6 @@ Design Labels: TEST-ACCT-001, TEST-ACCT-002, TEST-ACCT-003
 Owner: QA Team
 """
 
-import os
-import sys
 import threading
 import time
 import uuid
@@ -26,14 +24,6 @@ from datetime import datetime, timezone, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
-
-# ---------------------------------------------------------------------------
-# Path setup
-# ---------------------------------------------------------------------------
-
-SRC_DIR = os.path.join(os.path.dirname(__file__), "..", "src")
-if SRC_DIR not in sys.path:
-    sys.path.insert(0, SRC_DIR)
 
 from account_management.models import (
     AccountEvent,

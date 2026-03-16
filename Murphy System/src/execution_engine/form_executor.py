@@ -6,8 +6,6 @@ and human-in-the-loop checkpoints.
 """
 
 import logging
-import os
-import sys
 import time
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
@@ -16,16 +14,14 @@ from typing import Any, Dict, Optional
 from .execution_context import ExecutionContext
 from .form_execution_models import ExecutionResult, ExecutionStatus, PhaseResult
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-
-from confidence_engine.models import (
+from src.confidence_engine.models import (
     ConfidenceState,
 )
-from confidence_engine.models import (
+from src.confidence_engine.models import (
     Phase as ControllerPhase,
 )
-from confidence_engine.murphy_models import Phase
-from confidence_engine.murphy_validator import MurphyValidator
+from src.confidence_engine.murphy_models import Phase
+from src.confidence_engine.murphy_validator import MurphyValidator
 
 logger = logging.getLogger(__name__)
 
