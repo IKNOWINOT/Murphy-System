@@ -86,13 +86,13 @@ def _subsystem_rooms() -> set[str]:
 # Threshold constants
 # The manifest intentionally shares ~8 command strings across related modules
 # (e.g. 'compliance status' from both compliance_engine and outreach_compliance_integration).
-# Set slightly above the known count to allow a small buffer.
-_MAX_COMMAND_OVERLAPS = 15
+# Known overlaps as of 2026-03-16 audit: ~8.  Allow a small buffer above the known count.
+_MAX_COMMAND_OVERLAPS = 10
 
 # Registry _e() calls use short single-token cmds (e.g. 'blackstart') while
 # manifest uses multi-word forms (e.g. 'heal blackstart').  Some registry tokens
-# are low-level plumbing that never appear in the manifest.  Allow up to 40% for
-# now; this threshold should be tightened as coverage matures.
+# are low-level plumbing that never appear in the manifest.  Current rate ~35%.
+# TODO: Reduce to 0.30 once registry cmds are fully normalised to multi-word form.
 _MAX_REGISTRY_ORPHAN_RATE = 0.40
 
 # A handful of manifest rooms may reference auxiliary dicts not parsed by the

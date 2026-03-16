@@ -297,25 +297,31 @@ class CommandDispatcher:
         self.register_handler("schedule", _handle_schedule, "Business loop scheduling (loops, configure, status)")
         self.register_handler("skm", _handle_skm, "Sense-Know-Model loop (status, sense, know, model, cycle)")
         self.register_handler("automation", _handle_automation, "Unified automation view and control (list, summary, types, mode, hub, rbac, readiness, scale, loop, scheduler, marketplace, native, self, onboard-engine, building, manufacturing, sales, compliance-bridge, full, deploy)")
-        # ── Subsystem stub handlers ──────────────────────────────────────────────
+        # ── Multi-agent / Workflow subsystems ───────────────────────────────────
         self.register_handler("swarm", _handle_swarm, "Swarm system commands (propose, status, build, domain, orchestrate, crew)")
         self.register_handler("workflow", _handle_workflow, "Workflow commands (generate, templates, dag)")
         self.register_handler("agents", _handle_agents, "Agent subsystem commands (list, monitor, personas, runs, history)")
+        # ── Self-healing / Intelligence / Research ───────────────────────────────
         self.register_handler("heal", _handle_heal, "Self-healing commands (status, fix, code, blackstart)")
         self.register_handler("research", _handle_research, "Research subsystem commands (run, query, advanced, multi)")
         self.register_handler("monitor", _handle_monitor, "Monitoring commands (health, logs, slo, telemetry, heartbeat)")
+        # ── Execution / Confidence / Control ────────────────────────────────────
         self.register_handler("exec", _handle_exec, "Execution subsystem commands (run, status, packet, plan)")
         self.register_handler("confidence", _handle_confidence, "Confidence engine commands (status, score, gate)")
+        # ── Security / Compliance / Governance / Safety ──────────────────────────
         self.register_handler("security", _handle_security, "Security subsystem commands (scan, audit, rbac, harden)")
         self.register_handler("compliance", _handle_compliance_cmd, "Compliance commands (status, scan, report, recommended)")
         self.register_handler("governance", _handle_governance, "Governance commands (status, authority, bypass)")
         self.register_handler("hitl", _handle_hitl, "Human-in-the-loop commands (status, graduate, level, approve)")
         self.register_handler("safety", _handle_safety, "Safety subsystem commands (status, validate, orchestrate)")
+        # ── LLM / Knowledge ─────────────────────────────────────────────────────
         self.register_handler("llm", _handle_llm, "LLM subsystem commands (status, route, gate, swarm, validate)")
         self.register_handler("kb", _handle_kb, "Knowledge base commands (status, search, query, generate)")
+        # ── Integrations / Finance / Trading ─────────────────────────────────────
         self.register_handler("integrations", _handle_integrations, "Integration commands (list, status, add, system)")
         self.register_handler("finance", _handle_finance, "Finance commands (report, portfolio, trading, invoice, budget)")
         self.register_handler("trading", _handle_trading, "Trading bot commands (status, approve, strategy, lifecycle)")
+        # ── Infrastructure / Org / Data ──────────────────────────────────────────
         self.register_handler("infra", _handle_infra, "Infrastructure commands (k8s, docker, deploy, fleet, capacity)")
         self.register_handler("org", _handle_org, "Organisation commands (chart, compile, enforce, context)")
         self.register_handler("data", _handle_data, "Data pipeline commands (pipeline, archive, sync, schema)")
