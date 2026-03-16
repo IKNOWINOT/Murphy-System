@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sys
 import os
 import unittest
 from datetime import datetime, timezone
@@ -13,7 +12,6 @@ from unittest.mock import MagicMock
 # Path setup
 # ---------------------------------------------------------------------------
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from trial_orchestrator import (
     TRIAL_DURATION_HOURS,

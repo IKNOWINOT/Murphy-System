@@ -14,13 +14,8 @@ Covers:
   Capabilities    — 12/17 → 17/17 at 10/10
 """
 
-import os
-import sys
 import unittest
 from datetime import datetime, timedelta
-
-# Ensure imports work
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'strategic'))
 
 # Compliance controls
 from compliance.compliance_controls import (

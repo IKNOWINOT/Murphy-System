@@ -9,13 +9,10 @@ GAP 7 closure: verifies all 104+ bot modules are importable and functional.
 """
 import importlib
 import os
-import sys
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "src"))
 
 BOTS_DIR = ROOT / "bots"
 

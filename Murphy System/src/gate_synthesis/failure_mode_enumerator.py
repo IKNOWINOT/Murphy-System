@@ -4,20 +4,22 @@ Identifies potential failure modes for candidate future steps
 """
 
 import hashlib
-import os
+import logging
 
 # Import from confidence engine
-import sys
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from src.confidence_engine.models import (
+    ArtifactGraph,
+    ArtifactNode,
+    ArtifactType,
+    AuthorityBand,
+    ConfidenceState,
+    Phase,
+)
+
 from .models import ExposureSignal, FailureMode, FailureModeType, RiskVector
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-
-import logging
-
-from confidence_engine.models import ArtifactGraph, ArtifactNode, ArtifactType, AuthorityBand, ConfidenceState, Phase
 
 logger = logging.getLogger(__name__)
 

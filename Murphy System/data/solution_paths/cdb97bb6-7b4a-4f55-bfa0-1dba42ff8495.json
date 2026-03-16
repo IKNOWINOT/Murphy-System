@@ -1,0 +1,72 @@
+[
+  {
+    "path_id": "1d3b60b6-a233-46a3-bd5e-e69f76305033",
+    "task_id": "cdb97bb6-7b4a-4f55-bfa0-1dba42ff8495",
+    "capability_id": "generate_domain_experts_dynamically",
+    "module_path": "src.dynamic_expert_generator",
+    "score": 0.0,
+    "librarian_score": 0.0,
+    "feedback_weight": 1.0,
+    "cost_estimate": "medium",
+    "determinism": "deterministic",
+    "requires_hitl": false,
+    "parameters": {},
+    "wingman": null
+  },
+  {
+    "path_id": "ec7968c1-a310-4f5f-94ef-040dc121045e",
+    "task_id": "cdb97bb6-7b4a-4f55-bfa0-1dba42ff8495",
+    "capability_id": "create_expert_teams",
+    "module_path": "src.dynamic_expert_generator",
+    "score": 0.0,
+    "librarian_score": 0.0,
+    "feedback_weight": 1.0,
+    "cost_estimate": "medium",
+    "determinism": "deterministic",
+    "requires_hitl": false,
+    "parameters": {},
+    "wingman": null
+  },
+  {
+    "path_id": "939cc9d1-c884-4b73-b966-5a5e586ca09c",
+    "task_id": "cdb97bb6-7b4a-4f55-bfa0-1dba42ff8495",
+    "capability_id": "map_expert_knowledge_domains",
+    "module_path": "src.dynamic_expert_generator",
+    "score": 0.0,
+    "librarian_score": 0.0,
+    "feedback_weight": 1.0,
+    "cost_estimate": "medium",
+    "determinism": "deterministic",
+    "requires_hitl": false,
+    "parameters": {},
+    "wingman": null
+  },
+  {
+    "path_id": "1b495268-a519-4591-aaed-d1a65b9a9ef4",
+    "task_id": "cdb97bb6-7b4a-4f55-bfa0-1dba42ff8495",
+    "capability_id": "score_expert_capabilities",
+    "module_path": "src.dynamic_expert_generator",
+    "score": 0.0,
+    "librarian_score": 0.0,
+    "feedback_weight": 1.0,
+    "cost_estimate": "medium",
+    "determinism": "deterministic",
+    "requires_hitl": false,
+    "parameters": {},
+    "wingman": null
+  },
+  {
+    "path_id": "6e2df528-2490-43a4-b85d-0b0265f677d6",
+    "task_id": "cdb97bb6-7b4a-4f55-bfa0-1dba42ff8495",
+    "capability_id": "generate_domain-specific_gates",
+    "module_path": "src.domain_gate_generator",
+    "score": 0.0,
+    "librarian_score": 0.0,
+    "feedback_weight": 1.0,
+    "cost_estimate": "medium",
+    "determinism": "deterministic",
+    "requires_hitl": false,
+    "parameters": {},
+    "wingman": null
+  }
+]

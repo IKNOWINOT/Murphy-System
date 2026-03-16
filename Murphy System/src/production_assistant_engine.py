@@ -60,7 +60,6 @@ from typing import Any, Dict, List, Optional, Tuple
 # ---------------------------------------------------------------------------
 # Local imports (all within Murphy System package)
 # ---------------------------------------------------------------------------
-
 # REGULATORY_ZONES maps country codes to compliance frameworks
 from agentic_onboarding_engine import REGULATORY_ZONES  # type: ignore[import]
 
@@ -640,6 +639,8 @@ class DeliverableGateValidator:
             from strategic.murphy_confidence.gates import SafetyGate  # type: ignore[import]
             from strategic.murphy_confidence.types import (  # type: ignore[import]
                 ConfidenceResult as ConfRes,
+            )
+            from strategic.murphy_confidence.types import (
                 GateAction,
                 GateType,
                 Phase,

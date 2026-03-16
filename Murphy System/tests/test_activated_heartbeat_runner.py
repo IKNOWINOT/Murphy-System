@@ -17,12 +17,10 @@ Test outline per tick:
 - Timer start/stop lifecycle
 """
 
-import sys
 import os
 import time
 import threading
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 import pytest
 

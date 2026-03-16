@@ -14,24 +14,19 @@ License: BSL 1.1
 
 import asyncio
 import logging
-import os
-import sys
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
-# Add src to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-
 # Import original execution system
 try:
-    from execution_engine.execution_orchestrator import ExecutionOrchestrator
+    from src.execution_engine.execution_orchestrator import ExecutionOrchestrator
     HAS_ORCHESTRATOR = True
 except ImportError:
     HAS_ORCHESTRATOR = False
     logging.warning("Original ExecutionOrchestrator not found")
 
 try:
-    from confidence_engine.phase_controller import PhaseController
+    from src.confidence_engine.phase_controller import PhaseController
     HAS_PHASE_CONTROLLER = True
 except ImportError:
     HAS_PHASE_CONTROLLER = False
@@ -39,10 +34,10 @@ except ImportError:
 
 # Import new form execution system
 # Import unified confidence engine
-from confidence_engine.unified_confidence_engine import UnifiedConfidenceEngine
-from execution_engine.execution_context import ExecutionContext
-from execution_engine.form_execution_models import ExecutionResult, ExecutionStatus
-from execution_engine.form_executor import FormDrivenExecutor
+from src.confidence_engine.unified_confidence_engine import UnifiedConfidenceEngine
+from src.execution_engine.execution_context import ExecutionContext
+from src.execution_engine.form_execution_models import ExecutionResult, ExecutionStatus
+from src.execution_engine.form_executor import FormDrivenExecutor
 
 logger = logging.getLogger(__name__)
 

@@ -14,10 +14,8 @@ Copyright © 2020 Inoni Limited Liability Company
 License: BSL 1.1
 """
 
-import sys
 import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 os.environ.setdefault("MURPHY_ENV", "test")
 
 import pytest

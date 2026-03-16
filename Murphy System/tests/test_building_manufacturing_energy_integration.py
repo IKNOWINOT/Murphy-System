@@ -7,11 +7,9 @@ Validates MODULE_CATALOG registration, _initialize wiring, and
 cross-module functionality for all newly wired modules.
 """
 import unittest
-import sys
 import os
 
 # Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 
 class TestBuildingAutomationConnectors(unittest.TestCase):

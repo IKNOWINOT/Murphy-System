@@ -216,10 +216,7 @@ class RosettaDocumentBuilder:
         # Lazy-load heavy dependencies only if not injected
         if self._gate_engine is None:
             try:
-                import os
-                import sys
-                sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-                from inference_gate_engine import InferenceDomainGateEngine
+                from src.inference_gate_engine import InferenceDomainGateEngine
                 self._gate_engine = InferenceDomainGateEngine()
             except Exception as exc:
                 logger.warning("InferenceDomainGateEngine unavailable: %s", exc)

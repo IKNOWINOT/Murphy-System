@@ -6,7 +6,6 @@ import threading
 import sys
 import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from social_media_moderation import (
     PlatformType, ContentVerdict, ViolationCategory, ModerationAction,

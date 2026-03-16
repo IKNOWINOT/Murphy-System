@@ -2,9 +2,6 @@
 Test that Enhanced Local LLM is actually used in offline mode
 """
 
-import sys
-sys.path.insert(0, '/workspace')
-
 from src.llm_integration_layer import LLMIntegrationLayer, LLMProvider, DomainType
 from src.enhanced_local_llm import EnhancedLocalLLM
 

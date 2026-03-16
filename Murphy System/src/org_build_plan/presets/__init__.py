@@ -65,11 +65,11 @@ class IndustryPreset:
 
 def _load_presets() -> Dict[str, IndustryPreset]:
     """Lazily import each preset module and return the registry dict."""
-    from .manufacturing import PRESET as _mfg
+    from .energy_utilities import PRESET as _nrg
     from .financial_services import PRESET as _fin
     from .logistics_fleet import PRESET as _log
+    from .manufacturing import PRESET as _mfg
     from .nonprofit_advocacy import PRESET as _npo
-    from .energy_utilities import PRESET as _nrg
     from .retail_ecommerce import PRESET as _ret
     from .saas_agency import PRESET as _saas
 

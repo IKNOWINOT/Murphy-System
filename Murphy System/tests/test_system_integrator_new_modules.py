@@ -11,7 +11,6 @@ License: BSL 1.1
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -29,17 +28,8 @@ def _src_root() -> Path:
     return Path(__file__).resolve().parent.parent
 
 
-def _add_src_to_path() -> None:
-    src = str(_src_root() / "src")
-    if src not in sys.path:
-        sys.path.insert(0, src)
-    root = str(_src_root())
-    if root not in sys.path:
-        sys.path.insert(0, root)
-
 
 def _load_system_integrator():
-    _add_src_to_path()
     import importlib
     mod = importlib.import_module("src.system_integrator")
     return mod

@@ -10,7 +10,6 @@ in the security hardening pass:
 
 from __future__ import annotations
 
-import sys
 import os
 import logging
 import unittest
@@ -21,7 +20,6 @@ from unittest.mock import MagicMock, patch
 # Path setup
 # ---------------------------------------------------------------------------
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from outreach_compliance_integration import (
     _ALLOWED_CHANNELS,

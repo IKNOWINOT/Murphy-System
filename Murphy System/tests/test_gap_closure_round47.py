@@ -13,13 +13,11 @@ Validates the shadow learning system and real-money guard introduced in this rou
                                             pattern hints surface
 """
 
-import sys
 import time
 import tempfile
 import os
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 import pytest
 

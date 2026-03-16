@@ -10,11 +10,9 @@ Fixed In   : HealthMonitor.__init__ (switched to collections.deque)
 """
 
 import collections
-import sys
 import os
 import unittest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from health_monitor import HealthMonitor
 

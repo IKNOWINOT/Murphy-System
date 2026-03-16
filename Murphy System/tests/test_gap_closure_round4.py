@@ -12,12 +12,10 @@ Gaps addressed:
 15. llm_routing_completeness — _selection_history, _optimisation_log, _routing_log, _validation_log unbounded
 """
 
-import sys
 import os
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 
 # ===================================================================
