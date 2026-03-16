@@ -1,0 +1,529 @@
+<!-- Murphy System — Sign In / © 2020 Inoni Limited Liability Company by Corey Post / License: BSL 1.1 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — Sign In</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
+<style>
+  /* Neon terminal theme */
+  /* Color Key: green=#00ff41, cyan=#00ffff, teal=#00D4AA, bg=#0a0a0a */
+  .murphy-terminal, .murphy-output, pre, code {
+    font-family: var(--font-code, 'JetBrains Mono', monospace);
+    color: #00ff41;
+    background: #0a0a0a;
+  }
+  *:focus-visible { outline: 2px solid #00ff41; outline-offset: 2px; }
+
+  .login-page {
+    min-height: 100vh;
+    background: #0a0a0a;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .login-content {
+    flex: 1;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 3rem 1rem 4rem;
+  }
+
+  .login-card {
+    width: 100%;
+    max-width: 480px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-xl);
+    padding: 2.5rem 2rem;
+    box-shadow: var(--shadow-lg), 0 0 40px rgba(0, 212, 170, 0.06);
+  }
+
+  .login-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .login-header h1 {
+    font-size: var(--text-2xl);
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    font-family: var(--font-ui);
+  }
+
+  .login-header p {
+    color: var(--text-secondary);
+    font-size: var(--text-base);
+  }
+
+  .oauth-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .oauth-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: border-color var(--transition-base), background var(--transition-base);
+  }
+
+  .oauth-btn:hover, .oauth-btn:focus-visible {
+    border-color: var(--teal);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+  }
+
+  .oauth-btn svg { flex-shrink: 0; }
+  .oauth-btn-label { flex: 1; text-align: center; }
+
+  .login-separator {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 1.5rem 0;
+    color: var(--text-tertiary);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .login-separator::before,
+  .login-separator::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-subtle);
+  }
+
+  .form-group {
+    margin-bottom: 1.25rem;
+  }
+
+  .form-label {
+    display: block;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 0.375rem;
+    font-family: var(--font-ui);
+  }
+
+  .form-input {
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: var(--text-sm);
+    transition: border-color var(--transition-base);
+    box-sizing: border-box;
+  }
+
+  .form-input:focus {
+    outline: none;
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.12);
+  }
+
+  .form-input::placeholder { color: var(--text-tertiary); }
+
+  .password-wrapper {
+    position: relative;
+  }
+  .password-wrapper .form-input {
+    padding-right: 2.75rem;
+  }
+  .password-toggle {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    padding: 0.25rem;
+    font-size: 1.1rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    transition: color var(--transition-base);
+  }
+  .password-toggle:hover { color: var(--teal); }
+  .password-toggle:focus-visible { outline: 2px solid #00ff41; outline-offset: 2px; }
+
+  .forgot-password {
+    text-align: right;
+    margin-top: -0.75rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .forgot-password a {
+    font-size: var(--text-xs);
+    color: var(--teal);
+    text-decoration: none;
+  }
+
+  .forgot-password a:hover { text-decoration: underline; }
+
+  .login-submit {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: var(--teal);
+    border: none;
+    border-radius: var(--radius-md);
+    color: #0C1017;
+    font-family: var(--font-ui);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity var(--transition-base), transform var(--transition-base);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .login-submit:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+  .login-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  .login-footer-link {
+    text-align: center;
+    margin-top: 1.5rem;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+  }
+
+  .login-footer-link a {
+    color: var(--teal);
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .login-footer-link a:hover { text-decoration: underline; }
+
+  .form-error {
+    font-size: var(--text-xs);
+    color: var(--error, #ff4444);
+    margin-top: 0.25rem;
+    display: none;
+  }
+  .form-error.visible { display: block; }
+
+  .form-error-global {
+    background: rgba(255,68,68,0.08);
+    border: 1px solid rgba(255,68,68,0.25);
+    border-radius: var(--radius-md);
+    padding: 0.75rem 1rem;
+    font-size: var(--text-sm);
+    color: var(--error, #ff4444);
+    margin-bottom: 1.25rem;
+    display: none;
+  }
+  .form-error-global.visible { display: block; }
+
+  @media (max-width: 480px) {
+    .login-card { padding: 1.75rem 1.25rem; }
+    .login-header h1 { font-size: var(--text-xl); }
+  }
+</style>
+</head>
+<body class="murphy-no-sidebar login-page">
+
+<a class="murphy-skip-link" href="#login-content">Skip to content</a>
+
+<!-- ── Top Navigation Bar ── -->
+<nav class="murphy-topbar" role="navigation" aria-label="Main navigation">
+  <div class="murphy-topbar-left flex items-center gap-3">
+    <a href="/ui/landing" class="murphy-topbar-brand">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect width="32" height="32" rx="8" fill="var(--teal)"/>
+        <text x="16" y="22" text-anchor="middle" fill="#0C1017" font-size="18" font-weight="700" font-family="Inter, sans-serif">M</text>
+      </svg>
+      <span class="murphy-topbar-brand-name">Murphy System</span>
+    </a>
+    <div class="murphy-nav-links nav-links-desktop">
+      <a href="/ui/landing#features" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Features</a>
+      <a href="/ui/pricing" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Pricing</a>
+      <a href="/ui/docs" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Docs</a>
+    </div>
+  </div>
+  <div class="murphy-topbar-right flex items-center gap-2">
+    <button class="murphy-btn murphy-btn-ghost murphy-btn-icon" id="theme-toggle-btn" aria-label="Toggle theme" title="Toggle theme">🌙</button>
+    <a href="/ui/signup" class="murphy-btn murphy-btn-primary murphy-btn-sm">Sign Up Free</a>
+  </div>
+</nav>
+
+<!-- ── Main Content ── -->
+<main id="login-content" role="main" aria-label="Sign in" class="login-content">
+  <div class="login-card">
+
+    <!-- Header -->
+    <header class="login-header">
+      <h1>Welcome Back</h1>
+      <p>Sign in to your Murphy System account.</p>
+    </header>
+
+    <!-- Global error banner -->
+    <div id="login-error-global" class="form-error-global" role="alert" aria-live="polite"></div>
+
+    <!-- OAuth buttons -->
+    <div class="oauth-group" role="group" aria-label="Sign in with social account">
+
+      <a href="/api/auth/oauth/google" class="oauth-btn" aria-label="Sign in with Google">
+        <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+        <span class="oauth-btn-label">Continue with Google</span>
+      </a>
+
+      <a href="/api/auth/oauth/github" class="oauth-btn" aria-label="Sign in with GitHub">
+        <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="#E6ECF2" d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.165 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.604-3.369-1.341-3.369-1.341-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.161 22 16.416 22 12c0-5.523-4.477-10-10-10z"/>
+        </svg>
+        <span class="oauth-btn-label">Continue with GitHub</span>
+      </a>
+
+    </div>
+
+    <!-- Divider -->
+    <div class="login-separator" aria-hidden="true">or sign in with email</div>
+
+    <!-- Email / Password Form -->
+    <form id="login-form" novalidate>
+
+      <div class="form-group">
+        <label class="form-label" for="email">Email address</label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          class="form-input"
+          placeholder="you@company.com"
+          autocomplete="email"
+          required
+          aria-describedby="email-error"
+        >
+        <span id="email-error" class="form-error" role="alert"></span>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <div class="password-wrapper">
+          <input
+            type="password"
+            id="password"
+            name="password"
+            class="form-input"
+            placeholder="••••••••"
+            autocomplete="current-password"
+            required
+            aria-describedby="password-error"
+          >
+          <button type="button" class="password-toggle" id="toggle-password" aria-label="Toggle password visibility" tabindex="0">
+            <svg id="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg id="eye-off-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/></svg>
+          </button>
+        </div>
+        <span id="password-error" class="form-error" role="alert"></span>
+      </div>
+
+      <div class="forgot-password">
+        <a href="#" id="forgot-link">Forgot password?</a>
+      </div>
+
+      <button type="submit" class="login-submit" aria-label="Sign in">
+        <span class="btn-text">Sign In</span>
+      </button>
+
+    </form>
+
+    <!-- Footer links -->
+    <p class="login-footer-link">
+      Don't have an account? <a href="/ui/signup">Sign up free</a>
+    </p>
+
+  </div>
+</main>
+
+<!-- ── Footer ── -->
+<footer class="murphy-footer" role="contentinfo">
+  <div class="murphy-footer-inner">
+    <nav class="murphy-footer-links" aria-label="Footer navigation">
+      <a href="/ui/terminal-unified">Dashboard</a>
+      <a href="/ui/landing#features">Features</a>
+      <a href="/ui/pricing">Pricing</a>
+      <a href="/ui/docs">Docs</a>
+      <a href="/ui/blog">Blog</a>
+      <a href="/ui/careers">Careers</a>
+      <a href="/ui/legal">Legal</a>
+      <a href="/ui/privacy">Privacy</a>
+      <a href="/ui/partner">Partner</a>
+      <a href="mailto:contact@murphy.ai">Contact</a>
+    </nav>
+    <p class="murphy-footer-copy">© 2020 Inoni Limited Liability Company by Corey Post. Licensed under BSL 1.1.</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  // ── Password visibility toggle ──────────────────────
+  var toggleBtn = document.getElementById('toggle-password');
+  var pwdInput = document.getElementById('password');
+  var eyeIcon = document.getElementById('eye-icon');
+  var eyeOffIcon = document.getElementById('eye-off-icon');
+  if (toggleBtn && pwdInput) {
+    toggleBtn.addEventListener('click', function () {
+      var isHidden = pwdInput.type === 'password';
+      pwdInput.type = isHidden ? 'text' : 'password';
+      eyeIcon.style.display = isHidden ? 'none' : 'block';
+      eyeOffIcon.style.display = isHidden ? 'block' : 'none';
+      toggleBtn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+    });
+  }
+
+  // ── Theme toggle ─────────────────────────────────────
+  var themeBtn = document.getElementById('theme-toggle-btn');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', function () {
+      document.documentElement.classList.toggle('murphy-light');
+      themeBtn.textContent = document.documentElement.classList.contains('murphy-light') ? '☀️' : '🌙';
+    });
+  }
+
+  // ── Helpers ──────────────────────────────────────────
+  function showError(id, msg) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.add('visible');
+  }
+
+  function clearError(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = '';
+    el.classList.remove('visible');
+  }
+
+  function showFormError(msg) {
+    var el = document.getElementById('login-error-global');
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.add('visible');
+  }
+
+  function clearFormError() {
+    var el = document.getElementById('login-error-global');
+    if (!el) return;
+    el.textContent = '';
+    el.classList.remove('visible');
+  }
+
+  function validate() {
+    var ok = true;
+
+    var email = document.getElementById('email').value.trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showError('email-error', 'A valid email address is required.');
+      ok = false;
+    } else { clearError('email-error'); }
+
+    var password = document.getElementById('password').value;
+    if (!password || password.length < 6) {
+      showError('password-error', 'Password must be at least 6 characters.');
+      ok = false;
+    } else { clearError('password-error'); }
+
+    return ok;
+  }
+
+  // ── Forgot password ───────────────────────────────────
+  document.getElementById('forgot-link').addEventListener('click', function (e) {
+    e.preventDefault();
+    var email = document.getElementById('email').value.trim();
+    if (!email) {
+      showError('email-error', 'Enter your email address above first.');
+      return;
+    }
+    fetch('/api/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email })
+    }).then(function () {
+      showFormError('If that email is registered you will receive a reset link shortly.');
+    }).catch(function () {
+      showFormError('Network error — please try again.');
+    });
+  });
+
+  // ── Form submission ──────────────────────────────────
+  var form = document.getElementById('login-form');
+  var submitBtn = form.querySelector('.login-submit');
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    clearFormError();
+    if (!validate()) return;
+
+    submitBtn.disabled = true;
+    submitBtn.querySelector('.btn-text').textContent = 'Signing in…';
+
+    fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: document.getElementById('email').value.trim(),
+        password: document.getElementById('password').value
+      })
+    })
+    .then(function (res) {
+      return res.json().then(function (data) { return { status: res.status, data: data }; });
+    })
+    .then(function (result) {
+      submitBtn.disabled = false;
+      submitBtn.querySelector('.btn-text').textContent = 'Sign In';
+      if (result.status >= 200 && result.status < 300) {
+        window.location.href = '/ui/terminal-unified';
+      } else {
+        showFormError(result.data.message || result.data.error || 'Sign in failed. Please try again.');
+      }
+    })
+    .catch(function () {
+      submitBtn.disabled = false;
+      submitBtn.querySelector('.btn-text').textContent = 'Sign In';
+      showFormError('Network error — please check your connection and try again.');
+    });
+  });
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+# Murphy System — Grafana Dashboard Provisioning
+# Copyright © 2020 Inoni Limited Liability Company
+# Creator: Corey Post
+# License: BSL 1.1
+apiVersion: 1
+providers:
+  - name: "Murphy System"
+    orgId: 1
+    folder: "Murphy System"
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

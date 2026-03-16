@@ -1,0 +1,15 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: murphy-api
+  namespace: murphy-system
+  labels:
+    app: murphy-system
+    component: availability
+    environment: production
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: murphy-system
+      component: api
