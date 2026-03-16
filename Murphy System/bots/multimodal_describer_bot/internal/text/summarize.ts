@@ -1,0 +1,1 @@
+export function summarize(text:string, mode:'short'|'normal'|'verbose'='normal'){ if (mode==='short') return (text||'').slice(0,140); if (mode==='verbose') return (text||''); return (text||'').slice(0,280); }

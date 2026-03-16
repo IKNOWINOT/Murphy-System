@@ -125,6 +125,11 @@ if [ -f requirements_murphy_1.0.txt ]; then
   pip install -q -r requirements_murphy_1.0.txt 2>&1 | \
     grep -v "already satisfied" || true
 fi
+
+# Install the murphy-system package in editable mode so that
+# "from src.xxx import yyy" imports work correctly without sys.path hacks.
+pip install -q -e . 2>&1 | grep -v "already satisfied" || true
+
 ok "Dependencies installed"
 
 # ---- configuration ---------------------------------------------------------

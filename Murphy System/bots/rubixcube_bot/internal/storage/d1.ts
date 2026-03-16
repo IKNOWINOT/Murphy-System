@@ -1,0 +1,1 @@
+export async function saveSpec(_db:any,_row:any){ return { id:'spec_'+Date.now() } } export async function logRun(_db:any,_row:any){ return true } export async function saveArtifact(_db:any,_row:any){ return true }

@@ -1,0 +1,32 @@
+# Murphy System — Prometheus Operator ServiceMonitor
+# Copyright © 2020 Inoni Limited Liability Company
+# Creator: Corey Post
+# License: BSL 1.1
+#
+# NOTE: This manifest is OPTIONAL. It is only required if the Prometheus Operator
+# (https://github.com/prometheus-operator/prometheus-operator) is installed in
+# your cluster. If you are using a standalone Prometheus deployment (the default
+# setup in prometheus-deployment.yaml), you can safely ignore this file.
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: murphy-api
+  namespace: murphy-system
+  labels:
+    app: murphy-system
+    component: api
+    environment: production
+spec:
+  selector:
+    matchLabels:
+      app: murphy-system
+      component: api
+  namespaceSelector:
+    matchNames:
+      - murphy-system
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s

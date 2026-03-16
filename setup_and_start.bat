@@ -22,8 +22,11 @@ REM ---- locate repo root ----------------------------------------------------
 set "SCRIPT_DIR=%~dp0"
 set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1%"
 
-if exist "%SCRIPT_DIR%\murphy_system_1.0_runtime.py" (
+if exist "%SCRIPT_DIR%\Murphy System\murphy_system_1.0_runtime.py" (
     set "REPO_ROOT=%SCRIPT_DIR%"
+) else if exist "%SCRIPT_DIR%\murphy_system_1.0_runtime.py" (
+    REM Running from inside "Murphy System" folder
+    for %%I in ("%SCRIPT_DIR%\..") do set "REPO_ROOT=%%~fI"
 ) else (
     echo [ERROR] Cannot locate Murphy System files.
     echo         Run this script from the repository root.
@@ -31,7 +34,7 @@ if exist "%SCRIPT_DIR%\murphy_system_1.0_runtime.py" (
     exit /b 1
 )
 
-set "MURPHY_DIR=%REPO_ROOT%"
+set "MURPHY_DIR=%REPO_ROOT%\Murphy System"
 
 if not exist "%MURPHY_DIR%\murphy_system_1.0_runtime.py" (
     echo [ERROR] murphy_system_1.0_runtime.py not found.
@@ -41,6 +44,7 @@ if not exist "%MURPHY_DIR%\murphy_system_1.0_runtime.py" (
 )
 
 echo [INFO] Repository root: %REPO_ROOT%
+echo [INFO] Murphy System:   %MURPHY_DIR%
 echo.
 
 REM ---- step 1: prerequisites -----------------------------------------------

@@ -1,0 +1,1 @@
+export async function embed(_ctx:any,_bytes:Uint8Array){ return { vector: Array(32).fill(0), usage:{tokens_in:0,tokens_out:0,cost_usd:0} } }

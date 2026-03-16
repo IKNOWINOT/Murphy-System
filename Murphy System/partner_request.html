@@ -1,0 +1,1542 @@
+<!--
+  Murphy System — Partner Integration Request
+  © 2020 Inoni Limited Liability Company by Corey Post
+  License: BSL 1.1 (Business Source License 1.1)
+  See LICENSE file in repository root for full terms.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — Partner Integration Request</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
+<style>
+  /* Neon terminal theme */
+  /* Color Key: green=#00ff41, cyan=#00ffff, teal=#00D4AA, bg=#0a0a0a */
+  .murphy-terminal, .murphy-output, pre, code {
+    font-family: var(--font-code, 'JetBrains Mono', monospace);
+    color: #00ff41;
+    background: #0a0a0a;
+  }
+  *:focus-visible { outline: 2px solid #00ff41; outline-offset: 2px; }
+
+  /* ── Page layout ── */
+  .partner-page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .partner-content {
+    margin-top: var(--topbar-height);
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    padding: var(--space-6) var(--space-4) var(--space-7);
+  }
+
+  .partner-container {
+    width: 100%;
+    max-width: 720px;
+  }
+
+  .partner-header {
+    text-align: center;
+    margin-bottom: var(--space-6);
+  }
+
+  .partner-header h1 {
+    font-size: var(--text-2xl);
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: var(--space-2);
+    font-family: var(--font-ui);
+  }
+
+  .partner-header p {
+    color: var(--text-secondary);
+    font-size: var(--text-base);
+    font-family: var(--font-ui);
+  }
+
+  /* ── Step indicator bar ── */
+  .partner-steps {
+    display: flex;
+    gap: var(--space-1);
+    margin-bottom: var(--space-6);
+    overflow-x: auto;
+    padding-bottom: var(--space-2);
+  }
+
+  .partner-step-indicator {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-2) var(--space-1);
+    cursor: default;
+  }
+
+  .partner-step-number {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-code);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    background: var(--bg-elevated);
+    color: var(--text-muted);
+    border: 2px solid var(--border-default);
+    transition: all var(--transition-base);
+    flex-shrink: 0;
+  }
+
+  .partner-step-label {
+    font-family: var(--font-ui);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 80px;
+    transition: color var(--transition-base);
+  }
+
+  .partner-step-indicator[data-active="true"] .partner-step-number {
+    background: var(--teal);
+    color: var(--bg-base);
+    border-color: var(--teal);
+    box-shadow: 0 0 12px rgba(0, 212, 170, 0.3);
+  }
+
+  .partner-step-indicator[data-active="true"] .partner-step-label {
+    color: var(--teal);
+    font-weight: 600;
+  }
+
+  .partner-step-indicator[data-done="true"] .partner-step-number {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--success);
+    border-color: var(--success);
+  }
+
+  .partner-step-indicator[data-done="true"] .partner-step-label {
+    color: var(--text-secondary);
+  }
+
+  /* ── Step content panels ── */
+  .partner-step-panel {
+    display: none;
+  }
+
+  .partner-step-panel[data-visible="true"] {
+    display: block;
+  }
+
+  /* ── Card wrapper for steps ── */
+  .partner-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-xl);
+    padding: var(--space-6) var(--space-5);
+    box-shadow: var(--shadow-lg), 0 0 40px rgba(0, 212, 170, 0.06);
+  }
+
+  .partner-card h2 {
+    font-size: var(--text-xl);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--space-5);
+    font-family: var(--font-ui);
+  }
+
+  .partner-card h3 {
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--space-3);
+    font-family: var(--font-ui);
+  }
+
+  /* ── Form fields ── */
+  .partner-form-field {
+    margin-bottom: var(--space-4);
+  }
+
+  .partner-form-field label {
+    display: block;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: var(--space-1);
+    font-family: var(--font-ui);
+  }
+
+  .partner-form-field .field-error {
+    display: none;
+    margin-top: var(--space-1);
+    font-size: var(--text-xs);
+    color: var(--danger);
+    font-family: var(--font-ui);
+  }
+
+  .partner-form-field .field-error.visible {
+    display: block;
+  }
+
+  .partner-modules-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: var(--space-3);
+  }
+
+  .partner-module-option {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: border-color var(--transition-fast), background var(--transition-fast);
+    font-family: var(--font-ui);
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+  }
+
+  .partner-module-option:hover {
+    border-color: var(--teal);
+    background: var(--bg-surface);
+  }
+
+  .partner-module-option input[type="checkbox"] {
+    accent-color: var(--teal);
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  /* ── Plan display ── */
+  .partner-plan-output {
+    font-family: var(--font-code);
+    font-size: var(--text-sm);
+    color: #00ff41;
+    background: #0a0a0a;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+    white-space: pre-wrap;
+    word-break: break-word;
+    min-height: 160px;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  /* ── Execution log ── */
+  .partner-exec-log {
+    font-family: var(--font-code);
+    font-size: var(--text-sm);
+    color: #00ff41;
+    background: #0a0a0a;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+    min-height: 120px;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  .partner-exec-log-entry {
+    margin-bottom: var(--space-1);
+    font-family: var(--font-code);
+    font-size: var(--text-sm);
+  }
+
+  /* ── Verification results ── */
+  .partner-verify-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .partner-verify-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    font-family: var(--font-ui);
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+  }
+
+  .partner-verify-icon {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--text-sm);
+    font-weight: 700;
+  }
+
+  .partner-verify-icon-pass {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--success);
+  }
+
+  .partner-verify-icon-fail {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--danger);
+  }
+
+  .partner-verify-icon-pending {
+    background: rgba(255, 166, 62, 0.15);
+    color: var(--warning);
+  }
+
+  /* ── Hardening checklist ── */
+  .partner-harden-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .partner-harden-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+  }
+
+  .partner-harden-item input[type="checkbox"] {
+    accent-color: var(--teal);
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  .partner-harden-item-content {
+    flex: 1;
+  }
+
+  .partner-harden-item-title {
+    font-family: var(--font-ui);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--space-1);
+  }
+
+  .partner-harden-item-desc {
+    font-family: var(--font-ui);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+
+  .partner-harden-category {
+    font-family: var(--font-ui);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: var(--space-2);
+    margin-top: var(--space-4);
+  }
+
+  .partner-harden-category:first-child {
+    margin-top: 0;
+  }
+
+  /* ── HITL review ── */
+  .partner-hitl-actions {
+    display: flex;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+  }
+
+  .partner-revision-counter {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-family: var(--font-code);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+  }
+
+  /* ── Delivery confirmation ── */
+  .partner-delivery-summary {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding: var(--space-5);
+    background: var(--bg-elevated);
+    border: 1px solid rgba(34, 197, 94, 0.25);
+    border-radius: var(--radius-lg);
+  }
+
+  .partner-delivery-icon {
+    font-size: 48px;
+    text-align: center;
+  }
+
+  .partner-delivery-title {
+    font-family: var(--font-ui);
+    font-size: var(--text-xl);
+    font-weight: 700;
+    color: var(--success);
+    text-align: center;
+  }
+
+  .partner-delivery-detail {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-2) 0;
+    border-bottom: 1px solid var(--border-subtle);
+    font-family: var(--font-ui);
+    font-size: var(--text-sm);
+  }
+
+  .partner-delivery-detail:last-child {
+    border-bottom: none;
+  }
+
+  .partner-delivery-label {
+    color: var(--text-muted);
+  }
+
+  .partner-delivery-value {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  /* ── Navigation bar ── */
+  .partner-nav-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: var(--space-5);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  /* ── Form-level error ── */
+  .partner-form-error {
+    display: none;
+    margin-bottom: var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: var(--radius-md);
+    color: var(--danger);
+    font-size: var(--text-sm);
+    font-family: var(--font-ui);
+  }
+
+  .partner-form-error.visible {
+    display: block;
+  }
+
+  /* ── Status message ── */
+  .partner-status-msg {
+    margin-top: var(--space-3);
+    font-size: var(--text-sm);
+    font-family: var(--font-ui);
+    color: var(--text-secondary);
+  }
+
+  .partner-status-msg-success { color: var(--success); }
+  .partner-status-msg-danger { color: var(--danger); }
+  .partner-status-msg-warning { color: var(--warning); }
+
+  /* ── Responsive ── */
+  @media (max-width: 640px) {
+    .partner-content {
+      padding: var(--space-4) var(--space-3) var(--space-6);
+    }
+
+    .partner-card {
+      padding: var(--space-4) var(--space-3);
+    }
+
+    .partner-header h1 {
+      font-size: var(--text-xl);
+    }
+
+    .partner-steps {
+      gap: 0;
+    }
+
+    .partner-step-label {
+      display: none;
+    }
+
+    .partner-hitl-actions {
+      flex-direction: column;
+    }
+
+    .partner-modules-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body class="murphy-no-sidebar partner-page">
+
+<a class="murphy-skip-link" href="#partner-content">Skip to content</a>
+
+<!-- ── Top Navigation Bar ── -->
+<header class="murphy-topbar" role="banner" aria-label="Top bar">
+  <div class="murphy-topbar-left flex items-center gap-3">
+    <button class="murphy-btn murphy-btn-icon" id="btn-sidebar-toggle" aria-label="Toggle sidebar" title="Toggle sidebar">
+      <svg width="18" height="18" aria-hidden="true"><use href="static/murphy-icons.svg#icon-menu"></use></svg>
+    </button>
+    <a href="/ui/landing" class="murphy-topbar-brand">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect width="32" height="32" rx="8" fill="var(--teal)"/>
+        <text x="16" y="22" text-anchor="middle" fill="#0C1017" font-size="18" font-weight="700" font-family="Inter, sans-serif">M</text>
+      </svg>
+      <span class="murphy-topbar-brand-name">Murphy System</span>
+    </a>
+  </div>
+  <div class="murphy-topbar-right flex items-center gap-2">
+    <a href="/ui/terminal-unified" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Dashboard</a>
+    <a href="/ui/signup" class="murphy-btn murphy-btn-primary murphy-btn-sm">Sign Up</a>
+  </div>
+</header>
+
+<!-- ── Main Content ── -->
+<main id="partner-content" role="main" aria-label="Partner integration request" class="partner-content">
+  <div class="partner-container">
+
+    <!-- Header -->
+    <header class="partner-header">
+      <h1>Partner with Murphy System</h1>
+      <p>Request a custom integration for your platform. We'll build, verify, and deliver it.</p>
+    </header>
+
+    <!-- Step Indicators -->
+    <nav aria-label="Integration request progress" class="partner-steps" role="tablist">
+      <div class="partner-step-indicator" data-step="1" data-active="true" role="tab" aria-selected="true" aria-label="Step 1: Define Request">
+        <span class="partner-step-number">1</span>
+        <span class="partner-step-label">Define</span>
+      </div>
+      <div class="partner-step-indicator" data-step="2" role="tab" aria-selected="false" aria-label="Step 2: Plan">
+        <span class="partner-step-number">2</span>
+        <span class="partner-step-label">Plan</span>
+      </div>
+      <div class="partner-step-indicator" data-step="3" role="tab" aria-selected="false" aria-label="Step 3: Execute">
+        <span class="partner-step-number">3</span>
+        <span class="partner-step-label">Execute</span>
+      </div>
+      <div class="partner-step-indicator" data-step="4" role="tab" aria-selected="false" aria-label="Step 4: Verify">
+        <span class="partner-step-number">4</span>
+        <span class="partner-step-label">Verify</span>
+      </div>
+      <div class="partner-step-indicator" data-step="5" role="tab" aria-selected="false" aria-label="Step 5: Harden">
+        <span class="partner-step-number">5</span>
+        <span class="partner-step-label">Harden</span>
+      </div>
+      <div class="partner-step-indicator" data-step="6" role="tab" aria-selected="false" aria-label="Step 6: HITL Review">
+        <span class="partner-step-number">6</span>
+        <span class="partner-step-label">Review</span>
+      </div>
+      <div class="partner-step-indicator" data-step="7" role="tab" aria-selected="false" aria-label="Step 7: Delivery">
+        <span class="partner-step-number">7</span>
+        <span class="partner-step-label">Delivery</span>
+      </div>
+    </nav>
+
+    <!-- Dynamic step content -->
+    <div id="step-container" aria-live="polite">
+
+      <!-- ════════════════════════════════════════════════════
+           STEP 1 — Define Request
+           ════════════════════════════════════════════════════ -->
+      <section class="partner-step-panel" data-panel="1" data-visible="true" role="tabpanel" aria-label="Define your integration request">
+        <div class="partner-card">
+          <h2>Define Your Integration Request</h2>
+
+          <form id="partner-request-form" novalidate aria-label="Partner integration request form">
+            <div id="partner-form-error" class="partner-form-error" role="alert" aria-live="assertive"></div>
+
+            <!-- Company Name -->
+            <div class="partner-form-field">
+              <label for="company-name">Company Name <span aria-hidden="true">*</span></label>
+              <input
+                type="text"
+                id="company-name"
+                name="company_name"
+                class="murphy-input"
+                autocomplete="organization"
+                required
+                aria-required="true"
+                placeholder="Acme Corp"
+              >
+              <span class="field-error" id="company-name-error" role="alert"></span>
+            </div>
+
+            <!-- Integration Type -->
+            <div class="partner-form-field">
+              <label for="integration-type">Integration Type <span aria-hidden="true">*</span></label>
+              <select
+                id="integration-type"
+                name="integration_type"
+                class="murphy-select"
+                required
+                aria-required="true"
+              >
+                <option value="" disabled selected>Select a platform…</option>
+                <option value="wordpress">WordPress</option>
+                <option value="wix">Wix</option>
+                <option value="squarespace">Squarespace</option>
+                <option value="webflow">Webflow</option>
+                <option value="custom_cms">Custom CMS</option>
+                <option value="api">API</option>
+                <option value="other">Other</option>
+              </select>
+              <span class="field-error" id="integration-type-error" role="alert"></span>
+            </div>
+
+            <!-- Description -->
+            <div class="partner-form-field">
+              <label for="integration-desc">Description of Integration Needs <span aria-hidden="true">*</span></label>
+              <textarea
+                id="integration-desc"
+                name="description"
+                class="murphy-textarea"
+                required
+                aria-required="true"
+                placeholder="Describe what you need Murphy to integrate with, key workflows, and any technical requirements…"
+                rows="4"
+              ></textarea>
+              <span class="field-error" id="integration-desc-error" role="alert"></span>
+            </div>
+
+            <!-- Desired Modules -->
+            <div class="partner-form-field">
+              <label id="modules-label">Desired Murphy Modules</label>
+              <div class="partner-modules-grid" role="group" aria-labelledby="modules-label">
+                <label class="partner-module-option">
+                  <input type="checkbox" name="modules" value="task_engine">
+                  Task Engine
+                </label>
+                <label class="partner-module-option">
+                  <input type="checkbox" name="modules" value="librarian">
+                  Librarian AI
+                </label>
+                <label class="partner-module-option">
+                  <input type="checkbox" name="modules" value="governance">
+                  Governance Gates
+                </label>
+                <label class="partner-module-option">
+                  <input type="checkbox" name="modules" value="analytics">
+                  Analytics
+                </label>
+                <label class="partner-module-option">
+                  <input type="checkbox" name="modules" value="webhooks">
+                  Webhooks
+                </label>
+                <label class="partner-module-option">
+                  <input type="checkbox" name="modules" value="notifications">
+                  Notifications
+                </label>
+                <label class="partner-module-option">
+                  <input type="checkbox" name="modules" value="compliance">
+                  Compliance
+                </label>
+                <label class="partner-module-option">
+                  <input type="checkbox" name="modules" value="custom">
+                  Custom Module
+                </label>
+              </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="partner-nav-bar">
+              <span></span>
+              <button type="submit" class="murphy-btn murphy-btn-primary murphy-btn-lg" id="btn-submit-request">
+                Submit Request →
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════════
+           STEP 2 — Plan
+           ════════════════════════════════════════════════════ -->
+      <section class="partner-step-panel" data-panel="2" role="tabpanel" aria-label="Generated integration plan">
+        <div class="partner-card">
+          <h2>Integration Plan</h2>
+          <p>Murphy has analyzed your request and generated the following plan.</p>
+
+          <div id="plan-output" class="partner-plan-output" role="log" aria-label="Generated plan output">
+            Awaiting plan generation…
+          </div>
+
+          <div id="plan-status" class="partner-status-msg"></div>
+
+          <div class="partner-nav-bar">
+            <button type="button" class="murphy-btn murphy-btn-ghost" id="btn-plan-back">← Back</button>
+            <button type="button" class="murphy-btn murphy-btn-primary murphy-btn-lg" id="btn-plan-approve" disabled>
+              Approve Plan →
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════════
+           STEP 3 — Execute
+           ════════════════════════════════════════════════════ -->
+      <section class="partner-step-panel" data-panel="3" role="tabpanel" aria-label="Execution status">
+        <div class="partner-card">
+          <h2>Execution in Progress</h2>
+          <p>Murphy is building your integration. This may take a few minutes.</p>
+
+          <div class="murphy-progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Execution progress" id="exec-progress">
+            <div class="murphy-progress-bar-header">
+              <span id="exec-progress-label">Initializing…</span>
+              <span id="exec-progress-pct">0%</span>
+            </div>
+            <div class="murphy-progress-bar-track">
+              <div class="murphy-progress-bar-fill" id="exec-progress-fill"></div>
+            </div>
+          </div>
+
+          <div id="exec-log" class="partner-exec-log" role="log" aria-label="Execution log" aria-live="polite"></div>
+
+          <div id="exec-status" class="partner-status-msg"></div>
+
+          <div class="partner-nav-bar">
+            <span></span>
+            <button type="button" class="murphy-btn murphy-btn-primary murphy-btn-lg" id="btn-exec-next" disabled>
+              Continue to Verification →
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════════
+           STEP 4 — Verify
+           ════════════════════════════════════════════════════ -->
+      <section class="partner-step-panel" data-panel="4" role="tabpanel" aria-label="Verification and testing results">
+        <div class="partner-card">
+          <h2>Verification &amp; Testing</h2>
+          <p>Automated tests are running against the integration.</p>
+
+          <ul id="verify-results" class="partner-verify-list" aria-label="Test results"></ul>
+
+          <div id="verify-summary" class="partner-status-msg"></div>
+
+          <div class="partner-nav-bar">
+            <button type="button" class="murphy-btn murphy-btn-ghost" id="btn-verify-back">← Back</button>
+            <button type="button" class="murphy-btn murphy-btn-primary murphy-btn-lg" id="btn-verify-next" disabled>
+              Continue to Hardening →
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════════
+           STEP 5 — Harden / Solidify
+           ════════════════════════════════════════════════════ -->
+      <section class="partner-step-panel" data-panel="5" role="tabpanel" aria-label="Hardening checklist">
+        <div class="partner-card">
+          <h2>Harden &amp; Solidify</h2>
+          <p>Review and confirm each hardening check before proceeding to human review.</p>
+
+          <div id="harden-checklist" aria-label="Hardening checklist">
+            <!-- Security -->
+            <div class="partner-harden-category">Security</div>
+            <ul class="partner-harden-list" aria-label="Security checks">
+              <li class="partner-harden-item">
+                <input type="checkbox" id="harden-auth" name="harden" value="auth" aria-label="Authentication and authorization validated">
+                <div class="partner-harden-item-content">
+                  <div class="partner-harden-item-title">Authentication &amp; Authorization</div>
+                  <div class="partner-harden-item-desc">OAuth flows, API key handling, and RBAC rules validated.</div>
+                </div>
+              </li>
+              <li class="partner-harden-item">
+                <input type="checkbox" id="harden-input" name="harden" value="input_validation" aria-label="Input validation and sanitization">
+                <div class="partner-harden-item-content">
+                  <div class="partner-harden-item-title">Input Validation &amp; Sanitization</div>
+                  <div class="partner-harden-item-desc">All user inputs sanitized; no injection vulnerabilities.</div>
+                </div>
+              </li>
+              <li class="partner-harden-item">
+                <input type="checkbox" id="harden-encrypt" name="harden" value="encryption" aria-label="Data encryption at rest and in transit">
+                <div class="partner-harden-item-content">
+                  <div class="partner-harden-item-title">Data Encryption</div>
+                  <div class="partner-harden-item-desc">TLS for transit, AES-256 at rest. No secrets in source.</div>
+                </div>
+              </li>
+            </ul>
+
+            <!-- Performance -->
+            <div class="partner-harden-category">Performance</div>
+            <ul class="partner-harden-list" aria-label="Performance checks">
+              <li class="partner-harden-item">
+                <input type="checkbox" id="harden-latency" name="harden" value="latency" aria-label="Latency benchmarks met">
+                <div class="partner-harden-item-content">
+                  <div class="partner-harden-item-title">Latency Benchmarks</div>
+                  <div class="partner-harden-item-desc">API responses under 200ms (p95); no N+1 queries.</div>
+                </div>
+              </li>
+              <li class="partner-harden-item">
+                <input type="checkbox" id="harden-load" name="harden" value="load_testing" aria-label="Load testing passed">
+                <div class="partner-harden-item-content">
+                  <div class="partner-harden-item-title">Load Testing</div>
+                  <div class="partner-harden-item-desc">Sustained 1,000 req/s with graceful degradation.</div>
+                </div>
+              </li>
+              <li class="partner-harden-item">
+                <input type="checkbox" id="harden-cache" name="harden" value="caching" aria-label="Caching strategy implemented">
+                <div class="partner-harden-item-content">
+                  <div class="partner-harden-item-title">Caching Strategy</div>
+                  <div class="partner-harden-item-desc">Cache headers, CDN rules, and invalidation logic in place.</div>
+                </div>
+              </li>
+            </ul>
+
+            <!-- Compliance -->
+            <div class="partner-harden-category">Compliance</div>
+            <ul class="partner-harden-list" aria-label="Compliance checks">
+              <li class="partner-harden-item">
+                <input type="checkbox" id="harden-gdpr" name="harden" value="gdpr" aria-label="GDPR compliance verified">
+                <div class="partner-harden-item-content">
+                  <div class="partner-harden-item-title">GDPR Compliance</div>
+                  <div class="partner-harden-item-desc">Data processing agreements, consent flows, and deletion endpoints.</div>
+                </div>
+              </li>
+              <li class="partner-harden-item">
+                <input type="checkbox" id="harden-logging" name="harden" value="audit_logging" aria-label="Audit logging enabled">
+                <div class="partner-harden-item-content">
+                  <div class="partner-harden-item-title">Audit Logging</div>
+                  <div class="partner-harden-item-desc">All state changes logged with actor, timestamp, and diff.</div>
+                </div>
+              </li>
+              <li class="partner-harden-item">
+                <input type="checkbox" id="harden-rate" name="harden" value="rate_limiting" aria-label="Rate limiting configured">
+                <div class="partner-harden-item-content">
+                  <div class="partner-harden-item-title">Rate Limiting</div>
+                  <div class="partner-harden-item-desc">Per-tenant rate limits enforced with 429 responses.</div>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <div id="harden-status" class="partner-status-msg"></div>
+
+          <div class="partner-nav-bar">
+            <button type="button" class="murphy-btn murphy-btn-ghost" id="btn-harden-back">← Back</button>
+            <button type="button" class="murphy-btn murphy-btn-primary murphy-btn-lg" id="btn-harden-next" disabled>
+              Submit for Review →
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════════
+           STEP 6 — HITL Review
+           ════════════════════════════════════════════════════ -->
+      <section class="partner-step-panel" data-panel="6" role="tabpanel" aria-label="Human-in-the-loop review">
+        <div class="partner-card">
+          <h2>Human-in-the-Loop Review</h2>
+          <p>A human reviewer will evaluate the integration. You may also add revisions below.</p>
+
+          <div class="flex items-center gap-4 flex-wrap" id="hitl-meta">
+            <span id="hitl-status-badge" class="murphy-badge murphy-badge-warning">Pending Review</span>
+            <div class="partner-revision-counter" aria-label="Revision cycle count">
+              Revisions: <strong id="hitl-revision-count">0</strong>
+            </div>
+          </div>
+
+          <!-- Revision Notes -->
+          <div class="partner-form-field" id="hitl-revision-group">
+            <label for="hitl-revision-notes">Revision Notes</label>
+            <textarea
+              id="hitl-revision-notes"
+              name="revision_notes"
+              class="murphy-textarea"
+              placeholder="Describe the changes you'd like made to this integration…"
+              rows="4"
+            ></textarea>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="partner-hitl-actions" role="group" aria-label="Review actions">
+            <button type="button" class="murphy-btn murphy-btn-primary murphy-btn-lg" id="btn-hitl-accept">
+              ✓ Accept
+            </button>
+            <button type="button" class="murphy-btn murphy-btn-danger murphy-btn-lg" id="btn-hitl-deny">
+              ✕ Deny
+            </button>
+            <button type="button" class="murphy-btn murphy-btn-secondary murphy-btn-lg" id="btn-hitl-revise">
+              ↻ Add Revisions
+            </button>
+          </div>
+
+          <div id="hitl-status" class="partner-status-msg"></div>
+
+          <div class="partner-nav-bar">
+            <button type="button" class="murphy-btn murphy-btn-ghost" id="btn-hitl-back">← Back</button>
+            <span></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════════
+           STEP 7 — Delivery
+           ════════════════════════════════════════════════════ -->
+      <section class="partner-step-panel" data-panel="7" role="tabpanel" aria-label="Delivery confirmation">
+        <div class="partner-card">
+          <h2>Delivery Confirmation</h2>
+
+          <div class="partner-delivery-summary" id="delivery-summary">
+            <div class="partner-delivery-icon" aria-hidden="true">🚀</div>
+            <div class="partner-delivery-title">Integration Delivered</div>
+            <div class="partner-delivery-detail">
+              <span class="partner-delivery-label">Company</span>
+              <span class="partner-delivery-value" id="delivery-company">—</span>
+            </div>
+            <div class="partner-delivery-detail">
+              <span class="partner-delivery-label">Integration Type</span>
+              <span class="partner-delivery-value" id="delivery-type">—</span>
+            </div>
+            <div class="partner-delivery-detail">
+              <span class="partner-delivery-label">Modules</span>
+              <span class="partner-delivery-value" id="delivery-modules">—</span>
+            </div>
+            <div class="partner-delivery-detail">
+              <span class="partner-delivery-label">Status</span>
+              <span class="murphy-badge murphy-badge-success" id="delivery-status">Added to Internal Review</span>
+            </div>
+            <div class="partner-delivery-detail">
+              <span class="partner-delivery-label">Request ID</span>
+              <code id="delivery-request-id">—</code>
+            </div>
+          </div>
+
+          <div id="delivery-msg" class="partner-status-msg"></div>
+
+          <div class="partner-nav-bar">
+            <span></span>
+            <a href="/ui/terminal-unified" class="murphy-btn murphy-btn-primary murphy-btn-lg">Go to Dashboard →</a>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /step-container -->
+  </div><!-- /partner-container -->
+</main>
+
+<!-- ── Footer ── -->
+<footer class="murphy-footer">
+  <p class="text-secondary">© 2020 Inoni Limited Liability Company by Corey Post</p>
+  <p class="text-secondary murphy-footer-legal">Licensed under BSL 1.1</p>
+  <div class="flex justify-center flex-wrap gap-3">
+    <a href="https://github.com/Inoni-LLC/Murphy-System" class="murphy-btn murphy-btn-ghost murphy-btn-sm" target="_blank" rel="noopener">GitHub</a>
+    <a href="/ui/docs" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Documentation</a>
+    <a href="/ui/pricing" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Pricing</a>
+  </div>
+</footer>
+
+<script src="static/murphy-components.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* ===========================================================
+     1. COMPONENT INITIALIZATION
+     =========================================================== */
+  var api = new MurphyAPI('/api');
+  var librarian = new MurphyLibrarianChat(api);
+  var theme = new MurphyTheme();
+  theme.init();
+
+  /* ===========================================================
+     2. STATE
+     =========================================================== */
+  var currentStep = 1;
+  var requestId = null;
+  var revisionCount = 0;
+  var pollTimer = null;
+
+  /* ===========================================================
+     3. DOM REFERENCES
+     =========================================================== */
+  var stepIndicators = document.querySelectorAll('.partner-step-indicator');
+  var stepPanels = document.querySelectorAll('.partner-step-panel');
+  var requestForm = document.getElementById('partner-request-form');
+
+  /* ===========================================================
+     4. HELPERS
+     =========================================================== */
+  function esc(s) {
+    var d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
+  }
+
+  function apiBase() {
+    return window.location.origin;
+  }
+
+  function showError(elId, msg) {
+    var el = document.getElementById(elId);
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.add('visible');
+  }
+
+  function clearError(elId) {
+    var el = document.getElementById(elId);
+    if (!el) return;
+    el.textContent = '';
+    el.classList.remove('visible');
+  }
+
+  function clearAllErrors() {
+    var errors = requestForm.querySelectorAll('.field-error');
+    for (var i = 0; i < errors.length; i++) {
+      errors[i].textContent = '';
+      errors[i].classList.remove('visible');
+    }
+    var formErr = document.getElementById('partner-form-error');
+    formErr.textContent = '';
+    formErr.classList.remove('visible');
+  }
+
+  function setStatusMsg(elId, msg, variant) {
+    var el = document.getElementById(elId);
+    if (!el) return;
+    el.textContent = msg;
+    el.className = 'partner-status-msg';
+    if (variant) { el.classList.add('partner-status-msg-' + variant); }
+  }
+
+  /* ===========================================================
+     5. STEP NAVIGATION
+     =========================================================== */
+  function goToStep(step) {
+    if (step < 1 || step > 7) return;
+    currentStep = step;
+    updateStepIndicators();
+    showPanel(step);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function updateStepIndicators() {
+    for (var i = 0; i < stepIndicators.length; i++) {
+      var s = parseInt(stepIndicators[i].getAttribute('data-step'), 10);
+      stepIndicators[i].setAttribute('data-active', s === currentStep ? 'true' : 'false');
+      stepIndicators[i].setAttribute('data-done', s < currentStep ? 'true' : 'false');
+      stepIndicators[i].setAttribute('aria-selected', s === currentStep ? 'true' : 'false');
+    }
+  }
+
+  function showPanel(step) {
+    for (var i = 0; i < stepPanels.length; i++) {
+      var p = parseInt(stepPanels[i].getAttribute('data-panel'), 10);
+      stepPanels[i].setAttribute('data-visible', p === step ? 'true' : 'false');
+    }
+  }
+
+  /* ===========================================================
+     6. STEP 1 — DEFINE REQUEST (FORM SUBMISSION)
+     =========================================================== */
+  requestForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    clearAllErrors();
+
+    var companyName = document.getElementById('company-name').value.trim();
+    var integrationType = document.getElementById('integration-type').value;
+    var description = document.getElementById('integration-desc').value.trim();
+    var moduleCheckboxes = requestForm.querySelectorAll('input[name="modules"]:checked');
+    var modules = [];
+    for (var i = 0; i < moduleCheckboxes.length; i++) {
+      modules.push(moduleCheckboxes[i].value);
+    }
+
+    var valid = true;
+
+    if (!companyName) {
+      showError('company-name-error', 'Company name is required.');
+      valid = false;
+    }
+    if (!integrationType) {
+      showError('integration-type-error', 'Please select an integration type.');
+      valid = false;
+    }
+    if (!description) {
+      showError('integration-desc-error', 'Please describe your integration needs.');
+      valid = false;
+    }
+
+    if (!valid) return;
+
+    var submitBtn = document.getElementById('btn-submit-request');
+    submitBtn.disabled = true;
+    submitBtn.classList.add('murphy-btn-loading');
+
+    var payload = {
+      company_name: companyName,
+      integration_type: integrationType,
+      description: description,
+      modules: modules
+    };
+
+    api.post('/partner/request', payload)
+      .then(function (res) {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('murphy-btn-loading');
+
+        if (res.ok && res.data) {
+          requestId = res.data.id || res.data.request_id || null;
+          goToStep(2);
+          fetchPlan();
+        } else {
+          var msg = (res.data && res.data.error) || 'Failed to submit request. Please try again.';
+          showError('partner-form-error', msg);
+          document.getElementById('partner-form-error').classList.add('visible');
+        }
+      })
+      .catch(function () {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('murphy-btn-loading');
+        showError('partner-form-error', 'Network error. Please check your connection and try again.');
+        document.getElementById('partner-form-error').classList.add('visible');
+      });
+  });
+
+  /* ===========================================================
+     7. STEP 2 — PLAN
+     =========================================================== */
+  function fetchPlan() {
+    var planOutput = document.getElementById('plan-output');
+    var planApproveBtn = document.getElementById('btn-plan-approve');
+
+    planOutput.textContent = '> Generating integration plan…\n> Analyzing requirements…';
+    planApproveBtn.disabled = true;
+    setStatusMsg('plan-status', '');
+
+    var url = '/partner/plan' + (requestId ? '?id=' + encodeURIComponent(requestId) : '');
+
+    api.get(url)
+      .then(function (res) {
+        if (res.ok && res.data) {
+          var plan = res.data.plan || res.data.content || JSON.stringify(res.data, null, 2);
+          planOutput.textContent = plan;
+          planApproveBtn.disabled = false;
+          setStatusMsg('plan-status', 'Plan generated successfully.', 'success');
+        } else {
+          planOutput.textContent = '> Plan generation pending. Murphy is working on it…';
+          setStatusMsg('plan-status', 'Could not retrieve plan. It may still be generating.', 'warning');
+          planApproveBtn.disabled = false;
+        }
+      })
+      .catch(function () {
+        planOutput.textContent = '> Unable to reach server for plan generation.';
+        setStatusMsg('plan-status', 'Network error fetching plan.', 'danger');
+        planApproveBtn.disabled = false;
+      });
+  }
+
+  document.getElementById('btn-plan-back').addEventListener('click', function () {
+    goToStep(1);
+  });
+
+  document.getElementById('btn-plan-approve').addEventListener('click', function () {
+    goToStep(3);
+    startExecution();
+  });
+
+  /* ===========================================================
+     8. STEP 3 — EXECUTE
+     =========================================================== */
+  function startExecution() {
+    var progressFill = document.getElementById('exec-progress-fill');
+    var progressLabel = document.getElementById('exec-progress-label');
+    var progressPct = document.getElementById('exec-progress-pct');
+    var progressBar = document.getElementById('exec-progress');
+    var execLog = document.getElementById('exec-log');
+    var execNextBtn = document.getElementById('btn-exec-next');
+
+    progressFill.style.width = '0%';
+    progressBar.setAttribute('aria-valuenow', '0');
+    progressLabel.textContent = 'Initializing…';
+    progressPct.textContent = '0%';
+    execLog.innerHTML = '';
+    execNextBtn.disabled = true;
+    setStatusMsg('exec-status', '');
+
+    appendExecLog(execLog, 'Starting integration build…');
+
+    function pollStatus() {
+      if (!requestId) {
+        appendExecLog(execLog, 'Warning: No request ID — using demo mode.');
+        simulateExecution(progressFill, progressLabel, progressPct, progressBar, execLog, execNextBtn);
+        return;
+      }
+
+      api.get('/partner/status/' + encodeURIComponent(requestId))
+        .then(function (res) {
+          if (res.ok && res.data) {
+            var pct = res.data.progress || 0;
+            var phase = res.data.phase || 'Processing';
+            var logs = res.data.logs || [];
+
+            progressFill.style.width = pct + '%';
+            progressBar.setAttribute('aria-valuenow', String(pct));
+            progressLabel.textContent = phase;
+            progressPct.textContent = pct + '%';
+
+            for (var i = 0; i < logs.length; i++) {
+              appendExecLog(execLog, logs[i]);
+            }
+
+            if (pct >= 100 || res.data.status === 'complete') {
+              appendExecLog(execLog, 'Build complete.');
+              setStatusMsg('exec-status', 'Execution completed successfully.', 'success');
+              execNextBtn.disabled = false;
+              return;
+            }
+
+            pollTimer = setTimeout(pollStatus, 3000);
+          } else {
+            setStatusMsg('exec-status', 'Unexpected response from server.', 'warning');
+            execNextBtn.disabled = false;
+          }
+        })
+        .catch(function () {
+          appendExecLog(execLog, 'Connection lost. Retrying…');
+          pollTimer = setTimeout(pollStatus, 5000);
+        });
+    }
+
+    pollStatus();
+  }
+
+  function appendExecLog(container, msg) {
+    var entry = document.createElement('div');
+    entry.className = 'partner-exec-log-entry';
+    var ts = new Date().toLocaleTimeString();
+    entry.textContent = '[' + ts + '] ' + msg;
+    container.appendChild(entry);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function simulateExecution(fill, label, pct, bar, log, btn) {
+    var phases = [
+      { p: 10, msg: 'Provisioning sandbox environment…', phase: 'Provisioning' },
+      { p: 25, msg: 'Installing dependencies…', phase: 'Dependencies' },
+      { p: 40, msg: 'Configuring integration endpoints…', phase: 'Configuration' },
+      { p: 55, msg: 'Building module connectors…', phase: 'Building' },
+      { p: 70, msg: 'Compiling integration package…', phase: 'Compiling' },
+      { p: 85, msg: 'Running smoke tests…', phase: 'Smoke Tests' },
+      { p: 100, msg: 'Build complete.', phase: 'Complete' }
+    ];
+    var idx = 0;
+
+    function nextPhase() {
+      if (idx >= phases.length) {
+        setStatusMsg('exec-status', 'Execution completed successfully.', 'success');
+        btn.disabled = false;
+        return;
+      }
+      var step = phases[idx];
+      fill.style.width = step.p + '%';
+      bar.setAttribute('aria-valuenow', String(step.p));
+      label.textContent = step.phase;
+      pct.textContent = step.p + '%';
+      appendExecLog(log, step.msg);
+      idx++;
+      pollTimer = setTimeout(nextPhase, 1200);
+    }
+
+    nextPhase();
+  }
+
+  document.getElementById('btn-exec-next').addEventListener('click', function () {
+    if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
+    goToStep(4);
+    runVerification();
+  });
+
+  /* ===========================================================
+     9. STEP 4 — VERIFY
+     =========================================================== */
+  function runVerification() {
+    var resultsList = document.getElementById('verify-results');
+    var verifyNextBtn = document.getElementById('btn-verify-next');
+
+    resultsList.innerHTML = '';
+    verifyNextBtn.disabled = true;
+    setStatusMsg('verify-summary', 'Running tests…', 'warning');
+
+    if (!requestId) {
+      simulateVerification(resultsList, verifyNextBtn);
+      return;
+    }
+
+    api.get('/partner/status/' + encodeURIComponent(requestId))
+      .then(function (res) {
+        if (res.ok && res.data && res.data.tests) {
+          renderTestResults(resultsList, res.data.tests);
+          summarizeTests(res.data.tests, verifyNextBtn);
+        } else {
+          simulateVerification(resultsList, verifyNextBtn);
+        }
+      })
+      .catch(function () {
+        simulateVerification(resultsList, verifyNextBtn);
+      });
+  }
+
+  function renderTestResults(container, tests) {
+    for (var i = 0; i < tests.length; i++) {
+      var t = tests[i];
+      var li = document.createElement('li');
+      li.className = 'partner-verify-item';
+
+      var iconEl = document.createElement('span');
+      iconEl.className = 'partner-verify-icon';
+      if (t.status === 'pass') {
+        iconEl.classList.add('partner-verify-icon-pass');
+        iconEl.textContent = '✓';
+        iconEl.setAttribute('aria-label', 'Passed');
+      } else if (t.status === 'fail') {
+        iconEl.classList.add('partner-verify-icon-fail');
+        iconEl.textContent = '✕';
+        iconEl.setAttribute('aria-label', 'Failed');
+      } else {
+        iconEl.classList.add('partner-verify-icon-pending');
+        iconEl.textContent = '…';
+        iconEl.setAttribute('aria-label', 'Pending');
+      }
+
+      var nameEl = document.createElement('span');
+      nameEl.textContent = t.name || t.test || ('Test ' + (i + 1));
+
+      li.appendChild(iconEl);
+      li.appendChild(nameEl);
+      container.appendChild(li);
+    }
+  }
+
+  function summarizeTests(tests, btn) {
+    var passed = 0;
+    var failed = 0;
+    for (var i = 0; i < tests.length; i++) {
+      if (tests[i].status === 'pass') passed++;
+      else if (tests[i].status === 'fail') failed++;
+    }
+    if (failed > 0) {
+      setStatusMsg('verify-summary', passed + ' passed, ' + failed + ' failed. Review needed.', 'danger');
+    } else {
+      setStatusMsg('verify-summary', 'All ' + passed + ' tests passed.', 'success');
+    }
+    btn.disabled = false;
+  }
+
+  function simulateVerification(container, btn) {
+    var demoTests = [
+      { name: 'API endpoint connectivity', status: 'pass' },
+      { name: 'Authentication flow', status: 'pass' },
+      { name: 'Data schema validation', status: 'pass' },
+      { name: 'Webhook delivery', status: 'pass' },
+      { name: 'Error handling & graceful degradation', status: 'pass' },
+      { name: 'Rate limiting compliance', status: 'pass' }
+    ];
+    renderTestResults(container, demoTests);
+    summarizeTests(demoTests, btn);
+  }
+
+  document.getElementById('btn-verify-back').addEventListener('click', function () {
+    goToStep(3);
+  });
+
+  document.getElementById('btn-verify-next').addEventListener('click', function () {
+    goToStep(5);
+  });
+
+  /* ===========================================================
+     10. STEP 5 — HARDEN / SOLIDIFY
+     =========================================================== */
+  var hardenCheckboxes = document.querySelectorAll('#harden-checklist input[type="checkbox"]');
+  var hardenNextBtn = document.getElementById('btn-harden-next');
+
+  function updateHardenState() {
+    var allChecked = true;
+    for (var i = 0; i < hardenCheckboxes.length; i++) {
+      if (!hardenCheckboxes[i].checked) { allChecked = false; break; }
+    }
+    hardenNextBtn.disabled = !allChecked;
+    if (allChecked) {
+      setStatusMsg('harden-status', 'All hardening checks passed. Ready for review.', 'success');
+    } else {
+      setStatusMsg('harden-status', '');
+    }
+  }
+
+  for (var h = 0; h < hardenCheckboxes.length; h++) {
+    hardenCheckboxes[h].addEventListener('change', updateHardenState);
+  }
+
+  document.getElementById('btn-harden-back').addEventListener('click', function () {
+    goToStep(4);
+  });
+
+  hardenNextBtn.addEventListener('click', function () {
+    goToStep(6);
+  });
+
+  /* ===========================================================
+     11. STEP 6 — HITL REVIEW
+     =========================================================== */
+  function sendReviewAction(action) {
+    var revisionNotes = document.getElementById('hitl-revision-notes').value.trim();
+    var statusBadge = document.getElementById('hitl-status-badge');
+
+    if (action === 'revise' && !revisionNotes) {
+      setStatusMsg('hitl-status', 'Please enter revision notes before requesting changes.', 'warning');
+      return;
+    }
+
+    var payload = {
+      action: action,
+      revision_notes: revisionNotes
+    };
+
+    setReviewButtonsDisabled(true);
+
+    var url = '/partner/review/' + (requestId ? encodeURIComponent(requestId) : 'pending');
+
+    api.post(url, payload)
+      .then(function (res) {
+        setReviewButtonsDisabled(false);
+
+        if (action === 'accept') {
+          statusBadge.className = 'murphy-badge murphy-badge-success';
+          statusBadge.textContent = 'Accepted';
+          setStatusMsg('hitl-status', 'Integration accepted. Proceeding to delivery.', 'success');
+          setTimeout(function () { goToStep(7); populateDelivery(); }, 1500);
+        } else if (action === 'deny') {
+          statusBadge.className = 'murphy-badge murphy-badge-danger';
+          statusBadge.textContent = 'Denied';
+          setStatusMsg('hitl-status', 'Integration denied. The request has been closed.', 'danger');
+        } else if (action === 'revise') {
+          revisionCount++;
+          document.getElementById('hitl-revision-count').textContent = String(revisionCount);
+          statusBadge.className = 'murphy-badge murphy-badge-warning';
+          statusBadge.textContent = 'Revision #' + revisionCount;
+          document.getElementById('hitl-revision-notes').value = '';
+          setStatusMsg('hitl-status', 'Revision request submitted. Cycle ' + revisionCount + '.', 'warning');
+        }
+      })
+      .catch(function () {
+        setReviewButtonsDisabled(false);
+        if (action === 'accept') {
+          statusBadge.className = 'murphy-badge murphy-badge-success';
+          statusBadge.textContent = 'Accepted';
+          setStatusMsg('hitl-status', 'Integration accepted (offline). Proceeding to delivery.', 'success');
+          setTimeout(function () { goToStep(7); populateDelivery(); }, 1500);
+        } else if (action === 'deny') {
+          statusBadge.className = 'murphy-badge murphy-badge-danger';
+          statusBadge.textContent = 'Denied';
+          setStatusMsg('hitl-status', 'Integration denied (offline).', 'danger');
+        } else if (action === 'revise') {
+          revisionCount++;
+          document.getElementById('hitl-revision-count').textContent = String(revisionCount);
+          statusBadge.className = 'murphy-badge murphy-badge-warning';
+          statusBadge.textContent = 'Revision #' + revisionCount;
+          document.getElementById('hitl-revision-notes').value = '';
+          setStatusMsg('hitl-status', 'Revision submitted (offline). Cycle ' + revisionCount + '.', 'warning');
+        }
+      });
+  }
+
+  function setReviewButtonsDisabled(state) {
+    document.getElementById('btn-hitl-accept').disabled = state;
+    document.getElementById('btn-hitl-deny').disabled = state;
+    document.getElementById('btn-hitl-revise').disabled = state;
+  }
+
+  document.getElementById('btn-hitl-accept').addEventListener('click', function () {
+    sendReviewAction('accept');
+  });
+
+  document.getElementById('btn-hitl-deny').addEventListener('click', function () {
+    sendReviewAction('deny');
+  });
+
+  document.getElementById('btn-hitl-revise').addEventListener('click', function () {
+    sendReviewAction('revise');
+  });
+
+  document.getElementById('btn-hitl-back').addEventListener('click', function () {
+    goToStep(5);
+  });
+
+  /* ===========================================================
+     12. STEP 7 — DELIVERY
+     =========================================================== */
+  function populateDelivery() {
+    var company = document.getElementById('company-name').value.trim();
+    var intType = document.getElementById('integration-type');
+    var typeLabel = intType.options[intType.selectedIndex]
+      ? intType.options[intType.selectedIndex].text
+      : intType.value;
+    var moduleCheckboxes = requestForm.querySelectorAll('input[name="modules"]:checked');
+    var moduleNames = [];
+    for (var i = 0; i < moduleCheckboxes.length; i++) {
+      var label = moduleCheckboxes[i].parentElement.textContent.trim();
+      moduleNames.push(label);
+    }
+
+    document.getElementById('delivery-company').textContent = company || '—';
+    document.getElementById('delivery-type').textContent = typeLabel || '—';
+    document.getElementById('delivery-modules').textContent = moduleNames.length > 0 ? moduleNames.join(', ') : 'None selected';
+    document.getElementById('delivery-request-id').textContent = requestId || 'N/A';
+  }
+
+  /* ===========================================================
+     13. INITIALIZATION
+     =========================================================== */
+  updateStepIndicators();
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,865 @@
+<!-- Murphy System — Pricing / © 2020 Inoni Limited Liability Company by Corey Post / License: BSL 1.1 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — Pricing</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
+<style>
+  /* Neon terminal theme */
+  /* Color Key: green=#00ff41, cyan=#00ffff, teal=#00D4AA, bg=#0a0a0a */
+  .murphy-terminal, .murphy-output, pre, code {
+    font-family: var(--font-code, 'JetBrains Mono', monospace);
+    color: #00ff41;
+    background: #0a0a0a;
+  }
+  *:focus-visible { outline: 2px solid #00ff41; outline-offset: 2px; }
+
+  /* ── Pricing page layout ── */
+  .pricing-page { background: #0a0a0a; min-height: 100vh; }
+
+  .pricing-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem;
+  }
+
+  .pricing-hero {
+    text-align: center;
+    padding: 4rem 1.5rem 2rem;
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  .pricing-hero h1 {
+    font-size: var(--text-3xl);
+    font-weight: 700;
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    margin-bottom: 0.75rem;
+  }
+
+  .pricing-hero p {
+    color: var(--text-secondary);
+    font-size: var(--text-lg);
+    line-height: 1.6;
+  }
+
+  /* ── Interval toggle ── */
+  .interval-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin: 2rem auto 3rem;
+    width: fit-content;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    background: var(--bg-surface);
+  }
+
+  .interval-btn {
+    padding: 0.625rem 1.5rem;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-family: var(--font-ui);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: background var(--transition-fast), color var(--transition-fast);
+    white-space: nowrap;
+  }
+
+  .interval-btn[aria-pressed="true"] {
+    background: var(--teal);
+    color: #0C1017;
+  }
+
+  .interval-btn:hover:not([aria-pressed="true"]) {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+  }
+
+  /* ── Pricing grid ── */
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem;
+    align-items: stretch;
+    margin-bottom: 3rem;
+  }
+
+  .pricing-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-xl);
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    transition: border-color var(--transition-base), box-shadow var(--transition-base);
+  }
+
+  .pricing-card:hover {
+    border-color: var(--teal);
+    box-shadow: var(--shadow-glow-teal);
+  }
+
+  .pricing-card.popular {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 1px var(--teal), var(--shadow-glow-teal);
+  }
+
+  .pricing-badge {
+    position: absolute;
+    top: -0.75rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--teal);
+    color: #0C1017;
+    font-size: var(--text-xs);
+    font-weight: 700;
+    font-family: var(--font-ui);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.25rem 0.875rem;
+    border-radius: var(--radius-full);
+    white-space: nowrap;
+  }
+
+  .pricing-tier {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--teal);
+    font-family: var(--font-ui);
+    margin-bottom: 0.875rem;
+  }
+
+  .pricing-price {
+    margin-bottom: 0.5rem;
+  }
+
+  .pricing-price-amount {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    line-height: 1;
+  }
+
+  .pricing-price-period {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    font-family: var(--font-ui);
+  }
+
+  .pricing-desc {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    font-family: var(--font-ui);
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+    min-height: 2.5em;
+  }
+
+  .pricing-features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1.75rem;
+    flex: 1;
+  }
+
+  .pricing-features li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    font-family: var(--font-ui);
+    padding: 0.3rem 0;
+    line-height: 1.45;
+  }
+
+  .pricing-features li::before {
+    content: '✓';
+    color: var(--teal);
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 0.05em;
+  }
+
+  .pricing-cta {
+    display: block;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-md);
+    font-family: var(--font-ui);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    text-decoration: none;
+    transition: opacity var(--transition-fast), transform var(--transition-fast);
+    border: none;
+  }
+
+  .pricing-cta:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
+  .pricing-cta:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  .pricing-cta-primary {
+    background: var(--teal);
+    color: #0C1017;
+  }
+
+  .pricing-cta-outline {
+    background: transparent;
+    color: var(--teal);
+    border: 1px solid var(--teal);
+  }
+
+  .pricing-cta-outline:hover:not(:disabled) { background: var(--teal-glow); }
+
+  /* ── Payment / trust row ── */
+  .trust-section {
+    text-align: center;
+    padding: 2rem 1.5rem;
+    border-top: 1px solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 3rem;
+  }
+
+  .payment-icons {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+
+  .payment-icon {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    font-family: var(--font-ui);
+    font-weight: 500;
+  }
+
+  .payment-label {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    font-family: var(--font-ui);
+    margin-bottom: 1.5rem;
+  }
+
+  .trust-badges {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .trust-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    font-family: var(--font-ui);
+    font-weight: 500;
+  }
+
+  .trust-badge::before {
+    font-size: 0.9em;
+  }
+
+  .trust-divider {
+    color: var(--border-default);
+    font-size: var(--text-xs);
+  }
+
+  /* ── FAQ accordion ── */
+  .faq-section {
+    max-width: 720px;
+    margin: 0 auto 4rem;
+    padding: 0 1.5rem;
+  }
+
+  .faq-title {
+    text-align: center;
+    font-size: var(--text-2xl);
+    font-weight: 700;
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    margin-bottom: 2rem;
+  }
+
+  .faq-item {
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+    transition: border-color var(--transition-fast);
+  }
+
+  .faq-item:focus-within { border-color: var(--teal); }
+
+  .faq-question {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 1rem 1.25rem;
+    background: var(--bg-surface);
+    border: none;
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: var(--text-base);
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    gap: 0.75rem;
+    transition: background var(--transition-fast);
+  }
+
+  .faq-question:hover { background: var(--bg-elevated); }
+
+  .faq-icon {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1px solid var(--border-default);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: var(--teal);
+    transition: transform var(--transition-base);
+    line-height: 1;
+  }
+
+  .faq-question[aria-expanded="true"] .faq-icon {
+    transform: rotate(45deg);
+    background: var(--teal-glow);
+    border-color: var(--teal);
+  }
+
+  .faq-answer {
+    display: none;
+    padding: 0 1.25rem 1rem;
+    background: var(--bg-surface);
+    color: var(--text-secondary);
+    font-family: var(--font-ui);
+    font-size: var(--text-sm);
+    line-height: 1.6;
+  }
+
+  .faq-answer.open { display: block; }
+
+  /* ── Comparison table ── */
+  .comparison-section {
+    max-width: 1100px;
+    margin: 0 auto 4rem;
+    padding: 0 1.5rem;
+    overflow-x: auto;
+  }
+
+  .comparison-title {
+    text-align: center;
+    font-size: var(--text-2xl);
+    font-weight: 700;
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    margin-bottom: 2rem;
+  }
+
+  .comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-ui);
+    font-size: var(--text-sm);
+  }
+
+  .comparison-table th,
+  .comparison-table td {
+    padding: 0.875rem 1.25rem;
+    text-align: center;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .comparison-table th {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: var(--text-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .comparison-table th:first-child,
+  .comparison-table td:first-child {
+    text-align: left;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  .comparison-table tr:hover td { background: var(--bg-elevated); }
+
+  .comparison-table td { color: var(--text-secondary); }
+
+  .check { color: var(--teal); font-weight: 700; }
+  .dash  { color: var(--text-muted); }
+
+  .comparison-table th.col-highlight {
+    color: var(--teal);
+    border-top: 2px solid var(--teal);
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 1024px) {
+    .pricing-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (max-width: 480px) {
+    .pricing-hero h1 { font-size: var(--text-2xl); }
+    .pricing-grid { grid-template-columns: 1fr; }
+    .trust-divider { display: none; }
+    .trust-badges { flex-direction: column; gap: 0.5rem; }
+    .comparison-section { font-size: var(--text-xs); }
+    .comparison-table th,
+    .comparison-table td { padding: 0.625rem 0.75rem; }
+  }
+</style>
+</head>
+<body class="murphy-no-sidebar pricing-page">
+
+<a class="murphy-skip-link" href="#pricing-content">Skip to content</a>
+
+<!-- ── Top Navigation Bar ── -->
+<nav class="murphy-topbar" role="navigation" aria-label="Main navigation">
+  <div class="murphy-topbar-left flex items-center gap-3">
+    <a href="/ui/landing" class="murphy-topbar-brand">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect width="32" height="32" rx="8" fill="var(--teal)"/>
+        <text x="16" y="22" text-anchor="middle" fill="#0C1017" font-size="18" font-weight="700" font-family="Inter, sans-serif">M</text>
+      </svg>
+      <span class="murphy-topbar-brand-name">Murphy System</span>
+    </a>
+    <div class="murphy-nav-links nav-links-desktop">
+      <a href="/ui/landing#features" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Features</a>
+      <a href="/ui/landing#how-it-works" class="murphy-btn murphy-btn-ghost murphy-btn-sm">How It Works</a>
+      <a href="/ui/landing#terminals" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Terminals</a>
+    </div>
+  </div>
+  <div class="murphy-topbar-right flex items-center gap-2">
+    <button class="murphy-btn murphy-btn-ghost murphy-btn-icon" id="theme-toggle-btn" aria-label="Toggle theme" title="Toggle theme">🌙</button>
+    <a href="/ui/terminal-unified" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Sign In</a>
+    <a href="/ui/signup" class="murphy-btn murphy-btn-primary murphy-btn-sm">Get Started</a>
+  </div>
+</nav>
+
+<!-- ── Main Content ── -->
+<main id="pricing-content" role="main" aria-label="Pricing">
+
+  <!-- Hero -->
+  <section class="pricing-hero" aria-labelledby="pricing-heading">
+    <h1 id="pricing-heading">Simple, Transparent Pricing</h1>
+    <p>Start free. Scale as you grow. Cancel anytime.</p>
+  </section>
+
+  <!-- Interval toggle -->
+  <div role="group" aria-label="Billing interval" style="display:flex;justify-content:center;margin-bottom:3rem;">
+    <div class="interval-toggle">
+      <button class="interval-btn" id="btn-monthly" aria-pressed="true">Monthly</button>
+      <button class="interval-btn" id="btn-annual"  aria-pressed="false">Annual <span style="color:var(--success);font-size:var(--text-xs);">(Save ~20%)</span></button>
+    </div>
+  </div>
+
+  <!-- Pricing cards -->
+  <section class="pricing-section" aria-labelledby="plans-heading" style="padding-top:0;">
+    <h2 id="plans-heading" class="murphy-visually-hidden">Pricing plans</h2>
+    <div class="pricing-grid" id="pricing-grid">
+
+      <!-- Solo -->
+      <article class="pricing-card" aria-labelledby="tier-solo">
+        <div class="pricing-tier" id="tier-solo">Solo</div>
+        <div class="pricing-price" aria-live="polite" aria-atomic="true">
+          <span class="pricing-price-amount" data-monthly="$29" data-annual="$24">$29</span>
+          <span class="pricing-price-period">/month</span>
+        </div>
+        <p class="pricing-desc">Perfect for solo operators automating their own workflows.</p>
+        <ul class="pricing-features" aria-label="Solo plan features">
+          <li>1 user</li>
+          <li>3 automations</li>
+          <li>Email support</li>
+          <li>Community templates</li>
+          <li>Murphy terminal access</li>
+          <li>Basic compliance (GDPR / SOC 2)</li>
+        </ul>
+        <button class="pricing-cta pricing-cta-outline" data-tier="solo" aria-label="Start free trial on Solo plan">
+          Start Free Trial
+        </button>
+      </article>
+
+      <!-- Business -->
+      <article class="pricing-card popular" aria-labelledby="tier-business">
+        <span class="pricing-badge" aria-label="Most popular plan">Most Popular</span>
+        <div class="pricing-tier" id="tier-business">Business</div>
+        <div class="pricing-price" aria-live="polite" aria-atomic="true">
+          <span class="pricing-price-amount" data-monthly="$299" data-annual="$249">$299</span>
+          <span class="pricing-price-period">/month</span>
+        </div>
+        <p class="pricing-desc">Grow your team with unlimited automations and priority support.</p>
+        <ul class="pricing-features" aria-label="Business plan features">
+          <li>Up to 10 users</li>
+          <li>Unlimited automations</li>
+          <li>Priority support</li>
+          <li>All integrations</li>
+          <li>Advanced compliance</li>
+          <li>API access</li>
+          <li>Shadow agent training</li>
+        </ul>
+        <button class="pricing-cta pricing-cta-primary" data-tier="business" aria-label="Start free trial on Business plan">
+          Start Free Trial
+        </button>
+      </article>
+
+      <!-- Professional -->
+      <article class="pricing-card" aria-labelledby="tier-professional">
+        <div class="pricing-tier" id="tier-professional">Professional</div>
+        <div class="pricing-price" aria-live="polite" aria-atomic="true">
+          <span class="pricing-price-amount" data-monthly="Custom" data-annual="Custom" style="font-size:1.8rem">Custom</span>
+        </div>
+        <p class="pricing-desc">Enterprise-grade power with full compliance and white-label options. Tailored to your needs.</p>
+        <ul class="pricing-features" aria-label="Professional plan features">
+          <li>Unlimited users</li>
+          <li>Unlimited automations</li>
+          <li>HITL graduation controls</li>
+          <li>All compliance frameworks</li>
+          <li>API + webhooks</li>
+          <li>White-label options</li>
+          <li>Dedicated onboarding</li>
+          <li>SLA 99.9% uptime</li>
+        </ul>
+        <a href="mailto:sales@murphy.ai" class="pricing-cta pricing-cta-outline" aria-label="Contact us for unique Professional offerings">
+          Contact for Unique Offerings
+        </a>
+      </article>
+
+      <!-- Enterprise -->
+      <article class="pricing-card" aria-labelledby="tier-enterprise">
+        <div class="pricing-tier" id="tier-enterprise">Enterprise</div>
+        <div class="pricing-price">
+          <span class="pricing-price-amount" style="font-size:2rem;">Custom</span>
+        </div>
+        <p class="pricing-desc">Dedicated infrastructure, custom SLA, and FedRAMP/CMMC-ready deployments.</p>
+        <ul class="pricing-features" aria-label="Enterprise plan features">
+          <li>Everything in Professional</li>
+          <li>Dedicated instance</li>
+          <li>SSO / SAML integration</li>
+          <li>Custom SLA</li>
+          <li>Full audit export</li>
+          <li>White-labeling</li>
+          <li>Dedicated CSM</li>
+          <li>FedRAMP / CMMC support</li>
+        </ul>
+        <a href="mailto:sales@murphy.ai" class="pricing-cta pricing-cta-outline" aria-label="Contact sales for Enterprise plan">
+          Contact Sales
+        </a>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- Payment + Trust section -->
+  <div class="trust-section" aria-label="Payment methods and trust indicators">
+    <div class="payment-icons" aria-label="Accepted payment methods">
+      <span class="payment-icon">
+        <!-- Stripe icon -->
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="#635BFF"><path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z"/></svg>
+        Stripe
+      </span>
+      <span class="payment-icon">
+        <!-- PayPal icon -->
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="#003087" d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.291-.077.440v.3l.108.082c.453.34.792.752 1.019 1.236.508 1.084.557 2.46.147 4.098-.52 2.06-1.52 3.675-2.97 4.796-1.316 1.012-2.967 1.545-4.901 1.545H11.45l-.75 4.743z"/><path fill="#009cde" d="M19.234 6.787c-.06.385-.132.765-.224 1.13C17.78 12.65 14.97 14.33 11.45 14.33H9.4c-.558 0-1.03.407-1.117.958L7.096 23h3.66l.23-1.452.012-.073.75-4.743h1.017c3.064 0 5.41-1.24 6.618-4.942.476-1.496.514-2.753.064-3.648-.175-.34-.407-.637-.713-.855z"/></svg>
+        PayPal
+      </span>
+      <span class="payment-icon">
+        <!-- Bitcoin icon -->
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="#F7931A"><path d="M23.638 14.904c-1.602 6.43-8.113 10.34-14.542 8.736C2.67 22.05-1.244 15.525.362 9.105 1.962 2.67 8.475-1.243 14.9.358c6.43 1.605 10.342 8.115 8.738 14.548v-.002zm-6.35-4.613c.24-1.59-.974-2.45-2.64-3.03l.54-2.153-1.315-.33-.525 2.107c-.345-.087-.705-.166-1.064-.25l.526-2.127-1.32-.33-.54 2.165c-.285-.067-.565-.132-.84-.2l-1.815-.45-.35 1.407s.975.225.955.236c.535.136.63.486.615.766l-1.477 5.92c-.075.166-.24.406-.614.314.015.02-.96-.24-.96-.24l-.66 1.51 1.71.426.93.242-.54 2.19 1.32.327.54-2.17c.36.1.705.19 1.05.273l-.51 2.154 1.32.33.545-2.19c2.24.427 3.93.257 4.64-1.774.57-1.637-.03-2.58-1.217-3.196.854-.193 1.5-.76 1.655-1.95l.01-.01zm-2.97 4.165c-.404 1.64-3.157.75-4.05.53l.72-2.896c.896.23 3.757.67 3.33 2.367zm.41-4.19c-.37 1.49-2.662.735-3.405.55l.654-2.64c.744.18 3.137.524 2.75 2.084v.006z"/></svg>
+        Crypto
+      </span>
+    </div>
+    <p class="payment-label">Secure payments via Stripe · PayPal · Crypto</p>
+
+    <div class="trust-badges" role="list" aria-label="Trust and security badges">
+      <span class="trust-badge" role="listitem">🔄 30-Day Money-Back Guarantee</span>
+      <span class="trust-divider" aria-hidden="true">|</span>
+      <span class="trust-badge" role="listitem">🔒 256-bit SSL</span>
+      <span class="trust-divider" aria-hidden="true">|</span>
+      <span class="trust-badge" role="listitem">✅ SOC 2 Compliant</span>
+      <span class="trust-divider" aria-hidden="true">|</span>
+      <span class="trust-badge" role="listitem">🆓 No Credit Card for Free Tier</span>
+    </div>
+  </div>
+
+  <!-- FAQ -->
+  <section class="faq-section" aria-labelledby="faq-heading">
+    <h2 class="faq-title" id="faq-heading">Frequently Asked Questions</h2>
+
+    <div class="faq-item">
+      <button class="faq-question" aria-expanded="false" aria-controls="faq-1-answer" id="faq-1-btn">
+        Can I cancel anytime?
+        <span class="faq-icon" aria-hidden="true">+</span>
+      </button>
+      <div id="faq-1-answer" class="faq-answer" role="region" aria-labelledby="faq-1-btn">
+        Yes, cancel from your dashboard anytime. No lock-in, no cancellation fees.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-question" aria-expanded="false" aria-controls="faq-2-answer" id="faq-2-btn">
+        Is there a free trial?
+        <span class="faq-icon" aria-hidden="true">+</span>
+      </button>
+      <div id="faq-2-answer" class="faq-answer" role="region" aria-labelledby="faq-2-btn">
+        Yes, 14-day free trial on all plans. No credit card required to get started.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-question" aria-expanded="false" aria-controls="faq-3-answer" id="faq-3-btn">
+        What payment methods do you accept?
+        <span class="faq-icon" aria-hidden="true">+</span>
+      </button>
+      <div id="faq-3-answer" class="faq-answer" role="region" aria-labelledby="faq-3-btn">
+        Credit and debit cards via Stripe, PayPal, and Bitcoin / Ethereum via Coinbase Commerce.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-question" aria-expanded="false" aria-controls="faq-4-answer" id="faq-4-btn">
+        Do you offer refunds?
+        <span class="faq-icon" aria-hidden="true">+</span>
+      </button>
+      <div id="faq-4-answer" class="faq-answer" role="region" aria-labelledby="faq-4-btn">
+        30-day money-back guarantee, no questions asked. Just reach out to billing support.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-question" aria-expanded="false" aria-controls="faq-5-answer" id="faq-5-btn">
+        Can I upgrade or downgrade?
+        <span class="faq-icon" aria-hidden="true">+</span>
+      </button>
+      <div id="faq-5-answer" class="faq-answer" role="region" aria-labelledby="faq-5-btn">
+        Yes. Upgrades take effect instantly with prorated billing. Downgrades apply at the start of the next billing cycle.
+      </div>
+    </div>
+
+  </section>
+
+  <!-- Comparison table -->
+  <section class="comparison-section" aria-labelledby="compare-heading">
+    <h2 class="comparison-title" id="compare-heading">Full Feature Comparison</h2>
+    <div style="overflow-x:auto;" role="region" aria-label="Feature comparison table" tabindex="0">
+      <table class="comparison-table" aria-label="Plan features comparison">
+        <thead>
+          <tr>
+            <th scope="col">Feature</th>
+            <th scope="col">Solo</th>
+            <th scope="col" class="col-highlight">Business</th>
+            <th scope="col">Professional</th>
+            <th scope="col">Enterprise</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Users</td>
+            <td>1</td>
+            <td>Up to 10</td>
+            <td>Unlimited</td>
+            <td>Unlimited</td>
+          </tr>
+          <tr>
+            <td>Automations</td>
+            <td>3</td>
+            <td>Unlimited</td>
+            <td>Unlimited</td>
+            <td>Unlimited</td>
+          </tr>
+          <tr>
+            <td>Integrations</td>
+            <td>Core only</td>
+            <td><span class="check">All</span></td>
+            <td><span class="check">All</span></td>
+            <td><span class="check">All + Custom</span></td>
+          </tr>
+          <tr>
+            <td>Compliance frameworks</td>
+            <td>GDPR, SOC 2</td>
+            <td>Advanced</td>
+            <td>All frameworks</td>
+            <td>All + FedRAMP/CMMC</td>
+          </tr>
+          <tr>
+            <td>API access</td>
+            <td><span class="dash">—</span></td>
+            <td><span class="check">✓</span></td>
+            <td><span class="check">✓ + Webhooks</span></td>
+            <td><span class="check">✓ + Webhooks</span></td>
+          </tr>
+          <tr>
+            <td>HITL controls</td>
+            <td>Basic</td>
+            <td>Advanced</td>
+            <td><span class="check">Full graduation</span></td>
+            <td><span class="check">Full graduation</span></td>
+          </tr>
+          <tr>
+            <td>White-labeling</td>
+            <td><span class="dash">—</span></td>
+            <td><span class="dash">—</span></td>
+            <td><span class="check">Options</span></td>
+            <td><span class="check">Full</span></td>
+          </tr>
+          <tr>
+            <td>SLA</td>
+            <td>Best effort</td>
+            <td>99.5%</td>
+            <td>99.9%</td>
+            <td>Custom</td>
+          </tr>
+          <tr>
+            <td>Support</td>
+            <td>Email</td>
+            <td>Priority</td>
+            <td>Dedicated onboarding</td>
+            <td>Dedicated CSM</td>
+          </tr>
+          <tr>
+            <td>Dedicated instance</td>
+            <td><span class="dash">—</span></td>
+            <td><span class="dash">—</span></td>
+            <td><span class="dash">—</span></td>
+            <td><span class="check">✓</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<!-- ── Footer ── -->
+<footer class="murphy-footer">
+  <p class="text-secondary">© 2020 Inoni Limited Liability Company by Corey Post</p>
+  <p class="text-secondary murphy-footer-legal">Licensed under BSL 1.1</p>
+  <div class="flex justify-center flex-wrap gap-3">
+    <a href="https://github.com/Inoni-LLC/Murphy-System" class="murphy-btn murphy-btn-ghost murphy-btn-sm" target="_blank" rel="noopener">GitHub</a>
+    <a href="/ui/docs" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Documentation</a>
+    <a href="/ui/signup" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Get Started</a>
+  </div>
+</footer>
+
+<script src="static/murphy-components.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var theme = new MurphyTheme();
+  theme.init();
+
+  var toggleBtn = document.getElementById('theme-toggle-btn');
+  function updateThemeIcon() {
+    toggleBtn.textContent = theme.get() === 'dark' ? '🌙' : '☀️';
+  }
+  updateThemeIcon();
+  theme.onChange(updateThemeIcon);
+  toggleBtn.addEventListener('click', function () { theme.toggle(); });
+
+  // ── Interval toggle ──────────────────────────────────────
+  var btnMonthly = document.getElementById('btn-monthly');
+  var btnAnnual  = document.getElementById('btn-annual');
+  var currentInterval = 'monthly';
+
+  function updatePrices(interval) {
+    currentInterval = interval;
+    btnMonthly.setAttribute('aria-pressed', interval === 'monthly' ? 'true' : 'false');
+    btnAnnual.setAttribute('aria-pressed',  interval === 'annual'  ? 'true' : 'false');
+
+    document.querySelectorAll('.pricing-price-amount[data-monthly]').forEach(function (el) {
+      el.textContent = interval === 'annual'
+        ? el.getAttribute('data-annual')
+        : el.getAttribute('data-monthly');
+    });
+  }
+
+  btnMonthly.addEventListener('click', function () { updatePrices('monthly'); });
+  btnAnnual.addEventListener('click',  function () { updatePrices('annual');  });
+
+  // ── Checkout buttons ─────────────────────────────────────
+  // Public pricing page visitors (unauthenticated or authenticated) are
+  // directed to the signup/login flow first, with the selected tier and
+  // billing interval passed as query params. The signup page uses those
+  // params to pre-select the plan and, once an account_id is available,
+  // complete the billing checkout via /api/billing/checkout.
+  document.querySelectorAll('.pricing-cta[data-tier]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var tier     = btn.getAttribute('data-tier');
+      var interval = currentInterval;
+
+      // Redirect to signup page with tier/interval pre-selected (standard SaaS pattern)
+      window.location.href =
+        '/ui/signup?tier=' + encodeURIComponent(tier) +
+        '&interval=' + encodeURIComponent(interval);
+    });
+  });
+
+  // ── FAQ accordion ────────────────────────────────────────
+  document.querySelectorAll('.faq-question').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var expanded = btn.getAttribute('aria-expanded') === 'true';
+      var answerId = btn.getAttribute('aria-controls');
+      var answer   = document.getElementById(answerId);
+
+      // Collapse all others
+      document.querySelectorAll('.faq-question').forEach(function (other) {
+        if (other !== btn) {
+          other.setAttribute('aria-expanded', 'false');
+          var otherAnswer = document.getElementById(other.getAttribute('aria-controls'));
+          if (otherAnswer) otherAnswer.classList.remove('open');
+        }
+      });
+
+      btn.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+      if (answer) answer.classList.toggle('open', !expanded);
+    });
+  });
+
+  // Support keyboard navigation in FAQ
+  document.querySelectorAll('.faq-question').forEach(function (btn, i, all) {
+    btn.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowDown' && all[i + 1]) { all[i + 1].focus(); }
+      if (e.key === 'ArrowUp'   && all[i - 1]) { all[i - 1].focus(); }
+    });
+  });
+
+})();
+</script>
+</body>
+</html>

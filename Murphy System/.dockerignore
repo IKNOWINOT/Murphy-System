@@ -1,0 +1,59 @@
+# Version control
+.git
+.gitignore
+
+# Python artifacts
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+dist/
+build/
+*.eggs
+
+# Testing / CI
+.pytest_cache
+.coverage
+htmlcov/
+.tox/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Documentation
+*.md
+README*
+
+# Project directories not needed in image
+archive/
+bots/
+docs/
+documentation/
+# Exclude utility scripts except database migration script needed in containers
+scripts/*.sh
+scripts/*.py
+!scripts/db_migrate.sh
+tests/
+telemetry_evidence/
+strategic/
+
+# HTML / static assets not needed in runtime
+*.html
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
