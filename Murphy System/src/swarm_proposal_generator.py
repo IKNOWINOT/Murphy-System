@@ -736,21 +736,46 @@ Format: {{"steps": [...]}}
                 )
 
         # Topological sort — respects step.dependencies
+        # Uses iterative Kahn's algorithm with cycle detection to avoid stack overflow.
         step_map: Dict[int, SwarmStep] = {s.step_id: s for s in proposal.execution_plan}
         ordered: List[SwarmStep] = []
         visited: set[int] = set()
 
-        def _visit(step: SwarmStep) -> None:
-            if step.step_id in visited:
-                return
-            for dep_id in step.dependencies:
-                if dep_id in step_map:
-                    _visit(step_map[dep_id])
-            visited.add(step.step_id)
-            ordered.append(step)
-
+        # Build in-degree map
+        in_degree: Dict[int, int] = {s.step_id: 0 for s in proposal.execution_plan}
         for s in proposal.execution_plan:
-            _visit(s)
+            for dep_id in s.dependencies:
+                if dep_id in step_map:
+                    in_degree[s.step_id] = in_degree.get(s.step_id, 0) + 1
+
+        # Kahn's algorithm: start from nodes with no dependencies
+        from collections import deque
+        queue: deque = deque(
+            s for s in proposal.execution_plan if in_degree[s.step_id] == 0
+        )
+        while queue:
+            s = queue.popleft()
+            if s.step_id in visited:
+                continue
+            visited.add(s.step_id)
+            ordered.append(s)
+            # Decrease in-degree of steps that depend on s
+            for candidate in proposal.execution_plan:
+                if s.step_id in candidate.dependencies and candidate.step_id not in visited:
+                    in_degree[candidate.step_id] -= 1
+                    if in_degree[candidate.step_id] <= 0:
+                        queue.append(candidate)
+
+        # If not all steps are visited, there is a cycle — append remaining in original order
+        if len(ordered) < len(proposal.execution_plan):
+            logger.warning(
+                "execute_proposal: dependency cycle detected in proposal '%s'; "
+                "appending remaining steps in original order.",
+                proposal.proposal_id,
+            )
+            for s in proposal.execution_plan:
+                if s.step_id not in visited:
+                    ordered.append(s)
 
         # Per-step cost share
         step_count = len(ordered) or 1
@@ -779,6 +804,8 @@ Format: {{"steps": [...]}}
                 break
 
             step_start = time.monotonic()
+            # Simulation-only stub: actual execution delegates to assigned agents
+            # via DurableSwarmOrchestrator in the CollaborativeTaskOrchestrator layer.
             stub_output: Dict[str, Any] = {
                 "output": f"result_for_step_{step.step_id}",
                 "agent_ids": step.agent_ids,

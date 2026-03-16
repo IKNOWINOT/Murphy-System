@@ -2686,7 +2686,7 @@ MODULE_MANIFEST: List[ModuleEntry] = [
         consumes=["task_completed", "automation_executed"],
         description=(
             "Highlight Overlay — backend state manager for the shadow-agent "
-            "trainer system. Tracks automation suggestions surfaced as coloured "
+            "trainer system. Tracks automation suggestions surfaced as colored "
             "text highlights / glow-key hints; serves /api/overlay/* for "
             "murphy_overlay.js."
         ),
