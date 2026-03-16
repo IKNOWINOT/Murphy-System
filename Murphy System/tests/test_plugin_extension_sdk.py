@@ -1,10 +1,8 @@
 """Tests for plugin_extension_sdk.py"""
 
-import sys
 import os
 import unittest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 from plugin_extension_sdk import PluginExtensionSDK, PluginState
 
 

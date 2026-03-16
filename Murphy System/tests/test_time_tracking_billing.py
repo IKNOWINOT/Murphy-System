@@ -15,14 +15,12 @@ Copyright © 2020 Inoni Limited Liability Company
 from __future__ import annotations
 
 import os
-import sys
 import threading
 from dataclasses import dataclass, field
 from typing import Any, List
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from time_tracking.models import EntryStatus, TimeEntry, _now
 from time_tracking.tracker import TimeTracker

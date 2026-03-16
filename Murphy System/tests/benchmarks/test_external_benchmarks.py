@@ -39,16 +39,12 @@ from __future__ import annotations
 
 import json
 import os
-import sys
 from pathlib import Path
 from typing import Any
 
 import pytest
 
 ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "Murphy System" / "src"))
-sys.path.insert(0, str(ROOT / "Murphy System"))
 
 # ---------------------------------------------------------------------------
 # Env-var gate (same pattern as test_integration_speed.py)

@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import datetime
 import re
-import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, List
@@ -36,7 +35,6 @@ SRC_DIR = PROJECT_ROOT / "src"
 DOCS_DIR = PROJECT_ROOT / "docs"
 TESTS_DIR = PROJECT_ROOT / "tests"
 
-sys.path.insert(0, str(PROJECT_ROOT))
 
 
 # ---------------------------------------------------------------------------

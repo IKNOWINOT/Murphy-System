@@ -10,11 +10,9 @@ Closes Gap 4: Existing tests covered the happy path but NOT:
 """
 
 import json
-import sys
 import os
 import unittest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from persistence_manager import (
     PersistenceManager,

@@ -22,7 +22,6 @@ import os
 import platform
 import re
 import subprocess
-import sys
 import tempfile
 from pathlib import Path
 from unittest.mock import patch, MagicMock, call
@@ -30,7 +29,6 @@ from unittest.mock import patch, MagicMock, call
 import pytest
 
 # Ensure parent directory (containing murphy_terminal.py) is on the path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 pytest.importorskip("textual", reason="textual not installed — skipping terminal UI tests")
 

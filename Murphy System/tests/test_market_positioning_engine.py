@@ -15,10 +15,8 @@ Coverage areas:
  10. Singleton accessor — get_default_positioning_engine
 """
 
-import sys
 import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 import pytest
 
@@ -639,9 +637,7 @@ class TestNewVerticals:
 class TestCommissioningGate:
 
     def _make_orchestrator(self):
-        import sys
         import os
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
         from self_marketing_orchestrator import SelfMarketingOrchestrator
         return SelfMarketingOrchestrator()
 
@@ -705,9 +701,7 @@ class TestCommissioningGate:
 class TestNewDefaultOfferings:
 
     def _make_orchestrator(self):
-        import sys
         import os
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
         from self_marketing_orchestrator import SelfMarketingOrchestrator
         return SelfMarketingOrchestrator()
 
@@ -763,9 +757,7 @@ class TestNewDefaultOfferings:
 
     def test_commissioning_is_not_an_offering_type(self):
         """Verify commissioning is never listed as a B2B offering type."""
-        import sys
         import os
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
         from self_marketing_orchestrator import B2B_OFFERING_TYPES, DEFAULT_DESIRED_OFFERINGS
         assert "commissioning" not in B2B_OFFERING_TYPES
         for offering in DEFAULT_DESIRED_OFFERINGS:

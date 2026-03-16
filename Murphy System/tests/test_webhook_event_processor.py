@@ -1,13 +1,11 @@
 """Tests for WebhookEventProcessor."""
 
-import sys
 import os
 import unittest
 import hashlib
 import hmac
 import json
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from webhook_event_processor import (
     WebhookEventProcessor,

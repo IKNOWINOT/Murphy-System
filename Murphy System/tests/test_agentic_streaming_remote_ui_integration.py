@@ -3,11 +3,9 @@ Integration tests for Agentic API Provisioner, Video Streaming Connector,
 Remote Access Connector, and UI Testing Framework modules.
 """
 import os
-import sys
 import unittest
 
 # Ensure the Murphy System directory is on the path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.agentic_api_provisioner import (
     AgenticAPIProvisioner, EndpointMethod, AuthPolicy, EndpointStatus,

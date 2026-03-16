@@ -23,7 +23,6 @@ License: BSL 1.1
 import importlib
 import importlib.util
 import os
-import sys
 import re
 from pathlib import Path
 from unittest.mock import patch
@@ -36,8 +35,6 @@ import pytest
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SRC_DIR = PROJECT_ROOT / "src"
 
-sys.path.insert(0, str(PROJECT_ROOT))
-sys.path.insert(0, str(SRC_DIR))
 
 
 def _load_runtime():

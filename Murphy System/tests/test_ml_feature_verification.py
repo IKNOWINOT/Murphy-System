@@ -30,7 +30,6 @@ _SRC_DIR = os.path.join(_BASE_DIR, "src")
 
 # Ensure src/ is importable (conftest.py does this too)
 if _SRC_DIR not in sys.path:
-    sys.path.insert(0, _SRC_DIR)
 
 # ---------------------------------------------------------------------------
 # Shared constants

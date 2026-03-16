@@ -9,13 +9,10 @@ Covers:
 - module_compiler/capability_extractor: env_vars & files extraction
 """
 
-import sys
 import os
 
 # Ensure repo root and src are on the path.
 _base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, _base)
-sys.path.insert(0, os.path.join(_base, 'src'))
 
 
 # ============================================================================

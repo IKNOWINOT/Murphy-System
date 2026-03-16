@@ -15,13 +15,10 @@ Best-practice labels (30 yr+ team standards):
     [REGR]  — regression safety-net
 """
 
-import sys
 import os
 import asyncio
 
 _base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, _base)
-sys.path.insert(0, os.path.join(_base, "src"))
 
 import pytest
 

@@ -8,11 +8,9 @@ Design Label: TEST-002 / DEV-002
 Owner: QA Team
 """
 
-import sys
 import os
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from slo_remediation_bridge import SLORemediationBridge, RemediationAction
 from self_improvement_engine import SelfImprovementEngine, ImprovementProposal
