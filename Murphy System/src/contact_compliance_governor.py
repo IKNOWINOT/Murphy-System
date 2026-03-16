@@ -900,11 +900,13 @@ class ContactComplianceGovernor:
             return
         try:
             from event_backbone import EventType
-            # Map event names to existing EventType values or fall back to LEARNING_FEEDBACK
-            event_type_map: Dict[str, Any] = {}
-            et = event_type_map.get(event_name)
-            if et is None:
-                et = EventType.LEARNING_FEEDBACK
+            # Map known event names to EventType values
+            event_type_map: Dict[str, Any] = {
+                "OUTREACH_BLOCKED": EventType.TASK_FAILED,
+                "DNC_ADDED": EventType.LEARNING_FEEDBACK,
+                "CONTACT_SUPPRESSED": EventType.TASK_FAILED,
+            }
+            et = event_type_map.get(event_name, EventType.LEARNING_FEEDBACK)
             self._backbone.publish(
                 event_type=et,
                 payload={
