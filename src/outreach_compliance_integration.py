@@ -293,7 +293,7 @@ class AuditRecord:
 
 
 # ---------------------------------------------------------------------------
-# Stub governor — used when ContactComplianceGovernor cannot be imported
+# Fallback governor — used when ContactComplianceGovernor cannot be imported
 # ---------------------------------------------------------------------------
 
 

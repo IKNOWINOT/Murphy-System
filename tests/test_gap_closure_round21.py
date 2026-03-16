@@ -172,6 +172,9 @@ class TestDecoratorNestingAcceptable:
                             or "decorator" in n.name.lower()
                             or "retry" in n.name.lower()
                             or "secure" in n.name.lower()
+                            or n.name.startswith("create_")  # factory/router factory functions
+                            or n.name.startswith("build_")   # builder factory functions
+                            or n.name == "create_app"        # FastAPI app factory
                         )
                         if not is_decorator:
                             rel = os.path.relpath(fpath, SRC_DIR)

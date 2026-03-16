@@ -39,7 +39,14 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
-from thread_safe_operations import capped_append
+try:
+    from thread_safe_operations import capped_append
+except ImportError:
+    def capped_append(target_list, item, max_size=10_000):  # type: ignore[misc]
+        """Bounded list append — fallback when thread_safe_operations is unavailable."""
+        target_list.append(item)
+        if len(target_list) > max_size:
+            del target_list[:-max_size]
 
 logger = logging.getLogger(__name__)
 

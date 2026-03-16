@@ -336,6 +336,7 @@ class _BruteForceTracker:
         return False
 
     def is_locked_out(self, client_id: str) -> bool:
+        """Return True if *client_id* is currently locked out due to too many failed attempts."""
         if client_id not in self._lockouts:
             return False
         if time.monotonic() >= self._lockouts[client_id]:
@@ -345,6 +346,7 @@ class _BruteForceTracker:
         return True
 
     def record_success(self, client_id: str) -> None:
+        """Clear the failure counter and lockout record for *client_id* after a successful auth."""
         self._attempts.pop(client_id, None)
         self._lockouts.pop(client_id, None)
 

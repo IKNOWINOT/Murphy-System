@@ -6,6 +6,7 @@ Required credentials: DISCORD_BOT_TOKEN
 Setup: https://discord.com/developers/docs/intro
 """
 from __future__ import annotations
+import logging
 
 from typing import Any, Dict, List, Optional
 

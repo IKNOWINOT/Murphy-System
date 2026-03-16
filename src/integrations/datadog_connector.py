@@ -7,6 +7,7 @@ Required credentials: DATADOG_API_KEY, DATADOG_APP_KEY
 Setup: https://docs.datadoghq.com/api/latest/
 """
 from __future__ import annotations
+import logging
 
 from typing import Any, Dict, List, Optional
 

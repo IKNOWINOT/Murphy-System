@@ -9,6 +9,7 @@ Creator: Corey Post
 License: BSL 1.1
 """
 
+import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 

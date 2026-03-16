@@ -133,6 +133,8 @@ class SuppressionReason(str, Enum):
 
 
 class OutreachChannel(str, Enum):
+    """Communication channel for outreach campaigns."""
+
     EMAIL    = "email"
     SMS      = "sms"
     LINKEDIN = "linkedin"
@@ -140,6 +142,8 @@ class OutreachChannel(str, Enum):
 
 
 class CampaignStatus(str, Enum):
+    """Lifecycle status of an outreach campaign."""
+
     DRAFT     = "draft"
     ACTIVE    = "active"
     PAUSED    = "paused"
@@ -148,6 +152,8 @@ class CampaignStatus(str, Enum):
 
 
 class ComplianceDecision(str, Enum):
+    """Result of a compliance check for an outreach action."""
+
     ALLOW            = "ALLOW"
     BLOCK            = "BLOCK"
     REQUIRES_CONSENT = "REQUIRES_CONSENT"

@@ -57,7 +57,14 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
-from thread_safe_operations import capped_append
+try:
+    from thread_safe_operations import capped_append
+except ImportError:
+    def capped_append(target_list, item, max_size=10_000):  # type: ignore[misc]
+        """Bounded list append — fallback when thread_safe_operations is unavailable."""
+        target_list.append(item)
+        if len(target_list) > max_size:
+            del target_list[:-max_size]
 
 logger = logging.getLogger(__name__)
 
@@ -154,6 +161,8 @@ _BMS_SPEC_SECTIONS: List[str] = [
 # ---------------------------------------------------------------------------
 
 class AgentRole(str, Enum):
+    """Role of an agent in the self-codebase swarm."""
+
     ARCHITECT   = "architect"
     CODE_GEN    = "code_gen"
     TEST        = "test"
@@ -165,6 +174,8 @@ class AgentRole(str, Enum):
 
 
 class ProposalStatus(str, Enum):
+    """Lifecycle status of a swarm proposal."""
+
     PENDING    = "pending"
     APPROVED   = "approved"
     REJECTED   = "rejected"
@@ -174,12 +185,16 @@ class ProposalStatus(str, Enum):
 
 
 class BuildMode(str, Enum):
+    """Strategy used by the swarm to construct a deliverable."""
+
     DOCUMENT   = "document"    # build from provided RFP / contract doc
     AUTONOMOUS = "autonomous"  # build from domain knowledge, no docs needed
     HYBRID     = "hybrid"      # docs provided but gaps filled autonomously
 
 
 class PackageFormat(str, Enum):
+    """Output format for a swarm deliverable package."""
+
     JSON       = "json"
     MARKDOWN   = "markdown"
     STRUCTURED = "structured"  # dict with labelled sections

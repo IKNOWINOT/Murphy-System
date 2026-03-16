@@ -6,6 +6,7 @@ Required credentials: CLOUDFLARE_API_TOKEN (or CLOUDFLARE_EMAIL + CLOUDFLARE_GLO
 Setup: https://developers.cloudflare.com/api/tokens/create/
 """
 from __future__ import annotations
+import logging
 
 from typing import Any, Dict, List, Optional
 

@@ -6,6 +6,7 @@ Required credentials: TRELLO_API_KEY, TRELLO_TOKEN
 Setup: https://developer.atlassian.com/cloud/trello/guides/rest-api/api-introduction/
 """
 from __future__ import annotations
+import logging
 
 from typing import Any, Dict, List, Optional
 

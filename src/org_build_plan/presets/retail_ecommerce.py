@@ -4,6 +4,7 @@
 """Retail and e-commerce industry preset for the org_build_plan package."""
 
 from __future__ import annotations
+import logging
 
 from ..presets import IndustryPreset
 

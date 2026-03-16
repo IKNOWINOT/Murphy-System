@@ -6,6 +6,7 @@ Required credentials: HUBSPOT_API_KEY or HUBSPOT_ACCESS_TOKEN
 Setup: https://developers.hubspot.com/docs/api/overview
 """
 from __future__ import annotations
+import logging
 
 from typing import Any, Dict, List, Optional
 

@@ -88,12 +88,16 @@ _MAX_WORKFLOW_STEPS = 100
 
 
 class PositionType(str, Enum):
+    """Whether a position is filled by a human, shadow agent, or both."""
+
     HUMAN         = "human"
     SHADOW_AGENT  = "shadow_agent"
     HYBRID        = "hybrid"
 
 
 class PositionStatus(str, Enum):
+    """Current staffing status of an org-chart position."""
+
     VACANT     = "vacant"
     ACTIVE     = "active"
     ONBOARDING = "onboarding"
@@ -101,6 +105,8 @@ class PositionStatus(str, Enum):
 
 
 class WorkflowStatus(str, Enum):
+    """Execution status of an automation workflow."""
+
     PENDING   = "pending"
     RUNNING   = "running"
     COMPLETED = "completed"
@@ -109,6 +115,8 @@ class WorkflowStatus(str, Enum):
 
 
 class ReadinessLevel(str, Enum):
+    """Readiness classification for a module or component."""
+
     READY          = "ready"
     PARTIALLY_READY = "partially_ready"
     NOT_READY      = "not_ready"

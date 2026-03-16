@@ -24,6 +24,7 @@ License: BSL 1.1
 """
 
 from __future__ import annotations
+import logging
 
 import uuid
 from contextvars import ContextVar

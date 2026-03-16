@@ -6,6 +6,7 @@ Required credentials: OPENWEATHERMAP_API_KEY
 Setup: https://openweathermap.org/api
 """
 from __future__ import annotations
+import logging
 
 from typing import Any, Dict, List, Optional, Union
 

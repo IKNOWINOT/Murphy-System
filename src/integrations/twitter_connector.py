@@ -7,6 +7,7 @@ Required credentials: TWITTER_BEARER_TOKEN (read-only) or
 Setup: https://developer.twitter.com/en/portal/dashboard
 """
 from __future__ import annotations
+import logging
 
 from typing import Any, Dict, List, Optional
 

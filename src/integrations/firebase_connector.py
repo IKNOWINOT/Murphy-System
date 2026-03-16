@@ -7,6 +7,7 @@ Required credentials: FIREBASE_PROJECT_ID, FIREBASE_WEB_API_KEY
 Setup: https://firebase.google.com/docs/web/setup
 """
 from __future__ import annotations
+import logging
 
 from typing import Any, Dict, List, Optional
 

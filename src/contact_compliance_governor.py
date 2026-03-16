@@ -106,6 +106,8 @@ class Regulation(str, Enum):
 
 
 class Channel(str, Enum):
+    """Communication channel for contact outreach."""
+
     EMAIL = "email"
     SMS = "sms"
     LINKEDIN = "linkedin"
@@ -113,6 +115,8 @@ class Channel(str, Enum):
 
 
 class OutreachType(str, Enum):
+    """Category of outreach interaction."""
+
     COLD_OUTREACH = "cold_outreach"
     FOLLOW_UP = "follow_up"
     MARKETING = "marketing"

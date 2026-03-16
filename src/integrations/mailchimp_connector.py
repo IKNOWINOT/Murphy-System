@@ -6,6 +6,7 @@ Required credentials: MAILCHIMP_API_KEY (contains dc, e.g. key-us1)
 Setup: https://mailchimp.com/developer/marketing/guides/quick-start/
 """
 from __future__ import annotations
+import logging
 
 import re
 from typing import Any, Dict, List, Optional

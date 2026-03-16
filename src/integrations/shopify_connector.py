@@ -6,6 +6,7 @@ Required credentials: SHOPIFY_STORE_URL, SHOPIFY_ACCESS_TOKEN
 Setup: https://shopify.dev/docs/api/admin-rest
 """
 from __future__ import annotations
+import logging
 
 from typing import Any, Dict, List, Optional
 

@@ -56,7 +56,14 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
-from thread_safe_operations import capped_append
+try:
+    from thread_safe_operations import capped_append
+except ImportError:
+    def capped_append(target_list, item, max_size=10_000):  # type: ignore[misc]
+        """Bounded list append — fallback when thread_safe_operations is unavailable."""
+        target_list.append(item)
+        if len(target_list) > max_size:
+            del target_list[:-max_size]
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +86,8 @@ _LABEL_RE = re.compile(r"^[a-zA-Z0-9 _\-.,:()/°]{1,500}$")
 # ---------------------------------------------------------------------------
 
 class EquipmentCategory(str, Enum):
+    """Category of BMS/HVAC field device or controller."""
+
     DDC_CONTROLLER        = "ddc_controller"
     SENSOR_TEMPERATURE    = "sensor_temperature"
     SENSOR_PRESSURE       = "sensor_pressure"
@@ -116,6 +125,8 @@ class OutputType(str, Enum):
 
 
 class VerificationStatus(str, Enum):
+    """Result of a commissioning verification check for a field device."""
+
     PASS            = "pass"
     FAIL            = "fail"
     WARNING         = "warning"

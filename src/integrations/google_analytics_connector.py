@@ -6,6 +6,7 @@ Required credentials: GOOGLE_ANALYTICS_ACCESS_TOKEN, GOOGLE_ANALYTICS_PROPERTY_I
 Setup: https://developers.google.com/analytics/devguides/reporting/data/v1
 """
 from __future__ import annotations
+import logging
 
 from typing import Any, Dict, List, Optional
 

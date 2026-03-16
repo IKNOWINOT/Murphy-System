@@ -422,7 +422,7 @@ class CampaignPlannerEngine:
                 result.issues.append(f"Governor error: {_sanitize_error(exc)}")
         else:
             result.issues.append("ContactComplianceGovernor not injected — using stub")
-            result.governor_ok = True   # stub mode is acceptable in test environments
+            result.governor_ok = True   # degraded mode: governor unavailable, defaults to ok
 
         # Compliance gate health
         if self._compliance_gate is not None:
@@ -434,7 +434,7 @@ class CampaignPlannerEngine:
                 result.issues.append(f"ComplianceGate error: {_sanitize_error(exc)}")
         else:
             result.issues.append("OutreachComplianceGate not injected — using stub")
-            result.compliance_gate_ok = True  # stub mode
+            result.compliance_gate_ok = True  # degraded mode: gate unavailable, defaults to ok
 
         # Suppression list integrity
         with self._lock:

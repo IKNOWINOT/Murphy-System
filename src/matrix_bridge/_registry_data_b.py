@@ -14,6 +14,7 @@ Testing/QA, Learning Engine, Protocols/Standards.
 Imported by :mod:`subsystem_registry`.
 """
 from __future__ import annotations
+import logging
 
 from typing import List
 

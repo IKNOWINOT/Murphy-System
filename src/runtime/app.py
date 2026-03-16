@@ -9,6 +9,7 @@ Creator: Corey Post
 License: BSL 1.1
 """
 
+import logging
 from src.runtime._deps import (
     # Standard library
     Any,

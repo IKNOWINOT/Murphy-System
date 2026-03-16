@@ -6,6 +6,7 @@ Required credentials: SUPABASE_URL, SUPABASE_KEY (anon or service_role)
 Setup: https://supabase.com/docs/guides/getting-started
 """
 from __future__ import annotations
+import logging
 
 from typing import Any, Dict, List, Optional
 

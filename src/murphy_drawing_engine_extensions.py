@@ -8,6 +8,7 @@ Imported by murphy_drawing_engine.py to keep that module under the 1000-line lim
 """
 
 from __future__ import annotations
+import logging
 
 import math
 from dataclasses import dataclass

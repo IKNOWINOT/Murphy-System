@@ -10,6 +10,7 @@ License: BSL 1.1
 """
 
 # Import all public names from _deps (equivalent to `import *` but lint-clean)
+import logging
 import src.runtime._deps as _runtime_deps  # noqa: F401
 
 globals().update(
@@ -13111,7 +13112,8 @@ class MurphySystem:
             "Tell me about your business and what you'd like to automate, "
             "and I'll build a custom plan for you.\n\n"
             f"📊 **MFGC/5U Readiness:** {score:.0f}%\n\n"
-            "**To get started:** What's the name of your business and what industry are you in?"
+            "**To get started:** type **'start interview'** for a guided setup, or "
+            "tell me — What's the name of your business and what industry are you in?"
         )
 
     def _build_followup_reply(self, message: str, nl_intent: str,

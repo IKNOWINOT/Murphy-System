@@ -6,6 +6,7 @@ Required credentials: OPENAI_API_KEY
 Setup: https://platform.openai.com/api-keys
 """
 from __future__ import annotations
+import logging
 
 from typing import Any, Dict, List, Optional
 

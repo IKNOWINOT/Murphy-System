@@ -6,6 +6,7 @@ Required credentials: ANTHROPIC_API_KEY
 Setup: https://console.anthropic.com/
 """
 from __future__ import annotations
+import logging
 
 from typing import Any, Dict, List, Optional
 

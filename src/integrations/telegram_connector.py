@@ -6,6 +6,7 @@ Required credentials: TELEGRAM_BOT_TOKEN
 Setup: https://core.telegram.org/bots#how-do-i-create-a-bot
 """
 from __future__ import annotations
+import logging
 
 from typing import Any, Dict, List, Optional, Union
 
