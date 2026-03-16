@@ -233,8 +233,8 @@ class DocumentGenerationEngine:
                     "</pre></body></html>"
                 )
                 return renderer.render_to_base64(wrapped_html, brand, {})
-        except Exception:
-            pass
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Rich PDF renderer failed, trying fallback: %s", exc)
 
         # 2. reportlab fallback
         try:

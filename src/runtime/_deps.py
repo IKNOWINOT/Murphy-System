@@ -64,30 +64,30 @@ else:
 # Universal Control Plane
 try:
     from universal_control_plane import UniversalControlPlane
-except ImportError as e:
-    logger.warning("Could not import UniversalControlPlane: %s", e)
+except ImportError as exc:
+    logger.warning("Could not import UniversalControlPlane: %s", exc)
     UniversalControlPlane = None
 
 # Inoni Business Automation
 try:
     from inoni_business_automation import InoniBusinessAutomation
-except ImportError as e:
-    logger.warning("Could not import InoniBusinessAutomation: %s", e)
+except ImportError as exc:
+    logger.warning("Could not import InoniBusinessAutomation: %s", exc)
     InoniBusinessAutomation = None
 
 # Integration Engine
 try:
     from src.integration_engine.unified_engine import UnifiedIntegrationEngine
-except ImportError as e:
-    logger.warning("Could not import UnifiedIntegrationEngine: %s", e)
+except ImportError as exc:
+    logger.warning("Could not import UnifiedIntegrationEngine: %s", exc)
     logger.warning("This may be due to missing dependencies. Please ensure all requirements are installed.")
     UnifiedIntegrationEngine = None
 
 # Two-Phase Orchestrator
 try:
     from two_phase_orchestrator import TwoPhaseOrchestrator
-except ImportError as e:
-    logger.warning("Could not import TwoPhaseOrchestrator: %s", e)
+except ImportError as exc:
+    logger.warning("Could not import TwoPhaseOrchestrator: %s", exc)
     TwoPhaseOrchestrator = None
 
 # Phase 1-5 Components (optional - may not all be available)
@@ -128,8 +128,8 @@ try:
     from src.system_librarian import SystemLibrarian
     from src.telemetry_learning.ingestion import TelemetryBus, TelemetryIngester
     from src.true_swarm_system import TrueSwarmSystem
-except ImportError as e:
-    logger.warning("Some original Murphy components not available: %s", e)
+except ImportError as exc:
+    logger.warning("Some original Murphy components not available: %s", exc)
     SystemLibrarian = TrueSwarmSystem = GovernanceScheduler = TelemetryIngester = TelemetryBus = None
     ScheduledAgent = PriorityLevel = AgentDescriptor = GovernanceAuthorityBand = GovernanceActionType = ActionSet = None
 
@@ -137,15 +137,15 @@ except ImportError as e:
 try:
     from src.mfgc_adapter import MFGCAdapter, MFGCConfig
     from src.system_integrator import SystemIntegrator
-except ImportError as e:
-    logger.warning("MFGC adapter not available: %s", e)
+except ImportError as exc:
+    logger.warning("MFGC adapter not available: %s", exc)
     MFGCAdapter = MFGCConfig = SystemIntegrator = None
 
 # Adapter Framework
 try:
     from src.adapter_framework.adapter_runtime import AdapterRuntime
-except ImportError as e:
-    logger.warning("Adapter runtime not available: %s", e)
+except ImportError as exc:
+    logger.warning("Adapter runtime not available: %s", exc)
     AdapterRuntime = None
 
 # MSS Controls & Intelligence Layer
@@ -158,29 +158,29 @@ try:
     from src.simulation_engine import StrategicSimulationEngine
     from src.structural_coherence import StructuralCoherenceEngine
     _mss_available = True
-except ImportError as e:
-    logger.warning("MSS controls not available: %s", e)
+except ImportError as exc:
+    logger.warning("MSS controls not available: %s", exc)
     _mss_available = False
 
 # Org Chart System
 try:
     from src.organization_chart_system import OrganizationChart
-except ImportError as e:
-    logger.warning("Organization chart system not available: %s", e)
+except ImportError as exc:
+    logger.warning("Organization chart system not available: %s", exc)
     OrganizationChart = None
 
 # New integrated modules
 try:
     from src.persistence_manager import PersistenceManager
-except ImportError as e:
-    logger.warning("Persistence manager not available: %s", e)
+except ImportError as exc:
+    logger.warning("Persistence manager not available: %s", exc)
     PersistenceManager = None
 
 try:
     from src.event_backbone import EventBackbone
     from src.event_backbone import EventType as BackboneEventType
-except ImportError as e:
-    logger.warning("Event backbone not available: %s", e)
+except ImportError as exc:
+    logger.warning("Event backbone not available: %s", exc)
     EventBackbone = None
     BackboneEventType = None
 
@@ -196,348 +196,348 @@ try:
         TranslationDeliveryAdapter,
         VoiceDeliveryAdapter,
     )
-except ImportError as e:
-    logger.warning("Delivery adapters not available: %s", e)
+except ImportError as exc:
+    logger.warning("Delivery adapters not available: %s", exc)
     DeliveryOrchestrator = DeliveryChannel = DeliveryRequest = DeliveryStatus = None
     DocumentDeliveryAdapter = EmailDeliveryAdapter = ChatDeliveryAdapter = None
     VoiceDeliveryAdapter = TranslationDeliveryAdapter = None
 
 try:
     from src.gate_execution_wiring import GateExecutionWiring, GatePolicy, GateType
-except ImportError as e:
-    logger.warning("Gate execution wiring not available: %s", e)
+except ImportError as exc:
+    logger.warning("Gate execution wiring not available: %s", exc)
     GateExecutionWiring = GateType = GatePolicy = None
 
 try:
     from src.self_improvement_engine import ExecutionOutcome, OutcomeType, SelfImprovementEngine
-except ImportError as e:
-    logger.warning("Self-improvement engine not available: %s", e)
+except ImportError as exc:
+    logger.warning("Self-improvement engine not available: %s", exc)
     SelfImprovementEngine = ExecutionOutcome = OutcomeType = None
 
 try:
     from src.operational_slo_tracker import ExecutionRecord as SLOExecutionRecord
     from src.operational_slo_tracker import OperationalSLOTracker, SLOTarget
-except ImportError as e:
-    logger.warning("Operational SLO tracker not available: %s", e)
+except ImportError as exc:
+    logger.warning("Operational SLO tracker not available: %s", exc)
     OperationalSLOTracker = SLOTarget = SLOExecutionRecord = None
 
 try:
     from src.automation_scheduler import AutomationScheduler, ProjectSchedule, SchedulePriority
-except ImportError as e:
-    logger.warning("Automation scheduler not available: %s", e)
+except ImportError as exc:
+    logger.warning("Automation scheduler not available: %s", exc)
     AutomationScheduler = ProjectSchedule = SchedulePriority = None
 
 try:
     from src.capability_map import CapabilityMap
-except ImportError as e:
-    logger.warning("Capability map not available: %s", e)
+except ImportError as exc:
+    logger.warning("Capability map not available: %s", exc)
     CapabilityMap = None
 
 try:
     from src.compliance_engine import ComplianceEngine, ComplianceFramework
-except ImportError as e:
-    logger.warning("Compliance engine not available: %s", e)
+except ImportError as exc:
+    logger.warning("Compliance engine not available: %s", exc)
     ComplianceEngine = ComplianceFramework = None
 
 try:
     from src.rbac_governance import Permission as RBACPermission
     from src.rbac_governance import RBACGovernance, TenantPolicy, UserIdentity
     from src.rbac_governance import Role as RBACRole
-except ImportError as e:
-    logger.warning("RBAC governance not available: %s", e)
+except ImportError as exc:
+    logger.warning("RBAC governance not available: %s", exc)
     RBACGovernance = TenantPolicy = UserIdentity = RBACRole = RBACPermission = None
 
 try:
     from src.ticketing_adapter import TicketingAdapter
-except ImportError as e:
-    logger.warning("Ticketing adapter not available: %s", e)
+except ImportError as exc:
+    logger.warning("Ticketing adapter not available: %s", exc)
     TicketingAdapter = None
 
 try:
     from src.wingman_protocol import WingmanProtocol
-except ImportError as e:
-    logger.warning("Wingman protocol not available: %s", e)
+except ImportError as exc:
+    logger.warning("Wingman protocol not available: %s", exc)
     WingmanProtocol = None
 
 try:
     from src.runtime_profile_compiler import RuntimeProfileCompiler
-except ImportError as e:
-    logger.warning("Runtime profile compiler not available: %s", e)
+except ImportError as exc:
+    logger.warning("Runtime profile compiler not available: %s", exc)
     RuntimeProfileCompiler = None
 
 try:
     from src.governance_kernel import GovernanceKernel
-except ImportError as e:
-    logger.warning("Governance kernel not available: %s", e)
+except ImportError as exc:
+    logger.warning("Governance kernel not available: %s", exc)
     GovernanceKernel = None
 
 try:
     from src.control_plane_separation import ControlPlaneSeparation
-except ImportError as e:
-    logger.warning("Control plane separation not available: %s", e)
+except ImportError as exc:
+    logger.warning("Control plane separation not available: %s", exc)
     ControlPlaneSeparation = None
 
 try:
     from src.durable_swarm_orchestrator import DurableSwarmOrchestrator
-except ImportError as e:
-    logger.warning("Durable swarm orchestrator not available: %s", e)
+except ImportError as exc:
+    logger.warning("Durable swarm orchestrator not available: %s", exc)
     DurableSwarmOrchestrator = None
 
 try:
     from src.golden_path_bridge import GoldenPathBridge
-except ImportError as e:
-    logger.warning("Golden path bridge not available: %s", e)
+except ImportError as exc:
+    logger.warning("Golden path bridge not available: %s", exc)
     GoldenPathBridge = None
 
 try:
     from src.org_chart_enforcement import OrgChartEnforcement
-except ImportError as e:
-    logger.warning("Org chart enforcement not available: %s", e)
+except ImportError as exc:
+    logger.warning("Org chart enforcement not available: %s", exc)
     OrgChartEnforcement = None
 
 try:
     from src.shadow_agent_integration import ShadowAgentIntegration
-except ImportError as e:
-    logger.warning("Shadow agent integration not available: %s", e)
+except ImportError as exc:
+    logger.warning("Shadow agent integration not available: %s", exc)
     ShadowAgentIntegration = None
 
 try:
     from src.triage_rollcall_adapter import TriageRollcallAdapter
-except ImportError as e:
-    logger.warning("Triage rollcall adapter not available: %s", e)
+except ImportError as exc:
+    logger.warning("Triage rollcall adapter not available: %s", exc)
     TriageRollcallAdapter = None
 
 try:
     from src.rubix_evidence_adapter import RubixEvidenceAdapter
-except ImportError as e:
-    logger.warning("Rubix evidence adapter not available: %s", e)
+except ImportError as exc:
+    logger.warning("Rubix evidence adapter not available: %s", exc)
     RubixEvidenceAdapter = None
 
 try:
     from src.semantics_boundary_controller import SemanticsBoundaryController
-except ImportError as e:
-    logger.warning("Semantics boundary controller not available: %s", e)
+except ImportError as exc:
+    logger.warning("Semantics boundary controller not available: %s", exc)
     SemanticsBoundaryController = None
 
 try:
     from src.bot_governance_policy_mapper import BotGovernancePolicyMapper
-except ImportError as e:
-    logger.warning("Bot governance policy mapper not available: %s", e)
+except ImportError as exc:
+    logger.warning("Bot governance policy mapper not available: %s", exc)
     BotGovernancePolicyMapper = None
 
 try:
     from src.bot_telemetry_normalizer import BotTelemetryNormalizer
-except ImportError as e:
-    logger.warning("Bot telemetry normalizer not available: %s", e)
+except ImportError as exc:
+    logger.warning("Bot telemetry normalizer not available: %s", exc)
     BotTelemetryNormalizer = None
 
 try:
     from src.legacy_compatibility_matrix import LegacyCompatibilityMatrixAdapter
-except ImportError as e:
-    logger.warning("Legacy compatibility matrix not available: %s", e)
+except ImportError as exc:
+    logger.warning("Legacy compatibility matrix not available: %s", exc)
     LegacyCompatibilityMatrixAdapter = None
 
 try:
     from src.hitl_autonomy_controller import HITLAutonomyController
-except ImportError as e:
-    logger.warning("HITL autonomy controller not available: %s", e)
+except ImportError as exc:
+    logger.warning("HITL autonomy controller not available: %s", exc)
     HITLAutonomyController = None
 
 try:
     from src.compliance_region_validator import ComplianceRegionValidator
-except ImportError as e:
-    logger.warning("Compliance region validator not available: %s", e)
+except ImportError as exc:
+    logger.warning("Compliance region validator not available: %s", exc)
     ComplianceRegionValidator = None
 
 try:
     from src.observability_counters import ObservabilitySummaryCounters
-except ImportError as e:
-    logger.warning("Observability summary counters not available: %s", e)
+except ImportError as exc:
+    logger.warning("Observability summary counters not available: %s", exc)
     ObservabilitySummaryCounters = None
 
 try:
     from src.deterministic_routing_engine import DeterministicRoutingEngine
-except ImportError as e:
-    logger.warning("Deterministic routing engine not available: %s", e)
+except ImportError as exc:
+    logger.warning("Deterministic routing engine not available: %s", exc)
     DeterministicRoutingEngine = None
 
 try:
     from src.platform_connector_framework import PlatformConnectorFramework
-except ImportError as e:
-    logger.warning("Platform connector framework not available: %s", e)
+except ImportError as exc:
+    logger.warning("Platform connector framework not available: %s", exc)
     PlatformConnectorFramework = None
 
 try:
     from src.workflow_dag_engine import WorkflowDAGEngine
-except ImportError as e:
-    logger.warning("Workflow DAG engine not available: %s", e)
+except ImportError as exc:
+    logger.warning("Workflow DAG engine not available: %s", exc)
     WorkflowDAGEngine = None
 
 try:
     from src.automation_type_registry import AutomationTypeRegistry
-except ImportError as e:
-    logger.warning("Automation type registry not available: %s", e)
+except ImportError as exc:
+    logger.warning("Automation type registry not available: %s", exc)
     AutomationTypeRegistry = None
 
 try:
     from src.api_gateway_adapter import APIGatewayAdapter
-except ImportError as e:
-    logger.warning("API gateway adapter not available: %s", e)
+except ImportError as exc:
+    logger.warning("API gateway adapter not available: %s", exc)
     APIGatewayAdapter = None
 
 try:
     from src.webhook_event_processor import WebhookEventProcessor
-except ImportError as e:
-    logger.warning("Webhook event processor not available: %s", e)
+except ImportError as exc:
+    logger.warning("Webhook event processor not available: %s", exc)
     WebhookEventProcessor = None
 
 try:
     from src.self_automation_orchestrator import SelfAutomationOrchestrator
-except ImportError as e:
-    logger.warning("Self-automation orchestrator not available: %s", e)
+except ImportError as exc:
+    logger.warning("Self-automation orchestrator not available: %s", exc)
     SelfAutomationOrchestrator = None
 
 try:
     from src.plugin_extension_sdk import PluginExtensionSDK
-except ImportError as e:
-    logger.warning("Plugin extension SDK not available: %s", e)
+except ImportError as exc:
+    logger.warning("Plugin extension SDK not available: %s", exc)
     PluginExtensionSDK = None
 
 try:
     from src.ai_workflow_generator import AIWorkflowGenerator
-except ImportError as e:
-    logger.warning("AI workflow generator not available: %s", e)
+except ImportError as exc:
+    logger.warning("AI workflow generator not available: %s", exc)
     AIWorkflowGenerator = None
 
 try:
     from src.workflow_template_marketplace import WorkflowTemplateMarketplace
-except ImportError as e:
-    logger.warning("Workflow template marketplace not available: %s", e)
+except ImportError as exc:
+    logger.warning("Workflow template marketplace not available: %s", exc)
     WorkflowTemplateMarketplace = None
 
 try:
     from src.cross_platform_data_sync import CrossPlatformDataSync
-except ImportError as e:
-    logger.warning("Cross-platform data sync not available: %s", e)
+except ImportError as exc:
+    logger.warning("Cross-platform data sync not available: %s", exc)
     CrossPlatformDataSync = None
 
 # Building Automation Connectors
 try:
     from src.building_automation_connectors import BuildingAutomationRegistry
-except ImportError as e:
-    logger.warning("Building automation connectors not available: %s", e)
+except ImportError as exc:
+    logger.warning("Building automation connectors not available: %s", exc)
     BuildingAutomationRegistry = None
 
 # Manufacturing Automation Standards
 try:
     from src.manufacturing_automation_standards import ManufacturingAutomationRegistry
-except ImportError as e:
-    logger.warning("Manufacturing automation standards not available: %s", e)
+except ImportError as exc:
+    logger.warning("Manufacturing automation standards not available: %s", exc)
     ManufacturingAutomationRegistry = None
 
 # Energy Management Connectors
 try:
     from src.energy_management_connectors import EnergyManagementRegistry
-except ImportError as e:
-    logger.warning("Energy management connectors not available: %s", e)
+except ImportError as exc:
+    logger.warning("Energy management connectors not available: %s", exc)
     EnergyManagementRegistry = None
 
 # Analytics Dashboard
 try:
     from src.analytics_dashboard import AnalyticsDashboard
-except ImportError as e:
-    logger.warning("Analytics dashboard not available: %s", e)
+except ImportError as exc:
+    logger.warning("Analytics dashboard not available: %s", exc)
     AnalyticsDashboard = None
 
 # Executive Planning Engine
 try:
     from src.executive_planning_engine import ExecutivePlanningEngine
-except ImportError as e:
-    logger.warning("Executive planning engine not available: %s", e)
+except ImportError as exc:
+    logger.warning("Executive planning engine not available: %s", exc)
     ExecutivePlanningEngine = None
 
 # Enterprise Integrations
 try:
     from src.enterprise_integrations import EnterpriseIntegrationRegistry
-except ImportError as e:
-    logger.warning("Enterprise integrations not available: %s", e)
+except ImportError as exc:
+    logger.warning("Enterprise integrations not available: %s", exc)
     EnterpriseIntegrationRegistry = None
 
 # Digital Asset Generator
 try:
     from src.digital_asset_generator import DigitalAssetGenerator
-except ImportError as e:
-    logger.warning("Digital asset generator not available: %s", e)
+except ImportError as exc:
+    logger.warning("Digital asset generator not available: %s", exc)
     DigitalAssetGenerator = None
 
 # Rosetta Stone Heartbeat
 try:
     from src.rosetta_stone_heartbeat import RosettaStoneHeartbeat
-except ImportError as e:
-    logger.warning("Rosetta stone heartbeat not available: %s", e)
+except ImportError as exc:
+    logger.warning("Rosetta stone heartbeat not available: %s", exc)
     RosettaStoneHeartbeat = None
 
 # Content Creator Platform Modulator
 try:
     from src.content_creator_platform_modulator import ContentCreatorPlatformRegistry
-except ImportError as e:
-    logger.warning("Content creator platform modulator not available: %s", e)
+except ImportError as exc:
+    logger.warning("Content creator platform modulator not available: %s", exc)
     ContentCreatorPlatformRegistry = None
 
 # ML Strategy Engine
 try:
     from src.ml_strategy_engine import MLStrategyEngine
-except ImportError as e:
-    logger.warning("ML strategy engine not available: %s", e)
+except ImportError as exc:
+    logger.warning("ML strategy engine not available: %s", exc)
     MLStrategyEngine = None
 
 # Agentic API Provisioner
 try:
     from src.agentic_api_provisioner import AgenticAPIProvisioner
-except ImportError as e:
-    logger.warning("Agentic API provisioner not available: %s", e)
+except ImportError as exc:
+    logger.warning("Agentic API provisioner not available: %s", exc)
     AgenticAPIProvisioner = None
 
 # Video Streaming Connector
 try:
     from src.video_streaming_connector import VideoStreamingRegistry
-except ImportError as e:
-    logger.warning("Video streaming connector not available: %s", e)
+except ImportError as exc:
+    logger.warning("Video streaming connector not available: %s", exc)
     VideoStreamingRegistry = None
 
 # Remote Access Connector
 try:
     from src.remote_access_connector import RemoteAccessRegistry
-except ImportError as e:
-    logger.warning("Remote access connector not available: %s", e)
+except ImportError as exc:
+    logger.warning("Remote access connector not available: %s", exc)
     RemoteAccessRegistry = None
 
 # UI Testing Framework
 try:
     from src.ui_testing_framework import UITestingFramework
-except ImportError as e:
-    logger.warning("UI testing framework not available: %s", e)
+except ImportError as exc:
+    logger.warning("UI testing framework not available: %s", exc)
     UITestingFramework = None
 
 # Security Hardening Config
 try:
     from src.security_hardening_config import SecurityHardeningConfig
-except ImportError as e:
-    logger.warning("Security hardening config not available: %s", e)
+except ImportError as exc:
+    logger.warning("Security hardening config not available: %s", exc)
     SecurityHardeningConfig = None
 
 # Image Generation Engine (open-source, no API key required)
 try:
     from src.image_generation_engine import ImageGenerationEngine, ImageRequest, ImageStyle
-except ImportError as e:
-    logger.warning("Image generation engine not available: %s", e)
+except ImportError as exc:
+    logger.warning("Image generation engine not available: %s", exc)
     ImageGenerationEngine = None
 
 # Universal Integration Adapter (plug-and-play for any service)
 try:
     from src.universal_integration_adapter import IntegrationSpec, UniversalIntegrationAdapter
-except ImportError as e:
-    logger.warning("Universal integration adapter not available: %s", e)
+except ImportError as exc:
+    logger.warning("Universal integration adapter not available: %s", exc)
     UniversalIntegrationAdapter = None
 
 # FastAPI for REST API
@@ -559,8 +559,8 @@ except ImportError:
 # Dynamic Assist Engine (PR #195)
 try:
     from src.dynamic_assist_engine import DynamicAssistEngine, DynamicAssistInput, DynamicAssistOutput
-except ImportError as e:
-    logger.warning("DynamicAssistEngine not available: %s", e)
+except ImportError as exc:
+    logger.warning("DynamicAssistEngine not available: %s", exc)
     DynamicAssistEngine = None
     DynamicAssistInput = None
     DynamicAssistOutput = None
@@ -568,22 +568,22 @@ except ImportError as e:
 # KFactor Calculator (PR #195)
 try:
     from src.kfactor_calculator import KFactorCalculator
-except ImportError as e:
-    logger.warning("KFactorCalculator not available: %s", e)
+except ImportError as exc:
+    logger.warning("KFactorCalculator not available: %s", exc)
     KFactorCalculator = None
 
 # Shadow-Knostalgia Bridge (PR #195)
 try:
     from src.shadow_knostalgia_bridge import ShadowKnostalgiaBridge
-except ImportError as e:
-    logger.warning("ShadowKnostalgiaBridge not available: %s", e)
+except ImportError as exc:
+    logger.warning("ShadowKnostalgiaBridge not available: %s", exc)
     ShadowKnostalgiaBridge = None
 
 # Onboarding Team Pipeline (PR #195)
 try:
     from src.onboarding_team_pipeline import OnboardingTeamPipeline
-except ImportError as e:
-    logger.warning("OnboardingTeamPipeline not available: %s", e)
+except ImportError as exc:
+    logger.warning("OnboardingTeamPipeline not available: %s", exc)
     OnboardingTeamPipeline = None
 
 GOVERNANCE_AVAILABLE = all(

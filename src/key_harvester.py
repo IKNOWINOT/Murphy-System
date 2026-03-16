@@ -801,7 +801,8 @@ class CaptchaHandler:
                 )
                 await asyncio.sleep(2.0)
                 return True
-            except Exception:  # noqa: BLE001
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("Audio CAPTCHA click failed: %s", exc)
                 continue
         return False
 

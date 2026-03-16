@@ -90,8 +90,8 @@ class ShutdownManager:
             import sys
             try:
                 print(msg, file=sys.stderr)
-            except Exception:
-                pass  # Nothing we can do
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("stderr fallback also failed: %s", exc)
 
     def _run_with_timeout(self, handler, name, timeout):
         """Run a handler with a timeout to prevent hung shutdown."""

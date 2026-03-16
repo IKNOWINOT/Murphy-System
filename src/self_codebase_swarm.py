@@ -915,8 +915,8 @@ class SelfCodebaseSwarm:
                         "total_modules": graph.total_modules,
                         "total_functions": graph.total_functions,
                     }
-            except Exception:
-                pass
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("Graph introspection skipped: %s", exc)
 
         arch_confidence = 0.85 if graph_summary else 0.70
         proposal.agent_votes["agent-architect-001"] = (
@@ -1006,8 +1006,8 @@ class SelfCodebaseSwarm:
                     outcome="success",
                     confidence=proposal.confidence_score,
                 )
-            except Exception:
-                pass
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("HITL record_action skipped: %s", exc)
 
         with self._lock:
             proposal.status = ProposalStatus.COMPLETE
@@ -1071,8 +1071,8 @@ class SelfCodebaseSwarm:
                         priority=2,
                         confidence=0.80,
                     ))
-            except Exception:
-                pass
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("Recommendation analysis skipped: %s", exc)
 
         # Generic best-practice recommendations
         recs.append(Recommendation(

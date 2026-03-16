@@ -1680,8 +1680,8 @@ def create_app() -> FastAPI:
         body: Dict[str, Any] = {}
         try:
             body = await request.json()
-        except Exception:
-            pass  # body remains {} — the endpoint also works without a body
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Request body parse failed, using empty dict: %s", exc)
 
         if _setup_wizard is None:
             # Fallback: build config directly from the submitted body
@@ -3573,7 +3573,7 @@ def create_app() -> FastAPI:
             logger.warning("MFM shadow_deployment module not available")
             metrics = {}
         except (ValueError, RuntimeError) as exc:
-            logger.exception("Failed to retrieve MFM metrics")
+            logger.exception("Failed to retrieve MFM metrics: %s", exc)
             metrics = {"error": "metrics_unavailable"}
         return JSONResponse({"metrics": metrics})
 
@@ -3588,7 +3588,7 @@ def create_app() -> FastAPI:
             logger.warning("MFM action_trace_serializer module not available")
             stats = {"total_traces": 0, "error": "MFM trace collector not initialised"}
         except (ValueError, RuntimeError) as exc:
-            logger.exception("Failed to retrieve MFM trace stats")
+            logger.exception("Failed to retrieve MFM trace stats: %s", exc)
             stats = {"total_traces": 0, "error": "trace_stats_unavailable"}
         return JSONResponse(stats)
 
@@ -4235,7 +4235,7 @@ def create_app() -> FastAPI:
                 status_code=302,
             )
         except Exception as exc:
-            logger.exception("Unexpected error starting OAuth flow for %s", provider_key)
+            logger.exception("Unexpected error starting OAuth flow for %s: %s", provider_key, exc)
             return RedirectResponse(
                 f"/login.html?error=oauth_error&provider={provider_key}",
                 status_code=302,

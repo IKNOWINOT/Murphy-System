@@ -100,7 +100,7 @@ class ExportPipeline:
     async def export(
         self,
         source_output: Dict[str, Any],
-        format: str = "markdown",
+        output_format: str = "markdown",
         brand_profile_id: Optional[str] = None,
         writing_style: str = "formal_engineering",
         template_type: str = "cx_plan_report",
@@ -114,7 +114,7 @@ class ExportPipeline:
             Raw bot output dict.  If it contains a ``result.plan`` key it is
             treated as commissioning bot output; otherwise the entire dict is
             used as the document data.
-        format:
+        output_format:
             One of ``SUPPORTED_FORMATS`` keys.
         brand_profile_id:
             ID of a registered :class:`BrandProfile`, or ``None`` for DEFAULT.
@@ -129,10 +129,10 @@ class ExportPipeline:
         -------
         ExportResult
         """
-        format = format.lower()
-        if format not in SUPPORTED_FORMATS:
+        output_format = output_format.lower()
+        if output_format not in SUPPORTED_FORMATS:
             raise ValueError(
-                f"Unsupported format '{format}'. "
+                f"Unsupported format '{output_format}'. "
                 f"Supported: {list(SUPPORTED_FORMATS)}"
             )
 
@@ -148,13 +148,13 @@ class ExportPipeline:
             raw_markdown = await self._rewriter.rewrite(plan_data, writing_style, template_type)
 
         # 3. Convert Markdown to the requested output format
-        content = self._convert(raw_markdown, format, brand)
+        content = self._convert(raw_markdown, output_format, brand)
 
         # 4. Build filename
-        filename = self._make_filename(source_output, template_type, format)
+        filename = self._make_filename(source_output, template_type, output_format)
 
         result = ExportResult(
-            format=format,
+            format=output_format,
             content=content,
             filename=filename,
             metadata={
@@ -172,7 +172,7 @@ class ExportPipeline:
         logger.info(
             "Export complete: %s (%s, %s bytes)",
             result.document_id,
-            format,
+            output_format,
             len(result.content),
         )
         return result
@@ -184,7 +184,7 @@ class ExportPipeline:
     def export_sync(
         self,
         source_output: Dict[str, Any],
-        format: str = "markdown",
+        output_format: str = "markdown",
         brand_profile_id: Optional[str] = None,
         writing_style: str = "formal_engineering",
         template_type: str = "cx_plan_report",
@@ -199,16 +199,16 @@ class ExportPipeline:
                     future = pool.submit(
                         asyncio.run,
                         self.export(
-                            source_output, format, brand_profile_id, writing_style, template_type
+                            source_output, output_format, brand_profile_id, writing_style, template_type
                         ),
                     )
                     return future.result()
             return loop.run_until_complete(
-                self.export(source_output, format, brand_profile_id, writing_style, template_type)
+                self.export(source_output, output_format, brand_profile_id, writing_style, template_type)
             )
         except RuntimeError:
             return asyncio.run(
-                self.export(source_output, format, brand_profile_id, writing_style, template_type)
+                self.export(source_output, output_format, brand_profile_id, writing_style, template_type)
             )
 
     # ------------------------------------------------------------------
@@ -269,19 +269,19 @@ class ExportPipeline:
         # Generic fallback
         return source_output, False
 
-    def _convert(self, markdown: str, format: str, brand: BrandProfile) -> str:
+    def _convert(self, markdown: str, output_format: str, brand: BrandProfile) -> str:
         """Convert Markdown content to the target format."""
-        if format == "markdown":
+        if output_format == "markdown":
             return markdown
-        if format == "plain_text":
+        if output_format == "plain_text":
             return self._markdown_to_text(markdown)
-        if format == "html":
+        if output_format == "html":
             return self._markdown_to_html(markdown, brand)
-        if format == "latex":
+        if output_format == "latex":
             return self._markdown_to_latex(markdown, brand)
-        if format == "pdf":
+        if output_format == "pdf":
             return self._markdown_to_pdf(markdown, brand)
-        if format == "word":
+        if output_format == "word":
             return self._markdown_to_word(markdown, brand)
         # Should not reach here given earlier validation
         return markdown
@@ -428,8 +428,8 @@ class ExportPipeline:
                 html = self._markdown_to_html(markdown, brand)
                 metadata = {"document_title": "Murphy System Document"}
                 return renderer.render_to_base64(html, brand, metadata)
-        except Exception:
-            pass  # Fall through to reportlab
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Rich PDF renderer failed, falling through: %s", exc)
 
         plain_text = self._markdown_to_text(markdown)
         font = brand.font_body if brand.font_body in ("Helvetica", "Times-Roman", "Courier") else "Helvetica"
@@ -474,7 +474,7 @@ class ExportPipeline:
         return base64.b64encode(plain_text.encode("utf-8")).decode("ascii")
 
     @staticmethod
-    def _make_filename(source_output: Dict[str, Any], template_type: str, format: str) -> str:
+    def _make_filename(source_output: Dict[str, Any], template_type: str, output_format: str) -> str:
         """Generate a safe filename for the exported document."""
         ext_map = {
             "pdf": "pdf",
@@ -484,7 +484,7 @@ class ExportPipeline:
             "latex": "tex",
             "plain_text": "txt",
         }
-        ext = ext_map.get(format, format)
+        ext = ext_map.get(output_format, output_format)
         result = source_output.get("result", {})
         if isinstance(result, dict):
             plan = result.get("plan", result)

@@ -1233,29 +1233,29 @@ class SelfMarketingOrchestrator:
                         sp_name = _validate_salesperson_name(
                             offering["salesperson_name"], param="salesperson_name"
                         )
-                    except ValueError as e:
-                        logger.warning("Offering '%s' salesperson_name rejected: %s", pid, e)
+                    except ValueError as exc:
+                        logger.warning("Offering '%s' salesperson_name rejected: %s", pid, exc)
 
                 if offering.get("salesperson_title"):
                     try:
                         sp_title = _validate_salesperson_name(
                             offering["salesperson_title"], param="salesperson_title"
                         )
-                    except ValueError as e:
-                        logger.warning("Offering '%s' salesperson_title rejected: %s", pid, e)
+                    except ValueError as exc:
+                        logger.warning("Offering '%s' salesperson_title rejected: %s", pid, exc)
 
                 if offering.get("salesperson_email"):
                     try:
                         sp_email = _validate_salesperson_email(offering["salesperson_email"])
-                    except ValueError as e:
+                    except ValueError:
                         logger.warning("Offering '%s' salesperson_email rejected (not logged)", pid)
-                        # Intentionally do NOT log e — it may contain the raw email (PII)
+                        # Intentionally do NOT log exc — it may contain the raw email (PII)
 
                 if offering.get("salesperson_linkedin"):
                     try:
                         sp_linkedin = _validate_linkedin_url(offering["salesperson_linkedin"])
-                    except ValueError as e:
-                        logger.warning("Offering '%s' salesperson_linkedin rejected: %s", pid, e)
+                    except ValueError as exc:
+                        logger.warning("Offering '%s' salesperson_linkedin rejected: %s", pid, exc)
 
                 self._partnerships[pid] = PartnershipProspect(
                     partner_id=pid,
@@ -2093,8 +2093,8 @@ class SelfMarketingOrchestrator:
                 positioning_section = (
                     f"\nWhy Murphy is the right fit:\n{cap_lines}\n"
                 )
-        except Exception:  # noqa: BLE001
-            pass  # positioning enrichment is non-fatal
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Positioning enrichment skipped: %s", exc)
 
         body = (
             f"{greeting}\n\n"
@@ -2845,8 +2845,8 @@ class SelfMarketingOrchestrator:
             from self_selling_engine import MurphySelfSellingEngine  # noqa: PLC0415
             if hasattr(self, "_selling_engine") and self._selling_engine is not None:
                 return self._selling_engine.generate_leads()
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Lead generation skipped: %s", exc)
         return []
 
     def _score_content(self, title: str, body: str) -> float:

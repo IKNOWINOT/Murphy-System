@@ -625,8 +625,8 @@ class AuditLogger:
                 event_type, actor, resource, action, outcome,
                 extra={"audit_entry": entry},
             )
-        except Exception:
-            pass  # Never let audit persistence failure break the request
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Audit persistence failed (non-fatal): %s", exc)
 
     def query(
         self,

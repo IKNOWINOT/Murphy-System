@@ -294,8 +294,8 @@ class VPRole:
             probe_data = self._status_probe()
             if isinstance(probe_data, dict):
                 metrics = {k: v for k, v in probe_data.items() if k != "healthy"}
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Status probe failed (non-fatal): %s", exc)
 
         report = RoleReport(
             role_label=self._role_label,
