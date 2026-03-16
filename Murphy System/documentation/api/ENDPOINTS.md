@@ -897,6 +897,180 @@ Resolve a specific trigger.
 
 ---
 
+## MFM Endpoints (Murphy Foundation Model)
+
+Murphy Foundation Model (MFM) endpoints manage the on-device language model lifecycle,
+including shadow deployments, canary promotion, and self-improvement retraining.
+
+**Authentication**: Required  
+**Base path**: `/api/mfm`
+
+---
+
+### GET /api/mfm/status
+
+Returns the current MFM deployment mode and configuration.
+
+#### Response
+
+```json
+{
+  "enabled": true,
+  "mode": "shadow",
+  "base_model": "microsoft/Phi-3-mini-4k-instruct",
+  "device": "auto"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `enabled` | `bool` | Whether MFM is active (env: `MFM_ENABLED`) |
+| `mode` | `string` | One of: `disabled`, `shadow`, `canary`, `production` (env: `MFM_MODE`) |
+| `base_model` | `string` | Base model identifier (env: `MFM_BASE_MODEL`) |
+| `device` | `string` | Compute device: `cpu`, `cuda`, `mps`, or `auto` (env: `MFM_DEVICE`) |
+
+---
+
+### GET /api/mfm/metrics
+
+Returns training metrics and shadow deployment comparison statistics.
+
+#### Response
+
+```json
+{
+  "metrics": {
+    "shadow_calls": 1240,
+    "shadow_agreement_rate": 0.87,
+    "avg_latency_ms": 145.2,
+    "training_loss": 0.0423,
+    "eval_perplexity": 12.1
+  }
+}
+```
+
+---
+
+### GET /api/mfm/traces/stats
+
+Returns action trace collection statistics used for training data generation.
+
+#### Response
+
+```json
+{
+  "total_traces": 8842,
+  "traces_by_type": {"task": 4210, "gate": 2100, "automation": 2532},
+  "collection_active": true,
+  "oldest_trace": "2026-01-01T00:00:00Z",
+  "newest_trace": "2026-03-16T06:55:00Z"
+}
+```
+
+---
+
+### POST /api/mfm/retrain
+
+Triggers a manual MFM retraining cycle using collected action traces.
+
+#### Request
+
+```json
+{}
+```
+
+#### Response
+
+```json
+{
+  "triggered": true,
+  "cycle_id": "retrain_20260316_001",
+  "estimated_duration_minutes": 45,
+  "training_examples": 8842
+}
+```
+
+**Error codes:**
+- `503` — MFM retraining module not available (MFM not installed)
+- `500` — Retraining failed (see logs)
+
+---
+
+### POST /api/mfm/promote
+
+Promotes an MFM version from shadow → canary → production.
+
+#### Request
+
+```json
+{
+  "version_id": "mfm_v1_20260315_143022"
+}
+```
+
+#### Response
+
+```json
+{
+  "promoted": true,
+  "version_id": "mfm_v1_20260315_143022",
+  "new_status": "canary"
+}
+```
+
+**Error codes:**
+- `503` — MFM registry not available
+- `500` — Promotion failed
+
+---
+
+### POST /api/mfm/rollback
+
+Rolls back the MFM to the previous production version.
+
+#### Request
+
+```json
+{}
+```
+
+#### Response
+
+```json
+{
+  "rolled_back": true,
+  "current_version": "mfm_v0_20260301_090000"
+}
+```
+
+---
+
+### GET /api/mfm/versions
+
+Lists all registered MFM versions with metrics and status.
+
+#### Response
+
+```json
+{
+  "versions": [
+    {
+      "version_id": "mfm_v1_20260315_143022",
+      "version_str": "1.0.0-20260315",
+      "status": "canary",
+      "created_at": "2026-03-15T14:30:22Z",
+      "metrics": {
+        "eval_perplexity": 12.1,
+        "training_loss": 0.0423,
+        "agreement_rate": 0.87
+      }
+    }
+  ]
+}
+```
+
+---
+
 **© 2025 Corey Post InonI LLC. All rights reserved.**  
 **Licensed under BSL 1.1 (converts to Apache 2.0 after 4 years)**  
 **Contact: corey.gfc@gmail.com**
