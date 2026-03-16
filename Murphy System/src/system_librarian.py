@@ -494,7 +494,31 @@ class SystemLibrarian:
                 "Generate stub implementations",
                 "Diff engineering schemas",
                 "Provide engineering calculation helpers"
-            ]
+            ],
+            # PROD-001 — Production Assistant
+            "production_assistant": [
+                "Submit production proposal",
+                "Validate proposal",
+                "Create work order",
+                "Validate work order match deliverable",
+                "Advance production lifecycle",
+                "List production profiles",
+                "List proposals",
+                "Get production audit log",
+            ],
+            # CAMP-001 — Outreach Campaign Planner
+            "outreach_campaign_planner": [
+                "Check campaign system health",
+                "Create outreach campaign for segment",
+                "Execute campaign step",
+                "Add contact to suppression list",
+                "Check contact suppression status",
+                "List campaigns",
+                "Activate campaign",
+                "Pause campaign",
+                "Get outreach audit log",
+                "Get execution history",
+            ],
         }
 
     def log_transcript(
