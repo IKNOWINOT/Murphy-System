@@ -35,7 +35,7 @@ This project follows the [Contributor Covenant v2.1](CODE_OF_CONDUCT.md). By par
 
 Before opening an issue:
 
-1. Search [existing issues](https://github.com/Murphy-System/Murphy-System/issues) to avoid duplicates.
+1. Search [existing issues](https://github.com/IKNOWINOT/Murphy-System/issues) to avoid duplicates.
 2. Verify you are running the latest version.
 3. Confirm it is a Murphy System bug and not a dependency or configuration issue.
 

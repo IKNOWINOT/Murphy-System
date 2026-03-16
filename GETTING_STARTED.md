@@ -4,6 +4,37 @@
 
 ---
 
+## System Architecture Overview
+
+Murphy System is a **Universal AI Automation System** built around a single paradigm:
+
+```
+DESCRIBE → EXECUTE → REFINE
+```
+
+1. **DESCRIBE** — Tell Murphy what you want in plain English via the Librarian terminal
+   (`POST /api/workflow-terminal/message`, powered by [`nocode_workflow_terminal.py`](<Murphy System/src/nocode_workflow_terminal.py>))
+
+2. **EXECUTE** — [`ai_workflow_generator.py`](<Murphy System/src/ai_workflow_generator.py>) converts your description into a governed
+   DAG workflow (`POST /api/forms/plan-generation`) using a 3-tier strategy: template
+   matching → keyword inference → generic fallback. The workflow then runs through
+   [`workflow_orchestrator.py`](<Murphy System/src/execution_engine/workflow_orchestrator.py>) with full gate enforcement
+   ([`gate_execution_wiring.py`](<Murphy System/src/gate_execution_wiring.py>)) across six gates:
+   EXECUTIVE / OPERATIONS / QA / HITL / COMPLIANCE / BUDGET.
+
+3. **REFINE** *(optional)* — [`workflow_canvas.html`](<Murphy System/workflow_canvas.html>) lets you visually tweak any
+   step of the generated DAG before or after execution.
+
+**Key supporting subsystems:** Event Backbone (pub/sub, retry, circuit breakers),
+Self-Healing Coordinator (5 recovery handlers), Confidence Engine (Bayesian scoring,
+Murphy Index), Learning Engine (full ML closed loop → threshold auto-adjustment),
+and the AionMind Kernel (cognitive execution with legacy fallback).
+
+See the full [README](README.md) for the complete module map and completion status,
+and [ROADMAP.md](ROADMAP.md) for the sprint plan.
+
+---
+
 ## 1. Quick Start
 
 ### Prerequisites
