@@ -176,8 +176,12 @@ class SystemLibrarian:
         try:
             from murphy_terminal.command_registry import build_registry  # type: ignore[import]
             self.load_command_registry(build_registry())
-        except Exception as _exc:
-            logger.debug("SystemLibrarian: command registry auto-bootstrap skipped: %s", _exc)
+        except Exception as exc:
+            logger.debug(
+                "SystemLibrarian: command registry auto-bootstrap skipped (%s: %s)",
+                type(exc).__name__,
+                exc,
+            )
 
     def _initialize_system_knowledge(self):
         """Initialize system knowledge base"""
@@ -1236,7 +1240,8 @@ class SystemLibrarian:
         * ``--key value`` and ``--key=value`` flag patterns
         * ``key=value`` and ``key: value`` inline assignments
         * Quoted strings → stored under ``"value"``
-        * Bare integers/floats following a noun → stored under ``"amount"``
+        * Bare integers/floats following a noun → stored under the
+          singularised unit name (e.g. ``"3 replicas"`` → ``{"replica": "3"}``)
         """
         setpoints: Dict[str, Any] = {}
 

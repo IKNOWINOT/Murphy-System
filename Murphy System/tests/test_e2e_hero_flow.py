@@ -558,7 +558,8 @@ class TestFullHeroFlow:
             name = step_def["name"]
             exec_steps.append(create_workflow_step(
                 step_type=WorkflowStepType.TASK,
-                action=lambda **kw: {"step": name, "status": "completed"},
+                # Capture `name` in the default argument to avoid closure over loop variable
+                action=lambda _name=name, **kw: {"step": _name, "status": "completed"},
             ))
 
         # Wire gates (all approving for this integration test)

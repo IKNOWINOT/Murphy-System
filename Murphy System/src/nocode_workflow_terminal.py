@@ -5,6 +5,24 @@ Conversational interface for building workflows through natural language.
 The Librarian infers configuration, creates steps in real-time, and shows
 the automation being built step by step. Each agent's role and monitoring
 status is visible throughout the process.
+
+Modes
+-----
+The Librarian operates in one of four **modes** that shape its guidance level:
+
+* ``ASK``        — Direct answers, no guiding questions. Escalation to Triage
+                   available at any point.
+* ``ONBOARDING`` — Wizard-style guided flow with step-by-step prompts.
+* ``PRODUCTION`` — Minimal friction; assumes the user knows what they want.
+* ``ASSISTANT``  — Personality-driven; each assistant surface can supply its
+                   own guidance profile.
+
+Triage Escalation
+-----------------
+Any conversation can be escalated to **Triage** — Murphy's equivalent of
+promoting a chat into an actionable task.  Triage analyses the session
+context, generates a structured workflow via ``AIWorkflowGenerator``, and
+returns a ``TriageResult`` ready for the execution engine.
 """
 
 import json
@@ -14,7 +32,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +47,139 @@ class ConversationState(Enum):
     CONFIGURING_AGENTS = "configuring_agents"
     FINALIZING = "finalizing"
     COMPLETED = "completed"
+    TRIAGE = "triage"  # escalated to execution analysis
+
+
+class LibrarianMode(Enum):
+    """Operating mode that controls guidance level and conversational behaviour.
+
+    Attributes:
+        ASK:        No guiding questions.  The Librarian answers directly and
+                    can escalate to Triage at any moment.
+        ONBOARDING: Full wizard-style guided flow with step-by-step prompts.
+        PRODUCTION: Minimal friction; assumes the operator knows what they
+                    want — skips confirmatory questions.
+        ASSISTANT:  Personality-driven surface (e.g. sales assistant, HR
+                    assistant).  The caller supplies an ``assistant_profile``
+                    dict to customise tone and focus area.
+    """
+    ASK = "ask"
+    ONBOARDING = "onboarding"
+    PRODUCTION = "production"
+    ASSISTANT = "assistant"
+
+
+class TriageStatus(Enum):
+    """Outcome of a triage escalation attempt."""
+    READY = "ready"          # workflow generated, ready for execution
+    NEEDS_INFO = "needs_info"  # not enough context to generate a workflow
+    ESCALATED = "escalated"  # already submitted to execution engine
+    FAILED = "failed"        # triage analysis failed
+
+
+@dataclass
+class TriageResult:
+    """Result of escalating a Librarian session to Triage.
+
+    Attributes:
+        triage_id:   Unique identifier for this triage event.
+        session_id:  Source Librarian session.
+        status:      :class:`TriageStatus` outcome.
+        workflow_def: Generated workflow definition dict (from
+                      ``AIWorkflowGenerator``), or ``None``.
+        command:     Best-matching slash command from the Librarian's
+                     ``generate_command()``, if available.
+        setpoints:   Extracted parameter values.
+        confidence:  Confidence that the workflow represents user intent.
+        summary:     Human-readable summary of what will be executed.
+        missing_info: List of fields the user needs to supply before
+                      execution can proceed (populated when
+                      ``status == NEEDS_INFO``).
+        created_at:  ISO-8601 timestamp.
+    """
+    triage_id: str = field(default_factory=lambda: str(uuid.uuid4())[:12])
+    session_id: str = ""
+    status: TriageStatus = TriageStatus.NEEDS_INFO
+    workflow_def: Optional[Dict[str, Any]] = None
+    command: str = ""
+    setpoints: Dict[str, Any] = field(default_factory=dict)
+    confidence: float = 0.0
+    summary: str = ""
+    missing_info: List[str] = field(default_factory=list)
+    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "triage_id": self.triage_id,
+            "session_id": self.session_id,
+            "status": self.status.value,
+            "workflow_def": self.workflow_def,
+            "command": self.command,
+            "setpoints": self.setpoints,
+            "confidence": round(self.confidence, 4),
+            "summary": self.summary,
+            "missing_info": self.missing_info,
+            "created_at": self.created_at,
+        }
+
+
+# ---------------------------------------------------------------------------
+# Per-mode behaviour profiles
+# ---------------------------------------------------------------------------
+
+#: How many guided questions each mode asks before building steps.
+_MODE_QUESTION_BUDGET: Dict[str, int] = {
+    LibrarianMode.ASK.value:        0,   # zero — answer directly
+    LibrarianMode.ONBOARDING.value: 3,   # full wizard
+    LibrarianMode.PRODUCTION.value: 1,   # one clarifying question at most
+    LibrarianMode.ASSISTANT.value:  2,   # moderate
+}
+
+#: Whether each mode skips the GATHERING_REQUIREMENTS state entirely.
+_MODE_SKIP_GATHERING: Dict[str, bool] = {
+    LibrarianMode.ASK.value:        True,
+    LibrarianMode.ONBOARDING.value: False,
+    LibrarianMode.PRODUCTION.value: False,
+    LibrarianMode.ASSISTANT.value:  False,
+}
+
+#: Greeting text for each mode.
+_MODE_GREETINGS: Dict[str, str] = {
+    LibrarianMode.ASK.value: (
+        "Ready. Describe what you need and I'll generate the command or workflow directly. "
+        "Say 'triage' at any point to escalate to execution."
+    ),
+    LibrarianMode.ONBOARDING.value: (
+        "Welcome to the Murphy No-Code Workflow Builder. "
+        "I'm your Librarian — I'll guide you through building your first automation "
+        "step by step. What would you like to automate today?"
+    ),
+    LibrarianMode.PRODUCTION.value: (
+        "Librarian ready. Describe the automation and I'll build it immediately."
+    ),
+    LibrarianMode.ASSISTANT.value: (
+        "Hello! I'm your Murphy assistant. How can I help you today?"
+    ),
+}
+
+#: Triage trigger words — any of these in a message signal an escalation request.
+#: Deliberately specific to avoid false positives on common words.
+#: Single-word triggers must appear as whole words (checked with word-boundary logic
+#: in send_message); multi-word triggers require the full phrase.
+_TRIAGE_TRIGGERS = frozenset([
+    "triage",
+    "execute now",
+    "run it now",
+    "run now",
+    "deploy now",
+    "make it happen",
+    "start execution",
+    "go ahead and execute",
+    "escalate to execution",
+    "escalate this",
+    "submit for execution",
+    "approve and run",
+])
 
 
 class StepVisibility(Enum):
@@ -38,6 +189,16 @@ class StepVisibility(Enum):
     AGENT_ASSIGNED = "agent_assigned"
     MONITORING_ACTIVE = "monitoring_active"
     VALIDATED = "validated"
+
+
+# ---------------------------------------------------------------------------
+# Triage confidence weighting policy
+# ---------------------------------------------------------------------------
+
+#: Weight of the workflow-generation score in the combined triage confidence.
+_TRIAGE_WORKFLOW_WEIGHT: float = 0.6
+#: Weight of the Librarian command-match score in the combined triage confidence.
+_TRIAGE_COMMAND_WEIGHT: float = 0.4
 
 
 @dataclass
@@ -120,6 +281,8 @@ class LibrarianSession:
     """A complete session with the Librarian."""
     session_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     state: ConversationState = ConversationState.GREETING
+    mode: LibrarianMode = LibrarianMode.ASK
+    assistant_profile: Dict[str, Any] = field(default_factory=dict)
     workflow_name: str = ""
     workflow_description: str = ""
     steps: list = field(default_factory=list)
@@ -127,12 +290,14 @@ class LibrarianSession:
     conversation_history: list = field(default_factory=list)
     requirements_gathered: dict = field(default_factory=dict)
     inferences: list = field(default_factory=list)
+    triage_history: List[Dict[str, Any]] = field(default_factory=list)
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
     def to_dict(self) -> dict:
         return {
             "session_id": self.session_id,
             "state": self.state.value,
+            "mode": self.mode.value,
             "workflow_name": self.workflow_name,
             "workflow_description": self.workflow_description,
             "steps": [s.to_dict() if hasattr(s, 'to_dict') else s for s in self.steps],
@@ -140,6 +305,7 @@ class LibrarianSession:
             "conversation_history": [c.to_dict() if hasattr(c, 'to_dict') else c for c in self.conversation_history],
             "requirements_gathered": self.requirements_gathered,
             "inferences": self.inferences,
+            "triage_history": self.triage_history,
             "created_at": self.created_at,
         }
 
@@ -227,31 +393,54 @@ class NoCodeWorkflowTerminal:
     Conversational terminal for building workflows through natural language.
     The Librarian infers what to build, shows each step being created,
     assigns agents for monitoring, and provides real-time visibility.
+
+    Modes control guidance level (see :class:`LibrarianMode`):
+
+    * ``ASK`` — no guided questions, direct answers, triage on request.
+    * ``ONBOARDING`` — full wizard flow.
+    * ``PRODUCTION`` — one clarifying question maximum.
+    * ``ASSISTANT`` — personality-driven; pass ``assistant_profile`` to
+      :meth:`create_session`.
     """
 
     def __init__(self):
         self.sessions: dict[str, LibrarianSession] = {}
         self.max_sessions = 100
 
-    def create_session(self) -> LibrarianSession:
-        """Create a new Librarian session."""
+    def create_session(
+        self,
+        mode: LibrarianMode = LibrarianMode.ASK,
+        assistant_profile: Optional[Dict[str, Any]] = None,
+    ) -> LibrarianSession:
+        """Create a new Librarian session.
+
+        Args:
+            mode: Operating mode that controls guidance behaviour.
+            assistant_profile: Optional personality dict for
+                ``ASSISTANT`` mode (e.g. ``{"name": "HR Bot", "focus": "hr"}``).
+
+        Returns:
+            A fresh :class:`LibrarianSession`.
+        """
         if len(self.sessions) >= self.max_sessions:
             oldest_key = min(self.sessions, key=lambda k: self.sessions[k].created_at)
             del self.sessions[oldest_key]
 
-        session = LibrarianSession()
+        session = LibrarianSession(
+            mode=mode,
+            assistant_profile=assistant_profile or {},
+        )
         self.sessions[session.session_id] = session
 
-        greeting = ConversationTurn(
-            role="librarian",
-            message=(
-                "Welcome to the Murphy No-Code Workflow Builder. "
-                "I'm your Librarian — describe what you'd like to automate "
-                "and I'll build it step by step. You'll see each step being "
-                "created and which agents are monitoring them. "
-                "What would you like to build today?"
-            ),
-        )
+        greeting_text = _MODE_GREETINGS.get(mode.value, _MODE_GREETINGS[LibrarianMode.ASK.value])
+        # ASSISTANT mode can override the greeting from the profile
+        if mode == LibrarianMode.ASSISTANT and assistant_profile:
+            name = assistant_profile.get("name", "Murphy Assistant")
+            focus = assistant_profile.get("focus", "")
+            focus_suffix = f" I specialise in {focus}." if focus else ""
+            greeting_text = f"Hello! I'm {name}.{focus_suffix} How can I help you today?"
+
+        greeting = ConversationTurn(role="librarian", message=greeting_text)
         session.conversation_history.append(greeting)
         return session
 
@@ -263,16 +452,52 @@ class NoCodeWorkflowTerminal:
         """
         Process a user message and return the Librarian's response
         along with any workflow steps created.
+
+        In **ASK** mode the Librarian skips guided questions and answers
+        directly.  Any message containing a triage trigger word (e.g.
+        ``"triage"``, ``"execute"``, ``"run it"``) automatically escalates
+        to :meth:`triage` and includes the ``TriageResult`` in the response.
         """
         session = self.sessions.get(session_id)
         if not session:
             return {"error": "Session not found", "session_id": session_id}
 
+        # Detect triage escalation trigger
+        msg_lower = user_message.lower().strip()
+        triage_triggered = any(trigger in msg_lower for trigger in _TRIAGE_TRIGGERS)
+
         # Record user turn
         user_turn = ConversationTurn(role="user", message=user_message)
         session.conversation_history.append(user_turn)
 
-        # Process based on current state
+        if triage_triggered:
+            triage_result = self.triage(session_id)
+            triage_msg = (
+                f"Triage initiated. Status: **{triage_result.status.value}**. "
+                f"{triage_result.summary}"
+            )
+            if triage_result.missing_info:
+                triage_msg += f" Missing: {', '.join(triage_result.missing_info)}."
+            librarian_turn = ConversationTurn(
+                role="librarian",
+                message=triage_msg,
+                actions_taken=["triage_escalation"],
+            )
+            session.conversation_history.append(librarian_turn)
+            response_dict = {
+                "session_id": session_id,
+                "state": session.state.value,
+                "mode": session.mode.value,
+                "message": triage_msg,
+                "steps_created": [],
+                "workflow_snapshot": self._get_workflow_snapshot(session),
+                "agent_status": self._get_agent_status(session),
+                "inferences": ["triage_escalation_triggered"],
+                "triage": triage_result.to_dict(),
+            }
+            return response_dict
+
+        # Process based on current state (mode-aware)
         response = self._process_message(session, user_message)
 
         # Record librarian response
@@ -288,6 +513,7 @@ class NoCodeWorkflowTerminal:
         return {
             "session_id": session_id,
             "state": session.state.value,
+            "mode": session.mode.value,
             "message": response["message"],
             "steps_created": response.get("steps_created", []),
             "workflow_snapshot": self._get_workflow_snapshot(session),
@@ -296,8 +522,19 @@ class NoCodeWorkflowTerminal:
         }
 
     def _process_message(self, session: LibrarianSession, message: str) -> dict:
-        """Route message processing based on conversation state."""
-        msg_lower = message.lower().strip()
+        """Route message processing based on conversation state and mode.
+
+        In **ASK** and **PRODUCTION** modes the GATHERING_REQUIREMENTS state
+        is skipped — intent is inferred immediately and steps are built.
+        """
+        mode = session.mode
+
+        # ASK mode: always go straight to description handling (no questions)
+        if mode == LibrarianMode.ASK and session.state in (
+            ConversationState.GREETING,
+            ConversationState.GATHERING_REQUIREMENTS,
+        ):
+            return self._handle_initial_description(session, message)
 
         # Handle state transitions
         if session.state == ConversationState.GREETING:
@@ -312,6 +549,14 @@ class NoCodeWorkflowTerminal:
             return self._handle_agent_config(session, message)
         elif session.state == ConversationState.FINALIZING:
             return self._handle_finalization(session, message)
+        elif session.state == ConversationState.TRIAGE:
+            return {
+                "message": (
+                    "This session has been escalated to triage. "
+                    "Check the triage result or create a new session."
+                ),
+                "actions": [],
+            }
         elif session.state == ConversationState.COMPLETED:
             return {
                 "message": "This workflow has been finalized. Create a new session to build another workflow.",
@@ -328,17 +573,23 @@ class NoCodeWorkflowTerminal:
         steps_created = []
 
         if not intents:
-            session.state = ConversationState.GATHERING_REQUIREMENTS
-            return {
-                "message": (
-                    "I'd like to understand more about what you need. "
-                    "Could you describe the specific tasks or processes you want to automate? "
-                    "For example: data processing, notifications, API integrations, "
-                    "monitoring, deployments, or onboarding workflows."
-                ),
-                "inferences": ["No clear intent detected - requesting clarification"],
-                "actions": ["state_transition:gathering_requirements"],
-            }
+            skip_gathering = _MODE_SKIP_GATHERING.get(session.mode.value, False)
+            if skip_gathering:
+                # ASK / PRODUCTION mode: build a generic single step immediately
+                intents = ["data_processing"]  # safe default
+                inferences.append("No specific intent detected — using generic workflow")
+            else:
+                session.state = ConversationState.GATHERING_REQUIREMENTS
+                return {
+                    "message": (
+                        "I'd like to understand more about what you need. "
+                        "Could you describe the specific tasks or processes you want to automate? "
+                        "For example: data processing, notifications, API integrations, "
+                        "monitoring, deployments, or onboarding workflows."
+                    ),
+                    "inferences": ["No clear intent detected - requesting clarification"],
+                    "actions": ["state_transition:gathering_requirements"],
+                }
 
         # Set workflow metadata
         session.workflow_name = self._generate_workflow_name(message, intents)
@@ -679,9 +930,154 @@ class NoCodeWorkflowTerminal:
             {
                 "session_id": s.session_id,
                 "state": s.state.value,
+                "mode": s.mode.value,
                 "workflow_name": s.workflow_name,
                 "step_count": len(s.steps),
                 "created_at": s.created_at,
             }
             for s in self.sessions.values()
         ]
+
+    def set_mode(self, session_id: str, mode: LibrarianMode) -> bool:
+        """Change the operating mode of an existing session.
+
+        Args:
+            session_id: Target session.
+            mode: New :class:`LibrarianMode`.
+
+        Returns:
+            ``True`` if the session was found and updated, ``False`` otherwise.
+        """
+        session = self.sessions.get(session_id)
+        if not session:
+            return False
+        session.mode = mode
+        logger.info("Session %s mode changed to %s", session_id, mode.value)
+        return True
+
+    def triage(self, session_id: str) -> TriageResult:
+        """Escalate a Librarian session to Triage — the bridge between
+        conversation and execution.
+
+        Triage analyses the session's conversation history and current workflow
+        state to produce a structured :class:`TriageResult` containing:
+
+        * A fully generated workflow definition (via :class:`AIWorkflowGenerator`)
+        * The best-matching slash command (via :class:`SystemLibrarian`)
+        * Extracted setpoints from the user's descriptions
+        * A human-readable summary and confidence score
+
+        This is Murphy's equivalent of promoting a Copilot chat into an
+        actionable task — the result is ready to pass directly to the
+        execution engine.
+
+        Args:
+            session_id: Source Librarian session to analyse.
+
+        Returns:
+            A :class:`TriageResult`.  Check ``status`` before executing:
+            ``READY`` means the workflow can be executed immediately;
+            ``NEEDS_INFO`` means required parameters are missing.
+        """
+        session = self.sessions.get(session_id)
+        if not session:
+            return TriageResult(
+                session_id=session_id,
+                status=TriageStatus.FAILED,
+                summary="Session not found.",
+            )
+
+        # Determine the description to analyse
+        description = (
+            session.workflow_description
+            or " ".join(
+                t.message
+                for t in session.conversation_history
+                if t.role == "user"
+            )
+        ).strip()
+
+        if not description:
+            result = TriageResult(
+                session_id=session_id,
+                status=TriageStatus.NEEDS_INFO,
+                summary="No description available to generate a workflow.",
+                missing_info=["workflow description"],
+            )
+            session.triage_history.append(result.to_dict())
+            return result
+
+        # ---- Generate workflow via AIWorkflowGenerator ----
+        workflow_def: Optional[Dict[str, Any]] = None
+        try:
+            from ai_workflow_generator import AIWorkflowGenerator  # type: ignore[import]
+            gen = AIWorkflowGenerator()
+            workflow_def = gen.generate_workflow(description)
+        except Exception as exc:
+            logger.warning("triage: workflow generation failed: %s", exc)
+
+        # ---- Generate command via SystemLibrarian ----
+        command_str = ""
+        setpoints: Dict[str, Any] = {}
+        cmd_confidence = 0.0
+        try:
+            from system_librarian import SystemLibrarian  # type: ignore[import]
+            lib = SystemLibrarian()
+            gen_cmd = lib.generate_command(
+                description,
+                context={
+                    "mode": session.mode.value,
+                    "session_id": session_id,
+                },
+            )
+            if gen_cmd:
+                command_str = gen_cmd.command
+                setpoints = gen_cmd.setpoints
+                cmd_confidence = gen_cmd.confidence
+        except Exception as exc:
+            logger.warning("triage: command generation failed: %s", exc)
+
+        # ---- Determine status ----
+        has_workflow = workflow_def is not None and len(workflow_def.get("steps", [])) > 0
+        missing_info: List[str] = []
+
+        if not has_workflow:
+            missing_info.append("executable workflow steps")
+
+        # Confidence: blend workflow presence with command confidence
+        wf_confidence = 0.8 if has_workflow else 0.0
+        combined_confidence = (wf_confidence * _TRIAGE_WORKFLOW_WEIGHT + cmd_confidence * _TRIAGE_COMMAND_WEIGHT)
+
+        if missing_info:
+            status = TriageStatus.NEEDS_INFO
+        else:
+            status = TriageStatus.READY
+
+        step_count = len(workflow_def.get("steps", [])) if workflow_def else 0
+        summary = (
+            f"Workflow '{session.workflow_name or 'unnamed'}' with "
+            f"{step_count} step(s) generated via "
+            f"{workflow_def.get('strategy', 'unknown') if workflow_def else 'N/A'} strategy. "
+            f"Command: {command_str or 'N/A'}. "
+            f"Confidence: {combined_confidence:.0%}."
+        )
+
+        result = TriageResult(
+            session_id=session_id,
+            status=status,
+            workflow_def=workflow_def,
+            command=command_str,
+            setpoints=setpoints,
+            confidence=combined_confidence,
+            summary=summary,
+            missing_info=missing_info,
+        )
+
+        # Record in session and advance state
+        session.triage_history.append(result.to_dict())
+        session.state = ConversationState.TRIAGE
+        logger.info(
+            "Triage [%s] session=%s status=%s confidence=%.2f",
+            result.triage_id, session_id, status.value, combined_confidence,
+        )
+        return result
