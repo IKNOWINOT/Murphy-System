@@ -17,6 +17,32 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed — System Scan & Critical Error Corrections
+
+#### Critical Syntax Errors
+- **fix(conftest):** `tests/conftest.py` — Merged duplicate docstrings and replaced
+  invalid Unicode `→` character that caused `SyntaxError` blocking **all** test collection.
+- **fix(healer):** `src/murphy_code_healer.py:2098` — Resolved botched merge in
+  `_publish_event()` where `self._backbone.publish()` call had interleaved conflicting
+  `event_backbone_client` code producing invalid syntax.
+
+#### NameError / ImportError Fixes
+- **fix(test):** `tests/test_consistency_verification.py` — Re-added missing `ROOT`
+  variable definition (was accidentally deleted).
+- **fix(test):** `tests/test_onboarding_e2e.py` — Re-added missing `MURPHY_DIR`
+  variable definition.
+- **fix(test):** `tests/test_analytics_backend.py` — Added `bots/` directory to
+  `sys.path` so `analytics` module can be found.
+
+#### Runtime Bug Fixes
+- **fix(persistence):** `src/persistence_wal.py:214` — Renamed `extra={"name": ...}`
+  to `extra={"migration_name": ...}` to avoid overwriting `LogRecord.name` built-in
+  attribute (`KeyError: "Attempt to overwrite 'name' in LogRecord"`).
+
+#### Lint Cleanup
+- **fix(lint):** Auto-fixed 95 ruff errors across 41 source files (52 I001 unsorted
+  imports, 43 F541 f-strings without placeholders). `ruff check src/` now passes clean.
+
 ### Added — INC Completion Pass (INC-04, INC-07, INC-14)
 
 #### INC-04 / C-03 — GitHub Actions CI Pipeline (Critical)
