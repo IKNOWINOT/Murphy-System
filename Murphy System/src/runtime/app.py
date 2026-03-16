@@ -5530,6 +5530,7 @@ def create_app() -> FastAPI:
             "/ui/calendar": "calendar.html",
             "/ui/meeting-intelligence": "meeting_intelligence.html",
             "/ui/ambient": "ambient_intelligence.html",
+            "/ui/dashboard": "dashboard.html",
         }
 
         # Redirect bare /ui/ to /ui/landing

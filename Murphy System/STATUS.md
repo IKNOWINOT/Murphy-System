@@ -14,7 +14,7 @@
 | Control Plane | ✅ Operational | Execution packets, state vectors, formal constraints |
 | Governance Framework | ✅ Operational | HITL gates, governance kernel, compliance scheduling |
 | Confidence Engine | ✅ Operational | Bayesian scoring, Murphy Index, artifact graphs |
-| Security Plane | ⚠️ Partial | Authentication, authorization, DLP implemented; formal pen-test pending |
+| Security Plane | ✅ Integrated | RBAC, risk classification, DLP, auth, rate limiting wired as ASGI middleware on all /api/* routes; fail-closed; formal pen-test pending |
 | AUAR Pipeline | ✅ Operational | 7-layer routing with ML optimization |
 | **Librarian Routing** | ✅ **Implemented** | `TaskRouter`, `SystemLibrarian.find_capabilities()`, `SolutionPathRegistry` wired; `IntegrationBus` delegates to `TaskRouter` with legacy fallback; `POST /api/librarian/query` live; PROD-001 + CAMP-001 capabilities registered |
 | AionMind Kernel | ✅ Operational | Context engine, reasoning engine, orchestration engine |
@@ -27,6 +27,8 @@
 | Concept Graph Engine | ✅ New | 7 node/edge types, graph health, GCS metric |
 | Unified Control Protocol | ✅ New | 10-engine pipeline, 7 states, rollback support |
 | Session Context Manager | ✅ New | Per-session locking, expiry, RM0–RM6 tracking |
+| **Multi-Cursor Split-Screen** | ✅ **New** | 7-layout zone system (SINGLE/DUAL_H/DUAL_V/TRIPLE_H/QUAD/HEXA/CUSTOM), thread-safe cursor pool, SplitScreenCoordinator session lifecycle |
+| **Rosetta Subsystem Wiring** | ✅ **New** | INC-07 P3 complete: 5 wiring points (EventBackbone, ConfidenceEngine, LearningEngine, GovernanceKernel, SecurityPlane); bootstrap_wiring(); adapter injection; strict mode |
 | **Crypto Trading Subsystem** | ✅ **New** | Coinbase v3, multi-exchange, HITL-gated bots, 6 strategies, risk manager |
 | **Shadow Learning System** | ✅ **New** | Paper bots practice vs live prices; winning weeks save patterns; human reviews before promoting |
 | **Rosetta Subsystem Wiring** | ✅ **New** | P3-001–P3-005 wired: ImprovementEngine→Rosetta, Orchestrator cycles→progress, RAG ingestion, EventBackbone subscriptions, SystemState sync; 38 tests |
@@ -55,7 +57,7 @@ Murphy System is **aligned with** (not formally attested to) the following frame
 
 ## Test Coverage
 
-- **Total test files**: 644+
+- **Total test files**: 598+
 - **CI configuration**: `python -m pytest --timeout=60 -v --tb=short`
 - **CI pipeline**: GitHub Actions (`.github/workflows/ci.yml`) runs lint (ruff), test matrix (Python 3.10/3.11/3.12), security scan (bandit), and Docker build smoke
 - **Core path coverage**: 90%+ on `rosetta_subsystem_wiring` + `startup_feature_summary` (INC-14 / M-05 ✅)

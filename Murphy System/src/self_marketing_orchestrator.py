@@ -344,14 +344,14 @@ def _sanitize_error(exc: BaseException) -> str:
     to _MAX_ERROR_MSG_LEN characters so that error lists cannot grow unbounded
     and never expose sensitive contact information.
     """
-    detail = str(exc)
+    msg = str(exc)
     # Mask anything that looks like an email address
-    detail = re.sub(
+    msg = re.sub(
         r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}",
         "<redacted>",
-        detail,
+        msg,
     )
-    combined = f"{type(exc).__name__}: {detail}"
+    combined = f"{type(exc).__name__}: {msg}"
     return combined[:_MAX_ERROR_MSG_LEN]
 
 

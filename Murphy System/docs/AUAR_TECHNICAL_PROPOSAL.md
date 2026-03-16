@@ -884,3 +884,83 @@ The codename **FAPI** (Flexible Adaptive Provider Interface) is used internally 
 ---
 
 *Document prepared for engineering leadership review. All architecture decisions are subject to ADR (Architecture Decision Record) governance. Implementation reference: `src/auar/` package, version 0.1.0.*
+
+---
+
+## Appendix C: Implementation Status Update (2026-03-16)
+
+This appendix documents divergences between the original proposal and the
+shipped implementation, providing an accurate reference for auditors and
+maintainers.
+
+### C.1 ML Optimization Algorithm
+
+**Proposal described:** Simple epsilon-greedy multi-armed bandit.
+
+**Implementation uses:** **UCB1 (Upper Confidence Bound)** with per-capability
+epsilon-greedy exploration budgets.  The `MLOptimizer` in `src/auar/ml_optimization.py`
+maintains a separate UCB1 state for each capability ID.  The UCB1 formula is:
+
+```
+score(i) = mean_reward(i) + sqrt(2 * ln(total_pulls) / pulls(i))
+```
+
+UCB1 was selected over plain epsilon-greedy because it is provably optimal in
+the stochastic bandit setting and requires no epsilon tuning.  The per-capability
+separation ensures that routing decisions for `payments.charge` do not bleed into
+the model for `communications.sms.send`.
+
+### C.2 Persistence Backends
+
+**Proposal described:** Neo4j as the primary state store.
+
+**Implementation ships with two pluggable backends** (see `src/auar/persistence.py`):
+
+| Backend | Class | Use Case |
+|---------|-------|----------|
+| In-memory | `InMemoryPersistence` | Development, unit tests, single-node deployments |
+| File | `FilePersistence` | Single-node production deployments, quick start |
+
+A Neo4j backend is planned but not yet implemented.  The `BasePersistence`
+abstract class defines the interface; new backends only need to implement
+`save()`, `load()`, and `delete()`.
+
+### C.3 Admin Security Model
+
+The `src/auar/` API endpoints include an additional security layer not
+described in the original proposal:
+
+- **Admin-role header:** Mutating operations (`POST /auar/providers`,
+  `DELETE /auar/routes`) require the `X-Murphy-Role: admin` header.
+- **Audit logging:** Every mutating call generates an immutable `AuditEntry`
+  via `ObservabilityLayer.audit()`.
+- **Opaque error messages:** HTTP error responses return generic detail
+  strings (e.g., `"Internal error"`) rather than raw exception messages
+  to prevent information leakage (mitigates CWE-209).
+
+### C.4 Pipeline Module
+
+The shipped implementation includes a top-level `AUARPipeline` class in
+`src/auar/pipeline.py` that was not in the original proposal.  This class
+wires all seven layers into a single callable entry point, simplifying
+integration:
+
+```python
+from auar.pipeline import AUARPipeline
+pipeline = AUARPipeline()
+result = await pipeline.execute(capability="payments.charge", payload={...})
+```
+
+### C.5 Configuration
+
+`src/auar/config.py` exposes `AUARConfig`, a Pydantic `BaseSettings` subclass
+that resolves all configuration from environment variables prefixed with `AUAR_`.
+Key settings:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `AUAR_MAX_RETRIES` | `3` | Max provider call retries |
+| `AUAR_TIMEOUT_SECONDS` | `30` | Per-request timeout |
+| `AUAR_EXPLORATION_RATE` | `0.1` | UCB1 exploration budget |
+| `AUAR_PERSISTENCE_BACKEND` | `memory` | `memory` or `file` |
+| `AUAR_PERSISTENCE_PATH` | `/tmp/auar` | Path for file backend |

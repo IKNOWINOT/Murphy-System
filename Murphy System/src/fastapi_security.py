@@ -487,11 +487,20 @@ def configure_secure_fastapi(app: FastAPI, service_name: str = "murphy-api") -> 
     """
     Apply security hardening to a FastAPI application.
 
-    Wires in:
-    - CORS with origin allowlist (SEC-002)
-    - API key authentication on all routes (SEC-001, SEC-004)
-    - Rate limiting per client IP
-    - Security response headers
+    Wires in (execution order: outermost → innermost):
+    1. SecurityMiddleware — per-IP rate limiting, JWT/API-key auth, brute-force
+       protection, request body size limits, and security response headers (SEC-001, SEC-004)
+    2. PerUserRateLimitMiddleware — per-user and per-endpoint rate limits
+       (keys on X-User-ID header; endpoint tiers for /api/execute, /api/admin, etc.)
+    3. RBACMiddleware — role-based access control on /api/* routes
+    4. RiskClassificationMiddleware — per-request risk scoring (low/medium/high/critical)
+    5. DLPScannerMiddleware — request/response body scan for sensitive data leakage
+    6. CORSMiddleware — origin allowlist (SEC-002)
+
+    All security layers are fail-closed: an unexpected error returns 4xx/5xx rather
+    than allowing the request through.
+
+    Public endpoints (/health, /docs, /openapi.json, etc.) bypass all checks.
 
     Args:
         app: FastAPI application to secure
@@ -500,7 +509,21 @@ def configure_secure_fastapi(app: FastAPI, service_name: str = "murphy-api") -> 
     Returns:
         The same FastAPI app, now secured
     """
-    # 1. Replace wildcard CORS with origin allowlist
+    # Step 1: Wire Security Plane middleware
+    # (per-user rate limit → RBAC → risk classification → DLP).
+    # Added before SecurityMiddleware so they execute AFTER IP-level auth succeeds.
+    try:
+        from src.security_plane.middleware import wire_security_plane_middleware
+        wire_security_plane_middleware(app)
+    except ImportError:
+        logger.warning(
+            "[%s] security_plane.middleware not available — per-user rate limiting, "
+            "RBAC, risk classification, and DLP middleware not wired",
+            service_name,
+        )
+
+    # Step 2: CORS (added before SecurityMiddleware so it wraps CORS headers around
+    # auth errors — required for browser-based error handling).
     origins = get_cors_origins()
     app.add_middleware(
         CORSMiddleware,
@@ -510,7 +533,7 @@ def configure_secure_fastapi(app: FastAPI, service_name: str = "murphy-api") -> 
         allow_headers=["Content-Type", "Authorization", "X-Tenant-ID", "X-API-Key"],
     )
 
-    # 2. Security middleware (auth + rate limiting + headers)
+    # Step 3: Main security middleware — outermost layer (per-IP rate limit + auth + headers).
     app.add_middleware(SecurityMiddleware, service_name=service_name)
 
     murphy_env = os.environ.get("MURPHY_ENV", "development")
@@ -521,7 +544,9 @@ def configure_secure_fastapi(app: FastAPI, service_name: str = "murphy-api") -> 
         )
 
     logger.info(
-        f"[{service_name}] Security hardening applied: auth, CORS, rate limiting, security headers"
+        "[%s] Security hardening applied: auth, per-user rate limiting, RBAC, "
+        "risk classification, DLP, CORS, security headers",
+        service_name,
     )
     return app
 
@@ -542,6 +567,13 @@ def register_rbac_governance(rbac) -> None:
     """
     global _rbac_instance
     _rbac_instance = rbac
+    # Also register with the ASGI RBACMiddleware so the middleware-level check uses
+    # the same governance instance.
+    try:
+        from src.security_plane.middleware import register_rbac_middleware_governance
+        register_rbac_middleware_governance(rbac)
+    except ImportError:
+        pass
     logger.info("RBAC governance registered for FastAPI endpoint enforcement")
 
 
