@@ -9,7 +9,7 @@ Tests:
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from src.supervisor_system.schemas import (
     AssumptionArtifact,
@@ -41,8 +41,8 @@ class TestAssumptionRegistry:
             confidence_if_true=0.9,
             confidence_if_false=0.3,
             status=AssumptionStatus.ACTIVE,
-            created_at=datetime.now(),
-            next_review_date=datetime.now() + timedelta(days=30),
+            created_at=datetime.now(timezone.utc),
+            next_review_date=datetime.now(timezone.utc) + timedelta(days=30),
             validated_by_self=False,
             requires_external_validation=True
         )
@@ -67,8 +67,8 @@ class TestAssumptionRegistry:
                 confidence_if_true=0.9,
                 confidence_if_false=0.3,
                 status=AssumptionStatus.ACTIVE,
-                created_at=datetime.now(),
-                next_review_date=datetime.now() + timedelta(days=30),
+                created_at=datetime.now(timezone.utc),
+                next_review_date=datetime.now(timezone.utc) + timedelta(days=30),
                 validated_by_self=True,  # INVALID
                 requires_external_validation=True
             )
@@ -86,8 +86,8 @@ class TestAssumptionRegistry:
                 confidence_if_true=0.9,
                 confidence_if_false=0.3,
                 status=AssumptionStatus.ACTIVE,
-                created_at=datetime.now(),
-                next_review_date=datetime.now() + timedelta(days=30),
+                created_at=datetime.now(timezone.utc),
+                next_review_date=datetime.now(timezone.utc) + timedelta(days=30),
                 validated_by_self=False,
                 requires_external_validation=False  # INVALID
             )
@@ -104,8 +104,8 @@ class TestAssumptionRegistry:
             confidence_if_true=0.9,
             confidence_if_false=0.3,
             status=AssumptionStatus.ACTIVE,
-            created_at=datetime.now() - timedelta(days=60),
-            next_review_date=datetime.now() - timedelta(days=1),  # Past
+            created_at=datetime.now(timezone.utc) - timedelta(days=60),
+            next_review_date=datetime.now(timezone.utc) - timedelta(days=1),  # Past
             validated_by_self=False,
             requires_external_validation=True
         )
@@ -118,8 +118,8 @@ class TestAssumptionRegistry:
             confidence_if_true=0.9,
             confidence_if_false=0.3,
             status=AssumptionStatus.ACTIVE,
-            created_at=datetime.now(),
-            next_review_date=datetime.now() + timedelta(days=30),  # Future
+            created_at=datetime.now(timezone.utc),
+            next_review_date=datetime.now(timezone.utc) + timedelta(days=30),  # Future
             validated_by_self=False,
             requires_external_validation=True
         )
@@ -142,8 +142,8 @@ class TestAssumptionRegistry:
             confidence_if_true=0.9,
             confidence_if_false=0.3,
             status=AssumptionStatus.ACTIVE,
-            created_at=datetime.now(),
-            next_review_date=datetime.now() + timedelta(days=30),
+            created_at=datetime.now(timezone.utc),
+            next_review_date=datetime.now(timezone.utc) + timedelta(days=30),
             validated_by_self=False,
             requires_external_validation=True
         )
@@ -155,7 +155,7 @@ class TestAssumptionRegistry:
             hypothesis_id="hyp-001",
             execution_packet_id=None,
             is_critical=True,
-            bound_at=datetime.now()
+            bound_at=datetime.now(timezone.utc)
         )
 
         registry.add_binding(binding)
@@ -175,8 +175,8 @@ class TestAssumptionRegistry:
             confidence_if_true=0.9,
             confidence_if_false=0.3,
             status=AssumptionStatus.ACTIVE,
-            created_at=datetime.now(),
-            next_review_date=datetime.now() + timedelta(days=30),
+            created_at=datetime.now(timezone.utc),
+            next_review_date=datetime.now(timezone.utc) + timedelta(days=30),
             validated_by_self=False,
             requires_external_validation=True
         )
@@ -188,8 +188,8 @@ class TestAssumptionRegistry:
             confidence_if_true=0.9,
             confidence_if_false=0.3,
             status=AssumptionStatus.ACTIVE,
-            created_at=datetime.now(),
-            next_review_date=datetime.now() + timedelta(days=30),
+            created_at=datetime.now(timezone.utc),
+            next_review_date=datetime.now(timezone.utc) + timedelta(days=30),
             validated_by_self=False,
             requires_external_validation=True
         )
@@ -202,7 +202,7 @@ class TestAssumptionRegistry:
             hypothesis_id="hyp-001",
             execution_packet_id=None,
             is_critical=True,
-            bound_at=datetime.now()
+            bound_at=datetime.now(timezone.utc)
         )
 
         binding2 = AssumptionBinding(
@@ -210,7 +210,7 @@ class TestAssumptionRegistry:
             hypothesis_id="hyp-001",
             execution_packet_id=None,
             is_critical=False,
-            bound_at=datetime.now()
+            bound_at=datetime.now(timezone.utc)
         )
 
         registry.add_binding(binding1)
@@ -231,8 +231,8 @@ class TestAssumptionRegistry:
             confidence_if_true=0.9,
             confidence_if_false=0.3,
             status=AssumptionStatus.ACTIVE,
-            created_at=datetime.now(),
-            next_review_date=datetime.now() + timedelta(days=30),
+            created_at=datetime.now(timezone.utc),
+            next_review_date=datetime.now(timezone.utc) + timedelta(days=30),
             validated_by_self=False,
             requires_external_validation=True
         )
@@ -244,8 +244,8 @@ class TestAssumptionRegistry:
             confidence_if_true=0.9,
             confidence_if_false=0.3,
             status=AssumptionStatus.INVALIDATED,
-            created_at=datetime.now(),
-            next_review_date=datetime.now() + timedelta(days=30),
+            created_at=datetime.now(timezone.utc),
+            next_review_date=datetime.now(timezone.utc) + timedelta(days=30),
             validated_by_self=False,
             requires_external_validation=True
         )
@@ -274,8 +274,8 @@ class TestAssumptionValidator:
             confidence_if_true=0.9,
             confidence_if_false=0.3,
             status=AssumptionStatus.ACTIVE,
-            created_at=datetime.now(),
-            next_review_date=datetime.now() + timedelta(days=30),
+            created_at=datetime.now(timezone.utc),
+            next_review_date=datetime.now(timezone.utc) + timedelta(days=30),
             validated_by_self=False,
             requires_external_validation=True
         )
@@ -291,7 +291,7 @@ class TestAssumptionValidator:
                 description="Self-generated proof",
                 confidence=0.95,
                 source="internal",
-                timestamp=datetime.now(),
+                timestamp=datetime.now(timezone.utc),
                 is_external=False  # INVALID
             )
 
@@ -307,8 +307,8 @@ class TestAssumptionValidator:
             confidence_if_true=0.9,
             confidence_if_false=0.3,
             status=AssumptionStatus.ACTIVE,
-            created_at=datetime.now(),
-            next_review_date=datetime.now() + timedelta(days=30),
+            created_at=datetime.now(timezone.utc),
+            next_review_date=datetime.now(timezone.utc) + timedelta(days=30),
             validated_by_self=False,
             requires_external_validation=True
         )
@@ -323,7 +323,7 @@ class TestAssumptionValidator:
             description="Supervisor confirmed",
             confidence=0.95,
             source="supervisor-001",
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             is_external=True  # VALID
         )
 
@@ -342,8 +342,8 @@ class TestAssumptionValidator:
             confidence_if_true=0.9,
             confidence_if_false=0.3,
             status=AssumptionStatus.ACTIVE,
-            created_at=datetime.now(),
-            next_review_date=datetime.now() + timedelta(days=30),
+            created_at=datetime.now(timezone.utc),
+            next_review_date=datetime.now(timezone.utc) + timedelta(days=30),
             validated_by_self=False,
             requires_external_validation=True
         )
@@ -358,7 +358,7 @@ class TestAssumptionValidator:
             description="API response",
             confidence=0.5,  # Below threshold
             source="external-api",
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
             is_external=True
         )
 
@@ -381,8 +381,8 @@ class TestAssumptionBindingManager:
             confidence_if_true=0.9,
             confidence_if_false=0.3,
             status=AssumptionStatus.ACTIVE,
-            created_at=datetime.now(),
-            next_review_date=datetime.now() + timedelta(days=30),
+            created_at=datetime.now(timezone.utc),
+            next_review_date=datetime.now(timezone.utc) + timedelta(days=30),
             validated_by_self=False,
             requires_external_validation=True
         )
@@ -407,8 +407,8 @@ class TestAssumptionBindingManager:
             confidence_if_true=0.9,
             confidence_if_false=0.3,
             status=AssumptionStatus.INVALIDATED,  # INVALIDATED
-            created_at=datetime.now(),
-            next_review_date=datetime.now() + timedelta(days=30),
+            created_at=datetime.now(timezone.utc),
+            next_review_date=datetime.now(timezone.utc) + timedelta(days=30),
             validated_by_self=False,
             requires_external_validation=True
         )
@@ -434,8 +434,8 @@ class TestAssumptionBindingManager:
             confidence_if_true=0.9,
             confidence_if_false=0.3,
             status=AssumptionStatus.VALIDATED,  # VALIDATED
-            created_at=datetime.now(),
-            next_review_date=datetime.now() + timedelta(days=30),
+            created_at=datetime.now(timezone.utc),
+            next_review_date=datetime.now(timezone.utc) + timedelta(days=30),
             validated_by_self=False,
             requires_external_validation=True
         )
@@ -464,8 +464,8 @@ class TestAssumptionLifecycleManager:
             confidence_if_true=0.9,
             confidence_if_false=0.3,
             status=AssumptionStatus.ACTIVE,
-            created_at=datetime.now(),
-            next_review_date=datetime.now() + timedelta(days=30),
+            created_at=datetime.now(timezone.utc),
+            next_review_date=datetime.now(timezone.utc) + timedelta(days=30),
             validated_by_self=False,
             requires_external_validation=True
         )
@@ -488,8 +488,8 @@ class TestAssumptionLifecycleManager:
             confidence_if_true=0.9,
             confidence_if_false=0.3,
             status=AssumptionStatus.ACTIVE,
-            created_at=datetime.now(),
-            next_review_date=datetime.now() + timedelta(days=30),
+            created_at=datetime.now(timezone.utc),
+            next_review_date=datetime.now(timezone.utc) + timedelta(days=30),
             validated_by_self=False,
             requires_external_validation=True
         )
@@ -503,7 +503,7 @@ class TestAssumptionLifecycleManager:
             reason="Telemetry contradicts assumption",
             confidence=0.9,
             severity="high",
-            timestamp=datetime.now()
+            timestamp=datetime.now(timezone.utc)
         )
 
         manager.mark_invalidated("test-018", signal)
@@ -525,8 +525,8 @@ class TestAssumptionLifecycleManager:
             confidence_if_true=0.9,
             confidence_if_false=0.3,
             status=AssumptionStatus.ACTIVE,
-            created_at=datetime.now() - timedelta(days=60),
-            next_review_date=datetime.now() - timedelta(days=1),  # Past
+            created_at=datetime.now(timezone.utc) - timedelta(days=60),
+            next_review_date=datetime.now(timezone.utc) - timedelta(days=1),  # Past
             validated_by_self=False,
             requires_external_validation=True
         )

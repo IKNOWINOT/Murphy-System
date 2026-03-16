@@ -10,7 +10,7 @@ Tests:
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from src.supervisor_system.schemas import (
     AssumptionArtifact,
@@ -49,8 +49,8 @@ class TestInvalidationDetector:
             confidence_if_true=0.9,
             confidence_if_false=0.3,
             status=AssumptionStatus.ACTIVE,
-            created_at=datetime.now(),
-            next_review_date=datetime.now() + timedelta(days=30),
+            created_at=datetime.now(timezone.utc),
+            next_review_date=datetime.now(timezone.utc) + timedelta(days=30),
             validated_by_self=False,
             requires_external_validation=True
         )
@@ -78,8 +78,8 @@ class TestInvalidationDetector:
             confidence_if_true=0.9,
             confidence_if_false=0.3,
             status=AssumptionStatus.ACTIVE,
-            created_at=datetime.now(),
-            next_review_date=datetime.now() + timedelta(days=30),
+            created_at=datetime.now(timezone.utc),
+            next_review_date=datetime.now(timezone.utc) + timedelta(days=30),
             validated_by_self=False,
             requires_external_validation=True
         )
@@ -108,8 +108,8 @@ class TestInvalidationDetector:
             confidence_if_true=0.9,
             confidence_if_false=0.3,
             status=AssumptionStatus.ACTIVE,
-            created_at=datetime.now() - timedelta(days=60),
-            next_review_date=datetime.now() - timedelta(days=1),  # Past
+            created_at=datetime.now(timezone.utc) - timedelta(days=60),
+            next_review_date=datetime.now(timezone.utc) - timedelta(days=1),  # Past
             validated_by_self=False,
             requires_external_validation=True
         )
@@ -153,7 +153,7 @@ class TestConfidenceDecayer:
             reason="Critical failure",
             confidence=1.0,
             severity="critical",
-            timestamp=datetime.now()
+            timestamp=datetime.now(timezone.utc)
         )
 
         action = decayer.decay_confidence("test-004", signal, 0.9)
@@ -173,7 +173,7 @@ class TestConfidenceDecayer:
             reason="High severity issue",
             confidence=0.9,
             severity="high",
-            timestamp=datetime.now()
+            timestamp=datetime.now(timezone.utc)
         )
 
         action = decayer.decay_confidence("test-005", signal, 0.8)
@@ -197,7 +197,7 @@ class TestAuthorityDecayer:
             reason="Critical failure",
             confidence=1.0,
             severity="critical",
-            timestamp=datetime.now()
+            timestamp=datetime.now(timezone.utc)
         )
 
         action = decayer.decay_authority("test-006", signal, "high")
@@ -217,7 +217,7 @@ class TestAuthorityDecayer:
             reason="High severity issue",
             confidence=0.9,
             severity="high",
-            timestamp=datetime.now()
+            timestamp=datetime.now(timezone.utc)
         )
 
         action = decayer.decay_authority("test-007", signal, "medium")
@@ -243,8 +243,8 @@ class TestExecutionFreezer:
             confidence_if_true=0.9,
             confidence_if_false=0.3,
             status=AssumptionStatus.ACTIVE,
-            created_at=datetime.now(),
-            next_review_date=datetime.now() + timedelta(days=30),
+            created_at=datetime.now(timezone.utc),
+            next_review_date=datetime.now(timezone.utc) + timedelta(days=30),
             validated_by_self=False,
             requires_external_validation=True
         )
@@ -261,7 +261,7 @@ class TestExecutionFreezer:
             reason="Supervisor invalidated",
             confidence=1.0,
             severity="critical",
-            timestamp=datetime.now()
+            timestamp=datetime.now(timezone.utc)
         )
 
         action = freezer.freeze_execution("test-008", signal)
@@ -283,8 +283,8 @@ class TestExecutionFreezer:
             confidence_if_true=0.9,
             confidence_if_false=0.3,
             status=AssumptionStatus.ACTIVE,
-            created_at=datetime.now(),
-            next_review_date=datetime.now() + timedelta(days=30),
+            created_at=datetime.now(timezone.utc),
+            next_review_date=datetime.now(timezone.utc) + timedelta(days=30),
             validated_by_self=False,
             requires_external_validation=True
         )
@@ -298,7 +298,7 @@ class TestExecutionFreezer:
             reason="Invalidated",
             confidence=1.0,
             severity="critical",
-            timestamp=datetime.now()
+            timestamp=datetime.now(timezone.utc)
         )
 
         freezer.freeze_execution("test-009", signal)
@@ -323,8 +323,8 @@ class TestExecutionFreezer:
             confidence_if_true=0.9,
             confidence_if_false=0.3,
             status=AssumptionStatus.ACTIVE,
-            created_at=datetime.now(),
-            next_review_date=datetime.now() + timedelta(days=30),
+            created_at=datetime.now(timezone.utc),
+            next_review_date=datetime.now(timezone.utc) + timedelta(days=30),
             validated_by_self=False,
             requires_external_validation=True
         )
@@ -338,7 +338,7 @@ class TestExecutionFreezer:
             reason="Invalidated",
             confidence=1.0,
             severity="critical",
-            timestamp=datetime.now()
+            timestamp=datetime.now(timezone.utc)
         )
 
         freezer.freeze_execution("test-010", signal)
@@ -371,8 +371,8 @@ class TestReExpansionTrigger:
             confidence_if_true=0.9,
             confidence_if_false=0.3,
             status=AssumptionStatus.VALIDATED,
-            created_at=datetime.now(),
-            next_review_date=datetime.now() + timedelta(days=30),
+            created_at=datetime.now(timezone.utc),
+            next_review_date=datetime.now(timezone.utc) + timedelta(days=30),
             validated_by_self=False,
             requires_external_validation=True
         )
@@ -413,8 +413,8 @@ class TestReExpansionTrigger:
             confidence_if_true=0.9,
             confidence_if_false=0.3,
             status=AssumptionStatus.VALIDATED,
-            created_at=datetime.now(),
-            next_review_date=datetime.now() + timedelta(days=30),
+            created_at=datetime.now(timezone.utc),
+            next_review_date=datetime.now(timezone.utc) + timedelta(days=30),
             validated_by_self=False,
             requires_external_validation=True
         )

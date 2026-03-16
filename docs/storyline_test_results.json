@@ -1,0 +1,454 @@
+[
+  {
+    "chapter": "Chapter 3",
+    "scenario": "Organization name",
+    "expected": "Inoni LLC",
+    "actual": "Inoni LLC",
+    "passed": true,
+    "cause": "SetupWizard.apply_answer('q1', 'Inoni LLC')",
+    "effect": "Config org name set to user input",
+    "lesson": "Name propagation is direct \u2014 no inference layer needed",
+    "timestamp": "2026-03-16T00:56:43.990447+00:00"
+  },
+  {
+    "chapter": "Chapter 3",
+    "scenario": "Industry",
+    "expected": "technology",
+    "actual": "technology",
+    "passed": true,
+    "cause": "SetupWizard.apply_answer('q2', 'technology')",
+    "effect": "Config industry is 'technology', triggers tech bot recommendations",
+    "lesson": "Industry drives bot recommendations via INDUSTRY_BOT_MAP",
+    "timestamp": "2026-03-16T00:56:43.991140+00:00"
+  },
+  {
+    "chapter": "Chapter 3",
+    "scenario": "Sales automation enabled",
+    "expected": true,
+    "actual": true,
+    "passed": true,
+    "cause": "SetupWizard.apply_answer('q12', True)",
+    "effect": "Sales modules and bots are injected into the config",
+    "lesson": "Sales enablement is a binary gate \u2014 no partial activation",
+    "timestamp": "2026-03-16T00:56:43.991783+00:00"
+  },
+  {
+    "chapter": "Chapter 3",
+    "scenario": "Core modules all present",
+    "expected": true,
+    "actual": true,
+    "passed": true,
+    "cause": "CORE_MODULES constant defines baseline",
+    "effect": "Every configuration includes governance, compliance, authority gate",
+    "lesson": "Core modules are unconditional \u2014 cannot be removed by user answers",
+    "timestamp": "2026-03-16T00:56:43.992448+00:00"
+  },
+  {
+    "chapter": "Chapter 3",
+    "scenario": "Sales modules present when enabled",
+    "expected": true,
+    "actual": true,
+    "passed": true,
+    "cause": "q12=True triggers SALES_MODULES injection",
+    "effect": "Marketplace, planning engine loaded for sales pipeline",
+    "lesson": "Sales module injection depends on q12 \u2014 false positive if other answers imply sales",
+    "timestamp": "2026-03-16T00:56:43.993134+00:00"
+  },
+  {
+    "chapter": "Chapter 3",
+    "scenario": "Sales bots recommended",
+    "expected": true,
+    "actual": true,
+    "passed": true,
+    "cause": "Sales automation enabled \u2192 SALES_BOTS added",
+    "effect": "Bot roster includes outreach, scoring, marketing bots",
+    "lesson": "Bots are additive \u2014 sales bots don't replace core bots",
+    "timestamp": "2026-03-16T00:56:43.993780+00:00"
+  },
+  {
+    "chapter": "Chapter 3",
+    "scenario": "Technology industry bots",
+    "expected": true,
+    "actual": true,
+    "passed": true,
+    "cause": "Industry 'technology' triggers INDUSTRY_BOT_MAP lookup",
+    "effect": "DevOps, code review, incident response bots added",
+    "lesson": "Industry bots are a secondary layer on top of core+sales bots",
+    "timestamp": "2026-03-16T00:56:43.994438+00:00"
+  },
+  {
+    "chapter": "Chapter 5",
+    "scenario": "Default company",
+    "expected": "Inoni LLC",
+    "actual": "Inoni LLC",
+    "passed": true,
+    "cause": "SalesAutomationConfig defaults",
+    "effect": "All proposals reference Inoni LLC as the vendor",
+    "lesson": "Default config anchors the 'sell itself' narrative",
+    "timestamp": "2026-03-16T00:56:43.995092+00:00"
+  },
+  {
+    "chapter": "Chapter 5",
+    "scenario": "Default product",
+    "expected": "Murphy System",
+    "actual": "Murphy System",
+    "passed": true,
+    "cause": "SalesAutomationConfig defaults",
+    "effect": "All proposals reference Murphy System as the product",
+    "lesson": "Product name must be consistent across demo scripts and proposals",
+    "timestamp": "2026-03-16T00:56:43.995100+00:00"
+  },
+  {
+    "chapter": "Chapter 6",
+    "scenario": "Lead scoring formula",
+    "expected": 80,
+    "actual": 80,
+    "passed": true,
+    "cause": "enterprise(50) + technology(20) + 2\u00d7interests(10) = 80",
+    "effect": "Lead qualifies with high confidence \u2014 enterprise deal prioritized",
+    "lesson": "Scoring is pure arithmetic \u2014 deterministic, not LLM-driven. This is correct per Chapter 15 routing policy.",
+    "timestamp": "2026-03-16T00:56:43.995737+00:00"
+  },
+  {
+    "chapter": "Chapter 6",
+    "scenario": "Qualification threshold (pass)",
+    "expected": true,
+    "actual": true,
+    "passed": true,
+    "cause": "Score 55 \u2265 threshold 40",
+    "effect": "Lead advances to 'qualified' status, demo scheduling unlocked",
+    "lesson": "Threshold of 40 is lenient \u2014 captures medium companies with any interest",
+    "timestamp": "2026-03-16T00:56:43.996389+00:00"
+  },
+  {
+    "chapter": "Chapter 6",
+    "scenario": "Qualification threshold (fail)",
+    "expected": false,
+    "actual": false,
+    "passed": true,
+    "cause": "Score 30 < threshold 40",
+    "effect": "Lead stays in 'nurture' pipeline \u2014 no demo scheduled",
+    "lesson": "Small retail companies without interests need nurture automation, not direct sales engagement",
+    "timestamp": "2026-03-16T00:56:43.997049+00:00"
+  },
+  {
+    "chapter": "Chapter 6",
+    "scenario": "Edition for enterprise",
+    "expected": "enterprise",
+    "actual": "enterprise",
+    "passed": true,
+    "cause": "Company size 'enterprise' maps to edition 'enterprise'",
+    "effect": "Proposal uses enterprise pricing and feature set",
+    "lesson": "Edition mapping is a simple dictionary \u2014 no ML needed",
+    "timestamp": "2026-03-16T00:56:43.997765+00:00"
+  },
+  {
+    "chapter": "Chapter 6",
+    "scenario": "Edition for medium",
+    "expected": "professional",
+    "actual": "professional",
+    "passed": true,
+    "cause": "Company size 'medium' maps to edition 'professional'",
+    "effect": "Proposal uses professional pricing and feature set",
+    "lesson": "Edition mapping is a simple dictionary \u2014 no ML needed",
+    "timestamp": "2026-03-16T00:56:43.997783+00:00"
+  },
+  {
+    "chapter": "Chapter 6",
+    "scenario": "Edition for small",
+    "expected": "community",
+    "actual": "community",
+    "passed": true,
+    "cause": "Company size 'small' maps to edition 'community'",
+    "effect": "Proposal uses community pricing and feature set",
+    "lesson": "Edition mapping is a simple dictionary \u2014 no ML needed",
+    "timestamp": "2026-03-16T00:56:43.997795+00:00"
+  },
+  {
+    "chapter": "Chapter 6",
+    "scenario": "Demo script personalization",
+    "expected": true,
+    "actual": true,
+    "passed": true,
+    "cause": "generate_demo_script() templates contact name, company, industry",
+    "effect": "Prospect sees a demo tailored to their manufacturing context",
+    "lesson": "Template-based personalization is reliable for name/company/industry. Deeper personalization (pain points, competitors) would need LLM.",
+    "timestamp": "2026-03-16T00:56:43.998452+00:00"
+  },
+  {
+    "chapter": "Chapter 6",
+    "scenario": "Proposal generation",
+    "expected": true,
+    "actual": true,
+    "passed": true,
+    "cause": "generate_proposal() assembles executive summary, edition, plan, timeline",
+    "effect": "Sales team has a ready-to-send proposal document",
+    "lesson": "Proposals are deterministic templates \u2014 fast and consistent. 4-8 week timeline is hardcoded, should eventually be configurable.",
+    "timestamp": "2026-03-16T00:56:43.999113+00:00"
+  },
+  {
+    "chapter": "Chapter 6",
+    "scenario": "Full pipeline lifecycle",
+    "expected": [
+      "new",
+      "qualified",
+      "demo_scheduled",
+      "proposal_sent",
+      "closed_won"
+    ],
+    "actual": [
+      "new",
+      "qualified",
+      "demo_scheduled",
+      "proposal_sent",
+      "closed_won"
+    ],
+    "passed": true,
+    "cause": "register\u2192qualify\u2192advance\u00d73",
+    "effect": "Lead traverses complete funnel from intake to close",
+    "lesson": "Status transitions are explicit \u2014 prevents skipping stages. Closed_lost path not tested here but exists as a branch.",
+    "timestamp": "2026-03-16T00:56:43.999737+00:00"
+  },
+  {
+    "chapter": "Chapter 7",
+    "scenario": "Gate type coverage",
+    "expected": true,
+    "actual": true,
+    "passed": true,
+    "cause": "GateType enum defines all categories from storyline",
+    "effect": "System can generate gates for data validation, compliance, business rules, auth",
+    "lesson": "Enum-based typing ensures compile-time coverage \u2014 new types require code change",
+    "timestamp": "2026-03-16T00:56:44.000370+00:00"
+  },
+  {
+    "chapter": "Chapter 7",
+    "scenario": "Gate structure (conditions/actions/risk_reduction)",
+    "expected": true,
+    "actual": true,
+    "passed": true,
+    "cause": "generate_gate() auto-populates conditions, actions, risk_reduction",
+    "effect": "Gate is ready to wire into execution pipeline without manual action setup",
+    "lesson": "Auto-generated actions follow severity-based templates \u2014 HIGH severity \u2192 block on fail, proceed on pass",
+    "timestamp": "2026-03-16T00:56:44.001078+00:00"
+  },
+  {
+    "chapter": "Chapter 7",
+    "scenario": "System-level gate generation count",
+    "expected": "\u22650 gates (depends on librarian knowledge)",
+    "actual": "4 gates",
+    "passed": false,
+    "cause": "generate_gates_for_system() consults librarian KB for domain-specific gates",
+    "effect": "Generated 4 gates for sales/medium complexity",
+    "lesson": "Gate count of 0 means the librarian KB has no sales-specific gate templates loaded yet. This is a bootstrapping gap \u2014 first run produces no domain gates until knowledge base is seeded.",
+    "timestamp": "2026-03-16T00:56:44.001863+00:00"
+  },
+  {
+    "chapter": "Chapter 9",
+    "scenario": "Phase threshold values",
+    "expected": {
+      "EXPAND": 0.5,
+      "EXECUTE": 0.85,
+      "ascending": true
+    },
+    "actual": {
+      "values": [
+        0.5,
+        0.6,
+        0.625,
+        0.7,
+        0.75,
+        0.8,
+        0.85
+      ],
+      "has_0.5": true,
+      "has_0.85": true,
+      "ascending": true
+    },
+    "passed": false,
+    "cause": "MurphyGate.__init__ sets phase_thresholds dict",
+    "effect": "Higher phases require more confidence \u2014 early exploration is cheap, execution is expensive",
+    "lesson": "Ascending thresholds embody 'earn trust incrementally' \u2014 system can explore freely but must prove itself before executing",
+    "timestamp": "2026-03-16T00:56:44.002535+00:00"
+  },
+  {
+    "chapter": "Chapter 9",
+    "scenario": "High confidence (0.95) gate decision",
+    "expected": true,
+    "actual": true,
+    "passed": true,
+    "cause": "0.95 > 0.70 default threshold \u2192 proceed_automatically",
+    "effect": "Execution proceeds without human intervention",
+    "lesson": "Clear pass \u2014 no ambiguity. The 0.25 margin provides confidence that stochastic fluctuations won't cause a flip-flop.",
+    "timestamp": "2026-03-16T00:56:44.003348+00:00"
+  },
+  {
+    "chapter": "Chapter 9",
+    "scenario": "Low confidence (0.1) gate decision",
+    "expected": false,
+    "actual": false,
+    "passed": true,
+    "cause": "0.1 << 0.70 threshold \u2192 block_execution",
+    "effect": "Execution halted \u2014 system refuses to act on insufficient evidence",
+    "lesson": "Murphy's Law in action: when confidence is 0.1, the system correctly treats refusal as the safer outcome.",
+    "timestamp": "2026-03-16T00:56:44.004184+00:00"
+  },
+  {
+    "chapter": "Chapter 9",
+    "scenario": "Mid confidence (0.6) gate decision",
+    "expected": "require_human_approval",
+    "actual": "require_human_approval",
+    "passed": true,
+    "cause": "0.6 is below 0.70 but only by 0.10 \u2014 not catastrophic",
+    "effect": "System pauses and requests human review before proceeding",
+    "lesson": "The 'require_human_approval' action creates a HITL checkpoint. This is the system's way of saying 'I'm not sure \u2014 please verify.'",
+    "timestamp": "2026-03-16T00:56:44.004987+00:00"
+  },
+  {
+    "chapter": "Chapter 13",
+    "scenario": "Confidence calculator produces a numeric result",
+    "expected": "0 < confidence \u2264 1",
+    "actual": "0.5000",
+    "passed": false,
+    "cause": "compute_confidence(graph, EXPAND, evidence, trust)",
+    "effect": "Confidence = 0.5000 at EXPAND phase",
+    "lesson": "With only 2 nodes and 1 verified fact, confidence is moderate. More artifacts and verification evidence increase confidence.",
+    "timestamp": "2026-03-16T00:56:44.005772+00:00"
+  },
+  {
+    "chapter": "Chapter 13",
+    "scenario": "Generative adequacy (G) value",
+    "expected": "0 \u2264 G \u2264 1",
+    "actual": "0.3812",
+    "passed": false,
+    "cause": "calculate_generative_adequacy() weighted sum of coverage+branching+quality",
+    "effect": "G = 0.3812 \u2014 reflects how well the solution space has been explored",
+    "lesson": "Low G means we haven't explored enough hypotheses. For a simple lead scoring formula, G may be low because there's only one hypothesis.",
+    "timestamp": "2026-03-16T00:56:44.006509+00:00"
+  },
+  {
+    "chapter": "Chapter 13",
+    "scenario": "Deterministic grounding (D) value",
+    "expected": "0 \u2264 D \u2264 1",
+    "actual": "0.4750",
+    "passed": false,
+    "cause": "calculate_deterministic_grounding() based on verified artifact ratio and trust",
+    "effect": "D = 0.4750 \u2014 measures how much exploration is backed by verified evidence",
+    "lesson": "With 1 out of 2 artifacts verified, D is moderate. Full verification would push D toward 1.0.",
+    "timestamp": "2026-03-16T00:56:44.007224+00:00"
+  },
+  {
+    "chapter": "Chapter 13",
+    "scenario": "Confidence across phases",
+    "expected": "confidence defined at each phase",
+    "actual": {
+      "expand": 0.5,
+      "type": 0.3999348994830899,
+      "constrain": 0.42808431217693116,
+      "bind": 0.45623372487077246,
+      "execute": 0.46561686243538625
+    },
+    "passed": false,
+    "cause": "Phase weights shift from generative (early) to deterministic (late)",
+    "effect": "Later phases rely more on verified evidence, less on exploration breadth",
+    "lesson": "Phase-dependent weighting ensures the system explores freely early but demands proof before execution.",
+    "timestamp": "2026-03-16T00:56:44.008073+00:00"
+  },
+  {
+    "chapter": "Chapter 14",
+    "scenario": "Sigmoid weights",
+    "expected": {
+      "alpha": 2.0,
+      "beta": 1.5,
+      "gamma": 1.0,
+      "delta": 1.2
+    },
+    "actual": {
+      "alpha": 2.0,
+      "beta": 1.5,
+      "gamma": 1.0,
+      "delta": 1.2
+    },
+    "passed": true,
+    "cause": "MurphyCalculator.__init__ sets empirically-tuned weights",
+    "effect": "Risk probability sigmoid is calibrated to penalize instability and low grounding",
+    "lesson": "These weights are hardcoded constants \u2014 production tuning would need A/B testing",
+    "timestamp": "2026-03-16T00:56:44.008712+00:00"
+  },
+  {
+    "chapter": "Chapter 14",
+    "scenario": "Low-risk Murphy Index",
+    "expected": "near 0",
+    "actual": "0.0000",
+    "passed": false,
+    "cause": "High confidence, high grounding, low instability \u2192 all p_k near 0",
+    "effect": "Murphy Index = 0.0000 \u2014 system is safe to proceed",
+    "lesson": "With 90% verified artifacts and low instability, Murphy Index correctly signals low risk. This is the ideal operational state.",
+    "timestamp": "2026-03-16T00:56:44.009370+00:00"
+  },
+  {
+    "chapter": "Chapter 14",
+    "scenario": "High-risk Murphy Index",
+    "expected": "near 1.0",
+    "actual": "1.0000",
+    "passed": false,
+    "cause": "Zero verified artifacts, high instability, EXECUTE phase \u2192 maximum risk",
+    "effect": "Murphy Index = 1.0000 \u2014 system MUST NOT proceed without human intervention",
+    "lesson": "10 unverified LLM hypotheses at EXECUTE phase is the worst case. Murphy Index correctly pegs to 1.0 \u2014 every failure mode is saturated.",
+    "timestamp": "2026-03-16T00:56:44.010157+00:00"
+  },
+  {
+    "chapter": "Chapter 15",
+    "scenario": "Default routing policies",
+    "expected": "\u2265 4 policies",
+    "actual": "4 policies",
+    "passed": false,
+    "cause": "DeterministicRoutingEngine.__init__ registers default policies",
+    "effect": "Math, validation, creative, and analysis tasks have routing rules",
+    "lesson": "Policy count of 4 means the routing table is pre-populated. Zero policies would be a catastrophic bootstrapping failure.",
+    "timestamp": "2026-03-16T00:56:44.010913+00:00"
+  },
+  {
+    "chapter": "Chapter 15",
+    "scenario": "Math task routing",
+    "expected": "deterministic",
+    "actual": "deterministic",
+    "passed": true,
+    "cause": "Task tagged 'math' matches math policy \u2192 deterministic route",
+    "effect": "Lead scoring uses pure functions \u2014 no LLM involved, fully reproducible",
+    "lesson": "Deterministic routing for math tasks is the correct design: score = 50 + 20 + 10 should always equal 80, not 79.97 or 80.3",
+    "timestamp": "2026-03-16T00:56:44.011614+00:00"
+  },
+  {
+    "chapter": "Chapter 15",
+    "scenario": "Guardrails applied to deterministic route",
+    "expected": true,
+    "actual": true,
+    "passed": true,
+    "cause": "Deterministic routes get output_validation guardrails",
+    "effect": "Even deterministic outputs are checked for sanity before proceeding",
+    "lesson": "Guardrails on deterministic routes catch edge cases (e.g., negative scores, scores > 100)",
+    "timestamp": "2026-03-16T00:56:44.012297+00:00"
+  },
+  {
+    "chapter": "Chapter 10",
+    "scenario": "Emergency stop controller operable",
+    "expected": true,
+    "actual": true,
+    "passed": true,
+    "cause": "EmergencyStopController is instantiated at runtime init",
+    "effect": "System can halt all operations if cascade failure detected",
+    "lesson": "Emergency stop is the last-resort safety mechanism \u2014 it must always be instantiable even if other systems fail",
+    "timestamp": "2026-03-16T00:56:44.012924+00:00"
+  },
+  {
+    "chapter": "Chapter 10",
+    "scenario": "Governance kernel operable",
+    "expected": true,
+    "actual": true,
+    "passed": true,
+    "cause": "GovernanceKernel is the policy enforcement point for all tool calls",
+    "effect": "Every agent action passes through centralized governance before execution",
+    "lesson": "Centralized governance is the 'single pane of glass' for policy enforcement \u2014 no bypass path should exist outside the kernel",
+    "timestamp": "2026-03-16T00:56:44.013560+00:00"
+  }
+]

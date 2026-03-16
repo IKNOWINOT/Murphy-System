@@ -16,7 +16,7 @@ import pytest
 import yaml
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-REPO_ROOT = os.path.abspath(os.path.join(PROJECT_ROOT, ".."))
+REPO_ROOT = PROJECT_ROOT
 TESTS_DIR = os.path.join(PROJECT_ROOT, "tests")
 CI_WORKFLOW = os.path.join(REPO_ROOT, ".github", "workflows", "ci.yml")
 REQUIREMENTS_FILE = os.path.join(PROJECT_ROOT, "requirements_murphy_1.0.txt")
