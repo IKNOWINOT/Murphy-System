@@ -7,12 +7,10 @@ License: BSL 1.1
 """
 
 import os
-import sys
 import uuid
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from causality_sandbox import (
     ActionRanking,

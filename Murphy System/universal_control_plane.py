@@ -13,25 +13,21 @@ Created by: Corey Post
 License: BSL 1.1
 """
 
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
-
-from typing import Dict, Any, List, Optional, Set
+import logging
 from datetime import datetime, timezone
 from enum import Enum
-import logging
+from typing import Dict, Any, List, Optional, Set
 
 logger = logging.getLogger(__name__)
 
 # Import universal systems
-from control_plane.execution_packet import (
+from src.control_plane.execution_packet import (
     ExecutionPacket, Action, ActionType, SafetyConstraint, Gate,
     TimeWindow, RollbackPlan, AuthorityEnvelope, create_simple_packet
 )
-from control_plane.packet_compiler import PacketCompiler
-from governance_framework.scheduler import GovernanceScheduler, ScheduledAgent
-from execution_engine.workflow_orchestrator import WorkflowOrchestrator
+from src.control_plane.packet_compiler import PacketCompiler
+from src.governance_framework.scheduler import GovernanceScheduler, ScheduledAgent
+from src.execution_engine.workflow_orchestrator import WorkflowOrchestrator
 
 # ============================================================================
 # ENGINE TYPES & REGISTRY

@@ -21,7 +21,6 @@ License: BSL 1.1
 import json
 import os
 import re
-import sys
 import datetime
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
@@ -39,8 +38,6 @@ SRC_DIR = PROJECT_ROOT / "src"
 DOCS_DIR = PROJECT_ROOT / "docs"
 RESULTS_FILE = DOCS_DIR / "storyline_test_results.json"
 
-sys.path.insert(0, str(PROJECT_ROOT))
-sys.path.insert(0, str(SRC_DIR))
 
 
 # ---------------------------------------------------------------------------

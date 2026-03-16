@@ -40,8 +40,8 @@ try:
     from .matrix_hitl import HITLBridge
     from .matrix_notifications import HealthMonitor
 except ImportError:
-    # Support running as a plain script: python run_matrix_bot.py
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    # Support running as a plain script: python bots/run_matrix_bot.py
+    # (requires ``pip install -e .`` from the project root first)
     from bots.matrix_config import MatrixBotConfig  # type: ignore[no-redef]
     from bots.matrix_bot import MurphyMatrixBot  # type: ignore[no-redef]
     from bots.matrix_hitl import HITLBridge  # type: ignore[no-redef]

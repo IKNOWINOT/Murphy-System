@@ -7,11 +7,9 @@ Design Label: TEST-INT-WIRED-001
 Owner: Platform Engineering / QA Team
 """
 
-import sys
 import os
 import unittest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from universal_integration_adapter import (
     UniversalIntegrationAdapter,

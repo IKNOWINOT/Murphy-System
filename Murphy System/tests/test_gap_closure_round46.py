@@ -16,10 +16,8 @@ Validates all nine new crypto trading modules introduced in this round:
   Gap 9 (High):   CryptoRiskManager — position sizing, circuit breakers, pre-trade
 """
 
-import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 import pytest
 

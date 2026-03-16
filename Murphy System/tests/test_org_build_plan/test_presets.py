@@ -2,10 +2,8 @@
 # Creator: Corey Post
 # License: BSL 1.1
 """Tests for org_build_plan.presets package."""
-import sys
 import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 import pytest
 from src.org_build_plan.presets import (

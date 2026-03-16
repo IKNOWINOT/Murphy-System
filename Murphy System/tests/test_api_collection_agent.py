@@ -7,10 +7,8 @@ Design Label: TEST-API-COLLECTION-001
 Owner: QA Team
 """
 import os
-import sys
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from api_collection_agent import (
     APICollectionAgent,

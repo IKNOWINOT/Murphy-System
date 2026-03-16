@@ -4,13 +4,12 @@
 Alembic env.py for Murphy System database migrations.
 """
 
-import os
-import sys
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
 from alembic import context
 
+from src.db import Base, DATABASE_URL  # noqa: E402
 # Add project root to path so src.db can be imported
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 

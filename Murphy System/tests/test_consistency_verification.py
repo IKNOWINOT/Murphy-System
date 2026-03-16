@@ -6,12 +6,8 @@ are consistent with actual source files, test files, and runtime behavior.
 """
 import os
 import re
-import sys
 import unittest
 
-# Resolve project root
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, ROOT)
 
 
 def _load_runtime_source():
