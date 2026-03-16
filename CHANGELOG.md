@@ -17,6 +17,20 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added — Real Email Delivery + Rosetta Subsystem Wiring
+
+- **feat(email):** `src/email_integration.py` — removed `MockEmailBackend` and `DisabledEmailBackend`; replaced with `UnconfiguredEmailBackend` that returns `success=False` with actionable config instructions. No silent fake-delivery path exists. `EmailService.from_env()` selects `SendGridBackend` → `SMTPBackend` → `UnconfiguredEmailBackend` in priority order. New dependencies: `aiosmtplib>=3.0.0`, `aiosmtpd>=1.4.0`, `respx>=0.21.0`.
+- **test(email):** `tests/test_email_integration.py` — fully rewritten; all 29 tests exercise real delivery paths. SMTP tests use a live in-process `aiosmtpd` server. SendGrid tests use `respx` HTTP transport interception — no `unittest.mock` on library internals.
+- **feat(rosetta/INC-07):** `src/rosetta/subsystem_wiring.py` — implements all six P3 wiring tasks from the Rosetta State Management design:
+  - P3-001: `SelfImprovementEngine.extract_patterns()` → `RosettaManager.update_state()`
+  - P3-002: `SelfAutomationOrchestrator` cycle records → `automation_progress[]`
+  - P3-003: `RAGVectorIntegration.ingest_document()` ← current Rosetta agent state
+  - P3-004: `EventBackbone` subscriptions for `TASK_COMPLETED`, `TASK_FAILED`, `GATE_EVALUATED`
+  - P3-005: `StateManager` sync — heartbeat delta push to Rosetta document
+  - P3-006: `tests/test_rosetta_subsystem_wiring.py` — 38 tests, all pass
+- **feat(rosetta):** `src/rosetta/__init__.py` exports `RosettaSubsystemWiring`, `WiringStatus`, `bootstrap_wiring`.
+- **docs:** `docs/state_management/ROSETTA_STATE_MANAGEMENT_SYSTEM.md` — P3-001 through P3-006 marked ✅ complete.
+
 ### Added — Unified Flask→FastAPI Gateway
 
 - **feat(gateway):** Ported all standalone Flask services into the main FastAPI runtime (`src/runtime/app.py`) — no separate servers on ports 8053/8054/8056 are required. Ported services and their new route prefixes:
@@ -53,7 +67,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 #### High — Required for Reliable Beta
 - **feat(sensor):** `sensor_reader.py` — `SensorConfig.from_env()` defaults `mock_mode` to `False` in `staging`/`production` and `True` in `development`/`test`; `connect()` raises `ConnectionError` when `mock_mode=False` and Modbus TCP host is unreachable.
-- **feat(email):** `email_integration.py` — `MockEmailBackend.send()` returns `metadata.warning="No email was actually sent"`; new `DisabledEmailBackend` returns `success=False`; `MURPHY_EMAIL_REQUIRED` env var; `EmailService.from_env()` raises `RuntimeError` when email is required but no backend is configured; `SendResult` gains `metadata` field.
+- **feat(email):** `email_integration.py` — superseded; see [Unreleased] above. `MockEmailBackend` and `DisabledEmailBackend` removed; replaced with `UnconfiguredEmailBackend`. Real SMTP (`aiosmtplib`) and SendGrid (`httpx`) backends wired. `MURPHY_EMAIL_REQUIRED` env var removed in favour of explicit failure semantics.
 - **feat(protocols):** `protocols/__init__.py` — `validate_protocol_dependencies()` function; `MURPHY_ENABLED_PROTOCOLS` env var (comma-separated); raises `ImportError` listing missing packages for enabled protocols.
 - **feat(compute):** `compute_plane/service.py` — LP solver now wired to `scipy.optimize.linprog` when scipy is installed; falls back to `UNSUPPORTED` with install instruction when scipy is absent; SAT solver docstring updated to note planned status.
 - **feat(capability_map):** `capability_map.py` — added `COMPUTE_CAPABILITY_MAP` static registry: LP=available (scipy), SAT=planned, Wolfram=planned.
