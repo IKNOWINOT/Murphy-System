@@ -1,6 +1,6 @@
 # Murphy System — Project Status
 
-> **Last updated**: 2026-03-15
+> **Last updated**: 2026-03-16
 > **License**: BSL 1.1 (Business Source License)
 > Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post
 
@@ -26,7 +26,9 @@
 | Session Context Manager | ✅ New | Per-session locking, expiry, RM0–RM6 tracking |
 | **Crypto Trading Subsystem** | ✅ **New** | Coinbase v3, multi-exchange, HITL-gated bots, 6 strategies, risk manager |
 | **Shadow Learning System** | ✅ **New** | Paper bots practice vs live prices; winning weeks save patterns; human reviews before promoting |
-| **Rosetta Subsystem Wiring** | ✅ **New** | P3-001–P3-005 wired: ImprovementEngine→Rosetta, Orchestrator cycles→progress, RAG ingestion, EventBackbone subscriptions, SystemState sync; 29 tests |
+| **Rosetta Subsystem Wiring** | ✅ **New** | P3-001–P3-005 wired: ImprovementEngine→Rosetta, Orchestrator cycles→progress, RAG ingestion, EventBackbone subscriptions, SystemState sync; 38 tests |
+| **CI/CD Pipeline** | ✅ **New** | GitHub Actions CI: lint (ruff), test matrix (Python 3.10/3.11/3.12), security scan (bandit), Docker build smoke |
+| **Core Path Coverage** | ✅ **New** | pytest --cov on core paths (rosetta_subsystem_wiring + startup_feature_summary) reports 90%+ (>80% threshold) |
 | UI / Landing Page | ⚠️ Partial | Landing page, terminal UIs exist; dashboard incomplete |
 | Documentation | ✅ Complete | API docs, architecture docs, deployment guides, testing guide complete |
 
@@ -51,8 +53,9 @@ Murphy System is **aligned with** (not formally attested to) the following frame
 
 - **Total test files**: 644+
 - **CI configuration**: `python -m pytest --timeout=60 -v --tb=short`
-- **CI pipeline**: GitHub Actions runs lint, test (Python 3.10/3.11/3.12), integration, security, and build jobs
-- **Key test suites**: concept graph engine (48), unified control protocol (62), session context (37), crypto trading system (102), shadow learning + real-money guard (48)
+- **CI pipeline**: GitHub Actions (`.github/workflows/ci.yml`) runs lint (ruff), test matrix (Python 3.10/3.11/3.12), security scan (bandit), and Docker build smoke
+- **Core path coverage**: 90%+ on `rosetta_subsystem_wiring` + `startup_feature_summary` (INC-14 / M-05 ✅)
+- **Key test suites**: concept graph engine (48), unified control protocol (62), session context (37), crypto trading system (102), shadow learning + real-money guard (48), rosetta wiring (38)
 
 ## Known Gaps
 
