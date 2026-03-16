@@ -1,3 +1,6 @@
+# Root-level .dockerignore for Murphy System
+# Prevents docs, tests, and dev artifacts from entering the production image.
+
 # Version control
 .git
 .gitignore
@@ -11,7 +14,13 @@ dist/
 build/
 *.eggs
 
-# Testing / CI
+# Documentation
+docs/
+*.md
+README*
+
+# Tests
+tests/
 .pytest_cache
 .coverage
 htmlcov/
@@ -22,6 +31,10 @@ htmlcov/
 .env.*
 !.env.example
 
+# Telemetry / strategic (large, not needed at runtime)
+telemetry_evidence/
+strategic/
+
 # IDE / editor
 .vscode/
 .idea/
@@ -29,21 +42,11 @@ htmlcov/
 *.swo
 *~
 
-# Project directories not needed in image
-archive/
-bots/
-docs/
-documentation/
-scripts/
-
-# HTML / static assets not needed in runtime
-*.html
-
 # OS files
 .DS_Store
 Thumbs.db
 
-# Docker
+# Docker meta-files (not needed inside the image)
 Dockerfile
-docker-compose.yml
+docker-compose*.yml
 .dockerignore

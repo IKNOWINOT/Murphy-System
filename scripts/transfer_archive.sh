@@ -22,7 +22,7 @@
 # ─────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
-ARCHIVE_SRC="archive"
+ARCHIVE_SRC="Murphy System/archive"
 TARGET_REPO="https://github.com/IKNOWINOT/murphy-system-archive.git"
 WORK_DIR=$(mktemp -d)
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -117,7 +117,7 @@ Moved legacy versions, artifacts, and internal documents to this
 dedicated archive repository to reduce download size and keep the
 main Murphy-System repository focused on production code.
 
-Source: IKNOWINOT/Murphy-System/archive/
+Source: IKNOWINOT/Murphy-System/Murphy System/archive/
 Files transferred: $ARCHIVE_FILE_COUNT"
 
 echo ""

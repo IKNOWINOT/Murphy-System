@@ -37,22 +37,27 @@ echo -e "${CYAN}${BOLD}╚══════════════════
 echo ""
 
 # ---- locate repo root ------------------------------------------------------
-# Work whether invoked from the repo root or via an absolute path to this script.
+# Work whether invoked from the repo root, from "Murphy System/", or via
+# an absolute path to this script.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-if [ -f "$SCRIPT_DIR/murphy_system_1.0_runtime.py" ]; then
+if [ -d "$SCRIPT_DIR/Murphy System" ]; then
     REPO_ROOT="$SCRIPT_DIR"
+elif [ -f "$SCRIPT_DIR/murphy_system_1.0_runtime.py" ]; then
+    # User ran the script from inside "Murphy System/"
+    REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 else
     fail "Cannot locate Murphy System files. Run this script from the repository root."
 fi
 
-MURPHY_DIR="$REPO_ROOT"
+MURPHY_DIR="$REPO_ROOT/Murphy System"
 
 if [ ! -f "$MURPHY_DIR/murphy_system_1.0_runtime.py" ]; then
     fail "murphy_system_1.0_runtime.py not found in '$MURPHY_DIR'.\n   Please run from the Murphy-System repository root."
 fi
 
 info "Repository root: $REPO_ROOT"
+info "Murphy System:   $MURPHY_DIR"
 
 # ---- step 1: prerequisites -------------------------------------------------
 step 1 "Checking prerequisites"

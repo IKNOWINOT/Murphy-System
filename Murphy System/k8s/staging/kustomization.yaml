@@ -1,0 +1,108 @@
+# Murphy System — Staging Environment Overlay
+# Copyright © 2020 Inoni Limited Liability Company
+# License: BSL-1.1
+#
+# Usage: kubectl apply -k Murphy\ System/k8s/staging/
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: murphy-staging
+
+resources:
+  - ../namespace.yaml
+  - ../configmap.yaml
+  - ../secret.yaml
+  - ../pvc.yaml
+  - ../deployment.yaml
+  - ../service.yaml
+  - ../ingress.yaml
+  - ../hpa.yaml
+  - ../network-policy.yaml
+  - ../pdb.yaml
+  - ../redis.yaml
+  - ../postgres.yaml
+  - ../resource-quota.yaml
+
+namePrefix: staging-
+
+patches:
+  - target:
+      kind: Namespace
+      name: murphy-system
+    patch: |
+      - op: replace
+        path: /metadata/name
+        value: murphy-staging
+      - op: replace
+        path: /metadata/labels/environment
+        value: staging
+
+  - target:
+      kind: Deployment
+      name: murphy-api
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 1
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: "128Mi"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: "100m"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: "256Mi"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: "250m"
+
+  - target:
+      kind: ConfigMap
+      name: murphy-config
+    patch: |
+      - op: replace
+        path: /data/MURPHY_ENV
+        value: "staging"
+      - op: replace
+        path: /data/LOG_LEVEL
+        value: "DEBUG"
+
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: murphy-api
+    patch: |
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 3
+
+  - target:
+      kind: ResourceQuota
+      name: murphy-system-quota
+    patch: |
+      - op: replace
+        path: /spec/hard/requests.cpu
+        value: "2"
+      - op: replace
+        path: /spec/hard/requests.memory
+        value: "4Gi"
+      - op: replace
+        path: /spec/hard/limits.cpu
+        value: "4"
+      - op: replace
+        path: /spec/hard/limits.memory
+        value: "8Gi"
+      - op: replace
+        path: /spec/hard/pods
+        value: "15"
+
+  - target:
+      kind: Deployment
+      name: postgres
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 1

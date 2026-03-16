@@ -1,0 +1,1501 @@
+<!--
+  Murphy System — Unified Hub
+  © 2020 Inoni Limited Liability Company by Corey Post
+  License: BSL 1.1 (Business Source License 1.1)
+  See LICENSE file in repository root for full terms.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — Unified Hub</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
+<style>
+  /* Neon terminal theme */
+  .murphy-terminal, .murphy-output, pre, code {
+    font-family: var(--font-code, 'JetBrains Mono', monospace);
+  }
+  textarea, input[type="text"] {
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
+    color: #00ff00;
+    background: #0a0a0a;
+  }
+</style>
+</head>
+<body style="--accent: var(--accent-violet);">
+
+<!-- Skip link for accessibility -->
+<a href="#content" class="murphy-skip-link">Skip to content</a>
+
+<!-- ============================================================
+     SIDEBAR
+     ============================================================ -->
+<nav class="murphy-sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
+  <div class="murphy-sidebar-logo">
+    <svg width="24" height="24"><use href="static/murphy-icons.svg#icon-cpu"></use></svg>
+    <span>Murphy Hub</span>
+  </div>
+
+  <div class="murphy-sidebar-nav" id="sidebar-nav">
+    <!-- Overview -->
+    <div class="murphy-sidebar-section" aria-label="Overview">Overview</div>
+    <a href="#dashboard" class="murphy-sidebar-item" data-view="dashboard" aria-label="Dashboard">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-dashboard"></use></svg>
+      <span>Dashboard</span>
+    </a>
+    <a href="#status" class="murphy-sidebar-item" data-view="status" aria-label="System Status">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-activity"></use></svg>
+      <span>System Status</span>
+    </a>
+
+    <!-- Operations -->
+    <div class="murphy-sidebar-section" aria-label="Operations">Operations</div>
+    <a href="#execute" class="murphy-sidebar-item" data-view="execute" aria-label="Execute">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-terminal"></use></svg>
+      <span>Execute</span>
+    </a>
+    <a href="#workflows" class="murphy-sidebar-item" data-view="workflows" aria-label="Workflows">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-workflow"></use></svg>
+      <span>Workflows</span>
+    </a>
+    <a href="#agents" class="murphy-sidebar-item" data-view="agents" aria-label="Agents">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-users"></use></svg>
+      <span>Agents</span>
+    </a>
+    <a href="#hitl" class="murphy-sidebar-item" data-view="hitl" aria-label="HITL Queue">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-user"></use></svg>
+      <span>HITL Queue</span>
+    </a>
+
+    <!-- Data & Forms -->
+    <div class="murphy-sidebar-section" aria-label="Data and Forms">Data &amp; Forms</div>
+    <a href="#forms" class="murphy-sidebar-item" data-view="forms" aria-label="Forms">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-file-text"></use></svg>
+      <span>Forms</span>
+    </a>
+    <a href="#documents" class="murphy-sidebar-item" data-view="documents" aria-label="Documents">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-database"></use></svg>
+      <span>Documents</span>
+    </a>
+
+    <!-- Governance -->
+    <div class="murphy-sidebar-section" aria-label="Governance">Governance</div>
+    <a href="#gates" class="murphy-sidebar-item" data-view="gates" aria-label="Gates MFGC">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-shield"></use></svg>
+      <span>Gates (MFGC)</span>
+    </a>
+    <a href="#causality" class="murphy-sidebar-item" data-view="causality" aria-label="Causality">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-git-branch"></use></svg>
+      <span>Causality</span>
+    </a>
+    <a href="#safety" class="murphy-sidebar-item" data-view="safety" aria-label="Safety">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-alert"></use></svg>
+      <span>Safety</span>
+    </a>
+    <a href="#corrections" class="murphy-sidebar-item" data-view="corrections" aria-label="Corrections">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-refresh"></use></svg>
+      <span>Corrections</span>
+    </a>
+
+    <!-- Intelligence -->
+    <div class="murphy-sidebar-section" aria-label="Intelligence">Intelligence</div>
+    <a href="#librarian" class="murphy-sidebar-item" data-view="librarian" aria-label="Librarian">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-search"></use></svg>
+      <span>Librarian</span>
+    </a>
+    <a href="#wingman" class="murphy-sidebar-item" data-view="wingman" aria-label="Wingman">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-zap"></use></svg>
+      <span>Wingman</span>
+    </a>
+    <a href="#ip" class="murphy-sidebar-item" data-view="ip" aria-label="IP Management">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-lock"></use></svg>
+      <span>IP Management</span>
+    </a>
+
+    <!-- Analytics -->
+    <div class="murphy-sidebar-section" aria-label="Analytics">Analytics</div>
+    <a href="#heatmap" class="murphy-sidebar-item" data-view="heatmap" aria-label="Heatmap">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-layers"></use></svg>
+      <span>Heatmap</span>
+    </a>
+    <a href="#efficiency" class="murphy-sidebar-item" data-view="efficiency" aria-label="Efficiency">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-chart"></use></svg>
+      <span>Efficiency</span>
+    </a>
+    <a href="#costs" class="murphy-sidebar-item" data-view="costs" aria-label="Costs">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-dollar-sign"></use></svg>
+      <span>Costs</span>
+    </a>
+    <a href="#supply" class="murphy-sidebar-item" data-view="supply" aria-label="Supply Chain">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-globe"></use></svg>
+      <span>Supply</span>
+    </a>
+
+    <!-- Admin -->
+    <div class="murphy-sidebar-section" aria-label="Admin">Admin</div>
+    <a href="#integrations" class="murphy-sidebar-item" data-view="integrations" aria-label="Integrations">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-plug"></use></svg>
+      <span>Integrations</span>
+    </a>
+    <a href="#llm" class="murphy-sidebar-item" data-view="llm" aria-label="LLM Config">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-settings"></use></svg>
+      <span>LLM Config</span>
+    </a>
+    <a href="#credentials" class="murphy-sidebar-item" data-view="credentials" aria-label="Credentials">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-unlock"></use></svg>
+      <span>Credentials</span>
+    </a>
+    <a href="#onboarding" class="murphy-sidebar-item" data-view="onboarding" aria-label="Onboarding">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-play"></use></svg>
+      <span>Onboarding</span>
+    </a>
+    <a href="#graduation" class="murphy-sidebar-item" data-view="graduation" aria-label="Graduation">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-check"></use></svg>
+      <span>Graduation</span>
+    </a>
+
+    <!-- Graphical (external links) -->
+    <div class="murphy-sidebar-section" aria-label="Graphical">Graphical</div>
+    <a href="/ui/workflow-canvas" class="murphy-sidebar-item" target="_blank" rel="noopener" aria-label="Workflow Canvas (opens in new tab)">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-topology"></use></svg>
+      <span>Workflow Canvas</span>
+    </a>
+    <a href="/ui/system-visualizer" class="murphy-sidebar-item" target="_blank" rel="noopener" aria-label="System Visualizer (opens in new tab)">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-code"></use></svg>
+      <span>System Visualizer</span>
+    </a>
+    <a href="/ui/production-wizard" class="murphy-sidebar-item" target="_blank" rel="noopener" aria-label="Production Wizard (opens in new tab)">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-execute"></use></svg>
+      <span>Production Wizard</span>
+    </a>
+  </div>
+
+  <div class="murphy-sidebar-footer">
+    <span class="text-xs text-muted">Murphy System v2</span>
+  </div>
+</nav>
+
+<!-- ============================================================
+     TOPBAR
+     ============================================================ -->
+<header class="murphy-topbar" role="banner" aria-label="Top bar">
+  <div class="murphy-topbar-left">
+    <button class="murphy-btn murphy-btn-icon" id="btn-sidebar-toggle" aria-label="Toggle sidebar" title="Toggle sidebar">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-menu"></use></svg>
+    </button>
+    <h1 class="murphy-topbar-title">Murphy Unified Hub</h1>
+  </div>
+  <div class="murphy-topbar-right">
+    <div class="relative" id="topbar-search-wrapper">
+      <input type="search" class="murphy-input" id="topbar-search" placeholder="Search… (Ctrl+K)" aria-label="Search" autocomplete="off">
+    </div>
+    <button class="murphy-btn murphy-btn-icon" id="btn-theme-toggle" aria-label="Toggle theme" title="Toggle theme">
+      <svg width="18" height="18" id="theme-icon"><use href="static/murphy-icons.svg#icon-moon"></use></svg>
+    </button>
+    <button class="murphy-btn murphy-btn-icon" id="btn-notifications" aria-label="Notifications" title="Notifications">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-bell"></use></svg>
+    </button>
+    <div class="relative" id="user-menu-wrapper">
+      <button class="murphy-btn murphy-btn-icon" id="btn-user-profile" aria-label="User profile" title="User profile" aria-haspopup="true" aria-expanded="false">
+        <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-user"></use></svg>
+      </button>
+      <div id="user-menu-dropdown" role="menu" aria-label="User menu"
+        style="display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:220px;background:var(--bg-secondary,#1a1a2e);border:1px solid var(--border-dim,#333);border-radius:8px;padding:8px 0;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,.4);">
+        <div style="padding:12px 16px;border-bottom:1px solid var(--border-dim,#333);font-size:13px;color:var(--text-dim,#888);">
+          <div style="font-weight:600;color:var(--text-primary,#e6ecf2);">Murphy User</div>
+          <div>admin@murphy.system</div>
+        </div>
+        <a href="/ui/management" role="menuitem" style="display:block;padding:8px 16px;color:var(--text-primary,#e6ecf2);text-decoration:none;font-size:13px;">⚙ Account Settings</a>
+        <a href="/ui/management#billing" role="menuitem" style="display:block;padding:8px 16px;color:var(--text-primary,#e6ecf2);text-decoration:none;font-size:13px;">💳 Billing &amp; Subscription</a>
+        <a href="/ui/management#statements" role="menuitem" style="display:block;padding:8px 16px;color:var(--text-primary,#e6ecf2);text-decoration:none;font-size:13px;">📄 Statements &amp; Invoices</a>
+        <a href="/ui/wallet" role="menuitem" style="display:block;padding:8px 16px;color:var(--text-primary,#e6ecf2);text-decoration:none;font-size:13px;">💰 Wallet</a>
+        <a href="/ui/compliance" role="menuitem" style="display:block;padding:8px 16px;color:var(--text-primary,#e6ecf2);text-decoration:none;font-size:13px;">🛡 Compliance</a>
+        <a href="/ui/calendar" role="menuitem" style="display:block;padding:8px 16px;color:var(--text-primary,#e6ecf2);text-decoration:none;font-size:13px;">📅 Calendar</a>
+        <div style="border-top:1px solid var(--border-dim,#333);margin-top:4px;padding-top:4px;">
+          <a href="/ui/login" role="menuitem" style="display:block;padding:8px 16px;color:#F87171;text-decoration:none;font-size:13px;">↩ Sign Out</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ============================================================
+     MAIN CONTENT AREA
+     ============================================================ -->
+<main id="content" role="main" aria-label="Main content" aria-live="polite"
+      style="margin-left: var(--sidebar-width); margin-top: var(--topbar-height); padding: var(--space-5); min-height: calc(100vh - var(--topbar-height)); transition: margin-left 0.2s ease;">
+</main>
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+<script src="static/murphy-components.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* ===========================================================
+     1. SHARED COMPONENT INITIALIZATION
+     =========================================================== */
+  var api       = new MurphyAPI('/api');
+  var health    = new MurphyHealth(api);
+  var theme     = new MurphyTheme();
+  var keyboard  = new MurphyKeyboard();
+  var jargon    = new MurphyJargon();
+  var librarian = new MurphyLibrarianChat(api);
+  var toast     = new MurphyToast();
+
+  theme.init();
+  keyboard.init();
+  jargon.init();
+  health.start(15000);
+
+  /* ===========================================================
+     2. HELPERS — HTML generation utilities
+     =========================================================== */
+  function esc(s) {
+    var d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
+  }
+
+  function icon(name, size) {
+    size = size || 18;
+    return '<svg width="' + size + '" height="' + size + '"><use href="static/murphy-icons.svg#icon-' + esc(name) + '"></use></svg>';
+  }
+
+  function badge(text, variant) {
+    variant = variant || 'neutral';
+    return '<span class="murphy-badge murphy-badge-' + esc(variant) + '">' + esc(text) + '</span>';
+  }
+
+  function skeletonCards(n) {
+    var h = '';
+    for (var i = 0; i < (n || 4); i++) {
+      h += '<div class="murphy-skeleton-card murphy-skeleton"></div>';
+    }
+    return '<div class="grid gap-4" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr));">' + h + '</div>';
+  }
+
+  function skeletonRows(n) {
+    var h = '';
+    for (var i = 0; i < (n || 6); i++) {
+      h += '<div class="murphy-skeleton murphy-skeleton-text"></div>';
+    }
+    return '<div class="flex flex-col gap-3 p-4">' + h + '</div>';
+  }
+
+  function emptyState(title, msg) {
+    return '<div class="murphy-empty-state">' +
+      '<div class="murphy-empty-state-icon">' + icon('search', 48) + '</div>' +
+      '<div class="murphy-empty-state-title">' + esc(title) + '</div>' +
+      '<div class="murphy-empty-state-message">' + esc(msg) + '</div>' +
+      '</div>';
+  }
+
+  function errorCard(message, retryHash) {
+    var rh = esc(retryHash || '');
+    return '<div class="murphy-card">' +
+      '<div class="murphy-card-body flex flex-col items-center gap-4 p-6">' +
+      '<div class="text-danger text-lg font-bold">' + icon('alert', 32) + ' Error</div>' +
+      '<p class="text-secondary text-sm">' + esc(message) + '</p>' +
+      '<button class="murphy-btn murphy-btn-primary" onclick="location.hash=\'' + rh + '\';navigate(\'' + rh.replace('#', '') + '\');">Retry</button>' +
+      '</div></div>';
+  }
+
+  function statCard(label, value, trendDir, trendText) {
+    var tc = trendDir === 'up' ? 'murphy-stat-card-trend-up' : (trendDir === 'down' ? 'murphy-stat-card-trend-down' : '');
+    var th = trendText ? '<div class="murphy-stat-card-trend ' + tc + '">' + esc(trendText) + '</div>' : '';
+    return '<div class="murphy-stat-card">' +
+      '<div class="murphy-stat-card-label">' + esc(label) + '</div>' +
+      '<div class="murphy-stat-card-value">' + esc(value) + '</div>' +
+      th +
+      '</div>';
+  }
+
+  function gateIndicator(name, state, cssClass) {
+    var oc = (state === 'open' || state === true) ? 'open' : 'closed';
+    return '<div class="murphy-gate-indicator murphy-gate-indicator-' + esc(cssClass) + ' murphy-gate-indicator-' + oc + '" title="' + esc(name) + ': ' + oc + '">' +
+      '<div class="murphy-gate-indicator-hex">' + esc(name.charAt(0)) + '</div>' +
+      '<span class="text-xs">' + esc(name) + '</span>' +
+      '</div>';
+  }
+
+  function tableHTML(columns, rows) {
+    var h = '<div class="murphy-table murphy-table-striped"><div class="murphy-table-header">';
+    columns.forEach(function (c) { h += '<div>' + esc(c.label) + '</div>'; });
+    h += '</div>';
+    if (!rows || rows.length === 0) {
+      h += '<div class="p-6 text-center text-muted text-sm">No data available</div>';
+    } else {
+      rows.forEach(function (row) {
+        h += '<div class="murphy-table-row">';
+        columns.forEach(function (c) {
+          var val = row[c.key];
+          h += '<div>' + (c.render ? c.render(val, row) : esc(val)) + '</div>';
+        });
+        h += '</div>';
+      });
+    }
+    h += '</div>';
+    return h;
+  }
+
+  function sectionHeader(title, subtitle) {
+    return '<div class="flex items-center justify-between mb-4">' +
+      '<div>' +
+      '<h2 class="text-xl font-bold">' + esc(title) + '</h2>' +
+      (subtitle ? '<p class="text-sm text-secondary">' + esc(subtitle) + '</p>' : '') +
+      '</div></div>';
+  }
+
+  function cardWrap(headerHtml, bodyHtml, footerHtml) {
+    var h = '<div class="murphy-card">';
+    if (headerHtml) h += '<div class="murphy-card-header">' + headerHtml + '</div>';
+    h += '<div class="murphy-card-body">' + bodyHtml + '</div>';
+    if (footerHtml) h += '<div class="murphy-card-footer">' + footerHtml + '</div>';
+    h += '</div>';
+    return h;
+  }
+
+  /* ===========================================================
+     3. SIDEBAR TOGGLE & MOBILE HANDLING
+     =========================================================== */
+  var sidebar   = document.getElementById('sidebar');
+  var contentEl = document.getElementById('content');
+
+  document.getElementById('btn-sidebar-toggle').addEventListener('click', function () {
+    if (window.innerWidth <= 640) {
+      sidebar.classList.toggle('murphy-sidebar-open');
+    } else {
+      sidebar.classList.toggle('murphy-sidebar-collapsed');
+      contentEl.style.marginLeft = sidebar.classList.contains('murphy-sidebar-collapsed')
+        ? '56px'
+        : 'var(--sidebar-width)';
+    }
+  });
+
+  sidebar.addEventListener('click', function (e) {
+    if (e.target.closest('.murphy-sidebar-item') && window.innerWidth <= 640) {
+      sidebar.classList.remove('murphy-sidebar-open');
+    }
+  });
+
+  /* ===========================================================
+     4. THEME TOGGLE
+     =========================================================== */
+  var themeIcon = document.getElementById('theme-icon');
+
+  function updateThemeIcon() {
+    var useEl = themeIcon.querySelector('use');
+    useEl.setAttribute('href', 'static/murphy-icons.svg#icon-' + (theme.get() === 'dark' ? 'moon' : 'sun'));
+  }
+
+  theme.onChange(updateThemeIcon);
+  updateThemeIcon();
+
+  document.getElementById('btn-theme-toggle').addEventListener('click', function () {
+    theme.toggle();
+  });
+
+  /* ── User profile menu toggle ── */
+  (function () {
+    var btn = document.getElementById('btn-user-profile');
+    var menu = document.getElementById('user-menu-dropdown');
+    if (!btn || !menu) return;
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var open = menu.style.display !== 'none';
+      menu.style.display = open ? 'none' : 'block';
+      btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+    });
+    document.addEventListener('click', function () { menu.style.display = 'none'; btn.setAttribute('aria-expanded', 'false'); });
+    menu.addEventListener('click', function (e) { e.stopPropagation(); });
+  })();
+
+  /* ── Notifications panel toggle ── */
+  document.getElementById('btn-notifications').addEventListener('click', function () {
+    var panel = document.getElementById('notifications-panel');
+    if (panel) { panel.style.display = panel.style.display === 'none' ? 'block' : 'none'; return; }
+    var p = document.createElement('div');
+    p.id = 'notifications-panel';
+    p.setAttribute('role', 'dialog');
+    p.setAttribute('aria-label', 'Notifications');
+    p.style.cssText = 'position:fixed;top:var(--topbar-height,56px);right:12px;width:340px;max-height:400px;overflow-y:auto;background:var(--bg-secondary,#1a1a2e);border:1px solid var(--border-dim,#333);border-radius:8px;padding:0;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,.4);';
+    p.innerHTML = '<div style="padding:12px 16px;border-bottom:1px solid var(--border-dim,#333);font-weight:600;font-size:14px;">Notifications</div>' +
+      '<div style="padding:24px 16px;text-align:center;color:var(--text-dim,#888);font-size:13px;">No new notifications</div>';
+    document.body.appendChild(p);
+    document.addEventListener('click', function handler(e) {
+      if (!p.contains(e.target) && e.target !== document.getElementById('btn-notifications')) { p.style.display = 'none'; }
+    });
+  });
+
+  /* ===========================================================
+     5. KEYBOARD SHORTCUTS
+     =========================================================== */
+  keyboard.register('ctrl+k', function () {
+    document.getElementById('topbar-search').focus();
+  }, 'Focus search');
+
+  keyboard.register('ctrl+/', function () {
+    keyboard.showHelp();
+  }, 'Show keyboard shortcuts');
+
+  keyboard.register('ctrl+b', function () {
+    document.getElementById('btn-sidebar-toggle').click();
+  }, 'Toggle sidebar');
+
+  /* ===========================================================
+     6. TOPBAR SEARCH — sidebar navigation filter
+     =========================================================== */
+  var searchInput = document.getElementById('topbar-search');
+
+  searchInput.addEventListener('input', function () {
+    var q = this.value.trim().toLowerCase();
+    sidebar.querySelectorAll('.murphy-sidebar-item[data-view]').forEach(function (item) {
+      item.style.display = (!q || (item.textContent || '').toLowerCase().indexOf(q) !== -1) ? '' : 'none';
+    });
+  });
+
+  searchInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      this.value = '';
+      this.dispatchEvent(new Event('input'));
+      this.blur();
+    }
+    if (e.key === 'Enter') {
+      var visible = sidebar.querySelectorAll('.murphy-sidebar-item[data-view]:not([style*="display: none"])');
+      if (visible.length === 1) {
+        visible[0].click();
+        this.value = '';
+        this.dispatchEvent(new Event('input'));
+        this.blur();
+      }
+    }
+  });
+
+  /* ===========================================================
+     7. HASH ROUTER
+     =========================================================== */
+  var currentView = '';
+
+  var views = {
+    dashboard:    renderDashboard,
+    status:       renderStatus,
+    execute:      renderExecute,
+    workflows:    renderWorkflows,
+    agents:       renderAgents,
+    hitl:         renderHitl,
+    forms:        renderForms,
+    documents:    renderDocuments,
+    chat:         renderChat,
+    gates:        renderGates,
+    causality:    renderCausality,
+    safety:       renderSafety,
+    corrections:  renderCorrections,
+    librarian:    renderLibrarian,
+    wingman:      renderWingman,
+    ip:           renderIP,
+    heatmap:      renderHeatmap,
+    efficiency:   renderEfficiency,
+    costs:        renderCosts,
+    supply:       renderSupply,
+    integrations: renderIntegrations,
+    llm:          renderLLM,
+    credentials:  renderCredentials,
+    onboarding:   renderOnboarding,
+    graduation:   renderGraduation
+  };
+
+  /* Exposed on window so the retry button can call it */
+  window.navigate = navigate;
+
+  function navigate(hash) {
+    hash = hash || 'dashboard';
+    if (!views[hash]) hash = 'dashboard';
+    currentView = hash;
+
+    sidebar.querySelectorAll('.murphy-sidebar-item').forEach(function (el) {
+      el.classList.toggle('murphy-sidebar-item-active', el.getAttribute('data-view') === hash);
+    });
+
+    librarian.setContext('terminal_unified#' + hash);
+    views[hash]();
+    setTimeout(function () { jargon.autoScan(); }, 200);
+  }
+
+  window.addEventListener('hashchange', function () {
+    navigate(location.hash.slice(1));
+  });
+
+  /* ===========================================================
+     8. VIEW: DASHBOARD
+     =========================================================== */
+  async function renderDashboard() {
+    contentEl.innerHTML = sectionHeader('Dashboard', 'System overview and quick actions') + skeletonCards(4);
+    try {
+      var res   = await api.get('/status');
+      var gRes  = await api.get('/mfgc/state');
+      var data  = (res && res.data)  || res  || {};
+      var gates = (gRes && gRes.data) || gRes || {};
+
+      var activeWf  = data.active_workflows  != null ? data.active_workflows : '\u2014';
+      var hitlPend  = data.hitl_pending      != null ? data.hitl_pending     : '\u2014';
+      var healthPct = data.health            != null ? data.health + '%'     : '\u2014';
+      var agentCnt  = data.active_agents     != null ? data.active_agents    : '\u2014';
+
+      var html = sectionHeader('Dashboard', 'System overview and quick actions');
+
+      html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">';
+      html += statCard('Active Workflows', activeWf);
+      html += statCard('HITL Pending', hitlPend, hitlPend > 5 ? 'up' : null, hitlPend > 5 ? 'Attention' : '');
+      html += statCard('System Health', healthPct);
+      html += statCard('Active Agents', agentCnt);
+      html += '</div>';
+
+      var gateNames = [
+        { key: 'executive',  label: 'Executive',  css: 'executive'  },
+        { key: 'operations', label: 'Operations', css: 'operations' },
+        { key: 'qa',         label: 'QA',         css: 'qa'         },
+        { key: 'hitl',       label: 'HITL',       css: 'hitl'       },
+        { key: 'compliance', label: 'Compliance', css: 'compliance' },
+        { key: 'budget',     label: 'Budget',     css: 'budget'     }
+      ];
+
+      html += '<div class="murphy-card mb-6"><div class="murphy-card-header">MFGC Gate Status</div>';
+      html += '<div class="murphy-card-body"><div class="flex flex-wrap gap-4">';
+      gateNames.forEach(function (g) {
+        var s = gates[g.key] || gates[g.label] || 'closed';
+        html += gateIndicator(g.label, s, g.css);
+      });
+      html += '</div></div></div>';
+
+      var events = data.recent_events || data.events || [];
+      if (events.length) {
+        html += cardWrap('Recent Activity',
+          '<div class="flex flex-col gap-2">' +
+          events.slice(0, 10).map(function (ev) {
+            var ts = ev.timestamp || ev.time || '';
+            return '<div class="flex items-center gap-3 py-1 text-sm">' +
+              '<span class="text-muted text-xs" style="min-width:100px;">' + esc(ts) + '</span>' +
+              '<span>' + esc(ev.message || ev.description || ev.event || JSON.stringify(ev)) + '</span>' +
+              '</div>';
+          }).join('') +
+          '</div>'
+        );
+      }
+
+      html += '<div class="flex flex-wrap gap-3 mt-6">';
+      html += '<a href="#workflows" class="murphy-btn murphy-btn-primary">' + icon('workflow') + ' New Workflow</a>';
+      html += '<a href="#execute" class="murphy-btn murphy-btn-secondary">' + icon('terminal') + ' Run Command</a>';
+      html += '<a href="#chat" class="murphy-btn murphy-btn-secondary">' + icon('message-circle') + ' Open Chat</a>';
+      html += '</div>';
+
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('Dashboard') + errorCard(e.message, '#dashboard');
+    }
+  }
+
+  /* ===========================================================
+     9. VIEW: STATUS
+     =========================================================== */
+  async function renderStatus() {
+    contentEl.innerHTML = sectionHeader('System Status') + skeletonRows(6);
+    try {
+      var res  = await api.get('/status');
+      var hRes = await api.get('/health');
+      var data  = (res  && res.data)  || res  || {};
+      var hData = (hRes && hRes.data) || hRes || {};
+
+      var html = sectionHeader('System Status', 'Health and module information');
+
+      html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">';
+      html += statCard('Overall Health', (hData.health || data.health || '\u2014') + '%');
+      html += statCard('Uptime', hData.uptime || data.uptime || '\u2014');
+      html += statCard('API Latency', (hData.latency_ms || data.latency_ms || '\u2014') + ' ms');
+      html += '</div>';
+
+      var modules = data.modules || hData.modules || [];
+      if (modules.length) {
+        html += cardWrap('Modules', tableHTML(
+          [
+            { key: 'name', label: 'Module' },
+            { key: 'status', label: 'Status', render: function (v) { return badge(v || 'unknown', v === 'running' || v === 'healthy' ? 'success' : (v === 'error' ? 'danger' : 'warning')); } },
+            { key: 'version', label: 'Version' }
+          ],
+          modules
+        ));
+      } else {
+        html += emptyState('No Modules', 'Module status data is not available.');
+      }
+
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('System Status') + errorCard(e.message, '#status');
+    }
+  }
+
+  /* ===========================================================
+     10. VIEW: EXECUTE
+     =========================================================== */
+  async function renderExecute() {
+    var html = sectionHeader('Execute', 'Run commands against the system');
+    html += '<div class="murphy-card mb-4"><div class="murphy-card-body">';
+    html += '<label class="murphy-label" for="exec-cmd">Command</label>';
+    html += '<div class="flex gap-3">';
+    html += '<input type="text" class="murphy-input flex-1" id="exec-cmd" placeholder="Enter command\u2026" autocomplete="off">';
+    html += '<button class="murphy-btn murphy-btn-primary" id="exec-run">' + icon('play') + ' Run</button>';
+    html += '</div></div></div>';
+    html += '<div class="murphy-card"><div class="murphy-card-header">Output</div>';
+    html += '<div class="murphy-card-body"><pre id="exec-output" class="murphy-terminal-output" style="min-height:200px;max-height:500px;overflow:auto;white-space:pre-wrap;">Ready.</pre>';
+    html += '</div></div>';
+
+    contentEl.innerHTML = html;
+
+    var cmdInput = document.getElementById('exec-cmd');
+    var outputEl = document.getElementById('exec-output');
+    var runBtn   = document.getElementById('exec-run');
+
+    async function runCommand() {
+      var cmd = cmdInput.value.trim();
+      if (!cmd) return;
+      outputEl.textContent = 'Executing\u2026';
+      runBtn.classList.add('murphy-btn-loading');
+      try {
+        var res = await api.post('/execute', { command: cmd });
+        var d = (res && res.data) || res || {};
+        outputEl.textContent = d.output || d.result || JSON.stringify(d, null, 2);
+      } catch (e) {
+        outputEl.textContent = 'Error: ' + e.message;
+      }
+      runBtn.classList.remove('murphy-btn-loading');
+    }
+
+    runBtn.addEventListener('click', runCommand);
+    cmdInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') runCommand(); });
+    cmdInput.focus();
+  }
+
+  /* ===========================================================
+     11. VIEW: WORKFLOWS
+     =========================================================== */
+  async function renderWorkflows() {
+    contentEl.innerHTML = sectionHeader('Workflows') + skeletonRows(8);
+    try {
+      var res   = await api.get('/workflow-terminal/list');
+      var items = (res && res.data) || (Array.isArray(res) ? res : []);
+      var html  = sectionHeader('Workflows', 'Manage and monitor workflows');
+
+      if (!items.length) {
+        html += emptyState('No Workflows', 'No workflows have been created yet.');
+      } else {
+        html += tableHTML(
+          [
+            { key: 'name',    label: 'Name' },
+            { key: 'status',  label: 'Status', render: function (v) { return badge(v, v === 'active' || v === 'running' ? 'success' : (v === 'error' || v === 'failed' ? 'danger' : 'neutral')); } },
+            { key: 'created', label: 'Created' },
+            { key: 'steps',   label: 'Steps' }
+          ],
+          items
+        );
+      }
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('Workflows') + errorCard(e.message, '#workflows');
+    }
+  }
+
+  /* ===========================================================
+     12. VIEW: AGENTS
+     =========================================================== */
+  async function renderAgents() {
+    contentEl.innerHTML = sectionHeader('Agents') + skeletonCards(6);
+    try {
+      var res   = await api.get('/agent-dashboard/agents');
+      var items = (res && res.data) || (Array.isArray(res) ? res : []);
+      var html  = sectionHeader('Agents', 'Active agent instances');
+
+      if (!items.length) {
+        html += emptyState('No Agents', 'No agents are currently active.');
+      } else {
+        html += '<div class="grid gap-4" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr));">';
+        items.forEach(function (a) {
+          html += '<div class="murphy-card"><div class="murphy-card-body">' +
+            '<div class="flex items-center gap-3 mb-2">' +
+            icon('users') +
+            '<span class="font-bold">' + esc(a.name || a.id) + '</span> ' +
+            badge(a.status || 'idle', a.status === 'active' ? 'success' : 'neutral') +
+            '</div>' +
+            '<p class="text-sm text-secondary">' + esc(a.role || a.type || '') + '</p>' +
+            '</div></div>';
+        });
+        html += '</div>';
+      }
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('Agents') + errorCard(e.message, '#agents');
+    }
+  }
+
+  /* ===========================================================
+     13. VIEW: HITL QUEUE
+     =========================================================== */
+  async function renderHitl() {
+    contentEl.innerHTML = sectionHeader('HITL Queue') + skeletonRows(6);
+    try {
+      var res   = await api.get('/hitl/pending');
+      var items = (res && res.data) || (Array.isArray(res) ? res : []);
+      var html  = sectionHeader('HITL Queue', 'Items awaiting human review');
+
+      if (!items.length) {
+        html += emptyState('Queue Empty', 'No items require human review.');
+      } else {
+        html += tableHTML(
+          [
+            { key: 'id',          label: 'ID' },
+            { key: 'type',        label: 'Type' },
+            { key: 'description', label: 'Description' },
+            { key: 'priority',    label: 'Priority', render: function (v) { return badge(v || 'normal', v === 'high' || v === 'critical' ? 'danger' : (v === 'medium' ? 'warning' : 'neutral')); } },
+            { key: 'created',     label: 'Created' }
+          ],
+          items
+        );
+      }
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('HITL Queue') + errorCard(e.message, '#hitl');
+    }
+  }
+
+  /* ===========================================================
+     14. VIEW: FORMS
+     =========================================================== */
+  async function renderForms() {
+    contentEl.innerHTML = sectionHeader('Forms') + skeletonRows(6);
+    try {
+      var res   = await api.get('/forms/list');
+      var items = (res && res.data) || (Array.isArray(res) ? res : []);
+      var html  = sectionHeader('Forms', 'Form builder and submissions');
+
+      if (!items.length) {
+        html += emptyState('No Forms', 'No forms have been created.');
+      } else {
+        html += tableHTML(
+          [
+            { key: 'name',        label: 'Form Name' },
+            { key: 'submissions', label: 'Submissions' },
+            { key: 'status',      label: 'Status', render: function (v) { return badge(v || 'draft', v === 'active' ? 'success' : 'neutral'); } },
+            { key: 'updated',     label: 'Last Updated' }
+          ],
+          items
+        );
+      }
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('Forms') + errorCard(e.message, '#forms');
+    }
+  }
+
+  /* ===========================================================
+     15. VIEW: DOCUMENTS
+     =========================================================== */
+  async function renderDocuments() {
+    contentEl.innerHTML = sectionHeader('Documents') + skeletonRows(6);
+    try {
+      var res   = await api.get('/documents/list');
+      var items = (res && res.data) || (Array.isArray(res) ? res : []);
+      var html  = sectionHeader('Documents', 'Document management');
+
+      if (!items.length) {
+        html += emptyState('No Documents', 'No documents found.');
+      } else {
+        html += tableHTML(
+          [
+            { key: 'title',    label: 'Title' },
+            { key: 'type',     label: 'Type' },
+            { key: 'size',     label: 'Size' },
+            { key: 'modified', label: 'Modified' }
+          ],
+          items
+        );
+      }
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('Documents') + errorCard(e.message, '#documents');
+    }
+  }
+
+  /* ===========================================================
+     16. VIEW: CHAT
+     =========================================================== */
+  async function renderChat() {
+    var html = sectionHeader('Chat', 'Conversational interface');
+    html += '<div class="murphy-card" style="display:flex;flex-direction:column;height:calc(100vh - 180px);">';
+    html += '<div class="murphy-card-body flex-1 overflow-auto" id="chat-messages" style="display:flex;flex-direction:column;gap:8px;"></div>';
+    html += '<div class="murphy-card-footer flex gap-3">';
+    html += '<input type="text" class="murphy-input flex-1" id="chat-input" placeholder="Type a message\u2026" autocomplete="off">';
+    html += '<button class="murphy-btn murphy-btn-primary" id="chat-send">' + icon('chat') + ' Send</button>';
+    html += '</div></div>';
+    contentEl.innerHTML = html;
+
+    var chatMsgs  = document.getElementById('chat-messages');
+    var chatInput = document.getElementById('chat-input');
+    var sendBtn   = document.getElementById('chat-send');
+
+    function addBubble(text, role) {
+      var cls = role === 'user' ? 'murphy-chat-bubble-user' : 'murphy-chat-bubble-assistant';
+      var el  = document.createElement('div');
+      el.className = 'murphy-chat-bubble ' + cls;
+      if (role === 'user') {
+        el.textContent = text;
+      } else {
+        // Render assistant messages with markdown formatting
+        if (typeof MurphyMarkdown !== 'undefined') {
+          MurphyMarkdown.injectStyles();
+          el.innerHTML = MurphyMarkdown.render(text);
+        } else {
+          el.textContent = text;
+        }
+      }
+      chatMsgs.appendChild(el);
+      chatMsgs.scrollTop = chatMsgs.scrollHeight;
+    }
+
+    async function sendMessage() {
+      var msg = chatInput.value.trim();
+      if (!msg) return;
+      addBubble(msg, 'user');
+      chatInput.value = '';
+      sendBtn.classList.add('murphy-btn-loading');
+      try {
+        var res = await api.post('/chat', { message: msg });
+        var d = (res && res.data) || res || {};
+        addBubble(d.response || d.message || d.answer || JSON.stringify(d), 'assistant');
+      } catch (e) {
+        addBubble('Error: ' + e.message, 'assistant');
+      }
+      sendBtn.classList.remove('murphy-btn-loading');
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    chatInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') sendMessage(); });
+    chatInput.focus();
+  }
+
+  /* ===========================================================
+     17. VIEW: GATES (MFGC)
+     =========================================================== */
+  async function renderGates() {
+    contentEl.innerHTML = sectionHeader('Gates (MFGC)') + skeletonCards(6);
+    try {
+      var res  = await api.get('/mfgc/state');
+      var data = (res && res.data) || res || {};
+      var html = sectionHeader('Gates (MFGC)', 'Murphy Flow Gate Controller \u2014 6 governance gates');
+
+      var gateList = [
+        { key: 'executive',  label: 'Executive',  css: 'executive',  desc: 'Strategic decision authority' },
+        { key: 'operations', label: 'Operations', css: 'operations', desc: 'Operational readiness' },
+        { key: 'qa',         label: 'QA',         css: 'qa',         desc: 'Quality assurance checks' },
+        { key: 'hitl',       label: 'HITL',       css: 'hitl',       desc: 'Human-in-the-loop approval' },
+        { key: 'compliance', label: 'Compliance', css: 'compliance', desc: 'Regulatory compliance' },
+        { key: 'budget',     label: 'Budget',     css: 'budget',     desc: 'Budget authorization' }
+      ];
+
+      html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr));">';
+      gateList.forEach(function (g) {
+        var s = data[g.key] || data[g.label] || 'closed';
+        var isOpen = s === 'open' || s === true;
+        html += '<div class="murphy-card">' +
+          '<div class="murphy-card-body flex items-center gap-4">' +
+          gateIndicator(g.label, s, g.css) +
+          '<div class="flex-1">' +
+          '<div class="font-bold">' + esc(g.label) + ' ' + badge(isOpen ? 'Open' : 'Closed', isOpen ? 'success' : 'danger') + '</div>' +
+          '<p class="text-sm text-secondary mt-1">' + esc(g.desc) + '</p>' +
+          '</div></div></div>';
+      });
+      html += '</div>';
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('Gates (MFGC)') + errorCard(e.message, '#gates');
+    }
+  }
+
+  /* ===========================================================
+     18. VIEW: CAUSALITY
+     =========================================================== */
+  async function renderCausality() {
+    contentEl.innerHTML = sectionHeader('Causality') + skeletonRows(6);
+    try {
+      var res  = await api.get('/causality/analysis');
+      var data = (res && res.data) || res || {};
+      var items = data.chains || data.analyses || data.items || (Array.isArray(data) ? data : []);
+      var html = sectionHeader('Causality', 'Causality engine analysis');
+
+      if (!items.length) {
+        html += emptyState('No Causality Data', 'No causal analysis available.');
+      } else {
+        html += tableHTML(
+          [
+            { key: 'cause',      label: 'Cause' },
+            { key: 'effect',     label: 'Effect' },
+            { key: 'confidence', label: 'Confidence', render: function (v) { return badge((v || 0) + '%', v >= 80 ? 'success' : (v >= 50 ? 'warning' : 'danger')); } },
+            { key: 'timestamp',  label: 'Time' }
+          ],
+          items
+        );
+      }
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('Causality') + errorCard(e.message, '#causality');
+    }
+  }
+
+  /* ===========================================================
+     19. VIEW: SAFETY
+     =========================================================== */
+  async function renderSafety() {
+    contentEl.innerHTML = sectionHeader('Safety') + skeletonRows(4);
+    try {
+      var res    = await api.get('/safety/status');
+      var data   = (res && res.data) || res || {};
+      var alerts = data.alerts || data.issues || (Array.isArray(data) ? data : []);
+      var html   = sectionHeader('Safety', 'Safety monitoring and alerts');
+
+      html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">';
+      html += statCard('Safety Score', (data.score || data.safety_score || '\u2014') + '%');
+      html += statCard('Open Alerts', alerts.length);
+      html += statCard('Last Check', data.last_check || '\u2014');
+      html += '</div>';
+
+      if (alerts.length) {
+        html += cardWrap('Active Alerts', tableHTML(
+          [
+            { key: 'severity',  label: 'Severity', render: function (v) { return badge(v || 'info', v === 'critical' || v === 'high' ? 'danger' : (v === 'medium' ? 'warning' : 'info')); } },
+            { key: 'message',   label: 'Message' },
+            { key: 'timestamp', label: 'Time' }
+          ],
+          alerts
+        ));
+      }
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('Safety') + errorCard(e.message, '#safety');
+    }
+  }
+
+  /* ===========================================================
+     20. VIEW: CORRECTIONS
+     =========================================================== */
+  async function renderCorrections() {
+    contentEl.innerHTML = sectionHeader('Corrections') + skeletonRows(6);
+    try {
+      var res   = await api.get('/corrections/list');
+      var items = (res && res.data) || (Array.isArray(res) ? res : []);
+      var html  = sectionHeader('Corrections', 'Correction tracking and history');
+
+      if (!items.length) {
+        html += emptyState('No Corrections', 'No corrections have been recorded.');
+      } else {
+        html += tableHTML(
+          [
+            { key: 'id',          label: 'ID' },
+            { key: 'type',        label: 'Type' },
+            { key: 'description', label: 'Description' },
+            { key: 'status',      label: 'Status', render: function (v) { return badge(v || 'pending', v === 'resolved' ? 'success' : (v === 'in_progress' ? 'warning' : 'neutral')); } },
+            { key: 'created',     label: 'Created' }
+          ],
+          items
+        );
+      }
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('Corrections') + errorCard(e.message, '#corrections');
+    }
+  }
+
+  /* ===========================================================
+     21. VIEW: LIBRARIAN
+     =========================================================== */
+  async function renderLibrarian() {
+    var html = sectionHeader('Librarian', 'Knowledge base search');
+    html += '<div class="murphy-card mb-4"><div class="murphy-card-body">';
+    html += '<label class="murphy-label" for="lib-query">Ask the Librarian</label>';
+    html += '<div class="flex gap-3">';
+    html += '<input type="text" class="murphy-input flex-1" id="lib-query" placeholder="Ask a question\u2026" autocomplete="off">';
+    html += '<button class="murphy-btn murphy-btn-primary" id="lib-ask">' + icon('search') + ' Ask</button>';
+    html += '</div></div></div>';
+    html += '<div id="lib-results"></div>';
+    contentEl.innerHTML = html;
+
+    var queryInput = document.getElementById('lib-query');
+    var resultsEl  = document.getElementById('lib-results');
+    var askBtn     = document.getElementById('lib-ask');
+
+    async function doAsk() {
+      var q = queryInput.value.trim();
+      if (!q) return;
+      resultsEl.innerHTML = skeletonRows(4);
+      askBtn.classList.add('murphy-btn-loading');
+      try {
+        var res = await api.post('/librarian/ask', { question: q });
+        var d = (res && res.data) || res || {};
+        var answer = d.answer || d.response || JSON.stringify(d, null, 2);
+        resultsEl.innerHTML = cardWrap('Answer', '<div class="text-sm" style="white-space:pre-wrap;">' + esc(answer) + '</div>');
+      } catch (e) {
+        resultsEl.innerHTML = errorCard(e.message, '#librarian');
+      }
+      askBtn.classList.remove('murphy-btn-loading');
+    }
+
+    askBtn.addEventListener('click', doAsk);
+    queryInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') doAsk(); });
+    queryInput.focus();
+  }
+
+  /* ===========================================================
+     22. VIEW: WINGMAN
+     =========================================================== */
+  async function renderWingman() {
+    contentEl.innerHTML = sectionHeader('Wingman') + skeletonRows(4);
+    try {
+      var res   = await api.get('/wingman/suggestions');
+      var items = (res && res.data) || (Array.isArray(res) ? res : []);
+      var html  = sectionHeader('Wingman', 'AI assistant suggestions');
+
+      if (!items.length) {
+        html += emptyState('No Suggestions', 'Wingman has no suggestions right now.');
+      } else {
+        html += '<div class="grid gap-4" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr));">';
+        items.forEach(function (s) {
+          html += cardWrap(
+            '<div class="flex items-center gap-2">' + icon('zap') + ' <span class="font-bold">' + esc(s.title || 'Suggestion') + '</span></div>',
+            '<p class="text-sm text-secondary">' + esc(s.description || s.suggestion || s.text || '') + '</p>' +
+            (s.action ? '<div class="mt-3"><button class="murphy-btn murphy-btn-sm murphy-btn-secondary">' + esc(s.action) + '</button></div>' : '')
+          );
+        });
+        html += '</div>';
+      }
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('Wingman') + errorCard(e.message, '#wingman');
+    }
+  }
+
+  /* ===========================================================
+     23. VIEW: IP MANAGEMENT
+     =========================================================== */
+  async function renderIP() {
+    contentEl.innerHTML = sectionHeader('IP Management') + skeletonRows(6);
+    try {
+      var res  = await api.get('/ip/portfolio');
+      var data = (res && res.data) || res || {};
+      var items = data.items || data.assets || (Array.isArray(data) ? data : []);
+      var html = sectionHeader('IP Management', 'Intellectual property portfolio');
+
+      if (data.total_value || data.total) {
+        html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">';
+        html += statCard('Total Assets', data.total || items.length);
+        html += statCard('Portfolio Value', data.total_value || '\u2014');
+        html += '</div>';
+      }
+
+      if (!items.length) {
+        html += emptyState('No IP Assets', 'No intellectual property assets found.');
+      } else {
+        html += tableHTML(
+          [
+            { key: 'name',   label: 'Asset' },
+            { key: 'type',   label: 'Type' },
+            { key: 'status', label: 'Status', render: function (v) { return badge(v || 'active', v === 'active' ? 'success' : 'neutral'); } },
+            { key: 'filed',  label: 'Filed' }
+          ],
+          items
+        );
+      }
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('IP Management') + errorCard(e.message, '#ip');
+    }
+  }
+
+  /* ===========================================================
+     24. VIEW: HEATMAP
+     =========================================================== */
+  async function renderHeatmap() {
+    contentEl.innerHTML = sectionHeader('Heatmap') + skeletonCards(1);
+    try {
+      var res  = await api.get('/heatmap/data');
+      var data = (res && res.data) || res || {};
+      var entries = data.entries || data.cells || data.data || (Array.isArray(data) ? data : []);
+      var html = sectionHeader('Heatmap', 'Activity heatmap visualization');
+
+      if (!entries.length) {
+        html += emptyState('No Heatmap Data', 'Not enough activity data to generate a heatmap.');
+      } else {
+        html += '<div class="murphy-card"><div class="murphy-card-body">';
+        html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(28px,1fr));gap:3px;">';
+        var maxV = data.max || 100;
+        entries.forEach(function (cell) {
+          var intensity = cell.value || cell.count || 0;
+          var opacity = Math.max(0.08, Math.min(1, intensity / maxV));
+          html += '<div title="' + esc((cell.label || '') + ': ' + intensity) + '" style="width:28px;height:28px;border-radius:4px;background:rgba(139,108,231,' + opacity + ');"></div>';
+        });
+        html += '</div></div></div>';
+      }
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('Heatmap') + errorCard(e.message, '#heatmap');
+    }
+  }
+
+  /* ===========================================================
+     25. VIEW: EFFICIENCY
+     =========================================================== */
+  async function renderEfficiency() {
+    contentEl.innerHTML = sectionHeader('Efficiency') + skeletonCards(4);
+    try {
+      var res  = await api.get('/efficiency/metrics');
+      var data = (res && res.data) || res || {};
+      var html = sectionHeader('Efficiency', 'Performance metrics');
+
+      html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">';
+      html += statCard('Throughput', data.throughput || '\u2014');
+      html += statCard('Avg Latency', (data.avg_latency || data.latency || '\u2014') + ' ms');
+      html += statCard('Error Rate', (data.error_rate || '\u2014') + '%');
+      html += statCard('Utilization', (data.utilization || '\u2014') + '%');
+      html += '</div>';
+
+      var breakdown = data.breakdown || data.details || [];
+      if (breakdown.length) {
+        html += cardWrap('Metric Breakdown', tableHTML(
+          [
+            { key: 'metric', label: 'Metric' },
+            { key: 'value',  label: 'Value' },
+            { key: 'trend',  label: 'Trend', render: function (v) { return badge(v || 'stable', v === 'up' || v === 'improving' ? 'success' : (v === 'down' || v === 'degrading' ? 'danger' : 'neutral')); } }
+          ],
+          breakdown
+        ));
+      }
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('Efficiency') + errorCard(e.message, '#efficiency');
+    }
+  }
+
+  /* ===========================================================
+     26. VIEW: COSTS
+     =========================================================== */
+  async function renderCosts() {
+    contentEl.innerHTML = sectionHeader('Costs') + skeletonCards(4);
+    try {
+      var res   = await api.get('/efficiency/costs');
+      var data  = (res && res.data) || res || {};
+      var items = data.items || data.line_items || (Array.isArray(data) ? data : []);
+      var html  = sectionHeader('Costs', 'Budget and spending overview');
+
+      html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">';
+      html += statCard('Total Spend', data.total || data.total_spend || '\u2014');
+      html += statCard('Budget', data.budget || '\u2014');
+      html += statCard('Remaining', data.remaining || '\u2014');
+      html += '</div>';
+
+      if (items.length) {
+        html += cardWrap('Cost Breakdown', tableHTML(
+          [
+            { key: 'category', label: 'Category' },
+            { key: 'amount',   label: 'Amount' },
+            { key: 'percent',  label: '% of Total' }
+          ],
+          items
+        ));
+      }
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('Costs') + errorCard(e.message, '#costs');
+    }
+  }
+
+  /* ===========================================================
+     27. VIEW: SUPPLY
+     =========================================================== */
+  async function renderSupply() {
+    contentEl.innerHTML = sectionHeader('Supply') + skeletonRows(6);
+    try {
+      var res   = await api.get('/supply/status');
+      var data  = (res && res.data) || res || {};
+      var items = data.items || data.resources || (Array.isArray(data) ? data : []);
+      var html  = sectionHeader('Supply', 'Supply chain status');
+
+      html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">';
+      html += statCard('Total Resources', data.total || items.length);
+      html += statCard('Available', data.available || '\u2014');
+      html += statCard('Pending', data.pending || '\u2014');
+      html += '</div>';
+
+      if (!items.length) {
+        html += emptyState('No Supply Data', 'Supply chain data is not available.');
+      } else {
+        html += tableHTML(
+          [
+            { key: 'name',     label: 'Resource' },
+            { key: 'status',   label: 'Status', render: function (v) { return badge(v || 'unknown', v === 'available' ? 'success' : (v === 'low' ? 'warning' : 'neutral')); } },
+            { key: 'quantity', label: 'Quantity' },
+            { key: 'updated',  label: 'Updated' }
+          ],
+          items
+        );
+      }
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('Supply') + errorCard(e.message, '#supply');
+    }
+  }
+
+  /* ===========================================================
+     28. VIEW: INTEGRATIONS
+     =========================================================== */
+  async function renderIntegrations() {
+    contentEl.innerHTML = sectionHeader('Integrations') + skeletonRows(6);
+    try {
+      var res   = await api.get('/integrations/list');
+      var items = (res && res.data) || (Array.isArray(res) ? res : []);
+      var html  = sectionHeader('Integrations', 'Connected services');
+
+      if (!items.length) {
+        html += emptyState('No Integrations', 'No integrations have been configured.');
+      } else {
+        html += '<div class="grid gap-4" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr));">';
+        items.forEach(function (item) {
+          html += '<div class="murphy-card"><div class="murphy-card-body flex items-center gap-4">' +
+            icon('plug', 24) +
+            '<div class="flex-1">' +
+            '<div class="font-bold">' + esc(item.name || item.service) + '</div>' +
+            '<p class="text-sm text-secondary">' + esc(item.description || item.type || '') + '</p>' +
+            '</div>' +
+            badge(item.status || 'inactive', item.status === 'active' || item.status === 'connected' ? 'success' : 'neutral') +
+            '</div></div>';
+        });
+        html += '</div>';
+      }
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('Integrations') + errorCard(e.message, '#integrations');
+    }
+  }
+
+  /* ===========================================================
+     29. VIEW: LLM CONFIG
+     =========================================================== */
+  async function renderLLM() {
+    contentEl.innerHTML = sectionHeader('LLM Config') + skeletonRows(4);
+    try {
+      var res    = await api.get('/llm/status');
+      var data   = (res && res.data) || res || {};
+      var models = data.models || data.providers || (Array.isArray(data) ? data : []);
+      var html   = sectionHeader('LLM Config', 'Language model settings');
+
+      // Show cloud provider (distinct from the always-available onboard LLM)
+      var cloudProvider = (data.provider && data.provider !== 'onboard') ? data.provider : 'None';
+      var activeModel   = data.active_model || data.model || 'murphy-onboard';
+
+      html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">';
+      html += statCard('Cloud Provider', cloudProvider);
+      html += statCard('Active Model',   activeModel);
+      html += statCard('Onboard LLM',    'Always Available');
+      html += statCard('Requests Today', data.requests_today || '\u2014');
+      html += '</div>';
+
+      // Ensure onboard is always shown in the models list
+      var hasOnboard = models.some(function (m) { return (m.provider || m.name || '').toLowerCase() === 'onboard'; });
+      if (!hasOnboard) {
+        models = models.concat([{
+          name: 'murphy-onboard',
+          provider: 'onboard',
+          status: 'active',
+          context_window: '2048',
+        }]);
+      }
+
+      if (models.length) {
+        html += cardWrap('Available Models', tableHTML(
+          [
+            { key: 'name',           label: 'Model' },
+            { key: 'provider',       label: 'Provider' },
+            { key: 'status',         label: 'Status', render: function (v) { return badge(v || 'available', v === 'active' ? 'success' : 'neutral'); } },
+            { key: 'context_window', label: 'Context' }
+          ],
+          models
+        ));
+      }
+
+      // ── Add / Configure provider form ─────────────────────
+      html += cardWrap(
+        '<div class="flex items-center justify-between">' +
+          '<span class="font-bold">Add Cloud Provider</span>' +
+          '<span class="text-xs text-secondary">Onboard LLM is always active</span>' +
+        '</div>',
+        '<div class="flex flex-col gap-3">' +
+          '<select id="llm-uni-provider-select" class="murphy-input">' +
+            '<option value="">Select provider…</option>' +
+            '<option value="groq">Groq (free — llama3-8b-8192)</option>' +
+            '<option value="openai">OpenAI (gpt-4o)</option>' +
+            '<option value="anthropic">Anthropic (claude-3-5-sonnet)</option>' +
+          '</select>' +
+          '<input id="llm-uni-api-key-input" type="password" placeholder="Paste API key here…" class="murphy-input" autocomplete="off" />' +
+          '<button id="btn-uni-save-llm" class="murphy-btn murphy-btn-primary">' + icon('plus') + ' Save &amp; Activate</button>' +
+          '<p class="text-xs text-secondary">Get a free Groq key at ' +
+            '<a href="https://console.groq.com/keys" target="_blank" rel="noopener" class="murphy-link">console.groq.com/keys</a>' +
+          '</p>' +
+        '</div>'
+      );
+
+      contentEl.innerHTML = html;
+
+      // ── Wire up Save button ───────────────────────────────
+      var btnSave  = document.getElementById('btn-uni-save-llm');
+      var selProv  = document.getElementById('llm-uni-provider-select');
+      var inpKey   = document.getElementById('llm-uni-api-key-input');
+      var SAVE_BTN_LABEL = 'Save & Activate';
+      if (btnSave) {
+        btnSave.addEventListener('click', async function () {
+          var provider = selProv ? selProv.value : '';
+          var apiKey   = inpKey  ? inpKey.value.trim() : '';
+          if (!provider) { alert('Please select a provider.'); return; }
+          if (!apiKey)   { alert('Please enter an API key.'); return; }
+          btnSave.disabled    = true;
+          btnSave.textContent = 'Saving\u2026';
+          btnSave.setAttribute('aria-busy', 'true');
+          try {
+            await api.post('/llm/configure', { provider: provider, api_key: apiKey });
+            renderLLM();
+          } catch (err) {
+            btnSave.disabled    = false;
+            btnSave.textContent = SAVE_BTN_LABEL;
+            btnSave.setAttribute('aria-busy', 'false');
+            alert('Error saving provider: ' + (err.message || err));
+          }
+        });
+      }
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('LLM Config') + errorCard(e.message, '#llm');
+    }
+  }
+
+  /* ===========================================================
+     30. VIEW: CREDENTIALS
+     =========================================================== */
+  async function renderCredentials() {
+    contentEl.innerHTML = sectionHeader('Credentials') + skeletonRows(6);
+    try {
+      var res   = await api.get('/credentials/list');
+      var items = (res && res.data) || (Array.isArray(res) ? res : []);
+      var html  = sectionHeader('Credentials', 'Credential vault');
+
+      if (!items.length) {
+        html += emptyState('No Credentials', 'No credentials stored.');
+      } else {
+        html += tableHTML(
+          [
+            { key: 'name',    label: 'Name' },
+            { key: 'type',    label: 'Type' },
+            { key: 'status',  label: 'Status', render: function (v) { return badge(v || 'active', v === 'active' ? 'success' : (v === 'expired' ? 'danger' : 'warning')); } },
+            { key: 'expires', label: 'Expires' }
+          ],
+          items
+        );
+      }
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('Credentials') + errorCard(e.message, '#credentials');
+    }
+  }
+
+  /* ===========================================================
+     31. VIEW: ONBOARDING
+     =========================================================== */
+  async function renderOnboarding() {
+    contentEl.innerHTML = sectionHeader('Onboarding') + skeletonRows(4);
+    try {
+      var res   = await api.get('/onboarding-flow/status');
+      var data  = (res && res.data) || res || {};
+      var steps = data.steps || data.flows || (Array.isArray(data) ? data : []);
+      var html  = sectionHeader('Onboarding', 'Onboarding flow status');
+
+      if (data.progress != null) {
+        var pct = Math.min(100, Math.max(0, data.progress));
+        html += '<div class="murphy-card mb-4"><div class="murphy-card-body">';
+        html += '<div class="murphy-progress-bar-header flex justify-between text-sm mb-2">' +
+          '<span>Overall Progress</span><span>' + esc(data.progress) + '%</span></div>';
+        html += '<div class="murphy-progress-bar"><div class="murphy-progress-bar-track">' +
+          '<div class="murphy-progress-bar-fill murphy-progress-bar-fill-success" style="width:' + pct + '%;"></div>' +
+          '</div></div>';
+        html += '</div></div>';
+      }
+
+      if (!steps.length) {
+        html += emptyState('No Onboarding Data', 'Onboarding flow is not configured.');
+      } else {
+        html += tableHTML(
+          [
+            { key: 'name',     label: 'Step' },
+            { key: 'status',   label: 'Status', render: function (v) { return badge(v || 'pending', v === 'complete' || v === 'completed' ? 'success' : (v === 'in_progress' ? 'warning' : 'neutral')); } },
+            { key: 'assigned', label: 'Assigned To' }
+          ],
+          steps
+        );
+      }
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('Onboarding') + errorCard(e.message, '#onboarding');
+    }
+  }
+
+  /* ===========================================================
+     32. VIEW: GRADUATION
+     =========================================================== */
+  async function renderGraduation() {
+    contentEl.innerHTML = sectionHeader('Graduation') + skeletonRows(6);
+    try {
+      var res   = await api.get('/hitl-graduation/candidates');
+      var data  = (res && res.data) || res || {};
+      var items = data.candidates || data.items || (Array.isArray(data) ? data : []);
+      var html  = sectionHeader('Graduation', 'HITL graduation candidates');
+
+      if (data.total_graduated != null || data.total != null) {
+        html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">';
+        html += statCard('Candidates', data.total || items.length);
+        html += statCard('Graduated', data.total_graduated || '\u2014');
+        html += '</div>';
+      }
+
+      if (!items.length) {
+        html += emptyState('No Candidates', 'No HITL graduation candidates at this time.');
+      } else {
+        html += tableHTML(
+          [
+            { key: 'name',            label: 'Candidate' },
+            { key: 'score',           label: 'Score', render: function (v) { return badge((v || 0) + '%', v >= 80 ? 'success' : (v >= 60 ? 'warning' : 'danger')); } },
+            { key: 'tasks_completed', label: 'Tasks Done' },
+            { key: 'status',          label: 'Status', render: function (v) { return badge(v || 'pending', v === 'graduated' ? 'success' : (v === 'ready' ? 'info' : 'neutral')); } }
+          ],
+          items
+        );
+      }
+      contentEl.innerHTML = html;
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('Graduation') + errorCard(e.message, '#graduation');
+    }
+  }
+
+  /* ===========================================================
+     33. BOOT — initial navigation
+     =========================================================== */
+  navigate(location.hash.slice(1) || 'dashboard');
+
+})();
+</script>
+</body>
+</html>

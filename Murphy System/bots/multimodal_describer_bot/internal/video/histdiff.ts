@@ -1,0 +1,2 @@
+export function histDiff(a:number[][][], b:number[][][]){ // grayscale histogram 16 bins
+ function hist(p){ const h=new Array(16).fill(0); for(const row of p){ for(const [r,g,b] of row){ const y=Math.round((r+g+b)/3); const idx=Math.max(0,Math.min(15, Math.floor(y/16))); h[idx]++; } } return h; } const ha=hist(a), hb=hist(b); let d=0; for(let i=0;i<16;i++){ d+=Math.abs(ha[i]-hb[i]); } return d; }
