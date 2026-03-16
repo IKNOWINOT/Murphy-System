@@ -13,6 +13,7 @@ import logging
 import threading
 import time
 from collections import defaultdict, deque
+from concurrent.futures import ThreadPoolExecutor, wait as futures_wait
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
@@ -293,6 +294,239 @@ class WorkflowDAGEngine:
             "completed": sum(1 for s in all_statuses if s == StepStatus.COMPLETED),
             "skipped": sum(1 for s in all_statuses if s == StepStatus.SKIPPED),
             "failed": sum(1 for s in all_statuses if s == StepStatus.FAILED),
+            "total": len(all_statuses),
+        }
+
+        with self._lock:
+            capped_append(self._execution_history, summary)
+        return summary
+
+    def _run_step(
+        self,
+        step_id: str,
+        step_def: StepDefinition,
+        step_exec: StepExecution,
+        execution: WorkflowExecution,
+        results: Dict[str, Any],
+        strict_mode: bool = False,
+    ) -> None:
+        """Execute a single step, mutating *step_exec* and *results* in place.
+
+        Checks dependency status and any configured condition before running the
+        step handler.  All handler exceptions are caught and recorded on
+        *step_exec* so callers are never interrupted by a step failure.
+
+        Args:
+            step_id: Identifier of the step to run.
+            step_def: The step's definition (action, condition, dependencies, …).
+            step_exec: Mutable execution record for this step.
+            execution: The parent workflow execution (context and step states).
+            results: Shared dict accumulating per-step result payloads.
+            strict_mode: When True, missing handlers produce a FAILED status
+                instead of a simulated COMPLETED result.
+        """
+        # Check dependencies
+        for dep in step_def.depends_on:
+            dep_exec = execution.steps.get(dep)
+            if not dep_exec or dep_exec.status != StepStatus.COMPLETED:
+                step_exec.status = StepStatus.SKIPPED
+                step_exec.error = "Dependencies not met"
+                results[step_id] = {"status": "skipped", "reason": "dependencies_not_met"}
+                return
+
+        # Check condition
+        if step_def.condition:
+            if not self._evaluate_condition(step_def.condition, execution.context, results):
+                step_exec.status = StepStatus.SKIPPED
+                step_exec.error = "Condition not met"
+                results[step_id] = {"status": "skipped", "reason": "condition_false"}
+                return
+
+        step_exec.status = StepStatus.RUNNING
+        step_exec.start_time = time.time()
+
+        handler = self._step_handlers.get(step_def.action)
+        if handler:
+            try:
+                result = handler(step_def, execution.context)
+                step_exec.result = result
+                step_exec.status = StepStatus.COMPLETED
+            except Exception as exc:
+                logger.debug(
+                    "Step '%s' (action='%s') raised: %s",
+                    step_def.step_id, step_def.action, exc,
+                )
+                step_exec.error = str(exc)
+                step_exec.status = StepStatus.FAILED
+        else:
+            if strict_mode:
+                step_exec.error = f"No handler registered for action '{step_def.action}' (strict_mode)"
+                step_exec.status = StepStatus.FAILED
+            else:
+                logger.warning(
+                    "No handler registered for action '%s' — executing in simulation mode",
+                    step_def.action,
+                )
+                step_exec.result = {
+                    "action": step_def.action,
+                    "step_id": step_id,
+                    "simulated": True,
+                }
+                step_exec.status = StepStatus.COMPLETED
+
+        step_exec.end_time = time.time()
+        results[step_id] = {
+            "status": step_exec.status.value,
+            "result": step_exec.result,
+            "error": step_exec.error,
+            "duration_ms": (step_exec.end_time - step_exec.start_time) * 1000,
+        }
+
+    def execute_workflow_parallel(
+        self,
+        execution_id: str,
+        step_timeout: float = 120.0,
+        total_timeout: float = 600.0,
+        strict_mode: bool = False,
+    ) -> Dict[str, Any]:
+        """Execute the workflow with concurrent step execution within each dependency level.
+
+        Calls :meth:`get_parallel_groups` to identify steps that share the same
+        DAG level, then submits each group to a :class:`ThreadPoolExecutor`.
+        Groups are processed sequentially in dependency order; steps *within* a
+        group run concurrently and share the accumulated ``results`` dict from
+        all prior groups.
+
+        A single step failure is error-isolated: it does not abort other steps
+        in the same group.  Both per-step and total-workflow timeouts are
+        enforced via :func:`concurrent.futures.wait`.
+
+        Args:
+            execution_id: The execution identifier returned by
+                :meth:`create_execution`.
+            step_timeout: Maximum seconds allowed for any single step (default
+                120.0).  Steps still running after this deadline are marked
+                ``TIMED_OUT``.
+            total_timeout: Maximum wall-clock seconds for the entire workflow
+                run (default 600.0).  Groups that cannot start before this
+                deadline have all their steps marked ``TIMED_OUT``.
+            strict_mode: When ``True``, steps whose ``action`` has no
+                registered handler are marked ``FAILED`` instead of running in
+                simulation mode.
+
+        Returns:
+            Dict with keys ``execution_id``, ``workflow_id``, ``status``,
+            ``steps``, ``duration_ms``, ``completed``, ``skipped``, ``failed``,
+            ``total`` — the same shape as :meth:`execute_workflow`.
+        """
+        execution = self._executions.get(execution_id)
+        if not execution:
+            return {"error": "Execution not found", "execution_id": execution_id}
+
+        workflow = self._workflows.get(execution.workflow_id)
+        if not workflow:
+            return {"error": "Workflow definition not found"}
+
+        groups = self.get_parallel_groups(execution.workflow_id)
+        if groups is None:
+            return {"error": "Failed to compute parallel groups (possible cycle)"}
+
+        execution.status = WorkflowStatus.RUNNING
+        execution.start_time = time.time()
+        step_map = {s.step_id: s for s in workflow.steps}
+        results: Dict[str, Any] = {}
+        deadline = execution.start_time + total_timeout
+
+        for group in groups:
+            remaining = deadline - time.time()
+            if remaining <= 0:
+                for step_id in group:
+                    step_exec = execution.steps[step_id]
+                    step_exec.status = StepStatus.TIMED_OUT
+                    step_exec.error = "Total workflow timeout exceeded"
+                    results[step_id] = {
+                        "status": StepStatus.TIMED_OUT.value,
+                        "error": "total_timeout_exceeded",
+                    }
+                continue
+
+            group_timeout = min(step_timeout, remaining)
+
+            # Sentinel so `finally` can safely reference not_done even if
+            # futures_wait() is never reached due to a submission error.
+            not_done = set()
+            executor = ThreadPoolExecutor(max_workers=max(1, len(group)))
+            try:
+                futures_map: Dict[Any, str] = {
+                    executor.submit(
+                        self._run_step,
+                        step_id,
+                        step_map[step_id],
+                        execution.steps[step_id],
+                        execution,
+                        results,
+                        strict_mode,
+                    ): step_id
+                    for step_id in group
+                }
+
+                done, not_done = futures_wait(list(futures_map.keys()), timeout=group_timeout)
+
+                for future in done:
+                    step_id = futures_map[future]
+                    try:
+                        future.result()
+                    except Exception as exc:
+                        # _run_step is error-isolated; this catches unexpected
+                        # thread-level failures that bypassed it.
+                        step_exec = execution.steps[step_id]
+                        if step_exec.status == StepStatus.RUNNING:
+                            step_exec.status = StepStatus.FAILED
+                            step_exec.error = str(exc)
+                            step_exec.end_time = time.time()
+                        results[step_id] = {
+                            "status": step_exec.status.value,
+                            "result": step_exec.result,
+                            "error": step_exec.error,
+                            "duration_ms": (step_exec.end_time - step_exec.start_time) * 1000,
+                        }
+
+                for future in not_done:
+                    step_id = futures_map[future]
+                    step_exec = execution.steps[step_id]
+                    step_exec.status = StepStatus.TIMED_OUT
+                    step_exec.error = "Step timed out"
+                    step_exec.end_time = time.time()
+                    results[step_id] = {
+                        "status": StepStatus.TIMED_OUT.value,
+                        "error": "step_timeout_exceeded",
+                    }
+                    future.cancel()
+            finally:
+                # Do not block if threads are still running past their timeout.
+                executor.shutdown(wait=len(not_done) == 0)
+
+        all_statuses = [se.status for se in execution.steps.values()]
+        if any(s in (StepStatus.FAILED, StepStatus.TIMED_OUT) for s in all_statuses):
+            execution.status = WorkflowStatus.FAILED
+        elif all(s in (StepStatus.COMPLETED, StepStatus.SKIPPED) for s in all_statuses):
+            execution.status = WorkflowStatus.COMPLETED
+        else:
+            execution.status = WorkflowStatus.FAILED
+
+        execution.end_time = time.time()
+
+        summary = {
+            "execution_id": execution_id,
+            "workflow_id": execution.workflow_id,
+            "status": execution.status.value,
+            "steps": results,
+            "duration_ms": (execution.end_time - execution.start_time) * 1000,
+            "completed": sum(1 for s in all_statuses if s == StepStatus.COMPLETED),
+            "skipped": sum(1 for s in all_statuses if s == StepStatus.SKIPPED),
+            "failed": sum(
+                1 for s in all_statuses if s in (StepStatus.FAILED, StepStatus.TIMED_OUT)
+            ),
             "total": len(all_statuses),
         }
 

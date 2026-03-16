@@ -2006,3 +2006,118 @@ Moving or clicking cursor-0 has **zero effect** on cursor-1 through cursor-N.  A
 - **Part 5** `SplitScreenManager` — serial and parallel execution
 - **Part 6** `SplitScreenCoordinator` — full triage+evidence+dispatch pipeline
 - **Part 7** `playback_runner.py` — multi-cursor registry (`register_cursor`, `list_cursors`, independence)
+
+---
+
+## Collaborative Task Orchestration Pipeline
+
+*Added: 2026-03-16 | Closes Gaps 1–5 of the Murphy System integration spec*
+
+### End-to-End Flow
+
+```
+Natural-Language Task Description
+        │
+        ▼
+┌─────────────────────────────────────────────────────────────┐
+│  CollaborativeTaskOrchestrator.orchestrate(task, budget)    │
+│  src/collaborative_task_orchestrator.py                     │
+└─────────────────────────────────────────────────────────────┘
+        │
+        ├─1─► SwarmProposalGenerator.generate_proposal()
+        │       Decomposes task → SwarmProposal
+        │       (agents, SwarmSteps with dependencies, SafetyGates)
+        │
+        ├─2─► WorkflowDAGEngine.register_workflow()
+        │       Converts SwarmSteps → WorkflowDefinition (StepDefinitions)
+        │       WorkflowDAGEngine.get_parallel_groups() → [[s1,s2], [s3], ...]
+        │
+        ├─3─► select_layout(n_agents) → SplitScreenLayout
+        │       1→SINGLE  2→DUAL_H  3→TRIPLE_H  4→QUAD  ≤6→HEXA  >6→CUSTOM
+        │
+        ├─4─► DurableSwarmOrchestrator.spawn_task() per step
+        │       Budget tracking / retry / circuit-breaker
+        │
+        ├─5─► SplitScreenCoordinator.coordinate()
+        │       (or HybridExecutionEngine fallback)
+        │       Parallel group execution — each group runs concurrently
+        │       via ThreadPoolExecutor (step_timeout=120s, total_timeout=600s)
+        │
+        ├─6─► ResultSynthesizer.synthesize()
+        │       Conflict detection → confidence-weighted voting → Wingman validate
+        │       Returns SynthesizedResult
+        │
+        ├─7─► WorkspaceMemoryBridge.write_artifact()
+        │       Writes to TypedGenerativeWorkspace AND auto-promotes to
+        │       MemoryArtifactSystem sandbox plane
+        │
+        └─8─► CollaborativeExecutionReport
+              (run_id, layout, zone_results, agent_results, step_results,
+               synthesized, total_cost, duration_ms, parallel_groups,
+               execution_log, idempotency_key)
+```
+
+### Component Table
+
+| Class | File | Purpose |
+|-------|------|---------|
+| `CollaborativeTaskOrchestrator` | `src/collaborative_task_orchestrator.py` | Top-level orchestration — wires all five subsystems |
+| `ResultSynthesizer` | `src/collaborative_task_orchestrator.py` | Conflict-aware result merging (Gap 4) |
+| `WorkspaceMemoryBridge` | `src/collaborative_task_orchestrator.py` | TGW ↔ MAS unified bridge (Gap 5) |
+| `CollaborativeExecutionReport` | `src/collaborative_task_orchestrator.py` | Serializable per-zone/agent/step execution report |
+| `SynthesizedResult` | `src/collaborative_task_orchestrator.py` | Merged output + conflict report + validation status |
+| `WorkflowDAGEngine.execute_workflow_parallel()` | `src/workflow_dag_engine.py` | Parallel group execution via ThreadPoolExecutor (Gap 1) |
+| `SwarmProposalGenerator.execute_proposal()` | `src/swarm_proposal_generator.py` | Proposal execution with budget/safety-gate guards (Gap 2) |
+| `SwarmExecutionResult` | `src/swarm_proposal_generator.py` | Per-step outcome + total cost + confidence |
+
+### Layout Selection Algorithm
+
+```python
+def select_layout(n_agents: int) -> SplitScreenLayout:
+    if n_agents == 1:  return SINGLE
+    if n_agents == 2:  return DUAL_H
+    if n_agents == 3:  return TRIPLE_H
+    if n_agents == 4:  return QUAD
+    if n_agents <= 6:  return HEXA
+    return CUSTOM      # 7–16 agents
+```
+
+Maximum agents per orchestration: **16** (matches `MAX_CURSORS`).
+
+### Trainer / Overlay Wiring
+
+The highlight-overlay trainer system is now fully wired:
+
+| Endpoint | Handler | Description |
+|----------|---------|-------------|
+| `GET /api/overlay/suggestions` | `OverlayManager.get_pending_suggestions()` | Polled by `murphy_overlay.js` |
+| `POST /api/overlay/suggestions` | `OverlayManager.add_suggestion()` | Shadow agents submit hints |
+| `POST /api/overlay/suggestions/{id}/accept` | `OverlayManager.accept_suggestion()` | User accepts a glow-key hint |
+| `POST /api/overlay/suggestions/{id}/ignore` | `OverlayManager.ignore_suggestion()` | User dismisses a hint |
+| `GET /api/overlay/summary` | `OverlayManager.summary()` | Stats for the overlay status bar |
+| `GET /api/trainer/status` | `ShadowPolicy.to_dict()` | Shadow trainer policy + buffer size |
+| `POST /api/trainer/reward` | `PolicyUpdater.compute_reward()` | Record reward signal |
+
+`murphy_overlay.js` is now included in:
+- `terminal_orchestrator.html`
+- `terminal_worker.html`
+- `terminal_enhanced.html`
+- `terminal_integrated.html`
+
+### Hardening
+
+- **Thread safety** — all new classes use `threading.Lock` for shared state
+- **CWE-770** — history lists capped at `MAX_HISTORY = 1_000`
+- **Timeouts** — `step_timeout=120s`, `total_timeout=600s` (configurable)
+- **Error isolation** — one agent/zone failure never crashes others
+- **Idempotency** — `idempotency_key` prevents duplicate execution
+- **Graceful degradation** — SplitScreenCoordinator → HybridExecutionEngine → direct; DurableSwarmOrchestrator → direct; all Murphy imports use `try/except`
+
+### Tests
+
+`tests/test_collaborative_task_orchestrator.py` — 31 tests across 5 classes:
+- **TestWorkflowDAGParallelExecution** (5) — concurrency, sequential ordering, diamond DAG, failure isolation, checkpoint/resume
+- **TestSwarmProposalExecution** (5) — simple/collaborative proposals, budget exhaustion, safety gates, input validation
+- **TestCollaborativeTaskOrchestrator** (9) — E2E simple/complex, layout selection, budget/input validation, idempotency, report structure, history bounds, graceful degradation
+- **TestResultSynthesizer** (6) — non-conflicting/conflicting merges, error handling, Wingman validation, thread safety
+- **TestWorkspaceMemoryBridge** (6) — TGW write→MAS sandbox promotion, verify→working promotion, unified query, thread safety, graceful degradation
