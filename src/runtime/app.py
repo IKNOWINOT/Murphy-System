@@ -2998,7 +2998,7 @@ def create_app() -> FastAPI:
                 "id": f"sched-{pid}-intake",
                 "proposal_id": pid,
                 "stage": "intake",
-                "label": f"Receive & validate incoming request",
+                "label": "Receive & validate incoming request",
                 "industry": p.get("industry", ""),
                 "scheduled_at": base_time.isoformat(),
                 "status": "ready",
