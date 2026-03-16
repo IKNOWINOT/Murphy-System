@@ -71,6 +71,10 @@ source venv/bin/activate
 # Install dependencies
 pip install -r requirements_murphy_1.0.txt
 
+# Install and activate pre-commit hooks (runs on every git commit)
+pip install pre-commit
+pre-commit install
+
 # Run tests
 python -m pytest tests/ -v
 ```
