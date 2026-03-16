@@ -1,0 +1,942 @@
+<!--
+  Murphy System — Onboarding Wizard
+  © 2020 Inoni Limited Liability Company by Corey Post
+  License: BSL 1.1 (Business Source License 1.1)
+  See LICENSE file in repository root for full terms.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — No-Code Welcome</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
+<style>
+  /* Neon terminal theme */
+  /* Color Key: green=#00ff41, cyan=#00ffff, bg=#0a0a0a */
+  .murphy-terminal, .murphy-output, pre, code {
+    font-family: var(--font-code, 'JetBrains Mono', monospace);
+  }
+  textarea, input[type="text"] {
+    font-family: var(--font-ui, Inter, system-ui, sans-serif);
+    color: #00ff41;
+    background: #0a0a0a;
+  }
+  *:focus-visible { outline: 2px solid #00ff41; outline-offset: 2px; }
+</style>
+</head>
+<body style="--accent: #FFD166;">
+
+<a class="murphy-skip-link" href="#wizard-content">Skip to content</a>
+
+<main id="wizard-content" role="main" style="max-width:680px;margin:0 auto;padding:2rem;">
+
+  <!-- Murphy Logo -->
+  <div class="flex justify-center" style="margin-bottom:1.5rem;">
+    <svg width="48" height="48" aria-label="Murphy System logo">
+      <use href="static/murphy-icons.svg#icon-workflow"></use>
+    </svg>
+  </div>
+
+  <!-- Step Indicator Dots -->
+  <nav aria-label="Onboarding progress" class="flex justify-center gap-2" style="margin-bottom:2rem;">
+    <span class="step-dot" data-step="1" role="img" aria-label="Step 1: Conversation"></span>
+    <span class="step-dot" data-step="2" role="img" aria-label="Step 2: Plan"></span>
+    <span class="step-dot" data-step="3" role="img" aria-label="Step 3: Connections"></span>
+    <span class="step-dot" data-step="4" role="img" aria-label="Step 4: Safety"></span>
+    <span class="step-dot" data-step="5" role="img" aria-label="Step 5: Ready"></span>
+  </nav>
+
+  <!-- Dynamic Content Area -->
+  <div id="step-container" aria-live="polite"></div>
+
+</main>
+
+<script src="static/murphy-components.js"></script>
+<script src="murphy_auth.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var api = new MurphyAPI('/api');
+  var theme = new MurphyTheme();
+  theme.init();
+
+  // ── State ──────────────────────────────────────────────
+  var currentStep = 1;
+  var chatHistory = [];
+  var exchangeCount = 0;
+  var selectedModules = [];
+  var selectedIntegrations = [];
+  var credentials = {};
+  var safetyLevel = 3;
+  var recommendedTerminal = '/ui/terminal-unified';
+  var librarianConfig = null;
+
+  // ── DOM refs ───────────────────────────────────────────
+  var container = document.getElementById('step-container');
+  var stepDots = document.querySelectorAll('.step-dot');
+
+  // ── Safety level descriptions ──────────────────────────
+  var safetyLabels = [
+    '',
+    'Always ask me first — Murphy will confirm every action before executing.',
+    'Ask for important decisions — routine work proceeds, big calls need your OK.',
+    'Handle routine tasks, ask for complex ones — a balanced mix of speed and control.',
+    'Handle most things, alert me on changes — Murphy runs the show, you stay informed.',
+    'Full automation — Murphy handles everything and sends you reports.'
+  ];
+
+  var safetyNames = [
+    '',
+    'Full HITL',
+    'Important Decisions',
+    'Balanced (Recommended)',
+    'Mostly Autonomous',
+    'Full Automation'
+  ];
+
+  // ── Helpers ────────────────────────────────────────────
+  function el(tag, attrs, children) {
+    var node = document.createElement(tag);
+    if (attrs) {
+      Object.keys(attrs).forEach(function (k) {
+        if (k === 'className') { node.className = attrs[k]; }
+        else if (k === 'textContent') { node.textContent = attrs[k]; }
+        else if (k === 'innerHTML') { node.innerHTML = attrs[k]; }
+        else if (k.slice(0, 2) === 'on') { node.addEventListener(k.slice(2).toLowerCase(), attrs[k]); }
+        else { node.setAttribute(k, attrs[k]); }
+      });
+    }
+    if (children) {
+      children.forEach(function (c) {
+        if (typeof c === 'string') { node.appendChild(document.createTextNode(c)); }
+        else if (c) { node.appendChild(c); }
+      });
+    }
+    return node;
+  }
+
+  function icon(name, size) {
+    var s = size || 20;
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', s);
+    svg.setAttribute('height', s);
+    svg.setAttribute('aria-hidden', 'true');
+    var use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+    use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'static/murphy-icons.svg#icon-' + name);
+    svg.appendChild(use);
+    return svg;
+  }
+
+  function clearContainer() {
+    container.innerHTML = '';
+  }
+
+  // ── Step dot updates ───────────────────────────────────
+  function updateDots() {
+    stepDots.forEach(function (dot) {
+      var s = parseInt(dot.getAttribute('data-step'), 10);
+      dot.classList.remove('step-dot-active', 'step-dot-done');
+      if (s === currentStep) { dot.classList.add('step-dot-active'); }
+      else if (s < currentStep) { dot.classList.add('step-dot-done'); }
+    });
+  }
+
+  // ── Navigation buttons ─────────────────────────────────
+  function navBar(opts) {
+    var bar = el('div', { className: 'flex justify-between items-center', style: 'margin-top:1.5rem;' });
+    if (opts.back) {
+      var backBtn = el('button', {
+        className: 'murphy-btn murphy-btn-ghost',
+        textContent: '← Back',
+        onClick: function () { goToStep(currentStep - 1); }
+      });
+      bar.appendChild(backBtn);
+    } else {
+      bar.appendChild(el('span'));
+    }
+    if (opts.next) {
+      var nextBtn = el('button', {
+        className: 'murphy-btn murphy-btn-primary',
+        textContent: opts.nextLabel || 'Continue →',
+        onClick: opts.next
+      });
+      if (opts.nextId) { nextBtn.id = opts.nextId; }
+      if (opts.nextDisabled) { nextBtn.disabled = true; }
+      bar.appendChild(nextBtn);
+    }
+    return bar;
+  }
+
+  // ── Go to step ─────────────────────────────────────────
+  function goToStep(step) {
+    if (step < 1 || step > 5) return;
+    currentStep = step;
+    updateDots();
+    renderStep(step);
+  }
+
+  // ── Step router ────────────────────────────────────────
+  function renderStep(step) {
+    clearContainer();
+    switch (step) {
+      case 1: renderConversation(); break;
+      case 2: renderPlan(); break;
+      case 3: renderConnections(); break;
+      case 4: renderSafety(); break;
+      case 5: renderReady(); break;
+    }
+  }
+
+  // ════════════════════════════════════════════════════════
+  //  STEP 1 — The Conversation
+  // ════════════════════════════════════════════════════════
+  function renderConversation() {
+    var wrapper = el('div', { className: 'flex flex-col', style: 'height:calc(100vh - 12rem);' });
+
+    // Chat area
+    var chatArea = el('div', { id: 'chat-area', className: 'flex-1', style: 'overflow-y:auto;padding-bottom:1rem;' });
+    wrapper.appendChild(chatArea);
+
+    // Render existing history
+    chatHistory.forEach(function (msg) {
+      chatArea.appendChild(chatBubble(msg.role, msg.content));
+    });
+
+    // Seed the greeting if first visit
+    if (chatHistory.length === 0) {
+      var greeting = "Hi! I'm Murphy's Librarian. Tell me about your business and what you'd like to automate — in your own words. No technical jargon needed.";
+      chatHistory.push({ role: 'assistant', content: greeting });
+      chatArea.appendChild(chatBubble('assistant', greeting));
+    }
+
+    // Input area
+    var inputRow = el('div', { className: 'flex gap-2 items-end', style: 'margin-top:auto;' });
+    var input = el('input', {
+      type: 'text',
+      className: 'murphy-input murphy-chat-input flex-1',
+      placeholder: 'Tell Murphy about your business…',
+      'aria-label': 'Chat message'
+    });
+    var sendBtn = el('button', {
+      className: 'murphy-btn murphy-btn-primary murphy-btn-icon',
+      'aria-label': 'Send message'
+    });
+    sendBtn.appendChild(icon('chat', 18));
+
+    function sendMessage() {
+      var text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+
+      chatHistory.push({ role: 'user', content: text });
+      chatArea.appendChild(chatBubble('user', text));
+      chatArea.scrollTop = chatArea.scrollHeight;
+
+      // Send to Librarian
+      var typingEl = chatBubble('assistant', '…');
+      typingEl.classList.add('murphy-animate-pulse');
+      chatArea.appendChild(typingEl);
+      chatArea.scrollTop = chatArea.scrollHeight;
+
+      api.post('/librarian/ask', { question: text, context: 'onboarding' })
+        .then(function (res) {
+          chatArea.removeChild(typingEl);
+          var reply = (res.ok && res.data && (res.data.answer || res.data.response || res.data.message))
+            ? (res.data.answer || res.data.response || res.data.message)
+            : null;
+
+          if (reply) {
+            chatHistory.push({ role: 'assistant', content: reply });
+            chatArea.appendChild(chatBubble('assistant', reply));
+
+            if (res.data.config) {
+              librarianConfig = res.data.config;
+              if (res.data.config.modules) selectedModules = res.data.config.modules;
+              if (res.data.config.integrations) selectedIntegrations = res.data.config.integrations;
+              if (res.data.config.recommended_terminal) recommendedTerminal = res.data.config.recommended_terminal;
+            }
+          } else {
+            var fallback = "I'm having trouble connecting right now, but you can continue and configure things manually.";
+            chatHistory.push({ role: 'assistant', content: fallback });
+            chatArea.appendChild(chatBubble('assistant', fallback));
+          }
+
+          exchangeCount++;
+          updateContinueVisibility();
+          chatArea.scrollTop = chatArea.scrollHeight;
+        })
+        .catch(function () {
+          chatArea.removeChild(typingEl);
+          var errMsg = "Sorry, I couldn't reach the server. You can keep chatting or continue to set things up manually.";
+          chatHistory.push({ role: 'assistant', content: errMsg });
+          chatArea.appendChild(chatBubble('assistant', errMsg));
+          exchangeCount++;
+          updateContinueVisibility();
+          chatArea.scrollTop = chatArea.scrollHeight;
+        });
+    }
+
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { sendMessage(); }
+    });
+    sendBtn.addEventListener('click', sendMessage);
+
+    inputRow.appendChild(input);
+    inputRow.appendChild(sendBtn);
+    wrapper.appendChild(inputRow);
+
+    // Continue button (hidden until enough exchanges)
+    var continueRow = el('div', {
+      id: 'continue-row',
+      className: 'flex justify-end',
+      style: 'margin-top:1rem;display:none;'
+    });
+    var continueBtn = el('button', {
+      className: 'murphy-btn murphy-btn-primary',
+      textContent: 'Continue to Plan →',
+      onClick: function () { goToStep(2); }
+    });
+    continueRow.appendChild(continueBtn);
+    wrapper.appendChild(continueRow);
+
+    container.appendChild(wrapper);
+
+    function updateContinueVisibility() {
+      if (exchangeCount >= 3) {
+        continueRow.style.display = 'flex';
+      }
+    }
+    updateContinueVisibility();
+
+    // Auto-focus input
+    input.focus();
+    chatArea.scrollTop = chatArea.scrollHeight;
+  }
+
+  function chatBubble(role, text) {
+    var bubbleClass = 'murphy-chat-bubble ' +
+      (role === 'user' ? 'murphy-chat-bubble-user' : 'murphy-chat-bubble-assistant');
+    var bubble = el('div', { className: bubbleClass });
+    if (role === 'user') {
+      bubble.textContent = text;
+    } else {
+      // Render assistant messages with markdown formatting
+      if (typeof MurphyMarkdown !== 'undefined') {
+        MurphyMarkdown.injectStyles();
+        bubble.innerHTML = MurphyMarkdown.render(text);
+      } else {
+        bubble.textContent = text;
+      }
+    }
+    return bubble;
+  }
+
+  // ════════════════════════════════════════════════════════
+  //  STEP 2 — The Plan
+  // ════════════════════════════════════════════════════════
+  function renderPlan() {
+    var heading = el('h1', {
+      className: 'font-bold',
+      textContent: "Here's what I'll set up for you",
+      style: 'font-size:1.5rem;margin-bottom:1.5rem;'
+    });
+    container.appendChild(heading);
+
+    // Fallback defaults if librarian didn't provide config
+    if (selectedModules.length === 0) {
+      selectedModules = [
+        { id: 'task-engine', name: 'Task Engine', description: 'Core workflow and task management', enabled: true },
+        { id: 'librarian', name: 'Librarian', description: 'AI assistant for knowledge and queries', enabled: true },
+        { id: 'governance', name: 'Governance Gates', description: 'Approval and compliance controls', enabled: true }
+      ];
+    }
+    if (selectedIntegrations.length === 0) {
+      selectedIntegrations = [
+        { id: 'email', name: 'Email (SMTP)', description: 'Send and receive email', enabled: true },
+        { id: 'webhooks', name: 'Webhooks', description: 'Connect to external services', enabled: true }
+      ];
+    }
+
+    // Modules section
+    var modLabel = el('h2', {
+      className: 'font-medium',
+      textContent: 'Modules',
+      style: 'font-size:1.1rem;margin-bottom:0.75rem;'
+    });
+    container.appendChild(modLabel);
+
+    var modGrid = el('div', { className: 'grid gap-3', style: 'grid-template-columns:repeat(auto-fill,minmax(200px,1fr));margin-bottom:1.5rem;' });
+    selectedModules.forEach(function (mod, idx) {
+      modGrid.appendChild(planCard(mod, 'module', idx));
+    });
+    container.appendChild(modGrid);
+
+    // Integrations section
+    var intHeader = el('div', { className: 'flex justify-between items-center', style: 'margin-bottom:0.75rem;' });
+    var intLabel = el('h2', {
+      className: 'font-medium',
+      textContent: 'Integrations',
+      style: 'font-size:1.1rem;margin:0;'
+    });
+    intHeader.appendChild(intLabel);
+    var browseAllBtn = el('button', {
+      className: 'murphy-btn murphy-btn-secondary',
+      textContent: '📋 Browse All Integrations',
+      id: 'btn-browse-all-integrations',
+      style: 'font-size:0.8rem;padding:0.3rem 0.75rem;'
+    });
+    browseAllBtn.addEventListener('click', function () { toggleFullCatalog(); });
+    intHeader.appendChild(browseAllBtn);
+    container.appendChild(intHeader);
+
+    var intGrid = el('div', { className: 'grid gap-3', style: 'grid-template-columns:repeat(auto-fill,minmax(200px,1fr));margin-bottom:1rem;' });
+    selectedIntegrations.forEach(function (integ, idx) {
+      intGrid.appendChild(planCard(integ, 'integration', idx));
+    });
+    container.appendChild(intGrid);
+
+    // Full catalog panel (hidden by default)
+    var catalogPanel = el('div', {
+      id: 'full-catalog-panel',
+      style: 'display:none;margin-bottom:1.5rem;border:1px solid #30363d;border-radius:8px;padding:1rem;background:#0d1117;max-height:400px;overflow-y:auto;'
+    });
+    var catalogLoading = el('p', { textContent: 'Loading full catalog…', style: 'color:#8b949e;' });
+    catalogPanel.appendChild(catalogLoading);
+    container.appendChild(catalogPanel);
+
+    // "Anything else?" input
+    var extraRow = el('div', { className: 'flex gap-2', style: 'margin-bottom:1rem;' });
+    var extraInput = el('input', {
+      type: 'text',
+      className: 'murphy-input flex-1',
+      placeholder: 'Anything else you need?',
+      'aria-label': 'Additional requests'
+    });
+    var extraBtn = el('button', {
+      className: 'murphy-btn murphy-btn-secondary',
+      textContent: 'Ask Librarian',
+      onClick: function () {
+        var q = extraInput.value.trim();
+        if (!q) return;
+        extraInput.value = '';
+        api.post('/librarian/ask', { question: q, context: 'onboarding' })
+          .then(function (res) {
+            if (res.ok && res.data) {
+              if (res.data.config && res.data.config.modules) {
+                selectedModules = res.data.config.modules;
+                goToStep(2);
+              }
+              if (res.data.config && res.data.config.integrations) {
+                selectedIntegrations = res.data.config.integrations;
+                goToStep(2);
+              }
+            }
+          });
+      }
+    });
+    extraRow.appendChild(extraInput);
+    extraRow.appendChild(extraBtn);
+    container.appendChild(extraRow);
+
+    // Navigation
+    container.appendChild(navBar({
+      back: true,
+      next: function () { goToStep(3); },
+      nextLabel: 'Looks good! →'
+    }));
+  }
+
+  var _catalogLoaded = false;
+  function toggleFullCatalog() {
+    var panel = document.getElementById('full-catalog-panel');
+    if (!panel) return;
+    var visible = panel.style.display !== 'none';
+    if (visible) { panel.style.display = 'none'; return; }
+    panel.style.display = 'block';
+    if (_catalogLoaded) return;
+
+    // Fetch from both the core catalog and the universal adapter
+    var base = window.location.origin;
+    Promise.all([
+      fetch(base + '/api/integrations').then(function (r) { return r.json(); }).catch(function () { return { integrations: [] }; }),
+      fetch(base + '/api/universal-integrations/services').then(function (r) { return r.json(); }).catch(function () { return { services: [] }; })
+    ]).then(function (results) {
+      var core = results[0].integrations || [];
+      var universal = (results[1].services || []).map(function (s) {
+        return { id: s.name || s.id, name: s.name, type: s.category || 'other', description: s.description || '' };
+      });
+
+      // Merge and deduplicate by id/name
+      var seen = {};
+      var all = [];
+      core.concat(universal).forEach(function (item) {
+        var key = (item.id || item.name || '').toLowerCase();
+        if (key && !seen[key]) { seen[key] = true; all.push(item); }
+      });
+
+      // Group by type/category
+      var groups = {};
+      all.forEach(function (item) {
+        var cat = (item.type || item.category || 'other').toLowerCase();
+        if (!groups[cat]) groups[cat] = [];
+        groups[cat].push(item);
+      });
+
+      panel.innerHTML = '';
+      var heading = el('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;' });
+      heading.appendChild(el('h3', { textContent: 'All Available Integrations (' + all.length + ')', style: 'margin:0;font-size:1rem;color:#00D4AA;' }));
+      var closeBtn = el('button', { textContent: '✕', className: 'murphy-btn murphy-btn-ghost', style: 'padding:0.2rem 0.5rem;font-size:0.9rem;' });
+      closeBtn.addEventListener('click', function () { panel.style.display = 'none'; });
+      heading.appendChild(closeBtn);
+      panel.appendChild(heading);
+
+      Object.keys(groups).sort().forEach(function (cat) {
+        var catLabel = el('h4', { textContent: cat.charAt(0).toUpperCase() + cat.slice(1).replace(/_/g, ' '), style: 'font-size:0.85rem;color:#8b949e;margin:0.75rem 0 0.4rem;text-transform:uppercase;letter-spacing:0.05em;' });
+        panel.appendChild(catLabel);
+
+        var catGrid = el('div', { style: 'display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:0.5rem;' });
+        groups[cat].forEach(function (item) {
+          var isSelected = selectedIntegrations.some(function (si) {
+            return si.id === item.id || si.name === item.name;
+          });
+          var btn = el('button', {
+            className: 'murphy-btn ' + (isSelected ? 'murphy-btn-primary' : 'murphy-btn-ghost'),
+            textContent: (item.icon ? item.icon + ' ' : '') + (item.name || item.id),
+            title: item.description || '',
+            style: 'font-size:0.8rem;padding:0.35rem 0.6rem;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'
+          });
+          btn.addEventListener('click', function () {
+            if (isSelected) return;
+            selectedIntegrations.push({ id: item.id || item.name, name: item.name, description: item.description || '', enabled: true });
+            _catalogLoaded = false;
+            goToStep(2);
+          });
+          catGrid.appendChild(btn);
+        });
+        panel.appendChild(catGrid);
+      });
+
+      _catalogLoaded = true;
+    });
+  }
+
+  function planCard(item, type, idx) {
+    var card = el('div', {
+      className: 'murphy-card',
+      role: 'button',
+      tabindex: '0',
+      'aria-pressed': item.enabled !== false ? 'true' : 'false',
+      style: item.enabled === false ? 'opacity:0.5;' : ''
+    });
+
+    var header = el('div', { className: 'murphy-card-header flex justify-between items-center' });
+    var nameEl = el('span', { className: 'font-bold', textContent: item.name });
+    var toggleEl = el('span', {
+      textContent: item.enabled !== false ? '✓' : '○',
+      style: 'cursor:pointer;font-size:1.2rem;'
+    });
+    header.appendChild(nameEl);
+    header.appendChild(toggleEl);
+    card.appendChild(header);
+
+    if (item.description) {
+      var body = el('div', { className: 'murphy-card-body' });
+      body.appendChild(el('p', { textContent: item.description, style: 'font-size:0.85rem;' }));
+      card.appendChild(body);
+    }
+
+    card.addEventListener('click', function () {
+      var list = type === 'module' ? selectedModules : selectedIntegrations;
+      list[idx].enabled = !(list[idx].enabled !== false);
+      goToStep(2);
+    });
+
+    card.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.click(); }
+    });
+
+    return card;
+  }
+
+  // ════════════════════════════════════════════════════════
+  //  STEP 3 — Connections
+  // ════════════════════════════════════════════════════════
+  function renderConnections() {
+    var heading = el('h1', {
+      className: 'font-bold',
+      textContent: "Let's connect your tools",
+      style: 'font-size:1.5rem;margin-bottom:1.5rem;'
+    });
+    container.appendChild(heading);
+
+    var activeIntegrations = selectedIntegrations.filter(function (i) { return i.enabled !== false; });
+
+    if (activeIntegrations.length === 0) {
+      var empty = el('div', { className: 'murphy-empty-state' });
+      empty.appendChild(el('div', { className: 'murphy-empty-state-icon' }, [icon('check', 40)]));
+      empty.appendChild(el('p', { className: 'murphy-empty-state-title', textContent: 'No credentials needed' }));
+      empty.appendChild(el('p', { className: 'murphy-empty-state-message', textContent: "You're all set! No integrations require credentials." }));
+      container.appendChild(empty);
+    } else {
+      activeIntegrations.forEach(function (integ) {
+        container.appendChild(connectionCard(integ));
+      });
+    }
+
+    container.appendChild(navBar({
+      back: true,
+      next: function () { goToStep(4); },
+      nextLabel: 'Continue →'
+    }));
+  }
+
+  function connectionCard(integ) {
+    var card = el('div', { className: 'murphy-card', style: 'margin-bottom:1rem;' });
+
+    var header = el('div', { className: 'murphy-card-header flex items-center gap-2' });
+    header.appendChild(icon('plug', 20));
+    header.appendChild(el('span', { className: 'font-bold', textContent: integ.name }));
+    card.appendChild(header);
+
+    var body = el('div', { className: 'murphy-card-body' });
+
+    var hint = integ.credentialHint || ('API key or credentials for ' + integ.name);
+    body.appendChild(el('p', { textContent: hint, style: 'font-size:0.85rem;margin-bottom:0.75rem;' }));
+
+    // Password field with visibility toggle
+    var fieldRow = el('div', { className: 'flex gap-2 items-center' });
+    var field = el('input', {
+      type: 'password',
+      className: 'murphy-input flex-1',
+      placeholder: 'Enter credentials…',
+      'aria-label': integ.name + ' credentials',
+      autocomplete: 'off'
+    });
+
+    var toggleVis = el('button', {
+      className: 'murphy-btn murphy-btn-ghost murphy-btn-icon',
+      'aria-label': 'Toggle visibility',
+      onClick: function () {
+        var isHidden = field.type === 'password';
+        field.type = isHidden ? 'text' : 'password';
+        toggleVis.innerHTML = '';
+        toggleVis.appendChild(icon(isHidden ? 'unlock' : 'lock', 16));
+      }
+    });
+    toggleVis.appendChild(icon('lock', 16));
+
+    fieldRow.appendChild(field);
+    fieldRow.appendChild(toggleVis);
+    body.appendChild(fieldRow);
+
+    // Save / Skip row
+    var actionRow = el('div', { className: 'flex justify-between items-center', style: 'margin-top:0.75rem;' });
+
+    var saveBtn = el('button', {
+      className: 'murphy-btn murphy-btn-primary murphy-btn-sm',
+      textContent: 'Save',
+      onClick: function () {
+        var val = field.value.trim();
+        if (!val) return;
+        saveBtn.classList.add('murphy-btn-loading');
+        saveBtn.disabled = true;
+        api.post('/credentials/store', { integration: integ.id, credential: val })
+          .then(function (res) {
+            saveBtn.classList.remove('murphy-btn-loading');
+            saveBtn.disabled = false;
+            if (res.ok) {
+              credentials[integ.id] = true;
+              savedLabel.textContent = '✓ Saved';
+              savedLabel.style.display = 'inline';
+              field.value = '';
+              field.disabled = true;
+            } else {
+              savedLabel.textContent = 'Error saving — try again';
+              savedLabel.style.display = 'inline';
+            }
+          })
+          .catch(function () {
+            saveBtn.classList.remove('murphy-btn-loading');
+            saveBtn.disabled = false;
+            savedLabel.textContent = 'Connection error (CORS/network) — try again';
+            savedLabel.style.display = 'inline';
+          });
+      }
+    });
+
+    var skipLink = el('button', {
+      className: 'murphy-btn murphy-btn-ghost murphy-btn-sm',
+      textContent: 'Skip for now',
+      onClick: function () {
+        card.style.opacity = '0.5';
+        field.disabled = true;
+        saveBtn.disabled = true;
+        savedLabel.textContent = 'Skipped';
+        savedLabel.style.display = 'inline';
+      }
+    });
+
+    var savedLabel = el('span', {
+      style: 'display:none;font-size:0.85rem;margin-left:0.5rem;'
+    });
+
+    actionRow.appendChild(el('div', { className: 'flex items-center gap-2' }, [saveBtn, savedLabel]));
+    actionRow.appendChild(skipLink);
+    body.appendChild(actionRow);
+
+    card.appendChild(body);
+    return card;
+  }
+
+  // ════════════════════════════════════════════════════════
+  //  STEP 4 — Safety & Control
+  // ════════════════════════════════════════════════════════
+  function renderSafety() {
+    var heading = el('h1', {
+      className: 'font-bold',
+      textContent: 'How much should Murphy handle?',
+      style: 'font-size:1.5rem;margin-bottom:1.5rem;'
+    });
+    container.appendChild(heading);
+
+    // Range slider
+    var sliderCard = el('div', { className: 'murphy-card' });
+    var sliderBody = el('div', { className: 'murphy-card-body' });
+
+    var levelLabel = el('div', {
+      id: 'safety-level-name',
+      className: 'font-bold',
+      textContent: safetyNames[safetyLevel],
+      style: 'text-align:center;font-size:1.1rem;margin-bottom:1rem;'
+    });
+    sliderBody.appendChild(levelLabel);
+
+    var slider = el('input', {
+      type: 'range',
+      min: '1',
+      max: '5',
+      value: String(safetyLevel),
+      className: 'murphy-input',
+      'aria-label': 'Automation level',
+      'aria-valuemin': '1',
+      'aria-valuemax': '5',
+      'aria-valuenow': String(safetyLevel),
+      style: 'width:100%;cursor:pointer;'
+    });
+    sliderBody.appendChild(slider);
+
+    // Tick labels
+    var ticks = el('div', { className: 'flex justify-between', style: 'font-size:0.75rem;margin-top:0.25rem;' });
+    ticks.appendChild(el('span', { textContent: 'Ask me' }));
+    ticks.appendChild(el('span', { textContent: 'Balanced' }));
+    ticks.appendChild(el('span', { textContent: 'Automate' }));
+    sliderBody.appendChild(ticks);
+
+    var description = el('p', {
+      id: 'safety-description',
+      textContent: safetyLabels[safetyLevel],
+      style: 'margin-top:1.25rem;font-size:0.9rem;text-align:center;'
+    });
+    sliderBody.appendChild(description);
+
+    slider.addEventListener('input', function () {
+      safetyLevel = parseInt(slider.value, 10);
+      slider.setAttribute('aria-valuenow', String(safetyLevel));
+      levelLabel.textContent = safetyNames[safetyLevel];
+      description.textContent = safetyLabels[safetyLevel];
+    });
+
+    sliderCard.appendChild(sliderBody);
+    container.appendChild(sliderCard);
+
+    // Terminal / dashboard recommendation
+    var termCard = el('div', { className: 'murphy-card', style: 'margin-top:1.5rem;' });
+    var termBody = el('div', { className: 'murphy-card-body' });
+
+    var recText = recommendedTerminal.indexOf('worker') > -1 ? 'Worker'
+      : recommendedTerminal.indexOf('manager') > -1 ? 'Manager'
+      : recommendedTerminal.indexOf('admin') > -1 ? 'Admin'
+      : 'Unified';
+
+    termBody.appendChild(el('p', {
+      className: 'font-medium',
+      textContent: "Based on our conversation, I'd recommend the " + recText + " dashboard as your home base.",
+      style: 'margin-bottom:1rem;'
+    }));
+
+    var dashboards = [
+      { value: '/ui/terminal-unified', label: 'Unified Dashboard', desc: 'Full overview of everything' },
+      { value: '/ui/terminal-worker', label: 'Worker Dashboard', desc: 'Task-focused view' },
+      { value: '/ui/terminal-enhanced', label: 'Manager Dashboard', desc: 'Team and project oversight' },
+      { value: '/ui/terminal-architect', label: 'Admin Dashboard', desc: 'System configuration and control' }
+    ];
+
+    dashboards.forEach(function (db) {
+      var radioRow = el('label', {
+        className: 'flex items-center gap-2',
+        style: 'cursor:pointer;padding:0.5rem 0;'
+      });
+
+      var radio = el('input', {
+        type: 'radio',
+        name: 'terminal-choice',
+        value: db.value
+      });
+      if (db.value === recommendedTerminal) { radio.checked = true; }
+      radio.addEventListener('change', function () {
+        recommendedTerminal = db.value;
+      });
+
+      radioRow.appendChild(radio);
+      radioRow.appendChild(el('div', {}, [
+        el('span', { className: 'font-medium', textContent: db.label }),
+        el('span', { textContent: ' — ' + db.desc, style: 'font-size:0.85rem;' })
+      ]));
+      termBody.appendChild(radioRow);
+    });
+
+    termCard.appendChild(termBody);
+    container.appendChild(termCard);
+
+    container.appendChild(navBar({
+      back: true,
+      next: function () { goToStep(5); },
+      nextLabel: 'Continue →'
+    }));
+  }
+
+  // ════════════════════════════════════════════════════════
+  //  STEP 5 — Ready!
+  // ════════════════════════════════════════════════════════
+  function renderReady() {
+    var heading = el('h1', {
+      className: 'font-bold',
+      textContent: 'Murphy is ready!',
+      style: 'font-size:1.5rem;margin-bottom:1.5rem;text-align:center;'
+    });
+    container.appendChild(heading);
+
+    var readyIcon = el('div', { className: 'flex justify-center', style: 'margin-bottom:1.5rem;' });
+    readyIcon.appendChild(icon('check', 56));
+    container.appendChild(readyIcon);
+
+    // Summary card
+    var summary = el('div', { className: 'murphy-card' });
+    var summaryBody = el('div', { className: 'murphy-card-body' });
+
+    // Modules
+    var enabledMods = selectedModules.filter(function (m) { return m.enabled !== false; });
+    if (enabledMods.length) {
+      summaryBody.appendChild(el('p', { className: 'font-bold', textContent: 'Modules', style: 'margin-bottom:0.25rem;' }));
+      var modList = el('ul', { style: 'margin-bottom:1rem;padding-left:1.25rem;' });
+      enabledMods.forEach(function (m) {
+        modList.appendChild(el('li', { textContent: m.name }));
+      });
+      summaryBody.appendChild(modList);
+    }
+
+    // Integrations
+    var enabledInts = selectedIntegrations.filter(function (i) { return i.enabled !== false; });
+    if (enabledInts.length) {
+      summaryBody.appendChild(el('p', { className: 'font-bold', textContent: 'Integrations', style: 'margin-bottom:0.25rem;' }));
+      var intList = el('ul', { style: 'margin-bottom:1rem;padding-left:1.25rem;' });
+      enabledInts.forEach(function (i) {
+        var status = credentials[i.id] ? ' (credentials saved)' : ' (no credentials yet)';
+        intList.appendChild(el('li', { textContent: i.name + status }));
+      });
+      summaryBody.appendChild(intList);
+    }
+
+    // Safety level
+    summaryBody.appendChild(el('p', { className: 'font-bold', textContent: 'Automation Level', style: 'margin-bottom:0.25rem;' }));
+    summaryBody.appendChild(el('p', { textContent: safetyNames[safetyLevel] + ' — ' + safetyLabels[safetyLevel], style: 'margin-bottom:1rem;font-size:0.9rem;' }));
+
+    // Dashboard
+    summaryBody.appendChild(el('p', { className: 'font-bold', textContent: 'Dashboard', style: 'margin-bottom:0.25rem;' }));
+    var termLabel = recommendedTerminal.replace('terminal_', '').replace('.html', '');
+    summaryBody.appendChild(el('p', { textContent: termLabel.charAt(0).toUpperCase() + termLabel.slice(1), style: 'font-size:0.9rem;' }));
+
+    summary.appendChild(summaryBody);
+    container.appendChild(summary);
+
+    // Submit config and go
+    var launchRow = el('div', { className: 'flex justify-center', style: 'margin-top:2rem;gap:1rem;flex-wrap:wrap;' });
+
+    // Primary CTA: go to Production Wizard (first-time setup flow)
+    var productionBtn = el('button', {
+      className: 'murphy-btn murphy-btn-primary murphy-btn-lg',
+      textContent: '🏭 Set Up Your First Production →',
+      onClick: function () {
+        productionBtn.classList.add('murphy-btn-loading');
+        productionBtn.disabled = true;
+        dashboardBtn.disabled = true;
+        var config = {
+          modules: enabledMods.map(function (m) { return m.id; }),
+          integrations: enabledInts.map(function (i) { return i.id; }),
+          safety_level: safetyLevel,
+          terminal: recommendedTerminal,
+          chat_history: chatHistory
+        };
+        api.post('/onboarding/wizard/generate-config', config)
+          .then(function () {
+            try { localStorage.setItem('murphy_onboarded', '1'); } catch(e) { console.warn('localStorage unavailable:', e.message); }
+            window.location.href = '/ui/production-wizard';
+          })
+          .catch(function () {
+            try { localStorage.setItem('murphy_onboarded', '1'); } catch(e) { console.warn('localStorage unavailable:', e.message); }
+            window.location.href = '/ui/production-wizard';
+          });
+      }
+    });
+    launchRow.appendChild(productionBtn);
+
+    // Secondary CTA: go straight to dashboard
+    var dashboardBtn = el('button', {
+      className: 'murphy-btn murphy-btn-secondary murphy-btn-lg',
+      textContent: 'Skip to Dashboard →',
+      onClick: function () {
+        dashboardBtn.classList.add('murphy-btn-loading');
+        dashboardBtn.disabled = true;
+        productionBtn.disabled = true;
+        var config = {
+          modules: enabledMods.map(function (m) { return m.id; }),
+          integrations: enabledInts.map(function (i) { return i.id; }),
+          safety_level: safetyLevel,
+          terminal: recommendedTerminal,
+          chat_history: chatHistory
+        };
+        api.post('/onboarding/wizard/generate-config', config)
+          .then(function () {
+            try { localStorage.setItem('murphy_onboarded', '1'); } catch(e) { console.warn('localStorage unavailable:', e.message); }
+            window.location.href = recommendedTerminal;
+          })
+          .catch(function () {
+            try { localStorage.setItem('murphy_onboarded', '1'); } catch(e) { console.warn('localStorage unavailable:', e.message); }
+            window.location.href = recommendedTerminal;
+          });
+      }
+    });
+    launchRow.appendChild(dashboardBtn);
+    container.appendChild(launchRow);
+
+    // Tip text
+    container.appendChild(el('p', {
+      textContent: 'The Production Wizard will help you create your first automated workflow — you can always access your dashboard later.',
+      style: 'text-align:center;font-size:0.8rem;color:var(--text-muted);margin-top:0.75rem;'
+    }));
+
+    container.appendChild(navBar({ back: true }));
+  }
+
+  // ── Boot ───────────────────────────────────────────────
+  window._murphyGoToStep = goToStep;  // expose for testing
+  updateDots();
+  renderStep(1);
+})();
+</script>
+
+</body>
+</html>

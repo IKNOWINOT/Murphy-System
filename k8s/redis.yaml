@@ -1,0 +1,137 @@
+# Murphy System — Redis Deployment for K8s
+# Copyright © 2020 Inoni Limited Liability Company
+# License: BSL-1.1
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+  namespace: murphy-system
+  labels:
+    app: murphy-system
+    component: redis
+    environment: production
+data:
+  redis.conf: |
+    # Murphy System Redis Configuration
+    maxmemory 256mb
+    maxmemory-policy allkeys-lru
+    appendonly yes
+    appendfsync everysec
+    save 900 1
+    save 300 10
+    save 60 10000
+    tcp-keepalive 300
+    timeout 0
+    protected-mode yes
+    bind 0.0.0.0
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: murphy-redis
+  namespace: murphy-system
+  labels:
+    app: murphy-system
+    component: redis
+    environment: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: murphy-system
+      component: redis
+  template:
+    metadata:
+      labels:
+        app: murphy-system
+        component: redis
+        environment: production
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        fsGroup: 999
+      containers:
+        - name: redis
+          image: redis:7.2-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 6379
+              protocol: TCP
+          command: ["sh", "-c", "redis-server /usr/local/etc/redis/redis.conf --requirepass \"$REDIS_PASSWORD\""]
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: murphy-secrets
+                  key: REDIS_PASSWORD
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "redis-cli -a \"$REDIS_PASSWORD\" ping"]
+            periodSeconds: 30
+            initialDelaySeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "redis-cli -a \"$REDIS_PASSWORD\" ping"]
+            periodSeconds: 10
+            initialDelaySeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+            - name: redis-config
+              mountPath: /usr/local/etc/redis
+      volumes:
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: murphy-redis-data
+        - name: redis-config
+          configMap:
+            name: redis-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: murphy-redis
+  namespace: murphy-system
+  labels:
+    app: murphy-system
+    component: redis
+    environment: production
+spec:
+  type: ClusterIP
+  selector:
+    app: murphy-system
+    component: redis
+  ports:
+    - port: 6379
+      targetPort: 6379
+      protocol: TCP
+      name: redis
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: murphy-redis-data
+  namespace: murphy-system
+  labels:
+    app: murphy-system
+    component: redis
+    environment: production
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
