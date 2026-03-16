@@ -38,9 +38,9 @@ system completion to **100%** at the functional level.
 | Test Files              | 498       | —       | ✅     |
 | Test Functions          | 8,843     | —       | ✅     |
 | Test Pass Rate          | 100%      | 100%    | ✅     |
-| Documentation Files     | 97+       | —       | ⚠️     |
+| Documentation Files     | 107+      | —       | ✅     |
 | Packages with READMEs   | 65/65 (100%) | 100%    | ✅     |
-| Doc–Code Accuracy       | ~92%      | 95%+    | ⚠️     |
+| Doc–Code Accuracy       | ~95%      | 95%+    | ✅     |
 
 ---
 
@@ -50,7 +50,7 @@ system completion to **100%** at the functional level.
 
 | Source File | Documentation | Discrepancy |
 |-------------|---------------|-------------|
-| `src/openai_compatible_provider.py` | `documentation/components/` (partial) | Provider supports 8 types (OPENAI, AZURE, GROQ, OLLAMA, VLLM, LITELLM, CUSTOM, ONBOARD) but docs only reference OpenAI/Groq/Onboard |
+| `src/openai_compatible_provider.py` | `documentation/components/LLM_SUBSYSTEM.md` | All 8 provider types documented with usage examples ✅ |
 | `src/llm_controller.py` | None dedicated | No standalone documentation for model selection logic, capability matching, or cost optimization |
 | `src/llm_integration_layer.py` | None dedicated | Domain-to-provider routing (5 domains × 4 providers) is undocumented |
 | `src/groq_key_rotator.py` | None | Key rotation, auto-disable on failures, and statistics tracking are undocumented |
@@ -60,7 +60,7 @@ system completion to **100%** at the functional level.
 | Source File | Documentation | Discrepancy |
 |-------------|---------------|-------------|
 | `src/runtime/murphy_system_core.py` | `docs/DEPLOYMENT_GUIDE.md` | Core class documented at high level; internal method inventory not documented |
-| `src/runtime/app.py` | `documentation/api/ENDPOINTS.md` | 6 MFM API endpoints (`/api/mfm/*`) are implemented but not listed in the API endpoints documentation |
+| `src/runtime/app.py` | `documentation/api/ENDPOINTS.md` | All MFM API endpoints (`/api/mfm/status`, `/metrics`, `/traces/stats`, `/retrain`, `/promote`, `/rollback`) documented in §MFM Endpoints ✅ |
 | `src/runtime/_deps.py` | None | Dependency management module has no documentation |
 | `src/runtime/living_document.py` | None | Living document system undocumented |
 
@@ -107,17 +107,17 @@ system completion to **100%** at the functional level.
 | `src/robotics/` | `docs/robotics/` | Documented ✅ |
 | `src/avatar/` | `docs/avatar/` | Documented ✅ |
 | `src/librarian/` | `documentation/components/LIBRARIAN.md` + `docs/librarian_knowledge_base/` | Well documented ✅ |
-| `src/adaptive_campaign_engine.py` | None | No documentation |
-| `src/financial_reporting_engine.py` | None | No documentation |
-| `src/predictive_maintenance_engine.py` | None | No documentation |
+| `src/adaptive_campaign_engine.py` | `documentation/modules/ADAPTIVE_CAMPAIGN_ENGINE.md` | Fully documented (MKT-004) ✅ |
+| `src/financial_reporting_engine.py` | `documentation/modules/FINANCIAL_REPORTING_ENGINE.md` | Fully documented (BIZ-001) ✅ |
+| `src/predictive_maintenance_engine.py` | `documentation/modules/PREDICTIVE_MAINTENANCE_ENGINE.md` | Fully documented (PME-001) ✅ |
 
 ### 2.8 Configuration & Environment
 
 | Item | Documentation | Discrepancy |
 |------|---------------|-------------|
-| `.env.example` (236 lines) | `documentation/deployment/CONFIGURATION.md` | Configuration docs exist but may not cover all 236 env vars |
+| `.env.example` | `documentation/deployment/CONFIGURATION.md` | All env var groups covered in 16 sections (MFM, Matrix, payment, email, CRM, social, backend modes, Docker, logging) ✅ |
 | Port configuration | `docs/DEPLOYMENT_GUIDE.md` | Port correctly documented as 8000 ✅ |
-| MFM environment vars (10 vars) | `.env.example` | MFM vars documented in .env.example but not in deployment guide |
+| MFM environment vars (9 vars) | `documentation/deployment/CONFIGURATION.md` §11 | Fully documented with modes table ✅ |
 
 ---
 
@@ -264,7 +264,7 @@ system completion to **100%** at the functional level.
 |------|------|--------|--------|
 | 4.1 | Add remaining package READMEs | Various `src/*/README.md` | 10h |
 | 4.2 | Document specialized modules | Various standalone `.py` files | 10h |
-| 4.3 | Update test coverage documentation | `documentation/testing/TEST_COVERAGE.md` | 2h |
+| 4.3 | Update test coverage documentation | `documentation/testing/TEST_COVERAGE.md` | 2h | ✅ CLOSED |
 | 4.4 | Final audit and verification | All modules | 4h |
 
 ### Summary Timeline
