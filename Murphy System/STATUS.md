@@ -34,6 +34,21 @@
 | **Rosetta Subsystem Wiring** | ✅ **New** | P3-001–P3-005 wired: ImprovementEngine→Rosetta, Orchestrator cycles→progress, RAG ingestion, EventBackbone subscriptions, SystemState sync; 38 tests |
 | **CI/CD Pipeline** | ✅ **New** | GitHub Actions CI: lint (ruff), test matrix (Python 3.10/3.11/3.12), security scan (bandit), Docker build smoke |
 | **Core Path Coverage** | ✅ **New** | pytest --cov on core paths (rosetta_subsystem_wiring + startup_feature_summary) reports 90%+ (>80% threshold) |
+| **Industry Automation Wizard** | ✅ **New** | 10 industries × 66+ automation types; inline recommendations; onboarding-context injection; IndustryAutomationSpec output |
+| **Universal Ingestion Framework** | ✅ **New** | Auto-detect protocol ingestion: BACnet EDE, Modbus, OPC-UA, CSV, JSON, MQTT, Grainger; 11 GRAINGER_BEST_SELLERS categories |
+| **BAS Equipment Ingestion** | ✅ **New** | CSV/JSON/EDE → EquipmentSpec; auto-populate VirtualController; ASHRAE+Grainger recommendations |
+| **Virtual Controller** | ✅ **New** | VirtualController, WiringVerificationEngine, VerificationReport; 5 validation rules |
+| **Climate Resilience Engine** | ✅ **New** | ASHRAE 169-2021 15 climate zones; resilience factors (seismic/hurricane/flood/wildfire); energy targets; sizing factors |
+| **Energy Efficiency Framework** | ✅ **New** | 25-ECM CEM catalog; ASHRAE Level I/II/III audit; MSSEnergyRubric (Magnify/Simplify/Solidify); ROI/NPV per IPMVP |
+| **Synthetic Interview Engine** | ✅ **New** | 21-question bank × 6 reading levels; 43 LLM-inference rules; reading-level detection; multi-demographic adaptation |
+| **System Configuration Engine** | ✅ **New** | 16 system-type templates; pro/con strategy selection; MSS configuration modes |
+| **As-Built Generator** | ✅ **New** | ControlDiagram, PointSchedule, DrawingDatabase deduplication; proposal completeness check |
+| **Pro/Con Decision Engine** | ✅ **New** | Hard safety/compliance constraints first; 4 criteria sets; net_score = pros−cons; explain_decision() |
+| **Org Chart Generator** | ✅ **New** | VirtualEmployee + shadow agents; hire_employee() tailoring; business_ip vs employee_ip classification |
+| **Production Deliverable Wizard** | ✅ **New** | 8 deliverable types; onboarding-context injection; format selection |
+| **Onboarding Wizard (Unlimited)** | ✅ **New** | Removed 3-question cap; open-ended until context complete; stores to onboarding_context |
+| **12 Librarian Commands** | ✅ **New** | All new modules registered in CommandRegistry; discoverable via /api/librarian/query |
+| **10 Industry Scripts** | ✅ **New** | Runnable simulations for every industry type in examples/scripts/ |
 | UI / Landing Page | ✅ Complete | Landing page, terminal UIs, and agent monitoring dashboard all complete |
 | Documentation | ✅ Complete | API docs, architecture docs, deployment guides, testing guide complete |
 
