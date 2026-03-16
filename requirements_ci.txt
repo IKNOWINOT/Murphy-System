@@ -20,6 +20,9 @@ flask-cors>=4.0.0
 # Async / HTTP
 aiohttp>=3.9.0
 httpx>=0.25.0
+aiosmtplib>=3.0.0
+aiosmtpd>=1.4.0
+respx>=0.21.0
 
 # Database
 sqlalchemy>=2.0.0
