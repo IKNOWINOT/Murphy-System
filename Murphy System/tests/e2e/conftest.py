@@ -17,7 +17,6 @@ import httpx
 import pytest
 
 _SRC_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src"))
-if _SRC_DIR not in sys.path:
 
 
 def _free_port() -> int:

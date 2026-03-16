@@ -14,7 +14,6 @@ import tempfile
 import pytest
 
 _src_dir = os.path.join(os.path.dirname(__file__), "..", "src")
-if os.path.abspath(_src_dir) not in sys.path:
 
 from persistence_wal import (
     MIGRATIONS,
