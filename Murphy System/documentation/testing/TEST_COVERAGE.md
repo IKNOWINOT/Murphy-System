@@ -30,9 +30,9 @@ security, and performance tests.
 
 | Metric | Value | Status |
 |--------|-------|--------|
-| **Total test files** | 617 | ✅ |
-| **Total test functions** | 20,358+ | ✅ |
-| **Gap-closure rounds** | 52 | ✅ |
+| **Total test files** | 634 | ✅ |
+| **Total test functions** | 20,910+ | ✅ |
+| **Gap-closure rounds** | 53 | ✅ |
 | **Pass rate** | 100 % (with expected skips) | ✅ |
 | **CI matrix** | Python 3.10 / 3.11 / 3.12 | ✅ |
 | **Security scan** | bandit (no critical issues) | ✅ |
@@ -43,8 +43,8 @@ security, and performance tests.
 |-------|----------|-------|
 | Unit tests | 95 %+ | Per-module behaviour |
 | Integration | 100 % | Cross-module wiring |
-| Gap-closure | 100 % | 52 audit-driven rounds |
-| API endpoints | 100 % | REST + SSE + WebSocket |
+| Gap-closure | 100 % | 53 audit-driven rounds |
+| API endpoints | 100 % | REST + SSE + WebSocket + /api/industry/* |
 | Security | 95 %+ | bandit + input-validation tests |
 | Performance | 95 %+ | Throughput and latency baselines |
 
@@ -81,7 +81,7 @@ tests/
 ├── test_rosetta_subsystem_wiring.py   # 38 tests
 ├── test_security_plane_wiring.py
 ├── test_task_router.py                # 46 tests
-├── ... (571 more test files)
+├── ... (584 more test files)
 │
 ├── # ── Gap-Closure Rounds (audit-driven) ───────────────────────────────
 ├── test_gap_closure_round1.py         # Rounds 1–52; each validates
@@ -123,8 +123,8 @@ Key integration test files:
 
 ### 3.3 Gap-Closure Round Tests
 
-52 rounds of audit-driven tests.  Each round validates a batch of
-improvements identified during system audits.  All 52 rounds pass.
+53 rounds of audit-driven tests.  Each round validates a batch of
+improvements identified during system audits.  All 53 rounds pass.
 
 | Round range | Focus area |
 |-------------|------------|
