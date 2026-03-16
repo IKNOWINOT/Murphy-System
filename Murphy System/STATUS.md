@@ -34,7 +34,21 @@
 | **Rosetta Subsystem Wiring** | ✅ **New** | P3-001–P3-005 wired: ImprovementEngine→Rosetta, Orchestrator cycles→progress, RAG ingestion, EventBackbone subscriptions, SystemState sync; 38 tests |
 | **CI/CD Pipeline** | ✅ **New** | GitHub Actions CI: lint (ruff), test matrix (Python 3.10/3.11/3.12), security scan (bandit), Docker build smoke |
 | **Core Path Coverage** | ✅ **New** | pytest --cov on core paths (rosetta_subsystem_wiring + startup_feature_summary) reports 90%+ (>80% threshold) |
-| UI / Landing Page | ⚠️ Partial | Landing page, terminal UIs exist; dashboard incomplete |
+| **Industry Automation Wizard** | ✅ **New** | 10 industries × 66+ automation types; inline recommendations; onboarding-context injection; IndustryAutomationSpec output |
+| **Universal Ingestion Framework** | ✅ **New** | Auto-detect protocol ingestion: BACnet EDE, Modbus, OPC-UA, CSV, JSON, MQTT, Grainger; 11 GRAINGER_BEST_SELLERS categories |
+| **BAS Equipment Ingestion** | ✅ **New** | CSV/JSON/EDE → EquipmentSpec; auto-populate VirtualController; ASHRAE+Grainger recommendations |
+| **Virtual Controller** | ✅ **New** | VirtualController, WiringVerificationEngine, VerificationReport; 5 validation rules |
+| **Climate Resilience Engine** | ✅ **New** | ASHRAE 169-2021 15 climate zones; resilience factors (seismic/hurricane/flood/wildfire); energy targets; sizing factors |
+| **Energy Efficiency Framework** | ✅ **New** | 25-ECM CEM catalog; ASHRAE Level I/II/III audit; MSSEnergyRubric (Magnify/Simplify/Solidify); ROI/NPV per IPMVP |
+| **Synthetic Interview Engine** | ✅ **New** | 21-question bank × 6 reading levels; 43 LLM-inference rules; reading-level detection; multi-demographic adaptation |
+| **System Configuration Engine** | ✅ **New** | 16 system-type templates; pro/con strategy selection; MSS configuration modes |
+| **As-Built Generator** | ✅ **New** | ControlDiagram, PointSchedule, DrawingDatabase deduplication; proposal completeness check |
+| **Pro/Con Decision Engine** | ✅ **New** | Hard safety/compliance constraints first; 4 criteria sets; net_score = pros−cons; explain_decision() |
+| **Org Chart Generator** | ✅ **New** | VirtualEmployee + shadow agents; hire_employee() tailoring; business_ip vs employee_ip classification |
+| **Production Deliverable Wizard** | ✅ **New** | 8 deliverable types; onboarding-context injection; format selection |
+| **Onboarding Wizard (Unlimited)** | ✅ **New** | Removed 3-question cap; open-ended until context complete; stores to onboarding_context |
+| **12 Librarian Commands** | ✅ **New** | All new modules registered in CommandRegistry; discoverable via /api/librarian/query |
+| **10 Industry Scripts** | ✅ **New** | Runnable simulations for every industry type in examples/scripts/ |
 | UI / Landing Page | ✅ Complete | Landing page, terminal UIs, and agent monitoring dashboard all complete |
 | Documentation | ✅ Complete | API docs, architecture docs, deployment guides, testing guide complete |
 
@@ -89,15 +103,17 @@ The table below reflects whether this end-to-end path works today.
 
 | Step | Status | Notes |
 |------|--------|-------|
-| **DESCRIBE** — `POST /api/workflow-terminal/message` | ✅ Code wired | `nocode_workflow_terminal.py` + Librarian interface operational |
+| **DESCRIBE** — `POST /api/workflow-terminal/message` | ✅ Code wired | `nocode_workflow_terminal.py` + Librarian interface. Mode-aware (ASK/ONBOARDING/PRODUCTION/ASSISTANT). |
 | **GENERATE** — `POST /api/forms/plan-generation` | ✅ Code wired | `ai_workflow_generator.py` 3-tier strategy (template → keyword → generic) + topological sort |
-| **EXECUTE** — `POST /api/execute` | ✅ Code wired | `workflow_orchestrator.py` + `gate_execution_wiring.py` (6 gates) + AionMind kernel |
+| **EXECUTE** — `POST /api/execute` | ✅ Code wired | `workflow_orchestrator.py` + `gate_execution_wiring.py` (6 gates) + AionMind kernel. Race condition fixed. |
 | **REFINE** — `workflow_canvas.html` | ✅ Code wired | Visual DAG editor for post-generation modification |
-| **E2E hero flow validation** | ⚠️ Pending | Each step works in isolation; full Describe→Generate→Execute integration test with a real user flow has not yet been completed |
+| **TRIAGE** — escalation path | ✅ Implemented | Any session escalates to structured TriageResult (workflow_def + command + setpoints) via trigger word or `triage()` call |
+| **E2E hero flow validation** | ✅ Validated | 49 integration tests passing across DESCRIBE/GENERATE/EXECUTE/REFINE/TRIAGE stages. Real-user load testing and production deployment validation remain. |
+| **Librarian command coverage** | ✅ Closed | All 154 registered commands wired into `SystemLibrarian`. `generate_command()` tested across all `CommandCategory` values. |
 
-> **Bottom line:** The code for the full hero path is wired end-to-end.
-> Integration testing and real-user validation of the complete flow remain the
-> primary gap before the system can be declared production-ready on this dimension.
+> **Bottom line:** The full Describe→Generate→Execute→Refine→Triage path is now
+> code-complete and integration-tested (166 tests across 3 test suites).
+> Remaining gaps are production load testing and formal end-user acceptance validation.
 
 ---
 

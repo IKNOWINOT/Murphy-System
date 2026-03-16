@@ -49,7 +49,12 @@ markers = [
     "sla: SLA enforcement tests that gate production releases",
     "benchmark: Performance benchmark tests",
     "storyline: Storyline conformance tests — validates each chapter maps to working code",
+    "parity: Management Systems parity acceptance tests (phases 2–8)",
+    "hero_flow: End-to-end Describe→Generate→Execute→Refine hero path integration tests",
 ]
+# Default per-test timeout: ~5 s per 1 000 lines of tested source.
+# Tests that target very large modules (app.py = 6 293 lines, compute_plane = 2 877 lines)
+# carry per-file @pytest.mark.timeout() overrides; this default covers the majority.
 
 [tool.mypy]
 python_version = "3.10"

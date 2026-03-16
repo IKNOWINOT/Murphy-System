@@ -6332,6 +6332,218 @@ def create_app() -> FastAPI:
             "count": len(_account_statements),
         })
 
+    # ==================== INDUSTRY AUTOMATION SUITE ====================
+
+    @app.post("/api/industry/ingest")
+    async def industry_ingest(request: Request):
+        """Auto-detect protocol and ingest BAS/IoT equipment data.
+
+        Body: ``{content: str, filename: str, context: dict}``
+        Returns ingested records, equipment specs, and component recommendations.
+        """
+        from universal_ingestion_framework import AdapterRegistry
+        body = await request.json()
+        content = body.get("content", "")
+        filename = body.get("filename", "data.csv")
+        context = body.get("context", {})
+        if not content:
+            return JSONResponse({"success": False, "error": "content is required"}, status_code=400)
+        registry = AdapterRegistry()
+        try:
+            result = registry.auto_detect_and_ingest(content, filename, context)
+            return JSONResponse({"success": True, **result.to_dict()})
+        except ValueError as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=422)
+
+    @app.get("/api/industry/climate/{city}")
+    async def industry_climate(city: str):
+        """Return ASHRAE 169-2021 climate zone + resilience factors for a city.
+
+        Path param: ``city`` — city name (e.g. ``Chicago``, ``Miami``)
+        """
+        from climate_resilience_engine import ClimateResilienceEngine
+        engine = ClimateResilienceEngine()
+        zone = engine.lookup_climate_zone(city)
+        factors = engine.get_resilience_factors(city)
+        recs = engine.get_design_recommendations(city, "general")
+        targets = engine.get_energy_targets(city, "office")
+        return JSONResponse({
+            "success": True,
+            "city": city,
+            "climate_zone": zone.zone_id if zone else None,
+            "zone_description": zone.description if zone else None,
+            "resilience_factors": {
+                "hurricane_risk": factors.hurricane_risk,
+                "flood_zone": factors.flood_zone,
+                "design_temp_heating": factors.design_temp_heating,
+                "design_temp_cooling": factors.design_temp_cooling,
+            } if factors else {},
+            "design_recommendations": recs,
+            "energy_targets": vars(targets) if targets else {},
+        })
+
+    @app.post("/api/industry/energy-audit")
+    async def industry_energy_audit(request: Request):
+        """Run a CEM-level energy audit and return ECM recommendations.
+
+        Body: ``{utility_data: dict, facility_type: str, climate_zone: str, audit_level: str, mss_mode: str}``
+        Returns utility analysis, ranked ECMs, ROI projections, and MSS rubric output.
+        """
+        from energy_efficiency_framework import EnergyEfficiencyFramework
+        body = await request.json()
+        utility_data = body.get("utility_data", {})
+        facility_type = body.get("facility_type", "office")
+        climate_zone = body.get("climate_zone", "")
+        audit_level = body.get("audit_level", "II")
+        mss_mode = body.get("mss_mode", "magnify")
+        eef = EnergyEfficiencyFramework()
+        analysis = eef.analyze_utility_data(utility_data)
+        ecms = eef.recommend_ecms(analysis, facility_type, climate_zone)
+        report = eef.generate_audit_report(audit_level, analysis, ecms)
+        rubric = eef.apply_mss_rubric(mss_mode, utility_data)
+        return JSONResponse({
+            "success": True,
+            "audit_level": audit_level,
+            "mss_mode": mss_mode,
+            "utility_analysis": vars(analysis),
+            "ecm_count": len(ecms),
+            "recommended_ecms": [vars(e) for e in ecms[:10]],
+            "audit_report": report,
+            "mss_rubric": rubric,
+        })
+
+    @app.post("/api/industry/interview")
+    async def industry_interview(request: Request):
+        """Drive a 21-question synthetic interview session.
+
+        Body: ``{session_id: str|null, question_id: str|null, answer: str|null, domain: str}``
+        POST with no session_id starts a new session and returns the first question.
+        POST with session_id + question_id + answer records the answer and returns next.
+        """
+        from synthetic_interview_engine import SyntheticInterviewEngine
+        body = await request.json()
+        if not hasattr(industry_interview, "_engines"):
+            industry_interview._engines = {}
+        session_id = body.get("session_id")
+        question_id = body.get("question_id")
+        answer_text = body.get("answer")
+        domain = body.get("domain", "general")
+        engine = industry_interview._engines.get(session_id) if session_id else None
+        if engine is None:
+            import uuid
+            session_id = str(uuid.uuid4())
+            engine = SyntheticInterviewEngine()
+            session_obj = engine.create_session(domain)
+            industry_interview._engines[session_id] = (engine, session_obj.session_id)
+        engine, internal_sid = industry_interview._engines[session_id]
+        inferred = []
+        if answer_text is not None and question_id:
+            result = engine.answer(internal_sid, question_id, answer_text)
+            inferred = result.get("inferred", [])
+        question = engine.next_question(internal_sid)
+        status = engine.get_all_21_status(internal_sid)
+        complete = status.get("complete", False)
+        return JSONResponse({
+            "success": True,
+            "session_id": session_id,
+            "question": question,
+            "inferred_answers": inferred,
+            "status": status,
+            "complete": complete,
+            "knowledge_model": engine.generate_knowledge_model(internal_sid) if complete else None,
+        })
+
+    @app.post("/api/industry/configure")
+    async def industry_configure(request: Request):
+        """Detect system type and return configuration strategy.
+
+        Body: ``{description: str, context: dict, mss_mode: str}``
+        Returns detected system type, recommended strategy, and MSS configuration.
+        ``mss_mode`` accepts ``magnify``, ``simplify``, or ``solidify``.
+        """
+        from system_configuration_engine import SystemConfigurationEngine
+        body = await request.json()
+        description = body.get("description", "")
+        context = body.get("context", {})
+        mss_mode = body.get("mss_mode", "magnify")
+        if not description:
+            return JSONResponse({"success": False, "error": "description is required"}, status_code=400)
+        engine = SystemConfigurationEngine()
+        system_type = engine.detect_system_type(description)
+        strategy = engine.recommend_strategy(system_type, context)
+        config = engine.configure(system_type, strategy.strategy_id, context)
+        if mss_mode == "simplify":
+            mss_output = engine.simplify(config)
+        elif mss_mode == "solidify":
+            mss_output = engine.solidify(config)
+        else:
+            mss_output = engine.magnify(config)
+        return JSONResponse({
+            "success": True,
+            "system_type": system_type.value,
+            "recommended_strategy": strategy.to_dict(),
+            "mss_mode": mss_mode,
+            "configuration": config.to_dict(),
+            "mss_output": mss_output,
+        })
+
+    @app.post("/api/industry/as-built")
+    async def industry_as_built(request: Request):
+        """Generate an as-built diagram from an equipment spec dict.
+
+        Body: ``{equipment_spec: dict, system_name: str}``
+        Returns ControlDiagram, PointSchedule, and schematic description.
+        """
+        from as_built_generator import AsBuiltGenerator
+        body = await request.json()
+        system_name = body.get("system_name", "System")
+        equipment_spec = body.get("equipment_spec", {})
+        gen = AsBuiltGenerator()
+        diagram = gen.from_equipment_spec(equipment_spec, system_name)
+        schedule = gen.generate_point_schedule(diagram)
+        schematic = gen.generate_schematic_description(diagram)
+        exported = gen.export_as_built(diagram)
+        return JSONResponse({
+            "success": True,
+            "system_name": system_name,
+            "diagram": diagram.to_dict(),
+            "point_schedule": schedule,
+            "schematic_description": schematic,
+            "export": exported,
+        })
+
+    @app.post("/api/industry/decide")
+    async def industry_decide(request: Request):
+        """Run a pro/con decision analysis with safety/compliance constraints.
+
+        Body: ``{question: str, options: list[{name, pros, cons}], criteria_set: str}``
+        Returns winner, viable options sorted by score, eliminated options, and reasoning.
+        ``criteria_set`` accepts ``energy_system_selection``, ``equipment_selection``,
+        ``automation_strategy_selection``, or ``ecm_prioritization``.
+        """
+        from pro_con_decision_engine import ProConDecisionEngine
+        body = await request.json()
+        question = body.get("question", "Select best option")
+        options_raw = body.get("options", [])
+        criteria_set = body.get("criteria_set", None)
+        if not options_raw:
+            return JSONResponse({"success": False, "error": "options list is required"}, status_code=400)
+        engine = ProConDecisionEngine()
+        decision = engine.evaluate(question, options_raw, criteria_set=criteria_set)
+        explanation = engine.explain_decision(decision)
+        viable = [o for o in decision.options if o.viable]
+        eliminated = [o for o in decision.options if not o.viable]
+        return JSONResponse({
+            "success": True,
+            "question": question,
+            "winner": decision.winner.name if decision.winner else None,
+            "runner_up": decision.runner_up.name if decision.runner_up else None,
+            "viable_options": [{"name": o.name, "net_score": o.net_score} for o in sorted(viable, key=lambda x: -x.net_score)],
+            "eliminated_options": [{"name": o.name, "violations": o.constraint_violations} for o in eliminated],
+            "explanation": explanation,
+            "reasoning": decision.reasoning,
+        })
+
     return app
 
 
