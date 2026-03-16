@@ -16,6 +16,7 @@
 | Confidence Engine | ✅ Operational | Bayesian scoring, Murphy Index, artifact graphs |
 | Security Plane | ⚠️ Partial | Authentication, authorization, DLP implemented; formal pen-test pending |
 | AUAR Pipeline | ✅ Operational | 7-layer routing with ML optimization |
+| **Librarian Routing** | ✅ **Implemented** | `TaskRouter`, `SystemLibrarian.find_capabilities()`, `SolutionPathRegistry` wired; `IntegrationBus` delegates to `TaskRouter` with legacy fallback; `POST /api/librarian/query` live; PROD-001 + CAMP-001 capabilities registered |
 | AionMind Kernel | ✅ Operational | Context engine, reasoning engine, orchestration engine |
 | Setup Wizard | ✅ Operational | 6 deployment presets, guided onboarding |
 | **Module Loading** | ✅ **Instrumented** | `ModuleLoader` framework (ML-001): structured load reports, critical/optional classification, fail-fast on critical failures, `/api/modules` inventory endpoint, `/api/health` includes module report, startup banner summary |
@@ -71,6 +72,7 @@ Murphy System is **aligned with** (not formally attested to) the following frame
 | G-010 | ~~JWT/OAuth not in production~~ | ~~High~~ | ✅ **RESOLVED** — JWT token validation added to FastAPI and Flask security middleware |
 | G-011 | ~~Documentation placeholders~~ | ~~Medium~~ | ✅ **RESOLVED** — All 12+ placeholder docs filled with real content |
 | ~~G-008~~ | ~~Production deployment hardening~~ | ~~Medium~~ | ✅ **RESOLVED** — `SecurityContext`, `PodDisruptionBudget`, `NetworkPolicy` added to `kubernetes_deployment.py` with YAML rendering |
+| ~~G-012~~ | ~~Librarian-driven routing not wired~~ | ~~Critical~~ | ✅ **RESOLVED** — `TaskRouter`, `SolutionPathRegistry`, `SystemLibrarian.find_capabilities()` implemented; `IntegrationBus._process_execute()` delegates to `TaskRouter` with graceful fallback to legacy chain; `FeedbackIntegrator` connected via `SolutionPathRegistry.record_outcome()`; 30 unit tests added; `POST /api/librarian/query` endpoint live; PROD-001 (`production_assistant`) and CAMP-001 (`outreach_campaign_planner`) capabilities registered in `SystemLibrarian` |
 | ~~G-012~~ | ~~FastAPI silently degrades when module imports fail~~ | ~~High~~ | ✅ **RESOLVED** — `ModuleLoader` framework (ML-001) in `src/runtime/module_loader.py`: `ModuleLoadReport` dataclass, critical/optional classification, fail-fast on critical failures, structured report at `/api/health` and `/api/modules`, startup banner, 23 unit tests |
 
 ## Infrastructure Deferred Items
