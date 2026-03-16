@@ -6,6 +6,33 @@
 
 ---
 
+## 📋 Current Status (as of 2026-03-16)
+
+### What works today
+- ✅ Core runtime boots and serves all `/api/*` routes
+- ✅ `ai_workflow_generator.py` converts natural language to DAG workflows (template matching, keyword inference, generic fallback)
+- ✅ `gate_execution_wiring.py` enforces 6-gate policy (EXECUTIVE / OPERATIONS / QA / HITL / COMPLIANCE / BUDGET)
+- ✅ Event Backbone runs as background daemon with backpressure, retry, and circuit breakers
+- ✅ Self-Healing Coordinator auto-recovers from 5 failure categories
+- ✅ CI/CD runs on every push/PR (lint, test matrix Py 3.10/3.11/3.12, security scan, Docker build)
+- ✅ 644 test files with 17,368 functions; 1,611 verified passing
+- ✅ 14 web interfaces with unified design system
+
+### Known Gaps for Optimal Operation
+
+| Gap | Impact | Status |
+|-----|--------|--------|
+| **E2E hero flow validation** | Full Describe→Generate→Execute chain not yet tested as a single integration flow | ⚠️ Pending — each step works in isolation |
+| **LLM key config hardening** | Groq API key management works but needs production-grade rotation/fallback | ⚠️ In progress (ref: PR #56) |
+| **Real channel delivery testing** | Email/webhook/Slack stubs exist; real channel testing not completed | ⚠️ Requires external credentials |
+| **Management Parity Phases 2–8** | Code exists but acceptance criteria are unvalidated | ⚠️ Manual QA required |
+| **E2EE** | Stub-only; real encryption gated for production | ⚠️ Implementation needed |
+| **Formal pen-test** | Code-level security done; formal test gated behind $15K MRR | 🔒 Revenue-gated |
+| **Mobile app** | Backend API exists; no native iOS/Android client | 📋 Future roadmap |
+| **Production database/pool modes** | Requires PostgreSQL + real connection pooling for production deployment | ⚠️ Infrastructure setup required |
+
+---
+
 ## 🎯 North Star: Describe → Execute → Refine
 
 Murphy's hero flow is already built. This roadmap is about getting it in front of paying customers, polishing the experience, and reinvesting revenue to grow the ecosystem.
