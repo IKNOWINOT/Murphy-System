@@ -683,7 +683,7 @@ class AutomationEngine:
                     logger.info(
                         "Automation %r fired for item %r", trigger.name, item.title
                     )
-                except Exception:
+                except Exception as exc:
                     logger.exception(
                         "Automation %r raised an exception", trigger.name
                     )

@@ -24,7 +24,7 @@ from .models import (
 
 try:
     from .api import create_crm_router
-except Exception:  # pragma: no cover
+except Exception as exc:  # pragma: no cover
     create_crm_router = None  # type: ignore[assignment]
 
 __all__ = [

@@ -514,7 +514,7 @@ class SQLitePersistenceManager:
             session.commit()
             logger.info("Saved document to SQL: %s", doc_id)
             return doc_id
-        except Exception:
+        except Exception as exc:
             session.rollback()
             raise
         finally:
@@ -566,7 +566,7 @@ class SQLitePersistenceManager:
             event_id = str(record.id)
             logger.info("Audit event saved to SQL: %s", event_id)
             return event_id
-        except Exception:
+        except Exception as exc:
             session.rollback()
             raise
         finally:

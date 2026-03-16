@@ -44,7 +44,7 @@ from .service_manager import ServiceManager
 
 try:
     from .api import create_service_router
-except Exception:  # pragma: no cover
+except Exception as exc:  # pragma: no cover
     create_service_router = None  # type: ignore[assignment]
 
 __all__ = [

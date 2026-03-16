@@ -139,7 +139,7 @@ class FirebaseConnector(BaseIntegrationConnector):
             if response.is_success:
                 try:
                     data = response.json()
-                except Exception:
+                except Exception as exc:
                     data = response.text
                 return {"success": True, "configured": True, "simulated": False,
                         "data": data, "status_code": response.status_code, "error": None}

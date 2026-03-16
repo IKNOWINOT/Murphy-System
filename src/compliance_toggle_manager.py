@@ -344,7 +344,7 @@ class ComplianceToggleManager:
                             "score": score,
                             "breakdown": breakdown,
                         }
-                    except Exception:  # noqa: BLE001
+                    except Exception as exc:  # noqa: BLE001
                         framework_statuses[fw_id] = {"configured": True, "score": None}
                 else:
                     framework_statuses[fw_id] = {"configured": True, "score": None}

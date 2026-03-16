@@ -626,7 +626,7 @@ class DLPMiddleware:
                 destination if '://' in destination else f'https://{destination}'
             )
             hostname = (parsed.hostname or '').lower()
-        except Exception:
+        except Exception as exc:
             return False
         return hostname in trusted_domains or any(
             hostname == domain or hostname.endswith('.' + domain)

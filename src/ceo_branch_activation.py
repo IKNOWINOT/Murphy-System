@@ -1153,7 +1153,7 @@ class CEOBranch:
         if self._backbone is not None:
             try:
                 self._backbone.publish(event, entry)
-            except Exception:
+            except Exception as exc:
                 logger.debug("CEOBranch: EventBackbone publish failed for event %r", event)
 
 

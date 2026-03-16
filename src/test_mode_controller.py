@@ -227,7 +227,7 @@ class TestModeController:
             keys = [k.strip() for k in raw_keys.split(",") if k.strip()]
             max_calls = cfg.test_mode_max_calls
             max_seconds = cfg.test_mode_max_seconds
-        except Exception:
+        except Exception as exc:
             keys = []
             max_calls = self._max_calls
             max_seconds = self._max_seconds
@@ -261,6 +261,6 @@ def get_test_mode_controller() -> TestModeController:
                         raw_keys = cfg.test_mode_api_keys or ""
                         keys = [k.strip() for k in raw_keys.split(",") if k.strip()]
                         _controller.start_session(api_keys=keys)
-                except Exception:
+                except Exception as exc:
                     _controller = TestModeController()
     return _controller

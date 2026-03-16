@@ -47,7 +47,7 @@ from .models import (
 
 try:
     from .api import create_dev_router
-except Exception:  # pragma: no cover
+except Exception as exc:  # pragma: no cover
     create_dev_router = None  # type: ignore[assignment]
 
 __all__ = [

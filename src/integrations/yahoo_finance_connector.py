@@ -46,7 +46,7 @@ class YahooFinanceConnector(BaseIntegrationConnector):
             return getattr(yf, method)(**kwargs)
         except ImportError:
             return None
-        except Exception:
+        except Exception as exc:
             return None
 
     # -- Quote / Price --

@@ -14,7 +14,7 @@ __all__: list[str] = ["matrix_bridge"]
 # ---------------------------------------------------------------------------
 try:
     from . import matrix_bridge  # noqa: F401
-except Exception:  # pragma: no cover
+except Exception as exc:  # pragma: no cover
     import logging as _logging
 
     _logging.getLogger(__name__).debug(

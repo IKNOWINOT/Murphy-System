@@ -226,7 +226,7 @@ class ReadinessScanner:
                         _pass("health_endpoint")
                     else:
                         _warn("health_endpoint", f"Returned HTTP {resp.status}")
-            except Exception:
+            except Exception as exc:
                 _warn(
                     "health_endpoint",
                     f"Could not reach {base_url}/api/health — is the server running?",

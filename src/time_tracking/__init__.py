@@ -21,12 +21,12 @@ from .team_views import TeamViewService
 
 try:
     from .api import create_time_tracking_router
-except Exception:  # pragma: no cover
+except Exception as exc:  # pragma: no cover
     create_time_tracking_router = None  # type: ignore[assignment]
 
 try:
     from .reporting_api import create_reporting_blueprint
-except Exception:  # pragma: no cover
+except Exception as exc:  # pragma: no cover
     create_reporting_blueprint = None  # type: ignore[assignment]
 
 from .billing_integration import BillingIntegrationService
@@ -35,11 +35,11 @@ from .config import TimeTrackingConfig
 
 try:
     from .settings_api import create_settings_blueprint
-except Exception:  # pragma: no cover
+except Exception as exc:  # pragma: no cover
     create_settings_blueprint = None  # type: ignore[assignment]
 try:
     from .dashboard_api import create_dashboard_blueprint
-except Exception:  # pragma: no cover
+except Exception as exc:  # pragma: no cover
     create_dashboard_blueprint = None  # type: ignore[assignment]
 
 __all__ = [

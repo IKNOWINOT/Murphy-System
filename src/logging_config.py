@@ -55,7 +55,7 @@ def _get_request_id() -> str:
     if _HAS_REQUEST_CONTEXT:
         try:
             return get_request_id() or ""
-        except Exception:
+        except Exception as exc:
             return ""
     return ""
 

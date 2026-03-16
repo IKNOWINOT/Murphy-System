@@ -110,7 +110,7 @@ def create_app() -> FastAPI:
     try:
         from src.account_management.oauth_provider_registry import OAuthProviderRegistry as _OAuthProviderRegistry
         _oauth_registry: "Optional[_OAuthProviderRegistry]" = _OAuthProviderRegistry()
-    except Exception:  # pragma: no cover
+    except Exception as exc:  # pragma: no cover
         _oauth_registry = None
 
     # Apply security hardening (CORS allowlist, API key auth, rate limiting, headers)
@@ -507,7 +507,7 @@ def create_app() -> FastAPI:
         try:
             llm_status = murphy._get_llm_status()
             checks["llm"] = "ok" if llm_status.get("enabled") else "unavailable"
-        except Exception:
+        except Exception as exc:
             checks["llm"] = "unavailable"
 
         # Event backbone / integration bus
@@ -515,7 +515,7 @@ def create_app() -> FastAPI:
             from src.integration_bus import IntegrationBus
             _bus = IntegrationBus()
             checks["event_backbone"] = "ok" if _bus is not None else "error"
-        except Exception:
+        except Exception as exc:
             checks["event_backbone"] = "not_configured"
 
         # Module count
@@ -526,7 +526,7 @@ def create_app() -> FastAPI:
             else:
                 _sys_status = murphy.get_system_status()
                 checks["modules_loaded"] = len(_sys_status.get("modules", {}))
-        except Exception:
+        except Exception as exc:
             checks["modules_loaded"] = 0
 
         checks["version"] = murphy.version
@@ -1022,7 +1022,7 @@ def create_app() -> FastAPI:
         """Create a session for UI chat flows"""
         try:
             data = await request.json()
-        except Exception:
+        except Exception as exc:
             data = {}
         result = murphy.create_session(name=data.get("name"))
         return JSONResponse(result)
@@ -1275,7 +1275,7 @@ def create_app() -> FastAPI:
         _mx_settings = _get_matrix_settings()
         _matrix_bridge_state["homeserver"] = _mx_settings.homeserver_url
         logger.info("Matrix bridge settings loaded")
-    except Exception:
+    except Exception as exc:
         logger.debug("Matrix bridge settings not available — using defaults")
 
     @app.get("/api/matrix/status")
@@ -1304,7 +1304,7 @@ def create_app() -> FastAPI:
                 }
                 for r in topo.rooms
             ]
-        except Exception:
+        except Exception as exc:
             rooms = _matrix_bridge_state.get("rooms", [])
         return JSONResponse({"success": True, "rooms": rooms})
 
@@ -1567,7 +1567,7 @@ def create_app() -> FastAPI:
             return JSONResponse({"success": False, "error": "Universal integration adapter not available"}, status_code=503)
         try:
             data = await request.json()
-        except Exception:
+        except Exception as exc:
             data = {}
         result = murphy.universal_integration_adapter.execute(service_id, action_name, data.get("params", data))
         return JSONResponse({"success": result.status.value == "success", **result.to_dict()})
@@ -1617,13 +1617,13 @@ def create_app() -> FastAPI:
     try:
         from setup_wizard import SetupProfile, SetupWizard
         _setup_wizard = SetupWizard()
-    except Exception:
+    except Exception as exc:
         _setup_wizard = None
 
     try:
         from onboarding_automation_engine import OnboardingAutomationEngine
         _onboarding_engine = OnboardingAutomationEngine()
-    except Exception:
+    except Exception as exc:
         _onboarding_engine = None
 
     # Persisted onboarding config (read by production wizard + workflow canvas)
@@ -3109,7 +3109,7 @@ def create_app() -> FastAPI:
             try:
                 from src.subscription_manager import SubscriptionManager
                 _sub_mgr = SubscriptionManager()
-            except Exception:
+            except Exception as exc:
                 _sub_mgr = None
         return _sub_mgr
 
@@ -3297,7 +3297,7 @@ def create_app() -> FastAPI:
     try:
         from src.golden_path_engine import GoldenPathEngine as _GoldenPathEngine
         _gpe = _GoldenPathEngine()
-    except Exception:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
         _gpe = None
 
     @app.get("/api/golden-path")
@@ -3866,8 +3866,8 @@ def create_app() -> FastAPI:
                 if native_id:
                     try:
                         frameworks.append(_CF(native_id))
-                    except ValueError:
-                        pass
+                    except ValueError as exc:
+                        logger.debug("Value error in handler: %s", exc)
             return frameworks
         except ImportError:
             return []
@@ -5316,7 +5316,7 @@ def main():
     try:
         from src.cli_art import render_banner, render_panel
         print(render_banner())
-    except Exception:
+    except Exception as exc:
         # Fallback if cli_art is unavailable
         print("\n  ☠  Murphy System v1.0  ☠\n")
 
@@ -5338,7 +5338,7 @@ def main():
             f"  ☠ Info:         http://localhost:{port}/api/info",
         ]))
         print()
-    except Exception:
+    except Exception as exc:
         print(f"\n☠ Starting Murphy System v1.0 on port {port}...")
         print(f"  ☠ API Docs:     http://localhost:{port}/docs")
         print(f"  ☠ Health:       http://localhost:{port}/api/health")

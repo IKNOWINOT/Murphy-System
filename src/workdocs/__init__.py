@@ -39,7 +39,7 @@ from .models import (
 
 try:
     from .api import create_workdocs_router
-except Exception:  # pragma: no cover
+except Exception as exc:  # pragma: no cover
     create_workdocs_router = None  # type: ignore[assignment]
 
 __all__ = [

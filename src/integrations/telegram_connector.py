@@ -46,7 +46,7 @@ class TelegramConnector(BaseIntegrationConnector):
                     response = client.get(url, params=params)
             try:
                 data = response.json()
-            except Exception:
+            except Exception as exc:
                 data = response.text
             return {
                 "success": response.is_success and data.get("ok", False) if isinstance(data, dict) else response.is_success,

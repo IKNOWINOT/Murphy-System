@@ -86,7 +86,7 @@ class ShutdownManager:
                 if stream is not None and getattr(stream, "closed", False):
                     raise ValueError("stream closed")
             log_fn(msg)
-        except Exception:
+        except Exception as exc:
             import sys
             try:
                 print(msg, file=sys.stderr)

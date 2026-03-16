@@ -829,7 +829,7 @@ def _extract_email_body(msg: Any) -> str:
         return "\n".join(parts)
     try:
         return msg.get_payload(decode=True).decode(errors="replace")
-    except Exception:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
         return ""
 
 

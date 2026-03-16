@@ -22,7 +22,7 @@ from .models import (
 
 try:
     from .api import create_automations_router
-except Exception:  # pragma: no cover
+except Exception as exc:  # pragma: no cover
     create_automations_router = None  # type: ignore[assignment]
 
 __all__ = [

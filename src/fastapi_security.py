@@ -429,8 +429,8 @@ class SecurityMiddleware(BaseHTTPMiddleware):
                         status_code=413,
                         content={"error": "Request body too large", "max_bytes": _MAX_BODY_BYTES},
                     )
-            except ValueError:
-                pass
+            except ValueError as exc:
+                logger.debug("Value error in handler: %s", exc)
 
         # Rate limiting
         rate_result = _rate_limiter.check(client_ip)

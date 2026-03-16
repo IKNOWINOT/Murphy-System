@@ -275,7 +275,7 @@ class ActionTraceCollector:
             for etype in (EventType.TASK_COMPLETED, EventType.TASK_FAILED):
                 self.event_backbone.subscribe(etype, self._on_event)
             logger.info("Registered EventBackbone hooks for trace collection")
-        except Exception:
+        except Exception as exc:
             logger.warning(
                 "Could not register EventBackbone hooks — "
                 "traces must be recorded manually via record_trace()"
@@ -313,7 +313,7 @@ class ActionTraceCollector:
                 ),
             )
             self.record_trace(trace)
-        except Exception:
+        except Exception as exc:
             logger.exception("Failed to convert event to ActionTrace")
 
     def _update_stats(self, trace: ActionTrace) -> None:

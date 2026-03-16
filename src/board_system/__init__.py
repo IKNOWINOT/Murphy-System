@@ -81,7 +81,7 @@ from .views import (
 # -- API (optional – requires fastapi) -------------------------------------
 try:
     from .api import create_board_router
-except Exception:  # pragma: no cover
+except Exception as exc:  # pragma: no cover
     create_board_router = None  # type: ignore[assignment]
 
 __all__ = [

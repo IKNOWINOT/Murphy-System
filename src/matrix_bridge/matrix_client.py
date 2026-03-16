@@ -207,7 +207,7 @@ class _MatrixClientBase(abc.ABC):
                 result = handler(event)
                 if asyncio.iscoroutine(result):
                     await result
-            except Exception:
+            except Exception as exc:
                 logger.exception("Event handler %r raised an exception", handler)
 
     # Async context manager

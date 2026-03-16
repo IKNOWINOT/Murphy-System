@@ -444,7 +444,7 @@ class ExportPipeline:
             try:
                 base64.b64decode(raw, validate=True)
                 return raw  # already valid base64
-            except Exception:
+            except Exception as exc:
                 return base64.b64encode(raw.encode("utf-8", errors="replace")).decode("ascii")
 
         # 3. Ultimate fallback (no engine)
@@ -467,7 +467,7 @@ class ExportPipeline:
             try:
                 base64.b64decode(raw, validate=True)
                 return raw  # already valid base64
-            except Exception:
+            except Exception as exc:
                 return base64.b64encode(raw.encode("utf-8", errors="replace")).decode("ascii")
 
         # Ultimate fallback (no engine)

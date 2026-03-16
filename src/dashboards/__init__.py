@@ -62,7 +62,7 @@ from .widgets import (
 # -- API (optional – requires fastapi) -------------------------------------
 try:
     from .api import create_dashboard_router
-except Exception:  # pragma: no cover
+except Exception as exc:  # pragma: no cover
     create_dashboard_router = None  # type: ignore[assignment]
 
 __all__ = [

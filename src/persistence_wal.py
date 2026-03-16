@@ -176,7 +176,7 @@ class SQLiteWALBackend:
             try:
                 yield conn
                 conn.commit()
-            except Exception:
+            except Exception as exc:
                 conn.rollback()
                 raise
 

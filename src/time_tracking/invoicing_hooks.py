@@ -117,7 +117,7 @@ class InvoicingHookManager:
             try:
                 cb(key, payload)
                 count += 1
-            except Exception:
+            except Exception as exc:
                 logger.exception(
                     "Hook callback %r raised an exception for event %r",
                     cb,
@@ -175,7 +175,7 @@ class InvoicingHookManager:
                         "auto_invoice_hook: generated draft invoice for client=%r",
                         client_id,
                     )
-            except Exception:
+            except Exception as exc:
                 logger.exception(
                     "auto_invoice_hook: failed to generate invoice for client=%r",
                     client_id,

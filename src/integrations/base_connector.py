@@ -156,7 +156,7 @@ class BaseIntegrationConnector:
                 if response.is_success:
                     try:
                         data = response.json()
-                    except Exception:
+                    except Exception as exc:
                         data = response.text
                     return {
                         "success": True,

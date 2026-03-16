@@ -187,7 +187,7 @@ class TauBenchAdapter(BenchmarkAdapter):
                 wiring = GateExecutionWiring()
                 hitl_result = wiring.evaluate_hitl(output)
                 hitl_triggered = bool(hitl_result)
-            except Exception:  # noqa: BLE001
+            except Exception as exc:  # noqa: BLE001
                 hitl_triggered = False
 
         elapsed = time.perf_counter() - start

@@ -46,7 +46,7 @@ from .models import (
 
 try:
     from .api import create_guest_router
-except Exception:  # pragma: no cover
+except Exception as exc:  # pragma: no cover
     create_guest_router = None  # type: ignore[assignment]
 
 __all__ = [

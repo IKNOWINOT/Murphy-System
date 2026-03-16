@@ -3422,7 +3422,7 @@ class MurphySystem:
                 return normalized_session_id
             try:
                 session_payload = self.create_session()
-            except Exception:
+            except Exception as exc:
                 logger.warning(
                     "Compute-plane validation session creation raised an exception; results will not be linked to a session."
                 )
@@ -3485,7 +3485,7 @@ class MurphySystem:
         if session_id is not None:
             try:
                 return str(session_id).strip() or None
-            except Exception:
+            except Exception as exc:
                 return None
         return None
 
@@ -3499,14 +3499,14 @@ class MurphySystem:
             try:
                 raw_value = payload.get(key)  # type: ignore[attr-defined]
                 fetched = True
-            except Exception:
+            except Exception as exc:
                 fetched = False
 
             if not fetched:
                 try:
                     raw_value = payload[key]
                     fetched = True
-                except Exception:
+                except Exception as exc:
                     fetched = False
 
             if not fetched:
@@ -3900,7 +3900,7 @@ class MurphySystem:
                         blocked_session = self._resolve_session_id_from_payload(created_session)
                     else:
                         blocked_session = None
-                except Exception:
+                except Exception as exc:
                     blocked_session = None
             blocked_reason = execution_policy.get("reason") or "Execution policy blocked."
             return {
@@ -4071,7 +4071,7 @@ class MurphySystem:
                             blocked_session = self._resolve_session_id_from_payload(created_session)
                         else:
                             blocked_session = None
-                    except Exception:
+                    except Exception as exc:
                         blocked_session = None
                 return {
                     "success": False,
@@ -4452,7 +4452,7 @@ class MurphySystem:
             return normalized_session_id
         try:
             payload = self.create_session()
-        except Exception:
+        except Exception as exc:
             logger.warning(
                 "Two-Phase Orchestrator session creation raised unexpectedly; will proceed without session binding."
             )
@@ -10757,7 +10757,7 @@ class MurphySystem:
         if gate_wiring is not None:
             try:
                 gate_status = gate_wiring.get_status()
-            except Exception:
+            except Exception as exc:
                 gate_status = {"error": "status unavailable"}
 
         event_status = {}
@@ -10765,7 +10765,7 @@ class MurphySystem:
         if backbone is not None:
             try:
                 event_status = backbone.get_status()
-            except Exception:
+            except Exception as exc:
                 event_status = {"error": "status unavailable"}
 
         delivery_status = {}
@@ -10773,7 +10773,7 @@ class MurphySystem:
         if delivery_orch is not None:
             try:
                 delivery_status = delivery_orch.get_channel_status()
-            except Exception:
+            except Exception as exc:
                 delivery_status = {"error": "status unavailable"}
 
         improvement_status = {}
@@ -10781,7 +10781,7 @@ class MurphySystem:
         if engine is not None:
             try:
                 improvement_status = engine.get_status()
-            except Exception:
+            except Exception as exc:
                 improvement_status = {"error": "status unavailable"}
 
         persistence_status = {}
@@ -10789,7 +10789,7 @@ class MurphySystem:
         if pm is not None:
             try:
                 persistence_status = pm.get_status()
-            except Exception:
+            except Exception as exc:
                 persistence_status = {"error": "status unavailable"}
 
         slo_status = {}
@@ -10797,7 +10797,7 @@ class MurphySystem:
         if slo is not None:
             try:
                 slo_status = slo.get_status()
-            except Exception:
+            except Exception as exc:
                 slo_status = {"error": "status unavailable"}
 
         scheduler_status = {}
@@ -10805,7 +10805,7 @@ class MurphySystem:
         if sched is not None:
             try:
                 scheduler_status = sched.get_status()
-            except Exception:
+            except Exception as exc:
                 scheduler_status = {"error": "status unavailable"}
 
         cap_map_status = {}
@@ -10813,7 +10813,7 @@ class MurphySystem:
         if cap_map is not None:
             try:
                 cap_map_status = cap_map.get_status()
-            except Exception:
+            except Exception as exc:
                 cap_map_status = {"error": "status unavailable"}
 
         compliance_status = {}
@@ -10821,7 +10821,7 @@ class MurphySystem:
         if compliance is not None:
             try:
                 compliance_status = compliance.get_status()
-            except Exception:
+            except Exception as exc:
                 compliance_status = {"error": "status unavailable"}
 
         rbac_status = {}
@@ -10829,7 +10829,7 @@ class MurphySystem:
         if rbac is not None:
             try:
                 rbac_status = rbac.get_status()
-            except Exception:
+            except Exception as exc:
                 rbac_status = {"error": "status unavailable"}
 
         ticketing_status = {}
@@ -10837,7 +10837,7 @@ class MurphySystem:
         if ticketing is not None:
             try:
                 ticketing_status = ticketing.get_status()
-            except Exception:
+            except Exception as exc:
                 ticketing_status = {"error": "status unavailable"}
 
         wingman_status = {}
@@ -10845,7 +10845,7 @@ class MurphySystem:
         if wingman is not None:
             try:
                 wingman_status = wingman.get_status()
-            except Exception:
+            except Exception as exc:
                 wingman_status = {"error": "status unavailable"}
 
         profile_status = {}
@@ -10853,7 +10853,7 @@ class MurphySystem:
         if profile_compiler is not None:
             try:
                 profile_status = profile_compiler.get_status()
-            except Exception:
+            except Exception as exc:
                 profile_status = {"error": "status unavailable"}
 
         kernel_status = {}
@@ -10861,7 +10861,7 @@ class MurphySystem:
         if kernel is not None:
             try:
                 kernel_status = kernel.get_status()
-            except Exception:
+            except Exception as exc:
                 kernel_status = {"error": "status unavailable"}
 
         cps_status = {}
@@ -10869,7 +10869,7 @@ class MurphySystem:
         if cps is not None:
             try:
                 cps_status = cps.get_status()
-            except Exception:
+            except Exception as exc:
                 cps_status = {"error": "status unavailable"}
 
         dso_status = {}
@@ -10877,7 +10877,7 @@ class MurphySystem:
         if dso is not None:
             try:
                 dso_status = dso.get_status()
-            except Exception:
+            except Exception as exc:
                 dso_status = {"error": "status unavailable"}
 
         gpb_status = {}
@@ -10885,7 +10885,7 @@ class MurphySystem:
         if gpb is not None:
             try:
                 gpb_status = gpb.get_status()
-            except Exception:
+            except Exception as exc:
                 gpb_status = {"error": "status unavailable"}
 
         oce_status = {}
@@ -10893,7 +10893,7 @@ class MurphySystem:
         if oce is not None:
             try:
                 oce_status = oce.get_status()
-            except Exception:
+            except Exception as exc:
                 oce_status = {"error": "status unavailable"}
 
         sai_status = {}
@@ -10901,7 +10901,7 @@ class MurphySystem:
         if sai is not None:
             try:
                 sai_status = sai.get_status()
-            except Exception:
+            except Exception as exc:
                 sai_status = {"error": "status unavailable"}
 
         tra_status = {}
@@ -10909,7 +10909,7 @@ class MurphySystem:
         if tra is not None:
             try:
                 tra_status = tra.get_status()
-            except Exception:
+            except Exception as exc:
                 tra_status = {"error": "status unavailable"}
 
         rea_status = {}
@@ -10917,7 +10917,7 @@ class MurphySystem:
         if rea is not None:
             try:
                 rea_status = rea.get_status()
-            except Exception:
+            except Exception as exc:
                 rea_status = {"error": "status unavailable"}
 
         sbc_status = {}
@@ -10925,7 +10925,7 @@ class MurphySystem:
         if sbc is not None:
             try:
                 sbc_status = sbc.get_status()
-            except Exception:
+            except Exception as exc:
                 sbc_status = {"error": "status unavailable"}
 
         bgpm_status = {}
@@ -10933,7 +10933,7 @@ class MurphySystem:
         if bgpm is not None:
             try:
                 bgpm_status = bgpm.get_status()
-            except Exception:
+            except Exception as exc:
                 bgpm_status = {"error": "status unavailable"}
 
         btn_status = {}
@@ -10941,7 +10941,7 @@ class MurphySystem:
         if btn is not None:
             try:
                 btn_status = btn.get_status()
-            except Exception:
+            except Exception as exc:
                 btn_status = {"error": "status unavailable"}
 
         lcm_status = {}
@@ -10949,7 +10949,7 @@ class MurphySystem:
         if lcm is not None:
             try:
                 lcm_status = lcm.get_matrix_report()
-            except Exception:
+            except Exception as exc:
                 lcm_status = {"error": "status unavailable"}
 
         hac_status = {}
@@ -10957,7 +10957,7 @@ class MurphySystem:
         if hac is not None:
             try:
                 hac_status = hac.get_autonomy_stats()
-            except Exception:
+            except Exception as exc:
                 hac_status = {"error": "status unavailable"}
 
         crv_status = {}
@@ -10965,7 +10965,7 @@ class MurphySystem:
         if crv is not None:
             try:
                 crv_status = crv.get_compliance_report()
-            except Exception:
+            except Exception as exc:
                 crv_status = {"error": "status unavailable"}
 
         oc_status = {}
@@ -10973,7 +10973,7 @@ class MurphySystem:
         if oc is not None:
             try:
                 oc_status = oc.get_status()
-            except Exception:
+            except Exception as exc:
                 oc_status = {"error": "status unavailable"}
 
         dre_status = {}
@@ -10981,7 +10981,7 @@ class MurphySystem:
         if dre is not None:
             try:
                 dre_status = dre.get_status()
-            except Exception:
+            except Exception as exc:
                 dre_status = {"error": "status unavailable"}
 
         pcf_status = {}
@@ -10989,7 +10989,7 @@ class MurphySystem:
         if pcf is not None:
             try:
                 pcf_status = pcf.status()
-            except Exception:
+            except Exception as exc:
                 pcf_status = {"error": "status unavailable"}
 
         wde_status = {}
@@ -10997,7 +10997,7 @@ class MurphySystem:
         if wde is not None:
             try:
                 wde_status = wde.status()
-            except Exception:
+            except Exception as exc:
                 wde_status = {"error": "status unavailable"}
 
         atr_status = {}
@@ -11005,7 +11005,7 @@ class MurphySystem:
         if atr is not None:
             try:
                 atr_status = atr.status()
-            except Exception:
+            except Exception as exc:
                 atr_status = {"error": "status unavailable"}
 
         aga_status = {}
@@ -11013,7 +11013,7 @@ class MurphySystem:
         if aga is not None:
             try:
                 aga_status = aga.status()
-            except Exception:
+            except Exception as exc:
                 aga_status = {"error": "status unavailable"}
 
         wep_status = {}
@@ -11021,7 +11021,7 @@ class MurphySystem:
         if wep is not None:
             try:
                 wep_status = wep.status()
-            except Exception:
+            except Exception as exc:
                 wep_status = {"error": "status unavailable"}
 
         sao_status = {}
@@ -11029,7 +11029,7 @@ class MurphySystem:
         if sao is not None:
             try:
                 sao_status = sao.get_status()
-            except Exception:
+            except Exception as exc:
                 sao_status = {"error": "status unavailable"}
 
         pes_status = {}
@@ -11037,7 +11037,7 @@ class MurphySystem:
         if pes is not None:
             try:
                 pes_status = pes.get_status()
-            except Exception:
+            except Exception as exc:
                 pes_status = {"error": "status unavailable"}
 
         awg_status = {}
@@ -11045,7 +11045,7 @@ class MurphySystem:
         if awg is not None:
             try:
                 awg_status = awg.get_status()
-            except Exception:
+            except Exception as exc:
                 awg_status = {"error": "status unavailable"}
 
         wtm_status = {}
@@ -11053,7 +11053,7 @@ class MurphySystem:
         if wtm is not None:
             try:
                 wtm_status = wtm.get_status()
-            except Exception:
+            except Exception as exc:
                 wtm_status = {"error": "status unavailable"}
 
         cpds_status = {}
@@ -11061,7 +11061,7 @@ class MurphySystem:
         if cpds is not None:
             try:
                 cpds_status = cpds.get_status()
-            except Exception:
+            except Exception as exc:
                 cpds_status = {"error": "status unavailable"}
 
         return {

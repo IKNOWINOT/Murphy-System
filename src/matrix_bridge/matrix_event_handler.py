@@ -273,7 +273,7 @@ class MatrixEventHandler:
                     res = await res
                 if isinstance(res, EventHandlerResult):
                     result = res
-            except Exception:
+            except Exception as exc:
                 logger.exception("Event handler raised an exception for %r", type_key)
 
         # Command handling only for room messages

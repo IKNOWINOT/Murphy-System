@@ -37,7 +37,7 @@ def _check_weasyprint() -> bool:
             import weasyprint  # noqa: F401  # type: ignore[import-untyped]
 
             _WEASYPRINT_AVAILABLE = True
-        except Exception:
+        except Exception as exc:
             _WEASYPRINT_AVAILABLE = False
     return _WEASYPRINT_AVAILABLE
 

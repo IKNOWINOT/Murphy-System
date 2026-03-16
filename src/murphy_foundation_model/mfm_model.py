@@ -282,7 +282,7 @@ class MFMModel:
             return sum(
                 p.numel() for p in self._base_model.parameters() if p.requires_grad
             )
-        except Exception:
+        except Exception as exc:
             return 0
 
     def to_device(self, device: str) -> None:

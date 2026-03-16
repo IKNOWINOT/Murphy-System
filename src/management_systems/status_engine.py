@@ -241,7 +241,7 @@ class WorkflowTransition:
         if self.condition is not None:
             try:
                 return bool(self.condition(item_data))
-            except Exception:
+            except Exception as exc:
                 return False
         return True
 

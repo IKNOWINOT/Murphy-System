@@ -62,7 +62,7 @@ from .notifications import NotificationEngine
 # -- API (optional – requires fastapi) -------------------------------------
 try:
     from .api import create_collaboration_router
-except Exception:  # pragma: no cover
+except Exception as exc:  # pragma: no cover
     create_collaboration_router = None  # type: ignore[assignment]
 
 __all__ = [

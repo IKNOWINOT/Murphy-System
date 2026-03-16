@@ -828,8 +828,8 @@ class CutSheetEngine:
         if vid_raw:
             try:
                 spec.bacnet_vendor_id = int(vid_raw)
-            except ValueError:
-                pass
+            except ValueError as exc:
+                logger.debug("Value conversion skipped: %s", exc)
 
         spec.bacnet_vendor_name = _extract_kv(
             doc,

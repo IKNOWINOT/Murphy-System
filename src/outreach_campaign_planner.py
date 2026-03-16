@@ -285,7 +285,7 @@ def _mask_email(email: str) -> str:
     try:
         local, domain = email.rsplit("@", 1)
         return f"{local[:2]}***@{domain}"
-    except Exception:
+    except Exception as exc:
         return "***"
 
 
@@ -870,7 +870,7 @@ class CampaignPlannerEngine:
             from self_selling_engine._constraints import BUSINESS_TYPE_CONSTRAINTS
             bt_data = BUSINESS_TYPE_CONSTRAINTS.get(business_type, {})
             bt_display = bt_data.get("display_name", business_type.replace("_", " ").title())
-        except Exception:
+        except Exception as exc:
             bt_display = business_type.replace("_", " ").title()
 
         parts: List[str] = []

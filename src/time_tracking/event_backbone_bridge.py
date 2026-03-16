@@ -65,7 +65,7 @@ def bridge_time_tracking_to_backbone(
             """
             try:
                 _bb.publish(event_type, payload)
-            except Exception:
+            except Exception as exc:
                 logger.debug(
                     "EventBackbone publish skipped for time_tracking event %r",
                     event_type,

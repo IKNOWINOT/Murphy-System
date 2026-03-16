@@ -109,7 +109,7 @@ class CacheClient:
                 try:
                     self._backend = _RedisCache(self._redis_url, self._ttl)
                     logger.info("CacheClient using Redis: %s", self._redis_url)
-                except Exception:
+                except Exception as exc:
                     self._backend = _InMemoryCache(self._ttl)
                     logger.info("CacheClient falling back to in-memory cache")
             else:
