@@ -1,0 +1,658 @@
+<!-- Murphy System — Crypto Wallet / © 2020 Inoni Limited Liability Company by Corey Post / License: BSL 1.1 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — Wallet</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
+<style>
+  /* Neon terminal theme — Color Key: green=#00ff41, cyan=#00ffff, teal=#00D4AA, bg=#0a0a0a */
+  *:focus-visible { outline: 2px solid #00ff41; outline-offset: 2px; }
+  body { background: #0a0a0a; color: var(--text-primary); font-family: var(--font-ui); margin: 0; }
+
+  .wallet-layout {
+    max-width: 1100px; margin: 0 auto;
+    padding: 2rem 1rem 4rem;
+  }
+
+  /* ── Page header ── */
+  .wallet-hero {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;
+  }
+  .wallet-hero-left h1 { font-size: var(--text-2xl); font-weight: 700; color: var(--text-primary); margin-bottom: .25rem; }
+  .wallet-hero-left p  { font-size: var(--text-sm); color: var(--text-secondary); }
+  .wallet-hero-badge {
+    font-size: var(--text-xs); font-weight: 600; letter-spacing: .05em;
+    padding: .25rem .75rem; border-radius: var(--radius-full);
+    background: rgba(0,212,170,.1); border: 1px solid rgba(0,212,170,.25); color: var(--teal);
+  }
+
+  /* ── Net worth card ── */
+  .wallet-networth {
+    background: linear-gradient(135deg, rgba(0,212,170,.12) 0%, rgba(0,255,65,.05) 100%);
+    border: 1px solid rgba(0,212,170,.3); border-radius: var(--radius-2xl);
+    padding: 2rem 2.5rem; margin-bottom: 1.5rem;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem;
+  }
+  .wallet-networth-label { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: .07em; color: var(--text-tertiary); margin-bottom: .375rem; }
+  .wallet-networth-value { font-size: 2.75rem; font-weight: 800; color: var(--text-primary); font-family: var(--font-ui); letter-spacing: -.02em; }
+  .wallet-networth-change { font-size: var(--text-sm); font-weight: 600; color: #00ff41; }
+  .wallet-networth-change.down { color: #ff4444; }
+  .wallet-networth-actions { display: flex; gap: .75rem; flex-wrap: wrap; }
+  .wallet-action-btn {
+    padding: .625rem 1.5rem; border-radius: var(--radius-md); font-family: var(--font-ui);
+    font-size: var(--text-sm); font-weight: 600; cursor: pointer;
+    display: flex; align-items: center; gap: .5rem;
+    transition: opacity var(--transition-base), transform var(--transition-base);
+  }
+  .wallet-action-btn:hover { opacity: .9; transform: translateY(-1px); }
+  .wallet-action-btn.primary { background: var(--teal); border: none; color: #0C1017; }
+  .wallet-action-btn.outline { background: transparent; border: 1px solid var(--teal); color: var(--teal); }
+  .wallet-action-btn.outline-green { background: transparent; border: 1px solid #00ff41; color: #00ff41; }
+
+  /* ── Section heading ── */
+  .wallet-section-heading {
+    font-size: var(--text-base); font-weight: 600; color: var(--text-primary);
+    margin-bottom: 1rem; display: flex; align-items: center; gap: .625rem;
+  }
+  .wallet-section-heading::after { content: ''; flex: 1; height: 1px; background: var(--border-subtle); }
+
+  /* ── Assets grid ── */
+  .wallet-assets-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem; margin-bottom: 2rem;
+  }
+  .asset-card {
+    background: var(--bg-surface); border: 1px solid var(--border-default);
+    border-radius: var(--radius-xl); padding: 1.25rem;
+    display: flex; flex-direction: column; gap: .5rem;
+    transition: border-color var(--transition-base);
+  }
+  .asset-card:hover { border-color: var(--teal); }
+  .asset-card-top { display: flex; align-items: center; gap: .75rem; }
+  .asset-icon {
+    width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.25rem; font-weight: 700; flex-shrink: 0;
+  }
+  .asset-icon.btc  { background: rgba(247,147,26,.15); color: #f7931a; }
+  .asset-icon.eth  { background: rgba(98,126,234,.15); color: #627eea; }
+  .asset-icon.sol  { background: rgba(153,69,255,.15);  color: #9945ff; }
+  .asset-icon.usdc { background: rgba(39,117,202,.15);  color: #2775ca; }
+  .asset-icon.matic{ background: rgba(130,71,229,.15);  color: #8247e5; }
+  .asset-icon.mrph { background: rgba(0,212,170,.15);   color: var(--teal); }
+  .asset-name  { font-size: var(--text-sm); font-weight: 600; color: var(--text-primary); }
+  .asset-symbol{ font-size: var(--text-xs); color: var(--text-tertiary); }
+  .asset-balance { font-size: var(--text-xl); font-weight: 700; color: var(--text-primary); }
+  .asset-usd { font-size: var(--text-xs); color: var(--text-secondary); }
+  .asset-change { font-size: var(--text-xs); font-weight: 600; margin-left: auto; }
+  .asset-change.up { color: #00ff41; }
+  .asset-change.down { color: #ff4444; }
+
+  /* ── Send / Receive panel ── */
+  .wallet-panel-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem; }
+  .wallet-panel {
+    background: var(--bg-surface); border: 1px solid var(--border-default);
+    border-radius: var(--radius-xl); padding: 1.5rem;
+  }
+  .wallet-panel h3 { font-size: var(--text-base); font-weight: 600; color: var(--text-primary); margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem; }
+  .wallet-form-group { margin-bottom: 1rem; }
+  .wallet-label { display: block; font-size: var(--text-xs); font-weight: 500; color: var(--text-secondary); margin-bottom: .35rem; }
+  .wallet-input {
+    width: 100%; padding: .5rem .75rem;
+    background: var(--bg-elevated); border: 1px solid var(--border-default);
+    border-radius: var(--radius-md); color: var(--text-primary);
+    font-family: var(--font-ui); font-size: var(--text-sm); box-sizing: border-box;
+    transition: border-color var(--transition-base);
+  }
+  .wallet-input:focus { outline: none; border-color: var(--teal); }
+  .wallet-select {
+    width: 100%; padding: .5rem .75rem;
+    background: var(--bg-elevated); border: 1px solid var(--border-default);
+    border-radius: var(--radius-md); color: var(--text-primary);
+    font-family: var(--font-ui); font-size: var(--text-sm); box-sizing: border-box; cursor: pointer;
+  }
+  .wallet-input-row { display: flex; gap: .5rem; }
+  .wallet-input-row .wallet-input { flex: 1; }
+  .wallet-max-btn {
+    padding: .5rem .75rem; background: rgba(0,212,170,.1); border: 1px solid rgba(0,212,170,.25);
+    border-radius: var(--radius-md); color: var(--teal); font-size: var(--text-xs); font-weight: 600;
+    cursor: pointer; transition: background var(--transition-base); white-space: nowrap;
+  }
+  .wallet-max-btn:hover { background: rgba(0,212,170,.2); }
+  .wallet-send-btn {
+    width: 100%; padding: .625rem; background: var(--teal); border: none;
+    border-radius: var(--radius-md); color: #0C1017; font-family: var(--font-ui);
+    font-size: var(--text-sm); font-weight: 600; cursor: pointer;
+    transition: opacity var(--transition-base); margin-top: .25rem;
+  }
+  .wallet-send-btn:hover { opacity: .9; }
+  .wallet-receive-qr {
+    display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: .5rem 0;
+  }
+  .wallet-qr-placeholder {
+    width: 140px; height: 140px; background: var(--bg-elevated);
+    border: 1px dashed var(--border-default); border-radius: var(--radius-md);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 3rem; color: var(--text-tertiary);
+  }
+  .wallet-address-box {
+    width: 100%; background: var(--bg-elevated); border: 1px solid var(--border-default);
+    border-radius: var(--radius-md); padding: .625rem .75rem;
+    font-family: var(--font-code); font-size: var(--text-xs); color: var(--teal);
+    word-break: break-all; cursor: pointer; transition: border-color var(--transition-base);
+  }
+  .wallet-address-box:hover { border-color: var(--teal); }
+  .wallet-address-hint { font-size: var(--text-xs); color: var(--text-tertiary); text-align: center; }
+
+  /* ── Tx history ── */
+  .wallet-tx-list { display: flex; flex-direction: column; gap: .625rem; }
+  .wallet-tx {
+    display: flex; align-items: center; gap: 1rem; padding: .875rem 1rem;
+    background: var(--bg-surface); border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    transition: border-color var(--transition-base);
+  }
+  .wallet-tx:hover { border-color: var(--border-hover, rgba(255,255,255,.15)); }
+  .wallet-tx-icon {
+    width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 1rem;
+  }
+  .wallet-tx-icon.send    { background: rgba(255,68,68,.1);  color: #ff4444; }
+  .wallet-tx-icon.receive { background: rgba(0,255,65,.1);   color: #00ff41; }
+  .wallet-tx-icon.swap    { background: rgba(0,212,170,.1);  color: var(--teal); }
+  .wallet-tx-info { flex: 1; min-width: 0; }
+  .wallet-tx-label { font-size: var(--text-sm); font-weight: 600; color: var(--text-primary); }
+  .wallet-tx-meta  { font-size: var(--text-xs); color: var(--text-tertiary); margin-top: 2px; }
+  .wallet-tx-amount { text-align: right; flex-shrink: 0; }
+  .wallet-tx-amount-val { font-size: var(--text-sm); font-weight: 700; }
+  .wallet-tx-amount-val.send    { color: #ff4444; }
+  .wallet-tx-amount-val.receive { color: #00ff41; }
+  .wallet-tx-amount-val.swap    { color: var(--teal); }
+  .wallet-tx-amount-usd { font-size: var(--text-xs); color: var(--text-tertiary); }
+  .wallet-tx-status {
+    font-size: var(--text-xs); font-weight: 600; padding: .15rem .5rem;
+    border-radius: var(--radius-full);
+  }
+  .wallet-tx-status.confirmed { background: rgba(0,255,65,.1); color: #00ff41; }
+  .wallet-tx-status.pending   { background: rgba(255,196,0,.1); color: #ffc400; }
+
+  /* ── Chain switcher ── */
+  .chain-tabs { display: flex; gap: .375rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .chain-tab {
+    padding: .35rem .875rem; border-radius: var(--radius-full);
+    font-size: var(--text-xs); font-weight: 600; cursor: pointer;
+    border: 1px solid var(--border-default); color: var(--text-secondary);
+    background: var(--bg-elevated); transition: all var(--transition-base);
+  }
+  .chain-tab:hover { color: var(--text-primary); border-color: var(--teal); }
+  .chain-tab.active { background: rgba(0,212,170,.12); border-color: rgba(0,212,170,.4); color: var(--teal); }
+
+  /* ── Murphy AI widget ── */
+  .wallet-murphy-bar {
+    background: rgba(0,255,65,.04); border: 1px solid rgba(0,255,65,.2);
+    border-radius: var(--radius-xl); padding: 1rem 1.25rem;
+    display: flex; align-items: center; gap: .875rem; margin-bottom: 2rem;
+    flex-wrap: wrap;
+  }
+  .wallet-murphy-icon {
+    width: 38px; height: 38px; border-radius: var(--radius-md);
+    background: rgba(0,255,65,.1); border: 1px solid rgba(0,255,65,.25);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    font-weight: 800; font-size: 1rem; color: #00ff41; font-family: var(--font-ui);
+  }
+  .wallet-murphy-text { flex: 1; min-width: 0; }
+  .wallet-murphy-text strong { font-size: var(--text-sm); color: #00ff41; display: block; margin-bottom: .2rem; }
+  .wallet-murphy-text p { font-size: var(--text-xs); color: var(--text-secondary); margin: 0; }
+
+  @media(max-width:700px){
+    .wallet-panel-row { grid-template-columns: 1fr; }
+    .wallet-networth-value { font-size: 2rem; }
+  }
+</style>
+</head>
+<body class="murphy-no-sidebar">
+
+<a class="murphy-skip-link" href="#wallet-main">Skip to content</a>
+
+<!-- ── Topbar ── -->
+<nav class="murphy-topbar" role="navigation" aria-label="Main navigation">
+  <div class="murphy-topbar-left flex items-center gap-3">
+    <a href="/ui/landing" class="murphy-topbar-brand">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect width="32" height="32" rx="8" fill="var(--teal)"/>
+        <text x="16" y="22" text-anchor="middle" fill="#0C1017" font-size="18" font-weight="700" font-family="Inter,sans-serif">M</text>
+      </svg>
+      <span class="murphy-topbar-brand-name">Murphy System</span>
+    </a>
+    <div class="murphy-nav-links nav-links-desktop">
+      <a href="/ui/terminal-unified"  class="murphy-btn murphy-btn-ghost murphy-btn-sm">Dashboard</a>
+      <a href="/ui/management"        class="murphy-btn murphy-btn-ghost murphy-btn-sm">Management</a>
+      <a href="/ui/workspace"         class="murphy-btn murphy-btn-ghost murphy-btn-sm">Workspace</a>
+    </div>
+  </div>
+  <div class="murphy-topbar-right flex items-center gap-2">
+    <button class="murphy-btn murphy-btn-ghost murphy-btn-icon" id="theme-toggle-btn" aria-label="Toggle theme">🌙</button>
+    <a href="/ui/login"  class="murphy-btn murphy-btn-ghost murphy-btn-sm">Sign In</a>
+    <a href="/ui/signup" class="murphy-btn murphy-btn-primary murphy-btn-sm">Get Started</a>
+  </div>
+</nav>
+
+<!-- ── Main ── -->
+<main id="wallet-main" class="wallet-layout" role="main" aria-label="Crypto Wallet">
+
+  <!-- Hero -->
+  <div class="wallet-hero">
+    <div class="wallet-hero-left">
+      <h1>Murphy Wallet</h1>
+      <p>Manage your crypto assets, send, receive, and swap — all in one place.</p>
+    </div>
+    <span class="wallet-hero-badge">Beta</span>
+  </div>
+
+  <!-- Murphy AI bar -->
+  <div class="wallet-murphy-bar" role="region" aria-label="Murphy AI wallet assistant">
+    <div class="wallet-murphy-icon" aria-hidden="true">M</div>
+    <div class="wallet-murphy-text">
+      <strong>Murphy AI is watching your portfolio</strong>
+      <p id="murphy-wallet-insight">Your ETH balance is up 3.4% today. Gas fees on Ethereum are currently low — good time to transact.</p>
+    </div>
+    <button class="wallet-action-btn outline-green" id="murphy-wallet-ask" aria-label="Ask Murphy about your wallet">Ask Murphy</button>
+  </div>
+
+  <!-- Chain tabs -->
+  <div class="chain-tabs" role="tablist" aria-label="Select blockchain network">
+    <button class="chain-tab active" role="tab" aria-selected="true"  data-chain="all">All Networks</button>
+    <button class="chain-tab"        role="tab" aria-selected="false" data-chain="eth">Ethereum</button>
+    <button class="chain-tab"        role="tab" aria-selected="false" data-chain="btc">Bitcoin</button>
+    <button class="chain-tab"        role="tab" aria-selected="false" data-chain="sol">Solana</button>
+    <button class="chain-tab"        role="tab" aria-selected="false" data-chain="poly">Polygon</button>
+    <button class="chain-tab"        role="tab" aria-selected="false" data-chain="base">Base</button>
+  </div>
+
+  <!-- Net worth -->
+  <div class="wallet-networth" role="region" aria-label="Total portfolio value">
+    <div>
+      <div class="wallet-networth-label">Total Portfolio Value</div>
+      <div class="wallet-networth-value" id="total-value">$24,831.42</div>
+      <div class="wallet-networth-change" id="total-change">▲ +$842.17 (3.51%) today</div>
+    </div>
+    <div class="wallet-networth-actions">
+      <button class="wallet-action-btn primary" id="btn-send-open" aria-label="Send crypto">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Send
+      </button>
+      <button class="wallet-action-btn outline" id="btn-receive-open" aria-label="Receive crypto">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>
+        Receive
+      </button>
+      <button class="wallet-action-btn outline" id="btn-swap-open" aria-label="Swap crypto">⇄ Swap</button>
+    </div>
+  </div>
+
+  <!-- Assets -->
+  <div class="wallet-section-heading">Assets</div>
+  <div class="wallet-assets-grid" id="assets-grid" role="list" aria-label="Crypto assets">
+
+    <div class="asset-card" role="listitem">
+      <div class="asset-card-top">
+        <div class="asset-icon btc" aria-hidden="true">₿</div>
+        <div><div class="asset-name">Bitcoin</div><div class="asset-symbol">BTC · Mainnet</div></div>
+        <span class="asset-change up">▲ +2.1%</span>
+      </div>
+      <div class="asset-balance">0.3142 BTC</div>
+      <div class="asset-usd">≈ $13,480.22</div>
+    </div>
+
+    <div class="asset-card" role="listitem">
+      <div class="asset-card-top">
+        <div class="asset-icon eth" aria-hidden="true">Ξ</div>
+        <div><div class="asset-name">Ethereum</div><div class="asset-symbol">ETH · Mainnet</div></div>
+        <span class="asset-change up">▲ +3.4%</span>
+      </div>
+      <div class="asset-balance">3.875 ETH</div>
+      <div class="asset-usd">≈ $7,614.81</div>
+    </div>
+
+    <div class="asset-card" role="listitem">
+      <div class="asset-card-top">
+        <div class="asset-icon sol" aria-hidden="true">◎</div>
+        <div><div class="asset-name">Solana</div><div class="asset-symbol">SOL · Mainnet</div></div>
+        <span class="asset-change down">▼ -0.8%</span>
+      </div>
+      <div class="asset-balance">28.5 SOL</div>
+      <div class="asset-usd">≈ $2,051.10</div>
+    </div>
+
+    <div class="asset-card" role="listitem">
+      <div class="asset-card-top">
+        <div class="asset-icon usdc" aria-hidden="true">$</div>
+        <div><div class="asset-name">USD Coin</div><div class="asset-symbol">USDC · Ethereum</div></div>
+        <span class="asset-change up">▲ +0.01%</span>
+      </div>
+      <div class="asset-balance">985.29 USDC</div>
+      <div class="asset-usd">≈ $985.29</div>
+    </div>
+
+    <div class="asset-card" role="listitem">
+      <div class="asset-card-top">
+        <div class="asset-icon matic" aria-hidden="true">⬡</div>
+        <div><div class="asset-name">Polygon</div><div class="asset-symbol">MATIC · Polygon</div></div>
+        <span class="asset-change up">▲ +5.2%</span>
+      </div>
+      <div class="asset-balance">1,240 MATIC</div>
+      <div class="asset-usd">≈ $700.00</div>
+    </div>
+
+    <div class="asset-card" role="listitem">
+      <div class="asset-card-top">
+        <div class="asset-icon mrph" aria-hidden="true">M</div>
+        <div><div class="asset-name">Murphy Token</div><div class="asset-symbol">MRPH · Base</div></div>
+        <span class="asset-change up">▲ +12.8%</span>
+      </div>
+      <div class="asset-balance">5,000 MRPH</div>
+      <div class="asset-usd">≈ $0.00 (pre-launch)</div>
+    </div>
+
+  </div>
+
+  <!-- Send / Receive -->
+  <div class="wallet-panel-row">
+
+    <!-- Send -->
+    <div class="wallet-panel" id="send-panel">
+      <h3>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Send
+      </h3>
+      <div class="wallet-form-group">
+        <label class="wallet-label" for="send-to">To address</label>
+        <input type="text" id="send-to" class="wallet-input" placeholder="0x… or .eth / .sol domain" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="wallet-form-group">
+        <label class="wallet-label" for="send-asset">Asset</label>
+        <select id="send-asset" class="wallet-select">
+          <option value="btc">Bitcoin (BTC)</option>
+          <option value="eth" selected>Ethereum (ETH)</option>
+          <option value="sol">Solana (SOL)</option>
+          <option value="usdc">USD Coin (USDC)</option>
+          <option value="matic">Polygon (MATIC)</option>
+        </select>
+      </div>
+      <div class="wallet-form-group">
+        <label class="wallet-label" for="send-amount">Amount</label>
+        <div class="wallet-input-row">
+          <input type="number" id="send-amount" class="wallet-input" placeholder="0.00" min="0" step="any">
+          <button class="wallet-max-btn" id="btn-send-max" aria-label="Use maximum available balance">MAX</button>
+        </div>
+      </div>
+      <button class="wallet-send-btn" id="btn-send-confirm" aria-label="Confirm send transaction">Send →</button>
+    </div>
+
+    <!-- Receive -->
+    <div class="wallet-panel" id="receive-panel">
+      <h3>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>
+        Receive
+      </h3>
+      <div class="wallet-form-group">
+        <label class="wallet-label" for="receive-asset">Asset</label>
+        <select id="receive-asset" class="wallet-select" aria-controls="wallet-address-display">
+          <option value="eth">Ethereum (ETH)</option>
+          <option value="btc">Bitcoin (BTC)</option>
+          <option value="sol">Solana (SOL)</option>
+        </select>
+      </div>
+      <div class="wallet-receive-qr">
+        <div class="wallet-qr-placeholder" role="img" aria-label="QR code placeholder">⬜</div>
+        <div class="wallet-address-box" id="wallet-address-display" role="button" tabindex="0"
+             aria-label="Copy wallet address" title="Click to copy">
+          0x4a2e7B9c1Df3E8F5a0c6D1E9B2A4F7C0E3D6B9A2
+        </div>
+        <div class="wallet-address-hint" aria-live="polite" id="copy-hint">Click address to copy</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Transaction History -->
+  <div class="wallet-section-heading">Transaction History</div>
+  <div class="wallet-tx-list" id="tx-list" role="list" aria-label="Transaction history">
+
+    <div class="wallet-tx" role="listitem">
+      <div class="wallet-tx-icon receive" aria-hidden="true">↓</div>
+      <div class="wallet-tx-info">
+        <div class="wallet-tx-label">Received ETH</div>
+        <div class="wallet-tx-meta">From 0x9f3…a1c · Mar 14, 2025 · Ethereum Mainnet</div>
+      </div>
+      <div class="wallet-tx-amount">
+        <div class="wallet-tx-amount-val receive">+1.2 ETH</div>
+        <div class="wallet-tx-amount-usd">+$2,357.60</div>
+      </div>
+      <span class="wallet-tx-status confirmed">Confirmed</span>
+    </div>
+
+    <div class="wallet-tx" role="listitem">
+      <div class="wallet-tx-icon send" aria-hidden="true">↑</div>
+      <div class="wallet-tx-info">
+        <div class="wallet-tx-label">Sent USDC</div>
+        <div class="wallet-tx-meta">To 0x2b7…f4d · Mar 12, 2025 · Ethereum Mainnet</div>
+      </div>
+      <div class="wallet-tx-amount">
+        <div class="wallet-tx-amount-val send">−500 USDC</div>
+        <div class="wallet-tx-amount-usd">−$500.00</div>
+      </div>
+      <span class="wallet-tx-status confirmed">Confirmed</span>
+    </div>
+
+    <div class="wallet-tx" role="listitem">
+      <div class="wallet-tx-icon swap" aria-hidden="true">⇄</div>
+      <div class="wallet-tx-info">
+        <div class="wallet-tx-label">Swapped ETH → SOL</div>
+        <div class="wallet-tx-meta">Via Murphy DEX · Mar 10, 2025</div>
+      </div>
+      <div class="wallet-tx-amount">
+        <div class="wallet-tx-amount-val swap">0.5 ETH → 7 SOL</div>
+        <div class="wallet-tx-amount-usd">≈ $982.50</div>
+      </div>
+      <span class="wallet-tx-status confirmed">Confirmed</span>
+    </div>
+
+    <div class="wallet-tx" role="listitem">
+      <div class="wallet-tx-icon receive" aria-hidden="true">↓</div>
+      <div class="wallet-tx-info">
+        <div class="wallet-tx-label">Received BTC</div>
+        <div class="wallet-tx-meta">From 0xbc1…9e2 · Mar 8, 2025 · Bitcoin</div>
+      </div>
+      <div class="wallet-tx-amount">
+        <div class="wallet-tx-amount-val receive">+0.05 BTC</div>
+        <div class="wallet-tx-amount-usd">+$2,148.50</div>
+      </div>
+      <span class="wallet-tx-status confirmed">Confirmed</span>
+    </div>
+
+    <div class="wallet-tx" role="listitem">
+      <div class="wallet-tx-icon send" aria-hidden="true">↑</div>
+      <div class="wallet-tx-info">
+        <div class="wallet-tx-label">Sent SOL</div>
+        <div class="wallet-tx-meta">To 5K2…aN7 · Mar 7, 2025 · Solana</div>
+      </div>
+      <div class="wallet-tx-amount">
+        <div class="wallet-tx-amount-val send">−3 SOL</div>
+        <div class="wallet-tx-amount-usd">−$216.00</div>
+      </div>
+      <span class="wallet-tx-status pending">Pending</span>
+    </div>
+
+  </div>
+
+</main>
+
+<!-- ── Footer ── -->
+<footer class="murphy-footer" role="contentinfo">
+  <div class="murphy-footer-inner">
+    <nav class="murphy-footer-links" aria-label="Footer navigation">
+      <a href="/ui/terminal-unified">Dashboard</a>
+      <a href="/ui/management">Management</a>
+      <a href="/ui/workspace">Workspace</a>
+      <a href="/ui/community">Community</a>
+      <a href="/ui/pricing">Pricing</a>
+      <a href="/ui/docs">Docs</a>
+      <a href="/ui/legal">Legal</a>
+      <a href="/ui/privacy">Privacy</a>
+      <a href="mailto:contact@murphy.ai">Contact</a>
+    </nav>
+    <p class="murphy-footer-copy">© 2020 Inoni Limited Liability Company by Corey Post. Licensed under BSL 1.1.</p>
+  </div>
+</footer>
+
+<script src="static/murphy-components.js"></script>
+<script src="murphy_auth.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* ── Refresh balances from API ── */
+  var balances = { eth: '0', btc: '0', sol: '0' };
+  function refreshBalances() {
+    fetch('/api/wallet/balances')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.success) return;
+        var b = d.balances || {};
+        balances.eth = String(b.ETH || 0);
+        balances.btc = String(b.BTC || 0);
+        balances.sol = String(b.SOL || 0);
+        var networthEl = document.querySelector('.wallet-networth-value');
+        if (networthEl) networthEl.textContent = '$' + (d.total_usd || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.querySelectorAll('.asset-balance').forEach(function (el) {
+          var asset = (el.closest('.asset-card') || {}).dataset;
+          if (asset && asset.asset && b[asset.asset.toUpperCase()] != null) {
+            el.textContent = b[asset.asset.toUpperCase()];
+          }
+        });
+      })
+      .catch(function () {});
+  }
+  refreshBalances();
+
+  /* ── Theme ── */
+  var themeBtn = document.getElementById('theme-toggle-btn');
+  if (themeBtn) themeBtn.addEventListener('click', function () {
+    document.documentElement.classList.toggle('murphy-light');
+    themeBtn.textContent = document.documentElement.classList.contains('murphy-light') ? '☀️' : '🌙';
+  });
+
+  /* ── Chain tabs ── */
+  document.querySelectorAll('.chain-tab').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      document.querySelectorAll('.chain-tab').forEach(function (t) {
+        t.classList.remove('active'); t.setAttribute('aria-selected', 'false');
+      });
+      tab.classList.add('active'); tab.setAttribute('aria-selected', 'true');
+    });
+  });
+
+  /* ── Copy address ── */
+  var addrEl  = document.getElementById('wallet-address-display');
+  var copyHint = document.getElementById('copy-hint');
+  function copyAddress() {
+    var addr = addrEl.textContent.trim();
+    if (!navigator.clipboard) { copyHint.textContent = 'Copy not supported'; return; }
+    navigator.clipboard.writeText(addr).then(function () {
+      copyHint.textContent = '✓ Copied!';
+      setTimeout(function () { copyHint.textContent = 'Click address to copy'; }, 2500);
+    }).catch(function () {
+      /* Fallback for non-secure contexts or denied permissions */
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = addr;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        copyHint.textContent = '✓ Copied!';
+        setTimeout(function () { copyHint.textContent = 'Click address to copy'; }, 2500);
+      } catch (_) {
+        copyHint.textContent = 'Copy not available';
+      }
+    });
+  }
+  if (addrEl) {
+    addrEl.addEventListener('click', copyAddress);
+    addrEl.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); copyAddress(); } });
+  }
+
+  /* ── MAX button ── */
+  var balances = { btc: '0.3142', eth: '3.875', sol: '28.5', usdc: '985.29', matic: '1240' };
+  document.getElementById('btn-send-max').addEventListener('click', function () {
+    var asset = document.getElementById('send-asset').value;
+    document.getElementById('send-amount').value = balances[asset] || '0';
+  });
+
+  /* ── Send confirm (real API call) ── */
+  document.getElementById('btn-send-confirm').addEventListener('click', function () {
+    var to     = document.getElementById('send-to').value.trim();
+    var amount = document.getElementById('send-amount').value.trim();
+    var asset  = document.getElementById('send-asset').value.toUpperCase();
+    if (!to) { alert('Please enter a recipient address.'); return; }
+    if (!amount || parseFloat(amount) <= 0) { alert('Please enter a valid amount.'); return; }
+    if (!confirm('Send ' + amount + ' ' + asset + ' to\n' + to + '?\n\nThis action cannot be undone.')) return;
+    fetch('/api/wallet/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ asset: asset, amount: parseFloat(amount), to: to })
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (d.success) {
+        alert('✅ Transaction submitted! TX ID: ' + (d.transaction && d.transaction.id || 'pending'));
+        document.getElementById('send-to').value = '';
+        document.getElementById('send-amount').value = '';
+        refreshBalances();
+      } else {
+        alert('❌ ' + (d.error || 'Transaction failed'));
+      }
+    })
+    .catch(function () { alert('❌ Network error — could not submit transaction.'); });
+  });
+
+  /* ── Receive asset change (update address stub) ── */
+  var addresses = {
+    eth:  '0x4a2e7B9c1Df3E8F5a0c6D1E9B2A4F7C0E3D6B9A2',
+    btc:  'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
+    sol:  '5K2jDrRXJLSKDJGsN7ZhT9aaN7f3VYwBsHJbcXnf8mn'
+  };
+  document.getElementById('receive-asset').addEventListener('change', function () {
+    var addr = addresses[this.value] || addresses.eth;
+    if (addrEl) addrEl.textContent = addr;
+    copyHint.textContent = 'Click address to copy';
+  });
+
+  /* ── Murphy AI ask ── */
+  document.getElementById('murphy-wallet-ask').addEventListener('click', function () {
+    var q = prompt('Ask Murphy about your wallet:');
+    if (!q) return;
+    fetch('/api/librarian/query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: q, context: 'wallet' })
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      document.getElementById('murphy-wallet-insight').textContent = d.response || d.result || 'Murphy is analysing your portfolio…';
+    })
+    .catch(function () {
+      document.getElementById('murphy-wallet-insight').textContent = 'Could not reach Murphy right now.';
+    });
+  });
+
+})();
+</script>
+</body>
+</html>

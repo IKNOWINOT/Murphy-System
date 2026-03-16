@@ -1,0 +1,1 @@
+export function toGoldenPathKey(profile:any){ return { task_type:'ghost_controller_bot', app: profile?.active_window || 'unknown', ts: profile?.timestamp || new Date().toISOString() }; }

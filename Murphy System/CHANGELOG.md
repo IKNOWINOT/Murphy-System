@@ -60,6 +60,15 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **fix(bridge):** `src/collaborative_task_orchestrator.py` — Fixed `WorkspaceMemoryBridge.write_artifact()` to construct proper `Artifact` objects for both TGW and MAS (was incorrectly passing kwargs directly to `write_artifact()`/`write_sandbox()`).
 - **fix(bridge):** Fixed `verify_and_promote()` to use correct `MemoryArtifactSystem.verify_artifact(artifact_id, VerificationSource, evidence)` and `promote_to_working(artifact_id, phase_legal, coherent)` signatures.
 - **fix(bridge):** Updated MAS import to include `Artifact`, `ArtifactState`, `MemoryPlane`, and `VerificationSource` classes.
+### 2026-03-16
+
+#### feat: Command Registration Audit — Full Coverage Sync
+
+- Audited all 283 `ModuleEntry` objects in `module_manifest.py` — all entries have commands ✅
+- Added 405 missing commands to `/api/librarian/commands` catalog in `app.py` (total: 584 entries)
+- Audited `_registry_data_b.py` — added `cmds=[...]` to 61 entries with empty command lists
+- Added stub dispatcher handlers in `command_dispatcher.py` for: swarm, workflow, agents, heal, research, monitor, exec, confidence, security, compliance, governance, hitl, safety, llm, kb, integrations, finance, trading, infra, org, data
+- Created `tests/test_librarian_command_coverage.py` with 6 coverage tests
 
 ### Fixed — System Scan & Critical Error Corrections
 

@@ -1,0 +1,1 @@
+export function buildPrompt(params:any, template:any){ const short=`${params.source_lang||'auto'}→${params.target_lang||'en'} ${template.style?.tone||'neutral'}`; const long=[`Source:${params.source_lang||'auto'}`,`Target:${params.target_lang||'en'}`,`Tone:${template.style?.tone||'neutral'}`,`Domain:${template.style?.domain||'general'}`].join('\n'); return { short, long }; }

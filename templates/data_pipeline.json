@@ -1,0 +1,59 @@
+{
+  "template_id": "data_pipeline_v1",
+  "name": "ETL Data Processing Pipeline",
+  "description": "Scalable extract-transform-load pipeline with schema validation, enrichment, error quarantine, and warehouse loading.",
+  "version": "1.0.0",
+  "author": "Murphy System",
+  "tags": ["etl", "data-pipeline", "analytics", "warehouse", "validation"],
+  "category": "DATA",
+  "flow_json": {
+    "nodes": [
+      {
+        "id": "extractor",
+        "type": "trigger",
+        "label": "Data Extractor",
+        "description": "Pulls raw data from configured sources: databases, APIs, S3, or file uploads.",
+        "config": { "sources": ["postgres", "s3", "rest_api"], "schedule": "0 2 * * *" }
+      },
+      {
+        "id": "validator",
+        "type": "agent",
+        "label": "Schema Validator",
+        "description": "Validates records against JSON Schema and flags malformed or missing fields.",
+        "config": { "schema_path": "schemas/input_schema.json", "strict": true }
+      },
+      {
+        "id": "transformer",
+        "type": "agent",
+        "label": "Data Transformer",
+        "description": "Applies business rules, type coercion, enrichment lookups, and field normalization.",
+        "config": { "model": "gpt-4o-mini", "rules_file": "transform_rules.json" }
+      },
+      {
+        "id": "quarantine",
+        "type": "action",
+        "label": "Error Quarantine",
+        "description": "Stores failed records with error metadata for manual review or reprocessing.",
+        "config": { "storage": "s3", "bucket": "murphy-quarantine", "notify": "slack" }
+      },
+      {
+        "id": "loader",
+        "type": "output",
+        "label": "Warehouse Loader",
+        "description": "Bulk-loads validated and transformed records into the target data warehouse.",
+        "config": { "target": "bigquery", "dataset": "murphy_analytics", "mode": "append" }
+      }
+    ],
+    "edges": [
+      { "id": "e1", "source": "extractor", "target": "validator" },
+      { "id": "e2", "source": "validator", "target": "transformer", "label": "valid" },
+      { "id": "e3", "source": "validator", "target": "quarantine", "label": "invalid" },
+      { "id": "e4", "source": "transformer", "target": "loader" }
+    ]
+  },
+  "requirements": ["pandas", "jsonschema", "google-cloud-bigquery", "boto3"],
+  "rating": 4.5,
+  "downloads": 0,
+  "created_at": "2024-01-01T00:00:00+00:00",
+  "updated_at": "2024-01-01T00:00:00+00:00"
+}
