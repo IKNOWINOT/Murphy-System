@@ -1,6 +1,6 @@
 # Murphy System — Project Status
 
-> **Last updated**: 2026-03-15
+> **Last updated**: 2026-03-16
 > **License**: BSL 1.1 (Business Source License)
 > Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post
 
@@ -23,9 +23,10 @@
 | Concept Graph Engine | ✅ New | 7 node/edge types, graph health, GCS metric |
 | Unified Control Protocol | ✅ New | 10-engine pipeline, 7 states, rollback support |
 | Session Context Manager | ✅ New | Per-session locking, expiry, RM0–RM6 tracking |
+| **Multi-Cursor Split-Screen** | ✅ **New** | 7-layout zone system (SINGLE/DUAL_H/DUAL_V/TRIPLE_H/QUAD/HEXA/CUSTOM), thread-safe cursor pool, SplitScreenCoordinator session lifecycle |
+| **Rosetta Subsystem Wiring** | ✅ **New** | INC-07 P3 complete: 5 wiring points (EventBackbone, ConfidenceEngine, LearningEngine, GovernanceKernel, SecurityPlane); bootstrap_wiring(); adapter injection; strict mode |
 | **Crypto Trading Subsystem** | ✅ **New** | Coinbase v3, multi-exchange, HITL-gated bots, 6 strategies, risk manager |
-| **Shadow Learning System** | ✅ **New** | Paper bots practice vs live prices; winning weeks save patterns; human reviews before promoting |
-| UI / Landing Page | ✅ Operational | Landing page, terminal UIs, live dashboard (/ui/dashboard) with SSE metric streaming, management, calendar, meeting intelligence, ambient pages all present |
+| **Shadow Learning System** | ✅ **New** | Paper bots practice vs live prices; winning weeks save patterns; human reviews before promoting | Landing page, terminal UIs, live dashboard (/ui/dashboard) with SSE metric streaming, management, calendar, meeting intelligence, ambient pages all present |
 | Documentation | ✅ Complete | API docs, architecture docs, deployment guides, testing guide complete |
 
 ## Regulatory Alignment
@@ -47,10 +48,10 @@ Murphy System is **aligned with** (not formally attested to) the following frame
 
 ## Test Coverage
 
-- **Total test files**: 644+
+- **Total test files**: 598+
 - **CI configuration**: `python -m pytest --timeout=60 -v --tb=short`
 - **CI pipeline**: GitHub Actions runs lint, test (Python 3.10/3.11/3.12), integration, security, and build jobs
-- **Key test suites**: concept graph engine (48), unified control protocol (62), session context (37), crypto trading system (102), shadow learning + real-money guard (48)
+- **Key test suites**: concept graph engine (48), unified control protocol (62), session context (37), crypto trading system (102), shadow learning + real-money guard (48), multi-cursor split-screen (121), Rosetta subsystem wiring (38), gap closure round 49 (22)
 
 ## Known Gaps
 
@@ -65,6 +66,10 @@ Murphy System is **aligned with** (not formally attested to) the following frame
 | G-010 | ~~JWT/OAuth not in production~~ | ~~High~~ | ✅ **RESOLVED** — JWT token validation added to FastAPI and Flask security middleware |
 | G-011 | ~~Documentation placeholders~~ | ~~Medium~~ | ✅ **RESOLVED** — All 12+ placeholder docs filled with real content |
 | ~~G-008~~ | ~~Production deployment hardening~~ | ~~Medium~~ | ✅ **RESOLVED** — `SecurityContext`, `PodDisruptionBudget`, `NetworkPolicy` added to `kubernetes_deployment.py` with YAML rendering |
+| ~~G-012~~ | ~~HTTP error detail leaks internal exceptions (CWE-209)~~ | ~~High~~ | ✅ **RESOLVED** — `detail=str(exc)` removed from `billing/api.py`, `document_export/api.py`, `self_marketing_orchestrator.py`; opaque messages returned |
+| ~~G-013~~ | ~~Matrix Bridge room registry gaps~~ | ~~Medium~~ | ✅ **RESOLVED** — 9 missing rooms added to `room_registry.py`; all manifest entries now have registered rooms |
+| ~~G-014~~ | ~~Multi-cursor split-screen missing~~ | ~~High~~ | ✅ **RESOLVED** — `SplitScreenLayout`, `ScreenZone`, `CursorContext`, `MultiCursorDesktop`, `SplitScreenManager`, `SplitScreenCoordinator` implemented; 121 tests pass |
+| ~~G-015~~ | ~~Rosetta subsystem wiring not implemented (INC-07 P3)~~ | ~~High~~ | ✅ **RESOLVED** — `RosettaSubsystemWiring` with 5 P3 points, adapter injection, strict mode, `bootstrap_wiring()`; 38 tests pass |
 
 ## Infrastructure Deferred Items
 

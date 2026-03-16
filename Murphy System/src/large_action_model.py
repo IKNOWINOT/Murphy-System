@@ -808,9 +808,15 @@ class WorkflowLicenseManager:
             return
         try:
             from event_backbone import EventType
-            event_type_map: Dict[str, Any] = {}
+            # Map known event names to EventType values
+            event_type_map: Dict[str, Any] = {
+                "LAM_WORKFLOW_LICENSED": EventType.TASK_COMPLETED,
+                "LAM_WORKFLOW_FAILED": EventType.TASK_FAILED,
+                "LAM_GATE_EVALUATED": EventType.GATE_EVALUATED,
+            }
             et = event_type_map.get(event_name)
             if et is None:
+                logger.debug("No EventType mapping for LAM event %r; skipping", event_name)
                 return
             self._backbone.publish(event_type=et, payload=payload)
         except Exception as exc:
