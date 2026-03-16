@@ -206,6 +206,15 @@ class DeliverableSession:
 
 
 # ---------------------------------------------------------------------------
+# Industrial keyword detection — used when classifying deliverable type
+# ---------------------------------------------------------------------------
+
+_INDUSTRIAL_KEYWORDS: List[str] = [
+    "manufacturing", "bas", "hvac", "plc", "scada",
+    "energy", "building", "automation", "controls",
+]
+
+# ---------------------------------------------------------------------------
 # Question bank
 # ---------------------------------------------------------------------------
 
@@ -658,7 +667,7 @@ class DeliverableWizard:
             if dt in ["workflow", "automation", "org_chart"]:
                 # Check if this is BAS/industrial related from context or answer
                 answer_lower = answer.lower()
-                if any(kw in answer_lower for kw in ["manufacturing", "bas", "hvac", "plc", "scada", "energy", "building"]):
+                if any(kw in answer_lower for kw in _INDUSTRIAL_KEYWORDS):
                     session.industry_type = "Manufacturing"
                 # Could also check onboarding_context
                 elif "industry" in session.onboarding_context:
