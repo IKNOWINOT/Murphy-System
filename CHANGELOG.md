@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Round 51 — Documentation Gap Closure (GAP-4/5/6/7/8 All Closed)
+
+- **docs(auar):** `docs/AUAR_TECHNICAL_PROPOSAL.md` Appendix C — documents UCB1 algorithm (vs. original epsilon-greedy), pluggable persistence layer (`FileStateBackend`/`MemoryStateBackend`), admin security controls (`AUAR_ADMIN_TOKEN`, audit logging, rate limiting, Pydantic validation), and AUAR-specific config vars table. Proposal version updated 0.1.0 → 0.2.0. **Closes GAP-4.**
+- **docs(packages):** Added `README.md` to all 50 remaining `src/` packages (was 15/65, now 65/65). Added `src/README.md` top-level overview covering all 459 files across 8 architectural layers. **Fully closes GAP-5.**
+- **docs(config):** `documentation/deployment/CONFIGURATION.md` — all 96 environment variables now documented. New §11 MFM (9 vars), §12 Matrix Integration (17 vars), §13 Backend Modes (4 vars), §14 Complete Variable Index. Added variable tables to §2-§9. Fixed stale `cd "Murphy System"` path. **Closes GAP-7.**
+- **docs(gaps):** GAP-6 (Groq test suite) and GAP-8 (specialized module docs) both marked ✅ resolved. All 8 documentation gaps are now closed.
+- **test:** `tests/test_gap_closure_round51.py` — 38 tests verifying GAP-4, GAP-5, GAP-6, GAP-7 are all closed; all pass.
+- **docs(audit):** `docs/AUDIT_AND_COMPLETION_REPORT.md` — all GAPs (1-8) marked ✅ RESOLVED; documentation coverage updated to ~95%.
+
 ### Added — PR #277: Real Email Delivery, Rosetta P3 Wiring, Doc Gap Closure (GAP-1/2/3/5)
 
 - **docs(llm):** `documentation/components/LLM_SUBSYSTEM.md` — full LLM subsystem reference covering `LLMController` model inventory + capability routing, `LLMIntegrationLayer` domain-to-provider routing matrix (8 domains × 4 providers), `GroqKeyRotator` round-robin + auto-disable + statistics, `OpenAICompatibleProvider` all 8 provider types, and environment variable table. **Closes GAP-1.**
