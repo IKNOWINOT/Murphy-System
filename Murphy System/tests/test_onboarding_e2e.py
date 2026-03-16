@@ -1025,6 +1025,364 @@ class TestOnboardingLoopFixes(unittest.TestCase):
         )
 
 
+# ============================================================================
+# 12. Short-Answer Fallback (Bug Fix Validation — _last_asked_dim)
+# ============================================================================
+
+class TestShortAnswerFallback(unittest.TestCase):
+    """Regression tests for the _last_asked_dim short-answer fallback.
+
+    Before the fix, answers shorter than keyword extraction patterns (e.g. a
+    one-word industry name) were silently dropped and the same question was
+    repeated.  After the fix:
+
+    1. ``_next_onboarding_question`` stores the asked dimension key in
+       ``profile["_last_asked_dim"]``.
+    2. ``_extract_dimensions_from_message`` falls back to accepting the raw
+       answer for that dimension when no keyword pattern matches.
+    3. A subsequent ``_next_onboarding_question`` call advances to the
+       *next* unanswered dimension rather than repeating the same one.
+    """
+
+    def setUp(self):
+        self.murphy = _get_murphy()
+
+    # ------------------------------------------------------------------
+    # Test 1 — _next_onboarding_question sets _last_asked_dim
+    # ------------------------------------------------------------------
+    def test_next_question_sets_last_asked_dim(self):
+        """Calling _next_onboarding_question should record the asked
+        dimension key in profile['_last_asked_dim']."""
+        profile = self.murphy._get_onboarding_profile("short-fallback-1")
+        # Ensure profile is clean
+        profile["collected"] = {}
+        profile.pop("_last_asked_dim", None)
+
+        question = self.murphy._next_onboarding_question(profile)
+
+        self.assertIsNotNone(question, "_next_onboarding_question should return a question text")
+        last_dim = profile.get("_last_asked_dim")
+        self.assertIsNotNone(
+            last_dim,
+            "_next_onboarding_question should set _last_asked_dim in the profile",
+        )
+        self.assertIn(
+            last_dim,
+            self.murphy._ONBOARDING_DIMENSIONS,
+            "_last_asked_dim should be a valid dimension key",
+        )
+
+    # ------------------------------------------------------------------
+    # Test 2 — Short answer captured via _last_asked_dim fallback
+    # ------------------------------------------------------------------
+    def test_short_answer_captured_via_last_asked_dim(self):
+        """When keyword extraction yields nothing but _last_asked_dim is
+        set, the raw user answer is captured for that dimension."""
+        profile = self.murphy._get_onboarding_profile("short-fallback-2")
+        profile["collected"] = {}
+
+        # Ask the first question to set _last_asked_dim
+        first_dim = next(iter(
+            sorted(
+                self.murphy._ONBOARDING_DIMENSIONS.keys(),
+                key=lambda d: self.murphy._ONBOARDING_DIMENSIONS[d]["weight"],
+                reverse=True,
+            )
+        ))
+        profile["_last_asked_dim"] = first_dim
+
+        # A short answer that won't match any keyword pattern
+        short_answer = "xyz"
+        extracted = self.murphy._extract_dimensions_from_message(short_answer, profile)
+
+        self.assertIn(
+            first_dim,
+            extracted,
+            f"Short answer '{short_answer}' should be captured for dim '{first_dim}' via _last_asked_dim fallback",
+        )
+        self.assertEqual(extracted[first_dim], short_answer)
+
+    # ------------------------------------------------------------------
+    # Test 3 — Already-collected dim not overwritten by fallback
+    # ------------------------------------------------------------------
+    def test_already_collected_dim_not_overwritten(self):
+        """The _last_asked_dim fallback must NOT overwrite a dimension
+        that was already collected."""
+        profile = self.murphy._get_onboarding_profile("short-fallback-3")
+        first_dim = next(iter(
+            sorted(
+                self.murphy._ONBOARDING_DIMENSIONS.keys(),
+                key=lambda d: self.murphy._ONBOARDING_DIMENSIONS[d]["weight"],
+                reverse=True,
+            )
+        ))
+        profile["collected"] = {first_dim: "already_set"}
+        profile["_last_asked_dim"] = first_dim  # same dim already collected
+
+        extracted = self.murphy._extract_dimensions_from_message("xyz", profile)
+
+        self.assertNotIn(
+            first_dim,
+            extracted,
+            "Fallback should not re-extract a dimension that was already collected",
+        )
+
+    # ------------------------------------------------------------------
+    # Test 4 — Full conversation: short answer advances to next dim
+    # ------------------------------------------------------------------
+    def test_short_answer_via_librarian_advances_dimension(self):
+        """When a user gives a short single-word answer during the
+        onboarding interview, the dimension is collected and the NEXT
+        question is about a different dimension (loop does not repeat)."""
+        session = "short-fallback-4"
+        murphy = self.murphy
+
+        # Send a message that enters the onboarding flow and triggers a
+        # dimension question (the first message sets _last_asked_dim).
+        r1 = murphy.librarian_ask("I need to automate my business", session_id=session)
+        profile_before = murphy._get_onboarding_profile(session)
+        asked_dim = profile_before.get("_last_asked_dim")
+
+        if asked_dim is None:
+            self.skipTest("Session did not enter onboarding flow — cannot test")
+
+        initial_collected = set(profile_before.get("collected", {}).keys())
+
+        # Reply with a short answer (won't match keywords)
+        r2 = murphy.librarian_ask("xyz", session_id=session)
+        profile_after = murphy._get_onboarding_profile(session)
+        new_collected = set(profile_after.get("collected", {}).keys())
+
+        # The short answer should have been captured for asked_dim
+        self.assertIn(
+            asked_dim,
+            new_collected,
+            f"Short answer 'xyz' should have captured dim '{asked_dim}', "
+            f"collected={new_collected}, before={initial_collected}",
+        )
+
+        # The next question should be about a different dimension
+        next_dim = profile_after.get("_last_asked_dim")
+        if next_dim is not None:
+            self.assertNotEqual(
+                next_dim,
+                asked_dim,
+                "After capturing the answer, the next question should be about a different dimension",
+            )
+
+    # ------------------------------------------------------------------
+    # Test 5 — Answer shorter than _MIN_ANSWER_LENGTH is not captured
+    # ------------------------------------------------------------------
+    def test_answer_below_min_length_not_captured(self):
+        """Answers that are too short (len <= _MIN_ANSWER_LENGTH) must NOT
+        be captured even if _last_asked_dim is set."""
+        profile = self.murphy._get_onboarding_profile("short-fallback-5")
+        first_dim = next(iter(
+            sorted(
+                self.murphy._ONBOARDING_DIMENSIONS.keys(),
+                key=lambda d: self.murphy._ONBOARDING_DIMENSIONS[d]["weight"],
+                reverse=True,
+            )
+        ))
+        profile["collected"] = {}
+        profile["_last_asked_dim"] = first_dim
+
+        min_len = self.murphy._MIN_ANSWER_LENGTH
+        # A string of exactly _MIN_ANSWER_LENGTH chars must not be captured
+        too_short = "x" * min_len
+        extracted = self.murphy._extract_dimensions_from_message(too_short, profile)
+
+        self.assertNotIn(
+            first_dim,
+            extracted,
+            f"Answer of exactly _MIN_ANSWER_LENGTH ({min_len}) chars should NOT be captured",
+        )
+
+
+# ============================================================================
+# 13. LLM Status Always Includes Onboard Provider
+# ============================================================================
+
+class TestLLMStatusOnboardProvider(unittest.TestCase):
+    """Tests for _get_llm_status() always returning the onboard provider entry.
+
+    Verifies that:
+    1. When no cloud API key is set, providers list contains the onboard entry.
+    2. When a cloud key is set, providers list contains BOTH the cloud entry and
+       the onboard entry.
+    3. The _ONBOARD_PROVIDER_ENTRY has the required fields.
+    4. The LLM Config UI stat card reflects 'Cloud Provider' as None when no
+       cloud key is set (verified via _get_llm_status provider field).
+    """
+
+    def setUp(self):
+        self.murphy = _get_murphy()
+        # Save and clear cloud provider env vars
+        self._saved_env = {
+            k: os.environ.pop(k, None)
+            for k in ("MURPHY_LLM_PROVIDER", "MURPHY_LLM_MODEL",
+                      "GROQ_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY")
+        }
+
+    def tearDown(self):
+        # Restore env vars
+        for k, v in self._saved_env.items():
+            if v is not None:
+                os.environ[k] = v
+            else:
+                os.environ.pop(k, None)
+
+    # ------------------------------------------------------------------
+    # Test 1 — Onboard entry present when no cloud key configured
+    # ------------------------------------------------------------------
+    def test_providers_includes_onboard_when_no_cloud_key(self):
+        """With no cloud API key, _get_llm_status should return a providers
+        list that always includes the onboard entry."""
+        status = self.murphy._get_llm_status()
+
+        providers = status.get("providers", [])
+        self.assertIsInstance(providers, list, "providers should be a list")
+        self.assertTrue(len(providers) > 0, "providers list should not be empty")
+
+        onboard_entries = [
+            p for p in providers
+            if p.get("provider") == "onboard" or p.get("name", "").lower() == "murphy onboard llm"
+        ]
+        self.assertTrue(
+            len(onboard_entries) > 0,
+            f"providers list should include an onboard entry when no cloud key is set, got: {providers}",
+        )
+
+    # ------------------------------------------------------------------
+    # Test 2 — Provider field is 'onboard' when no cloud key configured
+    # ------------------------------------------------------------------
+    def test_provider_field_is_onboard_when_no_cloud_key(self):
+        """With no cloud API key, _get_llm_status['provider'] should be 'onboard'."""
+        status = self.murphy._get_llm_status()
+        self.assertEqual(
+            status.get("provider"),
+            "onboard",
+            f"provider should be 'onboard' when no cloud key is set, got: {status.get('provider')}",
+        )
+
+    # ------------------------------------------------------------------
+    # Test 3 — onboard_available is True when no cloud key configured
+    # ------------------------------------------------------------------
+    def test_onboard_available_true_when_no_cloud_key(self):
+        """_get_llm_status should always return onboard_available=True."""
+        status = self.murphy._get_llm_status()
+        self.assertTrue(
+            status.get("onboard_available"),
+            "_get_llm_status should always report onboard_available=True",
+        )
+
+    # ------------------------------------------------------------------
+    # Test 4 — _ONBOARD_PROVIDER_ENTRY has required fields
+    # ------------------------------------------------------------------
+    def test_onboard_provider_entry_has_required_fields(self):
+        """_ONBOARD_PROVIDER_ENTRY must have: name, provider, model, status."""
+        entry = self.murphy._ONBOARD_PROVIDER_ENTRY
+        for field in ("name", "provider", "model", "status"):
+            self.assertIn(
+                field,
+                entry,
+                f"_ONBOARD_PROVIDER_ENTRY is missing required field '{field}'",
+            )
+        self.assertEqual(entry["provider"], "onboard")
+
+    # ------------------------------------------------------------------
+    # Test 5 — Groq key present: providers include both groq and onboard
+    # ------------------------------------------------------------------
+    def test_providers_includes_both_groq_and_onboard_when_groq_key_set(self):
+        """When GROQ_API_KEY is set, providers should include both the Groq
+        entry and the onboard fallback entry."""
+        os.environ["GROQ_API_KEY"] = "gsk_test_key_not_real"
+        os.environ.pop("MURPHY_LLM_PROVIDER", None)
+
+        status = self.murphy._get_llm_status()
+        providers = status.get("providers", [])
+
+        provider_names = [p.get("provider", "") for p in providers]
+        self.assertIn(
+            "groq",
+            provider_names,
+            f"providers should include 'groq' when GROQ_API_KEY is set, got: {provider_names}",
+        )
+        self.assertIn(
+            "onboard",
+            provider_names,
+            f"providers should always include 'onboard', got: {provider_names}",
+        )
+
+
+# ============================================================================
+# 14. Pricing Page Redirect (No 422 Checkout Call)
+# ============================================================================
+
+class TestPricingPageRedirect(unittest.TestCase):
+    """Tests that the pricing page redirects to /ui/signup?tier=... rather
+    than calling /api/billing/checkout (which requires account_id).
+
+    These tests inspect the HTML/JS source of pricing.html to ensure:
+    1. The checkout handler redirects to the signup page.
+    2. The redirect URL includes both the 'tier' and 'interval' query params.
+    3. The handler does NOT call /api/billing/checkout directly.
+    4. Professional and Enterprise CTAs use mailto links (unchanged).
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        pricing_path = os.path.join(MURPHY_DIR, "pricing.html")
+        with open(pricing_path, encoding="utf-8") as f:
+            cls.content = f.read()
+
+    def test_checkout_redirects_to_signup(self):
+        """The pricing CTA handler should redirect to /ui/signup."""
+        self.assertIn(
+            "/ui/signup",
+            self.content,
+            "pricing.html should redirect checkout clicks to /ui/signup",
+        )
+
+    def test_redirect_includes_tier_param(self):
+        """The redirect URL must include the 'tier' query parameter."""
+        self.assertIn(
+            "tier",
+            self.content,
+            "pricing.html redirect should pass 'tier' query param",
+        )
+
+    def test_redirect_includes_interval_param(self):
+        """The redirect URL must include the 'interval' query parameter."""
+        self.assertIn(
+            "interval",
+            self.content,
+            "pricing.html redirect should pass 'interval' query param",
+        )
+
+    def test_no_direct_checkout_api_call(self):
+        """The pricing page should NOT call /api/billing/checkout directly
+        (that endpoint requires account_id which is unavailable on the
+        public pricing page)."""
+        import re
+        # Match fetch('/api/billing/checkout') or similar direct calls
+        direct_call_pattern = re.compile(
+            r"""fetch\s*\(\s*['"/].*?billing/checkout""",
+            re.DOTALL,
+        )
+        self.assertIsNone(
+            direct_call_pattern.search(self.content),
+            "pricing.html must not call /api/billing/checkout directly (would 422)",
+        )
+
+    def test_professional_enterprise_use_mailto(self):
+        """Professional and Enterprise CTAs should use mailto:sales links."""
+        self.assertIn(
+            "mailto:",
+            self.content,
+            "pricing.html should have mailto: links for Professional/Enterprise plans",
+        )
+
 
 if __name__ == '__main__':
     unittest.main()

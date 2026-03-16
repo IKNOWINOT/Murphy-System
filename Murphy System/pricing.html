@@ -813,10 +813,20 @@
   btnAnnual.addEventListener('click',  function () { updatePrices('annual');  });
 
   // ── Checkout buttons ─────────────────────────────────────
+  // Public pricing page visitors (unauthenticated or authenticated) are
+  // directed to the signup/login flow first, with the selected tier and
+  // billing interval passed as query params. The signup page uses those
+  // params to pre-select the plan and, once an account_id is available,
+  // complete the billing checkout via /api/billing/checkout.
   document.querySelectorAll('.pricing-cta[data-tier]').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      var tier = btn.getAttribute('data-tier');
-      window.location.href = '/ui/signup?tier=' + encodeURIComponent(tier) + '&interval=' + encodeURIComponent(currentInterval);
+      var tier     = btn.getAttribute('data-tier');
+      var interval = currentInterval;
+
+      // Redirect to signup page with tier/interval pre-selected (standard SaaS pattern)
+      window.location.href =
+        '/ui/signup?tier=' + encodeURIComponent(tier) +
+        '&interval=' + encodeURIComponent(interval);
     });
   });
 

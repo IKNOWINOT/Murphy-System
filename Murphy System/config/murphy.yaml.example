@@ -1,0 +1,199 @@
+# Murphy System — Main Configuration Example
+# config/murphy.yaml.example
+#
+# Copy this file to config/murphy.yaml and edit the values.
+# Alternatively, leave the defaults in config/murphy.yaml and override
+# individual values using environment variables — env vars always win.
+#
+# Environment variable override syntax:
+#   YAML key               → env var (either form works)
+#   system.env             → MURPHY_SYSTEM__ENV   or  MURPHY_ENV
+#   api.port               → MURPHY_API__PORT     or  API_PORT
+#   thresholds.confidence  → MURPHY_THRESHOLDS__CONFIDENCE
+#
+# Secrets (API keys, passwords, tokens) must NEVER be placed in this file.
+# Use .env (development) or a secrets manager (production).
+#
+# Copyright © 2020 Inoni Limited Liability Company
+# Creator: Corey Post
+# License: BSL 1.1
+
+# ── Runtime Environment ──────────────────────────────────────────────────────
+system:
+  # Deployment environment: development | staging | production
+  # WARNING: 'development' disables authentication — never deploy with it.
+  env: development
+
+  # Application version (informational, auto-set by CI in production).
+  version: "1.0.0"
+
+  # Directory for JSON snapshots and session state.
+  persistence_dir: .murphy_persistence
+
+# ── API Server ────────────────────────────────────────────────────────────────
+api:
+  # Bind address. Use 0.0.0.0 to expose on all interfaces (Docker / K8s).
+  host: "127.0.0.1"
+
+  # TCP port. Env var: MURPHY_PORT or API_PORT.
+  port: 8000
+
+  # Enable Uvicorn debug/reload (development only — never in production).
+  debug: false
+
+  # Maximum response body size in megabytes before returning HTTP 413.
+  max_response_size_mb: 10
+
+  # Allowed CORS origins. In production, list only your actual frontend domains.
+  # Do NOT use '*' in production — it disables the Same-Origin security boundary.
+  cors_origins:
+    - "http://localhost:3000"
+    - "http://localhost:8080"
+    - "http://localhost:8000"
+    # - "https://app.yourcompany.com"
+
+# ── LLM Provider ─────────────────────────────────────────────────────────────
+llm:
+  # Provider: local | groq | openai | anthropic
+  # 'local' uses the onboard LLM and requires no external API key.
+  provider: local
+
+  # Seconds to wait for an LLM response before failing.
+  timeout: 30
+
+  # How many times to retry a failed LLM call before escalating.
+  max_retries: 3
+
+  # Round-robin rotation across multiple Groq API keys (GROQ_API_KEYS).
+  use_key_rotation: true
+
+# ── Safety & Confidence Thresholds (MFGC-AI Core) ────────────────────────────
+thresholds:
+  # Minimum confidence score (0.0–1.0) required to execute a task autonomously.
+  # Below this, the task is queued for human review (HITL).
+  confidence: 0.85
+
+  # Maximum Murphy Index (risk factor). Tasks with a Murphy Index above this
+  # value are blocked and escalated. (0.0 = no risk, 1.0 = certain failure).
+  murphy_index: 0.50
+
+  # Minimum fraction of gates that must be satisfied before execution proceeds.
+  gate_satisfaction: 0.70
+
+  # Maximum number of unknowns before forcing human-in-the-loop escalation.
+  max_unknowns: 2
+
+# ── Safety Levels ─────────────────────────────────────────────────────────────
+safety:
+  # Overall safety posture: minimal | standard | strict | paranoid
+  # 'strict' enforces all gates; 'paranoid' adds additional human checkpoints.
+  level: standard
+
+  # When true, requests are rejected when safety evaluation cannot complete.
+  # Set to false only for local debugging — never in staging/production.
+  fail_closed: true
+
+  # Enforce governance gates even when safety level would allow skipping.
+  governance_strict: true
+
+# ── Database ──────────────────────────────────────────────────────────────────
+database:
+  # SQLite file path (used when DATABASE_URL env var is not set).
+  path: murphy_logs.db
+
+  # Connection timeout in seconds.
+  timeout: 30.0
+
+  # Backend mode: stub (dev/test) | live (requires DATABASE_URL).
+  # CRITICAL: 'stub' is rejected in staging/production environments.
+  mode: stub
+
+# ── Cache ─────────────────────────────────────────────────────────────────────
+cache:
+  # Enable response caching. Requires REDIS_URL when running multiple workers.
+  enabled: false
+
+  # Default TTL for cached responses in seconds.
+  ttl: 3600
+
+  # Redis URL — set via REDIS_URL env var; do not put credentials here.
+  # redis_url: redis://localhost:6379/0
+
+# ── Rate Limiting ─────────────────────────────────────────────────────────────
+rate_limiting:
+  # Storage backend: memory:// (single process) or redis:// (multi-worker).
+  storage: "memory://"
+
+  # Per-endpoint limits expressed in 'N per <period>' notation.
+  chat: "10 per minute"
+  governance: "20 per minute"
+  monitoring: "100 per minute"
+  global: "200 per hour"
+
+# ── Conversation Manager ──────────────────────────────────────────────────────
+conversation:
+  # Maximum number of messages retained per conversation session.
+  max_messages: 100
+
+  # Conversations older than this many hours are automatically cleaned up.
+  max_age_hours: 24
+
+  # How often (seconds) the cleanup background task runs.
+  cleanup_interval: 3600
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+logging:
+  # Log verbosity: DEBUG | INFO | WARNING | ERROR | CRITICAL
+  level: INFO
+
+  # Output format: text (human-readable) | json (for log aggregators)
+  format: text
+
+  # Log file path.
+  file: murphy_system.log
+
+  # Maximum log file size before rotation (bytes). 10 MB default.
+  max_bytes: 10485760
+
+  # Number of rotated log file backups to keep.
+  backup_count: 5
+
+# ── Tenant Settings ───────────────────────────────────────────────────────────
+tenant:
+  # Subscription plan: starter | professional | enterprise
+  default_plan: starter
+
+  # Maximum number of configured automations per tenant.
+  max_automations: 50
+
+  # Maximum concurrent task executions.
+  max_concurrent_tasks: 5
+
+  # Whether tenants are allowed to enable self-learning features.
+  allow_self_learning: false
+
+# ── Self-Learning (Murphy Foundation Model) ───────────────────────────────────
+self_learning:
+  # Master toggle. When false, no training data is collected or stored.
+  enabled: false
+
+  # MFM operating mode: disabled | collecting | shadow | canary | production
+  mfm_mode: disabled
+
+  # HuggingFace model identifier used as the fine-tuning base.
+  mfm_base_model: "microsoft/Phi-3-mini-4k-instruct"
+
+  # Directory for MFM model checkpoints.
+  checkpoint_dir: ./checkpoints/mfm
+
+  # Directory for execution traces used for training.
+  trace_dir: ./data/action_traces
+
+  # Number of traces before an automatic retrain is triggered.
+  retrain_threshold: 10000
+
+  # Minimum shadow model accuracy required before a retraining cycle starts.
+  shadow_min_accuracy: 0.80
+
+  # Percentage of live traffic routed to the canary model during canary phase.
+  canary_traffic_percent: 10

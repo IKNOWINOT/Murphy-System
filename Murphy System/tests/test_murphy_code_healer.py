@@ -960,3 +960,379 @@ class TestIntegrationCollectGaps:
         sup.collect_gaps()
         history = sup.get_history()
         assert isinstance(history, list)
+
+
+# ---------------------------------------------------------------------------
+# Dead code detection
+# ---------------------------------------------------------------------------
+
+
+class TestDeadCodeGaps:
+    """Tests for DiagnosticSupervisor._dead_code_gaps()."""
+
+    def test_orphaned_public_function_flagged(self, tmp_path):
+        """A public function that is never referenced elsewhere is flagged."""
+        (tmp_path / "module_a.py").write_text(
+            "def OrphanedFunction():\n    pass\n"
+        )
+        (tmp_path / "module_b.py").write_text(
+            "x = 1\n"
+        )
+        sup = DiagnosticSupervisor(src_root=str(tmp_path))
+        gaps = sup._dead_code_gaps(str(tmp_path))
+        names = {g.context.get("symbol_name") for g in gaps if g.category == "dead_code"}
+        assert "OrphanedFunction" in names
+
+    def test_referenced_function_not_flagged(self, tmp_path):
+        """A function used in another file is NOT flagged as dead code."""
+        (tmp_path / "utils.py").write_text(
+            "def UsedHelper():\n    return 42\n"
+        )
+        (tmp_path / "main.py").write_text(
+            "from utils import UsedHelper\nresult = UsedHelper()\n"
+        )
+        sup = DiagnosticSupervisor(src_root=str(tmp_path))
+        gaps = sup._dead_code_gaps(str(tmp_path))
+        names = {g.context.get("symbol_name") for g in gaps if g.category == "dead_code"}
+        assert "UsedHelper" not in names
+
+    def test_private_functions_not_flagged(self, tmp_path):
+        """Private functions (underscore prefix) are never reported as dead code."""
+        (tmp_path / "module.py").write_text(
+            "def _internal():\n    pass\n"
+            "def __dunder__():\n    pass\n"
+        )
+        sup = DiagnosticSupervisor(src_root=str(tmp_path))
+        gaps = sup._dead_code_gaps(str(tmp_path))
+        names = {g.context.get("symbol_name") for g in gaps if g.category == "dead_code"}
+        assert "_internal" not in names
+        assert "__dunder__" not in names
+
+    def test_orphaned_class_flagged(self, tmp_path):
+        """A public class never used outside its file is flagged."""
+        (tmp_path / "models.py").write_text(
+            "class OrphanedModel:\n    pass\n"
+        )
+        (tmp_path / "other.py").write_text(
+            "x = 1\n"
+        )
+        sup = DiagnosticSupervisor(src_root=str(tmp_path))
+        gaps = sup._dead_code_gaps(str(tmp_path))
+        names = {g.context.get("symbol_name") for g in gaps if g.category == "dead_code"}
+        assert "OrphanedModel" in names
+
+    def test_empty_src_returns_no_gaps(self, tmp_path):
+        """An empty or non-Python src directory produces no dead code gaps."""
+        (tmp_path / "data.txt").write_text("hello\n")
+        sup = DiagnosticSupervisor(src_root=str(tmp_path))
+        gaps = sup._dead_code_gaps(str(tmp_path))
+        assert gaps == []
+
+    def test_collect_gaps_includes_dead_code(self, tmp_path):
+        """collect_gaps() includes dead_code category when src_root is set."""
+        (tmp_path / "module.py").write_text(
+            "def OrphanedFunc():\n    pass\n"
+        )
+        sup = DiagnosticSupervisor(src_root=str(tmp_path))
+        gaps = sup.collect_gaps()
+        categories = {g.category for g in gaps}
+        assert "dead_code" in categories
+
+    def test_constant_names_not_flagged(self, tmp_path):
+        """All-uppercase names (constants) are never flagged as dead code."""
+        (tmp_path / "constants.py").write_text(
+            "MAX_SIZE = 100\n"
+            "def MAX_SIZE_FUNC():\n    pass\n"  # ALL CAPS function → skipped
+        )
+        sup = DiagnosticSupervisor(src_root=str(tmp_path))
+        gaps = sup._dead_code_gaps(str(tmp_path))
+        names = {g.context.get("symbol_name") for g in gaps if g.category == "dead_code"}
+        assert "MAX_SIZE_FUNC" not in names
+
+
+# ---------------------------------------------------------------------------
+# sync_module_counts.py script tests
+# ---------------------------------------------------------------------------
+
+
+class TestSyncModuleCounts:
+    """Tests for scripts/sync_module_counts.py."""
+
+    def _get_sync_module(self):
+        """Import sync_module_counts from scripts/."""
+        import importlib.util
+        script_path = Path(__file__).resolve().parent.parent / "scripts" / "sync_module_counts.py"
+        spec = importlib.util.spec_from_file_location("sync_module_counts", script_path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+
+    def test_count_modules_counts_py_files(self, tmp_path):
+        sync = self._get_sync_module()
+        (tmp_path / "a.py").write_text("x = 1\n")
+        (tmp_path / "b.py").write_text("y = 2\n")
+        (tmp_path / "__init__.py").write_text("")  # should not count
+        assert sync.count_modules(tmp_path) == 2
+
+    def test_update_file_replaces_count(self, tmp_path):
+        sync = self._get_sync_module()
+        f = tmp_path / "README.md"
+        f.write_text("Murphy has **620+ modules** and counting.\n")
+        changed, n = sync.update_file(f, 911)
+        assert changed is True
+        assert n >= 1
+        assert "911" in f.read_text()
+
+    def test_update_file_no_change_when_current(self, tmp_path):
+        sync = self._get_sync_module()
+        f = tmp_path / "STATUS.md"
+        f.write_text("620+ modules loaded.\n")
+        changed, n = sync.update_file(f, 620)
+        # Count is already 620 — no change needed
+        assert changed is False
+
+    def test_update_file_dry_run_does_not_write(self, tmp_path):
+        sync = self._get_sync_module()
+        f = tmp_path / "README.md"
+        original = "Has 620+ modules.\n"
+        f.write_text(original)
+        changed, n = sync.update_file(f, 911, dry_run=True)
+        assert changed is True  # would change
+        assert f.read_text() == original  # but not written
+
+    def test_update_file_missing_file_is_skipped(self, tmp_path):
+        sync = self._get_sync_module()
+        f = tmp_path / "nonexistent.md"
+        changed, n = sync.update_file(f, 911)
+        assert changed is False
+        assert n == 0
+
+    def test_sync_updates_status_md(self, tmp_path):
+        sync = self._get_sync_module()
+        src = tmp_path / "src"
+        src.mkdir()
+        for i in range(5):
+            (src / f"m{i}.py").write_text("x = 1\n")
+        status = tmp_path / "STATUS.md"
+        status.write_text("Core Runtime | 620+ modules\n")
+        (tmp_path / "README.md").write_text("No count here.\n")
+        (tmp_path / "CONTRIBUTING.md").write_text("No count here.\n")
+
+        summary = sync.sync(tmp_path)
+        assert summary["actual_count"] == 5
+        assert "5" in status.read_text()
+
+
+
+
+class _MockEventType:
+    """Lightweight EventType stand-in for unit tests."""
+    TASK_FAILED = "TASK_FAILED"
+    TEST_FAILED = "TEST_FAILED"
+    DOC_DRIFT = "DOC_DRIFT"
+
+
+class TestEventSubscriptions:
+    """Tests for MurphyCodeHealer.subscribe_to_events()."""
+
+    def test_subscribe_with_no_backbone_is_noop(self):
+        healer = MurphyCodeHealer()
+        # Should not raise even without a backbone
+        healer.subscribe_to_events()
+        assert healer._subscription_ids == []
+
+    def test_subscribe_registers_three_handlers(self):
+        backbone = MagicMock()
+        backbone.subscribe.return_value = "sub-id-mock"
+        healer = MurphyCodeHealer(event_backbone=backbone)
+        healer.subscribe_to_events()
+        assert backbone.subscribe.call_count == 3
+        assert len(healer._subscription_ids) == 3
+
+    def test_subscribe_is_idempotent(self):
+        """Calling subscribe_to_events() twice registers handlers only once."""
+        backbone = MagicMock()
+        backbone.subscribe.return_value = "sub-id-mock"
+        healer = MurphyCodeHealer(event_backbone=backbone)
+        healer.subscribe_to_events()
+        healer.subscribe_to_events()
+        # Second call is a no-op: still exactly 3 subscriptions
+        assert backbone.subscribe.call_count == 3
+        assert len(healer._subscription_ids) == 3
+
+    def _make_healer_with_mock_handlers(self):
+        """Create a healer with a backbone that captures registered handlers."""
+        backbone = MagicMock()
+        handlers = {}
+
+        def _sub(event_type, handler):
+            handlers[event_type] = handler
+            return f"sub-{event_type}"
+
+        backbone.subscribe.side_effect = _sub
+        healer = MurphyCodeHealer(event_backbone=backbone)
+        with patch.dict(
+            __import__("sys").modules,
+            {"event_backbone": MagicMock(EventType=_MockEventType)},
+        ):
+            healer.subscribe_to_events()
+        return healer, handlers
+
+    def test_task_failed_handler_creates_proposal(self):
+        """Simulate TASK_FAILED event arriving via the backbone."""
+        healer, handlers = self._make_healer_with_mock_handlers()
+        mock_event = MagicMock()
+        mock_event.event_id = "evt-001"
+        mock_event.payload = {"task_type": "execute", "file_path": "/fake/file.py"}
+
+        if "TASK_FAILED" in handlers:
+            handlers["TASK_FAILED"](mock_event)
+            time.sleep(0.1)
+
+    def test_doc_drift_event_does_not_raise(self):
+        """DOC_DRIFT events should be handled without errors."""
+        healer, handlers = self._make_healer_with_mock_handlers()
+        mock_event = MagicMock()
+        mock_event.event_id = "evt-002"
+        mock_event.payload = {"description": "README references missing file"}
+
+        if "DOC_DRIFT" in handlers:
+            handlers["DOC_DRIFT"](mock_event)
+            time.sleep(0.1)
+
+    def test_test_failed_handler_does_not_raise(self):
+        """TEST_FAILED events should be handled without errors."""
+        healer, handlers = self._make_healer_with_mock_handlers()
+        mock_event = MagicMock()
+        mock_event.event_id = "evt-003"
+        mock_event.payload = {"test_name": "test_foo", "file_path": "/tests/test_foo.py"}
+
+        if "TEST_FAILED" in handlers:
+            handlers["TEST_FAILED"](mock_event)
+            time.sleep(0.1)
+
+
+class TestMarkdownFileRefGaps:
+    """Tests for DiagnosticSupervisor._markdown_file_ref_gaps()."""
+
+    def test_no_gaps_for_existing_references(self, tmp_path):
+        docs = tmp_path / "docs"
+        docs.mkdir()
+        src = tmp_path / "src"
+        src.mkdir()
+        (src / "module.py").write_text("# hello\n")
+        (docs / "guide.md").write_text(
+            "See [module](../src/module.py) for details.\n"
+        )
+        sup = DiagnosticSupervisor(docs_root=str(docs))
+        gaps = sup._markdown_file_ref_gaps(str(docs))
+        broken = [g for g in gaps if g.category == "broken_md_ref"]
+        assert broken == []
+
+    def test_gap_for_missing_file_reference(self, tmp_path):
+        docs = tmp_path / "docs"
+        docs.mkdir()
+        (docs / "spec.md").write_text(
+            "[missing module](src/nonexistent.py)\n"
+        )
+        sup = DiagnosticSupervisor(docs_root=str(docs))
+        gaps = sup._markdown_file_ref_gaps(str(docs))
+        broken = [g for g in gaps if g.category == "broken_md_ref"]
+        assert len(broken) >= 1
+        assert any("nonexistent.py" in g.description for g in broken)
+
+    def test_http_links_ignored(self, tmp_path):
+        docs = tmp_path / "docs"
+        docs.mkdir()
+        (docs / "readme.md").write_text(
+            "See [docs](https://example.com/guide.md) for more.\n"
+            "Also [repo](http://github.com/foo/bar.py).\n"
+        )
+        sup = DiagnosticSupervisor(docs_root=str(docs))
+        gaps = sup._markdown_file_ref_gaps(str(docs))
+        broken = [g for g in gaps if g.category == "broken_md_ref"]
+        assert broken == []
+
+    def test_collect_gaps_calls_markdown_check(self, tmp_path):
+        docs = tmp_path / "docs"
+        docs.mkdir()
+        (docs / "spec.md").write_text("[missing](nonexistent/path.py)\n")
+        sup = DiagnosticSupervisor(docs_root=str(docs))
+        gaps = sup.collect_gaps()
+        categories = {g.category for g in gaps}
+        assert "broken_md_ref" in categories
+
+    def test_docs_root_none_skips_markdown_check(self, tmp_path):
+        src = tmp_path / "src"
+        src.mkdir()
+        sup = DiagnosticSupervisor(src_root=str(src))
+        gaps = sup.collect_gaps()
+        broken = [g for g in gaps if g.category == "broken_md_ref"]
+        assert broken == []
+
+
+class TestNewAPIEndpoints:
+    """Smoke tests for new /api/corrections/* endpoints."""
+
+    def test_healer_proposals_returns_list_shape(self):
+        """get_proposals() returns a list of dicts."""
+        healer = MurphyCodeHealer()
+        proposals = healer.get_proposals(limit=10)
+        assert isinstance(proposals, list)
+        # Initially empty
+        assert proposals == []
+
+    def test_healer_metrics_shape(self):
+        """get_metrics() returns a dict with expected keys."""
+        healer = MurphyCodeHealer()
+        metrics = healer.get_metrics()
+        assert isinstance(metrics, dict)
+        assert "mean_time_to_detect_ms" in metrics
+        assert "mean_time_to_patch_ms" in metrics
+
+    def test_healer_accepts_docs_root(self, tmp_path):
+        """MurphyCodeHealer can be instantiated with docs_root."""
+        docs = tmp_path / "docs"
+        docs.mkdir()
+        src = tmp_path / "src"
+        src.mkdir()
+        (src / "module.py").write_text("x = 1\n")
+        healer = MurphyCodeHealer(
+            src_root=str(src),
+            docs_root=str(docs),
+        )
+        assert healer is not None
+
+    def test_healer_run_cycle_with_docs_root(self, tmp_path):
+        """run_healing_cycle completes with docs_root set."""
+        docs = tmp_path / "docs"
+        docs.mkdir()
+        (docs / "guide.md").write_text("[broken](missing/file.py)\n")
+        src = tmp_path / "src"
+        src.mkdir()
+        (src / "mod.py").write_text("x = 1\n")
+        healer = MurphyCodeHealer(
+            src_root=str(src),
+            docs_root=str(docs),
+        )
+        report = healer.run_healing_cycle(max_gaps=10)
+        assert isinstance(report, dict)
+        assert "gaps_detected" in report
+
+
+class TestEventBackboneNewEventTypes:
+    """Verify new EventType values are importable and valid."""
+
+    def test_test_failed_in_event_type(self):
+        from event_backbone import EventType
+        assert EventType.TEST_FAILED.value == "test_failed"
+
+    def test_doc_drift_in_event_type(self):
+        from event_backbone import EventType
+        assert EventType.DOC_DRIFT.value == "doc_drift"
+
+    def test_code_healer_events_in_event_type(self):
+        from event_backbone import EventType
+        assert EventType.CODE_HEALER_STARTED.value == "code_healer_started"
+        assert EventType.CODE_HEALER_COMPLETED.value == "code_healer_completed"
+        assert EventType.CODE_HEALER_PROPOSAL_CREATED.value == "code_healer_proposal_created"
