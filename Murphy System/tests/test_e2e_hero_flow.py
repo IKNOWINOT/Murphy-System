@@ -7,6 +7,16 @@ the core value proposition of Murphy System.
 Each test class isolates one stage of the hero path; the final integration
 class chains all stages together as a single, gapless flow.
 
+Timeout budget (5 s per 1 000 lines of tested source):
+  nocode_workflow_terminal.py  ~884 lines
+  ai_workflow_generator.py     ~386 lines
+  workflow_orchestrator.py     ~476 lines
+  task_executor.py             ~467 lines
+  gate_execution_wiring.py     ~366 lines
+  ─────────────────────────────────────────
+  Total tested source          ~2 579 lines  →  ~13 s minimum
+  Suite-level timeout guard    30 s  (generous headroom for CI variance)
+
 Run this suite:
     pytest tests/test_e2e_hero_flow.py -v
 
@@ -42,7 +52,9 @@ from gate_execution_wiring import (
     GateType,
 )
 
-pytestmark = pytest.mark.hero_flow
+# Timeout: 5 s per 1 000 lines of combined tested source (~2 579 lines → 13 s);
+# 30 s allows comfortable CI headroom.
+pytestmark = [pytest.mark.hero_flow, pytest.mark.timeout(30)]
 
 
 # ---------------------------------------------------------------------------
