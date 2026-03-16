@@ -9,10 +9,8 @@ Covers:
 - Pre-registered schemas exist for core output types
 """
 
-import sys
 import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 import pytest
 from llm_output_validator import (

@@ -10,11 +10,9 @@ Proves:
 - Normal event flow is unaffected
 """
 
-import sys
 import os
 import unittest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from event_backbone import EventBackbone, EventType
 

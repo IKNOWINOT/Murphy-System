@@ -239,14 +239,20 @@ docker rm murphy-system
 
 ### Configuration
 
-After installation, you may want to configure the system:
+After installation, you may want to configure the system. Murphy System uses YAML
+files in the `config/` directory for defaults, with environment variables always
+taking precedence:
 
 ```bash
-# Copy the configuration file
-cp config/config.example.yaml config/config.yaml
+# Edit the main configuration file (LLM provider, thresholds, logging, etc.)
+nano config/murphy.yaml
 
-# Edit the configuration
-nano config/config.yaml
+# Edit engine configuration (swarm size, gate parameters, orchestrator settings)
+nano config/engines.yaml
+
+# Annotated examples with documentation for every setting:
+# config/murphy.yaml.example
+# config/engines.yaml.example
 ```
 
 ### Environment Variables
@@ -468,11 +474,13 @@ docker run -it -p 8000:8000 murphy-system-runtime:v1.0.0
 # Check system resources
 htop
 
-# Enable caching in configuration
-# Edit config/config.yaml
-cache:
-  enabled: true
-  level: 2
+# Enable caching in config/murphy.yaml:
+# cache:
+#   enabled: true
+#   ttl: 3600
+
+# Or via environment variable (takes precedence over YAML):
+export MURPHY_CACHE__ENABLED=true
 
 # Increase memory allocation
 export MURPHY_CACHE_SIZE=256

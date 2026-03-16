@@ -1,8 +1,6 @@
 """End-to-end tests for the observation → outcome → k_factor → assist_mode → RL reward loop."""
 
-import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import pytest
 from src.shadow_knostalgia_bridge import ShadowKnostalgiaBridge

@@ -27,7 +27,6 @@ import datetime
 import json
 import os
 import shutil
-import sys
 import tempfile
 import threading
 import time
@@ -43,8 +42,6 @@ import pytest
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SRC_DIR = PROJECT_ROOT / "src"
 
-sys.path.insert(0, str(PROJECT_ROOT))
-sys.path.insert(0, str(SRC_DIR))
 
 from backup_disaster_recovery import (
     BackupManager,

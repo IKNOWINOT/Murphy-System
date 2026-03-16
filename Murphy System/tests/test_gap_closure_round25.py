@@ -15,11 +15,9 @@ Quality gates:
 import ast
 import os
 import subprocess
-import sys
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 SRC_DIR = os.path.join(os.path.dirname(__file__), "..", "src")
 REPO_ROOT = os.path.join(os.path.dirname(__file__), "..")

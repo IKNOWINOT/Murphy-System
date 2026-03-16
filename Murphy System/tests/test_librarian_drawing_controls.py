@@ -6,10 +6,8 @@ and capabilities registered for all drawing-related modules.
 """
 
 import os
-import sys
 import unittest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from system_librarian import SystemLibrarian
 

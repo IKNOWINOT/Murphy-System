@@ -19,12 +19,10 @@ License: BSL 1.1
 from __future__ import annotations
 
 import os
-import sys
 from types import SimpleNamespace
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from announcer_voice_engine import (
     TTSBackend,

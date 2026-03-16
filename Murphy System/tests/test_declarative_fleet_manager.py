@@ -10,14 +10,12 @@ from __future__ import annotations
 
 import json
 import os
-import sys
 import tempfile
 import threading
 import uuid
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from declarative_fleet_manager import (
     ActionStatus,

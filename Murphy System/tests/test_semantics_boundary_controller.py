@@ -1,8 +1,6 @@
 """Tests for the Semantics Boundary Controller."""
 
-import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import pytest
 from src.semantics_boundary_controller import (

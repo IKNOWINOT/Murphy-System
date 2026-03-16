@@ -448,22 +448,19 @@ class AutomationIntegrationHub:
     def _publish_event(self, event_type: str, source: str, target_count: int) -> None:
         """Publish an integration routing event to EventBackbone."""
         try:
-            from event_backbone import Event
-            from event_backbone import EventType as ET
-            evt = Event(
-                event_id=f"evt-{uuid.uuid4().hex[:8]}",
-                event_type=ET.LEARNING_FEEDBACK,
-                payload={
+            from event_backbone_client import publish as _bb_publish  # noqa: PLC0415
+            _bb_publish(
+                "learning_feedback",
+                {
                     "source": "automation_integration_hub",
                     "action": "event_routed",
                     "routed_event_type": event_type,
                     "origin": source,
                     "target_count": target_count,
                 },
-                timestamp=datetime.now(timezone.utc).isoformat(),
                 source="automation_integration_hub",
+                backbone=self._backbone,
             )
-            self._backbone.publish_event(evt)
         except Exception as exc:
             logger.debug("EventBackbone publish skipped: %s", exc)
 

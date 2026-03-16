@@ -12,12 +12,10 @@ Covers:
 
 import os
 import re
-import sys
 
 import pytest
 
 # Ensure the parent directory (containing murphy_terminal.py) is on the path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 
 def _read_runtime_files() -> str:

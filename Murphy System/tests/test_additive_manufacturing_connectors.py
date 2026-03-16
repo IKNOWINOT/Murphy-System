@@ -5,10 +5,8 @@ Validates connector registry, health checks, action execution,
 workflow orchestration, and all AM process/vendor coverage.
 """
 import unittest
-import sys
 import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 
 class TestAMConnectorBasics(unittest.TestCase):

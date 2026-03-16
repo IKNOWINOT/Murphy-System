@@ -1,13 +1,6 @@
 """Tests for the sales_automation module."""
 
-import sys
-import os
 import unittest
-
-sys.path.insert(
-    0,
-    os.path.join(os.path.dirname(__file__), "..", "src"),
-)
 
 from sales_automation import (
     INDUSTRY_FEATURES,

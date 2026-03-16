@@ -1,10 +1,8 @@
 """Tests for AutomationTypeRegistry."""
 
-import sys
 import os
 import unittest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from automation_type_registry import (
     AutomationTypeRegistry,

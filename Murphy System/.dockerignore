@@ -29,12 +29,22 @@ htmlcov/
 *.swo
 *~
 
+# Documentation
+*.md
+README*
+
 # Project directories not needed in image
 archive/
 bots/
 docs/
 documentation/
-scripts/
+# Exclude utility scripts except database migration script needed in containers
+scripts/*.sh
+scripts/*.py
+!scripts/db_migrate.sh
+tests/
+telemetry_evidence/
+strategic/
 
 # HTML / static assets not needed in runtime
 *.html

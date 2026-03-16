@@ -259,10 +259,41 @@ class DomainGateGenerator:
     Integrates with librarian system for knowledge reference
     """
 
-    def __init__(self):
+    def __init__(self, default_confidence_threshold: float = 0.85):
         self.gate_count = 0
         self.librarian = LibrarianKnowledgeBase()
         self.function_registry = self._initialize_function_registry()
+        # Adaptive default threshold — updated by the learning engine
+        self._default_confidence_threshold: float = max(
+            0.0, min(1.0, default_confidence_threshold)
+        )
+        self._threshold_updates: list = []
+
+    def update_default_threshold(self, new_threshold: float) -> None:
+        """Update the default confidence threshold applied to newly generated gates.
+
+        Called by :class:`LearningEngineConnector` when
+        :class:`PerformancePredictor` issues a global threshold recommendation.
+        Bounded to [0.5, 0.99] to avoid degenerate gate behaviour.
+        """
+        import datetime as _dt
+        bounded = max(0.5, min(0.99, float(new_threshold)))
+        old = self._default_confidence_threshold
+        self._default_confidence_threshold = bounded
+        self._threshold_updates.append({
+            "timestamp": _dt.datetime.now(_dt.timezone.utc).isoformat(),
+            "old_threshold": old,
+            "new_threshold": bounded,
+        })
+        if len(self._threshold_updates) > 100:
+            self._threshold_updates = self._threshold_updates[-100:]
+
+    def get_threshold_config(self) -> dict:
+        """Return current adaptive threshold configuration."""
+        return {
+            "default_confidence_threshold": self._default_confidence_threshold,
+            "total_updates": len(self._threshold_updates),
+        }
 
     def _initialize_function_registry(self) -> Dict[str, Callable]:
         """Initialize registry of validation functions."""
@@ -539,7 +570,7 @@ class DomainGateGenerator:
             wired_function=wired_function,
             function_signature=function_signature,
             risk_reduction=risk_reduction,
-            confidence_threshold=0.85,
+            confidence_threshold=self._default_confidence_threshold,
             knowledge_references=knowledge_references or [],
             metrics={
                 "total_checks": 0,

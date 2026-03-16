@@ -1,10 +1,8 @@
 """Tests for WorkflowDAGEngine."""
 
-import sys
 import os
 import unittest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from workflow_dag_engine import (
     WorkflowDAGEngine,

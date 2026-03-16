@@ -14,7 +14,6 @@ License: BSL 1.1
 from __future__ import annotations
 
 import os
-import sys
 from unittest.mock import patch
 
 import pytest
@@ -22,8 +21,6 @@ import pytest
 # Ensure src/ is importable
 _src_dir = os.path.join(os.path.dirname(__file__), "..", "src")
 _src_dir = os.path.abspath(_src_dir)
-if _src_dir not in sys.path:
-    sys.path.insert(0, _src_dir)
 
 from startup_feature_summary import (
     _FEATURE_PROBES,

@@ -16,10 +16,8 @@ Covers:
 import unittest
 import time
 import math
-import sys
 import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from trading_bot_engine import (
     LIVE_TRADING_ENABLED,

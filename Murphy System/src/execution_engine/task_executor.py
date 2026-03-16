@@ -3,10 +3,8 @@ Task Execution Engine - Core task scheduling and execution
 """
 
 import logging
-import os
 
 # Import thread-safe utilities
-import sys
 import threading
 import time
 import uuid
@@ -15,9 +13,8 @@ from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 try:
-    from thread_safe_operations import CircuitBreaker, ThreadSafeCounter, ThreadSafeDict
+    from src.thread_safe_operations import CircuitBreaker, ThreadSafeCounter, ThreadSafeDict
 except ImportError:
     import threading as _fb_threading
     class CircuitBreaker:
