@@ -419,8 +419,12 @@ class TestOAuthProviderRegistry:
         registry.register_provider(cfg)
         _, state = registry.begin_auth_flow(OAuthProvider.GOOGLE)
 
-        # First complete works
-        registry.complete_auth_flow(state, "code-1")
+        # First complete works (use injected token/profile to avoid real HTTP)
+        registry.complete_auth_flow(
+            state, "code-1",
+            token_response={"access_token": "at-1"},
+            profile_response={},
+        )
         # Second fails (state consumed)
         with pytest.raises(ValueError, match="Invalid or expired"):
             registry.complete_auth_flow(state, "code-2")
@@ -444,8 +448,8 @@ class TestOAuthProviderRegistry:
 
     def test_get_status(self, registry):
         status = registry.get_status()
-        assert status["total_providers"] == 3
-        assert status["enabled_providers"] == 3
+        assert status["total_providers"] == 5
+        assert status["enabled_providers"] == 5
         assert status["configured_providers"] == 0
         assert status["pending_auth_flows"] == 0
 
@@ -702,6 +706,7 @@ class TestAccountManagerOAuth:
         _, state = mgr.begin_oauth_signup(OAuthProvider.GOOGLE)
         account = mgr.complete_oauth_signup(
             state, "code",
+            token_response={"access_token": "at-test"},
             profile_response={"name": "X", "email": "x@x.com"},
         )
         event_types = [e.event_type for e in account.events]
@@ -732,6 +737,7 @@ class TestAccountManagerOAuth:
         _, state = mgr.begin_oauth_signup(OAuthProvider.GOOGLE)
         account = mgr.complete_oauth_signup(
             state, "code",
+            token_response={"access_token": "at-test"},
             profile_response={"name": "Y"},
         )
         assert mgr.unlink_oauth(account.account_id, OAuthProvider.GOOGLE) is True

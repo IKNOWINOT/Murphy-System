@@ -11,7 +11,7 @@ Tests:
 
 import unittest
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from src.learning_engine import (
     LearningEngine,
     PerformanceTracker,
@@ -70,7 +70,7 @@ class TestPerformanceTracker(unittest.TestCase):
         self.tracker.record_metric("test_metric", 3.0)
 
         # Get metrics from a wide range that includes now
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         start_time = now - timedelta(hours=1)
         end_time = now + timedelta(seconds=1)
         metrics = self.tracker.get_metrics_in_range("test_metric", start_time, end_time)
