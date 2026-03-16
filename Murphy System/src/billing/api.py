@@ -209,7 +209,8 @@ def create_billing_router(
             tier = SubscriptionTier(body.tier)
             interval = BillingInterval(body.interval)
         except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
+            logger.debug("Invalid tier/interval in PayPal checkout: %s", exc)
+            raise HTTPException(status_code=400, detail="Invalid billing tier or interval") from exc
 
         try:
             approval_url = mgr.create_paypal_order(
@@ -218,7 +219,8 @@ def create_billing_router(
                 interval=interval,
             )
         except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
+            logger.debug("PayPal order creation rejected: %s", exc)
+            raise HTTPException(status_code=400, detail="Invalid billing configuration") from exc
         except Exception as exc:
             logger.error("PayPal checkout failed: %s", exc)
             raise HTTPException(status_code=502, detail="Payment provider unavailable") from exc
@@ -254,7 +256,8 @@ def create_billing_router(
             tier = SubscriptionTier(body.tier)
             interval = BillingInterval(body.interval)
         except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
+            logger.debug("Invalid tier/interval in crypto checkout: %s", exc)
+            raise HTTPException(status_code=400, detail="Invalid billing tier or interval") from exc
 
         try:
             hosted_url = mgr.create_crypto_charge(
@@ -263,7 +266,8 @@ def create_billing_router(
                 interval=interval,
             )
         except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
+            logger.debug("Crypto charge creation rejected: %s", exc)
+            raise HTTPException(status_code=400, detail="Invalid billing configuration") from exc
         except Exception as exc:
             logger.error("Crypto checkout failed: %s", exc)
             raise HTTPException(status_code=502, detail="Payment provider unavailable") from exc
@@ -303,7 +307,8 @@ def create_billing_router(
                 signature=signature,
             )
         except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
+            logger.debug("PayPal webhook rejected: %s", exc)
+            raise HTTPException(status_code=400, detail="Invalid webhook payload") from exc
 
         return JSONResponse(result)
 
@@ -337,7 +342,8 @@ def create_billing_router(
                 raw_body=raw_body,
             )
         except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
+            logger.debug("Coinbase webhook rejected: %s", exc)
+            raise HTTPException(status_code=400, detail="Invalid webhook payload") from exc
 
         return JSONResponse(result)
 
@@ -359,7 +365,8 @@ def create_billing_router(
         try:
             sub = mgr.cancel_subscription(account_id)
         except ValueError as exc:
-            raise HTTPException(status_code=404, detail=str(exc)) from exc
+            logger.debug("Cancel subscription rejected: %s", exc)
+            raise HTTPException(status_code=404, detail="Subscription not found") from exc
         return JSONResponse(sub.to_dict())
 
     @router.post("/subscription/{account_id}/upgrade")
@@ -373,7 +380,8 @@ def create_billing_router(
             new_tier = SubscriptionTier(body.new_tier)
             sub = mgr.upgrade_subscription(account_id, new_tier)
         except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
+            logger.debug("Subscription upgrade rejected: %s", exc)
+            raise HTTPException(status_code=400, detail="Invalid subscription upgrade request") from exc
         return JSONResponse(sub.to_dict())
 
     # ── Usage ────────────────────────────────────────────────────────
