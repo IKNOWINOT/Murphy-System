@@ -25,7 +25,6 @@ import hashlib
 import hmac
 import json
 import logging
-import sys
 import time
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -33,7 +32,6 @@ from pathlib import Path
 import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 
 # ===================================================================

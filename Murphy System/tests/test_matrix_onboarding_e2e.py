@@ -31,16 +31,9 @@ After the full flow, we verify:
 - Business loop scheduling covers all required loops.
 """
 
-import os
-import sys
 import uuid
 import unittest
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-MURPHY_DIR = os.path.join(TESTS_DIR, "..")
-SRC_DIR = os.path.join(MURPHY_DIR, "src")
-sys.path.insert(0, MURPHY_DIR)
-sys.path.insert(0, SRC_DIR)
 
 from matrix_bridge.command_dispatcher import CommandDispatcher, ParsedCommand, CommandResponse
 from matrix_bridge.config import MatrixBridgeConfig

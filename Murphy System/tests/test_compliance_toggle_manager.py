@@ -9,10 +9,8 @@ Covers:
   - ALL_FRAMEWORKS list completeness
 """
 
-import sys
 import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 import pytest
 from compliance_toggle_manager import (

@@ -8,11 +8,9 @@ Design Label: TEST-002 / OBS-003
 Owner: QA Team
 """
 
-import sys
 import os
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from log_analysis_engine import (
     LogAnalysisEngine,

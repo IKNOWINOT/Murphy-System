@@ -9,12 +9,10 @@ Covers:
 """
 
 import os
-import sys
 import tempfile
 import pytest
 
 # Ensure parent directory is on the path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 pytest.importorskip("textual", reason="textual not installed — skipping terminal UI tests")
 

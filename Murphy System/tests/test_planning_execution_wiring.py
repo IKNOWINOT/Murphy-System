@@ -6,11 +6,8 @@ content creator platforms) are registered with the executive planning engine's
 IntegrationAutomationBinder during runtime initialization.
 """
 import os
-import sys
 import unittest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 
 class TestIntegrationCatalogExpansion(unittest.TestCase):

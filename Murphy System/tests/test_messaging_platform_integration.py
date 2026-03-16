@@ -7,11 +7,8 @@ Validates platform_connector_framework, enterprise_integrations, and
 MODULE_CATALOG wiring for new messaging/business platform connectors.
 """
 import os
-import sys
 import unittest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 
 # ===================================================================

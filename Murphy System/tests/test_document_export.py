@@ -16,13 +16,11 @@ Covers:
 from __future__ import annotations
 
 import asyncio
-import sys
 import os
 
 import pytest
 
 # Ensure the package is importable regardless of working directory
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.document_export.brand_registry import BrandProfile, BrandRegistry
 from src.document_export.style_rewriter import DocumentStyleRewriter, STYLE_PROMPTS

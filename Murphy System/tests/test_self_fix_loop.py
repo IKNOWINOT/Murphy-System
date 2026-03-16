@@ -10,13 +10,11 @@ Owner: QA Team
 """
 
 import os
-import sys
 import threading
 import time
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from self_fix_loop import (
     SelfFixLoop,
@@ -597,8 +595,6 @@ class TestReport:
 class TestPersistence:
     def test_persistence_integration(self, tmp_path, engine):
         """Verify all plans/executions are persisted."""
-        import sys
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
         from persistence_manager import PersistenceManager
 
         pm = PersistenceManager(persistence_dir=str(tmp_path))

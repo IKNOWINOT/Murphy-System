@@ -18,7 +18,6 @@ import sys
 import tempfile
 import unittest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 # Ensure a master key is available so the manager doesn't try to create .env
 os.environ.setdefault(

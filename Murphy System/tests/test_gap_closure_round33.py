@@ -14,7 +14,6 @@ Extends the audit with 5 additional scan categories (11–15):
 import ast
 import os
 import re
-import sys
 import urllib.parse
 
 import pytest
@@ -223,7 +222,6 @@ class TestFullImportSweep:
     """All source modules import without error."""
 
     def test_all_modules_importable(self):
-        sys.path.insert(0, SRC_DIR)
         optional = {
             "fastapi", "matplotlib", "torch", "textual",
             "uvicorn", "openai", "anthropic", "transformers",

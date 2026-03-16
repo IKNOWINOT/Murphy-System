@@ -35,12 +35,10 @@ License: BSL 1.1
 from __future__ import annotations
 
 import os
-import sys
 from unittest.mock import MagicMock
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from self_marketing_orchestrator import (  # noqa: I001
     SelfMarketingOrchestrator,
