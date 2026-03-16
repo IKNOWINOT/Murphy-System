@@ -449,7 +449,9 @@ class WorkflowDAGEngine:
 
             group_timeout = min(step_timeout, remaining)
 
-            not_done: set = set()
+            # Sentinel so `finally` can safely reference not_done even if
+            # futures_wait() is never reached due to a submission error.
+            not_done = set()
             executor = ThreadPoolExecutor(max_workers=max(1, len(group)))
             try:
                 futures_map: Dict[Any, str] = {
@@ -499,7 +501,7 @@ class WorkflowDAGEngine:
                     future.cancel()
             finally:
                 # Do not block if threads are still running past their timeout.
-                executor.shutdown(wait=len(not_done) == 0)  # type: ignore[possibly-undefined]
+                executor.shutdown(wait=len(not_done) == 0)
 
         all_statuses = [se.status for se in execution.steps.values()]
         if any(s in (StepStatus.FAILED, StepStatus.TIMED_OUT) for s in all_statuses):
