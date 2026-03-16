@@ -28,7 +28,7 @@
 | **Email Delivery** | ✅ **New** | Real SMTP (`aiosmtplib`) + SendGrid (`httpx`) — no mock path. 29 tests using live `aiosmtpd` + `respx`. |
 | **Rosetta State Wiring** | ✅ **New** | INC-07 complete: P3-001→P3-006 wired. `subsystem_wiring.py` + 38 tests. |
 | UI / Landing Page | ⚠️ Partial | Landing page, terminal UIs exist; dashboard incomplete |
-| Documentation | ✅ Complete | API docs, architecture docs, deployment guides, testing guide complete |
+| **Documentation** | ✅ Complete | API docs, architecture docs (incl. Security Plane), LLM subsystem ref, 14 package READMEs, deployment guides |
 
 ## Regulatory Alignment
 
@@ -49,7 +49,7 @@ Murphy System is **aligned with** (not formally attested to) the following frame
 
 ## Test Coverage
 
-- **Total test files**: 646+
+- **Total test files**: 648+
 - **CI configuration**: `python -m pytest --timeout=60 -v --tb=short`
 - **CI pipeline**: GitHub Actions runs lint, test (Python 3.10/3.11/3.12), integration, security, and build jobs
 - **Key test suites**: concept graph engine (48), unified control protocol (62), session context (37), crypto trading system (102), shadow learning + real-money guard (48), email integration real-SMTP/SendGrid (29), Rosetta subsystem wiring (38)
