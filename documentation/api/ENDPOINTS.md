@@ -900,3 +900,194 @@ Resolve a specific trigger.
 **© 2025 Corey Post InonI LLC. All rights reserved.**  
 **Licensed under BSL 1.1 (converts to Apache 2.0 after 4 years)**  
 **Contact: corey.gfc@gmail.com**
+---
+
+## Murphy Foundation Model (MFM) Endpoints
+
+The Murphy Foundation Model (MFM) is Murphy's self-trained local language model. These endpoints manage its lifecycle: deployment mode, training, version promotion, and rollback.
+
+**Environment variable prerequisites:**
+- `MFM_ENABLED=true` — activates MFM inference.
+- `MFM_MODE` — one of `shadow`, `canary`, `production`, `disabled`.
+- `MFM_BASE_MODEL` — base model identifier (default: `microsoft/Phi-3-mini-4k-instruct`).
+
+---
+
+### GET /api/mfm/status
+
+Return the current MFM deployment status.
+
+**Authentication**: Required
+
+#### Response
+
+```json
+{
+  "enabled": true,
+  "mode": "shadow",
+  "base_model": "microsoft/Phi-3-mini-4k-instruct",
+  "device": "cuda"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| enabled | boolean | Whether MFM inference is active |
+| mode | string | `shadow` / `canary` / `production` / `disabled` |
+| base_model | string | HuggingFace model identifier |
+| device | string | Compute device (`cuda`, `cpu`, `auto`) |
+
+---
+
+### GET /api/mfm/metrics
+
+Return training metrics and shadow-mode comparison statistics.
+
+**Authentication**: Required
+
+#### Response
+
+```json
+{
+  "metrics": {
+    "shadow_requests": 1420,
+    "shadow_agreements": 1391,
+    "agreement_rate": 0.9796,
+    "avg_latency_ms": 312,
+    "training_loss": 0.042
+  }
+}
+```
+
+---
+
+### GET /api/mfm/traces/stats
+
+Return action-trace collection statistics used for self-improvement training.
+
+**Authentication**: Required
+
+#### Response
+
+```json
+{
+  "total_traces": 8420,
+  "labelled_traces": 6100,
+  "unlabelled_traces": 2320,
+  "oldest_trace": "2026-01-01T00:00:00Z",
+  "newest_trace": "2026-03-16T06:00:00Z"
+}
+```
+
+---
+
+### POST /api/mfm/retrain
+
+Trigger a manual MFM retraining cycle using collected action traces.
+
+**Authentication**: Required  
+**Scope**: `admin:write`
+
+#### Request body
+
+No body required.
+
+#### Response
+
+```json
+{
+  "status": "started",
+  "cycle_id": "retrain-20260316-0600",
+  "estimated_duration_minutes": 45
+}
+```
+
+---
+
+### POST /api/mfm/promote
+
+Promote an MFM version through the deployment pipeline: `shadow` → `canary` → `production`.
+
+**Authentication**: Required  
+**Scope**: `admin:write`
+
+#### Request
+
+```json
+{
+  "version_id": "mfm-v0.3.1-20260316"
+}
+```
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| version_id | string | Yes | Version identifier to promote |
+
+#### Response
+
+```json
+{
+  "promoted": true,
+  "version_id": "mfm-v0.3.1-20260316",
+  "new_status": "canary"
+}
+```
+
+---
+
+### POST /api/mfm/rollback
+
+Roll back to the previous MFM production version.
+
+**Authentication**: Required  
+**Scope**: `admin:write`
+
+#### Request body
+
+No body required.
+
+#### Response
+
+```json
+{
+  "rolled_back": true,
+  "current_version": "mfm-v0.3.0-20260310"
+}
+```
+
+---
+
+### GET /api/mfm/versions
+
+List all MFM versions with their deployment status and metrics.
+
+**Authentication**: Required
+
+#### Response
+
+```json
+{
+  "versions": [
+    {
+      "version_id": "mfm-v0.3.1-20260316",
+      "version_str": "0.3.1",
+      "status": "canary",
+      "created_at": "2026-03-16T06:00:00Z",
+      "metrics": {
+        "agreement_rate": 0.9796,
+        "avg_latency_ms": 312
+      }
+    },
+    {
+      "version_id": "mfm-v0.3.0-20260310",
+      "version_str": "0.3.0",
+      "status": "production",
+      "created_at": "2026-03-10T08:00:00Z",
+      "metrics": {
+        "agreement_rate": 0.9751,
+        "avg_latency_ms": 298
+      }
+    }
+  ]
+}
+```

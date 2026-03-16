@@ -17,6 +17,14 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added — Documentation Gap Closure (GAP-1/2/3/5 from Audit Report)
+
+- **docs(llm):** `documentation/components/LLM_SUBSYSTEM.md` — full LLM subsystem reference covering `LLMController` model inventory + capability routing, `LLMIntegrationLayer` domain-to-provider routing matrix (8 domains × 4 providers), `GroqKeyRotator` round-robin + auto-disable + statistics, `OpenAICompatibleProvider` all 8 provider types, and environment variable table. **Closes GAP-1.**
+- **docs(api):** `documentation/api/ENDPOINTS.md` — added 7 MFM endpoints: `GET /api/mfm/status`, `GET /api/mfm/metrics`, `GET /api/mfm/traces/stats`, `POST /api/mfm/retrain`, `POST /api/mfm/promote`, `POST /api/mfm/rollback`, `GET /api/mfm/versions`. Each includes request/response JSON examples. **Closes GAP-2.**
+- **docs(security):** `documentation/architecture/SECURITY_PLANE.md` — consolidated security architecture reference: all 6 security principles, FIDO2/mTLS authentication, zero-trust RBAC, post-quantum hybrid cryptography, DLP scanning, ASGI middleware stack (4 classes), adaptive defense, anti-surveillance, packet protection, environment variables, and ASCII architecture diagram. **Closes GAP-3.**
+- **docs(packages):** Added `README.md` to 11 top packages: `security_plane`, `aionmind`, `confidence_engine`, `auar`, `governance_framework`, `rosetta`, `gate_synthesis`, `learning_engine`, `execution_engine`, `integration_engine`, `dashboards`, `runtime`. Packages with READMEs: 14/83 (up from 3). **Partially closes GAP-5.**
+- **docs(audit):** `docs/AUDIT_AND_COMPLETION_REPORT.md` — GAP-1/2/3 marked ✅ resolved; GAP-5 marked partially resolved; health metrics updated (500+ tests, 14 package READMEs, doc accuracy ~85%).
+
 ### Added — Real Email Delivery + Rosetta Subsystem Wiring
 
 - **feat(email):** `src/email_integration.py` — removed `MockEmailBackend` and `DisabledEmailBackend`; replaced with `UnconfiguredEmailBackend` that returns `success=False` with actionable config instructions. No silent fake-delivery path exists. `EmailService.from_env()` selects `SendGridBackend` → `SMTPBackend` → `UnconfiguredEmailBackend` in priority order. New dependencies: `aiosmtplib>=3.0.0`, `aiosmtpd>=1.4.0`, `respx>=0.21.0`.
