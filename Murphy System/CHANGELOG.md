@@ -17,6 +17,40 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added — Murphy Native Multi-Cursor Split-Screen Automation
+
+#### Core: Murphy-Native Desktop Automation (replaces Playwright)
+- **feat(automation):** `playwright_task_definitions.py` — fully rewritten to use Murphy's native stack. Playwright is no longer imported or required (`_PLAYWRIGHT_AVAILABLE = False`). All existing async task classes (`NavigateTask`, `ClickTask`, `FillTask`, `ScreenshotTask`, `ExtractTask`, `WaitTask`, `EvaluateTask`, `SequenceTask`) now delegate to `MurphyNativeRunner` — zero external browser binary dependencies.
+- **feat(automation):** Added `MultiCursorTask` — wraps any task with its own `CursorContext` and `ScreenZone` for zone-targeted execution.
+- **feat(automation):** Added `DesktopActionTask` — physical desktop action via `GhostDesktopRunner` (PyAutoGUI) with `cursor_id` targeting.
+- **feat(automation):** Added `APICallTask` — direct urllib API call, no browser needed.
+- **feat(automation):** Added `SplitScreenSequenceTask` — runs independent task pipelines simultaneously across split-screen zones via `asyncio.gather`.
+- **feat(automation):** `PlaywrightTaskRunner.execute_split_screen()` — new method: run independent task pipelines per zone in parallel, each with its own cursor context.
+
+#### Multi-Cursor Split-Screen Desktop (`murphy_native_automation.py`)
+- **feat(desktop):** `ScreenZone` — rectangular viewport region with absolute/relative coordinate helpers (`to_absolute`, `to_relative`, `contains`, `center`, `bounds`).
+- **feat(desktop):** `CursorContext` — fully independent virtual pointer per zone: `warp()`, `move_by()`, `click()`, `double_click()`, `drag()`, `scroll()`, button press/release, zone clamping, event history (capped at 500). Moving cursor-N **never** affects cursor-M.
+- **feat(desktop):** `SplitScreenLayout` enum — `SINGLE / DUAL_H / DUAL_V / TRIPLE_H / QUAD / HEXA / CUSTOM` — mirrors console split-screen presets.
+- **feat(desktop):** `MultiCursorDesktop` — manages up to 16 independent cursors across zones; `apply_layout()` rebuilds zones + cursors; `run_parallel_tasks()` dispatches one `NativeTask` per zone in parallel threads; `snapshot()` returns full desktop state.
+- **feat(desktop):** `SplitScreenManager` — high-level orchestrator: `enqueue()` tasks per zone, `run_all(parallel=True)` fires all zones simultaneously each in their own thread with its own `CursorContext`.
+
+#### Split-Screen Coordinator (`split_screen_coordinator.py`) — NEW
+- **feat(coordinator):** `SplitScreenCoordinator` — three-stage pipeline per `coordinate()` call:
+  1. **Triage** (`TicketTriageEngine`) — severity-scores each zone's task description (critical → high → medium → low → unknown).
+  2. **Evidence** (`RubixEvidenceAdapter`) — Monte Carlo pre-flight gate; flags zones that fail (`strict_mode=True` skips them).
+  3. **Dispatch** (`SplitScreenManager`) — all zones execute simultaneously, each with their own `CursorContext`.
+- **feat(coordinator):** `CoordinationReport` / `ZoneCoordinationResult` — structured report with per-zone triage, evidence, task result, and cursor snapshots.
+
+#### Ghost Controller Multi-Cursor (`bots/ghost_controller_bot/desktop/playback_runner.py`)
+- **feat(ghost):** All action functions now accept `cursor_id` parameter: `click()`, `type_text()`, `focus_app()`, `double_click()`, `drag_to()`, `scroll()`, `move_cursor()`.
+- **feat(ghost):** `_CURSOR_STATE` registry — tracks independent `(x, y)` per cursor ID; `register_cursor()`, `list_cursors()`, `_cursor_pos()`, `_cursor_move()`.
+- **feat(ghost):** `move_cursor()` and `double_click()` actions added.
+- **feat(ghost):** Validation `post_validation()` payload now includes `cursor_id`.
+
+### Tests
+- **test:** New `tests/test_multi_cursor_split_screen.py` — 116 tests in 7 parts: (1) `ScreenZone` geometry, (2) every `CursorContext` individually (warp/clamp/click/drag/scroll/history/labels), (3) all cursors together (isolation, thread-safety, parallel dispatch, MAX_CURSORS guard), (4) all 6 `SplitScreenLayout` presets, (5) `SplitScreenManager` serial + parallel, (6) `SplitScreenCoordinator` full pipeline, (7) `playback_runner` multi-cursor registry.
+- **test:** `tests/test_playwright_tasks.py` — `test_imports_playwright` renamed to `test_uses_murphy_native_stack`; asserts Murphy native stack is used and Playwright is not a hard dependency; new task-type imports added.
+
 ### Added — Beta Hardening (Production Safety Guards)
 
 #### Critical — Simulated Backend Safety Guards
