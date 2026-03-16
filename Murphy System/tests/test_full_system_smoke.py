@@ -20,14 +20,12 @@ from __future__ import annotations
 
 import os
 import re
-import sys
 import time
 import uuid
 from typing import Any, Dict, Optional
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 # ---------------------------------------------------------------------------
 # Helpers

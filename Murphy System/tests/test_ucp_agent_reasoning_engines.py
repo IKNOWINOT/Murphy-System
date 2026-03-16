@@ -8,7 +8,6 @@ License: BSL 1.1
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
 import pytest
@@ -24,12 +23,6 @@ def _root_path() -> Path:
 
 
 def _load_ucp():
-    root = str(_root_path())
-    if root not in sys.path:
-        sys.path.insert(0, root)
-    src = str(_root_path() / "src")
-    if src not in sys.path:
-        sys.path.insert(0, src)
     import importlib
     mod = importlib.import_module("universal_control_plane")
     return mod

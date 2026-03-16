@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import json
 import os
-import sys
 import tempfile
 from pathlib import Path
 from types import SimpleNamespace
@@ -28,7 +27,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from youtube_uploader import (
     _DAILY_QUOTA_LIMIT,

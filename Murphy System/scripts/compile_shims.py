@@ -8,6 +8,14 @@ Usage:
     python scripts/compile_shims.py --bot kiren
     python scripts/compile_shims.py --config path/to/bot_manifests.yaml
 
+Prerequisites:
+    Run ``pip install -e .`` from the ``Murphy System/`` project directory
+    (the one that contains ``pyproject.toml``) before executing this script,
+    so that ``src`` package imports resolve correctly::
+
+        cd "Murphy System"
+        pip install -e .
+
 Exit codes:
     0  all shims up-to-date or successfully written
     1  one or more errors during compilation
@@ -24,10 +32,9 @@ import yaml
 
 # Resolve repository root (this script lives in <root>/scripts/)
 REPO_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(REPO_ROOT))
 
-from src.shim_compiler.compiler import ShimCompiler  # noqa: E402
-from src.shim_compiler.schemas import BotManifest    # noqa: E402
+from src.shim_compiler.compiler import ShimCompiler
+from src.shim_compiler.schemas import BotManifest
 
 
 _DEFAULT_MANIFEST_PATH = REPO_ROOT / "config" / "bot_manifests.yaml"

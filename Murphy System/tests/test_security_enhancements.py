@@ -1,13 +1,11 @@
 """Tests for security enhancement modules (Phases 1–4)."""
 
-import sys
 import os
 import pytest
 from datetime import datetime, timezone, timedelta
 import time
 
 # Ensure the src package is importable
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, "src"))
 
 from security_plane.authorization_enhancer import (
     AuthorizationEnhancer, AuthorizationRequest, AuthorizationDecision,

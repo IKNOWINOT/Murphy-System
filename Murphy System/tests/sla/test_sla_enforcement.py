@@ -19,7 +19,6 @@ License: BSL 1.1
 """
 from __future__ import annotations
 
-import sys
 import time
 import uuid
 from datetime import datetime
@@ -28,8 +27,6 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "src"))
 
 # ---------------------------------------------------------------------------
 # SLA-API-001  API throughput >= 1,000 req/s (in-process simulation)

@@ -9,11 +9,9 @@ Verifies that:
 - Edge cases: no departments, no executions, unknown IDs
 """
 
-import sys
 import os
 import unittest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from governance_kernel import GovernanceKernel, DepartmentScope
 

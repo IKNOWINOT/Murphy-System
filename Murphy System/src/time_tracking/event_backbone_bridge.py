@@ -64,7 +64,13 @@ def bridge_time_tracking_to_backbone(
             type as the first argument to registered callbacks.
             """
             try:
-                _bb.publish(event_type, payload)
+                from event_backbone_client import publish as _bb_publish  # noqa: PLC0415
+                _bb_publish(
+                    event_type,
+                    payload,
+                    source="time_tracking_bridge",
+                    backbone=_bb,
+                )
             except Exception:
                 logger.debug(
                     "EventBackbone publish skipped for time_tracking event %r",

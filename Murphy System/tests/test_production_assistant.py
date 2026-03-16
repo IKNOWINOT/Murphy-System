@@ -774,14 +774,6 @@ class TestThreadSafety:
 # ProductionAssistantOrchestrator
 # ===========================================================================
 
-import sys
-import os
-
-# Ensure strategic package is importable (needed for SafetyGate integration)
-_strategic_root = os.path.join(os.path.dirname(__file__), "..")
-if _strategic_root not in sys.path:
-    sys.path.insert(0, _strategic_root)
-
 from production_assistant_engine import (
     PRODUCTION_CONFIDENCE_THRESHOLD,
     DeliverableGateReport,

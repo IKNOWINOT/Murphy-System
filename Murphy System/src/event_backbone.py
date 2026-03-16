@@ -68,6 +68,10 @@ class EventType(Enum):
     FLEET_BOT_DESPAWNED = "fleet_bot_despawned"
     FLEET_BOT_UPDATED = "fleet_bot_updated"
     FLEET_RECONCILED = "fleet_reconciled"
+    AUTOMATION_EXECUTED = "automation_executed"
+    THRESHOLD_UPDATED = "threshold_updated"
+    GATE_EVOLVED = "gate_evolved"
+    PATTERN_DETECTED = "pattern_detected"
     FLEET_DRIFT_DETECTED = "fleet_drift_detected"
     PREDICTION_GENERATED = "prediction_generated"
     PREDICTION_PREEMPTED = "prediction_preempted"
@@ -80,6 +84,35 @@ class EventType(Enum):
     IMMUNITY_RECALLED = "immunity_recalled"
     CHAOS_VALIDATED = "chaos_validated"
     CASCADE_CHECKED = "cascade_checked"
+    TEST_FAILED = "test_failed"
+    DOC_DRIFT = "doc_drift"
+    CODE_HEALER_STARTED = "code_healer_started"
+    CODE_HEALER_COMPLETED = "code_healer_completed"
+    CODE_HEALER_PROPOSAL_CREATED = "code_healer_proposal_created"
+    CODE_HEALER_GAP_LOW_CONFIDENCE = "code_healer_gap_low_confidence"
+
+    @classmethod
+    def from_string(cls, name: str) -> "EventType":
+        """Convert a string to EventType, trying value then name lookup.
+
+        Args:
+            name: Either the enum value (e.g. ``"task_submitted"``) or the
+                  enum member name (e.g. ``"TASK_SUBMITTED"``).
+
+        Raises:
+            ValueError: If no matching EventType is found.
+        """
+        # Try by value first (lowercase match, e.g. "task_submitted")
+        try:
+            return cls(name.lower())
+        except ValueError:
+            pass
+        # Try by name (uppercase match, e.g. "TASK_SUBMITTED")
+        try:
+            return cls[name.upper()]
+        except KeyError:
+            pass
+        raise ValueError(f"No EventType matching {name!r}")
 
 
 @dataclass

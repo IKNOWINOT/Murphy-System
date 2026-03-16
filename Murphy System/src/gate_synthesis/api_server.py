@@ -4,10 +4,8 @@ REST API for dynamic gate generation and lifecycle management
 """
 
 import logging
-import os
 
 # Import from confidence engine
-import sys
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -29,9 +27,7 @@ from .models import (
 )
 from .murphy_estimator import MurphyProbabilityEstimator
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-
-from confidence_engine.models import (
+from src.confidence_engine.models import (
     ArtifactGraph,
     ArtifactNode,
     ArtifactSource,

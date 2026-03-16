@@ -1,8 +1,6 @@
 """Tests for the Composite Quality Index Engine (CQI-001)."""
 
-import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import pytest
 

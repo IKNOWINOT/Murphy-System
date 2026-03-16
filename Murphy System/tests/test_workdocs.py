@@ -1,7 +1,6 @@
 """Tests for Phase 5 – Collaborative Docs (workdocs)."""
 
 import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 import pytest
 from workdocs.models import Block, BlockType, DocPermission, DocStatus, DocVersion, Document

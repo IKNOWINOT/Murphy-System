@@ -349,6 +349,106 @@ When the Librarian finds multiple ways to complete a task, all alternatives are 
 
 ---
 
+## Database Setup
+
+> **Important:** By default, Murphy System runs in **stub mode** — all SQL
+> operations return fake fixture data.  This is intentional for zero-config
+> development but means no real data is persisted.  Follow the steps below to
+> connect a real database.
+
+### Quick start (SQLite — development)
+
+```bash
+export DATABASE_URL=sqlite:///murphy_logs.db
+export MURPHY_DB_MODE=live
+```
+
+Add these to your `.env` file (created by `setup_and_start.sh`) to persist
+them across restarts.
+
+### PostgreSQL (recommended for production)
+
+```bash
+export DATABASE_URL=postgresql://murphy:yourpassword@localhost:5432/murphy
+export MURPHY_DB_MODE=live
+export MURPHY_ENV=production
+export MURPHY_AUTO_MIGRATE=false   # Run migrations manually in production
+```
+
+### Running migrations
+
+Migrations are managed by [Alembic](https://alembic.sqlalchemy.org/).
+
+**Auto-migration (development default):**
+
+When `MURPHY_AUTO_MIGRATE=true` (the default in `development` and `test`
+environments), pending migrations are applied automatically at startup.
+
+**Manual migration (production/staging default):**
+
+```bash
+cd "Murphy System/"
+bash scripts/db_migrate.sh            # Apply all pending migrations
+bash scripts/db_migrate.sh status     # Show current migration state
+bash scripts/db_migrate.sh history    # Show full migration history
+bash scripts/db_migrate.sh downgrade -1  # Revert last migration
+```
+
+### Database modes
+
+| Mode | `MURPHY_DB_MODE` | `DATABASE_URL` | Behaviour |
+|------|-----------------|----------------|-----------|
+| **Stub** (default) | `stub` | not required | All SQL returns fake data |
+| **Live / SQLite** | `live` | `sqlite:///path/to/db` | Real DB, no server required |
+| **Live / PostgreSQL** | `live` | `postgresql://...` | Real DB, production-grade |
+
+> **Warning:** Running in stub mode means all reads and writes are silently
+> discarded.  A large warning banner will appear in the server logs when stub
+> mode is active.  In `production` and `staging` environments stub mode is
+> **rejected at startup** with a `RuntimeError`.
+
+### Health check — database status
+
+The `/api/health` endpoint always reports the current database mode:
+
+```bash
+curl http://localhost:8000/api/health
+# {"status": "healthy", "version": "1.0.0", "db_mode": "stub"}
+
+curl "http://localhost:8000/api/health?deep=true"
+# {
+#   "status": "healthy",
+#   "checks": {
+#     "database": "ok",
+#     "db_mode": "live",
+#     "db_pool": {"pool_size": 5, "checked_in": 5, "checked_out": 0, ...},
+#     ...
+#   }
+# }
+```
+
+### Connection pool monitoring
+
+The deep health check (`/api/health?deep=true`) includes connection-pool
+metrics under `db_pool`:
+
+| Key | Description |
+|-----|-------------|
+| `pool_size` | Configured pool size |
+| `checked_in` | Idle connections in the pool |
+| `checked_out` | Connections currently in use |
+| `overflow` | Extra connections above `pool_size` |
+| `invalid` | Connections that failed a pre-ping check |
+
+Pool size and overflow are tunable via environment variables:
+
+```bash
+export MURPHY_DB_POOL_SIZE=5      # Default: 5
+export MURPHY_DB_MAX_OVERFLOW=10  # Default: 10
+```
+
+---
+
 ## Installation
 
 ### Prerequisites
@@ -393,6 +493,75 @@ INFO:     Governance kernel: active
 INFO:     HITL gates: enabled
 INFO:     Librarian: capability map loaded (610 capabilities)
 INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+```
+
+---
+
+## Configuration
+
+Murphy System supports two complementary configuration mechanisms that can be used together. **Environment variables always take precedence.**
+
+### YAML Configuration Files (recommended starting point)
+
+The `config/` directory contains YAML files that supply defaults for every runtime setting:
+
+| File | Purpose |
+|---|---|
+| `config/murphy.yaml` | Main system defaults — LLM provider, confidence thresholds, safety levels, logging, tenant limits, self-learning |
+| `config/engines.yaml` | Engine defaults — domain engines, swarm parameters, learning engine settings, gate parameters, orchestrator timeouts |
+| `config/murphy.yaml.example` | Fully-annotated reference for `murphy.yaml` |
+| `config/engines.yaml.example` | Fully-annotated reference for `engines.yaml` |
+| `config/config_loader.py` | The loader that reads YAML files and applies env-var overrides |
+
+To customise a setting, edit the relevant YAML file:
+
+```bash
+# Open the main config and change LLM provider, thresholds, logging, etc.
+nano config/murphy.yaml
+
+# Open the engine config and change swarm size, gate parameters, etc.
+nano config/engines.yaml
+```
+
+### Environment Variable Overrides
+
+Environment variables (set in your shell or in `.env`) **always override YAML values**. Two syntaxes are supported:
+
+```bash
+# Legacy flat names (well-known shortcuts):
+export MURPHY_LLM_PROVIDER=groq
+export LOG_LEVEL=DEBUG
+export CONFIDENCE_THRESHOLD=0.90
+
+# Namespaced names (MURPHY_<SECTION>__<KEY>):
+export MURPHY_API__PORT=9000
+export MURPHY_THRESHOLDS__CONFIDENCE=0.90
+export MURPHY_SWARM__EXPLORATION_AGENTS=5
+```
+
+### Configuration Priority
+
+```
+Environment variables  ← always win
+       ↑
+config/murphy.yaml + config/engines.yaml  ← YAML defaults
+       ↑
+Built-in defaults in the YAML files
+```
+
+### Secrets
+
+Secrets (API keys, passwords, tokens) **must never** be placed in YAML files. Use `.env` (development) or a secrets manager (production):
+
+```bash
+# Development — add to .env:
+GROQ_API_KEY=gsk_...
+MURPHY_API_KEYS=murphy_key1,murphy_key2
+
+# Production — use a secrets manager:
+# Docker: docker secret create murphy_api_key ./api_key.txt
+# K8s:    kubectl create secret generic murphy-secrets --from-literal=api-key=...
+# Vault:  vault kv put secret/murphy api_key=...
 ```
 
 ---

@@ -70,12 +70,26 @@ def _check_stub_mode_at_startup() -> None:
             "Set MURPHY_DB_MODE=live and configure a real database before deploying. "
             "See .env.example for DATABASE_URL guidance."
         )
-    logger.warning(
-        "DATABASE STUB MODE ACTIVE — all SQL operations return fake data. "
-        "Set MURPHY_DB_MODE=live for a real database. "
-        "(MURPHY_ENV=%s)",
-        _MURPHY_ENV,
+    # Padding ensures the env value aligns with the right border of the box (width=68).
+    # The prefix "║  Current environment: MURPHY_ENV=" is 35 chars; box inner width is 66.
+    _ENV_FIELD_WIDTH = 31
+    _banner = (
+        "\n"
+        "╔══════════════════════════════════════════════════════════════════╗\n"
+        "║  ⚠️  WARNING: DATABASE RUNNING IN STUB MODE  ⚠️                    ║\n"
+        "║                                                                  ║\n"
+        "║  ALL SQL OPERATIONS RETURN FAKE / FIXTURE DATA.                 ║\n"
+        "║  No real database writes are being performed.                   ║\n"
+        "║  Test results may be false positives.                           ║\n"
+        "║                                                                  ║\n"
+        "║  To use a real database:                                         ║\n"
+        "║    export DATABASE_URL=sqlite:///murphy.db   # development       ║\n"
+        "║    export MURPHY_DB_MODE=live                                    ║\n"
+        "║                                                                  ║\n"
+        f"║  Current environment: MURPHY_ENV={_MURPHY_ENV:<{_ENV_FIELD_WIDTH}}║\n"
+        "╚══════════════════════════════════════════════════════════════════╝"
     )
+    logger.warning(_banner)
 
 
 _check_stub_mode_at_startup()

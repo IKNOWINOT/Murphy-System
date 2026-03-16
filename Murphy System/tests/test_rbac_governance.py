@@ -1,14 +1,6 @@
 """Tests for the RBAC Governance module."""
 
-import sys
-import os
 import pytest
-
-# Ensure the src package is importable
-sys.path.insert(
-    0,
-    os.path.join(os.path.dirname(__file__), os.pardir, "src"),
-)
 
 from rbac_governance import (
     Role,

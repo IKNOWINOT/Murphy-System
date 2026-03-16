@@ -15,17 +15,12 @@ from __future__ import annotations
 
 import json
 import logging
-import sys
 import urllib.request
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-BOTS_DIR = PROJECT_ROOT / "bots"
-sys.path.insert(0, str(PROJECT_ROOT))
-sys.path.insert(0, str(BOTS_DIR))
 
 import importlib
 import analytics as analytics_mod  # noqa: E402

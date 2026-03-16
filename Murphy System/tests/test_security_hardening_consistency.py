@@ -3,13 +3,9 @@ Murphy System — Security Hardening + Consistency Integration Tests
 
 Tests the security hardening config module and validates system-wide consistency.
 """
-import os
-import sys
 import unittest
 from datetime import datetime, timedelta, timezone
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, ROOT)
 
 from src.security_hardening_config import (
     InputSanitizer,

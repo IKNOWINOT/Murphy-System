@@ -1,16 +1,9 @@
 """Tests for gate_execution_wiring module."""
 
-import sys
-import os
 import uuid
 
 import pytest
 
-# Ensure the src directory is importable
-sys.path.insert(
-    0,
-    os.path.join(os.path.dirname(__file__), "..", "src"),
-)
 
 from gate_execution_wiring import (
     GATE_SEQUENCE,

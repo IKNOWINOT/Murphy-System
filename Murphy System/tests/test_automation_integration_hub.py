@@ -8,11 +8,9 @@ Design Label: TEST-009 / INT-001
 Owner: QA Team
 """
 
-import sys
 import os
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from automation_integration_hub import (
     AutomationIntegrationHub,

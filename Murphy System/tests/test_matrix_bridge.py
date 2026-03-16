@@ -16,15 +16,9 @@ Covers:
 from __future__ import annotations
 
 import asyncio
-import sys
-import os
 
 import pytest
 
-# Ensure src is on the path
-ROOT = os.path.join(os.path.dirname(__file__), "..")
-sys.path.insert(0, ROOT)
-sys.path.insert(0, os.path.join(ROOT, "src"))
 
 
 # ---------------------------------------------------------------------------

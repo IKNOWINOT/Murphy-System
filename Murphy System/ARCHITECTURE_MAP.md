@@ -1906,3 +1906,103 @@ Next-generation autonomous self-coding system that wraps and extends all existin
 5. **Chaos validation required** before ImmunityMemory promotion.
 6. **Cascade check required** before ImmunityMemory promotion.
 7. **Full audit trail** via EventBackbone + PersistenceManager.
+
+
+---
+
+## Multi-Cursor Split-Screen Desktop Automation
+
+Murphy's desktop automation stack is **100% native** — no Playwright, Selenium, or external browser drivers are required.
+
+### Stack Layers
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              SplitScreenCoordinator                             │
+│   ┌──────────────────┐  ┌──────────────────┐                   │
+│   │ TicketTriageEngine│  │RubixEvidenceAdapter│                  │
+│   │  (priority score) │  │  (Monte Carlo gate)│                  │
+│   └────────┬─────────┘  └────────┬──────────┘                  │
+│            └──────────┬──────────┘                              │
+│                       ▼                                         │
+│              SplitScreenManager                                 │
+│   ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐      │
+│   │  Zone 0  │  │  Zone 1  │  │  Zone 2  │  │  Zone 3  │      │
+│   │ Cursor 0 │  │ Cursor 1 │  │ Cursor 2 │  │ Cursor 3 │      │
+│   │(thread-0)│  │(thread-1)│  │(thread-2)│  │(thread-3)│      │
+│   └──────────┘  └──────────┘  └──────────┘  └──────────┘      │
+│              MultiCursorDesktop                                 │
+└─────────────────────────────────────────────────────────────────┘
+           │                            │
+    MurphyNativeRunner          GhostDesktopRunner
+    (UITestingFramework,         (PyAutoGUI / OCR,
+     MurphyAPIClient,             multi-cursor_id
+     webbrowser.open)             playback_runner.py)
+```
+
+### Key Components
+
+| Component | File | Purpose |
+|---|---|---|
+| `ScreenZone` | `src/murphy_native_automation.py` | Rectangular viewport region; absolute ↔ relative coordinate helpers |
+| `CursorContext` | `src/murphy_native_automation.py` | Independent virtual pointer: warp, click, drag, scroll, history, zone clamping |
+| `SplitScreenLayout` | `src/murphy_native_automation.py` | Layout presets: SINGLE / DUAL_H / DUAL_V / TRIPLE_H / QUAD / HEXA / CUSTOM |
+| `MultiCursorDesktop` | `src/murphy_native_automation.py` | Manages N independent cursors; `run_parallel_tasks()` dispatches per zone |
+| `SplitScreenManager` | `src/murphy_native_automation.py` | High-level orchestrator; `enqueue()` + `run_all(parallel=True)` |
+| `SplitScreenCoordinator` | `src/split_screen_coordinator.py` | Triage → Evidence → Dispatch pipeline; wires Rubix + TicketTriage |
+| `playback_runner.py` | `bots/ghost_controller_bot/desktop/playback_runner.py` | Physical desktop actions with per-cursor `cursor_id` registry |
+| `playwright_task_definitions.py` | `src/playwright_task_definitions.py` | Murphy-native async task API (NavigateTask, ClickTask, FillTask, EvaluateTask, MultiCursorTask, SplitScreenSequenceTask, …) |
+
+### Split-Screen Layouts
+
+| Layout | Zones | Description |
+|---|---|---|
+| `SINGLE` | 1 | Full screen — one cursor |
+| `DUAL_H` | 2 | Left \| Right — 2-player horizontal split |
+| `DUAL_V` | 2 | Top / Bottom — 2-player vertical split |
+| `TRIPLE_H` | 3 | Left \| Center \| Right — 3-zone horizontal |
+| `QUAD` | 4 | 2×2 grid — classic 4-player console split-screen |
+| `HEXA` | 6 | 3×2 grid — 6-agent grid |
+| `CUSTOM` | N | Caller-supplied `ScreenZone` list (max 16) |
+
+### SplitScreenCoordinator Pipeline
+
+```
+coordinate({zone_id: (NativeTask, description), ...})
+    │
+    ├─ Stage 1: TRIAGE  (TicketTriageEngine.triage per zone)
+    │           → severity: critical / high / medium / low
+    │           → confidence: 0.0–1.0
+    │           → team routing
+    │
+    ├─ Stage 2: EVIDENCE (RubixEvidenceAdapter.check_monte_carlo per zone)
+    │           → verdict: pass / fail / inconclusive
+    │           → strict_mode=True → skip failed zones
+    │
+    └─ Stage 3: DISPATCH (SplitScreenManager.run_all parallel=True)
+                → all passing zones run simultaneously
+                → each zone has its own CursorContext
+                → returns CoordinationReport with full per-zone detail
+```
+
+### Cursor Independence Guarantee
+
+Every `CursorContext` maintains completely independent state:
+- Position (`abs_x`, `abs_y`, `rel_x`, `rel_y`)
+- Button state (`buttons_down`)
+- Velocity (`velocity_x`, `velocity_y`)
+- Event history (capped at 500 entries)
+- Zone clamping (position never escapes its `ScreenZone`)
+
+Moving or clicking cursor-0 has **zero effect** on cursor-1 through cursor-N.  All parallel operations are protected by per-cursor threading with the global desktop lock guarding zone/cursor registry mutations only.
+
+### Tests
+
+`tests/test_multi_cursor_split_screen.py` — 116 tests:
+- **Part 1** `ScreenZone` geometry helpers
+- **Part 2** Every `CursorContext` individually (warp, clamp, click, drag, scroll, history, velocity)
+- **Part 3** All cursors together — isolation, thread-safety, parallel dispatch, MAX_CURSORS guard
+- **Part 4** All 6 `SplitScreenLayout` presets — zone counts and geometry
+- **Part 5** `SplitScreenManager` — serial and parallel execution
+- **Part 6** `SplitScreenCoordinator` — full triage+evidence+dispatch pipeline
+- **Part 7** `playback_runner.py` — multi-cursor registry (`register_cursor`, `list_cursors`, independence)

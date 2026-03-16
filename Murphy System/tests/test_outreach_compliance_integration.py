@@ -12,7 +12,6 @@ from unittest.mock import MagicMock, patch
 # Path setup
 # ---------------------------------------------------------------------------
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from outreach_compliance_integration import (
     AuditRecord,
