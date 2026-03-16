@@ -564,3 +564,165 @@ class TestEndToEndRouting:
 
         assert result.task_id is not None
         assert result.confidence >= 0.0
+
+
+# ===========================================================================
+# PROD-001 and CAMP-001 capability registration tests
+# ===========================================================================
+
+
+class TestSystemLibrarianRegisteredCapabilities:
+    """Verify that PROD-001 (production_assistant) and CAMP-001
+    (outreach_campaign_planner) are registered in the SystemLibrarian
+    capability map and are discoverable via find_capabilities().
+    """
+
+    def setup_method(self):
+        self.sl_mod = _load_system_librarian()
+
+    def test_production_assistant_in_module_capabilities(self):
+        """PROD-001 must appear in _load_module_capabilities()."""
+        librarian = self.sl_mod.SystemLibrarian()
+        assert "production_assistant" in librarian.module_capabilities
+
+    def test_production_assistant_has_expected_capabilities(self):
+        librarian = self.sl_mod.SystemLibrarian()
+        caps = librarian.module_capabilities["production_assistant"]
+        lower = [c.lower() for c in caps]
+        assert any("proposal" in c for c in lower), "PROD-001 must include 'proposal' capability"
+        assert any("work order" in c for c in lower), "PROD-001 must include 'work order' capability"
+
+    def test_outreach_campaign_planner_in_module_capabilities(self):
+        """CAMP-001 must appear in _load_module_capabilities()."""
+        librarian = self.sl_mod.SystemLibrarian()
+        assert "outreach_campaign_planner" in librarian.module_capabilities
+
+    def test_outreach_campaign_planner_has_expected_capabilities(self):
+        librarian = self.sl_mod.SystemLibrarian()
+        caps = librarian.module_capabilities["outreach_campaign_planner"]
+        lower = [c.lower() for c in caps]
+        assert any("campaign" in c for c in lower), "CAMP-001 must include 'campaign' capability"
+        assert any("suppression" in c for c in lower), "CAMP-001 must include 'suppression' capability"
+
+    def test_production_proposal_discoverable_via_find_capabilities(self):
+        """find_capabilities() should surface production_assistant for production queries."""
+        librarian = self.sl_mod.SystemLibrarian()
+        matches = librarian.find_capabilities({"task": "submit production proposal"}, top_n=10)
+        capability_ids = [m.capability_id for m in matches if not m.filtered]
+        # At least one match from production_assistant should surface
+        assert any("production" in cid for cid in capability_ids), (
+            f"No production capability found in: {capability_ids}"
+        )
+
+    def test_campaign_discoverable_via_find_capabilities(self):
+        """find_capabilities() should surface outreach_campaign_planner for campaign queries."""
+        librarian = self.sl_mod.SystemLibrarian()
+        matches = librarian.find_capabilities({"task": "create outreach campaign"}, top_n=10)
+        capability_ids = [m.capability_id for m in matches if not m.filtered]
+        assert any("campaign" in cid for cid in capability_ids), (
+            f"No campaign capability found in: {capability_ids}"
+        )
+
+    def test_find_capabilities_returns_non_empty_for_production_query(self):
+        librarian = self.sl_mod.SystemLibrarian()
+        matches = librarian.find_capabilities({"task": "validate work order"}, top_n=5)
+        assert len(matches) > 0
+
+    def test_find_capabilities_returns_non_empty_for_campaign_query(self):
+        librarian = self.sl_mod.SystemLibrarian()
+        matches = librarian.find_capabilities({"task": "execute campaign step"}, top_n=5)
+        assert len(matches) > 0
+
+
+# ===========================================================================
+# /api/librarian/query endpoint tests (unit — no live server)
+# ===========================================================================
+
+
+class TestLibrarianQueryEndpoint:
+    """Verify the /api/librarian/query endpoint logic by calling the
+    SystemLibrarian + TaskRouter directly (no live HTTP server needed).
+    """
+
+    def setup_method(self):
+        self.sl_mod = _load_system_librarian()
+        self.tr_mod = _load_task_router()
+        self.spr_mod = _load_solution_path_registry()
+
+    def _run_query(self, query: str, top_n: int = 5):
+        """Helper: replicate the endpoint logic without a live server."""
+        SL = self.sl_mod.SystemLibrarian
+        TR = self.tr_mod.TaskRouter
+        RS = self.tr_mod.RouteStatus
+        SPR = self.spr_mod.SolutionPathRegistry
+
+        task_dict = {"task": query}
+        librarian = SL()
+        raw_matches = librarian.find_capabilities(task_dict, top_n=top_n)
+
+        matches = [
+            {
+                "capability_id": m.capability_id,
+                "module_path": m.module_path,
+                "score": m.score,
+                "match_reasons": m.match_reasons,
+                "cost_estimate": m.cost_estimate,
+                "determinism": m.determinism,
+                "filtered": m.filtered,
+                "filter_reason": m.filter_reason,
+            }
+            for m in raw_matches
+        ]
+
+        router = TR(librarian=librarian, solution_registry=SPR(data_dir="/tmp/lq_test"))
+        result = router.route_sync(task_dict)
+        routing = {
+            "status": result.status.value,
+            "capability_id": result.solution_path.capability_id if result.solution_path else None,
+            "score": result.solution_path.combined_score if result.solution_path else None,
+        }
+
+        return {"success": True, "query": query, "matches": matches, "routing": routing}
+
+    def test_query_returns_success_true(self):
+        resp = self._run_query("generate an invoice for a consulting project")
+        assert resp["success"] is True
+
+    def test_query_preserves_query_string(self):
+        q = "submit production proposal for construction site"
+        resp = self._run_query(q)
+        assert resp["query"] == q
+
+    def test_query_matches_is_list(self):
+        resp = self._run_query("create outreach campaign for B2B segment")
+        assert isinstance(resp["matches"], list)
+
+    def test_query_matches_have_required_fields(self):
+        resp = self._run_query("validate proposal")
+        for m in resp["matches"]:
+            assert "capability_id" in m
+            assert "module_path" in m
+            assert "score" in m
+            assert "match_reasons" in m
+            assert "filtered" in m
+
+    def test_routing_has_status_field(self):
+        resp = self._run_query("generate invoice document")
+        assert "status" in resp["routing"]
+        valid_statuses = {"approved", "hitl_required", "blocked", "no_viable_path"}
+        assert resp["routing"]["status"] in valid_statuses
+
+    def test_top_n_limits_unfiltered_matches(self):
+        resp = self._run_query("route task to domain engine", top_n=3)
+        unfiltered = [m for m in resp["matches"] if not m["filtered"]]
+        assert len(unfiltered) <= 3
+
+    def test_production_query_routes_successfully(self):
+        resp = self._run_query("submit production proposal for OSHA compliance")
+        assert resp["success"] is True
+        assert len(resp["matches"]) > 0
+
+    def test_campaign_query_routes_successfully(self):
+        resp = self._run_query("create outreach campaign for ecommerce segment")
+        assert resp["success"] is True
+        assert len(resp["matches"]) > 0
