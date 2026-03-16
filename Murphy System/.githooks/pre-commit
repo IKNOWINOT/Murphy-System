@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+# pre-commit hook: documentation drift detection
+#
+# Checks that:
+# 1. No *.md files reference non-existent file paths
+# 2. Module counts in README.md / STATUS.md / CONTRIBUTING.md are current
+#
+# Installation (run once from the repo root):
+#   git config core.hooksPath "Murphy System/.githooks"
+#
+# Or copy this file to your .git/hooks/pre-commit and make it executable:
+#   cp "Murphy System/.githooks/pre-commit" .git/hooks/pre-commit
+#   chmod +x .git/hooks/pre-commit
+
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+PROJECT_ROOT="${REPO_ROOT}/Murphy System"
+
+# ── 1. Broken markdown file references ──────────────────────────────────────
+echo "🔍 Checking markdown file references..."
+python3 - <<'PYEOF'
+import re
+import sys
+from pathlib import Path
+
+repo_root = Path("${REPO_ROOT}") if Path("${REPO_ROOT}").exists() else Path.cwd()
+docs_dirs = [repo_root, repo_root / "Murphy System" / "docs", repo_root / "Murphy System"]
+
+md_link_re = re.compile(r"\[([^\]]*)\]\(([^)#?\s]+)\)")
+broken: list[tuple[str, str]] = []
+
+for docs_dir in docs_dirs:
+    if not docs_dir.exists():
+        continue
+    for md_file in docs_dir.rglob("*.md"):
+        try:
+            content = md_file.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            continue
+        for _label, target in md_link_re.findall(content):
+            if target.startswith(("http://", "https://", "#", "mailto:")):
+                continue
+            resolved = md_file.parent / target
+            if not resolved.exists():
+                broken.append((str(md_file), target))
+
+if broken:
+    print(f"⚠️  {len(broken)} broken markdown reference(s) found:", file=sys.stderr)
+    for f, r in broken[:10]:
+        print(f"  {f}: '{r}'", file=sys.stderr)
+    if len(broken) > 10:
+        print(f"  ... and {len(broken) - 10} more", file=sys.stderr)
+    print("Run: python scripts/sync_module_counts.py  to fix module counts.", file=sys.stderr)
+    # Non-blocking: warn but do not abort commit
+    sys.exit(0)
+else:
+    print("✅ All markdown references OK")
+PYEOF
+
+# ── 2. Module count sync (dry-run) ──────────────────────────────────────────
+SYNC_SCRIPT="${PROJECT_ROOT}/scripts/sync_module_counts.py"
+if [ -f "${SYNC_SCRIPT}" ]; then
+    echo "📊 Checking module counts..."
+    python3 "${SYNC_SCRIPT}" --dry-run --root "${PROJECT_ROOT}" || true
+fi
+
+exit 0

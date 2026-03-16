@@ -324,12 +324,18 @@ GRAFANA_PORT=3000
 ```
 Murphy System/
 ├── config/
-│   ├── murphy.yaml              # Main configuration
-│   ├── engines.yaml             # Engine configuration
-│   ├── integrations.yaml        # Integration configuration
-│   ├── governance.yaml          # Governance rules
-│   └── deployment.yaml          # Deployment configuration
+│   ├── murphy.yaml              # Main system configuration (defaults)
+│   ├── engines.yaml             # Engine-specific configuration
+│   ├── murphy.yaml.example      # Annotated reference for murphy.yaml
+│   ├── engines.yaml.example     # Annotated reference for engines.yaml
+│   └── config_loader.py         # YAML + env-var overlay loader
 ```
+
+> **Configuration priority:** Environment variables always override YAML file values
+> (twelve-factor app style). Use `config/murphy.yaml` and `config/engines.yaml` for
+> default settings, and override individual values via environment variables or `.env`.
+> Secrets must never be stored in YAML files — use `.env` (development) or a secrets
+> manager (staging/production).
 
 ---
 
