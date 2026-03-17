@@ -716,6 +716,21 @@ MURPHY_COMMANDS: list[CommandDefinition] = [
         ["doc", "workdoc", "create doc", "meeting notes", "document", "list docs"],
         CommandCategory.MANAGEMENT_SYSTEMS, "Document manager", "/doc [list|create TYPE TITLE|view ID|search TEXT]",
         subcommands=["list", "create", "view", "search", "link", "versions"]),
+
+    # Automation Safeguard Engine
+    CommandDefinition("automation_safeguard_engine", "/safeguard status", "!murphy safeguard status",
+        ["safeguard status", "automation safeguard", "guard status", "runaway protection"],
+        CommandCategory.AUTOMATION, "Automation safeguard engine status (all 7 guards)",
+        "/safeguard status"),
+    CommandDefinition("automation_safeguard_check", "/safeguard check", "!murphy safeguard check",
+        ["safeguard check", "automation health check", "guard check all", "automation guardrails"],
+        CommandCategory.AUTOMATION, "Run all safeguard health checks",
+        "/safeguard check"),
+    CommandDefinition("automation_safeguard_reset", "/safeguard reset", "!murphy safeguard reset",
+        ["safeguard reset", "reset guards", "clear circuit breaker", "release deadlock"],
+        CommandCategory.AUTOMATION, "Reset automation safeguard state (circuit breakers, deadlocks)",
+        "/safeguard reset [loop|cascade|deadlock|idempotency|all]",
+        min_role="operator"),
 ]
 
 
