@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Round 56 — Historical Economic Simulations & Automation Safeguard Integration
+
+- **feat(simulation):** `tests/test_historical_economic_simulations.py` — 86-test historical economic simulation suite. Runs 15 business archetypes (steel foundry, regional bank, defense contractor, hospital, SaaS, payments processor, etc.) through all 11 economic epochs from the **Great Depression (1929)** to the **AI era (2026)**, including the **WW2 wartime economy (1939–1945)**. Validates compliance framework selection, gate multiplier adaptation, safeguard behaviour, and survival rate trends across history.
+  - **Part 1** (14 tests): `EconomicTimeMachine` epoch property assertions — Depression financial gate < 0.5, WW2 regulatory pressure in top 2, dot-com highest financial gate, COVID highest supply-chain risk, etc.
+  - **Part 2** (8 tests): `RegulationMLEngine` historical compliance framework mapping — ITAR for defense, HIPAA for hospitals, SOX for banks, compliance load monotonically increases from Depression → AI era.
+  - **Part 3** (8 tests): `FullHouseSimulator` across all 11 epochs — reproducibility guarantee, survival rate ordering (Depression < Boom), WW2 gate adaptations, COVID supply chain.
+  - **Part 4** (20 tests): `AutomationSafeguardEngine` guards under historical stress — Depression bank retry storms, WW2 rubber rationing cascade, 2008 algo runaway loops, Lehman Brothers cascade, COVID authentication storms, vaccine record idempotency.
+  - **Part 5** (9 tests): Cross-system integration — Steel Foundry full 11-epoch timeline walk, defense contractor WW2 ITAR peak, payments processor PCI-DSS always required, concurrent multi-business timeline walk.
+  - **Part 6** (10 tests): WW2 deep dive — price control idempotency, War Production Board loop bounds, Lend-Lease tracking accumulation, production target oscillation detection, black market duplicate slip rejection, war contract compliance (no conflicts between ITAR + OSHA + NFPA).
+  - **Part 7** (7 tests): Survival rate trend analysis 1929→2026 — Depression survival ≤ boom, WW2 ≤ post-war boom, AI era ≥ 40%, zero-survival assertion.
+  - **Part 8** (1 test): Concurrent timeline walk — all 15 businesses walk epochs concurrently without data races.
+- **feat(safeguard):** `src/automation_safeguard_engine.py` — `AutomationSafeguardEngine` with 7 composable guard primitives (see Round 55.5):
+  - `RunawayLoopGuard` — hard iteration cap + wall-clock timeout kill switch
+  - `EventStormSuppressor` — sliding-window rate limit + per-key debounce
+  - `FeedbackOscillationDetector` — sign-change count on delta series
+  - `CascadeBreaker` — dependency-aware circuit breaker with blast-radius cap
+  - `IdempotencyGuard` — SHA-256 content-hash dedup with TTL eviction
+  - `TrackingAccumulationWatcher` — unbounded collection growth detection
+  - `DeadlockDetector` — DFS wait-for graph cycle detection + starvation timeout
+- **feat(cmd):** 3 Murphy commands registered — `/safeguard status`, `/safeguard check`, `/safeguard reset` (operator role required).
+- **docs:** `docs/AUTOMATION_SAFEGUARD_ENGINE.md` — full module documentation with recommendations, implementation plan, guard reference, integration map, adoption roadmap, and Prometheus-style observability guide.
+- **test:** `tests/test_automation_safeguard_engine.py` — 94 tests covering all 7 guards, thread safety (5 concurrent scenarios), 12 automation-type scenario tests.
+- **test:** `tests/test_regulation_temporal_variations.py` — 170 tests, 12 business archetypes × 5 growth stages validating compliance evolution through time.
+- **fix:** `src/compliance_toggle_manager.py` — import alias `_get_reg_engine` → `get_reg_engine` (code clarity).
+
 ### Security — Round 55 — Critical Error Scan & Remediation
 
 - **security(hash):** `src/cutsheet_engine.py` — replaced SHA-1 with SHA-256 for `CommissioningTest.test_id` generation (bandit B324 HIGH). Hash digest is truncated to 10 hex chars; existing IDs regenerated on next construction.
