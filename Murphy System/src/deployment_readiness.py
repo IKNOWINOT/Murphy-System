@@ -140,14 +140,14 @@ def _check_cors_not_wildcard():
 def _check_jwt_secret():
     """Verify JWT secret is configured and not a default value."""
     def _checker():
-        secret = os.environ.get("JWT_SECRET_KEY", "")
+        secret = os.environ.get("MURPHY_JWT_SECRET", "")
         if not secret:
-            return False, "JWT_SECRET_KEY not set"
+            return False, "MURPHY_JWT_SECRET not set"
         if secret in ("changeme", "secret", "default", "murphy"):
-            return False, "JWT_SECRET_KEY is using a default/weak value"
+            return False, "MURPHY_JWT_SECRET is using a default/weak value"
         if len(secret) < 32:
-            return False, "JWT_SECRET_KEY should be at least 32 characters"
-        return True, "JWT_SECRET_KEY configured"
+            return False, "MURPHY_JWT_SECRET should be at least 32 characters"
+        return True, "MURPHY_JWT_SECRET configured"
     return _checker
 
 
@@ -160,7 +160,7 @@ def _check_production_secrets():
         required = [
             "MURPHY_API_KEYS",
             "MURPHY_CREDENTIAL_MASTER_KEY",
-            "JWT_SECRET_KEY",
+            "MURPHY_JWT_SECRET",
             "POSTGRES_PASSWORD",
         ]
         missing = [k for k in required if not os.environ.get(k)]

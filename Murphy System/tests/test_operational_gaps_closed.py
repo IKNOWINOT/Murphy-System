@@ -173,7 +173,7 @@ class TestProductionSecretEnforcement:
         old_keys = {
             k: os.environ.pop(k, None)
             for k in ["MURPHY_API_KEYS", "MURPHY_CREDENTIAL_MASTER_KEY",
-                       "JWT_SECRET_KEY", "POSTGRES_PASSWORD"]
+                       "MURPHY_JWT_SECRET", "POSTGRES_PASSWORD"]
         }
         try:
             os.environ["MURPHY_ENV"] = "production"
@@ -196,7 +196,7 @@ class TestProductionSecretEnforcement:
         required = {
             "MURPHY_API_KEYS": "test-key",
             "MURPHY_CREDENTIAL_MASTER_KEY": "test-master",
-            "JWT_SECRET_KEY": "a" * 32,
+            "MURPHY_JWT_SECRET": "a" * 32,
             "POSTGRES_PASSWORD": "strong-password",
         }
         try:

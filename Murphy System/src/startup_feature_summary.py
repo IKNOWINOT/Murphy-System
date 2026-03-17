@@ -36,7 +36,7 @@ _FEATURE_PROBES: List[Tuple[str, str, str]] = [
     ("Redis", "REDIS_URL", "Redis cache / task queue"),
     ("Prometheus", "PROMETHEUS_ENABLED", "Metrics export"),
     ("Sentry", "SENTRY_DSN", "Error tracking"),
-    ("JWT Auth", "JWT_SECRET_KEY", "JWT token authentication"),
+    ("JWT Auth", "MURPHY_JWT_SECRET", "JWT token authentication"),
     ("Webhook Secret", "WEBHOOK_SECRET", "Webhook signature verification"),
     ("Vector Store", "CHROMADB_PATH", "ChromaDB vector store"),
     ("IoT / Modbus", "MODBUS_HOST", "Industrial IoT sensor bridge"),
