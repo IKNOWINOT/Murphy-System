@@ -636,10 +636,12 @@ class RegulationMLEngine:
                 if not p.gate_types:
                     continue
                 label = p.gate_types[0]
+                # Use a stable hash of the sorted framework list as a bitmask key
+                fw_key = hash(tuple(sorted(p.enabled_frameworks))) & 0xFFFF
                 features: Dict[str, Any] = {
                     p.country_code: 1,
                     p.industry: 1,
-                    f"bitmask_{p.enabled_frameworks.__hash__() & 0xFFFF}": 1,
+                    f"bitmask_{fw_key}": 1,
                 }
                 nb.train(features, label)
                 oil.update(features, label)
