@@ -63,6 +63,9 @@ class OAuthProvider(str, Enum):
     GOOGLE = "google"
     GITHUB = "github"
     MICROSOFT = "microsoft"
+    META = "meta"
+    LINKEDIN = "linkedin"
+    APPLE = "apple"
     CUSTOM = "custom"
 class GrantType(str, Enum):
     """OAuth2 grant types."""

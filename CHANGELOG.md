@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed — Round 60 — OAuthProvider Enum: 4 → 7 providers (2026-03-17)
+
+- **feat(oauth):** `src/oauth_oidc_provider.py` — `OAuthProvider` enum expanded from 4 to 7 members: added `META = "meta"`, `LINKEDIN = "linkedin"`, `APPLE = "apple"` alongside existing `GOOGLE`, `GITHUB`, `MICROSOFT`, `CUSTOM`. Enum is now in sync with canonical definition in `src/account_management/models.py`.
+- **test:** `tests/test_oauth_oidc_provider.py` — `test_oau_001_provider_enum` assertion updated from `4` to `7` providers.
+- **docs:** `docs/MODULE_REGISTRY.md` — `oauth_oidc_provider.py` entry updated to list all 7 SSO providers (Google/GitHub/Microsoft/Meta/LinkedIn/Apple/Custom).
+
 ### Changed — Round 59 — KeyHarvester: Playwright → Murphy Native Automation
 
 - **refactor(key-harvester):** `src/key_harvester.py` — **KeyHarvester** migrated from Playwright-style browser automation to Murphy's native `MultiCursor` desktop automation stack.
