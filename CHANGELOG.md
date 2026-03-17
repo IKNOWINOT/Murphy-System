@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — OAuth callback: redirect to dashboard with session cookie
+
+- **fix(oauth):** `src/runtime/app.py` + `Murphy System/src/runtime/app.py` — the `/api/auth/callback` OAuth handler no longer returns a raw `JSONResponse` containing the token fields. It now:
+  1. Generates a cryptographically-random session token via `secrets.token_urlsafe(32)`.
+  2. Sets a `murphy_session` cookie (`httponly=True`, `secure=True`, `samesite="lax"`, `max_age=86400`) so the session survives page navigation.
+  3. Issues a `302 RedirectResponse` to `/ui/terminal-unified?oauth_success=1&provider=<name>`, landing the user on the dashboard after any configured OAuth provider completes authentication.
+- **feat(auth-js):** `murphy_auth.js` + `Murphy System/murphy_auth.js` — added `_handleOAuthSuccess()` helper (called at the top of `boot()`) that:
+  - Detects the `?oauth_success=1` query parameter present after an OAuth redirect.
+  - Reads the `murphy_session` cookie value and mirrors it into `localStorage` as `murphy_session_token` so Bearer-token API calls work immediately.
+  - Stores the provider name in `localStorage` under `murphy_oauth_provider`.
+  - Removes the OAuth query params from the address bar (`history.replaceState`) so a page refresh does not re-run the handler.
+- **docs:** `API_ROUTES.md` — updated the `/api/auth/callback` row to document the new `302` redirect + cookie behaviour.
+- **docs:** `src/account_management/README.md` — updated OAuth provider list to reflect all currently supported providers.
+
 ### Changed — Round 60 — OAuthProvider enum: add Meta, LinkedIn, Apple
 
 - **fix(oauth):** `src/oauth_oidc_provider.py` — expanded `OAuthProvider` enum from 4 → 7 members to match the canonical definition in `src/account_management/models.py`. Added `META = "meta"`, `LINKEDIN = "linkedin"`, `APPLE = "apple"`. Member order aligned to canonical order (MICROSOFT/GOOGLE/META/GITHUB/LINKEDIN/APPLE/CUSTOM). Fixes login flows for the Meta, LinkedIn, and Apple "Continue with…" buttons on the sign-up page.
