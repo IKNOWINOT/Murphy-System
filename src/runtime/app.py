@@ -4299,15 +4299,27 @@ def create_app() -> FastAPI:
             if _oauth_registry is None:
                 return JSONResponse({"error": "OAuth registry unavailable"}, status_code=503)
             token = _oauth_registry.complete_auth_flow(state, code)
-            return JSONResponse({
-                "success": True,
+            import secrets
+            import urllib.parse
+            from starlette.responses import RedirectResponse
+            session_token = secrets.token_urlsafe(32)
+            user_id = token.raw_profile.get("sub", token.raw_profile.get("id", ""))
+            qs = urllib.parse.urlencode({
+                "session_token": session_token,
+                "user_id": user_id,
                 "provider": token.provider.value,
-                "token_type": token.token_type,
-                "has_refresh_token": bool(token.refresh_token),
-                "expires_at": token.expires_at,
-                "profile": token.raw_profile,
-                "message": "OAuth flow completed. Account linked successfully.",
             })
+            redirect_url = f"/dashboard.html?{qs}"
+            response = RedirectResponse(url=redirect_url, status_code=302)
+            response.set_cookie(
+                key="murphy_session",
+                value=session_token,
+                httponly=True,
+                secure=True,
+                samesite="lax",
+                max_age=86400,
+            )
+            return response
         except ValueError as exc:
             return _safe_error_response(exc, 400)
         except Exception as exc:
