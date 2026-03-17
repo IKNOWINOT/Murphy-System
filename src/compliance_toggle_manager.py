@@ -263,8 +263,8 @@ class ComplianceToggleManager:
         # ML enhancement path
         if use_ml:
             try:
-                from regulation_ml_engine import get_engine as _get_reg_engine
-                ml_result = _get_reg_engine().predict_optimal_toggles(
+                from regulation_ml_engine import get_engine as get_reg_engine
+                ml_result = get_reg_engine().predict_optimal_toggles(
                     country_upper, industry_lower
                 )
                 ml_fws = ml_result.get("recommended_frameworks", [])
