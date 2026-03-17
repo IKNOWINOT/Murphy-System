@@ -7,7 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added — Round 58 — Client Psychology Engine + Character Network Engine + Networking Mastery Engine + Cyclic Trends Engine + Skill Catalogue Engine
+### Changed — Round 59 — KeyHarvester: Playwright → Murphy Native Automation
+
+- **refactor(key-harvester):** `src/key_harvester.py` — **KeyHarvester** migrated from Playwright-style browser automation to Murphy's native `MultiCursor` desktop automation stack.
+  - **Import swap**: `playwright_task_definitions` → `murphy_native_automation` (`MurphyNativeRunner`, `NativeTask`, `NativeStep`, `ActionType`, `TaskType`). Backward-compatible alias `_HAS_PLAYWRIGHT = _HAS_NATIVE_AUTOMATION` preserved.
+  - **`ProviderRecipe` new OCR fields**: `email_field_label`, `password_field_label`, `submit_button_label`, `tos_checkbox_label`, `create_key_label` — OCR-friendly labels for resilient element detection without CSS selectors.
+  - **`_acquire_single` rewrite**: Replaced `PlaywrightTaskRunner` + `BrowserConfig` with `MurphyNativeRunner()`. No headless Chromium — user's real browser via `webbrowser.open` (OPEN_URL).
+  - **`_run_signup_flow` rewrite**: All `NavigateTask`/`FillTask`/`ClickTask`/`EvaluateTask`/`ExtractTask` calls replaced with `NativeTask` + `NativeStep` (`OPEN_URL`, `GHOST_CLICK`, `GHOST_TYPE`, `SCROLL_TO_BOTTOM`, `SCREENSHOT`, `GHOST_ASSERT_OCR`). Synchronous `runner.run()` replaces async `execute_tasks_on_shared_page`.
+  - **`_check_and_handle_captcha` rewrite**: OCR-based detection via `GHOST_ASSERT_OCR` replaces HTML-extraction `ExtractTask`.
+  - **`_harvest_parallel` new method**: QUAD layout parallel harvest (3 provider zones + 1 HITL zone) via `MultiCursorDesktop` + `asyncio.gather`. Falls back to sequential when split-screen classes are unavailable.
+  - **All 3 hard rules preserved**: credential gate first, TOS gate before every checkbox, visible browser.
+  - **Tests updated**: `tests/test_key_harvester.py` — mocking layer updated from `PlaywrightTaskRunner`/`execute_tasks_on_shared_page` to `MurphyNativeRunner`/`runner.run()`. All 166 tests pass.
 
 - **feat(intelligence):** `src/client_psychology_engine.py` — **ClientPsychologyEngine**: Demographic intelligence engine that identifies pain points and adapts communication to the generation, industry vertical, role, and cultural context of every prospect.
   - **5 Generation Cohorts** (Silent / Boomer / Gen-X / Millennial / Gen-Z) each with a curated language pack (modern lingo, buzzwords, formality preferences, relationship-dependency models).

@@ -51,6 +51,7 @@ from key_harvester import (
     _random_password,
     detect_captcha_type,
 )
+from murphy_native_automation import ActionType, NativeTask
 from tos_acceptance_gate import (
     CredentialRequestStatus,
     TOSAcceptanceGate,
@@ -465,19 +466,19 @@ class TestAcquireSingleTOSGate:
     async def test_tos_rejected_returns_skipped(
         self, harvester, tos_gate, monkeypatch
     ):
-        """If TOS is rejected, the provider should be SKIPPED."""
+        """If native automation is unavailable, the provider should be FAILED."""
         harvester._user_email = "test@example.com"
         harvester._user_password = "pwd123"
 
         recipe = _RECIPE_MAP["groq"]
         monkeypatch.delenv(recipe.env_var, raising=False)
 
-        # Patch _HAS_PLAYWRIGHT so we skip real browser
-        with patch("key_harvester._HAS_PLAYWRIGHT", False):
+        # Patch _HAS_NATIVE_AUTOMATION so we skip real automation
+        with patch("key_harvester._HAS_NATIVE_AUTOMATION", False):
             result = await harvester._acquire_single(recipe)
 
         assert result.status == AcquisitionStatus.FAILED
-        assert "playwright" in result.error.lower()
+        assert "native_automation" in result.error.lower() or "murphy" in result.error.lower()
 
     @pytest.mark.asyncio
     async def test_tos_gate_request_approval_called(
@@ -502,10 +503,10 @@ class TestAcquireSingleTOSGate:
             return req
 
         with patch.object(tos_gate, "request_approval", side_effect=_capturing_request):
-            # Mock PlaywrightTaskRunner so no real browser is needed
+            # Mock MurphyNativeRunner so no real automation is needed
             mock_runner = _make_mock_runner(key_value="gsk_testkey_abc123456789xyz")
-            with patch("key_harvester.PlaywrightTaskRunner", return_value=mock_runner):
-                with patch("key_harvester._HAS_PLAYWRIGHT", True):
+            with patch("key_harvester.MurphyNativeRunner", return_value=mock_runner):
+                with patch("key_harvester._HAS_NATIVE_AUTOMATION", True):
                     with patch("asyncio.sleep", new_callable=AsyncMock):
                         await harvester._acquire_single(recipe)
 
@@ -533,8 +534,8 @@ class TestAcquireSingleTOSGate:
 
         mock_runner = _make_mock_runner(key_value="")
         with patch.object(tos_gate, "request_approval", side_effect=patched_request):
-            with patch("key_harvester.PlaywrightTaskRunner", return_value=mock_runner):
-                with patch("key_harvester._HAS_PLAYWRIGHT", True):
+            with patch("key_harvester.MurphyNativeRunner", return_value=mock_runner):
+                with patch("key_harvester._HAS_NATIVE_AUTOMATION", True):
                     with patch("key_harvester._TOS_POLL_TIMEOUT", 0.1):
                         with patch("asyncio.sleep", new_callable=AsyncMock):
                             result = await harvester._acquire_single(recipe)
@@ -683,23 +684,19 @@ def _provide_creds(cred_gate: UserCredentialGate, harvester: KeyHarvester) -> No
 
 
 def _make_mock_runner(key_value: str = "gsk_test_key_abc123") -> Any:
-    """Build a mock PlaywrightTaskRunner that returns successful TaskResults."""
-    from unittest.mock import AsyncMock, MagicMock
-    from playwright_task_definitions import TaskStatus
-
-    mock_result_ok = MagicMock()
-    mock_result_ok.status = TaskStatus.COMPLETED
-    mock_result_ok.error = ""
-    mock_result_ok.data = {"text": key_value, "value": key_value, "outerHTML": ""}
+    """Build a mock MurphyNativeRunner that returns successful run() results."""
+    from unittest.mock import MagicMock
 
     mock_runner = MagicMock()
-    mock_runner.execute_task = AsyncMock(return_value=mock_result_ok)
-    # execute_tasks_on_shared_page returns a list of TaskResults (one per task)
-    mock_runner.execute_tasks_on_shared_page = AsyncMock(
-        return_value=[mock_result_ok] * 5  # navigate + 2 scrolls + fill email + fill pwd
-    )
-    mock_runner.close = AsyncMock()
-    mock_runner._context = None
+    # run() returns a result dict (synchronous, not async)
+    mock_runner.run = MagicMock(return_value={
+        "status": "passed",
+        "step_results": [{"status": "ok", "text": key_value, "value": key_value}],
+    })
+    mock_runner.run_suite = MagicMock(return_value=[{
+        "status": "passed",
+        "step_results": [{"status": "ok", "text": key_value, "value": key_value}],
+    }])
     return mock_runner
 
 
@@ -957,7 +954,7 @@ class TestGetSharedGates:
 
 
 # ---------------------------------------------------------------------------
-# execute_tasks_on_shared_page integration (mock runner)
+# runner.run() integration (mock runner)
 # ---------------------------------------------------------------------------
 
 class TestSharedPageInSignupFlow:
@@ -965,7 +962,7 @@ class TestSharedPageInSignupFlow:
     async def test_shared_page_called_when_playwright_available(
         self, harvester, tos_gate, monkeypatch
     ):
-        """When Playwright is available, _run_signup_flow uses shared page."""
+        """When native automation is available, _run_signup_flow uses runner.run()."""
         harvester._user_email = "test@example.com"
         harvester._user_password = "pwd123"
 
@@ -981,15 +978,16 @@ class TestSharedPageInSignupFlow:
 
         mock_runner = _make_mock_runner(key_value="gsk_testkey_abc123456789xyz")
         with patch.object(tos_gate, "request_approval", side_effect=patched_request):
-            with patch("key_harvester.PlaywrightTaskRunner", return_value=mock_runner):
-                with patch("key_harvester._HAS_PLAYWRIGHT", True):
+            with patch("key_harvester.MurphyNativeRunner", return_value=mock_runner):
+                with patch("key_harvester._HAS_NATIVE_AUTOMATION", True):
                     with patch("asyncio.sleep", new_callable=AsyncMock):
                         await harvester._acquire_single(recipe)
 
-        # execute_tasks_on_shared_page was called (navigate + scroll + fill fields)
-        mock_runner.execute_tasks_on_shared_page.assert_called_once()
-        call_args = mock_runner.execute_tasks_on_shared_page.call_args[0][0]
-        # Should contain at least navigate + fill email + fill password
-        task_types = [type(t).__name__ for t in call_args]
-        assert "NavigateTask" in task_types
-        assert "FillTask" in task_types
+        # runner.run() was called (navigate + form fill + TOS + key extract ...)
+        mock_runner.run.assert_called()
+        # First call should be the form-fill NativeTask with OPEN_URL + GHOST_TYPE
+        first_call_task = mock_runner.run.call_args_list[0][0][0]
+        assert isinstance(first_call_task, NativeTask)
+        step_actions = [step.action for step in first_call_task.steps]
+        assert ActionType.OPEN_URL in step_actions
+        assert ActionType.GHOST_TYPE in step_actions

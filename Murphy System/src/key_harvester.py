@@ -4,16 +4,20 @@
 """
 Key Harvester — Murphy System
 
-Orchestrates automated third-party API key acquisition via Playwright browser
-automation.  Three hard rules that are never bypassed:
+Orchestrates automated third-party API key acquisition via Murphy's native
+MultiCursor desktop automation.  Uses the user's real browser (webbrowser.open)
+with GhostDesktopRunner for OS-level typing/clicking and OCR-based element
+detection — no Playwright binary, no bot fingerprinting.
+
+Three hard rules that are never bypassed:
 
   1. **Credential gate first** — Murphy asks the user what email/password to
      use before any browser opens.  No default credentials; no silent reuse.
   2. **TOS gate before every checkbox** — every "I Agree" click is preceded
      by an explicit human approval through TOSAcceptanceGate.
-  3. **Visible browser** — the Playwright window is non-headless so the user
-     can see exactly what Murphy is doing.  The provider's API-keys page is
-     also opened in the system browser for independent verification.
+  3. **Visible browser** — the user's own real browser is used (webbrowser.open)
+     so the user can see exactly what Murphy is doing.  The provider's API-keys
+     page is also opened in the system browser for independent verification.
 
 Acquisition order is email-first: SendGrid is acquired before all others so
 that account verification emails from every subsequent provider can be
@@ -55,24 +59,41 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 try:
-    from playwright_task_definitions import (
-        BrowserConfig,
-        ClickTask,
-        EvaluateTask,
-        ExtractTask,
-        FillTask,
-        NavigateTask,
-        PlaywrightTaskRunner,
-        ScreenshotTask,
+    from murphy_native_automation import (
+        ActionType,
+        GhostDesktopRunner,
+        MurphyNativeRunner,
+        NativeStep,
+        NativeTask,
         TaskStatus,
-        WaitTask,
+        TaskType,
     )
-    _HAS_PLAYWRIGHT = True
+    _HAS_NATIVE_AUTOMATION = True
 except ImportError:  # pragma: no cover
-    _HAS_PLAYWRIGHT = False
-    PlaywrightTaskRunner = None  # type: ignore[assignment,misc]
-    BrowserConfig = None  # type: ignore[assignment,misc]
-    EvaluateTask = None  # type: ignore[assignment,misc]
+    _HAS_NATIVE_AUTOMATION = False
+    MurphyNativeRunner = None  # type: ignore[assignment,misc]
+    NativeTask = None  # type: ignore[assignment,misc]
+    NativeStep = None  # type: ignore[assignment,misc]
+    ActionType = None  # type: ignore[assignment,misc]
+    TaskType = None  # type: ignore[assignment,misc]
+
+# Optional split-screen imports (only available in full Murphy System installation)
+try:
+    from murphy_native_automation import (  # type: ignore[assignment]
+        CursorContext,
+        MultiCursorDesktop,
+        ScreenZone,
+        SplitScreenLayout,
+        SplitScreenManager,
+    )
+    _HAS_SPLIT_SCREEN = True
+except ImportError:  # pragma: no cover
+    _HAS_SPLIT_SCREEN = False
+    MultiCursorDesktop = None  # type: ignore[assignment,misc]
+    SplitScreenLayout = None  # type: ignore[assignment,misc]
+
+# Backward-compatible alias — existing code referencing _HAS_PLAYWRIGHT still works
+_HAS_PLAYWRIGHT = _HAS_NATIVE_AUTOMATION
 
 try:
     from secure_key_manager import store_api_key
@@ -244,6 +265,13 @@ class ProviderRecipe:
     key_extract_selector: str
     key_format_pattern: str            # regex or ""
     notes: str = ""
+    # OCR-friendly interaction labels (Murphy MultiCursor native)
+    email_field_label: str = "Email"       # OCR text near the email field
+    password_field_label: str = "Password"  # OCR text near the password field
+    submit_button_label: str = "Sign Up"    # OCR text on the submit button
+    tos_checkbox_label: str = "I agree"     # OCR text near the TOS checkbox
+    create_key_label: str = "Create"        # OCR text on the create key button
+    key_region_label: str = "API Key"       # OCR text identifying the key display region
 
 
 @dataclass
@@ -767,9 +795,11 @@ class CaptchaHandler:
 
         # Strategy 4: HITL escalation — send screenshot to HITL queue
         screenshot_path = f"/tmp/captcha_{provider_name}_{uuid.uuid4().hex[:8]}.png"
-        if runner is not None:
+        if runner is not None and NativeTask is not None:
             try:
-                await runner.execute_task(ScreenshotTask(path=screenshot_path))
+                runner.run(NativeTask(steps=[
+                    NativeStep(action=ActionType.SCREENSHOT, target=screenshot_path),
+                ]))
             except Exception as exc:  # noqa: BLE001
                 logger.debug("Non-critical error: %s", exc)
 
@@ -955,6 +985,46 @@ class KeyHarvester:
         with self._lock:
             return list(self._results)
 
+    async def _harvest_parallel(
+        self, recipes: List[ProviderRecipe]
+    ) -> List[HarvestResult]:
+        """Harvest up to 3 providers in parallel using a QUAD split-screen layout.
+
+        Zone 0-2 → provider signup flows (one per zone).
+        Zone 3   → reserved for the HITL monitor terminal.
+
+        Providers are processed in batches of 3.  Falls back to sequential
+        processing when split-screen classes are unavailable.
+        """
+        if not _HAS_SPLIT_SCREEN or MultiCursorDesktop is None:
+            # Fall back to sequential if split-screen is unavailable
+            results: List[HarvestResult] = []
+            for recipe in recipes:
+                result = await self._acquire_single(recipe)
+                with self._lock:
+                    capped_append(self._results, result)
+                results.append(result)
+            return results
+
+        screen_w = int(os.getenv("MURPHY_SCREEN_WIDTH", "2560"))
+        screen_h = int(os.getenv("MURPHY_SCREEN_HEIGHT", "1440"))
+        desktop = MultiCursorDesktop(screen_width=screen_w, screen_height=screen_h)
+        zones = desktop.apply_layout(SplitScreenLayout.QUAD)
+        # Zone 3 is reserved for the HITL monitor; providers use zones 0-2
+        batch_size = max(1, len(zones) - 1)  # 3 provider zones from QUAD
+
+        all_results: List[HarvestResult] = []
+        for i in range(0, len(recipes), batch_size):
+            batch = recipes[i : i + batch_size]
+            tasks = [self._acquire_single(recipe) for recipe in batch]
+            batch_results = await asyncio.gather(*tasks, return_exceptions=False)
+            for result in batch_results:
+                with self._lock:
+                    capped_append(self._results, result)
+                all_results.append(result)
+
+        return all_results
+
     # ------------------------------------------------------------------
     # Credential collection
     # ------------------------------------------------------------------
@@ -1020,30 +1090,22 @@ class KeyHarvester:
                 provider=recipe.name, status=AcquisitionStatus.BLOCKED_PAYMENT
             )
 
-        if not _HAS_PLAYWRIGHT:
+        # Step 3: Check native automation is available
+        if not _HAS_NATIVE_AUTOMATION:
             logger.warning(
-                "Provider '%s': Playwright not available.", recipe.name
+                "Provider '%s': murphy_native_automation not available.", recipe.name
             )
             return HarvestResult(
                 provider=recipe.name,
                 status=AcquisitionStatus.FAILED,
-                error="playwright_task_definitions not available",
+                error="murphy_native_automation not available",
             )
 
-        # Step 3: Build a randomised BrowserConfig (non-headless = visible)
-        w, h = HumanSimulator.random_viewport()
-        cfg = BrowserConfig(
-            headless=not self._interactive,  # interactive → visible window
-            viewport_width=w,
-            viewport_height=h,
-            user_agent=HumanSimulator.random_user_agent(),
-        )
-
-        # Step 4: Open provider setup UI in the system browser as well
+        # Step 4: Open provider signup page in the user's real browser
         if self._interactive:
             self._open_provider_ui(recipe.signup_url, recipe.name, "signup")
 
-        runner = PlaywrightTaskRunner(config=cfg)
+        runner = MurphyNativeRunner()
         try:
             return await self._run_signup_flow(runner, recipe)
         except Exception as exc:  # noqa: BLE001
@@ -1055,69 +1117,43 @@ class KeyHarvester:
                 status=AcquisitionStatus.FAILED,
                 error=str(exc),
             )
-        finally:
-            await runner.close()
 
     async def _run_signup_flow(
         self,
         runner: Any,
         recipe: ProviderRecipe,
     ) -> HarvestResult:
-        """Execute the full Playwright signup + key extraction flow.
+        """Execute the full Murphy native signup + key extraction flow.
 
-        The navigate → scroll → fill-email → fill-password steps all run on a
-        SINGLE shared browser page so that form state persists across calls.
-        Post-submission steps (CAPTCHA check, email verify, key extraction)
-        each open a fresh page via the normal execute_task path.
+        Uses webbrowser.open() (via OPEN_URL) to load pages in the user's real
+        browser, then GhostDesktopRunner actions (GHOST_CLICK / GHOST_TYPE) for
+        OCR-guided form filling.  All steps are dispatched through
+        MurphyNativeRunner.run() — no Playwright binary required.
         """
-        email_sel = recipe.signup_selectors.get("email", "input[name='email']")
-        pwd_sel = recipe.signup_selectors.get("password", "input[name='password']")
         email_to_use = self._user_email or os.getenv("MURPHY_HARVEST_EMAIL", "")
         pwd_to_use = self._user_password or _random_password()
-        scroll_amount = random.randint(80, 400)
 
-        # Build the form-fill sequence — all on ONE shared page
-        form_tasks = []
-        if _HAS_PLAYWRIGHT and EvaluateTask is not None:
-            form_tasks = [
-                NavigateTask(url=recipe.signup_url),
-                EvaluateTask(f"window.scrollBy(0, {scroll_amount})"),
-                EvaluateTask("window.scrollTo(0, 0)"),
-                FillTask(selector=email_sel, value=email_to_use),
-                FillTask(selector=pwd_sel, value=pwd_to_use),
-            ]
-
-        if form_tasks:
-            form_results = await runner.execute_tasks_on_shared_page(form_tasks)
-            nav_result = form_results[0]
-            if nav_result.status != TaskStatus.COMPLETED:
-                return HarvestResult(
-                    provider=recipe.name,
-                    status=AcquisitionStatus.FAILED,
-                    error=f"Navigation failed: {nav_result.error}",
-                )
-            # Log any fill failures as warnings (don't abort — page may still work)
-            for res in form_results[3:]:  # skip nav + scroll results
-                if res.status != TaskStatus.COMPLETED:
-                    logger.warning(
-                        "Provider '%s': form task failed: %s", recipe.name, res.error
-                    )
-        else:
-            # Mock mode: individual tasks (page=None, always succeed)
-            nav = await runner.execute_task(NavigateTask(url=recipe.signup_url))
-            if nav.status != TaskStatus.COMPLETED:
-                return HarvestResult(
-                    provider=recipe.name,
-                    status=AcquisitionStatus.FAILED,
-                    error=f"Navigation failed: {nav.error}",
-                )
-            for sel, val in [(email_sel, email_to_use), (pwd_sel, pwd_to_use)]:
-                fill = await runner.execute_task(FillTask(selector=sel, value=val))
-                if fill.status != TaskStatus.COMPLETED:
-                    logger.warning(
-                        "Provider '%s': FillTask failed for '%s': %s",
-                        recipe.name, sel, fill.error,
-                    )
+        # Build the form-fill task: navigate → scroll → fill email → fill password
+        form_task = NativeTask(
+            task_type=TaskType.FILL_ONBOARDING_WIZARD,
+            steps=[
+                NativeStep(action=ActionType.OPEN_URL, target=recipe.signup_url),
+                NativeStep(action=ActionType.GHOST_WAIT, timeout_ms=2000),
+                NativeStep(action=ActionType.SCROLL_TO_BOTTOM),
+                NativeStep(action=ActionType.WAIT_MS, timeout_ms=500),
+                NativeStep(action=ActionType.GHOST_CLICK, target=recipe.email_field_label),
+                NativeStep(action=ActionType.GHOST_TYPE, value=email_to_use),
+                NativeStep(action=ActionType.GHOST_CLICK, target=recipe.password_field_label),
+                NativeStep(action=ActionType.GHOST_TYPE, value=pwd_to_use),
+            ],
+        )
+        nav_result = runner.run(form_task)
+        if nav_result.get("status") not in ("passed", "pass", "ok"):
+            return HarvestResult(
+                provider=recipe.name,
+                status=AcquisitionStatus.FAILED,
+                error=f"Navigation/form-fill failed: {nav_result.get('error', '')}",
+            )
 
         # Human pause after page load + form fill
         await HumanSimulator.pause_after_page_load()
@@ -1142,7 +1178,12 @@ class KeyHarvester:
         screenshot_path = (
             f"/tmp/tos_{recipe.name}_{uuid.uuid4().hex[:8]}.png"
         )
-        await runner.execute_task(ScreenshotTask(path=screenshot_path))
+        try:
+            runner.run(NativeTask(steps=[
+                NativeStep(action=ActionType.SCREENSHOT, target=screenshot_path),
+            ]))
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Non-critical screenshot error: %s", exc)
 
         tos_req = self._tos_gate.request_approval(recipe.name, screenshot_path)
         logger.info(
@@ -1163,14 +1204,16 @@ class KeyHarvester:
             )
 
         # --- click TOS checkbox + submit ------------------------------------
-        if recipe.tos_checkbox_selector:
-            await runner.execute_task(
-                ClickTask(selector=recipe.tos_checkbox_selector)
-            )
+        if recipe.tos_checkbox_label or recipe.tos_checkbox_selector:
+            tos_label = recipe.tos_checkbox_label or recipe.tos_checkbox_selector
+            runner.run(NativeTask(steps=[
+                NativeStep(action=ActionType.GHOST_CLICK, target=tos_label),
+            ]))
             await HumanSimulator.pause_between_actions()
 
-        submit_sel = recipe.signup_selectors.get("submit", "button[type='submit']")
-        await runner.execute_task(ClickTask(selector=submit_sel))
+        runner.run(NativeTask(steps=[
+            NativeStep(action=ActionType.GHOST_CLICK, target=recipe.submit_button_label),
+        ]))
         await HumanSimulator.pause_after_page_load()
 
         # --- check for CAPTCHA after submit ---------------------------------
@@ -1191,32 +1234,35 @@ class KeyHarvester:
         # --- email verification ---------------------------------------------
         verify_url = await self._wait_for_verification_email(recipe.name)
         if verify_url:
-            await runner.execute_task(NavigateTask(url=verify_url))
+            runner.run(NativeTask(steps=[
+                NativeStep(action=ActionType.OPEN_URL, target=verify_url),
+            ]))
             await HumanSimulator.pause_after_page_load()
 
         # --- navigate to keys page + open in system browser ----------------
-        await runner.execute_task(NavigateTask(url=recipe.keys_page_url))
+        runner.run(NativeTask(steps=[
+            NativeStep(action=ActionType.OPEN_URL, target=recipe.keys_page_url),
+        ]))
         if self._interactive:
             self._open_provider_ui(recipe.keys_page_url, recipe.name, "api-keys")
         await HumanSimulator.pause_after_page_load()
 
         # --- create API key -------------------------------------------------
-        await runner.execute_task(ClickTask(selector=recipe.create_key_selector))
+        runner.run(NativeTask(steps=[
+            NativeStep(action=ActionType.GHOST_CLICK, target=recipe.create_key_label),
+        ]))
         await HumanSimulator.pause_between_actions()
 
-        # --- extract key value ----------------------------------------------
-        extract = await runner.execute_task(
-            ExtractTask(
-                selector=recipe.key_extract_selector, attribute="value"
-            )
-        )
+        # --- extract key value via OCR -------------------------------------
+        key_result = runner.run(NativeTask(steps=[
+            NativeStep(action=ActionType.GHOST_ASSERT_OCR, target=recipe.key_region_label),
+        ]))
         key_value: Optional[str] = None
-        if extract.data:
-            key_value = (
-                extract.data.get("value")
-                or extract.data.get("text")
-                or ""
-            ).strip() or None
+        for sr in key_result.get("step_results", []):
+            text = (sr.get("text") or sr.get("value") or sr.get("ocr_text") or "").strip()
+            if text and (not recipe.key_format_pattern or re.match(recipe.key_format_pattern, text)):
+                key_value = text
+                break
 
         if not key_value:
             return HarvestResult(
@@ -1269,18 +1315,20 @@ class KeyHarvester:
         recipe: ProviderRecipe,
         attempt: int,
     ) -> Tuple[CaptchaType, Optional[CaptchaStrategy]]:
-        """Extract page HTML, detect CAPTCHA type, run handler if needed.
+        """Use OCR to detect CAPTCHA indicators on screen, run handler if needed.
 
         Returns ``(CaptchaType, CaptchaStrategy | None)``.
         """
-        html_result = await runner.execute_task(
-            ExtractTask(selector="html", attribute="outerHTML")
+        # Use GHOST_ASSERT_OCR to scan visible text for CAPTCHA indicators
+        ocr_result = runner.run(NativeTask(steps=[
+            NativeStep(action=ActionType.GHOST_ASSERT_OCR, target="captcha", optional=True),
+        ]))
+        page_text = " ".join(
+            sr.get("text", "") + " " + sr.get("ocr_text", "")
+            for sr in ocr_result.get("step_results", [])
         )
-        page_html = ""
-        if html_result.data:
-            page_html = html_result.data.get("text") or html_result.data.get("outerHTML") or ""
 
-        captcha_type = detect_captcha_type(page_html)
+        captcha_type = detect_captcha_type(page_text)
         if captcha_type == CaptchaType.NONE:
             return CaptchaType.NONE, None
 
@@ -1415,15 +1463,18 @@ class KeyHarvester:
 
     @staticmethod
     async def _evaluate_safe(runner: Any, script: str) -> None:
-        """Execute a JavaScript expression on the current page via EvaluateTask.
+        """Dispatch a scroll/wait action via the native runner.
 
-        Silently skips if Playwright is unavailable (mock mode) or if the
-        EvaluateTask cannot be constructed.
+        Kept for backward compatibility; in the native stack scroll is handled
+        via ``SCROLL_TO_BOTTOM`` and waits via ``WAIT_MS`` NativeStep actions.
+        Silently skips if native automation is unavailable.
         """
-        if not _HAS_PLAYWRIGHT or EvaluateTask is None:
+        if not _HAS_NATIVE_AUTOMATION or NativeTask is None:
             return
         try:
-            await runner.execute_task(EvaluateTask(script))
+            runner.run(NativeTask(steps=[
+                NativeStep(action=ActionType.SCROLL_TO_BOTTOM),
+            ]))
         except Exception as exc:  # noqa: BLE001
             logger.debug("Non-critical error: %s", exc)
 
