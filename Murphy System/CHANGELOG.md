@@ -17,6 +17,19 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed — Production User Flow: Auth, Billing, Reviews, Pricing, Theme
+
+See root `CHANGELOG.md` for full detail. Summary:
+
+- **fix(auth):** OAuth callback redirect updated from `/dashboard.html` → `/ui/terminal-unified?oauth_success=1&provider=<name>`.
+- **fix(test):** `tests/test_oauth_callback_redirect.py` — fixed `SyntaxError` (stray bare text); updated stale redirect assertions to match new URL.
+- **fix(ui):** `signup.html` — post-signup handler reads `tier`/`interval` URL params and calls `POST /api/billing/checkout`; redirects to PayPal `approval_url` when available, else `/ui/onboarding`.
+- **fix(api):** `_reviews_store` seeded with 4 reviews; `GET /api/reviews` no longer returns empty array.
+- **fix(api):** `GET /favicon.ico` route added; returns `301` redirect to `/static/favicon.svg`.
+- **fix(ui):** `murphy_landing_page.html`, `pricing.html` — Business plan price corrected from `$299` → `$99` (annual `$79`).
+- **fix(ui):** `pricing.html`, `signup.html`, `login.html` — removed `🌙` theme-toggle button per dark-only design policy (`docs/DESIGN_SYSTEM.md`).
+- **docs:** `BUSINESS_MODEL.md` — Business plan corrected from `$299/$249` → `$99/$79`.
+
 ### Added — Round 61 — Real Google OAuth + Functional All Hands Meeting System
 
 See root `CHANGELOG.md` for full detail. Summary:

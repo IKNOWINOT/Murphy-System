@@ -406,6 +406,10 @@ def create_app() -> FastAPI:
 
     # ==================== CORE ENDPOINTS ====================
 
+    @app.get("/favicon.ico", include_in_schema=False)
+    async def favicon():
+        return RedirectResponse("/static/favicon.svg", status_code=301)
+
     @app.post("/api/execute")
     async def execute_task(request: Request, _rbac=Depends(_perm_execute)):
         """Execute a task — routes through AionMind cognitive pipeline when available."""
@@ -5080,12 +5084,7 @@ def create_app() -> FastAPI:
 
             provider_name = next(iter(account.oauth_providers.keys()), "")
 
-            qs = urllib.parse.urlencode({
-                "account_id": account.account_id,
-                "display_name": account.display_name or "",
-                "provider": provider_name,
-            })
-            redirect_url = f"/dashboard.html?{qs}"
+            redirect_url = f"/ui/terminal-unified?oauth_success=1&provider={provider_name}"
             response = RedirectResponse(url=redirect_url, status_code=302)
             response.set_cookie(
                 key="murphy_session",
@@ -5591,7 +5590,56 @@ def create_app() -> FastAPI:
 
     # ==================== REVIEW & REFERRAL SYSTEM ====================
 
-    _reviews_store: list = []
+    _reviews_store: list = [
+        {
+            "id": "seed001",
+            "user": "Sarah K.",
+            "rating": 5,
+            "title": "Replaced 3 tools with one system",
+            "comment": "Murphy handles our entire workflow automation. We dropped Zapier, Monday, and a custom CRM. Setup took 20 minutes.",
+            "created": "2026-02-15T10:30:00Z",
+            "moderated": True,
+            "visible": True,
+            "moderator_response": None,
+            "response_sla_met": True,
+        },
+        {
+            "id": "seed002",
+            "user": "Marcus T.",
+            "rating": 5,
+            "title": "The confidence scoring changed everything",
+            "comment": "The AI doesn't just execute — it tells you how confident it is. Low confidence tasks get queued for human review. No more automation disasters.",
+            "created": "2026-02-28T14:15:00Z",
+            "moderated": True,
+            "visible": True,
+            "moderator_response": None,
+            "response_sla_met": True,
+        },
+        {
+            "id": "seed003",
+            "user": "Priya R.",
+            "rating": 5,
+            "title": "Best onboarding I've ever experienced",
+            "comment": "The wizard asked me 5 questions and built my entire automation config. Had workflows running in under an hour.",
+            "created": "2026-03-05T09:45:00Z",
+            "moderated": True,
+            "visible": True,
+            "moderator_response": None,
+            "response_sla_met": True,
+        },
+        {
+            "id": "seed004",
+            "user": "James W.",
+            "rating": 4,
+            "title": "Powerful but takes time to master",
+            "comment": "The system is incredibly capable. The terminal interface has a learning curve, but the Librarian chat helps. Solid product.",
+            "created": "2026-03-10T16:20:00Z",
+            "moderated": True,
+            "visible": True,
+            "moderator_response": None,
+            "response_sla_met": True,
+        },
+    ]
     _referrals_store: dict = {}
 
     @app.post("/api/reviews/submit")

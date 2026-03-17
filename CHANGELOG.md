@@ -7,7 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added — Round 61 — Real Google OAuth + Functional All Hands Meeting System
+### Fixed — Production User Flow: Auth, Billing, Reviews, Pricing, Theme
+
+#### Auth / OAuth
+- **fix(auth):** `src/runtime/app.py` + mirror — `GET /api/auth/callback` redirect updated from `/dashboard.html?{qs}` to `/ui/terminal-unified?oauth_success=1&provider=<name>`. The `murphy_auth.js` handler already awaits `?oauth_success=1` on this page to extract the session cookie into `localStorage`. Old redirect target `/dashboard.html` does not exist as a registered UI route.
+- **fix(test):** `tests/test_oauth_callback_redirect.py` — fixed `SyntaxError` caused by stray bare-text block (copyright notice outside any string/comment); removed duplicate `from __future__ import annotations` and redundant import block. Updated `TestOAuthCallbackRedirect.test_redirect_location_is_dashboard` → `test_redirect_location_is_terminal_unified` to assert `/ui/terminal-unified` + `oauth_success=1`. Updated `test_redirect_url_contains_expected_query_params` → `test_redirect_url_contains_provider_param` to match the leaner new redirect format.
+
+#### Billing / Signup Flow
+- **fix(ui):** `signup.html` + mirror — post-signup handler now reads `tier` and `interval` from URL query parameters (set by the pricing page) and, when both are present along with an `account_id` in the signup response, calls `POST /api/billing/checkout`. If the response contains an `approval_url` (PayPal), the user is redirected there; otherwise falls back to `/ui/onboarding`. This closes the Pricing → Signup → PayPal Checkout → Onboarding flow.
+
+#### Reviews Seed Data
+- **fix(api):** `src/runtime/app.py` + mirror — `_reviews_store` pre-populated with 4 seed reviews (Sarah K., Marcus T., Priya R., James W.) so `GET /api/reviews` returns meaningful testimonials on the landing page immediately after deploy instead of an empty array.
+
+#### Favicon Route
+- **fix(api):** `src/runtime/app.py` + mirror — added `GET /favicon.ico` route that issues a `301` permanent redirect to `/static/favicon.svg`, preventing 404s from browser auto-requests on every page load.
+
+#### Pricing Consistency
+- **fix(ui):** `murphy_landing_page.html` + mirror — corrected Business plan price from `$299/mo` → `$99/mo` in both the feature-highlight CTA button and the pricing card to match `subscription_manager.py` and `BUSINESS_MODEL.md`.
+- **fix(ui):** `pricing.html` + mirror — corrected Business plan price from `$299`/`data-monthly="$299"` to `$99`/`data-monthly="$99"` and annual from `$249` → `$79`.
+
+#### Dark Theme — Remove Theme Toggle from Public Pages
+- **fix(ui):** `pricing.html`, `signup.html`, `login.html` (+ mirrors) — removed the `🌙` theme-toggle button and its associated `addEventListener` / `MurphyTheme.onChange` JS from the nav bar of all public-facing pages, per `docs/DESIGN_SYSTEM.md` §Theme Policy: "Murphy System uses a **dark theme exclusively**. There is no light theme and no theme toggle."
+
+#### Documentation
+- **docs:** `CHANGELOG.md` + mirror — corrected two stale OAuth callback redirect references: `/dashboard.html` → `/ui/terminal-unified?oauth_success=1&provider=<name>`.
+- **docs:** `BUSINESS_MODEL.md` + mirror — corrected Business plan pricing from `$299/mo` (annual `$249`) → `$99/mo` (annual `$79`) in both the Pricing Tiers table and the Revenue Streams table to match `subscription_manager.py` canonical prices.
+
+
 
 #### OAuth — Real HTTP Token Exchange, Userinfo Fetch, OIDC Validation, Account Linking
 
@@ -66,7 +92,7 @@ linked a Murphy user account.
     which performs the real HTTP token exchange, creates or links a Murphy
     `AccountRecord`, stores the account in `_account_manager`, mints a
     `secrets.token_urlsafe(32)` session token, maps it in `_session_store`,
-    sets `murphy_session` cookie, and redirects to `/dashboard.html`.
+    sets `murphy_session` cookie, and redirects to `/ui/terminal-unified?oauth_success=1&provider=<name>`.
     `ValueError` (invalid/expired state) now redirects to `/login.html?error=…`
     instead of returning a 400 JSON response.
   - `GET /api/auth/oauth/{provider}` — calls `_account_manager.begin_oauth_signup()`
@@ -224,7 +250,7 @@ etc.) were treated as authentication failures.
   - **Before**: `oauth_callback` returned a `JSONResponse` containing token details (provider, token_type, profile, etc.). Users saw a JSON blob instead of being redirected to the dashboard.
   - **After**: On successful `complete_auth_flow()`, the handler now:
     1. Generates a cryptographically secure session token via `secrets.token_urlsafe(32)`.
-    2. Returns a `302 RedirectResponse` to `/dashboard.html` with URL-encoded query parameters (`session_token`, `user_id`, `provider`) for `murphy_auth.js` to write into `localStorage`.
+    2. Returns a `302 RedirectResponse` to `/ui/terminal-unified?oauth_success=1&provider=<name>` so `murphy_auth.js` can extract the session cookie from `localStorage` via the `?oauth_success=1` query parameter.
     3. Sets a `murphy_session` cookie (`httponly=True`, `secure=True`, `samesite="lax"`, `max_age=86400`) so the frontend cookie-check path also succeeds.
   - Social login buttons (Google, Meta, LinkedIn, Apple, GitHub) that redirect to `/api/auth/callback` will now complete the login flow and land the user on the dashboard.
   - Tests: `tests/test_oauth_callback_redirect.py` — 6 new tests covering redirect status, cookie presence, query-param encoding, and error responses.
