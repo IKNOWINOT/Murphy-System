@@ -35,8 +35,11 @@ Dev mode: Auth is disabled when `MURPHY_API_KEY` is unset.
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | POST | /api/auth/signup | No | Create new account |
+| POST | /api/auth/register | No | Create new account (alias for signup) |
 | GET | /api/auth/oauth/{provider} | No | Initiate OAuth flow |
 | GET | /api/auth/callback | No | OAuth callback — sets `murphy_session` cookie and redirects to `/ui/terminal-unified?oauth_success=1&provider=<name>` |
+| GET | /api/auth/callback/{provider} | No | Provider-specific OAuth callback |
+| GET | /api/auth/login | No | Login page / initiate session |
 | GET | /api/auth/role | Yes | Get current user role |
 | GET | /api/auth/permissions | Yes | Get current user permissions |
 
@@ -491,7 +494,7 @@ Dev mode: Auth is disabled when `MURPHY_API_KEY` is unset.
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | POST | /api/reviews/submit | Yes | Submit review |
-| GET | /api/reviews | Yes | List reviews |
+| GET | /api/reviews | No | List public reviews (displayed on landing/pricing pages without login) |
 | POST | /api/reviews/{rid}/moderate | Yes | Moderate review |
 
 ---

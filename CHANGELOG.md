@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — Brute-force lockout on normal pre-login browsing (CWE-307)
+
+**Problem:** Normal unauthenticated browsing of the Murphy System website
+triggered the brute-force lockout protection in `src/fastapi_security.py`.
+Each page load fired 3–5 requests to API endpoints that had no credentials
+(OAuth buttons, reviews widget, favicon), each recording a `_brute_force`
+failure, locking the visitor's IP after just 1–2 page views.
+
+**Root cause:** The middleware only exempted health endpoints and static/UI
+pages. Pre-login API calls (`/api/auth/oauth/*`, `/api/reviews`, `/favicon.ico`,
+etc.) were treated as authentication failures.
+
+**Changes:**
+- **`src/fastapi_security.py`** + **`Murphy System/src/fastapi_security.py`**:
+  - Added `_is_public_api_route(path, method)` function — returns `True` for
+    routes that are intentionally accessible without credentials
+    (`/api/auth/oauth/*`, `/api/auth/callback/*`, `/api/auth/login`,
+    `/api/auth/register`, `/api/auth/signup`, `/api/manifest`, `/api/info`,
+    `/api/ui/links`, and `GET /api/reviews`).
+  - Updated `_is_static_or_ui_page()` to also exempt `/favicon.ico` and any
+    path ending in `/favicon.svg` (browsers auto-request these on every load).
+  - Updated `SecurityMiddleware.dispatch()` to bypass brute-force tracking,
+    rate-limiting, and auth checks for all public API routes.
+- **`Murphy System/src/security_plane/middleware.py`**:
+  - Expanded `_PUBLIC_PATHS` tuple to include `/favicon.ico`,
+    `/api/health`, `/api/manifest`, `/api/info`, `/api/ui/links`,
+    `/api/auth/login`, `/api/auth/register`, `/api/auth/signup`,
+    `/api/auth/callback`, `/api/auth/oauth`, and `/api/reviews`, so the
+    `RBACMiddleware`, `RiskClassificationMiddleware`, and `DLPScannerMiddleware`
+    also skip these paths.
+- **`API_ROUTES.md`**:
+  - Changed `GET /api/reviews` from `Auth: Yes` → `Auth: No` (public data).
+  - Added missing rows for `POST /api/auth/register`, `GET /api/auth/login`,
+    and `GET /api/auth/callback/{provider}`.
+- **`tests/test_public_route_exemption.py`** (new — 44 tests):
+  - `_is_public_api_route` returns `True` for all expected public routes.
+  - `_is_public_api_route` returns `False` for all protected routes.
+  - `_is_static_or_ui_page` returns `True` for favicon variants.
+  - Repeated hits to public routes do **not** trigger lockout.
+  - Repeated hits to protected routes **do** trigger lockout (regression guard).
+  - Full `SecurityMiddleware.dispatch` integration: public routes pass through
+    without recording brute-force failures even when the backend returns 401.
+
 ### Fixed — OAuth callback: redirect to dashboard with session cookie
 
 - **fix(oauth):** `src/runtime/app.py` + `Murphy System/src/runtime/app.py` — the `/api/auth/callback` OAuth handler no longer returns a raw `JSONResponse` containing the token fields. It now:

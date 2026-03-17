@@ -17,6 +17,22 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed — Brute-force lockout on normal pre-login browsing (CWE-307)
+
+**Problem:** Normal unauthenticated browsing of the Murphy System website
+triggered the brute-force lockout protection. Each page load fired 3–5
+requests to API endpoints that had no credentials (OAuth buttons, reviews
+widget, favicon), each recording a brute-force failure, locking the
+visitor's IP after just 1–2 page views.
+
+**Changes:** See root `CHANGELOG.md` for full detail. Summary:
+- `src/fastapi_security.py`: added `_is_public_api_route()`, updated
+  `_is_static_or_ui_page()` for favicon, added public-route bypass in
+  `SecurityMiddleware.dispatch()`.
+- `src/security_plane/middleware.py`: expanded `_PUBLIC_PATHS` tuple.
+- `API_ROUTES.md`: corrected `Auth` column for public endpoints.
+- `tests/test_public_route_exemption.py`: 44 regression tests added.
+
 ### Fixed — OAuth callback: redirect to dashboard with session cookie
 
 - **fix(oauth):** `src/runtime/app.py` + `Murphy System/src/runtime/app.py` — the `/api/auth/callback` OAuth handler no longer returns a raw `JSONResponse` containing the token fields. It now:
