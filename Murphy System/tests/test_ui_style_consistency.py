@@ -344,6 +344,18 @@ def test_landing_demo_custom_fallback():
     )
 
 
+def test_signup_sign_in_nav_points_to_login():
+    """signup.html top-nav Sign In button must link to /ui/login, not /ui/terminal-unified."""
+    content = _read_html('signup.html')
+    assert 'href="/ui/login"' in content, (
+        "signup.html: Sign In nav link must point to /ui/login"
+    )
+    assert 'href="/ui/terminal-unified"' not in content, (
+        "signup.html: Sign In nav link must not point to /ui/terminal-unified — "
+        "unauthenticated visitors will be bounced back to the landing page"
+    )
+
+
 if __name__ == '__main__':
     import pytest
     pytest.main([__file__, '-v'])
