@@ -877,6 +877,24 @@ _PUBLIC_PATHS: tuple = (
     "/docs",
     "/openapi.json",
     "/redoc",
+    # Favicon — browsers request automatically on every page load
+    "/favicon.ico",
+    # Public API routes — accessible without authentication (Auth: No in API_ROUTES.md)
+    # and required for normal pre-login browsing to avoid CWE-307 false lockouts
+    "/api/health",
+    "/api/manifest",
+    "/api/info",
+    "/api/ui/links",
+    # Auth & OAuth flows — must be reachable before the user has credentials.
+    # _is_exempt() uses startswith(p + "/"), so "/api/auth/oauth" also matches
+    # "/api/auth/oauth/google", "/api/auth/oauth/github", etc.
+    "/api/auth/login",
+    "/api/auth/register",
+    "/api/auth/signup",
+    "/api/auth/callback",
+    "/api/auth/oauth",
+    # Public reviews — displayed on landing/pricing pages without login
+    "/api/reviews",
 )
 
 
