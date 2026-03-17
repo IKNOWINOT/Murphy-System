@@ -569,6 +569,20 @@ MURPHY_COMMANDS: list[CommandDefinition] = [
         ["compliance region", "validate region", "regional compliance"],
         CommandCategory.COMPLIANCE, "Compliance region validator", "/compliance region <code>",
         requires_args=True),
+    CommandDefinition("regulation_ml_engine", "/regulation ml status", "!murphy regulation ml status",
+        ["regulation ml status", "regulation ml", "regulation machine learning status"],
+        CommandCategory.COMPLIANCE, "Regulation ML engine status", "/regulation ml status",
+        subcommands=["status"]),
+    CommandDefinition("regulation_ml_engine_train", "/regulation ml train", "!murphy regulation ml train",
+        ["regulation ml train", "train regulation model", "regulation ml training"],
+        CommandCategory.COMPLIANCE, "Train regulation ML engine", "/regulation ml train",
+        subcommands=["train"], min_role="operator"),
+    CommandDefinition("regulation_ml_engine_predict", "/regulation ml predict", "!murphy regulation ml predict",
+        ["regulation ml predict", "predict regulations", "regulation prediction", "recommend toggles"],
+        CommandCategory.COMPLIANCE,
+        "Predict optimal regulation toggles for country+industry",
+        "/regulation ml predict <country> <industry>",
+        requires_args=True, subcommands=["predict"]),
     # ── INTEGRATIONS ───────────────────────────────────────────────────────
     CommandDefinition("integration_bus", "/bus", "!murphy bus",
         ["integration bus", "bus status", "event bus", "message bus"],
@@ -702,6 +716,21 @@ MURPHY_COMMANDS: list[CommandDefinition] = [
         ["doc", "workdoc", "create doc", "meeting notes", "document", "list docs"],
         CommandCategory.MANAGEMENT_SYSTEMS, "Document manager", "/doc [list|create TYPE TITLE|view ID|search TEXT]",
         subcommands=["list", "create", "view", "search", "link", "versions"]),
+
+    # Automation Safeguard Engine
+    CommandDefinition("automation_safeguard_engine", "/safeguard status", "!murphy safeguard status",
+        ["safeguard status", "automation safeguard", "guard status", "runaway protection"],
+        CommandCategory.AUTOMATION, "Automation safeguard engine status (all 7 guards)",
+        "/safeguard status"),
+    CommandDefinition("automation_safeguard_check", "/safeguard check", "!murphy safeguard check",
+        ["safeguard check", "automation health check", "guard check all", "automation guardrails"],
+        CommandCategory.AUTOMATION, "Run all safeguard health checks",
+        "/safeguard check"),
+    CommandDefinition("automation_safeguard_reset", "/safeguard reset", "!murphy safeguard reset",
+        ["safeguard reset", "reset guards", "clear circuit breaker", "release deadlock"],
+        CommandCategory.AUTOMATION, "Reset automation safeguard state (circuit breakers, deadlocks)",
+        "/safeguard reset [loop|cascade|deadlock|idempotency|all]",
+        min_role="operator"),
 ]
 
 

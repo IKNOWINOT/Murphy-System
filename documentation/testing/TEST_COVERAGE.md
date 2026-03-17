@@ -23,17 +23,26 @@
 
 The Murphy System Runtime maintains comprehensive test coverage with 100% integration test success rate and exceptional performance characteristics across all test suites.
 
-### Test Statistics (updated 2026-03-17, round 55)
+### Test Statistics (updated 2026-03-17, round 58)
 
-- **Total Test Files**: 659 (in `tests/` directory)
-- **Total Test Functions**: 20,240+ across all test files
-- **Unit Tests**: ~350 files, ~6,000 functions (100% pass rate)
+- **Total Test Files**: 669 (in `tests/` directory)
+- **Total Test Functions**: 21,200+ across all test files
+- **Unit Tests**: ~355 files, ~6,100 functions (100% pass rate)
 - **Integration Tests**: ~80 files, ~1,500 functions (100% pass rate)
 - **Gap Closure Rounds**: 54 verified rounds (test_gap_closure_round1.py → round54.py)
 - **Security Regression Tests**: `test_critical_error_fixes.py` — 8 tests (SHA-256 hash, PRAGMA validation, exception logging)
 - **E2E / Smoke Tests**: ~30 files (100% pass rate)
 - **MFM Tests**: 9 files, 228 functions
 - **AUAR Tests**: 3 files, 211 functions
+- **Automation Safeguard Tests**: `test_automation_safeguard_engine.py` — 94 tests (7 guard primitives, thread safety, scenario tests)
+- **Historical Economic Simulation Tests**: `test_historical_economic_simulations.py` — 86 tests (Great Depression → AI Era, WW2 wartime economy, 15 business archetypes)
+- **Temporal Compliance Variation Tests**: `test_regulation_temporal_variations.py` — 170 tests (12 archetypes × 5 growth stages)
+- **Historical Greatness Engine Tests**: `test_historical_greatness_engine.py` — 115 tests (10 universal traits, 42+ historical greats, TraitProfiler, ArchetypeMatcher, CalibrationResult, EliteOrgSimulator HGE wiring, cross-class universality)
+- **Client Psychology Engine Tests**: `test_client_psychology_engine.py` — 115 tests (5 generation cohorts, 12 verticals, 9 pain categories, 8 frameworks, demographic adapter, income scaling, client reading report)
+- **Character Network Engine Tests**: `test_character_network_engine.py` — 88 tests (8 Victorian pillars, 15+ archetypes, MoralFiberScore, SecondNatureBehaviorEngine, CharacterNetworkBuilder, VirtueDevelopmentPlan)
+- **Networking Mastery Engine Tests**: `test_networking_mastery_engine.py` — 65 tests (18 networking greats, 6 styles, BuzzCreationEngine, CapabilitySignallingEngine, NetworkIntelligenceReport)
+- **Cyclic Trends Engine Tests**: `test_cyclic_trends_engine.py` — 80 tests (12-month calendar, 8 weather patterns, temperature/precipitation deviations, 5 economic phases, all-automation adapter)
+- **Skill Catalogue Engine Tests**: `test_skill_catalogue_engine.py` — 141 tests (SkillDefinition, SkillCatalogue, SkillRegistry, SkillCatalogueEngine, command parser, cyclic context injection, 5 default catalogues, utility helpers)
 
 ### Coverage Summary
 
