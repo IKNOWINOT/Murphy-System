@@ -394,6 +394,36 @@
 (function () {
   'use strict';
 
+  // ── URL error parameter handling ─────────────────────
+  // Display a styled banner when the page is loaded with an ?error= param.
+  // This handles redirects from OAuth failure and other auth errors so users
+  // never see raw JSON in their browser.
+  (function handleUrlError() {
+    var params = new URLSearchParams(window.location.search);
+    var error = params.get('error');
+    var provider = params.get('provider') || '';
+    if (!error) return;
+
+    var MESSAGES = {
+      oauth_not_configured: provider
+        ? (provider.charAt(0).toUpperCase() + provider.slice(1)) + ' sign-in is not yet available. Please use email or another provider.'
+        : 'Social sign-in is not yet available. Please use email.',
+      oauth_unavailable: 'Social sign-in is temporarily unavailable. Please use email to sign in.',
+      oauth_error: 'Something went wrong with social sign-in. Please try again or use email.',
+      unsupported_provider: 'That sign-in provider is not supported.',
+      rate_limited: 'Too many attempts. Please wait a moment, then try again.',
+    };
+
+    var msg = MESSAGES[error] || params.get('error');
+    if (msg) {
+      var el = document.getElementById('login-error-global');
+      if (el) {
+        el.textContent = msg;
+        el.classList.add('visible');
+      }
+    }
+  }());
+
   // ── Password visibility toggle ──────────────────────
   var toggleBtn = document.getElementById('toggle-password');
   var pwdInput = document.getElementById('password');

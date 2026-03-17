@@ -165,71 +165,75 @@ def _apple_profile_mapper(raw: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _default_providers() -> Dict[str, OAuthProviderConfig]:
-    """Pre-configured OAuth providers (credentials loaded from env)."""
+    """Pre-configured OAuth providers (credentials loaded from env).
+
+    Each provider checks the Murphy-namespaced env var first, then falls back
+    to the shorter conventional name (e.g. GOOGLE_CLIENT_ID) for operator
+    convenience.  The Murphy-namespaced name always wins if both are set.
+    """
+    def _get(murphy_var: str, fallback_var: str = "", default: str = "") -> str:
+        return (
+            os.environ.get(murphy_var)
+            or (os.environ.get(fallback_var) if fallback_var else None)
+            or default
+        )
+
+    redirect_uri = _get("MURPHY_OAUTH_REDIRECT_URI", default="http://localhost:8000/api/auth/callback")
+
     return {
         OAuthProvider.MICROSOFT.value: OAuthProviderConfig(
             provider=OAuthProvider.MICROSOFT,
-            client_id=os.environ.get("MURPHY_OAUTH_MICROSOFT_CLIENT_ID", ""),
-            client_secret_encrypted=os.environ.get("MURPHY_OAUTH_MICROSOFT_SECRET", ""),
+            client_id=_get("MURPHY_OAUTH_MICROSOFT_CLIENT_ID", "MICROSOFT_CLIENT_ID"),
+            client_secret_encrypted=_get("MURPHY_OAUTH_MICROSOFT_SECRET", "MICROSOFT_CLIENT_SECRET"),
             authorize_url="https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
             token_url="https://login.microsoftonline.com/common/oauth2/v2.0/token",
             userinfo_url="https://graph.microsoft.com/v1.0/me",
             scopes=["openid", "profile", "email", "User.Read"],
-            redirect_uri=os.environ.get(
-                "MURPHY_OAUTH_REDIRECT_URI", "http://localhost:8000/api/auth/callback"
-            ),
+            redirect_uri=redirect_uri,
             profile_mapper=_microsoft_profile_mapper,
         ),
         OAuthProvider.GOOGLE.value: OAuthProviderConfig(
             provider=OAuthProvider.GOOGLE,
-            client_id=os.environ.get("MURPHY_OAUTH_GOOGLE_CLIENT_ID", ""),
-            client_secret_encrypted=os.environ.get("MURPHY_OAUTH_GOOGLE_SECRET", ""),
+            client_id=_get("MURPHY_OAUTH_GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_ID"),
+            client_secret_encrypted=_get("MURPHY_OAUTH_GOOGLE_SECRET", "GOOGLE_CLIENT_SECRET"),
             authorize_url="https://accounts.google.com/o/oauth2/v2/auth",
             token_url="https://oauth2.googleapis.com/token",
             userinfo_url="https://openidconnect.googleapis.com/v1/userinfo",
             scopes=["openid", "profile", "email"],
-            redirect_uri=os.environ.get(
-                "MURPHY_OAUTH_REDIRECT_URI", "http://localhost:8000/api/auth/callback"
-            ),
+            redirect_uri=redirect_uri,
             profile_mapper=_google_profile_mapper,
         ),
         OAuthProvider.META.value: OAuthProviderConfig(
             provider=OAuthProvider.META,
-            client_id=os.environ.get("MURPHY_OAUTH_META_CLIENT_ID", ""),
-            client_secret_encrypted=os.environ.get("MURPHY_OAUTH_META_SECRET", ""),
+            client_id=_get("MURPHY_OAUTH_META_CLIENT_ID", "META_CLIENT_ID"),
+            client_secret_encrypted=_get("MURPHY_OAUTH_META_SECRET", "META_CLIENT_SECRET"),
             authorize_url="https://www.facebook.com/v18.0/dialog/oauth",
             token_url="https://graph.facebook.com/v18.0/oauth/access_token",
             userinfo_url="https://graph.facebook.com/v18.0/me?fields=id,name,email,first_name,last_name",
             scopes=["email", "public_profile"],
-            redirect_uri=os.environ.get(
-                "MURPHY_OAUTH_REDIRECT_URI", "http://localhost:8000/api/auth/callback"
-            ),
+            redirect_uri=redirect_uri,
             profile_mapper=_meta_profile_mapper,
         ),
         OAuthProvider.LINKEDIN.value: OAuthProviderConfig(
             provider=OAuthProvider.LINKEDIN,
-            client_id=os.environ.get("MURPHY_OAUTH_LINKEDIN_CLIENT_ID", ""),
-            client_secret_encrypted=os.environ.get("MURPHY_OAUTH_LINKEDIN_SECRET", ""),
+            client_id=_get("MURPHY_OAUTH_LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_ID"),
+            client_secret_encrypted=_get("MURPHY_OAUTH_LINKEDIN_SECRET", "LINKEDIN_CLIENT_SECRET"),
             authorize_url="https://www.linkedin.com/oauth/v2/authorization",
             token_url="https://www.linkedin.com/oauth/v2/accessToken",
             userinfo_url="https://api.linkedin.com/v2/userinfo",
             scopes=["openid", "profile", "email"],
-            redirect_uri=os.environ.get(
-                "MURPHY_OAUTH_REDIRECT_URI", "http://localhost:8000/api/auth/callback"
-            ),
+            redirect_uri=redirect_uri,
             profile_mapper=_linkedin_profile_mapper,
         ),
         OAuthProvider.APPLE.value: OAuthProviderConfig(
             provider=OAuthProvider.APPLE,
-            client_id=os.environ.get("MURPHY_OAUTH_APPLE_CLIENT_ID", ""),
-            client_secret_encrypted=os.environ.get("MURPHY_OAUTH_APPLE_SECRET", ""),
+            client_id=_get("MURPHY_OAUTH_APPLE_CLIENT_ID", "APPLE_CLIENT_ID"),
+            client_secret_encrypted=_get("MURPHY_OAUTH_APPLE_SECRET", "APPLE_CLIENT_SECRET"),
             authorize_url="https://appleid.apple.com/auth/authorize",
             token_url="https://appleid.apple.com/auth/token",
             userinfo_url="",
             scopes=["name", "email"],
-            redirect_uri=os.environ.get(
-                "MURPHY_OAUTH_REDIRECT_URI", "http://localhost:8000/api/auth/callback"
-            ),
+            redirect_uri=redirect_uri,
             profile_mapper=_apple_profile_mapper,
         ),
     }
