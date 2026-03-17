@@ -7,11 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed — Round 60 — OAuthProvider Enum: 4 → 7 providers (2026-03-17)
+### Changed — Round 60 — OAuthProvider enum: add Meta, LinkedIn, Apple
 
-- **feat(oauth):** `src/oauth_oidc_provider.py` — `OAuthProvider` enum expanded from 4 to 7 members: added `META = "meta"`, `LINKEDIN = "linkedin"`, `APPLE = "apple"` alongside existing `GOOGLE`, `GITHUB`, `MICROSOFT`, `CUSTOM`. Enum is now in sync with canonical definition in `src/account_management/models.py`.
-- **test:** `tests/test_oauth_oidc_provider.py` — `test_oau_001_provider_enum` assertion updated from `4` to `7` providers.
-- **docs:** `docs/MODULE_REGISTRY.md` — `oauth_oidc_provider.py` entry updated to list all 7 SSO providers (Google/GitHub/Microsoft/Meta/LinkedIn/Apple/Custom).
+- **fix(oauth):** `src/oauth_oidc_provider.py` + `Murphy System/src/oauth_oidc_provider.py` — expanded `OAuthProvider` enum from 4 → 7 members to match the canonical definition in `src/account_management/models.py`. Added `META = "meta"`, `LINKEDIN = "linkedin"`, `APPLE = "apple"`. Member order aligned to canonical order (MICROSOFT/GOOGLE/META/GITHUB/LINKEDIN/APPLE/CUSTOM). Fixes login flows for the Meta, LinkedIn, and Apple "Continue with…" buttons on the sign-up page.
+- **fix(test):** `tests/test_oauth_oidc_provider.py` + `Murphy System/tests/test_oauth_oidc_provider.py` — updated `test_oau_001_provider_enum` expected count from `4` → `7`.
+- **docs:** `docs/MODULE_REGISTRY.md` + `Murphy System/docs/MODULE_REGISTRY.md` — updated `oauth_oidc_provider.py` registry description to list all 7 providers (Google/GitHub/Microsoft/Meta/LinkedIn/Apple/Custom).
+- **docs:** `src/account_management/README.md` — updated overview to list Microsoft, Google, Meta, LinkedIn, and Apple as supported OAuth providers.
+- **docs:** `CHANGELOG.md` historical entry for `models.py` — corrected `OAuthProvider` member list to include LinkedIn and Apple.
 
 ### Changed — Round 59 — KeyHarvester: Playwright → Murphy Native Automation
 
@@ -393,7 +395,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **README.md** — updated stats (583 source files, 7,924 tests, 345 test files), added code-quality audit row to completion table, updated badges
 - **GETTING_STARTED.md** — updated "What Works" and "What's Included" sections with actual metrics
 - **Account Management System** (`src/account_management/`) — complete account lifecycle with OAuth, credential vault, consent-based import, and self-ticketing
-  - `models.py` — OAuthProvider (Microsoft/Google/Meta/GitHub/Custom), AccountRecord, OAuthToken, StoredCredential, ConsentRecord, AccountEvent with 16 event types
+  - `models.py` — OAuthProvider (Microsoft/Google/Meta/GitHub/LinkedIn/Apple/Custom), AccountRecord, OAuthToken, StoredCredential, ConsentRecord, AccountEvent with 16 event types
   - `oauth_provider_registry.py` — OAuth authorization flows with PKCE, state management, profile normalization per provider, token lifecycle
   - `credential_vault.py` — encrypted credential storage (Fernet or HMAC fallback), SHA-256 hash verification, rotation tracking, thread-safe operations
   - `account_manager.py` — top-level orchestrator: account creation, OAuth signup/link/unlink, credential CRUD, consent-based import flow, auto-ticketing for missing integrations, full audit log
