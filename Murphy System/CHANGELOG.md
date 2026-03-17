@@ -17,7 +17,24 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Fixed — Brute-force lockout on normal pre-login browsing (CWE-307)
+### Added — Round 61 — Real Google OAuth + Functional All Hands Meeting System
+
+See root `CHANGELOG.md` for full detail. Summary:
+
+#### OAuth — Real HTTP integration for `OAuthManager`
+- `src/oauth_oidc_provider.py` — injectable `http_client`, real `exchange_code()`,
+  real `refresh_token()`, `fetch_userinfo()`, OIDC `_validate_id_token_claims()`.
+- `src/runtime/app.py` — OAuth callback uses `AccountManager.complete_oauth_signup()`
+  to create/link Murphy accounts; `_session_store` maps session tokens to account IDs.
+- 12 new tests (OAU-044 – OAU-055) covering real HTTP path with mock client.
+
+#### All Hands — Full functional meeting management system
+- **New:** `src/all_hands.py` — `AllHandsManager` + `create_all_hands_api()` Blueprint.
+- Full CRUD: meetings, attendees, agenda items, action items, minutes.
+- 75 tests in `tests/test_all_hands.py` (AHM-001 – AHM-075).
+- Wired into `src/runtime/app.py` at `/api/all-hands/*`.
+
+
 
 **Problem:** Normal unauthenticated browsing of the Murphy System website
 triggered the brute-force lockout protection. Each page load fired 3–5
