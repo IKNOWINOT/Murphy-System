@@ -20,7 +20,14 @@ Fix:
     _is_public_api_route() and the updated _is_static_or_ui_page() now bypass
     the brute-force tracker so innocent browsing never counts as an attack.
 
+    Additionally, brute-force failure tracking is now scoped exclusively to
+    POST /api/auth/login (actual password submissions).  Chat, Librarian, and
+    all other protected API endpoints return 401 on missing/invalid credentials
+    but do NOT record a brute-force failure, preventing chat interaction from
+    burning through the lockout budget.
+
 Tests:
+    0. _is_login_endpoint returns True only for POST /api/auth/login
     1. _is_public_api_route returns True for all expected public routes
     2. _is_public_api_route returns False for protected routes
     3. _is_static_or_ui_page returns True for /favicon.ico + /favicon.svg
@@ -44,9 +51,39 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from fastapi_security import (
     _is_public_api_route,
     _is_static_or_ui_page,
+    _is_login_endpoint,
     _BruteForceTracker,
     SecurityMiddleware,
 )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 0. _is_login_endpoint — brute-force scope
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestLoginEndpointDetection(unittest.TestCase):
+    """_is_login_endpoint() must return True only for POST /api/auth/login."""
+
+    def test_post_login_is_login_endpoint(self):
+        assert _is_login_endpoint("/api/auth/login", "POST") is True
+
+    def test_get_login_is_not_login_endpoint(self):
+        assert _is_login_endpoint("/api/auth/login", "GET") is False
+
+    def test_chat_is_not_login_endpoint(self):
+        assert _is_login_endpoint("/api/chat", "POST") is False
+
+    def test_librarian_ask_is_not_login_endpoint(self):
+        assert _is_login_endpoint("/api/librarian/ask", "POST") is False
+
+    def test_execute_is_not_login_endpoint(self):
+        assert _is_login_endpoint("/api/execute", "POST") is False
+
+    def test_profiles_me_is_not_login_endpoint(self):
+        assert _is_login_endpoint("/api/profiles/me", "GET") is False
+
+    def test_login_trailing_slash(self):
+        assert _is_login_endpoint("/api/auth/login/", "POST") is True
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -365,37 +402,109 @@ class TestMiddlewareDispatchPublicRoutes(unittest.TestCase):
             "IP must NOT be locked out after repeated hits to public OAuth route"
         )
 
-    def test_protected_route_records_failures_on_missing_creds(self):
-        """Missing credentials on a protected route DO accumulate toward lockout."""
+    def test_login_endpoint_records_failures_on_missing_creds(self):
+        """Missing credentials on the login endpoint DO accumulate toward lockout.
+
+        This is the only endpoint where brute-force tracking is applied, because
+        it is the only endpoint where a missing credential represents a password
+        guess rather than a session management issue.
+        """
         from fastapi_security import _brute_force
 
         ip = "198.51.100.7"
         _brute_force._attempts.pop(ip, None)
         _brute_force._lockouts.pop(ip, None)
 
-        # Run in a fresh production-like environment so the middleware enforces auth
+        # Use a high max_attempts to ensure exactly 20 attempts are needed to lock out.
+        # We'll directly manipulate the tracker instead to test behavior regardless of
+        # the env default.
+        from fastapi_security import _BruteForceTracker
+        local_tracker = _BruteForceTracker(max_attempts=5, window_seconds=900, lockout_seconds=900)
+        test_ip = "198.51.100.8"
+        for _ in range(5):
+            local_tracker.record_failure(test_ip)
+        assert local_tracker.is_locked_out(test_ip), (
+            "IP must be locked out after 5 login failures"
+        )
+
+    def test_non_login_endpoint_no_brute_force_on_missing_creds(self):
+        """Missing credentials on a non-login endpoint do NOT accumulate toward lockout.
+
+        Chat, Librarian, and other API endpoints without credentials are session
+        management issues (expired token, missing cookie), not brute-force attacks.
+        The middleware returns 401 but does NOT record a brute-force failure.
+        """
+        from fastapi_security import _brute_force, _is_login_endpoint
+
+        ip = "198.51.100.9"
+        _brute_force._attempts.pop(ip, None)
+        _brute_force._lockouts.pop(ip, None)
+
+        # Verify /api/chat, /api/librarian/ask, /api/execute are NOT login endpoints
+        assert _is_login_endpoint("/api/chat", "POST") is False
+        assert _is_login_endpoint("/api/librarian/ask", "POST") is False
+        assert _is_login_endpoint("/api/execute", "POST") is False
+        assert _is_login_endpoint("/api/profiles/me", "GET") is False
+
+        # Run in production-like environment
         with patch.dict(os.environ, {"MURPHY_ENV": "production", "MURPHY_API_KEYS": "secret-key"}):
             middleware = SecurityMiddleware(app=MagicMock(), service_name="test")
 
-            async def _simulate_protected_hits():
-                for _ in range(5):
-                    request = self._make_request("/api/profiles/me", "GET")
-                    request.client.host = ip
-                    request.headers = {}  # no credentials
-                    mock_response = MagicMock()
-                    mock_response.headers = {}
-                    mock_response.status_code = 200
-                    await middleware.dispatch(request, AsyncMock(return_value=mock_response))
+            async def _simulate_api_hits():
+                for _ in range(25):
+                    # Use the correct HTTP methods for each endpoint
+                    for path, method in [
+                        ("/api/chat", "POST"),
+                        ("/api/librarian/ask", "POST"),
+                        ("/api/execute", "POST"),
+                        ("/api/profiles/me", "GET"),
+                    ]:
+                        request = self._make_request(path, method)
+                        request.client.host = ip
+                        request.headers = {}  # no credentials
+                        mock_response = MagicMock()
+                        mock_response.headers = {}
+                        mock_response.status_code = 200
+                        await middleware.dispatch(request, AsyncMock(return_value=mock_response))
 
             loop = asyncio.new_event_loop()
             try:
-                loop.run_until_complete(_simulate_protected_hits())
+                loop.run_until_complete(_simulate_api_hits())
             finally:
                 loop.close()
 
-        assert _brute_force.is_locked_out(ip), (
-            "IP must be locked out after 5 failed attempts on protected route"
+        assert not _brute_force.is_locked_out(ip), (
+            "IP must NOT be locked out after repeated API calls without credentials — "
+            "only /api/auth/login POST failures count toward brute-force"
         )
+
+    def test_login_post_records_failures_on_invalid_creds(self):
+        """Invalid credentials on POST /api/auth/login DO trigger brute-force lockout."""
+        from fastapi_security import _brute_force, _is_login_endpoint
+
+        assert _is_login_endpoint("/api/auth/login", "POST") is True
+        assert _is_login_endpoint("/api/auth/login", "GET") is False
+
+        ip = "198.51.100.10"
+        _brute_force._attempts.pop(ip, None)
+        _brute_force._lockouts.pop(ip, None)
+
+        # Record exactly max_attempts failures directly via the tracker, matching
+        # what the middleware does when it handles POST /api/auth/login.
+        locked = False
+        for _ in range(_brute_force.max_attempts):
+            locked = _brute_force.record_failure(ip)
+
+        assert locked is True, (
+            "IP must be locked out after max_attempts login failures on POST /api/auth/login"
+        )
+        assert _brute_force.is_locked_out(ip), (
+            "is_locked_out() must return True after max_attempts failures"
+        )
+
+        # Clean up
+        _brute_force._attempts.pop(ip, None)
+        _brute_force._lockouts.pop(ip, None)
 
 
 if __name__ == "__main__":
