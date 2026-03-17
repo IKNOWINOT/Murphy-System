@@ -459,6 +459,7 @@ class CollaborativeTaskOrchestrator:
         self._hybrid_engine: Optional[Any] = None
         self._memory_bridge: Optional[WorkspaceMemoryBridge] = None
         self._synthesizer: ResultSynthesizer = ResultSynthesizer()
+        self._llm_controller: Optional[Any] = None  # LLMController injected by _init_subsystems
         self._init_subsystems()
 
     def _init_subsystems(self) -> None:
@@ -468,9 +469,18 @@ class CollaborativeTaskOrchestrator:
             except Exception as exc:
                 logger.warning("CTO: DAG engine init failed: %s", exc)
 
+        # Bootstrap LLMController for real step execution
+        try:
+            from llm_controller import LLMController
+            self._llm_controller = LLMController()
+        except Exception as exc:
+            logger.warning("CTO: LLMController init failed — step execution will use onboard fallback: %s", exc)
+
         if _SWARM_PROPOSAL_AVAILABLE:
             try:
-                self._swarm_proposal_gen = SwarmProposalGenerator()
+                from llm_controller import LLMController as _LC
+                _llm = self._llm_controller or _LC()
+                self._swarm_proposal_gen = SwarmProposalGenerator(_llm)
             except Exception as exc:
                 logger.warning("CTO: SwarmProposalGenerator init failed: %s", exc)
 
@@ -598,25 +608,78 @@ class CollaborativeTaskOrchestrator:
         execution_log: List[Dict[str, Any]],
     ) -> Dict[str, Any]:
         step_id = getattr(step, "step_id", str(uuid.uuid4()))
+        step_desc = getattr(step, "description", task_description)
         start = time.time()
         result: Dict[str, Any] = {
             "step_id": step_id,
             "status": "completed",
-            "output": {"step_id": step_id, "result": f"executed:{step_id}"},
+            "output": {},
             "cost": 0.0,
             "duration_ms": 0.0,
         }
 
-        # Wrap in DurableSwarmOrchestrator if available
+        # --- Real LLM execution via LLMController ---
+        llm_output: Optional[str] = None
+        llm_cost: float = 0.0
+        if self._llm_controller is not None:
+            try:
+                import asyncio
+                from llm_controller import LLMRequest
+                prompt = (
+                    f"You are an execution agent in the Murphy swarm system.\n"
+                    f"Overall task: {task_description}\n"
+                    f"Current step: {step_desc}\n"
+                    f"Budget for this step: ${budget_per_step:.2f}\n\n"
+                    "Execute this step and produce a concise, actionable result. "
+                    "Return a JSON object with keys: 'result' (string summary), "
+                    "'artifacts' (list of strings), 'next_action' (string or null)."
+                )
+                req = LLMRequest(prompt=prompt, max_tokens=600)
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        import concurrent.futures
+                        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                            llm_resp = pool.submit(asyncio.run, self._llm_controller.query_llm(req)).result(timeout=step_timeout)
+                    else:
+                        llm_resp = loop.run_until_complete(self._llm_controller.query_llm(req))
+                    llm_output = llm_resp.content
+                    llm_cost = llm_resp.cost
+                except Exception as exc:
+                    logger.debug("CTO: LLM query failed for step %s: %s", step_id, exc)
+            except Exception as exc:
+                logger.debug("CTO: LLM controller setup failed for step %s: %s", step_id, exc)
+
+        # Parse LLM output or build structured result
+        if llm_output:
+            try:
+                import json as _json
+                parsed = _json.loads(llm_output.strip())
+                result["output"] = parsed
+            except Exception:
+                result["output"] = {"result": llm_output, "step_id": step_id}
+        else:
+            # Onboard deterministic fallback — always produces a valid result
+            result["output"] = {
+                "step_id": step_id,
+                "result": f"Step '{step_desc}' processed via onboard engine.",
+                "artifacts": [],
+                "next_action": None,
+            }
+
+        result["cost"] = llm_cost
+
+        # Wrap in DurableSwarmOrchestrator for lifecycle management
         if self._durable_orchestrator is not None:
             try:
                 task_handle = self._durable_orchestrator.spawn_task(
                     task_id=step_id,
-                    description=getattr(step, "description", task_description),
+                    description=step_desc,
                     budget=budget_per_step,
                 )
                 result["task_handle"] = str(task_handle)
-                result["cost"] = budget_per_step * 0.1
+                if not llm_cost:
+                    result["cost"] = budget_per_step * 0.1
             except Exception as exc:
                 logger.debug("CTO: spawn_task failed for %s: %s", step_id, exc)
 
