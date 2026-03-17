@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — Landing Page Demo: Custom Query Fallback
+
+- **fix(ui):** `murphy_landing_page.html` — The interactive demo no longer silently falls back to the
+  "Onboard a new client" scenario for unrecognised queries. Two changes were made:
+  - **`buildCustomScenario(query)`** (new function) — Builds a fully dynamic terminal scenario from
+    the user's raw prompt. The scenario echoes the query as an executed command, steps through a
+    `research → draft → review → deliver` pipeline, validates the deliverable spec against quality
+    gates, and renders a preview box (title, quality score 94/100, GDPR + SOC 2 badges) before
+    finishing with a sign-up CTA that references the user's specific request. Queries longer than
+    100 characters are truncated for display safety; the preview title is padded/truncated to 38
+    characters to preserve box-drawing alignment.
+  - **`demoMatch(q)` fallback updated** — Changed the final `return` from the hard-coded
+    `DEMO_SCENARIOS.onboarding` to `return buildCustomScenario(q)`. Keyword-matched scenarios
+    (onboarding, proposal, report, invoice, research, contract) continue to work exactly as before;
+    only the fallback path changes.
+- **fix(ui):** `Murphy System/murphy_landing_page.html` — Same changes applied to the mirrored copy.
+- **test:** `tests/test_ui_style_consistency.py` — Added `test_landing_demo_custom_fallback` and
+  `test_landing_demo_build_custom_scenario` to verify the presence and correctness of
+  `buildCustomScenario` and the updated `demoMatch` fallback in `murphy_landing_page.html`.
 ### Fixed — OAuth Callback: Redirect to Dashboard with Session Cookie
 
 - **fix(auth):** `src/runtime/app.py`, `Murphy System/src/runtime/app.py` — **`GET /api/auth/callback`** now properly logs users in after a social OAuth flow instead of dumping raw JSON in the browser.

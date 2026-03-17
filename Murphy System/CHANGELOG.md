@@ -17,6 +17,22 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed — Landing Page Demo: Custom Query Fallback
+
+- **fix(ui):** `murphy_landing_page.html` — The interactive demo no longer silently falls back to the
+  "Onboard a new client" scenario for unrecognised queries. Two changes were made:
+  - **`buildCustomScenario(query)`** (new function) — Builds a fully dynamic terminal scenario from
+    the user's raw prompt. The scenario echoes the query as an executed command, steps through a
+    `research → draft → review → deliver` pipeline, validates the deliverable spec against quality
+    gates, and renders a preview box (title, quality score 94/100, GDPR + SOC 2 badges) before
+    finishing with a sign-up CTA that references the user's specific request. Queries longer than
+    100 characters are truncated for display safety; the preview title is padded/truncated to 38
+    characters to preserve box-drawing alignment.
+  - **`demoMatch(q)` fallback updated** — Changed the final `return` from the hard-coded
+    `DEMO_SCENARIOS.onboarding` to `return buildCustomScenario(q)`. Keyword-matched scenarios
+    (onboarding, proposal, report, invoice, research, contract) continue to work exactly as before;
+    only the fallback path changes.
+- **fix(ui):** `Murphy System/murphy_landing_page.html` — Same changes applied to the mirrored copy.
 ### Changed — Round 61 — OAuthProvider Enum: 4 → 7 providers (2026-03-17)
 
 - **feat(oauth):** `src/oauth_oidc_provider.py` — `OAuthProvider` enum expanded from 4 to 7 members: added `META = "meta"`, `LINKEDIN = "linkedin"`, `APPLE = "apple"` alongside existing `GOOGLE`, `GITHUB`, `MICROSOFT`, `CUSTOM`. Enum is now in sync with canonical definition in `src/account_management/models.py`.

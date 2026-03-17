@@ -850,13 +850,52 @@ var DEMO_SCENARIOS={
   }
 };
 
+function buildCustomScenario(query){
+  var displayQuery=query.length>100?query.substring(0,100)+'\u2026':query;
+  return{
+    kw:[],
+    lines:[
+      {c:'cmd',   t:'$ murphy execute "'+displayQuery+'"'},
+      {c:'info',  t:'\u26a1 Analyzing request\u2026'},
+      {c:'info',  t:'\u251c\u2500 Classifying task type\u2026'},
+      {c:'step',  t:'\u2502  Task type: Custom Deliverable'},
+      {c:'info',  t:'\u251c\u2500 Extracting requirements from prompt\u2026'},
+      {c:'step',  t:'\u2502  Input: "'+displayQuery+'"'},
+      {c:'info',  t:'\u251c\u2500 Selecting execution pipeline\u2026'},
+      {c:'step',  t:'\u2502  Pipeline: research \u2192 draft \u2192 review \u2192 deliver'},
+      {c:'info',  t:'\u251c\u2500 Generating deliverable spec\u2026'},
+      {c:'step',  t:'\u2502  Format: Document (PDF)'},
+      {c:'step',  t:'\u2502  Estimated pages: 8-12'},
+      {c:'step',  t:'\u2502  Sections: Executive Summary, Research, Analysis, Recommendations'},
+      {c:'ok',    t:'\u251c\u2500 \u2713 Spec validated against quality gates'},
+      {c:'info',  t:'\u251c\u2500 Assembling deliverable preview\u2026'},
+      {c:'step',  t:'\u2502'},
+      {c:'step',  t:'\u2502  \u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557'},
+      {c:'step',  t:'\u2502  \u2551  DELIVERABLE PREVIEW                        \u2551'},
+      {c:'step',  t:'\u2502  \u2560\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2563'},
+      {c:'step',  t:'\u2502  \u2551  Title: '+displayQuery.substring(0,38).padEnd(38)+'\u2551'},
+      {c:'step',  t:'\u2502  \u2551  Status: Draft ready for review             \u2551'},
+      {c:'step',  t:'\u2502  \u2551  Quality score: 94/100                      \u2551'},
+      {c:'step',  t:'\u2502  \u2551  Compliance: \u2713 GDPR  \u2713 SOC\u00a02               \u2551'},
+      {c:'step',  t:'\u2502  \u255a\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255d'},
+      {c:'step',  t:'\u2502'},
+      {c:'ok',    t:'\u251c\u2500 \u2713 Deliverable generated successfully'},
+      {c:'ok',    t:'\u251c\u2500 \u2713 Quality gates passed (3/3)'},
+      {c:'ok',    t:'\u2514\u2500 \u2713 Ready for human review'},
+      {c:'done',  t:''},
+      {c:'done',  t:'\u2705 Done \u2014 deliverable ready in 2m 14s'}
+    ],
+    roi:'\u2713 Custom deliverable "'+displayQuery.substring(0,50)+'" generated in 2m 14s. Sign up to get the full output.'
+  };
+}
+
 function demoMatch(q){
   var s=q.toLowerCase();
   for(var k in DEMO_SCENARIOS){
     var kw=DEMO_SCENARIOS[k].kw;
     for(var i=0;i<kw.length;i++){if(s.indexOf(kw[i])>=0)return DEMO_SCENARIOS[k];}
   }
-  return DEMO_SCENARIOS.onboarding;
+  return buildCustomScenario(q);
 }
 
 function demoReset(){
