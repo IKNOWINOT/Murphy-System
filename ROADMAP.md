@@ -123,7 +123,7 @@ Murphy's hero flow is already built. This roadmap is about getting it in front o
 | Tier | Monthly | Annual/mo | Users | Automations |
 |---|---|---|---|---|
 | **Solo** | $29 | $24 | 1 | 3 |
-| **Business** | $299 | $249 | 10 | Unlimited |
+| **Business** | $99 | $79 | 10 | Unlimited |
 | **Professional** | Custom | Custom | Unlimited | Unlimited |
 | **Enterprise** | Custom | Custom | Unlimited | Unlimited |
 
