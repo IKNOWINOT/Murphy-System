@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — OAuth Callback: Redirect to Dashboard with Session Cookie
+
+- **fix(auth):** `src/runtime/app.py`, `Murphy System/src/runtime/app.py` — **`GET /api/auth/callback`** now properly logs users in after a social OAuth flow instead of dumping raw JSON in the browser.
+  - **Before**: `oauth_callback` returned a `JSONResponse` containing token details (provider, token_type, profile, etc.). Users saw a JSON blob instead of being redirected to the dashboard.
+  - **After**: On successful `complete_auth_flow()`, the handler now:
+    1. Generates a cryptographically secure session token via `secrets.token_urlsafe(32)`.
+    2. Returns a `302 RedirectResponse` to `/dashboard.html` with URL-encoded query parameters (`session_token`, `user_id`, `provider`) for `murphy_auth.js` to write into `localStorage`.
+    3. Sets a `murphy_session` cookie (`httponly=True`, `secure=True`, `samesite="lax"`, `max_age=86400`) so the frontend cookie-check path also succeeds.
+  - Social login buttons (Google, Meta, LinkedIn, Apple, GitHub) that redirect to `/api/auth/callback` will now complete the login flow and land the user on the dashboard.
+  - Tests: `tests/test_oauth_callback_redirect.py` — 6 new tests covering redirect status, cookie presence, query-param encoding, and error responses.
+
 ### Changed — Round 59 — KeyHarvester: Playwright → Murphy Native Automation
 
 - **refactor(key-harvester):** `src/key_harvester.py` — **KeyHarvester** migrated from Playwright-style browser automation to Murphy's native `MultiCursor` desktop automation stack.
