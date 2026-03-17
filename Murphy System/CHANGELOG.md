@@ -17,6 +17,20 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed — OAuth callback: redirect to dashboard with session cookie
+
+- **fix(oauth):** `src/runtime/app.py` + `Murphy System/src/runtime/app.py` — the `/api/auth/callback` OAuth handler no longer returns a raw `JSONResponse` containing the token fields. It now:
+  1. Generates a cryptographically-random session token via `secrets.token_urlsafe(32)`.
+  2. Sets a `murphy_session` cookie (`httponly=True`, `secure=True`, `samesite="lax"`, `max_age=86400`) so the session survives page navigation.
+  3. Issues a `302 RedirectResponse` to `/ui/terminal-unified?oauth_success=1&provider=<name>`, landing the user on the dashboard after any configured OAuth provider completes authentication.
+- **feat(auth-js):** `murphy_auth.js` + `Murphy System/murphy_auth.js` — added `_handleOAuthSuccess()` helper (called at the top of `boot()`) that:
+  - Detects the `?oauth_success=1` query parameter present after an OAuth redirect.
+  - Reads the `murphy_session` cookie value and mirrors it into `localStorage` as `murphy_session_token` so Bearer-token API calls work immediately.
+  - Stores the provider name in `localStorage` under `murphy_oauth_provider`.
+  - Removes the OAuth query params from the address bar (`history.replaceState`) so a page refresh does not re-run the handler.
+- **docs:** `API_ROUTES.md` — updated the `/api/auth/callback` row to document the new `302` redirect + cookie behaviour.
+- **docs:** `src/account_management/README.md` — updated OAuth provider list to reflect all currently supported providers.
+
 ### Changed — Round 59 — KeyHarvester: Playwright → Murphy Native Automation
 
 - **refactor(key-harvester):** `src/key_harvester.py` — **KeyHarvester** migrated from Playwright-style browser automation to Murphy's native `MultiCursor` desktop automation stack.
