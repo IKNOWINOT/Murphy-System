@@ -370,7 +370,6 @@
     </div>
   </div>
   <div class="murphy-topbar-right flex items-center gap-2">
-    <button class="murphy-btn murphy-btn-ghost murphy-btn-icon" id="theme-toggle-btn" aria-label="Toggle theme" title="Toggle theme">🌙</button>
     <a href="/ui/login" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Sign In</a>
     <a href="/ui/pricing" class="murphy-btn murphy-btn-primary murphy-btn-sm">View Pricing</a>
   </div>
@@ -706,14 +705,6 @@
   var theme = new MurphyTheme();
   theme.init();
 
-  var toggleBtn = document.getElementById('theme-toggle-btn');
-  function updateThemeIcon() {
-    toggleBtn.textContent = theme.get() === 'dark' ? '🌙' : '☀️';
-  }
-  updateThemeIcon();
-  theme.onChange(updateThemeIcon);
-  toggleBtn.addEventListener('click', function () { theme.toggle(); });
-
   // ── Tab toggle ──────────────────────────────────────────
   var tabEmail  = document.getElementById('tab-email');
   var tabPhone  = document.getElementById('tab-phone');
@@ -864,7 +855,32 @@
       submitBtn.classList.remove('loading');
       submitBtn.disabled = false;
       if (result.status >= 200 && result.status < 300) {
-        window.location.href = '/ui/onboarding';
+        var urlParams = new URLSearchParams(window.location.search);
+        var tier = urlParams.get('tier');
+        var interval = urlParams.get('interval');
+        var accountId = result.data && result.data.account_id;
+        if (tier && interval && accountId) {
+          fetch('/api/billing/checkout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ account_id: accountId, tier: tier, interval: interval })
+          })
+          .then(function (r) { return r.json(); })
+          .then(function (billing) {
+            if (billing && billing.approval_url) {
+              window.location.href = billing.approval_url;
+            } else {
+              showFormError('Account created! Payment setup could not be completed — you can subscribe from your dashboard. Redirecting…');
+              setTimeout(function () { window.location.href = '/ui/onboarding'; }, 3000);
+            }
+          })
+          .catch(function () {
+            showFormError('Account created! Payment setup could not be completed — you can subscribe from your dashboard. Redirecting…');
+            setTimeout(function () { window.location.href = '/ui/onboarding'; }, 3000);
+          });
+        } else {
+          window.location.href = '/ui/onboarding';
+        }
       } else {
         showFormError(result.data.message || result.data.error || 'Signup failed. Please try again.');
       }

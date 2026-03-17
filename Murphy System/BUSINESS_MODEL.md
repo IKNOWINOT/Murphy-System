@@ -21,7 +21,7 @@ converts to Apache 2.0 after four years per version release.
 | Tier | Monthly | Annual | Users | Automations | Integrations |
 |------|---------|--------|-------|-------------|--------------|
 | **Solo** | $29/mo | $24/mo | 1 | 3 active | 5 integrations |
-| **Business** | $299/mo | $249/mo | 10 | Unlimited | 20 integrations |
+| **Business** | $99/mo | $79/mo | 10 | Unlimited | 20 integrations |
 | **Professional** | Custom | Custom | Unlimited | Unlimited | All 90+ integrations |
 | **Enterprise** | Custom | Custom | Unlimited | Unlimited | All + custom |
 
@@ -97,7 +97,7 @@ over general-purpose automation tools.
 | Tier | Monthly | Annual/mo | Users | Automations | Includes |
 |------|---------|-----------|-------|-------------|----------|
 | **Solo** | $29 | $24 | 1 | 3 | Core runtime, community support |
-| **Business** | $299 | $249 | 10 | Unlimited | Multi-user, API access, email support |
+| **Business** | $99 | $79 | 10 | Unlimited | Multi-user, API access, email support |
 | **Professional** | Custom | Custom | Unlimited | Unlimited | SSO, RBAC, priority support |
 | **Enterprise** | Custom | Custom | Unlimited | Unlimited | SLA, dedicated support, white-label, multi-tenant |
 
