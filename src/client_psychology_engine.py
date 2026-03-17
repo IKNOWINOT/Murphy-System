@@ -1176,7 +1176,13 @@ def _select_framework(
     has_critical = any(p.intensity == PainIntensity.CRITICAL for p in pain_signals)
     pain_categories = {p.category for p in pain_signals}
 
-    # Enterprise economic buyer, complex deal → MEDDIC (highest priority)
+    # Relationship-first cohorts (Boomer/Silent) with strong relational preference
+    # override enterprise qualification; trust comes before metrics.
+    if (profile.generation in (GenerationCohort.BOOMER, GenerationCohort.SILENT)
+            and profile.relationship_dependency >= 0.75):
+        return SalesFramework.CONSULTATIVE
+
+    # Enterprise economic buyer, complex deal → MEDDIC
     if (profile.role == DecisionMakerRole.ECONOMIC_BUYER
             and profile.formality_preference >= 0.60):
         return SalesFramework.MEDDIC
@@ -1187,7 +1193,7 @@ def _select_framework(
             and profile.formality_preference < 0.40):
         return SalesFramework.SNAP_SELLING
 
-    # Relationship-first cohorts (Boomer/Silent) → Consultative
+    # Relationship-first cohorts (Boomer/Silent) without dominant relational signal → Consultative
     if profile.generation in (GenerationCohort.BOOMER, GenerationCohort.SILENT):
         return SalesFramework.CONSULTATIVE
 
