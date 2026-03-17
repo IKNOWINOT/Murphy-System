@@ -79,7 +79,7 @@ def _prov(name: str = "google") -> ProviderConfig:
 # -- Enum tests ------------------------------------------------------------
 def test_oau_001_provider_enum():
     """OAuthProvider enum values."""
-    assert record("OAU-001", "4 providers", 4, len(OAuthProvider),
+    assert record("OAU-001", "7 providers", 7, len(OAuthProvider),
                    cause="enum definition", effect="all SSO providers covered",
                    lesson="str enums give readable serialisation")
 def test_oau_002_grant_type_enum():

@@ -6,7 +6,7 @@ OAuth sign-up/sign-in, secure credential storage, and account lifecycle manageme
 
 ## Overview
 
-The account management package handles the full identity lifecycle for Murphy users and tenants. It provides OAuth 2.0 flows for Microsoft, Google, and Meta, enabling users to sign up and sign in via external identity providers. Credentials are stored encrypted with audit logging on every access and mutation. Automatic change detection triggers notifications when stored credentials are rotated by upstream providers.
+The account management package handles the full identity lifecycle for Murphy users and tenants. It provides OAuth 2.0 flows for Microsoft, Google, Meta, LinkedIn, and Apple, enabling users to sign up and sign in via external identity providers. Credentials are stored encrypted with audit logging on every access and mutation. Automatic change detection triggers notifications when stored credentials are rotated by upstream providers.
 
 ## Key Components
 
