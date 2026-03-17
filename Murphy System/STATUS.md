@@ -10,7 +10,7 @@
 
 | Area | Status | Notes |
 |------|--------|-------|
-| Core Runtime | ✅ Operational | FastAPI server, 935+ modules, modular engine architecture |
+| Core Runtime | ✅ Operational | FastAPI server, 936+ modules, modular engine architecture |
 | Control Plane | ✅ Operational | Execution packets, state vectors, formal constraints |
 | Governance Framework | ✅ Operational | HITL gates, governance kernel, compliance scheduling |
 | Confidence Engine | ✅ Operational | Bayesian scoring, Murphy Index, artifact graphs |
