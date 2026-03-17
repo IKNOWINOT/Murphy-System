@@ -308,7 +308,7 @@ class TestGap7EnvExampleCoverage:
         "REDIS_URL",
         "MURPHY_REDIS_URL",
         "MURPHY_API_KEYS",
-        "JWT_SECRET",
+        "MURPHY_JWT_SECRET",
         "ENCRYPTION_KEY",
         "MURPHY_CREDENTIAL_MASTER_KEY",
         "SENDGRID_API_KEY",

@@ -125,7 +125,7 @@ EOF
 # REDIS_URL=redis://localhost:6379/0
 
 # Security (auto-generated if not provided)
-# JWT_SECRET=
+# MURPHY_JWT_SECRET=
 # ENCRYPTION_KEY=
 
 # See .env.example for more configuration options
