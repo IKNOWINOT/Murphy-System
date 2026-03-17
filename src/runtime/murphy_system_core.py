@@ -12998,7 +12998,7 @@ class MurphySystem:
         industry = collected.get("industry", "your industry")
 
         # --- Bug 4 Fix: de-duplicate summary ---
-        current_hash = _hashlib.md5(
+        current_hash = _hashlib.sha256(
             json.dumps(collected, sort_keys=True).encode()
         ).hexdigest()
 

@@ -14,6 +14,10 @@ The execution package provides the engines that convert Murphy plans and templat
 |--------|---------|
 | `document_generation_engine.py` | `DocumentGenerationEngine`, `Document`, `DocumentTemplate`, `DocumentType`, template registration and rendering |
 
+## Error Handling
+
+The `DocumentGenerationEngine` uses a graceful fallback chain for PDF rendering. If the primary Rich PDF renderer (WeasyPrint) is unavailable, the engine logs a debug-level message and falls back to reportlab. All fallback transitions are logged to aid troubleshooting in production.
+
 ## Usage
 
 ```python
