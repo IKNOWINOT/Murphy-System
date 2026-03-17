@@ -7,6 +7,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Round 58 — Client Psychology Engine + Character Network Engine + Networking Mastery Engine + Cyclic Trends Engine + Skill Catalogue Engine
+
+- **feat(intelligence):** `src/client_psychology_engine.py` — **ClientPsychologyEngine**: Demographic intelligence engine that identifies pain points and adapts communication to the generation, industry vertical, role, and cultural context of every prospect.
+  - **5 Generation Cohorts** (Silent / Boomer / Gen-X / Millennial / Gen-Z) each with a curated language pack (modern lingo, buzzwords, formality preferences, relationship-dependency models).
+  - **12 Industry Verticals** (Technology, Finance, Healthcare, Manufacturing, Real-Estate, Legal, Education, Retail, Government, Consulting, Construction, Energy) — each with industry-specific pain vocabulary.
+  - **9 Pain Categories** (Revenue Growth, Cost Reduction, Efficiency, Talent & Retention, Competitive Threat, Compliance & Risk, Digital Transformation, Innovation Pressure, Customer Experience) — 40+ pre-built `PainSignal` library entries.
+  - **Modern Sales Frameworks** — MEDDIC/MEDDICC, Challenger Sale, GAP Selling, SNAP Selling, JBTD (Jobs-to-be-Done), SPIN Modern, Command of the Sale, Consultative — each with a full `FrameworkGuide` (usage patterns, opening questions, discovery moves, closing scripts, common mistakes).
+  - **`_select_framework()`** — deterministic framework selector; Boomer/Silent profiles with high `relationship_dependency` (≥ 0.75) receive Consultative override before the MEDDIC enterprise-buyer gate, so relationship-first cohorts are always handled with appropriate trust scaffolding.
+  - **`DemographicAdapter`** — infers generation cohort from 12 conversational hints; translates any message into the target cohort's native vocabulary.
+  - **`PainPointDetector`** — scans free-text statements and hint dicts for active pain signals with urgency scoring and intensity classification (Mild / Moderate / Acute / Critical).
+  - **`IncomeScalingEngine`** — produces 2× → 5× income-scaling playbooks calibrated to generation cohort and target multiplier.
+  - **`ClientReadingReport`** — holistic single-call report: cohort, pain signals, framework recommendation, language-pack sample, scaling playbook, and next-action recommendations.
+  - **`ClientPsychologyEngine`** top-level façade wiring all sub-engines together.
+
+- **feat(character):** `src/character_network_engine.py` — **CharacterNetworkEngine**: Encodes a second nature to do good by building networks with people of higher moral fibre, modelled on Victorian stride leaders of character.
+  - **8 Victorian Character Pillars** (Integrity, Diligence, Honour, Service, Courage, Temperance, Prudence, Magnanimity) — each with philosophical grounding, observable behaviours, anti-patterns, and development practices.
+  - **15+ Victorian Leader Archetypes** (The Industrialist, The Reformer, The Enlightened Patron, The Servant Leader, The Moral Philosopher, The Explorer-Scientist, The Social Architect, The Benevolent Capitalist, The Civic Builder, The Compassionate Physician, The Literary Conscience, The Military Gentleman, The Legal Champion, The Missionary Educator, The Entrepreneurial Philanthropist).
+  - **`MoralFiberScore`** — composite 0–1 score across all 8 pillars with pillar breakdowns, archetype match, development gaps, and actionable recommendations.
+  - **`SecondNatureBehaviorEngine`** — surfaces contextually appropriate invisible-good actions that build trust through habitual excellence without self-promotion.
+  - **`CharacterNetworkBuilder`** — constructs a curated network graph weighted by complementary virtue profiles and trust depth; filters to a configurable minimum moral-fibre threshold.
+  - **`VirtueDevelopmentPlan`** — 90-day personal character development plan targeting the lowest-scoring pillars relative to a chosen Victorian archetype ideal.
+
+- **feat(networking):** `src/networking_mastery_engine.py` — **NetworkingMasteryEngine**: Shapes all networking mastery greats and builds buzz while defining capability within the system at face value, between the lines, and through outside-the-box applications.
+  - **18 Networking Mastery Greats** — behavioural profiles of Dale Carnegie, Keith Ferrazzi, Harvey Mackay, Ivan Misner, Porter Gale, Adam Grant, Reid Hoffman, Tiffany Pham, David C. Baker, Robert Cialdini, Jay Abraham, Tim Sanders, Bob Burg, Heidi Roizen, Chris Voss, Malcolm Gladwell, Carla Harris, and Dorie Clark — each with signature moves, philosophy, signature phrases, and anti-patterns to avoid.
+  - **6 Networking Styles** (Connector, Maven, Salesperson, Anchor, Bridge, Catalyst) — with strength profiles and situational guidance.
+  - **`BuzzCreationEngine`** — designs context-aware buzz campaigns with three layers: (1) face-value announcements, (2) between-the-lines capability signals, (3) outside-the-box reframing applications.
+  - **`CapabilitySignallingEngine`** — three-layer capability signal generator for any audience type (executive, peer, client, investor, community).
+  - **`NetworkIntelligenceReport`** — weak-tie mapping, connector identification, event-timing recommendations, and top-5 warm-door introductions.
+  - Full **cyclic-trend awareness**: buzz and event strategies adapt to season, weather, and economic phase.
+
+- **feat(cyclic):** `src/cyclic_trends_engine.py` — **CyclicTrendsEngine**: Injects cyclic trend inputs (weather, seasons, holidays, economic cycles) into every automation type so system behaviour adapts to the real-world rhythm of the year.
+  - **12-month `MONTH_CALENDAR`** — baseline season, weather pattern, economic multiplier, activity index, and behavioural signals for every calendar month.
+  - **8 Weather Patterns** (Warm Sunny, Hot Humid, Cold Clear, Cold Grey, Mild Overcast, Wet Rainy, Stormy, Dry Drought) — each with automation adjustment vectors for scheduling, energy, outreach, sales, operations, HVAC, and workforce automation.
+  - **`_adjust_weather()`** — temperature and precipitation deviation logic: a heat wave in a spring month (base=WARM_SUNNY) stays `WARM_SUNNY` (warm spring day); only escalates to `HOT_HUMID` when the base season is already summer-hot. Cold snaps and drought conditions handled symmetrically.
+  - **5 Economic Phases** (Expansion, Peak, Contraction, Trough, Recovery) with phase-specific multipliers for every automation type.
+  - **`CyclicTrendCalendar`** — `get_context_for_month()` returns a full `CyclicContext` with season, weather pattern, all deviation-adjusted signals, economic phase, and per-automation-type adjustment vectors.
+  - **`CyclicSignalBank`** — temperature, precipitation, daylight, and economic signals with type, direction, magnitude, and recommendation text.
+  - **`AllAutomationCyclicAdapter`** — single call to get the complete cyclic adjustment dict for all 7 automation types simultaneously.
+
+- **feat(skills):** `src/skill_catalogue_engine.py` — **SkillCatalogueEngine**: Logs all catalogued behaviours as named, executable skill sets that can be brought forth at command.
+  - **`SkillDefinition`** — self-describing skill: id, name, description, category, source engine, required inputs, cyclic-aware flag, and an `invoke()` callable.
+  - **`SkillCatalogue`** — ordered, named collection of skills per domain; supports tag-based queries and `cyclic_skills()` filter.
+  - **`SkillRegistry`** — aggregates all five catalogues; provides `run(skill_id, **kwargs)`, `search(query)`, `skills_by_category()`, and `help_text()`.
+  - **`SkillCatalogueEngine`** — top-level façade with `/skill` command parser (list / search / run / help / log), cyclic context injection, and `session_log` of every invocation with timestamp, inputs, and outcome.
+  - **23 pre-registered skills** across 5 catalogues: Client Psychology (6), Character Network (5), Networking Mastery (5), Cyclic Trends (4), Skill Management (3).
+  - **`build_default_registry()`** / **`build_default_engine()`** — factory functions that wire the complete skill surface in one call, optionally pre-seeded with a cyclic context dict.
+
+- **fix(framework-selector):** `_select_framework` priority reordered — relationship-first cohorts (Boomer/Silent) with `relationship_dependency ≥ 0.75` now receive CONSULTATIVE before the MEDDIC enterprise gate is evaluated, preserving trust-based selling for high-relational profiles while still routing enterprise economic buyers without strong relational signals to MEDDIC qualification.
+
+- **fix(weather-escalation):** `CyclicTrendCalendar._adjust_weather` — heat-wave logic corrected; temperature deviation > 5 °C now escalates to `HOT_HUMID` only when the base pattern is already `HOT_HUMID` (summer). Spring and autumn warm surges stay `WARM_SUNNY`, matching real-world comfort perception.
+
+- **tests:** `tests/test_client_psychology_engine.py` — 115 tests (Parts 1–17 covering all engine classes).
+- **tests:** `tests/test_character_network_engine.py` — 88 tests (Parts 1–11 covering all character engine classes).
+- **tests:** `tests/test_networking_mastery_engine.py` — 65 tests (Parts 1–8 covering master profiles, buzz engine, capability signalling, network intelligence).
+- **tests:** `tests/test_cyclic_trends_engine.py` — 80 tests (Parts 1–10 covering month calendar, weather deviations, economic phases, all-automation adapter).
+- **tests:** `tests/test_skill_catalogue_engine.py` — 141 tests (Parts 1–20 covering all SkillCatalogueEngine classes, default registry, command parser, cyclic injection, utility helpers).
+
 ### Added — Round 57 — Historical Greatness Engine + Elite Org Simulator
 
 - **feat(intelligence):** `src/historical_greatness_engine.py` — models the **10 universal traits** shared by the most successful people across every class in recorded history. Corpus of 42+ modelled historical greats across 10 classes (military, business, science, arts, politics, athletics, philosophy, engineering, spiritual, exploration) spanning 2,500 years. Provides `TraitProfiler` (maps org competency scores → greatness traits), `ArchetypeMatcher` (finds closest historical great), `GreatnessBenchmark` (all-time mean + elite threshold + per-class means), `CalibrationResult` (full profile with development plan), and `HistoricalGreatnessEngine` top-level façade.

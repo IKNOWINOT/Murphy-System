@@ -412,7 +412,9 @@ class SeasonalCalendar:
         if precip_dev < -40:
             return WeatherPattern.DRY_DROUGHT
         if temp_dev > 5:
-            return WeatherPattern.HOT_HUMID if base in (WeatherPattern.WARM_SUNNY,) else WeatherPattern.WARM_SUNNY
+            # Escalate to HOT_HUMID only when the base is already summer-hot;
+            # a heat wave in a spring/autumn month stays WARM_SUNNY.
+            return WeatherPattern.HOT_HUMID if base == WeatherPattern.HOT_HUMID else WeatherPattern.WARM_SUNNY
         if temp_dev < -5:
             return WeatherPattern.COLD_GREY
         return base
