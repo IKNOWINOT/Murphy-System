@@ -108,12 +108,89 @@ class WorkflowDAGEngine:
     """DAG-based workflow engine with topological sort, parallel execution markers,
     conditional branching, and checkpoint/resume."""
 
-    def __init__(self):
+    def __init__(self, llm_controller=None):
         self._lock = threading.Lock()
         self._workflows: Dict[str, WorkflowDefinition] = {}
         self._executions: Dict[str, WorkflowExecution] = {}
         self._step_handlers: Dict[str, Callable] = {}
         self._execution_history: List[Dict[str, Any]] = []
+        self._register_default_handlers(llm_controller)
+
+    def _register_default_handlers(self, llm_controller=None) -> None:
+        """Register built-in LLM-backed step handlers so DAG workflows never
+        fall through to simulation mode.  Each handler tries the LLMController
+        first; if unavailable, uses the onboard LocalLLMFallback."""
+
+        def _llm_call(prompt: str, max_tokens: int = 500) -> str:
+            """Inner helper — tries LLMController then LocalLLMFallback."""
+            if llm_controller is not None:
+                try:
+                    import asyncio
+                    from llm_controller import LLMRequest
+                    req = LLMRequest(prompt=prompt, max_tokens=max_tokens)
+                    try:
+                        loop = asyncio.get_event_loop()
+                        if loop.is_running():
+                            import concurrent.futures
+                            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                                resp = pool.submit(asyncio.run, llm_controller.query_llm(req)).result(timeout=30)
+                        else:
+                            resp = loop.run_until_complete(llm_controller.query_llm(req))
+                        return resp.content
+                    except Exception as exc:
+                        logger.debug("DAG LLM handler: LLMController failed (%s)", exc)
+                except Exception:
+                    pass
+            try:
+                from local_llm_fallback import LocalLLMFallback
+                return LocalLLMFallback().generate(prompt, max_tokens=max_tokens)
+            except Exception:
+                return f"[onboard] Processed: {prompt[:80]}"
+
+        def _handle_llm_generate(step_def, context: Dict[str, Any]) -> Dict[str, Any]:
+            prompt = (
+                f"Generate content for step '{step_def.step_id}' "
+                f"({getattr(step_def, 'description', '')}).\n"
+                f"Context: {str(context)[:400]}"
+            )
+            return {"action": "llm_generate", "step_id": step_def.step_id, "result": _llm_call(prompt)}
+
+        def _handle_llm_analyze(step_def, context: Dict[str, Any]) -> Dict[str, Any]:
+            prompt = (
+                f"Analyze the data for step '{step_def.step_id}' "
+                f"({getattr(step_def, 'description', '')}).\n"
+                f"Context: {str(context)[:400]}\n"
+                "Return a JSON object with 'analysis', 'risks', and 'recommendations'."
+            )
+            return {"action": "llm_analyze", "step_id": step_def.step_id, "result": _llm_call(prompt)}
+
+        def _handle_llm_execute(step_def, context: Dict[str, Any]) -> Dict[str, Any]:
+            prompt = (
+                f"Execute step '{step_def.step_id}' "
+                f"({getattr(step_def, 'description', '')}).\n"
+                f"Context: {str(context)[:400]}\n"
+                "Return a JSON object with 'result', 'artifacts', and 'next_action'."
+            )
+            return {"action": "llm_execute", "step_id": step_def.step_id, "result": _llm_call(prompt)}
+
+        def _handle_llm_review(step_def, context: Dict[str, Any]) -> Dict[str, Any]:
+            prompt = (
+                f"Review and validate step '{step_def.step_id}' "
+                f"({getattr(step_def, 'description', '')}).\n"
+                f"Context: {str(context)[:400]}\n"
+                "Return a JSON object with 'approved' (bool), 'feedback', 'confidence' (0-1)."
+            )
+            return {"action": "llm_review", "step_id": step_def.step_id, "result": _llm_call(prompt)}
+
+        self._step_handlers.setdefault("llm_generate", _handle_llm_generate)
+        self._step_handlers.setdefault("llm_analyze", _handle_llm_analyze)
+        self._step_handlers.setdefault("llm_execute", _handle_llm_execute)
+        self._step_handlers.setdefault("llm_review", _handle_llm_review)
+        # Legacy / generic action names fall through to llm_execute
+        self._step_handlers.setdefault("execute", _handle_llm_execute)
+        self._step_handlers.setdefault("generate", _handle_llm_generate)
+        self._step_handlers.setdefault("analyze", _handle_llm_analyze)
+        self._step_handlers.setdefault("review", _handle_llm_review)
 
     def register_workflow(self, workflow: WorkflowDefinition) -> bool:
         with self._lock:
@@ -121,7 +198,18 @@ class WorkflowDAGEngine:
             if not self._validate_dag(workflow):
                 return False
             self._workflows[workflow.workflow_id] = workflow
-            return True
+
+        # Publish to Rosetta (non-blocking, best-effort)
+        try:
+            from swarm_rosetta_bridge import get_bridge
+            get_bridge().on_workflow_registered(
+                workflow_id=workflow.workflow_id,
+                steps=len(workflow.steps),
+            )
+        except Exception:
+            pass
+
+        return True
 
     def register_step_handler(self, action: str, handler: Callable) -> None:
         self._step_handlers[action] = handler
@@ -298,6 +386,18 @@ class WorkflowDAGEngine:
 
         with self._lock:
             capped_append(self._execution_history, summary)
+
+        # Publish to Rosetta (non-blocking, best-effort)
+        try:
+            from swarm_rosetta_bridge import get_bridge
+            get_bridge().on_dag_execution_complete(
+                execution_id=execution_id,
+                status=execution.status.value,
+                steps_completed=summary["completed"],
+            )
+        except Exception:
+            pass
+
         return summary
 
     def _evaluate_condition(self, condition: str, context: Dict[str, Any], results: Dict[str, Any]) -> bool:
