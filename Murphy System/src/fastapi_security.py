@@ -166,6 +166,10 @@ def _is_static_or_ui_page(path: str) -> bool:
     # Favicon — browsers automatically request this on every page load
     if normalized == "/favicon.ico" or normalized.endswith("/favicon.svg"):
         return True
+    # Root-level HTML pages served directly (e.g. /login.html, /signup.html)
+    # These are static content — blocking them returns raw JSON to the browser.
+    if normalized.endswith(".html"):
+        return True
     return False
 
 
@@ -202,6 +206,7 @@ def _is_public_api_route(path: str, method: str = "GET") -> bool:
         "/api/auth/register",
         "/api/auth/signup",
         "/api/auth/callback",
+        "/api/auth/providers",
     })
     if normalized in _PUBLIC_EXACT:
         return True
