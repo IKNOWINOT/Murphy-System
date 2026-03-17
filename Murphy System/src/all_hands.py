@@ -253,6 +253,39 @@ _MAX_AGENDA_ITEMS = 100_000
 _MAX_ACTION_ITEMS = 100_000
 
 
+def _advance_by_frequency(base_dt: datetime, freq: RecurrenceFrequency) -> datetime:
+    """Return a new ``datetime`` advanced by the given recurrence frequency.
+
+    Uses calendar-accurate month arithmetic (no fixed 30/91-day drift):
+    - ``WEEKLY`` → +7 days
+    - ``BIWEEKLY`` → +14 days
+    - ``MONTHLY`` → +1 calendar month (day clamped to last day of month)
+    - ``QUARTERLY`` → +3 calendar months (day clamped to last day of month)
+
+    Args:
+        base_dt: The base datetime to advance from.
+        freq:    The recurrence frequency.
+
+    Returns:
+        A new timezone-aware ``datetime`` object.
+    """
+    import calendar as _calendar
+
+    if freq == RecurrenceFrequency.WEEKLY:
+        return base_dt + timedelta(days=7)
+    if freq == RecurrenceFrequency.BIWEEKLY:
+        return base_dt + timedelta(days=14)
+
+    months = 1 if freq == RecurrenceFrequency.MONTHLY else 3
+    total_months = base_dt.month - 1 + months
+    new_year = base_dt.year + total_months // 12
+    new_month = total_months % 12 + 1
+    # Clamp day to the last valid day of the target month (e.g., Jan 31 → Feb 28)
+    max_day = _calendar.monthrange(new_year, new_month)[1]
+    new_day = min(base_dt.day, max_day)
+    return base_dt.replace(year=new_year, month=new_month, day=new_day)
+
+
 class AllHandsManager:
     """Thread-safe All-Hands meeting lifecycle manager.
 
@@ -822,6 +855,10 @@ class AllHandsManager:
         ``recurrence`` frequency and creates a new meeting record with the
         same metadata but a fresh ID.
 
+        Calendar-accurate arithmetic is used for monthly and quarterly
+        recurrences (no drift from fixed 30/91 day offsets).  Weekly and
+        biweekly use exact day offsets.
+
         Returns the new ``AllHandsMeeting``, or ``None`` if the meeting is
         not found or has ``RecurrenceFrequency.NONE``.
         """
@@ -830,20 +867,12 @@ class AllHandsManager:
         if template is None or template.recurrence == RecurrenceFrequency.NONE:
             return None
 
-        _freq_to_days: Dict[RecurrenceFrequency, int] = {
-            RecurrenceFrequency.WEEKLY: 7,
-            RecurrenceFrequency.BIWEEKLY: 14,
-            RecurrenceFrequency.MONTHLY: 30,
-            RecurrenceFrequency.QUARTERLY: 91,
-        }
-        days = _freq_to_days.get(template.recurrence, 7)
-
         try:
             base_dt = datetime.fromisoformat(template.scheduled_at)
         except (ValueError, TypeError):
             base_dt = datetime.now(timezone.utc)
 
-        next_dt = base_dt + timedelta(days=days)
+        next_dt = _advance_by_frequency(base_dt, template.recurrence)
         next_scheduled_at = next_dt.isoformat()
 
         return self.schedule_meeting(

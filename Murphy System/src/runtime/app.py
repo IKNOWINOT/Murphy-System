@@ -115,8 +115,8 @@ def create_app() -> FastAPI:
     try:
         from src.account_management.account_manager import AccountManager as _AccountManager
         _account_manager: "Optional[_AccountManager]" = _AccountManager()
-        # Keep a convenience reference to the inner registry for providers list
-        _oauth_registry = _account_manager._oauth  # type: ignore[union-attr]
+        # Public accessor — no private attribute access
+        _oauth_registry = _account_manager.get_oauth_registry()
     except Exception:  # pragma: no cover
         _account_manager = None
         _oauth_registry = None
@@ -5078,10 +5078,7 @@ def create_app() -> FastAPI:
             with _session_lock:
                 _session_store[session_token] = account.account_id
 
-            provider_name = ""
-            for prov_key, _tok in account.oauth_providers.items():
-                provider_name = prov_key
-                break
+            provider_name = next(iter(account.oauth_providers.keys()), "")
 
             qs = urllib.parse.urlencode({
                 "account_id": account.account_id,
