@@ -147,7 +147,7 @@ class TestSecretManifest(unittest.TestCase):
         "DATABASE_URL",
         "REDIS_URL",
         "GROQ_API_KEY",
-        "JWT_SECRET",
+        "MURPHY_JWT_SECRET",
         "ENCRYPTION_KEY",
         "GITHUB_TOKEN",
         "STRIPE_API_KEY",
