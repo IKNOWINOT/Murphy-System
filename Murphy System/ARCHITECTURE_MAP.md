@@ -1951,7 +1951,7 @@ Murphy's desktop automation stack is **100% native** — no Playwright, Selenium
 | `SplitScreenManager` | `src/murphy_native_automation.py` | High-level orchestrator; `enqueue()` + `run_all(parallel=True)` |
 | `SplitScreenCoordinator` | `src/split_screen_coordinator.py` | Triage → Evidence → Dispatch pipeline; wires Rubix + TicketTriage |
 | `playback_runner.py` | `bots/ghost_controller_bot/desktop/playback_runner.py` | Physical desktop actions with per-cursor `cursor_id` registry |
-| `playwright_task_definitions.py` | `src/playwright_task_definitions.py` | Murphy-native async task API (NavigateTask, ClickTask, FillTask, EvaluateTask, MultiCursorTask, SplitScreenSequenceTask, …) |
+| `playwright_task_definitions.py` | `src/playwright_task_definitions.py` | Murphy-native async task API (NavigateTask, ClickTask, FillTask, EvaluateTask, MultiCursorTask, SplitScreenSequenceTask, …). **KeyHarvester** now uses `murphy_native_automation` directly. |
 
 ### Split-Screen Layouts
 
