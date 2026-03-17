@@ -31,7 +31,7 @@ visitor's IP after just 1–2 page views.
   `SecurityMiddleware.dispatch()`.
 - `src/security_plane/middleware.py`: expanded `_PUBLIC_PATHS` tuple.
 - `API_ROUTES.md`: corrected `Auth` column for public endpoints.
-- `tests/test_public_route_exemption.py`: 44 regression tests added.
+- `tests/test_public_route_exemption.py`: 46 regression tests added (mirrored to `Murphy System/tests/`).
 
 ### Fixed — OAuth callback: redirect to dashboard with session cookie
 
