@@ -1008,6 +1008,12 @@ class SelfCodebaseSwarm:
                 )
             except Exception:
                 logger.debug("HITL record_action failed for execute_change")
+
+        with self._lock:
+            proposal.status = ProposalStatus.COMPLETE
+            proposal.approved_at = _ts()
+
+        self._audit("execute_change_success", proposal_id=pid)
         logger.info("SCS-001 execute_change SUCCESS proposal=%s", pid)
         return result
 
