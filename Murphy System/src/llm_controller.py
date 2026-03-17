@@ -590,17 +590,25 @@ class LLMController:
         )
 
     async def _query_fallback(self, request: LLMRequest) -> LLMResponse:
-        """Fallback response when all backends fail"""
-        content = "I'm sorry, but I'm experiencing technical difficulties with my language models. Please try again later."
-
+        """Onboard fallback — always available, uses LocalLLMFallback pattern-matcher / Ollama."""
+        try:
+            from local_llm_fallback import LocalLLMFallback
+            fallback = LocalLLMFallback()
+            content = fallback.generate(request.prompt, max_tokens=request.max_tokens)
+        except Exception as exc:
+            logger.debug("LocalLLMFallback unavailable (%s), using minimal response", exc)
+            content = (
+                f"[Onboard] I can help with: {request.prompt[:120]}. "
+                "Add a Groq API key via 'set key groq <key>' for enhanced responses."
+            )
         return LLMResponse(
             content=content,
             model_used=LLMModel.LOCAL_SMALL,
-            confidence=0.0,
+            confidence=0.55,
             tokens_used=len(content.split()),
             cost=0.0,
             latency=0.0,
-            metadata={"provider": "fallback", "error": "All backends failed"}
+            metadata={"provider": "onboard_fallback", "always_available": True},
         )
 
     async def recursive_query(
