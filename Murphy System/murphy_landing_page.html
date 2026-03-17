@@ -274,7 +274,7 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
 <!-- HERO -->
 <section id="hero" aria-labelledby="hero-h">
   <div class="hero-inner">
-    <div class="hero-badge"><span class="dot" aria-hidden="true"></span>Now in production — 218,497 lines shipped</div>
+    <div class="hero-badge"><span class="dot" aria-hidden="true"></span>Open Beta — 218,497 lines shipped</div>
     <h1 id="hero-h">Automate Your Entire Business.<br>From Intake to Delivery.</h1>
     <p class="hero-sub">Murphy replaces 12+ tools with one AI-powered system. Cut costs by 60%, scale 10x, stay compliant automatically.</p>
     <div class="hero-ctas">
@@ -282,9 +282,9 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
       <button class="btn-s lg" onclick="openDemo(event)" aria-label="Try Murphy interactive demo">&#9654; Try Murphy Now</button>
       <a href="/ui/partner" class="btn-partner">&#129309; Partner with Murphy</a>
     </div>
-    <p class="hero-note">Free tier forever &middot; Cancel anytime &middot; SOC 2 compliant</p>
-    <div class="sp-strip" aria-label="Trusted industries">
-      <span class="sp-text">Trusted by 2,000+ businesses across:</span>
+    <p class="hero-note">Free tier forever &middot; Cancel anytime &middot; SOC 2 aligned architecture</p>
+    <div class="sp-strip" aria-label="Beta program">
+      <span class="sp-text">🚀 Now in beta — looking for early testers in:</span>
       <div class="ind-icons">
         <span class="ind-pill">&#127974; Finance</span>
         <span class="ind-pill">&#127973; Healthcare</span>
@@ -578,55 +578,19 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
   </div>
 </section>
 
-<!-- REVIEWS -->
+<!-- EARLY ACCESS -->
 <section id="reviews" class="lp-bg3" aria-labelledby="reviews-h">
   <div class="si">
-    <span class="slabel">Community</span>
-    <h2 class="stitle" id="reviews-h">What Our Users Say</h2>
-    <div id="reviews-grid" class="review-grid" role="list" aria-label="User reviews">
-      <article class="review-card" role="listitem">
-        <div class="review-stars" aria-label="5 stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-        <div class="review-title">Transformed our operations</div>
-        <div class="review-text">Murphy automated our entire client onboarding in days. What used to take our team 3 hours now happens in 5 minutes.</div>
-        <div class="review-author">&mdash; Sarah K., Operations Director</div>
-      </article>
-      <article class="review-card" role="listitem">
-        <div class="review-stars" aria-label="5 stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-        <div class="review-title">Best automation platform</div>
-        <div class="review-text">The shadow learning feature is incredible. Murphy watches how we work and suggests improvements we never thought of.</div>
-        <div class="review-author">&mdash; James T., CTO</div>
-      </article>
-      <article class="review-card" role="listitem">
-        <div class="review-stars" aria-label="4 stars">&#9733;&#9733;&#9733;&#9733;&#9734;</div>
-        <div class="review-title">Solid platform, great support</div>
-        <div class="review-text">Integration was smooth and the HITL review gives us confidence that nothing ships without human approval.</div>
-        <div class="review-author">&mdash; Maria L., Quality Manager</div>
-      </article>
+    <span class="slabel">Early Access</span>
+    <h2 class="stitle" id="reviews-h">Be Among the First</h2>
+    <p style="text-align:center;color:var(--muted);max-width:600px;margin:0 auto 2rem;font-size:.95rem;">
+      Murphy System is in beta. We're looking for businesses willing to test real workflows
+      and help shape the product. Early testers get free access during beta and a voice in what we build next.
+    </p>
+    <div style="display:flex;justify-content:center;gap:1rem;flex-wrap:wrap;">
+      <a href="/ui/signup" class="btn-p">Sign Up as Early Tester</a>
+      <a href="/ui/partner" class="btn-s">Partner With Us</a>
     </div>
-    <div class="review-referral">
-      &#127873; <strong>Refer a friend</strong> &mdash; Both you and your referral get <strong>1 month free</strong> of Solo!
-      <a href="/ui/signup">Get your referral link</a>
-    </div>
-    <details class="review-form">
-      <summary class="review-submit">&#9997;&#65039; Write a Review</summary>
-      <form id="review-form" onsubmit="submitReview(event)">
-        <label for="rv-name">Your Name</label>
-        <input id="rv-name" type="text" required placeholder="Jane Doe">
-        <label for="rv-rating">Rating</label>
-        <select id="rv-rating" required>
-          <option value="5">&#9733;&#9733;&#9733;&#9733;&#9733; Excellent</option>
-          <option value="4">&#9733;&#9733;&#9733;&#9733;&#9734; Good</option>
-          <option value="3">&#9733;&#9733;&#9733;&#9734;&#9734; Average</option>
-          <option value="2">&#9733;&#9733;&#9734;&#9734;&#9734; Below Average</option>
-          <option value="1">&#9733;&#9734;&#9734;&#9734;&#9734; Poor</option>
-        </select>
-        <label for="rv-title">Title</label>
-        <input id="rv-title" type="text" required placeholder="Summary of your experience">
-        <label for="rv-comment">Your Review</label>
-        <textarea id="rv-comment" required placeholder="Tell us about your experience..."></textarea>
-        <button type="submit" class="review-submit">Submit Review</button>
-      </form>
-    </details>
   </div>
 </section>
 
@@ -648,12 +612,12 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
 <section id="final-cta" aria-labelledby="fcta-h">
   <div class="si lp-narrow">
     <h2 id="fcta-h">Ready to Automate Everything?</h2>
-    <p>Join 2,000+ businesses already running on Murphy. Set up takes under 5 minutes.</p>
+    <p>Join the beta and help shape Murphy. Set up takes under 5 minutes.</p>
     <div class="fcbtns">
       <a href="/ui/signup" class="btn-p lg">&#9889; Start Free Trial</a>
       <button class="btn-s lg" onclick="openDemo(event)">&#9654; Try Murphy</button>
     </div>
-    <p class="lp-fine-print">No credit card required &middot; Free tier forever &middot; SOC 2 Type II</p>
+    <p class="lp-fine-print">No credit card required &middot; Free tier forever &middot; SOC 2 aligned architecture</p>
   </div>
 </section>
 
