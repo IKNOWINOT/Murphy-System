@@ -60,7 +60,9 @@ except ImportError:
 # -- Enumerations ----------------------------------------------------------
 class OAuthProvider(str, Enum):
     """Supported identity providers."""
+    MICROSOFT = "microsoft"
     GOOGLE = "google"
+    META = "meta"
     GITHUB = "github"
     MICROSOFT = "microsoft"
     META = "meta"
