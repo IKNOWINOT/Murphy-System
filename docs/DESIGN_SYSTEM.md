@@ -22,7 +22,7 @@ The Murphy Design System provides a unified visual language across all 14 interf
 | `static/murphy-components.js` | Vanilla JS module — API client, UI components, Librarian chat, terminal panel | ~1700 lines |
 | `static/murphy-canvas.js` | Canvas rendering engine — nodes, edges, ports, interaction, auto-layout | ~1900 lines |
 | `static/murphy-icons.svg` | SVG sprite sheet — 42 icons, 24×24, 2px stroke | ~300 lines |
-| `static/favicon.svg` | Browser favicon — teal arrow on dark background | Minimal |
+| `static/favicon.svg` | Browser favicon — teal arrow on dark background. Served via `GET /favicon.ico` → `301` redirect to `/static/favicon.svg`. | Minimal |
 
 ---
 

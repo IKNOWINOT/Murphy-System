@@ -15,10 +15,15 @@ Design Labels: TEST-AUTH-CALLBACK-001
 import secrets
 import sys
 import os
-from unittest.mock import MagicMock
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+from urllib.parse import urlparse, parse_qs
 
 import pytest
 
+_root = Path(__file__).resolve().parent.parent
+if str(_root) not in sys.path:
+    sys.path.insert(0, str(_root))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 
@@ -236,47 +241,10 @@ class TestOAuthCallbackRegistryError:
             follow_redirects=False,
         )
         assert resp.status_code == 500
-Tests for OAuth callback redirect behaviour.
-
-Verifies that ``GET /api/auth/callback`` redirects to ``/dashboard.html``
-with a ``murphy_session`` cookie after a successful OAuth flow, instead of
-returning a raw JSON response.
-
-Covers:
-  1. Successful callback issues a 302 redirect (not 200 JSON).
-  2. Redirect location is ``/dashboard.html``.
-  3. ``murphy_session`` cookie is set on the response.
-  4. Redirect URL contains ``session_token``, ``user_id``, and ``provider``
-     as URL-encoded query parameters.
-  5. Missing ``code`` or ``state`` returns 400 JSON.
-  6. Unavailable OAuth registry returns 503 JSON.
-
-Copyright © 2020-2026 Inoni Limited Liability Company
-Creator: Corey Post
-License: BSL 1.1
-"""
-
-from __future__ import annotations
-
-import sys
-import os
-from pathlib import Path
-from unittest.mock import MagicMock, patch
-from urllib.parse import urlparse, parse_qs
-
-import pytest
-
-# ---------------------------------------------------------------------------
-# Sys-path setup
-# ---------------------------------------------------------------------------
-
-_root = Path(__file__).resolve().parent.parent
-if str(_root) not in sys.path:
-    sys.path.insert(0, str(_root))
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Helpers (for integration tests using the real app)
 # ---------------------------------------------------------------------------
 
 def _make_token(provider_value: str = "google", user_sub: str = "user-123") -> MagicMock:
@@ -329,8 +297,8 @@ class TestOAuthCallbackRedirect:
             f"Body: {resp.text[:200]}"
         )
 
-    def test_redirect_location_is_dashboard(self, app_client):
-        """Redirect must point to /dashboard.html."""
+    def test_redirect_location_is_terminal_unified(self, app_client):
+        """Redirect must point to /ui/terminal-unified."""
         mock_token = _make_token()
         _registry_path = (
             "src.account_management.oauth_provider_registry"
@@ -344,8 +312,11 @@ class TestOAuthCallbackRedirect:
             )
 
         location = resp.headers.get("location", "")
-        assert location.startswith("/dashboard.html"), (
-            f"Expected redirect to /dashboard.html, got: {location!r}"
+        assert location.startswith("/ui/terminal-unified"), (
+            f"Expected redirect to /ui/terminal-unified, got: {location!r}"
+        )
+        assert "oauth_success=1" in location, (
+            f"Expected oauth_success=1 in redirect URL, got: {location!r}"
         )
 
     def test_murphy_session_cookie_is_set(self, app_client):
@@ -368,8 +339,8 @@ class TestOAuthCallbackRedirect:
         )
         assert cookies["murphy_session"], "murphy_session cookie value must not be empty"
 
-    def test_redirect_url_contains_expected_query_params(self, app_client):
-        """Redirect URL must contain session_token, user_id, and provider."""
+    def test_redirect_url_contains_provider_param(self, app_client):
+        """Redirect URL must contain provider query parameter."""
         mock_token = _make_token(provider_value="google", user_sub="goog-user-99")
         _registry_path = (
             "src.account_management.oauth_provider_registry"
@@ -385,12 +356,7 @@ class TestOAuthCallbackRedirect:
         location = resp.headers.get("location", "")
         qs = parse_qs(urlparse(location).query)
 
-        assert "session_token" in qs, f"session_token missing from redirect URL: {location}"
-        assert "user_id" in qs, f"user_id missing from redirect URL: {location}"
         assert "provider" in qs, f"provider missing from redirect URL: {location}"
-        assert qs["user_id"][0] == "goog-user-99", (
-            f"Expected user_id=goog-user-99, got {qs['user_id']}"
-        )
         assert qs["provider"][0] == "google", (
             f"Expected provider=google, got {qs['provider']}"
         )

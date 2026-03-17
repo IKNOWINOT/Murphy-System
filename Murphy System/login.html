@@ -271,7 +271,6 @@
     </div>
   </div>
   <div class="murphy-topbar-right flex items-center gap-2">
-    <button class="murphy-btn murphy-btn-ghost murphy-btn-icon" id="theme-toggle-btn" aria-label="Toggle theme" title="Toggle theme">🌙</button>
     <a href="/ui/signup" class="murphy-btn murphy-btn-primary murphy-btn-sm">Sign Up Free</a>
   </div>
 </nav>
@@ -436,15 +435,6 @@
       eyeIcon.style.display = isHidden ? 'none' : 'block';
       eyeOffIcon.style.display = isHidden ? 'block' : 'none';
       toggleBtn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
-    });
-  }
-
-  // ── Theme toggle ─────────────────────────────────────
-  var themeBtn = document.getElementById('theme-toggle-btn');
-  if (themeBtn) {
-    themeBtn.addEventListener('click', function () {
-      document.documentElement.classList.toggle('murphy-light');
-      themeBtn.textContent = document.documentElement.classList.contains('murphy-light') ? '☀️' : '🌙';
     });
   }
 
