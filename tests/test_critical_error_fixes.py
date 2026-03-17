@@ -61,6 +61,7 @@ class TestCutsheetHashUpgrade:
         )
 
         seed = f"{ct.cutsheet_id}|{ct.test_type}|{ct.test_description}"
+        # Intentionally compute SHA1 to verify production code does NOT use it
         sha1_id = hashlib.sha1(seed.encode()).hexdigest()[:10]  # noqa: S324
         assert ct.test_id != sha1_id, "test_id must NOT use SHA1"
 
