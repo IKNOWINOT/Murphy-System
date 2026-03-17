@@ -23,10 +23,10 @@
 
 The Murphy System Runtime maintains comprehensive test coverage with 100% integration test success rate and exceptional performance characteristics across all test suites.
 
-### Test Statistics (updated 2026-03-17, round 56)
+### Test Statistics (updated 2026-03-17, round 57)
 
-- **Total Test Files**: 663 (in `tests/` directory)
-- **Total Test Functions**: 20,596+ across all test files
+- **Total Test Files**: 664 (in `tests/` directory)
+- **Total Test Functions**: 20,711+ across all test files
 - **Unit Tests**: ~350 files, ~6,000 functions (100% pass rate)
 - **Integration Tests**: ~80 files, ~1,500 functions (100% pass rate)
 - **Gap Closure Rounds**: 54 verified rounds (test_gap_closure_round1.py → round54.py)
@@ -37,6 +37,7 @@ The Murphy System Runtime maintains comprehensive test coverage with 100% integr
 - **Automation Safeguard Tests**: `test_automation_safeguard_engine.py` — 94 tests (7 guard primitives, thread safety, scenario tests)
 - **Historical Economic Simulation Tests**: `test_historical_economic_simulations.py` — 86 tests (Great Depression → AI Era, WW2 wartime economy, 15 business archetypes)
 - **Temporal Compliance Variation Tests**: `test_regulation_temporal_variations.py` — 170 tests (12 archetypes × 5 growth stages)
+- **Historical Greatness Engine Tests**: `test_historical_greatness_engine.py` — 115 tests (10 universal traits, 42+ historical greats, TraitProfiler, ArchetypeMatcher, CalibrationResult, EliteOrgSimulator HGE wiring, cross-class universality)
 
 ### Coverage Summary
 
