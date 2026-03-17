@@ -88,6 +88,22 @@ class SwarmProposal:
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
+@dataclass
+class SwarmExecutionResult:
+    """Result of executing a SwarmProposal — returned by execute_proposal()."""
+    proposal_id: str
+    status: str          # "completed" | "partial" | "failed"
+    steps_total: int
+    steps_completed: int
+    steps_failed: int
+    step_results: List[Dict[str, Any]]
+    total_cost: float
+    total_duration_ms: float
+    executed_at: datetime
+    error: Optional[str] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+
 class SwarmProposalGenerator:
     """
     Generates swarm proposals for Murphy System
@@ -667,3 +683,90 @@ Format: {{"steps": [...]}}
             }
             for p in self.proposal_history
         ]
+
+    async def execute_proposal(
+        self,
+        proposal: SwarmProposal,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> SwarmExecutionResult:
+        """Execute a previously generated SwarmProposal step-by-step.
+
+        Each step is executed via a real LLM call (LLMController.query_llm).
+        The onboard LocalLLMFallback is used automatically when no external
+        API key is configured, so execution never blocks on missing keys.
+
+        Args:
+            proposal: The SwarmProposal to execute.
+            context:  Optional additional context injected into each step prompt.
+
+        Returns:
+            SwarmExecutionResult with per-step outputs, costs, and status.
+        """
+        import time as _time
+        ctx_str = str(context or {})[:400]
+        step_results: List[Dict[str, Any]] = []
+        total_cost: float = 0.0
+        start_wall = _time.time()
+
+        for step in proposal.execution_plan:
+            step_start = _time.time()
+            step_id = step.step_id
+            try:
+                prompt = (
+                    f"You are an execution agent in the Murphy swarm system.\n"
+                    f"Proposal: {proposal.task_description}\n"
+                    f"Step {step_id}: {step.description}\n"
+                    f"Agents assigned: {', '.join(step.agent_ids)}\n"
+                    f"Context: {ctx_str}\n\n"
+                    "Execute this step and return a JSON object with keys:\n"
+                    "  'result' (string), 'artifacts' (list of strings), "
+                    "'success' (bool), 'next_action' (string or null)."
+                )
+                request = LLMRequest(
+                    prompt=prompt,
+                    max_tokens=600,
+                    require_capabilities=[ModelCapability.SWARM_PLANNING],
+                )
+                response = await self.llm_controller.query_llm(request)
+                try:
+                    output = json.loads(response.content.strip())
+                except Exception:
+                    output = {"result": response.content, "success": True, "artifacts": []}
+                step_cost = response.cost
+                status = "completed"
+            except Exception as exc:
+                output = {"result": f"Step failed: {exc}", "success": False, "artifacts": []}
+                step_cost = 0.0
+                status = "failed"
+                logger.warning("execute_proposal: step %s failed: %s", step_id, exc)
+
+            total_cost += step_cost
+            step_results.append({
+                "step_id": step_id,
+                "description": step.description,
+                "status": status,
+                "output": output,
+                "cost": step_cost,
+                "duration_ms": (_time.time() - step_start) * 1000,
+            })
+
+        completed = sum(1 for s in step_results if s["status"] == "completed")
+        failed = sum(1 for s in step_results if s["status"] == "failed")
+        if failed == 0:
+            overall_status = "completed"
+        elif completed == 0:
+            overall_status = "failed"
+        else:
+            overall_status = "partial"
+
+        return SwarmExecutionResult(
+            proposal_id=proposal.proposal_id,
+            status=overall_status,
+            steps_total=len(step_results),
+            steps_completed=completed,
+            steps_failed=failed,
+            step_results=step_results,
+            total_cost=round(total_cost, 6),
+            total_duration_ms=(_time.time() - start_wall) * 1000,
+            executed_at=datetime.now(timezone.utc),
+        )

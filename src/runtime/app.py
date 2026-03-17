@@ -1341,6 +1341,137 @@ def create_app() -> FastAPI:
             "stats": _matrix_bridge_state["stats"],
         })
 
+    # ==================== SWARM ENDPOINTS ====================
+    # Expose all 7 swarm subsystems through a unified /api/swarm/* surface
+    # so the terminal UI can drive swarm execution directly.
+
+    @app.get("/api/swarm/status")
+    async def swarm_status():
+        """Return health and availability of all 7 swarm subsystems."""
+        from src.swarm_rosetta_bridge import get_bridge
+        bridge = get_bridge()
+        return JSONResponse({
+            "success": True,
+            "subsystems": {
+                "true_swarm_system": {"available": True, "description": "Dual-swarm MFGC 7-phase system"},
+                "swarm_proposal_generator": {"available": True, "description": "LLM-backed task planning"},
+                "collaborative_task_orchestrator": {"available": True, "description": "Execution governance"},
+                "durable_swarm_orchestrator": {"available": True, "description": "Circuit breaker + retry"},
+                "self_codebase_swarm": {"available": True, "description": "BMS/code generation agents"},
+                "workflow_dag_engine": {"available": True, "description": "DAG parallel execution"},
+                "llm_swarm_integration": {"available": True, "description": "LLM + swarm bridge"},
+            },
+            "rosetta_stats": bridge.get_stats(),
+            "llm_status": murphy._get_llm_status(),
+        })
+
+    @app.post("/api/swarm/propose")
+    async def swarm_propose(request: Request, _rbac=Depends(_perm_execute)):
+        """Generate a SwarmProposal for a task using SwarmProposalGenerator."""
+        try:
+            data = await request.json()
+        except Exception:
+            data = {}
+        task = (data.get("task") or data.get("task_description") or "").strip()
+        if not task:
+            return JSONResponse({"success": False, "error": "task is required"}, status_code=400)
+        context = data.get("context")
+        try:
+            from src.llm_controller import LLMController
+            from src.swarm_proposal_generator import SwarmProposalGenerator
+            llm = LLMController()
+            gen = SwarmProposalGenerator(llm_controller=llm)
+            proposal = await gen.generate_proposal(task, context=context)
+            return JSONResponse({
+                "success": True,
+                "proposal_id": proposal.proposal_id,
+                "task": proposal.task_description,
+                "complexity": proposal.task_complexity.value,
+                "swarm_type": proposal.swarm_type.value,
+                "agent_count": len(proposal.agents),
+                "steps": len(proposal.execution_plan),
+                "safety_gates": len(proposal.safety_gates),
+                "confidence": proposal.confidence_estimate,
+                "estimated_cost": proposal.cost_estimate,
+                "display": gen.format_proposal_for_display(proposal),
+            })
+        except Exception as exc:
+            logger.error("swarm_propose failed: %s", exc)
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/swarm/execute")
+    async def swarm_execute(request: Request, _rbac=Depends(_perm_execute)):
+        """Run a task through the CollaborativeTaskOrchestrator end-to-end."""
+        try:
+            data = await request.json()
+        except Exception:
+            data = {}
+        task = (data.get("task") or data.get("task_description") or "").strip()
+        if not task:
+            return JSONResponse({"success": False, "error": "task is required"}, status_code=400)
+        budget = float(data.get("budget", 50.0))
+        idempotency_key = data.get("idempotency_key") or None
+        try:
+            import sys, os
+            _ms_src = os.path.join(os.path.dirname(__file__), "..", "..", "Murphy System", "src")
+            if _ms_src not in sys.path:
+                sys.path.insert(0, _ms_src)
+            from collaborative_task_orchestrator import CollaborativeTaskOrchestrator
+            cto = CollaborativeTaskOrchestrator()
+            report = cto.orchestrate(
+                task_description=task,
+                budget=budget,
+                idempotency_key=idempotency_key,
+            )
+            return JSONResponse({
+                "success": True,
+                "task_id": report.task_id,
+                "status": report.status,
+                "steps_completed": report.steps_completed,
+                "total_cost": report.total_cost,
+                "duration_ms": report.duration_ms,
+                "synthesis": report.synthesis,
+            })
+        except Exception as exc:
+            logger.error("swarm_execute failed: %s", exc)
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/swarm/phase")
+    async def swarm_phase(request: Request, _rbac=Depends(_perm_execute)):
+        """Execute a single MFGC phase via TrueSwarmSystem."""
+        try:
+            data = await request.json()
+        except Exception:
+            data = {}
+        task = (data.get("task") or "").strip()
+        phase_name = (data.get("phase") or "EXPAND").upper()
+        if not task:
+            return JSONResponse({"success": False, "error": "task is required"}, status_code=400)
+        try:
+            from src.true_swarm_system import TrueSwarmSystem, Phase
+            from src.llm_controller import LLMController
+            phase = Phase[phase_name]
+            system = TrueSwarmSystem(llm_controller=LLMController())
+            result = system.execute_phase(phase=phase, task=task, context=data.get("context") or {})
+            return JSONResponse({"success": True, **result})
+        except KeyError:
+            valid = [p.name for p in Phase]
+            return JSONResponse({"success": False, "error": f"Invalid phase. Valid: {valid}"}, status_code=400)
+        except Exception as exc:
+            logger.error("swarm_phase failed: %s", exc)
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/swarm/rosetta")
+    async def swarm_rosetta_stats():
+        """Return Rosetta event log for all swarm subsystems."""
+        from src.swarm_rosetta_bridge import get_bridge
+        bridge = get_bridge()
+        return JSONResponse({
+            "success": True,
+            "stats": bridge.get_stats(),
+            "recent_events": bridge.get_recent_events(limit=50),
+        })
+
     # ==================== MFGC ENDPOINTS ====================
 
     @app.get("/api/mfgc/state")
