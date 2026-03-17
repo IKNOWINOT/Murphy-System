@@ -312,8 +312,14 @@ curl -v http://localhost:8000/api/health
 ### Issue: Rate Limit Exceeded
 
 **Symptoms**:
-- 429 Too Many Requests error
-- Requests blocked
+- 429 Too Many Requests error from `POST /api/auth/login`
+- Login attempts blocked (IP locked out)
+
+> **Note:** Only `POST /api/auth/login` failures count toward the brute-force
+> lockout.  Chat (`/api/chat`), Librarian (`/api/librarian/ask`), and all other
+> API endpoints return `401` on auth failure but **never** contribute to the
+> lockout counter.  If you see `429` on non-login endpoints it is the API
+> per-minute rate limiter, not the brute-force tracker.
 
 **Diagnosis**:
 ```bash

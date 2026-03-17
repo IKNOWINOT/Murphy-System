@@ -1557,7 +1557,7 @@ class MurphyLibrarianChat {
       this._addBubble(output, 'assistant');
       this._history.push({ role: 'assistant', text: output });
     } else {
-      const errMsg = result.data?.error || result.error || 'MSS operator not available';
+      const errMsg = result.error || result.data?.error?.message || 'MSS operator not available';
       this._addBubble('Error: ' + errMsg, 'assistant');
       this._history.push({ role: 'assistant', text: 'Error: ' + errMsg });
     }
@@ -1602,7 +1602,7 @@ class MurphyLibrarianChat {
     this._btn.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:600;width:56px;height:56px;'
       + 'border-radius:50%;border:none;cursor:pointer;background:#0d9488;color:#fff;box-shadow:0 4px 16px rgba(0,0,0,.4);'
       + 'display:flex;align-items:center;justify-content:center;transition:transform .15s;';
-    this._btn.innerHTML = '<svg width="24" height="24"><use href="static/murphy-icons.svg#chat"/></svg>';
+    this._btn.innerHTML = '<span style="font-family:monospace;font-size:16px;font-weight:700;letter-spacing:-1px;line-height:1;color:#fff;">&gt;_</span>';
     this._btn.addEventListener('click', () => this._toggle());
     document.body.appendChild(this._btn);
   }
