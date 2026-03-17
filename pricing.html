@@ -467,7 +467,7 @@
   </div>
   <div class="murphy-topbar-right flex items-center gap-2">
     <button class="murphy-btn murphy-btn-ghost murphy-btn-icon" id="theme-toggle-btn" aria-label="Toggle theme" title="Toggle theme">🌙</button>
-    <a href="/ui/terminal-unified" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Sign In</a>
+    <a href="/ui/login" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Sign In</a>
     <a href="/ui/signup" class="murphy-btn murphy-btn-primary murphy-btn-sm">Get Started</a>
   </div>
 </nav>
@@ -814,30 +814,20 @@
   btnAnnual.addEventListener('click',  function () { updatePrices('annual');  });
 
   // ── Checkout buttons ─────────────────────────────────────
-  var _pricingApi = new MurphyAPI(window.location.origin + '/api');
+  // Public pricing page visitors (unauthenticated or authenticated) are
+  // directed to the signup/login flow first, with the selected tier and
+  // billing interval passed as query params. The signup page uses those
+  // params to pre-select the plan and, once an account_id is available,
+  // complete the billing checkout via /api/billing/checkout.
   document.querySelectorAll('.pricing-cta[data-tier]').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      var tier = btn.getAttribute('data-tier');
-      btn.disabled = true;
-      btn.textContent = 'Loading…';
+      var tier     = btn.getAttribute('data-tier');
+      var interval = currentInterval;
 
-      _pricingApi.post('/billing/checkout', { tier: tier, interval: currentInterval })
-        .then(function (result) {
-          var data = result.data || {};
-          if (data.url) {
-            window.location.href = data.url;
-          } else {
-            btn.disabled = false;
-            btn.textContent = 'Start Free Trial';
-            var errMsg = (result.error) || data.message || data.error || 'Unable to start checkout. Please try again.';
-            alert(errMsg);
-          }
-        })
-        .catch(function () {
-          btn.disabled = false;
-          btn.textContent = 'Start Free Trial';
-          alert('Network error — please check your connection and try again.');
-        });
+      // Redirect to signup page with tier/interval pre-selected (standard SaaS pattern)
+      window.location.href =
+        '/ui/signup?tier=' + encodeURIComponent(tier) +
+        '&interval=' + encodeURIComponent(interval);
     });
   });
 
