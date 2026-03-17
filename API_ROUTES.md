@@ -36,7 +36,7 @@ Dev mode: Auth is disabled when `MURPHY_API_KEY` is unset.
 |--------|------|------|-------------|
 | POST | /api/auth/signup | No | Create new account |
 | GET | /api/auth/oauth/{provider} | No | Initiate OAuth flow |
-| GET | /api/auth/callback | No | OAuth callback |
+| GET | /api/auth/callback | No | OAuth callback — sets `murphy_session` cookie and redirects to `/ui/terminal-unified?oauth_success=1&provider=<name>` |
 | GET | /api/auth/role | Yes | Get current user role |
 | GET | /api/auth/permissions | Yes | Get current user permissions |
 

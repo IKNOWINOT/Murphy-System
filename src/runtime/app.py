@@ -4298,6 +4298,8 @@ def create_app() -> FastAPI:
                 )
             if _oauth_registry is None:
                 return JSONResponse({"error": "OAuth registry unavailable"}, status_code=503)
+            import secrets
+            from starlette.responses import RedirectResponse
             token = _oauth_registry.complete_auth_flow(state, code)
             import secrets
             import urllib.parse
