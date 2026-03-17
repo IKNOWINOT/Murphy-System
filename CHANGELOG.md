@@ -7,7 +7,136 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed — Brute-force lockout on normal pre-login browsing (CWE-307)
+### Added — Round 61 — Real Google OAuth + Functional All Hands Meeting System
+
+#### OAuth — Real HTTP Token Exchange, Userinfo Fetch, OIDC Validation, Account Linking
+
+**Problem:** Google (and all other provider) OAuth sign-in was entirely mocked —
+`OAuthManager.exchange_code()` generated random `secrets.token_urlsafe()` values
+instead of calling Google's token endpoint. No userinfo was fetched, no OIDC
+`id_token` validation was performed, and the runtime callback never created or
+linked a Murphy user account.
+
+**Changes:**
+
+- **`src/oauth_oidc_provider.py`** + **`Murphy System/src/oauth_oidc_provider.py`** —
+  production-quality real HTTP integration added to `OAuthManager`:
+  - `__init__(http_client=None)` — accepts an injectable HTTP client
+    (e.g. `httpx.Client`).  When `None`, falls back to simulation mode (existing
+    behaviour preserved for unit tests that do not need real connectivity).
+  - `exchange_code()` — when `http_client` is injected **and** the provider has
+    a `token_url`, performs a real `authorization_code` PKCE grant via HTTP POST
+    to the provider's token endpoint, then fetches the userinfo profile.
+    Falls back to simulation mode when either condition is absent.
+  - `_exchange_code_real()` — internal helper: POSTs to `token_url` with
+    `grant_type=authorization_code`, `code_verifier`, `client_id`,
+    `client_secret`, and `redirect_uri`; validates the OIDC `id_token` claims;
+    calls `_fetch_userinfo_raw()` and attaches raw profile to the `TokenSet`.
+  - `fetch_userinfo(token_id)` — GETs the provider's `userinfo_url` with a
+    Bearer access token and returns a fully-populated `UserInfo` dataclass.
+  - `_fetch_userinfo_raw(userinfo_url, access_token)` — internal helper: GETs
+    the OIDC userinfo endpoint and returns the raw JSON dict.
+  - `_validate_id_token_claims(id_token, issuer, audience)` — static method:
+    base64url-decodes the JWT payload and validates `iss` (issuer), `aud`
+    (audience), and `exp` (expiry) claims per OpenID Connect Core §3.1.3.7.
+    Raises `ValueError` on any failure.  Signature verification (JWKS) is
+    intentionally deferred to a dedicated OIDC library in production.
+  - `refresh_token()` — performs a real `refresh_token` grant when `http_client`
+    is injected and the provider has a `token_url`; marks the old `TokenSet` as
+    EXPIRED; preserves the existing `refresh_token` if the provider omits it in
+    the response (common with Google).
+  - `_refresh_token_real()` — internal helper for the refresh grant.
+  - `stats()` — added `real_http_mode` key indicating whether an HTTP client is
+    active.
+  - Flask Blueprint `/api/oauth/callback` and `/api/oauth/tokens/<id>/refresh`
+    now propagate `RuntimeError` from the provider as HTTP 502 (Bad Gateway)
+    instead of silently failing.
+  - New Blueprint endpoint `GET /api/oauth/tokens/<token_id>/userinfo` — fetches
+    and returns the OIDC user profile for a stored token.
+
+- **`src/runtime/app.py`** + **`Murphy System/src/runtime/app.py`** —
+  OAuth callback and initiation routes now use `AccountManager`:
+  - `_account_manager` (`AccountManager` singleton) replaces the bare
+    `_oauth_registry` as the primary OAuth orchestrator.  The inner
+    `OAuthProviderRegistry` reference is kept as `_oauth_registry` for
+    backwards-compatible provider listing.
+  - `_session_store: Dict[str, str]` (guarded by `_session_lock`) maps
+    cryptographically-random session tokens → `account_id`.
+  - `GET /api/auth/callback` — calls `_account_manager.complete_oauth_signup(state, code)`
+    which performs the real HTTP token exchange, creates or links a Murphy
+    `AccountRecord`, stores the account in `_account_manager`, mints a
+    `secrets.token_urlsafe(32)` session token, maps it in `_session_store`,
+    sets `murphy_session` cookie, and redirects to `/dashboard.html`.
+    `ValueError` (invalid/expired state) now redirects to `/login.html?error=…`
+    instead of returning a 400 JSON response.
+  - `GET /api/auth/oauth/{provider}` — calls `_account_manager.begin_oauth_signup()`
+    instead of `_oauth_registry.begin_auth_flow()`.
+
+- **`tests/test_oauth_oidc_provider.py`** + **`Murphy System/tests/test_oauth_oidc_provider.py`** —
+  12 new tests covering the real HTTP path (OAU-044 through OAU-055):
+  - `OAU-044` — real HTTP exchange stores real `access_token` from injected mock client.
+  - `OAU-045` — `fetch_userinfo()` populates `UserInfo` from userinfo endpoint.
+  - `OAU-046` — non-200 token response raises `RuntimeError`.
+  - `OAU-047` — real `refresh_token()` stores new `access_token`.
+  - `OAU-048` — real refresh marks old token `EXPIRED`.
+  - `OAU-049` — `_validate_id_token_claims` accepts valid, non-expired token.
+  - `OAU-050` — expired `id_token` raises `ValueError`.
+  - `OAU-051` — issuer mismatch raises `ValueError`.
+  - `OAU-052` — audience mismatch raises `ValueError`.
+  - `OAU-053` — `stats()` correctly reports `real_http_mode`.
+  - `OAU-054` — `fetch_userinfo` returns `None` without `http_client`.
+  - `OAU-055` — simulation mode used when provider has no `token_url`.
+
+#### All Hands — Full Functional Meeting Management System
+
+**Problem:** The All Hands meeting system was a mock/stub.  No meeting scheduling,
+attendee management, agenda, action items, or minutes existed.
+
+**New module:** `src/all_hands.py` + `Murphy System/src/all_hands.py`
+
+- **Enums** — `MeetingStatus` (4), `AttendeeStatus` (5), `AgendaItemStatus` (4),
+  `ActionItemStatus` (4), `MeetingType` (6), `RecurrenceFrequency` (5).
+- **Dataclasses** — `AllHandsMeeting`, `Attendee`, `AgendaItem`, `ActionItem`,
+  `MeetingMinutes` (all with `to_dict()` serialisation).
+- **`AllHandsManager`** — thread-safe meeting lifecycle manager:
+  - `schedule_meeting()` — create a new all-hands meeting (one-off or recurring).
+  - `start_meeting()` / `end_meeting()` — transition lifecycle; `end_meeting()`
+    auto-generates `MeetingMinutes` with attendee count, agenda completion
+    summary, decisions, and key notes; marks un-run agenda items `SKIPPED`.
+  - `update_meeting()` / `cancel_meeting()` — edit or cancel scheduled meetings.
+  - `create_next_occurrence()` — create the next recurrence for weekly, biweekly,
+    monthly, or quarterly meetings.
+  - `add_attendee()` / `update_attendee_status()` / `list_attendees()` /
+    `remove_attendee()` — full attendee RSVP + attendance lifecycle.
+  - `add_agenda_item()` / `update_agenda_item_status()` / `list_agenda_items()` —
+    agenda management; items returned ordered by `order` field.
+  - `add_action_item()` / `update_action_item()` / `list_action_items()` —
+    action item tracking with owner, due date, and status.
+  - `get_minutes()` / `stats()`.
+  - All state guarded by `threading.Lock`; list stores bounded via `capped_append`.
+- **`create_all_hands_api(manager)`** — Flask Blueprint at `/api/all-hands/`:
+  - 20+ REST endpoints — full CRUD for meetings, attendees, agenda items,
+    action items, and minutes.  Lifecycle routes: `/start`, `/end`, `/next-occurrence`.
+  - Consistent `{"error": …, "code": …}` error envelope.
+- **Wired into `src/runtime/app.py`** and **`Murphy System/src/runtime/app.py`** —
+  `AllHandsManager` singleton created at startup; Flask Blueprint mounted
+  via `WSGIMiddleware` at `/api/all-hands/*`.
+
+**New tests:** `tests/test_all_hands.py` + `Murphy System/tests/test_all_hands.py` —
+75 tests (AHM-001 – AHM-075) covering:
+  - All 6 enum sizes.
+  - Full meeting lifecycle (schedule → start → end → minutes).
+  - Validation errors (empty title, wrong state transitions).
+  - Attendee RSVP + attendance (including `rsvp_at` / `attended_at` timestamps).
+  - Agenda item ordering and status transitions.
+  - Action item filtering by owner and status.
+  - Recurring meeting next-occurrence creation (weekly / biweekly / monthly).
+  - `stats()` counts.
+  - `to_dict()` serialisation (enum values as strings).
+  - Thread safety (20-thread concurrent scheduling, 10-thread attendee adds).
+  - All 18 Flask Blueprint API endpoints.
+
+
 
 **Problem:** Normal unauthenticated browsing of the Murphy System website
 triggered the brute-force lockout protection in `src/fastapi_security.py`.

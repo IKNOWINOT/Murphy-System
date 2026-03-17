@@ -251,6 +251,10 @@ class AccountManager:
         self._persist_account(account)
         return True
 
+    def get_oauth_registry(self) -> OAuthProviderRegistry:
+        """Return the underlying ``OAuthProviderRegistry`` for provider listing and management."""
+        return self._oauth
+
     # -- Credential management ----------------------------------------------
 
     def store_credential(
