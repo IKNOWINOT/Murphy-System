@@ -15,13 +15,35 @@ ProviderConfig/AuthorizationRequest/TokenSet/OIDCDiscovery/UserInfo/
 OAuthSession (dataclasses), OAuthManager (thread-safe orchestrator).
 ``create_oauth_api(manager)`` returns a Flask Blueprint (JSON error envelope).
 
+Real HTTP integration
+---------------------
+``OAuthManager`` accepts an optional *http_client* at construction time.
+When a client is supplied and the registered provider has a ``token_url``,
+``exchange_code()`` and ``refresh_token()`` perform **real** HTTP calls to
+the provider's token endpoint (PKCE S256 code-flow / refresh-token grant).
+``fetch_userinfo()`` calls the provider's ``userinfo_url`` with the Bearer
+access token.  A lightweight OIDC ``id_token`` claim validator (issuer,
+audience, expiry) is included; full JWKS signature verification should be
+added via a dedicated OIDC library in production deployments that require it.
+
+When *no* http_client is provided the manager operates in **simulation mode**
+(generates random token values) which is useful for unit-test environments
+that do not require real provider connectivity.
+
+Expected HTTP client interface (compatible with ``httpx.Client``)::
+
+    client.post(url, data=payload)   → response with .status_code / .json()
+    client.get(url, headers=headers) → response with .status_code / .json()
+
 Safety: all mutable state guarded by threading.Lock; session/token lists
 bounded via capped_append (CWE-770); client_secret and tokens redacted
-in serialisation; no real network calls — provider adapters are injected.
+in serialisation.
 """
 from __future__ import annotations
 
+import base64
 import hashlib
+import json as _json
 import logging
 import secrets
 import threading
@@ -64,8 +86,6 @@ class OAuthProvider(str, Enum):
     GOOGLE = "google"
     META = "meta"
     GITHUB = "github"
-    MICROSOFT = "microsoft"
-    META = "meta"
     LINKEDIN = "linkedin"
     APPLE = "apple"
     CUSTOM = "custom"
@@ -212,14 +232,28 @@ class OAuthSession:
         return d
 # -- OAuthManager ----------------------------------------------------------
 class OAuthManager:
-    """Thread-safe OAuth2/OIDC provider and session lifecycle manager."""
-    def __init__(self) -> None:
+    """Thread-safe OAuth2/OIDC provider and session lifecycle manager.
+
+    Parameters
+    ----------
+    http_client:
+        Optional HTTP client instance (e.g. ``httpx.Client``).  When
+        provided, ``exchange_code()`` and ``refresh_token()`` perform real
+        network calls to the configured provider endpoints.  When ``None``
+        the manager operates in *simulation mode* — useful for unit tests
+        that do not need real provider connectivity.
+    """
+
+    def __init__(self, http_client: Optional[Any] = None) -> None:
         self._lock = threading.Lock()
         self._providers: Dict[str, ProviderConfig] = {}
         self._auth_requests: Dict[str, AuthorizationRequest] = {}
         self._tokens: Dict[str, TokenSet] = {}
         self._sessions: Dict[str, OAuthSession] = {}
         self._discovery_cache: Dict[str, OIDCDiscovery] = {}
+        # Injectable HTTP client — None → simulation mode
+        self._http_client: Optional[Any] = http_client
+
     # -- Provider CRUD -----------------------------------------------------
     def register_provider(self, cfg: ProviderConfig) -> str:
         """Register an identity provider. Returns the name."""
@@ -227,18 +261,22 @@ class OAuthManager:
             self._providers[cfg.name] = cfg
             logger.info("Registered OAuth provider %s", cfg.name)
             return cfg.name
+
     def get_provider(self, name: str) -> Optional[ProviderConfig]:
         """Retrieve a provider config by name."""
         with self._lock:
             return self._providers.get(name)
+
     def list_providers(self) -> List[ProviderConfig]:
         """List all registered providers."""
         with self._lock:
             return list(self._providers.values())
+
     def remove_provider(self, name: str) -> bool:
         """Remove a provider. Returns True if removed."""
         with self._lock:
             return self._providers.pop(name, None) is not None
+
     def enable_provider(self, name: str, enabled: bool = True) -> bool:
         """Enable or disable a provider."""
         with self._lock:
@@ -247,9 +285,14 @@ class OAuthManager:
                 return False
             p.enabled = enabled
             return True
+
     # -- Authorization flow ------------------------------------------------
-    def start_authorization(self, provider_name: str, redirect_uri: str = "") -> Optional[AuthorizationRequest]:
-        """Create a new authorization request (PKCE code flow)."""
+    def start_authorization(
+        self,
+        provider_name: str,
+        redirect_uri: str = "",
+    ) -> Optional[AuthorizationRequest]:
+        """Create a new authorization request (PKCE S256 code flow)."""
         with self._lock:
             p = self._providers.get(provider_name)
             if p is None or not p.enabled:
@@ -261,32 +304,269 @@ class OAuthManager:
             )
             self._auth_requests[req.state] = req
             return req
+
     def get_auth_request(self, state: str) -> Optional[AuthorizationRequest]:
         """Retrieve a pending auth request by state parameter."""
         with self._lock:
             return self._auth_requests.get(state)
+
     def exchange_code(self, state: str, code: str) -> Optional[TokenSet]:
-        """Simulate exchanging an authorization code for tokens."""
+        """Exchange an authorization code for tokens.
+
+        **Real mode** (``http_client`` injected + provider has ``token_url``):
+        POSTs to the provider's token endpoint with PKCE ``code_verifier``,
+        optionally fetches the userinfo profile, and validates basic OIDC
+        ``id_token`` claims (issuer, audience, expiry).
+
+        **Simulation mode** (no ``http_client`` or provider has no
+        ``token_url``):  generates random token values — suitable for
+        unit-test environments that do not require real connectivity.
+
+        Returns ``None`` if *state* is unknown or already consumed.
+        """
         with self._lock:
             req = self._auth_requests.pop(state, None)
-            if req is None:
-                return None
-            ts = TokenSet(
-                provider_name=req.provider_name,
-                access_token=secrets.token_urlsafe(32),
-                refresh_token=secrets.token_urlsafe(32),
-                id_token=secrets.token_urlsafe(48),
-                scope=" ".join(req.scopes),
-            )
+        if req is None:
+            return None
+
+        with self._lock:
+            prov = self._providers.get(req.provider_name)
+
+        if prov and prov.token_url and self._http_client is not None:
+            return self._exchange_code_real(req, code, prov)
+
+        # ── Simulation mode ────────────────────────────────────────────────
+        ts = TokenSet(
+            provider_name=req.provider_name,
+            access_token=secrets.token_urlsafe(32),
+            refresh_token=secrets.token_urlsafe(32),
+            id_token=secrets.token_urlsafe(48),
+            scope=" ".join(req.scopes),
+        )
+        with self._lock:
             self._tokens[ts.token_id] = ts
-            return ts
+        return ts
+
+    def _exchange_code_real(
+        self,
+        req: AuthorizationRequest,
+        code: str,
+        prov: ProviderConfig,
+    ) -> TokenSet:
+        """Perform a real token-endpoint POST (PKCE authorization-code grant).
+
+        Raises:
+            RuntimeError: on HTTP error or non-200 response from the provider.
+        """
+        payload: Dict[str, str] = {
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": req.redirect_uri or prov.redirect_uri,
+            "client_id": prov.client_id,
+            "code_verifier": req.code_verifier,
+        }
+        if prov.client_secret:
+            payload["client_secret"] = prov.client_secret
+
+        try:
+            token_resp = self._http_client.post(prov.token_url, data=payload)  # type: ignore[union-attr]
+        except Exception as exc:
+            logger.error("Token exchange network error for %s: %s", req.provider_name, exc)
+            raise RuntimeError(
+                f"Token exchange network error for {req.provider_name}: {exc}"
+            ) from exc
+
+        if token_resp.status_code != 200:
+            raise RuntimeError(
+                f"Token exchange failed for {req.provider_name}: "
+                f"HTTP {token_resp.status_code} — {token_resp.text[:200]}"
+            )
+
+        tok_data: Dict[str, Any] = token_resp.json()
+
+        # Fetch user profile if a userinfo URL is configured
+        userinfo: Dict[str, Any] = {}
+        access_token = tok_data.get("access_token", "")
+        if prov.userinfo_url and access_token:
+            userinfo = self._fetch_userinfo_raw(prov.userinfo_url, access_token)
+
+        # Validate OIDC id_token claims if present
+        id_token = tok_data.get("id_token", "")
+        if id_token and (prov.issuer or prov.client_id):
+            try:
+                self._validate_id_token_claims(
+                    id_token,
+                    issuer=prov.issuer,
+                    audience=prov.client_id,
+                )
+            except ValueError as exc:
+                logger.warning(
+                    "OIDC id_token validation warning for %s: %s",
+                    req.provider_name,
+                    exc,
+                )
+
+        ts = TokenSet(
+            provider_name=req.provider_name,
+            access_token=access_token,
+            refresh_token=tok_data.get("refresh_token", ""),
+            id_token=id_token,
+            token_type=tok_data.get("token_type", "Bearer"),
+            expires_in=int(tok_data.get("expires_in", 3600)),
+            scope=tok_data.get("scope", " ".join(req.scopes)),
+        )
+        # Attach userinfo so callers can build a UserInfo object if needed
+        ts._userinfo_raw = userinfo  # type: ignore[attr-defined]
+
+        with self._lock:
+            self._tokens[ts.token_id] = ts
+
+        logger.info("Token exchange complete for %s (token_id=%s)", req.provider_name, ts.token_id)
+        return ts
+
+    # -- Userinfo ----------------------------------------------------------
+    def fetch_userinfo(self, token_id: str) -> Optional[UserInfo]:
+        """Fetch the authenticated user's profile from the provider's
+        ``userinfo_url`` using the stored Bearer access token.
+
+        Returns ``None`` if the token is unknown, has no access token, the
+        provider has no ``userinfo_url``, or no HTTP client is available.
+        """
+        with self._lock:
+            t = self._tokens.get(token_id)
+        if t is None or not t.access_token:
+            return None
+
+        with self._lock:
+            prov = self._providers.get(t.provider_name)
+        if prov is None or not prov.userinfo_url:
+            return None
+
+        if self._http_client is None:
+            logger.debug("fetch_userinfo called without http_client — skipped")
+            return None
+
+        raw = self._fetch_userinfo_raw(prov.userinfo_url, t.access_token)
+        if not raw:
+            return None
+
+        return UserInfo(
+            sub=str(raw.get("sub", raw.get("id", ""))),
+            name=raw.get("name", ""),
+            email=raw.get("email", ""),
+            email_verified=bool(raw.get("email_verified", False)),
+            picture=raw.get("picture", ""),
+            locale=raw.get("locale", ""),
+            provider_name=t.provider_name,
+            raw_claims=raw,
+        )
+
+    def _fetch_userinfo_raw(self, userinfo_url: str, access_token: str) -> Dict[str, Any]:
+        """GET the userinfo endpoint with a Bearer token.  Returns raw dict."""
+        try:
+            resp = self._http_client.get(  # type: ignore[union-attr]
+                userinfo_url,
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+            if resp.status_code == 200:
+                return resp.json()
+            logger.warning(
+                "Userinfo endpoint returned HTTP %d for URL %s",
+                resp.status_code,
+                userinfo_url,
+            )
+        except Exception as exc:
+            logger.error("Userinfo fetch failed: %s", exc)
+        return {}
+
+    # -- OIDC validation ---------------------------------------------------
+    @staticmethod
+    def _validate_id_token_claims(
+        id_token: str,
+        *,
+        issuer: str = "",
+        audience: str = "",
+    ) -> None:
+        """Validate basic OIDC ``id_token`` JWT claims.
+
+        Checks performed (per `OpenID Connect Core §3.1.3.7`_):
+        - ``iss`` (issuer) matches the expected *issuer* when both are non-empty
+        - ``aud`` (audience) contains *audience* when both are non-empty
+        - ``exp`` (expiry) has not passed
+
+        .. note::
+            Cryptographic signature verification against the provider's JWKS
+            endpoint is intentionally **not** performed here.  For deployments
+            that require signature verification, use a dedicated OIDC library
+            (e.g. ``python-jose``, ``authlib``, ``PyJWT[crypto]``).
+
+        Raises:
+            ValueError: if any claim fails validation.
+        """
+        parts = id_token.split(".")
+        if len(parts) < 3:
+            raise ValueError("Malformed id_token: expected 3 base64url segments")
+
+        try:
+            padding = 4 - len(parts[1]) % 4
+            payload_bytes = base64.urlsafe_b64decode(parts[1] + "=" * (padding % 4))
+            claims: Dict[str, Any] = _json.loads(payload_bytes)
+        except Exception as exc:
+            raise ValueError(f"Could not decode id_token payload: {exc}") from exc
+
+        # Issuer check
+        token_iss = claims.get("iss", "")
+        if issuer and token_iss and token_iss != issuer:
+            raise ValueError(
+                f"id_token issuer mismatch: expected {issuer!r}, got {token_iss!r}"
+            )
+
+        # Audience check
+        token_aud = claims.get("aud")
+        if audience and token_aud is not None:
+            aud_list: List[str] = (
+                [token_aud] if isinstance(token_aud, str) else list(token_aud)
+            )
+            if audience not in aud_list:
+                raise ValueError(
+                    f"id_token audience mismatch: {audience!r} not in {aud_list!r}"
+                )
+
+        # Expiry check
+        exp = claims.get("exp")
+        if exp is not None:
+            if time.time() > float(exp):
+                raise ValueError(
+                    f"id_token has expired (exp={exp}, now={int(time.time())})"
+                )
+
+    # -- Token management --------------------------------------------------
     def refresh_token(self, token_id: str) -> Optional[TokenSet]:
-        """Simulate refreshing an expired token set."""
+        """Refresh an expired token set.
+
+        **Real mode** (``http_client`` injected + provider has ``token_url``):
+        performs a ``refresh_token`` grant against the provider endpoint.
+
+        **Simulation mode**: generates new random token values.
+
+        Returns ``None`` if *token_id* is unknown or has no refresh token.
+        """
         with self._lock:
             old = self._tokens.get(token_id)
-            if old is None or not old.refresh_token:
-                return None
-            old.status = TokenStatus.EXPIRED
+        if old is None or not old.refresh_token:
+            return None
+
+        with self._lock:
+            prov = self._providers.get(old.provider_name)
+
+        if prov and prov.token_url and self._http_client is not None:
+            return self._refresh_token_real(old, prov)
+
+        # ── Simulation mode ────────────────────────────────────────────────
+        with self._lock:
+            stored = self._tokens.get(token_id)
+            if stored is not None:
+                stored.status = TokenStatus.EXPIRED
             ts = TokenSet(
                 provider_name=old.provider_name,
                 access_token=secrets.token_urlsafe(32),
@@ -295,7 +575,56 @@ class OAuthManager:
                 scope=old.scope,
             )
             self._tokens[ts.token_id] = ts
-            return ts
+        return ts
+
+    def _refresh_token_real(self, old: TokenSet, prov: ProviderConfig) -> TokenSet:
+        """Perform a real ``refresh_token`` grant against the provider endpoint.
+
+        Raises:
+            RuntimeError: on HTTP error or non-200 response.
+        """
+        payload: Dict[str, str] = {
+            "grant_type": "refresh_token",
+            "refresh_token": old.refresh_token,
+            "client_id": prov.client_id,
+        }
+        if prov.client_secret:
+            payload["client_secret"] = prov.client_secret
+
+        try:
+            resp = self._http_client.post(prov.token_url, data=payload)  # type: ignore[union-attr]
+        except Exception as exc:
+            logger.error("Token refresh network error for %s: %s", old.provider_name, exc)
+            raise RuntimeError(
+                f"Token refresh network error for {old.provider_name}: {exc}"
+            ) from exc
+
+        if resp.status_code != 200:
+            raise RuntimeError(
+                f"Token refresh failed for {old.provider_name}: "
+                f"HTTP {resp.status_code} — {resp.text[:200]}"
+            )
+
+        tok_data: Dict[str, Any] = resp.json()
+
+        with self._lock:
+            stored = self._tokens.get(old.token_id)
+            if stored is not None:
+                stored.status = TokenStatus.EXPIRED
+            ts = TokenSet(
+                provider_name=old.provider_name,
+                access_token=tok_data.get("access_token", ""),
+                # Provider may omit refresh_token on refresh — keep existing
+                refresh_token=tok_data.get("refresh_token", old.refresh_token),
+                id_token=tok_data.get("id_token", old.id_token),
+                token_type=tok_data.get("token_type", "Bearer"),
+                expires_in=int(tok_data.get("expires_in", 3600)),
+                scope=tok_data.get("scope", old.scope),
+            )
+            self._tokens[ts.token_id] = ts
+
+        logger.info("Token refresh complete for %s (token_id=%s)", old.provider_name, ts.token_id)
+        return ts
     def revoke_token(self, token_id: str) -> bool:
         """Revoke a token set."""
         with self._lock:
@@ -374,7 +703,7 @@ class OAuthManager:
             return self._discovery_cache.get(provider_name)
     # -- Stats -------------------------------------------------------------
     def stats(self) -> Dict[str, Any]:
-        """Return counts of managed resources."""
+        """Return counts of managed resources and operational mode."""
         with self._lock:
             return {
                 "providers": len(self._providers),
@@ -383,6 +712,7 @@ class OAuthManager:
                 "active_tokens": sum(1 for t in self._tokens.values() if t.status == TokenStatus.ACTIVE),
                 "sessions": len(self._sessions),
                 "active_sessions": sum(1 for s in self._sessions.values() if s.status == SessionStatus.ACTIVE),
+                "real_http_mode": self._http_client is not None,
             }
 # -- Flask Blueprint -------------------------------------------------------
 def create_oauth_api(mgr: OAuthManager) -> Any:
@@ -457,7 +787,10 @@ def create_oauth_api(mgr: OAuthManager) -> Any:
         b = _body(); err = _need(b, "state", "code")
         if err:
             return err
-        ts = mgr.exchange_code(b["state"], b["code"])
+        try:
+            ts = mgr.exchange_code(b["state"], b["code"])
+        except RuntimeError as exc:
+            return jsonify({"error": str(exc), "code": "EXCHANGE_FAILED"}), 502
         if ts is None:
             return jsonify({"error": "Invalid state or expired", "code": "EXCHANGE_FAILED"}), 400
         return jsonify(ts.to_dict()), 201
@@ -467,10 +800,20 @@ def create_oauth_api(mgr: OAuthManager) -> Any:
         """List token sets."""
         prov = request.args.get("provider")
         return jsonify([t.to_dict() for t in mgr.list_tokens(prov)])
+    @bp.route("/tokens/<token_id>/userinfo", methods=["GET"])
+    def get_userinfo(token_id: str) -> Any:
+        """Fetch userinfo from provider for a given token."""
+        ui = mgr.fetch_userinfo(token_id)
+        if ui is None:
+            return jsonify({"error": "Userinfo unavailable", "code": "USERINFO_UNAVAILABLE"}), 404
+        return jsonify(ui.to_dict())
     @bp.route("/tokens/<token_id>/refresh", methods=["POST"])
     def refresh_tok(token_id: str) -> Any:
         """Refresh a token."""
-        ts = mgr.refresh_token(token_id)
+        try:
+            ts = mgr.refresh_token(token_id)
+        except RuntimeError as exc:
+            return jsonify({"error": str(exc), "code": "REFRESH_FAILED"}), 502
         return jsonify(ts.to_dict()) if ts else _404()
     @bp.route("/tokens/<token_id>/revoke", methods=["POST"])
     def revoke_tok(token_id: str) -> Any:

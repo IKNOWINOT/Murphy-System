@@ -456,3 +456,259 @@ def test_oau_043_sandbox_gate():
                    cause="sandbox monitors state changes",
                    effect="one new provider detected",
                    lesson="causality sandbox ensures auditable changes")
+
+# -- Real HTTP mode tests (injected mock HTTP client) ----------------------
+import unittest.mock as _mock
+
+class _FakeResponse:
+    """Minimal HTTP response stub."""
+    def __init__(self, status_code: int, data: dict):
+        self.status_code = status_code
+        self._data = data
+        self.text = str(data)
+    def json(self):
+        return dict(self._data)
+
+def _mgr_real_http(post_resp=None, get_resp=None) -> OAuthManager:
+    """Return an OAuthManager with an injected mock HTTP client."""
+    client = _mock.MagicMock()
+    if post_resp is not None:
+        client.post.return_value = post_resp
+    if get_resp is not None:
+        client.get.return_value = get_resp
+    return OAuthManager(http_client=client)
+
+def test_oau_044_exchange_code_real_http():
+    """exchange_code() performs real HTTP when http_client is injected."""
+    tok_resp = _FakeResponse(200, {
+        "access_token": "real_at_abc",
+        "refresh_token": "real_rt_xyz",
+        "id_token": "",
+        "token_type": "Bearer",
+        "expires_in": 3600,
+        "scope": "openid profile email",
+    })
+    mgr = _mgr_real_http(post_resp=tok_resp)
+    mgr.register_provider(_prov("g"))
+    req = mgr.start_authorization("g")
+    ts = mgr.exchange_code(req.state, "real_code")
+    assert record("OAU-044", "Real HTTP exchange returns real access_token",
+                   True,
+                   ts is not None and ts.access_token == "real_at_abc",
+                   cause="http_client injected with token URL configured",
+                   effect="real token values stored in TokenSet",
+                   lesson="Injectable HTTP client makes production flow testable")
+
+def test_oau_045_exchange_code_real_fetches_userinfo():
+    """exchange_code() fetches userinfo when userinfo_url is set."""
+    tok_resp = _FakeResponse(200, {
+        "access_token": "at_ui_test",
+        "refresh_token": "rt_ui_test",
+        "id_token": "",
+        "expires_in": 3600,
+        "scope": "openid profile email",
+    })
+    ui_resp = _FakeResponse(200, {
+        "sub": "google-uid-999",
+        "email": "user@example.com",
+        "name": "Test User",
+        "email_verified": True,
+    })
+    mgr = _mgr_real_http(post_resp=tok_resp, get_resp=ui_resp)
+    mgr.register_provider(_prov("g"))
+    req = mgr.start_authorization("g")
+    ts = mgr.exchange_code(req.state, "code_ui")
+    # fetch_userinfo should now return the profile
+    ui = mgr.fetch_userinfo(ts.token_id)
+    assert record("OAU-045", "fetch_userinfo returns UserInfo from provider",
+                   True,
+                   ui is not None and ui.sub == "google-uid-999" and ui.email == "user@example.com",
+                   cause="userinfo endpoint returns OIDC profile",
+                   effect="UserInfo populated with provider data",
+                   lesson="fetch_userinfo bridges token to user identity")
+
+def test_oau_046_exchange_code_real_http_error():
+    """exchange_code() raises RuntimeError on non-200 from token endpoint."""
+    err_resp = _FakeResponse(400, {"error": "invalid_grant"})
+    mgr = _mgr_real_http(post_resp=err_resp)
+    mgr.register_provider(_prov("g"))
+    req = mgr.start_authorization("g")
+    raised = False
+    try:
+        mgr.exchange_code(req.state, "bad_code")
+    except RuntimeError:
+        raised = True
+    assert record("OAU-046", "Non-200 token response raises RuntimeError",
+                   True, raised,
+                   cause="provider returns HTTP 400 for invalid code",
+                   effect="RuntimeError propagated to caller",
+                   lesson="Network errors must be surfaced, not silently swallowed")
+
+def test_oau_047_refresh_token_real_http():
+    """refresh_token() performs real HTTP grant when http_client is injected."""
+    # First exchange (simulation mode to set up an old token)
+    mgr = _mgr()
+    mgr.register_provider(_prov("g"))
+    req = mgr.start_authorization("g")
+    old_ts = mgr.exchange_code(req.state, "code_r")
+
+    # Now attach a real HTTP client and switch to real mode
+    refresh_resp = _FakeResponse(200, {
+        "access_token": "new_at_after_refresh",
+        "refresh_token": "new_rt_after_refresh",
+        "expires_in": 3600,
+        "scope": "openid",
+    })
+    client = _mock.MagicMock()
+    client.post.return_value = refresh_resp
+    mgr._http_client = client  # inject client into existing manager
+
+    new_ts = mgr.refresh_token(old_ts.token_id)
+    assert record("OAU-047", "Real refresh produces new access_token",
+                   True,
+                   new_ts is not None and new_ts.access_token == "new_at_after_refresh",
+                   cause="http_client injected for refresh grant",
+                   effect="new TokenSet with real access_token stored",
+                   lesson="refresh_token() must use provider endpoint, not fake values")
+
+def test_oau_048_refresh_token_real_marks_old_expired():
+    """Real refresh marks the previous token as EXPIRED."""
+    mgr = _mgr()
+    mgr.register_provider(_prov("g"))
+    req = mgr.start_authorization("g")
+    old_ts = mgr.exchange_code(req.state, "code_e")
+
+    refresh_resp = _FakeResponse(200, {
+        "access_token": "newer_at",
+        "refresh_token": "newer_rt",
+        "expires_in": 3600,
+        "scope": "openid",
+    })
+    client = _mock.MagicMock()
+    client.post.return_value = refresh_resp
+    mgr._http_client = client
+
+    mgr.refresh_token(old_ts.token_id)
+    old_retrieved = mgr.get_token(old_ts.token_id)
+    assert record("OAU-048", "Previous token marked EXPIRED after real refresh",
+                   TokenStatus.EXPIRED, old_retrieved.status if old_retrieved else None,
+                   cause="refresh-token grant issued new token",
+                   effect="old token lifecycle set to EXPIRED",
+                   lesson="Expired tokens must never be accepted for new sessions")
+
+def test_oau_049_oidc_validate_claims_valid():
+    """_validate_id_token_claims accepts a well-formed, non-expired token."""
+    import base64, json as _j, time as _t
+    claims = {"iss": "https://accounts.google.com", "aud": "cid_123",
+               "exp": int(_t.time()) + 3600, "sub": "1234567890"}
+    payload = base64.urlsafe_b64encode(_j.dumps(claims).encode()).rstrip(b"=").decode()
+    id_token = f"header.{payload}.sig"
+    raised = False
+    try:
+        OAuthManager._validate_id_token_claims(
+            id_token,
+            issuer="https://accounts.google.com",
+            audience="cid_123",
+        )
+    except ValueError:
+        raised = True
+    assert record("OAU-049", "Valid id_token passes claim validation",
+                   False, raised)
+
+def test_oau_050_oidc_validate_claims_expired():
+    """_validate_id_token_claims raises ValueError for expired token."""
+    import base64, json as _j, time as _t
+    claims = {"iss": "https://accounts.google.com", "aud": "cid_123",
+               "exp": int(_t.time()) - 60, "sub": "expired"}
+    payload = base64.urlsafe_b64encode(_j.dumps(claims).encode()).rstrip(b"=").decode()
+    id_token = f"header.{payload}.sig"
+    raised = False
+    try:
+        OAuthManager._validate_id_token_claims(id_token, issuer="https://accounts.google.com")
+    except ValueError:
+        raised = True
+    assert record("OAU-050", "Expired id_token raises ValueError",
+                   True, raised,
+                   cause="token exp claim is in the past",
+                   effect="ValueError raised to prevent session creation",
+                   lesson="Expired tokens must be rejected regardless of valid signature")
+
+def test_oau_051_oidc_validate_claims_issuer_mismatch():
+    """_validate_id_token_claims raises ValueError for wrong issuer."""
+    import base64, json as _j, time as _t
+    claims = {"iss": "https://evil.example.com", "aud": "cid_123",
+               "exp": int(_t.time()) + 3600, "sub": "u1"}
+    payload = base64.urlsafe_b64encode(_j.dumps(claims).encode()).rstrip(b"=").decode()
+    id_token = f"header.{payload}.sig"
+    raised = False
+    try:
+        OAuthManager._validate_id_token_claims(
+            id_token, issuer="https://accounts.google.com"
+        )
+    except ValueError:
+        raised = True
+    assert record("OAU-051", "Wrong issuer raises ValueError",
+                   True, raised,
+                   cause="iss claim does not match expected issuer",
+                   effect="ValueError raised to prevent accepting spoofed token",
+                   lesson="Issuer validation is a critical OIDC security check")
+
+def test_oau_052_oidc_validate_claims_audience_mismatch():
+    """_validate_id_token_claims raises ValueError for wrong audience."""
+    import base64, json as _j, time as _t
+    claims = {"iss": "https://accounts.google.com", "aud": "other_client",
+               "exp": int(_t.time()) + 3600, "sub": "u1"}
+    payload = base64.urlsafe_b64encode(_j.dumps(claims).encode()).rstrip(b"=").decode()
+    id_token = f"header.{payload}.sig"
+    raised = False
+    try:
+        OAuthManager._validate_id_token_claims(
+            id_token, audience="cid_123"
+        )
+    except ValueError:
+        raised = True
+    assert record("OAU-052", "Wrong audience raises ValueError",
+                   True, raised,
+                   cause="aud claim does not include our client_id",
+                   effect="ValueError raised — token intended for another app",
+                   lesson="Audience validation prevents token substitution attacks")
+
+def test_oau_053_stats_reflects_real_http_mode():
+    """stats() reports real_http_mode correctly."""
+    sim_mgr = _mgr()
+    real_mgr = _mgr_real_http()
+    sim_stats = sim_mgr.stats()
+    real_stats = real_mgr.stats()
+    assert record("OAU-053", "stats.real_http_mode False in simulation",
+                   False, sim_stats.get("real_http_mode"))
+    assert record("OAU-053b", "stats.real_http_mode True with injected client",
+                   True, real_stats.get("real_http_mode"))
+
+def test_oau_054_fetch_userinfo_no_client():
+    """fetch_userinfo returns None when no http_client is set."""
+    mgr = _mgr()
+    mgr.register_provider(_prov("g"))
+    req = mgr.start_authorization("g")
+    ts = mgr.exchange_code(req.state, "c")
+    result = mgr.fetch_userinfo(ts.token_id)
+    assert record("OAU-054", "fetch_userinfo returns None without http_client",
+                   None, result,
+                   cause="no HTTP client injected — simulation mode",
+                   effect="returns None gracefully",
+                   lesson="Graceful degradation preserves backward compat")
+
+def test_oau_055_exchange_code_simulation_no_token_url():
+    """exchange_code stays in simulation mode when provider has no token_url."""
+    mgr = _mgr_real_http()  # has http_client but no token_url on provider
+    cfg = ProviderConfig(name="nourl", provider_type=OAuthProvider.CUSTOM,
+                         client_id="cid", token_url="")  # empty token_url
+    mgr.register_provider(cfg)
+    req = mgr.start_authorization("nourl")
+    ts = mgr.exchange_code(req.state, "c")
+    assert record("OAU-055", "No token_url → simulation mode even with http_client",
+                   True,
+                   ts is not None and ts.status == TokenStatus.ACTIVE,
+                   cause="provider has no token_url — cannot do real HTTP",
+                   effect="falls back to simulation, returns random tokens",
+                   lesson="Simulation fallback covers partially-configured providers")
+

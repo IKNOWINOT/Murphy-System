@@ -109,13 +109,22 @@ def create_app() -> FastAPI:
     def _now_iso():
         return datetime.now(timezone.utc).isoformat()
 
-    # ── Shared OAuth provider registry (singleton for the lifetime of this
-    #    app instance so begin_auth_flow / complete_auth_flow share state) ──
+    # ── Account manager (singleton) — wraps OAuthProviderRegistry and
+    #    handles account creation / linking after every OAuth callback.
+    #    A simple in-memory session store maps session tokens to account IDs.
     try:
-        from src.account_management.oauth_provider_registry import OAuthProviderRegistry as _OAuthProviderRegistry
-        _oauth_registry: "Optional[_OAuthProviderRegistry]" = _OAuthProviderRegistry()
+        from src.account_management.account_manager import AccountManager as _AccountManager
+        _account_manager: "Optional[_AccountManager]" = _AccountManager()
+        # Public accessor — no private attribute access
+        _oauth_registry = _account_manager.get_oauth_registry()
     except Exception:  # pragma: no cover
+        _account_manager = None
         _oauth_registry = None
+
+    # session_token → account_id (in-memory; replace with Redis/DB in prod)
+    import threading as _threading
+    _session_lock = _threading.Lock()
+    _session_store: "Dict[str, str]" = {}
 
     # Load .env before initialising MurphySystem so env vars like
     # MURPHY_LLM_PROVIDER and GROQ_API_KEY are available from the start.
@@ -5039,7 +5048,12 @@ def create_app() -> FastAPI:
 
     @app.get("/api/auth/callback")
     async def oauth_callback(request: Request):
-        """Handle OAuth authorization code callback."""
+        """Handle OAuth authorization code callback.
+
+        Completes the authorization-code flow, creates or links a Murphy
+        account via ``AccountManager``, mints a session token, sets an
+        ``HttpOnly`` cookie, and redirects the browser to the dashboard.
+        """
         try:
             params = dict(request.query_params)
             code = params.get("code", "")
@@ -5049,20 +5063,27 @@ def create_app() -> FastAPI:
                     {"error": "Missing code or state parameter"},
                     status_code=400,
                 )
-            if _oauth_registry is None:
-                return JSONResponse({"error": "OAuth registry unavailable"}, status_code=503)
-            import secrets
+            if _account_manager is None:
+                return JSONResponse({"error": "Account manager unavailable"}, status_code=503)
+
             from starlette.responses import RedirectResponse
-            token = _oauth_registry.complete_auth_flow(state, code)
-            import secrets
+
+            # Complete the OAuth flow — creates or links a Murphy account
+            account = _account_manager.complete_oauth_signup(state, code)
+
+            # Mint a cryptographically-random session token
+            import secrets as _secrets
             import urllib.parse
-            from starlette.responses import RedirectResponse
-            session_token = secrets.token_urlsafe(32)
-            user_id = token.raw_profile.get("sub", token.raw_profile.get("id", ""))
+            session_token = _secrets.token_urlsafe(32)
+            with _session_lock:
+                _session_store[session_token] = account.account_id
+
+            provider_name = next(iter(account.oauth_providers.keys()), "")
+
             qs = urllib.parse.urlencode({
-                "session_token": session_token,
-                "user_id": user_id,
-                "provider": token.provider.value,
+                "account_id": account.account_id,
+                "display_name": account.display_name or "",
+                "provider": provider_name,
             })
             redirect_url = f"/dashboard.html?{qs}"
             response = RedirectResponse(url=redirect_url, status_code=302)
@@ -5074,9 +5095,21 @@ def create_app() -> FastAPI:
                 samesite="lax",
                 max_age=86400,
             )
+            logger.info(
+                "OAuth callback: account %s linked via %s",
+                account.account_id,
+                provider_name,
+            )
             return response
         except ValueError as exc:
-            return _safe_error_response(exc, 400)
+            logger.warning("OAuth callback rejected: %s", exc)
+            from starlette.responses import RedirectResponse
+            import urllib.parse
+            error_qs = urllib.parse.urlencode({"error": str(exc)})
+            return RedirectResponse(
+                url=f"/login.html?{error_qs}",
+                status_code=302,
+            )
         except Exception as exc:
             logger.exception("OAuth callback failed")
             return _safe_error_response(exc, 500)
@@ -5117,7 +5150,7 @@ def create_app() -> FastAPI:
                 status_code=302,
             )
 
-        if _oauth_registry is None:
+        if _account_manager is None:
             return RedirectResponse(
                 f"/login.html?error=oauth_unavailable&provider={provider_key}",
                 status_code=302,
@@ -5125,7 +5158,7 @@ def create_app() -> FastAPI:
 
         try:
             oauth_provider = OAuthProvider(provider_key)
-            authorize_url, _state = _oauth_registry.begin_auth_flow(oauth_provider)
+            authorize_url, _state = _account_manager.begin_oauth_signup(oauth_provider)
             return RedirectResponse(authorize_url, status_code=302)
         except ValueError as exc:
             logger.warning("OAuth flow could not be started for %s: %s", provider_key, exc)
@@ -5165,6 +5198,25 @@ def create_app() -> FastAPI:
             logger.info("Key harvester router registered at /api/key-harvester/*")
     except Exception as _kh_exc:
         logger.warning("Key harvester router not available: %s", _kh_exc)
+
+    # ==================== ALL HANDS MEETING SYSTEM ====================
+
+    try:
+        from src.all_hands import AllHandsManager as _AllHandsManager
+        from src.all_hands import create_all_hands_api as _create_all_hands_api
+        _all_hands_manager = _AllHandsManager()
+        _ah_blueprint = _create_all_hands_api(_all_hands_manager)
+        from starlette.middleware.wsgi import WSGIMiddleware as _WSGIMid
+        try:
+            from flask import Flask as _Flask
+            _ah_flask = _Flask("all_hands")
+            _ah_flask.register_blueprint(_ah_blueprint)
+            app.mount("/api/all-hands", _WSGIMid(_ah_flask.wsgi_app))
+            logger.info("All Hands meeting system mounted at /api/all-hands/*")
+        except Exception as _ah_mount_exc:
+            logger.warning("All Hands Flask mount skipped: %s", _ah_mount_exc)
+    except Exception as _ah_exc:
+        logger.warning("All Hands system not available: %s", _ah_exc)
 
     # ==================== PROMETHEUS METRICS (Phase 4-A) ====================
     # src/metrics.py is the canonical metrics module.  When prometheus_client
