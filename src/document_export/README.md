@@ -19,6 +19,10 @@ The document export package converts Murphy workdocs, reports, and generated con
 | `api.py` | FastAPI router with `ExportRequest` and `BrandCreateRequest` models |
 | `templates/` | Jinja2 document templates for supported output formats |
 
+## Error Handling
+
+The `ExportPipeline` uses a graceful fallback chain for PDF rendering. If the primary Rich PDF renderer (WeasyPrint) is unavailable, the pipeline logs a debug-level message and falls back to reportlab. All fallback transitions are logged to aid troubleshooting in production.
+
 ## Usage
 
 ```python

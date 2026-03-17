@@ -44,6 +44,20 @@ When deploying Murphy System:
 
 This security policy covers the Murphy System core runtime and all modules in the `src/` directory. Third-party dependencies are covered by their own security policies.
 
+## Cryptographic Hash Policy
+
+Murphy System enforces **SHA-256 minimum** for all hashing in production code paths:
+
+| Use Case | Algorithm | Module |
+|----------|-----------|--------|
+| Audit log hash-chain | SHA-256 | `src/audit_logging_system.py` |
+| Webhook HMAC signing | HMAC-SHA256 | `src/webhook_dispatcher.py` |
+| Bot identity verification | HMAC-SHA256 | `src/security_plane/bot_identity_verifier.py` |
+| Commissioning test IDs | SHA-256 | `src/cutsheet_engine.py` |
+| Onboarding dedup hash | SHA-256 | `src/runtime/murphy_system_core.py` |
+
+**Prohibited algorithms:** MD5 and SHA-1 are not used for any security-relevant or identifier-generation purpose. The codebase was scanned with bandit and AST analysis to verify compliance (round 55).
+
 ## Security Enhancement Roadmap
 
 All planned security enhancements have been implemented. The following multi-agent security controls are now operational:

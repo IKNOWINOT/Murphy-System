@@ -23,13 +23,14 @@
 
 The Murphy System Runtime maintains comprehensive test coverage with 100% integration test success rate and exceptional performance characteristics across all test suites.
 
-### Test Statistics (updated 2026-03-16, round 52)
+### Test Statistics (updated 2026-03-17, round 55)
 
-- **Total Test Files**: 593 (in `tests/` directory)
-- **Total Test Functions**: 19,500+ across all test files
+- **Total Test Files**: 659 (in `tests/` directory)
+- **Total Test Functions**: 20,240+ across all test files
 - **Unit Tests**: ~350 files, ~6,000 functions (100% pass rate)
 - **Integration Tests**: ~80 files, ~1,500 functions (100% pass rate)
-- **Gap Closure Rounds**: 52 verified rounds (test_gap_closure_round1.py → round52.py)
+- **Gap Closure Rounds**: 54 verified rounds (test_gap_closure_round1.py → round54.py)
+- **Security Regression Tests**: `test_critical_error_fixes.py` — 8 tests (SHA-256 hash, PRAGMA validation, exception logging)
 - **E2E / Smoke Tests**: ~30 files (100% pass rate)
 - **MFM Tests**: 9 files, 228 functions
 - **AUAR Tests**: 3 files, 211 functions

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security — Round 55 — Critical Error Scan & Remediation
+
+- **security(hash):** `src/cutsheet_engine.py` — replaced SHA-1 with SHA-256 for `CommissioningTest.test_id` generation (bandit B324 HIGH). Hash digest is truncated to 10 hex chars; existing IDs regenerated on next construction.
+- **security(hash):** `src/runtime/murphy_system_core.py` — replaced MD5 with SHA-256 for onboarding profile de-duplication hash (bandit B324 HIGH).
+- **security(sql):** `src/persistence_wal.py` — PRAGMA values (`journal_size_limit`, `busy_timeout`) now explicitly cast to `int()` before f-string interpolation to prevent injection via non-integer config values.
+- **fix(logging):** `src/security_hardening_config.py` — audit persistence failure now emits `logger.warning()` instead of silent `pass`.
+- **fix(logging):** `src/self_codebase_swarm.py` — three silent `except Exception: pass` handlers replaced with `logger.debug()` (introspection graph, HITL record_action, complexity report).
+- **fix(logging):** `src/document_export/export_pipeline.py` — PDF renderer fallback now emits `logger.debug()` instead of silent `pass`.
+- **fix(logging):** `src/execution/document_generation_engine.py` — PDF renderer fallback now emits `logger.debug()` instead of silent `pass`.
+- **test:** `tests/test_critical_error_fixes.py` — 8 regression tests covering SHA-256 hash upgrade, PRAGMA int validation, and exception-logging verification.
+
 ### Added — Round 51 — Documentation Gap Closure (GAP-4/5/6/7/8 All Closed)
 
 - **docs(auar):** `docs/AUAR_TECHNICAL_PROPOSAL.md` Appendix C — documents UCB1 algorithm (vs. original epsilon-greedy), pluggable persistence layer (`FileStateBackend`/`MemoryStateBackend`), admin security controls (`AUAR_ADMIN_TOKEN`, audit logging, rate limiting, Pydantic validation), and AUAR-specific config vars table. Proposal version updated 0.1.0 → 0.2.0. **Closes GAP-4.**
