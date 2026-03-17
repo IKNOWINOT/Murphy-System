@@ -626,7 +626,7 @@ class AuditLogger:
                 extra={"audit_entry": entry},
             )
         except Exception:
-            pass  # Never let audit persistence failure break the request
+            logger.warning("Audit persistence failed — entry retained in-memory only")
 
     def query(
         self,
