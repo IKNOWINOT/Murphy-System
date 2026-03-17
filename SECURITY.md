@@ -56,7 +56,7 @@ Murphy System enforces **SHA-256 minimum** for all hashing in production code pa
 | Commissioning test IDs | SHA-256 | `src/cutsheet_engine.py` |
 | Onboarding dedup hash | SHA-256 | `src/runtime/murphy_system_core.py` |
 
-**Prohibited algorithms:** MD5 and SHA-1 are not used for any security-relevant or identifier-generation purpose. The codebase was scanned with bandit and AST analysis to verify compliance (round 55).
+**Prohibited algorithms:** MD5 and SHA-1 are not used in production code for any security-relevant or identifier-generation purpose. Test code may use these algorithms for negative-validation only. The codebase was scanned with bandit and AST analysis to verify compliance (round 55).
 
 ## Security Enhancement Roadmap
 

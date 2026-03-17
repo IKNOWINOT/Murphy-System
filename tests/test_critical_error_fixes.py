@@ -16,6 +16,7 @@ import hashlib
 import json
 import os
 import sqlite3
+from pathlib import Path
 
 import pytest
 
@@ -156,7 +157,7 @@ class TestSwallowedExceptionsLog:
         """Self-codebase swarm must log when introspection fails."""
         import ast
 
-        with open("src/self_codebase_swarm.py", "r") as f:
+        with open(Path(__file__).resolve().parent.parent / "src" / "self_codebase_swarm.py", "r") as f:
             source = f.read()
 
         # Verify no bare 'except Exception: pass' remains
