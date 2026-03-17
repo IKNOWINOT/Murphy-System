@@ -466,7 +466,6 @@
     </div>
   </div>
   <div class="murphy-topbar-right flex items-center gap-2">
-    <button class="murphy-btn murphy-btn-ghost murphy-btn-icon" id="theme-toggle-btn" aria-label="Toggle theme" title="Toggle theme">🌙</button>
     <a href="/ui/login" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Sign In</a>
     <a href="/ui/signup" class="murphy-btn murphy-btn-primary murphy-btn-sm">Get Started</a>
   </div>
@@ -520,7 +519,7 @@
         <span class="pricing-badge" aria-label="Most popular plan">Most Popular</span>
         <div class="pricing-tier" id="tier-business">Business</div>
         <div class="pricing-price" aria-live="polite" aria-atomic="true">
-          <span class="pricing-price-amount" data-monthly="$299" data-annual="$249">$299</span>
+          <span class="pricing-price-amount" data-monthly="$99" data-annual="$79">$99</span>
           <span class="pricing-price-period">/month</span>
         </div>
         <p class="pricing-desc">Grow your team with unlimited automations and priority support.</p>
@@ -783,14 +782,6 @@
 
   var theme = new MurphyTheme();
   theme.init();
-
-  var toggleBtn = document.getElementById('theme-toggle-btn');
-  function updateThemeIcon() {
-    toggleBtn.textContent = theme.get() === 'dark' ? '🌙' : '☀️';
-  }
-  updateThemeIcon();
-  theme.onChange(updateThemeIcon);
-  toggleBtn.addEventListener('click', function () { theme.toggle(); });
 
   // ── Interval toggle ──────────────────────────────────────
   var btnMonthly = document.getElementById('btn-monthly');
