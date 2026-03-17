@@ -292,10 +292,10 @@ class TestLCMEngine:
     @pytest.mark.skipif(not _REG_AND_ENGINE, reason="registry or engine not available")
     def test_enumerate_all_combinations(self):
         """UniversalDomainEnumerator must produce domain × role combinations."""
-        from lcm_domain_registry import LCMDomainRegistry as Reg  # noqa: PLC0415
+        from lcm_domain_registry import LCMDomainRegistry  # noqa: PLC0415
         from lcm_engine import UniversalDomainEnumerator, BotRole  # noqa: PLC0415
 
-        registry = Reg()
+        registry = LCMDomainRegistry()
         enumerator = UniversalDomainEnumerator(registry)
         combos = enumerator.enumerate_bot_role_domain_combinations()
         expected_min = len(list(BotRole)) * len(registry.list_all())

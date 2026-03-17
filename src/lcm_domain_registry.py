@@ -230,7 +230,7 @@ class LCMDomainRegistry:
                 description="Computer-Aided Design across platforms: AutoCAD, SolidWorks, Fusion360, Blender, OpenSCAD.",
                 gate_types=[GateType.QUALITY, GateType.COMPLIANCE, GateType.PERFORMANCE],
                 keywords=["cad", "solidworks", "autocad", "fusion360", "blender", "openscad", "parametric",
-                          "assembly", "drawing", "bom", "tolerances", "gd&t"],
+                          "assembly", "drawing", "bom", "tolerances", "gdt"],
                 connectors=[],
                 compliance_standards=["ISO 2768", "ASME Y14.5"],
                 priority=7,
