@@ -322,6 +322,28 @@ def test_text_dim_contrast():
         )
 
 
+def test_landing_demo_build_custom_scenario():
+    """Landing page must define buildCustomScenario() for dynamic demo fallback."""
+    content = _read_html('murphy_landing_page.html')
+    assert 'function buildCustomScenario(query)' in content, (
+        "murphy_landing_page.html missing buildCustomScenario(query) — "
+        "custom query fallback will not work"
+    )
+
+
+def test_landing_demo_custom_fallback():
+    """demoMatch() must fall back to buildCustomScenario(q), not DEMO_SCENARIOS.onboarding."""
+    content = _read_html('murphy_landing_page.html')
+    assert 'return buildCustomScenario(q)' in content, (
+        "murphy_landing_page.html: demoMatch() must return buildCustomScenario(q) "
+        "as its fallback — not DEMO_SCENARIOS.onboarding"
+    )
+    assert 'return DEMO_SCENARIOS.onboarding' not in content, (
+        "murphy_landing_page.html: demoMatch() still falls back to "
+        "DEMO_SCENARIOS.onboarding — replace with buildCustomScenario(q)"
+    )
+
+
 if __name__ == '__main__':
     import pytest
     pytest.main([__file__, '-v'])
