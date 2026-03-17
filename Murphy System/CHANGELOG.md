@@ -17,6 +17,18 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed — Librarian & Chat: Rate-Limiter Lockout, `[object Object]` Error Display, and Missing `>_` Icon
+
+- **`src/fastapi_security.py`**: Added `_is_login_endpoint()` helper; brute-force
+  tracking now scoped exclusively to `POST /api/auth/login`.  All other protected
+  endpoints (`/api/chat`, `/api/librarian/ask`, `/api/execute`, etc.) return `401`
+  on auth failure but do **not** count toward lockout.  Default
+  `MURPHY_AUTH_MAX_ATTEMPTS` raised from **5 → 20**.
+- **`static/murphy-components.js`**: Fixed `applyMSS()` to use `result.error`
+  (string) instead of `result.data?.error` (object) for error display, eliminating
+  `"Error: [object Object]"`.  Replaced generic chat SVG in `_createButton()` with
+  `>_` monospace label.
+
 ### Added — Round 61 — Real Google OAuth + Functional All Hands Meeting System
 
 See root `CHANGELOG.md` for full detail. Summary:

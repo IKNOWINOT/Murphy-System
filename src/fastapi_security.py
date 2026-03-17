@@ -224,6 +224,18 @@ def _is_public_api_route(path: str, method: str = "GET") -> bool:
     return False
 
 
+def _is_login_endpoint(path: str, method: str) -> bool:
+    """Return True only for the actual credential-submission login endpoint.
+
+    Brute-force failure tracking (CWE-307) is scoped exclusively to this
+    endpoint because it is the only one where an attacker submits a password
+    guess.  Chat, Librarian, and other authenticated API endpoints do NOT count
+    toward the brute-force lockout — a missing or expired session token on those
+    routes is a session management issue, not a password-guessing attack.
+    """
+    return path.rstrip("/") == "/api/auth/login" and method.upper() == "POST"
+
+
 # ── Rate Limiting ────────────────────────────────────────────────────
 
 class _FastAPIRateLimiter:
@@ -408,7 +420,7 @@ class _BruteForceTracker:
 
 
 _brute_force = _BruteForceTracker(
-    max_attempts=int(os.environ.get("MURPHY_AUTH_MAX_ATTEMPTS", "5")),
+    max_attempts=int(os.environ.get("MURPHY_AUTH_MAX_ATTEMPTS", "20")),
     window_seconds=int(os.environ.get("MURPHY_AUTH_WINDOW_SECONDS", "900")),
     lockout_seconds=int(os.environ.get("MURPHY_AUTH_LOCKOUT_SECONDS", "900")),
 )
@@ -516,21 +528,28 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             # Only development and test modes skip auth; staging and production require it
             if murphy_env not in ("development", "test"):
                 logger.warning("[%s] Missing credentials from %s", self.service_name, client_ip)
-                _brute_force.record_failure(client_ip)
+                # Only count brute-force failures for actual login POST attempts.
+                # Chat, Librarian, and other API endpoints without credentials are
+                # session management issues, not password-guessing attacks (CWE-307).
+                if _is_login_endpoint(request.url.path, request.method):
+                    _brute_force.record_failure(client_ip)
                 return JSONResponse(
                     status_code=401,
                     content={"error": "Authentication required"},
                 )
         elif not auth_result:
             logger.warning("[%s] Invalid credentials from %s", self.service_name, client_ip)
-            locked = _brute_force.record_failure(client_ip)
-            status_code = 429 if locked else 401
-            content = (
-                {"error": "Too many failed attempts. Try again later."}
-                if locked
-                else {"error": "Invalid credentials"}
-            )
-            return JSONResponse(status_code=status_code, content=content)
+            # Only count brute-force failures for actual login POST attempts.
+            if _is_login_endpoint(request.url.path, request.method):
+                locked = _brute_force.record_failure(client_ip)
+                status_code = 429 if locked else 401
+                content = (
+                    {"error": "Too many failed attempts. Try again later."}
+                    if locked
+                    else {"error": "Invalid credentials"}
+                )
+                return JSONResponse(status_code=status_code, content=content)
+            return JSONResponse(status_code=401, content={"error": "Invalid credentials"})
         else:
             # Successful auth — clear any brute-force tracking
             _brute_force.record_success(client_ip)

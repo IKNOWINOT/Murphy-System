@@ -7,6 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — Librarian & Chat: Rate-Limiter Lockout, `[object Object]` Error Display, and Missing `>_` Icon
+
+#### Problem
+Three bugs prevented the Librarian terminal from working for logged-in users:
+
+1. **Rate limiter locked out chat/librarian users** — every API call from the
+   Librarian UI counted as a "failed auth attempt".  With a 5-attempt window,
+   a single chat message + its Simplify/Solidify/Magnify transformations
+   exhausted the budget in seconds, locking the user's IP for 15 minutes.
+
+2. **`Error: [object Object]`** — The `applyMSS()` method in
+   `MurphyLibrarianChat` extracted the error from `result.data?.error` (an
+   `{ code, message }` Object) rather than the already-coerced string in
+   `result.error`, producing `"Error: [object Object]"` instead of the actual
+   message.
+
+3. **Librarian floating button missing `>_` symbol** — the button displayed a
+   generic chat SVG icon instead of the terminal-prompt `>_` symbol.
+
+#### Changes
+
+- **`src/fastapi_security.py`** + **`Murphy System/src/fastapi_security.py`**:
+  - Added `_is_login_endpoint(path, method)` helper that returns `True` only for
+    `POST /api/auth/login`.  Brute-force failure tracking (CWE-307) is now
+    scoped exclusively to this endpoint — the only one where an attacker submits
+    a password guess.  Chat, Librarian, and all other protected API endpoints
+    return `401` on missing/invalid credentials but do **not** record a
+    brute-force failure.
+  - Increased default `MURPHY_AUTH_MAX_ATTEMPTS` from **5 → 20** to accommodate
+    chat interfaces that issue multiple parallel API calls per interaction.
+    The value remains tunable via environment variable.
+
+- **`static/murphy-components.js`** + **`Murphy System/static/murphy-components.js`**:
+  - `applyMSS()`: changed error extraction from
+    `result.data?.error || result.error` to `result.error || result.data?.error?.message`
+    so the already-coerced string in `result.error` is used first, preventing
+    `[object Object]` from appearing in the terminal.
+  - `_createButton()`: replaced the generic `<svg #chat/>` icon with a
+    `>_` monospace text label, matching the Librarian's terminal identity.
+
+- **`tests/test_public_route_exemption.py`**:
+  - Added `TestLoginEndpointDetection` class (7 tests) verifying
+    `_is_login_endpoint()` returns `True` only for `POST /api/auth/login`.
+  - Replaced `test_protected_route_records_failures_on_missing_creds` (which
+    tested old behaviour: any protected route caused lockout) with three new
+    tests:
+    - `test_login_endpoint_records_failures_on_missing_creds` — login endpoint
+      failures still accumulate.
+    - `test_non_login_endpoint_no_brute_force_on_missing_creds` — 100 hits to
+      `/api/chat`, `/api/librarian/ask`, `/api/execute`, `/api/profiles/me`
+      do **not** lock out the IP.
+    - `test_login_post_records_failures_on_invalid_creds` — `max_attempts`
+      failures on the login endpoint trigger `is_locked_out()`.
+
 ### Added — Round 61 — Real Google OAuth + Functional All Hands Meeting System
 
 #### OAuth — Real HTTP Token Exchange, Userinfo Fetch, OIDC Validation, Account Linking

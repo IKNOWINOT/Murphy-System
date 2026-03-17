@@ -407,7 +407,7 @@ except requests.exceptions.HTTPError as e:
 | 401 | Unauthorized | Check API key/token validity |
 | 403 | Forbidden | Check user permissions/scopes |
 | 409 | Conflict | Resource already exists |
-| 429 | Too Many Requests | Implement rate limiting |
+| 429 | Too Many Requests | Only `POST /api/auth/login` counts toward brute-force lockout; wait for the lockout window to expire or contact support |
 | 500 | Internal Server Error | Contact support |
 
 ## Configuration
@@ -434,6 +434,14 @@ MURPHY_JWT_ALGORITHM=RS256
 MURPHY_OAUTH_ENABLED=true
 MURPHY_OAUTH_TOKEN_EXPIRATION=3600
 MURPHY_OAUTH_REFRESH_EXPIRATION=2592000
+
+# Brute-force protection (CWE-307) — applies only to POST /api/auth/login
+# Other API endpoints (chat, librarian, execute, etc.) return 401 on missing
+# credentials but never count toward the brute-force lockout, so normal
+# multi-call interactions cannot accidentally lock a user's IP.
+MURPHY_AUTH_MAX_ATTEMPTS=20          # failed login POSTs before IP lockout (default: 20)
+MURPHY_AUTH_WINDOW_SECONDS=900       # sliding window for attempt counting (default: 15 min)
+MURPHY_AUTH_LOCKOUT_SECONDS=900      # lockout duration after threshold reached (default: 15 min)
 ```
 
 ### Configuration File
