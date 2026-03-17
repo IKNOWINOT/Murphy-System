@@ -11946,7 +11946,12 @@ class MurphySystem:
     # -- LLM status ----------------------------------------------------------
 
     def _get_llm_status(self) -> Dict[str, Any]:
-        """Return current LLM provider configuration and health."""
+        """Return current LLM provider configuration and health.
+
+        The onboard LocalLLMFallback is **always** available.  External API
+        providers (Groq, OpenAI, Anthropic) are layered on top when keys are
+        present — they upgrade quality but are never required for operation.
+        """
         provider = os.environ.get("MURPHY_LLM_PROVIDER", "").strip().lower()
         model = os.environ.get("MURPHY_LLM_MODEL", "").strip()
         if not provider:
@@ -11957,35 +11962,47 @@ class MurphySystem:
             anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
             if groq_key:
                 provider = "groq"
+                os.environ["MURPHY_LLM_PROVIDER"] = provider
             elif openai_key:
                 provider = "openai"
+                os.environ["MURPHY_LLM_PROVIDER"] = provider
             elif anthropic_key:
                 provider = "anthropic"
+                os.environ["MURPHY_LLM_PROVIDER"] = provider
             else:
+                # No external API key — fall back to always-available onboard model.
+                # The system is still fully operational; responses come from
+                # LocalLLMFallback (Ollama when present, pattern-matcher otherwise).
                 return {
-                    "enabled": False,
-                    "provider": None,
-                    "model": None,
-                    "healthy": False,
-                    "error": "MURPHY_LLM_PROVIDER not set",
+                    "enabled": True,
+                    "provider": "onboard",
+                    "model": "local_fallback",
+                    "healthy": True,
+                    "mode": "onboard",
+                    "note": (
+                        "Running on onboard LLM (no external API key set). "
+                        "Add a Groq key via 'set key groq <key>' for enhanced responses."
+                    ),
                 }
-            os.environ["MURPHY_LLM_PROVIDER"] = provider
         # Validate provider-specific keys
         if provider == "groq":
             api_key = os.environ.get("GROQ_API_KEY", "").strip()
             if not api_key:
+                # Key was removed at runtime — degrade gracefully to onboard
                 return {
-                    "enabled": False,
-                    "provider": provider,
-                    "model": model or None,
-                    "healthy": False,
-                    "error": "GROQ_API_KEY not set",
+                    "enabled": True,
+                    "provider": "onboard",
+                    "model": "local_fallback",
+                    "healthy": True,
+                    "mode": "onboard",
+                    "note": "GROQ_API_KEY not set; using onboard LLM.",
                 }
             return {
                 "enabled": True,
                 "provider": provider,
                 "model": model or "llama3-8b-8192",
                 "healthy": True,
+                "mode": "external_api",
             }
         # Generic provider — enabled but health unknown
         return {
@@ -11993,6 +12010,7 @@ class MurphySystem:
             "provider": provider,
             "model": model or None,
             "healthy": True,
+            "mode": "external_api",
         }
 
     def _get_librarian_status(self) -> Dict[str, Any]:
@@ -12039,78 +12057,96 @@ class MurphySystem:
         return "general"
 
     def _try_llm_generate(self, prompt: str, context: str = "") -> Tuple[Optional[str], Optional[str]]:
-        """Attempt to generate a response via the configured LLM provider.
+        """Generate a response via LLM — external API when available, onboard fallback always.
 
         Returns a tuple ``(text, error)`` where:
-        - ``(text, None)`` on success
-        - ``(None, None)`` when LLM is not configured (no key set)
-        - ``(None, error_message)`` when LLM was attempted but failed (e.g. 401)
+        - ``(text, None)`` on success (external API or onboard)
+        - ``(None, error_message)`` when an external API was attempted and failed hard (e.g. 401)
+
+        The onboard fallback (LocalLLMFallback) is **always** tried last so that
+        this method never returns ``(None, None)`` — the system is always able to
+        respond.
         """
         llm_status = self._get_llm_status()
-        if not llm_status.get("enabled") or not llm_status.get("healthy"):
-            return None, None
-        provider = llm_status["provider"]
-        model = llm_status.get("model") or ""
-        if provider == "groq":
+        provider = llm_status.get("provider", "onboard")
+        mode = llm_status.get("mode", "onboard")
+
+        # --- External API path ---
+        if mode == "external_api" and provider == "groq":
+            model = llm_status.get("model") or "llama3-8b-8192"
             api_key = os.environ.get("GROQ_API_KEY", "")
-            if not api_key:
-                return None, None
-            try:
-                import requests as _requests
-                headers = {
-                    "Authorization": f"Bearer {api_key}",
-                    "Content-Type": "application/json",
-                }
-                body = {
-                    "model": model or "llama3-8b-8192",
-                    "messages": [
-                        {"role": "system", "content": (
-                            "You are Murphy, a professional automation assistant created by Inoni LLC. "
-                            "You help teams automate operations, onboard users, "
-                            "manage integrations, and run end-to-end workflows. "
-                            "Be concise, friendly, and action-oriented.\n\n"
-                            "MFGC/5U FRAMEWORK: You use the Murphy Framework Gate Controls (MFGC) and "
-                            "5 Universals (5U) to evaluate readiness. You need to collect:\n"
-                            "- 5U-Identity: business name\n"
-                            "- 5U-Context: industry, location, timezone\n"
-                            "- 5U-Scale: team size\n"
-                            "- 5U-Temporal: frequency, timeline, timezone\n"
-                            "- 5U-Data: data sources\n"
-                            "- MFGC-Objective: business goal, automation goal, success metrics\n"
-                            "- MFGC-Constraint: pain points, budget\n"
-                            "- MFGC-Integration: current tools, email, banking, phone, calendar, productivity apps\n"
-                            "- MFGC-Governance: compliance needs, decision maker\n\n"
-                            "RESPONSE STYLE: When user shares information, reflect it back amplified "
-                            "(expand on what they said 3x — show deep understanding), then ask "
-                            "'does something like this sound close?' Always ask the next most important "
-                            "missing question. Never repeat the same response twice.\n\n"
-                            "When users mention tools or services they use, recommend the specific "
-                            "API keys they'll need and provide signup links. Known integrations:\n"
-                            + "\n".join(
-                                f"- {info['name']}: {info['url']} (env: {info['env_var']})"
-                                for info in list(self.API_PROVIDER_LINKS.values())[:10]
-                            )
-                            + "\n\nAsk about their banking, phone carrier, email provider, "
-                            "productivity tools, and scheduling system to recommend integrations."
-                        )},
-                    ],
-                }
-                if context:
-                    body["messages"].append({"role": "system", "content": f"Context: {context}"})
-                body["messages"].append({"role": "user", "content": prompt})
-                resp = _requests.post(
-                    "https://api.groq.com/openai/v1/chat/completions",
-                    headers=headers,
-                    json=body,
-                    timeout=15,
-                )
-                resp.raise_for_status()
-                data = resp.json()
-                return data["choices"][0]["message"]["content"], None
-            except Exception as exc:
-                logger.warning("LLM call failed (%s): %s", provider, exc)
-                return None, str(exc)
-        return None, None
+            if api_key:
+                try:
+                    import requests as _requests
+                    headers = {
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json",
+                    }
+                    body = {
+                        "model": model,
+                        "messages": [
+                            {"role": "system", "content": (
+                                "You are Murphy, a professional automation assistant created by Inoni LLC. "
+                                "You help teams automate operations, onboard users, "
+                                "manage integrations, and run end-to-end workflows. "
+                                "Be concise, friendly, and action-oriented.\n\n"
+                                "MFGC/5U FRAMEWORK: You use the Murphy Framework Gate Controls (MFGC) and "
+                                "5 Universals (5U) to evaluate readiness. You need to collect:\n"
+                                "- 5U-Identity: business name\n"
+                                "- 5U-Context: industry, location, timezone\n"
+                                "- 5U-Scale: team size\n"
+                                "- 5U-Temporal: frequency, timeline, timezone\n"
+                                "- 5U-Data: data sources\n"
+                                "- MFGC-Objective: business goal, automation goal, success metrics\n"
+                                "- MFGC-Constraint: pain points, budget\n"
+                                "- MFGC-Integration: current tools, email, banking, phone, calendar, productivity apps\n"
+                                "- MFGC-Governance: compliance needs, decision maker\n\n"
+                                "RESPONSE STYLE: When user shares information, reflect it back amplified "
+                                "(expand on what they said 3x — show deep understanding), then ask "
+                                "'does something like this sound close?' Always ask the next most important "
+                                "missing question. Never repeat the same response twice.\n\n"
+                                "When users mention tools or services they use, recommend the specific "
+                                "API keys they'll need and provide signup links. Known integrations:\n"
+                                + "\n".join(
+                                    f"- {info['name']}: {info['url']} (env: {info['env_var']})"
+                                    for info in list(self.API_PROVIDER_LINKS.values())[:10]
+                                )
+                                + "\n\nAsk about their banking, phone carrier, email provider, "
+                                "productivity tools, and scheduling system to recommend integrations."
+                            )},
+                        ],
+                    }
+                    if context:
+                        body["messages"].append({"role": "system", "content": f"Context: {context}"})
+                    body["messages"].append({"role": "user", "content": prompt})
+                    resp = _requests.post(
+                        "https://api.groq.com/openai/v1/chat/completions",
+                        headers=headers,
+                        json=body,
+                        timeout=15,
+                    )
+                    resp.raise_for_status()
+                    data = resp.json()
+                    return data["choices"][0]["message"]["content"], None
+                except Exception as exc:
+                    logger.warning("Groq LLM call failed (%s) — falling back to onboard", exc)
+                    # Fall through to onboard fallback below
+
+        # --- Onboard fallback — always available ---
+        try:
+            from local_llm_fallback import LocalLLMFallback
+            fallback = LocalLLMFallback()
+            full_prompt = f"{context}\n\n{prompt}".strip() if context else prompt
+            return fallback.generate(full_prompt, max_tokens=500), None
+        except Exception as exc:
+            logger.debug("LocalLLMFallback failed (%s)", exc)
+
+        # Absolute last resort — structured template response
+        return (
+            f"I can help with: {prompt[:100]}. "
+            "For best results, add a Groq API key via 'set key groq <key>'.",
+            None,
+        )
 
     def librarian_ask(self, message: str, session_id: Optional[str] = None, mode: Optional[str] = None) -> Dict[str, Any]:
         """Route a natural-language message through the Librarian + optional LLM.
