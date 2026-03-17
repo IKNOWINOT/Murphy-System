@@ -94,11 +94,17 @@ def require_blueprint_auth(blueprint: Any) -> Any:
         api_keys = [k.strip() for k in api_keys_raw.split(",") if k.strip()]
 
         if not api_keys:
-            # No keys configured — allow through with a warning (operators
-            # should always configure keys in staging/production).
+            if murphy_env in ("staging", "production"):
+                logger.error(
+                    "Blueprint %s: MURPHY_API_KEYS not configured in %s — "
+                    "REJECTING all requests. Set MURPHY_API_KEYS to enable access.",
+                    blueprint.name,
+                    murphy_env,
+                )
+                return jsonify({"error": "Service misconfigured — API keys required"}), 503
             logger.warning(
                 "Blueprint %s: MURPHY_API_KEYS not configured in %s — "
-                "all requests are allowed. Set MURPHY_API_KEYS to enforce auth.",
+                "all requests are allowed.",
                 blueprint.name,
                 murphy_env,
             )
