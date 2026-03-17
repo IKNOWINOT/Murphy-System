@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed — Round 60 — OAuthProvider enum: add Meta, LinkedIn, Apple
+
+- **fix(oauth):** `src/oauth_oidc_provider.py` — expanded `OAuthProvider` enum from 4 → 7 members to match the canonical definition in `src/account_management/models.py`. Added `META = "meta"`, `LINKEDIN = "linkedin"`, `APPLE = "apple"`. Member order aligned to canonical order (MICROSOFT/GOOGLE/META/GITHUB/LINKEDIN/APPLE/CUSTOM). Fixes login flows for the Meta, LinkedIn, and Apple "Continue with…" buttons on the sign-up page.
+- **fix(test):** `tests/test_oauth_oidc_provider.py` — updated `test_oau_001_provider_enum` expected count from `4` → `7`.
+- **docs:** `docs/MODULE_REGISTRY.md` — updated `oauth_oidc_provider.py` registry description to list all 7 providers (Microsoft/Google/Meta/GitHub/LinkedIn/Apple/Custom).
+- **docs:** `src/account_management/README.md` — updated overview to list Microsoft, Google, Meta, GitHub, LinkedIn, and Apple as supported OAuth providers.
 ### Fixed — Landing Page Demo: Custom Query Fallback
 
 - **fix(ui):** `murphy_landing_page.html` — The interactive demo no longer silently falls back to the
