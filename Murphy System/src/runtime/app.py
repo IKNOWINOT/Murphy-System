@@ -5054,14 +5054,18 @@ def create_app() -> FastAPI:
             import secrets
             from starlette.responses import RedirectResponse
             token = _oauth_registry.complete_auth_flow(state, code)
+            import secrets
+            import urllib.parse
+            from starlette.responses import RedirectResponse
             session_token = secrets.token_urlsafe(32)
-            provider_name = token.provider.value
-            redirect_url = (
-                f"/ui/terminal-unified"
-                f"?oauth_success=1"
-                f"&provider={provider_name}"
-            )
-            response = RedirectResponse(redirect_url, status_code=302)
+            user_id = token.raw_profile.get("sub", token.raw_profile.get("id", ""))
+            qs = urllib.parse.urlencode({
+                "session_token": session_token,
+                "user_id": user_id,
+                "provider": token.provider.value,
+            })
+            redirect_url = f"/dashboard.html?{qs}"
+            response = RedirectResponse(url=redirect_url, status_code=302)
             response.set_cookie(
                 key="murphy_session",
                 value=session_token,
