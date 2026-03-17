@@ -870,11 +870,13 @@
             if (billing && billing.approval_url) {
               window.location.href = billing.approval_url;
             } else {
-              window.location.href = '/ui/onboarding';
+              showFormError('Account created! Payment setup could not be completed — you can subscribe from your dashboard. Redirecting…');
+              setTimeout(function () { window.location.href = '/ui/onboarding'; }, 3000);
             }
           })
           .catch(function () {
-            window.location.href = '/ui/onboarding';
+            showFormError('Account created! Payment setup could not be completed — you can subscribe from your dashboard. Redirecting…');
+            setTimeout(function () { window.location.href = '/ui/onboarding'; }, 3000);
           });
         } else {
           window.location.href = '/ui/onboarding';
