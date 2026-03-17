@@ -160,7 +160,7 @@ def _check_production_secrets():
         required = [
             "MURPHY_API_KEYS",
             "MURPHY_CREDENTIAL_MASTER_KEY",
-            "JWT_SECRET_KEY",
+            "MURPHY_JWT_SECRET",
             "POSTGRES_PASSWORD",
         ]
         missing = [k for k in required if not os.environ.get(k)]
