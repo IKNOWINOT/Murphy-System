@@ -4354,12 +4354,35 @@ def create_app() -> FastAPI:
             import urllib.parse
             error_qs = urllib.parse.urlencode({"error": str(exc)})
             return RedirectResponse(
-                url=f"/login.html?{error_qs}",
+                url=f"/ui/login?{error_qs}",
                 status_code=302,
             )
         except Exception as exc:
             logger.exception("OAuth callback failed")
             return _safe_error_response(exc, 500)
+
+    @app.get("/api/auth/providers")
+    async def auth_providers():
+        """Return which OAuth providers are configured (have client credentials).
+
+        This endpoint is public (no auth required) so the signup/login pages
+        can show or hide provider buttons depending on what's actually configured.
+        """
+        configured: Dict[str, bool] = {}
+        if _oauth_registry is not None:
+            try:
+                from src.account_management.models import OAuthProvider
+                for p in OAuthProvider:
+                    if p == OAuthProvider.CUSTOM:
+                        continue
+                    try:
+                        cfg = _oauth_registry.get_provider(p)
+                        configured[p.value] = bool(cfg and cfg.client_id and cfg.enabled)
+                    except Exception:
+                        configured[p.value] = False
+            except Exception:
+                pass
+        return JSONResponse({"providers": configured})
 
     @app.post("/api/auth/signup")
     async def auth_signup(request: Request):
@@ -4392,13 +4415,13 @@ def create_app() -> FastAPI:
 
         if provider_key not in _supported:
             return RedirectResponse(
-                f"/login.html?error=unsupported_provider&provider={provider_key}",
+                f"/ui/login?error=unsupported_provider&provider={provider_key}",
                 status_code=302,
             )
 
         if _account_manager is None:
             return RedirectResponse(
-                f"/login.html?error=oauth_unavailable&provider={provider_key}",
+                f"/ui/login?error=oauth_unavailable&provider={provider_key}",
                 status_code=302,
             )
 
@@ -4409,13 +4432,13 @@ def create_app() -> FastAPI:
         except ValueError as exc:
             logger.warning("OAuth flow could not be started for %s: %s", provider_key, exc)
             return RedirectResponse(
-                f"/login.html?error=oauth_not_configured&provider={provider_key}",
+                f"/ui/login?error=oauth_not_configured&provider={provider_key}",
                 status_code=302,
             )
         except Exception as exc:
             logger.exception("Unexpected error starting OAuth flow for %s", provider_key)
             return RedirectResponse(
-                f"/login.html?error=oauth_error&provider={provider_key}",
+                f"/ui/login?error=oauth_error&provider={provider_key}",
                 status_code=302,
             )
 
