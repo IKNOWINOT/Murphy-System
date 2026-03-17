@@ -13,6 +13,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **fix(test):** `tests/test_oauth_oidc_provider.py` — updated `test_oau_001_provider_enum` expected count from `4` → `7`.
 - **docs:** `docs/MODULE_REGISTRY.md` — updated `oauth_oidc_provider.py` registry description to list all 7 providers (Microsoft/Google/Meta/GitHub/LinkedIn/Apple/Custom).
 - **docs:** `src/account_management/README.md` — updated overview to list Microsoft, Google, Meta, GitHub, LinkedIn, and Apple as supported OAuth providers.
+### Fixed — Landing Page Demo: Custom Query Fallback
+
+- **fix(ui):** `murphy_landing_page.html` — The interactive demo no longer silently falls back to the
+  "Onboard a new client" scenario for unrecognised queries. Two changes were made:
+  - **`buildCustomScenario(query)`** (new function) — Builds a fully dynamic terminal scenario from
+    the user's raw prompt. The scenario echoes the query as an executed command, steps through a
+    `research → draft → review → deliver` pipeline, validates the deliverable spec against quality
+    gates, and renders a preview box (title, quality score 94/100, GDPR + SOC 2 badges) before
+    finishing with a sign-up CTA that references the user's specific request. Queries longer than
+    100 characters are truncated for display safety; the preview title is padded/truncated to 38
+    characters to preserve box-drawing alignment.
+  - **`demoMatch(q)` fallback updated** — Changed the final `return` from the hard-coded
+    `DEMO_SCENARIOS.onboarding` to `return buildCustomScenario(q)`. Keyword-matched scenarios
+    (onboarding, proposal, report, invoice, research, contract) continue to work exactly as before;
+    only the fallback path changes.
+- **fix(ui):** `Murphy System/murphy_landing_page.html` — Same changes applied to the mirrored copy.
+- **test:** `tests/test_ui_style_consistency.py` — Added `test_landing_demo_custom_fallback` and
+  `test_landing_demo_build_custom_scenario` to verify the presence and correctness of
+  `buildCustomScenario` and the updated `demoMatch` fallback in `murphy_landing_page.html`.
+### Fixed — OAuth Callback: Redirect to Dashboard with Session Cookie
+
+- **fix(auth):** `src/runtime/app.py`, `Murphy System/src/runtime/app.py` — **`GET /api/auth/callback`** now properly logs users in after a social OAuth flow instead of dumping raw JSON in the browser.
+  - **Before**: `oauth_callback` returned a `JSONResponse` containing token details (provider, token_type, profile, etc.). Users saw a JSON blob instead of being redirected to the dashboard.
+  - **After**: On successful `complete_auth_flow()`, the handler now:
+    1. Generates a cryptographically secure session token via `secrets.token_urlsafe(32)`.
+    2. Returns a `302 RedirectResponse` to `/dashboard.html` with URL-encoded query parameters (`session_token`, `user_id`, `provider`) for `murphy_auth.js` to write into `localStorage`.
+    3. Sets a `murphy_session` cookie (`httponly=True`, `secure=True`, `samesite="lax"`, `max_age=86400`) so the frontend cookie-check path also succeeds.
+  - Social login buttons (Google, Meta, LinkedIn, Apple, GitHub) that redirect to `/api/auth/callback` will now complete the login flow and land the user on the dashboard.
+  - Tests: `tests/test_oauth_callback_redirect.py` — 6 new tests covering redirect status, cookie presence, query-param encoding, and error responses.
+### Changed — Round 60 — OAuthProvider enum: add Meta, LinkedIn, Apple
+
+- **fix(oauth):** `src/oauth_oidc_provider.py` + `Murphy System/src/oauth_oidc_provider.py` — expanded `OAuthProvider` enum from 4 → 7 members to match the canonical definition in `src/account_management/models.py`. Added `META = "meta"`, `LINKEDIN = "linkedin"`, `APPLE = "apple"`. Member order aligned to canonical order (MICROSOFT/GOOGLE/META/GITHUB/LINKEDIN/APPLE/CUSTOM). Fixes login flows for the Meta, LinkedIn, and Apple "Continue with…" buttons on the sign-up page.
+- **fix(test):** `tests/test_oauth_oidc_provider.py` + `Murphy System/tests/test_oauth_oidc_provider.py` — updated `test_oau_001_provider_enum` expected count from `4` → `7`.
+- **docs:** `docs/MODULE_REGISTRY.md` + `Murphy System/docs/MODULE_REGISTRY.md` — updated `oauth_oidc_provider.py` registry description to list all 7 providers (Google/GitHub/Microsoft/Meta/LinkedIn/Apple/Custom).
+- **docs:** `src/account_management/README.md` — updated overview to list Microsoft, Google, Meta, LinkedIn, and Apple as supported OAuth providers.
+- **docs:** `CHANGELOG.md` historical entry for `models.py` — corrected `OAuthProvider` member list to include LinkedIn and Apple.
 
 ### Changed — Round 59 — KeyHarvester: Playwright → Murphy Native Automation
 
