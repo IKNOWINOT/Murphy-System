@@ -163,6 +163,59 @@ def _is_static_or_ui_page(path: str) -> bool:
     # Root landing page
     if normalized == "" or normalized == "/":
         return True
+    # Favicon — browsers automatically request this on every page load
+    if normalized == "/favicon.ico" or normalized.endswith("/favicon.svg"):
+        return True
+    return False
+
+
+def _is_public_api_route(path: str, method: str = "GET") -> bool:
+    """Check if the request is for a public API route that requires no authentication.
+
+    These routes are intentionally accessible without credentials because they
+    support normal pre-login browsing (landing page, pricing, signup, login).
+    Failing to exempt them causes innocent unauthenticated requests to be counted
+    as brute-force failures, locking out visitors after just 1-2 page loads
+    (CWE-307).
+
+    Route list derived from API_ROUTES.md (Auth: No entries) plus OAuth/auth
+    flow requirements:
+    - /api/health       — health check (also covered by _is_health_endpoint)
+    - /api/manifest     — machine-readable endpoint list
+    - /api/info         — system info
+    - /api/ui/links     — UI navigation links for frontend rendering
+    - /api/auth/oauth/* — OAuth initiation buttons (pre-login page)
+    - /api/auth/callback/* — OAuth callback handling
+    - /api/auth/login   — login endpoint
+    - /api/auth/register / /api/auth/signup — registration endpoint
+    - /api/reviews      — GET only; public reviews on landing/pricing pages
+    """
+    normalized = path.rstrip("/")
+
+    # Exact-match public routes (no auth required regardless of method)
+    _PUBLIC_EXACT = frozenset({
+        "/api/health",
+        "/api/manifest",
+        "/api/info",
+        "/api/ui/links",
+        "/api/auth/login",
+        "/api/auth/register",
+        "/api/auth/signup",
+        "/api/auth/callback",
+    })
+    if normalized in _PUBLIC_EXACT:
+        return True
+
+    # OAuth initiation and callback flows — must be accessible pre-login
+    if normalized.startswith("/api/auth/oauth/"):
+        return True
+    if normalized.startswith("/api/auth/callback/"):
+        return True
+
+    # Public reviews — GET only (displayed on landing/pricing pages without login)
+    if normalized == "/api/reviews" and method.upper() == "GET":
+        return True
+
     return False
 
 
@@ -403,6 +456,13 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             return response
         # Skip rate limiting / auth for static assets and UI page loads
         if _is_static_or_ui_page(request.url.path):
+            response = await call_next(request)
+            self._add_security_headers(response)
+            return response
+        # Skip brute-force tracking for public API routes (pre-login browsing).
+        # These endpoints are intentionally unauthenticated; recording a failure
+        # here would lock out users after normal page loads (CWE-307).
+        if _is_public_api_route(request.url.path, request.method):
             response = await call_next(request)
             self._add_security_headers(response)
             return response
