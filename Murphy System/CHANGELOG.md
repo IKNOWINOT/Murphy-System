@@ -17,6 +17,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed — Round 61 — OAuthProvider Enum: 4 → 7 providers (2026-03-17)
+
+- **feat(oauth):** `src/oauth_oidc_provider.py` — `OAuthProvider` enum expanded from 4 to 7 members: added `META = "meta"`, `LINKEDIN = "linkedin"`, `APPLE = "apple"` alongside existing `GOOGLE`, `GITHUB`, `MICROSOFT`, `CUSTOM`. Enum is now in sync with canonical definition in `src/account_management/models.py`.
+- **test:** `tests/test_oauth_oidc_provider.py` — `test_oau_001_provider_enum` assertion updated from `4` to `7` providers.
+- **docs:** `docs/MODULE_REGISTRY.md` — `oauth_oidc_provider.py` entry updated to list all 7 SSO providers (Google/GitHub/Microsoft/Meta/LinkedIn/Apple/Custom).
 ### Changed — Round 60 — OAuthProvider enum: add Meta, LinkedIn, Apple
 
 - **fix(oauth):** `src/oauth_oidc_provider.py` + `Murphy System/src/oauth_oidc_provider.py` — expanded `OAuthProvider` enum from 4 → 7 members to match the canonical definition in `src/account_management/models.py`. Added `META = "meta"`, `LINKEDIN = "linkedin"`, `APPLE = "apple"`. Member order aligned to canonical order (MICROSOFT/GOOGLE/META/GITHUB/LINKEDIN/APPLE/CUSTOM). Fixes login flows for the Meta, LinkedIn, and Apple "Continue with…" buttons on the sign-up page.

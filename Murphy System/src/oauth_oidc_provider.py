@@ -64,6 +64,8 @@ class OAuthProvider(str, Enum):
     GOOGLE = "google"
     META = "meta"
     GITHUB = "github"
+    MICROSOFT = "microsoft"
+    META = "meta"
     LINKEDIN = "linkedin"
     APPLE = "apple"
     CUSTOM = "custom"
