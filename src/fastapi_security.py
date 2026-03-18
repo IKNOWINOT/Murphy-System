@@ -112,8 +112,28 @@ def _extract_api_key(request: Request) -> Optional[str]:
     return None
 
 
+# ── Session Cookie Validator Registry ──────────────────────────────────
+# Allows app.py to register a session-token validator without creating a
+# circular import.  Call register_session_validator() once at startup.
+
+from typing import Callable  # noqa: E402  (re-import safe; already in __future__)
+
+_session_validator: Optional[Callable[[str], bool]] = None
+
+
+def register_session_validator(validator: Callable[[str], bool]) -> None:
+    """Register a callable that validates a murphy_session cookie token.
+
+    The callable should accept a session token string and return ``True``
+    if the token is valid (present in the active session store), or
+    ``False`` / raise if it is not.
+    """
+    global _session_validator
+    _session_validator = validator
+
+
 def _authenticate_request(request: Request) -> Optional[bool]:
-    """Authenticate a request via API key or JWT token.
+    """Authenticate a request via API key, JWT token, or session cookie.
 
     Returns:
         ``True`` if authenticated, ``False`` if credentials present but
@@ -133,8 +153,24 @@ def _authenticate_request(request: Request) -> Optional[bool]:
         jwt_payload = validate_jwt_token(token)
         if jwt_payload is not None:
             return True
+        # Try session-token validation (Bearer mirror of the murphy_session cookie)
+        if _session_validator is not None and token:
+            try:
+                if _session_validator(token):
+                    return True
+            except Exception:
+                pass
         # Fall back to API key validation
         return validate_api_key(token)
+
+    # Try murphy_session cookie (set by /api/auth/login and /api/auth/signup)
+    session_cookie = request.cookies.get("murphy_session", "")
+    if session_cookie and _session_validator is not None:
+        try:
+            if _session_validator(session_cookie):
+                return True
+        except Exception:
+            pass
 
     return None  # no credentials provided
 

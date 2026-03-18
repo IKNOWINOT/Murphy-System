@@ -188,8 +188,14 @@ def create_app() -> FastAPI:
 
     # Apply security hardening (CORS allowlist, API key auth, rate limiting, headers)
     try:
-        from src.fastapi_security import configure_secure_fastapi
+        from src.fastapi_security import configure_secure_fastapi, register_session_validator
         configure_secure_fastapi(app, service_name="murphy-system-1.0")
+        # Wire cookie-based session validation into the security middleware so that
+        # requests carrying a valid murphy_session cookie are authenticated.
+        def _cookie_session_validator(token: str) -> bool:
+            with _session_lock:
+                return token in _session_store
+        register_session_validator(_cookie_session_validator)
     except ImportError:
         logger.warning("fastapi_security not available — falling back to env-based CORS")
         _cors_origins = os.environ.get(
@@ -5076,6 +5082,7 @@ def create_app() -> FastAPI:
                 "success": True,
                 "message": "Account created successfully.",
                 "account_id": account_id,
+                "session_token": session_token,
                 "email": email,
                 "name": full_name,
                 "tier": "free",
@@ -5130,6 +5137,7 @@ def create_app() -> FastAPI:
                 "success": True,
                 "message": "Login successful",
                 "account_id": account_id,
+                "session_token": session_token,
                 "email": account["email"],
                 "name": account.get("full_name", ""),
                 "tier": account.get("tier", "free"),
