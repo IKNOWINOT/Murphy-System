@@ -584,6 +584,11 @@ class MurphyCanvas {
     window.addEventListener('resize', this._handleResize);
     this._onResize();
 
+    // Deferred resize: re-measure after CSS layout settles
+    requestAnimationFrame(() => {
+      if (!this._destroyed) this._onResize();
+    });
+
     this.render();
   }
 
