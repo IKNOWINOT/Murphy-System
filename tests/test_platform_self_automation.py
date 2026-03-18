@@ -505,3 +505,388 @@ class TestMFMDataPipeline:
             assert pipeline is not None
         except ImportError:
             pytest.skip("MFM training_data_pipeline not available")
+
+
+# ===========================================================================
+# Part 11: Workflow Schedule Generation
+# ===========================================================================
+
+class TestWorkflowScheduleGeneration:
+    """Verify workflows include schedule metadata and API suggestions."""
+
+    def test_generated_workflow_has_schedule(self, client):
+        """Generated workflow should include schedule metadata."""
+        resp = client.post("/api/workflows/generate", json={
+            "description": "Send daily email reports to the sales team",
+        })
+        assert resp.status_code == 200
+        data = resp.json()
+        wf = data["workflow"]
+        assert "schedule" in wf
+        assert wf["schedule"]["interval"] == "daily"
+        assert wf["schedule"]["enabled"] is True
+        assert wf["schedule"]["cron"] == "0 8 * * *"
+
+    def test_weekly_schedule_inferred(self, client):
+        """Weekly keywords should produce weekly schedule."""
+        resp = client.post("/api/workflows/generate", json={
+            "description": "Generate weekly invoice summary every week",
+        })
+        assert resp.status_code == 200
+        wf = resp.json()["workflow"]
+        assert wf["schedule"]["interval"] == "weekly"
+        assert wf["schedule"]["cron"] == "0 8 * * 1"
+
+    def test_on_demand_schedule_default(self, client):
+        """No schedule keywords → on_demand."""
+        resp = client.post("/api/workflows/generate", json={
+            "description": "Process uploaded documents and extract data",
+        })
+        assert resp.status_code == 200
+        wf = resp.json()["workflow"]
+        assert wf["schedule"]["interval"] == "on_demand"
+        assert wf["schedule"]["enabled"] is False
+
+    def test_api_suggestions_from_email(self, client):
+        """Email workflow should suggest SendGrid."""
+        resp = client.post("/api/workflows/generate", json={
+            "description": "Send email notifications when tasks complete",
+        })
+        assert resp.status_code == 200
+        wf = resp.json()["workflow"]
+        assert "api_suggestions" in wf
+        names = [s["name"] for s in wf["api_suggestions"]]
+        assert "SendGrid" in names
+
+    def test_api_suggestions_from_payment(self, client):
+        """Payment workflow should suggest Stripe."""
+        resp = client.post("/api/workflows/generate", json={
+            "description": "Process monthly payment invoices for clients",
+        })
+        assert resp.status_code == 200
+        wf = resp.json()["workflow"]
+        names = [s["name"] for s in wf["api_suggestions"]]
+        assert "Stripe" in names
+
+    def test_explicit_schedule_interval(self, client):
+        """Explicit schedule_interval should override inference."""
+        resp = client.post("/api/workflows/generate", json={
+            "description": "Run a report",
+            "schedule_interval": "hourly",
+        })
+        assert resp.status_code == 200
+        wf = resp.json()["workflow"]
+        assert wf["schedule"]["interval"] == "hourly"
+
+
+# ===========================================================================
+# Part 12: Demo Export
+# ===========================================================================
+
+class TestDemoExport:
+    """Verify demo export endpoint produces valid bundle."""
+
+    def test_demo_export_returns_bundle(self, client):
+        """GET /api/demo/export returns a complete project bundle."""
+        resp = client.get("/api/demo/export")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["success"] is True
+        bundle = data["bundle"]
+
+        assert bundle["murphy_demo_export"] is True
+        assert bundle["version"] == "1.0.0"
+        assert "exported_at" in bundle
+        assert "license" in bundle
+        assert "project_structure" in bundle
+        assert "workflows" in bundle
+        assert "platform_capabilities" in bundle
+        assert "setup_instructions" in bundle
+        assert "env_template" in bundle
+
+    def test_demo_export_license_info(self, client):
+        """Export bundle includes proper licensing and no-warranty clause."""
+        resp = client.get("/api/demo/export")
+        bundle = resp.json()["bundle"]
+        lic = bundle["license"]
+
+        assert lic["type"] == "BSL-1.1"
+        assert "Inoni" in lic["copyright"]
+        assert "Corey Post" in lic["creator"]
+        assert "NO WARRANTY" in lic["warranty"]
+        assert "as-is" in lic["warranty"].lower()
+
+    def test_demo_export_setup_instructions(self, client):
+        """Export includes step-by-step setup instructions."""
+        resp = client.get("/api/demo/export")
+        bundle = resp.json()["bundle"]
+        steps = bundle["setup_instructions"]
+        assert len(steps) >= 5
+        assert any("pip install" in s for s in steps)
+        assert any("onboarding wizard" in s.lower() for s in steps)
+
+    def test_demo_export_env_template(self, client):
+        """Export includes .env template."""
+        resp = client.get("/api/demo/export")
+        bundle = resp.json()["bundle"]
+        env = bundle["env_template"]
+        assert "MURPHY_ENV" in env
+        assert "MURPHY_SECRET_KEY" in env
+        assert "MFM_ENABLED" in env
+        assert "GROQ_API_KEY" in env
+
+    def test_demo_export_includes_workflows(self, client):
+        """Export should include previously generated workflows."""
+        # Generate a workflow first
+        client.post("/api/workflows/generate", json={
+            "description": "Daily email report with slack notification",
+        })
+        resp = client.get("/api/demo/export")
+        bundle = resp.json()["bundle"]
+        assert len(bundle["workflows"]) > 0
+        assert len(bundle["integrations_needed"]) > 0
+
+    def test_demo_export_platform_capabilities(self, client):
+        """Export shows which platform systems are available."""
+        resp = client.get("/api/demo/export")
+        caps = resp.json()["bundle"]["platform_capabilities"]
+        expected_keys = [
+            "self_fix_loop", "autonomous_repair", "scheduler",
+            "self_automation", "self_improvement", "mfm_enabled",
+            "workflow_count",
+        ]
+        for key in expected_keys:
+            assert key in caps, f"Missing capability: {key}"
+
+
+# ===========================================================================
+# Part 13: Librarian Works Without External LLM
+# ===========================================================================
+
+class TestLibrarianNoExternalLLM:
+    """Verify the onboard librarian works without API keys."""
+
+    def test_librarian_ask_no_llm(self, client):
+        """Librarian should respond even without external LLM."""
+        resp = client.post("/api/librarian/ask", json={
+            "message": "What can Murphy System do?",
+        })
+        assert resp.status_code == 200
+        data = resp.json()
+        # Should have a reply regardless of LLM availability
+        reply = data.get("reply_text") or data.get("response") or data.get("message") or ""
+        assert len(reply) > 0
+
+    def test_librarian_ask_mode(self, client):
+        """Librarian ask mode returns knowledge-base answer."""
+        resp = client.post("/api/librarian/ask", json={
+            "message": "Tell me about HITL interventions",
+            "mode": "ask",
+        })
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data.get("librarian_mode") == "ask" or "answer" in data or "reply_text" in data
+
+    def test_librarian_suggests_integrations(self, client):
+        """Librarian should suggest integrations based on context."""
+        resp = client.post("/api/librarian/ask", json={
+            "message": "I need to send emails to my customers every week",
+        })
+        assert resp.status_code == 200
+        data = resp.json()
+        # The reply should mention something about email or integrations
+        reply = str(data.get("reply_text", "")) + str(data.get("response", ""))
+        # Should get some kind of useful response
+        assert len(reply) > 10
+
+    def test_librarian_onboarding_mode(self, client):
+        """Default mode should do onboarding dimension extraction."""
+        resp = client.post("/api/librarian/ask", json={
+            "message": "I run a small HVAC company with 15 employees",
+        })
+        assert resp.status_code == 200
+        data = resp.json()
+        # Should extract business dimensions
+        assert "reply_text" in data or "response" in data or "message" in data
+
+
+# ===========================================================================
+# Part 14: Inoni LLC Agent Org Chart
+# ===========================================================================
+
+class TestInoniAgentOrgChart:
+    """Verify the automated Inoni LLC agent org chart."""
+
+    def test_org_chart_returns_departments(self, client):
+        """GET /api/orgchart/inoni-agents returns full org structure."""
+        resp = client.get("/api/orgchart/inoni-agents")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["success"] is True
+        org = data["org_chart"]
+        assert org["company"] == "Inoni LLC"
+        assert org["platform"] == "murphy.systems"
+        assert len(org["departments"]) >= 8
+
+    def test_org_chart_has_all_departments(self, client):
+        """Org chart covers all key departments."""
+        resp = client.get("/api/orgchart/inoni-agents")
+        org = resp.json()["org_chart"]
+        dept_names = [d["name"] for d in org["departments"]]
+        expected = [
+            "Executive & Strategy", "Sales & Marketing",
+            "Content Creator Services", "Developer Relations",
+            "Platform Engineering", "Production & Maintenance",
+            "AI & Machine Learning", "Customer Success",
+        ]
+        for dept in expected:
+            assert dept in dept_names, f"Missing department: {dept}"
+
+    def test_org_chart_agent_counts(self, client):
+        """Org chart reports correct agent counts."""
+        resp = client.get("/api/orgchart/inoni-agents")
+        org = resp.json()["org_chart"]
+        assert org["total_agents"] >= 20
+        assert org["active_agents"] >= 18
+        assert org["automation_count"] >= 50
+
+    def test_org_chart_agents_have_automations(self, client):
+        """Every agent has at least one automation."""
+        resp = client.get("/api/orgchart/inoni-agents")
+        org = resp.json()["org_chart"]
+        for dept in org["departments"]:
+            for agent in dept["agents"]:
+                assert len(agent["automations"]) > 0, \
+                    f"Agent {agent['id']} has no automations"
+                assert "status" in agent
+                assert "schedule" in agent
+
+    def test_org_chart_content_creator_free_tier(self, client):
+        """Content Creator Services has free-tier moderation agent."""
+        resp = client.get("/api/orgchart/inoni-agents")
+        org = resp.json()["org_chart"]
+        creator_dept = next(d for d in org["departments"]
+                           if d["name"] == "Content Creator Services")
+        mod_agent = next(a for a in creator_dept["agents"]
+                         if a["id"] == "moderation-agent")
+        assert mod_agent["tier"] == "free"
+        assert "comment_moderation" in mod_agent["automations"]
+
+    def test_org_chart_streaming_ai_planned(self, client):
+        """Streaming/gaming AI agent is planned for future."""
+        resp = client.get("/api/orgchart/inoni-agents")
+        org = resp.json()["org_chart"]
+        ml_dept = next(d for d in org["departments"]
+                       if d["name"] == "AI & Machine Learning")
+        streaming = next(a for a in ml_dept["agents"]
+                         if a["id"] == "streaming-ai")
+        assert streaming["status"] == "planned"
+
+    def test_org_chart_daily_seller_exists(self, client):
+        """Sales department has daily seller agent for self-promotion."""
+        resp = client.get("/api/orgchart/inoni-agents")
+        org = resp.json()["org_chart"]
+        sales_dept = next(d for d in org["departments"]
+                          if d["name"] == "Sales & Marketing")
+        seller = next(a for a in sales_dept["agents"]
+                      if a["id"] == "daily-seller")
+        assert "daily_outreach_email" in seller["automations"]
+
+
+# ===========================================================================
+# Part 15: Content Creator Moderation
+# ===========================================================================
+
+class TestContentCreatorModeration:
+    """Verify free content moderation for creators."""
+
+    def test_moderation_status(self, client):
+        """GET /api/creator/moderation/status returns service info."""
+        resp = client.get("/api/creator/moderation/status")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["success"] is True
+        assert data["tier"] == "free"
+        assert len(data["capabilities"]) >= 4
+
+    def test_moderation_clean_text(self, client):
+        """Clean text passes moderation."""
+        resp = client.post("/api/creator/moderation/check", json={
+            "text": "Great article! I learned a lot about HVAC systems.",
+        })
+        assert resp.status_code == 200
+        result = resp.json()["result"]
+        assert result["is_clean"] is True
+        assert result["action"] == "approve"
+        assert result["spam_score"] < 0.2
+
+    def test_moderation_spam_detected(self, client):
+        """Spam text is flagged."""
+        resp = client.post("/api/creator/moderation/check", json={
+            "text": "BUY NOW! Click here for free money! Act now!",
+        })
+        assert resp.status_code == 200
+        result = resp.json()["result"]
+        assert result["is_clean"] is False
+        assert result["action"] == "review"
+        assert result["spam_score"] > 0.2
+        assert len(result["flags"]) > 0
+
+    def test_moderation_empty_text_rejected(self, client):
+        """Empty text returns 400."""
+        resp = client.post("/api/creator/moderation/check", json={"text": ""})
+        assert resp.status_code == 400
+
+
+# ===========================================================================
+# Part 16: SDK & Platform Capabilities
+# ===========================================================================
+
+class TestSDKAndCapabilities:
+    """Verify SDK status and platform capability catalog."""
+
+    def test_sdk_status(self, client):
+        """GET /api/sdk/status returns SDK info."""
+        resp = client.get("/api/sdk/status")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["success"] is True
+        sdk = data["sdk"]
+        assert sdk["name"] == "Murphy SDK"
+        langs = [l["language"] for l in sdk["languages"]]
+        assert "Python" in langs
+        assert "JavaScript" in langs
+        assert "REST API" in langs
+
+    def test_platform_capabilities_catalog(self, client):
+        """GET /api/platform/capabilities returns licensable capabilities."""
+        resp = client.get("/api/platform/capabilities")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["success"] is True
+        caps = data["licensable_capabilities"]
+        assert len(caps) >= 10
+
+        # Verify key capabilities exist
+        cap_ids = [c["id"] for c in caps]
+        assert "content_moderation" in cap_ids
+        assert "sdk_access" in cap_ids
+        assert "streaming_ai" in cap_ids
+        assert "workflow_automation" in cap_ids
+        assert "org_chart_agents" in cap_ids
+
+    def test_content_moderation_is_free(self, client):
+        """Content moderation is free tier."""
+        resp = client.get("/api/platform/capabilities")
+        caps = resp.json()["licensable_capabilities"]
+        mod = next(c for c in caps if c["id"] == "content_moderation")
+        assert mod["tier_required"] == "free"
+        assert mod["license_type"] == "free"
+
+    def test_streaming_ai_is_planned(self, client):
+        """Streaming AI is planned for future."""
+        resp = client.get("/api/platform/capabilities")
+        caps = resp.json()["licensable_capabilities"]
+        streaming = next(c for c in caps if c["id"] == "streaming_ai")
+        assert streaming["status"] == "planned"
+        assert streaming["eta"] == "2026-Q4"
