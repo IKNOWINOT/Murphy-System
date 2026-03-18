@@ -50,9 +50,11 @@
     const token = _getSessionToken();
     const headers = token ? { Authorization: "Bearer " + token } : {};
     try {
-      const res = await fetch(url, { headers });
+      const res = await fetch(url, { headers, credentials: "same-origin" });
       if (!res.ok) return null;
-      return await res.json();
+      const data = await res.json();
+      if (!data || !data.found) return null;
+      return data;
     } catch (_) {
       return null;
     }
@@ -63,7 +65,7 @@
     const token = _getSessionToken();
     const headers = token ? { Authorization: "Bearer " + token } : {};
     try {
-      const res = await fetch(url, { headers });
+      const res = await fetch(url, { headers, credentials: "same-origin" });
       if (!res.ok) return null;
       return await res.json();
     } catch (_) {
@@ -144,10 +146,12 @@
   // ---------------------------------------------------------------------------
 
   function redirectToSignup(reason) {
+    const nextUrl = encodeURIComponent(window.location.pathname + window.location.search);
     const url =
-      LANDING_PAGE +
+      "/ui/login" +
       "?auth_required=1&reason=" +
-      encodeURIComponent(reason || "not_authenticated");
+      encodeURIComponent(reason || "not_authenticated") +
+      "&next=" + nextUrl;
     window.location.href = url;
   }
 

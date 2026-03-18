@@ -4,7 +4,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Murphy System — Sign In</title>
+<title>Sign In — Murphy System | AI Business Automation Platform</title>
+<meta name="description" content="Sign in to Murphy System. Access your AI-powered business automation dashboard, Shadow Agents, workflow canvas, and compliance tools.">
+<meta name="robots" content="noindex, follow">
 <link rel="icon" href="static/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="static/murphy-design-system.css">
 <style>
@@ -564,7 +566,14 @@
       submitBtn.disabled = false;
       submitBtn.querySelector('.btn-text').textContent = 'Sign In';
       if (result.status >= 200 && result.status < 300) {
-        window.location.href = '/ui/terminal-unified';
+        // Store session info for murphy_auth.js
+        if (result.data.account_id) {
+          localStorage.setItem('murphy_user_id', result.data.account_id);
+        }
+        // Redirect to requested page or terminal
+        var urlParams = new URLSearchParams(window.location.search);
+        var next = urlParams.get('next') || '/ui/terminal-unified';
+        window.location.href = next;
       } else {
         showFormError(result.data.message || result.data.error || 'Sign in failed. Please try again.');
       }

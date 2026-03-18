@@ -7,6 +7,139 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Platform Self-Automation, Agent Org Chart, Creator Services & Demo Export (Round 60)
+
+#### Platform Self-Automation (5 systems wired)
+- **Self-Fix Loop (ARCH-005)** — `GET/POST /api/self-fix/{status,run,history,plans}` for
+  autonomous diagnose→plan→execute→test→verify cycles.
+- **Autonomous Repair (ARCH-006)** — `GET/POST /api/repair/{status,run,history,wiring,proposals}`
+  with immune memory and reconciliation loops.
+- **Murphy Scheduler** — `GET/POST /api/scheduler/{status,start,stop,trigger}` for daily
+  platform automation cycles with HITL safety gates.
+- **Self-Automation Orchestrator (ARCH-002)** — `GET/POST /api/self-automation/{status,task,tasks}`
+  for priority-based task queue with prompt chain tracking.
+- **Self-Improvement Engine** — `GET /api/self-improvement/{status,proposals,corrections}` for
+  outcome tracking, pattern extraction, and remediation proposals.
+- **Platform Overview** — `GET /api/platform/automation-status` returns unified status of all 6
+  self-automation subsystems.
+
+#### Workflow Schedule & API Suggestions
+- Generated workflows now include `schedule` metadata (`interval`, `cron`, `enabled`, `next_run`)
+  automatically inferred from natural language (daily/weekly/monthly/hourly/on_demand).
+- Generated workflows include `api_suggestions` — recommends relevant integrations
+  (SendGrid, Slack, Stripe, Twilio, etc.) based on workflow description keywords.
+
+#### Inoni LLC Agent Org Chart
+- **GET /api/orgchart/inoni-agents** — Full automated org chart of 23 AI agents across
+  8 departments (Executive, Sales, Content Creator, DevRel, Platform Engineering,
+  Production, AI/ML, Customer Success) with 70+ automations.
+- Daily seller agent runs platform self-promotion automations.
+- Streaming & gaming AI agent registered as planned (2026-Q4).
+
+#### Content Creator Services (Free Tier)
+- **GET /api/creator/moderation/status** — Service status for free AI content moderation.
+- **POST /api/creator/moderation/check** — Content moderation with spam detection,
+  toxicity scoring, and community guidelines enforcement. Free for creators/bloggers.
+
+#### Developer SDK & Platform Capabilities
+- **GET /api/sdk/status** — SDK availability (Python, JavaScript, REST API).
+- **GET /api/platform/capabilities** — 12 licensable capabilities catalog with tier
+  requirements, licensing types, and status (active/planned).
+
+#### Demo Export
+- **GET /api/demo/export** — Downloadable project bundle with BSL-1.1 licensing,
+  no-warranty clause, .env template, workflows, setup instructions, and platform
+  capability manifest.
+
+#### MFM Data Collection Verified
+- ActionTraceCollector, MFMRegistry, OutcomeLabeler, TrainingDataPipeline all verified
+  importable and functional.
+- 6-month training timeline confirmed: 60 traces/day × 180 days = 10,800 > 10,000 threshold.
+
+### Added — Workflow Execution, HITL Queue, Compliance Enforcement & Tier-Gated Automation
+
+#### Workflow System
+- **POST /api/workflows/{id}/execute** — Real workflow execution via WorkflowOrchestrator.
+  Applies HITL gate checks and tier-based automation limits before starting.
+  Free tier blocked; paid tiers subject to automation count limits.
+- **POST /api/workflows/generate** — AI workflow generation from natural language via
+  AIWorkflowGenerator.  Generates DAG workflows and auto-saves to workflow store.
+- Workflow execution updates stored workflow status (`completed`/`failed`) with
+  timestamps and execution result.
+
+#### HITL Queue (Mock → Real)
+- **GET /api/hitl/queue** — Now returns real HumanInTheLoop state from
+  `murphy.get_hitl_state()` instead of empty mock `[]`.
+- **GET /api/hitl/pending** — New endpoint (alias for terminal UI) returning real
+  pending HITL items.
+- **POST /api/hitl/interventions/{id}/respond** — Added input validation:
+  status must be `approved|rejected|resolved|deferred|escalated`;
+  response capped at 2000 chars; returns 404 for unknown intervention IDs.
+
+#### Tier-Gated Automation Enforcement
+- **Free tier**: Can create/view workflows and generate via AI (uses daily actions).
+  Blocked from executing automated workflows or running business automations.
+  Clear upgrade messaging with `/ui/pricing` link.
+- **Paid tiers**: Automation execution enforced against tier automation limits
+  (Solo: 3, Business: unlimited).  Daily usage recording for all tiers.
+- Enforcement applied to both `/api/workflows/{id}/execute` and
+  `/api/automation/{engine_name}/{action}`.
+
+#### Compliance Framework Enforcement
+- **Tier-gated framework selection**: FREE gets no frameworks; SOLO gets GDPR+SOC2;
+  BUSINESS gets 8 frameworks; PROFESSIONAL/ENTERPRISE get all 41.
+  Non-allowed frameworks silently stripped with clear upgrade messaging.
+- **Compliance conflict detection**: When multiple frameworks are enabled, conflicts
+  are automatically detected and documented with resolutions:
+  - GDPR ↔ CCPA: Data retention — GDPR's 30-day erasure satisfies CCPA's 45-day.
+  - HIPAA ↔ GDPR: Data processing — Explicit consent + minimum necessary access.
+  - SOC 2 ↔ ISO 27001: Security controls — Unified control set satisfies both.
+  - PCI-DSS ↔ SOX: Financial data — Complementary scopes, no conflict.
+  - FedRAMP ↔ CMMC: Government — Shared NIST 800-171 controls.
+- Conflict data returned in every compliance toggle save response.
+
+#### Security Hardening
+- HITL respond endpoint: Enum-validated status, 2000-char response limit,
+  404 for unknown interventions (was returning `{"success": false, "intervention": null}`).
+
+### Added — Production Auth System, Route Protection, FREE Tier, Hero & SEO
+
+#### Authentication & Session Management
+- **POST /api/auth/signup** — Creates real accounts with SHA-256 hashed passwords and
+  session cookies.  Returns `account_id`, sets HttpOnly `murphy_session` cookie.
+- **POST /api/auth/login** — Validates credentials against stored accounts, creates
+  session token, sets HttpOnly cookie with `secure`, `samesite=lax`, 24h expiry.
+- **GET /api/profiles/me** — Returns authenticated user profile including tier, daily
+  usage stats, and terminal feature config.  Returns 401 without valid session.
+- **POST /api/auth/logout** — Invalidates session token, clears session cookie.
+- **POST /api/billing/checkout** — Creates billing checkout sessions for subscription
+  upgrades (falls back to mock URL when Stripe/PayPal not configured).
+- **GET /api/usage/daily** — Returns daily usage stats for authenticated or anonymous
+  visitors.
+
+#### Server-Side Route Protection
+- 24 protected HTML routes now return **302 → /ui/login?next=...** without a valid
+  session cookie (terminal, wallet, workspace, management, calendar, etc.).
+- 11 public HTML routes remain accessible without authentication (landing, login,
+  signup, pricing, docs, blog, careers, legal, privacy, partner).
+- Added `murphy_auth.js` to `community_forum.html` (was missing client-side guard).
+
+#### FREE Subscription Tier
+- New `SubscriptionTier.FREE` enum value and pricing plan ($0/month).
+- Free tier grants: 10 actions/day, Shadow Agent training (view-only), crypto wallet,
+  community access, all system capabilities at 10 uses/day.
+- Anonymous visitors get 5 actions/day.
+- Selling Shadow Agent skills and running HITL automations require paid subscription.
+- Daily usage tracking with `record_usage()` and `record_anon_usage()` methods.
+
+#### Hero Section & SEO Optimization
+- Hero now showcases 15 automation types (Shadow Agents, CRM, Invoicing, Hiring, etc.).
+- Demographic targeting section (Solopreneurs → Startups → Enterprise).
+- Industry verticals expanded to 10 (Finance, Healthcare, Manufacturing, etc.).
+- Open Graph, Twitter Card, and Schema.org structured data on all public pages.
+- FAQ schema for Google featured snippets.
+- Keyword-rich titles and meta descriptions for landing, signup, pricing, and docs.
+
 ### Fixed — Librarian & Chat: Rate-Limiter Lockout, `[object Object]` Error Display, and Missing `>_` Icon
 
 #### Problem
