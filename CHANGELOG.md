@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — UI User-Flow & Schedule Automation E2E Tests (Round 61)
+
+#### End-to-End UI User-Flow Tests
+- **`tests/test_ui_user_flow_schedule_automations.py`** — 79 tests covering the full user
+  journey from signup through natural-language workflow creation and schedule verification.
+  - **Part 1 (Auth Flow)**: Signup page, login page, session creation, credential login, profile access.
+  - **Part 2 (UI Navigation)**: 12 public pages return 200; 11 protected pages redirect (302→login);
+    workflow canvas and dashboard accessible after auth.
+  - **Part 3 (NL → Scheduled Workflow)**: Natural language descriptions produce correct schedule
+    metadata — daily/weekly/monthly/hourly/on_demand with proper cron expressions.
+  - **Part 4 (Workflow CRUD)**: Generate→list, generate→get-by-ID, save custom, 404 for missing, count validation.
+  - **Part 5+6 (Scheduler & Platform)**: Scheduler status/start/stop/trigger endpoints;
+    platform automation-status reports all 6 subsystems.
+  - **Part 7 (Full User Journey)**: End-to-end signup→navigate→create NL workflow→verify schedule
+    for daily (SendGrid), weekly (Slack), and monthly (Stripe) automations.
+  - **Part 8 (Canvas HTML)**: NL input field, schedule trigger node, save/run/load buttons,
+    draggable palette, all four node categories present.
+  - **Part 9 (API Suggestions)**: 11 NL descriptions correctly suggest SendGrid, Slack, HubSpot,
+    Stripe, Google Calendar, Google Sheets, PostgreSQL, Twilio, GitHub, Datadog, OpenWeatherMap.
+  - **Part 10 (Schedule Metadata)**: Validates cron expressions, enabled flag, next_run timestamp,
+    and on_demand disabled state for all schedule intervals.
+
 ### Added — Platform Self-Automation, Agent Org Chart, Creator Services & Demo Export (Round 60)
 
 #### Platform Self-Automation (5 systems wired)
