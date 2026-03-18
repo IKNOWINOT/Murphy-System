@@ -865,6 +865,9 @@
         if (result.data && result.data.account_id) {
           localStorage.setItem('murphy_user_id', result.data.account_id);
         }
+        if (result.data && result.data.session_token) {
+          localStorage.setItem('murphy_session_token', result.data.session_token);
+        }
         var urlParams = new URLSearchParams(window.location.search);
         var tier = urlParams.get('tier');
         var interval = urlParams.get('interval');
