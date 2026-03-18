@@ -67,6 +67,9 @@ def _make_app(registry=None):
                         configured[name] = bool(cfg and cfg.client_id and cfg.enabled)
                     except Exception:
                         configured[name] = False
+        # Env-var fallback: detect Google OAuth from env when registry is None
+        if not configured.get("google") and os.environ.get("MURPHY_OAUTH_GOOGLE_CLIENT_ID"):
+            configured["google"] = True
         return JSONResponse({"providers": configured})
 
     return TestClient(app), _holder
@@ -226,3 +229,29 @@ class TestAuthProvidersRobustness:
         if isinstance(providers, dict):
             for v in providers.values():
                 assert v is False
+
+
+# ---------------------------------------------------------------------------
+# 6. Env-var fallback detects Google from MURPHY_OAUTH_GOOGLE_CLIENT_ID
+# ---------------------------------------------------------------------------
+
+class TestAuthProvidersEnvVarFallback:
+    """When registry is None but MURPHY_OAUTH_GOOGLE_CLIENT_ID env var is set,
+    the endpoint should report google as available."""
+
+    def test_google_true_when_env_var_set(self):
+        with patch.dict(os.environ, {"MURPHY_OAUTH_GOOGLE_CLIENT_ID": "test-id-123"}):
+            client, _ = _make_app(registry=None)
+            resp = client.get("/api/auth/providers")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["providers"].get("google") is True
+
+    def test_google_absent_when_env_var_not_set(self):
+        env_clean = {"MURPHY_OAUTH_GOOGLE_CLIENT_ID": ""}
+        with patch.dict(os.environ, env_clean):
+            client, _ = _make_app(registry=None)
+            resp = client.get("/api/auth/providers")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert not data["providers"].get("google")
