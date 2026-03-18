@@ -203,10 +203,12 @@ def _is_public_api_route(path: str, method: str = "GET") -> bool:
         "/api/info",
         "/api/ui/links",
         "/api/auth/login",
+        "/api/auth/logout",
         "/api/auth/register",
         "/api/auth/signup",
         "/api/auth/callback",
         "/api/auth/providers",
+        "/api/usage/daily",
     })
     if normalized in _PUBLIC_EXACT:
         return True

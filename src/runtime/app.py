@@ -119,8 +119,67 @@ def create_app() -> FastAPI:
 
     # session_token → account_id (in-memory; replace with Redis/DB in prod)
     import threading as _threading
+    import secrets as _secrets
+    import hashlib as _hashlib
     _session_lock = _threading.Lock()
-    _session_store: "Dict[str, str]" = {}
+    _session_store: "Dict[str, str]" = {}  # session_token → account_id
+
+    # ── User account store (in-memory; replace with DB in production) ──
+    # account_id → {email, password_hash, full_name, job_title, company,
+    #               tier, email_validated, eula_accepted, created_at, ...}
+    _user_store: "Dict[str, Dict[str, Any]]" = {}
+    _email_to_account: "Dict[str, str]" = {}  # email → account_id (index)
+
+    def _hash_password(password: str) -> str:
+        """Hash a password with SHA-256 + salt for storage."""
+        salt = _secrets.token_hex(16)
+        h = _hashlib.sha256((salt + password).encode()).hexdigest()
+        return f"{salt}${h}"
+
+    def _verify_password(password: str, stored_hash: str) -> bool:
+        """Verify a password against a stored salt$hash."""
+        if "$" not in stored_hash:
+            return False
+        salt, h = stored_hash.split("$", 1)
+        return _hashlib.sha256((salt + password).encode()).hexdigest() == h
+
+    def _create_session(account_id: str) -> str:
+        """Mint a session token and store the mapping."""
+        token = _secrets.token_urlsafe(32)
+        with _session_lock:
+            _session_store[token] = account_id
+        return token
+
+    def _get_account_from_session(request: "Request") -> "Optional[Dict[str, Any]]":
+        """Extract account info from a session token (cookie or Bearer header)."""
+        token = ""
+        # 1. Check cookie
+        cookie_val = request.cookies.get("murphy_session", "")
+        if cookie_val:
+            token = cookie_val
+        # 2. Check Authorization header
+        if not token:
+            auth_header = request.headers.get("authorization", "")
+            if auth_header.startswith("Bearer "):
+                token = auth_header[7:]
+        if not token:
+            return None
+        with _session_lock:
+            account_id = _session_store.get(token)
+        if not account_id:
+            return None
+        return _user_store.get(account_id)
+
+    # ── Subscription manager (shared instance) ──
+    try:
+        from src.subscription_manager import SubscriptionManager as _SubMgr
+        from src.subscription_manager import SubscriptionTier as _SubTier
+        from src.subscription_manager import SubscriptionRecord as _SubRec
+        from src.subscription_manager import SubscriptionStatus as _SubStatus
+        _sub_manager = _SubMgr()
+    except Exception:  # pragma: no cover
+        _sub_manager = None
+        _SubTier = None
 
     # Apply security hardening (CORS allowlist, API key auth, rate limiting, headers)
     try:
@@ -3619,8 +3678,42 @@ def create_app() -> FastAPI:
         return JSONResponse({"success": True, "id": profile_id, "profile": data})
 
     @app.get("/api/profiles/{profile_id}")
-    async def profiles_get(profile_id: str):
-        """Get profile details."""
+    async def profiles_get(profile_id: str, request: Request):
+        """Get profile details.  ``me`` returns the authenticated user's profile."""
+        if profile_id == "me":
+            account = _get_account_from_session(request)
+            if not account:
+                return JSONResponse({"id": "me", "found": False, "profile": {}}, status_code=401)
+
+            tier = account.get("tier", "free")
+            usage = {}
+            if _sub_manager is not None:
+                usage = _sub_manager.get_daily_usage(account["account_id"])
+
+            return JSONResponse({
+                "id": account["account_id"],
+                "found": True,
+                "email": account["email"],
+                "full_name": account.get("full_name", ""),
+                "job_title": account.get("job_title", ""),
+                "company": account.get("company", ""),
+                "role": account.get("role", "user"),
+                "tier": tier,
+                "email_validated": account.get("email_validated", False),
+                "eula_accepted": account.get("eula_accepted", False),
+                "created_at": account.get("created_at", ""),
+                "daily_usage": usage,
+                "terminal_config": {
+                    "features": {
+                        "terminal_access": True,
+                        "production_wizard": True,
+                        "workflow_canvas": True,
+                        "crypto_wallet": True,
+                        "shadow_agent_training": True,
+                        "community_access": True,
+                    },
+                },
+            })
         return JSONResponse({"id": profile_id, "found": False, "profile": {}})
 
     @app.put("/api/profiles/{profile_id}")
@@ -4385,23 +4478,260 @@ def create_app() -> FastAPI:
 
     @app.post("/api/auth/signup")
     async def auth_signup(request: Request):
-        """Handle email/password signup."""
+        """Handle email/password signup — creates real account with session."""
         try:
             data = await request.json()
-            email = data.get("email", "")
-            name = data.get("name", "")
+            email = (data.get("email") or "").strip().lower()
+            password = data.get("password", "")
+            full_name = data.get("full_name") or data.get("name", "")
+            job_title = data.get("job_title", "")
+            company = data.get("company", "")
+
             if not email:
                 return JSONResponse({"success": False, "error": "Email is required"}, status_code=400)
-            # In production, this would create the user account
-            return JSONResponse({
-                "success": True,
-                "message": "Account created successfully. Check your email to verify.",
+            if not password or len(password) < 8:
+                return JSONResponse({"success": False, "error": "Password must be at least 8 characters"}, status_code=400)
+            if email in _email_to_account:
+                return JSONResponse({"success": False, "error": "An account with this email already exists"}, status_code=409)
+
+            account_id = uuid4().hex[:20]
+            _user_store[account_id] = {
+                "account_id": account_id,
                 "email": email,
-                "name": name,
+                "password_hash": _hash_password(password),
+                "full_name": full_name,
+                "job_title": job_title,
+                "company": company,
+                "tier": "free",
+                "email_validated": True,    # auto-validate for now (MVP)
+                "eula_accepted": True,      # accepted at signup form
+                "role": "user",
+                "created_at": _now_iso(),
+            }
+            _email_to_account[email] = account_id
+
+            # Create a free-tier subscription record
+            if _sub_manager is not None and _SubTier is not None:
+                _sub_manager._subscriptions[account_id] = _SubRec(
+                    account_id=account_id,
+                    tier=_SubTier.FREE,
+                    status=_SubStatus.ACTIVE,
+                )
+
+            # Mint session token
+            session_token = _create_session(account_id)
+
+            from starlette.responses import JSONResponse as _SJR
+            resp = _SJR({
+                "success": True,
+                "message": "Account created successfully.",
+                "account_id": account_id,
+                "email": email,
+                "name": full_name,
+                "tier": "free",
             })
+            resp.set_cookie(
+                key="murphy_session",
+                value=session_token,
+                httponly=True,
+                secure=os.environ.get("MURPHY_ENV", "development") != "development",
+                samesite="lax",
+                max_age=86400,
+            )
+            logger.info("Account created: %s (%s)", account_id, email)
+            return resp
         except Exception as exc:
             logger.exception("Signup failed")
             return _safe_error_response(exc, 500)
+
+    @app.post("/api/auth/login")
+    async def auth_login(request: Request):
+        """Handle email/password login — validates credentials and creates session."""
+        try:
+            data = await request.json()
+            email = (data.get("email") or "").strip().lower()
+            password = data.get("password", "")
+
+            if not email or not password:
+                return JSONResponse(
+                    {"success": False, "error": "Email and password are required"},
+                    status_code=400,
+                )
+
+            account_id = _email_to_account.get(email)
+            if not account_id:
+                return JSONResponse(
+                    {"success": False, "error": "Invalid email or password"},
+                    status_code=401,
+                )
+
+            account = _user_store.get(account_id)
+            if not account or not _verify_password(password, account.get("password_hash", "")):
+                return JSONResponse(
+                    {"success": False, "error": "Invalid email or password"},
+                    status_code=401,
+                )
+
+            # Mint session token
+            session_token = _create_session(account_id)
+
+            from starlette.responses import JSONResponse as _SJR
+            resp = _SJR({
+                "success": True,
+                "message": "Login successful",
+                "account_id": account_id,
+                "email": account["email"],
+                "name": account.get("full_name", ""),
+                "tier": account.get("tier", "free"),
+            })
+            resp.set_cookie(
+                key="murphy_session",
+                value=session_token,
+                httponly=True,
+                secure=os.environ.get("MURPHY_ENV", "development") != "development",
+                samesite="lax",
+                max_age=86400,
+            )
+            logger.info("Login successful: %s (%s)", account_id, email)
+            return resp
+        except Exception as exc:
+            logger.exception("Login failed")
+            return _safe_error_response(exc, 500)
+
+    @app.post("/api/auth/logout")
+    async def auth_logout(request: Request):
+        """Invalidate the current session."""
+        token = request.cookies.get("murphy_session", "")
+        if not token:
+            auth_header = request.headers.get("authorization", "")
+            if auth_header.startswith("Bearer "):
+                token = auth_header[7:]
+        if token:
+            with _session_lock:
+                _session_store.pop(token, None)
+        from starlette.responses import JSONResponse as _SJR
+        resp = _SJR({"success": True, "message": "Logged out"})
+        resp.delete_cookie("murphy_session")
+        return resp
+
+    @app.get("/api/profiles/me")
+    async def get_my_profile(request: Request):
+        """Return the authenticated user's profile, or redirect info."""
+        account = _get_account_from_session(request)
+        if not account:
+            return JSONResponse({
+                "id": "me",
+                "found": False,
+                "profile": {},
+            }, status_code=401)
+
+        tier = account.get("tier", "free")
+        usage = {}
+        if _sub_manager is not None:
+            usage = _sub_manager.get_daily_usage(account["account_id"])
+
+        return JSONResponse({
+            "id": account["account_id"],
+            "found": True,
+            "email": account["email"],
+            "full_name": account.get("full_name", ""),
+            "job_title": account.get("job_title", ""),
+            "company": account.get("company", ""),
+            "role": account.get("role", "user"),
+            "tier": tier,
+            "email_validated": account.get("email_validated", False),
+            "eula_accepted": account.get("eula_accepted", False),
+            "created_at": account.get("created_at", ""),
+            "daily_usage": usage,
+            "terminal_config": {
+                "features": {
+                    "terminal_access": True,
+                    "production_wizard": True,
+                    "workflow_canvas": True,
+                    "crypto_wallet": True,
+                    "shadow_agent_training": True,
+                    "community_access": True,
+                },
+            },
+        })
+
+    @app.get("/api/profiles/me/terminal-config")
+    async def get_terminal_config(request: Request):
+        """Return terminal feature flags for the authenticated user."""
+        account = _get_account_from_session(request)
+        if not account:
+            return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+        tier = account.get("tier", "free")
+        features = {
+            "terminal_access": True,
+            "production_wizard": True,
+            "workflow_canvas": True,
+            "crypto_wallet": True,
+            "shadow_agent_training": True,
+            "community_access": True,
+            "shadow_agent_sell": tier not in ("free", "anonymous"),
+            "hitl_automations": tier not in ("free", "anonymous"),
+            "api_access": tier not in ("free", "solo", "anonymous"),
+        }
+        return JSONResponse({"features": features, "tier": tier})
+
+    @app.post("/api/billing/checkout")
+    async def billing_checkout(request: Request):
+        """Create a billing checkout session for subscription upgrade."""
+        try:
+            data = await request.json()
+            account_id = data.get("account_id", "")
+            tier = data.get("tier", "")
+            interval = data.get("interval", "monthly")
+
+            if not account_id or not tier:
+                return JSONResponse({"success": False, "error": "account_id and tier required"}, status_code=400)
+
+            # For MVP, return a mock approval URL pointing to the pricing page
+            # In production, this integrates with Stripe/PayPal/Coinbase
+            if _sub_manager is not None:
+                try:
+                    url = _sub_manager.create_stripe_checkout_session(
+                        account_id=account_id,
+                        tier=_SubTier(tier),
+                        interval=interval,
+                        success_url=f"/ui/terminal-unified?upgraded=1",
+                        cancel_url="/ui/pricing",
+                    )
+                    return JSONResponse({"success": True, "approval_url": url})
+                except Exception:
+                    pass  # fall through to mock
+
+            return JSONResponse({
+                "success": True,
+                "approval_url": f"/ui/pricing?checkout=pending&tier={tier}",
+                "message": "Payment provider not configured. Please set STRIPE_API_KEY.",
+            })
+        except Exception as exc:
+            logger.exception("Billing checkout failed")
+            return _safe_error_response(exc, 500)
+
+    @app.get("/api/usage/daily")
+    async def get_daily_usage(request: Request):
+        """Return daily usage stats for the authenticated user or anonymous visitor."""
+        account = _get_account_from_session(request)
+        if account and _sub_manager is not None:
+            usage = _sub_manager.get_daily_usage(account["account_id"])
+            return JSONResponse(usage)
+        elif _sub_manager is not None:
+            fp = request.client.host if request.client else "unknown"
+            entry = _sub_manager._anon_usage.get(fp, {"date": "", "count": 0})
+            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            if entry.get("date") != today:
+                return JSONResponse({"used": 0, "limit": 5, "remaining": 5, "tier": "anonymous"})
+            return JSONResponse({
+                "used": entry["count"],
+                "limit": 5,
+                "remaining": max(0, 5 - entry["count"]),
+                "tier": "anonymous",
+            })
+        return JSONResponse({"used": 0, "limit": 5, "remaining": 5, "tier": "anonymous"})
 
     @app.get("/api/auth/oauth/{provider}")
     async def auth_oauth_redirect(provider: str):
@@ -5309,6 +5639,15 @@ def create_app() -> FastAPI:
             "/ui/ambient": "ambient_intelligence.html",
         }
 
+        # ── Route classification: public vs auth-required ──────────
+        # Public routes are accessible without a session.  Auth-required
+        # routes redirect to /ui/login when no valid session cookie exists.
+        _PUBLIC_HTML_ROUTES = frozenset({
+            "/", "/ui/landing", "/ui/login", "/ui/signup", "/ui/pricing",
+            "/ui/docs", "/ui/blog", "/ui/careers", "/ui/legal", "/ui/privacy",
+            "/ui/partner", "/ui/smoke-test",
+        })
+
         # Redirect bare /ui/ to /ui/landing
         async def _ui_root_redirect():
             return _RedirectResponse("/ui/landing", status_code=307)
@@ -5322,13 +5661,31 @@ def create_app() -> FastAPI:
                 return _FileResponse(_fp, media_type="text/html")
             return _handler
 
+        def _make_protected_html_handler(_fp: str, _route: str):
+            """Create an async handler that checks session before serving."""
+            async def _handler(request: Request):
+                account = _get_account_from_session(request)
+                if account is None:
+                    import urllib.parse as _up
+                    return _RedirectResponse(
+                        f"/ui/login?next={_up.quote(_route)}", status_code=302,
+                    )
+                return _FileResponse(_fp, media_type="text/html")
+            return _handler
+
         for _route_path, _filename in _html_routes.items():
             _filepath = _project_root / _filename
             if _filepath.is_file():
-                app.add_api_route(
-                    _route_path, _make_html_handler(str(_filepath)),
-                    methods=["GET"], include_in_schema=False,
-                )
+                if _route_path in _PUBLIC_HTML_ROUTES:
+                    app.add_api_route(
+                        _route_path, _make_html_handler(str(_filepath)),
+                        methods=["GET"], include_in_schema=False,
+                    )
+                else:
+                    app.add_api_route(
+                        _route_path, _make_protected_html_handler(str(_filepath), _route_path),
+                        methods=["GET"], include_in_schema=False,
+                    )
                 _mounted_count += 1
 
         # Redirect /ui/ to /ui/landing so users hitting the base UI path
