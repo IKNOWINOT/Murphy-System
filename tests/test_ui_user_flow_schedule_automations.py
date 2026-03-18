@@ -590,8 +590,10 @@ class TestWorkflowCanvasContent:
     def test_has_nl_input(self):
         """Canvas has a natural language input field."""
         assert "nl-input" in self.content
-        assert "plain English" in self.content or "natural language" in self.content.lower() \
-            or "Describe" in self.content or "describe" in self.content.lower()
+        lower = self.content.lower()
+        assert any(kw in lower for kw in (
+            "plain english", "natural language", "describe",
+        )), "Workflow canvas missing natural language input prompt"
 
     def test_has_schedule_trigger_node(self):
         """Canvas palette includes a Schedule trigger node."""
