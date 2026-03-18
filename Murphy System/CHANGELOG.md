@@ -17,6 +17,65 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed — End-to-End Authentication Flow (Beta Launch Blocker)
+
+All three auth paths — email/password, OAuth, and programmatic API access — are
+now fully connected so that users can sign up, log in, and use the Librarian chat
+without seeing "Authentication required".
+
+#### Backend: `src/fastapi_security.py` + mirror
+
+- **`_authenticate_request()`** now checks the `murphy_session` HttpOnly cookie in
+  addition to `Authorization: Bearer` and `X-API-Key` headers.  The cookie check
+  uses a pluggable validator registered at startup to avoid circular imports.
+- **`register_session_validator(fn)`** — new public function; called once by
+  `create_app()` with a closure over the in-memory `_session_store`.
+
+#### Backend: `src/runtime/app.py`
+
+- **`POST /api/auth/signup`** response body now includes `session_token` alongside
+  `account_id`, `email`, `name`, and `tier`.  The `murphy_session` cookie is still
+  set (HttpOnly); the JSON field lets the browser mirror the token to localStorage.
+- **`POST /api/auth/login`** — same: `session_token` added to the JSON body.
+- **`GET /api/auth/session-token`** — new authenticated endpoint.  Called by
+  `murphy_auth.js` after an OAuth redirect to retrieve the session token from the
+  server (the `murphy_session` cookie is HttpOnly and cannot be read by JavaScript
+  directly).  Returns `{ session_token }` for the currently authenticated session.
+- Session validator registered at startup so the middleware can accept cookie-based sessions.
+
+#### Frontend: `static/murphy-components.js` + mirror
+
+- **`MurphyAPI._buildHeaders()`** now checks `localStorage.murphy_session_token`
+  first and sends `Authorization: Bearer <token>`.  Falls back to `murphy_api_key`
+  / `X-API-Key` if no session token is present.
+
+#### Frontend: `login.html` + `Murphy System/login.html`
+
+- After a successful login response both files now store `murphy_session_token` and
+  `murphy_user_id` in localStorage.
+
+#### Frontend: `signup.html` + `Murphy System/signup.html`
+
+- Same — `murphy_session_token` and `murphy_user_id` stored on successful signup.
+
+#### Frontend: `murphy_auth.js` + `Murphy System/murphy_auth.js`
+
+- **`_handleOAuthSuccess()`** rewritten to `async`.  Instead of attempting to read
+  the HttpOnly `murphy_session` cookie from `document.cookie` (which always returns
+  an empty string), it now fetches `GET /api/auth/session-token` with
+  `credentials: "include"` and stores the returned token in localStorage.
+
+#### Python: `src/supervisor_system/anti_recursion.py` + mirror
+
+- Added missing `Any` to the `from typing import …` line; the `ImportError` fallback
+  for `thread_safe_operations.capped_append` used `Any` before it was in scope.
+
+#### Docs
+
+- `docs/API_REFERENCE.md` + mirror — Authentication section rewritten.
+- `SECURITY.md` / `Murphy System/SECURITY.md` — auth architecture documented.
+- `API_ROUTES.md` + mirror — new endpoints added.
+
 ### Fixed — Librarian & Chat: Rate-Limiter Lockout, `[object Object]` Error Display, and Missing `>_` Icon
 
 - **`src/fastapi_security.py`**: Added `_is_login_endpoint()` helper; brute-force

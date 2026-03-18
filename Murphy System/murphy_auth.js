@@ -184,35 +184,45 @@
   /**
    * When the backend OAuth callback redirects here with ?oauth_success=1 it
    * sets a `murphy_session` HttpOnly cookie.  To make the Bearer-token header
-   * available to subsequent API calls without a full page-auth rework, we
-   * mirror the cookie value into localStorage under `murphy_session_token`.
+   * available to subsequent API calls, we fetch the token from the server via
+   * GET /api/auth/session-token (which validates the cookie server-side and
+   * returns the token in the JSON body).  Direct cookie access is not possible
+   * because `murphy_session` is flagged HttpOnly.
    *
    * The query params are removed from the URL after processing so a manual
    * refresh does not re-trigger the handler.
+   *
+   * @returns {Promise<void>}
    */
-  function _handleOAuthSuccess() {
+  async function _handleOAuthSuccess() {
     var params = new URLSearchParams(window.location.search);
     if (params.get("oauth_success") !== "1") return;
 
-    // Extract the murphy_session cookie value
-    var cookieVal = document.cookie.split("; ").reduce(function (acc, pair) {
-      var idx = pair.indexOf("=");
-      if (idx === -1) return acc;
-      var k = pair.slice(0, idx);
-      var v = pair.slice(idx + 1);
-      return k === "murphy_session" ? decodeURIComponent(v) : acc;
-    }, "");
+    // Strip the OAuth query params from the address bar without reloading
+    // (done first so a failed fetch doesn't leave stale params).
+    history.replaceState(null, "", window.location.pathname);
 
-    if (cookieVal) {
-      localStorage.setItem("murphy_session_token", cookieVal);
-      var provider = params.get("provider") || "";
-      if (provider) {
-        localStorage.setItem("murphy_oauth_provider", provider);
-      }
+    // Persist the provider name so UI can show "Connected via Google" etc.
+    var provider = params.get("provider") || "";
+    if (provider) {
+      localStorage.setItem("murphy_oauth_provider", provider);
     }
 
-    // Strip the OAuth query params from the address bar without reloading
-    history.replaceState(null, "", window.location.pathname);
+    // Ask the server to hand back the active session token (readable server-side
+    // from the HttpOnly cookie) and mirror it to localStorage so that
+    // MurphyAPI._buildHeaders() can include it as a Bearer token.
+    try {
+      var res = await fetch("/api/auth/session-token", { credentials: "include" });
+      if (res.ok) {
+        var data = await res.json();
+        if (data && data.session_token) {
+          localStorage.setItem("murphy_session_token", data.session_token);
+        }
+      }
+    } catch (err) {
+      // Silently ignore network errors — cookie-based auth still works for
+      // server-rendered requests; only the Bearer-token path is affected.
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -220,7 +230,7 @@
   // ---------------------------------------------------------------------------
 
   async function boot() {
-    _handleOAuthSuccess();
+    await _handleOAuthSuccess();
 
     const profile = await fetchProfile();
 

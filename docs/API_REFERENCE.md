@@ -2,18 +2,55 @@
 
 **Version:** 1.0.0  
 **Base URL:** `http://localhost:8000`  
-**Auth:** Bearer token via `Authorization: Bearer <token>` header (see Authentication below)  
+**Auth:** Session cookie (`murphy_session`) or Bearer token — see Authentication below  
 **License:** BSL 1.1
 
 ---
 
 ## Authentication
 
-All endpoints except `/api/health` require a valid Bearer token.  Tokens are
-issued by the auth subsystem (`src/flask_security.py` / `src/fastapi_security.py`).
+Murphy System uses **session-based authentication** managed by `src/fastapi_security.py`.
+Sessions are created by `/api/auth/signup` and `/api/auth/login` and validated on every
+protected request via the `SecurityMiddleware`.
+
+### How it works
+
+| Client type | Auth mechanism |
+|-------------|----------------|
+| Browser (HTML pages) | `murphy_session` HttpOnly cookie — sent automatically with every request |
+| SPA / JS API calls | `Authorization: Bearer <session_token>` header |
+| Server-to-server | `X-API-Key: <key>` header (or Bearer for JWT-signed tokens) |
+
+The middleware checks credentials in this order:
+1. `X-API-Key` header
+2. `Authorization: Bearer` header (JWT → session token → API key fallback)
+3. `murphy_session` cookie
+
+### Obtaining a session token
+
+**Email / password flow**
 
 ```
-Authorization: Bearer <your-token>
+POST /api/auth/signup   → 200 { session_token, account_id, … } + Set-Cookie: murphy_session
+POST /api/auth/login    → 200 { session_token, account_id, … } + Set-Cookie: murphy_session
+```
+
+Store `session_token` in `localStorage` (`murphy_session_token`) so that the
+`MurphyAPI` JavaScript class can attach it as a Bearer header on subsequent
+AJAX requests.
+
+**OAuth flow**
+
+```
+GET /api/auth/oauth/{provider}   → redirects to provider
+GET /api/auth/callback           → sets murphy_session cookie, redirects to /ui/terminal-unified?oauth_success=1
+GET /api/auth/session-token      → 200 { session_token }   (called by murphy_auth.js after the redirect)
+```
+
+### Using the token
+
+```
+Authorization: Bearer <session_token>
 ```
 
 Rate limiting: 100 requests/minute per IP for anonymous; 1,000 requests/minute
