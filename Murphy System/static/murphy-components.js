@@ -367,8 +367,13 @@ class MurphyAPI {
   _buildHeaders() {
     const headers = { 'Content-Type': 'application/json' };
     try {
-      const key = localStorage.getItem('murphy_api_key');
-      if (key) headers['X-API-Key'] = key;
+      const token = localStorage.getItem('murphy_session_token');
+      if (token) {
+        headers['Authorization'] = 'Bearer ' + token;
+      } else {
+        const key = localStorage.getItem('murphy_api_key');
+        if (key) headers['X-API-Key'] = key;
+      }
     } catch { /* localStorage unavailable */ }
     return headers;
   }
