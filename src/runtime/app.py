@@ -176,10 +176,12 @@ def create_app() -> FastAPI:
         from src.subscription_manager import SubscriptionTier as _SubTier
         from src.subscription_manager import SubscriptionRecord as _SubRec
         from src.subscription_manager import SubscriptionStatus as _SubStatus
+        from src.subscription_manager import BillingInterval as _BillingInterval
         _sub_manager = _SubMgr()
     except Exception:  # pragma: no cover
         _sub_manager = None
         _SubTier = None
+        _BillingInterval = None
 
     # Apply security hardening (CORS allowlist, API key auth, rate limiting, headers)
     try:
@@ -4692,10 +4694,11 @@ def create_app() -> FastAPI:
             # In production, this integrates with Stripe/PayPal/Coinbase
             if _sub_manager is not None:
                 try:
+                    billing_interval = _BillingInterval(interval) if _BillingInterval else interval
                     url = _sub_manager.create_stripe_checkout_session(
                         account_id=account_id,
                         tier=_SubTier(tier),
-                        interval=interval,
+                        interval=billing_interval,
                         success_url=f"/ui/terminal-unified?upgraded=1",
                         cancel_url="/ui/pricing",
                     )
