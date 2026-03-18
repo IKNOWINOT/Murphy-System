@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Production Auth System, Route Protection, FREE Tier, Hero & SEO
+
+#### Authentication & Session Management
+- **POST /api/auth/signup** — Creates real accounts with SHA-256 hashed passwords and
+  session cookies.  Returns `account_id`, sets HttpOnly `murphy_session` cookie.
+- **POST /api/auth/login** — Validates credentials against stored accounts, creates
+  session token, sets HttpOnly cookie with `secure`, `samesite=lax`, 24h expiry.
+- **GET /api/profiles/me** — Returns authenticated user profile including tier, daily
+  usage stats, and terminal feature config.  Returns 401 without valid session.
+- **POST /api/auth/logout** — Invalidates session token, clears session cookie.
+- **POST /api/billing/checkout** — Creates billing checkout sessions for subscription
+  upgrades (falls back to mock URL when Stripe/PayPal not configured).
+- **GET /api/usage/daily** — Returns daily usage stats for authenticated or anonymous
+  visitors.
+
+#### Server-Side Route Protection
+- 24 protected HTML routes now return **302 → /ui/login?next=...** without a valid
+  session cookie (terminal, wallet, workspace, management, calendar, etc.).
+- 11 public HTML routes remain accessible without authentication (landing, login,
+  signup, pricing, docs, blog, careers, legal, privacy, partner).
+- Added `murphy_auth.js` to `community_forum.html` (was missing client-side guard).
+
+#### FREE Subscription Tier
+- New `SubscriptionTier.FREE` enum value and pricing plan ($0/month).
+- Free tier grants: 10 actions/day, Shadow Agent training (view-only), crypto wallet,
+  community access, all system capabilities at 10 uses/day.
+- Anonymous visitors get 5 actions/day.
+- Selling Shadow Agent skills and running HITL automations require paid subscription.
+- Daily usage tracking with `record_usage()` and `record_anon_usage()` methods.
+
+#### Hero Section & SEO Optimization
+- Hero now showcases 15 automation types (Shadow Agents, CRM, Invoicing, Hiring, etc.).
+- Demographic targeting section (Solopreneurs → Startups → Enterprise).
+- Industry verticals expanded to 10 (Finance, Healthcare, Manufacturing, etc.).
+- Open Graph, Twitter Card, and Schema.org structured data on all public pages.
+- FAQ schema for Google featured snippets.
+- Keyword-rich titles and meta descriptions for landing, signup, pricing, and docs.
+
 ### Fixed — Librarian & Chat: Rate-Limiter Lockout, `[object Object]` Error Display, and Missing `>_` Icon
 
 #### Problem
