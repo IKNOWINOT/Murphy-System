@@ -136,6 +136,8 @@ MURPHY_PORT=8000
 MURPHY_HOST=0.0.0.0
 MURPHY_LOG_LEVEL=INFO
 LLM_PROVIDER=onboard
+MURPHY_JWT_SECRET=murphy-dev-jwt-secret-do-not-use-in-production
+CREDENTIAL_ENCRYPTION_KEY=murphy-dev-encryption-key-do-not-use-in-prod
 ENVEOF
 echo "  ✅ .env created"
 
@@ -182,10 +184,15 @@ if os.path.isdir('static'):
 html_routes = {
     '/': 'murphy_landing_page.html',
     '/ui/landing': 'murphy_landing_page.html',
+    '/ui/login': 'login.html',
+    '/ui/signup': 'signup.html',
+    '/ui/pricing': 'pricing.html',
     '/ui/terminal-unified': 'terminal_unified.html',
+    '/ui/terminal': 'terminal_unified.html',
     '/ui/terminal-integrated': 'terminal_integrated.html',
     '/ui/terminal-architect': 'terminal_architect.html',
     '/ui/terminal-enhanced': 'terminal_enhanced.html',
+    '/ui/terminal-worker': 'terminal_worker.html',
     '/ui/terminal-costs': 'terminal_costs.html',
     '/ui/terminal-orgchart': 'terminal_orgchart.html',
     '/ui/terminal-integrations': 'terminal_integrations.html',
@@ -195,6 +202,23 @@ html_routes = {
     '/ui/system-visualizer': 'system_visualizer.html',
     '/ui/dashboard': 'murphy_ui_integrated.html',
     '/ui/smoke-test': 'murphy-smoke-test.html',
+    '/ui/demo': 'demo.html',
+    '/ui/compliance': 'compliance_dashboard.html',
+    '/ui/matrix': 'matrix_integration.html',
+    '/ui/workspace': 'workspace.html',
+    '/ui/production-wizard': 'production_wizard.html',
+    '/ui/partner': 'partner_request.html',
+    '/ui/community': 'community_forum.html',
+    '/ui/docs': 'docs.html',
+    '/ui/blog': 'blog.html',
+    '/ui/careers': 'careers.html',
+    '/ui/legal': 'legal.html',
+    '/ui/privacy': 'privacy.html',
+    '/ui/wallet': 'wallet.html',
+    '/ui/management': 'management.html',
+    '/ui/calendar': 'calendar.html',
+    '/ui/meeting-intelligence': 'meeting_intelligence.html',
+    '/ui/ambient': 'ambient_intelligence.html',
 }
 for route_path, filename in html_routes.items():
     filepath = os.path.abspath(filename)
