@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Workflow Execution, HITL Queue, Compliance Enforcement & Tier-Gated Automation
+
+#### Workflow System
+- **POST /api/workflows/{id}/execute** — Real workflow execution via WorkflowOrchestrator.
+  Applies HITL gate checks and tier-based automation limits before starting.
+  Free tier blocked; paid tiers subject to automation count limits.
+- **POST /api/workflows/generate** — AI workflow generation from natural language via
+  AIWorkflowGenerator.  Generates DAG workflows and auto-saves to workflow store.
+- Workflow execution updates stored workflow status (`completed`/`failed`) with
+  timestamps and execution result.
+
+#### HITL Queue (Mock → Real)
+- **GET /api/hitl/queue** — Now returns real HumanInTheLoop state from
+  `murphy.get_hitl_state()` instead of empty mock `[]`.
+- **GET /api/hitl/pending** — New endpoint (alias for terminal UI) returning real
+  pending HITL items.
+- **POST /api/hitl/interventions/{id}/respond** — Added input validation:
+  status must be `approved|rejected|resolved|deferred|escalated`;
+  response capped at 2000 chars; returns 404 for unknown intervention IDs.
+
+#### Tier-Gated Automation Enforcement
+- **Free tier**: Can create/view workflows and generate via AI (uses daily actions).
+  Blocked from executing automated workflows or running business automations.
+  Clear upgrade messaging with `/ui/pricing` link.
+- **Paid tiers**: Automation execution enforced against tier automation limits
+  (Solo: 3, Business: unlimited).  Daily usage recording for all tiers.
+- Enforcement applied to both `/api/workflows/{id}/execute` and
+  `/api/automation/{engine_name}/{action}`.
+
+#### Compliance Framework Enforcement
+- **Tier-gated framework selection**: FREE gets no frameworks; SOLO gets GDPR+SOC2;
+  BUSINESS gets 8 frameworks; PROFESSIONAL/ENTERPRISE get all 41.
+  Non-allowed frameworks silently stripped with clear upgrade messaging.
+- **Compliance conflict detection**: When multiple frameworks are enabled, conflicts
+  are automatically detected and documented with resolutions:
+  - GDPR ↔ CCPA: Data retention — GDPR's 30-day erasure satisfies CCPA's 45-day.
+  - HIPAA ↔ GDPR: Data processing — Explicit consent + minimum necessary access.
+  - SOC 2 ↔ ISO 27001: Security controls — Unified control set satisfies both.
+  - PCI-DSS ↔ SOX: Financial data — Complementary scopes, no conflict.
+  - FedRAMP ↔ CMMC: Government — Shared NIST 800-171 controls.
+- Conflict data returned in every compliance toggle save response.
+
+#### Security Hardening
+- HITL respond endpoint: Enum-validated status, 2000-char response limit,
+  404 for unknown interventions (was returning `{"success": false, "intervention": null}`).
+
 ### Added — Production Auth System, Route Protection, FREE Tier, Hero & SEO
 
 #### Authentication & Session Management
