@@ -564,6 +564,13 @@
       submitBtn.disabled = false;
       submitBtn.querySelector('.btn-text').textContent = 'Sign In';
       if (result.status >= 200 && result.status < 300) {
+        // Store session info for murphy_auth.js
+        if (result.data.account_id) {
+          localStorage.setItem('murphy_user_id', result.data.account_id);
+        }
+        if (result.data.session_token) {
+          localStorage.setItem('murphy_session_token', result.data.session_token);
+        }
         window.location.href = '/ui/terminal-unified';
       } else {
         showFormError(result.data.message || result.data.error || 'Sign in failed. Please try again.');
