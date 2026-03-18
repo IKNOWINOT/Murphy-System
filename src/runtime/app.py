@@ -2895,8 +2895,77 @@ def create_app() -> FastAPI:
                 context=data.get("context"),
             )
 
-            # Auto-save the generated workflow
+            # Auto-save the generated workflow with schedule metadata
             wf_id = wf.get("workflow_id", str(uuid4()))
+            now_iso = datetime.now(timezone.utc).isoformat()
+
+            # ── Infer schedule from description ──
+            desc_lower = description.lower()
+            schedule_interval = data.get("schedule_interval")
+            if schedule_interval is None:
+                if any(k in desc_lower for k in ("daily", "every day", "each day")):
+                    schedule_interval = "daily"
+                elif any(k in desc_lower for k in ("weekly", "every week", "each week")):
+                    schedule_interval = "weekly"
+                elif any(k in desc_lower for k in ("monthly", "every month", "each month")):
+                    schedule_interval = "monthly"
+                elif any(k in desc_lower for k in ("hourly", "every hour")):
+                    schedule_interval = "hourly"
+                else:
+                    schedule_interval = "on_demand"
+
+            # ── Infer API integration suggestions from workflow steps ──
+            api_suggestions = []
+            _API_KEYWORDS = {
+                "email": {"name": "SendGrid", "env_var": "SENDGRID_API_KEY",
+                          "description": "Transactional & marketing email delivery",
+                          "signup_url": "https://signup.sendgrid.com/"},
+                "slack": {"name": "Slack", "env_var": "SLACK_BOT_TOKEN",
+                          "description": "Team messaging and workflow notifications",
+                          "signup_url": "https://api.slack.com/apps"},
+                "crm": {"name": "HubSpot", "env_var": "HUBSPOT_API_KEY",
+                         "description": "CRM contacts, deals, and pipeline automation",
+                         "signup_url": "https://developers.hubspot.com/"},
+                "invoice": {"name": "Stripe", "env_var": "STRIPE_SECRET_KEY",
+                            "description": "Payment processing and invoicing",
+                            "signup_url": "https://dashboard.stripe.com/register"},
+                "payment": {"name": "Stripe", "env_var": "STRIPE_SECRET_KEY",
+                            "description": "Payment processing and invoicing",
+                            "signup_url": "https://dashboard.stripe.com/register"},
+                "calendar": {"name": "Google Calendar", "env_var": "GOOGLE_CALENDAR_API_KEY",
+                             "description": "Calendar event scheduling and management",
+                             "signup_url": "https://console.cloud.google.com/"},
+                "spreadsheet": {"name": "Google Sheets", "env_var": "GOOGLE_SHEETS_API_KEY",
+                                "description": "Spreadsheet data sync and reporting",
+                                "signup_url": "https://console.cloud.google.com/"},
+                "database": {"name": "PostgreSQL", "env_var": "DATABASE_URL",
+                             "description": "Relational database for structured data",
+                             "signup_url": "https://www.postgresql.org/download/"},
+                "sms": {"name": "Twilio", "env_var": "TWILIO_AUTH_TOKEN",
+                        "description": "SMS and voice communication",
+                        "signup_url": "https://www.twilio.com/try-twilio"},
+                "github": {"name": "GitHub", "env_var": "GITHUB_TOKEN",
+                           "description": "Source control and CI/CD automation",
+                           "signup_url": "https://github.com/settings/tokens"},
+                "monitor": {"name": "Datadog", "env_var": "DATADOG_API_KEY",
+                            "description": "Infrastructure and application monitoring",
+                            "signup_url": "https://www.datadoghq.com/free-datadog-trial/"},
+                "weather": {"name": "OpenWeatherMap", "env_var": "OPENWEATHER_API_KEY",
+                            "description": "Weather data for location-based automation",
+                            "signup_url": "https://openweathermap.org/api"},
+                "hvac": {"name": "BACnet/IP Gateway", "env_var": "BACNET_GATEWAY_URL",
+                         "description": "Building automation system integration",
+                         "signup_url": ""},
+                "sensor": {"name": "IoT Hub", "env_var": "IOT_HUB_CONNECTION_STRING",
+                           "description": "IoT sensor data ingestion",
+                           "signup_url": ""},
+            }
+            seen_apis = set()
+            for kw, suggestion in _API_KEYWORDS.items():
+                if kw in desc_lower and suggestion["name"] not in seen_apis:
+                    api_suggestions.append(suggestion)
+                    seen_apis.add(suggestion["name"])
+
             saved = {
                 "id": wf_id,
                 "name": wf.get("name", "Generated Workflow"),
@@ -2909,9 +2978,21 @@ def create_app() -> FastAPI:
                 ],
                 "connections": [],
                 "status": "generated",
-                "created_at": datetime.now(timezone.utc).isoformat(),
-                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "created_at": now_iso,
+                "updated_at": now_iso,
                 "generated_from": description[:200],
+                "schedule": {
+                    "interval": schedule_interval,
+                    "next_run": now_iso,
+                    "enabled": schedule_interval != "on_demand",
+                    "cron": {
+                        "daily": "0 8 * * *",
+                        "weekly": "0 8 * * 1",
+                        "monthly": "0 8 1 * *",
+                        "hourly": "0 * * * *",
+                    }.get(schedule_interval),
+                },
+                "api_suggestions": api_suggestions,
             }
             _workflows_store[wf_id] = saved
 
@@ -3833,6 +3914,13 @@ def create_app() -> FastAPI:
         except Exception as exc:  # noqa: BLE001
             logger.debug("Non-critical error in endpoint: %s", exc)
         return JSONResponse({"agents": agents, "count": len(agents)})
+
+    @app.get("/api/orgchart/inoni-agents")
+    async def inoni_agent_org_chart_shortcut():
+        """Redirect to the full Inoni LLC agent org chart (registered later)."""
+        # Registered here so it's matched BEFORE the {task_id} catch-all.
+        # The full implementation is at the end of create_app().
+        return await _inoni_org_chart_handler()
 
     @app.get("/api/orgchart/{task_id}")
     async def orgchart_for_task(task_id: str):
@@ -7535,6 +7623,447 @@ def create_app() -> FastAPI:
             logger.info("Repair API blueprint not created (Flask unavailable)")
     except Exception as _rep_exc:
         logger.warning("Repair API endpoints not available: %s", _rep_exc)
+
+    # ══════════════════════════════════════════════════════════════════════
+    # DEMO EXPORT — downloadable project bundle with licensing
+    # ══════════════════════════════════════════════════════════════════════
+
+    @app.get("/api/demo/export")
+    async def demo_export(request: Request):
+        """Generate a downloadable demo project bundle.
+
+        Returns a JSON manifest describing the exportable project structure
+        with all workflows, configurations, and wiring — ready to drop
+        into the user's own repository.
+        """
+        account = _get_account_from_session(request)
+        account_id = account["account_id"] if account else "anonymous"
+        now_iso = datetime.now(timezone.utc).isoformat()
+
+        # Collect all workflows
+        workflows = list(_workflows_store.values())
+
+        # Collect integration recommendations
+        integrations_needed = set()
+        for wf in workflows:
+            for sug in wf.get("api_suggestions", []):
+                integrations_needed.add(sug.get("name", ""))
+
+        # Build the export bundle
+        bundle = {
+            "murphy_demo_export": True,
+            "version": "1.0.0",
+            "exported_at": now_iso,
+            "exported_by": account_id,
+            "license": {
+                "type": "BSL-1.1",
+                "name": "Business Source License 1.1",
+                "copyright": "Copyright © 2020 Inoni Limited Liability Company",
+                "creator": "Corey Post",
+                "warranty": "NO WARRANTY — This software is provided 'as-is' without "
+                            "any express or implied warranty. In no event shall the "
+                            "authors be held liable for any damages arising from the "
+                            "use of this software.",
+                "usage_grant": "You may use, copy, and modify this demo export for "
+                               "personal or internal business purposes. Commercial "
+                               "redistribution requires a separate license agreement "
+                               "with Inoni LLC.",
+            },
+            "project_structure": {
+                "README.md": "Project overview, setup instructions, and architecture",
+                "LICENSE": "BSL-1.1 license text",
+                "requirements.txt": "Python dependencies",
+                ".env.example": "Environment variable template with all API keys",
+                "src/": "Source code modules",
+                "src/runtime/app.py": "FastAPI application with all endpoints",
+                "src/workflows/": "Generated workflow definitions",
+                "src/integrations/": "Integration wiring configurations",
+                "tests/": "Test suite",
+                "docs/": "Documentation including API reference",
+                "documentation/": "Extended documentation",
+            },
+            "workflows": [
+                {
+                    "id": wf.get("id"),
+                    "name": wf.get("name"),
+                    "status": wf.get("status"),
+                    "schedule": wf.get("schedule", {}),
+                    "node_count": len(wf.get("nodes", [])),
+                    "generated_from": wf.get("generated_from", ""),
+                    "api_suggestions": wf.get("api_suggestions", []),
+                }
+                for wf in workflows
+            ],
+            "integrations_needed": sorted(integrations_needed - {""}),
+            "env_template": _build_env_template(workflows),
+            "platform_capabilities": {
+                "self_fix_loop": getattr(murphy, "self_fix_loop", None) is not None,
+                "autonomous_repair": getattr(murphy, "autonomous_repair", None) is not None,
+                "scheduler": getattr(murphy, "murphy_scheduler", None) is not None,
+                "self_automation": getattr(murphy, "self_automation_orchestrator", None) is not None,
+                "self_improvement": getattr(murphy, "self_improvement", None) is not None,
+                "mfm_enabled": os.environ.get("MFM_ENABLED", "false").lower() == "true",
+                "workflow_count": len(workflows),
+            },
+            "setup_instructions": [
+                "1. Clone this export into your project directory",
+                "2. Copy .env.example to .env and fill in your API keys",
+                "3. Run: pip install -r requirements.txt",
+                "4. Run: python -m src.runtime.app",
+                "5. Open http://localhost:8000/ui/terminal-unified",
+                "6. Use the onboarding wizard to configure your automations",
+            ],
+        }
+        return JSONResponse({"success": True, "bundle": bundle})
+
+    def _build_env_template(workflows):
+        """Build .env.example content from workflow API suggestions."""
+        lines = [
+            "# Murphy System — Environment Configuration",
+            "# Generated from your workflows — fill in API keys to activate integrations",
+            "",
+            "# === Core ===",
+            "MURPHY_ENV=production",
+            "MURPHY_SECRET_KEY=change-me-to-a-random-string",
+            "",
+            "# === LLM Provider (optional — system works without it) ===",
+            "# MURPHY_LLM_PROVIDER=groq",
+            "# GROQ_API_KEY=your-groq-key-here  # Free at https://console.groq.com",
+            "",
+            "# === MFM (Murphy Foundation Model) ===",
+            "MFM_ENABLED=true",
+            "MFM_MODE=shadow",
+            "",
+        ]
+        seen = set()
+        for wf in workflows:
+            for sug in wf.get("api_suggestions", []):
+                env_var = sug.get("env_var", "")
+                if env_var and env_var not in seen:
+                    seen.add(env_var)
+                    lines.append(f"# === {sug.get('name', '')} ===")
+                    lines.append(f"# {sug.get('description', '')}")
+                    if sug.get("signup_url"):
+                        lines.append(f"# Sign up: {sug['signup_url']}")
+                    lines.append(f"# {env_var}=your-key-here")
+                    lines.append("")
+        return "\n".join(lines)
+
+    # ══════════════════════════════════════════════════════════════════════
+    # INONI LLC AUTOMATED AGENT ORG CHART
+    # ══════════════════════════════════════════════════════════════════════
+
+    async def _inoni_org_chart_handler():
+        """Full automated org chart of AI agents that work for Inoni LLC.
+
+        Every agent here runs as a platform automation — these are the
+        proof-of-concept automations that murphy.systems uses to maintain
+        itself, sell itself, and demonstrate capabilities.
+        """
+        org = {
+            "company": "Inoni LLC",
+            "platform": "murphy.systems",
+            "mission": "AI-powered business automation for every industry",
+            "departments": [
+                {
+                    "name": "Executive & Strategy",
+                    "head": "Murphy Founder Agent",
+                    "schedule": "continuous",
+                    "agents": [
+                        {"id": "founder-agent", "role": "Founder Schedule Manager",
+                         "description": "Manages platform maintenance schedule aligned with founder priorities",
+                         "automations": ["daily_standup_digest", "weekly_strategy_review", "monthly_investor_update"],
+                         "status": "active", "schedule": "daily 08:00 UTC"},
+                        {"id": "growth-strategist", "role": "Growth Strategy Agent",
+                         "description": "Analyzes user acquisition funnels and optimizes conversion",
+                         "automations": ["funnel_analysis", "conversion_optimization", "churn_prediction"],
+                         "status": "active", "schedule": "daily 06:00 UTC"},
+                    ],
+                },
+                {
+                    "name": "Sales & Marketing",
+                    "head": "Revenue Agent",
+                    "schedule": "daily",
+                    "agents": [
+                        {"id": "daily-seller", "role": "Daily Outreach Agent",
+                         "description": "Sends daily platform capability showcases to prospective users",
+                         "automations": ["daily_outreach_email", "social_media_post", "demo_scheduler"],
+                         "status": "active", "schedule": "daily 09:00 UTC"},
+                        {"id": "content-marketer", "role": "Content Marketing Agent",
+                         "description": "Creates blog posts, tutorials, and case studies demonstrating Murphy capabilities",
+                         "automations": ["blog_draft", "tutorial_generation", "case_study_builder"],
+                         "status": "active", "schedule": "weekly Mon 10:00 UTC"},
+                        {"id": "partnership-agent", "role": "Partnership & Licensing Agent",
+                         "description": "Manages platform capability licensing to other businesses",
+                         "automations": ["license_inquiry_handler", "partner_onboarding", "sdk_access_provisioning"],
+                         "status": "active", "schedule": "on_demand"},
+                    ],
+                },
+                {
+                    "name": "Content Creator Services",
+                    "head": "Creator Economy Agent",
+                    "schedule": "continuous",
+                    "agents": [
+                        {"id": "moderation-agent", "role": "AI Content Moderation Agent",
+                         "description": "Free moderation automation for AI content creators and bloggers — "
+                                        "comment filtering, spam detection, toxicity scoring, community guidelines enforcement",
+                         "automations": ["comment_moderation", "spam_filter", "toxicity_scorer", "community_guidelines_check"],
+                         "status": "active", "schedule": "continuous", "tier": "free"},
+                        {"id": "creator-analytics", "role": "Creator Analytics Agent",
+                         "description": "Audience analytics, engagement tracking, and content performance for creators",
+                         "automations": ["audience_analytics", "engagement_tracker", "content_performance_report"],
+                         "status": "active", "schedule": "daily 07:00 UTC", "tier": "free"},
+                        {"id": "creator-scheduler", "role": "Content Scheduling Agent",
+                         "description": "Auto-schedule posts across platforms with optimal timing",
+                         "automations": ["cross_platform_scheduler", "optimal_time_analyzer", "content_calendar"],
+                         "status": "active", "schedule": "continuous", "tier": "solo"},
+                    ],
+                },
+                {
+                    "name": "Developer Relations",
+                    "head": "DevRel Agent",
+                    "schedule": "daily",
+                    "agents": [
+                        {"id": "sdk-agent", "role": "SDK Management Agent",
+                         "description": "Maintains SDK packages for developers — Python, JavaScript, REST API docs",
+                         "automations": ["sdk_version_check", "api_doc_generator", "sdk_test_runner", "developer_onboarding"],
+                         "status": "active", "schedule": "daily 05:00 UTC"},
+                        {"id": "api-health-agent", "role": "API Health Monitor Agent",
+                         "description": "Monitors all API endpoints for uptime, latency, and error rates",
+                         "automations": ["endpoint_health_check", "latency_monitor", "error_rate_alerter"],
+                         "status": "active", "schedule": "every 5 minutes"},
+                    ],
+                },
+                {
+                    "name": "Platform Engineering",
+                    "head": "Self-Automation Agent",
+                    "schedule": "continuous",
+                    "agents": [
+                        {"id": "self-fix-agent", "role": "Self-Fix Loop Agent",
+                         "description": "Detects and repairs platform issues autonomously (ARCH-005)",
+                         "automations": ["diagnose_gaps", "plan_fixes", "execute_repairs", "verify_fixes"],
+                         "status": "active", "schedule": "every 30 minutes"},
+                        {"id": "repair-agent", "role": "Autonomous Repair Agent",
+                         "description": "Deep repair cycles with immune memory (ARCH-006)",
+                         "automations": ["repair_cycle", "wiring_validation", "reconciliation_loop"],
+                         "status": "active", "schedule": "hourly"},
+                        {"id": "scheduler-agent", "role": "Daily Automation Scheduler",
+                         "description": "Runs the daily business automation cycle with HITL safety gates",
+                         "automations": ["daily_automation_cycle", "hitl_gate_check", "automation_report"],
+                         "status": "active", "schedule": "daily 00:00 UTC"},
+                        {"id": "doc-agent", "role": "Documentation Auto-Update Agent",
+                         "description": "Keeps documentation in sync with code changes",
+                         "automations": ["doc_drift_check", "module_count_sync", "api_reference_update"],
+                         "status": "active", "schedule": "on_push"},
+                    ],
+                },
+                {
+                    "name": "Production & Maintenance",
+                    "head": "Production Assistant Agent",
+                    "schedule": "continuous",
+                    "agents": [
+                        {"id": "production-assistant", "role": "Production Deliverable Agent",
+                         "description": "Main go-to-work systems — task execution, deliverable generation, quality gates",
+                         "automations": ["task_executor", "deliverable_generator", "quality_gate_checker", "client_report_builder"],
+                         "status": "active", "schedule": "on_demand"},
+                        {"id": "maintenance-agent", "role": "Hardware & Infrastructure Maintenance Agent",
+                         "description": "Automates hardware-focused maintenance — server health, backup, scaling",
+                         "automations": ["server_health_check", "backup_automation", "auto_scaling", "ssl_cert_renewal"],
+                         "status": "active", "schedule": "daily 02:00 UTC"},
+                        {"id": "monitor-agent", "role": "System Monitor Agent",
+                         "description": "24/7 monitoring of all platform systems with alerting",
+                         "automations": ["system_monitor", "alert_dispatcher", "incident_tracker", "post_mortem_generator"],
+                         "status": "active", "schedule": "continuous"},
+                    ],
+                },
+                {
+                    "name": "AI & Machine Learning",
+                    "head": "MFM Training Agent",
+                    "schedule": "periodic",
+                    "agents": [
+                        {"id": "mfm-trainer", "role": "MFM Data Collection Agent",
+                         "description": "Collects SENSE→THINK→ACT→LEARN traces for Murphy Foundation Model training",
+                         "automations": ["trace_collection", "outcome_labeling", "training_data_pipeline"],
+                         "status": "active", "schedule": "continuous"},
+                        {"id": "mfm-evaluator", "role": "MFM Shadow Evaluation Agent",
+                         "description": "Runs shadow deployment comparing MFM predictions vs actual outcomes",
+                         "automations": ["shadow_evaluation", "accuracy_tracking", "promote_or_rollback"],
+                         "status": "active", "schedule": "every 6 hours"},
+                        {"id": "streaming-ai", "role": "Streaming & Gaming AI Agent (Future)",
+                         "description": "AI playing video games and streaming automations — coming soon",
+                         "automations": ["game_agent_training", "stream_automation", "viewer_interaction_bot"],
+                         "status": "planned", "schedule": "TBD"},
+                    ],
+                },
+                {
+                    "name": "Customer Success",
+                    "head": "Onboarding Agent",
+                    "schedule": "on_demand",
+                    "agents": [
+                        {"id": "onboard-librarian", "role": "Onboard Librarian Agent",
+                         "description": "Guides new users through setup — works without external LLM API keys",
+                         "automations": ["guided_onboarding", "dimension_extraction", "config_generation", "integration_suggestions"],
+                         "status": "active", "schedule": "on_demand"},
+                        {"id": "wizard-agent", "role": "Setup Wizard Agent",
+                         "description": "Defines main automations based on user's business context",
+                         "automations": ["question_flow", "profile_builder", "config_validator", "preset_recommender"],
+                         "status": "active", "schedule": "on_demand"},
+                        {"id": "support-agent", "role": "Customer Support Agent",
+                         "description": "Handles support inquiries and escalates to HITL when needed",
+                         "automations": ["inquiry_classifier", "auto_resolver", "hitl_escalation", "satisfaction_tracker"],
+                         "status": "active", "schedule": "continuous"},
+                    ],
+                },
+            ],
+            "total_agents": 23,
+            "active_agents": 21,
+            "planned_agents": 2,
+            "automation_count": 70,
+        }
+        return JSONResponse({"success": True, "org_chart": org})
+
+    # ══════════════════════════════════════════════════════════════════════
+    # CONTENT CREATOR MODERATION & SDK ENDPOINTS
+    # ══════════════════════════════════════════════════════════════════════
+
+    @app.get("/api/creator/moderation/status")
+    async def creator_moderation_status():
+        """Content creator moderation service status (free tier)."""
+        return JSONResponse({
+            "success": True,
+            "service": "AI Content Moderation",
+            "tier": "free",
+            "description": "Free automated moderation for AI content creators and bloggers",
+            "capabilities": [
+                {"name": "Comment Moderation", "description": "Filter toxic, spam, and off-topic comments",
+                 "api": "POST /api/creator/moderation/check", "status": "active"},
+                {"name": "Spam Detection", "description": "ML-based spam scoring for blog comments and messages",
+                 "api": "POST /api/creator/moderation/spam-score", "status": "active"},
+                {"name": "Toxicity Scoring", "description": "Rate content toxicity on 0-1 scale",
+                 "api": "POST /api/creator/moderation/toxicity", "status": "active"},
+                {"name": "Community Guidelines", "description": "Check content against custom community rules",
+                 "api": "POST /api/creator/moderation/guidelines", "status": "active"},
+            ],
+            "usage_limits": {
+                "free": "1000 checks/day",
+                "solo": "10,000 checks/day",
+                "business": "100,000 checks/day",
+                "professional": "unlimited",
+            },
+        })
+
+    @app.post("/api/creator/moderation/check")
+    async def creator_moderation_check(request: Request):
+        """Run content moderation check on text (free for creators)."""
+        try:
+            data = await request.json()
+            text = data.get("text", "")
+            if not text:
+                return JSONResponse({"success": False, "error": "text is required"}, status_code=400)
+
+            # Simple built-in moderation (no external API needed)
+            text_lower = text.lower()
+            _SPAM_PATTERNS = ["buy now", "click here", "free money", "act now", "limited time",
+                              "congratulations you won", "nigerian prince"]
+            _TOXIC_PATTERNS = ["hate", "kill", "die", "stupid", "idiot"]
+
+            spam_score = sum(1 for p in _SPAM_PATTERNS if p in text_lower) / max(len(_SPAM_PATTERNS), 1)
+            toxicity_score = sum(1 for p in _TOXIC_PATTERNS if p in text_lower) / max(len(_TOXIC_PATTERNS), 1)
+            is_clean = spam_score < 0.2 and toxicity_score < 0.2
+
+            return JSONResponse({
+                "success": True,
+                "result": {
+                    "is_clean": is_clean,
+                    "spam_score": round(spam_score, 3),
+                    "toxicity_score": round(toxicity_score, 3),
+                    "action": "approve" if is_clean else "review",
+                    "flags": ([f"spam_pattern:{p}" for p in _SPAM_PATTERNS if p in text_lower] +
+                              [f"toxic_pattern:{p}" for p in _TOXIC_PATTERNS if p in text_lower]),
+                },
+            })
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.get("/api/sdk/status")
+    async def sdk_status():
+        """SDK availability and developer resources."""
+        return JSONResponse({
+            "success": True,
+            "sdk": {
+                "name": "Murphy SDK",
+                "version": "1.0.0",
+                "languages": [
+                    {"language": "Python", "package": "murphy-sdk",
+                     "install": "pip install murphy-sdk", "status": "available"},
+                    {"language": "JavaScript", "package": "@murphy/sdk",
+                     "install": "npm install @murphy/sdk", "status": "available"},
+                    {"language": "REST API", "package": None,
+                     "install": "curl https://murphy.systems/api/", "status": "available"},
+                ],
+                "features": [
+                    "Workflow generation from natural language",
+                    "Integration management (50+ services)",
+                    "Content moderation APIs (free for creators)",
+                    "HITL intervention management",
+                    "MFM model inference (when enabled)",
+                    "Platform automation control",
+                    "Compliance framework management",
+                    "Org chart and agent management",
+                ],
+                "docs_url": "/ui/docs",
+                "api_reference": "/api/manifest",
+            },
+        })
+
+    @app.get("/api/platform/capabilities")
+    async def platform_capabilities():
+        """Full platform capability catalog — what can be licensed to others."""
+        return JSONResponse({
+            "success": True,
+            "licensable_capabilities": [
+                {"id": "workflow_automation", "name": "Workflow Automation Engine",
+                 "description": "NL → DAG workflow generation with scheduling and API suggestions",
+                 "tier_required": "solo", "license_type": "per_seat"},
+                {"id": "content_moderation", "name": "AI Content Moderation",
+                 "description": "Free for creators — comment filtering, spam detection, toxicity scoring",
+                 "tier_required": "free", "license_type": "free"},
+                {"id": "self_automation", "name": "Self-Automation Platform",
+                 "description": "Self-fix, repair, scheduling, improvement — runs autonomously",
+                 "tier_required": "business", "license_type": "platform"},
+                {"id": "compliance_engine", "name": "Compliance Framework Engine",
+                 "description": "41 compliance frameworks with conflict detection and resolution",
+                 "tier_required": "solo", "license_type": "per_seat"},
+                {"id": "mfm_training", "name": "Custom AI Model Training",
+                 "description": "Train your own foundation model from platform traces (6-month cycle)",
+                 "tier_required": "enterprise", "license_type": "enterprise"},
+                {"id": "sdk_access", "name": "Developer SDK",
+                 "description": "Python, JavaScript, and REST API access to all platform features",
+                 "tier_required": "solo", "license_type": "per_seat"},
+                {"id": "streaming_ai", "name": "Streaming & Gaming AI (Future)",
+                 "description": "AI playing video games and streaming automation — coming soon",
+                 "tier_required": "professional", "license_type": "add_on",
+                 "status": "planned", "eta": "2026-Q4"},
+                {"id": "hitl_interventions", "name": "Human-in-the-Loop Automation",
+                 "description": "Approval queues, popup responses, escalation workflows",
+                 "tier_required": "solo", "license_type": "per_seat"},
+                {"id": "integration_hub", "name": "Integration Hub (50+ services)",
+                 "description": "Pre-built connectors for Slack, SendGrid, Stripe, GitHub, etc.",
+                 "tier_required": "solo", "license_type": "per_seat"},
+                {"id": "production_assistant", "name": "Production Assistant",
+                 "description": "Go-to-work systems — task execution, deliverables, quality gates",
+                 "tier_required": "business", "license_type": "per_seat"},
+                {"id": "maintenance_automation", "name": "Infrastructure Maintenance",
+                 "description": "Hardware-focused automations — server health, backups, scaling",
+                 "tier_required": "business", "license_type": "platform"},
+                {"id": "org_chart_agents", "name": "AI Agent Org Chart",
+                 "description": "Automated agent workforce with scheduling and role management",
+                 "tier_required": "business", "license_type": "per_seat"},
+            ],
+            "total_capabilities": 12,
+            "free_capabilities": 1,
+            "coming_soon": 1,
+        })
 
     @app.get("/api/manifest")
     async def api_manifest():

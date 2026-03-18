@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Platform Self-Automation, Agent Org Chart, Creator Services & Demo Export (Round 60)
+
+#### Platform Self-Automation (5 systems wired)
+- **Self-Fix Loop (ARCH-005)** — `GET/POST /api/self-fix/{status,run,history,plans}` for
+  autonomous diagnose→plan→execute→test→verify cycles.
+- **Autonomous Repair (ARCH-006)** — `GET/POST /api/repair/{status,run,history,wiring,proposals}`
+  with immune memory and reconciliation loops.
+- **Murphy Scheduler** — `GET/POST /api/scheduler/{status,start,stop,trigger}` for daily
+  platform automation cycles with HITL safety gates.
+- **Self-Automation Orchestrator (ARCH-002)** — `GET/POST /api/self-automation/{status,task,tasks}`
+  for priority-based task queue with prompt chain tracking.
+- **Self-Improvement Engine** — `GET /api/self-improvement/{status,proposals,corrections}` for
+  outcome tracking, pattern extraction, and remediation proposals.
+- **Platform Overview** — `GET /api/platform/automation-status` returns unified status of all 6
+  self-automation subsystems.
+
+#### Workflow Schedule & API Suggestions
+- Generated workflows now include `schedule` metadata (`interval`, `cron`, `enabled`, `next_run`)
+  automatically inferred from natural language (daily/weekly/monthly/hourly/on_demand).
+- Generated workflows include `api_suggestions` — recommends relevant integrations
+  (SendGrid, Slack, Stripe, Twilio, etc.) based on workflow description keywords.
+
+#### Inoni LLC Agent Org Chart
+- **GET /api/orgchart/inoni-agents** — Full automated org chart of 23 AI agents across
+  8 departments (Executive, Sales, Content Creator, DevRel, Platform Engineering,
+  Production, AI/ML, Customer Success) with 70+ automations.
+- Daily seller agent runs platform self-promotion automations.
+- Streaming & gaming AI agent registered as planned (2026-Q4).
+
+#### Content Creator Services (Free Tier)
+- **GET /api/creator/moderation/status** — Service status for free AI content moderation.
+- **POST /api/creator/moderation/check** — Content moderation with spam detection,
+  toxicity scoring, and community guidelines enforcement. Free for creators/bloggers.
+
+#### Developer SDK & Platform Capabilities
+- **GET /api/sdk/status** — SDK availability (Python, JavaScript, REST API).
+- **GET /api/platform/capabilities** — 12 licensable capabilities catalog with tier
+  requirements, licensing types, and status (active/planned).
+
+#### Demo Export
+- **GET /api/demo/export** — Downloadable project bundle with BSL-1.1 licensing,
+  no-warranty clause, .env template, workflows, setup instructions, and platform
+  capability manifest.
+
+#### MFM Data Collection Verified
+- ActionTraceCollector, MFMRegistry, OutcomeLabeler, TrainingDataPipeline all verified
+  importable and functional.
+- 6-month training timeline confirmed: 60 traces/day × 180 days = 10,800 > 10,000 threshold.
+
 ### Added — Workflow Execution, HITL Queue, Compliance Enforcement & Tier-Gated Automation
 
 #### Workflow System
