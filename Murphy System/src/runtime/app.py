@@ -117,7 +117,12 @@ def create_app() -> FastAPI:
         _account_manager: "Optional[_AccountManager]" = _AccountManager()
         # Public accessor — no private attribute access
         _oauth_registry = _account_manager.get_oauth_registry()
-    except Exception:  # pragma: no cover
+        logger.info(
+            "AccountManager initialised (OAuth registry: %s providers)",
+            len(_oauth_registry.list_providers()) if _oauth_registry else 0,
+        )
+    except Exception as _am_exc:  # pragma: no cover
+        logger.error("AccountManager failed to initialise: %s", _am_exc, exc_info=True)
         _account_manager = None
         _oauth_registry = None
 
@@ -408,6 +413,7 @@ def create_app() -> FastAPI:
 
     @app.get("/favicon.ico", include_in_schema=False)
     async def favicon():
+        from starlette.responses import RedirectResponse
         return RedirectResponse("/static/favicon.svg", status_code=301)
 
     @app.post("/api/execute")
@@ -5172,28 +5178,42 @@ def create_app() -> FastAPI:
                 status_code=302,
             )
 
-        if _account_manager is None:
+        try:
+            oauth_provider = OAuthProvider(provider_key)
+        except ValueError:
             return RedirectResponse(
-                f"/ui/login?error=oauth_unavailable&provider={provider_key}",
+                f"/ui/login?error=unsupported_provider&provider={provider_key}",
                 status_code=302,
             )
 
-        try:
-            oauth_provider = OAuthProvider(provider_key)
-            authorize_url, _state = _account_manager.begin_oauth_signup(oauth_provider)
-            return RedirectResponse(authorize_url, status_code=302)
-        except ValueError as exc:
-            logger.warning("OAuth flow could not be started for %s: %s", provider_key, exc)
-            return RedirectResponse(
-                f"/ui/login?error=oauth_not_configured&provider={provider_key}",
-                status_code=302,
-            )
-        except Exception as exc:
-            logger.exception("Unexpected error starting OAuth flow for %s", provider_key)
-            return RedirectResponse(
-                f"/ui/login?error=oauth_error&provider={provider_key}",
-                status_code=302,
-            )
+        # Try AccountManager first (full flow with account creation/linking)
+        if _account_manager is not None:
+            try:
+                authorize_url, _state = _account_manager.begin_oauth_signup(oauth_provider)
+                return RedirectResponse(authorize_url, status_code=302)
+            except ValueError as exc:
+                logger.warning("OAuth via AccountManager failed for %s: %s", provider_key, exc)
+            except Exception:
+                logger.exception("Unexpected AccountManager OAuth error for %s", provider_key)
+
+        # Fallback: use OAuthProviderRegistry directly (no account linkage, just redirect)
+        if _oauth_registry is not None:
+            try:
+                authorize_url, _state = _oauth_registry.begin_auth_flow(oauth_provider)
+                return RedirectResponse(authorize_url, status_code=302)
+            except ValueError as exc:
+                logger.warning("OAuth via registry failed for %s: %s", provider_key, exc)
+                return RedirectResponse(
+                    f"/ui/login?error=oauth_not_configured&provider={provider_key}",
+                    status_code=302,
+                )
+            except Exception:
+                logger.exception("OAuth registry error for %s", provider_key)
+
+        return RedirectResponse(
+            f"/ui/login?error=oauth_unavailable&provider={provider_key}",
+            status_code=302,
+        )
 
     # ==================== READINESS SCANNER ====================
 
