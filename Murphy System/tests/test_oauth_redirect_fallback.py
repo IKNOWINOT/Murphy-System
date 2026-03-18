@@ -109,6 +109,25 @@ def _make_oauth_app(account_manager=None, oauth_registry=None):
                     "OAuth registry error for %s", provider_key
                 )
 
+        # Last-resort fallback: build OAuth URL from env vars
+        if provider_key == "google":
+            import os as _os
+            _g_client_id = _os.environ.get("MURPHY_OAUTH_GOOGLE_CLIENT_ID", "")
+            _g_redirect = _os.environ.get("MURPHY_OAUTH_REDIRECT_URI", "")
+            if _g_client_id and _g_redirect:
+                import secrets as _sec
+                import urllib.parse as _up
+                _env_state = _sec.token_urlsafe(32)
+                _params = _up.urlencode({
+                    "client_id": _g_client_id,
+                    "redirect_uri": _g_redirect,
+                    "response_type": "code",
+                    "scope": "openid email profile",
+                    "state": _env_state,
+                })
+                _google_url = f"https://accounts.google.com/o/oauth2/v2/auth?{_params}"
+                return RedirectResponse(_google_url, status_code=302)
+
         return RedirectResponse(
             f"/ui/login?error=oauth_unavailable&provider={provider_key}",
             status_code=302,
@@ -273,3 +292,74 @@ class TestOAuthRegistryFallback:
         assert "accounts.google.com" in location, (
             f"Expected registry fallback after AM ValueError, got: {location!r}"
         )
+
+
+# ---------------------------------------------------------------------------
+# 4. Env-var fallback — Google OAuth via environment variables
+# ---------------------------------------------------------------------------
+
+class TestOAuthEnvVarFallback:
+    """When both AccountManager and OAuthProviderRegistry are None,
+    env vars MURPHY_OAUTH_GOOGLE_CLIENT_ID + MURPHY_OAUTH_REDIRECT_URI
+    should be used to build the Google OAuth authorize URL."""
+
+    _ENV_VARS = {
+        "MURPHY_OAUTH_GOOGLE_CLIENT_ID": "test-client-id-123",
+        "MURPHY_OAUTH_GOOGLE_SECRET": "test-secret-456",
+        "MURPHY_OAUTH_REDIRECT_URI": "https://murphy.systems/api/auth/callback",
+    }
+
+    def test_env_var_fallback_redirects_to_google(self):
+        """With env vars set and no manager/registry, should redirect to Google."""
+        with patch.dict(os.environ, self._ENV_VARS):
+            client = _make_oauth_app(account_manager=None, oauth_registry=None)
+            resp = client.get("/api/auth/oauth/google", follow_redirects=False)
+        assert resp.status_code == 302
+        location = resp.headers.get("location", "")
+        assert "accounts.google.com" in location, (
+            f"Expected Google auth URL, got: {location!r}"
+        )
+        assert "test-client-id-123" in location, (
+            f"Expected client_id in URL, got: {location!r}"
+        )
+
+    def test_env_var_fallback_includes_redirect_uri(self):
+        with patch.dict(os.environ, self._ENV_VARS):
+            client = _make_oauth_app(account_manager=None, oauth_registry=None)
+            resp = client.get("/api/auth/oauth/google", follow_redirects=False)
+        location = resp.headers.get("location", "")
+        assert "murphy.systems" in location, (
+            f"Expected redirect_uri in URL, got: {location!r}"
+        )
+
+    def test_env_var_fallback_includes_scope_and_response_type(self):
+        with patch.dict(os.environ, self._ENV_VARS):
+            client = _make_oauth_app(account_manager=None, oauth_registry=None)
+            resp = client.get("/api/auth/oauth/google", follow_redirects=False)
+        location = resp.headers.get("location", "")
+        assert "response_type=code" in location
+        assert "scope=openid" in location
+
+    def test_env_var_fallback_not_used_for_non_google_provider(self):
+        """Env-var fallback only applies to Google; github should still get oauth_unavailable."""
+        with patch.dict(os.environ, self._ENV_VARS):
+            client = _make_oauth_app(account_manager=None, oauth_registry=None)
+            resp = client.get("/api/auth/oauth/github", follow_redirects=False)
+        assert resp.status_code == 302
+        location = resp.headers.get("location", "")
+        assert "oauth_unavailable" in location, (
+            f"Expected oauth_unavailable for github, got: {location!r}"
+        )
+
+    def test_no_env_vars_still_returns_oauth_unavailable(self):
+        """Without env vars set, both None should give oauth_unavailable."""
+        env_clean = {
+            "MURPHY_OAUTH_GOOGLE_CLIENT_ID": "",
+            "MURPHY_OAUTH_REDIRECT_URI": "",
+        }
+        with patch.dict(os.environ, env_clean):
+            client = _make_oauth_app(account_manager=None, oauth_registry=None)
+            resp = client.get("/api/auth/oauth/google", follow_redirects=False)
+        assert resp.status_code == 302
+        location = resp.headers.get("location", "")
+        assert "oauth_unavailable" in location
