@@ -113,7 +113,8 @@ def create_app() -> FastAPI:
         _account_manager: "Optional[_AccountManager]" = _AccountManager()
         # Public accessor — no private attribute access
         _oauth_registry = _account_manager.get_oauth_registry()
-    except Exception:  # pragma: no cover
+    except Exception as _am_exc:  # pragma: no cover
+        logger.error("AccountManager failed to initialise: %s", _am_exc, exc_info=True)
         _account_manager = None
         _oauth_registry = None
 
@@ -131,7 +132,7 @@ def create_app() -> FastAPI:
     _email_to_account: "Dict[str, str]" = {}  # email → account_id (index)
 
     def _hash_password(password: str) -> str:
-        """Hash a password with bcrypt (CWE-916: use of weak hash)."""
+        """Hash a password with bcrypt (mitigates CWE-916: weak password hash)."""
         return _bcrypt.hashpw(password.encode("utf-8"), _bcrypt.gensalt()).decode("utf-8")
 
     def _verify_password(password: str, stored_hash: str) -> bool:
