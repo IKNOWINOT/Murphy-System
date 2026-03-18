@@ -4906,6 +4906,7 @@ def create_app() -> FastAPI:
                             },
                             timeout=10,
                         )
+                        _token_resp.raise_for_status()
                         _token_data = _token_resp.json()
                     except Exception as _tok_exc:
                         logger.warning("OAuth env-var token exchange failed: %s", _tok_exc)
@@ -4921,16 +4922,24 @@ def create_app() -> FastAPI:
                                 headers={"Authorization": f"Bearer {_access_token}"},
                                 timeout=10,
                             )
+                            _ui_resp.raise_for_status()
                             _email = _ui_resp.json().get("email", "")
                         except Exception:
                             pass
 
+                    if not _email:
+                        logger.warning("OAuth env-var fallback: no email obtained")
+                        from starlette.responses import RedirectResponse
+                        return RedirectResponse(
+                            "/ui/login?error=oauth_no_email&provider=google",
+                            status_code=302,
+                        )
+
                     from starlette.responses import RedirectResponse
 
                     session_token = _secrets.token_urlsafe(32)
-                    _acct_id = _email or f"oauth-google-{_secrets.token_hex(8)}"
                     with _session_lock:
-                        _session_store[session_token] = _acct_id
+                        _session_store[session_token] = _email
 
                     redirect_url = f"/ui/terminal-unified?oauth_success=1&provider=google"
                     response = RedirectResponse(url=redirect_url, status_code=302)
@@ -4942,7 +4951,7 @@ def create_app() -> FastAPI:
                         samesite="lax",
                         max_age=86400,
                     )
-                    logger.info("OAuth callback (env-var fallback): session for %s", _acct_id)
+                    logger.info("OAuth callback (env-var fallback): session for %s", _email)
                     return response
 
                 return JSONResponse({"error": "Account manager unavailable"}, status_code=503)
