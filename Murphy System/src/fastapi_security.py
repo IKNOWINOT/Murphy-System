@@ -193,6 +193,8 @@ def _is_public_api_route(path: str, method: str = "GET") -> bool:
     - /api/auth/login   — login endpoint
     - /api/auth/register / /api/auth/signup — registration endpoint
     - /api/reviews      — GET only; public reviews on landing/pricing pages
+    - /api/billing/plans — GET only; pricing page fetches plan data without login
+    - /api/billing/currencies — GET only; pricing page currency list without login
     """
     normalized = path.rstrip("/")
 
@@ -203,10 +205,12 @@ def _is_public_api_route(path: str, method: str = "GET") -> bool:
         "/api/info",
         "/api/ui/links",
         "/api/auth/login",
+        "/api/auth/logout",
         "/api/auth/register",
         "/api/auth/signup",
         "/api/auth/callback",
         "/api/auth/providers",
+        "/api/usage/daily",
     })
     if normalized in _PUBLIC_EXACT:
         return True
@@ -219,6 +223,10 @@ def _is_public_api_route(path: str, method: str = "GET") -> bool:
 
     # Public reviews — GET only (displayed on landing/pricing pages without login)
     if normalized == "/api/reviews" and method.upper() == "GET":
+        return True
+
+    # Billing plans and currencies — GET only; pricing page needs these without login
+    if normalized in ("/api/billing/plans", "/api/billing/currencies") and method.upper() == "GET":
         return True
 
     return False
