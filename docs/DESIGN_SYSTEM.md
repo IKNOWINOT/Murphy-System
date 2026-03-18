@@ -327,7 +327,7 @@ Embedded monospace terminal used in Workflow Canvas and System Visualizer. Featu
 
 ### Canvas Container — `.murphy-canvas-container`
 
-Full-width container for the HTML5 `<canvas>` element used by `murphy-canvas.js`.
+Full-width container for the HTML5 `<canvas>` element used by `murphy-canvas.js`. The container uses a solid `--bg-base` background only — **do not add CSS grid backgrounds** (e.g., `linear-gradient` grid lines). The dot grid is rendered programmatically by `MurphyCanvas._drawGrid()` inside the `<canvas>` element, and any CSS grid pattern will conflict with it.
 
 ### Split Pane — `.murphy-split-pane`
 
