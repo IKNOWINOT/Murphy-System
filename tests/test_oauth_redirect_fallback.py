@@ -78,23 +78,36 @@ def _make_oauth_app(account_manager=None, oauth_registry=None):
             try:
                 authorize_url, _state = _am.begin_oauth_signup(oauth_provider)
                 return RedirectResponse(authorize_url, status_code=302)
-            except ValueError:
-                pass
+            except ValueError as exc:
+                import logging as _logging
+                _logging.getLogger(__name__).warning(
+                    "OAuth via AccountManager failed for %s: %s", provider_key, exc
+                )
             except Exception:
-                pass
+                import logging as _logging
+                _logging.getLogger(__name__).exception(
+                    "Unexpected AccountManager OAuth error for %s", provider_key
+                )
 
         # Fallback to registry
         if _registry is not None:
             try:
                 authorize_url, _state = _registry.begin_auth_flow(oauth_provider)
                 return RedirectResponse(authorize_url, status_code=302)
-            except ValueError:
+            except ValueError as exc:
+                import logging as _logging
+                _logging.getLogger(__name__).warning(
+                    "OAuth via registry failed for %s: %s", provider_key, exc
+                )
                 return RedirectResponse(
                     f"/ui/login?error=oauth_not_configured&provider={provider_key}",
                     status_code=302,
                 )
             except Exception:
-                pass
+                import logging as _logging
+                _logging.getLogger(__name__).exception(
+                    "OAuth registry error for %s", provider_key
+                )
 
         return RedirectResponse(
             f"/ui/login?error=oauth_unavailable&provider={provider_key}",
