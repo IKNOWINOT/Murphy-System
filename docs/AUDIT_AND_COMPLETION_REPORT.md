@@ -1,6 +1,6 @@
 # Murphy-System: Audit and Completion Report
 
-**Date:** 2026-03-10 (updated 2026-03-17)
+**Date:** 2026-03-10 (updated 2026-03-18)
 **Scope:** All modules, documentation, and testing across the Murphy-System repository
 **Status:** Comprehensive audit of 354 source files, 46 packages, 498 test files, and 97+ documentation files
 
@@ -39,8 +39,8 @@ system completion to **100%** at the functional level.
 | Metric                  | Value        | Target  | Status |
 |-------------------------|--------------|---------|--------|
 | Functional Completion   | 100%         | 100%    | ✅     |
-| Test Files              | 659          | —       | ✅     |
-| Test Functions          | 20,240+      | —       | ✅     |
+| Test Files              | 663          | —       | ✅     |
+| Test Functions          | 21,400+      | —       | ✅     |
 | Test Pass Rate          | 100%         | 100%    | ✅     |
 | Documentation Files     | 113          | —       | ✅     |
 | Packages with READMEs   | 65/65 (100%) | 100%    | ✅     |
@@ -230,6 +230,11 @@ system completion to **100%** at the functional level.
 #### ~~GAP-8: Specialized Module Documentation~~ ✅ RESOLVED (2026-03-16)
 - **Affected:** All 65 `src/` packages plus top-level standalone modules
 - **Resolution:** `README.md` written for every `src/` package. `src/README.md` provides a top-level directory overview covering all 459 files across 8 architectural layers, including the specialized standalone modules (`adaptive_campaign_engine.py`, `financial_reporting_engine.py`, `predictive_maintenance_engine.py`, and 300+ others).
+
+#### ~~GAP-9: Platform Self-Automation & New Endpoint Documentation~~ ✅ RESOLVED (2026-03-18, round 60)
+- **Affected:** `documentation/user_guides/API_REFERENCE.md`, `documentation/testing/TEST_COVERAGE.md`
+- **Resolution:** API Reference updated with all new endpoint groups: Platform Self-Automation (11 endpoints), Workflows (2), Compliance (2), Organisation/Agents (1), Creator Moderation (1), SDK/Platform (3), Authentication (5), Onboarding Wizard (7), Librarian/Chat (6). TEST_COVERAGE.md updated with 3 new test suites (162 tests): `test_platform_self_automation.py` (79 tests), `test_workflow_automation_compliance.py` (48 tests), `test_auth_and_route_protection.py` (35 tests).
+- **Front-end verification:** All 10 UI terminal/wizard pages load correctly, murphy_overlay.js and murphy_auth.js function properly, auth flow (signup → onboarding → protected routes) works end-to-end, no broken fetch URLs or mock endpoints found.
 
 ---
 
