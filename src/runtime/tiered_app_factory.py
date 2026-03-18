@@ -61,11 +61,17 @@ def create_tiered_app(orchestrator: Any) -> Any:
     )
 
     # ── CORS ────────────────────────────────────────────────────────────────
-    _allowed_origins = [
-        o.strip()
-        for o in os.environ.get("MURPHY_CORS_ORIGINS", "*").split(",")
-        if o.strip()
-    ]
+    _cors_origins_raw = os.environ.get("MURPHY_CORS_ORIGINS", "")
+    if _cors_origins_raw:
+        _allowed_origins = [o.strip() for o in _cors_origins_raw.split(",") if o.strip()]
+    else:
+        # Default is restrictive (same-origin only) unless explicitly overridden.
+        # Set MURPHY_CORS_ORIGINS=* only in development environments.
+        _allowed_origins = []
+        logger.debug(
+            "MURPHY_CORS_ORIGINS not set — CORS restricted to same origin. "
+            "Set MURPHY_CORS_ORIGINS=* for local development."
+        )
     app.add_middleware(
         CORSMiddleware,
         allow_origins=_allowed_origins,
@@ -146,11 +152,12 @@ def create_tiered_app(orchestrator: Any) -> Any:
     @app.post("/api/runtime/fallback", tags=["runtime"])
     async def trigger_fallback() -> dict:
         """
-        Trigger an emergency fallback to monolith mode.
+        Schedule an emergency fallback to monolith mode.
 
-        This endpoint sets ``MURPHY_RUNTIME_MODE=monolith`` in the process
-        environment.  A full process restart is required for the change to
-        take effect.
+        Sets ``MURPHY_RUNTIME_MODE=monolith`` in the process environment.
+        **The server is still running in tiered mode until it is restarted.**
+        This endpoint only schedules the change — you must restart the server
+        (or the process manager) to complete the switch.
         """
         os.environ["MURPHY_RUNTIME_MODE"] = "monolith"
         logger.warning(
@@ -159,9 +166,12 @@ def create_tiered_app(orchestrator: Any) -> Any:
         )
         return {
             "status": "fallback_scheduled",
+            "current_mode": "tiered",
+            "next_mode": "monolith",
             "message": (
-                "MURPHY_RUNTIME_MODE has been set to 'monolith'. "
-                "Restart the server to complete the switch."
+                "MURPHY_RUNTIME_MODE has been set to 'monolith' in the process environment. "
+                "The server is STILL running in tiered mode until you restart it. "
+                "Restart the process (or container) to complete the switch."
             ),
         }
 

@@ -147,8 +147,14 @@ def _load_team_profile() -> dict:
             profile = json.load(fh)
         logger.info("Loaded team profile from %s.", profile_path)
         return profile
+    except json.JSONDecodeError as exc:
+        logger.warning("Team profile at %s contains invalid JSON (%s) — loading all packs.", profile_path, exc)
+        return {}
+    except OSError as exc:
+        logger.warning("Cannot read team profile at %s (%s) — loading all packs.", profile_path, exc)
+        return {}
     except Exception as exc:
-        logger.warning("Could not read team profile (%s) — loading all packs.", exc)
+        logger.warning("Unexpected error reading team profile (%s) — loading all packs.", exc)
         return {}
 
 
