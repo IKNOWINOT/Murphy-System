@@ -691,20 +691,36 @@
     contentEl.innerHTML = sectionHeader('Workflows') + skeletonRows(8);
     try {
       var res   = await api.get('/workflow-terminal/list');
-      var items = (res && res.data) || (Array.isArray(res) ? res : []);
+      var raw   = (res && res.data) || {};
+      var items = Array.isArray(raw) ? raw : (Array.isArray(raw.data) ? raw.data : []);
       var html  = sectionHeader('Workflows', 'Manage and monitor workflows');
 
       if (!items.length) {
         html += emptyState('No Workflows', 'No workflows have been created yet.');
       } else {
+        /* Map backend fields to table-friendly shape */
+        var rows = items.map(function (w) {
+          var sched = w.schedule || {};
+          var schedLabel = sched.interval && sched.interval !== 'on_demand'
+            ? sched.interval + (sched.cron ? ' (' + sched.cron + ')' : '')
+            : 'on demand';
+          return {
+            name:     w.name || 'Untitled',
+            status:   w.status || 'idle',
+            schedule: schedLabel,
+            created:  (w.created_at || w.created || '').replace('T', ' ').slice(0, 19),
+            steps:    (w.nodes || []).length
+          };
+        });
         html += tableHTML(
           [
-            { key: 'name',    label: 'Name' },
-            { key: 'status',  label: 'Status', render: function (v) { return badge(v, v === 'active' || v === 'running' ? 'success' : (v === 'error' || v === 'failed' ? 'danger' : 'neutral')); } },
-            { key: 'created', label: 'Created' },
-            { key: 'steps',   label: 'Steps' }
+            { key: 'name',     label: 'Name' },
+            { key: 'status',   label: 'Status', render: function (v) { return badge(v, v === 'active' || v === 'running' ? 'success' : (v === 'error' || v === 'failed' ? 'danger' : 'neutral')); } },
+            { key: 'schedule', label: 'Schedule' },
+            { key: 'created',  label: 'Created' },
+            { key: 'steps',    label: 'Steps' }
           ],
-          items
+          rows
         );
       }
       contentEl.innerHTML = html;
