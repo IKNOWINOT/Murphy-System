@@ -34,8 +34,11 @@ Dev mode: Auth is disabled when `MURPHY_API_KEY` is unset.
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | /api/auth/signup | No | Create new account |
+| POST | /api/auth/signup | No | Create new account — returns `{ session_token, account_id, … }` + sets `murphy_session` cookie |
 | POST | /api/auth/register | No | Create new account (alias for signup) |
+| POST | /api/auth/login | No | Validate credentials — returns `{ session_token, account_id, … }` + sets `murphy_session` cookie |
+| POST | /api/auth/logout | No | Invalidate session and clear `murphy_session` cookie |
+| GET | /api/auth/session-token | Yes | Return active session token for the current user (used by `murphy_auth.js` after OAuth redirect to mirror HttpOnly cookie to localStorage) |
 | GET | /api/auth/oauth/{provider} | No | Initiate OAuth flow |
 | GET | /api/auth/callback | No | OAuth callback — sets `murphy_session` cookie and redirects to `/ui/terminal-unified?oauth_success=1&provider=<name>` |
 | GET | /api/auth/callback/{provider} | No | Provider-specific OAuth callback |

@@ -82,7 +82,8 @@ Murphy System implements the following controls (see `docs/QA_AUDIT_REPORT.md` f
 
 | Control | Implementation |
 |---------|---------------|
-| Authentication | API key via `Authorization: Bearer` or `X-API-Key`; enforced in `src/fastapi_security.py` and `src/flask_security.py` |
+| Authentication | Session cookie (`murphy_session`) or `Authorization: Bearer <session_token>` or `X-API-Key`; enforced in `src/fastapi_security.py` via `SecurityMiddleware` |
+| Session management | bcrypt-hashed passwords; `secrets.token_urlsafe(32)` session tokens stored in in-memory dict guarded by `threading.Lock`; HttpOnly + SameSite=lax + Secure cookies |
 | Authorization | Scope-based access; production mode requires `MURPHY_API_KEYS` |
 | CORS | Origin allowlist via `MURPHY_CORS_ORIGINS`; no wildcard `*` |
 | Rate limiting | Token-bucket per IP/key; configurable via env vars |
