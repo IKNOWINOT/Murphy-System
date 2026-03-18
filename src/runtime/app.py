@@ -5172,6 +5172,30 @@ def create_app() -> FastAPI:
         resp.delete_cookie("murphy_session")
         return resp
 
+    @app.get("/api/auth/session-token")
+    async def get_session_token(request: Request):
+        """Return the active session token for the current user.
+
+        Called by murphy_auth.js after an OAuth redirect to mirror the
+        HttpOnly murphy_session cookie into localStorage so that the
+        MurphyAPI._buildHeaders() Bearer-token path also works for OAuth
+        users.  Requires an active murphy_session cookie (set by the OAuth
+        callback) — returns 401 if the caller is not authenticated.
+        """
+        # Resolve token from cookie or Authorization header
+        token = request.cookies.get("murphy_session", "")
+        if not token:
+            auth_header = request.headers.get("authorization", "")
+            if auth_header.startswith("Bearer "):
+                token = auth_header[7:]
+        if not token:
+            return JSONResponse({"error": "Not authenticated"}, status_code=401)
+        with _session_lock:
+            account_id = _session_store.get(token)
+        if not account_id:
+            return JSONResponse({"error": "Not authenticated"}, status_code=401)
+        return JSONResponse({"session_token": token})
+
     @app.get("/api/profiles/me/terminal-config")
     async def get_terminal_config(request: Request):
         """Return terminal feature flags for the authenticated user."""
