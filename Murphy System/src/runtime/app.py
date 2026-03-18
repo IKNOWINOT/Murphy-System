@@ -5074,6 +5074,75 @@ def create_app() -> FastAPI:
                     status_code=400,
                 )
             if _account_manager is None:
+                # Env-var fallback: exchange code for tokens directly via
+                # Google's token endpoint when AccountManager is unavailable.
+                _g_client_id = os.environ.get("MURPHY_OAUTH_GOOGLE_CLIENT_ID", "")
+                _g_secret = os.environ.get("MURPHY_OAUTH_GOOGLE_SECRET", "")
+                _g_redirect = os.environ.get("MURPHY_OAUTH_REDIRECT_URI", "")
+                if _g_client_id and _g_secret and _g_redirect:
+                    import secrets as _secrets
+                    import urllib.parse
+                    try:
+                        import httpx
+                        _token_resp = httpx.post(
+                            "https://oauth2.googleapis.com/token",
+                            data={
+                                "code": code,
+                                "client_id": _g_client_id,
+                                "client_secret": _g_secret,
+                                "redirect_uri": _g_redirect,
+                                "grant_type": "authorization_code",
+                            },
+                            timeout=10,
+                        )
+                        _token_resp.raise_for_status()
+                        _token_data = _token_resp.json()
+                    except Exception as _tok_exc:
+                        logger.warning("OAuth env-var token exchange failed: %s", _tok_exc)
+                        _token_data = {}
+
+                    _email = _token_data.get("email", "")
+                    # If no email in token response, try the userinfo endpoint
+                    _access_token = _token_data.get("access_token", "")
+                    if not _email and _access_token:
+                        try:
+                            _ui_resp = httpx.get(
+                                "https://www.googleapis.com/oauth2/v2/userinfo",
+                                headers={"Authorization": f"Bearer {_access_token}"},
+                                timeout=10,
+                            )
+                            _ui_resp.raise_for_status()
+                            _email = _ui_resp.json().get("email", "")
+                        except Exception:
+                            pass
+
+                    if not _email:
+                        logger.warning("OAuth env-var fallback: no email obtained")
+                        from starlette.responses import RedirectResponse
+                        return RedirectResponse(
+                            "/ui/login?error=oauth_no_email&provider=google",
+                            status_code=302,
+                        )
+
+                    from starlette.responses import RedirectResponse
+
+                    session_token = _secrets.token_urlsafe(32)
+                    with _session_lock:
+                        _session_store[session_token] = _email
+
+                    redirect_url = f"/ui/terminal-unified?oauth_success=1&provider=google"
+                    response = RedirectResponse(url=redirect_url, status_code=302)
+                    response.set_cookie(
+                        key="murphy_session",
+                        value=session_token,
+                        httponly=True,
+                        secure=True,
+                        samesite="lax",
+                        max_age=86400,
+                    )
+                    logger.info("OAuth callback (env-var fallback): session for %s", _email)
+                    return response
+
                 return JSONResponse({"error": "Account manager unavailable"}, status_code=503)
 
             from starlette.responses import RedirectResponse
@@ -5140,6 +5209,10 @@ def create_app() -> FastAPI:
                         configured[p.value] = False
             except Exception:
                 pass
+        # Env-var fallback: detect Google OAuth from environment when registry
+        # is unavailable (e.g. AccountManager/CredentialVault init failed).
+        if not configured.get("google") and os.environ.get("MURPHY_OAUTH_GOOGLE_CLIENT_ID"):
+            configured["google"] = True
         return JSONResponse({"providers": configured})
 
     @app.post("/api/auth/signup")
@@ -5209,6 +5282,26 @@ def create_app() -> FastAPI:
                 )
             except Exception:
                 logger.exception("OAuth registry error for %s", provider_key)
+
+        # Last-resort fallback: build OAuth URL directly from env vars
+        # when both AccountManager and OAuthProviderRegistry are unavailable.
+        if provider_key == "google":
+            _g_client_id = os.environ.get("MURPHY_OAUTH_GOOGLE_CLIENT_ID", "")
+            _g_redirect = os.environ.get("MURPHY_OAUTH_REDIRECT_URI", "")
+            if _g_client_id and _g_redirect:
+                import secrets as _sec
+                import urllib.parse as _up
+                _env_state = _sec.token_urlsafe(32)
+                _params = _up.urlencode({
+                    "client_id": _g_client_id,
+                    "redirect_uri": _g_redirect,
+                    "response_type": "code",
+                    "scope": "openid email profile",
+                    "state": _env_state,
+                })
+                _google_url = f"https://accounts.google.com/o/oauth2/v2/auth?{_params}"
+                logger.info("OAuth env-var fallback: redirecting to Google for %s", provider_key)
+                return RedirectResponse(_google_url, status_code=302)
 
         return RedirectResponse(
             f"/ui/login?error=oauth_unavailable&provider={provider_key}",
@@ -6224,7 +6317,9 @@ def create_app() -> FastAPI:
         # Named routes for each HTML UI page
         _html_routes = {
             "/": "murphy_landing_page.html",
+            "/murphy_landing_page.html": "murphy_landing_page.html",
             "/ui/landing": "murphy_landing_page.html",
+            "/ui/demo": "demo.html",
             "/ui/terminal-unified": "terminal_unified.html",
             "/ui/terminal": "terminal_unified.html",
             "/ui/terminal-integrated": "terminal_integrated.html",
