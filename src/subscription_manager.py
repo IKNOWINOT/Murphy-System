@@ -1117,9 +1117,16 @@ class SubscriptionManager:
         limit = self._ANON_DAILY_LIMIT
 
         with self._lock:
-            # Cap anonymous tracking entries to prevent memory exhaustion (CWE-400)
+            # Evict stale (non-today) entries to prevent memory exhaustion (CWE-400)
             if len(self._anon_usage) > 100_000:
-                self._anon_usage.clear()
+                stale = [k for k, v in self._anon_usage.items() if v.get("date") != today]
+                for k in stale:
+                    del self._anon_usage[k]
+                # If still too large after evicting stale, drop oldest half
+                if len(self._anon_usage) > 100_000:
+                    keys = list(self._anon_usage.keys())[:len(self._anon_usage) // 2]
+                    for k in keys:
+                        del self._anon_usage[k]
 
             entry = self._anon_usage.get(fingerprint, {"date": "", "count": 0})
             if entry["date"] != today:
@@ -1153,9 +1160,18 @@ class SubscriptionManager:
 
         with self._lock:
             entry = self._daily_usage.get(account_id, {"date": "", "count": 0})
+            tier_val = sub.tier.value if sub else "free"
             if entry["date"] != today:
-                return {"used": 0, "limit": limit, "remaining": limit if limit != -1 else -1,
-                        "tier": sub.tier.value if sub else "free"}
+                return {
+                    "used": 0,
+                    "limit": limit,
+                    "remaining": limit if limit != -1 else -1,
+                    "tier": tier_val,
+                }
             remaining = (limit - entry["count"]) if limit != -1 else -1
-            return {"used": entry["count"], "limit": limit, "remaining": remaining,
-                    "tier": sub.tier.value if sub else "free"}
+            return {
+                "used": entry["count"],
+                "limit": limit,
+                "remaining": remaining,
+                "tier": tier_val,
+            }

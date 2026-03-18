@@ -120,7 +120,7 @@ def create_app() -> FastAPI:
     # session_token → account_id (in-memory; replace with Redis/DB in prod)
     import threading as _threading
     import secrets as _secrets
-    import hashlib as _hashlib
+    import bcrypt as _bcrypt
     _session_lock = _threading.Lock()
     _session_store: "Dict[str, str]" = {}  # session_token → account_id
 
@@ -131,17 +131,15 @@ def create_app() -> FastAPI:
     _email_to_account: "Dict[str, str]" = {}  # email → account_id (index)
 
     def _hash_password(password: str) -> str:
-        """Hash a password with SHA-256 + salt for storage."""
-        salt = _secrets.token_hex(16)
-        h = _hashlib.sha256((salt + password).encode()).hexdigest()
-        return f"{salt}${h}"
+        """Hash a password with bcrypt (CWE-916: use of weak hash)."""
+        return _bcrypt.hashpw(password.encode("utf-8"), _bcrypt.gensalt()).decode("utf-8")
 
     def _verify_password(password: str, stored_hash: str) -> bool:
-        """Verify a password against a stored salt$hash."""
-        if "$" not in stored_hash:
+        """Verify a password against a bcrypt hash."""
+        try:
+            return _bcrypt.checkpw(password.encode("utf-8"), stored_hash.encode("utf-8"))
+        except Exception:
             return False
-        salt, h = stored_hash.split("$", 1)
-        return _hashlib.sha256((salt + password).encode()).hexdigest() == h
 
     def _create_session(account_id: str) -> str:
         """Mint a session token and store the mapping."""
@@ -4615,47 +4613,6 @@ def create_app() -> FastAPI:
         resp = _SJR({"success": True, "message": "Logged out"})
         resp.delete_cookie("murphy_session")
         return resp
-
-    @app.get("/api/profiles/me")
-    async def get_my_profile(request: Request):
-        """Return the authenticated user's profile, or redirect info."""
-        account = _get_account_from_session(request)
-        if not account:
-            return JSONResponse({
-                "id": "me",
-                "found": False,
-                "profile": {},
-            }, status_code=401)
-
-        tier = account.get("tier", "free")
-        usage = {}
-        if _sub_manager is not None:
-            usage = _sub_manager.get_daily_usage(account["account_id"])
-
-        return JSONResponse({
-            "id": account["account_id"],
-            "found": True,
-            "email": account["email"],
-            "full_name": account.get("full_name", ""),
-            "job_title": account.get("job_title", ""),
-            "company": account.get("company", ""),
-            "role": account.get("role", "user"),
-            "tier": tier,
-            "email_validated": account.get("email_validated", False),
-            "eula_accepted": account.get("eula_accepted", False),
-            "created_at": account.get("created_at", ""),
-            "daily_usage": usage,
-            "terminal_config": {
-                "features": {
-                    "terminal_access": True,
-                    "production_wizard": True,
-                    "workflow_canvas": True,
-                    "crypto_wallet": True,
-                    "shadow_agent_training": True,
-                    "community_access": True,
-                },
-            },
-        })
 
     @app.get("/api/profiles/me/terminal-config")
     async def get_terminal_config(request: Request):
