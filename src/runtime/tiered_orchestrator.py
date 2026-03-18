@@ -31,11 +31,11 @@ logger = logging.getLogger("murphy.tiered_orchestrator")
 
 class PackStatus(Enum):
     """Lifecycle state of a RuntimePack."""
-    REGISTERED = "registered"
-    LOADING = "loading"
-    LOADED = "loaded"
-    FAILED = "failed"
-    UNLOADED = "unloaded"
+    REGISTERED = "registered"  # Pack is known to the orchestrator but not yet loaded.
+    LOADING = "loading"        # Pack is currently being loaded (on_load running).
+    LOADED = "loaded"          # Pack is fully loaded and its router (if any) is active.
+    FAILED = "failed"          # Pack failed to load; error details in pack.error.
+    UNLOADED = "unloaded"      # Pack was deliberately unloaded or skipped at boot.
 
 
 @dataclass
