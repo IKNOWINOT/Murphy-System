@@ -163,6 +163,20 @@ fi
 mkdir -p logs data modules sessions repositories .murphy_persistence/images
 ok "Runtime directories ready"
 
+# ---- runtime mode info (informational only — no behaviour change) ----------
+_RUNTIME_MODE=$(grep -E '^MURPHY_RUNTIME_MODE=' "$MURPHY_DIR/.env" 2>/dev/null | tail -1 | cut -d= -f2- || echo "monolith")
+_RUNTIME_MODE="${_RUNTIME_MODE:-monolith}"
+echo ""
+echo -e "  ${BOLD}Runtime mode:${NC} ${CYAN}${_RUNTIME_MODE}${NC}"
+if [ "$_RUNTIME_MODE" = "tiered" ]; then
+    info "Tiered mode: only modules needed by your team profile will be loaded."
+    info "This reduces memory usage. Falls back to monolith automatically on failure."
+    info "Use 'bash scripts/runtime_status.sh' to inspect loaded packs."
+else
+    info "Monolith mode: all modules are loaded at startup (maximum compatibility)."
+    info "To switch modes: bash scripts/switch_runtime.sh tiered"
+fi
+
 # ---- step 5: launch --------------------------------------------------------
 step 5 "Ready to start Murphy System"
 
