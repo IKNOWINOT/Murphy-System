@@ -454,8 +454,20 @@ class ModularRuntime:
             days = hours / 8
             return f"{int(days)} days"
 
-# Initialize runtime
-runtime = ModularRuntime()
+# Lazy proxy — only instantiates ModularRuntime on first attribute access.
+# This prevents ALL modules from being imported when any file imports
+# modular_runtime (eager init was the original behaviour).
+class _LazyRuntime:
+    """Lazy proxy for ModularRuntime. Only instantiates on first use."""
+    _instance = None
+
+    def __getattr__(self, name: str):
+        if _LazyRuntime._instance is None:
+            _LazyRuntime._instance = ModularRuntime()
+        return getattr(_LazyRuntime._instance, name)
+
+
+runtime = _LazyRuntime()
 
 if __name__ == "__main__":
     logger.info("Modular Runtime System v1.0")
