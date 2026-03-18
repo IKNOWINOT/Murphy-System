@@ -855,6 +855,10 @@
       submitBtn.classList.remove('loading');
       submitBtn.disabled = false;
       if (result.status >= 200 && result.status < 300) {
+        // Store session info
+        if (result.data && result.data.account_id) {
+          localStorage.setItem('murphy_user_id', result.data.account_id);
+        }
         var urlParams = new URLSearchParams(window.location.search);
         var tier = urlParams.get('tier');
         var interval = urlParams.get('interval');
