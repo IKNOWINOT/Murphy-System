@@ -7,6 +7,84 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — End-to-End Authentication Flow (Beta Launch Blocker)
+
+All three auth paths — email/password, OAuth, and programmatic API access — are
+now fully connected so that users can sign up, log in, and use the Librarian chat
+without seeing "Authentication required".
+
+#### Backend: `src/fastapi_security.py` + mirror
+
+- **`_authenticate_request()`** now checks the `murphy_session` HttpOnly cookie in
+  addition to `Authorization: Bearer` and `X-API-Key` headers.  The cookie check
+  uses a pluggable validator registered at startup to avoid circular imports.
+- **`register_session_validator(fn)`** — new public function; called once by
+  `create_app()` with a closure over the in-memory `_session_store`.
+
+#### Backend: `src/runtime/app.py`
+
+- **`POST /api/auth/signup`** response body now includes `session_token` alongside
+  `account_id`, `email`, `name`, and `tier`.  The `murphy_session` cookie is still
+  set (HttpOnly); the JSON field lets the browser mirror the token to localStorage.
+- **`POST /api/auth/login`** — same: `session_token` added to the JSON body.
+- **`GET /api/auth/session-token`** — new authenticated endpoint.  Called by
+  `murphy_auth.js` after an OAuth redirect to retrieve the session token from the
+  server (the `murphy_session` cookie is HttpOnly and cannot be read by JavaScript
+  directly).  Returns `{ session_token }` for the currently authenticated session.
+- Session validator registered at startup:
+  ```python
+  register_session_validator(lambda t: t in _session_store)
+  ```
+
+#### Frontend: `static/murphy-components.js` + mirror
+
+- **`MurphyAPI._buildHeaders()`** now checks `localStorage.murphy_session_token`
+  first and sends `Authorization: Bearer <token>`.  Falls back to `murphy_api_key`
+  / `X-API-Key` if no session token is present.
+
+#### Frontend: `login.html` + `Murphy System/login.html`
+
+- After a successful login response both files now store:
+  ```js
+  localStorage.setItem('murphy_session_token', result.data.session_token);
+  localStorage.setItem('murphy_user_id', result.data.account_id);
+  ```
+
+#### Frontend: `signup.html` + `Murphy System/signup.html`
+
+- Same — `murphy_session_token` and `murphy_user_id` stored on successful signup.
+
+#### Frontend: `murphy_auth.js` + `Murphy System/murphy_auth.js`
+
+- **`_handleOAuthSuccess()`** rewritten to `async`.  Instead of attempting to read
+  the HttpOnly `murphy_session` cookie from `document.cookie` (which always returns
+  an empty string), it now fetches `GET /api/auth/session-token` with
+  `credentials: "include"` and stores the returned token in localStorage.
+
+#### Python: `src/supervisor_system/anti_recursion.py` + mirror
+
+- Added missing `Any` to the `from typing import …` line; the `ImportError` fallback
+  for `thread_safe_operations.capped_append` used `Any` before it was in scope,
+  causing a `NameError` at startup.
+
+#### Tests: `tests/test_auth_and_route_protection.py`
+
+- `TestSignup.test_signup_returns_session_token` — asserts `session_token` in body.
+- `TestLogin.test_login_returns_session_token` — asserts `session_token` in body.
+- `TestLogin.test_bearer_token_auth_using_session_token` — end-to-end: signup →
+  extract token → authenticate a cookieless client via `Authorization: Bearer`.
+- `TestSessionTokenEndpoint` — 3 tests for `GET /api/auth/session-token`:
+  authenticated returns token, unauthenticated returns 401, token matches signup.
+
+#### Docs
+
+- `docs/API_REFERENCE.md` + mirror — Authentication section rewritten to describe
+  the cookie + Bearer + X-API-Key precedence chain and both auth flows.
+- `SECURITY.md` — added Authentication Architecture table with session token details.
+- `Murphy System/SECURITY.md` — updated Security Architecture table.
+- `API_ROUTES.md` + mirror — added `POST /api/auth/login`, `POST /api/auth/logout`,
+  and `GET /api/auth/session-token` rows; signup description updated.
+
 ### Added — UI User-Flow & Schedule Automation E2E Tests (Round 61)
 
 #### End-to-End UI User-Flow Tests

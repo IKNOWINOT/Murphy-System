@@ -40,6 +40,25 @@ When deploying Murphy System:
 - Restrict CORS origins to your known domains
 - Review the [Deployment Guide](Murphy%20System/DEPLOYMENT_GUIDE.md) for hardening steps
 
+## Authentication Architecture
+
+Murphy System uses **session-based authentication** via HttpOnly cookies:
+
+| Mechanism | Where set | Where validated |
+|-----------|-----------|-----------------|
+| `murphy_session` cookie | `/api/auth/signup`, `/api/auth/login`, OAuth callback | `SecurityMiddleware` via `register_session_validator()` |
+| `Authorization: Bearer <token>` | Client `localStorage.murphy_session_token` | `SecurityMiddleware` → `_authenticate_request()` |
+| `X-API-Key` header | Environment / dashboard | `SecurityMiddleware` → `validate_api_key()` |
+
+**Password hashing:** bcrypt (cost factor from `bcrypt.gensalt()`) — never stored in plaintext.
+
+**Session tokens:** cryptographically-random 32-byte URL-safe base64 strings from
+`secrets.token_urlsafe(32)`. Stored in an in-memory dict (`_session_store`, guarded by
+`threading.Lock`). Replace with Redis or a database for multi-process deployments.
+
+**Cookie flags:** `HttpOnly=True` (XSS protection), `SameSite=lax` (CSRF protection),
+`Secure=True` in staging/production, 24-hour `Max-Age`.
+
 ## Scope
 
 This security policy covers the Murphy System core runtime and all modules in the `src/` directory. Third-party dependencies are covered by their own security policies.
