@@ -1,0 +1,73 @@
+from __future__ import annotations
+
+from typing import Dict, List
+
+from .config import CoreConfig
+from .gate_service import AdapterBackedGateService
+from .provider_service import AdapterBackedProviderService
+from .registry import ModuleRegistry
+from .system_map import SystemMapService
+
+
+class OperatorStatusService:
+    """Build an operator-facing truth snapshot for Murphy Core v2.
+
+    This goes beyond raw module registry output by reporting the live runtime
+    preference, provider path, gate path, and compatibility ownership map.
+    """
+
+    def __init__(
+        self,
+        config: CoreConfig,
+        registry: ModuleRegistry,
+        providers: AdapterBackedProviderService,
+        gates: AdapterBackedGateService,
+        system_map: SystemMapService,
+    ) -> None:
+        self.config = config
+        self.registry = registry
+        self.providers = providers
+        self.gates = gates
+        self.system_map = system_map
+
+    def snapshot(self) -> Dict[str, object]:
+        provider_health = self.providers.health()
+        gate_health = self.gates.health()
+        map_data = self.system_map.build_map()
+        records = self.registry.list()
+
+        core_modules = [r.module_name for r in records if r.status.value == "core"]
+        adapter_modules = [r.module_name for r in records if r.status.value == "adapter"]
+        drifted_modules = [r.module_name for r in records if r.effective_capability.value == "drifted"]
+
+        return {
+            "runtime": {
+                "preferred_factory": "murphy_core_v2",
+                "environment": self.config.environment,
+                "default_provider": self.config.default_provider,
+                "prefer_legacy_adapters": self.config.prefer_legacy_adapters,
+            },
+            "providers": provider_health,
+            "gates": gate_health,
+            "registry": {
+                "total_modules": len(records),
+                "core_modules": core_modules,
+                "adapter_modules": adapter_modules,
+                "drifted_modules": drifted_modules,
+            },
+            "system_map": map_data,
+        }
+
+    def ui_summary(self) -> Dict[str, object]:
+        snapshot = self.snapshot()
+        provider_reports: List[dict] = snapshot["providers"].get("providers", [])
+        live_gate_reports: List[dict] = snapshot["gates"].get("gates", [])
+        return {
+            "preferred_factory": snapshot["runtime"]["preferred_factory"],
+            "preferred_provider": snapshot["runtime"]["default_provider"],
+            "provider_count": len(provider_reports),
+            "gate_count": len(live_gate_reports),
+            "core_module_count": len(snapshot["registry"]["core_modules"]),
+            "adapter_module_count": len(snapshot["registry"]["adapter_modules"]),
+            "drifted_module_count": len(snapshot["registry"]["drifted_modules"]),
+        }
