@@ -123,6 +123,41 @@ The script handles the virtual environment, installs **all** dependencies (inclu
 
 ---
 
+## Quick Start (Development)
+
+```bash
+# Clone and enter
+git clone https://github.com/IKNOWINOT/Murphy-System.git
+cd Murphy-System
+
+# Option A: Use the setup script (recommended)
+bash setup_and_start.sh
+
+# Option B: Manual setup
+python3 -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+pip install -r requirements_core.txt  # Fast install (~30 seconds)
+# OR: pip install -r requirements.txt  # Full install (includes ML, Matrix, etc.)
+cp .env.example .env
+python -m src.runtime.boot  # Starts on http://localhost:8000
+```
+
+### Verify It's Running
+```bash
+curl http://localhost:8000/api/health
+# → {"status": "healthy", ...}
+```
+
+### Runtime Modes
+Murphy System supports two runtime modes:
+- **Monolith** (default): Loads all modules. Use for full system testing.
+- **Tiered**: Loads only what your team needs. Faster startup, lower memory.
+
+Set `MURPHY_RUNTIME_MODE=tiered` in `.env` to try tiered mode.
+See [docs/TIERED_RUNTIME.md](docs/TIERED_RUNTIME.md) for details.
+
+---
+
 ## 📊 Overall System Completion
 
 | Area | Completion | Notes |
