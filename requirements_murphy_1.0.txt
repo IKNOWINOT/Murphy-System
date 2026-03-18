@@ -29,7 +29,8 @@ flask-cors>=4.0.0
 
 # Async Support
 aiohttp>=3.9.0
-asyncio>=3.4.3
+# NOTE: asyncio is part of Python stdlib since 3.4 — do NOT add it as a pip dependency.
+# The old "asyncio" PyPI package conflicts with the stdlib version.
 httpx>=0.25.0
 aiosmtplib>=3.0.0
 aiosmtpd>=1.4.0
