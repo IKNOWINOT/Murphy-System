@@ -7150,8 +7150,391 @@ def create_app() -> FastAPI:
         return JSONResponse({"success": False, "error": {"code": "NOT_IMPLEMENTED", "message": "Analyze domain not yet implemented"}}, status_code=501)
 
     # ══════════════════════════════════════════════════════════════════════
-    # API MANIFEST — machine-readable registry of all registered endpoints
+    # PLATFORM SELF-AUTOMATION — Self-Fix, Repair, Scheduler, Orchestrator
     # ══════════════════════════════════════════════════════════════════════
+
+    # ── Self-Fix Loop (ARCH-005) ──────────────────────────────────────────
+
+    @app.get("/api/self-fix/status")
+    async def self_fix_status():
+        """Current self-fix loop status."""
+        loop = getattr(murphy, "self_fix_loop", None)
+        if loop is None:
+            return JSONResponse({"success": True, "status": "unavailable",
+                                 "message": "SelfFixLoop not initialised"})
+        try:
+            status = loop.get_status()
+            return JSONResponse({"success": True, **status})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.post("/api/self-fix/run")
+    async def self_fix_run(request: Request):
+        """Trigger the self-fix loop (diagnose → plan → execute → test → verify)."""
+        loop = getattr(murphy, "self_fix_loop", None)
+        if loop is None:
+            return JSONResponse({"success": False,
+                                 "error": "SelfFixLoop not available"}, status_code=503)
+        try:
+            body_bytes = await request.body()
+            body = {}
+            if body_bytes:
+                import json as _json
+                body = _json.loads(body_bytes)
+            max_iter = int(body.get("max_iterations", 10))
+            report = loop.run_loop(max_iterations=max_iter)
+            return JSONResponse({
+                "success": True,
+                "report": report.to_dict() if hasattr(report, "to_dict") else str(report),
+            })
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.get("/api/self-fix/history")
+    async def self_fix_history():
+        """Past self-fix loop reports."""
+        loop = getattr(murphy, "self_fix_loop", None)
+        if loop is None:
+            return JSONResponse({"success": True, "reports": []})
+        try:
+            reports = loop.get_all_reports()
+            return JSONResponse({"success": True, "reports": reports})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.get("/api/self-fix/plans")
+    async def self_fix_plans():
+        """All fix plans with their status."""
+        loop = getattr(murphy, "self_fix_loop", None)
+        if loop is None:
+            return JSONResponse({"success": True, "plans": []})
+        try:
+            plans = loop.get_all_plans()
+            return JSONResponse({"success": True, "plans": plans})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    # ── Autonomous Repair System (ARCH-006) ───────────────────────────────
+
+    @app.get("/api/repair/status")
+    async def repair_status():
+        """Current repair system health."""
+        repair = getattr(murphy, "autonomous_repair", None)
+        if repair is None:
+            return JSONResponse({"success": True, "status": "unavailable",
+                                 "message": "AutonomousRepairSystem not initialised"})
+        try:
+            health = repair.get_health()
+            return JSONResponse({"success": True, **health})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.post("/api/repair/run")
+    async def repair_run(request: Request):
+        """Trigger a full autonomous repair cycle."""
+        repair = getattr(murphy, "autonomous_repair", None)
+        if repair is None:
+            return JSONResponse({"success": False,
+                                 "error": "AutonomousRepairSystem not available"}, status_code=503)
+        try:
+            body_bytes = await request.body()
+            body = {}
+            if body_bytes:
+                import json as _json
+                body = _json.loads(body_bytes)
+            max_iter = int(body.get("max_iterations", 20))
+            report = repair.run_repair_cycle(max_iterations=max_iter)
+            return JSONResponse({
+                "success": True,
+                "report": report.to_dict() if hasattr(report, "to_dict") else str(report),
+            })
+        except RuntimeError as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=409)
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.get("/api/repair/history")
+    async def repair_history():
+        """Past repair reports."""
+        repair = getattr(murphy, "autonomous_repair", None)
+        if repair is None:
+            return JSONResponse({"success": True, "reports": []})
+        try:
+            reports = repair.get_reports()
+            return JSONResponse({"success": True, "reports": reports})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.get("/api/repair/wiring")
+    async def repair_wiring():
+        """Front-end ↔ back-end wiring report."""
+        repair = getattr(murphy, "autonomous_repair", None)
+        if repair is None:
+            return JSONResponse({"success": True, "wiring_issues": []})
+        try:
+            issues = repair.get_wiring_report()
+            return JSONResponse({"success": True, "wiring_issues": issues})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.get("/api/repair/proposals")
+    async def repair_proposals():
+        """View all repair proposals."""
+        repair = getattr(murphy, "autonomous_repair", None)
+        if repair is None:
+            return JSONResponse({"success": True, "proposals": []})
+        try:
+            proposals = repair.get_proposals() if hasattr(repair, "get_proposals") else []
+            return JSONResponse({"success": True, "proposals": proposals})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    # ── Murphy Scheduler (daily automation cycle) ─────────────────────────
+
+    @app.get("/api/scheduler/status")
+    async def scheduler_status():
+        """Murphy platform scheduler status."""
+        sched = getattr(murphy, "murphy_scheduler", None)
+        if sched is None:
+            return JSONResponse({"success": True, "status": "unavailable",
+                                 "message": "MurphyScheduler not initialised"})
+        try:
+            status = sched.get_status()
+            return JSONResponse({"success": True, **status})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.post("/api/scheduler/start")
+    async def scheduler_start():
+        """Start the platform automation scheduler."""
+        sched = getattr(murphy, "murphy_scheduler", None)
+        if sched is None:
+            return JSONResponse({"success": False,
+                                 "error": "MurphyScheduler not available"}, status_code=503)
+        try:
+            started = sched.start()
+            return JSONResponse({"success": True, "started": started})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.post("/api/scheduler/stop")
+    async def scheduler_stop():
+        """Stop the platform automation scheduler."""
+        sched = getattr(murphy, "murphy_scheduler", None)
+        if sched is None:
+            return JSONResponse({"success": False,
+                                 "error": "MurphyScheduler not available"}, status_code=503)
+        try:
+            sched.stop()
+            return JSONResponse({"success": True, "stopped": True})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.post("/api/scheduler/trigger")
+    async def scheduler_trigger():
+        """Manually trigger the daily automation cycle."""
+        sched = getattr(murphy, "murphy_scheduler", None)
+        if sched is None:
+            return JSONResponse({"success": False,
+                                 "error": "MurphyScheduler not available"}, status_code=503)
+        try:
+            result = sched.run_daily_automation()
+            return JSONResponse({"success": True, "result": result})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    # ── Self-Automation Orchestrator (ARCH-002) ───────────────────────────
+
+    @app.get("/api/self-automation/status")
+    async def self_automation_status():
+        """Self-automation orchestrator status."""
+        orch = getattr(murphy, "self_automation_orchestrator", None)
+        if orch is None:
+            return JSONResponse({"success": True, "status": "unavailable",
+                                 "message": "SelfAutomationOrchestrator not initialised"})
+        try:
+            tasks = orch.list_tasks() if hasattr(orch, "list_tasks") else []
+            return JSONResponse({
+                "success": True,
+                "status": "active",
+                "task_count": len(tasks),
+                "tasks": tasks[:50],
+            })
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.post("/api/self-automation/task")
+    async def self_automation_create_task(request: Request):
+        """Create a self-automation task."""
+        orch = getattr(murphy, "self_automation_orchestrator", None)
+        if orch is None:
+            return JSONResponse({"success": False,
+                                 "error": "SelfAutomationOrchestrator not available"}, status_code=503)
+        try:
+            data = await request.json()
+            title = data.get("title", "")
+            module_name = data.get("module_name") or None
+            priority = int(data.get("priority", 5))
+            category = data.get("category", "self_improvement")
+            if not title:
+                return JSONResponse({"success": False, "error": "title is required"}, status_code=400)
+            # Resolve category enum
+            try:
+                from src.self_automation_orchestrator import TaskCategory
+                cat = TaskCategory(category)
+            except (ImportError, ValueError):
+                cat = category
+            task = orch.create_task(
+                title=title,
+                category=cat,
+                module_name=module_name,
+                priority=priority,
+            )
+            return JSONResponse({
+                "success": True,
+                "task": task.to_dict() if hasattr(task, "to_dict") else {"id": str(task)},
+            })
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.get("/api/self-automation/tasks")
+    async def self_automation_list_tasks():
+        """List self-automation tasks."""
+        orch = getattr(murphy, "self_automation_orchestrator", None)
+        if orch is None:
+            return JSONResponse({"success": True, "tasks": []})
+        try:
+            tasks = orch.list_tasks() if hasattr(orch, "list_tasks") else []
+            return JSONResponse({"success": True, "tasks": tasks})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    # ── Self-Improvement Engine ───────────────────────────────────────────
+
+    @app.get("/api/self-improvement/status")
+    async def self_improvement_status():
+        """Self-improvement engine status."""
+        engine = getattr(murphy, "self_improvement", None)
+        if engine is None:
+            return JSONResponse({"success": True, "status": "unavailable",
+                                 "message": "SelfImprovementEngine not initialised"})
+        try:
+            status = engine.get_status() if hasattr(engine, "get_status") else {"status": "active"}
+            return JSONResponse({"success": True, **status})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.get("/api/self-improvement/proposals")
+    async def self_improvement_proposals():
+        """List improvement proposals."""
+        engine = getattr(murphy, "self_improvement", None)
+        if engine is None:
+            return JSONResponse({"success": True, "proposals": []})
+        try:
+            backlog = engine.get_remediation_backlog() if hasattr(engine, "get_remediation_backlog") else []
+            proposals = []
+            for p in backlog:
+                proposals.append({
+                    "proposal_id": getattr(p, "proposal_id", ""),
+                    "category": getattr(p, "category", ""),
+                    "description": getattr(p, "description", ""),
+                    "status": getattr(p, "status", ""),
+                    "suggested_action": getattr(p, "suggested_action", ""),
+                })
+            return JSONResponse({"success": True, "proposals": proposals})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.get("/api/self-improvement/corrections")
+    async def self_improvement_corrections():
+        """List applied corrections."""
+        engine = getattr(murphy, "self_improvement", None)
+        if engine is None:
+            return JSONResponse({"success": True, "corrections": []})
+        try:
+            corrections = getattr(engine, "_corrections_applied", [])
+            return JSONResponse({"success": True, "corrections": list(corrections[-50:])})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    # ── Platform Automation Overview ──────────────────────────────────────
+
+    @app.get("/api/platform/automation-status")
+    async def platform_automation_overview():
+        """Unified overview of all platform self-automation systems."""
+        systems = {}
+
+        # Self-Fix Loop
+        loop = getattr(murphy, "self_fix_loop", None)
+        systems["self_fix_loop"] = {
+            "available": loop is not None,
+            "status": loop.get_status() if loop and hasattr(loop, "get_status") else None,
+        }
+
+        # Autonomous Repair
+        repair = getattr(murphy, "autonomous_repair", None)
+        systems["autonomous_repair"] = {
+            "available": repair is not None,
+            "status": repair.get_health() if repair and hasattr(repair, "get_health") else None,
+        }
+
+        # Scheduler
+        sched = getattr(murphy, "murphy_scheduler", None)
+        systems["scheduler"] = {
+            "available": sched is not None,
+            "status": sched.get_status() if sched and hasattr(sched, "get_status") else None,
+        }
+
+        # Self-Automation Orchestrator
+        orch = getattr(murphy, "self_automation_orchestrator", None)
+        systems["self_automation_orchestrator"] = {
+            "available": orch is not None,
+            "task_count": len(orch.list_tasks()) if orch and hasattr(orch, "list_tasks") else 0,
+        }
+
+        # Self-Improvement Engine
+        eng = getattr(murphy, "self_improvement", None)
+        systems["self_improvement_engine"] = {
+            "available": eng is not None,
+            "status": eng.get_status() if eng and hasattr(eng, "get_status") else None,
+        }
+
+        # MFM (Murphy Foundation Model)
+        import os as _os
+        systems["mfm"] = {
+            "enabled": _os.environ.get("MFM_ENABLED", "false").lower() == "true",
+            "mode": _os.environ.get("MFM_MODE", "disabled"),
+        }
+
+        available_count = sum(1 for s in systems.values() if s.get("available", False) or s.get("enabled", False))
+        return JSONResponse({
+            "success": True,
+            "systems": systems,
+            "total_systems": len(systems),
+            "available_count": available_count,
+        })
+
+    # ══════════════════════════════════════════════════════════════════════
+    # REPAIR FLASK BLUEPRINT — mount via WSGIMiddleware
+    # ══════════════════════════════════════════════════════════════════════
+
+    try:
+        from src.repair_api_endpoints import create_repair_blueprint as _create_repair_bp
+        _repair_bp = _create_repair_bp()
+        if _repair_bp is not None:
+            from starlette.middleware.wsgi import WSGIMiddleware as _WSGIMid2
+            try:
+                from flask import Flask as _Flask2
+                _repair_flask = _Flask2("repair")
+                _repair_flask.register_blueprint(_repair_bp)
+                app.mount("/api/repair-flask", _WSGIMid2(_repair_flask.wsgi_app))
+                logger.info("Repair API Flask blueprint mounted at /api/repair-flask/*")
+            except Exception as _rep_mount_exc:
+                logger.warning("Repair Flask blueprint mount skipped: %s", _rep_mount_exc)
+        else:
+            logger.info("Repair API blueprint not created (Flask unavailable)")
+    except Exception as _rep_exc:
+        logger.warning("Repair API endpoints not available: %s", _rep_exc)
 
     @app.get("/api/manifest")
     async def api_manifest():

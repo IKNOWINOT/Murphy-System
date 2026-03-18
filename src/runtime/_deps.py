@@ -228,6 +228,24 @@ except ImportError as e:
     AutomationScheduler = ProjectSchedule = SchedulePriority = None
 
 try:
+    from src.self_fix_loop import SelfFixLoop
+except ImportError as e:
+    logger.warning("SelfFixLoop not available: %s", e)
+    SelfFixLoop = None
+
+try:
+    from src.scheduler import MurphyScheduler
+except ImportError as e:
+    logger.warning("MurphyScheduler not available: %s", e)
+    MurphyScheduler = None
+
+try:
+    from src.autonomous_repair_system import AutonomousRepairSystem
+except ImportError as e:
+    logger.warning("AutonomousRepairSystem not available: %s", e)
+    AutonomousRepairSystem = None
+
+try:
     from src.capability_map import CapabilityMap
 except ImportError as e:
     logger.warning("Capability map not available: %s", e)
@@ -644,8 +662,9 @@ __all__ = [
     "VideoStreamingRegistry", "RemoteAccessRegistry",
     # Delivery / document
     "DeliveryOrchestrator", "DocumentDeliveryAdapter", "VoiceDeliveryAdapter",
-    # Persistence / scheduling
+    # Persistence / scheduling / self-automation
     "PersistenceManager", "AutomationScheduler",
+    "SelfFixLoop", "MurphyScheduler", "AutonomousRepairSystem",
     # Strategy / simulation / compliance types
     "MLStrategyEngine", "ExecutivePlanningEngine",
     "CapabilityMap", "GoldenPathBridge",

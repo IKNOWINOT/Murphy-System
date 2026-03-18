@@ -1833,6 +1833,41 @@ class MurphySystem:
         else:
             self.self_automation_orchestrator = None
 
+        # Self-Fix Loop (ARCH-005)
+        if SelfFixLoop:
+            try:
+                self.self_fix_loop = SelfFixLoop(
+                    engine=self.self_improvement,
+                )
+                logger.info("Self-fix loop initialized")
+            except Exception as exc:
+                logger.warning("Self-fix loop initialization failed: %s", exc)
+                self.self_fix_loop = None
+        else:
+            self.self_fix_loop = None
+
+        # Murphy Scheduler (daily automation cycle)
+        if MurphyScheduler:
+            try:
+                self.murphy_scheduler = MurphyScheduler()
+                logger.info("Murphy scheduler initialized")
+            except Exception as exc:
+                logger.warning("Murphy scheduler initialization failed: %s", exc)
+                self.murphy_scheduler = None
+        else:
+            self.murphy_scheduler = None
+
+        # Autonomous Repair System (ARCH-006)
+        if AutonomousRepairSystem:
+            try:
+                self.autonomous_repair = AutonomousRepairSystem()
+                logger.info("Autonomous repair system initialized")
+            except Exception as exc:
+                logger.warning("Autonomous repair system initialization failed: %s", exc)
+                self.autonomous_repair = None
+        else:
+            self.autonomous_repair = None
+
         # Plugin Extension SDK
         if PluginExtensionSDK:
             try:
