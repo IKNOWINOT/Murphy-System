@@ -2,8 +2,11 @@
 Tests for authentication, route protection, subscription tiers, and daily usage tracking.
 
 Covers:
-  - Signup endpoint creates real accounts with sessions
-  - Login endpoint validates credentials and creates sessions
+  - Signup endpoint creates real accounts with sessions and returns session_token
+  - Login endpoint validates credentials, creates sessions, and returns session_token
+  - session_token in responses enables localStorage mirroring for MurphyAPI Bearer-token path
+  - Bearer-token auth using the session_token from signup/login responses
+  - GET /api/auth/session-token endpoint (for OAuth users to mirror cookie to localStorage)
   - Profile endpoint returns authenticated user data
   - Logout invalidates sessions
   - Server-side HTML route protection (302 redirect for unauthenticated)
@@ -76,6 +79,19 @@ class TestSignup:
         assert data["email"] == "signup_test@example.com"
         assert data["tier"] == "free"
 
+    def test_signup_returns_session_token(self, client):
+        """Signup response must include session_token so the frontend can mirror
+        it to localStorage for the MurphyAPI Bearer-token path."""
+        resp = client.post("/api/auth/signup", json={
+            "email": "session_token_signup@example.com",
+            "password": "TestPass123!",
+            "full_name": "Token Test",
+        })
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "session_token" in data, "signup response must contain session_token"
+        assert data["session_token"], "session_token must be non-empty"
+
     def test_signup_sets_session_cookie(self, client):
         resp = client.post("/api/auth/signup", json={
             "email": "cookie_test@example.com",
@@ -138,6 +154,51 @@ class TestLogin:
         assert data["success"] is True
         assert data["email"] == email
         assert "murphy_session" in resp.cookies
+
+    def test_login_returns_session_token(self, client):
+        """Login response must include session_token so the frontend can mirror
+        it to localStorage for the MurphyAPI Bearer-token path."""
+        email = "login_session_token@example.com"
+        client.post("/api/auth/signup", json={
+            "email": email,
+            "password": "TestPass123!",
+            "full_name": "Token Login Test",
+        })
+        resp = client.post("/api/auth/login", json={
+            "email": email,
+            "password": "TestPass123!",
+        })
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "session_token" in data, "login response must contain session_token"
+        assert data["session_token"], "session_token must be non-empty"
+
+    def test_bearer_token_auth_using_session_token(self, client):
+        """A session_token from signup must authenticate subsequent API requests
+        when sent as Authorization: Bearer <token> (Fix 2 for MurphyAPI).
+
+        Uses a cookie-free TestClient that shares the SAME app instance (and
+        therefore the same in-memory _session_store) as the module-scoped
+        client, so the token is resolvable without needing the cookie.
+        """
+        email = "bearer_auth_test@example.com"
+        signup_resp = client.post("/api/auth/signup", json={
+            "email": email,
+            "password": "TestPass123!",
+            "full_name": "Bearer Auth Test",
+        })
+        token = signup_resp.json()["session_token"]
+        # Share the same app (same _session_store) but use a fresh, cookie-free
+        # TestClient so we verify the Bearer-header path, not the cookie path.
+        from starlette.testclient import TestClient
+        bare_client = TestClient(client.app, follow_redirects=False)
+        resp = bare_client.get(
+            "/api/profiles/me",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert resp.status_code == 200, (
+            f"Bearer token from signup should authenticate /api/profiles/me, got {resp.status_code}"
+        )
 
     def test_login_with_wrong_password(self, client):
         email = "wrongpw_test@example.com"
@@ -240,6 +301,65 @@ class TestLogout:
         logout_resp = client.post("/api/auth/logout")
         assert logout_resp.status_code == 200
         assert logout_resp.json()["success"] is True
+
+
+# ===========================================================================
+# Part 4b: Session Token Endpoint
+# ===========================================================================
+
+class TestSessionTokenEndpoint:
+    """GET /api/auth/session-token — enables OAuth users to mirror the
+    HttpOnly murphy_session cookie value to localStorage after redirect.
+
+    All tests here use a per-test isolated TestClient that shares the same
+    app instance (same in-memory _session_store) but has its own cookie jar,
+    so session cookies do NOT leak to the module-scoped client used by
+    TestRouteProtection which relies on being unauthenticated.
+    """
+
+    def _fresh_client(self, client):
+        """Return a cookie-free TestClient sharing the same app instance."""
+        from starlette.testclient import TestClient
+        return TestClient(client.app, follow_redirects=False)
+
+    def test_returns_token_for_authenticated_session(self, client):
+        """Authenticated user (cookie present) should get their session token."""
+        c = self._fresh_client(client)
+        c.post("/api/auth/signup", json={
+            "email": f"st_auth_{os.urandom(4).hex()}@example.com",
+            "password": "TestPass123!",
+            "full_name": "Session Token Test",
+        })
+        resp = c.get("/api/auth/session-token")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "session_token" in data
+        assert data["session_token"]
+
+    def test_returns_401_when_not_authenticated(self, client):
+        """Unauthenticated request must get 401 — no token to return.
+
+        The endpoint performs its own auth check via _get_account_from_session()
+        regardless of MURPHY_ENV, so a fresh cookie-less client gets 401.
+        """
+        c = self._fresh_client(client)
+        resp = c.get("/api/auth/session-token")
+        assert resp.status_code == 401
+
+    def test_session_token_matches_signup_token(self, client):
+        """The token returned by the endpoint must match the one in the signup body."""
+        c = self._fresh_client(client)
+        signup_resp = c.post("/api/auth/signup", json={
+            "email": f"st_match_{os.urandom(4).hex()}@example.com",
+            "password": "TestPass123!",
+        })
+        signup_token = signup_resp.json()["session_token"]
+        endpoint_resp = c.get("/api/auth/session-token")
+        assert endpoint_resp.status_code == 200
+        endpoint_token = endpoint_resp.json()["session_token"]
+        assert signup_token == endpoint_token, (
+            "Token from /api/auth/session-token must equal the signup session_token"
+        )
 
 
 # ===========================================================================
