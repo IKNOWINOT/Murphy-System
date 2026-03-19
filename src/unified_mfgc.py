@@ -1270,20 +1270,13 @@ What additional information would help me assist you better?"""
         unknowns_count = len(expansion_result.remaining_unknowns)
         unknowns_resolved = max(0, 6 - unknowns_count)  # Assume started with ~6 unknowns
 
-        # Confidence formula: gate satisfaction + unknown resolution
-        confidence = min(
-            (gate_satisfaction * 0.5) + (unknowns_resolved / 6 * 0.5),
-            0.9
-        )
+        # Confidence formula: gate satisfaction + unknown resolution (no cap — can reach 1.0)
+        confidence = (gate_satisfaction * 0.5) + (unknowns_resolved / 6 * 0.5)
 
-        # FORCE EXECUTION if we've hit max questions
-        force_execute = self.question_manager.force_execution()
-
-        # EXECUTION CRITERIA: High gate satisfaction OR critical unknowns resolved OR forced
+        # EXECUTION CRITERIA: High gate satisfaction (85%) AND critical unknowns resolved
         should_execute = (
-            gate_satisfaction >= 0.7 or  # 70% of gates satisfied
-            unknowns_count <= 2 or       # Only 2 or fewer unknowns left
-            force_execute                # Hit max questions
+            gate_satisfaction >= 0.85 and  # 85% of gates satisfied
+            unknowns_count <= 2            # Only 2 or fewer unknowns left
         )
 
         if should_execute:
@@ -1350,7 +1343,7 @@ Original Request: {message}
 **Unsatisfied Gates (Risks to Address):**
 {unsatisfied_gates_list}
 
-**Gate Satisfaction:** {gate_satisfaction:.0%} (need 70%)
+**Gate Satisfaction:** {gate_satisfaction:.0%} (need 85%)
 **Unknowns Remaining:** {unknowns_count} (need ≤2)
 
 Generate 2-3 TARGETED questions that specifically address:
@@ -1372,7 +1365,7 @@ Make questions specific and actionable."""
                         # Show status with gate info
                         status_msg = f"""## Gathering More Information
 
-**Gate Satisfaction:** {gate_satisfaction:.0%} (need 70%)
+**Gate Satisfaction:** {gate_satisfaction:.0%} (need 85%)
 **Unknowns Remaining:** {unknowns_count} (need ≤2)
 **Questions Answered:** {len(answers)}
 

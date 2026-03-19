@@ -66,6 +66,10 @@
   var currentStep = 1;
   var chatHistory = [];
   var exchangeCount = 0;
+  var mfgcGateSatisfaction = 0;
+  var mfgcConfidence = 0;
+  var mfgcReadyForPlan = false;
+  var onboardingSessionId = 'onboarding-' + Date.now();
   var selectedModules = [];
   var selectedIntegrations = [];
   var credentials = {};
@@ -234,22 +238,34 @@
       chatArea.appendChild(chatBubble('user', text));
       chatArea.scrollTop = chatArea.scrollHeight;
 
-      // Send to Librarian
+      // Send to MFGC (gate-aware chat)
       var typingEl = chatBubble('assistant', '…');
       typingEl.classList.add('murphy-animate-pulse');
       chatArea.appendChild(typingEl);
       chatArea.scrollTop = chatArea.scrollHeight;
 
-      api.post('/librarian/ask', { question: text, context: 'onboarding' })
+      api.post('/onboarding/mfgc-chat', { session_id: onboardingSessionId, message: text })
         .then(function (res) {
           chatArea.removeChild(typingEl);
-          var reply = (res.ok && res.data && (res.data.answer || res.data.response || res.data.message))
-            ? (res.data.answer || res.data.response || res.data.message)
+          var reply = (res.ok && res.data && (res.data.response || res.data.answer || res.data.reply_text || res.data.result || res.data.content || res.data.message))
+            ? (res.data.response || res.data.answer || res.data.reply_text || res.data.result || res.data.content || res.data.message)
             : null;
 
           if (reply) {
             chatHistory.push({ role: 'assistant', content: reply });
             chatArea.appendChild(chatBubble('assistant', reply));
+
+            // Update MFGC gate state
+            if (res.data.gate_satisfaction !== undefined) {
+              mfgcGateSatisfaction = res.data.gate_satisfaction;
+            }
+            if (res.data.confidence !== undefined) {
+              mfgcConfidence = res.data.confidence;
+            }
+            if (res.data.ready_for_plan !== undefined) {
+              mfgcReadyForPlan = !!res.data.ready_for_plan;
+            }
+            updateConfidenceBar();
 
             if (res.data.config) {
               librarianConfig = res.data.config;
@@ -287,7 +303,36 @@
     inputRow.appendChild(sendBtn);
     wrapper.appendChild(inputRow);
 
-    // Continue button (hidden until enough exchanges)
+    // Confidence progress bar (shows MFGC gate satisfaction)
+    var confidenceBar = el('div', {
+      id: 'confidence-bar-wrap',
+      style: 'margin-top:.5rem;display:none;'
+    });
+    var confidenceLabel = el('div', {
+      style: 'font-size:.75rem;color:var(--muted);margin-bottom:.2rem;'
+    });
+    confidenceLabel.textContent = 'Murphy confidence: 0%';
+    var confidenceTrack = el('div', {
+      style: 'height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;'
+    });
+    var confidenceFill = el('div', {
+      id: 'confidence-fill',
+      style: 'height:100%;width:0%;background:var(--teal,#00d4aa);border-radius:2px;transition:width .4s ease;'
+    });
+    confidenceTrack.appendChild(confidenceFill);
+    confidenceBar.appendChild(confidenceLabel);
+    confidenceBar.appendChild(confidenceTrack);
+    wrapper.appendChild(confidenceBar);
+
+    function updateConfidenceBar() {
+      var pct = Math.round(mfgcGateSatisfaction * 100);
+      confidenceBar.style.display = 'block';
+      confidenceLabel.textContent = 'Murphy confidence: ' + pct + '% (need 85% to continue)';
+      confidenceFill.style.width = pct + '%';
+      confidenceFill.style.background = pct >= 85 ? 'var(--green,#00ff41)' : 'var(--teal,#00d4aa)';
+    }
+
+    // Continue button (shown when MFGC gates are ≥85% satisfied)
     var continueRow = el('div', {
       id: 'continue-row',
       className: 'flex justify-end',
@@ -304,7 +349,7 @@
     container.appendChild(wrapper);
 
     function updateContinueVisibility() {
-      if (exchangeCount >= 3) {
+      if (mfgcReadyForPlan || exchangeCount >= 3) {
         continueRow.style.display = 'flex';
       }
     }
