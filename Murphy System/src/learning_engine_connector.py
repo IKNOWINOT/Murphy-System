@@ -79,6 +79,10 @@ from __future__ import annotations
 import logging
 import threading
 import time
+import uuid
+from collections import deque
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
@@ -110,11 +114,7 @@ def _import_event_backbone():
         return EventBackbone, EventType
     except ImportError:
         return None, None
-import uuid
-from collections import deque
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+
 
 try:
     from thread_safe_operations import capped_append
@@ -124,7 +124,6 @@ except ImportError:
             del target_list[: max_size // 10]
         target_list.append(item)
 
-logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -173,49 +172,31 @@ class LearningCycleResult:
 class LearningEngineConnector:
     """Wires EventBackbone events into the closed-loop learning pipeline.
 
-    Parameters
-    ----------
-    backbone : EventBackbone, optional
-        Pre-created backbone instance.  When *None* a fresh one is
-        instantiated if the module is available.
-    learning_engine : LearningEngine, optional
-        Pre-created learning engine.  When *None* a fresh one is created.
-    analyze_interval_seconds : float
-        How often (in real seconds) to run a full ``analyze_learning()``
-        sweep and propagate insights back to the adaptive decision engine.
-        Default 300 s (5 min).  Use a lower value in tests.
-    """Wires EventBackbone events through the full learning pipeline.
+    Supports two calling conventions:
 
-    Typical usage::
+    **Legacy (old API)**::
 
-        connector = LearningEngineConnector(
-            event_backbone=backbone,
-            feedback_integrator=integrator,
-            pattern_recognizer=recognizer,
-            feedback_collector=collector,
-            performance_predictor=predictor,
-            gate_registry={"gate-1": domain_gate_obj, ...},
-            confidence_calculator=calc,
-            gate_generator=generator,
+        LearningEngineConnector(
+            backbone=bb,
+            learning_engine=le,
+            analyze_interval_seconds=300.0,
         )
-        # Events are queued automatically via subscriptions.
-        # Call run_cycle() to drain the queue and execute the full loop.
-        result = connector.run_cycle()
 
-    *gate_registry* is an optional ``dict[gate_id, DomainGate]`` —
-    gates whose ``confidence_threshold`` will be auto-adjusted when the
-    predictor recommends a new threshold for the corresponding key.
+    **New API**::
 
-    *confidence_calculator* is an optional :class:`ConfidenceCalculator`
-    whose adaptive thresholds (bootstrap floor, sparse threshold) are
-    updated when the predictor recommends a global threshold change.
+        LearningEngineConnector(
+            event_backbone=bb,
+            performance_predictor=predictor,
+            gate_registry={...},
+            feedback_integrator=...,
+            pattern_recognizer=...,
+            feedback_collector=...,
+            confidence_calculator=...,
+            gate_generator=...,
+        )
 
-    *gate_generator* is an optional :class:`DomainGateGenerator` whose
-    ``default_confidence_threshold`` is updated so that all newly
-    generated gates inherit the learned threshold.
-
-    All constructor arguments are optional; missing components cause the
-    relevant pipeline stage to be skipped gracefully.
+    When the legacy *backbone* parameter is supplied, it is mapped to
+    *event_backbone* internally.
     """
 
     def __init__(
@@ -223,37 +204,87 @@ class LearningEngineConnector:
         backbone=None,
         learning_engine=None,
         analyze_interval_seconds: float = 300.0,
+        event_backbone=None,
+        feedback_integrator=None,
+        pattern_recognizer=None,
+        feedback_collector=None,
+        performance_predictor=None,
+        gate_registry: Optional[Dict[str, Any]] = None,
+        state_vector=None,
+        confidence_calculator=None,
+        gate_generator=None,
     ) -> None:
+        # Detect which calling convention was used so we know whether to
+        # auto-subscribe (new API) or wait for start() (old API).
+        _old_api = backbone is not None and event_backbone is None
+
+        # Map old parameter name → new
+        if backbone is not None and event_backbone is None:
+            event_backbone = backbone
+
+        # --- shared state ---
         self._analyze_interval = analyze_interval_seconds
         self._subscription_ids: List[str] = []
         self._last_analyze: float = time.monotonic()
         self._lock = threading.Lock()
 
-        # Metrics counters (lightweight — no Prometheus dependency)
+        # Old-API counters
         self._events_received: int = 0
         self._insights_generated: int = 0
         self._is_started: bool = False
 
         # Backbone
-        if backbone is not None:
-            self._backbone = backbone
+        if event_backbone is not None:
+            self._backbone = event_backbone
         else:
             EventBackbone, _ = _import_event_backbone()
             self._backbone = EventBackbone() if EventBackbone else None
 
-        # Learning engine
+        # Learning engine (old-API component)
         if learning_engine is not None:
             self._learning = learning_engine
         else:
             LearningEngine = _import_learning_engine()
             self._learning = LearningEngine() if LearningEngine else None
 
-        # Adaptive decision engine (optional — used for threshold evolution)
+        # Adaptive decision engine (old-API, optional)
         AdaptiveDecisionEngine = _import_adaptive_decision_engine()
         self._adaptive = AdaptiveDecisionEngine() if AdaptiveDecisionEngine else None
 
+        # New-API components
+        self._feedback_integrator = feedback_integrator
+        self._pattern_recognizer = pattern_recognizer
+        self._feedback_collector = feedback_collector
+        self._predictor = performance_predictor
+        self._gate_registry: Dict[str, Any] = gate_registry or {}
+        self._state_vector = state_vector
+        self._confidence_calculator = confidence_calculator
+        self._gate_generator = gate_generator
+
+        # Incoming event queue (drained during run_cycle)
+        self._pending_events: List[Dict[str, Any]] = []
+
+        # Cycle history
+        self._cycle_history: deque = deque(maxlen=100)
+
+        # Metrics
+        self._metrics: Dict[str, Any] = {
+            "learning_rate_ema": 0.0,
+            "pattern_count": 0,
+            "prediction_accuracy_ema": 0.0,
+            "threshold_drift_total": 0.0,
+            "gate_evolution_count": 0,
+            "events_processed_total": 0,
+            "confidence_calculator_updates": 0,
+            "gate_generator_updates": 0,
+        }
+
+        # Auto-subscribe only for the new API path
+        if not _old_api and self._backbone is not None:
+            self._subscribe_events()
+
     # ------------------------------------------------------------------
-    # Lifecycle
+    # Lifecycle (old API)
     # ------------------------------------------------------------------
 
     def start(self) -> bool:
@@ -318,7 +349,79 @@ class LearningEngineConnector:
         logger.info("LearningEngineConnector stopped")
 
     # ------------------------------------------------------------------
-    # Event handlers
+    # Gate registry management (new API)
+    # ------------------------------------------------------------------
+
+    def register_gate(self, gate_id: str, gate: Any) -> None:
+        """Register a :class:`DomainGate` for threshold evolution."""
+        with self._lock:
+            self._gate_registry[gate_id] = gate
+
+    def unregister_gate(self, gate_id: str) -> None:
+        """Remove a gate from evolution tracking."""
+        with self._lock:
+            self._gate_registry.pop(gate_id, None)
+
+    # ------------------------------------------------------------------
+    # Event subscription (new API)
+    # ------------------------------------------------------------------
+
+    def _subscribe_events(self) -> None:
+        """Subscribe to all relevant event types on the EventBackbone."""
+        try:
+            from event_backbone import EventType
+
+            def _on_task_completed(event) -> None:
+                self._enqueue_event("task_completed", event)
+
+            def _on_task_failed(event) -> None:
+                self._enqueue_event("task_failed", event)
+
+            def _on_gate_evaluated(event) -> None:
+                self._enqueue_event("gate_evaluated", event)
+
+            def _on_automation_executed(event) -> None:
+                self._enqueue_event("automation_executed", event)
+
+            self._backbone.subscribe(EventType.TASK_COMPLETED, _on_task_completed)
+            self._backbone.subscribe(EventType.TASK_FAILED, _on_task_failed)
+            self._backbone.subscribe(EventType.GATE_EVALUATED, _on_gate_evaluated)
+            self._backbone.subscribe(EventType.AUTOMATION_EXECUTED, _on_automation_executed)
+
+            logger.info("LearningEngineConnector subscribed to EventBackbone")
+        except Exception as exc:
+            logger.warning("LearningEngineConnector: failed to subscribe: %s", exc)
+
+    def _enqueue_event(self, event_type: str, event: Any) -> None:
+        """Normalise an event and add it to the pending queue."""
+        payload = event.payload if hasattr(event, "payload") else {}
+        if event_type == "task_completed":
+            success = True
+        elif event_type == "task_failed":
+            success = False
+        elif event_type == "automation_executed":
+            success = payload.get("passed", True)
+        else:
+            success = payload.get("passed", True)
+        record = {
+            "event_type": event_type,
+            "task_id": payload.get("task_id", f"evt-{uuid.uuid4().hex[:8]}"),
+            "gate_id": payload.get("gate_id", ""),
+            "gate_name": payload.get("gate_name", ""),
+            "success": success,
+            "confidence": float(payload.get("confidence", 0.85)),
+            "outcome": "success" if event_type in ("task_completed",)
+                       else ("failure" if event_type == "task_failed" else "gate"),
+            "metrics": payload.get("metrics", {}),
+            "source": payload.get("source", event_type),
+            "payload": payload,
+            "queued_at": datetime.now(timezone.utc).isoformat(),
+        }
+        with self._lock:
+            capped_append(self._pending_events, record, max_size=_MAX_HISTORY)
+
+    # ------------------------------------------------------------------
+    # Event handlers (old API)
     # ------------------------------------------------------------------
 
     def _on_task_completed(self, event) -> None:
@@ -330,25 +433,26 @@ class LearningEngineConnector:
         duration = float(payload.get("duration_seconds", 0.0))
         confidence = float(payload.get("confidence", 1.0))
 
-        try:
-            self._learning.record_performance(
-                "task_success_rate", 1.0,
-                context={"task_id": task_id, "event_type": "task_completed"},
-            )
-            if duration > 0:
+        if self._learning is not None:
+            try:
                 self._learning.record_performance(
-                    "task_duration_seconds", duration,
-                    context={"task_id": task_id},
+                    "task_success_rate", 1.0,
+                    context={"task_id": task_id, "event_type": "task_completed"},
                 )
-            self._learning.collect_feedback(
-                feedback_type="task_execution",
-                operation_id=task_id,
-                success=True,
-                confidence=confidence,
-                feedback_data=payload,
-            )
-        except Exception as exc:
-            logger.debug("LearningEngineConnector._on_task_completed error: %s", exc)
+                if duration > 0:
+                    self._learning.record_performance(
+                        "task_duration_seconds", duration,
+                        context={"task_id": task_id},
+                    )
+                self._learning.collect_feedback(
+                    feedback_type="task_execution",
+                    operation_id=task_id,
+                    success=True,
+                    confidence=confidence,
+                    feedback_data=payload,
+                )
+            except Exception as exc:
+                logger.debug("LearningEngineConnector._on_task_completed error: %s", exc)
 
         self._maybe_analyze()
 
@@ -360,20 +464,21 @@ class LearningEngineConnector:
         task_id = payload.get("task_id", event.event_id)
         confidence = float(payload.get("confidence", 0.0))
 
-        try:
-            self._learning.record_performance(
-                "task_success_rate", 0.0,
-                context={"task_id": task_id, "event_type": "task_failed"},
-            )
-            self._learning.collect_feedback(
-                feedback_type="task_execution",
-                operation_id=task_id,
-                success=False,
-                confidence=confidence,
-                feedback_data=payload,
-            )
-        except Exception as exc:
-            logger.debug("LearningEngineConnector._on_task_failed error: %s", exc)
+        if self._learning is not None:
+            try:
+                self._learning.record_performance(
+                    "task_success_rate", 0.0,
+                    context={"task_id": task_id, "event_type": "task_failed"},
+                )
+                self._learning.collect_feedback(
+                    feedback_type="task_execution",
+                    operation_id=task_id,
+                    success=False,
+                    confidence=confidence,
+                    feedback_data=payload,
+                )
+            except Exception as exc:
+                logger.debug("LearningEngineConnector._on_task_failed error: %s", exc)
 
         self._maybe_analyze()
 
@@ -386,20 +491,21 @@ class LearningEngineConnector:
         confidence = float(payload.get("confidence", 0.5))
         passed = bool(payload.get("passed", False))
 
-        try:
-            self._learning.record_performance(
-                f"gate.{gate_id}.confidence", confidence,
-                context={"gate_id": gate_id, "passed": passed},
-            )
-            self._learning.collect_feedback(
-                feedback_type="gate_evaluation",
-                operation_id=gate_id,
-                success=passed,
-                confidence=confidence,
-                feedback_data=payload,
-            )
-        except Exception as exc:
-            logger.debug("LearningEngineConnector._on_gate_evaluated error: %s", exc)
+        if self._learning is not None:
+            try:
+                self._learning.record_performance(
+                    f"gate.{gate_id}.confidence", confidence,
+                    context={"gate_id": gate_id, "passed": passed},
+                )
+                self._learning.collect_feedback(
+                    feedback_type="gate_evaluation",
+                    operation_id=gate_id,
+                    success=passed,
+                    confidence=confidence,
+                    feedback_data=payload,
+                )
+            except Exception as exc:
+                logger.debug("LearningEngineConnector._on_gate_evaluated error: %s", exc)
 
         self._maybe_analyze()
 
@@ -412,29 +518,32 @@ class LearningEngineConnector:
         success = bool(payload.get("success", True))
         confidence = float(payload.get("confidence", 0.8))
 
-        try:
-            self._learning.record_performance(
-                "automation_success_rate", 1.0 if success else 0.0,
-                context={"automation_id": automation_id},
-            )
-            self._learning.collect_feedback(
-                feedback_type="automation_execution",
-                operation_id=automation_id,
-                success=success,
-                confidence=confidence,
-                feedback_data=payload,
-            )
-        except Exception as exc:
-            logger.debug("LearningEngineConnector._on_automation_executed error: %s", exc)
+        if self._learning is not None:
+            try:
+                self._learning.record_performance(
+                    "automation_success_rate", 1.0 if success else 0.0,
+                    context={"automation_id": automation_id},
+                )
+                self._learning.collect_feedback(
+                    feedback_type="automation_execution",
+                    operation_id=automation_id,
+                    success=success,
+                    confidence=confidence,
+                    feedback_data=payload,
+                )
+            except Exception as exc:
+                logger.debug("LearningEngineConnector._on_automation_executed error: %s", exc)
 
         self._maybe_analyze()
 
     # ------------------------------------------------------------------
-    # Periodic analysis
+    # Periodic analysis (old API)
     # ------------------------------------------------------------------
 
     def _maybe_analyze(self) -> None:
         """Run ``analyze_learning()`` if the interval has elapsed."""
+        if self._learning is None:
+            return
         now = time.monotonic()
         with self._lock:
             if now - self._last_analyze < self._analyze_interval:
@@ -502,180 +611,7 @@ class LearningEngineConnector:
                 )
 
     # ------------------------------------------------------------------
-    # Status / diagnostics
-    # ------------------------------------------------------------------
-
-    def status(self) -> Dict[str, Any]:
-        """Return a snapshot of connector health and counters."""
-        return {
-            "started": self._is_started,
-            "subscriptions": len(self._subscription_ids),
-            "events_received": self._events_received,
-            "insights_generated": self._insights_generated,
-            "backbone_available": self._backbone is not None,
-            "learning_engine_available": self._learning is not None,
-            "adaptive_engine_available": self._adaptive is not None,
-        }
-
-
-# ---------------------------------------------------------------------------
-# Bootstrap helper — called from murphy_system_core.py startup
-# ---------------------------------------------------------------------------
-
-_connector_instance: Optional[LearningEngineConnector] = None
-
-
-def bootstrap_learning_connector(
-    backbone=None,
-    learning_engine=None,
-    analyze_interval_seconds: float = 300.0,
-) -> LearningEngineConnector:
-    """Create (or return the existing) global LearningEngineConnector and start it.
-
-    Safe to call multiple times — subsequent calls return the already-started
-    singleton without re-subscribing.
-
-    Parameters
-    ----------
-    backbone, learning_engine
-        Optional pre-built instances.  Useful in tests.
-    analyze_interval_seconds
-        Forwarded to LearningEngineConnector.__init__.
-    """
-    global _connector_instance
-
-    if _connector_instance is not None and _connector_instance._is_started:
-        return _connector_instance
-
-    connector = LearningEngineConnector(
-        backbone=backbone,
-        learning_engine=learning_engine,
-        analyze_interval_seconds=analyze_interval_seconds,
-    )
-    connector.start()
-    _connector_instance = connector
-    return connector
-
-
-def get_connector() -> Optional[LearningEngineConnector]:
-    """Return the running global connector instance (or None)."""
-    return _connector_instance
-        event_backbone=None,
-        feedback_integrator=None,
-        pattern_recognizer=None,
-        feedback_collector=None,
-        performance_predictor=None,
-        gate_registry: Optional[Dict[str, Any]] = None,
-        state_vector=None,
-        confidence_calculator=None,
-        gate_generator=None,
-    ) -> None:
-        self._lock = threading.Lock()
-        self._backbone = event_backbone
-        self._feedback_integrator = feedback_integrator
-        self._pattern_recognizer = pattern_recognizer
-        self._feedback_collector = feedback_collector
-        self._predictor = performance_predictor
-        self._gate_registry: Dict[str, Any] = gate_registry or {}
-        self._state_vector = state_vector
-        self._confidence_calculator = confidence_calculator
-        self._gate_generator = gate_generator
-
-        # Incoming event queue (drained during run_cycle)
-        self._pending_events: List[Dict[str, Any]] = []
-
-        # Cycle history
-        self._cycle_history: deque = deque(maxlen=100)
-
-        # Metrics
-        self._metrics: Dict[str, Any] = {
-            "learning_rate_ema": 0.0,
-            "pattern_count": 0,
-            "prediction_accuracy_ema": 0.0,
-            "threshold_drift_total": 0.0,
-            "gate_evolution_count": 0,
-            "events_processed_total": 0,
-            "confidence_calculator_updates": 0,
-            "gate_generator_updates": 0,
-        }
-
-        if self._backbone is not None:
-            self._subscribe_events()
-
-    # ------------------------------------------------------------------
-    # Gate registry management
-    # ------------------------------------------------------------------
-
-    def register_gate(self, gate_id: str, gate: Any) -> None:
-        """Register a :class:`DomainGate` for threshold evolution."""
-        with self._lock:
-            self._gate_registry[gate_id] = gate
-
-    def unregister_gate(self, gate_id: str) -> None:
-        """Remove a gate from evolution tracking."""
-        with self._lock:
-            self._gate_registry.pop(gate_id, None)
-
-    # ------------------------------------------------------------------
-    # Event subscription
-    # ------------------------------------------------------------------
-
-    def _subscribe_events(self) -> None:
-        """Subscribe to all relevant event types on the EventBackbone."""
-        try:
-            from event_backbone import EventType
-
-            def _on_task_completed(event) -> None:
-                self._enqueue_event("task_completed", event)
-
-            def _on_task_failed(event) -> None:
-                self._enqueue_event("task_failed", event)
-
-            def _on_gate_evaluated(event) -> None:
-                self._enqueue_event("gate_evaluated", event)
-
-            def _on_automation_executed(event) -> None:
-                self._enqueue_event("automation_executed", event)
-
-            self._backbone.subscribe(EventType.TASK_COMPLETED, _on_task_completed)
-            self._backbone.subscribe(EventType.TASK_FAILED, _on_task_failed)
-            self._backbone.subscribe(EventType.GATE_EVALUATED, _on_gate_evaluated)
-            self._backbone.subscribe(EventType.AUTOMATION_EXECUTED, _on_automation_executed)
-
-            logger.info("LearningEngineConnector subscribed to EventBackbone")
-        except Exception as exc:
-            logger.warning("LearningEngineConnector: failed to subscribe: %s", exc)
-
-    def _enqueue_event(self, event_type: str, event: Any) -> None:
-        """Normalise an event and add it to the pending queue."""
-        payload = event.payload if hasattr(event, "payload") else {}
-        if event_type == "task_completed":
-            success = True
-        elif event_type == "task_failed":
-            success = False
-        elif event_type == "automation_executed":
-            success = payload.get("passed", True)
-        else:
-            success = payload.get("passed", True)
-        record = {
-            "event_type": event_type,
-            "task_id": payload.get("task_id", f"evt-{uuid.uuid4().hex[:8]}"),
-            "gate_id": payload.get("gate_id", ""),
-            "gate_name": payload.get("gate_name", ""),
-            "success": success,
-            "confidence": float(payload.get("confidence", 0.85)),
-            "outcome": "success" if event_type in ("task_completed",)
-                       else ("failure" if event_type == "task_failed" else "gate"),
-            "metrics": payload.get("metrics", {}),
-            "source": payload.get("source", event_type),
-            "payload": payload,
-            "queued_at": datetime.now(timezone.utc).isoformat(),
-        }
-        with self._lock:
-            capped_append(self._pending_events, record, max_size=_MAX_HISTORY)
-
-    # ------------------------------------------------------------------
-    # Core learning cycle
+    # Core learning cycle (new API)
     # ------------------------------------------------------------------
 
     def run_cycle(self) -> LearningCycleResult:
@@ -797,8 +733,6 @@ def get_connector() -> Optional[LearningEngineConnector]:
                 )
 
         # 5 — Gate evolution: apply threshold recommendations
-        # Compute global (average) recommended threshold across all predictions
-        # for updating ConfidenceCalculator and DomainGateGenerator.
         global_threshold_sum = 0.0
         global_threshold_count = 0
 
@@ -903,16 +837,28 @@ def get_connector() -> Optional[LearningEngineConnector]:
         return result
 
     # ------------------------------------------------------------------
-    # Status / metrics
+    # Status / diagnostics
     # ------------------------------------------------------------------
 
+    def status(self) -> Dict[str, Any]:
+        """Return a snapshot of connector health and counters (old API)."""
+        return {
+            "started": self._is_started,
+            "subscriptions": len(self._subscription_ids),
+            "events_received": self._events_received,
+            "insights_generated": self._insights_generated,
+            "backbone_available": self._backbone is not None,
+            "learning_engine_available": self._learning is not None,
+            "adaptive_engine_available": self._adaptive is not None,
+        }
+
     def get_metrics(self) -> Dict[str, Any]:
-        """Return a snapshot of learning metrics."""
+        """Return a snapshot of learning metrics (new API)."""
         with self._lock:
             return dict(self._metrics)
 
     def get_status(self) -> Dict[str, Any]:
-        """Return operational status of the connector."""
+        """Return operational status of the connector (new API)."""
         with self._lock:
             return {
                 "pending_events": len(self._pending_events),
@@ -1017,6 +963,50 @@ def get_connector() -> Optional[LearningEngineConnector]:
             )
         except Exception as exc:
             logger.debug("LearningEngineConnector: gate_evolved publish skipped: %s", exc)
+
+
+# ---------------------------------------------------------------------------
+# Bootstrap helper — called from murphy_system_core.py startup
+# ---------------------------------------------------------------------------
+
+_connector_instance: Optional[LearningEngineConnector] = None
+
+
+def bootstrap_learning_connector(
+    backbone=None,
+    learning_engine=None,
+    analyze_interval_seconds: float = 300.0,
+) -> LearningEngineConnector:
+    """Create (or return the existing) global LearningEngineConnector and start it.
+
+    Safe to call multiple times — subsequent calls return the already-started
+    singleton without re-subscribing.
+
+    Parameters
+    ----------
+    backbone, learning_engine
+        Optional pre-built instances.  Useful in tests.
+    analyze_interval_seconds
+        Forwarded to LearningEngineConnector.__init__.
+    """
+    global _connector_instance
+
+    if _connector_instance is not None and _connector_instance._is_started:
+        return _connector_instance
+
+    connector = LearningEngineConnector(
+        backbone=backbone,
+        learning_engine=learning_engine,
+        analyze_interval_seconds=analyze_interval_seconds,
+    )
+    connector.start()
+    _connector_instance = connector
+    return connector
+
+
+def get_connector() -> Optional[LearningEngineConnector]:
+    """Return the running global connector instance (or None)."""
+    return _connector_instance
 
 
 __all__ = [
