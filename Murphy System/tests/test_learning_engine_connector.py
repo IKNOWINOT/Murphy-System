@@ -14,21 +14,6 @@ Covers:
 import pytest
 from unittest.mock import MagicMock, patch, call
 from typing import Any
-Tests for the Learning Engine closed-loop wiring.
-
-Covers:
-  - TASK_COMPLETED / TASK_FAILED / GATE_EVALUATED / AUTOMATION_EXECUTED
-    events are consumed by LearningEngineConnector via EventBackbone
-  - FeedbackIntegrator receives signals and adjusts TypedStateVector
-  - PatternRecognizer receives outcomes and can detect patterns
-  - PerformancePredictor produces PredictionResult from patterns
-  - Gate confidence_threshold is updated after a prediction
-  - THRESHOLD_UPDATED and GATE_EVOLVED events are published
-  - Metrics (learning_rate_ema, pattern_count, threshold_drift_total,
-    gate_evolution_count, events_processed_total) are tracked
-  - run_cycle() returns a correct LearningCycleResult
-  - PerformancePredictor status and drift are correct
-"""
 
 import os
 import sys
