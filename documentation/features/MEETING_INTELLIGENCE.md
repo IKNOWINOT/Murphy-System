@@ -166,6 +166,10 @@ The `ContextCollector` polls four sources every 60 seconds:
 | **Tasks** | `overdue`, `unassigned` | 3 overdue tasks → alert |
 | **Workspace** | `high_unread` | 25 unread messages → digest |
 
+`localStorage` keys are the primary (fast) read path. If a source is empty, the engine falls back to live API calls:
+- Tasks: `GET /api/boards` (results cached into `murphy_tasks` for subsequent cycles)
+- Meetings: `GET /api/meeting-intelligence/sessions` (results cached into `murphy_last_meeting` / `murphy_org_sessions`)
+
 All signals are pushed to `/api/ambient/context` for server-side enrichment and persistence.
 
 ### Synthesis Engine
@@ -221,6 +225,8 @@ When in mock mode, the Settings panel displays: *"⚠️ Email delivery is not c
 - `hourly` — Bundle into hourly digest
 - `daily` — Morning brief (default)
 - `weekly` — Weekly summary
+
+**UI wiring:** The Ambient Intelligence page (`ambient_intelligence.html`) connects directly to the real engine. It calls no demo or stub data. The `AmbientEngine` / `MurphyAmbient` global (from `static/murphy_ambient.js`) starts automatically on DOM ready, populates `#stream-list` via `_emitToUIStream`, and drives all stats counters (`#stat-insights`, `#stat-delivered`, `#stat-actioned`, `#stat-confidence`) from live engine state. Engine status dots reflect the running/paused/stopped state in real time.
 
 ---
 
