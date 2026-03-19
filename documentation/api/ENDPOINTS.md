@@ -815,10 +815,18 @@ Check system health.
 ```json
 {
   "status": "healthy",
-  "system_id": "murphy_system_20260117_100000",
-  "timestamp": "2024-01-01T10:00:00Z"
+  "version": "1.0.0",
+  "deploy_commit": "a1b2c3d"
 }
 ```
+
+> `deploy_commit` reflects the short git SHA set via the `MURPHY_DEPLOY_COMMIT`
+> environment variable at service startup. It is `"unknown"` when the variable is
+> not set (e.g. local development). After each production deploy the value updates
+> automatically, so you can confirm which commit is live by hitting this endpoint.
+>
+> Pass `?deep=true` for a full readiness probe that checks persistence, database,
+> Redis, LLM provider, and loaded modules.
 
 ---
 

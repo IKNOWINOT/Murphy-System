@@ -758,8 +758,6 @@ class SignupGateway:
             }
             config["terminal_path"] = "/ui/terminal-worker"
             config["commands"] = ["submit_work", "view_tasks", "chat"]
-        else:
-            # Worker — infer from position text, extend with task-focused features
         elif profile.role in ("worker", "employee", "staff"):
             config["features"] = {
                 "task_inbox": True,
@@ -810,7 +808,6 @@ class SignupGateway:
                 "/ui/terminal-enhanced",
                 "/ui/terminal-architect",
             ]
-        elif profile.role in ("manager", "team_lead"):
         elif profile.role in ("admin", "org_admin", "system_admin"):
             config["recommended_terminal"] = "/ui/terminal-architect"
             config["allowed_terminals"] = [

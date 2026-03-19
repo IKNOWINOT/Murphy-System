@@ -539,7 +539,11 @@ def create_app() -> FastAPI:
         """
         # Shallow liveness probe — instant, no I/O
         if not deep:
-            return JSONResponse({"status": "healthy", "version": murphy.version})
+            return JSONResponse({
+                "status": "healthy",
+                "version": murphy.version,
+                "deploy_commit": os.environ.get("MURPHY_DEPLOY_COMMIT", "unknown"),
+            })
 
         # Deep readiness probe — checks all critical subsystems
         checks: dict = {"runtime": "ok"}
@@ -614,6 +618,7 @@ def create_app() -> FastAPI:
             checks["modules_loaded"] = 0
 
         checks["version"] = murphy.version
+        checks["deploy_commit"] = os.environ.get("MURPHY_DEPLOY_COMMIT", "unknown")
 
         # Determine overall status
         str_checks = [v for v in checks.values() if isinstance(v, str)]
