@@ -8632,6 +8632,17 @@ def create_app() -> FastAPI:
 
     _client_portfolios: Dict[str, Any] = {}
 
+    _SERVICE_PRICING: Dict[str, int] = {
+        "S01": 49, "S02": 29, "S03": 19, "S04": 39, "S05": 19,
+        "S06": 79, "S07": 99, "S08": 59, "S09": 29, "S10": 49,
+    }
+    _VALID_SERVICE_IDS = set(_SERVICE_PRICING.keys())
+
+    def _validate_service_selections(selections: list):
+        """Return list of invalid IDs, or None if all valid."""
+        invalid = [s for s in selections if s not in _VALID_SERVICE_IDS]
+        return invalid if invalid else None
+
     @app.post("/api/client-portfolio/save")
     async def client_portfolio_save(request: Request):
         """Save a client's quality-plan service selections as a portfolio.
@@ -8655,20 +8666,14 @@ def create_app() -> FastAPI:
         if not selections:
             return JSONResponse({"success": False, "error": "selections list is required"}, status_code=400)
 
-        # Service catalog for validation and pricing
-        valid_ids = {f"S{str(i).zfill(2)}" for i in range(1, 11)}
-        invalid = [s for s in selections if s not in valid_ids]
+        invalid = _validate_service_selections(selections)
         if invalid:
             return JSONResponse(
                 {"success": False, "error": f"invalid service IDs: {invalid}"},
                 status_code=400,
             )
 
-        pricing = {
-            "S01": 49, "S02": 29, "S03": 19, "S04": 39, "S05": 19,
-            "S06": 79, "S07": 99, "S08": 59, "S09": 29, "S10": 49,
-        }
-        total_monthly = sum(pricing.get(s, 0) for s in selections)
+        total_monthly = sum(_SERVICE_PRICING.get(s, 0) for s in selections)
 
         portfolio = {
             "client_id": client_id,
@@ -8730,8 +8735,7 @@ def create_app() -> FastAPI:
             return JSONResponse({"success": False, "error": "invalid_json"}, status_code=400)
 
         new_selections = data.get("selections", [])
-        valid_ids = {f"S{str(i).zfill(2)}" for i in range(1, 11)}
-        invalid = [s for s in new_selections if s not in valid_ids]
+        invalid = _validate_service_selections(new_selections)
         if invalid:
             return JSONResponse(
                 {"success": False, "error": f"invalid service IDs: {invalid}"},
@@ -8743,12 +8747,8 @@ def create_app() -> FastAPI:
                 status_code=400,
             )
 
-        pricing = {
-            "S01": 49, "S02": 29, "S03": 19, "S04": 39, "S05": 19,
-            "S06": 79, "S07": 99, "S08": 59, "S09": 29, "S10": 49,
-        }
         old_total = portfolio["total_monthly_estimate"]
-        new_total = sum(pricing.get(s, 0) for s in new_selections)
+        new_total = sum(_SERVICE_PRICING.get(s, 0) for s in new_selections)
         delta = new_total - old_total
 
         portfolio["selections"] = sorted(new_selections)
