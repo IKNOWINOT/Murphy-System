@@ -286,7 +286,7 @@ class UserProfile:
     phone_validation_code: str = ""
     phone_otp_created_at: str = ""
     terminal_config: Dict[str, Any] = field(default_factory=dict)
-    preferred_terminal: str = ""
+    preferred_terminal: str = ""  # saved from onboarding dashboard selection
     created_at: str = field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
@@ -760,6 +760,35 @@ class SignupGateway:
             config["commands"] = ["submit_work", "view_tasks", "chat"]
         else:
             # Worker — infer from position text, extend with task-focused features
+        elif profile.role in ("worker", "employee", "staff"):
+            config["features"] = {
+                "task_inbox": True,
+                "deliverable_viewer": True,
+                "time_tracker": True,
+            }
+            config["terminal_path"] = "/ui/terminal-worker"
+            config["commands"] = ["submit_work", "view_tasks", "clock_in"]
+        elif profile.role in ("manager", "team_lead", "supervisor"):
+            config["features"] = {
+                "team_dashboard": True,
+                "project_oversight": True,
+                "approval_queue": True,
+                "schedule_editor": True,
+            }
+            config["terminal_path"] = "/ui/terminal-enhanced"
+            config["commands"] = ["approve", "assign", "review", "schedule"]
+        elif profile.role in ("admin", "org_admin", "system_admin"):
+            config["features"] = {
+                "architect_terminal": True,
+                "org_chart_editor": True,
+                "system_config": True,
+                "user_management": True,
+                "compliance_dashboard": True,
+            }
+            config["terminal_path"] = "/ui/terminal-architect"
+            config["commands"] = ["configure", "manage_users", "audit", "deploy"]
+        else:
+            # Fallback — infer from position text
             pos_lower = profile.position.lower()
             config["features"] = {
                 "worker_terminal": True,
@@ -782,6 +811,14 @@ class SignupGateway:
                 "/ui/terminal-architect",
             ]
         elif profile.role in ("manager", "team_lead"):
+        elif profile.role in ("admin", "org_admin", "system_admin"):
+            config["recommended_terminal"] = "/ui/terminal-architect"
+            config["allowed_terminals"] = [
+                "/ui/terminal-architect",
+                "/ui/terminal-enhanced",
+                "/ui/terminal-worker",
+            ]
+        elif profile.role in ("manager", "team_lead", "supervisor"):
             config["recommended_terminal"] = "/ui/terminal-enhanced"
             config["allowed_terminals"] = [
                 "/ui/terminal-enhanced",
@@ -808,6 +845,20 @@ class SignupGateway:
             config["terminal_path"] = profile.preferred_terminal
         elif "terminal_path" not in config:
             config["terminal_path"] = config["recommended_terminal"]
+        elif profile.role in ("worker", "employee", "staff"):
+            config["recommended_terminal"] = "/ui/terminal-worker"
+            config["allowed_terminals"] = ["/ui/terminal-worker"]
+        else:
+            # Legacy "manager" role kept for backwards-compat
+            config["recommended_terminal"] = "/ui/terminal-enhanced"
+            config["allowed_terminals"] = [
+                "/ui/terminal-enhanced",
+                "/ui/terminal-worker",
+            ]
+
+        # If the user has saved a preferred terminal, honour it when permitted
+        if profile.preferred_terminal and profile.preferred_terminal in config.get("allowed_terminals", []):
+            config["recommended_terminal"] = profile.preferred_terminal
 
         # Save back into profile
         with self._lock:
@@ -829,6 +880,18 @@ class SignupGateway:
             "terminal_path": terminal_path,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         })
+        """Save user's preferred dashboard/terminal from onboarding."""
+        with self._lock:
+            profile = self._profiles.get(user_id)
+            if profile is None:
+                raise AuthError("user not found")
+            profile.preferred_terminal = terminal_path
+            capped_append(self._audit_log, {
+                "event": "dashboard_preference_set",
+                "user_id": user_id,
+                "terminal_path": terminal_path,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            })
 
     # ------------------------------------------------------------------
     # Session / auth check
