@@ -20,10 +20,11 @@
    *  CONSTANTS
    * ───────────────────────────────────────────────────────────────────────── */
   var VERSION = '1.0.0';
-  var POLL_INTERVAL_MS   = 60000;    // context poll: every 60 s
-  var SYNTH_INTERVAL_MS  = 90000;    // synthesis run: every 90 s
-  var DELIVERY_DELAY_MS  = 5000;     // min delay between deliveries
-  var MAX_QUEUE          = 50;       // max pending deliveries
+  var POLL_INTERVAL_MS        = 60000;    // context poll: every 60 s
+  var SYNTH_INTERVAL_MS       = 90000;    // synthesis run: every 90 s
+  var DELIVERY_DELAY_MS       = 5000;     // min delay between deliveries
+  var SERVER_POLL_INTERVAL_MS = 180000;   // server insight poll: every 3 min
+  var MAX_QUEUE               = 50;       // max pending deliveries
 
   var BASE_URL = (global.location && global.location.origin) || '';
 
@@ -510,7 +511,7 @@
       state.timers.poll    = setInterval(function () { if (!state.paused) ContextCollector.collect(); }, POLL_INTERVAL_MS);
       state.timers.synth   = setInterval(function () { if (!state.paused) SynthesisEngine.run(); }, SYNTH_INTERVAL_MS);
       state.timers.deliver = setInterval(function () { if (!state.paused) DeliveryPipeline.run(); }, DELIVERY_DELAY_MS);
-      state.timers.server  = setInterval(function () { if (!state.paused) SynthesisEngine._pollServerInsights(); }, SYNTH_INTERVAL_MS * 2);
+      state.timers.server  = setInterval(function () { if (!state.paused) SynthesisEngine._pollServerInsights(); }, SERVER_POLL_INTERVAL_MS);
     },
 
     pause: function () {

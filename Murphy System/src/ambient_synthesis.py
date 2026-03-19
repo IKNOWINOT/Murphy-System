@@ -9,9 +9,11 @@ Falls back to template-based synthesis if LLM is unavailable.
 
 from __future__ import annotations
 
+import json
 import logging
 import math
 import os
+import re
 import time
 from typing import Any, Dict, List, Optional
 
@@ -236,13 +238,10 @@ async def _llm_insight(
         content = response.content.strip()
 
         # Parse JSON from LLM output
-        import json as _json
-        import re as _re
-
-        json_match = _re.search(r"\{.*\}", content, _re.DOTALL)
+        json_match = re.search(r"\{.*\}", content, re.DOTALL)
         if not json_match:
             return None
-        data = _json.loads(json_match.group())
+        data = json.loads(json_match.group())
         title = str(data.get("title", "")).strip()
         body = str(data.get("body", "")).strip()
         raw_conf = data.get("confidence", response.confidence * 100)
