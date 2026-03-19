@@ -8628,6 +8628,443 @@ def create_app() -> FastAPI:
             "coming_soon": 1,
         })
 
+    # ── Client Portfolio — save / retrieve / modify service selections ──
+
+    _client_portfolios: Dict[str, Any] = {}
+
+    _SERVICE_PRICING: Dict[str, int] = {
+        "S01": 49, "S02": 29, "S03": 19, "S04": 39, "S05": 19,
+        "S06": 79, "S07": 99, "S08": 59, "S09": 29, "S10": 49,
+    }
+    _VALID_SERVICE_IDS = set(_SERVICE_PRICING.keys())
+
+    def _validate_service_selections(selections: list):
+        """Return list of invalid IDs, or None if all valid."""
+        invalid = [s for s in selections if s not in _VALID_SERVICE_IDS]
+        return invalid if invalid else None
+
+    @app.post("/api/client-portfolio/save")
+    async def client_portfolio_save(request: Request):
+        """Save a client's quality-plan service selections as a portfolio.
+
+        Accepts:
+            client_id   — unique identifier (e.g. email hash or account id)
+            plan_id     — the QP-xxxxxxxx Plan ID from the quality plan
+            selections  — list of service IDs the client chose (e.g. ["S01","S03"])
+            query       — original request text (stored for context)
+        """
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "invalid_json"}, status_code=400)
+        client_id = (data.get("client_id") or "").strip()
+        plan_id = (data.get("plan_id") or "").strip()
+        selections = data.get("selections", [])
+        query_text = (data.get("query") or "").strip()
+        if not client_id:
+            return JSONResponse({"success": False, "error": "client_id is required"}, status_code=400)
+        if not selections:
+            return JSONResponse({"success": False, "error": "selections list is required"}, status_code=400)
+
+        invalid = _validate_service_selections(selections)
+        if invalid:
+            return JSONResponse(
+                {"success": False, "error": f"invalid service IDs: {invalid}"},
+                status_code=400,
+            )
+
+        total_monthly = sum(_SERVICE_PRICING.get(s, 0) for s in selections)
+
+        portfolio = {
+            "client_id": client_id,
+            "plan_id": plan_id,
+            "selections": sorted(selections),
+            "query": query_text,
+            "total_monthly_estimate": total_monthly,
+            "currency": "USD",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "status": "active",
+        }
+        _client_portfolios[client_id] = portfolio
+
+        # Optimization suggestions
+        optimization: List[str] = []
+        sel_set = set(selections)
+        if "S01" in sel_set and "S07" in sel_set:
+            optimization.append("Bundle Workflow + Self-Automation for ~15% savings.")
+        if "S04" in sel_set and "S05" not in sel_set:
+            optimization.append("Add Human-in-the-Loop (S05) for complete compliance governance.")
+        if "S06" in sel_set and "S10" not in sel_set:
+            optimization.append("Add Infrastructure Maintenance (S10) to support Production uptime.")
+        if total_monthly > 200:
+            optimization.append("Consider Business tier for volume discount at this spend level.")
+
+        return JSONResponse({
+            "success": True,
+            "portfolio": portfolio,
+            "optimization_suggestions": optimization,
+        })
+
+    @app.get("/api/client-portfolio/{client_id}")
+    async def client_portfolio_get(client_id: str):
+        """Retrieve a saved client portfolio by client ID."""
+        portfolio = _client_portfolios.get(client_id)
+        if not portfolio:
+            return JSONResponse(
+                {"success": False, "error": "portfolio_not_found"},
+                status_code=404,
+            )
+        return JSONResponse({"success": True, "portfolio": portfolio})
+
+    @app.put("/api/client-portfolio/{client_id}/selections")
+    async def client_portfolio_update_selections(client_id: str, request: Request):
+        """Update service selections for an existing client portfolio.
+
+        Supports mix-and-match: upgrade, downgrade, add, or remove services.
+        """
+        portfolio = _client_portfolios.get(client_id)
+        if not portfolio:
+            return JSONResponse(
+                {"success": False, "error": "portfolio_not_found"},
+                status_code=404,
+            )
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "invalid_json"}, status_code=400)
+
+        new_selections = data.get("selections", [])
+        invalid = _validate_service_selections(new_selections)
+        if invalid:
+            return JSONResponse(
+                {"success": False, "error": f"invalid service IDs: {invalid}"},
+                status_code=400,
+            )
+        if not new_selections:
+            return JSONResponse(
+                {"success": False, "error": "selections list is required"},
+                status_code=400,
+            )
+
+        old_total = portfolio["total_monthly_estimate"]
+        new_total = sum(_SERVICE_PRICING.get(s, 0) for s in new_selections)
+        delta = new_total - old_total
+
+        portfolio["selections"] = sorted(new_selections)
+        portfolio["total_monthly_estimate"] = new_total
+        portfolio["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+        change_type = "upgrade" if delta > 0 else "downgrade" if delta < 0 else "lateral"
+
+        return JSONResponse({
+            "success": True,
+            "portfolio": portfolio,
+            "change": {
+                "type": change_type,
+                "monthly_delta": delta,
+                "previous_total": old_total,
+                "new_total": new_total,
+            },
+        })
+
+    # ── Legal — Dynamic Terms of Service & Privacy Policy ────────────
+
+    @app.get("/api/legal/terms")
+    async def legal_terms(request: Request):
+        """Return dynamic Terms of Service based on the caller's service context.
+
+        Query parameters:
+            services — comma-separated service IDs (e.g. S01,S03,S06)
+            mode     — 'standalone' | 'integrated' (default: standalone)
+        """
+        services = (request.query_params.get("services") or "").split(",")
+        services = [s.strip() for s in services if s.strip()]
+        mode = (request.query_params.get("mode") or "standalone").strip().lower()
+
+        service_names = {
+            "S01": "Workflow Automation Engine",
+            "S02": "Integration Hub",
+            "S03": "AI Content & Data Processing",
+            "S04": "Compliance Framework Engine",
+            "S05": "Human-in-the-Loop Approvals",
+            "S06": "Production Assistant",
+            "S07": "Self-Automation Platform",
+            "S08": "AI Agent Org Chart",
+            "S09": "Developer SDK Access",
+            "S10": "Infrastructure Maintenance",
+        }
+
+        selected = [service_names.get(s, s) for s in services] if services else ["All Murphy System services"]
+
+        # Data requirements keyed by service
+        data_needs: Dict[str, Dict[str, str]] = {
+            "S01": {"data": "workflow definitions and trigger data",
+                    "reason": "to execute scheduled automations on your behalf"},
+            "S02": {"data": "third-party API credentials (stored encrypted)",
+                    "reason": "to connect to your existing tools and services"},
+            "S03": {"data": "text and file content submitted for processing",
+                    "reason": "to run AI analysis, classification, and transformation"},
+            "S04": {"data": "business policies and regulatory framework selections",
+                    "reason": "to evaluate compliance status and generate audit reports"},
+            "S05": {"data": "approval chain configuration and reviewer identities",
+                    "reason": "to route decisions to the correct human approvers"},
+            "S06": {"data": "task definitions and execution history",
+                    "reason": "to manage and execute production work items"},
+            "S07": {"data": "system telemetry and performance metrics",
+                    "reason": "to run self-healing, self-repair, and optimization loops"},
+            "S08": {"data": "organisational structure and role definitions",
+                    "reason": "to assign AI agents to appropriate functions"},
+            "S09": {"data": "API request logs and usage telemetry",
+                    "reason": "to enforce rate limits and provide usage analytics"},
+            "S10": {"data": "infrastructure health metrics and server identifiers",
+                    "reason": "to perform automated maintenance and scaling"},
+        }
+
+        data_sections = []
+        for svc_id in services:
+            info = data_needs.get(svc_id)
+            if info:
+                data_sections.append({
+                    "service_id": svc_id,
+                    "service_name": service_names.get(svc_id, svc_id),
+                    "data_collected": info["data"],
+                    "purpose": info["reason"],
+                })
+
+        integration_clause = (
+            "Murphy System operates alongside your existing automation services. "
+            "We integrate via standard APIs and do not require you to replace "
+            "your current tooling. Data shared with Murphy is used solely for "
+            "the services you have selected and is never sold to third parties."
+            if mode == "integrated"
+            else
+            "Murphy System operates as your standalone automation platform. "
+            "All data processed remains within the Murphy System boundary "
+            "and is governed by this agreement. No third-party data sharing "
+            "occurs except where you explicitly configure integrations."
+        )
+
+        return JSONResponse({
+            "success": True,
+            "terms": {
+                "version": "1.1.0",
+                "effective_date": "2025-03-01",
+                "last_updated": "2026-03-19",
+                "provider": "Inoni Limited Liability Company",
+                "creator": "Corey Post",
+                "selected_services": selected,
+                "mode": mode,
+                "integration_clause": integration_clause,
+                "data_transparency": data_sections if data_sections else [
+                    {"note": "Select specific services to see exactly what data is needed and why."}
+                ],
+                "key_terms": [
+                    "You retain ownership of all data you provide to Murphy System.",
+                    "Murphy System processes your data only to deliver the services you select.",
+                    "All API credentials are stored with AES-256 encryption at rest.",
+                    "You may export or delete your data at any time via the API or dashboard.",
+                    "Murphy System is licensed under BSL 1.1. Deliverable outputs are Apache 1.0.",
+                    "Service availability targets: 99.5% uptime for Solo, 99.9% for Business tier.",
+                    "Billing is per-seat/month with no long-term commitment required.",
+                ],
+                "full_document_url": "/ui/legal",
+            },
+        })
+
+    @app.get("/api/legal/privacy")
+    async def legal_privacy(request: Request):
+        """Return dynamic Privacy Policy scoped to the caller's service selections.
+
+        Explains what data we need and why, based on what they trust us with.
+        """
+        services = (request.query_params.get("services") or "").split(",")
+        services = [s.strip() for s in services if s.strip()]
+
+        data_categories = {
+            "account_data": {
+                "description": "Name, email, and account credentials",
+                "purpose": "Authentication and account management",
+                "retention": "Until account deletion + 30 days",
+                "required": True,
+            },
+            "usage_telemetry": {
+                "description": "API call logs, feature usage metrics",
+                "purpose": "Rate limiting, billing, and service improvement",
+                "retention": "90 days rolling",
+                "required": True,
+            },
+            "business_data": {
+                "description": "Workflow definitions, documents, and task data you submit",
+                "purpose": "Delivering the automation services you selected",
+                "retention": "Until you delete it or close your account",
+                "required": True,
+            },
+            "integration_credentials": {
+                "description": "Third-party API keys and OAuth tokens",
+                "purpose": "Connecting to external services on your behalf",
+                "retention": "Until you revoke or delete the integration",
+                "required": any(s in services for s in ["S02", "S09"]),
+            },
+            "compliance_data": {
+                "description": "Regulatory framework selections and audit logs",
+                "purpose": "Compliance monitoring and report generation",
+                "retention": "7 years (regulatory requirement)",
+                "required": "S04" in services,
+            },
+            "infrastructure_metrics": {
+                "description": "Server health, performance, and scaling data",
+                "purpose": "Automated infrastructure maintenance",
+                "retention": "30 days rolling",
+                "required": "S10" in services,
+            },
+        }
+
+        # Filter to only relevant categories based on selected services
+        applicable = {}
+        for key, info in data_categories.items():
+            if info["required"] is True or info["required"]:
+                applicable[key] = info
+
+        return JSONResponse({
+            "success": True,
+            "privacy": {
+                "version": "1.1.0",
+                "effective_date": "2025-03-01",
+                "last_updated": "2026-03-19",
+                "provider": "Inoni Limited Liability Company",
+                "data_categories": applicable,
+                "core_principles": [
+                    "We only collect data necessary for the services you select.",
+                    "We never sell your data to third parties.",
+                    "All data is encrypted in transit (TLS 1.3) and at rest (AES-256).",
+                    "You can export or delete all your data at any time.",
+                    "GDPR and CCPA rights are fully supported.",
+                ],
+                "rights": {
+                    "access": "Request a copy of all data we hold about you.",
+                    "rectification": "Correct inaccurate data in your account.",
+                    "erasure": "Delete your account and all associated data.",
+                    "portability": "Export your data in standard formats (JSON/CSV).",
+                    "restriction": "Limit processing to specific services only.",
+                    "objection": "Opt out of non-essential data processing.",
+                },
+                "contact": "privacy@murphy.ai",
+                "full_document_url": "/ui/privacy",
+            },
+        })
+
+    # ── AUAR API Provisioning — provision APIs on behalf of users ─────
+
+    @app.post("/api/auar/provision")
+    async def auar_provision(request: Request):
+        """Provision an API capability on behalf of a user via the AUAR pipeline.
+
+        Uses the AUAR (Adaptive Universal API Router) to register and route
+        API capabilities for the customer. Supports an affiliate-style
+        charge-through model where API costs are attributed to the user's
+        Murphy System subscription.
+
+        Accepts:
+            client_id     — the client portfolio ID
+            capability    — capability name to provision (e.g. "email_validation")
+            provider_pref — optional preferred provider
+        """
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "invalid_json"}, status_code=400)
+
+        client_id = (data.get("client_id") or "").strip()
+        capability = (data.get("capability") or "").strip()
+        provider_pref = (data.get("provider_preference") or "").strip()
+
+        if not client_id:
+            return JSONResponse(
+                {"success": False, "error": "client_id is required"}, status_code=400,
+            )
+        if not capability:
+            return JSONResponse(
+                {"success": False, "error": "capability name is required"}, status_code=400,
+            )
+
+        # Attempt AUAR pipeline routing
+        provision_result: Dict[str, Any] = {
+            "client_id": client_id,
+            "capability": capability,
+            "provider_preference": provider_pref or "auto",
+            "status": "provisioned",
+            "provisioned_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+        try:
+            from src.auar.pipeline import AUARPipeline
+            from src.auar.config import AUARConfig
+            from src.auar.capability_graph import CapabilityGraph
+            from src.auar.signal_interpretation import SignalInterpreter
+            from src.auar.ml_optimization import MLOptimizer
+            from src.auar.routing_engine import RoutingDecisionEngine
+            from src.auar.schema_translation import SchemaTranslator
+            from src.auar.provider_adapter import ProviderAdapterManager
+            from src.auar.observability import ObservabilityLayer
+
+            config = AUARConfig()
+            graph = CapabilityGraph()
+            pipeline = AUARPipeline(
+                config=config,
+                graph=graph,
+                interpreter=SignalInterpreter(config=config.interpreter),
+                ml=MLOptimizer(config=config.ml),
+                router=RoutingDecisionEngine(config=config.routing),
+                translator=SchemaTranslator(),
+                adapters=ProviderAdapterManager(),
+                observability=ObservabilityLayer(config=config.observability),
+            )
+
+            result = pipeline.execute(
+                raw_request={"capability": capability, "parameters": {}},
+                context={"client_id": client_id, "provider_preference": provider_pref},
+            )
+
+            provision_result["auar_result"] = {
+                "success": result.success,
+                "provider_id": result.provider_id,
+                "provider_name": result.provider_name,
+                "confidence": result.confidence_score,
+                "routing_score": result.routing_score,
+                "latency_ms": result.total_latency_ms,
+            }
+        except Exception as exc:
+            logger.debug("AUAR pipeline unavailable for provisioning: %s", exc)
+            provision_result["auar_result"] = {
+                "success": False,
+                "message": "AUAR pipeline not available — capability registered for manual provisioning",
+            }
+
+        # Affiliate charge-through model
+        provision_result["billing"] = {
+            "model": "affiliate_charge_through",
+            "description": (
+                "API usage costs are metered and included in your Murphy System "
+                "subscription. Murphy provisions and manages the API on your behalf "
+                "— no separate vendor signup required."
+            ),
+            "markup": "15%",
+            "included_in_tier": True,
+        }
+
+        # Store provisioned capability in client portfolio if it exists
+        portfolio = _client_portfolios.get(client_id)
+        if portfolio:
+            provs = portfolio.setdefault("provisioned_apis", [])
+            provs.append({
+                "capability": capability,
+                "provisioned_at": provision_result["provisioned_at"],
+                "status": provision_result["status"],
+            })
+
+        return JSONResponse({"success": True, "provision": provision_result})
+
     @app.get("/api/manifest")
     async def api_manifest():
         """Return a machine-readable manifest of all registered API endpoints."""
