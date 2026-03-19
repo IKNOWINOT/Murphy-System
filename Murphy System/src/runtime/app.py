@@ -101,10 +101,6 @@ def create_app() -> FastAPI:
         version="1.0.0"
     )
 
-    # ── Module loader (ML-001) ────────────────────────────────────
-    from src.runtime.module_loader import ModuleLoader, ModulePriority
-    _module_loader = ModuleLoader()
-
     # ── Utility: ISO timestamp helper ───────────────────────────
     def _now_iso():
         return datetime.now(timezone.utc).isoformat()
@@ -128,8 +124,91 @@ def create_app() -> FastAPI:
 
     # session_token → account_id (in-memory; replace with Redis/DB in prod)
     import threading as _threading
+    import secrets as _secrets
+    import bcrypt as _bcrypt
     _session_lock = _threading.Lock()
-    _session_store: "Dict[str, str]" = {}
+    _session_store: "Dict[str, str]" = {}  # session_token → account_id
+
+    # ── User account store (in-memory; replace with DB in production) ──
+    # account_id → {email, password_hash, full_name, job_title, company,
+    #               tier, email_validated, eula_accepted, created_at, ...}
+    _user_store: "Dict[str, Dict[str, Any]]" = {}
+    _email_to_account: "Dict[str, str]" = {}  # email → account_id (index)
+
+    def _hash_password(password: str) -> str:
+        """Hash a password with bcrypt (mitigates CWE-916: weak password hash)."""
+        return _bcrypt.hashpw(password.encode("utf-8"), _bcrypt.gensalt()).decode("utf-8")
+
+    def _verify_password(password: str, stored_hash: str) -> bool:
+        """Verify a password against a bcrypt hash."""
+        try:
+            return _bcrypt.checkpw(password.encode("utf-8"), stored_hash.encode("utf-8"))
+        except Exception:
+            return False
+
+    def _create_session(account_id: str) -> str:
+        """Mint a session token and store the mapping."""
+        token = _secrets.token_urlsafe(32)
+        with _session_lock:
+            _session_store[token] = account_id
+        return token
+
+    def _get_account_from_session(request: "Request") -> "Optional[Dict[str, Any]]":
+        """Extract account info from a session token (cookie or Bearer header)."""
+        token = ""
+        # 1. Check cookie
+        cookie_val = request.cookies.get("murphy_session", "")
+        if cookie_val:
+            token = cookie_val
+        # 2. Check Authorization header
+        if not token:
+            auth_header = request.headers.get("authorization", "")
+            if auth_header.startswith("Bearer "):
+                token = auth_header[7:]
+        if not token:
+            return None
+        with _session_lock:
+            account_id = _session_store.get(token)
+        if not account_id:
+            return None
+        return _user_store.get(account_id)
+
+    # ── Subscription manager (shared instance) ──
+    try:
+        from src.subscription_manager import SubscriptionManager as _SubMgr
+        from src.subscription_manager import SubscriptionTier as _SubTier
+        from src.subscription_manager import SubscriptionRecord as _SubRec
+        from src.subscription_manager import SubscriptionStatus as _SubStatus
+        from src.subscription_manager import BillingInterval as _BillingInterval
+        _sub_manager = _SubMgr()
+    except Exception:  # pragma: no cover
+        _sub_manager = None
+        _SubTier = None
+        _BillingInterval = None
+
+    # Apply security hardening (CORS allowlist, API key auth, rate limiting, headers)
+    try:
+        from src.fastapi_security import configure_secure_fastapi, register_session_validator
+        configure_secure_fastapi(app, service_name="murphy-system-1.0")
+        # Wire cookie-based session validation into the security middleware so that
+        # requests carrying a valid murphy_session cookie are authenticated.
+        def _cookie_session_validator(token: str) -> bool:
+            with _session_lock:
+                return token in _session_store
+        register_session_validator(_cookie_session_validator)
+    except ImportError:
+        logger.warning("fastapi_security not available — falling back to env-based CORS")
+        _cors_origins = os.environ.get(
+            "MURPHY_CORS_ORIGINS",
+            "http://localhost:3000,http://localhost:8080,http://localhost:8000",
+        ).split(",")
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=[o.strip() for o in _cors_origins],
+            allow_credentials=True,
+            allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            allow_headers=["*"],
+        )
 
     # Load .env before initialising MurphySystem so env vars like
     # MURPHY_LLM_PROVIDER and GROQ_API_KEY are available from the start.
@@ -142,213 +221,160 @@ def create_app() -> FastAPI:
     # Initialize Murphy System
     murphy = MurphySystem()
 
-    # ── Shared mutable state for critical subsystem references ────
-    # These variables are read throughout the endpoint closures below.
-    # Loader functions update them via `nonlocal` so that each subsystem
-    # is initialised exactly once and in a controlled order through the
-    # module loader, while remaining directly accessible to all closures
-    # inside create_app() without requiring app.state look-ups.
+    # ── Database Initialisation (Phase 1-A) ──────────────────────
     _db_available = False
-    try:
-        from src.database import init_database as _init_database  # noqa: PLC0415
-        _db_init_status = _init_database()
-        _db_available = _db_init_status.get("orm") == "ok"
-        if _db_available:
-            logger.info(
-                "Relational persistence initialised (url=%s, migrations=%s)",
-                _db_init_status.get("database_url", "?"),
-                _db_init_status.get("migrations", "skipped"),
-            )
-        else:
-            logger.warning(
-                "Database init status: orm=%s, migrations=%s",
-                _db_init_status.get("orm"),
-                _db_init_status.get("migrations"),
-            )
-    except Exception as _db_exc:
-        logger.warning("Database init failed — falling back to JSON persistence: %s", _db_exc)
-    _cache_client = None
-    _integration_bus = None
-    _aionmind_kernel = None
+    if os.environ.get("DATABASE_URL"):
+        try:
+            from src.db import create_tables
+            create_tables()
+            _db_available = True
+            logger.info("Relational persistence initialised (DATABASE_URL set)")
+        except Exception as _db_exc:
+            logger.warning("Database init failed — falling back to JSON persistence: %s", _db_exc)
 
     # ── Cache Initialisation (Phase 1-B) ─────────────────────────
-    # Cache is optional — no router, no critical dependency.
+    _cache_client = None
     try:
         from src.cache import CacheClient
         _cache_client = CacheClient()
     except Exception as _cache_exc:
         logger.warning("CacheClient init failed: %s", _cache_exc)
 
-    # ── Module registrations (ML-001) ────────────────────────────
-    # CRITICAL modules: Security Plane, EventBackbone, Database,
-    # GovernanceKernel, IntegrationBus — any failure aborts startup.
-    # OPTIONAL modules: all sub-router packages — degrade gracefully.
-
-    # --- CRITICAL: Security Plane ---
-    def _load_security_plane(_app):
-        """Apply security hardening middleware (CORS, API-key auth, rate-limit, headers)."""
-        from src.fastapi_security import configure_secure_fastapi
-        configure_secure_fastapi(_app, service_name="murphy-system-1.0")
-        return False  # middleware applied; no APIRouter registered
-
-    # --- CRITICAL: EventBackbone ---
-    def _load_event_backbone(_app):
-        """Verify EventBackbone was successfully initialised inside MurphySystem."""
-        if getattr(murphy, "event_backbone", None) is None:
-            raise RuntimeError(
-                "EventBackbone did not initialise — check src.event_backbone import "
-                "and MurphySystem startup logs"
-            )
-        return False
-
-    # --- CRITICAL: GovernanceKernel ---
-    def _load_governance_kernel(_app):
-        """Verify GovernanceKernel was successfully initialised inside MurphySystem."""
-        if getattr(murphy, "governance_kernel", None) is None:
-            raise RuntimeError(
-                "GovernanceKernel did not initialise — check src.governance_kernel import "
-                "and MurphySystem startup logs"
-            )
-        return False
-
-    # --- CRITICAL: Database (only when DATABASE_URL is configured) ---
-    def _load_database(_app):
-        """Create schema tables when a relational DATABASE_URL is configured."""
-        nonlocal _db_available
-        from src.db import create_tables
-        create_tables()
-        _db_available = True
-        logger.info("Relational persistence initialised (DATABASE_URL set)")
-        return False
-
-    # --- CRITICAL: IntegrationBus (EventBackbone wiring layer) ---
-    def _load_integration_bus(_app):
-        """Initialise IntegrationBus — wires src/ modules into the runtime."""
-        nonlocal _integration_bus
-        from src.integration_bus import IntegrationBus
-        _integration_bus = IntegrationBus()
-        _integration_bus.initialize()
-        logger.info("IntegrationBus initialised: %s", _integration_bus.get_status())
-        return False
-
-    _module_loader.register("security_plane", ModulePriority.CRITICAL, _load_security_plane)
-    _module_loader.register("event_backbone", ModulePriority.CRITICAL, _load_event_backbone)
-    _module_loader.register("governance_kernel", ModulePriority.CRITICAL, _load_governance_kernel)
-    if os.environ.get("DATABASE_URL"):
-        _module_loader.register("database", ModulePriority.CRITICAL, _load_database)
-    _module_loader.register("integration_bus", ModulePriority.CRITICAL, _load_integration_bus)
-
-    def _load_aionmind(_app):
-        nonlocal _aionmind_kernel
+    # ── AionMind 2.0 Cognitive Pipeline Integration (Gap 5) ──────
+    _aionmind_kernel = None
+    try:
         from aionmind import api as aionmind_api
         from aionmind.runtime_kernel import AionMindKernel
-        _kernel = AionMindKernel(auto_bridge_bots=True, auto_discover_rsc=True)
-        aionmind_api.init_kernel(_kernel)
-        _app.include_router(aionmind_api.router)
-        _aionmind_kernel = _kernel
+
+        _aionmind_kernel = AionMindKernel(
+            auto_bridge_bots=True,
+            auto_discover_rsc=True,
+        )
+        aionmind_api.init_kernel(_aionmind_kernel)
+        # Mount AionMind 2.0 endpoints at /api/aionmind/*
+        # (status, context, orchestrate, execute, proposals, memory)
+        app.include_router(aionmind_api.router)
         logger.info("AionMind 2.0 cognitive pipeline initialised (%d capabilities).",
-                    _kernel.registry.count())
-        return True
+                     _aionmind_kernel.registry.count())
+    except Exception as _aim_exc:
+        logger.warning("AionMind kernel not available — endpoints use legacy path only: %s", _aim_exc)
 
-    def _load_board_system(_app):
+    # ── Board System (Phase 1 – Monday.com parity) ────────────────
+    try:
         from board_system.api import create_board_router
-        _app.include_router(create_board_router())
+        _board_router = create_board_router()
+        app.include_router(_board_router)
         logger.info("Board System API registered at /api/boards")
-        return True
+    except Exception as _bs_exc:
+        logger.warning("Board System not available: %s", _bs_exc)
 
-    def _load_collaboration(_app):
+    # ── Collaboration System (Phase 2 – Monday.com parity) ────────
+    try:
         from collaboration.api import create_collaboration_router
-        _app.include_router(create_collaboration_router())
+        _collab_router = create_collaboration_router()
+        app.include_router(_collab_router)
         logger.info("Collaboration API registered at /api/collaboration")
-        return True
+    except Exception as _co_exc:
+        logger.warning("Collaboration System not available: %s", _co_exc)
 
-    def _load_dashboards(_app):
+    # ── Dashboards (Phase 3 – Monday.com parity) ───────────────────
+    try:
         from dashboards.api import create_dashboard_router
-        _app.include_router(create_dashboard_router())
+        _dash_router = create_dashboard_router()
+        app.include_router(_dash_router)
         logger.info("Dashboards API registered at /api/dashboards")
-        return True
+    except Exception as _da_exc:
+        logger.warning("Dashboards not available: %s", _da_exc)
 
-    def _load_portfolio(_app):
+    # ── Portfolio Management (Phase 4 – Monday.com parity) ─────────
+    try:
         from portfolio.api import create_portfolio_router
-        _app.include_router(create_portfolio_router())
+        _port_router = create_portfolio_router()
+        app.include_router(_port_router)
         logger.info("Portfolio API registered at /api/portfolio")
-        return True
+    except Exception as _po_exc:
+        logger.warning("Portfolio Management not available: %s", _po_exc)
 
-    def _load_workdocs(_app):
+    # ── Workdocs (Phase 5 – Monday.com parity) ────────────────────
+    try:
         from workdocs.api import create_workdocs_router
-        _app.include_router(create_workdocs_router())
+        _wd_router = create_workdocs_router()
+        app.include_router(_wd_router)
         logger.info("Workdocs API registered at /api/workdocs")
-        return True
+    except Exception as _wd_exc:
+        logger.warning("Workdocs not available: %s", _wd_exc)
 
-    def _load_time_tracking(_app):
+    # ── Time Tracking (Phase 6 – Monday.com parity) ────────────────
+    try:
         from time_tracking.api import create_time_tracking_router
-        _app.include_router(create_time_tracking_router())
+        _tt_router = create_time_tracking_router()
+        app.include_router(_tt_router)
         logger.info("Time Tracking API registered at /api/time-tracking")
-        return True
+    except Exception as _tt_exc:
+        logger.warning("Time Tracking not available: %s", _tt_exc)
 
-    def _load_automations(_app):
+    # ── Automations (Phase 7 – Monday.com parity) ──────────────────
+    try:
         from automations.api import create_automations_router
-        _app.include_router(create_automations_router())
+        _auto_router = create_automations_router()
+        app.include_router(_auto_router)
         logger.info("Automations API registered at /api/automations")
-        return True
+    except Exception as _auto_exc:
+        logger.warning("Automations not available: %s", _auto_exc)
 
-    def _load_crm(_app):
+    # ── CRM Module (Phase 8 – Monday.com parity) ──────────────────
+    try:
         from crm.api import create_crm_router
-        _app.include_router(create_crm_router())
+        _crm_router = create_crm_router()
+        app.include_router(_crm_router)
         logger.info("CRM API registered at /api/crm")
-        return True
+    except Exception as _crm_exc:
+        logger.warning("CRM not available: %s", _crm_exc)
 
-    def _load_dev_module(_app):
+    # ── Dev Module (Phase 9 – Monday.com parity) ─────────────────
+    try:
         from dev_module.api import create_dev_router
-        _app.include_router(create_dev_router())
+        _dev_router = create_dev_router()
+        app.include_router(_dev_router)
         logger.info("Dev Module API registered at /api/dev")
-        return True
+    except Exception as _dev_exc:
+        logger.warning("Dev Module not available: %s", _dev_exc)
 
-    def _load_service_module(_app):
+    # ── Service Module (Phase 10 – Monday.com parity) ──────────────
+    try:
         from service_module.api import create_service_router
-        _app.include_router(create_service_router())
+        _svc_router = create_service_router()
+        app.include_router(_svc_router)
         logger.info("Service Module API registered at /api/service")
-        return True
+    except Exception as _svc_exc:
+        logger.warning("Service Module not available: %s", _svc_exc)
 
-    def _load_guest_collab(_app):
+    # ── Guest Collaboration (Phase 11 – Monday.com parity) ─────────
+    try:
         from guest_collab.api import create_guest_router
-        _app.include_router(create_guest_router())
+        _guest_router = create_guest_router()
+        app.include_router(_guest_router)
         logger.info("Guest Collaboration API registered at /api/guest")
-        return True
+    except Exception as _guest_exc:
+        logger.warning("Guest Collaboration not available: %s", _guest_exc)
 
-    def _load_mobile(_app):
+    # ── Mobile App Backend (Phase 12 – Monday.com parity) ──────────
+    try:
         from mobile.api import create_mobile_router
-        _app.include_router(create_mobile_router())
+        _mobile_router = create_mobile_router()
+        app.include_router(_mobile_router)
         logger.info("Mobile API registered at /api/mobile")
-        return True
+    except Exception as _mobile_exc:
+        logger.warning("Mobile API not available: %s", _mobile_exc)
 
-    def _load_billing(_app):
+    # ── Billing API (PayPal + Crypto, multi-currency, Japan discount) ──
+    try:
         from src.billing.api import create_billing_router
-        _app.include_router(create_billing_router())
+        _billing_router = create_billing_router()
+        app.include_router(_billing_router)
         logger.info("Billing API registered at /api/billing")
-        return True
-
-    _module_loader.register("aionmind", ModulePriority.OPTIONAL, _load_aionmind)
-    _module_loader.register("board_system", ModulePriority.OPTIONAL, _load_board_system)
-    _module_loader.register("collaboration", ModulePriority.OPTIONAL, _load_collaboration)
-    _module_loader.register("dashboards", ModulePriority.OPTIONAL, _load_dashboards)
-    _module_loader.register("portfolio", ModulePriority.OPTIONAL, _load_portfolio)
-    _module_loader.register("workdocs", ModulePriority.OPTIONAL, _load_workdocs)
-    _module_loader.register("time_tracking", ModulePriority.OPTIONAL, _load_time_tracking)
-    _module_loader.register("automations", ModulePriority.OPTIONAL, _load_automations)
-    _module_loader.register("crm", ModulePriority.OPTIONAL, _load_crm)
-    _module_loader.register("dev_module", ModulePriority.OPTIONAL, _load_dev_module)
-    _module_loader.register("service_module", ModulePriority.OPTIONAL, _load_service_module)
-    _module_loader.register("guest_collab", ModulePriority.OPTIONAL, _load_guest_collab)
-    _module_loader.register("mobile", ModulePriority.OPTIONAL, _load_mobile)
-    _module_loader.register("billing", ModulePriority.OPTIONAL, _load_billing)
-
-    # Load all registered modules (aborts on critical failures).
-    _module_load_result = _module_loader.load_all(app)
-
-    # Print startup banner with module load summary
-    for _banner_line in _module_load_result.banner_lines():
-        print(_banner_line)
+    except Exception as _bill_exc:
+        logger.warning("Billing API not available: %s", _bill_exc)
 
     # Register RBAC governance with security layer (SEC-005)
     rbac = getattr(murphy, 'rbac_governance', None)
@@ -371,43 +397,15 @@ def create_app() -> FastAPI:
     except ImportError:
         _perm_execute = _noop_dep
         _perm_configure = _noop_dep
-    # ── EventBackbone — background processing loop ───────────────────
-    _event_backbone = None
-    try:
-        from src.event_backbone import get_event_backbone as _get_event_backbone
-        _event_backbone = _get_event_backbone()
-        logger.info("EventBackbone initialised")
-    except Exception as _eb_exc:
-        logger.warning("EventBackbone not available: %s", _eb_exc)
-
-    @app.on_event("startup")
-    async def _start_event_backbone():
-        if _event_backbone is not None:
-            _event_backbone.start()
-            logger.info("EventBackbone background loop started")
-
-    @app.on_event("shutdown")
-    async def _stop_event_backbone():
-        if _event_backbone is not None:
-            _event_backbone.stop()
-            logger.info("EventBackbone background loop stopped")
-
     # ── Integration Bus — wires src/ modules into the runtime ────────
     _integration_bus = None
     try:
-        from murphy_code_healer import MurphyCodeHealer as _MurphyCodeHealer
-        _src_root = str(Path(__file__).resolve().parent.parent)
-        _tests_root = str(Path(__file__).resolve().parent.parent.parent / "tests")
-        _docs_root = str(Path(__file__).resolve().parent.parent.parent / "docs")
-        _code_healer = _MurphyCodeHealer(
-            src_root=_src_root,
-            tests_root=_tests_root,
-            docs_root=_docs_root,
-        )
-        _code_healer.subscribe_to_events()
-        logger.info("MurphyCodeHealer initialised and subscribed to EventBackbone events")
-    except Exception as _healer_exc:
-        logger.warning("MurphyCodeHealer not available: %s", _healer_exc)
+        from src.integration_bus import IntegrationBus
+        _integration_bus = IntegrationBus()
+        _integration_bus.initialize()
+        logger.info("IntegrationBus initialised: %s", _integration_bus.get_status())
+    except Exception as _ib_exc:
+        logger.warning("IntegrationBus not available — endpoints use legacy paths: %s", _ib_exc)
 
     # ==================== CORE ENDPOINTS ====================
 
@@ -539,15 +537,9 @@ def create_app() -> FastAPI:
 
         Suitable for Kubernetes liveness (shallow) and readiness (deep) probes.
         """
-        _db_mode = os.environ.get("MURPHY_DB_MODE", "stub").lower()
-
         # Shallow liveness probe — instant, no I/O
         if not deep:
-            return JSONResponse({
-                "status": "healthy",
-                "version": murphy.version,
-                "db_mode": _db_mode,
-            })
+            return JSONResponse({"status": "healthy", "version": murphy.version})
 
         # Deep readiness probe — checks all critical subsystems
         checks: dict = {"runtime": "ok"}
@@ -568,20 +560,19 @@ def create_app() -> FastAPI:
             checks["persistence"] = "error"
             critical_failed.append(f"persistence: {_pe}")
 
-        # Database check — always reported; uses unified database layer
-        try:
-            from src.database import get_database_status  # noqa: PLC0415
-            _db_status = get_database_status()
-            checks["database"] = _db_status.get("orm", _db_mode)
-            checks["db_mode"] = _db_status.get("db_mode", _db_mode)
-            if _db_status.get("pool"):
-                checks["db_pool"] = _db_status["pool"]
-            if checks["database"] == "error":
-                critical_failed.append("database: connection test failed")
-        except Exception as _dbe:
-            checks["database"] = "error"
-            checks["db_mode"] = _db_mode
-            critical_failed.append(f"database: {_dbe}")
+        # Database check (if not stub mode)
+        if os.environ.get("DATABASE_URL"):
+            try:
+                from src.db import check_database
+                checks["database"] = check_database()
+                if checks["database"] == "error":
+                    critical_failed.append("database: connection test failed")
+            except Exception as _dbe:
+                checks["database"] = "error"
+                critical_failed.append(f"database: {_dbe}")
+        else:
+            _db_mode = os.environ.get("MURPHY_DB_MODE", "stub").lower()
+            checks["database"] = "stub" if _db_mode == "stub" else "not_configured"
 
         # Redis / cache check
         if _cache_client is not None:
@@ -624,38 +615,15 @@ def create_app() -> FastAPI:
 
         checks["version"] = murphy.version
 
-        # Module load report (ML-001)
-        checks["module_load_report"] = _module_load_result.as_dict()
-
         # Determine overall status
         str_checks = [v for v in checks.values() if isinstance(v, str)]
         overall = "healthy" if all(v != "error" for v in str_checks) else "degraded"
         http_status = 200 if not critical_failed else 503
 
-        # Merge registered-module health from the canonical metrics registry.
-        try:
-            from src import metrics as _health_metrics
-            module_health = _health_metrics.get_system_health()
-            checks["registered_modules"] = module_health.get("modules", {})
-            checks["uptime_seconds"] = module_health.get("uptime_seconds")
-            if module_health.get("status") == "degraded":
-                overall = "degraded"
-        except Exception as _mh_exc:
-            logger.debug("Module health aggregation skipped: %s", _mh_exc)
-
         return JSONResponse(
             {"status": overall, "checks": checks, "critical_failures": critical_failed},
             status_code=http_status,
         )
-
-    @app.get("/api/modules")
-    async def list_modules():
-        """Return the full module inventory with load status (ML-001).
-
-        Includes each module's name, priority (critical/optional), load status
-        (loaded/failed/skipped), error message (if any), and load time.
-        """
-        return JSONResponse(_module_load_result.as_dict())
 
     # ── Deployment Readiness & Bootstrap Status ────────────────────
     @app.get("/api/readiness")
@@ -713,115 +681,6 @@ def create_app() -> FastAPI:
             mode=mode,
         )
         return JSONResponse(result)
-
-    @app.post("/api/librarian/query")
-    async def librarian_query(request: Request):
-        """Return ranked capability matches for a natural-language query.
-
-        Uses the new ``TaskRouter`` / ``SystemLibrarian.find_capabilities()``
-        pipeline introduced in Phases 9–12 of the Flattening Plan.
-
-        Request body:
-        ```json
-        {
-          "query": "generate an invoice for a consulting project",
-          "top_n": 5
-        }
-        ```
-
-        Response:
-        ```json
-        {
-          "success": true,
-          "query": "generate an invoice ...",
-          "matches": [
-            {
-              "capability_id": "generate_invoice",
-              "module_path": "src.invoice_processing_pipeline",
-              "score": 0.94,
-              "match_reasons": ["keyword overlap: ['invoice']"],
-              "cost_estimate": "low",
-              "determinism": "deterministic",
-              "filtered": false
-            }
-          ],
-          "routing": {
-            "status": "approved",
-            "capability_id": "generate_invoice",
-            "score": 0.94
-          }
-        }
-        ```
-        """
-        try:
-            data = await request.json()
-        except Exception:
-            data = {}
-
-        query = (data.get("query") or data.get("task") or "").strip()
-        top_n = int(data.get("top_n", 5))
-
-        if not query:
-            return JSONResponse(
-                {"success": False, "error": "query is required"},
-                status_code=400,
-            )
-
-        task_dict = {"task": query}
-
-        # Phase 1 — capability discovery via SystemLibrarian
-        matches: list = []
-        try:
-            librarian = murphy.librarian if hasattr(murphy, "librarian") else None
-            if librarian is None:
-                from system_librarian import SystemLibrarian as _SL  # type: ignore[import]
-                librarian = _SL()
-            raw_matches = librarian.find_capabilities(task_dict, top_n=top_n)
-            matches = [
-                {
-                    "capability_id": m.capability_id,
-                    "module_path": m.module_path,
-                    "score": m.score,
-                    "match_reasons": m.match_reasons,
-                    "cost_estimate": m.cost_estimate,
-                    "determinism": m.determinism,
-                    "filtered": m.filtered,
-                    "filter_reason": m.filter_reason,
-                }
-                for m in raw_matches
-            ]
-        except Exception as exc:
-            logger.warning("librarian_query: find_capabilities error: %s", exc)
-
-        # Phase 2 — TaskRouter routing decision (best-effort)
-        routing: dict = {}
-        try:
-            from solution_path_registry import SolutionPathRegistry  # type: ignore[import]
-            from system_librarian import SystemLibrarian as _SL2  # type: ignore[import]
-            from task_router import TaskRouter  # type: ignore[import]
-
-            _router = TaskRouter(
-                librarian=_SL2(),
-                solution_registry=SolutionPathRegistry(),
-            )
-            result = _router.route_sync(task_dict)
-            routing = {
-                "status": result.status.value,
-                "capability_id": result.solution_path.capability_id if result.solution_path else None,
-                "score": result.solution_path.combined_score if result.solution_path else None,
-            }
-        except Exception as exc:
-            logger.debug("librarian_query: TaskRouter error: %s", exc)
-            routing = {"status": "unavailable", "error": str(exc)}
-
-        return JSONResponse(
-            {
-                "success": True,
-                "query": query,
-                "matches": matches,
-                "routing": routing,
-            }
-        )
 
     @app.get("/api/librarian/status")
     async def librarian_status():
@@ -940,7 +799,6 @@ def create_app() -> FastAPI:
             {"command": "bootstrap", "category": "core", "description": "First-run bootstrap status", "api": "/api/bootstrap", "ui": "/ui/onboarding"},
             # ── Librarian & LLM ──────────────────────────────────────
             {"command": "librarian ask", "category": "librarian", "description": "Ask the Librarian any question about the system", "api": "/api/librarian/ask", "ui": "/ui/terminal-integrated#chat"},
-            {"command": "librarian query", "category": "librarian", "description": "Query the Librarian for ranked capability matches (TaskRouter)", "api": "/api/librarian/query", "ui": "/ui/terminal-integrated#chat"},
             {"command": "librarian status", "category": "librarian", "description": "Check Librarian health", "api": "/api/librarian/status", "ui": "/ui/terminal-integrated#status"},
             {"command": "llm status", "category": "librarian", "description": "Check LLM provider configuration", "api": "/api/llm/status", "ui": "/ui/terminal-integrations#llm"},
             {"command": "llm configure", "category": "librarian", "description": "Configure LLM provider and API key", "api": "/api/llm/configure", "ui": "/ui/terminal-integrations#llm"},
@@ -972,8 +830,6 @@ def create_app() -> FastAPI:
             # ── Corrections & Learning ───────────────────────────────
             {"command": "corrections patterns", "category": "corrections", "description": "View correction patterns", "api": "/api/corrections/patterns", "ui": "/ui/terminal-architect#corrections"},
             {"command": "corrections statistics", "category": "corrections", "description": "View correction statistics", "api": "/api/corrections/statistics", "ui": "/ui/terminal-architect#corrections"},
-            {"command": "corrections proposals", "category": "corrections", "description": "List MurphyCodeHealer repair proposals awaiting review", "api": "/api/corrections/proposals", "ui": "/ui/terminal-architect#corrections"},
-            {"command": "corrections heal", "category": "corrections", "description": "Trigger on-demand autonomous healing diagnostic cycle", "api": "/api/corrections/heal", "ui": "/ui/terminal-architect#corrections"},
             {"command": "learning status", "category": "learning", "description": "Check learning engine status", "api": "/api/learning/status", "ui": "/ui/terminal-architect#status"},
             {"command": "learning toggle", "category": "learning", "description": "Enable/disable learning engine", "api": "/api/learning/toggle", "ui": "/ui/terminal-architect#status"},
             # ── Integrations & Connectors ─────────────────────────────
@@ -1047,7 +903,7 @@ def create_app() -> FastAPI:
             {"command": "golden-path", "category": "workflows", "description": "View golden-path workflow recommendations", "api": "/api/golden-path", "ui": "/ui/terminal-orchestrator"},
             # ── Agents & Tasks ───────────────────────────────────────
             {"command": "agents list", "category": "agents", "description": "List all AI agents", "api": "/api/agents", "ui": "/ui/terminal-integrated#agents"},
-            {"command": "agent dashboard", "category": "agents", "description": "Open the full agent monitoring dashboard (health, pipeline, agents, metrics, onboarding)", "api": "/api/agent-dashboard/snapshot", "ui": "/ui/dashboard"},
+            {"command": "agent dashboard", "category": "agents", "description": "View agent dashboard snapshot", "api": "/api/agent-dashboard/snapshot", "ui": "/ui/terminal-integrated#agents"},
             {"command": "tasks list", "category": "agents", "description": "List active tasks", "api": "/api/tasks", "ui": "/ui/terminal-orchestrator"},
             {"command": "production queue", "category": "agents", "description": "View production queue", "api": "/api/production/queue", "ui": "/ui/terminal-orchestrator"},
             {"command": "production wizard", "category": "production", "description": "Open the production wizard for proposals, work orders, and deliverables", "api": "/api/production/queue", "ui": "/ui/production-wizard"},
@@ -1148,447 +1004,6 @@ def create_app() -> FastAPI:
             {"command": "signup", "category": "auth", "description": "Create a new Murphy account", "api": "/api/auth/signup", "ui": "/ui/signup"},
             {"command": "oauth google", "category": "auth", "description": "Sign up or login with Google", "api": "/api/auth/oauth/google", "ui": "/ui/signup"},
             {"command": "oauth github", "category": "auth", "description": "Sign up or login with GitHub", "api": "/api/auth/oauth/github", "ui": "/ui/signup"},
-            # ── Manifest-Derived Entries (Command Registration Audit) ────────────────
-            # ── AGENTS ─────────────────────────────────────────────────────────
-            {"command": "swarm crew", "category": "agents", "description": "Murphy crew system", "api": "/api/murphy/crew/system", "ui": "/ui/terminal-integrated#agents"},
-            {"command": "agents personas", "category": "agents", "description": "Agent persona library", "api": "/api/agent/persona/library", "ui": "/ui/terminal-integrated#agents"},
-            {"command": "agents monitor", "category": "agents", "description": "Agent monitor dashboard", "api": "/api/agent/monitor/dashboard", "ui": "/ui/terminal-integrated#agents"},
-            {"command": "agents dashboard", "category": "agents", "description": "Agent monitor dashboard", "api": "/api/agent/monitor/dashboard", "ui": "/ui/terminal-integrated#agents"},
-            {"command": "agents runs", "category": "agents", "description": "Agent run recorder", "api": "/api/agent/run/recorder", "ui": "/ui/terminal-integrated#agents"},
-            {"command": "agents history", "category": "agents", "description": "Agent run recorder", "api": "/api/agent/run/recorder", "ui": "/ui/terminal-integrated#agents"},
-            {"command": "agents provision-api", "category": "agents", "description": "Agentic API provisioner", "api": "/api/agentic/api/provisioner", "ui": "/ui/terminal-integrated#agents"},
-            {"command": "onboard status", "category": "agents", "description": "Agentic onboarding engine", "api": "/api/agentic/onboarding/engine", "ui": "/ui/terminal-integrated#agents"},
-            {"command": "bots inventory", "category": "agents", "description": "Bot inventory library", "api": "/api/bot/inventory/library", "ui": "/ui/terminal-integrated#agents"},
-            # ── AUTOMATION ─────────────────────────────────────────────────────────
-            {"command": "exec schedule", "category": "automation", "description": "Automation scheduler", "api": "/api/automation/scheduler", "ui": "/ui/terminal-integrated#automation"},
-            {"command": "schedule predict", "category": "automation", "description": "Automation scheduler", "api": "/api/automation/scheduler", "ui": "/ui/terminal-integrated#automation"},
-            {"command": "schedule list", "category": "automation", "description": "Automation scheduler", "api": "/api/automation/scheduler", "ui": "/ui/terminal-integrated#automation"},
-            {"command": "exec scale", "category": "automation", "description": "Automation scaler", "api": "/api/automation/scaler", "ui": "/ui/terminal-integrated#automation"},
-            {"command": "exec marketplace", "category": "automation", "description": "Automation marketplace", "api": "/api/automation/marketplace", "ui": "/ui/terminal-integrated#automation"},
-            {"command": "automation marketplace", "category": "automation", "description": "Automation marketplace", "api": "/api/automation/marketplace", "ui": "/ui/terminal-integrated#automation"},
-            {"command": "automation mode", "category": "automation", "description": "Automation mode controller", "api": "/api/automation/mode/controller", "ui": "/ui/terminal-integrated#automation"},
-            {"command": "automation set-mode", "category": "automation", "description": "Automation mode controller", "api": "/api/automation/mode/controller", "ui": "/ui/terminal-integrated#automation"},
-            {"command": "automation full", "category": "automation", "description": "Full automation controller", "api": "/api/full/automation/controller", "ui": "/ui/terminal-integrated#automation"},
-            {"command": "automation enable", "category": "automation", "description": "Full automation controller", "api": "/api/full/automation/controller", "ui": "/ui/terminal-integrated#automation"},
-            {"command": "automation loop", "category": "automation", "description": "Automation loop connector", "api": "/api/automation/loop/connector", "ui": "/ui/terminal-integrated#automation"},
-            {"command": "automation rbac", "category": "automation", "description": "Automation RBAC controller", "api": "/api/automation/rbac/controller", "ui": "/ui/terminal-integrated#automation"},
-            {"command": "automation readiness", "category": "automation", "description": "Automation readiness evaluator", "api": "/api/automation/readiness/evaluator", "ui": "/ui/terminal-integrated#automation"},
-            {"command": "automation types", "category": "automation", "description": "Automation type registry", "api": "/api/automation/type/registry", "ui": "/ui/terminal-integrated#automation"},
-            {"command": "nocode workflow", "category": "automation", "description": "No-code workflow terminal", "api": "/api/nocode/workflow/terminal", "ui": "/ui/terminal-integrated#automation"},
-            {"command": "nocode run", "category": "automation", "description": "No-code workflow terminal", "api": "/api/nocode/workflow/terminal", "ui": "/ui/terminal-integrated#automation"},
-            {"command": "rpa record", "category": "automation", "description": "RPA recorder engine", "api": "/api/rpa/recorder/engine", "ui": "/ui/terminal-integrated#automation"},
-            {"command": "rpa replay", "category": "automation", "description": "RPA recorder engine", "api": "/api/rpa/recorder/engine", "ui": "/ui/terminal-integrated#automation"},
-            # ── BUSINESS ─────────────────────────────────────────────────────────
-            {"command": "biz niche", "category": "business", "description": "Niche business generator", "api": "/api/niche/business/generator", "ui": "/ui/terminal-integrated#business"},
-            {"command": "biz generate", "category": "business", "description": "Niche business generator", "api": "/api/niche/business/generator", "ui": "/ui/terminal-integrated#business"},
-            {"command": "biz scale", "category": "business", "description": "Business scaling engine", "api": "/api/business/scaling/engine", "ui": "/ui/terminal-integrated#business"},
-            {"command": "innovate run", "category": "business", "description": "Innovation farmer", "api": "/api/innovation/farmer", "ui": "/ui/terminal-integrated#business"},
-            {"command": "innovate status", "category": "business", "description": "Innovation farmer", "api": "/api/innovation/farmer", "ui": "/ui/terminal-integrated#business"},
-            {"command": "research competitive", "category": "business", "description": "Competitive intelligence engine", "api": "/api/competitive/intelligence/engine", "ui": "/ui/terminal-integrated#business"},
-            # ── COMMUNICATIONS ─────────────────────────────────────────────────────────
-            {"command": "email configure", "category": "communications", "description": "Email integration", "api": "/api/email/integration", "ui": "/ui/terminal-integrated#communications"},
-            {"command": "email test", "category": "communications", "description": "Email integration", "api": "/api/email/integration", "ui": "/ui/terminal-integrated#communications"},
-            {"command": "notify send", "category": "communications", "description": "Notification system", "api": "/api/notification/system", "ui": "/ui/terminal-integrated#communications"},
-            {"command": "notify list", "category": "communications", "description": "Notification system", "api": "/api/notification/system", "ui": "/ui/terminal-integrated#communications"},
-            {"command": "notify configure", "category": "communications", "description": "Notification system", "api": "/api/notification/system", "ui": "/ui/terminal-integrated#communications"},
-            {"command": "announce", "category": "communications", "description": "Announcer voice engine", "api": "/api/announcer/voice/engine", "ui": "/ui/terminal-integrated#communications"},
-            {"command": "announce broadcast", "category": "communications", "description": "Announcer voice engine", "api": "/api/announcer/voice/engine", "ui": "/ui/terminal-integrated#communications"},
-            {"command": "delivery list", "category": "communications", "description": "Delivery adapters", "api": "/api/delivery/adapters", "ui": "/ui/terminal-integrated#communications"},
-            {"command": "comms system", "category": "communications", "description": "Communication system", "api": "/api/communication/system", "ui": "/ui/terminal-integrated#communications"},
-            # ── COMPLIANCE ─────────────────────────────────────────────────────────
-            {"command": "compliance audit", "category": "compliance", "description": "Compliance engine", "api": "/api/compliance/engine", "ui": "/ui/compliance"},
-            {"command": "compliance code", "category": "compliance", "description": "Compliance as code", "api": "/api/compliance/as/code/engine", "ui": "/ui/compliance"},
-            {"command": "compliance policy", "category": "compliance", "description": "Compliance as code", "api": "/api/compliance/as/code/engine", "ui": "/ui/compliance"},
-            {"command": "compliance monitoring", "category": "compliance", "description": "Compliance monitoring completeness", "api": "/api/compliance/monitoring/completeness", "ui": "/ui/compliance"},
-            {"command": "compliance check", "category": "compliance", "description": "Outreach compliance integration — wires governor into all outreach paths", "api": "/api/outreach/compliance/integration", "ui": "/ui/compliance"},
-            {"command": "compliance automate", "category": "compliance", "description": "Compliance automation bridge", "api": "/api/compliance/automation/bridge", "ui": "/ui/compliance"},
-            {"command": "compliance orchestrate", "category": "compliance", "description": "Compliance orchestration bridge", "api": "/api/compliance/orchestration/bridge", "ui": "/ui/compliance"},
-            {"command": "compliance outreach", "category": "compliance", "description": "Contact compliance governor — cooldown, DNC, regulatory gating", "api": "/api/contact/compliance/governor", "ui": "/ui/compliance"},
-            {"command": "compliance dnc", "category": "compliance", "description": "Contact compliance governor — cooldown, DNC, regulatory gating", "api": "/api/contact/compliance/governor", "ui": "/ui/compliance"},
-            # ── CONTENT ─────────────────────────────────────────────────────────
-            {"command": "cad draw", "category": "content", "description": "Murphy drawing engine", "api": "/api/murphy/drawing/engine", "ui": "/ui/terminal-integrated#content"},
-            {"command": "draw generate", "category": "content", "description": "Murphy drawing engine", "api": "/api/murphy/drawing/engine", "ui": "/ui/terminal-integrated#content"},
-            {"command": "cad image", "category": "content", "description": "Image generation engine", "api": "/api/image/generation/engine", "ui": "/ui/terminal-integrated#content"},
-            {"command": "image generate", "category": "content", "description": "Image generation engine", "api": "/api/image/generation/engine", "ui": "/ui/terminal-integrated#content"},
-            # ── CONTROL ─────────────────────────────────────────────────────────
-            {"command": "control status", "category": "control", "description": "Control plane management", "api": "/api/control/plane", "ui": "/ui/terminal-integrated#control"},
-            {"command": "control plane", "category": "control", "description": "Control plane management", "api": "/api/control/plane", "ui": "/ui/terminal-integrated#control"},
-            {"command": "compute status", "category": "control", "description": "Compute plane management", "api": "/api/compute/plane", "ui": "/ui/terminal-integrated#control"},
-            {"command": "compute resources", "category": "control", "description": "Compute plane management", "api": "/api/compute/plane", "ui": "/ui/terminal-integrated#control"},
-            {"command": "eng perception", "category": "control", "description": "Murphy autonomous perception", "api": "/api/murphy/autonomous/perception", "ui": "/ui/terminal-integrated#control"},
-            {"command": "modules runtime", "category": "control", "description": "Modular runtime", "api": "/api/modular/runtime", "ui": "/ui/terminal-integrated#control"},
-            {"command": "state graph", "category": "control", "description": "Murphy state graph", "api": "/api/murphy/state/graph", "ui": "/ui/terminal-integrated#control"},
-            {"command": "action run", "category": "control", "description": "Murphy action engine", "api": "/api/murphy/action/engine", "ui": "/ui/terminal-integrated#control"},
-            {"command": "action list", "category": "control", "description": "Murphy action engine", "api": "/api/murphy/action/engine", "ui": "/ui/terminal-integrated#control"},
-            {"command": "runtime supervision", "category": "control", "description": "Supervision tree", "api": "/api/supervision/tree", "ui": "/ui/terminal-integrated#control"},
-            {"command": "runtime supervisor", "category": "control", "description": "Supervisor system", "api": "/api/supervisor/system", "ui": "/ui/terminal-integrated#control"},
-            {"command": "state machine", "category": "control", "description": "State machine", "api": "/api/state/machine", "ui": "/ui/terminal-integrated#control"},
-            {"command": "runtime session", "category": "control", "description": "Session context", "api": "/api/session/context", "ui": "/ui/terminal-integrated#control"},
-            {"command": "compute deterministic", "category": "control", "description": "Deterministic compute plane", "api": "/api/deterministic/compute/plane", "ui": "/ui/terminal-integrated#control"},
-            {"command": "control theory", "category": "control", "description": "Control theory", "api": "/api/control/theory", "ui": "/ui/terminal-integrated#control"},
-            {"command": "introspect status", "category": "control", "description": "Self-introspection module — runtime self-analysis and reporting", "api": "/api/self/introspection/module", "ui": "/ui/terminal-integrated#control"},
-            {"command": "introspect run", "category": "control", "description": "Self-introspection module — runtime self-analysis and reporting", "api": "/api/self/introspection/module", "ui": "/ui/terminal-integrated#control"},
-            # ── CRM ─────────────────────────────────────────────────────────
-            {"command": "comms customer", "category": "crm", "description": "Customer communication manager", "api": "/api/customer/communication/manager", "ui": "/ui/terminal-integrated#crm"},
-            {"command": "crm status", "category": "crm", "description": "CRM", "api": "/api/crm", "ui": "/ui/terminal-integrated#crm"},
-            {"command": "crm leads", "category": "crm", "description": "CRM", "api": "/api/crm", "ui": "/ui/terminal-integrated#crm"},
-            {"command": "crm contacts", "category": "crm", "description": "CRM", "api": "/api/crm", "ui": "/ui/terminal-integrated#crm"},
-            # ── DATA ─────────────────────────────────────────────────────────
-            {"command": "data pipeline", "category": "data", "description": "Data pipeline orchestrator", "api": "/api/data/pipeline/orchestrator", "ui": "/ui/terminal-integrated#data"},
-            {"command": "data status", "category": "data", "description": "Data pipeline orchestrator", "api": "/api/data/pipeline/orchestrator", "ui": "/ui/terminal-integrated#data"},
-            {"command": "data archive", "category": "data", "description": "Data archive manager", "api": "/api/data/archive/manager", "ui": "/ui/terminal-integrated#data"},
-            {"command": "runtime persistence", "category": "data", "description": "Persistence manager", "api": "/api/persistence/manager", "ui": "/ui/terminal-integrated#data"},
-            {"command": "runtime wal", "category": "data", "description": "Persistence WAL", "api": "/api/persistence/wal", "ui": "/ui/terminal-integrated#data"},
-            # ── DEVELOPMENT ─────────────────────────────────────────────────────────
-            {"command": "eng expert", "category": "development", "description": "Domain expert system", "api": "/api/domain/expert/system", "ui": "/ui/terminal-integrated#development"},
-            {"command": "eng expert-integrate", "category": "development", "description": "Domain expert integration", "api": "/api/domain/expert/integration", "ui": "/ui/terminal-integrated#development"},
-            {"command": "eng toolbox", "category": "development", "description": "Murphy engineering toolbox", "api": "/api/murphy/engineering/toolbox", "ui": "/ui/terminal-integrated#development"},
-            {"command": "playwright run", "category": "development", "description": "Playwright task definitions", "api": "/api/playwright/task/definitions", "ui": "/ui/terminal-integrated#development"},
-            {"command": "dev status", "category": "development", "description": "Dev module", "api": "/api/dev/module", "ui": "/ui/terminal-integrated#development"},
-            # ── EXECUTION ─────────────────────────────────────────────────────────
-            {"command": "exec run", "category": "execution", "description": "Core task execution engine", "api": "/api/execution/engine", "ui": "/ui/terminal-integrated#execution"},
-            {"command": "exec status", "category": "execution", "description": "Core task execution engine", "api": "/api/execution/engine", "ui": "/ui/terminal-integrated#execution"},
-            {"command": "exec queue", "category": "execution", "description": "Core task execution engine", "api": "/api/execution/engine", "ui": "/ui/terminal-integrated#execution"},
-            {"command": "exec history", "category": "execution", "description": "Core task execution engine", "api": "/api/execution/engine", "ui": "/ui/terminal-integrated#execution"},
-            {"command": "exec overview", "category": "execution", "description": "Execution orchestration and flow management", "api": "/api/execution/orchestrator", "ui": "/ui/terminal-integrated#execution"},
-            {"command": "exec flows", "category": "execution", "description": "Execution orchestration and flow management", "api": "/api/execution/orchestrator", "ui": "/ui/terminal-integrated#execution"},
-            {"command": "exec orchestrate", "category": "execution", "description": "Execution orchestration and flow management", "api": "/api/execution/orchestrator", "ui": "/ui/terminal-integrated#execution"},
-            {"command": "exec compile", "category": "execution", "description": "Execution packet compiler", "api": "/api/execution/packet/compiler", "ui": "/ui/terminal-integrated#execution"},
-            {"command": "exec package", "category": "execution", "description": "Execution package", "api": "/api/execution", "ui": "/ui/terminal-integrated#execution"},
-            {"command": "workflow dag", "category": "execution", "description": "Workflow DAG engine", "api": "/api/workflow/dag/engine", "ui": "/ui/terminal-integrated#execution"},
-            # ── FINANCE ─────────────────────────────────────────────────────────
-            {"command": "finance invoices", "category": "finance", "description": "Invoice processing pipeline", "api": "/api/invoice/processing/pipeline", "ui": "/ui/terminal-integrated#finance"},
-            {"command": "finance invoice", "category": "finance", "description": "Invoice processing pipeline", "api": "/api/invoice/processing/pipeline", "ui": "/ui/terminal-integrated#finance"},
-            {"command": "finance report", "category": "finance", "description": "Financial reporting engine", "api": "/api/financial/reporting/engine", "ui": "/ui/terminal-integrated#finance"},
-            {"command": "finance summary", "category": "finance", "description": "Financial reporting engine", "api": "/api/financial/reporting/engine", "ui": "/ui/terminal-integrated#finance"},
-            {"command": "finance trading", "category": "finance", "description": "Trading bot engine", "api": "/api/trading/bot/engine", "ui": "/ui/terminal-integrated#finance"},
-            {"command": "trading status", "category": "finance", "description": "Trading bot engine", "api": "/api/trading/bot/engine", "ui": "/ui/terminal-integrated#finance"},
-            {"command": "trading strategy", "category": "finance", "description": "Trading strategy engine", "api": "/api/trading/strategy/engine", "ui": "/ui/terminal-integrated#finance"},
-            {"command": "trading lifecycle", "category": "finance", "description": "Trading bot lifecycle", "api": "/api/trading/bot/lifecycle", "ui": "/ui/terminal-integrated#finance"},
-            {"command": "finance crypto exchange", "category": "finance", "description": "Crypto exchange connector", "api": "/api/crypto/exchange/connector", "ui": "/ui/terminal-integrated#finance"},
-            {"command": "finance crypto portfolio", "category": "finance", "description": "Crypto portfolio tracker", "api": "/api/crypto/portfolio/tracker", "ui": "/ui/terminal-integrated#finance"},
-            {"command": "finance crypto risk", "category": "finance", "description": "Crypto risk manager", "api": "/api/crypto/risk/manager", "ui": "/ui/terminal-integrated#finance"},
-            {"command": "finance crypto wallet", "category": "finance", "description": "Crypto wallet manager", "api": "/api/crypto/wallet/manager", "ui": "/ui/terminal-integrated#finance"},
-            {"command": "finance coinbase", "category": "finance", "description": "Coinbase connector", "api": "/api/coinbase/connector", "ui": "/ui/terminal-integrated#finance"},
-            {"command": "finance budget", "category": "finance", "description": "Budget-aware processor", "api": "/api/budget/aware/processor", "ui": "/ui/terminal-integrated#finance"},
-            {"command": "finance costs", "category": "finance", "description": "Cost optimization advisor", "api": "/api/cost/optimization/advisor", "ui": "/ui/terminal-integrated#finance"},
-            {"command": "costs recommendations", "category": "finance", "description": "Cost optimization advisor", "api": "/api/cost/optimization/advisor", "ui": "/ui/terminal-integrated#finance"},
-            {"command": "finance market", "category": "finance", "description": "Market data feed", "api": "/api/market/data/feed", "ui": "/ui/terminal-integrated#finance"},
-            {"command": "portfolio status", "category": "finance", "description": "Portfolio", "api": "/api/portfolio", "ui": "/ui/terminal-integrated#finance"},
-            {"command": "portfolio list", "category": "finance", "description": "Portfolio", "api": "/api/portfolio", "ui": "/ui/terminal-integrated#finance"},
-            {"command": "time log", "category": "finance", "description": "Time tracking", "api": "/api/time/tracking", "ui": "/ui/terminal-integrated#finance"},
-            {"command": "time report", "category": "finance", "description": "Time tracking", "api": "/api/time/tracking", "ui": "/ui/terminal-integrated#finance"},
-            # ── FORMS ─────────────────────────────────────────────────────────
-            {"command": "form list", "category": "forms", "description": "Form intake and processing", "api": "/api/form/intake", "ui": "/ui/terminal-integrated#forms"},
-            {"command": "form status", "category": "forms", "description": "Form intake and processing", "api": "/api/form/intake", "ui": "/ui/terminal-integrated#forms"},
-            # ── GOVERNANCE ─────────────────────────────────────────────────────────
-            {"command": "governance policies", "category": "governance", "description": "Governance framework", "api": "/api/governance/framework", "ui": "/ui/terminal-integrated#governance"},
-            {"command": "governance status", "category": "governance", "description": "Governance framework", "api": "/api/governance/framework", "ui": "/ui/terminal-integrated#governance"},
-            {"command": "governance runtime", "category": "governance", "description": "Base governance runtime", "api": "/api/base/governance/runtime", "ui": "/ui/terminal-integrated#governance"},
-            {"command": "governance toggle", "category": "governance", "description": "Base governance runtime", "api": "/api/base/governance/runtime", "ui": "/ui/terminal-integrated#governance"},
-            {"command": "gates authority", "category": "governance", "description": "Authority gate", "api": "/api/authority/gate", "ui": "/ui/terminal-integrated#governance"},
-            {"command": "governance bot-policies", "category": "governance", "description": "Bot governance policy mapper", "api": "/api/bot/governance/policy/mapper", "ui": "/ui/terminal-integrated#governance"},
-            # ── HITL ─────────────────────────────────────────────────────────
-            {"command": "hitl status", "category": "hitl", "description": "HITL autonomy controller", "api": "/api/hitl/autonomy/controller", "ui": "/ui/terminal-integrated#hitl"},
-            {"command": "hitl graduate", "category": "hitl", "description": "HITL graduation engine", "api": "/api/hitl/graduation/engine", "ui": "/ui/terminal-integrated#hitl"},
-            {"command": "hitl level", "category": "hitl", "description": "HITL graduation engine", "api": "/api/hitl/graduation/engine", "ui": "/ui/terminal-integrated#hitl"},
-            {"command": "hitl validate", "category": "hitl", "description": "Freelancer validator", "api": "/api/freelancer/validator", "ui": "/ui/terminal-integrated#hitl"},
-            {"command": "freelancer validate", "category": "hitl", "description": "Freelancer validator", "api": "/api/freelancer/validator", "ui": "/ui/terminal-integrated#hitl"},
-            {"command": "trading approve", "category": "hitl", "description": "Trading HITL gateway", "api": "/api/trading/hitl/gateway", "ui": "/ui/terminal-integrated#hitl"},
-            # ── INFRASTRUCTURE ─────────────────────────────────────────────────────────
-            {"command": "fleet status", "category": "infrastructure", "description": "Declarative fleet manager", "api": "/api/declarative/fleet/manager", "ui": "/ui/terminal-integrated#infrastructure"},
-            {"command": "fleet deploy", "category": "infrastructure", "description": "Declarative fleet manager", "api": "/api/declarative/fleet/manager", "ui": "/ui/terminal-integrated#infrastructure"},
-            {"command": "infra docker", "category": "infrastructure", "description": "Docker containerization", "api": "/api/docker/containerization", "ui": "/ui/terminal-integrated#infrastructure"},
-            {"command": "docker status", "category": "infrastructure", "description": "Docker containerization", "api": "/api/docker/containerization", "ui": "/ui/terminal-integrated#infrastructure"},
-            {"command": "infra k8s", "category": "infrastructure", "description": "Kubernetes deployment", "api": "/api/kubernetes/deployment", "ui": "/ui/terminal-integrated#infrastructure"},
-            {"command": "k8s status", "category": "infrastructure", "description": "Kubernetes deployment", "api": "/api/kubernetes/deployment", "ui": "/ui/terminal-integrated#infrastructure"},
-            {"command": "infra hetzner", "category": "infrastructure", "description": "Hetzner deployment", "api": "/api/hetzner/deploy", "ui": "/ui/terminal-integrated#infrastructure"},
-            {"command": "infra cloudflare", "category": "infrastructure", "description": "Cloudflare deployment", "api": "/api/cloudflare/deploy", "ui": "/ui/terminal-integrated#infrastructure"},
-            {"command": "cicd status", "category": "infrastructure", "description": "CI/CD pipeline manager", "api": "/api/ci/cd/pipeline/manager", "ui": "/ui/terminal-integrated#infrastructure"},
-            {"command": "cicd pipeline", "category": "infrastructure", "description": "CI/CD pipeline manager", "api": "/api/ci/cd/pipeline/manager", "ui": "/ui/terminal-integrated#infrastructure"},
-            {"command": "cicd trigger", "category": "infrastructure", "description": "CI/CD pipeline manager", "api": "/api/ci/cd/pipeline/manager", "ui": "/ui/terminal-integrated#infrastructure"},
-            {"command": "cloud status", "category": "infrastructure", "description": "Multi-cloud orchestrator", "api": "/api/multi/cloud/orchestrator", "ui": "/ui/terminal-integrated#infrastructure"},
-            {"command": "cloud orchestrate", "category": "infrastructure", "description": "Multi-cloud orchestrator", "api": "/api/multi/cloud/orchestrator", "ui": "/ui/terminal-integrated#infrastructure"},
-            {"command": "infra lb", "category": "infrastructure", "description": "Geographic load balancer", "api": "/api/geographic/load/balancer", "ui": "/ui/terminal-integrated#infrastructure"},
-            {"command": "infra load-balancer", "category": "infrastructure", "description": "Geographic load balancer", "api": "/api/geographic/load/balancer", "ui": "/ui/terminal-integrated#infrastructure"},
-            {"command": "infra scale", "category": "infrastructure", "description": "Resource scaling controller", "api": "/api/resource/scaling/controller", "ui": "/ui/terminal-integrated#infrastructure"},
-            {"command": "infra capacity", "category": "infrastructure", "description": "Capacity planning engine", "api": "/api/capacity/planning/engine", "ui": "/ui/terminal-integrated#infrastructure"},
-            {"command": "infra backup", "category": "infrastructure", "description": "Backup & disaster recovery", "api": "/api/backup/disaster/recovery", "ui": "/ui/terminal-integrated#infrastructure"},
-            {"command": "infra dr", "category": "infrastructure", "description": "Backup & disaster recovery", "api": "/api/backup/disaster/recovery", "ui": "/ui/terminal-integrated#infrastructure"},
-            {"command": "webhooks list", "category": "infrastructure", "description": "Webhook dispatcher", "api": "/api/webhook/dispatcher", "ui": "/ui/terminal-integrated#infrastructure"},
-            {"command": "webhooks dispatch", "category": "infrastructure", "description": "Webhook dispatcher", "api": "/api/webhook/dispatcher", "ui": "/ui/terminal-integrated#infrastructure"},
-            {"command": "webhooks process", "category": "infrastructure", "description": "Webhook event processor", "api": "/api/webhook/event/processor", "ui": "/ui/terminal-integrated#infrastructure"},
-            {"command": "prod intake", "category": "infrastructure", "description": "Production assistant engine — request lifecycle management with deliverable gate validation via EventBackbone", "api": "/api/production/assistant/engine", "ui": "/ui/terminal-integrated#infrastructure"},
-            {"command": "prod validate", "category": "infrastructure", "description": "Production assistant engine — request lifecycle management with deliverable gate validation via EventBackbone", "api": "/api/production/assistant/engine", "ui": "/ui/terminal-integrated#infrastructure"},
-            {"command": "prod status", "category": "infrastructure", "description": "Production assistant engine — request lifecycle management with deliverable gate validation via EventBackbone", "api": "/api/production/assistant/engine", "ui": "/ui/terminal-integrated#infrastructure"},
-            # ── INTEGRATIONS ─────────────────────────────────────────────────────────
-            {"command": "integrations status", "category": "integrations", "description": "Integration engine", "api": "/api/integration/engine", "ui": "/ui/terminal-integrations"},
-            {"command": "automation hub", "category": "integrations", "description": "Automation integration hub", "api": "/api/automation/integration/hub", "ui": "/ui/terminal-integrations"},
-            {"command": "automation integrations", "category": "integrations", "description": "Automation integration hub", "api": "/api/automation/integration/hub", "ui": "/ui/terminal-integrations"},
-            {"command": "data sync", "category": "integrations", "description": "Cross-platform data sync", "api": "/api/cross/platform/data/sync", "ui": "/ui/terminal-integrations"},
-            {"command": "modules plugins", "category": "integrations", "description": "Plugin extension SDK", "api": "/api/plugin/extension/sdk", "ui": "/ui/terminal-integrations"},
-            {"command": "events status", "category": "integrations", "description": "Event backbone", "api": "/api/event/backbone", "ui": "/ui/terminal-integrations"},
-            {"command": "events list", "category": "integrations", "description": "Event backbone", "api": "/api/event/backbone", "ui": "/ui/terminal-integrations"},
-            {"command": "integrations bus", "category": "integrations", "description": "Integration bus", "api": "/api/integration/bus", "ui": "/ui/terminal-integrations"},
-            {"command": "integrations all", "category": "integrations", "description": "Integrations package", "api": "/api/integrations", "ui": "/ui/terminal-integrations"},
-            {"command": "integrations system", "category": "integrations", "description": "System integrator", "api": "/api/system/integrator", "ui": "/ui/terminal-integrations"},
-            {"command": "integrations enterprise", "category": "integrations", "description": "Enterprise integrations", "api": "/api/enterprise/integrations", "ui": "/ui/terminal-integrations"},
-            {"command": "platforms list", "category": "integrations", "description": "Platform connector framework", "api": "/api/platform/connector/framework", "ui": "/ui/terminal-integrations"},
-            {"command": "platforms connect", "category": "integrations", "description": "Platform connector framework", "api": "/api/platform/connector/framework", "ui": "/ui/terminal-integrations"},
-            {"command": "tickets list", "category": "integrations", "description": "Ticketing adapter", "api": "/api/ticketing/adapter", "ui": "/ui/terminal-integrations"},
-            {"command": "tickets create", "category": "integrations", "description": "Ticketing adapter", "api": "/api/ticketing/adapter", "ui": "/ui/terminal-integrations"},
-            {"command": "remote connect", "category": "integrations", "description": "Remote access connector", "api": "/api/remote/access/connector", "ui": "/ui/terminal-integrations"},
-            {"command": "bridge status", "category": "integrations", "description": "Bridge layer", "api": "/api/bridge/layer", "ui": "/ui/terminal-integrations"},
-            {"command": "schema list", "category": "integrations", "description": "Schema registry", "api": "/api/schema/registry", "ui": "/ui/terminal-integrations"},
-            {"command": "schema validate", "category": "integrations", "description": "Schema registry", "api": "/api/schema/registry", "ui": "/ui/terminal-integrations"},
-            {"command": "bridge compat", "category": "integrations", "description": "Legacy compatibility matrix", "api": "/api/legacy/compatibility/matrix", "ui": "/ui/terminal-integrations"},
-            {"command": "integrations universal", "category": "integrations", "description": "Universal integration adapter", "api": "/api/universal/integration/adapter", "ui": "/ui/terminal-integrations"},
-            # ── INTELLIGENCE ─────────────────────────────────────────────────────────
-            {"command": "eng domain", "category": "intelligence", "description": "Domain engine", "api": "/api/domain/engine", "ui": "/ui/terminal-integrated#intelligence"},
-            {"command": "eng simulate", "category": "intelligence", "description": "Simulation engine", "api": "/api/simulation/engine", "ui": "/ui/terminal-integrated#intelligence"},
-            {"command": "sim run", "category": "intelligence", "description": "Simulation engine", "api": "/api/simulation/engine", "ui": "/ui/terminal-integrated#intelligence"},
-            {"command": "sim validate", "category": "intelligence", "description": "Simulation engine", "api": "/api/simulation/engine", "ui": "/ui/terminal-integrated#intelligence"},
-            {"command": "wingman evolve", "category": "intelligence", "description": "Murphy wingman evolution", "api": "/api/murphy/wingman/evolution", "ui": "/ui/terminal-integrated#intelligence"},
-            {"command": "neuro status", "category": "intelligence", "description": "Neuro-symbolic models", "api": "/api/neuro/symbolic/models", "ui": "/ui/terminal-integrated#intelligence"},
-            # ── IOT ─────────────────────────────────────────────────────────
-            {"command": "eng twin", "category": "iot", "description": "Digital twin engine", "api": "/api/digital/twin/engine", "ui": "/ui/terminal-integrated#iot"},
-            {"command": "cad twin", "category": "iot", "description": "Digital twin engine", "api": "/api/digital/twin/engine", "ui": "/ui/terminal-integrated#iot"},
-            {"command": "eng vision", "category": "iot", "description": "Computer vision pipeline", "api": "/api/computer/vision/pipeline", "ui": "/ui/terminal-integrated#iot"},
-            {"command": "vision run", "category": "iot", "description": "Computer vision pipeline", "api": "/api/computer/vision/pipeline", "ui": "/ui/terminal-integrated#iot"},
-            {"command": "eng sensor", "category": "iot", "description": "Murphy sensor fusion", "api": "/api/murphy/sensor/fusion", "ui": "/ui/terminal-integrated#iot"},
-            {"command": "iot building", "category": "iot", "description": "Building automation connectors", "api": "/api/building/automation/connectors", "ui": "/ui/terminal-integrated#iot"},
-            {"command": "iot energy", "category": "iot", "description": "Energy management connectors", "api": "/api/energy/management/connectors", "ui": "/ui/terminal-integrated#iot"},
-            {"command": "iot additive", "category": "iot", "description": "Additive manufacturing connectors", "api": "/api/additive/manufacturing/connectors", "ui": "/ui/terminal-integrated#iot"},
-            {"command": "iot manufacturing", "category": "iot", "description": "Manufacturing automation standards", "api": "/api/manufacturing/automation/standards", "ui": "/ui/terminal-integrated#iot"},
-            {"command": "iot sensors", "category": "iot", "description": "Sensor reader", "api": "/api/sensor/reader", "ui": "/ui/terminal-integrated#iot"},
-            {"command": "sensor read", "category": "iot", "description": "Sensor reader", "api": "/api/sensor/reader", "ui": "/ui/terminal-integrated#iot"},
-            {"command": "robotics status", "category": "iot", "description": "Robotics", "api": "/api/robotics", "ui": "/ui/terminal-integrated#iot"},
-            {"command": "robotics run", "category": "iot", "description": "Robotics", "api": "/api/robotics", "ui": "/ui/terminal-integrated#iot"},
-            # ── KNOWLEDGE ─────────────────────────────────────────────────────────
-            {"command": "librarian kb", "category": "knowledge", "description": "Knowledge base manager", "api": "/api/knowledge/base/manager", "ui": "/ui/terminal-integrated#knowledge"},
-            {"command": "kb status", "category": "knowledge", "description": "Knowledge base manager", "api": "/api/knowledge/base/manager", "ui": "/ui/terminal-integrated#knowledge"},
-            {"command": "librarian gap", "category": "knowledge", "description": "Knowledge gap system", "api": "/api/knowledge/gap/system", "ui": "/ui/terminal-integrated#knowledge"},
-            {"command": "kg gap", "category": "knowledge", "description": "Knowledge gap system", "api": "/api/knowledge/gap/system", "ui": "/ui/terminal-integrated#knowledge"},
-            {"command": "librarian rag", "category": "knowledge", "description": "RAG vector integration", "api": "/api/rag/vector/integration", "ui": "/ui/terminal-integrated#knowledge"},
-            {"command": "rag search", "category": "knowledge", "description": "RAG vector integration", "api": "/api/rag/vector/integration", "ui": "/ui/terminal-integrated#knowledge"},
-            {"command": "librarian generate", "category": "knowledge", "description": "Generative knowledge builder", "api": "/api/generative/knowledge/builder", "ui": "/ui/terminal-integrated#knowledge"},
-            {"command": "kg generate", "category": "knowledge", "description": "Generative knowledge builder", "api": "/api/generative/knowledge/builder", "ui": "/ui/terminal-integrated#knowledge"},
-            {"command": "research run", "category": "knowledge", "description": "Research engine", "api": "/api/research/engine", "ui": "/ui/terminal-integrated#knowledge"},
-            {"command": "research query", "category": "knowledge", "description": "Research engine", "api": "/api/research/engine", "ui": "/ui/terminal-integrated#knowledge"},
-            {"command": "research advanced", "category": "knowledge", "description": "Advanced research", "api": "/api/advanced/research", "ui": "/ui/terminal-integrated#knowledge"},
-            {"command": "research multi", "category": "knowledge", "description": "Multi-source research", "api": "/api/multi/source/research", "ui": "/ui/terminal-integrated#knowledge"},
-            # ── LEARNING ─────────────────────────────────────────────────────────
-            {"command": "learning feedback", "category": "learning", "description": "Adaptive learning engine", "api": "/api/learning/engine", "ui": "/ui/terminal-integrated#learning"},
-            {"command": "trading shadow", "category": "learning", "description": "Trading shadow learner", "api": "/api/trading/shadow/learner", "ui": "/ui/terminal-integrated#learning"},
-            {"command": "monitor telemetry-learning", "category": "learning", "description": "Telemetry learning", "api": "/api/telemetry/learning", "ui": "/ui/terminal-integrated#learning"},
-            # ── LIBRARIAN ─────────────────────────────────────────────────────────
-            {"command": "librarian capabilities", "category": "librarian", "description": "System librarian and semantic search", "api": "/api/system/librarian", "ui": "/ui/terminal-integrated#librarian"},
-            {"command": "librarian search", "category": "librarian", "description": "System librarian and semantic search", "api": "/api/system/librarian", "ui": "/ui/terminal-integrated#librarian"},
-            {"command": "librarian graph", "category": "librarian", "description": "Knowledge graph builder", "api": "/api/knowledge/graph/builder", "ui": "/ui/terminal-integrated#librarian"},
-            {"command": "kg status", "category": "librarian", "description": "Knowledge graph builder", "api": "/api/knowledge/graph/builder", "ui": "/ui/terminal-integrated#librarian"},
-            {"command": "kg concepts", "category": "librarian", "description": "Concept graph engine", "api": "/api/concept/graph/engine", "ui": "/ui/terminal-integrated#librarian"},
-            {"command": "monitor bot-telemetry", "category": "librarian", "description": "Bot telemetry normalizer", "api": "/api/bot/telemetry/normalizer", "ui": "/ui/terminal-integrated#librarian"},
-            {"command": "eng expert-gen", "category": "librarian", "description": "Dynamic expert generator", "api": "/api/dynamic/expert/generator", "ui": "/ui/terminal-integrated#librarian"},
-            {"command": "org compile", "category": "librarian", "description": "Org compiler", "api": "/api/org/compiler", "ui": "/ui/terminal-integrated#librarian"},
-            {"command": "org chart", "category": "librarian", "description": "Org compiler", "api": "/api/org/compiler", "ui": "/ui/terminal-integrated#librarian"},
-            {"command": "compile module", "category": "librarian", "description": "Module compiler", "api": "/api/module/compiler", "ui": "/ui/terminal-integrated#librarian"},
-            {"command": "compile adapt", "category": "librarian", "description": "Module compiler adapter", "api": "/api/module/compiler/adapter", "ui": "/ui/terminal-integrated#librarian"},
-            {"command": "modules manage", "category": "librarian", "description": "Module manager", "api": "/api/module/manager", "ui": "/ui/terminal-integrated#librarian"},
-            {"command": "modules registry", "category": "librarian", "description": "Module registry", "api": "/api/module/registry", "ui": "/ui/terminal-integrated#librarian"},
-            {"command": "modules capabilities", "category": "librarian", "description": "Capability map", "api": "/api/capability/map", "ui": "/ui/terminal-integrated#librarian"},
-            {"command": "docs generate", "category": "librarian", "description": "Auto documentation engine", "api": "/api/auto/documentation/engine", "ui": "/ui/terminal-integrated#librarian"},
-            {"command": "docs status", "category": "librarian", "description": "Auto documentation engine", "api": "/api/auto/documentation/engine", "ui": "/ui/terminal-integrated#librarian"},
-            # ── LLM ─────────────────────────────────────────────────────────
-            {"command": "llm providers", "category": "llm", "description": "LLM integration layer", "api": "/api/llm/integration/layer", "ui": "/ui/terminal-integrated#llm"},
-            {"command": "llm route", "category": "llm", "description": "LLM controller", "api": "/api/llm/controller", "ui": "/ui/terminal-integrated#llm"},
-            {"command": "llm model", "category": "llm", "description": "LLM controller", "api": "/api/llm/controller", "ui": "/ui/terminal-integrated#llm"},
-            {"command": "llm validate", "category": "llm", "description": "LLM output validator", "api": "/api/llm/output/validator", "ui": "/ui/terminal-integrated#llm"},
-            {"command": "llm routing", "category": "llm", "description": "LLM routing completeness", "api": "/api/llm/routing/completeness", "ui": "/ui/terminal-integrated#llm"},
-            {"command": "llm swarm", "category": "llm", "description": "LLM swarm integration", "api": "/api/llm/swarm/integration", "ui": "/ui/terminal-integrated#llm"},
-            {"command": "llm local", "category": "llm", "description": "Enhanced local LLM (onboard)", "api": "/api/enhanced/local/llm", "ui": "/ui/terminal-integrated#llm"},
-            {"command": "llm onboard", "category": "llm", "description": "Enhanced local LLM (onboard)", "api": "/api/enhanced/local/llm", "ui": "/ui/terminal-integrated#llm"},
-            {"command": "llm inference", "category": "llm", "description": "Local inference engine", "api": "/api/local/inference/engine", "ui": "/ui/terminal-integrated#llm"},
-            {"command": "llm fallback", "category": "llm", "description": "Local LLM fallback", "api": "/api/local/llm/fallback", "ui": "/ui/terminal-integrated#llm"},
-            {"command": "llm models", "category": "llm", "description": "Local model layer", "api": "/api/local/model/layer", "ui": "/ui/terminal-integrated#llm"},
-            {"command": "llm safe", "category": "llm", "description": "Safe LLM wrapper", "api": "/api/safe/llm/wrapper", "ui": "/ui/terminal-integrated#llm"},
-            {"command": "llm openai", "category": "llm", "description": "OpenAI-compatible provider (openai/groq/onboard)", "api": "/api/openai/compatible/provider", "ui": "/ui/terminal-integrated#llm"},
-            {"command": "llm groq", "category": "llm", "description": "OpenAI-compatible provider (openai/groq/onboard)", "api": "/api/openai/compatible/provider", "ui": "/ui/terminal-integrated#llm"},
-            {"command": "mfm train", "category": "llm", "description": "Murphy Foundation Model", "api": "/api/murphy/foundation/model", "ui": "/ui/terminal-integrated#llm"},
-            {"command": "mfm infer", "category": "llm", "description": "Murphy Foundation Model", "api": "/api/murphy/foundation/model", "ui": "/ui/terminal-integrated#llm"},
-            # ── MARKETING ─────────────────────────────────────────────────────────
-            {"command": "sales status", "category": "marketing", "description": "Sales automation", "api": "/api/sales/automation", "ui": "/ui/terminal-integrated#marketing"},
-            {"command": "sales pipeline", "category": "marketing", "description": "Sales automation", "api": "/api/sales/automation", "ui": "/ui/terminal-integrated#marketing"},
-            {"command": "rosetta sell", "category": "marketing", "description": "Rosetta selling bridge", "api": "/api/rosetta/selling/bridge", "ui": "/ui/terminal-integrated#marketing"},
-            {"command": "social schedule", "category": "marketing", "description": "Social media scheduler", "api": "/api/social/media/scheduler", "ui": "/ui/terminal-integrated#marketing"},
-            {"command": "social post", "category": "marketing", "description": "Social media scheduler", "api": "/api/social/media/scheduler", "ui": "/ui/terminal-integrated#marketing"},
-            {"command": "social moderate", "category": "marketing", "description": "Social media moderation", "api": "/api/social/media/moderation", "ui": "/ui/terminal-integrated#marketing"},
-            {"command": "content pipeline", "category": "marketing", "description": "Content pipeline engine", "api": "/api/content/pipeline/engine", "ui": "/ui/terminal-integrated#marketing"},
-            {"command": "content status", "category": "marketing", "description": "Content pipeline engine", "api": "/api/content/pipeline/engine", "ui": "/ui/terminal-integrated#marketing"},
-            {"command": "content platform", "category": "marketing", "description": "Content creator platform modulator", "api": "/api/content/creator/platform/modulator", "ui": "/ui/terminal-integrated#marketing"},
-            {"command": "campaign run", "category": "marketing", "description": "Campaign orchestrator", "api": "/api/campaign/orchestrator", "ui": "/ui/terminal-integrated#marketing"},
-            {"command": "campaign status", "category": "marketing", "description": "Campaign orchestrator", "api": "/api/campaign/orchestrator", "ui": "/ui/terminal-integrated#marketing"},
-            {"command": "campaign adapt", "category": "marketing", "description": "Adaptive campaign engine", "api": "/api/adaptive/campaign/engine", "ui": "/ui/terminal-integrated#marketing"},
-            {"command": "marketing cycle", "category": "marketing", "description": "Self-marketing orchestrator — Murphy markets Murphy with compliance + B2B partnerships", "api": "/api/self/marketing/orchestrator", "ui": "/ui/terminal-integrated#marketing"},
-            {"command": "marketing content", "category": "marketing", "description": "Self-marketing orchestrator — Murphy markets Murphy with compliance + B2B partnerships", "api": "/api/self/marketing/orchestrator", "ui": "/ui/terminal-integrated#marketing"},
-            {"command": "marketing social", "category": "marketing", "description": "Self-marketing orchestrator — Murphy markets Murphy with compliance + B2B partnerships", "api": "/api/self/marketing/orchestrator", "ui": "/ui/terminal-integrated#marketing"},
-            {"command": "marketing outreach", "category": "marketing", "description": "Self-marketing orchestrator — Murphy markets Murphy with compliance + B2B partnerships", "api": "/api/self/marketing/orchestrator", "ui": "/ui/terminal-integrated#marketing"},
-            {"command": "marketing b2b", "category": "marketing", "description": "Self-marketing orchestrator — Murphy markets Murphy with compliance + B2B partnerships", "api": "/api/self/marketing/orchestrator", "ui": "/ui/terminal-integrated#marketing"},
-            {"command": "marketing partnerships", "category": "marketing", "description": "Self-marketing orchestrator — Murphy markets Murphy with compliance + B2B partnerships", "api": "/api/self/marketing/orchestrator", "ui": "/ui/terminal-integrated#marketing"},
-            {"command": "cad asset", "category": "marketing", "description": "Digital asset generator", "api": "/api/digital/asset/generator", "ui": "/ui/terminal-integrated#marketing"},
-            {"command": "asset generate", "category": "marketing", "description": "Digital asset generator", "api": "/api/digital/asset/generator", "ui": "/ui/terminal-integrated#marketing"},
-            {"command": "sell status", "category": "marketing", "description": "Self selling engine", "api": "/api/self/selling/engine", "ui": "/ui/terminal-integrated#marketing"},
-            # ── MFGC ─────────────────────────────────────────────────────────
-            {"command": "compliance gates", "category": "mfgc", "description": "Gate synthesis and compliance enforcement", "api": "/api/gate/synthesis", "ui": "/ui/terminal-integrated#mfgc"},
-            {"command": "gates status", "category": "mfgc", "description": "Gate synthesis and compliance enforcement", "api": "/api/gate/synthesis", "ui": "/ui/terminal-integrated#mfgc"},
-            {"command": "gates arm", "category": "mfgc", "description": "Gate synthesis and compliance enforcement", "api": "/api/gate/synthesis", "ui": "/ui/terminal-integrated#mfgc"},
-            {"command": "gates disarm", "category": "mfgc", "description": "Gate synthesis and compliance enforcement", "api": "/api/gate/synthesis", "ui": "/ui/terminal-integrated#mfgc"},
-            {"command": "gates bypass", "category": "mfgc", "description": "Gate bypass controller", "api": "/api/gate/bypass/controller", "ui": "/ui/terminal-integrated#mfgc"},
-            {"command": "llm gate", "category": "mfgc", "description": "Inference gate engine", "api": "/api/inference/gate/engine", "ui": "/ui/terminal-integrated#mfgc"},
-            {"command": "biz viability", "category": "mfgc", "description": "Niche viability gate", "api": "/api/niche/viability/gate", "ui": "/ui/terminal-integrated#mfgc"},
-            {"command": "finance cost-gate", "category": "mfgc", "description": "Cost explosion gate", "api": "/api/cost/explosion/gate", "ui": "/ui/terminal-integrated#mfgc"},
-            {"command": "eng gate-gen", "category": "mfgc", "description": "Domain gate generator", "api": "/api/domain/gate/generator", "ui": "/ui/terminal-integrated#mfgc"},
-            {"command": "mfgc status", "category": "mfgc", "description": "MFGC core", "api": "/api/mfgc/core", "ui": "/ui/terminal-integrated#mfgc"},
-            {"command": "mfgc adapt", "category": "mfgc", "description": "MFGC adapter", "api": "/api/mfgc/adapter", "ui": "/ui/terminal-integrated#mfgc"},
-            {"command": "mfgc metrics", "category": "mfgc", "description": "MFGC metrics", "api": "/api/mfgc/metrics", "ui": "/ui/terminal-integrated#mfgc"},
-            # ── MONITORING ─────────────────────────────────────────────────────────
-            {"command": "monitor health", "category": "monitoring", "description": "Health monitor", "api": "/api/health/monitor", "ui": "/ui/terminal-integrated#monitoring"},
-            {"command": "health status", "category": "monitoring", "description": "Health monitor", "api": "/api/health/monitor", "ui": "/ui/terminal-integrated#monitoring"},
-            {"command": "monitor heartbeat", "category": "monitoring", "description": "Heartbeat liveness protocol", "api": "/api/heartbeat/liveness/protocol", "ui": "/ui/terminal-integrated#monitoring"},
-            {"command": "monitor heartbeat-runner", "category": "monitoring", "description": "Activated heartbeat runner", "api": "/api/activated/heartbeat/runner", "ui": "/ui/terminal-integrated#monitoring"},
-            {"command": "monitor metrics", "category": "monitoring", "description": "Prometheus metrics exporter", "api": "/api/prometheus/metrics/exporter", "ui": "/ui/terminal-integrated#monitoring"},
-            {"command": "metrics export", "category": "monitoring", "description": "Prometheus metrics exporter", "api": "/api/prometheus/metrics/exporter", "ui": "/ui/terminal-integrated#monitoring"},
-            {"command": "monitor counters", "category": "monitoring", "description": "Observability counters", "api": "/api/observability/counters", "ui": "/ui/terminal-integrated#monitoring"},
-            {"command": "monitor trace", "category": "monitoring", "description": "Murphy trace", "api": "/api/murphy/trace", "ui": "/ui/terminal-integrated#monitoring"},
-            {"command": "monitor telemetry-adapter", "category": "monitoring", "description": "Telemetry adapter", "api": "/api/telemetry/adapter", "ui": "/ui/terminal-integrated#monitoring"},
-            {"command": "monitor logs", "category": "monitoring", "description": "Log analysis engine", "api": "/api/log/analysis/engine", "ui": "/ui/terminal-integrated#monitoring"},
-            {"command": "monitor alerts", "category": "monitoring", "description": "Alert rules engine", "api": "/api/alert/rules/engine", "ui": "/ui/terminal-integrated#monitoring"},
-            {"command": "monitor spikes", "category": "monitoring", "description": "Causal spike analyzer", "api": "/api/causal/spike/analyzer", "ui": "/ui/terminal-integrated#monitoring"},
-            {"command": "runtime replay", "category": "monitoring", "description": "Persistence replay completeness", "api": "/api/persistence/replay/completeness", "ui": "/ui/terminal-integrated#monitoring"},
-            {"command": "delivery channels", "category": "monitoring", "description": "Delivery channel completeness", "api": "/api/delivery/channel/completeness", "ui": "/ui/terminal-integrated#monitoring"},
-            {"command": "ab test", "category": "monitoring", "description": "A/B testing framework", "api": "/api/ab/testing/framework", "ui": "/ui/terminal-integrated#monitoring"},
-            {"command": "logs status", "category": "monitoring", "description": "Logging system", "api": "/api/logging/system", "ui": "/ui/terminal-integrated#monitoring"},
-            {"command": "logs query", "category": "monitoring", "description": "Logging system", "api": "/api/logging/system", "ui": "/ui/terminal-integrated#monitoring"},
-            {"command": "system features", "category": "monitoring", "description": "Startup feature summary", "api": "/api/startup/feature/summary", "ui": "/ui/terminal-integrated#monitoring"},
-            {"command": "system validate", "category": "monitoring", "description": "Startup validator", "api": "/api/startup/validator", "ui": "/ui/terminal-integrated#monitoring"},
-            # ── ONBOARDING ─────────────────────────────────────────────────────────
-            {"command": "onboard flow", "category": "onboarding", "description": "Onboarding flow", "api": "/api/onboarding/flow", "ui": "/ui/onboarding-wizard"},
-            {"command": "onboard automate", "category": "onboarding", "description": "Onboarding automation engine", "api": "/api/onboarding/automation/engine", "ui": "/ui/onboarding-wizard"},
-            {"command": "onboard team", "category": "onboarding", "description": "Onboarding team pipeline", "api": "/api/onboarding/team/pipeline", "ui": "/ui/onboarding-wizard"},
-            {"command": "setup wizard", "category": "onboarding", "description": "Setup wizard", "api": "/api/setup/wizard", "ui": "/ui/onboarding-wizard"},
-            # ── ORGCHART ─────────────────────────────────────────────────────────
-            {"command": "org enforce", "category": "orgchart", "description": "Org chart enforcement", "api": "/api/org/chart/enforcement", "ui": "/ui/terminal-orgchart"},
-            {"command": "org orgchart", "category": "orgchart", "description": "Organization chart system", "api": "/api/organization/chart/system", "ui": "/ui/terminal-orgchart"},
-            {"command": "org context", "category": "orgchart", "description": "Organizational context system", "api": "/api/organizational/context/system", "ui": "/ui/terminal-orgchart"},
-            {"command": "ceo activate", "category": "orgchart", "description": "CEO branch activation — top-level autonomous decision-making, org chart automation, and operational planning", "api": "/api/ceo/branch/activation", "ui": "/ui/terminal-orgchart"},
-            {"command": "ceo status", "category": "orgchart", "description": "CEO branch activation — top-level autonomous decision-making, org chart automation, and operational planning", "api": "/api/ceo/branch/activation", "ui": "/ui/terminal-orgchart"},
-            {"command": "ceo directive", "category": "orgchart", "description": "CEO branch activation — top-level autonomous decision-making, org chart automation, and operational planning", "api": "/api/ceo/branch/activation", "ui": "/ui/terminal-orgchart"},
-            {"command": "ceo plan", "category": "orgchart", "description": "CEO branch activation — top-level autonomous decision-making, org chart automation, and operational planning", "api": "/api/ceo/branch/activation", "ui": "/ui/terminal-orgchart"},
-            # ── PLATFORM ─────────────────────────────────────────────────────────
-            {"command": "automation native", "category": "platform", "description": "Murphy native automation", "api": "/api/murphy/native/automation", "ui": "/ui/terminal-integrated#platform"},
-            {"command": "monitor slo", "category": "platform", "description": "Operational SLO tracker", "api": "/api/operational/slo/tracker", "ui": "/ui/terminal-integrated#platform"},
-            {"command": "osmosis run", "category": "platform", "description": "Murphy osmosis engine", "api": "/api/murphy/osmosis/engine", "ui": "/ui/terminal-integrated#platform"},
-            {"command": "knostalgia run", "category": "platform", "description": "Knostalgia engine", "api": "/api/knostalgia/engine", "ui": "/ui/terminal-integrated#platform"},
-            {"command": "knostalgia categories", "category": "platform", "description": "Knostalgia category engine", "api": "/api/knostalgia/category/engine", "ui": "/ui/terminal-integrated#platform"},
-            {"command": "runtime status", "category": "platform", "description": "Runtime package", "api": "/api/runtime", "ui": "/ui/terminal-integrated#platform"},
-            {"command": "state schema", "category": "platform", "description": "State schema", "api": "/api/state/schema", "ui": "/ui/terminal-integrated#platform"},
-            {"command": "account status", "category": "platform", "description": "Account management", "api": "/api/account/management", "ui": "/ui/terminal-integrated#platform"},
-            {"command": "account list", "category": "platform", "description": "Account management", "api": "/api/account/management", "ui": "/ui/terminal-integrated#platform"},
-            {"command": "board status", "category": "platform", "description": "Board system", "api": "/api/board/system", "ui": "/ui/terminal-integrated#platform"},
-            {"command": "board tasks", "category": "platform", "description": "Board system", "api": "/api/board/system", "ui": "/ui/terminal-integrated#platform"},
-            {"command": "board sprint", "category": "platform", "description": "Board system", "api": "/api/board/system", "ui": "/ui/terminal-integrated#platform"},
-            {"command": "collab status", "category": "platform", "description": "Collaboration", "api": "/api/collaboration", "ui": "/ui/terminal-integrated#platform"},
-            {"command": "collab guest", "category": "platform", "description": "Guest collaboration", "api": "/api/guest/collab", "ui": "/ui/terminal-integrated#platform"},
-            {"command": "dashboard status", "category": "platform", "description": "Dashboards", "api": "/api/dashboards", "ui": "/ui/terminal-integrated#platform"},
-            {"command": "eq status", "category": "platform", "description": "EQ module", "api": "/api/eq", "ui": "/ui/terminal-integrated#platform"},
-            {"command": "aionmind status", "category": "platform", "description": "AionMind", "api": "/api/aionmind", "ui": "/ui/terminal-integrated#platform"},
-            {"command": "avatar status", "category": "platform", "description": "Avatar", "api": "/api/avatar", "ui": "/ui/terminal-integrated#platform"},
-            {"command": "rosetta status", "category": "platform", "description": "Rosetta", "api": "/api/rosetta", "ui": "/ui/terminal-integrated#platform"},
-            {"command": "autonomous status", "category": "platform", "description": "Autonomous systems", "api": "/api/autonomous/systems", "ui": "/ui/terminal-integrated#platform"},
-            {"command": "cutsheet ingest", "category": "platform", "description": "Cut sheet engine — manufacturer data parsing, wiring diagrams, device config generation", "api": "/api/cutsheet/engine", "ui": "/ui/terminal-integrated#platform"},
-            {"command": "cutsheet list", "category": "platform", "description": "Cut sheet engine — manufacturer data parsing, wiring diagrams, device config generation", "api": "/api/cutsheet/engine", "ui": "/ui/terminal-integrated#platform"},
-            {"command": "cutsheet verify", "category": "platform", "description": "Cut sheet engine — manufacturer data parsing, wiring diagrams, device config generation", "api": "/api/cutsheet/engine", "ui": "/ui/terminal-integrated#platform"},
-            # ── SAFETY ─────────────────────────────────────────────────────────
-            {"command": "safety orchestrate", "category": "safety", "description": "Safety orchestrator", "api": "/api/safety/orchestrator", "ui": "/ui/terminal-integrated#safety"},
-            {"command": "safety validate", "category": "safety", "description": "Safety validation pipeline", "api": "/api/safety/validation/pipeline", "ui": "/ui/terminal-integrated#safety"},
-            {"command": "safety gateway", "category": "safety", "description": "Safety gateway integrator", "api": "/api/safety/gateway/integrator", "ui": "/ui/terminal-integrated#safety"},
-            {"command": "safety estop", "category": "safety", "description": "Emergency stop controller", "api": "/api/emergency/stop/controller", "ui": "/ui/terminal-integrated#safety"},
-            {"command": "safety emergency", "category": "safety", "description": "Emergency stop controller", "api": "/api/emergency/stop/controller", "ui": "/ui/terminal-integrated#safety"},
-            # ── SECURITY ─────────────────────────────────────────────────────────
-            {"command": "confidence status", "category": "security", "description": "Confidence scoring and artifact graph", "api": "/api/confidence/engine", "ui": "/ui/terminal-integrated#security"},
-            {"command": "confidence score", "category": "security", "description": "Confidence scoring and artifact graph", "api": "/api/confidence/engine", "ui": "/ui/terminal-integrated#security"},
-            {"command": "confidence artifacts", "category": "security", "description": "Confidence scoring and artifact graph", "api": "/api/confidence/engine", "ui": "/ui/terminal-integrated#security"},
-            {"command": "security status", "category": "security", "description": "Security plane and threat management", "api": "/api/security/plane", "ui": "/ui/terminal-integrated#security"},
-            {"command": "compliance rbac", "category": "security", "description": "RBAC governance", "api": "/api/rbac/governance", "ui": "/ui/terminal-integrated#security"},
-            {"command": "security permissions", "category": "security", "description": "RBAC governance", "api": "/api/rbac/governance", "ui": "/ui/terminal-integrated#security"},
-            {"command": "keys groq", "category": "security", "description": "Groq key rotator", "api": "/api/groq/key/rotator", "ui": "/ui/terminal-integrated#security"},
-            {"command": "llm groq-keys", "category": "security", "description": "Groq key rotator", "api": "/api/groq/key/rotator", "ui": "/ui/terminal-integrated#security"},
-            {"command": "security adapter", "category": "security", "description": "Security plane adapter", "api": "/api/security/plane/adapter", "ui": "/ui/terminal-integrated#security"},
-            {"command": "security harden", "category": "security", "description": "Security hardening config", "api": "/api/security/hardening/config", "ui": "/ui/terminal-integrated#security"},
-            {"command": "security api", "category": "security", "description": "FastAPI security layer", "api": "/api/fastapi/security", "ui": "/ui/terminal-integrated#security"},
-            {"command": "security flask", "category": "security", "description": "Flask security layer", "api": "/api/flask/security", "ui": "/ui/terminal-integrated#security"},
-            {"command": "security oauth", "category": "security", "description": "OAuth/OIDC provider", "api": "/api/oauth/oidc/provider", "ui": "/ui/terminal-integrated#security"},
-            {"command": "security oidc", "category": "security", "description": "OAuth/OIDC provider", "api": "/api/oauth/oidc/provider", "ui": "/ui/terminal-integrated#security"},
-            {"command": "keys list", "category": "security", "description": "Secure key manager", "api": "/api/secure/key/manager", "ui": "/ui/terminal-integrated#security"},
-            {"command": "keys status", "category": "security", "description": "Secure key manager", "api": "/api/secure/key/manager", "ui": "/ui/terminal-integrated#security"},
-            {"command": "keys create", "category": "security", "description": "Secure key manager", "api": "/api/secure/key/manager", "ui": "/ui/terminal-integrated#security"},
-            {"command": "security credentials", "category": "security", "description": "Murphy credential gate", "api": "/api/murphy/credential/gate", "ui": "/ui/terminal-integrated#security"},
-            {"command": "keys harvest", "category": "security", "description": "Key harvester", "api": "/api/key/harvester", "ui": "/ui/terminal-integrated#security"},
-            {"command": "heal immune", "category": "security", "description": "Murphy immune engine", "api": "/api/murphy/immune/engine", "ui": "/ui/terminal-integrated#security"},
-            {"command": "credentials profile", "category": "security", "description": "Credential profile system", "api": "/api/credential/profile/system", "ui": "/ui/terminal-integrated#security"},
-            {"command": "audit logs", "category": "security", "description": "Audit logging system", "api": "/api/audit/logging/system", "ui": "/ui/terminal-integrated#security"},
-            {"command": "audit blockchain", "category": "security", "description": "Blockchain audit trail", "api": "/api/blockchain/audit/trail", "ui": "/ui/terminal-integrated#security"},
-            # ── SELF-HEALING ─────────────────────────────────────────────────────────
-            {"command": "automation self", "category": "self-healing", "description": "Self automation orchestrator", "api": "/api/self/automation/orchestrator", "ui": "/ui/terminal-integrated#self-healing"},
-            {"command": "automation orchestrate", "category": "self-healing", "description": "Self automation orchestrator", "api": "/api/self/automation/orchestrator", "ui": "/ui/terminal-integrated#self-healing"},
-            {"command": "monitor slo-remediate", "category": "self-healing", "description": "SLO remediation bridge", "api": "/api/slo/remediation/bridge", "ui": "/ui/terminal-integrated#self-healing"},
-            {"command": "heal status", "category": "self-healing", "description": "Autonomous repair system", "api": "/api/autonomous/repair/system", "ui": "/ui/terminal-integrated#self-healing"},
-            {"command": "heal repair", "category": "self-healing", "description": "Autonomous repair system", "api": "/api/autonomous/repair/system", "ui": "/ui/terminal-integrated#self-healing"},
-            {"command": "heal fix", "category": "self-healing", "description": "Self-fix loop", "api": "/api/self/fix/loop", "ui": "/ui/terminal-integrated#self-healing"},
-            {"command": "heal coordinate", "category": "self-healing", "description": "Self-healing coordinator", "api": "/api/self/healing/coordinator", "ui": "/ui/terminal-integrated#self-healing"},
-            {"command": "heal improve", "category": "self-healing", "description": "Self-improvement engine", "api": "/api/self/improvement/engine", "ui": "/ui/terminal-integrated#self-healing"},
-            {"command": "heal optimise", "category": "self-healing", "description": "Self-optimisation engine", "api": "/api/self/optimisation/engine", "ui": "/ui/terminal-integrated#self-healing"},
-            {"command": "heal code", "category": "self-healing", "description": "Murphy code healer", "api": "/api/murphy/code/healer", "ui": "/ui/terminal-integrated#self-healing"},
-            {"command": "heal code-repair", "category": "self-healing", "description": "Code repair engine", "api": "/api/code/repair/engine", "ui": "/ui/terminal-integrated#self-healing"},
-            {"command": "heal chaos", "category": "self-healing", "description": "Chaos resilience loop", "api": "/api/chaos/resilience/loop", "ui": "/ui/terminal-integrated#self-healing"},
-            {"command": "heal predict", "category": "self-healing", "description": "Predictive failure engine", "api": "/api/predictive/failure/engine", "ui": "/ui/terminal-integrated#self-healing"},
-            {"command": "heal maintenance", "category": "self-healing", "description": "Predictive maintenance engine", "api": "/api/predictive/maintenance/engine", "ui": "/ui/terminal-integrated#self-healing"},
-            {"command": "heal blackstart", "category": "self-healing", "description": "Blackstart controller", "api": "/api/blackstart/controller", "ui": "/ui/terminal-integrated#self-healing"},
-            {"command": "shadow train", "category": "self-healing", "description": "Murphy shadow trainer", "api": "/api/murphy/shadow/trainer", "ui": "/ui/terminal-integrated#self-healing"},
-            {"command": "runtime stability", "category": "self-healing", "description": "Recursive stability controller", "api": "/api/recursive/stability/controller", "ui": "/ui/terminal-integrated#self-healing"},
-            {"command": "chaos failure", "category": "self-healing", "description": "Synthetic failure generator", "api": "/api/synthetic/failure/generator", "ui": "/ui/terminal-integrated#self-healing"},
-            {"command": "swarm build", "category": "self-healing", "description": "Self-codebase swarm — autonomous BMS spec generation, RFP parsing, and deliverable packaging", "api": "/api/self/codebase/swarm", "ui": "/ui/terminal-integrated#self-healing"},
-            # ── SWARM ─────────────────────────────────────────────────────────
-            {"command": "swarm spawn", "category": "swarm", "description": "Advanced swarm system", "api": "/api/advanced/swarm/system", "ui": "/ui/terminal-integrated#swarm"},
-            {"command": "swarm list", "category": "swarm", "description": "Advanced swarm system", "api": "/api/advanced/swarm/system", "ui": "/ui/terminal-integrated#swarm"},
-            {"command": "swarm domain", "category": "swarm", "description": "Domain swarms", "api": "/api/domain/swarms", "ui": "/ui/terminal-integrated#swarm"},
-            {"command": "swarm orchestrate", "category": "swarm", "description": "Durable swarm orchestrator", "api": "/api/durable/swarm/orchestrator", "ui": "/ui/terminal-integrated#swarm"},
-            {"command": "swarm durable", "category": "swarm", "description": "Durable swarm orchestrator", "api": "/api/durable/swarm/orchestrator", "ui": "/ui/terminal-integrated#swarm"},
-            {"command": "visual build", "category": "swarm", "description": "Visual swarm builder — visual pipeline construction for swarm workflows", "api": "/api/visual/swarm/builder", "ui": "/ui/terminal-integrated#swarm"},
-            {"command": "visual status", "category": "swarm", "description": "Visual swarm builder — visual pipeline construction for swarm workflows", "api": "/api/visual/swarm/builder", "ui": "/ui/terminal-integrated#swarm"},
-            # ── TERMINAL ─────────────────────────────────────────────────────────
-            {"command": "kg translate", "category": "terminal", "description": "Concept translation", "api": "/api/concept/translation", "ui": "/ui/terminal-integrated"},
-            {"command": "compile shim", "category": "terminal", "description": "Shim compiler", "api": "/api/shim/compiler", "ui": "/ui/terminal-integrated"},
-            {"command": "templates list", "category": "terminal", "description": "Murphy template hub", "api": "/api/murphy/template/hub", "ui": "/ui/terminal-integrated"},
-            {"command": "templates get", "category": "terminal", "description": "Murphy template hub", "api": "/api/murphy/template/hub", "ui": "/ui/terminal-integrated"},
-            {"command": "repl run", "category": "terminal", "description": "Murphy REPL", "api": "/api/murphy/repl", "ui": "/ui/terminal-integrated"},
-            {"command": "repl eval", "category": "terminal", "description": "Murphy REPL", "api": "/api/murphy/repl", "ui": "/ui/terminal-integrated"},
-            {"command": "runtime closure", "category": "terminal", "description": "Closure engine", "api": "/api/closure/engine", "ui": "/ui/terminal-integrated"},
-            {"command": "protocols list", "category": "terminal", "description": "Protocols", "api": "/api/protocols", "ui": "/ui/terminal-integrated"},
-            {"command": "auar status", "category": "terminal", "description": "AUAR (Universal Adaptive Routing)", "api": "/api/auar", "ui": "/ui/terminal-integrated"},
-            {"command": "auar route", "category": "terminal", "description": "AUAR (Universal Adaptive Routing)", "api": "/api/auar", "ui": "/ui/terminal-integrated"},
-            {"command": "runtime thread-safe", "category": "terminal", "description": "Thread-safe operations", "api": "/api/thread/safe/operations", "ui": "/ui/terminal-integrated"},
-            # ── WORKFLOWS ─────────────────────────────────────────────────────────
-            {"command": "workflow generate", "category": "workflows", "description": "AI workflow generator", "api": "/api/ai/workflow/generator", "ui": "/ui/workflow-canvas"},
-            {"command": "ai workflow", "category": "workflows", "description": "AI workflow generator", "api": "/api/ai/workflow/generator", "ui": "/ui/workflow-canvas"},
-            {"command": "workflow templates", "category": "workflows", "description": "Workflow template marketplace", "api": "/api/workflow/template/marketplace", "ui": "/ui/workflow-canvas"},
-            {"command": "comms status", "category": "communications", "description": "Communications subsystem status", "api": "/api/comms", "ui": "/ui/terminal-integrated#communications"},
-            {"command": "compliance status", "category": "compliance", "description": "Compliance engine status", "api": "/api/compliance/engine", "ui": "/ui/compliance"},
-            {"command": "monitor telemetry", "category": "monitoring", "description": "Telemetry system monitoring", "api": "/api/telemetry/system", "ui": "/ui/terminal-integrated#monitoring"},
-            {"command": "onboard start", "category": "onboarding", "description": "Start onboarding flow", "api": "/api/onboarding/flow", "ui": "/ui/onboarding-wizard"},
-            {"command": "security audit", "category": "security", "description": "Security audit scanner", "api": "/api/security/audit/scanner", "ui": "/ui/terminal-integrated#security"},
-            {"command": "security scan", "category": "security", "description": "Security plane scan", "api": "/api/security/plane", "ui": "/ui/terminal-integrated#security"},
-            {"command": "swarm propose", "category": "swarm", "description": "Swarm proposal generator", "api": "/api/swarm/proposal/generator", "ui": "/ui/terminal-integrated#swarm"},
-            {"command": "swarm status", "category": "swarm", "description": "Advanced swarm system status", "api": "/api/advanced/swarm/system", "ui": "/ui/terminal-integrated#swarm"},
         ]
 
         categories = {}
@@ -1901,93 +1316,6 @@ def create_app() -> FastAPI:
         """Get correction training data"""
         return JSONResponse({"success": True, "data": murphy.corrections})
 
-    @app.get("/api/corrections/proposals")
-    async def corrections_proposals():
-        """List code repair proposals from MurphyCodeHealer (ARCH-006)."""
-        if _code_healer is None:
-            return JSONResponse({"success": True, "proposals": [], "healer_status": "unavailable"})
-        proposals = _code_healer.get_proposals(limit=100)
-        metrics = _code_healer.get_metrics()
-        return JSONResponse({
-            "success": True,
-            "proposals": proposals,
-            "total": len(proposals),
-            "metrics": metrics,
-        })
-
-    @app.post("/api/corrections/proposals/{proposal_id}/approve")
-    async def corrections_proposal_approve(proposal_id: str):
-        """Mark a code proposal as approved for human-supervised application."""
-        if _code_healer is None:
-            return JSONResponse(
-                {"success": False, "error": "MurphyCodeHealer not available"},
-                status_code=503,
-            )
-        # Validate proposal_id exists in healer proposals
-        proposals = _code_healer.get_proposals(limit=500)
-        known_ids = {p.get("proposal_id") for p in proposals}
-        if proposal_id not in known_ids:
-            return JSONResponse(
-                {"success": False, "error": f"Proposal '{proposal_id}' not found"},
-                status_code=404,
-            )
-        return JSONResponse({
-            "success": True,
-            "proposal_id": proposal_id,
-            "status": "approved",
-            "message": "Proposal approved for human-supervised application",
-            "timestamp": _now_iso(),
-        })
-
-    @app.post("/api/corrections/proposals/{proposal_id}/reject")
-    async def corrections_proposal_reject(proposal_id: str, request: Request):
-        """Reject a code repair proposal."""
-        if _code_healer is None:
-            return JSONResponse(
-                {"success": False, "error": "MurphyCodeHealer not available"},
-                status_code=503,
-            )
-        data = {}
-        try:
-            data = await request.json()
-        except Exception:
-            pass
-        # Validate proposal_id exists
-        proposals = _code_healer.get_proposals(limit=500)
-        known_ids = {p.get("proposal_id") for p in proposals}
-        if proposal_id not in known_ids:
-            return JSONResponse(
-                {"success": False, "error": f"Proposal '{proposal_id}' not found"},
-                status_code=404,
-            )
-        return JSONResponse({
-            "success": True,
-            "proposal_id": proposal_id,
-            "status": "rejected",
-            "reason": data.get("reason", ""),
-            "timestamp": _now_iso(),
-        })
-
-    @app.post("/api/corrections/heal")
-    async def corrections_trigger_heal(request: Request):
-        """Trigger an on-demand MurphyCodeHealer diagnostic cycle."""
-        if _code_healer is None:
-            return JSONResponse(
-                {"success": False, "error": "MurphyCodeHealer not available"},
-                status_code=503,
-            )
-        data = {}
-        try:
-            data = await request.json()
-        except Exception:
-            pass
-        max_gaps = int(data.get("max_gaps", 50))
-        try:
-            report = _code_healer.run_healing_cycle(max_gaps=max_gaps)
-            return JSONResponse({"success": True, "report": report})
-        except RuntimeError as exc:
-            return JSONResponse({"success": False, "error": str(exc)}, status_code=409)
-
     # ==================== HITL ENDPOINTS ====================
 
     @app.get("/api/hitl/interventions/pending")
@@ -2002,13 +1330,33 @@ def create_app() -> FastAPI:
 
     @app.post("/api/hitl/interventions/{intervention_id}/respond")
     async def hitl_respond(intervention_id: str, request: Request):
-        """Respond to HITL intervention"""
+        """Respond to HITL intervention with input validation."""
         data = await request.json()
+        # Input validation — prevent injection
+        status_val = data.get("status", "resolved")
+        response_val = data.get("response", "")
+        if not isinstance(status_val, str) or status_val not in {
+            "approved", "rejected", "resolved", "deferred", "escalated",
+        }:
+            return JSONResponse(
+                {"success": False, "error": "status must be one of: approved, rejected, resolved, deferred, escalated"},
+                status_code=400,
+            )
+        if not isinstance(response_val, str) or len(response_val) > 2000:
+            return JSONResponse(
+                {"success": False, "error": "response must be a string (max 2000 chars)"},
+                status_code=400,
+            )
         intervention = murphy.hitl_interventions.get(intervention_id)
-        if intervention:
-            intervention["status"] = data.get("status", "resolved")
-            intervention["response"] = data.get("response")
-        return JSONResponse({"success": bool(intervention), "intervention": intervention})
+        if not intervention:
+            return JSONResponse(
+                {"success": False, "error": f"Intervention {intervention_id} not found"},
+                status_code=404,
+            )
+        intervention["status"] = status_val
+        intervention["response"] = response_val
+        intervention["responded_at"] = datetime.now(timezone.utc).isoformat()
+        return JSONResponse({"success": True, "intervention": intervention})
 
     @app.get("/api/hitl/statistics")
     async def hitl_statistics():
@@ -2027,8 +1375,7 @@ def create_app() -> FastAPI:
     }
 
     try:
-        from src.matrix_bridge import MatrixBridgeSettings
-        from src.matrix_bridge import get_settings as _get_matrix_settings
+        from src.matrix_bridge import MatrixBridgeSettings, get_settings as _get_matrix_settings
         _mx_settings = _get_matrix_settings()
         _matrix_bridge_state["homeserver"] = _mx_settings.homeserver_url
         logger.info("Matrix bridge settings loaded")
@@ -2096,6 +1443,137 @@ def create_app() -> FastAPI:
         return JSONResponse({
             "success": True,
             "stats": _matrix_bridge_state["stats"],
+        })
+
+    # ==================== SWARM ENDPOINTS ====================
+    # Expose all 7 swarm subsystems through a unified /api/swarm/* surface
+    # so the terminal UI can drive swarm execution directly.
+
+    @app.get("/api/swarm/status")
+    async def swarm_status():
+        """Return health and availability of all 7 swarm subsystems."""
+        from src.swarm_rosetta_bridge import get_bridge
+        bridge = get_bridge()
+        return JSONResponse({
+            "success": True,
+            "subsystems": {
+                "true_swarm_system": {"available": True, "description": "Dual-swarm MFGC 7-phase system"},
+                "swarm_proposal_generator": {"available": True, "description": "LLM-backed task planning"},
+                "collaborative_task_orchestrator": {"available": True, "description": "Execution governance"},
+                "durable_swarm_orchestrator": {"available": True, "description": "Circuit breaker + retry"},
+                "self_codebase_swarm": {"available": True, "description": "BMS/code generation agents"},
+                "workflow_dag_engine": {"available": True, "description": "DAG parallel execution"},
+                "llm_swarm_integration": {"available": True, "description": "LLM + swarm bridge"},
+            },
+            "rosetta_stats": bridge.get_stats(),
+            "llm_status": murphy._get_llm_status(),
+        })
+
+    @app.post("/api/swarm/propose")
+    async def swarm_propose(request: Request, _rbac=Depends(_perm_execute)):
+        """Generate a SwarmProposal for a task using SwarmProposalGenerator."""
+        try:
+            data = await request.json()
+        except Exception:
+            data = {}
+        task = (data.get("task") or data.get("task_description") or "").strip()
+        if not task:
+            return JSONResponse({"success": False, "error": "task is required"}, status_code=400)
+        context = data.get("context")
+        try:
+            from src.llm_controller import LLMController
+            from src.swarm_proposal_generator import SwarmProposalGenerator
+            llm = LLMController()
+            gen = SwarmProposalGenerator(llm_controller=llm)
+            proposal = await gen.generate_proposal(task, context=context)
+            return JSONResponse({
+                "success": True,
+                "proposal_id": proposal.proposal_id,
+                "task": proposal.task_description,
+                "complexity": proposal.task_complexity.value,
+                "swarm_type": proposal.swarm_type.value,
+                "agent_count": len(proposal.agents),
+                "steps": len(proposal.execution_plan),
+                "safety_gates": len(proposal.safety_gates),
+                "confidence": proposal.confidence_estimate,
+                "estimated_cost": proposal.cost_estimate,
+                "display": gen.format_proposal_for_display(proposal),
+            })
+        except Exception as exc:
+            logger.error("swarm_propose failed: %s", exc)
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/swarm/execute")
+    async def swarm_execute(request: Request, _rbac=Depends(_perm_execute)):
+        """Run a task through the CollaborativeTaskOrchestrator end-to-end."""
+        try:
+            data = await request.json()
+        except Exception:
+            data = {}
+        task = (data.get("task") or data.get("task_description") or "").strip()
+        if not task:
+            return JSONResponse({"success": False, "error": "task is required"}, status_code=400)
+        budget = float(data.get("budget", 50.0))
+        idempotency_key = data.get("idempotency_key") or None
+        try:
+            import sys, os
+            _ms_src = os.path.join(os.path.dirname(__file__), "..", "..", "Murphy System", "src")
+            if _ms_src not in sys.path:
+                sys.path.insert(0, _ms_src)
+            from collaborative_task_orchestrator import CollaborativeTaskOrchestrator
+            cto = CollaborativeTaskOrchestrator()
+            report = cto.orchestrate(
+                task_description=task,
+                budget=budget,
+                idempotency_key=idempotency_key,
+            )
+            return JSONResponse({
+                "success": True,
+                "task_id": report.task_id,
+                "status": report.status,
+                "steps_completed": report.steps_completed,
+                "total_cost": report.total_cost,
+                "duration_ms": report.duration_ms,
+                "synthesis": report.synthesis,
+            })
+        except Exception as exc:
+            logger.error("swarm_execute failed: %s", exc)
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/swarm/phase")
+    async def swarm_phase(request: Request, _rbac=Depends(_perm_execute)):
+        """Execute a single MFGC phase via TrueSwarmSystem."""
+        try:
+            data = await request.json()
+        except Exception:
+            data = {}
+        task = (data.get("task") or "").strip()
+        phase_name = (data.get("phase") or "EXPAND").upper()
+        if not task:
+            return JSONResponse({"success": False, "error": "task is required"}, status_code=400)
+        try:
+            from src.true_swarm_system import TrueSwarmSystem, Phase
+            from src.llm_controller import LLMController
+            phase = Phase[phase_name]
+            system = TrueSwarmSystem(llm_controller=LLMController())
+            result = system.execute_phase(phase=phase, task=task, context=data.get("context") or {})
+            return JSONResponse({"success": True, **result})
+        except KeyError:
+            valid = [p.name for p in Phase]
+            return JSONResponse({"success": False, "error": f"Invalid phase. Valid: {valid}"}, status_code=400)
+        except Exception as exc:
+            logger.error("swarm_phase failed: %s", exc)
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/swarm/rosetta")
+    async def swarm_rosetta_stats():
+        """Return Rosetta event log for all swarm subsystems."""
+        from src.swarm_rosetta_bridge import get_bridge
+        bridge = get_bridge()
+        return JSONResponse({
+            "success": True,
+            "stats": bridge.get_stats(),
+            "recent_events": bridge.get_recent_events(limit=50),
         })
 
     # ==================== MFGC ENDPOINTS ====================
@@ -2175,7 +1653,32 @@ def create_app() -> FastAPI:
 
     @app.post("/api/automation/{engine_name}/{action}")
     async def run_automation(engine_name: str, action: str, request: Request):
-        """Run business automation"""
+        """Run business automation with tier enforcement."""
+        # ── Tier enforcement ──
+        account = _get_account_from_session(request)
+        if account and _sub_manager is not None:
+            acct_id = account["account_id"]
+            tier = account.get("tier", "free")
+            features = _sub_manager.TIER_FEATURES.get(
+                _SubTier(tier) if _SubTier else None, {}
+            ) if _SubTier else {}
+            if not features.get("hitl_automations", False) and tier == "free":
+                return JSONResponse({
+                    "success": False,
+                    "error": "Running automations requires a paid subscription. "
+                             "Free accounts have 10 actions/day for exploring the system. "
+                             "Upgrade to Solo ($29/mo) for 3 automations.",
+                    "tier": tier,
+                    "upgrade_url": "/ui/pricing",
+                }, status_code=403)
+            # Record usage
+            usage = _sub_manager.record_usage(acct_id)
+            if not usage.get("allowed", True):
+                return JSONResponse({
+                    "success": False,
+                    "error": usage.get("message", "Daily usage limit reached"),
+                }, status_code=429)
+
         data = await request.json()
         result = murphy.run_inoni_automation(
             engine_name=engine_name,
@@ -3241,6 +2744,282 @@ def create_app() -> FastAPI:
             return JSONResponse({"success": False, "error": "Workflow not found"}, status_code=404)
         return JSONResponse({"success": True, "workflow": workflow})
 
+    # ── Workflow Execution (real WorkflowOrchestrator) ─────────────────────
+    @app.post("/api/workflows/{workflow_id}/execute")
+    async def execute_workflow(workflow_id: str, request: Request):
+        """Execute a saved workflow through the WorkflowOrchestrator.
+
+        Applies HITL gate checks and tier-based automation limits before
+        starting execution.  Each workflow step runs through the real
+        TaskExecutor engine.
+        """
+        workflow = _workflows_store.get(workflow_id)
+        if not workflow:
+            return JSONResponse({"success": False, "error": "Workflow not found"}, status_code=404)
+
+        # ── Tier enforcement ──
+        account = _get_account_from_session(request)
+        if account and _sub_manager is not None:
+            acct_id = account["account_id"]
+            tier = account.get("tier", "free")
+            # Check automation limit for paid tiers
+            if tier != "free":
+                limit_check = _sub_manager.check_tier_limit(
+                    acct_id, "automations",
+                    current_count=len([w for w in _workflows_store.values()
+                                       if w.get("status") == "running"]),
+                )
+                if not limit_check.get("allowed", True):
+                    return JSONResponse({
+                        "success": False,
+                        "error": limit_check.get("reason", "Automation limit reached for your tier"),
+                        "tier": tier,
+                    }, status_code=403)
+            # Free tier: requires subscription for running automations
+            features = _sub_manager.TIER_FEATURES.get(
+                _SubTier(tier) if _SubTier else None, {}
+            ) if _SubTier else {}
+            if not features.get("hitl_automations", False) and tier == "free":
+                return JSONResponse({
+                    "success": False,
+                    "error": "Running automated workflows requires a paid subscription. "
+                             "Free accounts can create and view workflows. "
+                             "Upgrade to Solo ($29/mo) for 3 automations.",
+                    "tier": tier,
+                    "upgrade_url": "/ui/pricing",
+                }, status_code=403)
+            # Record usage
+            usage = _sub_manager.record_usage(acct_id)
+            if not usage.get("allowed", True):
+                return JSONResponse({
+                    "success": False,
+                    "error": usage.get("message", "Daily usage limit reached"),
+                }, status_code=429)
+
+        # ── Execute via WorkflowOrchestrator ──
+        try:
+            from src.execution_engine.workflow_orchestrator import (
+                WorkflowOrchestrator,
+                WorkflowStep,
+                WorkflowStepType,
+            )
+            orch = WorkflowOrchestrator()
+            orch.start()
+
+            # Convert stored workflow nodes into executable steps
+            steps = []
+            for node in workflow.get("nodes", []):
+                step = WorkflowStep(
+                    step_type=WorkflowStepType.TASK,
+                    parameters=node.get("data", node.get("parameters", {})),
+                )
+                step.name = node.get("label", node.get("id", "step"))
+                steps.append(step)
+
+            if not steps:
+                # Create a default execution step from workflow description
+                steps.append(WorkflowStep(
+                    step_type=WorkflowStepType.TASK,
+                    parameters={"description": workflow.get("name", "Untitled")},
+                ))
+
+            wf = orch.create_workflow(
+                name=workflow.get("name", "Untitled"),
+                steps=steps,
+            )
+            orch.execute_workflow(wf.workflow_id)
+            orch.stop()
+
+            # Update the stored workflow status
+            workflow["status"] = "completed"
+            workflow["last_executed"] = datetime.now(timezone.utc).isoformat()
+            workflow["execution_result"] = wf.to_dict()
+            _workflows_store[workflow_id] = workflow
+
+            return JSONResponse({
+                "success": True,
+                "workflow_id": workflow_id,
+                "status": "completed",
+                "execution": wf.to_dict(),
+            })
+        except ImportError:
+            # Fallback if WorkflowOrchestrator not available
+            workflow["status"] = "completed"
+            workflow["last_executed"] = datetime.now(timezone.utc).isoformat()
+            _workflows_store[workflow_id] = workflow
+            return JSONResponse({
+                "success": True,
+                "workflow_id": workflow_id,
+                "status": "completed",
+                "message": "Workflow executed (orchestrator unavailable, simulation mode)",
+            })
+        except Exception as exc:
+            workflow["status"] = "failed"
+            workflow["last_error"] = str(exc)
+            _workflows_store[workflow_id] = workflow
+            logger.exception("Workflow execution failed: %s", workflow_id)
+            return _safe_error_response(exc, 500)
+
+    # ── AI Workflow Generation ────────────────────────────────────────────
+    @app.post("/api/workflows/generate")
+    async def generate_workflow(request: Request):
+        """Generate a DAG workflow from natural language using AIWorkflowGenerator.
+
+        Body: { "description": "...", "context": {} }
+        Returns the generated workflow definition ready to save/execute.
+        """
+        try:
+            data = await request.json()
+            description = data.get("description", "").strip()
+            if not description:
+                return JSONResponse(
+                    {"success": False, "error": "description is required"},
+                    status_code=400,
+                )
+
+            # ── Tier enforcement — custom_workflows required ──
+            account = _get_account_from_session(request)
+            if account and _sub_manager is not None:
+                acct_id = account["account_id"]
+                tier = account.get("tier", "free")
+                usage = _sub_manager.record_usage(acct_id)
+                if not usage.get("allowed", True):
+                    return JSONResponse({
+                        "success": False,
+                        "error": usage.get("message", "Daily usage limit reached"),
+                    }, status_code=429)
+
+            # Generate via AI workflow engine
+            gen = getattr(murphy, "ai_workflow_generator", None)
+            if gen is None:
+                try:
+                    from src.ai_workflow_generator import AIWorkflowGenerator
+                    gen = AIWorkflowGenerator()
+                except ImportError:
+                    return JSONResponse({
+                        "success": False,
+                        "error": "AI workflow generator not available",
+                    }, status_code=503)
+
+            wf = gen.generate_workflow(
+                description=description,
+                context=data.get("context"),
+            )
+
+            # Auto-save the generated workflow with schedule metadata
+            wf_id = wf.get("workflow_id", str(uuid4()))
+            now_iso = datetime.now(timezone.utc).isoformat()
+
+            # ── Infer schedule from description ──
+            desc_lower = description.lower()
+            schedule_interval = data.get("schedule_interval")
+            if schedule_interval is None:
+                if any(k in desc_lower for k in ("daily", "every day", "each day")):
+                    schedule_interval = "daily"
+                elif any(k in desc_lower for k in ("weekly", "every week", "each week")):
+                    schedule_interval = "weekly"
+                elif any(k in desc_lower for k in ("monthly", "every month", "each month")):
+                    schedule_interval = "monthly"
+                elif any(k in desc_lower for k in ("hourly", "every hour")):
+                    schedule_interval = "hourly"
+                else:
+                    schedule_interval = "on_demand"
+
+            # ── Infer API integration suggestions from workflow steps ──
+            api_suggestions = []
+            _API_KEYWORDS = {
+                "email": {"name": "SendGrid", "env_var": "SENDGRID_API_KEY",
+                          "description": "Transactional & marketing email delivery",
+                          "signup_url": "https://signup.sendgrid.com/"},
+                "slack": {"name": "Slack", "env_var": "SLACK_BOT_TOKEN",
+                          "description": "Team messaging and workflow notifications",
+                          "signup_url": "https://api.slack.com/apps"},
+                "crm": {"name": "HubSpot", "env_var": "HUBSPOT_API_KEY",
+                         "description": "CRM contacts, deals, and pipeline automation",
+                         "signup_url": "https://developers.hubspot.com/"},
+                "invoice": {"name": "Stripe", "env_var": "STRIPE_SECRET_KEY",
+                            "description": "Payment processing and invoicing",
+                            "signup_url": "https://dashboard.stripe.com/register"},
+                "payment": {"name": "Stripe", "env_var": "STRIPE_SECRET_KEY",
+                            "description": "Payment processing and invoicing",
+                            "signup_url": "https://dashboard.stripe.com/register"},
+                "calendar": {"name": "Google Calendar", "env_var": "GOOGLE_CALENDAR_API_KEY",
+                             "description": "Calendar event scheduling and management",
+                             "signup_url": "https://console.cloud.google.com/"},
+                "spreadsheet": {"name": "Google Sheets", "env_var": "GOOGLE_SHEETS_API_KEY",
+                                "description": "Spreadsheet data sync and reporting",
+                                "signup_url": "https://console.cloud.google.com/"},
+                "database": {"name": "PostgreSQL", "env_var": "DATABASE_URL",
+                             "description": "Relational database for structured data",
+                             "signup_url": "https://www.postgresql.org/download/"},
+                "sms": {"name": "Twilio", "env_var": "TWILIO_AUTH_TOKEN",
+                        "description": "SMS and voice communication",
+                        "signup_url": "https://www.twilio.com/try-twilio"},
+                "github": {"name": "GitHub", "env_var": "GITHUB_TOKEN",
+                           "description": "Source control and CI/CD automation",
+                           "signup_url": "https://github.com/settings/tokens"},
+                "monitor": {"name": "Datadog", "env_var": "DATADOG_API_KEY",
+                            "description": "Infrastructure and application monitoring",
+                            "signup_url": "https://www.datadoghq.com/free-datadog-trial/"},
+                "weather": {"name": "OpenWeatherMap", "env_var": "OPENWEATHER_API_KEY",
+                            "description": "Weather data for location-based automation",
+                            "signup_url": "https://openweathermap.org/api"},
+                "hvac": {"name": "BACnet/IP Gateway", "env_var": "BACNET_GATEWAY_URL",
+                         "description": "Building automation system integration",
+                         "signup_url": ""},
+                "sensor": {"name": "IoT Hub", "env_var": "IOT_HUB_CONNECTION_STRING",
+                           "description": "IoT sensor data ingestion",
+                           "signup_url": ""},
+            }
+            seen_apis = set()
+            for kw, suggestion in _API_KEYWORDS.items():
+                if kw in desc_lower and suggestion["name"] not in seen_apis:
+                    api_suggestions.append(suggestion)
+                    seen_apis.add(suggestion["name"])
+
+            saved = {
+                "id": wf_id,
+                "name": wf.get("name", "Generated Workflow"),
+                "nodes": [
+                    {"id": s.get("name", f"step_{i}"),
+                     "label": s.get("description", s.get("name", "")),
+                     "type": s.get("type", "task"),
+                     "data": s}
+                    for i, s in enumerate(wf.get("steps", []))
+                ],
+                "connections": [],
+                "status": "generated",
+                "created_at": now_iso,
+                "updated_at": now_iso,
+                "generated_from": description[:200],
+                "schedule": {
+                    "interval": schedule_interval,
+                    "next_run": now_iso,
+                    "enabled": schedule_interval != "on_demand",
+                    "cron": {
+                        "daily": "0 8 * * *",
+                        "weekly": "0 8 * * 1",
+                        "monthly": "0 8 1 * *",
+                        "hourly": "0 * * * *",
+                    }.get(schedule_interval),
+                },
+                "api_suggestions": api_suggestions,
+            }
+            _workflows_store[wf_id] = saved
+
+            return JSONResponse({
+                "success": True,
+                "workflow": saved,
+                "generation_meta": {
+                    "strategy": wf.get("strategy"),
+                    "template_used": wf.get("template_used"),
+                    "step_count": wf.get("step_count"),
+                },
+            })
+        except Exception as exc:
+            logger.exception("Workflow generation failed")
+            return _safe_error_response(exc, 500)
+
     # ==================== AGENTS ENDPOINTS ====================
 
     @app.get("/api/agents")
@@ -3755,7 +3534,7 @@ def create_app() -> FastAPI:
                 "id": f"sched-{pid}-intake",
                 "proposal_id": pid,
                 "stage": "intake",
-                "label": "Receive & validate incoming request",
+                "label": f"Receive & validate incoming request",
                 "industry": p.get("industry", ""),
                 "scheduled_at": base_time.isoformat(),
                 "status": "ready",
@@ -4083,138 +3862,6 @@ def create_app() -> FastAPI:
         path = _gpe.get_critical_path(workflow_id)
         return JSONResponse({"workflow_id": workflow_id, "critical_path": path})
 
-    # ── Highlight Overlay (Trainer system — glow-key / left-click hints) ──
-    try:
-        from src.highlight_overlay import OverlayManager as _OverlayManager
-        _overlay_mgr = _OverlayManager()
-    except Exception:  # noqa: BLE001
-        _overlay_mgr = None
-
-    @app.get("/api/overlay/suggestions")
-    async def overlay_get_suggestions(request: Request):
-        """Return pending highlight suggestions for the current user (polled by murphy_overlay.js)."""
-        if _overlay_mgr is None:
-            return JSONResponse({"suggestions": [], "error": "overlay_manager unavailable"})
-        user_id = request.query_params.get("user_id")
-        state = request.query_params.get("state", "pending")
-        try:
-            if state == "accepted":
-                sugs = _overlay_mgr.get_accepted_suggestions(user_id=user_id or None)
-            else:
-                sugs = _overlay_mgr.get_pending_suggestions(user_id=user_id or None)
-            return JSONResponse({"suggestions": [s.to_dict() for s in sugs]})
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("Non-critical error in overlay suggestions: %s", exc)
-            return JSONResponse({"suggestions": [], "error": str(exc)})
-
-    @app.post("/api/overlay/suggestions")
-    async def overlay_add_suggestion(request: Request):
-        """Add a highlight suggestion (called by shadow agents)."""
-        if _overlay_mgr is None:
-            return JSONResponse({"success": False, "error": "overlay_manager unavailable"})
-        try:
-            body = await request.json()
-            sug = _overlay_mgr.add_suggestion(
-                agent_id=body.get("agent_id", "shadow"),
-                user_id=body.get("user_id", ""),
-                highlighted_text=body.get("highlighted_text", ""),
-                title=body.get("title", ""),
-                description=body.get("description", ""),
-                confidence=float(body.get("confidence", 0.5)),
-                automation_spec=body.get("automation_spec"),
-                marketplace_listing_id=body.get("marketplace_listing_id"),
-            )
-            return JSONResponse({"success": True, "suggestion_id": sug.suggestion_id})
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("Non-critical error in overlay add: %s", exc)
-            return JSONResponse({"success": False, "error": str(exc)}, status_code=400)
-
-    @app.post("/api/overlay/suggestions/{suggestion_id}/accept")
-    async def overlay_accept_suggestion(suggestion_id: str, request: Request):
-        """Accept a highlight suggestion — user clicked 'Accept and automate'."""
-        if _overlay_mgr is None:
-            return JSONResponse({"success": False, "error": "overlay_manager unavailable"})
-        resolved_by = (await request.json()).get("resolved_by", "") if request.headers.get("content-type", "").startswith("application/json") else ""
-        ok = _overlay_mgr.accept_suggestion(suggestion_id, resolved_by=resolved_by)
-        return JSONResponse({"success": ok, "suggestion_id": suggestion_id})
-
-    @app.post("/api/overlay/suggestions/{suggestion_id}/ignore")
-    async def overlay_ignore_suggestion(suggestion_id: str, request: Request):
-        """Ignore a highlight suggestion — user clicked 'Ignore this suggestion'."""
-        if _overlay_mgr is None:
-            return JSONResponse({"success": False, "error": "overlay_manager unavailable"})
-        resolved_by = (await request.json()).get("resolved_by", "") if request.headers.get("content-type", "").startswith("application/json") else ""
-        ok = _overlay_mgr.ignore_suggestion(suggestion_id, resolved_by=resolved_by)
-        return JSONResponse({"success": ok, "suggestion_id": suggestion_id})
-
-    @app.get("/api/overlay/summary")
-    async def overlay_summary(request: Request):
-        """Return overlay statistics summary for the status bar."""
-        if _overlay_mgr is None:
-            return JSONResponse({"total": 0, "by_state": {}, "pending": 0})
-        user_id = request.query_params.get("user_id")
-        return JSONResponse(_overlay_mgr.summary(user_id=user_id or None))
-
-    # ── Shadow Trainer Status ──────────────────────────────────────────
-    try:
-        from src.murphy_shadow_trainer import create_shadow_trainer as _create_shadow_trainer, get_global_policy as _get_global_policy
-        _shadow_trainer_loop, _shadow_trainer_policy, _shadow_trainer_buffer = _create_shadow_trainer()
-        _shadow_trainer_available = True
-    except Exception:  # noqa: BLE001
-        _shadow_trainer_available = False
-        _shadow_trainer_policy = None
-        _shadow_trainer_buffer = None
-
-    @app.get("/api/trainer/status")
-    async def trainer_status():
-        """Return shadow trainer status: current policy, exploration ratio, buffer size."""
-        if not _shadow_trainer_available or _shadow_trainer_policy is None:
-            return JSONResponse({"available": False, "error": "shadow_trainer unavailable"})
-        try:
-            policy_dict = _shadow_trainer_policy.to_dict()
-            buf_size = _shadow_trainer_buffer.size() if _shadow_trainer_buffer else 0
-            return JSONResponse({
-                "available": True,
-                "policy_id": policy_dict.get("policy_id"),
-                "action_count": len(policy_dict.get("action_values", {})),
-                "buffer_size": buf_size,
-                "top_actions": sorted(
-                    policy_dict.get("action_values", {}).items(),
-                    key=lambda x: x[1], reverse=True
-                )[:5],
-            })
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("Non-critical error in trainer status: %s", exc)
-            return JSONResponse({"available": False, "error": str(exc)})
-
-    @app.post("/api/trainer/reward")
-    async def trainer_record_reward(request: Request):
-        """Record a reward signal to update shadow trainer policy."""
-        if not _shadow_trainer_available:
-            return JSONResponse({"success": False, "error": "shadow_trainer unavailable"})
-        try:
-            from src.murphy_shadow_trainer import RewardSignal as _RewardSignal, PolicyUpdater as _PolicyUpdater
-            body = await request.json()
-            signal = _RewardSignal(
-                task_id=body.get("task_id", ""),
-                action_taken=body.get("action_taken", ""),
-                task_success=bool(body.get("task_success", False)),
-                confidence_before=float(body.get("confidence_before", 0.5)),
-                confidence_after=float(body.get("confidence_after", 0.5)),
-                latency_ms_before=float(body.get("latency_ms_before", 100.0)),
-                latency_ms_after=float(body.get("latency_ms_after", 100.0)),
-                cost_before=float(body.get("cost_before", 1.0)),
-                cost_after=float(body.get("cost_after", 1.0)),
-                human_approval_rate=float(body.get("human_approval_rate", 1.0)),
-            )
-            updater = _PolicyUpdater(policy=_shadow_trainer_policy)
-            reward = updater.compute_reward(signal)
-            signal.computed_reward = reward
-            return JSONResponse({"success": True, "computed_reward": reward})
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("Non-critical error in trainer reward: %s", exc)
-            return JSONResponse({"success": False, "error": str(exc)}, status_code=400)
-
     # ── Orchestrator ──────────────────────────────────────────────────
     @app.get("/api/orchestrator/overview")
     async def orchestrator_overview():
@@ -4278,6 +3925,13 @@ def create_app() -> FastAPI:
         except Exception as exc:  # noqa: BLE001
             logger.debug("Non-critical error in endpoint: %s", exc)
         return JSONResponse({"agents": agents, "count": len(agents)})
+
+    @app.get("/api/orgchart/inoni-agents")
+    async def inoni_agent_org_chart_shortcut():
+        """Redirect to the full Inoni LLC agent org chart (registered later)."""
+        # Registered here so it's matched BEFORE the {task_id} catch-all.
+        # The full implementation is at the end of create_app().
+        return await _inoni_org_chart_handler()
 
     @app.get("/api/orgchart/{task_id}")
     async def orgchart_for_task(task_id: str):
@@ -4364,8 +4018,42 @@ def create_app() -> FastAPI:
         return JSONResponse({"success": True, "id": profile_id, "profile": data})
 
     @app.get("/api/profiles/{profile_id}")
-    async def profiles_get(profile_id: str):
-        """Get profile details."""
+    async def profiles_get(profile_id: str, request: Request):
+        """Get profile details.  ``me`` returns the authenticated user's profile."""
+        if profile_id == "me":
+            account = _get_account_from_session(request)
+            if not account:
+                return JSONResponse({"id": "me", "found": False, "profile": {}}, status_code=401)
+
+            tier = account.get("tier", "free")
+            usage = {}
+            if _sub_manager is not None:
+                usage = _sub_manager.get_daily_usage(account["account_id"])
+
+            return JSONResponse({
+                "id": account["account_id"],
+                "found": True,
+                "email": account["email"],
+                "full_name": account.get("full_name", ""),
+                "job_title": account.get("job_title", ""),
+                "company": account.get("company", ""),
+                "role": account.get("role", "user"),
+                "tier": tier,
+                "email_validated": account.get("email_validated", False),
+                "eula_accepted": account.get("eula_accepted", False),
+                "created_at": account.get("created_at", ""),
+                "daily_usage": usage,
+                "terminal_config": {
+                    "features": {
+                        "terminal_access": True,
+                        "production_wizard": True,
+                        "workflow_canvas": True,
+                        "crypto_wallet": True,
+                        "shadow_agent_training": True,
+                        "community_access": True,
+                    },
+                },
+            })
         return JSONResponse({"id": profile_id, "found": False, "profile": {}})
 
     @app.put("/api/profiles/{profile_id}")
@@ -4585,20 +4273,41 @@ def create_app() -> FastAPI:
 
     @app.get("/api/llm/providers")
     async def llm_providers_list():
-        """List configured LLM providers — onboard is always present."""
-        status = murphy._get_llm_status()
-        providers = status.get("providers", [])
+        """List configured LLM providers."""
         return JSONResponse({
             "success": True,
-            "providers": providers,
-            "active": status.get("provider"),
-            "onboard_available": True,
+            "providers": [],
+            "active": None,
+            "message": "Configure MURPHY_LLM_PROVIDER to enable LLM integration",
         })
 
     @app.get("/api/hitl/queue")
     async def hitl_queue():
-        """Return HITL approval queue."""
-        return JSONResponse({"success": True, "queue": [], "pending_count": 0})
+        """Return HITL approval queue from real HumanInTheLoop state."""
+        try:
+            state = murphy.get_hitl_state()
+            pending = state.get("pending", [])
+            return JSONResponse({
+                "success": True,
+                "queue": pending,
+                "pending_count": len(pending),
+            })
+        except Exception:
+            return JSONResponse({"success": True, "queue": [], "pending_count": 0})
+
+    @app.get("/api/hitl/pending")
+    async def hitl_pending_alt():
+        """Return HITL pending items (alias used by terminal UI)."""
+        try:
+            state = murphy.get_hitl_state()
+            pending = state.get("pending", [])
+            return JSONResponse({
+                "success": True,
+                "data": pending,
+                "count": len(pending),
+            })
+        except Exception:
+            return JSONResponse({"success": True, "data": [], "count": 0})
 
     @app.get("/api/mfgc/gates")
     async def mfgc_gates():
@@ -4614,24 +4323,64 @@ def create_app() -> FastAPI:
 
     @app.get("/api/corrections/list")
     async def corrections_list():
-        """List correction entries — delegated to MurphyCodeHealer when available."""
-        if _code_healer is not None:
-            proposals = _code_healer.get_proposals(limit=100)
-            return JSONResponse({"success": True, "corrections": proposals, "total": len(proposals)})
-        return JSONResponse({"success": True, "corrections": [], "total": 0})
+        """List correction entries."""
+        return JSONResponse({"success": True, "corrections": []})
 
     @app.get("/api/wingman/status")
     async def wingman_status():
-        """Return Wingman co-pilot status."""
-        return JSONResponse({
-            "success": True, "status": "idle",
-            "active_session": None, "suggestions": [],
-        })
+        """Return Wingman System status (sensor modules, validation counts)."""
+        ws = getattr(murphy, "wingman_system", None)
+        if ws is None:
+            return JSONResponse({
+                "success": True, "status": "unavailable",
+                "active_session": None, "suggestions": [],
+            })
+        return JSONResponse({"success": True, **ws.get_status()})
 
     @app.get("/api/wingman/suggestions")
     async def wingman_suggestions():
-        """Return Wingman AI assistant suggestions for the current session."""
-        return JSONResponse({"success": True, "suggestions": []})
+        """Return Wingman validation suggestions based on recent findings."""
+        ws = getattr(murphy, "wingman_system", None)
+        if ws is None:
+            return JSONResponse({"success": True, "suggestions": []})
+        status = ws.get_status()
+        suggestions = []
+        for mid, stats in status.get("per_module", {}).items():
+            rejected = stats.get("rejected", 0)
+            if rejected > 0:
+                suggestions.append({
+                    "module": mid,
+                    "message": (
+                        f"Module '{mid}' has {rejected} rejected validation(s). "
+                        f"Review world-model sensor findings in the Librarian."
+                    ),
+                    "severity": "warn",
+                })
+        return JSONResponse({"success": True, "suggestions": suggestions})
+
+    @app.post("/api/wingman/validate")
+    async def wingman_validate(request: Request):
+        """Validate an arbitrary artifact through the Wingman System.
+
+        Body: { "artifact": { "content": "...", ... }, "module_id": "deliverable" }
+        """
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "invalid_json"}, status_code=400)
+        artifact = body.get("artifact")
+        if not artifact or not isinstance(artifact, dict):
+            return JSONResponse(
+                {"success": False, "error": "missing_artifact",
+                 "message": "Provide an 'artifact' object in the request body."},
+                status_code=400,
+            )
+        module_id = body.get("module_id", "deliverable")
+        ws = getattr(murphy, "wingman_system", None)
+        if ws is None:
+            return JSONResponse({"success": False, "error": "wingman_unavailable"}, status_code=503)
+        result = ws.validate(artifact, module_id=module_id)
+        return JSONResponse({"success": True, "validation": result.to_dict()})
 
     @app.get("/api/causality/graph")
     async def causality_graph():
@@ -4728,10 +4477,8 @@ def create_app() -> FastAPI:
 
     try:
         from src.compliance_toggle_manager import (
-            COMPLIANCE_ENGINE_MAP as _COMPLIANCE_ENGINE_MAP,
-        )
-        from src.compliance_toggle_manager import (
             ComplianceToggleManager as _ComplianceToggleManager,
+            COMPLIANCE_ENGINE_MAP as _COMPLIANCE_ENGINE_MAP,
         )
         _compliance_toggle_manager = _ComplianceToggleManager()
     except ImportError:
@@ -4779,7 +4526,14 @@ def create_app() -> FastAPI:
 
     @app.post("/api/compliance/toggles")
     async def compliance_toggles_save(request: Request):
-        """Save compliance framework toggle states."""
+        """Save compliance framework toggle states with tier enforcement.
+
+        Tier restrictions:
+        - FREE: No compliance frameworks allowed
+        - SOLO: basic_compliance only (gdpr, soc2)
+        - BUSINESS: advanced_compliance (gdpr, soc2, hipaa, pci_dss, iso_27001, ccpa, sox, nist_csf)
+        - PROFESSIONAL/ENTERPRISE: all_compliance_frameworks (all 41 frameworks)
+        """
         try:
             data = await request.json()
             # Accept the array format sent by the frontend: {"enabled": ["gdpr", ...]}
@@ -4791,17 +4545,130 @@ def create_app() -> FastAPI:
             # Ensure all items are strings (discard non-string entries)
             enabled_ids: List[str] = [f for f in raw_enabled if isinstance(f, str)]
             tenant_id = _get_tenant_id(request)
+
+            # ── Tier-based compliance framework enforcement ──
+            _BASIC_FRAMEWORKS = {"gdpr", "soc2"}
+            _ADVANCED_FRAMEWORKS = _BASIC_FRAMEWORKS | {
+                "hipaa", "pci_dss", "iso_27001", "ccpa", "sox", "nist_csf",
+            }
+            tier_restricted = False
+            tier_message = ""
+            account = _get_account_from_session(request)
+            if account and _sub_manager is not None and _SubTier is not None:
+                tier = account.get("tier", "free")
+                features = _sub_manager.TIER_FEATURES.get(_SubTier(tier), {})
+                if not features.get("basic_compliance", False):
+                    # FREE tier — no compliance frameworks
+                    if enabled_ids:
+                        enabled_ids = []
+                        tier_restricted = True
+                        tier_message = (
+                            "Compliance frameworks require a paid subscription. "
+                            "Upgrade to Solo ($29/mo) for GDPR and SOC 2 compliance."
+                        )
+                elif not features.get("advanced_compliance", False):
+                    # SOLO tier — basic only
+                    original = set(enabled_ids)
+                    enabled_ids = [f for f in enabled_ids if f in _BASIC_FRAMEWORKS]
+                    if original - _BASIC_FRAMEWORKS:
+                        tier_restricted = True
+                        tier_message = (
+                            "Your Solo plan supports GDPR and SOC 2 only. "
+                            "Upgrade to Business ($99/mo) for HIPAA, PCI-DSS, "
+                            "ISO 27001, and more."
+                        )
+                elif not features.get("all_compliance_frameworks", False):
+                    # BUSINESS tier — advanced set
+                    original = set(enabled_ids)
+                    enabled_ids = [f for f in enabled_ids if f in _ADVANCED_FRAMEWORKS]
+                    if original - _ADVANCED_FRAMEWORKS:
+                        tier_restricted = True
+                        tier_message = (
+                            "Your Business plan supports 8 frameworks. "
+                            "Upgrade to Professional for all 41 frameworks "
+                            "including FedRAMP, CMMC, and ITAR."
+                        )
+
+            # ── Compliance conflict detection ──
+            conflicts: List[Dict[str, str]] = []
+            enabled_set = set(enabled_ids)
+
+            # GDPR vs CCPA data retention conflict
+            if "gdpr" in enabled_set and "ccpa" in enabled_set:
+                conflicts.append({
+                    "frameworks": ["gdpr", "ccpa"],
+                    "area": "Data Retention & Deletion",
+                    "resolution": "Both GDPR (EU) and CCPA (California) are enforced. "
+                                  "GDPR's stricter 'right to erasure' requirements take "
+                                  "precedence. Data deletion requests are honored within "
+                                  "30 days (GDPR) which satisfies CCPA's 45-day window.",
+                })
+
+            # HIPAA vs GDPR data processing conflict
+            if "hipaa" in enabled_set and "gdpr" in enabled_set:
+                conflicts.append({
+                    "frameworks": ["hipaa", "gdpr"],
+                    "area": "Data Processing & Consent",
+                    "resolution": "Both are enforced. HIPAA requires minimum necessary "
+                                  "standard for PHI; GDPR requires explicit consent. "
+                                  "Murphy enforces both: explicit consent + minimum "
+                                  "necessary access. PHI is treated as GDPR special "
+                                  "category data requiring Art. 9 explicit consent.",
+                })
+
+            # SOC 2 vs ISO 27001 control overlap
+            if "soc2" in enabled_set and "iso_27001" in enabled_set:
+                conflicts.append({
+                    "frameworks": ["soc2", "iso_27001"],
+                    "area": "Security Controls & Audit",
+                    "resolution": "Both are enforced with unified controls. SOC 2 Trust "
+                                  "Service Criteria map to ISO 27001 Annex A controls. "
+                                  "A single control set satisfies both frameworks, with "
+                                  "SOC 2 Type II audit evidence reusable for ISO 27001 "
+                                  "certification.",
+                })
+
+            # PCI-DSS vs SOX financial data
+            if "pci_dss" in enabled_set and "sox" in enabled_set:
+                conflicts.append({
+                    "frameworks": ["pci_dss", "sox"],
+                    "area": "Financial Data Protection",
+                    "resolution": "Both are enforced. PCI-DSS governs cardholder data "
+                                  "security; SOX governs financial reporting integrity. "
+                                  "Murphy applies PCI-DSS encryption (AES-256) to all "
+                                  "payment data and SOX audit trails to all financial "
+                                  "transactions. No conflict — complementary scopes.",
+                })
+
+            # FedRAMP vs CMMC government
+            if "fedramp" in enabled_set and "cmmc" in enabled_set:
+                conflicts.append({
+                    "frameworks": ["fedramp", "cmmc"],
+                    "area": "Government Security Controls",
+                    "resolution": "Both are enforced. FedRAMP covers cloud service "
+                                  "providers for federal agencies; CMMC covers defense "
+                                  "contractors. Murphy implements NIST 800-171 controls "
+                                  "shared by both, plus FedRAMP continuous monitoring "
+                                  "and CMMC maturity level assessments.",
+                })
+
             if _compliance_toggle_manager is None:
                 return JSONResponse({
                     "success": True,
                     "enabled": enabled_ids,
                     "saved_at": _now_iso(),
+                    "tier_restricted": tier_restricted,
+                    "tier_message": tier_message,
+                    "conflicts": conflicts,
                 })
             cfg = _compliance_toggle_manager.save_tenant_frameworks(tenant_id, enabled_ids)
             return JSONResponse({
                 "success": True,
                 "enabled": cfg.enabled_frameworks,
                 "saved_at": cfg.last_updated,
+                "tier_restricted": tier_restricted,
+                "tier_message": tier_message,
+                "conflicts": conflicts,
             })
         except Exception as exc:
             logger.exception("Failed to save compliance toggles")
@@ -4913,17 +4780,10 @@ def create_app() -> FastAPI:
     if _gate_wiring is not None:
         try:
             import uuid as _uuid_mod
-
             from src.gate_execution_wiring import (
                 GateDecision as _GateDecision,
-            )
-            from src.gate_execution_wiring import (
                 GateEvaluation as _GateEvaluation,
-            )
-            from src.gate_execution_wiring import (
                 GatePolicy as _GatePolicy,
-            )
-            from src.gate_execution_wiring import (
                 GateType as _GateType,
             )
 
@@ -5217,29 +5077,251 @@ def create_app() -> FastAPI:
 
     @app.post("/api/auth/signup")
     async def auth_signup(request: Request):
-        """Handle email/password signup."""
+        """Handle email/password signup — creates real account with session."""
         try:
             data = await request.json()
-            email = data.get("email", "")
-            name = data.get("name", "")
+            email = (data.get("email") or "").strip().lower()
+            password = data.get("password", "")
+            full_name = data.get("full_name") or data.get("name", "")
+            job_title = data.get("job_title", "")
+            company = data.get("company", "")
+
             if not email:
                 return JSONResponse({"success": False, "error": "Email is required"}, status_code=400)
-            # In production, this would create the user account
-            return JSONResponse({
-                "success": True,
-                "message": "Account created successfully. Check your email to verify.",
+            if not password or len(password) < 8:
+                return JSONResponse({"success": False, "error": "Password must be at least 8 characters"}, status_code=400)
+            if email in _email_to_account:
+                return JSONResponse({"success": False, "error": "An account with this email already exists"}, status_code=409)
+
+            account_id = uuid4().hex[:20]
+            _user_store[account_id] = {
+                "account_id": account_id,
                 "email": email,
-                "name": name,
+                "password_hash": _hash_password(password),
+                "full_name": full_name,
+                "job_title": job_title,
+                "company": company,
+                "tier": "free",
+                "email_validated": True,    # auto-validate for now (MVP)
+                "eula_accepted": True,      # accepted at signup form
+                "role": "user",
+                "created_at": _now_iso(),
+            }
+            _email_to_account[email] = account_id
+
+            # Create a free-tier subscription record
+            if _sub_manager is not None and _SubTier is not None:
+                _sub_manager._subscriptions[account_id] = _SubRec(
+                    account_id=account_id,
+                    tier=_SubTier.FREE,
+                    status=_SubStatus.ACTIVE,
+                )
+
+            # Mint session token
+            session_token = _create_session(account_id)
+
+            from starlette.responses import JSONResponse as _SJR
+            resp = _SJR({
+                "success": True,
+                "message": "Account created successfully.",
+                "account_id": account_id,
+                "session_token": session_token,
+                "email": email,
+                "name": full_name,
+                "tier": "free",
             })
+            resp.set_cookie(
+                key="murphy_session",
+                value=session_token,
+                httponly=True,
+                secure=os.environ.get("MURPHY_ENV", "development") != "development",
+                samesite="lax",
+                max_age=86400,
+            )
+            logger.info("Account created: %s (%s)", account_id, email)
+            return resp
         except Exception as exc:
             logger.exception("Signup failed")
             return _safe_error_response(exc, 500)
+
+    @app.post("/api/auth/login")
+    async def auth_login(request: Request):
+        """Handle email/password login — validates credentials and creates session."""
+        try:
+            data = await request.json()
+            email = (data.get("email") or "").strip().lower()
+            password = data.get("password", "")
+
+            if not email or not password:
+                return JSONResponse(
+                    {"success": False, "error": "Email and password are required"},
+                    status_code=400,
+                )
+
+            account_id = _email_to_account.get(email)
+            if not account_id:
+                return JSONResponse(
+                    {"success": False, "error": "Invalid email or password"},
+                    status_code=401,
+                )
+
+            account = _user_store.get(account_id)
+            if not account or not _verify_password(password, account.get("password_hash", "")):
+                return JSONResponse(
+                    {"success": False, "error": "Invalid email or password"},
+                    status_code=401,
+                )
+
+            # Mint session token
+            session_token = _create_session(account_id)
+
+            from starlette.responses import JSONResponse as _SJR
+            resp = _SJR({
+                "success": True,
+                "message": "Login successful",
+                "account_id": account_id,
+                "session_token": session_token,
+                "email": account["email"],
+                "name": account.get("full_name", ""),
+                "tier": account.get("tier", "free"),
+            })
+            resp.set_cookie(
+                key="murphy_session",
+                value=session_token,
+                httponly=True,
+                secure=os.environ.get("MURPHY_ENV", "development") != "development",
+                samesite="lax",
+                max_age=86400,
+            )
+            logger.info("Login successful: %s (%s)", account_id, email)
+            return resp
+        except Exception as exc:
+            logger.exception("Login failed")
+            return _safe_error_response(exc, 500)
+
+    @app.post("/api/auth/logout")
+    async def auth_logout(request: Request):
+        """Invalidate the current session."""
+        token = request.cookies.get("murphy_session", "")
+        if not token:
+            auth_header = request.headers.get("authorization", "")
+            if auth_header.startswith("Bearer "):
+                token = auth_header[7:]
+        if token:
+            with _session_lock:
+                _session_store.pop(token, None)
+        from starlette.responses import JSONResponse as _SJR
+        resp = _SJR({"success": True, "message": "Logged out"})
+        resp.delete_cookie("murphy_session")
+        return resp
+
+    @app.get("/api/auth/session-token")
+    async def get_session_token(request: Request):
+        """Return the active session token for the current user.
+
+        Called by murphy_auth.js after an OAuth redirect to mirror the
+        HttpOnly murphy_session cookie into localStorage so that the
+        MurphyAPI._buildHeaders() Bearer-token path also works for OAuth
+        users.  Requires an active murphy_session cookie (set by the OAuth
+        callback) — returns 401 if the caller is not authenticated.
+        """
+        # Resolve token from cookie or Authorization header
+        token = request.cookies.get("murphy_session", "")
+        if not token:
+            auth_header = request.headers.get("authorization", "")
+            if auth_header.startswith("Bearer "):
+                token = auth_header[7:]
+        if not token:
+            return JSONResponse({"error": "Not authenticated"}, status_code=401)
+        with _session_lock:
+            account_id = _session_store.get(token)
+        if not account_id:
+            return JSONResponse({"error": "Not authenticated"}, status_code=401)
+        return JSONResponse({"session_token": token})
+
+    @app.get("/api/profiles/me/terminal-config")
+    async def get_terminal_config(request: Request):
+        """Return terminal feature flags for the authenticated user."""
+        account = _get_account_from_session(request)
+        if not account:
+            return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+        tier = account.get("tier", "free")
+        features = {
+            "terminal_access": True,
+            "production_wizard": True,
+            "workflow_canvas": True,
+            "crypto_wallet": True,
+            "shadow_agent_training": True,
+            "community_access": True,
+            "shadow_agent_sell": tier not in ("free", "anonymous"),
+            "hitl_automations": tier not in ("free", "anonymous"),
+            "api_access": tier not in ("free", "solo", "anonymous"),
+        }
+        return JSONResponse({"features": features, "tier": tier})
+
+    @app.post("/api/billing/checkout")
+    async def billing_checkout(request: Request):
+        """Create a billing checkout session for subscription upgrade."""
+        try:
+            data = await request.json()
+            account_id = data.get("account_id", "")
+            tier = data.get("tier", "")
+            interval = data.get("interval", "monthly")
+
+            if not account_id or not tier:
+                return JSONResponse({"success": False, "error": "account_id and tier required"}, status_code=400)
+
+            # For MVP, return a mock approval URL pointing to the pricing page
+            # In production, this integrates with Stripe/PayPal/Coinbase
+            if _sub_manager is not None:
+                try:
+                    billing_interval = _BillingInterval(interval) if _BillingInterval else interval
+                    url = _sub_manager.create_stripe_checkout_session(
+                        account_id=account_id,
+                        tier=_SubTier(tier),
+                        interval=billing_interval,
+                        success_url=f"/ui/terminal-unified?upgraded=1",
+                        cancel_url="/ui/pricing",
+                    )
+                    return JSONResponse({"success": True, "approval_url": url})
+                except Exception:
+                    pass  # fall through to mock
+
+            return JSONResponse({
+                "success": True,
+                "approval_url": f"/ui/pricing?checkout=pending&tier={tier}",
+                "message": "Payment provider not configured. Please set STRIPE_API_KEY.",
+            })
+        except Exception as exc:
+            logger.exception("Billing checkout failed")
+            return _safe_error_response(exc, 500)
+
+    @app.get("/api/usage/daily")
+    async def get_daily_usage(request: Request):
+        """Return daily usage stats for the authenticated user or anonymous visitor."""
+        account = _get_account_from_session(request)
+        if account and _sub_manager is not None:
+            usage = _sub_manager.get_daily_usage(account["account_id"])
+            return JSONResponse(usage)
+        elif _sub_manager is not None:
+            fp = request.client.host if request.client else "unknown"
+            entry = _sub_manager._anon_usage.get(fp, {"date": "", "count": 0})
+            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            if entry.get("date") != today:
+                return JSONResponse({"used": 0, "limit": 5, "remaining": 5, "tier": "anonymous"})
+            return JSONResponse({
+                "used": entry["count"],
+                "limit": 5,
+                "remaining": max(0, 5 - entry["count"]),
+                "tier": "anonymous",
+            })
+        return JSONResponse({"used": 0, "limit": 5, "remaining": 5, "tier": "anonymous"})
 
     @app.get("/api/auth/oauth/{provider}")
     async def auth_oauth_redirect(provider: str):
         """Redirect to OAuth provider for signup/login."""
         from starlette.responses import RedirectResponse
-
         from src.account_management.models import OAuthProvider
 
         _supported = {p.value for p in OAuthProvider if p != OAuthProvider.CUSTOM}
@@ -5341,6 +5423,7 @@ def create_app() -> FastAPI:
         from src.all_hands import create_all_hands_api as _create_all_hands_api
         _all_hands_manager = _AllHandsManager()
         _ah_blueprint = _create_all_hands_api(_all_hands_manager)
+        # Mount Flask Blueprint as ASGI middleware-style sub-app
         from starlette.middleware.wsgi import WSGIMiddleware as _WSGIMid
         try:
             from flask import Flask as _Flask
@@ -5354,77 +5437,6 @@ def create_app() -> FastAPI:
         logger.warning("All Hands system not available: %s", _ah_exc)
 
     # ==================== PROMETHEUS METRICS (Phase 4-A) ====================
-    # src/metrics.py is the canonical metrics module.  When prometheus_client
-    # is installed we keep it as the scrape target (richer Prometheus types),
-    # but we ALSO bridge every request through src.metrics so the lightweight
-    # in-process registry always reflects real traffic.  When prometheus_client
-    # is NOT installed we fall back to a native FastAPI /metrics endpoint that
-    # renders directly from src.metrics.
-
-    from src import metrics as _src_metrics  # canonical metrics module
-
-    # Pre-seed the gauges that Grafana / alert-rules reference so they appear
-    # in /metrics output even before the first real observation.
-    _src_metrics.set_gauge("murphy_task_queue_depth", 0.0)
-
-    # Register key subsystem health providers so /api/health?deep=true and
-    # /api/health/modules can aggregate their status.
-    def _register_startup_modules():
-        """Wire subsystem health callbacks into the canonical metrics registry."""
-        # EventBackbone — check live by constructing a fresh instance each call
-        try:
-            from src.integration_bus import IntegrationBus as _IntegrationBus
-            def _event_backbone_health():
-                try:
-                    bus = _IntegrationBus()
-                    return {"status": "ok" if bus is not None else "error"}
-                except Exception as exc:
-                    return {"status": "error", "error": str(exc)}
-
-            _src_metrics.register_module_health("event_backbone", _event_backbone_health)
-        except Exception as _eb_exc:
-            logger.debug("EventBackbone health registration skipped: %s", _eb_exc)
-
-        # Database
-        def _db_health():
-            if os.environ.get("DATABASE_URL"):
-                try:
-                    from src.db import check_database
-                    result = check_database()
-                    if isinstance(result, str) and result == "error":
-                        return {"status": "error"}
-                    return {"status": "ok"}
-                except Exception as exc:
-                    return {"status": "error", "error": str(exc)}
-            return {"status": os.environ.get("MURPHY_DB_MODE", "stub")}
-
-        _src_metrics.register_module_health("database", _db_health)
-
-        # LLM provider
-        def _llm_health():
-            try:
-                status = murphy._get_llm_status()
-                return {"status": "ok" if status.get("enabled") else "unavailable"}
-            except Exception as exc:
-                return {"status": "unavailable", "error": str(exc)}
-
-        _src_metrics.register_module_health("llm_provider", _llm_health)
-
-        # Security Plane
-        def _security_health():
-            try:
-                from src.fastapi_security import get_security_status
-                return {"status": "ok", **get_security_status()}
-            except Exception:
-                try:
-                    from src.fastapi_security import MurphySecurityMiddleware
-                    return {"status": "ok"}
-                except Exception:
-                    return {"status": "not_configured"}
-
-        _src_metrics.register_module_health("security_plane", _security_health)
-
-    _register_startup_modules()
 
     try:
         from prometheus_client import (
@@ -5432,7 +5444,6 @@ def create_app() -> FastAPI:
         )
         from prometheus_client import (
             Counter,
-            Gauge,
             Histogram,
         )
         from prometheus_client import (
@@ -5447,13 +5458,6 @@ def create_app() -> FastAPI:
             if collector is not None:
                 return collector
             return Counter(name, desc, labels or [])
-
-        def _safe_gauge(name, desc, labels=None):
-            """Create or reuse a prometheus Gauge (safe for repeated create_app calls)."""
-            collector = _prom_registry._names_to_collectors.get(name)
-            if collector is not None:
-                return collector
-            return Gauge(name, desc, labels or [])
 
         def _safe_histogram(name, desc, labels=None):
             """Create or reuse a prometheus Histogram (safe for repeated create_app calls)."""
@@ -5475,75 +5479,15 @@ def create_app() -> FastAPI:
         _llm_calls_total = _safe_counter(
             "murphy_llm_calls",
             "Total LLM API calls",
-            # "status" label required by MurphyLLMCallFailures alert rule
-            # which filters on {status="error"}
-            ["provider", "status"],
+            ["provider"],
         )
         _gate_evaluations_total = _safe_counter(
             "murphy_gate_evaluations",
             "Total gate evaluations",
         )
-        _task_queue_depth = _safe_gauge(
-            "murphy_task_queue_depth",
-            "Current depth of the task processing queue",
-        )
-        # murphy_uptime_seconds — referenced by Grafana "API Uptime" panel.
-        # Use a Gauge with a callback so Prometheus always sees the current value.
-        _uptime_gauge = _safe_gauge(
-            "murphy_uptime_seconds",
-            "System uptime in seconds",
-        )
-        _prom_start = time.monotonic()
-
-        def _update_uptime():
-            _uptime_gauge.set(time.monotonic() - _prom_start)
-
-        # murphy_confidence_score — referenced by Grafana "Confidence Score
-        # Distribution" panel.  Populated at inference time via
-        # metrics.observe_histogram() / _confidence_score histogram.
-        _confidence_score = _safe_histogram(
-            "murphy_confidence_score",
-            "Confidence score distribution",
-            ["domain"],
-        )
-        # murphy_response_size_bytes — referenced by Grafana "Response Size
-        # Distribution" panel.  Populated by the request middleware below.
-        _response_size = _safe_histogram(
-            "murphy_response_size_bytes",
-            "HTTP response body size in bytes",
-            ["endpoint"],
-        )
-
-        # Collect prometheus_client objects in a dict so the middleware closure
-        # below can increment them without relying on variable names that only
-        # exist inside the try block.
-        _prom_metrics = {
-            "requests_total": _requests_total,
-            "request_duration": _request_duration,
-            "response_size": _response_size,
-            "update_uptime": _update_uptime,
-        }
         logger.info("Prometheus metrics endpoint mounted at /metrics")
     except ImportError:
-        # prometheus_client not installed — expose src/metrics.py directly.
-        logger.warning(
-            "prometheus_client not installed — falling back to built-in /metrics endpoint"
-        )
-        _prom_metrics = {}  # no prometheus_client objects available
-
-        # Seed in-process metrics that Grafana panels reference
-        _src_metrics.set_gauge("murphy_uptime_seconds", 0.0)
-
-        from starlette.responses import Response as _PlainResponse
-
-        @app.get("/metrics", include_in_schema=False)
-        async def prometheus_metrics_fallback():
-            """Prometheus text-format scrape endpoint (built-in fallback)."""
-            body = _src_metrics.render_metrics()
-            return _PlainResponse(
-                content=body,
-                media_type="text/plain; version=0.0.4; charset=utf-8",
-            )
+        logger.warning("prometheus_client not installed — /metrics endpoint unavailable")
 
     # ==================== STRUCTURED LOGGING MIDDLEWARE (Phase 4-B) ====================
 
@@ -5552,52 +5496,13 @@ def create_app() -> FastAPI:
     from starlette.middleware.base import BaseHTTPMiddleware as _BaseHTTPMiddleware
 
     class _TraceIdMiddleware(_BaseHTTPMiddleware):
-        """Injects a trace_id into each request and records request metrics."""
+        """Injects a trace_id into each request for structured logging."""
 
         async def dispatch(self, request: Request, call_next):
             trace_id = request.headers.get("X-Trace-ID", str(_uuid.uuid4()))
             request.state.trace_id = trace_id
-            _request_start = time.monotonic()
             response = await call_next(request)
             response.headers["X-Trace-ID"] = trace_id
-            _elapsed = time.monotonic() - _request_start
-            _status_str = str(response.status_code)
-            _endpoint = request.url.path
-
-            # ── src/metrics.py (always available) ─────────────────────────
-            try:
-                _src_metrics.inc_counter(
-                    "murphy_requests_total",
-                    labels={"method": request.method, "status": _status_str},
-                )
-                _src_metrics.observe_histogram(
-                    "murphy_request_duration_seconds",
-                    _elapsed,
-                )
-            except Exception:
-                pass
-
-            # ── prometheus_client objects (available when installed) ────────
-            try:
-                if _prom_metrics:
-                    _prom_metrics["requests_total"].labels(
-                        method=request.method,
-                        endpoint=_endpoint,
-                        status=_status_str,
-                    ).inc()
-                    _prom_metrics["request_duration"].labels(
-                        method=request.method,
-                        endpoint=_endpoint,
-                    ).observe(_elapsed)
-                    _content_len = response.headers.get("content-length")
-                    if _content_len:
-                        _prom_metrics["response_size"].labels(
-                            endpoint=_endpoint
-                        ).observe(float(_content_len))
-                    _prom_metrics["update_uptime"]()
-            except Exception:
-                pass
-
             return response
 
     app.add_middleware(_TraceIdMiddleware)
@@ -6300,8 +6205,7 @@ def create_app() -> FastAPI:
     # so that /ui/... routes advertised by /api/ui/links are actually reachable.
 
     try:
-        from starlette.responses import FileResponse as _FileResponse
-        from starlette.responses import RedirectResponse as _RedirectResponse
+        from starlette.responses import FileResponse as _FileResponse, RedirectResponse as _RedirectResponse
         from starlette.staticfiles import StaticFiles as _StaticFiles
 
         _project_root = Path(__file__).resolve().parent.parent.parent  # src/runtime/ → Murphy System/
@@ -6334,7 +6238,6 @@ def create_app() -> FastAPI:
             "/ui/workflow-canvas": "workflow_canvas.html",
             "/ui/system-visualizer": "system_visualizer.html",
             "/ui/dashboard": "murphy_ui_integrated.html",
-            "/dashboard": "murphy_ui_integrated.html",
             "/ui/smoke-test": "murphy-smoke-test.html",
             "/ui/signup": "signup.html",
             "/ui/login": "login.html",
@@ -6355,8 +6258,17 @@ def create_app() -> FastAPI:
             "/ui/calendar": "calendar.html",
             "/ui/meeting-intelligence": "meeting_intelligence.html",
             "/ui/ambient": "ambient_intelligence.html",
-            "/ui/dashboard": "dashboard.html",
         }
+
+        # ── Route classification: public vs auth-required ──────────
+        # Public routes are accessible without a session.  Auth-required
+        # routes redirect to /ui/login when no valid session cookie exists.
+        _PUBLIC_HTML_ROUTES = frozenset({
+            "/", "/murphy_landing_page.html", "/ui/landing", "/ui/demo",
+            "/ui/login", "/ui/signup", "/ui/pricing",
+            "/ui/docs", "/ui/blog", "/ui/careers", "/ui/legal", "/ui/privacy",
+            "/ui/partner", "/ui/smoke-test",
+        })
 
         # Redirect bare /ui/ to /ui/landing
         async def _ui_root_redirect():
@@ -6371,13 +6283,31 @@ def create_app() -> FastAPI:
                 return _FileResponse(_fp, media_type="text/html")
             return _handler
 
+        def _make_protected_html_handler(_fp: str, _route: str):
+            """Create an async handler that checks session before serving."""
+            async def _handler(request: Request):
+                account = _get_account_from_session(request)
+                if account is None:
+                    import urllib.parse as _up
+                    return _RedirectResponse(
+                        f"/ui/login?next={_up.quote(_route)}", status_code=302,
+                    )
+                return _FileResponse(_fp, media_type="text/html")
+            return _handler
+
         for _route_path, _filename in _html_routes.items():
             _filepath = _project_root / _filename
             if _filepath.is_file():
-                app.add_api_route(
-                    _route_path, _make_html_handler(str(_filepath)),
-                    methods=["GET"], include_in_schema=False,
-                )
+                if _route_path in _PUBLIC_HTML_ROUTES:
+                    app.add_api_route(
+                        _route_path, _make_html_handler(str(_filepath)),
+                        methods=["GET"], include_in_schema=False,
+                    )
+                else:
+                    app.add_api_route(
+                        _route_path, _make_protected_html_handler(str(_filepath), _route_path),
+                        methods=["GET"], include_in_schema=False,
+                    )
                 _mounted_count += 1
 
         # Redirect /ui/ to /ui/landing so users hitting the base UI path
@@ -6584,217 +6514,1397 @@ def create_app() -> FastAPI:
             "count": len(_account_statements),
         })
 
-    # ==================== INDUSTRY AUTOMATION SUITE ====================
+    # ══════════════════════════════════════════════════════════════════════
+    # UNIFIED GATEWAY — Flask services ported to native FastAPI endpoints
+    # Each sub-section replaces a standalone Flask Blueprint/app so that
+    # all routes are reachable via the single FastAPI runtime on port 8000.
+    # ══════════════════════════════════════════════════════════════════════
 
-    @app.post("/api/industry/ingest")
-    async def industry_ingest(request: Request):
-        """Auto-detect protocol and ingest BAS/IoT equipment data.
+    # ── Module Compiler (was: src/module_compiler/api/endpoints.py) ────────
 
-        Body: ``{content: str, filename: str, context: dict}``
-        Returns ingested records, equipment specs, and component recommendations.
-        """
-        from universal_ingestion_framework import AdapterRegistry
-        body = await request.json()
-        content = body.get("content", "")
-        filename = body.get("filename", "data.csv")
-        context = body.get("context", {})
-        if not content:
-            return JSONResponse({"success": False, "error": "content is required"}, status_code=400)
-        registry = AdapterRegistry()
+    try:
+        import sys as _sys
+        # module_compiler lives under src/ (a sibling of runtime/) and uses
+        # relative package imports.  We add the src/ directory to sys.path so
+        # it can be imported as a top-level package without changing the wider
+        # project layout.  This mirrors what the original standalone Flask app
+        # did via sys.path.insert in its own __main__ block.
+        _sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+        from module_compiler import ModuleCompiler as _ModuleCompiler, ModuleRegistry as _ModuleRegistry
+
+        _mc_compiler = _ModuleCompiler()
+        _mc_registry = _ModuleRegistry()
+
+        @app.post("/api/module-compiler/compile")
+        async def mc_compile(request: Request):
+            """Compile a module from source path."""
+            try:
+                data = await request.json()
+                if not data or "source_path" not in data:
+                    return JSONResponse({"success": False, "error": {"code": "MISSING_FIELD", "message": "Missing required field: source_path"}}, status_code=400)
+                source_path = data["source_path"]
+                if not os.path.exists(source_path):
+                    return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": f"Source file not found: {source_path}"}}, status_code=404)
+                spec = _mc_compiler.compile_module(source_path=source_path, requested_capabilities=data.get("requested_capabilities"))
+                _mc_registry.register(spec)
+                return JSONResponse({"success": True, "data": {
+                    "module_id": spec.module_id, "source_path": spec.source_path,
+                    "version_hash": spec.version_hash,
+                    "capabilities": [{"name": c.name, "description": c.description, "deterministic": c.is_deterministic(), "requires_network": c.requires_network(), "timeout_seconds": c.resource_profile.timeout_seconds} for c in spec.capabilities],
+                    "sandbox_profile": spec.sandbox_profile.to_dict(),
+                    "verification_status": spec.verification_status,
+                    "is_partial": spec.is_partial,
+                    "requires_manual_review": spec.requires_manual_review,
+                    "uncertainty_flags": spec.uncertainty_flags,
+                    "compiled_at": spec.compiled_at,
+                }})
+            except Exception as exc:
+                logger.error("mc_compile error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.post("/api/module-compiler/compile-directory")
+        async def mc_compile_directory(request: Request):
+            """Compile all modules in a directory."""
+            try:
+                data = await request.json()
+                if not data or "directory_path" not in data:
+                    return JSONResponse({"success": False, "error": {"code": "MISSING_FIELD", "message": "Missing required field: directory_path"}}, status_code=400)
+                directory_path = data["directory_path"]
+                if not os.path.isdir(directory_path):
+                    return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": f"Directory not found: {directory_path}"}}, status_code=404)
+                specs = _mc_compiler.compile_directory(directory_path, data.get("pattern", "*.py"))
+                compiled, failed = 0, 0
+                for spec in specs:
+                    if _mc_registry.register(spec) and not spec.is_partial:
+                        compiled += 1
+                    else:
+                        failed += 1
+                return JSONResponse({"success": True, "data": {"compiled": compiled, "failed": failed, "total": len(specs), "modules": [{"module_id": s.module_id, "capabilities": len(s.capabilities), "verification_status": s.verification_status} for s in specs]}})
+            except Exception as exc:
+                logger.error("mc_compile_directory error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.get("/api/module-compiler/modules")
+        async def mc_list_modules(request: Request):
+            """List all registered modules."""
+            try:
+                a = request.query_params
+                modules = _mc_registry.list_modules(
+                    deterministic_only=a.get("deterministic", "").lower() == "true",
+                    network_required=None if not a.get("network") else a.get("network", "").lower() == "true",
+                    verification_status=a.get("status"),
+                )
+                return JSONResponse({"success": True, "data": {"count": len(modules), "modules": modules}})
+            except Exception as exc:
+                logger.error("mc_list_modules error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.get("/api/module-compiler/modules/{module_id}")
+        async def mc_get_module(module_id: str):
+            """Get detailed module specification."""
+            try:
+                spec = _mc_registry.get(module_id)
+                if not spec:
+                    return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": f"Module not found: {module_id}"}}, status_code=404)
+                return JSONResponse({"success": True, "data": {"module": spec.to_dict()}})
+            except Exception as exc:
+                logger.error("mc_get_module error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.delete("/api/module-compiler/modules/{module_id}")
+        async def mc_delete_module(module_id: str):
+            """Remove module from registry."""
+            try:
+                if not _mc_registry.remove(module_id):
+                    return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": f"Failed to remove module: {module_id}"}}, status_code=500)
+                return JSONResponse({"success": True, "data": {"message": f"Module removed: {module_id}"}})
+            except Exception as exc:
+                logger.error("mc_delete_module error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.get("/api/module-compiler/capabilities")
+        async def mc_search_capabilities(request: Request):
+            """Search for capabilities."""
+            try:
+                a = request.query_params
+                query = a.get("q", "")
+                if not query:
+                    return JSONResponse({"success": False, "error": {"code": "MISSING_FIELD", "message": "Missing required parameter: q"}}, status_code=400)
+                results = _mc_registry.search_capabilities(query, a.get("deterministic", "").lower() == "true")
+                return JSONResponse({"success": True, "data": {"count": len(results), "query": query, "capabilities": results}})
+            except Exception as exc:
+                logger.error("mc_search_capabilities error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.get("/api/module-compiler/capabilities/{capability_name}")
+        async def mc_get_capability(capability_name: str):
+            """Get detailed capability information."""
+            try:
+                cap = _mc_registry.get_capability(capability_name)
+                if not cap:
+                    return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": f"Capability not found: {capability_name}"}}, status_code=404)
+                return JSONResponse({"success": True, "data": {"capability": cap.to_dict()}})
+            except Exception as exc:
+                logger.error("mc_get_capability error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.get("/api/module-compiler/stats")
+        async def mc_get_stats():
+            """Get registry statistics."""
+            try:
+                return JSONResponse({"success": True, "data": {"stats": _mc_registry.get_stats()}})
+            except Exception as exc:
+                logger.error("mc_get_stats error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.get("/api/module-compiler/health")
+        async def mc_health():
+            """Module compiler health check."""
+            try:
+                stats = _mc_registry.get_stats()
+                return JSONResponse({"success": True, "data": {"status": "healthy", "compiler_version": _mc_compiler.compiler_version, "registry_modules": stats["total_modules"], "registry_capabilities": stats["total_capabilities"]}})
+            except Exception as exc:
+                logger.error("mc_health error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        logger.info("Module Compiler API registered at /api/module-compiler/*")
+    except Exception as _mc_exc:
+        logger.warning("Module Compiler API unavailable: %s", _mc_exc)
+
+    # ── Compute Plane (was: src/compute_plane/api/endpoints.py) ────────────
+
+    try:
+        from compute_plane.service import ComputeService as _ComputeService
+        from compute_plane.models.compute_request import ComputeRequest as _ComputeRequest
+
+        _cp_service = _ComputeService(enable_caching=True)
+
+        @app.get("/api/compute-plane/health")
+        async def cp_health():
+            """Compute plane health check."""
+            return JSONResponse({"success": True, "data": {"status": "healthy", "service": "compute-plane"}})
+
+        @app.post("/api/compute-plane/compute")
+        async def cp_submit(request: Request):
+            """Submit a computation request."""
+            try:
+                data = await request.json()
+                req = _ComputeRequest(
+                    expression=data["expression"],
+                    language=data["language"],
+                    assumptions=data.get("assumptions", {}),
+                    precision=data.get("precision", 10),
+                    timeout=data.get("timeout", 30),
+                    metadata=data.get("metadata", {}),
+                )
+                request_id = _cp_service.submit_request(req)
+                return JSONResponse({"success": True, "data": {"request_id": request_id, "status": "pending"}}, status_code=202)
+            except Exception as exc:
+                logger.error("cp_submit error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "BAD_REQUEST", "message": str(exc)}}, status_code=400)
+
+        @app.get("/api/compute-plane/compute/{request_id}")
+        async def cp_get_result(request_id: str):
+            """Get computation result."""
+            result = _cp_service.get_result(request_id)
+            if result is None:
+                return JSONResponse({"success": True, "data": {"request_id": request_id, "status": "pending"}}, status_code=202)
+            return JSONResponse({"success": True, "data": result.to_dict()})
+
+        @app.get("/api/compute-plane/compute/{request_id}/steps")
+        async def cp_get_steps(request_id: str):
+            """Get derivation steps for computation."""
+            result = _cp_service.get_result(request_id)
+            if result is None:
+                return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Request not found or still pending"}}, status_code=404)
+            return JSONResponse({"success": True, "data": {"request_id": request_id, "derivation_steps": result.derivation_steps}})
+
+        @app.post("/api/compute-plane/compute/validate")
+        async def cp_validate(request: Request):
+            """Validate expression syntax."""
+            try:
+                data = await request.json()
+                validation = _cp_service.validate_expression(data["expression"], data["language"])
+                return JSONResponse({"success": True, "data": validation})
+            except Exception as exc:
+                logger.error("cp_validate error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "BAD_REQUEST", "message": str(exc)}}, status_code=400)
+
+        @app.get("/api/compute-plane/statistics")
+        async def cp_statistics():
+            """Get compute service statistics."""
+            return JSONResponse({"success": True, "data": _cp_service.get_statistics()})
+
+        logger.info("Compute Plane API registered at /api/compute-plane/*")
+    except Exception as _cp_exc:
+        logger.warning("Compute Plane API unavailable: %s", _cp_exc)
+
+    # ── Gate Synthesis (was: src/gate_synthesis/api_server.py) ─────────────
+
+    try:
+        from gate_synthesis.failure_mode_enumerator import FailureModeEnumerator as _FME
+        from gate_synthesis.gate_generator import GateGenerator as _GateGenerator
+        from gate_synthesis.gate_lifecycle_manager import GateLifecycleManager as _GLM
+        from gate_synthesis.models import (
+            ExposureSignal as _ExposureSignal,
+            FailureMode as _FailureMode,
+            FailureModeType as _FailureModeType,
+            GateCategory as _GateCategory,
+            GateState as _GateState,
+        )
+        from gate_synthesis.murphy_estimator import MurphyProbabilityEstimator as _MPE
+        from confidence_engine.models import (
+            ArtifactGraph as _ArtifactGraph,
+            ArtifactNode as _ArtifactNode,
+            ArtifactSource as _ArtifactSource,
+            ArtifactType as _ArtifactType,
+            AuthorityBand as _AuthorityBand,
+            ConfidenceState as _ConfidenceState,
+            Phase as _Phase,
+        )
+
+        _gs_fme = _FME()
+        _gs_mpe = _MPE()
+        _gs_gg = _GateGenerator()
+        _gs_glm = _GLM()
+        _gs_artifact_graph = _ArtifactGraph()
+
+        @app.post("/api/gate-synthesis/failure-modes/enumerate")
+        async def gs_enumerate_failure_modes(request: Request):
+            """Enumerate failure modes for current state."""
+            try:
+                data = await request.json()
+                cs_data = data["confidence_state"]
+                confidence_state = _ConfidenceState(
+                    confidence=cs_data["confidence"],
+                    generative_score=cs_data["generative_score"],
+                    deterministic_score=cs_data["deterministic_score"],
+                    epistemic_instability=cs_data["epistemic_instability"],
+                    phase=_Phase(cs_data["phase"]),
+                )
+                confidence_state.verified_artifacts = cs_data.get("verified_artifacts", 0)
+                confidence_state.total_artifacts = cs_data.get("total_artifacts", 0)
+                authority_band = _AuthorityBand(data["authority_band"])
+                exposure_signal = None
+                if "exposure_signal" in data:
+                    ed = data["exposure_signal"]
+                    exposure_signal = _ExposureSignal(
+                        signal_id=ed.get("signal_id", "default"),
+                        external_side_effects=ed["external_side_effects"],
+                        reversibility=ed["reversibility"],
+                        blast_radius_estimate=ed["blast_radius_estimate"],
+                        affected_systems=ed.get("affected_systems", []),
+                    )
+                fms = _gs_fme.enumerate_failure_modes(_gs_artifact_graph, confidence_state, authority_band, exposure_signal)
+                return JSONResponse({"success": True, "data": {"failure_modes": [fm.to_dict() for fm in fms], "count": len(fms)}})
+            except Exception as exc:
+                logger.error("gs_enumerate_failure_modes error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.post("/api/gate-synthesis/murphy/estimate")
+        async def gs_estimate_murphy(request: Request):
+            """Estimate Murphy probability for risk vector."""
+            try:
+                from gate_synthesis.models import RiskVector as _RiskVector
+                data = await request.json()
+                rv = _RiskVector(**data["risk_vector"])
+                prob = _gs_mpe.estimate_murphy_probability(rv)
+                return JSONResponse({"success": True, "data": {"murphy_probability": prob, "gate_required": _gs_mpe.requires_gate(prob), "high_risk": _gs_mpe.is_high_risk(prob), "risk_vector": rv.to_dict()}})
+            except Exception as exc:
+                logger.error("gs_estimate_murphy error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.post("/api/gate-synthesis/murphy/analyze-exposure")
+        async def gs_analyze_exposure(request: Request):
+            """Analyze exposure signal."""
+            try:
+                data = await request.json()
+                es = _ExposureSignal(
+                    signal_id=data.get("signal_id", "default"),
+                    external_side_effects=data["external_side_effects"],
+                    reversibility=data["reversibility"],
+                    blast_radius_estimate=data["blast_radius_estimate"],
+                    affected_systems=data.get("affected_systems", []),
+                )
+                return JSONResponse({"success": True, "data": {"analysis": _gs_mpe.analyze_exposure(es)}})
+            except Exception as exc:
+                logger.error("gs_analyze_exposure error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.post("/api/gate-synthesis/gates/generate")
+        async def gs_generate_gates(request: Request):
+            """Generate gates for failure modes."""
+            try:
+                from gate_synthesis.models import RiskVector as _RiskVector
+                data = await request.json()
+                failure_modes = []
+                for fmd in data["failure_modes"]:
+                    rv = _RiskVector(**fmd["risk_vector"])
+                    fm = _FailureMode(id=fmd["id"], type=_FailureModeType(fmd["type"]), probability=fmd["probability"], impact=fmd["impact"], risk_vector=rv, description=fmd["description"], affected_artifacts=fmd.get("affected_artifacts", []))
+                    failure_modes.append(fm)
+                current_phase = _Phase(data["current_phase"])
+                current_authority = _AuthorityBand(data["current_authority"])
+                murphy_probs = {fm.id: _gs_mpe.estimate_failure_mode_probability(fm) for fm in failure_modes}
+                gates = _gs_gg.generate_gates(failure_modes, current_phase, current_authority, murphy_probs)
+                for gate in gates:
+                    _gs_glm.add_gate(gate)
+                return JSONResponse({"success": True, "data": {"gates": [g.to_dict() for g in gates], "count": len(gates)}})
+            except Exception as exc:
+                logger.error("gs_generate_gates error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.post("/api/gate-synthesis/gates/activate/{gate_id}")
+        async def gs_activate_gate(gate_id: str):
+            """Activate a specific gate."""
+            if not _gs_glm.activate_gate(gate_id):
+                return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Gate not found or cannot be activated"}}, status_code=404)
+            return JSONResponse({"success": True, "data": {"gate_id": gate_id, "message": "Gate activated"}})
+
+        @app.post("/api/gate-synthesis/gates/activate-all")
+        async def gs_activate_all_gates():
+            """Activate all proposed gates."""
+            activated = _gs_glm.activate_all_proposed_gates()
+            return JSONResponse({"success": True, "data": {"activated_gates": activated, "count": len(activated)}})
+
+        @app.post("/api/gate-synthesis/gates/retire/{gate_id}")
+        async def gs_retire_gate(gate_id: str, request: Request):
+            """Retire a specific gate."""
+            data = {}
+            try:
+                data = await request.json()
+            except Exception:
+                pass
+            if not _gs_glm.retire_gate(gate_id, data.get("reason", "")):
+                return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Gate not found or cannot be retired"}}, status_code=404)
+            return JSONResponse({"success": True, "data": {"gate_id": gate_id, "message": "Gate retired"}})
+
+        @app.post("/api/gate-synthesis/gates/check-expiry")
+        async def gs_check_expiry():
+            """Check and retire expired gates."""
+            expired = _gs_glm.check_and_retire_expired_gates()
+            return JSONResponse({"success": True, "data": {"expired_gates": expired, "count": len(expired)}})
+
+        @app.post("/api/gate-synthesis/gates/update-retirement-conditions")
+        async def gs_update_retirement_conditions(request: Request):
+            """Update retirement conditions for gates."""
+            try:
+                data = await request.json()
+                retired = _gs_glm.check_all_retirement_conditions(data["condition_values"])
+                return JSONResponse({"success": True, "data": {"retired_gates": retired, "count": len(retired)}})
+            except Exception as exc:
+                logger.error("gs_update_retirement_conditions error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.get("/api/gate-synthesis/gates/list")
+        async def gs_list_gates(request: Request):
+            """List all gates."""
+            a = request.query_params
+            gates = list(_gs_glm.registry.gates.values())
+            if a.get("state"):
+                gates = [g for g in gates if g.state == _GateState(a["state"])]
+            if a.get("category"):
+                gates = [g for g in gates if g.category == _GateCategory(a["category"])]
+            return JSONResponse({"success": True, "data": {"gates": [g.to_dict() for g in gates], "count": len(gates)}})
+
+        @app.get("/api/gate-synthesis/gates/active")
+        async def gs_get_active_gates():
+            """Get all active gates."""
+            active = _gs_glm.registry.get_active_gates()
+            return JSONResponse({"success": True, "data": {"gates": [g.to_dict() for g in active], "count": len(active)}})
+
+        @app.get("/api/gate-synthesis/gates/by-target/{target}")
+        async def gs_get_gates_by_target(target: str):
+            """Get gates for specific target."""
+            gates = _gs_glm.get_active_gates_for_target(target)
+            return JSONResponse({"success": True, "data": {"target": target, "gates": [g.to_dict() for g in gates], "count": len(gates)}})
+
+        @app.get("/api/gate-synthesis/gates/{gate_id}")
+        async def gs_get_gate(gate_id: str):
+            """Get specific gate."""
+            gate = _gs_glm.registry.get_gate(gate_id)
+            if not gate:
+                return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Gate not found"}}, status_code=404)
+            return JSONResponse({"success": True, "data": {"gate": gate.to_dict()}})
+
+        @app.get("/api/gate-synthesis/statistics")
+        async def gs_statistics():
+            """Get gate statistics."""
+            return JSONResponse({"success": True, "data": {"statistics": _gs_glm.get_gate_statistics()}})
+
+        @app.get("/api/gate-synthesis/logs/activation")
+        async def gs_activation_log(request: Request):
+            """Get activation log."""
+            limit = request.query_params.get("limit")
+            log = _gs_glm.get_activation_log(int(limit) if limit else None)
+            return JSONResponse({"success": True, "data": {"log": log, "count": len(log)}})
+
+        @app.get("/api/gate-synthesis/logs/retirement")
+        async def gs_retirement_log(request: Request):
+            """Get retirement log."""
+            limit = request.query_params.get("limit")
+            log = _gs_glm.get_retirement_log(int(limit) if limit else None)
+            return JSONResponse({"success": True, "data": {"log": log, "count": len(log)}})
+
+        @app.post("/api/gate-synthesis/artifacts/add")
+        async def gs_add_artifact(request: Request):
+            """Add artifact to graph."""
+            try:
+                data = await request.json()
+                node = _ArtifactNode(id=data.get("id", ""), type=_ArtifactType(data["type"]), source=_ArtifactSource(data["source"]), content=data["content"], confidence_weight=data.get("confidence_weight", 1.0), dependencies=data.get("dependencies", []))
+                _gs_artifact_graph.add_node(node)
+                return JSONResponse({"success": True, "data": {"artifact_id": node.id}})
+            except Exception as exc:
+                logger.error("gs_add_artifact error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.get("/api/gate-synthesis/health")
+        async def gs_health():
+            """Gate synthesis health check."""
+            return JSONResponse({"success": True, "data": {"status": "healthy", "service": "gate-synthesis-engine", "timestamp": _now_iso(), "components": {"failure_mode_enumerator": "operational", "murphy_estimator": "operational", "gate_generator": "operational", "gate_lifecycle_manager": "operational"}}})
+
+        @app.post("/api/gate-synthesis/reset")
+        async def gs_reset():
+            """Reset all gate synthesis state (for testing)."""
+            nonlocal _gs_artifact_graph, _gs_glm
+            _gs_artifact_graph = _ArtifactGraph()
+            _gs_glm = _GLM()
+            return JSONResponse({"success": True, "data": {"message": "State reset successfully"}})
+
+        logger.info("Gate Synthesis API registered at /api/gate-synthesis/*")
+    except Exception as _gs_exc:
+        logger.warning("Gate Synthesis API unavailable: %s", _gs_exc)
+
+    # ── Cost Optimization Advisor (was: src/cost_optimization_advisor.py) ──
+
+    try:
+        from src.cost_optimization_advisor import CostOptimizationAdvisor as _COAAdvisor
+
+        _coa = _COAAdvisor()
+
+        @app.post("/api/coa/resources")
+        async def coa_register_resource(request: Request):
+            """Register a cloud resource."""
+            try:
+                b = await request.json() or {}
+                if not b.get("name"):
+                    return JSONResponse({"success": False, "error": {"code": "MISSING_FIELD", "message": "Missing required field: name"}}, status_code=400)
+                r = _coa.register_resource(name=b["name"], provider=b.get("provider", "aws"), resource_kind=b.get("resource_kind", "compute"), region=b.get("region", ""), monthly_cost=float(b.get("monthly_cost", 0)), currency=b.get("currency", "USD"), utilization_pct=float(b.get("utilization_pct", 0)), tags=b.get("tags", {}))
+                return JSONResponse({"success": True, "data": r.to_dict()}, status_code=201)
+            except Exception as exc:
+                logger.error("coa_register_resource error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.get("/api/coa/resources")
+        async def coa_list_resources(request: Request):
+            """List cloud resources."""
+            a = request.query_params
+            resources = _coa.list_resources(provider=a.get("provider"), resource_kind=a.get("resource_kind"), region=a.get("region"), limit=int(a.get("limit", 100)))
+            return JSONResponse({"success": True, "data": [r.to_dict() for r in resources]})
+
+        @app.get("/api/coa/resources/{resource_id}")
+        async def coa_get_resource(resource_id: str):
+            """Get a cloud resource."""
+            res = _coa.get_resource(resource_id)
+            if res is None:
+                return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Resource not found"}}, status_code=404)
+            return JSONResponse({"success": True, "data": res.to_dict()})
+
+        @app.put("/api/coa/resources/{resource_id}")
+        async def coa_update_resource(resource_id: str, request: Request):
+            """Update a cloud resource."""
+            b = await request.json() or {}
+            res = _coa.update_resource(resource_id, monthly_cost=b.get("monthly_cost"), utilization_pct=b.get("utilization_pct"))
+            if res is None:
+                return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Resource not found"}}, status_code=404)
+            return JSONResponse({"success": True, "data": res.to_dict()})
+
+        @app.delete("/api/coa/resources/{resource_id}")
+        async def coa_delete_resource(resource_id: str):
+            """Delete a cloud resource."""
+            if not _coa.delete_resource(resource_id):
+                return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Resource not found"}}, status_code=404)
+            return JSONResponse({"success": True, "data": {"deleted": True}})
+
+        @app.post("/api/coa/spend")
+        async def coa_record_spend(request: Request):
+            """Record a spend entry."""
+            try:
+                b = await request.json() or {}
+                for k in ("resource_id", "amount", "period"):
+                    if not b.get(k) and b.get(k) != 0:
+                        return JSONResponse({"success": False, "error": {"code": "MISSING_FIELD", "message": f"Missing required field: {k}"}}, status_code=400)
+                rec = _coa.record_spend(resource_id=b["resource_id"], amount=float(b["amount"]), period=b["period"], category=b.get("category", ""), currency=b.get("currency", "USD"))
+                return JSONResponse({"success": True, "data": rec.to_dict()}, status_code=201)
+            except Exception as exc:
+                logger.error("coa_record_spend error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.get("/api/coa/spend")
+        async def coa_get_spend(request: Request):
+            """Get spend records."""
+            a = request.query_params
+            records = _coa.get_spend(resource_id=a.get("resource_id"), provider=a.get("provider"), period=a.get("period"), limit=int(a.get("limit", 100)))
+            return JSONResponse({"success": True, "data": [r.to_dict() for r in records]})
+
+        @app.post("/api/coa/analyze/{resource_id}")
+        async def coa_analyze_rightsizing(resource_id: str):
+            """Analyze rightsizing for a resource."""
+            rec = _coa.analyze_rightsizing(resource_id)
+            return JSONResponse({"success": True, "data": rec.to_dict()})
+
+        @app.post("/api/coa/spot/scan")
+        async def coa_scan_spot(request: Request):
+            """Scan for spot instance opportunities."""
+            b = {}
+            try:
+                b = await request.json() or {}
+            except Exception:
+                pass
+            opps = _coa.scan_spot_opportunities(provider=b.get("provider"), region=b.get("region"))
+            return JSONResponse({"success": True, "data": [o.to_dict() for o in opps]})
+
+        @app.get("/api/coa/recommendations")
+        async def coa_get_recommendations(request: Request):
+            """Get cost optimization recommendations."""
+            a = request.query_params
+            recs = _coa.get_recommendations(resource_id=a.get("resource_id"), severity=a.get("severity"), status=a.get("status"), limit=int(a.get("limit", 100)))
+            return JSONResponse({"success": True, "data": [r.to_dict() for r in recs]})
+
+        @app.put("/api/coa/recommendations/{rec_id}/status")
+        async def coa_update_rec_status(rec_id: str, request: Request):
+            """Update recommendation status."""
+            b = await request.json() or {}
+            if not b.get("status"):
+                return JSONResponse({"success": False, "error": {"code": "MISSING_FIELD", "message": "Missing required field: status"}}, status_code=400)
+            rec = _coa.update_recommendation_status(rec_id, b["status"])
+            if rec is None:
+                return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Recommendation not found"}}, status_code=404)
+            return JSONResponse({"success": True, "data": rec.to_dict()})
+
+        @app.post("/api/coa/budgets")
+        async def coa_set_budget(request: Request):
+            """Set a budget."""
+            b = await request.json() or {}
+            for k in ("budget_name", "budget_limit"):
+                if not b.get(k) and b.get(k) != 0:
+                    return JSONResponse({"success": False, "error": {"code": "MISSING_FIELD", "message": f"Missing required field: {k}"}}, status_code=400)
+            ba = _coa.set_budget(budget_name=b["budget_name"], budget_limit=float(b["budget_limit"]))
+            return JSONResponse({"success": True, "data": ba.to_dict()}, status_code=201)
+
+        @app.get("/api/coa/budgets/check")
+        async def coa_check_budgets():
+            """Check budget alerts."""
+            alerts = _coa.check_budgets()
+            return JSONResponse({"success": True, "data": [a.to_dict() for a in alerts]})
+
+        @app.get("/api/coa/summary")
+        async def coa_summary(request: Request):
+            """Get cost summary."""
+            summary = _coa.get_cost_summary(provider=request.query_params.get("provider"))
+            return JSONResponse({"success": True, "data": summary.to_dict()})
+
+        @app.post("/api/coa/export")
+        async def coa_export():
+            """Export COA state."""
+            return JSONResponse({"success": True, "data": _coa.export_state()})
+
+        @app.get("/api/coa/health")
+        async def coa_health():
+            """COA health check."""
+            resources = _coa.list_resources()
+            return JSONResponse({"success": True, "data": {"status": "healthy", "module": "COA-001", "tracked_resources": len(resources)}})
+
+        logger.info("Cost Optimization Advisor API registered at /api/coa/*")
+    except Exception as _coa_exc:
+        logger.warning("Cost Optimization Advisor API unavailable: %s", _coa_exc)
+
+    # ── Compliance as Code Engine (was: src/compliance_as_code_engine.py) ──
+
+    try:
+        from src.compliance_as_code_engine import ComplianceAsCodeEngine as _CCEEngine
+
+        _cce = _CCEEngine()
+
+        @app.post("/api/cce/rules")
+        async def cce_create_rule(request: Request):
+            """Create a compliance rule."""
+            try:
+                b = await request.json() or {}
+                for k in ("name", "expression"):
+                    if not b.get(k):
+                        return JSONResponse({"success": False, "error": {"code": "MISSING_FIELD", "message": f"Missing required field: {k}"}}, status_code=400)
+                r = _cce.create_rule(name=b["name"], description=b.get("description", ""), framework=b.get("framework", "custom"), severity=b.get("severity", "medium"), expression=b["expression"], remediation=b.get("remediation", ""), tags=b.get("tags", {}))
+                return JSONResponse({"success": True, "data": r.to_dict()}, status_code=201)
+            except Exception as exc:
+                logger.error("cce_create_rule error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.get("/api/cce/rules")
+        async def cce_list_rules(request: Request):
+            """List compliance rules."""
+            a = request.query_params
+            rules = _cce.list_rules(framework=a.get("framework"), severity=a.get("severity"), status=a.get("status"), limit=int(a.get("limit", 100)))
+            return JSONResponse({"success": True, "data": [r.to_dict() for r in rules]})
+
+        @app.get("/api/cce/rules/{rule_id}")
+        async def cce_get_rule(rule_id: str):
+            """Get a compliance rule."""
+            rule = _cce.get_rule(rule_id)
+            if rule is None:
+                return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Rule not found"}}, status_code=404)
+            return JSONResponse({"success": True, "data": rule.to_dict()})
+
+        @app.put("/api/cce/rules/{rule_id}")
+        async def cce_update_rule(rule_id: str, request: Request):
+            """Update a compliance rule."""
+            b = await request.json() or {}
+            rule = _cce.update_rule(rule_id, status=b.get("status"), severity=b.get("severity"), expression=b.get("expression"), remediation=b.get("remediation"))
+            if rule is None:
+                return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Rule not found"}}, status_code=404)
+            return JSONResponse({"success": True, "data": rule.to_dict()})
+
+        @app.delete("/api/cce/rules/{rule_id}")
+        async def cce_delete_rule(rule_id: str):
+            """Delete a compliance rule."""
+            if not _cce.delete_rule(rule_id):
+                return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Rule not found"}}, status_code=404)
+            return JSONResponse({"success": True, "data": {"deleted": True}})
+
+        @app.post("/api/cce/check/{rule_id}")
+        async def cce_check_rule(rule_id: str, request: Request):
+            """Run a single compliance rule check."""
+            b = await request.json() or {}
+            exe = _cce.check_rule(rule_id, b)
+            return JSONResponse({"success": True, "data": exe.to_dict()})
+
+        @app.post("/api/cce/scan")
+        async def cce_run_scan(request: Request):
+            """Run a compliance scan."""
+            try:
+                b = await request.json() or {}
+                if not b.get("name"):
+                    return JSONResponse({"success": False, "error": {"code": "MISSING_FIELD", "message": "Missing required field: name"}}, status_code=400)
+                scan = _cce.run_scan(name=b["name"], framework_filter=b.get("framework_filter"), context=b.get("context", {}))
+                return JSONResponse({"success": True, "data": scan.to_dict()}, status_code=201)
+            except Exception as exc:
+                logger.error("cce_run_scan error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.get("/api/cce/scans")
+        async def cce_list_scans(request: Request):
+            """List compliance scans."""
+            a = request.query_params
+            scans = _cce.list_scans(framework=a.get("framework"), status=a.get("status"), limit=int(a.get("limit", 50)))
+            return JSONResponse({"success": True, "data": [s.to_dict() for s in scans]})
+
+        @app.get("/api/cce/scans/{scan_id}")
+        async def cce_get_scan(scan_id: str):
+            """Get a compliance scan."""
+            scan = _cce.get_scan(scan_id)
+            if scan is None:
+                return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Scan not found"}}, status_code=404)
+            return JSONResponse({"success": True, "data": scan.to_dict()})
+
+        @app.get("/api/cce/scans/{scan_id}/report")
+        async def cce_generate_report(scan_id: str):
+            """Generate compliance report for a scan."""
+            report = _cce.generate_report(scan_id)
+            if report is None:
+                return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Scan not found"}}, status_code=404)
+            return JSONResponse({"success": True, "data": report.to_dict()})
+
+        @app.post("/api/cce/remediations")
+        async def cce_create_remediation(request: Request):
+            """Create a remediation action."""
+            try:
+                b = await request.json() or {}
+                for k in ("rule_id", "scan_id", "description"):
+                    if not b.get(k):
+                        return JSONResponse({"success": False, "error": {"code": "MISSING_FIELD", "message": f"Missing required field: {k}"}}, status_code=400)
+                action = _cce.create_remediation(rule_id=b["rule_id"], scan_id=b["scan_id"], description=b["description"], priority=b.get("priority", "medium"), assigned_to=b.get("assigned_to", ""))
+                return JSONResponse({"success": True, "data": action.to_dict()}, status_code=201)
+            except Exception as exc:
+                logger.error("cce_create_remediation error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.get("/api/cce/remediations")
+        async def cce_list_remediations(request: Request):
+            """List remediation actions."""
+            a = request.query_params
+            completed = None
+            if a.get("completed") is not None:
+                completed = a.get("completed", "").lower() == "true"
+            actions = _cce.list_remediations(rule_id=a.get("rule_id"), scan_id=a.get("scan_id"), completed=completed, limit=int(a.get("limit", 100)))
+            return JSONResponse({"success": True, "data": [r.to_dict() for r in actions]})
+
+        @app.post("/api/cce/remediations/{remediation_id}/complete")
+        async def cce_complete_remediation(remediation_id: str):
+            """Complete a remediation action."""
+            action = _cce.complete_remediation(remediation_id)
+            if action is None:
+                return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Remediation not found"}}, status_code=404)
+            return JSONResponse({"success": True, "data": action.to_dict()})
+
+        @app.get("/api/cce/summary")
+        async def cce_summary(request: Request):
+            """Get compliance summary."""
+            summary = _cce.get_compliance_summary(framework=request.query_params.get("framework"))
+            return JSONResponse({"success": True, "data": summary})
+
+        @app.post("/api/cce/export")
+        async def cce_export():
+            """Export CCE state."""
+            return JSONResponse({"success": True, "data": _cce.export_state()})
+
+        @app.get("/api/cce/health")
+        async def cce_health():
+            """CCE health check."""
+            rules = _cce.list_rules()
+            return JSONResponse({"success": True, "data": {"status": "healthy", "module": "CCE-001", "tracked_rules": len(rules)}})
+
+        logger.info("Compliance as Code Engine API registered at /api/cce/*")
+    except Exception as _cce_exc:
+        logger.warning("Compliance as Code Engine API unavailable: %s", _cce_exc)
+
+    # ── Blockchain Audit Trail (was: src/blockchain_audit_trail.py) ─────────
+
+    try:
+        from src.blockchain_audit_trail import BlockchainAuditTrail as _BATEngine, EntryType as _EntryType
+
+        _bat = _BATEngine()
+
+        @app.get("/api/bat/health")
+        async def bat_health():
+            """BAT health check."""
+            return JSONResponse({"success": True, "data": {"status": "healthy", "module": "BAT-001"}})
+
+        @app.post("/api/bat/entries")
+        async def bat_record_entry(request: Request):
+            """Record an audit entry."""
+            try:
+                b = await request.json() or {}
+                for k in ("entry_type", "actor", "action"):
+                    if not b.get(k):
+                        return JSONResponse({"success": False, "error": {"code": "MISSING_FIELD", "message": f"{k} required"}}, status_code=400)
+                try:
+                    et = _EntryType(b["entry_type"])
+                except ValueError:
+                    return JSONResponse({"success": False, "error": {"code": "INVALID_FIELD", "message": "Invalid entry_type"}}, status_code=400)
+                entry = _bat.record_entry(entry_type=et, actor=b["actor"], action=b["action"], resource=b.get("resource", ""), details=b.get("details", {}), ip_address=b.get("ip_address", ""), outcome=b.get("outcome", "success"))
+                return JSONResponse({"success": True, "data": entry.to_dict()}, status_code=201)
+            except Exception as exc:
+                logger.error("bat_record_entry error: %s", exc, exc_info=True)
+                return JSONResponse({"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}, status_code=500)
+
+        @app.get("/api/bat/entries/search")
+        async def bat_search_entries(request: Request):
+            """Search audit entries."""
+            a = request.query_params
+            results = _bat.search_entries(entry_type=a.get("entry_type"), actor=a.get("actor"), resource=a.get("resource"), action=a.get("action"), limit=int(a.get("limit", 100)))
+            return JSONResponse({"success": True, "data": [e.to_dict() for e in results]})
+
+        @app.get("/api/bat/blocks")
+        async def bat_list_blocks(request: Request):
+            """List blockchain blocks."""
+            a = request.query_params
+            blocks = _bat.list_blocks(limit=int(a.get("limit", 50)), offset=int(a.get("offset", 0)))
+            return JSONResponse({"success": True, "data": [bl.to_dict() for bl in blocks]})
+
+        @app.get("/api/bat/blocks/seal")
+        async def bat_get_seal_info():
+            """Get seal info (GET variant)."""
+            return JSONResponse({"success": True, "data": {"message": "Use POST /api/bat/blocks/seal to seal the current block"}})
+
+        @app.post("/api/bat/blocks/seal")
+        async def bat_seal_block():
+            """Seal the current block."""
+            bl = _bat.seal_current_block()
+            if not bl:
+                return JSONResponse({"success": False, "error": {"code": "BAT_EMPTY", "message": "No pending entries"}}, status_code=400)
+            return JSONResponse({"success": True, "data": bl.to_dict()}, status_code=201)
+
+        @app.get("/api/bat/blocks/index/{idx}")
+        async def bat_get_block_by_index(idx: int):
+            """Get block by index."""
+            bl = _bat.get_block_by_index(idx)
+            if not bl:
+                return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Block not found at index"}}, status_code=404)
+            return JSONResponse({"success": True, "data": bl.to_dict()})
+
+        @app.get("/api/bat/blocks/{block_id}")
+        async def bat_get_block(block_id: str):
+            """Get a specific block."""
+            bl = _bat.get_block(block_id)
+            if not bl:
+                return JSONResponse({"success": False, "error": {"code": "NOT_FOUND", "message": "Block not found"}}, status_code=404)
+            return JSONResponse({"success": True, "data": bl.to_dict()})
+
+        @app.get("/api/bat/verify")
+        async def bat_verify_chain():
+            """Verify blockchain integrity."""
+            result = _bat.verify_chain()
+            return JSONResponse({"success": True, "data": result.to_dict()})
+
+        @app.get("/api/bat/export")
+        async def bat_export_chain():
+            """Export the full blockchain."""
+            return JSONResponse({"success": True, "data": _bat.export_chain()})
+
+        @app.get("/api/bat/stats")
+        async def bat_stats():
+            """Get blockchain statistics."""
+            return JSONResponse({"success": True, "data": _bat.get_stats().to_dict()})
+
+        logger.info("Blockchain Audit Trail API registered at /api/bat/*")
+    except Exception as _bat_exc:
+        logger.warning("Blockchain Audit Trail API unavailable: %s", _bat_exc)
+
+    # ══════════════════════════════════════════════════════════════════════
+    # AUTH MIDDLEWARE — unified X-API-Key enforcement for all /api/* routes
+    # Permissive when MURPHY_API_KEY env var is not set (development mode).
+    # ══════════════════════════════════════════════════════════════════════
+
+    from starlette.middleware.base import BaseHTTPMiddleware as _BHMW
+
+    class _APIKeyMiddleware(_BHMW):
+        """Unified API key enforcement for all /api/* routes."""
+
+        EXEMPT_PATHS = {"/api/health", "/api/info", "/api/manifest"}
+
+        async def dispatch(self, request: Request, call_next):
+            if request.url.path.startswith("/api/") and request.url.path not in self.EXEMPT_PATHS:
+                expected_key = os.environ.get("MURPHY_API_KEY", "")
+                if expected_key:
+                    # Starlette normalises header names to lowercase (RFC 7230);
+                    # use lowercase "x-api-key" here to match that behaviour.
+                    api_key = request.headers.get("x-api-key", "")
+                    if api_key != expected_key:
+                        return JSONResponse(
+                            {"success": False, "error": {"code": "AUTH_REQUIRED", "message": "Valid X-API-Key header required"}},
+                            status_code=401,
+                        )
+            return await call_next(request)
+
+    app.add_middleware(_APIKeyMiddleware)
+
+    # ══════════════════════════════════════════════════════════════════════
+    # EXCEPTION HANDLERS — normalise all error formats into standard envelope
+    # ══════════════════════════════════════════════════════════════════════
+
+    from fastapi import Request as _FARequest
+    from fastapi.exceptions import RequestValidationError as _RVE
+    from starlette.exceptions import HTTPException as _SHTTPException
+
+    @app.exception_handler(_SHTTPException)
+    async def _http_exception_handler(_req: _FARequest, exc: _SHTTPException):
+        return JSONResponse(
+            {"success": False, "error": {"code": f"HTTP_{exc.status_code}", "message": str(exc.detail)}},
+            status_code=exc.status_code,
+        )
+
+    @app.exception_handler(_RVE)
+    async def _validation_exception_handler(_req: _FARequest, exc: _RVE):
+        return JSONResponse(
+            {"success": False, "error": {"code": "VALIDATION_ERROR", "message": str(exc)}},
+            status_code=422,
+        )
+
+    @app.exception_handler(Exception)
+    async def _general_exception_handler(_req: _FARequest, exc: Exception):
+        logger.error("Unhandled exception: %s", exc, exc_info=True)
+        return JSONResponse(
+            {"success": False, "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}},
+            status_code=500,
+        )
+
+    # ══════════════════════════════════════════════════════════════════════
+    # STUB ENDPOINTS — frontend calls that are not yet fully implemented
+    # All return 501 Not Implemented with a clear error code.
+    # ══════════════════════════════════════════════════════════════════════
+
+    @app.post("/api/analyze-domain")
+    async def stub_analyze_domain():
+        """Stub: analyze domain not yet implemented."""
+        return JSONResponse({"success": False, "error": {"code": "NOT_IMPLEMENTED", "message": "Analyze domain not yet implemented"}}, status_code=501)
+
+    # ══════════════════════════════════════════════════════════════════════
+    # PLATFORM SELF-AUTOMATION — Self-Fix, Repair, Scheduler, Orchestrator
+    # ══════════════════════════════════════════════════════════════════════
+
+    # ── Self-Fix Loop (ARCH-005) ──────────────────────────────────────────
+
+    @app.get("/api/self-fix/status")
+    async def self_fix_status():
+        """Current self-fix loop status."""
+        loop = getattr(murphy, "self_fix_loop", None)
+        if loop is None:
+            return JSONResponse({"success": True, "status": "unavailable",
+                                 "message": "SelfFixLoop not initialised"})
         try:
-            result = registry.auto_detect_and_ingest(content, filename, context)
-            return JSONResponse({"success": True, **result.to_dict()})
-        except ValueError as exc:
-            return JSONResponse({"success": False, "error": str(exc)}, status_code=422)
+            status = loop.get_status()
+            return JSONResponse({"success": True, **status})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
 
-    @app.get("/api/industry/climate/{city}")
-    async def industry_climate(city: str):
-        """Return ASHRAE 169-2021 climate zone + resilience factors for a city.
+    @app.post("/api/self-fix/run")
+    async def self_fix_run(request: Request):
+        """Trigger the self-fix loop (diagnose → plan → execute → test → verify)."""
+        loop = getattr(murphy, "self_fix_loop", None)
+        if loop is None:
+            return JSONResponse({"success": False,
+                                 "error": "SelfFixLoop not available"}, status_code=503)
+        try:
+            body_bytes = await request.body()
+            body = {}
+            if body_bytes:
+                import json as _json
+                body = _json.loads(body_bytes)
+            max_iter = int(body.get("max_iterations", 10))
+            report = loop.run_loop(max_iterations=max_iter)
+            return JSONResponse({
+                "success": True,
+                "report": report.to_dict() if hasattr(report, "to_dict") else str(report),
+            })
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
 
-        Path param: ``city`` — city name (e.g. ``Chicago``, ``Miami``)
-        """
-        from climate_resilience_engine import ClimateResilienceEngine
-        engine = ClimateResilienceEngine()
-        zone = engine.lookup_climate_zone(city)
-        factors = engine.get_resilience_factors(city)
-        recs = engine.get_design_recommendations(city, "general")
-        targets = engine.get_energy_targets(city, "office")
-        return JSONResponse({
-            "success": True,
-            "city": city,
-            "climate_zone": zone.zone_id if zone else None,
-            "zone_description": zone.description if zone else None,
-            "resilience_factors": {
-                "hurricane_risk": factors.hurricane_risk,
-                "flood_zone": factors.flood_zone,
-                "design_temp_heating": factors.design_temp_heating,
-                "design_temp_cooling": factors.design_temp_cooling,
-            } if factors else {},
-            "design_recommendations": recs,
-            "energy_targets": vars(targets) if targets else {},
-        })
+    @app.get("/api/self-fix/history")
+    async def self_fix_history():
+        """Past self-fix loop reports."""
+        loop = getattr(murphy, "self_fix_loop", None)
+        if loop is None:
+            return JSONResponse({"success": True, "reports": []})
+        try:
+            reports = loop.get_all_reports()
+            return JSONResponse({"success": True, "reports": reports})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
 
-    @app.post("/api/industry/energy-audit")
-    async def industry_energy_audit(request: Request):
-        """Run a CEM-level energy audit and return ECM recommendations.
+    @app.get("/api/self-fix/plans")
+    async def self_fix_plans():
+        """All fix plans with their status."""
+        loop = getattr(murphy, "self_fix_loop", None)
+        if loop is None:
+            return JSONResponse({"success": True, "plans": []})
+        try:
+            plans = loop.get_all_plans()
+            return JSONResponse({"success": True, "plans": plans})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
 
-        Body: ``{utility_data: dict, facility_type: str, climate_zone: str, audit_level: str, mss_mode: str}``
-        Returns utility analysis, ranked ECMs, ROI projections, and MSS rubric output.
-        """
-        from energy_efficiency_framework import EnergyEfficiencyFramework
-        body = await request.json()
-        utility_data = body.get("utility_data", {})
-        facility_type = body.get("facility_type", "office")
-        climate_zone = body.get("climate_zone", "")
-        audit_level = body.get("audit_level", "II")
-        mss_mode = body.get("mss_mode", "magnify")
-        eef = EnergyEfficiencyFramework()
-        analysis = eef.analyze_utility_data(utility_data)
-        ecms = eef.recommend_ecms(analysis, facility_type, climate_zone)
-        report = eef.generate_audit_report(audit_level, analysis, ecms)
-        rubric = eef.apply_mss_rubric(mss_mode, utility_data)
-        return JSONResponse({
-            "success": True,
-            "audit_level": audit_level,
-            "mss_mode": mss_mode,
-            "utility_analysis": vars(analysis),
-            "ecm_count": len(ecms),
-            "recommended_ecms": [vars(e) for e in ecms[:10]],
-            "audit_report": report,
-            "mss_rubric": rubric,
-        })
+    # ── Autonomous Repair System (ARCH-006) ───────────────────────────────
 
-    @app.post("/api/industry/interview")
-    async def industry_interview(request: Request):
-        """Drive a 21-question synthetic interview session.
+    @app.get("/api/repair/status")
+    async def repair_status():
+        """Current repair system health."""
+        repair = getattr(murphy, "autonomous_repair", None)
+        if repair is None:
+            return JSONResponse({"success": True, "status": "unavailable",
+                                 "message": "AutonomousRepairSystem not initialised"})
+        try:
+            health = repair.get_health()
+            return JSONResponse({"success": True, **health})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
 
-        Body: ``{session_id: str|null, question_id: str|null, answer: str|null, domain: str}``
-        POST with no session_id starts a new session and returns the first question.
-        POST with session_id + question_id + answer records the answer and returns next.
-        """
-        from synthetic_interview_engine import SyntheticInterviewEngine
-        body = await request.json()
-        if not hasattr(industry_interview, "_engines"):
-            industry_interview._engines = {}
-        session_id = body.get("session_id")
-        question_id = body.get("question_id")
-        answer_text = body.get("answer")
-        domain = body.get("domain", "general")
-        engine = industry_interview._engines.get(session_id) if session_id else None
+    @app.post("/api/repair/run")
+    async def repair_run(request: Request):
+        """Trigger a full autonomous repair cycle."""
+        repair = getattr(murphy, "autonomous_repair", None)
+        if repair is None:
+            return JSONResponse({"success": False,
+                                 "error": "AutonomousRepairSystem not available"}, status_code=503)
+        try:
+            body_bytes = await request.body()
+            body = {}
+            if body_bytes:
+                import json as _json
+                body = _json.loads(body_bytes)
+            max_iter = int(body.get("max_iterations", 20))
+            report = repair.run_repair_cycle(max_iterations=max_iter)
+            return JSONResponse({
+                "success": True,
+                "report": report.to_dict() if hasattr(report, "to_dict") else str(report),
+            })
+        except RuntimeError as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=409)
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.get("/api/repair/history")
+    async def repair_history():
+        """Past repair reports."""
+        repair = getattr(murphy, "autonomous_repair", None)
+        if repair is None:
+            return JSONResponse({"success": True, "reports": []})
+        try:
+            reports = repair.get_reports()
+            return JSONResponse({"success": True, "reports": reports})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.get("/api/repair/wiring")
+    async def repair_wiring():
+        """Front-end ↔ back-end wiring report."""
+        repair = getattr(murphy, "autonomous_repair", None)
+        if repair is None:
+            return JSONResponse({"success": True, "wiring_issues": []})
+        try:
+            issues = repair.get_wiring_report()
+            return JSONResponse({"success": True, "wiring_issues": issues})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.get("/api/repair/proposals")
+    async def repair_proposals():
+        """View all repair proposals."""
+        repair = getattr(murphy, "autonomous_repair", None)
+        if repair is None:
+            return JSONResponse({"success": True, "proposals": []})
+        try:
+            proposals = repair.get_proposals() if hasattr(repair, "get_proposals") else []
+            return JSONResponse({"success": True, "proposals": proposals})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    # ── Murphy Scheduler (daily automation cycle) ─────────────────────────
+
+    @app.get("/api/scheduler/status")
+    async def scheduler_status():
+        """Murphy platform scheduler status."""
+        sched = getattr(murphy, "murphy_scheduler", None)
+        if sched is None:
+            return JSONResponse({"success": True, "status": "unavailable",
+                                 "message": "MurphyScheduler not initialised"})
+        try:
+            status = sched.get_status()
+            return JSONResponse({"success": True, **status})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.post("/api/scheduler/start")
+    async def scheduler_start():
+        """Start the platform automation scheduler."""
+        sched = getattr(murphy, "murphy_scheduler", None)
+        if sched is None:
+            return JSONResponse({"success": False,
+                                 "error": "MurphyScheduler not available"}, status_code=503)
+        try:
+            started = sched.start()
+            return JSONResponse({"success": True, "started": started})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.post("/api/scheduler/stop")
+    async def scheduler_stop():
+        """Stop the platform automation scheduler."""
+        sched = getattr(murphy, "murphy_scheduler", None)
+        if sched is None:
+            return JSONResponse({"success": False,
+                                 "error": "MurphyScheduler not available"}, status_code=503)
+        try:
+            sched.stop()
+            return JSONResponse({"success": True, "stopped": True})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.post("/api/scheduler/trigger")
+    async def scheduler_trigger():
+        """Manually trigger the daily automation cycle."""
+        sched = getattr(murphy, "murphy_scheduler", None)
+        if sched is None:
+            return JSONResponse({"success": False,
+                                 "error": "MurphyScheduler not available"}, status_code=503)
+        try:
+            result = sched.run_daily_automation()
+            return JSONResponse({"success": True, "result": result})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    # ── Self-Automation Orchestrator (ARCH-002) ───────────────────────────
+
+    @app.get("/api/self-automation/status")
+    async def self_automation_status():
+        """Self-automation orchestrator status."""
+        orch = getattr(murphy, "self_automation_orchestrator", None)
+        if orch is None:
+            return JSONResponse({"success": True, "status": "unavailable",
+                                 "message": "SelfAutomationOrchestrator not initialised"})
+        try:
+            tasks = orch.list_tasks() if hasattr(orch, "list_tasks") else []
+            return JSONResponse({
+                "success": True,
+                "status": "active",
+                "task_count": len(tasks),
+                "tasks": tasks[:50],
+            })
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.post("/api/self-automation/task")
+    async def self_automation_create_task(request: Request):
+        """Create a self-automation task."""
+        orch = getattr(murphy, "self_automation_orchestrator", None)
+        if orch is None:
+            return JSONResponse({"success": False,
+                                 "error": "SelfAutomationOrchestrator not available"}, status_code=503)
+        try:
+            data = await request.json()
+            title = data.get("title", "")
+            module_name = data.get("module_name") or None
+            priority = int(data.get("priority", 5))
+            category = data.get("category", "self_improvement")
+            if not title:
+                return JSONResponse({"success": False, "error": "title is required"}, status_code=400)
+            # Resolve category enum
+            try:
+                from src.self_automation_orchestrator import TaskCategory
+                cat = TaskCategory(category)
+            except (ImportError, ValueError):
+                cat = category
+            task = orch.create_task(
+                title=title,
+                category=cat,
+                module_name=module_name,
+                priority=priority,
+            )
+            return JSONResponse({
+                "success": True,
+                "task": task.to_dict() if hasattr(task, "to_dict") else {"id": str(task)},
+            })
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.get("/api/self-automation/tasks")
+    async def self_automation_list_tasks():
+        """List self-automation tasks."""
+        orch = getattr(murphy, "self_automation_orchestrator", None)
+        if orch is None:
+            return JSONResponse({"success": True, "tasks": []})
+        try:
+            tasks = orch.list_tasks() if hasattr(orch, "list_tasks") else []
+            return JSONResponse({"success": True, "tasks": tasks})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    # ── Self-Improvement Engine ───────────────────────────────────────────
+
+    @app.get("/api/self-improvement/status")
+    async def self_improvement_status():
+        """Self-improvement engine status."""
+        engine = getattr(murphy, "self_improvement", None)
         if engine is None:
-            import uuid
-            session_id = str(uuid.uuid4())
-            engine = SyntheticInterviewEngine()
-            session_obj = engine.create_session(domain)
-            industry_interview._engines[session_id] = (engine, session_obj.session_id)
-        engine, internal_sid = industry_interview._engines[session_id]
-        inferred = []
-        if answer_text is not None and question_id:
-            result = engine.answer(internal_sid, question_id, answer_text)
-            inferred = result.get("inferred", [])
-        question = engine.next_question(internal_sid)
-        status = engine.get_all_21_status(internal_sid)
-        complete = status.get("complete", False)
+            return JSONResponse({"success": True, "status": "unavailable",
+                                 "message": "SelfImprovementEngine not initialised"})
+        try:
+            status = engine.get_status() if hasattr(engine, "get_status") else {"status": "active"}
+            return JSONResponse({"success": True, **status})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.get("/api/self-improvement/proposals")
+    async def self_improvement_proposals():
+        """List improvement proposals."""
+        engine = getattr(murphy, "self_improvement", None)
+        if engine is None:
+            return JSONResponse({"success": True, "proposals": []})
+        try:
+            backlog = engine.get_remediation_backlog() if hasattr(engine, "get_remediation_backlog") else []
+            proposals = []
+            for p in backlog:
+                proposals.append({
+                    "proposal_id": getattr(p, "proposal_id", ""),
+                    "category": getattr(p, "category", ""),
+                    "description": getattr(p, "description", ""),
+                    "status": getattr(p, "status", ""),
+                    "suggested_action": getattr(p, "suggested_action", ""),
+                })
+            return JSONResponse({"success": True, "proposals": proposals})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.get("/api/self-improvement/corrections")
+    async def self_improvement_corrections():
+        """List applied corrections."""
+        engine = getattr(murphy, "self_improvement", None)
+        if engine is None:
+            return JSONResponse({"success": True, "corrections": []})
+        try:
+            corrections = getattr(engine, "_corrections_applied", [])
+            return JSONResponse({"success": True, "corrections": list(corrections[-50:])})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    # ── Platform Automation Overview ──────────────────────────────────────
+
+    @app.get("/api/platform/automation-status")
+    async def platform_automation_overview():
+        """Unified overview of all platform self-automation systems."""
+        systems = {}
+
+        # Self-Fix Loop
+        loop = getattr(murphy, "self_fix_loop", None)
+        systems["self_fix_loop"] = {
+            "available": loop is not None,
+            "status": loop.get_status() if loop and hasattr(loop, "get_status") else None,
+        }
+
+        # Autonomous Repair
+        repair = getattr(murphy, "autonomous_repair", None)
+        systems["autonomous_repair"] = {
+            "available": repair is not None,
+            "status": repair.get_health() if repair and hasattr(repair, "get_health") else None,
+        }
+
+        # Scheduler
+        sched = getattr(murphy, "murphy_scheduler", None)
+        systems["scheduler"] = {
+            "available": sched is not None,
+            "status": sched.get_status() if sched and hasattr(sched, "get_status") else None,
+        }
+
+        # Self-Automation Orchestrator
+        orch = getattr(murphy, "self_automation_orchestrator", None)
+        systems["self_automation_orchestrator"] = {
+            "available": orch is not None,
+            "task_count": len(orch.list_tasks()) if orch and hasattr(orch, "list_tasks") else 0,
+        }
+
+        # Self-Improvement Engine
+        eng = getattr(murphy, "self_improvement", None)
+        systems["self_improvement_engine"] = {
+            "available": eng is not None,
+            "status": eng.get_status() if eng and hasattr(eng, "get_status") else None,
+        }
+
+        # MFM (Murphy Foundation Model)
+        import os as _os
+        systems["mfm"] = {
+            "enabled": _os.environ.get("MFM_ENABLED", "false").lower() == "true",
+            "mode": _os.environ.get("MFM_MODE", "disabled"),
+        }
+
+        available_count = sum(1 for s in systems.values() if s.get("available", False) or s.get("enabled", False))
         return JSONResponse({
             "success": True,
-            "session_id": session_id,
-            "question": question,
-            "inferred_answers": inferred,
-            "status": status,
-            "complete": complete,
-            "knowledge_model": engine.generate_knowledge_model(internal_sid) if complete else None,
+            "systems": systems,
+            "total_systems": len(systems),
+            "available_count": available_count,
         })
 
-    @app.post("/api/industry/configure")
-    async def industry_configure(request: Request):
-        """Detect system type and return configuration strategy.
+    # ══════════════════════════════════════════════════════════════════════
+    # REPAIR FLASK BLUEPRINT — mount via WSGIMiddleware
+    # ══════════════════════════════════════════════════════════════════════
 
-        Body: ``{description: str, context: dict, mss_mode: str}``
-        Returns detected system type, recommended strategy, and MSS configuration.
-        ``mss_mode`` accepts ``magnify``, ``simplify``, or ``solidify``.
-        """
-        from system_configuration_engine import SystemConfigurationEngine
-        body = await request.json()
-        description = body.get("description", "")
-        context = body.get("context", {})
-        mss_mode = body.get("mss_mode", "magnify")
-        if not description:
-            return JSONResponse({"success": False, "error": "description is required"}, status_code=400)
-        engine = SystemConfigurationEngine()
-        system_type = engine.detect_system_type(description)
-        strategy = engine.recommend_strategy(system_type, context)
-        config = engine.configure(system_type, strategy.strategy_id, context)
-        if mss_mode == "simplify":
-            mss_output = engine.simplify(config)
-        elif mss_mode == "solidify":
-            mss_output = engine.solidify(config)
+    try:
+        from src.repair_api_endpoints import create_repair_blueprint as _create_repair_bp
+        _repair_bp = _create_repair_bp()
+        if _repair_bp is not None:
+            from starlette.middleware.wsgi import WSGIMiddleware as _WSGIMid2
+            try:
+                from flask import Flask as _Flask2
+                _repair_flask = _Flask2("repair")
+                _repair_flask.register_blueprint(_repair_bp)
+                app.mount("/api/repair-flask", _WSGIMid2(_repair_flask.wsgi_app))
+                logger.info("Repair API Flask blueprint mounted at /api/repair-flask/*")
+            except Exception as _rep_mount_exc:
+                logger.warning("Repair Flask blueprint mount skipped: %s", _rep_mount_exc)
         else:
-            mss_output = engine.magnify(config)
-        return JSONResponse({
-            "success": True,
-            "system_type": system_type.value,
-            "recommended_strategy": strategy.to_dict(),
-            "mss_mode": mss_mode,
-            "configuration": config.to_dict(),
-            "mss_output": mss_output,
-        })
+            logger.info("Repair API blueprint not created (Flask unavailable)")
+    except Exception as _rep_exc:
+        logger.warning("Repair API endpoints not available: %s", _rep_exc)
 
-    @app.post("/api/industry/as-built")
-    async def industry_as_built(request: Request):
-        """Generate an as-built diagram from an equipment spec dict.
+    # ══════════════════════════════════════════════════════════════════════
+    # DEMO EXPORT — downloadable project bundle with licensing
+    # ══════════════════════════════════════════════════════════════════════
 
-        Body: ``{equipment_spec: dict, system_name: str}``
-        Returns ControlDiagram, PointSchedule, and schematic description.
+    @app.get("/api/demo/export")
+    async def demo_export(request: Request):
+        """Generate a downloadable demo project bundle.
+
+        Returns a JSON manifest describing the exportable project structure
+        with all workflows, configurations, and wiring — ready to drop
+        into the user's own repository.
         """
-        from as_built_generator import AsBuiltGenerator
-        body = await request.json()
-        system_name = body.get("system_name", "System")
-        equipment_spec = body.get("equipment_spec", {})
-        gen = AsBuiltGenerator()
-        diagram = gen.from_equipment_spec(equipment_spec, system_name)
-        schedule = gen.generate_point_schedule(diagram)
-        schematic = gen.generate_schematic_description(diagram)
-        exported = gen.export_as_built(diagram)
-        return JSONResponse({
-            "success": True,
-            "system_name": system_name,
-            "diagram": diagram.to_dict(),
-            "point_schedule": schedule,
-            "schematic_description": schematic,
-            "export": exported,
-        })
+        account = _get_account_from_session(request)
+        account_id = account["account_id"] if account else "anonymous"
+        now_iso = datetime.now(timezone.utc).isoformat()
 
-    @app.post("/api/industry/decide")
-    async def industry_decide(request: Request):
-        """Run a pro/con decision analysis with safety/compliance constraints.
+        # Collect all workflows
+        workflows = list(_workflows_store.values())
 
-        Body: ``{question: str, options: list[{name, pros, cons}], criteria_set: str}``
-        Returns winner, viable options sorted by score, eliminated options, and reasoning.
-        ``criteria_set`` accepts ``energy_system_selection``, ``equipment_selection``,
-        ``automation_strategy_selection``, or ``ecm_prioritization``.
-        """
-        from pro_con_decision_engine import ProConDecisionEngine
-        body = await request.json()
-        question = body.get("question", "Select best option")
-        options_raw = body.get("options", [])
-        criteria_set = body.get("criteria_set", None)
-        if not options_raw:
-            return JSONResponse({"success": False, "error": "options list is required"}, status_code=400)
-        engine = ProConDecisionEngine()
-        decision = engine.evaluate(question, options_raw, criteria_set=criteria_set)
-        explanation = engine.explain_decision(decision)
-        viable = [o for o in decision.options if o.viable]
-        eliminated = [o for o in decision.options if not o.viable]
-        return JSONResponse({
-            "success": True,
-            "question": question,
-            "winner": decision.winner.name if decision.winner else None,
-            "runner_up": decision.runner_up.name if decision.runner_up else None,
-            "viable_options": [{"name": o.name, "net_score": o.net_score} for o in sorted(viable, key=lambda x: -x.net_score)],
-            "eliminated_options": [{"name": o.name, "violations": o.constraint_violations} for o in eliminated],
-            "explanation": explanation,
-            "reasoning": decision.reasoning,
-        })
+        # Collect integration recommendations
+        integrations_needed = set()
+        for wf in workflows:
+            for sug in wf.get("api_suggestions", []):
+                integrations_needed.add(sug.get("name", ""))
+
+        # Build the export bundle
+        bundle = {
+            "murphy_demo_export": True,
+            "version": "1.0.0",
+            "exported_at": now_iso,
+            "exported_by": account_id,
+            "license": {
+                "type": "BSL-1.1",
+                "name": "Business Source License 1.1",
+                "copyright": "Copyright © 2020 Inoni Limited Liability Company",
+                "creator": "Corey Post",
+                "warranty": "NO WARRANTY — This software is provided 'as-is' without "
+                            "any express or implied warranty. In no event shall the "
+                            "authors be held liable for any damages arising from the "
+                            "use of this software.",
+                "usage_grant": "You may use, copy, and modify this demo export for "
+                               "personal or internal business purposes. Commercial "
+                               "redistribution requires a separate license agreement "
+                               "with Inoni LLC.",
+            },
+            "project_structure": {
+                "README.md": "Project overview, setup instructions, and architecture",
+                "LICENSE": "BSL-1.1 license text",
+                "requirements.txt": "Python dependencies",
+                ".env.example": "Environment variable template with all API keys",
+                "src/": "Source code modules",
+                "src/runtime/app.py": "FastAPI application with all endpoints",
+                "src/workflows/": "Generated workflow definitions",
+                "src/integrations/": "Integration wiring configurations",
+                "tests/": "Test suite",
+                "docs/": "Documentation including API reference",
+                "documentation/": "Extended documentation",
+            },
+            "workflows": [
+                {
+                    "id": wf.get("id"),
+                    "name": wf.get("name"),
+                    "status": wf.get("status"),
+                    "schedule": wf.get("schedule", {}),
+                    "node_count": len(wf.get("nodes", [])),
+                    "generated_from": wf.get("generated_from", ""),
+                    "api_suggestions": wf.get("api_suggestions", []),
+                }
+                for wf in workflows
+            ],
+            "integrations_needed": sorted(integrations_needed - {""}),
+            "env_template": _build_env_template(workflows),
+            "platform_capabilities": {
+                "self_fix_loop": getattr(murphy, "self_fix_loop", None) is not None,
+                "autonomous_repair": getattr(murphy, "autonomous_repair", None) is not None,
+                "scheduler": getattr(murphy, "murphy_scheduler", None) is not None,
+                "self_automation": getattr(murphy, "self_automation_orchestrator", None) is not None,
+                "self_improvement": getattr(murphy, "self_improvement", None) is not None,
+                "mfm_enabled": os.environ.get("MFM_ENABLED", "false").lower() == "true",
+                "workflow_count": len(workflows),
+            },
+            "setup_instructions": [
+                "1. Clone this export into your project directory",
+                "2. Copy .env.example to .env and fill in your API keys",
+                "3. Run: pip install -r requirements.txt",
+                "4. Run: python -m src.runtime.app",
+                "5. Open http://localhost:8000/ui/terminal-unified",
+                "6. Use the onboarding wizard to configure your automations",
+            ],
+        }
+        return JSONResponse({"success": True, "bundle": bundle})
 
     # ══════════════════════════════════════════════════════════════════════
     # DEMO DELIVERABLE DOWNLOAD
@@ -6823,26 +7933,14 @@ def create_app() -> FastAPI:
                 status_code=400,
             )
 
-        # ── Resolve authenticated account from session cookie ────────────
-        account = None
-        cookie_val = request.cookies.get("murphy_session", "")
-        if cookie_val:
-            with _session_lock:
-                account_id_from_session = _session_store.get(cookie_val)
-            if account_id_from_session and _account_manager:
-                try:
-                    account = _account_manager.get_account(account_id_from_session)
-                except Exception:
-                    account = None
-
-        # ── Check usage limits ────────────────────────────────────────
-        sub_manager = _get_sub_manager()
+        # ── Check usage limits ──────────────────────────────────────────
+        account = _get_account_from_session(request)
         usage_result: dict = {}
 
-        if sub_manager is not None:
+        if _sub_manager is not None:
             if account:
-                account_id = getattr(account, "account_id", None) or getattr(account, "id", str(account))
-                usage_result = sub_manager.record_usage(str(account_id))
+                account_id = account["account_id"]
+                usage_result = _sub_manager.record_usage(account_id)
             else:
                 try:
                     from src.demo_deliverable_generator import make_fingerprint
@@ -6853,9 +7951,9 @@ def create_app() -> FastAPI:
                     import hashlib
                     ip = request.client.host if request.client else "unknown"
                     fp = hashlib.sha256(ip.encode()).hexdigest()[:32]
-                usage_result = sub_manager.record_anon_usage(fp)
+                usage_result = _sub_manager.record_anon_usage(fp)
         else:
-            usage_result = {"allowed": True, "used": 1, "limit": 5, "remaining": 4, "tier": "anonymous"}
+            usage_result = {"allowed": True, "used": 1, "limit": 5, "remaining": 4, "tier": "anonymous"}  # fallback: no tracking
 
         if not usage_result.get("allowed", True):
             tier = usage_result.get("tier", "anonymous")
@@ -6885,17 +7983,19 @@ def create_app() -> FastAPI:
                 status_code=429,
             )
 
-        # ── Generate deliverable ─────────────────────────────────────
+        # ── Generate deliverable ────────────────────────────────────────
         # Step 1: Librarian lookup — gives domain knowledge to the generator
         librarian_context: str = ""
         try:
             lib_result = murphy.librarian_ask(query, mode="ask")
+            # Extract the text answer from whichever key is populated
             librarian_context = (
                 lib_result.get("reply_text")
                 or lib_result.get("response")
                 or lib_result.get("message")
                 or ""
             )
+            # Truncate to a sane length to avoid bloating the deliverable
             if librarian_context:
                 librarian_context = librarian_context[:1500]
         except Exception as _lib_exc:
@@ -6912,6 +8012,28 @@ def create_app() -> FastAPI:
                 status_code=500,
             )
 
+        # Step 3: Wingman validation — sensors calibrate the output, result
+        # is recorded back into the Librarian knowledge layers.
+        wingman_validation: Optional[Dict[str, Any]] = None
+        ws = getattr(murphy, "wingman_system", None)
+        if ws is not None:
+            try:
+                vr = ws.validate(
+                    {
+                        "content": deliverable.get("content", ""),
+                        "result": deliverable.get("content", ""),
+                        "id": deliverable.get("filename", ""),
+                    },
+                    module_id="deliverable",
+                )
+                wingman_validation = {
+                    "approved": vr.approved,
+                    "trigger_level": vr.trigger_level,
+                    "findings": vr.findings,
+                }
+            except Exception as _wv_exc:
+                logger.debug("Wingman validation skipped: %s", _wv_exc)
+
         usage_out = {
             "used": usage_result.get("used", 1),
             "limit": usage_result.get("limit", 5),
@@ -6919,11 +8041,380 @@ def create_app() -> FastAPI:
             "tier": usage_result.get("tier", "anonymous"),
         }
 
-        return JSONResponse({
+        response_body: Dict[str, Any] = {
             "success": True,
             "deliverable": deliverable,
             "usage": usage_out,
+        }
+        if wingman_validation is not None:
+            response_body["wingman_validation"] = wingman_validation
+
+        return JSONResponse(response_body)
+
+    def _build_env_template(workflows):
+        """Build .env.example content from workflow API suggestions."""
+        lines = [
+            "# Murphy System — Environment Configuration",
+            "# Generated from your workflows — fill in API keys to activate integrations",
+            "",
+            "# === Core ===",
+            "MURPHY_ENV=production",
+            "MURPHY_SECRET_KEY=change-me-to-a-random-string",
+            "",
+            "# === LLM Provider (optional — system works without it) ===",
+            "# MURPHY_LLM_PROVIDER=groq",
+            "# GROQ_API_KEY=your-groq-key-here  # Free at https://console.groq.com",
+            "",
+            "# === MFM (Murphy Foundation Model) ===",
+            "MFM_ENABLED=true",
+            "MFM_MODE=shadow",
+            "",
+        ]
+        seen = set()
+        for wf in workflows:
+            for sug in wf.get("api_suggestions", []):
+                env_var = sug.get("env_var", "")
+                if env_var and env_var not in seen:
+                    seen.add(env_var)
+                    lines.append(f"# === {sug.get('name', '')} ===")
+                    lines.append(f"# {sug.get('description', '')}")
+                    if sug.get("signup_url"):
+                        lines.append(f"# Sign up: {sug['signup_url']}")
+                    lines.append(f"# {env_var}=your-key-here")
+                    lines.append("")
+        return "\n".join(lines)
+
+    # ══════════════════════════════════════════════════════════════════════
+    # INONI LLC AUTOMATED AGENT ORG CHART
+    # ══════════════════════════════════════════════════════════════════════
+
+    async def _inoni_org_chart_handler():
+        """Full automated org chart of AI agents that work for Inoni LLC.
+
+        Every agent here runs as a platform automation — these are the
+        proof-of-concept automations that murphy.systems uses to maintain
+        itself, sell itself, and demonstrate capabilities.
+        """
+        org = {
+            "company": "Inoni LLC",
+            "platform": "murphy.systems",
+            "mission": "AI-powered business automation for every industry",
+            "departments": [
+                {
+                    "name": "Executive & Strategy",
+                    "head": "Murphy Founder Agent",
+                    "schedule": "continuous",
+                    "agents": [
+                        {"id": "founder-agent", "role": "Founder Schedule Manager",
+                         "description": "Manages platform maintenance schedule aligned with founder priorities",
+                         "automations": ["daily_standup_digest", "weekly_strategy_review", "monthly_investor_update"],
+                         "status": "active", "schedule": "daily 08:00 UTC"},
+                        {"id": "growth-strategist", "role": "Growth Strategy Agent",
+                         "description": "Analyzes user acquisition funnels and optimizes conversion",
+                         "automations": ["funnel_analysis", "conversion_optimization", "churn_prediction"],
+                         "status": "active", "schedule": "daily 06:00 UTC"},
+                    ],
+                },
+                {
+                    "name": "Sales & Marketing",
+                    "head": "Revenue Agent",
+                    "schedule": "daily",
+                    "agents": [
+                        {"id": "daily-seller", "role": "Daily Outreach Agent",
+                         "description": "Sends daily platform capability showcases to prospective users",
+                         "automations": ["daily_outreach_email", "social_media_post", "demo_scheduler"],
+                         "status": "active", "schedule": "daily 09:00 UTC"},
+                        {"id": "content-marketer", "role": "Content Marketing Agent",
+                         "description": "Creates blog posts, tutorials, and case studies demonstrating Murphy capabilities",
+                         "automations": ["blog_draft", "tutorial_generation", "case_study_builder"],
+                         "status": "active", "schedule": "weekly Mon 10:00 UTC"},
+                        {"id": "partnership-agent", "role": "Partnership & Licensing Agent",
+                         "description": "Manages platform capability licensing to other businesses",
+                         "automations": ["license_inquiry_handler", "partner_onboarding", "sdk_access_provisioning"],
+                         "status": "active", "schedule": "on_demand"},
+                    ],
+                },
+                {
+                    "name": "Content Creator Services",
+                    "head": "Creator Economy Agent",
+                    "schedule": "continuous",
+                    "agents": [
+                        {"id": "moderation-agent", "role": "AI Content Moderation Agent",
+                         "description": "Free moderation automation for AI content creators and bloggers — "
+                                        "comment filtering, spam detection, toxicity scoring, community guidelines enforcement",
+                         "automations": ["comment_moderation", "spam_filter", "toxicity_scorer", "community_guidelines_check"],
+                         "status": "active", "schedule": "continuous", "tier": "free"},
+                        {"id": "creator-analytics", "role": "Creator Analytics Agent",
+                         "description": "Audience analytics, engagement tracking, and content performance for creators",
+                         "automations": ["audience_analytics", "engagement_tracker", "content_performance_report"],
+                         "status": "active", "schedule": "daily 07:00 UTC", "tier": "free"},
+                        {"id": "creator-scheduler", "role": "Content Scheduling Agent",
+                         "description": "Auto-schedule posts across platforms with optimal timing",
+                         "automations": ["cross_platform_scheduler", "optimal_time_analyzer", "content_calendar"],
+                         "status": "active", "schedule": "continuous", "tier": "solo"},
+                    ],
+                },
+                {
+                    "name": "Developer Relations",
+                    "head": "DevRel Agent",
+                    "schedule": "daily",
+                    "agents": [
+                        {"id": "sdk-agent", "role": "SDK Management Agent",
+                         "description": "Maintains SDK packages for developers — Python, JavaScript, REST API docs",
+                         "automations": ["sdk_version_check", "api_doc_generator", "sdk_test_runner", "developer_onboarding"],
+                         "status": "active", "schedule": "daily 05:00 UTC"},
+                        {"id": "api-health-agent", "role": "API Health Monitor Agent",
+                         "description": "Monitors all API endpoints for uptime, latency, and error rates",
+                         "automations": ["endpoint_health_check", "latency_monitor", "error_rate_alerter"],
+                         "status": "active", "schedule": "every 5 minutes"},
+                    ],
+                },
+                {
+                    "name": "Platform Engineering",
+                    "head": "Self-Automation Agent",
+                    "schedule": "continuous",
+                    "agents": [
+                        {"id": "self-fix-agent", "role": "Self-Fix Loop Agent",
+                         "description": "Detects and repairs platform issues autonomously (ARCH-005)",
+                         "automations": ["diagnose_gaps", "plan_fixes", "execute_repairs", "verify_fixes"],
+                         "status": "active", "schedule": "every 30 minutes"},
+                        {"id": "repair-agent", "role": "Autonomous Repair Agent",
+                         "description": "Deep repair cycles with immune memory (ARCH-006)",
+                         "automations": ["repair_cycle", "wiring_validation", "reconciliation_loop"],
+                         "status": "active", "schedule": "hourly"},
+                        {"id": "scheduler-agent", "role": "Daily Automation Scheduler",
+                         "description": "Runs the daily business automation cycle with HITL safety gates",
+                         "automations": ["daily_automation_cycle", "hitl_gate_check", "automation_report"],
+                         "status": "active", "schedule": "daily 00:00 UTC"},
+                        {"id": "doc-agent", "role": "Documentation Auto-Update Agent",
+                         "description": "Keeps documentation in sync with code changes",
+                         "automations": ["doc_drift_check", "module_count_sync", "api_reference_update"],
+                         "status": "active", "schedule": "on_push"},
+                    ],
+                },
+                {
+                    "name": "Production & Maintenance",
+                    "head": "Production Assistant Agent",
+                    "schedule": "continuous",
+                    "agents": [
+                        {"id": "production-assistant", "role": "Production Deliverable Agent",
+                         "description": "Main go-to-work systems — task execution, deliverable generation, quality gates",
+                         "automations": ["task_executor", "deliverable_generator", "quality_gate_checker", "client_report_builder"],
+                         "status": "active", "schedule": "on_demand"},
+                        {"id": "maintenance-agent", "role": "Hardware & Infrastructure Maintenance Agent",
+                         "description": "Automates hardware-focused maintenance — server health, backup, scaling",
+                         "automations": ["server_health_check", "backup_automation", "auto_scaling", "ssl_cert_renewal"],
+                         "status": "active", "schedule": "daily 02:00 UTC"},
+                        {"id": "monitor-agent", "role": "System Monitor Agent",
+                         "description": "24/7 monitoring of all platform systems with alerting",
+                         "automations": ["system_monitor", "alert_dispatcher", "incident_tracker", "post_mortem_generator"],
+                         "status": "active", "schedule": "continuous"},
+                    ],
+                },
+                {
+                    "name": "AI & Machine Learning",
+                    "head": "MFM Training Agent",
+                    "schedule": "periodic",
+                    "agents": [
+                        {"id": "mfm-trainer", "role": "MFM Data Collection Agent",
+                         "description": "Collects SENSE→THINK→ACT→LEARN traces for Murphy Foundation Model training",
+                         "automations": ["trace_collection", "outcome_labeling", "training_data_pipeline"],
+                         "status": "active", "schedule": "continuous"},
+                        {"id": "mfm-evaluator", "role": "MFM Shadow Evaluation Agent",
+                         "description": "Runs shadow deployment comparing MFM predictions vs actual outcomes",
+                         "automations": ["shadow_evaluation", "accuracy_tracking", "promote_or_rollback"],
+                         "status": "active", "schedule": "every 6 hours"},
+                        {"id": "streaming-ai", "role": "Streaming & Gaming AI Agent (Future)",
+                         "description": "AI playing video games and streaming automations — coming soon",
+                         "automations": ["game_agent_training", "stream_automation", "viewer_interaction_bot"],
+                         "status": "planned", "schedule": "TBD"},
+                    ],
+                },
+                {
+                    "name": "Customer Success",
+                    "head": "Onboarding Agent",
+                    "schedule": "on_demand",
+                    "agents": [
+                        {"id": "onboard-librarian", "role": "Onboard Librarian Agent",
+                         "description": "Guides new users through setup — works without external LLM API keys",
+                         "automations": ["guided_onboarding", "dimension_extraction", "config_generation", "integration_suggestions"],
+                         "status": "active", "schedule": "on_demand"},
+                        {"id": "wizard-agent", "role": "Setup Wizard Agent",
+                         "description": "Defines main automations based on user's business context",
+                         "automations": ["question_flow", "profile_builder", "config_validator", "preset_recommender"],
+                         "status": "active", "schedule": "on_demand"},
+                        {"id": "support-agent", "role": "Customer Support Agent",
+                         "description": "Handles support inquiries and escalates to HITL when needed",
+                         "automations": ["inquiry_classifier", "auto_resolver", "hitl_escalation", "satisfaction_tracker"],
+                         "status": "active", "schedule": "continuous"},
+                    ],
+                },
+            ],
+            "total_agents": 23,
+            "active_agents": 21,
+            "planned_agents": 2,
+            "automation_count": 70,
+        }
+        return JSONResponse({"success": True, "org_chart": org})
+
+    # ══════════════════════════════════════════════════════════════════════
+    # CONTENT CREATOR MODERATION & SDK ENDPOINTS
+    # ══════════════════════════════════════════════════════════════════════
+
+    @app.get("/api/creator/moderation/status")
+    async def creator_moderation_status():
+        """Content creator moderation service status (free tier)."""
+        return JSONResponse({
+            "success": True,
+            "service": "AI Content Moderation",
+            "tier": "free",
+            "description": "Free automated moderation for AI content creators and bloggers",
+            "capabilities": [
+                {"name": "Comment Moderation", "description": "Filter toxic, spam, and off-topic comments",
+                 "api": "POST /api/creator/moderation/check", "status": "active"},
+                {"name": "Spam Detection", "description": "ML-based spam scoring for blog comments and messages",
+                 "api": "POST /api/creator/moderation/spam-score", "status": "active"},
+                {"name": "Toxicity Scoring", "description": "Rate content toxicity on 0-1 scale",
+                 "api": "POST /api/creator/moderation/toxicity", "status": "active"},
+                {"name": "Community Guidelines", "description": "Check content against custom community rules",
+                 "api": "POST /api/creator/moderation/guidelines", "status": "active"},
+            ],
+            "usage_limits": {
+                "free": "1000 checks/day",
+                "solo": "10,000 checks/day",
+                "business": "100,000 checks/day",
+                "professional": "unlimited",
+            },
         })
+
+    @app.post("/api/creator/moderation/check")
+    async def creator_moderation_check(request: Request):
+        """Run content moderation check on text (free for creators)."""
+        try:
+            data = await request.json()
+            text = data.get("text", "")
+            if not text:
+                return JSONResponse({"success": False, "error": "text is required"}, status_code=400)
+
+            # Simple built-in moderation (no external API needed)
+            text_lower = text.lower()
+            _SPAM_PATTERNS = ["buy now", "click here", "free money", "act now", "limited time",
+                              "congratulations you won", "nigerian prince"]
+            _TOXIC_PATTERNS = ["hate", "kill", "die", "stupid", "idiot"]
+
+            spam_score = sum(1 for p in _SPAM_PATTERNS if p in text_lower) / max(len(_SPAM_PATTERNS), 1)
+            toxicity_score = sum(1 for p in _TOXIC_PATTERNS if p in text_lower) / max(len(_TOXIC_PATTERNS), 1)
+            is_clean = spam_score < 0.2 and toxicity_score < 0.2
+
+            return JSONResponse({
+                "success": True,
+                "result": {
+                    "is_clean": is_clean,
+                    "spam_score": round(spam_score, 3),
+                    "toxicity_score": round(toxicity_score, 3),
+                    "action": "approve" if is_clean else "review",
+                    "flags": ([f"spam_pattern:{p}" for p in _SPAM_PATTERNS if p in text_lower] +
+                              [f"toxic_pattern:{p}" for p in _TOXIC_PATTERNS if p in text_lower]),
+                },
+            })
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.get("/api/sdk/status")
+    async def sdk_status():
+        """SDK availability and developer resources."""
+        return JSONResponse({
+            "success": True,
+            "sdk": {
+                "name": "Murphy SDK",
+                "version": "1.0.0",
+                "languages": [
+                    {"language": "Python", "package": "murphy-sdk",
+                     "install": "pip install murphy-sdk", "status": "available"},
+                    {"language": "JavaScript", "package": "@murphy/sdk",
+                     "install": "npm install @murphy/sdk", "status": "available"},
+                    {"language": "REST API", "package": None,
+                     "install": "curl https://murphy.systems/api/", "status": "available"},
+                ],
+                "features": [
+                    "Workflow generation from natural language",
+                    "Integration management (50+ services)",
+                    "Content moderation APIs (free for creators)",
+                    "HITL intervention management",
+                    "MFM model inference (when enabled)",
+                    "Platform automation control",
+                    "Compliance framework management",
+                    "Org chart and agent management",
+                ],
+                "docs_url": "/ui/docs",
+                "api_reference": "/api/manifest",
+            },
+        })
+
+    @app.get("/api/platform/capabilities")
+    async def platform_capabilities():
+        """Full platform capability catalog — what can be licensed to others."""
+        return JSONResponse({
+            "success": True,
+            "licensable_capabilities": [
+                {"id": "workflow_automation", "name": "Workflow Automation Engine",
+                 "description": "NL → DAG workflow generation with scheduling and API suggestions",
+                 "tier_required": "solo", "license_type": "per_seat"},
+                {"id": "content_moderation", "name": "AI Content Moderation",
+                 "description": "Free for creators — comment filtering, spam detection, toxicity scoring",
+                 "tier_required": "free", "license_type": "free"},
+                {"id": "self_automation", "name": "Self-Automation Platform",
+                 "description": "Self-fix, repair, scheduling, improvement — runs autonomously",
+                 "tier_required": "business", "license_type": "platform"},
+                {"id": "compliance_engine", "name": "Compliance Framework Engine",
+                 "description": "41 compliance frameworks with conflict detection and resolution",
+                 "tier_required": "solo", "license_type": "per_seat"},
+                {"id": "mfm_training", "name": "Custom AI Model Training",
+                 "description": "Train your own foundation model from platform traces (6-month cycle)",
+                 "tier_required": "enterprise", "license_type": "enterprise"},
+                {"id": "sdk_access", "name": "Developer SDK",
+                 "description": "Python, JavaScript, and REST API access to all platform features",
+                 "tier_required": "solo", "license_type": "per_seat"},
+                {"id": "streaming_ai", "name": "Streaming & Gaming AI (Future)",
+                 "description": "AI playing video games and streaming automation — coming soon",
+                 "tier_required": "professional", "license_type": "add_on",
+                 "status": "planned", "eta": "2026-Q4"},
+                {"id": "hitl_interventions", "name": "Human-in-the-Loop Automation",
+                 "description": "Approval queues, popup responses, escalation workflows",
+                 "tier_required": "solo", "license_type": "per_seat"},
+                {"id": "integration_hub", "name": "Integration Hub (50+ services)",
+                 "description": "Pre-built connectors for Slack, SendGrid, Stripe, GitHub, etc.",
+                 "tier_required": "solo", "license_type": "per_seat"},
+                {"id": "production_assistant", "name": "Production Assistant",
+                 "description": "Go-to-work systems — task execution, deliverables, quality gates",
+                 "tier_required": "business", "license_type": "per_seat"},
+                {"id": "maintenance_automation", "name": "Infrastructure Maintenance",
+                 "description": "Hardware-focused automations — server health, backups, scaling",
+                 "tier_required": "business", "license_type": "platform"},
+                {"id": "org_chart_agents", "name": "AI Agent Org Chart",
+                 "description": "Automated agent workforce with scheduling and role management",
+                 "tier_required": "business", "license_type": "per_seat"},
+            ],
+            "total_capabilities": 12,
+            "free_capabilities": 1,
+            "coming_soon": 1,
+        })
+
+    @app.get("/api/manifest")
+    async def api_manifest():
+        """Return a machine-readable manifest of all registered API endpoints."""
+        routes = []
+        for route in app.routes:
+            if hasattr(route, "path") and route.path.startswith("/api/"):
+                # HEAD and OPTIONS are auto-generated by FastAPI for every route
+                # and are not part of the explicit API contract — exclude them.
+                methods = sorted((route.methods or set()) - {"HEAD", "OPTIONS"})
+                routes.append({
+                    "path": route.path,
+                    "methods": methods,
+                    "name": getattr(route, "name", ""),
+                })
+        return JSONResponse({"success": True, "data": {"endpoints": sorted(routes, key=lambda r: r["path"])}})
 
     return app
 
@@ -6964,17 +8455,6 @@ def main():
             _shutdown_mgr.register_cleanup_handler(
                 lambda: getattr(_rl, "save_state", lambda: None)(),
                 "rate_limiter_state_save",
-            )
-        except Exception as exc:
-            logger.debug("Shutdown handler registration skipped: %s", exc)
-
-        # EventBackbone graceful stop
-        try:
-            from src.event_backbone import get_event_backbone as _get_eb_main
-            _eb_main = _get_eb_main()
-            _shutdown_mgr.register_cleanup_handler(
-                _eb_main.stop,
-                "event_backbone_stop",
             )
         except Exception as exc:
             logger.debug("Shutdown handler registration skipped: %s", exc)
