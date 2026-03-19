@@ -1074,7 +1074,7 @@ def _build_quality_plan(
         "maintain":   ["S10"],
     }
 
-    recommended: set[str] = set()
+    recommended = set()  # type: set[str]
     for kw, svc_ids in keyword_map.items():
         if kw in q:
             recommended.update(svc_ids)
