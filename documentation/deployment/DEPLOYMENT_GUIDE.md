@@ -754,12 +754,29 @@ crontab -e
 
 ### Updates and Upgrades
 
+The recommended way to deploy new code is to push to `main` — the
+`Build & Deploy to Hetzner` GitHub Actions workflow will SSH into the
+production server and run the update automatically.
+
+To update manually on the server:
+
+```bash
+# Pull latest code and restart (the recommended one-liner)
+cd /opt/Murphy-System && git pull origin main && systemctl restart murphy-production
+
+# Confirm the new commit is live
+curl -s http://localhost:8000/api/health | python3 -m json.tool
+# Look for "deploy_commit" in the output
+```
+
+For dependency updates or migrations, stop the service first:
+
 ```bash
 # Stop service
 sudo systemctl stop murphy-production
 
 # Update code
-cd /opt/murphy-production
+cd /opt/Murphy-System
 git pull origin main
 
 # Update dependencies

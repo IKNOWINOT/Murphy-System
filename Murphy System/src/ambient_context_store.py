@@ -171,14 +171,6 @@ class AmbientContextStore:
             "avg_confidence": avg_confidence,
             "last_activity_ts": last_activity_ts,
         }
-Ambient Context Store — Server-side signal persistence
-Copyright © 2020 Inoni Limited Liability Company
-Creator: Corey Post | License: BSL 1.1
-
-In-memory store for ambient context signals. Signals are evicted after TTL
-or when the store exceeds max size. This is NOT a database — it's a fast
-cache for the ambient engine's context pipeline.
-"""
 import time
 import threading
 from collections import deque

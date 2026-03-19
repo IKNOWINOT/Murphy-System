@@ -591,10 +591,13 @@ GET /api/health
 ```json
 {
   "status": "healthy",
-  "system_id": "murphy_system_20260117_100000",
-  "timestamp": "2024-01-01T10:00:00Z"
+  "version": "1.0.0",
+  "deploy_commit": "a1b2c3d"
 }
 ```
+
+> `deploy_commit` is the short git SHA injected via `MURPHY_DEPLOY_COMMIT` at
+> service startup. Use `?deep=true` for a full readiness probe.
 
 #### Get System State
 
