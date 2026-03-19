@@ -147,13 +147,13 @@ Ambient Intelligence is a **passive, silent layer** that observes context across
 ```
 Context Sources          Synthesis Engine          Delivery Pipeline
 ─────────────────        ─────────────────        ──────────────────
-📅 Calendar     ──────►  Pattern matching  ──────► UI Stream
-✅ Tasks        ──────►  Signal fusion     ──────► Email (proactive)
-💬 Workspace    ──────►  Confidence score  ──────► Notification
-🧠 Meetings     ──────►  Package builder   ──────► Royalty log
+📅 Calendar     ──────►  LLM controller   ──────► UI Stream
+✅ Tasks        ──────►  Pattern fallback ──────► Email (SendGrid/SMTP)
+💬 Workspace    ──────►  Confidence score ──────► Notification
+🧠 Meetings     ──────►  Package builder  ──────► Royalty log
 ```
 
-The engine runs entirely in the browser background via `static/murphy_ambient.js`, with server-side persistence via the `/api/ambient/*` endpoints.
+The engine runs in the browser background via `static/murphy_ambient.js`. Client-side synthesis runs immediately (pattern matching) as the local path. Server-side LLM synthesis runs asynchronously via `src/ambient_synthesis.py`, delivering richer insights when the LLM controller is available.
 
 ### Context Collection
 
@@ -174,14 +174,27 @@ All signals are pushed to `/api/ambient/context` for server-side enrichment and 
 
 ### Synthesis Engine
 
-The `SynthesisEngine` runs every 90 seconds, cross-referencing collected signals:
+The `SynthesisEngine` runs every 90 seconds, cross-referencing collected signals. Synthesis operates in two tiers:
 
-| Combination | Output | Confidence |
+**Client-side synthesis** (immediate, always available):
+- Runs locally in `murphy_ambient.js` using pattern matching
+- Generates insights with `source: 'client'` flag and pattern-derived confidence
+- Tagged with 📊 Pattern badge in the UI stream
+
+**Server-side LLM synthesis** (async, higher quality):
+- `SynthesisEngine.run()` POSTs signals to `/api/ambient/insights` with `synthesize: true`
+- `src/ambient_synthesis.py` delegates to the Murphy LLM controller (`src/llm_controller.py`)
+- LLM generates natural-language insights with real confidence scores
+- Results are merged into the insight queue with `source: 'server'` flag
+- Tagged with 🤖 AI badge in the UI stream
+- Falls back gracefully to template patterns when LLM is unavailable (no loss of functionality)
+
+| Combination | Output | Confidence Source |
 |---|---|---|
-| upcoming_meeting + pending_votes + overdue | Pre-meeting brief | High (85–92%) |
-| unassigned + overdue | Risk alert + responsibility matrix | High (88–94%) |
-| org_milestone | Org capability report | Very high (95%+) |
-| post_meeting | Post-meeting summary + action items | Medium (70–80%) |
+| upcoming_meeting + pending_votes + overdue | Pre-meeting brief | LLM or pattern (85–92%) |
+| unassigned + overdue | Risk alert + responsibility matrix | LLM or pattern (88–94%) |
+| org_milestone | Org capability report | LLM or pattern (95%+) |
+| post_meeting | Post-meeting summary + action items | LLM or pattern (70–80%) |
 
 Only insights above the configured **confidence threshold** (default: 65%) are delivered.
 
@@ -194,6 +207,16 @@ The `DeliveryPipeline` routes synthesised insights to channels:
 | **UI Stream** | Always (ambient page) | No |
 | **Email** | When `emailEnabled = true` | Yes (email only in shadow mode) |
 | **Notification** | Future: browser push / in-app | N/A |
+
+Email delivery is handled by `src/ambient_email_delivery.py`, which selects the active backend automatically:
+
+| Backend | Activation | Notes |
+|---|---|---|
+| **SendGrid** | `SENDGRID_API_KEY` env var set | Takes priority over SMTP |
+| **SMTP** | `SMTP_HOST` env var set | Uses Python `smtplib`; TLS by default |
+| **Mock** | Neither configured | Returns gracefully with `mock: true`; UI shows ⚠️ banner |
+
+When in mock mode, the Settings panel displays: *"⚠️ Email delivery is not configured. Proactive deliveries will appear in the UI only."*
 
 **Shadow Mode:** When enabled, all UI notifications are suppressed. Only email delivery is used. True 6th sense — you receive the output without seeing the process.
 

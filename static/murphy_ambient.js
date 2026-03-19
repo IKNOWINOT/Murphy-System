@@ -52,7 +52,8 @@
     timers: {
       poll:    null,
       synth:   null,
-      deliver: null
+      deliver: null,
+      server:  null
     }
   };
 
@@ -370,11 +371,12 @@
           body: 'Murphy has prepared a brief for your meeting' +
             (overdueCount ? ' including ' + overdueCount.count + ' overdue action item(s)' : '') +
             (pendingVotes ? ' and ' + pendingVotes.data.count + ' draft(s) pending your vote' : '') + '.',
-          confidence: Math.round((upcomingMeeting.confidence + 70) / 2),
+          confidence: Math.min(99, Math.round((upcomingMeeting.confidence + 70) / 2)),
           priority: 'high',
           trigger: upcomingMeeting.label,
           deliverVia: ['ui', 'email'],
-          agents: ['Murphy-Ambient', 'Shadow-Calendar']
+          agents: ['Murphy-Ambient', 'Shadow-Calendar'],
+          source: 'client'
         });
       }
 
@@ -391,7 +393,8 @@
           priority: 'high',
           trigger: 'Task board analysis',
           deliverVia: ['ui', 'email'],
-          agents: ['Murphy-Ambient']
+          agents: ['Murphy-Ambient'],
+          source: 'client'
         });
       }
 
@@ -407,7 +410,8 @@
           priority: 'low',
           trigger: milestone.label,
           deliverVia: ['ui'],
-          agents: ['Murphy-OrgIntel']
+          agents: ['Murphy-OrgIntel'],
+          source: 'client'
         });
       }
 
@@ -432,8 +436,44 @@
       fetch(BASE_URL + '/api/ambient/insights', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ insights: insights, ts: new Date().toISOString() })
-      }).catch(function () {});
+        body: JSON.stringify({ insights: insights, synthesize: true, ts: new Date().toISOString() })
+      })
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .then(function (data) {
+        if (data && Array.isArray(data.server_insights) && data.server_insights.length) {
+          SynthesisEngine._mergeServerInsights(data.server_insights);
+        }
+      })
+      .catch(function () {});
+    },
+
+    _pollServerInsights: function () {
+      fetch(BASE_URL + '/api/ambient/insights?pending=true', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .then(function (data) {
+        if (data && Array.isArray(data.server_insights) && data.server_insights.length) {
+          SynthesisEngine._mergeServerInsights(data.server_insights);
+        }
+      })
+      .catch(function () {});
+    },
+
+    _mergeServerInsights: function (serverInsights) {
+      var minConf = state.settings.confidenceMin !== undefined ? state.settings.confidenceMin : 65;
+      var deliveredIds = state.delivered.map(function (d) { return d.baseId; });
+      var newInsights = serverInsights.filter(function (i) {
+        if ((i.confidence || 0) < minConf) return false;
+        var baseId = i.type + '-' + (i.title || '').slice(0, 20);
+        return !deliveredIds.includes(baseId);
+      }).map(function (i) {
+        return Object.assign({}, i, { source: 'server' });
+      });
+      if (newInsights.length) {
+        state.insights = state.insights.concat(newInsights).slice(0, MAX_QUEUE);
+      }
     }
   };
 
@@ -500,12 +540,13 @@
 
       var el = document.createElement('div');
       el.className = 'amb-stream-item';
+      var sourceBadge = insight.source === 'server' ? '<span class="amb-source-badge ai" aria-label="AI generated">🤖 AI</span>' : (insight.source === 'client' ? '<span class="amb-source-badge pattern" aria-label="Pattern matched">📊 Pattern</span>' : '');
       el.innerHTML =
         '<div class="amb-stream-icon" aria-hidden="true">' + _esc(icon) + '</div>' +
         '<div class="amb-stream-body">' +
           '<div class="amb-stream-header">' +
             '<span class="amb-stream-type ' + _esc(insight.type) + '">' + _esc(insight.type) + '</span>' +
-            '<span class="amb-stream-confidence">' + (insight.confidence || 0) + '%</span>' +
+            '<span class="amb-stream-confidence">' + (insight.confidence || 0) + '%' + sourceBadge + '</span>' +
             '<span class="amb-stream-time">Just now</span>' +
           '</div>' +
           '<div class="amb-stream-text">' + _esc(insight.body || '') + '</div>' +
@@ -559,8 +600,15 @@
       })
       .then(function (res) { return res.ok ? res.json() : null; })
       .then(function (data) {
-        if (data && data.email_id) {
-          DeliveryPipeline._logEmail(insight, data.email_id, 'sent');
+        if (data) {
+          /* If backend reports mock mode, show the settings panel warning banner */
+          if (data.mock) {
+            var banner = document.getElementById('mock-email-banner');
+            if (banner) banner.classList.add('visible');
+          }
+          if (data.email_id) {
+            DeliveryPipeline._logEmail(insight, data.email_id, data.mock ? 'pending' : 'sent');
+          }
         }
       })
       .catch(function () { DeliveryPipeline._logEmail(insight, null, 'pending'); });
@@ -645,6 +693,7 @@
       state.timers.poll    = setInterval(function () { if (!state.paused) ContextCollector.collect(); }, POLL_INTERVAL_MS);
       state.timers.synth   = setInterval(function () { if (!state.paused) SynthesisEngine.run(); }, SYNTH_INTERVAL_MS);
       state.timers.deliver = setInterval(function () { if (!state.paused) DeliveryPipeline.run(); }, DELIVERY_DELAY_MS);
+      state.timers.server  = setInterval(function () { if (!state.paused) SynthesisEngine._pollServerInsights(); }, SERVER_POLL_INTERVAL_MS);
     },
 
     pause: function () {
