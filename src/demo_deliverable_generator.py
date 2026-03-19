@@ -727,6 +727,7 @@ def generate_predefined_deliverable(
 
     # Add automation blueprint bonus if this is an automation-heavy query.
     # Run MSS first so the blueprint uses real Solidify implementation steps.
+    mss_result: Optional[Dict[str, Any]] = None
     if _detect_major_automation(query):
         mss_result = _run_mss_pipeline(query, {})
         content = content.rstrip() + "\n\n" + _build_automation_blueprint(query, mss_result)
@@ -735,9 +736,10 @@ def generate_predefined_deliverable(
     # the itemized service catalog, technical specification, and client
     # portfolio structure that the plan deliverable requires.
     if scenario_key == "project":
-        mss_for_plan = _run_mss_pipeline(query, {}) if not _detect_major_automation(query) else mss_result
+        if mss_result is None:
+            mss_result = _run_mss_pipeline(query, {})
         content = content.rstrip() + "\n\n" + _build_quality_plan(
-            query, mss_result=mss_for_plan, librarian_context=librarian_context,
+            query, mss_result=mss_result, librarian_context=librarian_context,
         )
 
     filename = _scenario_to_filename(scenario_key, query)
