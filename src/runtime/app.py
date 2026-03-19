@@ -7941,9 +7941,27 @@ def create_app() -> FastAPI:
             )
 
         # ── Generate deliverable ────────────────────────────────────────
+        # Step 1: Librarian lookup — gives domain knowledge to the generator
+        librarian_context: str = ""
+        try:
+            lib_result = murphy.librarian_ask(query, mode="ask")
+            # Extract the text answer from whichever key is populated
+            librarian_context = (
+                lib_result.get("reply_text")
+                or lib_result.get("response")
+                or lib_result.get("message")
+                or ""
+            )
+            # Truncate to a sane length to avoid bloating the deliverable
+            if librarian_context:
+                librarian_context = librarian_context[:1500]
+        except Exception as _lib_exc:
+            logger.debug("Librarian lookup skipped: %s", _lib_exc)
+
+        # Step 2: MFGC → MSS → LLM pipeline (inside generate_deliverable)
         try:
             from src.demo_deliverable_generator import generate_deliverable
-            deliverable = generate_deliverable(query)
+            deliverable = generate_deliverable(query, librarian_context=librarian_context or None)
         except Exception as exc:
             logger.warning("Deliverable generation failed: %s", exc)
             return JSONResponse(

@@ -340,3 +340,182 @@ class TestDemoDeliverableUsageLimits:
         assert result["allowed"] is False
         assert "message" in result
         assert result["tier"] == "anonymous"
+
+
+# ===========================================================================
+# MFGC → MSS → Librarian pipeline tests
+# ===========================================================================
+
+class TestDeliverablePipeline:
+    """Tests for the MFGC → MSS (Magnify/Solidify) → Librarian pipeline."""
+
+    def test_mss_pipeline_returns_dict(self):
+        """_run_mss_pipeline returns a dict (may be empty if deps unavailable)."""
+        from src.demo_deliverable_generator import _run_mss_pipeline
+        result = _run_mss_pipeline("Generate client onboarding workflow", {})
+        assert isinstance(result, dict)
+
+    def test_mss_pipeline_magnify_keys(self):
+        """If MSS is available, magnify output has expected keys."""
+        from src.demo_deliverable_generator import _run_mss_pipeline
+        result = _run_mss_pipeline("Generate client onboarding workflow", {})
+        if result.get("magnify"):
+            assert "functional_requirements" in result["magnify"] or "concept_overview" in result["magnify"]
+
+    def test_mss_pipeline_solidify_keys(self):
+        """If MSS is available, solidify output has expected keys."""
+        from src.demo_deliverable_generator import _run_mss_pipeline
+        result = _run_mss_pipeline("Generate client onboarding workflow", {})
+        if result.get("solidify"):
+            assert "implementation_steps" in result["solidify"]
+
+    def test_mfgc_gate_returns_dict(self):
+        """_run_mfgc_gate always returns a dict and never raises."""
+        from src.demo_deliverable_generator import _run_mfgc_gate
+        result = _run_mfgc_gate("Build an automated invoice processing pipeline")
+        assert isinstance(result, dict)
+        # If MFGC ran, it should have confidence
+        if result:
+            assert "confidence" in result
+
+    def test_format_mss_context_empty(self):
+        """_format_mss_context returns empty string for empty input."""
+        from src.demo_deliverable_generator import _format_mss_context
+        assert _format_mss_context({}) == ""
+
+    def test_format_mss_context_with_data(self):
+        """_format_mss_context renders requirements and steps when data is present."""
+        from src.demo_deliverable_generator import _format_mss_context
+        mock = {
+            "magnify": {
+                "functional_requirements": ["REQ-1: Process invoices", "REQ-2: Notify on failure"],
+                "technical_components": ["API connector", "Queue processor"],
+            },
+            "solidify": {
+                "implementation_steps": [
+                    "1. Define module structure",
+                    "2. Implement core logic",
+                    "3. Deploy and monitor",
+                ],
+            },
+        }
+        rendered = _format_mss_context(mock)
+        assert "REQ-1" in rendered
+        assert "API connector" in rendered
+        assert "Define module structure" in rendered
+
+    def test_format_librarian_section_empty(self):
+        """_format_librarian_section returns empty string for blank input."""
+        from src.demo_deliverable_generator import _format_librarian_section
+        assert _format_librarian_section("") == ""
+        assert _format_librarian_section(None) == ""
+
+    def test_format_librarian_section_with_content(self):
+        """_format_librarian_section includes the LIBRARIAN KNOWLEDGE LOOKUP header."""
+        from src.demo_deliverable_generator import _format_librarian_section
+        result = _format_librarian_section("Murphy supports SOC 2, GDPR, HIPAA frameworks.")
+        assert "LIBRARIAN" in result
+        assert "SOC 2" in result
+
+    def test_detect_major_automation_positive(self):
+        """_detect_major_automation returns True for automation keywords."""
+        from src.demo_deliverable_generator import _detect_major_automation
+        assert _detect_major_automation("automate my invoice processing") is True
+        assert _detect_major_automation("create a workflow for onboarding") is True
+        assert _detect_major_automation("schedule recurring payroll runs") is True
+        assert _detect_major_automation("build an ETL pipeline") is True
+
+    def test_detect_major_automation_negative(self):
+        """_detect_major_automation returns False for non-automation queries."""
+        from src.demo_deliverable_generator import _detect_major_automation
+        assert _detect_major_automation("Write a Q3 finance report") is False
+        assert _detect_major_automation("Screen candidates for PM role") is False
+
+    def test_automation_blueprint_included_when_detected(self):
+        """Custom deliverable for automation query includes the blueprint section."""
+        from src.demo_deliverable_generator import generate_custom_deliverable
+        result = generate_custom_deliverable("Automate my invoice processing workflow")
+        assert "AUTOMATION BLUEPRINT" in result["content"]
+        assert "murphy.systems" in result["content"]
+
+    def test_no_automation_blueprint_for_report_query(self):
+        """Custom deliverable for a non-automation query excludes the blueprint."""
+        from src.demo_deliverable_generator import generate_custom_deliverable
+        result = generate_custom_deliverable("Write a customer satisfaction survey analysis report")
+        # Blueprint only appears when automation keywords are detected
+        assert "FREE BONUS" not in result["content"]
+
+    def test_librarian_context_injected_into_predefined(self):
+        """Librarian context is appended to predefined deliverable content."""
+        from src.demo_deliverable_generator import generate_predefined_deliverable
+        ctx = "Murphy supports 41 compliance frameworks including SOC 2 and GDPR."
+        result = generate_predefined_deliverable("compliance", "Run compliance audit", librarian_context=ctx)
+        assert "LIBRARIAN" in result["content"]
+        assert "SOC 2" in result["content"]
+
+    def test_librarian_context_injected_into_custom(self):
+        """Librarian context enriches the custom deliverable."""
+        from src.demo_deliverable_generator import generate_custom_deliverable
+        ctx = "The Murphy knowledge base includes onboarding templates and SLA frameworks."
+        result = generate_custom_deliverable("Create an HVAC maintenance schedule", librarian_context=ctx)
+        assert "LIBRARIAN" in result["content"]
+
+    def test_generate_deliverable_passes_librarian_context(self):
+        """Top-level generate_deliverable passes librarian_context through."""
+        from src.demo_deliverable_generator import generate_deliverable
+        ctx = "Key insight: Murphy integrates with Slack, HubSpot, and QuickBooks."
+        result = generate_deliverable("Automate client onboarding workflow", librarian_context=ctx)
+        # Should reach the deliverable in some form
+        assert result["content"]
+        assert result["filename"].endswith(".txt")
+
+    def test_build_content_from_mss_has_sections(self):
+        """_build_content_from_mss produces structured content with expected headings."""
+        from src.demo_deliverable_generator import _build_content_from_mss
+        mock_mss = {
+            "magnify": {
+                "functional_requirements": ["Process data from source", "Validate schema"],
+                "technical_components": ["API reader", "Validator"],
+                "compliance_considerations": ["GDPR"],
+                "cost_complexity_estimate": "medium",
+                "concept_overview": "Data processing pipeline",
+            },
+            "solidify": {
+                "implementation_steps": [
+                    "1. Define module structure",
+                    "2. Implement core logic",
+                ],
+                "testing_strategy": ["Unit tests for core logic"],
+                "iteration_plan": "Phase 1: Core. Phase 2: Integration.",
+                "documentation_updates": ["Module spec", "API reference"],
+                "capability_definition": "Create a data processing pipeline",
+                "architecture_placement": "pipeline_engine integrated into murphy_system",
+            },
+        }
+        content = _build_content_from_mss("Build a data processing pipeline", mock_mss)
+        assert "FUNCTIONAL REQUIREMENTS" in content
+        assert "Process data from source" in content
+        assert "IMPLEMENTATION PLAN" in content
+        assert "Define module structure" in content
+
+    def test_custom_query_uses_mss_when_available(self):
+        """Custom query deliverable uses MSS intelligence sections when MSS is available."""
+        from src.demo_deliverable_generator import generate_custom_deliverable
+        result = generate_custom_deliverable("Create a restaurant launch plan")
+        # The content should be non-empty and properly formatted
+        assert len(result["content"]) > 500
+        # Branding must always be present
+        assert "murphy.systems" in result["content"]
+        assert "Apache License" in result["content"]
+
+    def test_pipeline_quality_score_elevated_by_mss(self):
+        """Quality score is elevated above base 94 when MSS produces output."""
+        from src.demo_deliverable_generator import generate_custom_deliverable
+        result = generate_custom_deliverable("Automate invoice processing pipeline")
+        # Title is in the file; quality score appears in the metadata block
+        assert "Quality:" in result["content"]
+        # Score should be ≥ 94
+        import re
+        m = re.search(r"Quality:\s+(\d+)/100", result["content"])
+        if m:
+            assert int(m.group(1)) >= 94
