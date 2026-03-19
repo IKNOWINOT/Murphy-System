@@ -13,8 +13,9 @@ Generation pipeline for custom queries:
              and injects the result as `librarian_context`.
   4. LLM / LocalLLMFallback — generates final prose with all enriched context.
              When MSS is available, _build_content_from_mss() is used directly.
-  5. Automation Blueprint — if the query requests major automation, a free
-             Automation Blueprint section is appended to the deliverable.
+  5. Automation Blueprint — if the query requests major automation, a
+             paid-tier blueprint preview is appended. Execution requires an
+             active SOLO or higher subscription — it is NOT a free addition.
 
 Predefined scenarios (6 chips) use rich hardcoded templates.
 
@@ -554,47 +555,77 @@ _SCENARIO_TEMPLATES: Dict[str, Dict[str, str]] = {
     },
 }
 
-# Scenario keyword → template key mapping
+# Scenario keyword → template key mapping.
+# Keys are substring-matched against the lowercased query.
+# IMPORTANT: keep keywords specific enough to avoid false positives.
+# Broad single words like "plan", "report", "client" are intentionally
+# absent — they match too many unrelated queries.  Use 2-word phrases
+# or domain-specific terms only.
 _KEYWORD_MAP = {
+    # Onboarding — specific to client/customer intake workflows
     "onboarding": "onboarding",
     "onboard": "onboarding",
-    "client": "onboarding",
-    "intake": "onboarding",
-    "finance": "finance",
-    "q3": "finance",
-    "quarterly": "finance",
-    "revenue": "finance",
-    "expense": "finance",
-    "forecast": "finance",
-    "accounting": "finance",
-    "report": "finance",
-    "hr": "hr",
-    "recruit": "hr",
-    "candidate": "hr",
-    "hire": "hr",
-    "screen": "hr",
-    "interview": "hr",
-    "resume": "hr",
-    "talent": "hr",
-    "compliance": "compliance",
-    "audit": "compliance",
-    "gdpr": "compliance",
-    "hipaa": "compliance",
-    "soc": "compliance",
-    "security": "compliance",
-    "risk": "compliance",
-    "project": "project",
-    "plan": "project",
-    "milestone": "project",
-    "sprint": "project",
-    "timeline": "project",
-    "resource": "project",
-    "invoice": "invoice",
-    "payment": "invoice",
-    "billing": "invoice",
-    "vendor": "invoice",
+    "client onboard": "onboarding",
+    "new client": "onboarding",
+    "client intake": "onboarding",
+    "crm setup": "onboarding",
+    "nda ": "onboarding",
+    "master service agreement": "onboarding",
+    "msa ": "onboarding",
+    # Finance — financial reporting and accounting
+    "finance report": "finance",
+    "financial report": "finance",
+    "q3 report": "finance",
+    "q1 report": "finance",
+    "q2 report": "finance",
+    "q4 report": "finance",
+    "quarterly report": "finance",
+    "quarterly review": "finance",
+    "revenue report": "finance",
+    "p&l ": "finance",
+    "profit and loss": "finance",
+    "balance sheet": "finance",
+    "cash flow": "finance",
+    "accounting report": "finance",
+    # HR — recruitment and candidate screening
+    "candidate screen": "hr",
+    "screen candidate": "hr",
+    "candidate review": "hr",
+    "resume review": "hr",
+    "hiring report": "hr",
+    "interview report": "hr",
+    "talent acquisition": "hr",
+    "recruitment report": "hr",
+    # Compliance — audit and regulatory frameworks
+    "compliance audit": "compliance",
+    "compliance report": "compliance",
+    "compliance check": "compliance",
+    "compliance review": "compliance",
+    "audit report": "compliance",
+    "gdpr audit": "compliance",
+    "hipaa audit": "compliance",
+    "soc 2": "compliance",
+    "soc2": "compliance",
+    "security audit": "compliance",
+    "regulatory audit": "compliance",
+    # Project planning — only clear project-plan requests
+    "project plan": "project",
+    "project charter": "project",
+    "project roadmap": "project",
+    "milestone plan": "project",
+    "deployment plan": "project",
+    "implementation plan": "project",
+    "sprint plan": "project",
+    "release plan": "project",
+    # Invoice / AP — accounts payable and billing processing
+    "invoice process": "invoice",
+    "invoice batch": "invoice",
     "accounts payable": "invoice",
-    "ap ": "invoice",
+    "ap report": "invoice",
+    "payment processing": "invoice",
+    "invoice reconcil": "invoice",
+    "billing report": "invoice",
+    "vendor payment": "invoice",
 }
 
 
@@ -664,18 +695,41 @@ def generate_predefined_deliverable(
 
     If `librarian_context` is supplied (from the caller's librarian lookup),
     it is appended as an additional intelligence section.
+
+    When the user's query differs from the generic template title (e.g. they
+    asked for a restaurant launch rather than Murphy deployment), the actual
+    query is surfaced as a sub-header inside the content so the deliverable
+    clearly reflects what was requested.
+
+    When major automation is detected, MSS is run to enrich the blueprint.
     """
     template = _SCENARIO_TEMPLATES[scenario_key]
     title = template["title"]
     content = template["content"]
 
+    # Inject a request-context header when the query doesn't already match
+    # the template title verbatim — makes the deliverable feel personalised.
+    query_stripped = query.strip()
+    if query_stripped and query_stripped.lower() not in title.lower():
+        request_note = (
+            f"■ YOUR REQUEST\n"
+            f"──────────────\n"
+            f"  \"{query_stripped}\"\n"
+            f"\n"
+            f"  The following template has been matched to your request. "
+            f"Murphy System has adapted the most relevant sections below.\n"
+        )
+        content = request_note + "\n" + content
+
     # Append librarian context if available
     if librarian_context and librarian_context.strip():
         content = content.rstrip() + "\n\n" + _format_librarian_section(librarian_context)
 
-    # Add automation blueprint bonus if this is an automation-heavy scenario
+    # Add automation blueprint bonus if this is an automation-heavy query.
+    # Run MSS first so the blueprint uses real Solidify implementation steps.
     if _detect_major_automation(query):
-        content = content.rstrip() + "\n\n" + _build_automation_blueprint(query)
+        mss_result = _run_mss_pipeline(query, {})
+        content = content.rstrip() + "\n\n" + _build_automation_blueprint(query, mss_result)
 
     filename = _scenario_to_filename(scenario_key, query)
     quality = _mfgc_quality_score(scenario_key)
@@ -726,14 +780,26 @@ def _mfgc_quality_score(scenario_key: str) -> int:
 # ---------------------------------------------------------------------------
 
 def _build_mss_controller():
-    """Instantiate the MSS controller using the same deps as app.py."""
-    from src.mss_controls import MSSController
-    from src.information_quality import InformationQualityEngine
-    from src.concept_translation import ConceptTranslationEngine
-    from src.simulation_engine import StrategicSimulationEngine
-    from src.resolution_scoring import ResolutionDetectionEngine
-    from src.information_density_engine import InformationDensityEngine
-    from src.structural_coherence_engine import StructuralCoherenceEngine
+    """Instantiate the MSS controller using the same import paths as _deps.py.
+
+    ``src/`` is added to ``sys.path`` so that the bare module names used
+    inside ``mss_controls.py`` (e.g. ``from concept_translation import …``)
+    resolve correctly in all call contexts (FastAPI app, test runner, scripts).
+    """
+    import sys
+    from pathlib import Path as _Path
+    _src_dir = str(_Path(__file__).resolve().parent)
+    if _src_dir not in sys.path:
+        sys.path.insert(0, _src_dir)
+
+    # Use bare imports — consistent with mss_controls.py's own internal imports
+    from mss_controls import MSSController  # noqa: PLC0415
+    from information_quality import InformationQualityEngine  # noqa: PLC0415
+    from concept_translation import ConceptTranslationEngine  # noqa: PLC0415
+    from simulation_engine import StrategicSimulationEngine  # noqa: PLC0415
+    from resolution_scoring import ResolutionDetectionEngine  # noqa: PLC0415
+    from information_density import InformationDensityEngine  # noqa: PLC0415
+    from structural_coherence import StructuralCoherenceEngine  # noqa: PLC0415
     rde = ResolutionDetectionEngine()
     ide = InformationDensityEngine()
     sce = StructuralCoherenceEngine()
@@ -869,7 +935,13 @@ def _detect_major_automation(query: str) -> bool:
 
 
 def _build_automation_blueprint(query: str, mss_result: Optional[Dict[str, Any]] = None) -> str:
-    """Build a free Automation Blueprint bonus section for the deliverable."""
+    """Build an Automation Blueprint preview section for the deliverable.
+
+    Major automation is a paid-tier feature. This section is a gated preview
+    — it shows the workflow topology and implementation plan so the user
+    understands what Murphy System would deploy, but execution requires an
+    active paid subscription.
+    """
     sol = (mss_result or {}).get("solidify", {})
     impl_steps = sol.get("implementation_steps", [])
     iteration = sol.get("iteration_plan", "")
@@ -896,16 +968,19 @@ def _build_automation_blueprint(query: str, mss_result: Optional[Dict[str, Any]]
     )
 
     return f"""\
-■ FREE BONUS — MURPHY SYSTEM AUTOMATION BLUEPRINT
-══════════════════════════════════════════════════
-  Because your request includes major automation, Murphy System has
-  generated a FREE workflow blueprint. This is included at no charge
-  as a demonstration of what full Murphy System access unlocks.
+■ AUTOMATION BLUEPRINT PREVIEW — PAID TIER FEATURE
+═══════════════════════════════════════════════════
+  Your request includes major automation. Murphy System has generated
+  a workflow blueprint showing exactly what would be deployed for you.
+
+  ⚠  DEPLOYMENT REQUIRES A PAID MURPHY SYSTEM PLAN
+     This preview is provided so you can evaluate the scope before
+     upgrading. Blueprint execution is locked to SOLO tier and above.
 
   Workflow Name:   {slug}
   Request:         {query[:80]}
-  Generated by:    Murphy System Automation Engine
-  Status:          BLUEPRINT — Ready to deploy with Murphy System
+  Generated by:    Murphy System Automation Engine (MSS Solidify)
+  Status:          PREVIEW — Upgrade to deploy
 
   ┌─────────────────────────────────────────────────────────────┐
   │  WORKFLOW TOPOLOGY                                           │
@@ -924,11 +999,11 @@ def _build_automation_blueprint(query: str, mss_result: Optional[Dict[str, Any]]
   ITERATION PLAN:
 {iteration_block}
 
-  TO DEPLOY THIS AUTOMATION:
-    → Sign up free at https://murphy.systems
-    → Free tier: 10 automated actions/day
-    → Paid tiers: unlimited automations + full MFGC governance
-    → Paste this blueprint into the Murphy Terminal and type:
+  TO DEPLOY THIS AUTOMATION (PAID PLANS ONLY):
+    → Upgrade at https://murphy.systems/pricing
+    → SOLO: up to 50 automations/month
+    → BUSINESS: unlimited automations + full MFGC governance
+    → After upgrading, paste this into the Murphy Terminal:
          execute "{query[:60]}"
 """
 
@@ -1198,7 +1273,7 @@ def generate_custom_deliverable(
     if lib_section:
         content = content.rstrip() + "\n\n" + lib_section
 
-    # Stage 5 — Append free Automation Blueprint if major automation requested
+    # Stage 5 — Append paid-tier Automation Blueprint preview if automation requested
     if _detect_major_automation(query):
         content = content.rstrip() + "\n\n" + _build_automation_blueprint(query, mss_result)
 
