@@ -742,6 +742,26 @@ class SignupGateway:
             }
             config["commands"] = ["run", "status"]
 
+        # Add recommended_terminal and allowed_terminals based on role
+        if profile.role == "founder_admin":
+            config["recommended_terminal"] = "/ui/terminal-unified"
+            config["allowed_terminals"] = [
+                "/ui/terminal-unified",
+                "/ui/terminal-worker",
+                "/ui/terminal-enhanced",
+                "/ui/terminal-architect",
+            ]
+        elif profile.role == "manager":
+            config["recommended_terminal"] = "/ui/terminal-enhanced"
+            config["allowed_terminals"] = [
+                "/ui/terminal-enhanced",
+                "/ui/terminal-worker",
+            ]
+        else:
+            # Worker
+            config["recommended_terminal"] = "/ui/terminal-worker"
+            config["allowed_terminals"] = ["/ui/terminal-worker"]
+
         # Save back into profile
         with self._lock:
             self._profiles[user_id].terminal_config = config
@@ -753,7 +773,7 @@ class SignupGateway:
     # Session / auth check
     # ------------------------------------------------------------------
 
-    def check_terminal_access(self, user_id: str) -> Dict[str, Any]:
+    def check_terminal_access(self, user_id: str, terminal_path: str = "") -> Dict[str, Any]:
         """Return access status for a user trying to open a terminal.
 
         Returns::
@@ -776,6 +796,18 @@ class SignupGateway:
                 "reason": "eula_not_accepted",
                 "profile": profile.to_dict(),
             }
+
+        # If a specific terminal is requested, validate role-based access
+        if terminal_path:
+            tc = self.assemble_terminal_config(user_id)
+            if terminal_path not in tc.get("allowed_terminals", []):
+                return {
+                    "allowed": False,
+                    "reason": "terminal_not_permitted_for_role",
+                    "profile": profile.to_dict(),
+                    "allowed_terminals": tc.get("allowed_terminals", []),
+                }
+
         return {"allowed": True, "reason": "ok", "profile": profile.to_dict()}
 
     # ------------------------------------------------------------------

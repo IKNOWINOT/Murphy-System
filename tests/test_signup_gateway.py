@@ -289,6 +289,49 @@ class TestTerminalConfig:
         assert config["features"]["architect_terminal"] is True
         assert config["commands"] == ["*"]
 
+    def test_founder_admin_gets_recommended_terminal_and_all_allowed(self, gw, onboarded_profile):
+        config = gw.assemble_terminal_config(onboarded_profile.user_id)
+        assert config["recommended_terminal"] == "/ui/terminal-unified"
+        assert set(config["allowed_terminals"]) == {
+            "/ui/terminal-unified",
+            "/ui/terminal-worker",
+            "/ui/terminal-enhanced",
+            "/ui/terminal-architect",
+        }
+
+    def test_manager_gets_recommended_terminal_and_limited_allowed(self, gw):
+        p = gw.signup(
+            name="Mgr",
+            email="mgr@x.com",
+            position="Team Lead",
+            justification="Manage team",
+            new_org_name="MgrCorp",
+        )
+        gw.validate_email(p.user_id, p.email_validation_token)
+        gw.accept_eula(p.user_id)
+        gw.update_profile(p.user_id, {"role": "manager"})
+        config = gw.assemble_terminal_config(p.user_id)
+        assert config["recommended_terminal"] == "/ui/terminal-enhanced"
+        assert set(config["allowed_terminals"]) == {
+            "/ui/terminal-enhanced",
+            "/ui/terminal-worker",
+        }
+
+    def test_worker_gets_recommended_terminal_and_worker_only(self, gw):
+        p = gw.signup(
+            name="Worker",
+            email="worker@x.com",
+            position="Delivery Specialist",
+            justification="Do tasks",
+            new_org_name="WorkerCorp",
+        )
+        gw.validate_email(p.user_id, p.email_validation_token)
+        gw.accept_eula(p.user_id)
+        gw.update_profile(p.user_id, {"role": "worker"})
+        config = gw.assemble_terminal_config(p.user_id)
+        assert config["recommended_terminal"] == "/ui/terminal-worker"
+        assert config["allowed_terminals"] == ["/ui/terminal-worker"]
+
     def test_worker_engineer_gets_automation_library(self, gw):
         p = gw.signup(
             name="Eng",
@@ -333,6 +376,46 @@ class TestTerminalAccessGating:
         result = gw.check_terminal_access("notexist")
         assert result["allowed"] is False
         assert result["reason"] == "user_not_found"
+
+    def test_founder_admin_allowed_on_architect_terminal(self, gw, onboarded_profile):
+        result = gw.check_terminal_access(onboarded_profile.user_id, "/ui/terminal-architect")
+        assert result["allowed"] is True
+
+    def test_worker_denied_on_architect_terminal(self, gw):
+        p = gw.signup(
+            name="W",
+            email="wta@x.com",
+            position="Worker",
+            justification="Tasks",
+            new_org_name="WORG",
+        )
+        gw.validate_email(p.user_id, p.email_validation_token)
+        gw.accept_eula(p.user_id)
+        gw.update_profile(p.user_id, {"role": "worker"})
+        result = gw.check_terminal_access(p.user_id, "/ui/terminal-architect")
+        assert result["allowed"] is False
+        assert result["reason"] == "terminal_not_permitted_for_role"
+        assert "/ui/terminal-worker" in result["allowed_terminals"]
+
+    def test_worker_allowed_on_worker_terminal(self, gw):
+        p = gw.signup(
+            name="W2",
+            email="wta2@x.com",
+            position="Worker",
+            justification="Tasks",
+            new_org_name="WORG2",
+        )
+        gw.validate_email(p.user_id, p.email_validation_token)
+        gw.accept_eula(p.user_id)
+        gw.update_profile(p.user_id, {"role": "worker"})
+        result = gw.check_terminal_access(p.user_id, "/ui/terminal-worker")
+        assert result["allowed"] is True
+
+    def test_no_terminal_path_skips_role_check(self, gw, onboarded_profile):
+        # Without a terminal_path arg, only email/EULA checks apply
+        result = gw.check_terminal_access(onboarded_profile.user_id)
+        assert result["allowed"] is True
+        assert result["reason"] == "ok"
 
 
 # ---------------------------------------------------------------------------
