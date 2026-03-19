@@ -124,6 +124,84 @@
     overflow-y: auto;
     white-space: pre-wrap;
   }
+  /* ── Production Timeline ──────────────────────────────────── */
+  .prod-timeline {
+    width: 100%;
+    overflow-x: auto;
+    background: #0a0a0a;
+    position: relative;
+    min-height: 130px;
+  }
+  .prod-timeline-svg {
+    display: block;
+    width: 100%;
+    min-height: 120px;
+  }
+  .prod-timeline-node {
+    cursor: pointer;
+  }
+  .prod-timeline-node circle {
+    transition: transform 0.15s, opacity 0.15s;
+    transform-origin: center;
+    transform-box: fill-box;
+  }
+  .prod-timeline-node:hover circle {
+    transform: scale(1.3);
+    opacity: 1;
+  }
+  .prod-timeline-tooltip {
+    position: absolute;
+    background: #111;
+    border: 1px solid #00ff41;
+    color: #00ff41;
+    font-family: var(--font-code, 'JetBrains Mono', monospace);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 200;
+    white-space: nowrap;
+    display: none;
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* ── Heatmap Strip ────────────────────────────────────────── */
+  .prod-heatmap-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    padding: var(--space-3) var(--space-4);
+    background: #0a0a0a;
+    min-height: 28px;
+  }
+  .prod-heatmap-cell {
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: transform 0.1s;
+    flex-shrink: 0;
+  }
+  .prod-heatmap-cell:hover {
+    transform: scale(1.4);
+    z-index: 1;
+  }
+  /* ── Activity Feed ────────────────────────────────────────── */
+  .prod-activity-entry {
+    display: block;
+    animation: prodSlideIn 0.3s ease;
+  }
+  @keyframes prodSlideIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .prod-activity-proposal  { color: #a3a3a3; }
+  .prod-activity-in_review { color: #fbbf24; }
+  .prod-activity-approved  { color: #34d399; }
+  .prod-activity-in_progress { color: #60a5fa; }
+  .prod-activity-delivered { color: #c084fc; }
+  .prod-activity-verified  { color: #00ff41; font-weight: 700; }
   /* ── Layout fixes: clear fixed topbar and fixed activity log ── */
   .murphy-main {
     padding-top: 80px;    /* clear the fixed topbar */
@@ -346,6 +424,36 @@
       </div>
     </div>
 
+    <!-- Timeline + Heatmap Card -->
+    <div class="murphy-card" style="margin-bottom:var(--space-4);padding:0;overflow:hidden;border:1px solid var(--color-border)">
+      <!-- Timeline header -->
+      <div style="padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--color-border);display:flex;justify-content:space-between;align-items:center;background:var(--color-surface-raised)">
+        <span style="font-size:var(--text-sm);font-weight:600;color:var(--color-text)">
+          <svg width="14" height="14" style="margin-right:4px;vertical-align:-2px"><use href="static/murphy-icons.svg#icon-activity"></use></svg>
+          Production Timeline
+        </span>
+        <span class="text-xs text-muted" id="timeline-status">Loading…</span>
+      </div>
+      <!-- SVG timeline canvas -->
+      <div class="prod-timeline" id="prod-timeline-container">
+        <svg id="prod-timeline-svg" class="prod-timeline-svg" viewBox="0 0 900 120" preserveAspectRatio="xMinYMid meet">
+          <text x="450" y="65" text-anchor="middle" fill="#444" font-family="monospace" font-size="12">Loading timeline…</text>
+        </svg>
+        <div id="prod-timeline-tooltip" class="prod-timeline-tooltip"></div>
+      </div>
+      <!-- Heatmap strip header -->
+      <div style="padding:var(--space-2) var(--space-4) 0;border-top:1px solid var(--color-border);display:flex;justify-content:space-between;align-items:center;background:var(--color-surface-raised)">
+        <span style="font-size:var(--text-xs);font-weight:600;color:#00D4AA">
+          <svg width="12" height="12" style="margin-right:4px;vertical-align:-1px"><use href="static/murphy-icons.svg#icon-zap"></use></svg>
+          Functionality Heatmap
+        </span>
+        <span class="text-xs text-muted" id="heatmap-coverage-stats">—</span>
+      </div>
+      <!-- Heatmap cells -->
+      <div class="prod-heatmap-strip" id="prod-heatmap-strip">
+        <span class="text-xs text-muted">Loading heatmap data…</span>
+      </div>
+    </div>
     <!-- Real-time Timeline Activity Graph -->
     <div id="timeline-graph-section" style="margin-bottom:var(--space-6)">
       <h3 class="murphy-section-title">Processing Timeline</h3>
@@ -712,6 +820,10 @@ const checkApiStatus = async () => {
 // ── View router ───────────────────────────────────────────────
 const views = ['dashboard','proposal','workorder','validate','profiles','queue','hitl','schedule','deliverables'];
 const showView = (name) => {
+  if (name !== 'dashboard' && _dashboardPollTimer) {
+    clearInterval(_dashboardPollTimer);
+    _dashboardPollTimer = null;
+  }
   views.forEach(v => {
     const el = document.getElementById(`view-${v}`);
     if (el) el.style.display = v === name ? '' : 'none';
@@ -737,6 +849,208 @@ document.querySelectorAll('[data-view]').forEach(a => {
   });
 });
 
+// ── Dashboard stats ───────────────────────────────────────────
+
+// Lifecycle stage → normalised X position (0–1 of SVG width)
+const _STAGE_IDX = {
+  created: 0, proposal: 0,
+  in_review: 1, approved: 1,
+  in_progress: 2,
+  delivered: 3,
+  verified: 4
+};
+const _STAGE_LABELS = ['Proposal', 'Validate', 'Work Order', 'Deliver', 'Verified'];
+
+// Timeline layout constants
+const STAGE_FRACTIONS   = [0.05, 0.25, 0.5, 0.75, 0.95];
+const JITTER_ROWS       = 5;
+const JITTER_CENTER     = 2;
+const JITTER_SPACING    = 13;
+const NODE_LABEL_LENGTH = 9;
+
+// Polling interval for dashboard auto-refresh (ms)
+const DASHBOARD_POLL_INTERVAL_MS = 5000;
+
+let _heatmapFilter    = null;
+let _lastTimelineData = null;
+let _dashboardPollTimer = null;
+
+const _heatColor = (heat) => {
+  if (heat >= 0.8) return '#00ff41';
+  if (heat >= 0.5) return '#00D4AA';
+  if (heat >= 0.2) return '#00ffff';
+  return '#1a4a3a';
+};
+
+// ── Render timeline SVG ───────────────────────────────────────
+const renderTimeline = (queueItems, proposals, heatEntries) => {
+  const svg = document.getElementById('prod-timeline-svg');
+  const tooltip = document.getElementById('prod-timeline-tooltip');
+  const container = document.getElementById('prod-timeline-container');
+  const statusEl = document.getElementById('timeline-status');
+  if (!svg) return;
+
+  const W = 900, H = 120, TRACK_Y = 62;
+  const STAGE_XS = STAGE_FRACTIONS.map(f => Math.round(f * W));
+
+  const heatMap = {};
+  const heatMax = Math.max(1, ...(heatEntries || []).map(e => e.value || e.count || 0));
+  (heatEntries || []).forEach(e => {
+    heatMap[(e.label || e.module || '').toLowerCase()] = (e.value || e.count || 0);
+  });
+
+  const allItems = [
+    ...(queueItems || []).map(i => ({ ...i, _src: 'queue' })),
+    ...(proposals || []).map(p => ({ ...p, _src: 'proposal', lifecycle: p.lifecycle || p.status || 'created' }))
+  ];
+
+  const displayed = _heatmapFilter
+    ? allItems.filter(i => (i.domain || i.regulatory_industry || '').toLowerCase().includes(_heatmapFilter.toLowerCase()))
+    : allItems;
+
+  let out = '';
+
+  out += `<defs>
+    <marker id="pw-arrow" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto">
+      <polygon points="0 0, 6 2, 0 4" fill="#00D4AA" opacity="0.5"/>
+    </marker>
+  </defs>`;
+
+  out += `<line x1="${STAGE_XS[0]}" y1="${TRACK_Y}" x2="${STAGE_XS[4]}" y2="${TRACK_Y}" stroke="#00D4AA" stroke-width="1.5" opacity="0.25" marker-end="url(#pw-arrow)"/>`;
+
+  _STAGE_LABELS.forEach((lbl, i) => {
+    out += `<line x1="${STAGE_XS[i]}" y1="${TRACK_Y - 6}" x2="${STAGE_XS[i]}" y2="${TRACK_Y + 6}" stroke="#333" stroke-width="1"/>`;
+    out += `<text x="${STAGE_XS[i]}" y="${H - 4}" text-anchor="middle" fill="#444" font-family="monospace" font-size="9">${lbl}</text>`;
+  });
+
+  out += `<text x="${STAGE_XS[0]}" y="14" text-anchor="start" fill="#333" font-family="monospace" font-size="9">◀ first touched</text>`;
+  out += `<text x="${STAGE_XS[4]}" y="14" text-anchor="end" fill="#333" font-family="monospace" font-size="9">deliverable ▶</text>`;
+
+  const colCount = {};
+  displayed.forEach((item) => {
+    const stageKey = (item.lifecycle || item.status || 'created').toLowerCase().replace(/\s+/g, '_');
+    const stageIdx = _STAGE_IDX[stageKey] !== undefined ? _STAGE_IDX[stageKey] : 0;
+    const cx = STAGE_XS[stageIdx];
+
+    colCount[stageIdx] = (colCount[stageIdx] || 0) + 1;
+    const jitter = (((colCount[stageIdx] - 1) % JITTER_ROWS) - JITTER_CENTER) * JITTER_SPACING;
+    const cy = TRACK_Y + jitter;
+
+    const domainKey = (item.domain || item.regulatory_industry || '').toLowerCase();
+    const heat = heatMax > 0 ? (heatMap[domainKey] || 0) / heatMax : 0;
+    const nodeColor = _heatColor(heat);
+
+    const label = item.proposal_id || item.id || '?';
+    const conf = item.confidence !== undefined ? ` · conf:${Number(item.confidence).toFixed(2)}` : '';
+    const ts = (item.created_at || item.timestamp || '').toString().slice(0, 16);
+    const titleAttr = `${label}${conf}${ts ? ' · ' + ts : ''}`.replace(/"/g, '\'');
+
+    out += `<g class="prod-timeline-node" data-title="${titleAttr}">
+      <circle cx="${cx}" cy="${cy}" r="7" fill="${nodeColor}" opacity="0.85"/>
+      <text x="${cx}" y="${cy - 11}" text-anchor="middle" fill="${nodeColor}" font-family="monospace" font-size="8" opacity="0.8">${label.slice(-NODE_LABEL_LENGTH)}</text>
+    </g>`;
+  });
+
+  if (displayed.length === 0) {
+    const msg = _heatmapFilter ? `No items match domain filter` : 'No items in pipeline — submit a proposal to begin';
+    out += `<text x="450" y="${TRACK_Y}" text-anchor="middle" fill="#444" font-family="monospace" font-size="11">${msg}</text>`;
+  }
+
+  svg.innerHTML = out;
+
+  if (tooltip && container && !svg.dataset.listenersAttached) {
+    svg.dataset.listenersAttached = '1';
+    svg.addEventListener('mouseover', (e) => {
+      const node = e.target.closest('.prod-timeline-node');
+      if (!node) return;
+      tooltip.textContent = node.dataset.title;
+      tooltip.style.display = 'block';
+    });
+    svg.addEventListener('mousemove', (e) => {
+      if (tooltip.style.display === 'none') return;
+      const rect = container.getBoundingClientRect();
+      tooltip.style.left = (e.clientX - rect.left + 14) + 'px';
+      tooltip.style.top  = (e.clientY - rect.top  - 28) + 'px';
+    });
+    svg.addEventListener('mouseout', (e) => {
+      if (!e.target.closest('.prod-timeline-node')) return;
+      tooltip.style.display = 'none';
+    });
+  }
+
+  if (statusEl) {
+    statusEl.textContent = `${displayed.length} item${displayed.length !== 1 ? 's' : ''}${_heatmapFilter ? ' (filtered)' : ''} · ${new Date().toLocaleTimeString()}`;
+  }
+};
+
+// ── Render heatmap strip ──────────────────────────────────────
+const renderHeatmap = (entries) => {
+  const strip = document.getElementById('prod-heatmap-strip');
+  const statsEl = document.getElementById('heatmap-coverage-stats');
+  if (!strip) return;
+
+  const max = Math.max(1, ...(entries || []).map(e => e.value || e.count || 0));
+  const active = (entries || []).filter(e => (e.value || e.count || 0) > 0).length;
+  const total = (entries || []).length;
+  const pct = total > 0 ? Math.round((active / total) * 100) : 0;
+
+  if (statsEl) statsEl.textContent = `${active}/${total} modules active · ${pct}% coverage`;
+
+  if (!entries || entries.length === 0) {
+    strip.innerHTML = '<span class="text-xs text-muted" style="padding:4px 0">No heatmap data available.</span>';
+    return;
+  }
+
+  strip.innerHTML = entries.map(e => {
+    const val = e.value || e.count || 0;
+    const heat = max > 0 ? val / max : 0;
+    const opacity = (0.12 + heat * 0.88).toFixed(2);
+    const bg = heat >= 0.7 ? '#00ff41' : heat >= 0.4 ? '#00D4AA' : '#00ffff';
+    const label = (e.label || e.module || '').replace(/"/g, '\'');
+    return `<div class="prod-heatmap-cell" title="${label}: ${val}" data-domain="${label}" style="background:${bg};opacity:${opacity}"></div>`;
+  }).join('');
+
+  if (!strip.dataset.listenersAttached) {
+    strip.dataset.listenersAttached = '1';
+    strip.addEventListener('click', (e) => {
+      const cell = e.target.closest('.prod-heatmap-cell');
+      if (!cell) return;
+      const domain = cell.dataset.domain;
+      if (_heatmapFilter === domain) {
+        _heatmapFilter = null;
+        strip.querySelectorAll('.prod-heatmap-cell').forEach(c => { c.style.outline = ''; });
+      } else {
+        _heatmapFilter = domain;
+        strip.querySelectorAll('.prod-heatmap-cell').forEach(c => {
+          c.style.outline = c.dataset.domain === domain ? '2px solid #fff' : '';
+        });
+      }
+      if (_lastTimelineData) {
+        renderTimeline(_lastTimelineData.items, _lastTimelineData.proposals, _lastTimelineData.heat);
+      }
+    });
+  }
+};
+
+// ── Activity log helper ───────────────────────────────────────
+const logActivity = (msg, lifecycle) => {
+  const el = document.getElementById('prod-log');
+  if (!el) return;
+  const ts = new Date().toLocaleTimeString();
+  const entry = document.createElement('span');
+  entry.className = `prod-activity-entry prod-activity-${lifecycle || 'proposal'}`;
+  entry.textContent = `\n[${ts}] ${msg}`;
+  el.appendChild(entry);
+  el.scrollTop = el.scrollHeight;
+};
+
+const _queueItemMsg = (item) => {
+  const stage = item.lifecycle || item.status || 'proposal';
+  const conf  = item.confidence !== undefined ? ` (confidence: ${Number(item.confidence).toFixed(2)})` : '';
+  return { msg: `${item.proposal_id || item.id || '?'} → ${stage}${conf}`, stage };
+};
+
+// ── Dashboard load + polling ──────────────────────────────────
 // ── Dashboard stats + timeline ────────────────────────────────
 const TL_STAGES = ['proposal','validate','workorder','deliver','verified'];
 const TL_COLORS = {
@@ -898,19 +1212,79 @@ const startTimelinePolling = () => {
 };
 
 const loadDashboard = async () => {
+  let queueItems = [];
   try {
     const q = await apiFetch('/api/production/queue');
-    document.getElementById('stat-queue').textContent = Array.isArray(q.items) ? q.items.length : '?';
+    queueItems = Array.isArray(q.items) ? q.items : [];
+    document.getElementById('stat-queue').textContent = queueItems.length;
   } catch { document.getElementById('stat-queue').textContent = '?'; }
+
   try {
     const d = await apiFetch('/api/deliverables');
     document.getElementById('stat-deliverables').textContent = Array.isArray(d.deliverables) ? d.deliverables.length : '?';
   } catch { document.getElementById('stat-deliverables').textContent = '?'; }
+
   try {
     const h = await apiFetch('/api/hitl/interventions/pending');
     document.getElementById('stat-hitl-pending').textContent = Array.isArray(h.interventions) ? h.interventions.length : '?';
   } catch { document.getElementById('stat-hitl-pending').textContent = '?'; }
+
   document.getElementById('stat-confidence').textContent = '0.99';
+
+  let proposals = [];
+  try {
+    const p = await apiFetch('/api/production/proposals');
+    proposals = Array.isArray(p.proposals) ? p.proposals : [];
+  } catch { /* offline */ }
+
+  let heatEntries = [];
+  try {
+    const hm = await apiFetch('/api/heatmap/data');
+    heatEntries = Array.isArray(hm.entries) ? hm.entries : [];
+    renderHeatmap(heatEntries);
+    apiFetch('/api/heatmap/coverage').then(cov => {
+      const statsEl = document.getElementById('heatmap-coverage-stats');
+      if (statsEl && cov && cov.total_modules) {
+        statsEl.textContent = `${cov.active_modules}/${cov.total_modules} modules active · ${Math.round(cov.coverage_pct || 0)}% coverage`;
+      }
+    }).catch(() => {});
+  } catch {
+    const strip = document.getElementById('prod-heatmap-strip');
+    if (strip) strip.innerHTML = '<span class="text-xs text-muted">Heatmap API offline.</span>';
+  }
+
+  _lastTimelineData = { items: queueItems, proposals, heat: heatEntries };
+  renderTimeline(queueItems, proposals, heatEntries);
+
+  if (queueItems.length > 0) {
+    queueItems.slice(-5).forEach(item => {
+      const { msg, stage } = _queueItemMsg(item);
+      logActivity(msg, stage);
+    });
+  }
+
+  if (_dashboardPollTimer) clearInterval(_dashboardPollTimer);
+  _dashboardPollTimer = setInterval(async () => {
+    try {
+      const q = await apiFetch('/api/production/queue');
+      const items = Array.isArray(q.items) ? q.items : [];
+      document.getElementById('stat-queue').textContent = items.length;
+      const prev = (_lastTimelineData && _lastTimelineData.items) || [];
+      const prevIds = new Set(prev.map(i => i.proposal_id || i.id));
+      items.filter(i => !prevIds.has(i.proposal_id || i.id)).forEach(item => {
+        const { msg, stage } = _queueItemMsg(item);
+        logActivity(msg, stage);
+      });
+      let heat = (_lastTimelineData && _lastTimelineData.heat) || [];
+      try {
+        const hm = await apiFetch('/api/heatmap/data');
+        heat = Array.isArray(hm.entries) ? hm.entries : [];
+        renderHeatmap(heat);
+      } catch { /* keep previous */ }
+      _lastTimelineData = { items, proposals: (_lastTimelineData && _lastTimelineData.proposals) || [], heat };
+      renderTimeline(items, _lastTimelineData.proposals, heat);
+    } catch { /* API offline */ }
+  }, DASHBOARD_POLL_INTERVAL_MS);
   await loadTimeline();
   startTimelinePolling();
 };
