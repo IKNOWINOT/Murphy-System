@@ -2019,8 +2019,9 @@ def create_app() -> FastAPI:
         except Exception as exc:
             return _safe_error_response(exc, 500)
 
-    # In-memory MFGC session store for onboarding chat
+    # In-memory MFGC session store for onboarding chat (max 500 sessions, 2-hour TTL)
     _onboarding_mfgc_sessions: dict = {}
+    _ONBOARDING_SESSION_TTL = 7200  # seconds
 
     @app.post("/api/onboarding/mfgc-chat")
     async def onboarding_mfgc_chat(request: Request):
@@ -2030,12 +2031,26 @@ def create_app() -> FastAPI:
         ``{ "response": "...", "gate_satisfaction": 0.XX, "confidence": 0.XX,
             "unknowns_remaining": N, "ready_for_plan": bool }``.
         """
+        import time as _time
         data = await request.json()
         message = (data.get("message") or data.get("question") or "").strip()
         session_id = data.get("session_id") or "onboarding-default"
 
         if not message:
             return JSONResponse({"success": False, "error": "message is required"}, status_code=400)
+
+        # Evict expired sessions (simple TTL cleanup)
+        now = _time.monotonic()
+        expired = [k for k, v in _onboarding_mfgc_sessions.items()
+                   if now - v.get("last_access", 0) > _ONBOARDING_SESSION_TTL]
+        for k in expired:
+            del _onboarding_mfgc_sessions[k]
+        # Also cap at 500 sessions to prevent unbounded growth
+        if len(_onboarding_mfgc_sessions) >= 500:
+            oldest = sorted(_onboarding_mfgc_sessions.items(),
+                            key=lambda x: x[1].get("last_access", 0))[:50]
+            for k, _ in oldest:
+                del _onboarding_mfgc_sessions[k]
 
         try:
             # Retrieve or create a per-session UnifiedMFGC instance
@@ -2045,8 +2060,10 @@ def create_app() -> FastAPI:
                     "mfgc": UnifiedMFGC(),
                     "answers": {},
                     "context": "Murphy onboarding wizard: helping a new user describe their business and automation needs.",
+                    "last_access": now,
                 }
             sess = _onboarding_mfgc_sessions[session_id]
+            sess["last_access"] = now
             mfgc_instance = sess["mfgc"]
 
             # Feed the new message as the latest answer (also used as the next request)

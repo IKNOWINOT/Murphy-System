@@ -369,6 +369,9 @@ class ExportPipeline:
         )
 
         return header + plain + footer
+
+    @staticmethod
+    def _markdown_to_html(markdown: str, brand: BrandProfile) -> str:
         """Convert Markdown to a styled HTML document."""
         import re
 
