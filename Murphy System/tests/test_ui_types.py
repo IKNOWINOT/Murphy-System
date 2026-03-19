@@ -485,12 +485,12 @@ class TestOnboardingWizardFeatures(unittest.TestCase):
         self.assertTrue(has_input, "Onboarding wizard missing chat input")
 
     def test_calls_librarian_api(self):
-        """Onboarding wizard must call the librarian API."""
+        """Onboarding wizard must call the MFGC chat API."""
         content = _read_html('onboarding_wizard.html')
         self.assertIn(
-            '/librarian/ask',
+            '/onboarding/mfgc-chat',
             content,
-            "Onboarding wizard doesn't call /librarian/ask"
+            "Onboarding wizard doesn't call /onboarding/mfgc-chat"
         )
 
 
