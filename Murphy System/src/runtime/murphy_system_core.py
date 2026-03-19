@@ -1398,19 +1398,6 @@ class MurphySystem:
         # Initialize new integrated modules
         self._initialize_integrated_modules()
 
-        # Bootstrap closed-loop learning connector
-        try:
-            from src.learning_engine_connector import bootstrap_learning_connector
-            backbone = getattr(self, "event_backbone", None)
-            self._learning_connector = bootstrap_learning_connector(backbone=backbone)
-            logger.info(
-                "Learning engine connector started: %s",
-                self._learning_connector.status(),
-            )
-        except Exception as exc:
-            logger.warning("Learning engine connector bootstrap failed: %s", exc)
-            self._learning_connector = None
-
         logger.info("="*80)
         logger.info(f"MURPHY SYSTEM {self.version} - READY")
         logger.info("="*80)
@@ -1434,29 +1421,11 @@ class MurphySystem:
             try:
                 self.event_backbone = EventBackbone()
                 logger.info("Event backbone initialized")
-                try:
-                    from event_backbone_client import set_backbone  # noqa: PLC0415
-                    set_backbone(self.event_backbone)
-                except Exception as _wiring_exc:  # noqa: BLE001
-                    logger.warning(
-                        "EventBackboneClient wiring failed: %s", _wiring_exc
-                    )
             except Exception as exc:
                 logger.warning("Event backbone initialization failed: %s", exc)
                 self.event_backbone = None
         else:
             self.event_backbone = None
-
-        # Self-Healing Coordinator (wired to EventBackbone)
-        try:
-            from self_healing_startup import bootstrap_self_healing
-            self.self_healing_coordinator = bootstrap_self_healing(
-                event_backbone=self.event_backbone
-            )
-            logger.info("SelfHealingCoordinator bootstrapped with recovery handlers")
-        except Exception as exc:
-            logger.warning("SelfHealingCoordinator bootstrap failed: %s", exc)
-            self.self_healing_coordinator = None
 
         # Delivery Orchestrator
         if DeliveryOrchestrator:
@@ -1608,6 +1577,34 @@ class MurphySystem:
                 self.wingman_protocol = None
         else:
             self.wingman_protocol = None
+
+        # Wingman System — sensor-calibrated validator; library is always internal
+        if WingmanSystem:
+            try:
+                self.wingman_system = WingmanSystem(librarian=self.librarian)
+                logger.info("Wingman system initialized with %d modules",
+                            len(self.wingman_system.list_module_ids()))
+            except Exception as exc:
+                logger.warning("Wingman system initialization failed: %s", exc)
+                self.wingman_system = None
+        else:
+            self.wingman_system = None
+
+        # API Capability Builder — detects missing external APIs, auto-scaffolds,
+        # raises tickets; requires OWNER permission to generate stubs
+        if WingmanApiGapChecker:
+            try:
+                self.api_gap_checker = WingmanApiGapChecker(
+                    ticketing_adapter=self.ticketing_adapter,
+                    librarian=self.librarian,
+                    rbac_governance=getattr(self, "rbac_governance", None),
+                )
+                logger.info("API gap checker initialized")
+            except Exception as exc:
+                logger.warning("API gap checker initialization failed: %s", exc)
+                self.api_gap_checker = None
+        else:
+            self.api_gap_checker = None
 
         # Runtime Profile Compiler
         if RuntimeProfileCompiler:
@@ -1863,6 +1860,41 @@ class MurphySystem:
                 self.self_automation_orchestrator = None
         else:
             self.self_automation_orchestrator = None
+
+        # Self-Fix Loop (ARCH-005)
+        if SelfFixLoop:
+            try:
+                self.self_fix_loop = SelfFixLoop(
+                    engine=self.self_improvement,
+                )
+                logger.info("Self-fix loop initialized")
+            except Exception as exc:
+                logger.warning("Self-fix loop initialization failed: %s", exc)
+                self.self_fix_loop = None
+        else:
+            self.self_fix_loop = None
+
+        # Murphy Scheduler (daily automation cycle)
+        if MurphyScheduler:
+            try:
+                self.murphy_scheduler = MurphyScheduler()
+                logger.info("Murphy scheduler initialized")
+            except Exception as exc:
+                logger.warning("Murphy scheduler initialization failed: %s", exc)
+                self.murphy_scheduler = None
+        else:
+            self.murphy_scheduler = None
+
+        # Autonomous Repair System (ARCH-006)
+        if AutonomousRepairSystem:
+            try:
+                self.autonomous_repair = AutonomousRepairSystem()
+                logger.info("Autonomous repair system initialized")
+            except Exception as exc:
+                logger.warning("Autonomous repair system initialization failed: %s", exc)
+                self.autonomous_repair = None
+        else:
+            self.autonomous_repair = None
 
         # Plugin Extension SDK
         if PluginExtensionSDK:
@@ -11976,22 +12008,12 @@ class MurphySystem:
 
     # -- LLM status ----------------------------------------------------------
 
-    # Onboard LLM provider entry — always listed as available
-    _ONBOARD_PROVIDER_ENTRY: Dict[str, Any] = {
-        "name": "Murphy Onboard LLM",
-        "provider": "onboard",
-        "model": "murphy-onboard",
-        "status": "active",
-        "temperature": 0.7,
-        "max_tokens": 2048,
-        "description": "Always-available offline LLM (aristotle, wulfrum, groq providers) — no API key required.",
-    }
-
     def _get_llm_status(self) -> Dict[str, Any]:
         """Return current LLM provider configuration and health.
 
-        The onboard LLM is always available and is always included in the
-        ``providers`` list regardless of whether a cloud API key is set.
+        The onboard LocalLLMFallback is **always** available.  External API
+        providers (Groq, OpenAI, Anthropic) are layered on top when keys are
+        present — they upgrade quality but are never required for operation.
         """
         provider = os.environ.get("MURPHY_LLM_PROVIDER", "").strip().lower()
         model = os.environ.get("MURPHY_LLM_MODEL", "").strip()
@@ -12003,69 +12025,47 @@ class MurphySystem:
             anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
             if groq_key:
                 provider = "groq"
+                os.environ["MURPHY_LLM_PROVIDER"] = provider
             elif openai_key:
                 provider = "openai"
+                os.environ["MURPHY_LLM_PROVIDER"] = provider
             elif anthropic_key:
                 provider = "anthropic"
+                os.environ["MURPHY_LLM_PROVIDER"] = provider
             else:
-                # No cloud key — report onboard as the active provider.
-                # enabled=False so _try_llm_generate falls through to the
-                # deterministic path (which already generates rich contextual
-                # responses via _build_reflection_reply).  The providers list
-                # ensures the LLM Config UI always shows the onboard entry.
+                # No external API key — fall back to always-available onboard model.
+                # The system is still fully operational; responses come from
+                # LocalLLMFallback (Ollama when present, pattern-matcher otherwise).
                 return {
-                    "enabled": False,
+                    "enabled": True,
                     "provider": "onboard",
-                    "model": "murphy-onboard",
+                    "model": "local_fallback",
                     "healthy": True,
-                    "onboard_available": True,
                     "mode": "onboard",
-                    "llm_provider": "onboard",
-                    "providers": [self._ONBOARD_PROVIDER_ENTRY],
+                    "note": (
+                        "Running on onboard LLM (no external API key set). "
+                        "Add a Groq key via 'set key groq <key>' for enhanced responses."
+                    ),
                 }
-            os.environ["MURPHY_LLM_PROVIDER"] = provider
         # Validate provider-specific keys
         if provider == "groq":
             api_key = os.environ.get("GROQ_API_KEY", "").strip()
             if not api_key:
+                # Key was removed at runtime — degrade gracefully to onboard
                 return {
-                    "enabled": False,
+                    "enabled": True,
                     "provider": "onboard",
-                    "model": "murphy-onboard",
+                    "model": "local_fallback",
                     "healthy": True,
-                    "onboard_available": True,
                     "mode": "onboard",
-                    "llm_provider": "onboard",
-                    "providers": [self._ONBOARD_PROVIDER_ENTRY],
+                    "note": "GROQ_API_KEY not set; using onboard LLM.",
                 }
             return {
                 "enabled": True,
                 "provider": provider,
                 "model": model or "llama3-8b-8192",
                 "healthy": True,
-                "onboard_available": True,
-                "providers": [
-                    {
-                        "name": "Groq",
-                        "provider": "groq",
-                        "model": model or "llama3-8b-8192",
-                        "status": "active",
-                        "temperature": 0.7,
-                        "max_tokens": 8192,
-                    },
-                    self._ONBOARD_PROVIDER_ENTRY,
-                ],
-            }
-        if provider == "onboard":
-            return {
-                "enabled": False,
-                "provider": "onboard",
-                "model": "murphy-onboard",
-                "healthy": True,
-                "onboard_available": True,
-                "mode": "onboard",
-                "llm_provider": "onboard",
-                "providers": [self._ONBOARD_PROVIDER_ENTRY],
+                "mode": "external_api",
             }
         # Generic provider — enabled but health unknown
         return {
@@ -12073,16 +12073,7 @@ class MurphySystem:
             "provider": provider,
             "model": model or None,
             "healthy": True,
-            "onboard_available": True,
-            "providers": [
-                {
-                    "name": provider.title(),
-                    "provider": provider,
-                    "model": model or None,
-                    "status": "active",
-                },
-                self._ONBOARD_PROVIDER_ENTRY,
-            ],
+            "mode": "external_api",
         }
 
     def _get_librarian_status(self) -> Dict[str, Any]:
@@ -12129,84 +12120,96 @@ class MurphySystem:
         return "general"
 
     def _try_llm_generate(self, prompt: str, context: str = "") -> Tuple[Optional[str], Optional[str]]:
-        """Attempt to generate a response via the configured cloud LLM provider.
+        """Generate a response via LLM — external API when available, onboard fallback always.
 
         Returns a tuple ``(text, error)`` where:
-        - ``(text, None)`` on success
-        - ``(None, None)`` when LLM is not configured (no key set) or provider
-          is ``"onboard"`` — falls through to the deterministic path in the caller
-        - ``(None, error_message)`` when LLM was attempted but failed (e.g. 401)
+        - ``(text, None)`` on success (external API or onboard)
+        - ``(None, error_message)`` when an external API was attempted and failed hard (e.g. 401)
 
-        When no cloud API key is set ``_get_llm_status`` returns
-        ``enabled=False`` so this method immediately returns ``(None, None)``,
-        leaving ``librarian_ask`` to fall back to the rich deterministic
-        response (``_build_reflection_reply`` / ``_build_followup_reply``).
+        The onboard fallback (LocalLLMFallback) is **always** tried last so that
+        this method never returns ``(None, None)`` — the system is always able to
+        respond.
         """
         llm_status = self._get_llm_status()
-        if not llm_status.get("enabled") or not llm_status.get("healthy"):
-            return None, None
-        provider = llm_status["provider"]
-        model = llm_status.get("model") or ""
-        if provider == "groq":
+        provider = llm_status.get("provider", "onboard")
+        mode = llm_status.get("mode", "onboard")
+
+        # --- External API path ---
+        if mode == "external_api" and provider == "groq":
+            model = llm_status.get("model") or "llama3-8b-8192"
             api_key = os.environ.get("GROQ_API_KEY", "")
-            if not api_key:
-                return None, None
-            try:
-                import requests as _requests
-                headers = {
-                    "Authorization": f"Bearer {api_key}",
-                    "Content-Type": "application/json",
-                }
-                body = {
-                    "model": model or "llama3-8b-8192",
-                    "messages": [
-                        {"role": "system", "content": (
-                            "You are Murphy, a professional automation assistant created by Inoni LLC. "
-                            "You help teams automate operations, onboard users, "
-                            "manage integrations, and run end-to-end workflows. "
-                            "Be concise, friendly, and action-oriented.\n\n"
-                            "MFGC/5U FRAMEWORK: You use the Murphy Framework Gate Controls (MFGC) and "
-                            "5 Universals (5U) to evaluate readiness. You need to collect:\n"
-                            "- 5U-Identity: business name\n"
-                            "- 5U-Context: industry, location, timezone\n"
-                            "- 5U-Scale: team size\n"
-                            "- 5U-Temporal: frequency, timeline, timezone\n"
-                            "- 5U-Data: data sources\n"
-                            "- MFGC-Objective: business goal, automation goal, success metrics\n"
-                            "- MFGC-Constraint: pain points, budget\n"
-                            "- MFGC-Integration: current tools, email, banking, phone, calendar, productivity apps\n"
-                            "- MFGC-Governance: compliance needs, decision maker\n\n"
-                            "RESPONSE STYLE: When user shares information, reflect it back amplified "
-                            "(expand on what they said 3x — show deep understanding), then ask "
-                            "'does something like this sound close?' Always ask the next most important "
-                            "missing question. Never repeat the same response twice.\n\n"
-                            "When users mention tools or services they use, recommend the specific "
-                            "API keys they'll need and provide signup links. Known integrations:\n"
-                            + "\n".join(
-                                f"- {info['name']}: {info['url']} (env: {info['env_var']})"
-                                for info in list(self.API_PROVIDER_LINKS.values())[:10]
-                            )
-                            + "\n\nAsk about their banking, phone carrier, email provider, "
-                            "productivity tools, and scheduling system to recommend integrations."
-                        )},
-                    ],
-                }
-                if context:
-                    body["messages"].append({"role": "system", "content": f"Context: {context}"})
-                body["messages"].append({"role": "user", "content": prompt})
-                resp = _requests.post(
-                    "https://api.groq.com/openai/v1/chat/completions",
-                    headers=headers,
-                    json=body,
-                    timeout=15,
-                )
-                resp.raise_for_status()
-                data = resp.json()
-                return data["choices"][0]["message"]["content"], None
-            except Exception as exc:
-                logger.warning("LLM call failed (%s): %s", provider, exc)
-                return None, str(exc)
-        return None, None
+            if api_key:
+                try:
+                    import requests as _requests
+                    headers = {
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json",
+                    }
+                    body = {
+                        "model": model,
+                        "messages": [
+                            {"role": "system", "content": (
+                                "You are Murphy, a professional automation assistant created by Inoni LLC. "
+                                "You help teams automate operations, onboard users, "
+                                "manage integrations, and run end-to-end workflows. "
+                                "Be concise, friendly, and action-oriented.\n\n"
+                                "MFGC/5U FRAMEWORK: You use the Murphy Framework Gate Controls (MFGC) and "
+                                "5 Universals (5U) to evaluate readiness. You need to collect:\n"
+                                "- 5U-Identity: business name\n"
+                                "- 5U-Context: industry, location, timezone\n"
+                                "- 5U-Scale: team size\n"
+                                "- 5U-Temporal: frequency, timeline, timezone\n"
+                                "- 5U-Data: data sources\n"
+                                "- MFGC-Objective: business goal, automation goal, success metrics\n"
+                                "- MFGC-Constraint: pain points, budget\n"
+                                "- MFGC-Integration: current tools, email, banking, phone, calendar, productivity apps\n"
+                                "- MFGC-Governance: compliance needs, decision maker\n\n"
+                                "RESPONSE STYLE: When user shares information, reflect it back amplified "
+                                "(expand on what they said 3x — show deep understanding), then ask "
+                                "'does something like this sound close?' Always ask the next most important "
+                                "missing question. Never repeat the same response twice.\n\n"
+                                "When users mention tools or services they use, recommend the specific "
+                                "API keys they'll need and provide signup links. Known integrations:\n"
+                                + "\n".join(
+                                    f"- {info['name']}: {info['url']} (env: {info['env_var']})"
+                                    for info in list(self.API_PROVIDER_LINKS.values())[:10]
+                                )
+                                + "\n\nAsk about their banking, phone carrier, email provider, "
+                                "productivity tools, and scheduling system to recommend integrations."
+                            )},
+                        ],
+                    }
+                    if context:
+                        body["messages"].append({"role": "system", "content": f"Context: {context}"})
+                    body["messages"].append({"role": "user", "content": prompt})
+                    resp = _requests.post(
+                        "https://api.groq.com/openai/v1/chat/completions",
+                        headers=headers,
+                        json=body,
+                        timeout=15,
+                    )
+                    resp.raise_for_status()
+                    data = resp.json()
+                    return data["choices"][0]["message"]["content"], None
+                except Exception as exc:
+                    logger.warning("Groq LLM call failed (%s) — falling back to onboard", exc)
+                    # Fall through to onboard fallback below
+
+        # --- Onboard fallback — always available ---
+        try:
+            from local_llm_fallback import LocalLLMFallback
+            fallback = LocalLLMFallback()
+            full_prompt = f"{context}\n\n{prompt}".strip() if context else prompt
+            return fallback.generate(full_prompt, max_tokens=500), None
+        except Exception as exc:
+            logger.debug("LocalLLMFallback failed (%s)", exc)
+
+        # Absolute last resort — structured template response
+        return (
+            f"I can help with: {prompt[:100]}. "
+            "For best results, add a Groq API key via 'set key groq <key>'.",
+            None,
+        )
 
     def librarian_ask(self, message: str, session_id: Optional[str] = None, mode: Optional[str] = None) -> Dict[str, Any]:
         """Route a natural-language message through the Librarian + optional LLM.
@@ -12287,22 +12290,9 @@ class MurphySystem:
 
         # In "ask" mode, skip dimension extraction — treat as pure knowledge query
         if mode != "ask":
-            msg_stripped = message.strip()
             new_dims = self._extract_dimensions_from_message(message, profile)
-            # --- Loop fix: if extraction found nothing, map the answer to the last
-            # asked dimension so the conversation always advances. ---
-            if not new_dims:
-                last_dim = profile.get("_last_asked_dimension")
-                if (
-                    last_dim
-                    and last_dim not in profile.get("collected", {})
-                    and msg_stripped
-                ):
-                    new_dims = {last_dim: msg_stripped}
             if new_dims:
                 profile["collected"].update(new_dims)
-                # Clear the pending dimension once it has been answered
-                profile.pop("_last_asked_dimension", None)
                 session = self.chat_sessions.setdefault(session_id, {})
                 session.setdefault("answers", {}).update(new_dims)
             # Store extracted dims for _deterministic_reply to use
@@ -12399,6 +12389,16 @@ class MurphySystem:
             fallback_reply = self._knowledge_reply(message, nl_intent)
         else:
             fallback_reply = self._deterministic_reply(message, nl_intent, session_id=session_id)
+        llm_status = self._get_llm_status()
+        # Show LLM upgrade notice once per session (librarian is always active)
+        if not llm_status.get("enabled") and not session.get("_llm_notice_shown"):
+            fallback_reply += (
+                "\n\n_Librarian is operating in **onboard** mode using built-in "
+                "system knowledge. To upgrade to LLM-powered responses: set "
+                "MURPHY_LLM_PROVIDER and the appropriate API key "
+                "(e.g. GROQ_API_KEY). Get a free key at https://console.groq.com/keys_"
+            )
+            session["_llm_notice_shown"] = True
         result = {
             "success": True,
             "session_id": session_id,
@@ -12469,11 +12469,6 @@ class MurphySystem:
 
     # The 5 Universals (5U) and MFGC dimensions that need to be satisfied
     # before generating an effective automation plan.
-
-    # Minimum character length for an answer to be accepted via the
-    # last-asked-dimension fallback in _extract_dimensions_from_message.
-    _MIN_ANSWER_LENGTH: int = 2
-
     _ONBOARDING_DIMENSIONS = {
         "business_name":     {"weight": 8,  "question": "What's the name of your business?",  "category": "5U-Identity"},
         "industry":          {"weight": 10, "question": "What industry do you operate in?",    "category": "5U-Context"},
@@ -12685,26 +12680,10 @@ class MurphySystem:
         if any(sk in lower for sk in success_kw) and "success_metric" not in profile.get("collected", {}):
             extracted["success_metric"] = message.strip()
 
-        # Fallback: if nothing was extracted but the user gave a substantive
-        # answer (> _MIN_ANSWER_LENGTH chars), accept it as the answer to the
-        # dimension that was last asked about.  This ensures short answers like
-        # "automation" or "Dallas" are still captured even when they don't
-        # match any keyword.
-        if not extracted and len(message.strip()) > self._MIN_ANSWER_LENGTH:
-            last_dim = profile.get("_last_asked_dim")
-            if last_dim and last_dim not in profile.get("collected", {}):
-                extracted[last_dim] = message.strip()
-
         return extracted
 
-    def _next_onboarding_dim_and_question(
-        self, profile: Dict[str, Any]
-    ) -> "tuple[Optional[str], Optional[str]]":
-        """Pick the highest-weight unanswered dimension.
-
-        Returns a ``(dimension_key, question_text)`` tuple, or
-        ``(None, None)`` when all dimensions are collected.
-        """
+    def _next_onboarding_question(self, profile: Dict[str, Any]) -> Optional[str]:
+        """Pick the highest-weight unanswered dimension and return its question."""
         collected = set(profile.get("collected", {}).keys())
         candidates = [
             (dim, info)
@@ -12712,15 +12691,10 @@ class MurphySystem:
             if dim not in collected
         ]
         if not candidates:
-            return (None, None)
+            return None
+        # Sort by weight descending — ask the most important questions first
         candidates.sort(key=lambda x: x[1]["weight"], reverse=True)
-        dim, info = candidates[0]
-        return (dim, info["question"])
-
-    def _next_onboarding_question(self, profile: Dict[str, Any]) -> Optional[str]:
-        """Pick the highest-weight unanswered dimension and return its question."""
-        _dim, question = self._next_onboarding_dim_and_question(profile)
-        return question
+        return candidates[0][1]["question"]
 
     def _knowledge_reply(self, message: str, nl_intent: str) -> str:
         """Generate a knowledge-base answer without onboarding dimension extraction.
@@ -12990,9 +12964,8 @@ class MurphySystem:
                 "and integrations, or keep chatting to refine."
             )
         else:
-            next_dim, next_q = self._next_onboarding_dim_and_question(profile)
+            next_q = self._next_onboarding_question(profile)
             if next_q:
-                profile["_last_asked_dimension"] = next_dim
                 reply += f"\n\n**Next:** {next_q}"
 
         # Mark solidified so subsequent messages don't re-solidify
@@ -13097,9 +13070,8 @@ class MurphySystem:
         reply += f"\n\n📊 **MFGC/5U Readiness:** {score:.0f}%"
         if score < 85:
             reply += " (need 85% to generate your automation plan)"
-            next_dim, next_q = self._next_onboarding_dim_and_question(profile)
+            next_q = self._next_onboarding_question(profile)
             if next_q:
-                profile["_last_asked_dimension"] = next_dim
                 reply += f"\n\n**Next up:** {next_q}"
         else:
             reply += " ✅ Ready to generate your plan!"
@@ -13125,7 +13097,7 @@ class MurphySystem:
         industry = collected.get("industry", "your industry")
 
         # --- Bug 4 Fix: de-duplicate summary ---
-        current_hash = _hashlib.md5(
+        current_hash = _hashlib.sha256(
             json.dumps(collected, sort_keys=True).encode()
         ).hexdigest()
 
@@ -13225,12 +13197,8 @@ class MurphySystem:
         if len(message.strip()) > 5:
             ack = f"Got it — *\"{message[:80]}\"*. "
 
-        # Pick the next question based on what's missing; also track which
-        # dimension is being asked so that the next message can be mapped to
-        # it when the user's reply doesn't trigger any extraction rule.
-        next_dim, next_q = self._next_onboarding_dim_and_question(profile)
-        if next_dim:
-            profile["_last_asked_dimension"] = next_dim
+        # Pick the next question based on what's missing
+        next_q = self._next_onboarding_question(profile)
 
         if next_q:
             reply = (

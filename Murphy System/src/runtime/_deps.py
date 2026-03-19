@@ -48,6 +48,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Add project root (Murphy System/) to path so both ``src.*`` and bare
+# module names resolve correctly.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+
 # Core imports
 from src.modular_runtime import ModularRuntime
 from src.module_manager import module_manager
@@ -224,6 +228,24 @@ except ImportError as e:
     AutomationScheduler = ProjectSchedule = SchedulePriority = None
 
 try:
+    from src.self_fix_loop import SelfFixLoop
+except ImportError as e:
+    logger.warning("SelfFixLoop not available: %s", e)
+    SelfFixLoop = None
+
+try:
+    from src.scheduler import MurphyScheduler
+except ImportError as e:
+    logger.warning("MurphyScheduler not available: %s", e)
+    MurphyScheduler = None
+
+try:
+    from src.autonomous_repair_system import AutonomousRepairSystem
+except ImportError as e:
+    logger.warning("AutonomousRepairSystem not available: %s", e)
+    AutonomousRepairSystem = None
+
+try:
     from src.capability_map import CapabilityMap
 except ImportError as e:
     logger.warning("Capability map not available: %s", e)
@@ -254,6 +276,18 @@ try:
 except ImportError as e:
     logger.warning("Wingman protocol not available: %s", e)
     WingmanProtocol = None
+
+try:
+    from src.wingman_system import WingmanSystem
+except ImportError as e:
+    logger.warning("Wingman system not available: %s", e)
+    WingmanSystem = None
+
+try:
+    from src.api_capability_builder import WingmanApiGapChecker
+except ImportError as e:
+    logger.warning("API capability builder not available: %s", e)
+    WingmanApiGapChecker = None
 
 try:
     from src.runtime_profile_compiler import RuntimeProfileCompiler
@@ -640,8 +674,9 @@ __all__ = [
     "VideoStreamingRegistry", "RemoteAccessRegistry",
     # Delivery / document
     "DeliveryOrchestrator", "DocumentDeliveryAdapter", "VoiceDeliveryAdapter",
-    # Persistence / scheduling
+    # Persistence / scheduling / self-automation
     "PersistenceManager", "AutomationScheduler",
+    "SelfFixLoop", "MurphyScheduler", "AutonomousRepairSystem",
     # Strategy / simulation / compliance types
     "MLStrategyEngine", "ExecutivePlanningEngine",
     "CapabilityMap", "GoldenPathBridge",
@@ -657,7 +692,7 @@ __all__ = [
     "TriageRollcallAdapter", "BotGovernancePolicyMapper",
     "BotTelemetryNormalizer", "HITLAutonomyController",
     "APIGatewayAdapter", "WebhookEventProcessor",
-    "WingmanProtocol", "GateExecutionWiring",
+    "WingmanProtocol", "WingmanSystem", "WingmanApiGapChecker", "GateExecutionWiring",
     "RubixEvidenceAdapter", "MFGCAdapter",
     "ImageGenerationEngine", "DigitalAssetGenerator",
     "OrgChartEnforcement", "OrganizationChart",
