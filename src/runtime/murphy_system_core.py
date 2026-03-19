@@ -1578,6 +1578,18 @@ class MurphySystem:
         else:
             self.wingman_protocol = None
 
+        # Wingman System — sensor-calibrated validator; library is always internal
+        if WingmanSystem:
+            try:
+                self.wingman_system = WingmanSystem(librarian=self.librarian)
+                logger.info("Wingman system initialized with %d modules",
+                            len(self.wingman_system.list_module_ids()))
+            except Exception as exc:
+                logger.warning("Wingman system initialization failed: %s", exc)
+                self.wingman_system = None
+        else:
+            self.wingman_system = None
+
         # Runtime Profile Compiler
         if RuntimeProfileCompiler:
             try:

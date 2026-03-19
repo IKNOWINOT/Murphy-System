@@ -4328,16 +4328,59 @@ def create_app() -> FastAPI:
 
     @app.get("/api/wingman/status")
     async def wingman_status():
-        """Return Wingman co-pilot status."""
-        return JSONResponse({
-            "success": True, "status": "idle",
-            "active_session": None, "suggestions": [],
-        })
+        """Return Wingman System status (sensor modules, validation counts)."""
+        ws = getattr(murphy, "wingman_system", None)
+        if ws is None:
+            return JSONResponse({
+                "success": True, "status": "unavailable",
+                "active_session": None, "suggestions": [],
+            })
+        return JSONResponse({"success": True, **ws.get_status()})
 
     @app.get("/api/wingman/suggestions")
     async def wingman_suggestions():
-        """Return Wingman AI assistant suggestions for the current session."""
-        return JSONResponse({"success": True, "suggestions": []})
+        """Return Wingman validation suggestions based on recent findings."""
+        ws = getattr(murphy, "wingman_system", None)
+        if ws is None:
+            return JSONResponse({"success": True, "suggestions": []})
+        status = ws.get_status()
+        suggestions = []
+        for mid, stats in status.get("per_module", {}).items():
+            rejected = stats.get("rejected", 0)
+            if rejected > 0:
+                suggestions.append({
+                    "module": mid,
+                    "message": (
+                        f"Module '{mid}' has {rejected} rejected validation(s). "
+                        f"Review world-model sensor findings in the Librarian."
+                    ),
+                    "severity": "warn",
+                })
+        return JSONResponse({"success": True, "suggestions": suggestions})
+
+    @app.post("/api/wingman/validate")
+    async def wingman_validate(request: Request):
+        """Validate an arbitrary artifact through the Wingman System.
+
+        Body: { "artifact": { "content": "...", ... }, "module_id": "deliverable" }
+        """
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "invalid_json"}, status_code=400)
+        artifact = body.get("artifact")
+        if not artifact or not isinstance(artifact, dict):
+            return JSONResponse(
+                {"success": False, "error": "missing_artifact",
+                 "message": "Provide an 'artifact' object in the request body."},
+                status_code=400,
+            )
+        module_id = body.get("module_id", "deliverable")
+        ws = getattr(murphy, "wingman_system", None)
+        if ws is None:
+            return JSONResponse({"success": False, "error": "wingman_unavailable"}, status_code=503)
+        result = ws.validate(artifact, module_id=module_id)
+        return JSONResponse({"success": True, "validation": result.to_dict()})
 
     @app.get("/api/causality/graph")
     async def causality_graph():
@@ -7969,6 +8012,28 @@ def create_app() -> FastAPI:
                 status_code=500,
             )
 
+        # Step 3: Wingman validation — sensors calibrate the output, result
+        # is recorded back into the Librarian knowledge layers.
+        wingman_validation: Optional[Dict[str, Any]] = None
+        ws = getattr(murphy, "wingman_system", None)
+        if ws is not None:
+            try:
+                vr = ws.validate(
+                    {
+                        "content": deliverable.get("content", ""),
+                        "result": deliverable.get("content", ""),
+                        "id": deliverable.get("filename", ""),
+                    },
+                    module_id="deliverable",
+                )
+                wingman_validation = {
+                    "approved": vr.approved,
+                    "trigger_level": vr.trigger_level,
+                    "findings": vr.findings,
+                }
+            except Exception as _wv_exc:
+                logger.debug("Wingman validation skipped: %s", _wv_exc)
+
         usage_out = {
             "used": usage_result.get("used", 1),
             "limit": usage_result.get("limit", 5),
@@ -7976,11 +8041,15 @@ def create_app() -> FastAPI:
             "tier": usage_result.get("tier", "anonymous"),
         }
 
-        return JSONResponse({
+        response_body: Dict[str, Any] = {
             "success": True,
             "deliverable": deliverable,
             "usage": usage_out,
-        })
+        }
+        if wingman_validation is not None:
+            response_body["wingman_validation"] = wingman_validation
+
+        return JSONResponse(response_body)
 
     def _build_env_template(workflows):
         """Build .env.example content from workflow API suggestions."""
