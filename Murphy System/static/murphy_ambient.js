@@ -31,12 +31,15 @@
    *  STATE
    * ───────────────────────────────────────────────────────────────────────── */
   var state = {
-    running:    false,
-    paused:     false,
-    context:    {},               // accumulated context signals
-    insights:   [],               // synthesised insights waiting for delivery
-    delivered:  [],               // delivery history
-    actioned:   0,
+    running:       false,
+    paused:        false,
+    context:       {},               // accumulated context signals
+    insights:      [],               // synthesised insights waiting for delivery
+    delivered:     [],               // delivery history
+    actioned:      0,
+    insightsCount: 0,               // total insights emitted to UI
+    deliveredCount:0,               // total email deliveries sent
+    confidenceSum: 0,               // running sum for avg confidence calculation
     settings: {
       contextEnabled:   true,
       emailEnabled:     true,
@@ -72,6 +75,9 @@
    *  Silently gathers signals from all available data sources.
    * ───────────────────────────────────────────────────────────────────────── */
   var ContextCollector = {
+    _meetingsFetching: false,
+    _tasksFetching:    false,
+
     collect: function () {
       if (!state.settings.contextEnabled) return;
 
@@ -140,8 +146,31 @@
         if (orgSessions > 0 && orgSessions % 5 === 0) {
           signals.push({ source: 'meeting', type: 'org_milestone', data: { sessions: orgSessions }, priority: 'low', confidence: 95, label: 'Org milestone: ' + orgSessions + ' sessions completed' });
         }
+        /* Fallback: if localStorage is empty, fetch from the real API and cache for next cycle */
+        if (!session && orgSessions === 0) {
+          ContextCollector._fetchMeetingsFromAPI();
+        }
       } catch (_) {}
       return signals;
+    },
+
+    _fetchMeetingsFromAPI: function () {
+      if (ContextCollector._meetingsFetching) return;
+      ContextCollector._meetingsFetching = true;
+      fetch(BASE_URL + '/api/meeting-intelligence/sessions', { credentials: 'same-origin' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          ContextCollector._meetingsFetching = false;
+          if (!data) return;
+          var sessions = Array.isArray(data) ? data : (data.sessions || []);
+          if (sessions.length) {
+            try {
+              localStorage.setItem('murphy_last_meeting', JSON.stringify(sessions[0]));
+              localStorage.setItem('murphy_org_sessions', String(sessions.length));
+            } catch (_) {}
+          }
+        })
+        .catch(function () { ContextCollector._meetingsFetching = false; });
     },
 
     _taskSignals: function () {
@@ -149,12 +178,44 @@
       try {
         var tasks = JSON.parse(localStorage.getItem('murphy_tasks') || '[]');
         var now = Date.now();
+        /* Fallback: if localStorage is empty, fetch from the real API and cache for next cycle */
+        if (!tasks.length) {
+          ContextCollector._fetchTasksFromAPI();
+          return signals;
+        }
         var overdue = tasks.filter(function (t) { return t.due && new Date(t.due).getTime() < now && t.status !== 'done'; });
         var unassigned = tasks.filter(function (t) { return !t.assignee && t.status !== 'done'; });
         if (overdue.length) signals.push({ source: 'tasks', type: 'overdue', data: { count: overdue.length }, priority: 'high', confidence: 97, label: overdue.length + ' overdue task(s) need attention' });
         if (unassigned.length) signals.push({ source: 'tasks', type: 'unassigned', data: { count: unassigned.length }, priority: 'medium', confidence: 88, label: unassigned.length + ' task(s) have no assigned owner' });
       } catch (_) {}
       return signals;
+    },
+
+    _fetchTasksFromAPI: function () {
+      if (ContextCollector._tasksFetching) return;
+      ContextCollector._tasksFetching = true;
+      fetch(BASE_URL + '/api/boards', { credentials: 'same-origin' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          ContextCollector._tasksFetching = false;
+          if (!data) return;
+          var tasks = [];
+          var boards = Array.isArray(data) ? data : (data.boards || []);
+          boards.forEach(function (board) {
+            (board.cards || board.tasks || []).forEach(function (card) {
+              tasks.push({
+                title:    card.title    || card.name        || '',
+                due:      card.due      || card.due_date    || null,
+                assignee: card.assignee || card.assigned_to || null,
+                status:   card.status   || card.state       || 'open'
+              });
+            });
+          });
+          if (tasks.length) {
+            try { localStorage.setItem('murphy_tasks', JSON.stringify(tasks)); } catch (_) {}
+          }
+        })
+        .catch(function () { ContextCollector._tasksFetching = false; });
     },
 
     _workspaceSignals: function () {
@@ -362,6 +423,14 @@
       if (badgeEl) badgeEl.textContent = streamList.querySelectorAll('.amb-stream-item').length;
       var insightsEl = document.getElementById('stat-insights');
       if (insightsEl) insightsEl.textContent = parseInt(insightsEl.textContent || '0', 10) + 1;
+
+      /* Update average confidence */
+      if (insight.confidence) {
+        state.confidenceSum += insight.confidence;
+        state.insightsCount++;
+        var confEl = document.getElementById('stat-confidence');
+        if (confEl) confEl.textContent = Math.round(state.confidenceSum / state.insightsCount) + '%';
+      }
     },
 
     _sendEmail: function (insight) {
@@ -410,7 +479,10 @@
       var badgeEl = document.getElementById('badge-email');
       if (badgeEl) badgeEl.textContent = tbody.querySelectorAll('tr').length;
       var deliveredEl = document.getElementById('stat-delivered');
-      if (deliveredEl) deliveredEl.textContent = parseInt(deliveredEl.textContent || '0', 10) + 1;
+      if (deliveredEl) {
+        state.deliveredCount++;
+        deliveredEl.textContent = state.deliveredCount;
+      }
     }
   };
 
@@ -491,14 +563,26 @@
   /* ─────────────────────────────────────────────────────────────────────────
    *  PUBLIC API
    * ───────────────────────────────────────────────────────────────────────── */
-  global.AmbientEngine = {
+  var publicAPI = {
     version:  VERSION,
     start:    Engine.start.bind(Engine),
     pause:    Engine.pause.bind(Engine),
     resume:   Engine.resume.bind(Engine),
     stop:     Engine.stop.bind(Engine),
-    getState: Engine.getState.bind(Engine)
+    getState: function () {
+      return {
+        running:        state.running,
+        paused:         state.paused,
+        insightsCount:  state.insightsCount,
+        deliveredCount: state.deliveredCount,
+        actionedCount:  state.actioned,
+        avgConfidence:  state.insightsCount > 0 ? Math.round(state.confidenceSum / state.insightsCount) : 0
+      };
+    }
   };
+
+  global.AmbientEngine  = publicAPI;
+  global.MurphyAmbient  = publicAPI;   /* alias used by ambient_intelligence.html */
 
   /* Auto-start when DOM is ready */
   if (document.readyState === 'loading') {
