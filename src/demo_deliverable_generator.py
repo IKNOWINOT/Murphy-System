@@ -727,9 +727,20 @@ def generate_predefined_deliverable(
 
     # Add automation blueprint bonus if this is an automation-heavy query.
     # Run MSS first so the blueprint uses real Solidify implementation steps.
+    mss_result: Optional[Dict[str, Any]] = None
     if _detect_major_automation(query):
         mss_result = _run_mss_pipeline(query, {})
         content = content.rstrip() + "\n\n" + _build_automation_blueprint(query, mss_result)
+
+    # Always append Quality Plan for project scenarios — this provides
+    # the itemized service catalog, technical specification, and client
+    # portfolio structure that the plan deliverable requires.
+    if scenario_key == "project":
+        if mss_result is None:
+            mss_result = _run_mss_pipeline(query, {})
+        content = content.rstrip() + "\n\n" + _build_quality_plan(
+            query, mss_result=mss_result, librarian_context=librarian_context,
+        )
 
     filename = _scenario_to_filename(scenario_key, query)
     quality = _mfgc_quality_score(scenario_key)
@@ -1008,6 +1019,164 @@ def _build_automation_blueprint(query: str, mss_result: Optional[Dict[str, Any]]
 """
 
 
+def _build_quality_plan(
+    query: str,
+    mss_result: Optional[Dict[str, Any]] = None,
+    librarian_context: Optional[str] = None,
+) -> str:
+    """Build a Quality Plan section with an itemized service catalog and quote.
+
+    The plan includes a deterministic Plan ID, a recommended-services list
+    driven by keyword matching against the query, a technical specification
+    derived from MSS data when available, pre-optimization suggestions, and
+    a client-portfolio save/retrieve section.
+    """
+    plan_id = hashlib.sha256(query.encode()).hexdigest()[:8].upper()
+
+    # --- keyword → service recommendation mapping --------------------------
+    q = query.lower()
+    service_catalog = [
+        ("S01", "Workflow Automation Engine",            "Solo",     "$49"),
+        ("S02", "Integration Hub (50+ connectors)",      "Solo",     "$29"),
+        ("S03", "AI Content & Data Processing",          "Solo",     "$19"),
+        ("S04", "Compliance Framework Engine",           "Solo",     "$39"),
+        ("S05", "Human-in-the-Loop Approvals",           "Solo",     "$19"),
+        ("S06", "Production Assistant (task execution)",  "Business", "$79"),
+        ("S07", "Self-Automation Platform",              "Business", "$99"),
+        ("S08", "AI Agent Org Chart",                    "Business", "$59"),
+        ("S09", "Developer SDK Access",                  "Solo",     "$29"),
+        ("S10", "Infrastructure Maintenance",            "Business", "$49"),
+    ]
+
+    keyword_map: Dict[str, List[str]] = {
+        "automate":   ["S01", "S07"],
+        "automation": ["S01", "S07"],
+        "integrate":  ["S02"],
+        "integration":["S02"],
+        "connect":    ["S02"],
+        "content":    ["S03"],
+        "data":       ["S03"],
+        "ai":         ["S03", "S08"],
+        "compliance": ["S04"],
+        "audit":      ["S04"],
+        "approval":   ["S05"],
+        "review":     ["S05"],
+        "production": ["S06"],
+        "execute":    ["S06"],
+        "deploy":     ["S06", "S10"],
+        "platform":   ["S07"],
+        "agent":      ["S08"],
+        "org chart":  ["S08"],
+        "sdk":        ["S09"],
+        "developer":  ["S09"],
+        "api":        ["S09"],
+        "infra":      ["S10"],
+        "maintain":   ["S10"],
+    }
+
+    recommended = set()  # type: set[str]
+    for kw, svc_ids in keyword_map.items():
+        if kw in q:
+            recommended.update(svc_ids)
+    # Always recommend at least S01 and S03 as baseline
+    if not recommended:
+        recommended = {"S01", "S03"}
+
+    # --- catalog table -----------------------------------------------------
+    catalog_rows = ""
+    for sid, name, tier, price in service_catalog:
+        catalog_rows += f"  │  {sid} │  {name:<37s}│  {tier:<9s}│  {price:<9s}│\n"
+
+    recommended_lines = ""
+    for sid, name, tier, price in service_catalog:
+        if sid in recommended:
+            recommended_lines += f"  ✓  {sid}  {name}  ({tier} — {price}/seat/mo)\n"
+
+    # --- technical specification -------------------------------------------
+    sol = (mss_result or {}).get("solidify", {})
+    mag = (mss_result or {}).get("magnify", {})
+
+    apis = ", ".join(mag.get("functional_requirements", [])[:3]) or "Murphy REST API, Webhook API"
+    connections = ", ".join(sol.get("implementation_steps", [])[:2]) or "Source connector, Destination connector"
+    triggers = sol.get("iteration_plan", "") or "Event / Schedule / Webhook"
+    bot_systems = "Librarian, Solidify Agent, Gate Agent"
+    modules = "MSS Magnify, MSS Solidify, MFGC, Librarian"
+    info_domains = ", ".join(mag.get("components", [])[:3]) or "Business data, User data, System telemetry"
+
+    if librarian_context and librarian_context.strip():
+        lib_lower = librarian_context.lower()
+        if "production" in lib_lower:
+            bot_systems += ", Production Bot"
+        if "compliance" in lib_lower:
+            bot_systems += ", Compliance Bot"
+
+    # --- pre-optimization suggestions --------------------------------------
+    suggestions = []
+    if "S01" in recommended and "S07" in recommended:
+        suggestions.append("  • Bundle Workflow Automation + Self-Automation for a 15% discount.")
+    if "S04" in recommended:
+        suggestions.append("  • Add Human-in-the-Loop Approvals (S05) alongside Compliance for complete governance.")
+    if "S06" in recommended:
+        suggestions.append("  • Consider Infrastructure Maintenance (S10) to support Production Assistant uptime.")
+    if not suggestions:
+        suggestions.append("  • Start with Solo tier to validate, then upgrade to Business for volume scaling.")
+        suggestions.append("  • Enable MFGC auto-approve (≥90% confidence) to reduce manual gates.")
+
+    return (
+        f"■ QUALITY PLAN — SERVICE CATALOG & AUTOMATION QUOTE\n"
+        f"════════════════════════════════════════════════════\n"
+        f"  Murphy System has analyzed your request and generated an itemized\n"
+        f"  quality plan. Each service below is selectable — choose the ones\n"
+        f"  that fit your needs. Save your selections as a client portfolio\n"
+        f"  to mix, match, upgrade, or downgrade at any time.\n"
+        f"\n"
+        f"  Request:  {query[:100]}\n"
+        f"  Plan ID:  QP-{plan_id}\n"
+        f"  Generated by: Murphy System Quality Engine (MSS Magnify → Solidify → Librarian)\n"
+        f"\n"
+        f"■ ITEMIZED SERVICE CATALOG\n"
+        f"──────────────────────────\n"
+        f"  Each line item below maps directly to a Murphy System capability\n"
+        f"  identified by the Librarian system as relevant to your request.\n"
+        f"\n"
+        f"  ┌──────┬──────────────────────────────────────┬──────────┬──────────┐\n"
+        f"  │  ID  │  Service                              │  Tier    │  Est/mo  │\n"
+        f"  ├──────┼──────────────────────────────────────┼──────────┼──────────┤\n"
+        f"{catalog_rows}"
+        f"  └──────┴──────────────────────────────────────┴──────────┴──────────┘\n"
+        f"\n"
+        f"  * Pricing is per-seat/month. Volume discounts available at Business tier.\n"
+        f"  * Services marked with ✓ below are recommended for your request.\n"
+        f"\n"
+        f"■ RECOMMENDED FOR YOUR REQUEST\n"
+        f"──────────────────────────────\n"
+        f"{recommended_lines}"
+        f"\n"
+        f"■ TECHNICAL SPECIFICATION\n"
+        f"─────────────────────────\n"
+        f"  APIs:          {apis}\n"
+        f"  Connections:   {connections}\n"
+        f"  Triggers:      {triggers}\n"
+        f"  Gates:         MFGC confidence gate (auto-approve ≥90%)\n"
+        f"  Information:   {info_domains}\n"
+        f"  Bot Systems:   {bot_systems}\n"
+        f"  Modules:       {modules}\n"
+        f"\n"
+        f"■ PRE-OPTIMIZATION SUGGESTIONS\n"
+        f"──────────────────────────────\n"
+        + "\n".join(suggestions) + "\n"
+        f"\n"
+        f"■ CLIENT PORTFOLIO — SAVE & CUSTOMIZE\n"
+        f"──────────────────────────────────────\n"
+        f"  Your quality plan selections can be saved as a client portfolio.\n"
+        f"  POST /api/client-portfolio/save  with your selected service IDs.\n"
+        f"  GET  /api/client-portfolio/{{id}}  to retrieve your portfolio.\n"
+        f"\n"
+        f"  Mix & match services at any time. Upgrade or downgrade tiers\n"
+        f"  with pre-optimization suggestions based on your usage patterns.\n"
+    )
+
+
 # ---------------------------------------------------------------------------
 # LLM content generation (with MFGC + MSS + Librarian context)
 # ---------------------------------------------------------------------------
@@ -1044,10 +1213,41 @@ def _generate_llm_content(
             f"phases={', '.join(phases[:3]) if phases else 'n/a'}]"
         )
 
-    # If MSS gave us solid implementation data, build content directly from it
-    # (no LLM call needed — MSS Solidify is the source of truth)
+    # If MSS gave us solid implementation data, build the base from it,
+    # then attempt to enrich with LLM for conversational quality.
     if mss_result and (mss_result.get("magnify") or mss_result.get("solidify")):
         base_content = _build_content_from_mss(query, mss_result, mfgc_note)
+        # Attempt LLM enrichment — if available, the LLM adds conversational
+        # prose around the structured MSS data.  Falls back to base_content.
+        enriched_context = "\n\n".join(context_parts)
+        try:
+            import asyncio
+            from src.llm_controller import LLMController, LLMRequest
+            controller = LLMController()
+            llm_prompt = (
+                f"You are Murphy, an AI system builder. Enrich this structured plan "
+                f"with conversational prose. Keep ALL existing data intact but add "
+                f"context, explanations, and actionable insights.\n\n"
+                f"Request: {query}\n\n"
+                f"Structured Plan:\n{base_content}\n"
+                + (f"\nAdditional Context:\n{enriched_context}\n" if enriched_context else "")
+            )
+            req = LLMRequest(prompt=llm_prompt, max_tokens=1536)
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    import concurrent.futures
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as exe:
+                        future = exe.submit(asyncio.run, controller.query_llm(req))
+                        response = future.result(timeout=30)
+                else:
+                    response = loop.run_until_complete(controller.query_llm(req))
+            except RuntimeError:
+                response = asyncio.run(controller.query_llm(req))
+            if response.content and len(response.content) > len(base_content) // 2:
+                return response.content
+        except Exception:
+            pass  # LLM enrichment failed — use base MSS content
         return base_content
 
     # No MSS data — try LLM with context-enriched prompt
@@ -1276,6 +1476,12 @@ def generate_custom_deliverable(
     # Stage 5 — Append paid-tier Automation Blueprint preview if automation requested
     if _detect_major_automation(query):
         content = content.rstrip() + "\n\n" + _build_automation_blueprint(query, mss_result)
+
+    # Append Quality Plan when the query involves planning or automation
+    if any(kw in query.lower() for kw in ("plan", "quote", "automate", "service", "cost", "pricing")):
+        content = content.rstrip() + "\n\n" + _build_quality_plan(
+            query, mss_result=mss_result, librarian_context=librarian_context,
+        )
 
     filename = _scenario_to_filename(None, query)
 
