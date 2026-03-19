@@ -89,6 +89,30 @@
     margin: 2px;
   }
   .gate-chip.required { border-color: var(--color-accent); color: var(--color-accent); }
+  /* ── Layout fix: clear fixed topbar + activity log panel ── */
+  .murphy-main {
+    padding-top: 64px;
+    padding-bottom: 280px;
+    overflow-y: auto;
+    min-height: 100vh;
+    box-sizing: border-box;
+  }
+  .murphy-view {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--space-6, 1.5rem);
+  }
+  /* ── Timeline graph ── */
+  #timeline-graph {
+    background: var(--color-surface-raised, #111);
+    border: 1px solid var(--color-border, #2a2a2a);
+    border-radius: var(--radius-lg, 8px);
+    width: 100%;
+    height: 220px;
+    overflow: hidden;
+    position: relative;
+  }
+  #timeline-graph svg { display: block; width: 100%; height: 100%; }
   #prod-log {
     font-family: var(--font-code, 'JetBrains Mono', monospace);
     font-size: 12px;
@@ -322,6 +346,14 @@
       </div>
     </div>
 
+    <!-- Real-time Timeline Activity Graph -->
+    <div id="timeline-graph-section" style="margin-bottom:var(--space-6)">
+      <h3 class="murphy-section-title">Processing Timeline</h3>
+      <p class="murphy-hint">Real-time view of files touched and deliverables produced. Color intensity = recency of activity.</p>
+      <div id="timeline-graph">
+        <!-- SVG timeline rendered by JS -->
+      </div>
+    </div>
     <!-- Timeline activity graph -->
     <div id="timeline-section">
       <h3>Production Timeline — Live Activity</h3>
@@ -351,8 +383,6 @@
       </button>
     </div>
   </div>
-
-  <!-- ── PROPOSAL VIEW ──────────────────────────────────────── -->
   <div id="view-proposal" class="murphy-view" style="display:none">
     <div class="murphy-page-header">
       <h2 class="murphy-page-title">Submit Production Proposal</h2>
@@ -1283,6 +1313,7 @@ document.getElementById('btn-clear-log').addEventListener('click', () => {
 (async () => {
   await checkApiStatus();
   await loadDashboard();
+  startTimelinePolling();
   showView('dashboard');
 })();
 </script>
