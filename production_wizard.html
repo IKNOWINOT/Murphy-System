@@ -117,10 +117,12 @@
     cursor: pointer;
   }
   .prod-timeline-node circle {
-    transition: r 0.15s, opacity 0.15s;
+    transition: transform 0.15s, opacity 0.15s;
+    transform-origin: center;
+    transform-box: fill-box;
   }
   .prod-timeline-node:hover circle {
-    r: 9;
+    transform: scale(1.3);
     opacity: 1;
   }
   .prod-timeline-tooltip {
@@ -710,6 +712,10 @@ const checkApiStatus = async () => {
 // ── View router ───────────────────────────────────────────────
 const views = ['dashboard','proposal','workorder','validate','profiles','queue','hitl','schedule','deliverables'];
 const showView = (name) => {
+  if (name !== 'dashboard' && _dashboardPollTimer) {
+    clearInterval(_dashboardPollTimer);
+    _dashboardPollTimer = null;
+  }
   views.forEach(v => {
     const el = document.getElementById(`view-${v}`);
     if (el) el.style.display = v === name ? '' : 'none';
@@ -749,13 +755,9 @@ const NODE_LABEL_LENGTH = 9;
 // Polling interval for dashboard auto-refresh (ms)
 const DASHBOARD_POLL_INTERVAL_MS = 5000;
 
-let heatmapFilter   = null;
-let lastTimelineData = null;
-let dashboardPollTimer = null;
-
-// Back-compat aliases kept for any inline callers
-const _heatmapFilter    = () => heatmapFilter;
-const _lastTimelineData = () => lastTimelineData;
+let _heatmapFilter    = null;
+let _lastTimelineData = null;
+let _dashboardPollTimer = null;
 
 const _heatColor = (heat) => {
   if (heat >= 0.8) return '#00ff41';
@@ -773,7 +775,7 @@ const renderTimeline = (queueItems, proposals, heatEntries) => {
   if (!svg) return;
 
   const W = 900, H = 120, TRACK_Y = 62;
-  const STAGE_XS = [0.05, 0.25, 0.5, 0.75, 0.95].map(f => Math.round(f * W));
+  const STAGE_XS = STAGE_FRACTIONS.map(f => Math.round(f * W));
 
   const heatMap = {};
   const heatMax = Math.max(1, ...(heatEntries || []).map(e => e.value || e.count || 0));
@@ -815,7 +817,7 @@ const renderTimeline = (queueItems, proposals, heatEntries) => {
     const cx = STAGE_XS[stageIdx];
 
     colCount[stageIdx] = (colCount[stageIdx] || 0) + 1;
-    const jitter = (((colCount[stageIdx] - 1) % 5) - 2) * 13;
+    const jitter = (((colCount[stageIdx] - 1) % JITTER_ROWS) - JITTER_CENTER) * JITTER_SPACING;
     const cy = TRACK_Y + jitter;
 
     const domainKey = (item.domain || item.regulatory_industry || '').toLowerCase();
@@ -829,7 +831,7 @@ const renderTimeline = (queueItems, proposals, heatEntries) => {
 
     out += `<g class="prod-timeline-node" data-title="${titleAttr}">
       <circle cx="${cx}" cy="${cy}" r="7" fill="${nodeColor}" opacity="0.85"/>
-      <text x="${cx}" y="${cy - 11}" text-anchor="middle" fill="${nodeColor}" font-family="monospace" font-size="8" opacity="0.8">${label.slice(-9)}</text>
+      <text x="${cx}" y="${cy - 11}" text-anchor="middle" fill="${nodeColor}" font-family="monospace" font-size="8" opacity="0.8">${label.slice(-NODE_LABEL_LENGTH)}</text>
     </g>`;
   });
 
@@ -840,18 +842,23 @@ const renderTimeline = (queueItems, proposals, heatEntries) => {
 
   svg.innerHTML = out;
 
-  if (tooltip && container) {
-    svg.querySelectorAll('.prod-timeline-node').forEach(node => {
-      node.addEventListener('mouseenter', () => {
-        tooltip.textContent = node.dataset.title;
-        tooltip.style.display = 'block';
-      });
-      node.addEventListener('mousemove', (e) => {
-        const rect = container.getBoundingClientRect();
-        tooltip.style.left = (e.clientX - rect.left + 14) + 'px';
-        tooltip.style.top = (e.clientY - rect.top - 28) + 'px';
-      });
-      node.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+  if (tooltip && container && !svg.dataset.listenersAttached) {
+    svg.dataset.listenersAttached = '1';
+    svg.addEventListener('mouseover', (e) => {
+      const node = e.target.closest('.prod-timeline-node');
+      if (!node) return;
+      tooltip.textContent = node.dataset.title;
+      tooltip.style.display = 'block';
+    });
+    svg.addEventListener('mousemove', (e) => {
+      if (tooltip.style.display === 'none') return;
+      const rect = container.getBoundingClientRect();
+      tooltip.style.left = (e.clientX - rect.left + 14) + 'px';
+      tooltip.style.top  = (e.clientY - rect.top  - 28) + 'px';
+    });
+    svg.addEventListener('mouseout', (e) => {
+      if (!e.target.closest('.prod-timeline-node')) return;
+      tooltip.style.display = 'none';
     });
   }
 
@@ -887,8 +894,11 @@ const renderHeatmap = (entries) => {
     return `<div class="prod-heatmap-cell" title="${label}: ${val}" data-domain="${label}" style="background:${bg};opacity:${opacity}"></div>`;
   }).join('');
 
-  strip.querySelectorAll('.prod-heatmap-cell').forEach(cell => {
-    cell.addEventListener('click', () => {
+  if (!strip.dataset.listenersAttached) {
+    strip.dataset.listenersAttached = '1';
+    strip.addEventListener('click', (e) => {
+      const cell = e.target.closest('.prod-heatmap-cell');
+      if (!cell) return;
       const domain = cell.dataset.domain;
       if (_heatmapFilter === domain) {
         _heatmapFilter = null;
@@ -903,7 +913,7 @@ const renderHeatmap = (entries) => {
         renderTimeline(_lastTimelineData.items, _lastTimelineData.proposals, _lastTimelineData.heat);
       }
     });
-  });
+  }
 };
 
 // ── Activity log helper ───────────────────────────────────────
@@ -916,6 +926,12 @@ const logActivity = (msg, lifecycle) => {
   entry.textContent = `\n[${ts}] ${msg}`;
   el.appendChild(entry);
   el.scrollTop = el.scrollHeight;
+};
+
+const _queueItemMsg = (item) => {
+  const stage = item.lifecycle || item.status || 'proposal';
+  const conf  = item.confidence !== undefined ? ` (confidence: ${Number(item.confidence).toFixed(2)})` : '';
+  return { msg: `${item.proposal_id || item.id || '?'} → ${stage}${conf}`, stage };
 };
 
 // ── Dashboard load + polling ──────────────────────────────────
@@ -966,8 +982,8 @@ const loadDashboard = async () => {
 
   if (queueItems.length > 0) {
     queueItems.slice(-5).forEach(item => {
-      const stage = item.lifecycle || item.status || 'proposal';
-      logActivity(`${item.proposal_id || item.id || '?'} → ${stage}${item.confidence !== undefined ? ` (confidence: ${Number(item.confidence).toFixed(2)})` : ''}`, stage);
+      const { msg, stage } = _queueItemMsg(item);
+      logActivity(msg, stage);
     });
   }
 
@@ -980,8 +996,8 @@ const loadDashboard = async () => {
       const prev = (_lastTimelineData && _lastTimelineData.items) || [];
       const prevIds = new Set(prev.map(i => i.proposal_id || i.id));
       items.filter(i => !prevIds.has(i.proposal_id || i.id)).forEach(item => {
-        const stage = item.lifecycle || item.status || 'proposal';
-        logActivity(`${item.proposal_id || item.id || '?'} → ${stage}${item.confidence !== undefined ? ` (confidence: ${Number(item.confidence).toFixed(2)})` : ''}`, stage);
+        const { msg, stage } = _queueItemMsg(item);
+        logActivity(msg, stage);
       });
       let heat = (_lastTimelineData && _lastTimelineData.heat) || [];
       try {
@@ -992,7 +1008,7 @@ const loadDashboard = async () => {
       _lastTimelineData = { items, proposals: (_lastTimelineData && _lastTimelineData.proposals) || [], heat };
       renderTimeline(items, _lastTimelineData.proposals, heat);
     } catch { /* API offline */ }
-  }, 5000);
+  }, DASHBOARD_POLL_INTERVAL_MS);
 };
 
 // ── Proposal form ─────────────────────────────────────────────
