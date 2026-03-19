@@ -299,6 +299,8 @@ CAPABILITY_TO_PACK: Dict[str, str] = {
     "ml_pipeline": "domain_ml",
     "shadow_learning": "domain_ml",
     "matrix_bridge": "domain_matrix",
+    "monitoring": "domain_observability",
+    "metrics": "domain_observability",
     "alerting": "domain_observability",
     "onboarding": "domain_onboarding",
     "team_pipeline": "domain_onboarding",

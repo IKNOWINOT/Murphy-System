@@ -141,7 +141,7 @@
     _onFailure: function (source) {
       var f = ++ContextCollector._failures[source];
       if (f >= ContextCollector._MAX_FAILURES) {
-        /* Backoff: 30 s × 2^(f - MAX) capped at 10 min */
+        /* Backoff: 30 s × 2^(f - MAX) capped at 10 min (600 000 ms) */
         var backoffMs = Math.min(30000 * Math.pow(2, f - ContextCollector._MAX_FAILURES), 600000);
         ContextCollector._retryAfter[source] = Date.now() + backoffMs;
       }
