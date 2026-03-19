@@ -2516,6 +2516,107 @@ def create_app() -> FastAPI:
         except Exception as exc:
             return _safe_error_response(exc, 500)
 
+    # In-memory MFGC session store for onboarding chat (max 500 sessions, 2-hour TTL)
+    _onboarding_mfgc_sessions: dict = {}
+    _ONBOARDING_SESSION_TTL = 7200  # seconds
+
+    @app.post("/api/onboarding/mfgc-chat")
+    async def onboarding_mfgc_chat(request: Request):
+        """Route onboarding wizard messages through UnifiedMFGC gate system.
+
+        Accepts ``{ "session_id": "...", "message": "..." }`` and returns
+        ``{ "response": "...", "gate_satisfaction": 0.XX, "confidence": 0.XX,
+            "unknowns_remaining": N, "ready_for_plan": bool }``.
+        """
+        import time as _time
+        data = await request.json()
+        message = (data.get("message") or data.get("question") or "").strip()
+        session_id = data.get("session_id") or "onboarding-default"
+
+        if not message:
+            return JSONResponse({"success": False, "error": "message is required"}, status_code=400)
+
+        # Evict expired sessions (simple TTL cleanup)
+        now = _time.monotonic()
+        expired = [k for k, v in _onboarding_mfgc_sessions.items()
+                   if now - v.get("last_access", 0) > _ONBOARDING_SESSION_TTL]
+        for k in expired:
+            del _onboarding_mfgc_sessions[k]
+        # Also cap at 500 sessions to prevent unbounded growth
+        if len(_onboarding_mfgc_sessions) >= 500:
+            oldest = sorted(_onboarding_mfgc_sessions.items(),
+                            key=lambda x: x[1].get("last_access", 0))[:50]
+            for k, _ in oldest:
+                del _onboarding_mfgc_sessions[k]
+
+        try:
+            # Retrieve or create a per-session UnifiedMFGC instance
+            if session_id not in _onboarding_mfgc_sessions:
+                from unified_mfgc import UnifiedMFGC
+                _onboarding_mfgc_sessions[session_id] = {
+                    "mfgc": UnifiedMFGC(),
+                    "answers": {},
+                    "context": "Murphy onboarding wizard: helping a new user describe their business and automation needs.",
+                    "last_access": now,
+                }
+            sess = _onboarding_mfgc_sessions[session_id]
+            sess["last_access"] = now
+            mfgc_instance = sess["mfgc"]
+
+            # Feed the new message as the latest answer (also used as the next request)
+            if sess["answers"]:
+                # Record the user reply to the last question asked
+                last_key = list(sess["answers"].keys())[-1]
+                if sess["answers"][last_key] is None:
+                    sess["answers"][last_key] = message
+            # Also treat the full message as the primary request on first turn
+            if not sess["answers"]:
+                sess["answers"]["initial_request"] = message
+
+            result = mfgc_instance._process_with_context(
+                message=message,
+                answers=sess["answers"],
+                context_summary=sess["context"],
+            )
+
+            gate_satisfaction = result.get("gate_satisfaction", 0.0)
+            confidence = result.get("confidence", 0.0)
+            unknowns_remaining = result.get("unknowns_remaining", 99)
+            ready_for_plan = bool(result.get("execution_mode", False))
+
+            response_text = (
+                result.get("content")
+                or result.get("response")
+                or result.get("message")
+                or "Murphy is gathering more information."
+            )
+
+            # If the MFGC asked a follow-up question, record a placeholder for the answer
+            if result.get("questioning_mode"):
+                import re as _re
+                questions = _re.findall(r"[A-Z][^\n]*\?", response_text)
+                for q in questions:
+                    sess["answers"][q] = None
+
+            return JSONResponse({
+                "success": True,
+                "response": response_text,
+                "gate_satisfaction": round(float(gate_satisfaction), 4),
+                "confidence": round(float(confidence), 4),
+                "unknowns_remaining": int(unknowns_remaining),
+                "ready_for_plan": ready_for_plan,
+            })
+        except Exception as exc:
+            logger.warning("onboarding_mfgc_chat error: %s", exc)
+            return JSONResponse({
+                "success": False,
+                "response": "I'm having trouble processing that right now. Please continue or try again.",
+                "gate_satisfaction": 0.0,
+                "confidence": 0.0,
+                "unknowns_remaining": 99,
+                "ready_for_plan": False,
+            }, status_code=200)  # Return 200 so the UI doesn't show a hard error
+
     # --- Onboarding Automation Engine (employee onboarding) ---
 
     @app.post("/api/onboarding/employees")
