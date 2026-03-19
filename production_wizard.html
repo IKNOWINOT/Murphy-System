@@ -739,9 +739,23 @@ const _STAGE_IDX = {
 };
 const _STAGE_LABELS = ['Proposal', 'Validate', 'Work Order', 'Deliver', 'Verified'];
 
-let _heatmapFilter = null;
-let _lastTimelineData = null;
-let _dashboardPollTimer = null;
+// Timeline layout constants
+const STAGE_FRACTIONS   = [0.05, 0.25, 0.5, 0.75, 0.95];
+const JITTER_ROWS       = 5;
+const JITTER_CENTER     = 2;
+const JITTER_SPACING    = 13;
+const NODE_LABEL_LENGTH = 9;
+
+// Polling interval for dashboard auto-refresh (ms)
+const DASHBOARD_POLL_INTERVAL_MS = 5000;
+
+let heatmapFilter   = null;
+let lastTimelineData = null;
+let dashboardPollTimer = null;
+
+// Back-compat aliases kept for any inline callers
+const _heatmapFilter    = () => heatmapFilter;
+const _lastTimelineData = () => lastTimelineData;
 
 const _heatColor = (heat) => {
   if (heat >= 0.8) return '#00ff41';
