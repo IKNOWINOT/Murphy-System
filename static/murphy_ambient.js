@@ -21,6 +21,7 @@
    * ───────────────────────────────────────────────────────────────────────── */
   var VERSION = '1.0.0';
   var POLL_INTERVAL_MS   = 60000;    // context poll: every 60 s
+  var API_REFRESH_EVERY  = 5;        // force fresh API fetch every Nth poll (~5 min)
   var SYNTH_INTERVAL_MS  = 90000;    // synthesis run: every 90 s
   var DELIVERY_DELAY_MS  = 5000;     // min delay between deliveries
   var MAX_QUEUE          = 50;       // max pending deliveries
@@ -31,12 +32,15 @@
    *  STATE
    * ───────────────────────────────────────────────────────────────────────── */
   var state = {
-    running:    false,
-    paused:     false,
-    context:    {},               // accumulated context signals
-    insights:   [],               // synthesised insights waiting for delivery
-    delivered:  [],               // delivery history
-    actioned:   0,
+    running:       false,
+    paused:        false,
+    context:       {},               // accumulated context signals
+    insights:      [],               // synthesised insights waiting for delivery
+    delivered:     [],               // delivery history
+    actioned:      0,
+    insightsCount: 0,               // total insights emitted to UI
+    deliveredCount:0,               // total email deliveries sent
+    confidenceSum: 0,               // running sum for avg confidence calculation
     settings: {
       contextEnabled:   true,
       emailEnabled:     true,
@@ -48,7 +52,8 @@
     timers: {
       poll:    null,
       synth:   null,
-      deliver: null
+      deliver: null,
+      server:  null
     }
   };
 
@@ -74,34 +79,27 @@
    *  localStorage if the API is unavailable or returns an error.
    * ───────────────────────────────────────────────────────────────────────── */
   var ContextCollector = {
-    /* Per-source consecutive-failure counters for backoff */
-    _failures: { calendar: 0, meeting: 0, tasks: 0, workspace: 0 },
-    /* Timestamps of next allowed retry per source (ms) */
-    _retryAfter: { calendar: 0, meeting: 0, tasks: 0, workspace: 0 },
-    /* Max consecutive failures before backing off */
-    _MAX_FAILURES: 3,
-    /* API fetch timeout (ms) */
-    _TIMEOUT_MS: 5000,
+    _meetingsFetching: false,
+    _tasksFetching:    false,
 
     collect: function () {
       if (!state.settings.contextEnabled) return;
 
-      var self = ContextCollector;
-      var DEV = (typeof location !== 'undefined' && location.hostname === 'localhost');
+      state.pollCount++;
+      var forceRefresh = (state.pollCount % API_REFRESH_EVERY === 0);
 
-      Promise.all([
-        self._calendarSignals(),
-        state.settings.meetingLink ? self._meetingSignals() : Promise.resolve([]),
-        self._taskSignals(),
-        self._workspaceSignals()
-      ]).then(function (results) {
-        var signals = [];
-        results.forEach(function (r) { signals = signals.concat(r); });
+      var signals = [];
 
-        signals.forEach(function (sig) {
-          var key = sig.source + ':' + sig.type;
-          state.context[key] = sig;
-        });
+      /* 1 — Calendar proximity */
+      signals = signals.concat(ContextCollector._calendarSignals(forceRefresh));
+
+      /* 2 — Meeting intelligence data */
+      if (state.settings.meetingLink) {
+        signals = signals.concat(ContextCollector._meetingSignals(forceRefresh));
+      }
+
+      /* 3 — Task overdue / unassigned */
+      signals = signals.concat(ContextCollector._taskSignals(forceRefresh));
 
         if (signals.length) {
           self._pushToAPI(signals);
@@ -269,6 +267,25 @@
         });
     },
 
+    _fetchMeetingsFromAPI: function () {
+      if (ContextCollector._meetingsFetching) return;
+      ContextCollector._meetingsFetching = true;
+      fetch(BASE_URL + '/api/meeting-intelligence/sessions', { credentials: 'same-origin' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          ContextCollector._meetingsFetching = false;
+          if (!data) return;
+          var sessions = Array.isArray(data) ? data : (data.sessions || []);
+          if (sessions.length) {
+            try {
+              localStorage.setItem('murphy_last_meeting', JSON.stringify(sessions[0]));
+              localStorage.setItem('murphy_org_sessions', String(sessions.length));
+            } catch (_) {}
+          }
+        })
+        .catch(function () { ContextCollector._meetingsFetching = false; });
+    },
+
     _taskSignals: function () {
       var self = ContextCollector;
       var source = 'tasks';
@@ -276,6 +293,11 @@
       function parseTasks(tasks) {
         var signals = [];
         var now = Date.now();
+        /* Fallback: if localStorage is empty, fetch from the real API and cache for next cycle */
+        if (!tasks.length) {
+          ContextCollector._fetchTasksFromAPI();
+          return signals;
+        }
         var overdue = tasks.filter(function (t) { return t.due && new Date(t.due).getTime() < now && t.status !== 'done'; });
         var unassigned = tasks.filter(function (t) { return !t.assignee && t.status !== 'done'; });
         if (overdue.length) signals.push({ source: source, type: 'overdue', data: { count: overdue.length }, priority: 'high', confidence: 97, label: overdue.length + ' overdue task(s) need attention' });
@@ -316,6 +338,33 @@
           self._onFailure(source);
           return fromLocalStorage();
         });
+    },
+
+    _fetchTasksFromAPI: function () {
+      if (ContextCollector._tasksFetching) return;
+      ContextCollector._tasksFetching = true;
+      fetch(BASE_URL + '/api/boards', { credentials: 'same-origin' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          ContextCollector._tasksFetching = false;
+          if (!data) return;
+          var tasks = [];
+          var boards = Array.isArray(data) ? data : (data.boards || []);
+          boards.forEach(function (board) {
+            (board.cards || board.tasks || []).forEach(function (card) {
+              tasks.push({
+                title:    card.title    || card.name        || '',
+                due:      card.due      || card.due_date    || null,
+                assignee: card.assignee || card.assigned_to || null,
+                status:   card.status   || card.state       || 'open'
+              });
+            });
+          });
+          if (tasks.length) {
+            try { localStorage.setItem('murphy_tasks', JSON.stringify(tasks)); } catch (_) {}
+          }
+        })
+        .catch(function () { ContextCollector._tasksFetching = false; });
     },
 
     _workspaceSignals: function () {
@@ -360,6 +409,56 @@
         });
     },
 
+    _murphySystemSignals: function () {
+      var signals = [];
+      /* Fire-and-forget fetches to /api/health and /api/status — parse on arrival */
+      fetch(BASE_URL + '/api/health', { method: 'GET' })
+        .then(function (res) { return res.ok ? res.json() : null; })
+        .then(function (data) {
+          if (!data) return;
+          var degraded = [];
+          if (data.modules) {
+            Object.keys(data.modules).forEach(function (mod) {
+              var m = data.modules[mod];
+              if (m && (m.status === 'degraded' || m.status === 'error' || m.status === 'down')) {
+                degraded.push(mod);
+              }
+            });
+          }
+          if (degraded.length) {
+            var sig = {
+              source: 'murphy_system', type: 'modules_degraded',
+              data: { modules: degraded, count: degraded.length },
+              priority: degraded.length > 2 ? 'high' : 'medium',
+              confidence: 99,
+              label: degraded.length + ' module(s) degraded: ' + degraded.slice(0, 3).join(', ')
+            };
+            state.context['murphy_system:modules_degraded'] = sig;
+          }
+          /* Redis / rate-limiter mode signals */
+          if (data.redis && data.redis.status !== 'connected') {
+            state.context['murphy_system:redis_disconnected'] = { source: 'murphy_system', type: 'redis_disconnected', data: { status: data.redis.status }, priority: 'medium', confidence: 99, label: 'Redis not connected — running in memory mode' };
+          }
+          if (data.rate_limiter && data.rate_limiter.mode === 'memory') {
+            state.context['murphy_system:rate_limiter_memory'] = { source: 'murphy_system', type: 'rate_limiter_memory', data: {}, priority: 'low', confidence: 90, label: 'Rate limiter in memory mode' };
+          }
+        })
+        .catch(function () {});
+
+      fetch(BASE_URL + '/api/status', { method: 'GET' })
+        .then(function (res) { return res.ok ? res.json() : null; })
+        .then(function (data) {
+          if (!data) return;
+          if (data.integration_bus && data.integration_bus.llm_integration_layer === false) {
+            state.context['murphy_system:llm_integration_off'] = { source: 'murphy_system', type: 'llm_integration_off', data: {}, priority: 'medium', confidence: 99, label: 'LLM integration layer not loaded' };
+          }
+        })
+        .catch(function () {});
+
+      /* Return any system signals already accumulated from prior async fetches */
+      return Object.values(state.context).filter(function (s) { return s.source === 'murphy_system'; });
+    },
+
     _pushToAPI: function (signals) {
       fetch(BASE_URL + '/api/ambient/context', {
         method: 'POST',
@@ -392,11 +491,12 @@
           body: 'Murphy has prepared a brief for your meeting' +
             (overdueCount ? ' including ' + overdueCount.count + ' overdue action item(s)' : '') +
             (pendingVotes ? ' and ' + pendingVotes.data.count + ' draft(s) pending your vote' : '') + '.',
-          confidence: Math.round((upcomingMeeting.confidence + 70) / 2),
+          confidence: Math.min(99, Math.round((upcomingMeeting.confidence + 70) / 2)),
           priority: 'high',
           trigger: upcomingMeeting.label,
           deliverVia: ['ui', 'email'],
-          agents: ['Murphy-Ambient', 'Shadow-Calendar']
+          agents: ['Murphy-Ambient', 'Shadow-Calendar'],
+          source: 'client'
         });
       }
 
@@ -413,7 +513,8 @@
           priority: 'high',
           trigger: 'Task board analysis',
           deliverVia: ['ui', 'email'],
-          agents: ['Murphy-Ambient']
+          agents: ['Murphy-Ambient'],
+          source: 'client'
         });
       }
 
@@ -429,7 +530,8 @@
           priority: 'low',
           trigger: milestone.label,
           deliverVia: ['ui'],
-          agents: ['Murphy-OrgIntel']
+          agents: ['Murphy-OrgIntel'],
+          source: 'client'
         });
       }
 
@@ -454,8 +556,44 @@
       fetch(BASE_URL + '/api/ambient/insights', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ insights: insights, ts: new Date().toISOString() })
-      }).catch(function () {});
+        body: JSON.stringify({ insights: insights, synthesize: true, ts: new Date().toISOString() })
+      })
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .then(function (data) {
+        if (data && Array.isArray(data.server_insights) && data.server_insights.length) {
+          SynthesisEngine._mergeServerInsights(data.server_insights);
+        }
+      })
+      .catch(function () {});
+    },
+
+    _pollServerInsights: function () {
+      fetch(BASE_URL + '/api/ambient/insights?pending=true', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .then(function (data) {
+        if (data && Array.isArray(data.server_insights) && data.server_insights.length) {
+          SynthesisEngine._mergeServerInsights(data.server_insights);
+        }
+      })
+      .catch(function () {});
+    },
+
+    _mergeServerInsights: function (serverInsights) {
+      var minConf = state.settings.confidenceMin !== undefined ? state.settings.confidenceMin : 65;
+      var deliveredIds = state.delivered.map(function (d) { return d.baseId; });
+      var newInsights = serverInsights.filter(function (i) {
+        if ((i.confidence || 0) < minConf) return false;
+        var baseId = i.type + '-' + (i.title || '').slice(0, 20);
+        return !deliveredIds.includes(baseId);
+      }).map(function (i) {
+        return Object.assign({}, i, { source: 'server' });
+      });
+      if (newInsights.length) {
+        state.insights = state.insights.concat(newInsights).slice(0, MAX_QUEUE);
+      }
     }
   };
 
@@ -522,12 +660,13 @@
 
       var el = document.createElement('div');
       el.className = 'amb-stream-item';
+      var sourceBadge = insight.source === 'server' ? '<span class="amb-source-badge ai" aria-label="AI generated">🤖 AI</span>' : (insight.source === 'client' ? '<span class="amb-source-badge pattern" aria-label="Pattern matched">📊 Pattern</span>' : '');
       el.innerHTML =
         '<div class="amb-stream-icon" aria-hidden="true">' + _esc(icon) + '</div>' +
         '<div class="amb-stream-body">' +
           '<div class="amb-stream-header">' +
             '<span class="amb-stream-type ' + _esc(insight.type) + '">' + _esc(insight.type) + '</span>' +
-            '<span class="amb-stream-confidence">' + (insight.confidence || 0) + '%</span>' +
+            '<span class="amb-stream-confidence">' + (insight.confidence || 0) + '%' + sourceBadge + '</span>' +
             '<span class="amb-stream-time">Just now</span>' +
           '</div>' +
           '<div class="amb-stream-text">' + _esc(insight.body || '') + '</div>' +
@@ -556,6 +695,14 @@
       if (badgeEl) badgeEl.textContent = streamList.querySelectorAll('.amb-stream-item').length;
       var insightsEl = document.getElementById('stat-insights');
       if (insightsEl) insightsEl.textContent = parseInt(insightsEl.textContent || '0', 10) + 1;
+
+      /* Update average confidence */
+      if (insight.confidence) {
+        state.confidenceSum += insight.confidence;
+        state.insightsCount++;
+        var confEl = document.getElementById('stat-confidence');
+        if (confEl) confEl.textContent = Math.round(state.confidenceSum / state.insightsCount) + '%';
+      }
     },
 
     _sendEmail: function (insight) {
@@ -573,8 +720,15 @@
       })
       .then(function (res) { return res.ok ? res.json() : null; })
       .then(function (data) {
-        if (data && data.email_id) {
-          DeliveryPipeline._logEmail(insight, data.email_id, 'sent');
+        if (data) {
+          /* If backend reports mock mode, show the settings panel warning banner */
+          if (data.mock) {
+            var banner = document.getElementById('mock-email-banner');
+            if (banner) banner.classList.add('visible');
+          }
+          if (data.email_id) {
+            DeliveryPipeline._logEmail(insight, data.email_id, data.mock ? 'pending' : 'sent');
+          }
         }
       })
       .catch(function () { DeliveryPipeline._logEmail(insight, null, 'pending'); });
@@ -604,7 +758,10 @@
       var badgeEl = document.getElementById('badge-email');
       if (badgeEl) badgeEl.textContent = tbody.querySelectorAll('tr').length;
       var deliveredEl = document.getElementById('stat-delivered');
-      if (deliveredEl) deliveredEl.textContent = parseInt(deliveredEl.textContent || '0', 10) + 1;
+      if (deliveredEl) {
+        state.deliveredCount++;
+        deliveredEl.textContent = state.deliveredCount;
+      }
     }
   };
 
@@ -656,6 +813,7 @@
       state.timers.poll    = setInterval(function () { if (!state.paused) ContextCollector.collect(); }, POLL_INTERVAL_MS);
       state.timers.synth   = setInterval(function () { if (!state.paused) SynthesisEngine.run(); }, SYNTH_INTERVAL_MS);
       state.timers.deliver = setInterval(function () { if (!state.paused) DeliveryPipeline.run(); }, DELIVERY_DELAY_MS);
+      state.timers.server  = setInterval(function () { if (!state.paused) SynthesisEngine._pollServerInsights(); }, SERVER_POLL_INTERVAL_MS);
     },
 
     pause: function () {
@@ -685,14 +843,26 @@
   /* ─────────────────────────────────────────────────────────────────────────
    *  PUBLIC API
    * ───────────────────────────────────────────────────────────────────────── */
-  global.AmbientEngine = {
+  var publicAPI = {
     version:  VERSION,
     start:    Engine.start.bind(Engine),
     pause:    Engine.pause.bind(Engine),
     resume:   Engine.resume.bind(Engine),
     stop:     Engine.stop.bind(Engine),
-    getState: Engine.getState.bind(Engine)
+    getState: function () {
+      return {
+        running:        state.running,
+        paused:         state.paused,
+        insightsCount:  state.insightsCount,
+        deliveredCount: state.deliveredCount,
+        actionedCount:  state.actioned,
+        avgConfidence:  state.insightsCount > 0 ? Math.round(state.confidenceSum / state.insightsCount) : 0
+      };
+    }
   };
+
+  global.AmbientEngine  = publicAPI;
+  global.MurphyAmbient  = publicAPI;   /* alias used by ambient_intelligence.html */
 
   /* Auto-start when DOM is ready */
   if (document.readyState === 'loading') {
