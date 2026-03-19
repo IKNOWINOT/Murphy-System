@@ -40,6 +40,11 @@ body{background:var(--bg);color:var(--fg);font-family:'Inter','Segoe UI',system-
 .demo-btns a{background:var(--cyan);color:#0a0e17;}
 .demo-btns button{background:transparent;border:1px solid var(--border);color:var(--fg);}
 .demo-btns button:hover{background:#334155;}
+.demo-dl-btn{background:#1de9b6!important;color:#0a0e17!important;border:none!important;}
+.demo-dl-btn:hover{opacity:.85;background:#1de9b6!important;}
+.demo-dl-btn:disabled{opacity:.5;cursor:not-allowed;}
+.demo-usage-counter{font-size:.78rem;color:#94a3b8;margin-top:.6rem;}
+.demo-limit-msg{margin-top:.75rem;padding:.6rem 1rem;background:#1e1a2e;border:1px solid #7c3aed;border-radius:8px;color:#c4b5fd;font-size:.85rem;}
 .back-link{margin-top:2rem;color:#94a3b8;font-size:.9rem;}
 .back-link a{color:var(--cyan);text-decoration:none;}
 .back-link a:hover{text-decoration:underline;}
@@ -81,8 +86,11 @@ body{background:var(--bg);color:var(--fg);font-family:'Inter','Segoe UI',system-
     <div class="demo-roi-stat" id="demo-roi-stat"></div>
     <div class="demo-btns">
       <a href="/ui/signup">Start Free Trial</a>
+      <button id="demo-dl-btn" class="demo-dl-btn" onclick="downloadDeliverable()">&#8659; Download Deliverable</button>
       <button onclick="demoReset()">&#8635; Try Another</button>
     </div>
+    <div class="demo-usage-counter" id="demo-usage-counter"></div>
+    <div class="demo-limit-msg" id="demo-limit-msg" style="display:none"></div>
   </div>
 </div>
 
@@ -278,6 +286,60 @@ function demoRun(query){
   document.querySelectorAll('.demo-chip').forEach(function(c){c.addEventListener('click',function(){demoRun(c.dataset.query);});});
   if(inp)inp.focus();
 })();
+
+var _lastDemoQuery='';
+var _origDemoRun=demoRun;
+demoRun=function(query){_lastDemoQuery=query;_origDemoRun(query);};
+
+function exportText(filename,content){
+  var a=document.createElement('a');
+  a.href='data:text/plain;charset=utf-8,'+encodeURIComponent(content);
+  a.download=filename;
+  a.click();
+}
+
+function downloadDeliverable(){
+  var btn=document.getElementById('demo-dl-btn');
+  var counter=document.getElementById('demo-usage-counter');
+  var limitMsg=document.getElementById('demo-limit-msg');
+  if(btn)btn.disabled=true;
+  if(btn)btn.textContent='Generating…';
+  if(limitMsg)limitMsg.style.display='none';
+  fetch('/api/demo/generate-deliverable',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({query:_lastDemoQuery||'Custom deliverable'})
+  })
+  .then(function(r){return r.json();})
+  .then(function(data){
+    if(btn)btn.disabled=false;
+    if(btn)btn.textContent='\u2659 Download Deliverable';
+    if(data.success&&data.deliverable){
+      exportText(data.deliverable.filename||'murphy-deliverable.txt',data.deliverable.content);
+      var u=data.usage||{};
+      if(counter){
+        var lim=u.limit===-1?'unlimited':u.limit;
+        var rem=u.limit===-1?'unlimited':u.remaining;
+        counter.textContent=rem+' of '+lim+' free downloads remaining today';
+      }
+    } else if(data.error==='limit_exceeded'){
+      if(counter)counter.textContent='';
+      if(limitMsg){
+        limitMsg.textContent=data.message||'Daily download limit reached.';
+        limitMsg.style.display='';
+      }
+      var u=data.usage||{};
+      if(u.tier==='anonymous'&&counter)counter.textContent='0 of '+(u.limit||5)+' free downloads remaining today';
+    } else {
+      if(counter)counter.textContent='Download failed — please try again.';
+    }
+  })
+  .catch(function(){
+    if(btn)btn.disabled=false;
+    if(btn)btn.textContent='\u2659 Download Deliverable';
+    if(counter)counter.textContent='Network error — please try again.';
+  });
+}
 </script>
 </body>
 </html>

@@ -6796,6 +6796,119 @@ def create_app() -> FastAPI:
             "reasoning": decision.reasoning,
         })
 
+    # ══════════════════════════════════════════════════════════════════════
+    # DEMO DELIVERABLE DOWNLOAD
+    # ══════════════════════════════════════════════════════════════════════
+
+    @app.post("/api/demo/generate-deliverable")
+    async def demo_generate_deliverable(request: Request):
+        """Generate a branded .txt deliverable for the demo download feature.
+
+        Accepts JSON body: {"query": "...", "scenario_type": "..."}
+
+        Usage limits:
+          - Anonymous visitors: 5 downloads/day (fingerprinted by IP+UA)
+          - Free registered users: 10 downloads/day
+          - Paid tiers: unlimited
+        """
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+
+        query = str(body.get("query", "")).strip()[:500]
+        if not query:
+            return JSONResponse(
+                {"success": False, "error": "missing_query", "message": "query is required"},
+                status_code=400,
+            )
+
+        # ── Resolve authenticated account from session cookie ────────────
+        account = None
+        cookie_val = request.cookies.get("murphy_session", "")
+        if cookie_val:
+            with _session_lock:
+                account_id_from_session = _session_store.get(cookie_val)
+            if account_id_from_session and _account_manager:
+                try:
+                    account = _account_manager.get_account(account_id_from_session)
+                except Exception:
+                    account = None
+
+        # ── Check usage limits ────────────────────────────────────────
+        sub_manager = _get_sub_manager()
+        usage_result: dict = {}
+
+        if sub_manager is not None:
+            if account:
+                account_id = getattr(account, "account_id", None) or getattr(account, "id", str(account))
+                usage_result = sub_manager.record_usage(str(account_id))
+            else:
+                try:
+                    from src.demo_deliverable_generator import make_fingerprint
+                    ip = request.client.host if request.client else "unknown"
+                    ua = request.headers.get("user-agent", "")
+                    fp = make_fingerprint(ip, ua)
+                except Exception:
+                    import hashlib
+                    ip = request.client.host if request.client else "unknown"
+                    fp = hashlib.sha256(ip.encode()).hexdigest()[:32]
+                usage_result = sub_manager.record_anon_usage(fp)
+        else:
+            usage_result = {"allowed": True, "used": 1, "limit": 5, "remaining": 4, "tier": "anonymous"}
+
+        if not usage_result.get("allowed", True):
+            tier = usage_result.get("tier", "anonymous")
+            limit = usage_result.get("limit", 5)
+            if tier == "anonymous":
+                msg = (
+                    f"You've used all {limit} free downloads today. "
+                    "Sign up free for 10/day, or upgrade for unlimited."
+                )
+            else:
+                msg = (
+                    f"You've used all {limit} free downloads today. "
+                    "Upgrade to a paid plan for unlimited downloads."
+                )
+            return JSONResponse(
+                {
+                    "success": False,
+                    "error": "limit_exceeded",
+                    "message": msg,
+                    "usage": {
+                        "used": usage_result.get("used", limit),
+                        "limit": limit,
+                        "remaining": 0,
+                        "tier": tier,
+                    },
+                },
+                status_code=429,
+            )
+
+        # ── Generate deliverable ─────────────────────────────────────
+        try:
+            from src.demo_deliverable_generator import generate_deliverable
+            deliverable = generate_deliverable(query)
+        except Exception as exc:
+            logger.warning("Deliverable generation failed: %s", exc)
+            return JSONResponse(
+                {"success": False, "error": "generation_failed", "message": str(exc)},
+                status_code=500,
+            )
+
+        usage_out = {
+            "used": usage_result.get("used", 1),
+            "limit": usage_result.get("limit", 5),
+            "remaining": usage_result.get("remaining", 4),
+            "tier": usage_result.get("tier", "anonymous"),
+        }
+
+        return JSONResponse({
+            "success": True,
+            "deliverable": deliverable,
+            "usage": usage_out,
+        })
+
     return app
 
 
