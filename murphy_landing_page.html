@@ -263,6 +263,11 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
 .lp-clr-cyan{color:#00ffff;}
 .lp-demo-btns{margin-top:1.5rem;display:flex;gap:.75rem;flex-wrap:wrap;}
 .lp-flex-center{flex:1;justify-content:center;}
+.demo-dl-btn-lp{background:#1de9b6!important;color:#0a0a0a!important;border:none!important;}
+.demo-dl-btn-lp:hover{opacity:.85!important;transform:translateY(-1px);}
+.demo-dl-btn-lp:disabled{opacity:.5;cursor:not-allowed;}
+.demo-usage-counter{font-size:.78rem;color:#94a3b8;margin-top:.5rem;}
+.demo-limit-msg{margin-top:.75rem;padding:.6rem 1rem;background:#1e1a2e;border:1px solid #7c3aed;border-radius:8px;color:#c4b5fd;font-size:.85rem;}
 /* ── Reviews section ────────────────────────────────────────── */
 .review-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.25rem;margin-top:2rem;}
 .review-card{background:var(--bg2,#161b22);border:1px solid var(--border,#30363d);border-radius:10px;padding:1.25rem;text-align:left;}
@@ -776,6 +781,8 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
         <button class="btn-s" id="demo-download-btn" onclick="demoDownload()" hidden>&#128229; Download Deliverable</button>
         <button class="btn-s demo-reset-btn" onclick="demoReset()">&#8635; Try Another</button>
       </div>
+      <div class="demo-usage-counter" id="demo-usage-counter"></div>
+      <div class="demo-limit-msg" id="demo-limit-msg" style="display:none"></div>
     </div>
   </div>
 </div>
@@ -1068,6 +1075,60 @@ function demoRun(query){
   if(btn)btn.addEventListener('click',function(){var v=document.getElementById('demo-prompt-input').value.trim();if(v)demoRun(v);});
   document.querySelectorAll('.demo-chip').forEach(function(c){c.addEventListener('click',function(){demoRun(c.dataset.query);});});
 })();
+
+var _lastDemoQuery='';
+var _origDemoRun=demoRun;
+demoRun=function(query){_lastDemoQuery=query;_origDemoRun(query);};
+
+function exportText(filename,content){
+  var a=document.createElement('a');
+  a.href='data:text/plain;charset=utf-8,'+encodeURIComponent(content);
+  a.download=filename;
+  a.click();
+}
+
+function downloadDeliverable(){
+  var btn=document.getElementById('demo-dl-btn');
+  var counter=document.getElementById('demo-usage-counter');
+  var limitMsg=document.getElementById('demo-limit-msg');
+  if(btn)btn.disabled=true;
+  if(btn)btn.textContent='Generating\u2026';
+  if(limitMsg)limitMsg.style.display='none';
+  fetch('/api/demo/generate-deliverable',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({query:_lastDemoQuery||'Custom deliverable'})
+  })
+  .then(function(r){return r.json();})
+  .then(function(data){
+    if(btn)btn.disabled=false;
+    if(btn)btn.textContent='\u2659 Download Deliverable';
+    if(data.success&&data.deliverable){
+      exportText(data.deliverable.filename||'murphy-deliverable.txt',data.deliverable.content);
+      var u=data.usage||{};
+      if(counter){
+        var lim=u.limit===-1?'unlimited':u.limit;
+        var rem=u.limit===-1?'unlimited':u.remaining;
+        counter.textContent=rem+' of '+lim+' free downloads remaining today';
+      }
+    } else if(data.error==='limit_exceeded'){
+      if(counter)counter.textContent='';
+      if(limitMsg){
+        limitMsg.textContent=data.message||'Daily download limit reached.';
+        limitMsg.style.display='';
+      }
+      var u=data.usage||{};
+      if(u.tier==='anonymous'&&counter)counter.textContent='0 of '+(u.limit||5)+' free downloads remaining today';
+    } else {
+      if(counter)counter.textContent='Download failed \u2014 please try again.';
+    }
+  })
+  .catch(function(){
+    if(btn)btn.disabled=false;
+    if(btn)btn.textContent='\u2659 Download Deliverable';
+    if(counter)counter.textContent='Network error \u2014 please try again.';
+  });
+}
 // Librarian chat
 var api = new MurphyAPI('/api');
 var librarian = new MurphyLibrarianChat(api);

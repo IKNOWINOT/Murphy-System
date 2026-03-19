@@ -4,8 +4,56 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Murphy System — Automate Your Entire Business. From Intake to Delivery.</title>
-<meta name="description" content="Murphy replaces 12+ tools with one AI-powered system. Cut costs by 60%, scale 10x, stay compliant automatically.">
+<title>Murphy System — AI Business Automation | CRM, Workflows, Compliance, Shadow Agents</title>
+<meta name="description" content="Murphy System automates your entire business — CRM, invoicing, hiring, compliance, project management, and more. AI Shadow Agents learn your style. Free tier forever. SOC 2 aligned.">
+<meta name="keywords" content="business automation, AI automation platform, CRM automation, workflow automation, compliance automation, shadow agents, digital twin AI, invoice automation, hiring automation, project management AI, SOC 2 compliance, GDPR automation, enterprise AI, no-code automation, human-in-the-loop AI">
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+<link rel="canonical" href="https://murphy.systems/">
+<!-- Open Graph / Social -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://murphy.systems/">
+<meta property="og:title" content="Murphy System — AI-Powered Business Automation Platform">
+<meta property="og:description" content="Replace 12+ SaaS tools with one AI system. Automate CRM, invoicing, compliance, hiring, and project management. Shadow Agents learn your workflow. Free forever tier.">
+<meta property="og:site_name" content="Murphy System">
+<meta property="og:locale" content="en_US">
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Murphy System — AI Business Automation Platform">
+<meta name="twitter:description" content="Replace 12+ tools with one AI system. Shadow Agents learn your workflows. Free tier forever.">
+<!-- Structured Data — Organization -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Murphy System",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Web",
+  "description": "AI-powered business automation platform that replaces 12+ SaaS tools. Automate CRM, invoicing, compliance, hiring, project management, and more with Shadow Agents that learn your workflow.",
+  "url": "https://murphy.systems",
+  "offers": [
+    {"@type":"Offer","name":"Free","price":"0","priceCurrency":"USD","description":"10 actions/day, Shadow Agent training, crypto wallet"},
+    {"@type":"Offer","name":"Solo","price":"29","priceCurrency":"USD","description":"3 automations, terminal access, basic compliance"},
+    {"@type":"Offer","name":"Business","price":"99","priceCurrency":"USD","description":"Unlimited automations, all integrations, shadow agent training"}
+  ],
+  "creator": {
+    "@type": "Organization",
+    "name": "Inoni Limited Liability Company",
+    "url": "https://murphy.systems"
+  }
+}
+</script>
+<!-- Structured Data — FAQ for featured snippets -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {"@type":"Question","name":"What does Murphy System automate?","acceptedAnswer":{"@type":"Answer","text":"Murphy automates CRM & sales pipelines, client intake & onboarding, invoicing & billing, hiring & interview scheduling, compliance reporting (SOC 2, GDPR, HIPAA), project management, workflow orchestration, document generation, email sequences, meeting intelligence, and more — all in one AI-powered platform."}},
+    {"@type":"Question","name":"What are Shadow Agents?","acceptedAnswer":{"@type":"Answer","text":"Shadow Agents are personal AI assistants that learn your specific workflows, writing style, and decision patterns. They start by observing (shadow mode), then assist with suggestions, and can graduate to autonomous execution with human-in-the-loop safety gates."}},
+    {"@type":"Question","name":"Is Murphy System free?","acceptedAnswer":{"@type":"Answer","text":"Yes. Murphy offers a free tier forever with 10 actions per day, Shadow Agent training, a crypto wallet, and access to all system capabilities. Paid plans start at $29/month for automated workflows."}}
+  ]
+}
+</script>
 <link rel="icon" href="static/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="static/murphy-design-system.css">
 <style>
@@ -215,6 +263,11 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
 .lp-clr-cyan{color:#00ffff;}
 .lp-demo-btns{margin-top:1.5rem;display:flex;gap:.75rem;flex-wrap:wrap;}
 .lp-flex-center{flex:1;justify-content:center;}
+.demo-dl-btn-lp{background:#1de9b6!important;color:#0a0a0a!important;border:none!important;}
+.demo-dl-btn-lp:hover{opacity:.85!important;transform:translateY(-1px);}
+.demo-dl-btn-lp:disabled{opacity:.5;cursor:not-allowed;}
+.demo-usage-counter{font-size:.78rem;color:#94a3b8;margin-top:.5rem;}
+.demo-limit-msg{margin-top:.75rem;padding:.6rem 1rem;background:#1e1a2e;border:1px solid #7c3aed;border-radius:8px;color:#c4b5fd;font-size:.85rem;}
 /* ── Reviews section ────────────────────────────────────────── */
 .review-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.25rem;margin-top:2rem;}
 .review-card{background:var(--bg2,#161b22);border:1px solid var(--border,#30363d);border-radius:10px;padding:1.25rem;text-align:left;}
@@ -282,18 +335,60 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
       <button class="btn-s lg" onclick="openDemo(event)" aria-label="Try Murphy interactive demo">&#9654; Try Murphy Now</button>
       <a href="/ui/partner" class="btn-partner">&#129309; Partner with Murphy</a>
     </div>
-    <p class="hero-note">Free tier forever &middot; Cancel anytime &middot; SOC 2 aligned architecture</p>
-    <div class="sp-strip" aria-label="Beta program">
-      <span class="sp-text">🚀 Now in beta — looking for early testers in:</span>
-      <div class="ind-icons">
+    <p class="hero-note">Free tier forever &middot; 10 actions/day free &middot; Cancel anytime &middot; SOC 2 aligned</p>
+
+    <!-- Automation types showcase -->
+    <div class="sp-strip" aria-label="Automation capabilities" style="margin-top:1.5rem;">
+      <span class="sp-text" style="font-size:.95rem;color:var(--cyan);">⚡ Every automation you need, one platform:</span>
+      <div class="ind-icons" style="flex-wrap:wrap;justify-content:center;gap:.5rem;margin-top:.75rem;">
+        <span class="ind-pill">🤖 Shadow Agents</span>
+        <span class="ind-pill">📋 CRM &amp; Sales</span>
+        <span class="ind-pill">📄 Invoicing &amp; Billing</span>
+        <span class="ind-pill">📥 Client Intake</span>
+        <span class="ind-pill">📧 Email Sequences</span>
+        <span class="ind-pill">👥 Hiring &amp; Interviews</span>
+        <span class="ind-pill">📊 Project Management</span>
+        <span class="ind-pill">🔄 Workflow Orchestration</span>
+        <span class="ind-pill">📑 Document Generation</span>
+        <span class="ind-pill">🛡️ Compliance (SOC 2, GDPR, HIPAA)</span>
+        <span class="ind-pill">🧠 Meeting Intelligence</span>
+        <span class="ind-pill">💰 Crypto Wallet</span>
+        <span class="ind-pill">📈 Financial Reporting</span>
+        <span class="ind-pill">🏗️ Production &amp; Delivery</span>
+        <span class="ind-pill">🔗 250+ Integrations</span>
+      </div>
+    </div>
+
+    <!-- Demographic targeting -->
+    <div class="sp-strip" aria-label="Who Murphy is for" style="margin-top:1.25rem;">
+      <span class="sp-text">🎯 Built for every stage of business:</span>
+      <div class="ind-icons" style="flex-wrap:wrap;justify-content:center;gap:.5rem;margin-top:.5rem;">
+        <span class="ind-pill">👤 Solopreneurs</span>
+        <span class="ind-pill">🚀 Startups</span>
+        <span class="ind-pill">📈 Growing Teams</span>
+        <span class="ind-pill">🏢 Mid-Market</span>
+        <span class="ind-pill">🏛️ Enterprise</span>
+      </div>
+    </div>
+
+    <!-- Industry verticals -->
+    <div class="sp-strip" aria-label="Industries served" style="margin-top:1rem;">
+      <span class="sp-text">🏭 Now in beta — early testers in:</span>
+      <div class="ind-icons" style="flex-wrap:wrap;justify-content:center;gap:.5rem;margin-top:.5rem;">
         <span class="ind-pill">&#127974; Finance</span>
         <span class="ind-pill">&#127973; Healthcare</span>
         <span class="ind-pill">&#127981; Manufacturing</span>
         <span class="ind-pill">&#128717; Retail</span>
         <span class="ind-pill">&#127963; Government</span>
+        <span class="ind-pill">⚖️ Legal</span>
+        <span class="ind-pill">🏗️ Construction</span>
+        <span class="ind-pill">🎓 Education</span>
+        <span class="ind-pill">🏠 Real Estate</span>
+        <span class="ind-pill">💻 Tech &amp; SaaS</span>
       </div>
     </div>
-    <div class="stats-row" aria-label="System statistics">
+
+    <div class="stats-row" aria-label="System statistics" style="margin-top:1.5rem;">
       <span class="stat-badge">218,497 lines of production code</span>
       <span class="stat-badge">8,843 passing tests</span>
       <span class="stat-badge">750+ modules</span>
@@ -627,7 +722,7 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
 <footer role="contentinfo">
   <div class="footer-inner">
     <nav class="flinks" aria-label="Footer navigation">
-      <a href="/ui/terminal-unified" data-page="terminal_unified">Dashboard</a>
+      <a href="/ui/terminal-unified">Dashboard</a>
       <a href="/ui/workspace">Workspace</a>
       <a href="/ui/community">Community</a>
       <a href="/ui/management">Management</a>
@@ -686,6 +781,8 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
         <button class="btn-s" id="demo-download-btn" onclick="demoDownload()" hidden>&#128229; Download Deliverable</button>
         <button class="btn-s demo-reset-btn" onclick="demoReset()">&#8635; Try Another</button>
       </div>
+      <div class="demo-usage-counter" id="demo-usage-counter"></div>
+      <div class="demo-limit-msg" id="demo-limit-msg" style="display:none"></div>
     </div>
   </div>
 </div>
@@ -978,6 +1075,60 @@ function demoRun(query){
   if(btn)btn.addEventListener('click',function(){var v=document.getElementById('demo-prompt-input').value.trim();if(v)demoRun(v);});
   document.querySelectorAll('.demo-chip').forEach(function(c){c.addEventListener('click',function(){demoRun(c.dataset.query);});});
 })();
+
+var _lastDemoQuery='';
+var _origDemoRun=demoRun;
+demoRun=function(query){_lastDemoQuery=query;_origDemoRun(query);};
+
+function exportText(filename,content){
+  var a=document.createElement('a');
+  a.href='data:text/plain;charset=utf-8,'+encodeURIComponent(content);
+  a.download=filename;
+  a.click();
+}
+
+function downloadDeliverable(){
+  var btn=document.getElementById('demo-dl-btn');
+  var counter=document.getElementById('demo-usage-counter');
+  var limitMsg=document.getElementById('demo-limit-msg');
+  if(btn)btn.disabled=true;
+  if(btn)btn.textContent='Generating\u2026';
+  if(limitMsg)limitMsg.style.display='none';
+  fetch('/api/demo/generate-deliverable',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({query:_lastDemoQuery||'Custom deliverable'})
+  })
+  .then(function(r){return r.json();})
+  .then(function(data){
+    if(btn)btn.disabled=false;
+    if(btn)btn.textContent='\u2659 Download Deliverable';
+    if(data.success&&data.deliverable){
+      exportText(data.deliverable.filename||'murphy-deliverable.txt',data.deliverable.content);
+      var u=data.usage||{};
+      if(counter){
+        var lim=u.limit===-1?'unlimited':u.limit;
+        var rem=u.limit===-1?'unlimited':u.remaining;
+        counter.textContent=rem+' of '+lim+' free downloads remaining today';
+      }
+    } else if(data.error==='limit_exceeded'){
+      if(counter)counter.textContent='';
+      if(limitMsg){
+        limitMsg.textContent=data.message||'Daily download limit reached.';
+        limitMsg.style.display='';
+      }
+      var u=data.usage||{};
+      if(u.tier==='anonymous'&&counter)counter.textContent='0 of '+(u.limit||5)+' free downloads remaining today';
+    } else {
+      if(counter)counter.textContent='Download failed \u2014 please try again.';
+    }
+  })
+  .catch(function(){
+    if(btn)btn.disabled=false;
+    if(btn)btn.textContent='\u2659 Download Deliverable';
+    if(counter)counter.textContent='Network error \u2014 please try again.';
+  });
+}
 // Librarian chat
 var api = new MurphyAPI('/api');
 var librarian = new MurphyLibrarianChat(api);

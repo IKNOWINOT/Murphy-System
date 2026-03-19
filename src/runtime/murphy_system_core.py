@@ -1578,6 +1578,34 @@ class MurphySystem:
         else:
             self.wingman_protocol = None
 
+        # Wingman System — sensor-calibrated validator; library is always internal
+        if WingmanSystem:
+            try:
+                self.wingman_system = WingmanSystem(librarian=self.librarian)
+                logger.info("Wingman system initialized with %d modules",
+                            len(self.wingman_system.list_module_ids()))
+            except Exception as exc:
+                logger.warning("Wingman system initialization failed: %s", exc)
+                self.wingman_system = None
+        else:
+            self.wingman_system = None
+
+        # API Capability Builder — detects missing external APIs, auto-scaffolds,
+        # raises tickets; requires OWNER permission to generate stubs
+        if WingmanApiGapChecker:
+            try:
+                self.api_gap_checker = WingmanApiGapChecker(
+                    ticketing_adapter=self.ticketing_adapter,
+                    librarian=self.librarian,
+                    rbac_governance=getattr(self, "rbac_governance", None),
+                )
+                logger.info("API gap checker initialized")
+            except Exception as exc:
+                logger.warning("API gap checker initialization failed: %s", exc)
+                self.api_gap_checker = None
+        else:
+            self.api_gap_checker = None
+
         # Runtime Profile Compiler
         if RuntimeProfileCompiler:
             try:

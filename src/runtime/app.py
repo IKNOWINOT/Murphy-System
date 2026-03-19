@@ -4429,16 +4429,160 @@ def create_app() -> FastAPI:
 
     @app.get("/api/wingman/status")
     async def wingman_status():
-        """Return Wingman co-pilot status."""
-        return JSONResponse({
-            "success": True, "status": "idle",
-            "active_session": None, "suggestions": [],
-        })
+        """Return Wingman System status (sensor modules, validation counts)."""
+        ws = getattr(murphy, "wingman_system", None)
+        if ws is None:
+            return JSONResponse({
+                "success": True, "status": "unavailable",
+                "active_session": None, "suggestions": [],
+            })
+        return JSONResponse({"success": True, **ws.get_status()})
 
     @app.get("/api/wingman/suggestions")
     async def wingman_suggestions():
-        """Return Wingman AI assistant suggestions for the current session."""
-        return JSONResponse({"success": True, "suggestions": []})
+        """Return Wingman validation suggestions based on recent findings."""
+        ws = getattr(murphy, "wingman_system", None)
+        if ws is None:
+            return JSONResponse({"success": True, "suggestions": []})
+        status = ws.get_status()
+        suggestions = []
+        for mid, stats in status.get("per_module", {}).items():
+            rejected = stats.get("rejected", 0)
+            if rejected > 0:
+                suggestions.append({
+                    "module": mid,
+                    "message": (
+                        f"Module '{mid}' has {rejected} rejected validation(s). "
+                        f"Review world-model sensor findings in the Librarian."
+                    ),
+                    "severity": "warn",
+                })
+        return JSONResponse({"success": True, "suggestions": suggestions})
+
+    @app.post("/api/wingman/validate")
+    async def wingman_validate(request: Request):
+        """Validate an arbitrary artifact through the Wingman System.
+
+        Body: { "artifact": { "content": "...", ... }, "module_id": "deliverable" }
+        """
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "invalid_json"}, status_code=400)
+        artifact = body.get("artifact")
+        if not artifact or not isinstance(artifact, dict):
+            return JSONResponse(
+                {"success": False, "error": "missing_artifact",
+                 "message": "Provide an 'artifact' object in the request body."},
+                status_code=400,
+            )
+        module_id = body.get("module_id", "deliverable")
+        ws = getattr(murphy, "wingman_system", None)
+        if ws is None:
+            return JSONResponse({"success": False, "error": "wingman_unavailable"}, status_code=503)
+        result = ws.validate(artifact, module_id=module_id)
+        return JSONResponse({"success": True, "validation": result.to_dict()})
+
+    @app.get("/api/wingman/api-gaps")
+    async def wingman_api_gaps():
+        """Return current API capability gap status from the builder."""
+        checker = getattr(murphy, "api_gap_checker", None)
+        if checker is None:
+            return JSONResponse({"success": True, "status": "unavailable", "gaps": []})
+        return JSONResponse({"success": True, **checker._builder.get_status()})
+
+    @app.post("/api/wingman/api-gaps/scan")
+    async def wingman_api_gaps_scan(request: Request):
+        """Scan an artifact for missing external API needs.
+
+        Body: { "artifact": { "content": "..." }, "owner_user_id": "uid" }
+
+        Requires OWNER (founder-admin) role to auto-generate scaffolds.
+        Without OWNER permission the scan still runs and tickets are raised,
+        but stubs are not generated until an OWNER approves.
+        """
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "invalid_json"}, status_code=400)
+        artifact = body.get("artifact")
+        if not artifact or not isinstance(artifact, dict):
+            return JSONResponse(
+                {"success": False, "error": "missing_artifact",
+                 "message": "Provide an 'artifact' object in the request body."},
+                status_code=400,
+            )
+        owner_user_id = body.get("owner_user_id") or body.get("user_id")
+        checker = getattr(murphy, "api_gap_checker", None)
+        if checker is None:
+            return JSONResponse({"success": False, "error": "api_gap_checker_unavailable"}, status_code=503)
+        result = checker.check(
+            artifact=artifact,
+            requester=owner_user_id or "api_call",
+            owner_user_id=owner_user_id,
+        )
+        return JSONResponse({"success": True, **result})
+
+    @app.post("/api/wingman/api-gaps/build")
+    async def wingman_api_gaps_build(request: Request):
+        """Approve and trigger scaffold generation for a list of API needs.
+
+        This endpoint requires OWNER (founder-admin) level.
+        Body: { "owner_user_id": "uid", "categories": ["banking", "stock"] }
+
+        The owner_user_id must hold the TRIGGER_API_BUILD permission.
+        For each requested category, if a pending ApiNeed exists in the
+        builder's processed list, scaffold generation is triggered.
+        """
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "invalid_json"}, status_code=400)
+
+        owner_user_id = body.get("owner_user_id") or body.get("user_id")
+        if not owner_user_id:
+            return JSONResponse(
+                {"success": False, "error": "missing_owner_user_id",
+                 "message": "Provide owner_user_id with OWNER (founder-admin) role."},
+                status_code=403,
+            )
+
+        checker = getattr(murphy, "api_gap_checker", None)
+        if checker is None:
+            return JSONResponse({"success": False, "error": "api_gap_checker_unavailable"}, status_code=503)
+
+        # Verify OWNER permission
+        owner_authorized = checker._check_owner_permission(owner_user_id)
+        if not owner_authorized:
+            return JSONResponse(
+                {
+                    "success": False,
+                    "error": "forbidden",
+                    "message": (
+                        "TRIGGER_API_BUILD requires OWNER (founder-admin) role. "
+                        "Ask a platform owner to approve this action."
+                    ),
+                },
+                status_code=403,
+            )
+
+        categories = body.get("categories")
+        artifact = body.get("artifact")
+
+        if artifact and isinstance(artifact, dict):
+            # Re-scan with owner authorization
+            result = checker.check(
+                artifact=artifact,
+                requester=owner_user_id,
+                owner_user_id=owner_user_id,
+            )
+            return JSONResponse({"success": True, **result})
+
+        return JSONResponse(
+            {"success": False, "error": "missing_artifact",
+             "message": "Provide an 'artifact' object to re-scan with OWNER authorization."},
+            status_code=400,
+        )
 
     @app.get("/api/causality/graph")
     async def causality_graph():
@@ -7963,6 +8107,177 @@ def create_app() -> FastAPI:
             ],
         }
         return JSONResponse({"success": True, "bundle": bundle})
+
+    # ══════════════════════════════════════════════════════════════════════
+    # DEMO DELIVERABLE DOWNLOAD
+    # ══════════════════════════════════════════════════════════════════════
+
+    @app.post("/api/demo/generate-deliverable")
+    async def demo_generate_deliverable(request: Request):
+        """Generate a branded .txt deliverable for the demo download feature.
+
+        Accepts JSON body: {"query": "...", "scenario_type": "..."}
+
+        Usage limits:
+          - Anonymous visitors: 5 downloads/day (fingerprinted by IP+UA)
+          - Free registered users: 10 downloads/day
+          - Paid tiers: unlimited
+        """
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+
+        query = str(body.get("query", "")).strip()[:500]
+        if not query:
+            return JSONResponse(
+                {"success": False, "error": "missing_query", "message": "query is required"},
+                status_code=400,
+            )
+
+        # ── Check usage limits ──────────────────────────────────────────
+        account = _get_account_from_session(request)
+        usage_result: dict = {}
+
+        if _sub_manager is not None:
+            if account:
+                account_id = account["account_id"]
+                usage_result = _sub_manager.record_usage(account_id)
+            else:
+                try:
+                    from src.demo_deliverable_generator import make_fingerprint
+                    ip = request.client.host if request.client else "unknown"
+                    ua = request.headers.get("user-agent", "")
+                    fp = make_fingerprint(ip, ua)
+                except Exception:
+                    import hashlib
+                    ip = request.client.host if request.client else "unknown"
+                    fp = hashlib.sha256(ip.encode()).hexdigest()[:32]
+                usage_result = _sub_manager.record_anon_usage(fp)
+        else:
+            usage_result = {"allowed": True, "used": 1, "limit": 5, "remaining": 4, "tier": "anonymous"}  # fallback: no tracking
+
+        if not usage_result.get("allowed", True):
+            tier = usage_result.get("tier", "anonymous")
+            limit = usage_result.get("limit", 5)
+            if tier == "anonymous":
+                msg = (
+                    f"You've used all {limit} free downloads today. "
+                    "Sign up free for 10/day, or upgrade for unlimited."
+                )
+            else:
+                msg = (
+                    f"You've used all {limit} free downloads today. "
+                    "Upgrade to a paid plan for unlimited downloads."
+                )
+            return JSONResponse(
+                {
+                    "success": False,
+                    "error": "limit_exceeded",
+                    "message": msg,
+                    "usage": {
+                        "used": usage_result.get("used", limit),
+                        "limit": limit,
+                        "remaining": 0,
+                        "tier": tier,
+                    },
+                },
+                status_code=429,
+            )
+
+        # ── Generate deliverable ────────────────────────────────────────
+        # Step 1: Librarian lookup — gives domain knowledge to the generator
+        librarian_context: str = ""
+        try:
+            lib_result = murphy.librarian_ask(query, mode="ask")
+            # Extract the text answer from whichever key is populated
+            librarian_context = (
+                lib_result.get("reply_text")
+                or lib_result.get("response")
+                or lib_result.get("message")
+                or ""
+            )
+            # Truncate to a sane length to avoid bloating the deliverable
+            if librarian_context:
+                librarian_context = librarian_context[:1500]
+        except Exception as _lib_exc:
+            logger.debug("Librarian lookup skipped: %s", _lib_exc)
+
+        # Step 2: MFGC → MSS → LLM pipeline (inside generate_deliverable)
+        try:
+            from src.demo_deliverable_generator import generate_deliverable
+            deliverable = generate_deliverable(query, librarian_context=librarian_context or None)
+        except Exception as exc:
+            logger.warning("Deliverable generation failed: %s", exc)
+            return JSONResponse(
+                {"success": False, "error": "generation_failed", "message": str(exc)},
+                status_code=500,
+            )
+
+        # Step 3: Wingman validation — sensors calibrate the output, result
+        # is recorded back into the Librarian knowledge layers.
+        wingman_validation: Optional[Dict[str, Any]] = None
+        ws = getattr(murphy, "wingman_system", None)
+        if ws is not None:
+            try:
+                vr = ws.validate(
+                    {
+                        "content": deliverable.get("content", ""),
+                        "result": deliverable.get("content", ""),
+                        "id": deliverable.get("filename", ""),
+                    },
+                    module_id="deliverable",
+                )
+                wingman_validation = {
+                    "approved": vr.approved,
+                    "trigger_level": vr.trigger_level,
+                    "findings": vr.findings,
+                }
+            except Exception as _wv_exc:
+                logger.debug("Wingman validation skipped: %s", _wv_exc)
+
+        # Step 4: API gap scan — detects live data domains that need external APIs.
+        # Tickets are raised automatically; scaffolds only if OWNER authorized.
+        api_gaps: Optional[Dict[str, Any]] = None
+        checker = getattr(murphy, "api_gap_checker", None)
+        if checker is not None:
+            try:
+                gap_result = checker.check(
+                    artifact={
+                        "content": deliverable.get("content", ""),
+                        "id": deliverable.get("filename", ""),
+                    },
+                    requester="deliverable_pipeline",
+                    owner_user_id=None,  # no owner context in anonymous generation
+                )
+                if gap_result.get("api_needs_detected"):
+                    api_gaps = {
+                        "needs_detected": len(gap_result["api_needs_detected"]),
+                        "categories": [n["category"] for n in gap_result["api_needs_detected"]],
+                        "tickets_raised": gap_result.get("tickets_raised", []),
+                        "auth_message": gap_result.get("auth_message", ""),
+                    }
+            except Exception as _gap_exc:
+                logger.debug("API gap scan skipped: %s", _gap_exc)
+
+        usage_out = {
+            "used": usage_result.get("used", 1),
+            "limit": usage_result.get("limit", 5),
+            "remaining": usage_result.get("remaining", 4),
+            "tier": usage_result.get("tier", "anonymous"),
+        }
+
+        response_body: Dict[str, Any] = {
+            "success": True,
+            "deliverable": deliverable,
+            "usage": usage_out,
+        }
+        if wingman_validation is not None:
+            response_body["wingman_validation"] = wingman_validation
+        if api_gaps is not None:
+            response_body["api_gaps"] = api_gaps
+
+        return JSONResponse(response_body)
 
     def _build_env_template(workflows):
         """Build .env.example content from workflow API suggestions."""
