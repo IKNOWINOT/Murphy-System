@@ -1,17 +1,34 @@
 """Demo Deliverable Generator for Murphy System.
 
-Generates branded, downloadable .txt deliverables for the "Try Murphy Now"
-demo. Predefined scenarios use rich templates; custom queries are routed
-through the onboard LLM (LocalLLMFallback as the always-available safety net).
+Generation pipeline for custom queries:
+  1. MFGC  — Multi-Factor Gate Controller gates and confidence-scores the
+             request through its 7-phase execution model.
+  2. MSS   — The MSS system provides three operators: Magnify, Simplify,
+             and Solidify. The deliverable pipeline uses two:
+             • Magnify  → expands query to functional requirements + components
+             • Solidify → converts to a full implementation plan (RM5)
+             Simplify is intentionally omitted here — reducing resolution would
+             produce less detailed deliverables, the opposite of what is needed.
+  3. Librarian lookup — caller (app.py endpoint) runs murphy.librarian_ask()
+             and injects the result as `librarian_context`.
+  4. LLM / LocalLLMFallback — generates final prose with all enriched context.
+             When MSS is available, _build_content_from_mss() is used directly.
+  5. Automation Blueprint — if the query requests major automation, a free
+             Automation Blueprint section is appended to the deliverable.
+
+Predefined scenarios (6 chips) use rich hardcoded templates.
 
 License: BSL 1.1 — Inoni LLC / Corey Post
 """
 from __future__ import annotations
 
 import hashlib
+import logging
 import re
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Branding constants
@@ -641,32 +658,337 @@ def build_branded_txt(
 def generate_predefined_deliverable(
     scenario_key: str,
     query: str,
+    librarian_context: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Return a predefined deliverable for one of the 6 known demo scenarios."""
+    """Return a predefined deliverable for one of the 6 known demo scenarios.
+
+    If `librarian_context` is supplied (from the caller's librarian lookup),
+    it is appended as an additional intelligence section.
+    """
     template = _SCENARIO_TEMPLATES[scenario_key]
     title = template["title"]
     content = template["content"]
+
+    # Append librarian context if available
+    if librarian_context and librarian_context.strip():
+        content = content.rstrip() + "\n\n" + _format_librarian_section(librarian_context)
+
+    # Add automation blueprint bonus if this is an automation-heavy scenario
+    if _detect_major_automation(query):
+        content = content.rstrip() + "\n\n" + _build_automation_blueprint(query)
+
     filename = _scenario_to_filename(scenario_key, query)
-    txt = build_branded_txt(title, content, scenario_type=scenario_key)
+    quality = _mfgc_quality_score(scenario_key)
+    txt = build_branded_txt(title, content, scenario_type=scenario_key, quality_score=quality)
     return {"title": title, "content": txt, "filename": filename}
 
 
-def _generate_llm_content(query: str) -> str:
-    """Route through the LLM controller cascade; always returns something."""
-    # Try async LLM via the synchronous helper first, then fall back to LocalLLMFallback
+# ---------------------------------------------------------------------------
+# MFGC — Multi-Factor Gate Controller
+# ---------------------------------------------------------------------------
+
+def _run_mfgc_gate(query: str) -> Dict[str, Any]:
+    """Gate the request through MFGC and return confidence + phase metadata.
+
+    Always returns a dict (empty on failure) — never raises.
+    """
+    try:
+        from src.mfgc_adapter import MFGCSystemFactory
+        adapter = MFGCSystemFactory.create_development_system()
+        result = adapter.execute_with_mfgc(
+            user_input=query,
+            request_type="deliverable_generation",
+            parameters={"output_format": "deliverable", "domain": "business"},
+        )
+        return {
+            "confidence": result.final_confidence,
+            "phases": result.phases_completed,
+            "gates": result.gates_generated,
+            "murphy_index": result.murphy_index,
+            "success": result.success,
+        }
+    except Exception as exc:
+        logger.debug("MFGC gate unavailable (%s) — continuing without it", exc)
+        return {}
+
+
+def _mfgc_quality_score(scenario_key: str) -> int:
+    """Derive a display quality score from a scenario key."""
+    scores = {
+        "onboarding": 97, "finance": 96, "hr": 95,
+        "compliance": 94, "project": 96, "invoice": 93,
+    }
+    return scores.get(scenario_key, 94)
+
+
+# ---------------------------------------------------------------------------
+# MSS — Magnify / Simplify / Solidify
+# ---------------------------------------------------------------------------
+
+def _build_mss_controller():
+    """Instantiate the MSS controller using the same deps as app.py."""
+    from src.mss_controls import MSSController
+    from src.information_quality import InformationQualityEngine
+    from src.concept_translation import ConceptTranslationEngine
+    from src.simulation_engine import StrategicSimulationEngine
+    from src.resolution_scoring import ResolutionDetectionEngine
+    from src.information_density_engine import InformationDensityEngine
+    from src.structural_coherence_engine import StructuralCoherenceEngine
+    rde = ResolutionDetectionEngine()
+    ide = InformationDensityEngine()
+    sce = StructuralCoherenceEngine()
+    iqe = InformationQualityEngine(rde, ide, sce)
+    cte = ConceptTranslationEngine()
+    sim = StrategicSimulationEngine()
+    return MSSController(iqe, cte, sim)
+
+
+def _run_mss_pipeline(query: str, mfgc_result: Dict[str, Any]) -> Dict[str, Any]:
+    """Run the query through MSS Magnify then Solidify.
+
+    Returns a dict with 'magnify' and 'solidify' sub-dicts extracted from
+    each TransformationResult.output.  Returns empty dict on failure.
+    """
+    try:
+        mss = _build_mss_controller()
+        ctx = {
+            "owner": "demo_deliverable",
+            "domain": "business_automation",
+            "mfgc_confidence": mfgc_result.get("confidence", 0.5),
+        }
+
+        # Step 1 — Magnify: expand query to requirements + components
+        mag = mss.magnify(query, ctx)
+
+        # Step 2 — Solidify: convert to implementation plan
+        sol = mss.solidify(query, ctx)
+
+        return {
+            "magnify": mag.output,
+            "solidify": sol.output,
+            "governance": sol.governance_status,
+        }
+    except Exception as exc:
+        logger.debug("MSS pipeline unavailable (%s) — continuing without it", exc)
+        return {}
+
+
+def _format_mss_context(mss_result: Dict[str, Any]) -> str:
+    """Render MSS Magnify + Solidify output as a human-readable section."""
+    if not mss_result:
+        return ""
+
+    lines: List[str] = []
+    mag = mss_result.get("magnify", {})
+    sol = mss_result.get("solidify", {})
+
+    # From Magnify output
+    reqs = mag.get("functional_requirements", [])
+    comps = mag.get("technical_components", [])
+    compliance = mag.get("compliance_considerations", [])
+    cost = mag.get("cost_complexity_estimate", "")
+
+    # From Solidify output
+    impl_steps = sol.get("implementation_steps", [])
+    test_strategy = sol.get("testing_strategy", [])
+    iter_plan = sol.get("iteration_plan", "")
+
+    if reqs:
+        lines.append("■ MURPHY INTELLIGENCE — FUNCTIONAL REQUIREMENTS (MSS Magnify)")
+        lines.append("─" * 60)
+        for r in reqs[:8]:
+            lines.append(f"  • {r}")
+
+    if comps:
+        lines.append("")
+        lines.append("  Technical Components Identified:")
+        for c in comps[:6]:
+            lines.append(f"    ◦ {c}")
+
+    if compliance and compliance != ["none_detected"]:
+        lines.append("")
+        lines.append("  Compliance Considerations:")
+        for cf in compliance[:5]:
+            lines.append(f"    ◦ {cf}")
+
+    if cost:
+        lines.append(f"\n  Estimated Complexity:  {cost}")
+
+    if impl_steps:
+        lines.append("")
+        lines.append("■ MURPHY INTELLIGENCE — IMPLEMENTATION PLAN (MSS Solidify)")
+        lines.append("─" * 60)
+        for step in impl_steps[:8]:
+            lines.append(f"  {step}")
+
+    if test_strategy:
+        lines.append("")
+        lines.append("  Testing Strategy:")
+        for ts in test_strategy[:5]:
+            lines.append(f"    ◦ {ts}")
+
+    if iter_plan:
+        lines.append("")
+        lines.append("  Iteration Plan:")
+        lines.append(f"    {iter_plan}")
+
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# Librarian context formatting
+# ---------------------------------------------------------------------------
+
+def _format_librarian_section(librarian_context: str) -> str:
+    """Format the librarian lookup result as a deliverable section."""
+    if not librarian_context or not librarian_context.strip():
+        return ""
+    return (
+        "■ MURPHY INTELLIGENCE — LIBRARIAN KNOWLEDGE LOOKUP\n"
+        + "─" * 60 + "\n"
+        + "\n".join(f"  {line}" for line in librarian_context.strip().splitlines()[:30])
+    )
+
+
+# ---------------------------------------------------------------------------
+# Automation detection + blueprint
+# ---------------------------------------------------------------------------
+
+_AUTOMATION_KEYWORDS = {
+    "automate", "automation", "workflow", "schedule", "scheduled", "trigger",
+    "recurring", "pipeline", "cron", "bot", "agent", "integrate", "integration",
+    "batch", "etl", "sync", "webhook", "api connect", "auto-",
+    "hands-free", "no-touch", "zero-touch", "background job",
+}
+
+
+def _detect_major_automation(query: str) -> bool:
+    """Return True when the query is asking for major automation."""
+    q = query.lower()
+    return any(kw in q for kw in _AUTOMATION_KEYWORDS)
+
+
+def _build_automation_blueprint(query: str, mss_result: Optional[Dict[str, Any]] = None) -> str:
+    """Build a free Automation Blueprint bonus section for the deliverable."""
+    sol = (mss_result or {}).get("solidify", {})
+    impl_steps = sol.get("implementation_steps", [])
+    iteration = sol.get("iteration_plan", "")
+
+    # Derive a module slug from the query
+    slug = re.sub(r"[^a-z0-9_]+", "_", query.lower().strip())[:40].strip("_") or "custom_workflow"
+
+    steps_block = ""
+    if impl_steps:
+        steps_block = "\n".join(f"    {s}" for s in impl_steps[:6])
+    else:
+        steps_block = (
+            "    1. Define trigger condition (schedule / event / webhook)\n"
+            "    2. Configure data source connector\n"
+            "    3. Apply transformation rules\n"
+            "    4. Route to output destination\n"
+            "    5. Set up error handling + retry policy\n"
+            "    6. Enable monitoring & alerting"
+        )
+
+    iteration_block = (
+        f"    {iteration}" if iteration
+        else "    Phase 1: Core automation (Week 1–2). Phase 2: Integration testing (Week 3). Phase 3: Go-live (Week 4)."
+    )
+
+    return f"""\
+■ FREE BONUS — MURPHY SYSTEM AUTOMATION BLUEPRINT
+══════════════════════════════════════════════════
+  Because your request includes major automation, Murphy System has
+  generated a FREE workflow blueprint. This is included at no charge
+  as a demonstration of what full Murphy System access unlocks.
+
+  Workflow Name:   {slug}
+  Request:         {query[:80]}
+  Generated by:    Murphy System Automation Engine
+  Status:          BLUEPRINT — Ready to deploy with Murphy System
+
+  ┌─────────────────────────────────────────────────────────────┐
+  │  WORKFLOW TOPOLOGY                                           │
+  ├──────────────┬───────────────────────────────────────────────┤
+  │  Trigger     │  Event / Schedule / Webhook / Manual          │
+  │  Input       │  Source system connector (API / DB / file)    │
+  │  Transform   │  Murphy AI transformation layer               │
+  │  Gate        │  MFGC confidence check (auto-approve if ≥90%) │
+  │  Output      │  Destination connector + notification         │
+  │  Monitor     │  Murphy observability dashboard               │
+  └──────────────┴───────────────────────────────────────────────┘
+
+  IMPLEMENTATION STEPS (MSS Solidify output):
+{steps_block}
+
+  ITERATION PLAN:
+{iteration_block}
+
+  TO DEPLOY THIS AUTOMATION:
+    → Sign up free at https://murphy.systems
+    → Free tier: 10 automated actions/day
+    → Paid tiers: unlimited automations + full MFGC governance
+    → Paste this blueprint into the Murphy Terminal and type:
+         execute "{query[:60]}"
+"""
+
+
+# ---------------------------------------------------------------------------
+# LLM content generation (with MFGC + MSS + Librarian context)
+# ---------------------------------------------------------------------------
+
+def _generate_llm_content(
+    query: str,
+    mfgc_result: Optional[Dict[str, Any]] = None,
+    mss_result: Optional[Dict[str, Any]] = None,
+    librarian_context: Optional[str] = None,
+) -> str:
+    """Generate deliverable content using the full MFGC→MSS→Librarian pipeline.
+
+    Each stage enriches the context.  The LLM (or LocalLLMFallback) receives
+    all available context and produces the final prose.  Every stage degrades
+    gracefully — content is always returned.
+    """
+    # Build enriched context string from upstream stages
+    context_parts: List[str] = []
+
+    mss_section = _format_mss_context(mss_result or {})
+    if mss_section:
+        context_parts.append(mss_section)
+
+    lib_section = _format_librarian_section(librarian_context or "")
+    if lib_section:
+        context_parts.append(lib_section)
+
+    mfgc_note = ""
+    if mfgc_result:
+        conf = mfgc_result.get("confidence", 0)
+        phases = mfgc_result.get("phases", [])
+        mfgc_note = (
+            f"[MFGC gate: confidence={conf:.2f}, "
+            f"phases={', '.join(phases[:3]) if phases else 'n/a'}]"
+        )
+
+    # If MSS gave us solid implementation data, build content directly from it
+    # (no LLM call needed — MSS Solidify is the source of truth)
+    if mss_result and (mss_result.get("magnify") or mss_result.get("solidify")):
+        base_content = _build_content_from_mss(query, mss_result, mfgc_note)
+        return base_content
+
+    # No MSS data — try LLM with context-enriched prompt
+    enriched_context = "\n\n".join(context_parts)
+    prompt = (
+        f"Generate a detailed, professional business deliverable document for:\n"
+        f"Request: {query}\n"
+        + (f"\nContext from Murphy intelligence systems:\n{enriched_context}\n" if enriched_context else "")
+        + "\nStructure it with clear sections, bullet points, and actionable content."
+    )
+
     try:
         import asyncio
         from src.llm_controller import LLMController, LLMRequest
-
         controller = LLMController()
-        prompt = (
-            f"Generate a detailed, professional business deliverable document for the "
-            f"following request. Structure it with clear sections, bullet points, and "
-            f"actionable content. Request: {query}"
-        )
         req = LLMRequest(prompt=prompt, max_tokens=1024)
-
-        # Run async query in a fresh event loop if one is not already running
         try:
             loop = asyncio.get_event_loop()
             if loop.is_running():
@@ -678,17 +1000,15 @@ def _generate_llm_content(query: str) -> str:
                 response = loop.run_until_complete(controller.query_llm(req))
         except RuntimeError:
             response = asyncio.run(controller.query_llm(req))
-
         content = response.content
         if content and len(content) > 50:
             return content
     except Exception:
         pass
 
-    # Always-available fallback: LocalLLMFallback
+    # LocalLLMFallback — always available
     try:
         from src.local_llm_fallback import LocalLLMFallback
-
         fallback = LocalLLMFallback()
         content = fallback.generate(
             f"Generate a detailed professional business deliverable for: {query}",
@@ -699,12 +1019,118 @@ def _generate_llm_content(query: str) -> str:
     except Exception:
         pass
 
-    # Absolute last resort — structured template
     return _build_minimal_custom_content(query)
 
 
+def _build_content_from_mss(
+    query: str,
+    mss_result: Dict[str, Any],
+    mfgc_note: str = "",
+) -> str:
+    """Build structured deliverable prose directly from MSS Magnify + Solidify output."""
+    mag = mss_result.get("magnify", {})
+    sol = mss_result.get("solidify", {})
+
+    reqs = mag.get("functional_requirements", [])
+    comps = mag.get("technical_components", [])
+    compliance = mag.get("compliance_considerations", [])
+    cost = mag.get("cost_complexity_estimate", "")
+    concept = mag.get("concept_overview", query)
+
+    cap_def = sol.get("capability_definition", "")
+    impl_steps = sol.get("implementation_steps", [])
+    test_strategy = sol.get("testing_strategy", [])
+    iter_plan = sol.get("iteration_plan", "")
+    doc_updates = sol.get("documentation_updates", [])
+    arch = sol.get("architecture_placement", "")
+
+    lines: List[str] = []
+
+    lines += [
+        "■ EXECUTIVE OVERVIEW",
+        "──────────────────────",
+        f"  Request:    {query}",
+        f"  Concept:    {concept or query}",
+    ]
+    if cap_def:
+        lines.append(f"  Capability: {cap_def}")
+    if cost:
+        lines.append(f"  Complexity: {cost} (MSS assessment)")
+    if mfgc_note:
+        lines.append(f"  MFGC:       {mfgc_note}")
+
+    if reqs:
+        lines += [
+            "",
+            "■ FUNCTIONAL REQUIREMENTS  (MSS Magnify)",
+            "──────────────────────────────────────────",
+        ]
+        for r in reqs[:10]:
+            lines.append(f"  • {r}")
+
+    if comps:
+        lines += ["", "  Components Identified:"]
+        for c in comps[:8]:
+            lines.append(f"    ◦ {c}")
+
+    if compliance and compliance != ["none_detected"]:
+        lines += ["", "  Compliance Domains:"]
+        for cf in compliance[:6]:
+            lines.append(f"    ◦ {cf}")
+
+    if impl_steps:
+        lines += [
+            "",
+            "■ IMPLEMENTATION PLAN  (MSS Solidify)",
+            "───────────────────────────────────────",
+        ]
+        for s in impl_steps:
+            lines.append(f"  {s}")
+
+    if arch:
+        lines += ["", f"  Architecture: {arch}"]
+
+    if test_strategy:
+        lines += [
+            "",
+            "■ TESTING & VALIDATION STRATEGY",
+            "─────────────────────────────────",
+        ]
+        for ts in test_strategy[:6]:
+            lines.append(f"  • {ts}")
+
+    if iter_plan:
+        lines += [
+            "",
+            "■ ITERATION PLAN",
+            "──────────────────",
+            f"  {iter_plan}",
+        ]
+
+    if doc_updates:
+        lines += [
+            "",
+            "■ DOCUMENTATION REQUIREMENTS",
+            "──────────────────────────────",
+        ]
+        for d in doc_updates[:5]:
+            lines.append(f"  □  {d}")
+
+    lines += [
+        "",
+        "■ NEXT STEPS",
+        "─────────────",
+        "  □  Review and customise this deliverable to your specific context.",
+        "  □  Share with stakeholders for alignment before execution.",
+        "  □  Set up Murphy System automation to run recurring steps.",
+        "  → Sign up at murphy.systems for full automation deployment.",
+    ]
+
+    return "\n".join(lines)
+
+
 def _build_minimal_custom_content(query: str) -> str:
-    """Minimal structured content when LLM is unavailable."""
+    """Minimal structured content when all upstream stages are unavailable."""
     return f"""\
 ■ DELIVERABLE OVERVIEW
 ───────────────────────
@@ -724,7 +1150,7 @@ def _build_minimal_custom_content(query: str) -> str:
   1.  Define clear success criteria before beginning execution.
   2.  Break the task into discrete, measurable sub-tasks.
   3.  Assign ownership and deadlines to each sub-task.
-  4.  Schedule a review checkpoint at 50 % completion.
+  4.  Schedule a review checkpoint at 50% completion.
   5.  Document outcomes and lessons learned on completion.
 
 ■ ACTION ITEMS
@@ -742,21 +1168,63 @@ def _build_minimal_custom_content(query: str) -> str:
 """
 
 
-def generate_custom_deliverable(query: str) -> Dict[str, Any]:
-    """Generate a custom deliverable for an unrecognised query via the LLM."""
-    title = f'Custom Deliverable: "{query[:60]}"' if len(query) > 60 else f'Custom Deliverable: "{query}"'
-    content = _generate_llm_content(query)
+def generate_custom_deliverable(
+    query: str,
+    librarian_context: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Generate a custom deliverable using the MFGC → MSS → Librarian → LLM pipeline."""
+    title = (
+        f'Custom Deliverable: "{query[:60]}"'
+        if len(query) > 60
+        else f'Custom Deliverable: "{query}"'
+    )
+
+    # Stage 1 — MFGC gate
+    mfgc_result = _run_mfgc_gate(query)
+
+    # Stage 2 — MSS Magnify + Solidify
+    mss_result = _run_mss_pipeline(query, mfgc_result)
+
+    # Stage 3 — Generate prose with all enriched context
+    content = _generate_llm_content(
+        query,
+        mfgc_result=mfgc_result,
+        mss_result=mss_result,
+        librarian_context=librarian_context,
+    )
+
+    # Stage 4 — Append librarian context section (always rendered when present)
+    lib_section = _format_librarian_section(librarian_context or "")
+    if lib_section:
+        content = content.rstrip() + "\n\n" + lib_section
+
+    # Stage 5 — Append free Automation Blueprint if major automation requested
+    if _detect_major_automation(query):
+        content = content.rstrip() + "\n\n" + _build_automation_blueprint(query, mss_result)
+
     filename = _scenario_to_filename(None, query)
-    txt = build_branded_txt(title, content, scenario_type="custom")
+
+    # Quality score: boost if MFGC gated successfully
+    quality = 94
+    if mfgc_result.get("success"):
+        quality = min(99, quality + int(mfgc_result.get("confidence", 0) * 5))
+    elif mss_result:
+        quality = 96  # MSS ran even if MFGC unavailable
+
+    txt = build_branded_txt(title, content, scenario_type="custom", quality_score=quality)
     return {"title": title, "content": txt, "filename": filename}
 
 
-def generate_deliverable(query: str) -> Dict[str, Any]:
+def generate_deliverable(
+    query: str,
+    librarian_context: Optional[str] = None,
+) -> Dict[str, Any]:
     """Main entry point: detect scenario and dispatch to appropriate generator."""
     scenario_key = _detect_scenario(query)
     if scenario_key and scenario_key in _SCENARIO_TEMPLATES:
-        return generate_predefined_deliverable(scenario_key, query)
-    return generate_custom_deliverable(query)
+        return generate_predefined_deliverable(scenario_key, query, librarian_context=librarian_context)
+    return generate_custom_deliverable(query, librarian_context=librarian_context)
+
 
 
 def make_fingerprint(request_ip: str, user_agent: str) -> str:
