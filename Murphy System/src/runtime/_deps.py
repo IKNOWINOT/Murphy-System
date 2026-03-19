@@ -284,6 +284,12 @@ except ImportError as e:
     WingmanSystem = None
 
 try:
+    from src.api_capability_builder import WingmanApiGapChecker
+except ImportError as e:
+    logger.warning("API capability builder not available: %s", e)
+    WingmanApiGapChecker = None
+
+try:
     from src.runtime_profile_compiler import RuntimeProfileCompiler
 except ImportError as e:
     logger.warning("Runtime profile compiler not available: %s", e)
@@ -686,7 +692,7 @@ __all__ = [
     "TriageRollcallAdapter", "BotGovernancePolicyMapper",
     "BotTelemetryNormalizer", "HITLAutonomyController",
     "APIGatewayAdapter", "WebhookEventProcessor",
-    "WingmanProtocol", "WingmanSystem", "GateExecutionWiring",
+    "WingmanProtocol", "WingmanSystem", "WingmanApiGapChecker", "GateExecutionWiring",
     "RubixEvidenceAdapter", "MFGCAdapter",
     "ImageGenerationEngine", "DigitalAssetGenerator",
     "OrgChartEnforcement", "OrganizationChart",

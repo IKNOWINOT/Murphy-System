@@ -1590,6 +1590,22 @@ class MurphySystem:
         else:
             self.wingman_system = None
 
+        # API Capability Builder — detects missing external APIs, auto-scaffolds,
+        # raises tickets; requires OWNER permission to generate stubs
+        if WingmanApiGapChecker:
+            try:
+                self.api_gap_checker = WingmanApiGapChecker(
+                    ticketing_adapter=self.ticketing_adapter,
+                    librarian=self.librarian,
+                    rbac_governance=getattr(self, "rbac_governance", None),
+                )
+                logger.info("API gap checker initialized")
+            except Exception as exc:
+                logger.warning("API gap checker initialization failed: %s", exc)
+                self.api_gap_checker = None
+        else:
+            self.api_gap_checker = None
+
         # Runtime Profile Compiler
         if RuntimeProfileCompiler:
             try:

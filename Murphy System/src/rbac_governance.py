@@ -54,6 +54,7 @@ class Permission(str, Enum):
     ESCALATE = "escalate"
     TOGGLE_FULL_AUTOMATION = "toggle_full_automation"
     VIEW_AUTOMATION_METRICS = "view_automation_metrics"
+    TRIGGER_API_BUILD = "trigger_api_build"
 
 
 # ------------------------------------------------------------------
@@ -62,7 +63,7 @@ class Permission(str, Enum):
 
 DEFAULT_ROLE_PERMISSIONS: Dict[Role, Set[Permission]] = {
     Role.OWNER: set(Permission),
-    Role.ADMIN: set(Permission) - {Permission.MANAGE_USERS},
+    Role.ADMIN: set(Permission) - {Permission.MANAGE_USERS, Permission.TRIGGER_API_BUILD},
     Role.AUTOMATOR_ADMIN: {
         Permission.EXECUTE_TASK,
         Permission.APPROVE_GATE,
