@@ -67,7 +67,7 @@ class AmbientContextStore:
             sig.setdefault("stored_ts", ts)
         existing: List[Dict] = self._read_json(self._signals_file, [])
         existing.extend(signals)
-        # Keep last 2 000 signals to bound file size
+        # Keep last 2000 signals to bound file size
         existing = existing[-2000:]
         self._write_json(self._signals_file, existing)
         logger.debug("AmbientContextStore: stored %d signals, total=%d", len(signals), len(existing))

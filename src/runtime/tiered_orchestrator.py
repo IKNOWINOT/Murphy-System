@@ -51,7 +51,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Union
 
 logger = logging.getLogger("murphy.tiered_orchestrator")
 
@@ -104,7 +104,7 @@ class RuntimePack:
       - Optional *on_load* / *on_unload* hooks for setup/teardown.
     """
     name: str
-    capabilities: Any = field(default_factory=set)  # Set[str] or List[str]
+    capabilities: Union[Set[str], List[str]] = field(default_factory=set)  # Set[str] or List[str]
     description: str = ""
     version: str = "1.0.0"
     tier: Optional[Any] = None                # RuntimeTier, optional for simple packs
@@ -287,9 +287,7 @@ class TieredOrchestrator:
     @property
     def packs(self) -> Dict[str, RuntimePack]:
         """Read-only view of all registered packs."""
-        # Support both self._registry (second __init__) and self._packs (first __init__)
-        registry = getattr(self, '_registry', None) or getattr(self, '_packs', {})
-        return dict(registry)
+        return dict(self._registry)
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -334,6 +332,8 @@ class TieredOrchestrator:
 
         # Registry of all packs keyed by name
         self._registry: Dict[str, RuntimePack] = {}
+        # Alias for backward compat with methods that use self._packs
+        self._packs = self._registry
 
         # Active packs dict (name → pack)
         self._active_packs: Dict[str, RuntimePack] = {}
