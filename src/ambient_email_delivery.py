@@ -29,11 +29,14 @@ SMTP_USE_TLS : str
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import smtplib
 import textwrap
 import time
+import urllib.error
+import urllib.request
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Any, Dict, List, Optional
@@ -174,14 +177,11 @@ def _send_sendgrid(
     api_key: str,
 ) -> Dict[str, Any]:
     """Send via SendGrid REST API using the stdlib `urllib` (no extra deps)."""
-    import json as _json
-    import urllib.request
-
     title = insight.get("title", "Murphy Ambient Alert")
     from_email = os.environ.get("SENDGRID_FROM_EMAIL", _FROM_DEFAULT)
     email_id = f"sg-amb-{int(time.time())}"
 
-    payload = _json.dumps(
+    payload = json.dumps(
         {
             "personalizations": [{"to": [{"email": to_email}]}],
             "from": {"email": from_email},
@@ -315,21 +315,14 @@ def deliver(
         smtp_host = os.environ.get("SMTP_HOST", "").strip()
 
         if sendgrid_key:
-            results = []
-            for addr in recipients:
-                results.append(_send_sendgrid(insight, addr, sendgrid_key))
-            # Return success if at least one delivery succeeded
-            if any(r["delivered"] for r in results):
-                return results[0]
-            return results[0]
+            results = [_send_sendgrid(insight, addr, sendgrid_key) for addr in recipients]
+            success = next((r for r in results if r["delivered"]), None)
+            return success if success is not None else results[0]
 
         if smtp_host:
-            results = []
-            for addr in recipients:
-                results.append(_send_smtp(insight, addr, smtp_host))
-            if any(r["delivered"] for r in results):
-                return results[0]
-            return results[0]
+            results = [_send_smtp(insight, addr, smtp_host) for addr in recipients]
+            success = next((r for r in results if r["delivered"]), None)
+            return success if success is not None else results[0]
 
         logger.warning(
             "Ambient email delivery: no email backend configured. "
