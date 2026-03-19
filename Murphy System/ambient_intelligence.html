@@ -243,8 +243,8 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);ove
         <div class="amb-stream" id="stream-list" role="log" aria-live="polite" aria-label="Context stream events">
           <div class="amb-empty">
             <div class="amb-empty-icon">⚡</div>
-            <h3>Warming up…</h3>
-            <p>The ambient engine is collecting context. Events will appear here as the system observes your work patterns.</p>
+            <h3>No insights yet</h3>
+            <p>The ambient engine is collecting context from your connected sources. Events will appear here as patterns emerge.</p>
           </div>
         </div>
       </div>
@@ -455,135 +455,22 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);ove
     }
   } catch (_) {}
 
-  /* ── Demo stream items ── */
-  var DEMO_ITEMS = [
-    { type: 'prediction', icon: '🔮', text: 'You have a meeting about Q2 roadmap in 47 minutes. Murphy has pre-populated the agenda with open action items from your last session and recent task completions.', confidence: 88, actions: ['Open Brief', 'View Agenda'], time: 'Just now' },
-    { type: 'preparation', icon: '📋', text: 'Based on the files Jordan shared yesterday and your upcoming review meeting, Murphy has drafted a 3-page technical summary and sent it to your email.', confidence: 79, actions: ['View Draft', 'Edit'], time: '4 min ago' },
-    { type: 'synthesis', icon: '🧠', text: 'Across 3 recent meetings, the pattern of "reduce onboarding friction" has appeared 7 times. Murphy has synthesised this into a prioritised brief and queued it for your next planning session.', confidence: 92, actions: ['View Synthesis', 'Add to Backlog'], time: '12 min ago' },
-    { type: 'alert', icon: '⚠️', text: 'Two deliverables due Friday have no assigned owner. Murphy has drafted a responsibility matrix and flagged this in the management board.', confidence: 71, actions: ['View Matrix', 'Assign Now'], time: '28 min ago' },
-    { type: 'briefing', icon: '📰', text: 'Daily brief ready: 4 meetings today, 3 open action items from yesterday, 1 risk escalated in the risk register, and 2 drafts pending your vote in Meeting Intelligence.', confidence: 95, actions: ['Read Brief', 'Dismiss'], time: '1 hr ago' }
-  ];
-
-  var streamList = $id('stream-list');
-  var insertedCount = 0;
-
-  function insertStreamItem(item) {
-    if (streamList.querySelector('.amb-empty')) streamList.innerHTML = '';
-    var el = document.createElement('div');
-    el.className = 'amb-stream-item';
-    el.innerHTML =
-      '<div class="amb-stream-icon" aria-hidden="true">' + item.icon + '</div>' +
-      '<div class="amb-stream-body">' +
-        '<div class="amb-stream-header">' +
-          '<span class="amb-stream-type ' + esc(item.type) + '">' + esc(item.type) + '</span>' +
-          '<span class="amb-stream-confidence">' + item.confidence + '%</span>' +
-          '<span class="amb-stream-time">' + esc(item.time) + '</span>' +
-        '</div>' +
-        '<div class="amb-stream-text">' + esc(item.text) + '</div>' +
-        '<div class="amb-stream-actions">' +
-          item.actions.map(function (a, i) {
-            return '<button class="amb-stream-btn' + (i === 0 ? ' primary' : '') + '">' + esc(a) + '</button>';
-          }).join('') +
-        '</div>' +
-      '</div>';
-
-    el.querySelectorAll('.amb-stream-btn').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        el.classList.add('actioned');
-        this.disabled = true;
-        var actioned = parseInt($id('stat-actioned').textContent || '0', 10) + 1;
-        $id('stat-actioned').textContent = actioned;
-      });
+  /* ── Engine Status Dots ── */
+  function updateEngineDots() {
+    var engine = window.AmbientEngine || window.MurphyAmbient;
+    if (!engine) return;
+    var s = engine.getState();
+    var isRunning = s.running;
+    var isPaused = s.paused;
+    ['dot-context', 'dot-synthesis', 'dot-delivery'].forEach(function (id) {
+      var dot = $id(id);
+      if (!dot) return;
+      dot.className = 'amb-engine-dot' + (isRunning && !isPaused ? '' : isPaused ? ' warn' : ' off');
     });
-
-    streamList.insertBefore(el, streamList.firstChild);
-    insertedCount++;
-    $id('stream-count').textContent = insertedCount;
-    $id('badge-stream').textContent = insertedCount;
-    $id('stat-insights').textContent = insertedCount;
-
-    var confSum = DEMO_ITEMS.slice(0, insertedCount).reduce(function (a, i) { return a + i.confidence; }, 0);
-    $id('stat-confidence').textContent = Math.round(confSum / insertedCount) + '%';
   }
-
-  /* Stagger demo items */
-  var delay = 800;
-  DEMO_ITEMS.forEach(function (item) {
-    setTimeout(function () { if (!paused) insertStreamItem(item); }, delay);
-    delay += 1200;
-  });
-
-  /* ── Demo feed items ── */
-  var DEMO_FEED = [
-    {
-      icon: '📋', title: 'Q2 Roadmap Pre-Brief', badge: 'delivered', body: 'A 3-page synthesis of open action items, unresolved risks, and priority signals from the last 5 sessions — delivered 47 minutes before your meeting.',
-      recipients: ['you@company.com'], trigger: 'Meeting in 47 min', time: '9:13 AM'
-    },
-    {
-      icon: '📊', title: 'Weekly Org Intelligence Summary', badge: 'delivered', body: 'This week: 3 sessions completed, 12 insights accepted, 2 new org capabilities unlocked, 1 royalty payment queued. Full breakdown inside.',
-      recipients: ['you@company.com', 'alex@company.com'], trigger: 'Weekly schedule', time: 'Mon 8:00 AM'
-    },
-    {
-      icon: '🚨', title: 'Risk Register Escalation Alert', badge: 'scheduled', body: 'Two medium-severity risks added this week have passed the 48-hour mark with no assigned mitigation owner. This brief will be delivered at 5 PM if unresolved.',
-      recipients: ['you@company.com'], trigger: 'Risk aging threshold', time: 'Today 5:00 PM'
-    }
-  ];
-
-  var feedList = $id('feed-list');
-  var feedCount = 0;
-
-  function insertFeedCard(item) {
-    if (feedList.querySelector('.amb-empty')) feedList.innerHTML = '';
-    var card = document.createElement('div');
-    card.className = 'amb-feed-card ' + item.badge;
-    card.setAttribute('role', 'listitem');
-    card.innerHTML =
-      '<div class="amb-feed-card-header">' +
-        '<span class="amb-feed-icon" aria-hidden="true">' + item.icon + '</span>' +
-        '<span class="amb-feed-title">' + esc(item.title) + '</span>' +
-        '<span class="amb-feed-badge ' + esc(item.badge) + '">' + esc(item.badge) + '</span>' +
-      '</div>' +
-      '<div class="amb-feed-body">' + esc(item.body) + '</div>' +
-      '<div class="amb-feed-footer">' +
-        '<div class="recipients">' +
-          item.recipients.map(function (r) { return '<span class="recipient">' + esc(r) + '</span>'; }).join('') +
-        '</div>' +
-        '<span>Trigger: ' + esc(item.trigger) + '</span>' +
-        '<span style="margin-left:8px;color:var(--text-muted)">' + esc(item.time) + '</span>' +
-      '</div>';
-    feedList.appendChild(card);
-    feedCount++;
-    $id('feed-count').textContent = feedCount;
-    $id('badge-feed').textContent = feedCount;
-    $id('stat-delivered').textContent = feedCount;
-  }
-
-  setTimeout(function () { DEMO_FEED.forEach(function (item) { insertFeedCard(item); }); }, 2000);
-
-  /* ── Demo email log ── */
-  var EMAIL_LOG = [
-    { time: '9:13 AM', subject: 'Q2 Roadmap Pre-Brief — Murphy Ambient', recipients: 'you@company.com', trigger: 'Meeting in 47 min', status: 'sent' },
-    { time: 'Mon 8:00 AM', subject: 'Weekly Org Intelligence Summary', recipients: 'you@company.com, alex@company.com', trigger: 'Weekly schedule', status: 'sent' },
-    { time: 'Yesterday 5:00 PM', subject: 'Risk Register: 2 Unassigned Escalations', recipients: 'you@company.com', trigger: 'Risk aging threshold', status: 'sent' },
-    { time: 'Fri 4:50 PM', subject: 'Meeting Intelligence: 3 Drafts Ready for Review', recipients: 'you@company.com', trigger: 'Session completed', status: 'sent' }
-  ];
-
-  setTimeout(function () {
-    var tbody = $id('email-log-tbody');
-    tbody.innerHTML = '';
-    EMAIL_LOG.forEach(function (row) {
-      var tr = document.createElement('tr');
-      tr.innerHTML =
-        '<td style="white-space:nowrap;color:var(--text-muted)">' + esc(row.time) + '</td>' +
-        '<td style="font-weight:600;color:var(--text-primary)">' + esc(row.subject) + '</td>' +
-        '<td style="color:var(--teal);font-size:12px">' + esc(row.recipients) + '</td>' +
-        '<td>' + esc(row.trigger) + '</td>' +
-        '<td><span class="amb-email-status ' + esc(row.status) + '">' + esc(row.status) + '</span></td>';
-      tbody.appendChild(tr);
-    });
-    $id('email-log-count').textContent = EMAIL_LOG.length;
-    $id('badge-email').textContent = EMAIL_LOG.length;
-  }, 1500);
+  document.addEventListener('murphy:ambient:insight', updateEngineDots);
+  setInterval(updateEngineDots, 5000);
+  setTimeout(updateEngineDots, 1500);
 
   /* ── Utility ── */
   function showToast(msg) {
