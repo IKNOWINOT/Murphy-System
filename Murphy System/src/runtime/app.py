@@ -4382,6 +4382,107 @@ def create_app() -> FastAPI:
         result = ws.validate(artifact, module_id=module_id)
         return JSONResponse({"success": True, "validation": result.to_dict()})
 
+    @app.get("/api/wingman/api-gaps")
+    async def wingman_api_gaps():
+        """Return current API capability gap status from the builder."""
+        checker = getattr(murphy, "api_gap_checker", None)
+        if checker is None:
+            return JSONResponse({"success": True, "status": "unavailable", "gaps": []})
+        return JSONResponse({"success": True, **checker._builder.get_status()})
+
+    @app.post("/api/wingman/api-gaps/scan")
+    async def wingman_api_gaps_scan(request: Request):
+        """Scan an artifact for missing external API needs.
+
+        Body: { "artifact": { "content": "..." }, "owner_user_id": "uid" }
+
+        Requires OWNER (founder-admin) role to auto-generate scaffolds.
+        Without OWNER permission the scan still runs and tickets are raised,
+        but stubs are not generated until an OWNER approves.
+        """
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "invalid_json"}, status_code=400)
+        artifact = body.get("artifact")
+        if not artifact or not isinstance(artifact, dict):
+            return JSONResponse(
+                {"success": False, "error": "missing_artifact",
+                 "message": "Provide an 'artifact' object in the request body."},
+                status_code=400,
+            )
+        owner_user_id = body.get("owner_user_id") or body.get("user_id")
+        checker = getattr(murphy, "api_gap_checker", None)
+        if checker is None:
+            return JSONResponse({"success": False, "error": "api_gap_checker_unavailable"}, status_code=503)
+        result = checker.check(
+            artifact=artifact,
+            requester=owner_user_id or "api_call",
+            owner_user_id=owner_user_id,
+        )
+        return JSONResponse({"success": True, **result})
+
+    @app.post("/api/wingman/api-gaps/build")
+    async def wingman_api_gaps_build(request: Request):
+        """Approve and trigger scaffold generation for a list of API needs.
+
+        This endpoint requires OWNER (founder-admin) level.
+        Body: { "owner_user_id": "uid", "categories": ["banking", "stock"] }
+
+        The owner_user_id must hold the TRIGGER_API_BUILD permission.
+        For each requested category, if a pending ApiNeed exists in the
+        builder's processed list, scaffold generation is triggered.
+        """
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "invalid_json"}, status_code=400)
+
+        owner_user_id = body.get("owner_user_id") or body.get("user_id")
+        if not owner_user_id:
+            return JSONResponse(
+                {"success": False, "error": "missing_owner_user_id",
+                 "message": "Provide owner_user_id with OWNER (founder-admin) role."},
+                status_code=403,
+            )
+
+        checker = getattr(murphy, "api_gap_checker", None)
+        if checker is None:
+            return JSONResponse({"success": False, "error": "api_gap_checker_unavailable"}, status_code=503)
+
+        # Verify OWNER permission
+        owner_authorized = checker._check_owner_permission(owner_user_id)
+        if not owner_authorized:
+            return JSONResponse(
+                {
+                    "success": False,
+                    "error": "forbidden",
+                    "message": (
+                        "TRIGGER_API_BUILD requires OWNER (founder-admin) role. "
+                        "Ask a platform owner to approve this action."
+                    ),
+                },
+                status_code=403,
+            )
+
+        categories = body.get("categories")
+        artifact = body.get("artifact")
+
+        if artifact and isinstance(artifact, dict):
+            # Re-scan with owner authorization
+            result = checker.check(
+                artifact=artifact,
+                requester=owner_user_id,
+                owner_user_id=owner_user_id,
+            )
+            return JSONResponse({"success": True, **result})
+
+        return JSONResponse(
+            {"success": False, "error": "missing_artifact",
+             "message": "Provide an 'artifact' object to re-scan with OWNER authorization."},
+            status_code=400,
+        )
+
     @app.get("/api/causality/graph")
     async def causality_graph():
         """Return causality dependency graph."""
@@ -8034,6 +8135,30 @@ def create_app() -> FastAPI:
             except Exception as _wv_exc:
                 logger.debug("Wingman validation skipped: %s", _wv_exc)
 
+        # Step 4: API gap scan — detects live data domains that need external APIs.
+        # Tickets are raised automatically; scaffolds only if OWNER authorized.
+        api_gaps: Optional[Dict[str, Any]] = None
+        checker = getattr(murphy, "api_gap_checker", None)
+        if checker is not None:
+            try:
+                gap_result = checker.check(
+                    artifact={
+                        "content": deliverable.get("content", ""),
+                        "id": deliverable.get("filename", ""),
+                    },
+                    requester="deliverable_pipeline",
+                    owner_user_id=None,  # no owner context in anonymous generation
+                )
+                if gap_result.get("api_needs_detected"):
+                    api_gaps = {
+                        "needs_detected": len(gap_result["api_needs_detected"]),
+                        "categories": [n["category"] for n in gap_result["api_needs_detected"]],
+                        "tickets_raised": gap_result.get("tickets_raised", []),
+                        "auth_message": gap_result.get("auth_message", ""),
+                    }
+            except Exception as _gap_exc:
+                logger.debug("API gap scan skipped: %s", _gap_exc)
+
         usage_out = {
             "used": usage_result.get("used", 1),
             "limit": usage_result.get("limit", 5),
@@ -8048,6 +8173,8 @@ def create_app() -> FastAPI:
         }
         if wingman_validation is not None:
             response_body["wingman_validation"] = wingman_validation
+        if api_gaps is not None:
+            response_body["api_gaps"] = api_gaps
 
         return JSONResponse(response_body)
 

@@ -55,6 +55,7 @@ class TicketType(str, Enum):
     PROBLEM = "problem"
     REMOTE_ACCESS = "remote_access"
     PATCH_ROLLBACK = "patch_rollback"
+    API_BUILD = "api_build"
 
 
 PRIORITY_ORDER = {
@@ -292,6 +293,65 @@ class TicketingAdapter:
                 "target_system": target_system,
                 "version": version,
                 "action": action,
+            },
+        )
+
+    def request_api_build(
+        self,
+        api_name: str,
+        category: str,
+        requester: str,
+        description: str = "",
+        env_var: str = "",
+        provider: str = "",
+        auto_scaffold: bool = False,
+    ) -> Ticket:
+        """Create an API capability build request ticket.
+
+        Used by the WingmanSystem when validation detects that an artifact
+        references live data (banking, email, stock, currency, fuel/material
+        costs, etc.) that requires an external API not yet available in the
+        system.
+
+        Parameters
+        ----------
+        api_name:     Human-readable API name (e.g. "Plaid Bank API").
+        category:     Domain category (e.g. "banking", "stock", "currency").
+        requester:    User or agent that triggered the ticket.
+        description:  Optional extended description of why this API is needed.
+        env_var:      Suggested environment variable name for the API key.
+        provider:     Suggested external provider (e.g. "Plaid", "Alpha Vantage").
+        auto_scaffold: Whether the builder has already auto-generated a stub.
+        """
+        title = f"[API BUILD] {api_name} — {category}"
+        body = (
+            f"Murphy System detected that an artifact references live data in the "
+            f"'{category}' domain but no corresponding API capability exists.\n\n"
+            f"Required API: {api_name}\n"
+            f"Suggested provider: {provider or 'TBD'}\n"
+            f"Env var: {env_var or 'TBD'}\n"
+            f"Auto-scaffold generated: {'yes' if auto_scaffold else 'no'}\n\n"
+            f"Context: {description or 'N/A'}\n\n"
+            "ACTION REQUIRED (FOUNDER/OWNER level):\n"
+            "  1. Review the auto-generated stub (if present) in src/api_capabilities/.\n"
+            "  2. Approve or reject this ticket via POST /api/wingman/api-gaps/build.\n"
+            "  3. Once approved Murphy will complete wiring without HITL for the\n"
+            "     remaining scaffold steps."
+        )
+        return self.create_ticket(
+            title=title,
+            description=body,
+            ticket_type=TicketType.API_BUILD,
+            priority=TicketPriority.P2_HIGH,
+            requester=requester,
+            tags=["api_build", category, "wingman_detected"],
+            metadata={
+                "api_name": api_name,
+                "category": category,
+                "env_var": env_var,
+                "provider": provider,
+                "auto_scaffold": auto_scaffold,
+                "requires_owner_approval": True,
             },
         )
 
