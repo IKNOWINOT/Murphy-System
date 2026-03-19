@@ -20,11 +20,11 @@
    *  CONSTANTS
    * ───────────────────────────────────────────────────────────────────────── */
   var VERSION = '1.0.0';
-  var POLL_INTERVAL_MS        = 60000;    // context poll: every 60 s
-  var SYNTH_INTERVAL_MS       = 90000;    // synthesis run: every 90 s
-  var DELIVERY_DELAY_MS       = 5000;     // min delay between deliveries
-  var SERVER_POLL_INTERVAL_MS = 180000;   // server insight poll: every 3 min
-  var MAX_QUEUE               = 50;       // max pending deliveries
+  var POLL_INTERVAL_MS   = 60000;    // context poll: every 60 s
+  var API_REFRESH_EVERY  = 5;        // force fresh API fetch every Nth poll (~5 min)
+  var SYNTH_INTERVAL_MS  = 90000;    // synthesis run: every 90 s
+  var DELIVERY_DELAY_MS  = 5000;     // min delay between deliveries
+  var MAX_QUEUE          = 50;       // max pending deliveries
 
   var BASE_URL = (global.location && global.location.origin) || '';
 
@@ -32,12 +32,15 @@
    *  STATE
    * ───────────────────────────────────────────────────────────────────────── */
   var state = {
-    running:    false,
-    paused:     false,
-    context:    {},               // accumulated context signals
-    insights:   [],               // synthesised insights waiting for delivery
-    delivered:  [],               // delivery history
-    actioned:   0,
+    running:       false,
+    paused:        false,
+    context:       {},               // accumulated context signals
+    insights:      [],               // synthesised insights waiting for delivery
+    delivered:     [],               // delivery history
+    actioned:      0,
+    insightsCount: 0,               // total insights emitted to UI
+    deliveredCount:0,               // total email deliveries sent
+    confidenceSum: 0,               // running sum for avg confidence calculation
     settings: {
       contextEnabled:   true,
       emailEnabled:     true,
@@ -74,24 +77,33 @@
    *  Silently gathers signals from all available data sources.
    * ───────────────────────────────────────────────────────────────────────── */
   var ContextCollector = {
+    _meetingsFetching: false,
+    _tasksFetching:    false,
+
     collect: function () {
       if (!state.settings.contextEnabled) return;
+
+      state.pollCount++;
+      var forceRefresh = (state.pollCount % API_REFRESH_EVERY === 0);
 
       var signals = [];
 
       /* 1 — Calendar proximity */
-      signals = signals.concat(ContextCollector._calendarSignals());
+      signals = signals.concat(ContextCollector._calendarSignals(forceRefresh));
 
       /* 2 — Meeting intelligence data */
       if (state.settings.meetingLink) {
-        signals = signals.concat(ContextCollector._meetingSignals());
+        signals = signals.concat(ContextCollector._meetingSignals(forceRefresh));
       }
 
       /* 3 — Task overdue / unassigned */
-      signals = signals.concat(ContextCollector._taskSignals());
+      signals = signals.concat(ContextCollector._taskSignals(forceRefresh));
 
       /* 4 — Workspace activity */
       signals = signals.concat(ContextCollector._workspaceSignals());
+
+      /* 5 — Murphy system health signals */
+      signals = signals.concat(ContextCollector._murphySystemSignals());
 
       /* Merge into context */
       signals.forEach(function (sig) {
@@ -105,10 +117,22 @@
       }
     },
 
-    _calendarSignals: function () {
+    _calendarSignals: function (forceRefresh) {
       var signals = [];
       try {
-        var events = JSON.parse(localStorage.getItem('murphy_calendar_events') || '[]');
+        var cached = localStorage.getItem('murphy_calendar_events');
+        /* If no calendar data yet (or forced refresh), try to pull from Murphy APIs best-effort */
+        if (!cached || forceRefresh) {
+          fetch(BASE_URL + '/api/dashboards', { method: 'GET' })
+            .then(function (res) { return res.ok ? res.json() : null; })
+            .then(function (data) {
+              if (data && data.scheduled_items) {
+                try { localStorage.setItem('murphy_calendar_events', JSON.stringify(data.scheduled_items)); } catch (_) {}
+              }
+            })
+            .catch(function () {});
+        }
+        var events = JSON.parse(cached || '[]');
         var now = Date.now();
         events.forEach(function (ev) {
           var start = new Date(ev.start).getTime();
@@ -127,10 +151,25 @@
       return signals;
     },
 
-    _meetingSignals: function () {
+    _meetingSignals: function (forceRefresh) {
       var signals = [];
       try {
-        var session = JSON.parse(localStorage.getItem('murphy_last_meeting') || 'null');
+        var cached = localStorage.getItem('murphy_mi_data');
+        /* Fetch from Meeting Intelligence API and cache */
+        if (!cached || forceRefresh) {
+          fetch(BASE_URL + '/api/meeting-intelligence/sessions', { method: 'GET' })
+            .then(function (res) { return res.ok ? res.json() : null; })
+            .then(function (data) {
+              if (data) {
+                try { localStorage.setItem('murphy_mi_data', JSON.stringify(data)); } catch (_) {}
+              }
+            })
+            .catch(function () {});
+        }
+        /* Read from meeting intelligence cache if available, fall back to last-meeting key */
+        var miData = null;
+        try { miData = JSON.parse(cached || 'null'); } catch (_) {}
+        var session = miData || JSON.parse(localStorage.getItem('murphy_last_meeting') || 'null');
         if (session && session.drafts) {
           var draftKeys = Object.keys(session.drafts);
           var unvoted = draftKeys.filter(function (k) { return !(session.votes && session.votes[k]); });
@@ -142,21 +181,103 @@
         if (orgSessions > 0 && orgSessions % 5 === 0) {
           signals.push({ source: 'meeting', type: 'org_milestone', data: { sessions: orgSessions }, priority: 'low', confidence: 95, label: 'Org milestone: ' + orgSessions + ' sessions completed' });
         }
+        /* Fallback: if localStorage is empty, fetch from the real API and cache for next cycle */
+        if (!session && orgSessions === 0) {
+          ContextCollector._fetchMeetingsFromAPI();
+        }
       } catch (_) {}
       return signals;
+    },
+
+    _fetchMeetingsFromAPI: function () {
+      if (ContextCollector._meetingsFetching) return;
+      ContextCollector._meetingsFetching = true;
+      fetch(BASE_URL + '/api/meeting-intelligence/sessions', { credentials: 'same-origin' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          ContextCollector._meetingsFetching = false;
+          if (!data) return;
+          var sessions = Array.isArray(data) ? data : (data.sessions || []);
+          if (sessions.length) {
+            try {
+              localStorage.setItem('murphy_last_meeting', JSON.stringify(sessions[0]));
+              localStorage.setItem('murphy_org_sessions', String(sessions.length));
+            } catch (_) {}
+          }
+        })
+        .catch(function () { ContextCollector._meetingsFetching = false; });
     },
 
     _taskSignals: function () {
       var signals = [];
       try {
-        var tasks = JSON.parse(localStorage.getItem('murphy_tasks') || '[]');
+        var cached = localStorage.getItem('murphy_tasks');
+        /* Fetch from boards API and extract tasks */
+        if (!cached || forceRefresh) {
+          fetch(BASE_URL + '/api/boards', { method: 'GET' })
+            .then(function (res) { return res.ok ? res.json() : null; })
+            .then(function (data) {
+              if (data) {
+                /* Flatten board cards/tasks into a unified task list */
+                var tasks = [];
+                var boards = Array.isArray(data) ? data : (data.boards || []);
+                boards.forEach(function (board) {
+                  var items = board.cards || board.tasks || board.items || [];
+                  items.forEach(function (item) {
+                    tasks.push({
+                      id: item.id,
+                      title: item.title || item.name,
+                      due: item.due_date || item.due || null,
+                      assignee: item.assignee || item.assigned_to || null,
+                      status: item.status || item.state || 'open'
+                    });
+                  });
+                });
+                try { localStorage.setItem('murphy_tasks', JSON.stringify(tasks)); } catch (_) {}
+              }
+            })
+            .catch(function () {});
+        }
+        var tasks = JSON.parse(cached || '[]');
         var now = Date.now();
+        /* Fallback: if localStorage is empty, fetch from the real API and cache for next cycle */
+        if (!tasks.length) {
+          ContextCollector._fetchTasksFromAPI();
+          return signals;
+        }
         var overdue = tasks.filter(function (t) { return t.due && new Date(t.due).getTime() < now && t.status !== 'done'; });
         var unassigned = tasks.filter(function (t) { return !t.assignee && t.status !== 'done'; });
         if (overdue.length) signals.push({ source: 'tasks', type: 'overdue', data: { count: overdue.length }, priority: 'high', confidence: 97, label: overdue.length + ' overdue task(s) need attention' });
         if (unassigned.length) signals.push({ source: 'tasks', type: 'unassigned', data: { count: unassigned.length }, priority: 'medium', confidence: 88, label: unassigned.length + ' task(s) have no assigned owner' });
       } catch (_) {}
       return signals;
+    },
+
+    _fetchTasksFromAPI: function () {
+      if (ContextCollector._tasksFetching) return;
+      ContextCollector._tasksFetching = true;
+      fetch(BASE_URL + '/api/boards', { credentials: 'same-origin' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          ContextCollector._tasksFetching = false;
+          if (!data) return;
+          var tasks = [];
+          var boards = Array.isArray(data) ? data : (data.boards || []);
+          boards.forEach(function (board) {
+            (board.cards || board.tasks || []).forEach(function (card) {
+              tasks.push({
+                title:    card.title    || card.name        || '',
+                due:      card.due      || card.due_date    || null,
+                assignee: card.assignee || card.assigned_to || null,
+                status:   card.status   || card.state       || 'open'
+              });
+            });
+          });
+          if (tasks.length) {
+            try { localStorage.setItem('murphy_tasks', JSON.stringify(tasks)); } catch (_) {}
+          }
+        })
+        .catch(function () { ContextCollector._tasksFetching = false; });
     },
 
     _workspaceSignals: function () {
@@ -166,6 +287,56 @@
         if (unread > 20) signals.push({ source: 'workspace', type: 'high_unread', data: { count: unread }, priority: 'low', confidence: 70, label: unread + ' unread workspace messages' });
       } catch (_) {}
       return signals;
+    },
+
+    _murphySystemSignals: function () {
+      var signals = [];
+      /* Fire-and-forget fetches to /api/health and /api/status — parse on arrival */
+      fetch(BASE_URL + '/api/health', { method: 'GET' })
+        .then(function (res) { return res.ok ? res.json() : null; })
+        .then(function (data) {
+          if (!data) return;
+          var degraded = [];
+          if (data.modules) {
+            Object.keys(data.modules).forEach(function (mod) {
+              var m = data.modules[mod];
+              if (m && (m.status === 'degraded' || m.status === 'error' || m.status === 'down')) {
+                degraded.push(mod);
+              }
+            });
+          }
+          if (degraded.length) {
+            var sig = {
+              source: 'murphy_system', type: 'modules_degraded',
+              data: { modules: degraded, count: degraded.length },
+              priority: degraded.length > 2 ? 'high' : 'medium',
+              confidence: 99,
+              label: degraded.length + ' module(s) degraded: ' + degraded.slice(0, 3).join(', ')
+            };
+            state.context['murphy_system:modules_degraded'] = sig;
+          }
+          /* Redis / rate-limiter mode signals */
+          if (data.redis && data.redis.status !== 'connected') {
+            state.context['murphy_system:redis_disconnected'] = { source: 'murphy_system', type: 'redis_disconnected', data: { status: data.redis.status }, priority: 'medium', confidence: 99, label: 'Redis not connected — running in memory mode' };
+          }
+          if (data.rate_limiter && data.rate_limiter.mode === 'memory') {
+            state.context['murphy_system:rate_limiter_memory'] = { source: 'murphy_system', type: 'rate_limiter_memory', data: {}, priority: 'low', confidence: 90, label: 'Rate limiter in memory mode' };
+          }
+        })
+        .catch(function () {});
+
+      fetch(BASE_URL + '/api/status', { method: 'GET' })
+        .then(function (res) { return res.ok ? res.json() : null; })
+        .then(function (data) {
+          if (!data) return;
+          if (data.integration_bus && data.integration_bus.llm_integration_layer === false) {
+            state.context['murphy_system:llm_integration_off'] = { source: 'murphy_system', type: 'llm_integration_off', data: {}, priority: 'medium', confidence: 99, label: 'LLM integration layer not loaded' };
+          }
+        })
+        .catch(function () {});
+
+      /* Return any system signals already accumulated from prior async fetches */
+      return Object.values(state.context).filter(function (s) { return s.source === 'murphy_system'; });
     },
 
     _pushToAPI: function (signals) {
@@ -404,6 +575,14 @@
       if (badgeEl) badgeEl.textContent = streamList.querySelectorAll('.amb-stream-item').length;
       var insightsEl = document.getElementById('stat-insights');
       if (insightsEl) insightsEl.textContent = parseInt(insightsEl.textContent || '0', 10) + 1;
+
+      /* Update average confidence */
+      if (insight.confidence) {
+        state.confidenceSum += insight.confidence;
+        state.insightsCount++;
+        var confEl = document.getElementById('stat-confidence');
+        if (confEl) confEl.textContent = Math.round(state.confidenceSum / state.insightsCount) + '%';
+      }
     },
 
     _sendEmail: function (insight) {
@@ -459,7 +638,10 @@
       var badgeEl = document.getElementById('badge-email');
       if (badgeEl) badgeEl.textContent = tbody.querySelectorAll('tr').length;
       var deliveredEl = document.getElementById('stat-delivered');
-      if (deliveredEl) deliveredEl.textContent = parseInt(deliveredEl.textContent || '0', 10) + 1;
+      if (deliveredEl) {
+        state.deliveredCount++;
+        deliveredEl.textContent = state.deliveredCount;
+      }
     }
   };
 
@@ -541,14 +723,26 @@
   /* ─────────────────────────────────────────────────────────────────────────
    *  PUBLIC API
    * ───────────────────────────────────────────────────────────────────────── */
-  global.AmbientEngine = {
+  var publicAPI = {
     version:  VERSION,
     start:    Engine.start.bind(Engine),
     pause:    Engine.pause.bind(Engine),
     resume:   Engine.resume.bind(Engine),
     stop:     Engine.stop.bind(Engine),
-    getState: Engine.getState.bind(Engine)
+    getState: function () {
+      return {
+        running:        state.running,
+        paused:         state.paused,
+        insightsCount:  state.insightsCount,
+        deliveredCount: state.deliveredCount,
+        actionedCount:  state.actioned,
+        avgConfidence:  state.insightsCount > 0 ? Math.round(state.confidenceSum / state.insightsCount) : 0
+      };
+    }
   };
+
+  global.AmbientEngine  = publicAPI;
+  global.MurphyAmbient  = publicAPI;   /* alias used by ambient_intelligence.html */
 
   /* Auto-start when DOM is ready */
   if (document.readyState === 'loading') {
