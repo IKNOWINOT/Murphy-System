@@ -384,7 +384,7 @@ class TestBootstrap:
         finally:
             mod._connector_instance = original
 
-def _make_backbone() -> EventBackbone:
+def _make_real_backbone() -> EventBackbone:
     return EventBackbone()
 
 
@@ -465,7 +465,7 @@ class TestEventSubscription:
     """LearningEngineConnector subscribes to the correct event types."""
 
     def test_task_completed_enqueued(self):
-        bb = _make_backbone()
+        bb = _make_real_backbone()
         connector = LearningEngineConnector(event_backbone=bb)
 
         bb.publish(EventType.TASK_COMPLETED, {"task_id": "t1", "confidence": 0.9})
@@ -475,7 +475,7 @@ class TestEventSubscription:
         assert status["pending_events"] == 1
 
     def test_task_failed_enqueued(self):
-        bb = _make_backbone()
+        bb = _make_real_backbone()
         connector = LearningEngineConnector(event_backbone=bb)
 
         bb.publish(EventType.TASK_FAILED, {"task_id": "t2", "confidence": 0.4})
@@ -484,7 +484,7 @@ class TestEventSubscription:
         assert connector.get_status()["pending_events"] == 1
 
     def test_gate_evaluated_enqueued(self):
-        bb = _make_backbone()
+        bb = _make_real_backbone()
         connector = LearningEngineConnector(event_backbone=bb)
 
         bb.publish(EventType.GATE_EVALUATED, {"gate_id": "g1", "passed": True})
@@ -493,7 +493,7 @@ class TestEventSubscription:
         assert connector.get_status()["pending_events"] == 1
 
     def test_automation_executed_enqueued(self):
-        bb = _make_backbone()
+        bb = _make_real_backbone()
         connector = LearningEngineConnector(event_backbone=bb)
 
         bb.publish(EventType.AUTOMATION_EXECUTED, {"task_id": "auto-1"})
@@ -502,7 +502,7 @@ class TestEventSubscription:
         assert connector.get_status()["pending_events"] == 1
 
     def test_multiple_events_all_enqueued(self):
-        bb = _make_backbone()
+        bb = _make_real_backbone()
         connector = LearningEngineConnector(event_backbone=bb)
 
         bb.publish(EventType.TASK_COMPLETED, {"task_id": "t1"})
@@ -514,7 +514,7 @@ class TestEventSubscription:
         assert connector.get_status()["pending_events"] == 4
 
     def test_unrelated_event_not_enqueued(self):
-        bb = _make_backbone()
+        bb = _make_real_backbone()
         connector = LearningEngineConnector(event_backbone=bb)
 
         bb.publish(EventType.AUDIT_LOGGED, {"msg": "audit"})
@@ -532,7 +532,7 @@ class TestFeedbackCollectorWiring:
     """Outcomes flow from events into FeedbackCollector."""
 
     def test_task_completed_records_success(self):
-        bb = _make_backbone()
+        bb = _make_real_backbone()
         collector = _FakeFeedbackCollector()
         connector = LearningEngineConnector(
             event_backbone=bb,
@@ -548,7 +548,7 @@ class TestFeedbackCollectorWiring:
         assert collector.records[0]["confidence"] == pytest.approx(0.88)
 
     def test_task_failed_records_failure(self):
-        bb = _make_backbone()
+        bb = _make_real_backbone()
         collector = _FakeFeedbackCollector()
         connector = LearningEngineConnector(
             event_backbone=bb,
@@ -563,7 +563,7 @@ class TestFeedbackCollectorWiring:
         assert collector.records[0]["success"] is False
 
     def test_multiple_events_multiple_records(self):
-        bb = _make_backbone()
+        bb = _make_real_backbone()
         collector = _FakeFeedbackCollector()
         connector = LearningEngineConnector(
             event_backbone=bb,
@@ -587,7 +587,7 @@ class TestPatternRecognizerWiring:
     """Events flow from outcomes into PatternRecognizer."""
 
     def test_pattern_recognizer_called_when_events_present(self):
-        bb = _make_backbone()
+        bb = _make_real_backbone()
         recognizer = _FakePatternRecognizer()
         connector = LearningEngineConnector(
             event_backbone=bb,
@@ -602,7 +602,7 @@ class TestPatternRecognizerWiring:
         assert result.events_drained == 1
 
     def test_pattern_recognizer_not_called_when_no_events(self):
-        bb = _make_backbone()
+        bb = _make_real_backbone()
         recognizer = _FakePatternRecognizer()
         connector = LearningEngineConnector(
             event_backbone=bb,
@@ -624,7 +624,7 @@ class TestPerformancePredictorWiring:
     """Patterns flow from PatternRecognizer into PerformancePredictor."""
 
     def test_predictor_receives_outcomes_and_updates_thresholds(self):
-        bb = _make_backbone()
+        bb = _make_real_backbone()
         predictor = _make_predictor(bb)
         connector = LearningEngineConnector(
             event_backbone=bb,
@@ -646,7 +646,7 @@ class TestPerformancePredictorWiring:
         assert status["total_outcomes_recorded"] >= 10
 
     def test_predictor_generates_predictions_after_min_samples(self):
-        bb = _make_backbone()
+        bb = _make_real_backbone()
         predictor = _make_predictor(bb)
         connector = LearningEngineConnector(
             event_backbone=bb,
@@ -674,7 +674,7 @@ class TestGateEvolution:
     """Gate confidence_threshold is updated by the predictor's recommendations."""
 
     def test_gate_threshold_updated_after_sufficient_outcomes(self):
-        bb = _make_backbone()
+        bb = _make_real_backbone()
         predictor = _make_predictor(bb)
         gate = _FakeGate("gate-1", "task:onboarding", threshold=0.85)
         connector = LearningEngineConnector(
@@ -710,7 +710,7 @@ class TestGateEvolution:
         assert metrics["gate_evolution_count"] >= 0  # may be 0 if key mismatch
 
     def test_gate_evolved_event_published(self):
-        bb = _make_backbone()
+        bb = _make_real_backbone()
         predictor = _make_predictor(bb)
         gate_key = "task:onboarding"
         gate = _FakeGate(gate_key, gate_key, threshold=0.85)
@@ -759,7 +759,7 @@ class TestMetricsTracking:
     """Connector metrics are updated correctly after cycles."""
 
     def test_events_processed_total_increments(self):
-        bb = _make_backbone()
+        bb = _make_real_backbone()
         connector = LearningEngineConnector(event_backbone=bb)
 
         bb.publish(EventType.TASK_COMPLETED, {"task_id": "t1"})
@@ -771,7 +771,7 @@ class TestMetricsTracking:
         assert metrics["events_processed_total"] == 2
 
     def test_pattern_count_increments_when_patterns_returned(self):
-        bb = _make_backbone()
+        bb = _make_real_backbone()
         from datetime import datetime, timezone
         from learning_engine.learning_engine import LearnedPattern
         now = datetime.now(timezone.utc)
@@ -799,7 +799,7 @@ class TestMetricsTracking:
         assert metrics["pattern_count"] == 1
 
     def test_learning_rate_ema_updated(self):
-        bb = _make_backbone()
+        bb = _make_real_backbone()
         from datetime import datetime, timezone
         from learning_engine.learning_engine import LearnedPattern
         now = datetime.now(timezone.utc)
@@ -828,7 +828,7 @@ class TestMetricsTracking:
         assert metrics["learning_rate_ema"] > 0.0
 
     def test_cycle_history_stored(self):
-        bb = _make_backbone()
+        bb = _make_real_backbone()
         connector = LearningEngineConnector(event_backbone=bb)
 
         bb.publish(EventType.TASK_COMPLETED, {"task_id": "t1"})
@@ -841,7 +841,7 @@ class TestMetricsTracking:
         assert history[0]["events_drained"] == 1
 
     def test_multiple_cycles_accumulate(self):
-        bb = _make_backbone()
+        bb = _make_real_backbone()
         connector = LearningEngineConnector(event_backbone=bb)
 
         for _ in range(3):
@@ -965,7 +965,7 @@ class TestPerformancePredictorStandalone:
         assert "key:G" in thresholds
 
     def test_prediction_event_published(self):
-        bb = _make_backbone()
+        bb = _make_real_backbone()
         predictor = PerformancePredictor(event_backbone=bb, min_samples=2)
         received = []
         bb.subscribe(EventType.PREDICTION_GENERATED, lambda e: received.append(e))
@@ -989,7 +989,7 @@ class TestFullClosedLoop:
 
     def test_full_loop_updates_gate_and_metrics(self):
         """Complete loop: publish events → run_cycle → gate evolves."""
-        bb = _make_backbone()
+        bb = _make_real_backbone()
         predictor = _make_predictor(bb)
         collector = _FakeFeedbackCollector()
         gate_key = "task:onboarding"
@@ -1032,7 +1032,7 @@ class TestFullClosedLoop:
 
     def test_failed_tasks_lower_threshold(self):
         """Consistent failures should reduce gate confidence threshold."""
-        bb = _make_backbone()
+        bb = _make_real_backbone()
         predictor = PerformancePredictor(event_backbone=bb, ewma_alpha=0.5, min_samples=5)
         gate_key = "task:risky"
         gate = _FakeGate(gate_key, gate_key, threshold=0.85)
@@ -1061,7 +1061,7 @@ class TestFullClosedLoop:
 
     def test_no_error_when_components_missing(self):
         """Connector is resilient when no components are wired."""
-        bb = _make_backbone()
+        bb = _make_real_backbone()
         connector = LearningEngineConnector(event_backbone=bb)
 
         bb.publish(EventType.TASK_COMPLETED, {"task_id": "t1"})
@@ -1261,7 +1261,7 @@ class TestConfidenceCalculatorWiring:
     def test_confidence_calculator_updated_after_predictions(self):
         """After sufficient outcomes, the ConfidenceCalculator bootstrap_floor changes."""
         from confidence_engine.confidence_calculator import ConfidenceCalculator
-        bb = _make_backbone()
+        bb = _make_real_backbone()
         predictor = _make_predictor(bb)
         calc = ConfidenceCalculator()
         initial_floor = calc.bootstrap_floor
@@ -1288,7 +1288,7 @@ class TestConfidenceCalculatorWiring:
     def test_confidence_calculator_updates_metric_increments(self):
         """confidence_calculator_updates metric increments when predictor fires."""
         from confidence_engine.confidence_calculator import ConfidenceCalculator
-        bb = _make_backbone()
+        bb = _make_real_backbone()
         predictor = PerformancePredictor(event_backbone=bb, min_samples=5)
         calc = ConfidenceCalculator()
 
@@ -1313,7 +1313,7 @@ class TestConfidenceCalculatorWiring:
 
     def test_no_error_without_confidence_calculator(self):
         """Connector works without a ConfidenceCalculator attached."""
-        bb = _make_backbone()
+        bb = _make_real_backbone()
         predictor = _make_predictor(bb)
         connector = LearningEngineConnector(
             event_backbone=bb,
@@ -1346,7 +1346,7 @@ class TestDomainGateGeneratorWiring:
     def test_gate_generator_updated_after_predictions(self):
         """After sufficient outcomes, the DomainGateGenerator default threshold changes."""
         from domain_gate_generator import DomainGateGenerator
-        bb = _make_backbone()
+        bb = _make_real_backbone()
         predictor = _make_predictor(bb)
         gen = DomainGateGenerator()
         initial_threshold = gen._default_confidence_threshold
@@ -1371,7 +1371,7 @@ class TestDomainGateGeneratorWiring:
     def test_gate_generator_updates_metric_increments(self):
         """gate_generator_updates metric increments when predictor fires."""
         from domain_gate_generator import DomainGateGenerator
-        bb = _make_backbone()
+        bb = _make_real_backbone()
         predictor = PerformancePredictor(event_backbone=bb, min_samples=5)
         gen = DomainGateGenerator()
 
@@ -1395,7 +1395,7 @@ class TestDomainGateGeneratorWiring:
 
     def test_no_error_without_gate_generator(self):
         """Connector works without a DomainGateGenerator attached."""
-        bb = _make_backbone()
+        bb = _make_real_backbone()
         predictor = _make_predictor(bb)
         connector = LearningEngineConnector(
             event_backbone=bb,
@@ -1414,7 +1414,7 @@ class TestDomainGateGeneratorWiring:
     def test_new_gates_reflect_learned_threshold(self):
         """After learning cycle, newly generated gates use updated threshold."""
         from domain_gate_generator import DomainGateGenerator
-        bb = _make_backbone()
+        bb = _make_real_backbone()
         # alpha=1.0 so new threshold = success_rate immediately
         predictor = PerformancePredictor(event_backbone=bb, min_samples=5, ewma_alpha=1.0)
         gen = DomainGateGenerator()
