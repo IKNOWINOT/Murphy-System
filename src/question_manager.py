@@ -23,21 +23,15 @@ class Question:
 class QuestionManager:
     """Manages iterative questioning - ONE question at a time"""
 
-    def __init__(self, max_questions: int = 9):
+    def __init__(self, max_questions: int = 999999):
         self.questions: List[Question] = []
         self.current_index: int = 0
         self.context: Dict[str, Any] = {}
-        self.max_questions = max_questions  # Maximum total questions before forcing execution
+        self.max_questions = max_questions  # Effectively unlimited — keep asking until gates hit 85%
 
     def add_questions(self, questions: List[str], category: str = "general", priority: int = 1):
         """Add multiple questions to the queue"""
-        # Check if we've hit the maximum
-        if len(self.questions) >= self.max_questions:
-            return  # Don't add more questions
-
         for q in questions:
-            if len(self.questions) >= self.max_questions:
-                break  # Stop adding if we hit max
 
             self.questions.append(Question(
                 text=q,
@@ -138,8 +132,8 @@ class QuestionManager:
         return len(self.questions) >= self.max_questions
 
     def force_execution(self) -> bool:
-        """Check if we should force execution (hit max questions)"""
-        return self.get_answered_count() >= self.max_questions
+        """Force execution is disabled — keep asking until gate satisfaction reaches 85%."""
+        return False
 
     def extract_questions_from_text(self, text: str) -> List[str]:
         """Extract questions from text (lines ending with ?)"""
