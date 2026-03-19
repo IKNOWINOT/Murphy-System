@@ -913,16 +913,10 @@ class ContactComplianceGovernor:
             self._backbone.publish(
                 event_type=et,
                 payload={
-            from event_backbone_client import publish as _bb_publish  # noqa: PLC0415
-            _bb_publish(
-                event_name,
-                {
                     **payload,
                     "source": "contact_compliance_governor",
                     "action": event_name.lower(),
                 },
-                source="contact_compliance_governor",
-                backbone=self._backbone,
             )
         except Exception as exc:
             logger.debug("ContactComplianceGovernor: event publish skipped: %s", exc)
