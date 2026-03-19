@@ -12,8 +12,7 @@ Developer Guide (see also docs/CONTRIBUTING_RUNTIME.md):
   2. Add its capability strings to CAPABILITY_TO_PACK.
   3. Implement an optional router_factory if your pack exposes API routes.
   4. Add optional on_load / on_unload hooks for resource setup/teardown.
-# Copyright © 2020 Inoni Limited Liability Company / Creator: Corey Post / License: BSL 1.1
-"""
+
 src/runtime/runtime_packs/registry.py
 Canonical pack definitions for the Murphy System tiered runtime.
 
@@ -26,11 +25,13 @@ This module owns:
   domain pack that satisfies them.
 
 Module paths reference Python import paths relative to the repository root
-(e.g. ``src.confidence_engine``).  All imports are **lazy** — they only
+(e.g. ``src.confidence_engine``).  All imports are **lazy** -- they only
 happen when the pack is actually loaded via
 :meth:`~src.runtime.tiered_orchestrator.TieredOrchestrator.load_pack`.
 
 Python 3.9+ compatible.
+
+Copyright (c) 2020 Inoni Limited Liability Company / Creator: Corey Post / License: BSL 1.1
 """
 
 from __future__ import annotations
@@ -227,15 +228,60 @@ def get_capabilities_for_pack(pack_name: str) -> List[str]:
     return [cap for cap, pname in CAPABILITY_TO_PACK.items() if pname == pack_name]
 from src.runtime.tiered_orchestrator import RuntimePack, RuntimeTier
 
-
 # ---------------------------------------------------------------------------
 # Capability → Pack mapping
 # ---------------------------------------------------------------------------
 
 #: Maps onboarding capability tag strings to the domain pack that satisfies
-#: them.  Keys are the strings returned by
-#: ``onboarding_flow._infer_capabilities()``.
+#: them.  Merged from both simple and tiered pack naming schemes.
 CAPABILITY_TO_PACK: Dict[str, str] = {
+    # ── Core (simple packs) ────────────────────────────────────────────────
+    "auth": "core",
+    "health": "core",
+    "profiles": "core",
+    "sessions": "core",
+    # ── Compliance ─────────────────────────────────────────────────────────
+    "compliance": "compliance",
+    "gdpr": "compliance",
+    "hipaa": "compliance",
+    "soc2": "compliance",
+    # ── Analytics ──────────────────────────────────────────────────────────
+    "analytics": "analytics",
+    "dashboards": "analytics",
+    "metrics": "analytics",
+    "reporting": "analytics",
+    # ── Workflows ──────────────────────────────────────────────────────────
+    "automations": "workflows",
+    "scheduling": "workflows",
+    "workflows": "workflows",
+    # ── Integrations ───────────────────────────────────────────────────────
+    "crm": "integrations",
+    "integrations": "integrations",
+    "oauth": "integrations",
+    "webhooks": "integrations",
+    # ── Communications ─────────────────────────────────────────────────────
+    "communications": "communications",
+    "email": "communications",
+    "matrix": "communications",
+    "messaging": "communications",
+    # ── AI / ML ────────────────────────────────────────────────────────────
+    "ai": "ai_ml",
+    "embeddings": "ai_ml",
+    "llm": "ai_ml",
+    "nlp": "ai_ml",
+    # ── HVAC ───────────────────────────────────────────────────────────────
+    "energy_management": "hvac",
+    "hvac": "hvac",
+    # ── Finance ────────────────────────────────────────────────────────────
+    "billing": "finance",
+    "finance": "finance",
+    "invoicing": "finance",
+    "payments": "finance",
+    # ── Self-Healing ───────────────────────────────────────────────────────
+    "self_fix": "self_healing",
+    "self_healing": "self_healing",
+    "self_improvement": "self_healing",
+    # ── Domain packs (tiered runtime) ──────────────────────────────────────
     "crm_automation": "domain_crm",
     "communication_automation": "domain_matrix",
     "reporting_automation": "domain_observability",
@@ -244,7 +290,6 @@ CAPABILITY_TO_PACK: Dict[str, str] = {
     "project_tracking": "domain_onboarding",
     "data_processing": "domain_ml",
     "scheduling_automation": "domain_onboarding",
-    # Extended mappings
     "hvac_control": "domain_hvac",
     "industrial_control": "domain_hvac",
     "payment_processing": "domain_payments",
@@ -254,11 +299,12 @@ CAPABILITY_TO_PACK: Dict[str, str] = {
     "ml_pipeline": "domain_ml",
     "shadow_learning": "domain_ml",
     "matrix_bridge": "domain_matrix",
-    "monitoring": "domain_observability",
-    "metrics": "domain_observability",
     "alerting": "domain_observability",
     "onboarding": "domain_onboarding",
     "team_pipeline": "domain_onboarding",
+    # ── Ambient Intelligence ────────────────────────────────────────────────
+    "ambient_intelligence": "domain_ambient",
+    "ambient_context": "domain_ambient",
 }
 
 
@@ -501,6 +547,19 @@ _DOMAIN_PACKS: List[RuntimePack] = [
         api_routers=[],
         idle_timeout_minutes=60,
         max_memory_mb=1024,
+    ),
+    RuntimePack(
+        name="domain_ambient",
+        tier=RuntimeTier.DOMAIN,
+        modules=[
+            "src.ambient_context_store",
+            "src.ambient_api_router",
+        ],
+        dependencies=["platform_persistence"],
+        capabilities=["ambient_intelligence", "ambient_context"],
+        api_routers=["src.ambient_api_router:router"],
+        idle_timeout_minutes=30,
+        max_memory_mb=128,
     ),
 ]
 
