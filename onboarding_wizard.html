@@ -76,7 +76,31 @@
   var credentials = {};
   var safetyLevel = 3;
   var recommendedTerminal = '/ui/terminal-unified';
+  var userRole = ''; // 'founder_admin' | 'manager' | 'worker' | '' (unknown/not-yet-set)
   var librarianConfig = null;
+
+  // ── Role-based dashboard access rules ─────────────────
+  var ROLE_DASHBOARD_ACCESS = {
+    'founder_admin': ['/ui/terminal-unified', '/ui/terminal-worker', '/ui/terminal-enhanced', '/ui/terminal-architect'],
+    'owner':         ['/ui/terminal-unified', '/ui/terminal-worker', '/ui/terminal-enhanced', '/ui/terminal-architect'],
+    'admin':         ['/ui/terminal-unified', '/ui/terminal-enhanced', '/ui/terminal-architect'],
+    'manager':       ['/ui/terminal-enhanced', '/ui/terminal-worker'],
+    'operator':      ['/ui/terminal-enhanced', '/ui/terminal-worker'],
+    'worker':        ['/ui/terminal-worker'],
+    'viewer':        ['/ui/terminal-worker'],
+    '':              ['/ui/terminal-unified', '/ui/terminal-worker', '/ui/terminal-enhanced', '/ui/terminal-architect']
+  };
+
+  var ROLE_DEFAULT_TERMINAL = {
+    'founder_admin': '/ui/terminal-unified',
+    'owner':         '/ui/terminal-unified',
+    'admin':         '/ui/terminal-architect',
+    'manager':       '/ui/terminal-enhanced',
+    'operator':      '/ui/terminal-enhanced',
+    'worker':        '/ui/terminal-worker',
+    'viewer':        '/ui/terminal-worker',
+    '':              '/ui/terminal-unified'
+  };
 
   // ── DOM refs ───────────────────────────────────────────
   var container = document.getElementById('step-container');
@@ -273,6 +297,15 @@
               if (res.data.config.modules) selectedModules = res.data.config.modules;
               if (res.data.config.integrations) selectedIntegrations = res.data.config.integrations;
               if (res.data.config.recommended_terminal) recommendedTerminal = res.data.config.recommended_terminal;
+              if (res.data.config.role) {
+                var detectedRole = res.data.config.role;
+                var roleChanged = detectedRole !== userRole;
+                userRole = detectedRole;
+                // Auto-set recommendedTerminal when role is first detected (unless manually overridden)
+                if (roleChanged && !res.data.config.recommended_terminal) {
+                  recommendedTerminal = ROLE_DEFAULT_TERMINAL[userRole] || '/ui/terminal-unified';
+                }
+              }
             }
           } else {
             var fallback = "I'm having trouble connecting right now, but you can continue and configure things manually.";
@@ -801,47 +834,73 @@
     var termCard = el('div', { className: 'murphy-card', style: 'margin-top:1.5rem;' });
     var termBody = el('div', { className: 'murphy-card-body' });
 
-    var recText = recommendedTerminal.indexOf('worker') > -1 ? 'Worker'
-      : recommendedTerminal.indexOf('manager') > -1 ? 'Manager'
-      : recommendedTerminal.indexOf('admin') > -1 ? 'Admin'
-      : 'Unified';
-
-    termBody.appendChild(el('p', {
-      className: 'font-medium',
-      textContent: "Based on our conversation, I'd recommend the " + recText + " dashboard as your home base.",
-      style: 'margin-bottom:1rem;'
-    }));
-
-    var dashboards = [
+    var allDashboards = [
       { value: '/ui/terminal-unified', label: 'Unified Dashboard', desc: 'Full overview of everything' },
       { value: '/ui/terminal-worker', label: 'Worker Dashboard', desc: 'Task-focused view' },
       { value: '/ui/terminal-enhanced', label: 'Manager Dashboard', desc: 'Team and project oversight' },
       { value: '/ui/terminal-architect', label: 'Admin Dashboard', desc: 'System configuration and control' }
     ];
 
-    dashboards.forEach(function (db) {
-      var radioRow = el('label', {
-        className: 'flex items-center gap-2',
-        style: 'cursor:pointer;padding:0.5rem 0;'
-      });
-
-      var radio = el('input', {
-        type: 'radio',
-        name: 'terminal-choice',
-        value: db.value
-      });
-      if (db.value === recommendedTerminal) { radio.checked = true; }
-      radio.addEventListener('change', function () {
-        recommendedTerminal = db.value;
-      });
-
-      radioRow.appendChild(radio);
-      radioRow.appendChild(el('div', {}, [
-        el('span', { className: 'font-medium', textContent: db.label }),
-        el('span', { textContent: ' — ' + db.desc, style: 'font-size:0.85rem;' })
-      ]));
-      termBody.appendChild(radioRow);
+    var allowedValues = ROLE_DASHBOARD_ACCESS[userRole] || ROLE_DASHBOARD_ACCESS[''];
+    // Guard: ensure allowedValues is never empty (fall back to all dashboards)
+    if (!allowedValues || allowedValues.length === 0) { allowedValues = ROLE_DASHBOARD_ACCESS['']; }
+    var dashboards = allDashboards.filter(function (db) {
+      return allowedValues.indexOf(db.value) > -1;
     });
+    // Guard: if filtering produced no results, show all dashboards
+    if (dashboards.length === 0) { dashboards = allDashboards.slice(); }
+
+    // Ensure recommendedTerminal is within allowed set
+    if (allowedValues.indexOf(recommendedTerminal) === -1) {
+      recommendedTerminal = ROLE_DEFAULT_TERMINAL[userRole] || allowedValues[0] || '/ui/terminal-unified';
+    }
+
+    var recDash = dashboards.filter(function (db) { return db.value === recommendedTerminal; })[0]
+      || dashboards[0];
+
+    if (dashboards.length === 1) {
+      termBody.appendChild(el('p', {
+        className: 'font-medium',
+        textContent: 'Based on your role, your dashboard is the ' + dashboards[0].label + '.',
+        style: 'margin-bottom:1rem;'
+      }));
+      termBody.appendChild(el('p', {
+        textContent: dashboards[0].label + ' — ' + dashboards[0].desc,
+        style: 'font-size:0.9rem;'
+      }));
+      recommendedTerminal = dashboards[0].value;
+    } else {
+      var recLabel = recDash ? recDash.label : 'Unified Dashboard';
+      termBody.appendChild(el('p', {
+        className: 'font-medium',
+        textContent: "Based on your role, I'd recommend the " + recLabel + " dashboard as your home base. You also have access to:",
+        style: 'margin-bottom:1rem;'
+      }));
+
+      dashboards.forEach(function (db) {
+        var radioRow = el('label', {
+          className: 'flex items-center gap-2',
+          style: 'cursor:pointer;padding:0.5rem 0;'
+        });
+
+        var radio = el('input', {
+          type: 'radio',
+          name: 'terminal-choice',
+          value: db.value
+        });
+        if (db.value === recommendedTerminal) { radio.checked = true; }
+        radio.addEventListener('change', function () {
+          recommendedTerminal = db.value;
+        });
+
+        radioRow.appendChild(radio);
+        radioRow.appendChild(el('div', {}, [
+          el('span', { className: 'font-medium', textContent: db.label }),
+          el('span', { textContent: ' — ' + db.desc, style: 'font-size:0.85rem;' })
+        ]));
+        termBody.appendChild(radioRow);
+      });
+    }
 
     termCard.appendChild(termBody);
     container.appendChild(termCard);
@@ -923,15 +982,18 @@
           integrations: enabledInts.map(function (i) { return i.id; }),
           safety_level: safetyLevel,
           terminal: recommendedTerminal,
+          role: userRole,
           chat_history: chatHistory
         };
         api.post('/onboarding/wizard/generate-config', config)
           .then(function () {
             try { localStorage.setItem('murphy_onboarded', '1'); } catch(e) { console.warn('localStorage unavailable:', e.message); }
+            try { sessionStorage.setItem('murphy_role', userRole); } catch(e) { console.warn('sessionStorage unavailable:', e.message); }
             window.location.href = '/ui/production-wizard';
           })
           .catch(function () {
             try { localStorage.setItem('murphy_onboarded', '1'); } catch(e) { console.warn('localStorage unavailable:', e.message); }
+            try { sessionStorage.setItem('murphy_role', userRole); } catch(e) { console.warn('sessionStorage unavailable:', e.message); }
             window.location.href = '/ui/production-wizard';
           });
       }
@@ -951,15 +1013,18 @@
           integrations: enabledInts.map(function (i) { return i.id; }),
           safety_level: safetyLevel,
           terminal: recommendedTerminal,
+          role: userRole,
           chat_history: chatHistory
         };
         api.post('/onboarding/wizard/generate-config', config)
           .then(function () {
             try { localStorage.setItem('murphy_onboarded', '1'); } catch(e) { console.warn('localStorage unavailable:', e.message); }
+            try { sessionStorage.setItem('murphy_role', userRole); } catch(e) { console.warn('sessionStorage unavailable:', e.message); }
             window.location.href = recommendedTerminal;
           })
           .catch(function () {
             try { localStorage.setItem('murphy_onboarded', '1'); } catch(e) { console.warn('localStorage unavailable:', e.message); }
+            try { sessionStorage.setItem('murphy_role', userRole); } catch(e) { console.warn('sessionStorage unavailable:', e.message); }
             window.location.href = recommendedTerminal;
           });
       }
