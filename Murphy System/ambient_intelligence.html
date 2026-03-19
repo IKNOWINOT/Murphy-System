@@ -139,6 +139,15 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);ove
 .amb-philosophy{background:rgba(0,212,170,.04);border:1px solid rgba(0,212,170,.15);border-radius:var(--radius-md);padding:14px 16px;font-size:13px;color:var(--text-secondary);line-height:1.7;margin-bottom:20px}
 .amb-philosophy strong{color:var(--teal)}
 
+/* ── SOURCE BADGE ── */
+.amb-source-badge{display:inline-block;font-size:10px;font-weight:700;padding:1px 6px;border-radius:var(--radius-full);margin-left:4px;vertical-align:middle}
+.amb-source-badge.ai{background:rgba(0,255,65,.12);color:#00ff41;border:1px solid rgba(0,255,65,.25)}
+.amb-source-badge.pattern{background:rgba(0,212,170,.1);color:var(--teal);border:1px solid rgba(0,212,170,.2)}
+
+/* ── MOCK EMAIL BANNER ── */
+.amb-mock-banner{display:none;background:rgba(255,196,0,.06);border:1px solid rgba(255,196,0,.3);border-radius:var(--radius-md);padding:10px 14px;font-size:12px;color:#ffc400;line-height:1.6;margin-bottom:16px}
+.amb-mock-banner.visible{display:block}
+
 /* ── EMPTY ── */
 .amb-empty{text-align:center;padding:60px 24px;color:var(--text-tertiary)}
 .amb-empty-icon{font-size:48px;margin-bottom:12px}
@@ -291,6 +300,11 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);ove
     <section class="amb-panel" id="panel-settings" role="main" aria-label="Ambient intelligence settings">
       <div style="padding:20px 24px 0">
         <div class="amb-section-title">Engine Settings</div>
+        <div class="amb-mock-banner" id="mock-email-banner" role="alert">
+          ⚠️ Email delivery is not configured. Proactive deliveries will appear in the UI only.
+          Configure SendGrid or SMTP in <code>.env</code> to enable email.
+          (<code>SENDGRID_API_KEY</code> or <code>SMTP_HOST</code>)
+        </div>
         <div class="amb-settings-grid">
 
           <div class="amb-setting-card">
@@ -593,6 +607,17 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);ove
     document.body.appendChild(t);
     setTimeout(function () { t.remove(); }, 3000);
   }
+
+  /* ── Check email backend mode and show mock banner if needed ── */
+  fetch('/api/ambient/settings')
+    .then(function (res) { return res.ok ? res.json() : null; })
+    .then(function (data) {
+      if (data && data.settings && data.settings.email_backend === 'mock') {
+        var banner = $id('mock-email-banner');
+        if (banner) banner.classList.add('visible');
+      }
+    })
+    .catch(function () {});
 
 })();
 </script>
