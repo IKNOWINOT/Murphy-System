@@ -75,10 +75,18 @@
   /* ─────────────────────────────────────────────────────────────────────────
    *  CONTEXT COLLECTOR
    *  Silently gathers signals from all available data sources.
+   *  Each _*Signals() method tries the real Murphy API first, falls back to
+   *  localStorage if the API is unavailable or returns an error.
    * ───────────────────────────────────────────────────────────────────────── */
   var ContextCollector = {
-    _meetingsFetching: false,
-    _tasksFetching:    false,
+    /* Per-source consecutive-failure counters for backoff */
+    _failures: { calendar: 0, meeting: 0, tasks: 0, workspace: 0 },
+    /* Timestamps of next allowed retry per source (ms) */
+    _retryAfter: { calendar: 0, meeting: 0, tasks: 0, workspace: 0 },
+    /* Max consecutive failures before backing off */
+    _MAX_FAILURES: 3,
+    /* API fetch timeout (ms) */
+    _TIMEOUT_MS: 5000,
 
     collect: function () {
       if (!state.settings.contextEnabled) return;
@@ -99,8 +107,14 @@
       /* 3 — Task overdue / unassigned */
       signals = signals.concat(ContextCollector._taskSignals(forceRefresh));
 
-      /* 4 — Workspace activity */
-      signals = signals.concat(ContextCollector._workspaceSignals());
+        if (signals.length) {
+          self._pushToAPI(signals);
+        }
+        if (DEV && signals.length) {
+          console.debug('[MurphyAmbient] collected ' + signals.length + ' signal(s)');
+        }
+      }).catch(function () {});
+    },
 
       /* 5 — Murphy system health signals */
       signals = signals.concat(ContextCollector._murphySystemSignals());
@@ -110,10 +124,21 @@
         var key = sig.source + ':' + sig.type;
         state.context[key] = sig;
       });
+    },
 
-      /* Emit to API for server-side enrichment */
-      if (signals.length) {
-        ContextCollector._pushToAPI(signals);
+    /* Record a success for a source (reset failure counter). */
+    _onSuccess: function (source) {
+      ContextCollector._failures[source] = 0;
+      ContextCollector._retryAfter[source] = 0;
+    },
+
+    /* Record a failure for a source (exponential backoff after _MAX_FAILURES). */
+    _onFailure: function (source) {
+      var f = ++ContextCollector._failures[source];
+      if (f >= ContextCollector._MAX_FAILURES) {
+        /* Backoff: 30 s × 2^(f - MAX) capped at 10 min (600 000 ms) */
+        var backoffMs = Math.min(30000 * Math.pow(2, f - ContextCollector._MAX_FAILURES), 600000);
+        ContextCollector._retryAfter[source] = Date.now() + backoffMs;
       }
     },
 
@@ -135,20 +160,49 @@
         var events = JSON.parse(cached || '[]');
         var now = Date.now();
         events.forEach(function (ev) {
-          var start = new Date(ev.start).getTime();
+          var start = new Date(ev.start || ev.scheduled_start || ev.date).getTime();
+          if (isNaN(start)) return;
           var diff = start - now;
-          /* Meeting within 60 min */
           if (diff > 0 && diff < 3600000) {
-            signals.push({ source: 'calendar', type: 'upcoming_meeting', data: ev, priority: 'high', confidence: 88, label: 'Meeting in ' + Math.round(diff / 60000) + ' min: ' + (ev.title || 'Untitled') });
+            signals.push({ source: source, type: 'upcoming_meeting', data: ev, priority: 'high', confidence: 88, label: 'Meeting in ' + Math.round(diff / 60000) + ' min: ' + (ev.title || ev.name || 'Untitled') });
           }
-          /* Meeting ended within 15 min — post-meeting brief trigger */
           var end = ev.end ? new Date(ev.end).getTime() : start + 3600000;
           if (now > end && now - end < 900000) {
-            signals.push({ source: 'calendar', type: 'post_meeting', data: ev, priority: 'medium', confidence: 75, label: 'Post-meeting brief: ' + (ev.title || 'Untitled') });
+            signals.push({ source: source, type: 'post_meeting', data: ev, priority: 'medium', confidence: 75, label: 'Post-meeting brief: ' + (ev.title || ev.name || 'Untitled') });
           }
         });
-      } catch (_) {}
-      return signals;
+        return signals;
+      }
+
+      /* localStorage fallback */
+      function fromLocalStorage() {
+        try {
+          var events = JSON.parse(localStorage.getItem('murphy_calendar_events') || '[]');
+          return parseEvents(events);
+        } catch (_) { return []; }
+      }
+
+      if (self._isBackedOff(source)) {
+        return Promise.resolve(fromLocalStorage());
+      }
+
+      return self._fetchWithTimeout(BASE_URL + '/api/time-tracking')
+        .then(function (res) {
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          return res.json();
+        })
+        .then(function (data) {
+          var items = data.entries || data.sessions || data.events || data.items || [];
+          if (!Array.isArray(items)) items = [];
+          /* Cache for offline use */
+          try { localStorage.setItem('murphy_calendar_events', JSON.stringify(items)); } catch (_) {}
+          self._onSuccess(source);
+          return parseEvents(items);
+        })
+        .catch(function () {
+          self._onFailure(source);
+          return fromLocalStorage();
+        });
     },
 
     _meetingSignals: function (forceRefresh) {
@@ -176,10 +230,10 @@
           if (unvoted.length) {
             signals.push({ source: 'meeting', type: 'pending_votes', data: { count: unvoted.length, session: session.id }, priority: 'medium', confidence: 82, label: unvoted.length + ' draft(s) pending vote in last meeting' });
           }
-        }
-        var orgSessions = parseInt(localStorage.getItem('murphy_org_sessions') || '0', 10);
+        });
+        var orgSessions = sessions.length;
         if (orgSessions > 0 && orgSessions % 5 === 0) {
-          signals.push({ source: 'meeting', type: 'org_milestone', data: { sessions: orgSessions }, priority: 'low', confidence: 95, label: 'Org milestone: ' + orgSessions + ' sessions completed' });
+          signals.push({ source: source, type: 'org_milestone', data: { sessions: orgSessions }, priority: 'low', confidence: 95, label: 'Org milestone: ' + orgSessions + ' sessions completed' });
         }
         /* Fallback: if localStorage is empty, fetch from the real API and cache for next cycle */
         if (!session && orgSessions === 0) {
@@ -247,10 +301,44 @@
         }
         var overdue = tasks.filter(function (t) { return t.due && new Date(t.due).getTime() < now && t.status !== 'done'; });
         var unassigned = tasks.filter(function (t) { return !t.assignee && t.status !== 'done'; });
-        if (overdue.length) signals.push({ source: 'tasks', type: 'overdue', data: { count: overdue.length }, priority: 'high', confidence: 97, label: overdue.length + ' overdue task(s) need attention' });
-        if (unassigned.length) signals.push({ source: 'tasks', type: 'unassigned', data: { count: unassigned.length }, priority: 'medium', confidence: 88, label: unassigned.length + ' task(s) have no assigned owner' });
-      } catch (_) {}
-      return signals;
+        if (overdue.length) signals.push({ source: source, type: 'overdue', data: { count: overdue.length }, priority: 'high', confidence: 97, label: overdue.length + ' overdue task(s) need attention' });
+        if (unassigned.length) signals.push({ source: source, type: 'unassigned', data: { count: unassigned.length }, priority: 'medium', confidence: 88, label: unassigned.length + ' task(s) have no assigned owner' });
+        return signals;
+      }
+
+      function fromLocalStorage() {
+        try {
+          var tasks = JSON.parse(localStorage.getItem('murphy_tasks') || '[]');
+          return parseTasks(tasks);
+        } catch (_) { return []; }
+      }
+
+      if (self._isBackedOff(source)) {
+        return Promise.resolve(fromLocalStorage());
+      }
+
+      return self._fetchWithTimeout(BASE_URL + '/api/boards')
+        .then(function (res) {
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          return res.json();
+        })
+        .then(function (data) {
+          var boards = data.boards || data.items || data.data || [];
+          if (!Array.isArray(boards)) boards = [];
+          /* Flatten all items across boards into a task list */
+          var tasks = [];
+          boards.forEach(function (board) {
+            var items = board.items || board.tasks || board.cards || [];
+            tasks = tasks.concat(items);
+          });
+          try { localStorage.setItem('murphy_tasks', JSON.stringify(tasks)); } catch (_) {}
+          self._onSuccess(source);
+          return parseTasks(tasks);
+        })
+        .catch(function () {
+          self._onFailure(source);
+          return fromLocalStorage();
+        });
     },
 
     _fetchTasksFromAPI: function () {
@@ -281,12 +369,45 @@
     },
 
     _workspaceSignals: function () {
-      var signals = [];
-      try {
-        var unread = parseInt(localStorage.getItem('murphy_ws_unread') || '0', 10);
-        if (unread > 20) signals.push({ source: 'workspace', type: 'high_unread', data: { count: unread }, priority: 'low', confidence: 70, label: unread + ' unread workspace messages' });
-      } catch (_) {}
-      return signals;
+      var self = ContextCollector;
+      var source = 'workspace';
+
+      function parseActivity(data) {
+        var signals = [];
+        var unread = data.unread_count || data.unread || 0;
+        if (typeof unread !== 'number') unread = parseInt(unread, 10) || 0;
+        if (unread > 20) {
+          signals.push({ source: source, type: 'high_unread', data: { count: unread }, priority: 'low', confidence: 70, label: unread + ' unread workspace messages' });
+        }
+        return signals;
+      }
+
+      function fromLocalStorage() {
+        try {
+          var unread = parseInt(localStorage.getItem('murphy_ws_unread') || '0', 10);
+          if (unread > 20) return [{ source: source, type: 'high_unread', data: { count: unread }, priority: 'low', confidence: 70, label: unread + ' unread workspace messages' }];
+        } catch (_) {}
+        return [];
+      }
+
+      if (self._isBackedOff(source)) {
+        return Promise.resolve(fromLocalStorage());
+      }
+
+      return self._fetchWithTimeout(BASE_URL + '/api/collaboration')
+        .then(function (res) {
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          return res.json();
+        })
+        .then(function (data) {
+          try { localStorage.setItem('murphy_ws_unread', String(data.unread_count || data.unread || 0)); } catch (_) {}
+          self._onSuccess(source);
+          return parseActivity(data);
+        })
+        .catch(function () {
+          self._onFailure(source);
+          return fromLocalStorage();
+        });
     },
 
     _murphySystemSignals: function () {

@@ -11,8 +11,7 @@ fallback to monolith mode.
 Designed to be the PRIMARY orchestrator when MURPHY_RUNTIME_MODE=tiered.
 Each pack handles a domain (e.g. "hvac", "compliance", "analytics") and is
 only loaded if a team profile actually requires those capabilities.
-# Copyright © 2020 Inoni Limited Liability Company / Creator: Corey Post / License: BSL 1.1
-"""
+
 src/runtime/tiered_orchestrator.py
 Primary system orchestrator that manages tiered runtime loading.
 
@@ -23,10 +22,10 @@ original ``MurphySystem`` monolith so the system is never left dark.
 
 Tier overview
 -------------
-- KERNEL   (0) — always loaded; system dies without these
-- PLATFORM (1) — loaded at startup; needed for basic operation
-- DOMAIN   (2) — loaded on-demand based on team / onboarding profile
-- EPHEMERAL(3) — spun up per-task, torn down when done
+- KERNEL   (0) -- always loaded; system dies without these
+- PLATFORM (1) -- loaded at startup; needed for basic operation
+- DOMAIN   (2) -- loaded on-demand based on team / onboarding profile
+- EPHEMERAL(3) -- spun up per-task, torn down when done
 
 Thread-safety
 -------------
@@ -40,15 +39,19 @@ When ``fallback_mode == "monolith"`` and a KERNEL / PLATFORM pack fails,
 fallback is actually triggered.
 
 Python 3.9+ compatible.
+
+Copyright (c) 2020 Inoni Limited Liability Company / Creator: Corey Post / License: BSL 1.1
 """
 
 from __future__ import annotations
 
+import importlib
 import logging
+import threading
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Union
 
 logger = logging.getLogger("murphy.tiered_orchestrator")
 
@@ -59,21 +62,15 @@ logger = logging.getLogger("murphy.tiered_orchestrator")
 
 
 class PackStatus(Enum):
-    """Lifecycle state of a RuntimePack."""
+    """Lifecycle state of a RuntimePack (merged from both simple and tiered defs)."""
     REGISTERED = "registered"  # Pack is known to the orchestrator but not yet loaded.
-    LOADING = "loading"        # Pack is currently being loaded (on_load running).
+    LOADING = "loading"        # Pack is currently being loaded.
     LOADED = "loaded"          # Pack is fully loaded and its router (if any) is active.
+    ACTIVE = "active"          # Pack is active (alias used by tiered orchestrator).
+    IDLE = "idle"              # Pack is loaded but idle (candidate for eviction).
+    UNLOADING = "unloading"    # Pack is being unloaded.
     FAILED = "failed"          # Pack failed to load; error details in pack.error.
     UNLOADED = "unloaded"      # Pack was deliberately unloaded or skipped at boot.
-import importlib
-import logging
-import threading
-import time
-from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any, Dict, List, Optional
-
-logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -84,22 +81,10 @@ logger = logging.getLogger(__name__)
 class RuntimeTier(str, Enum):
     """Execution tier for a runtime pack."""
 
-    KERNEL = "kernel"      # Tier 0 — always loaded, system dies without these
-    PLATFORM = "platform"  # Tier 1 — loaded at startup, needed for basic operation
-    DOMAIN = "domain"      # Tier 2 — loaded on-demand based on team/onboarding profile
-    EPHEMERAL = "ephemeral"  # Tier 3 — spun up per-task, torn down when done
-
-
-class PackStatus(str, Enum):
-    """Lifecycle status of a runtime pack."""
-
-    REGISTERED = "registered"
-    LOADING = "loading"
-    ACTIVE = "active"
-    IDLE = "idle"
-    UNLOADING = "unloading"
-    UNLOADED = "unloaded"
-    FAILED = "failed"
+    KERNEL = "kernel"      # Tier 0 -- always loaded, system dies without these
+    PLATFORM = "platform"  # Tier 1 -- loaded at startup, needed for basic operation
+    DOMAIN = "domain"      # Tier 2 -- loaded on-demand based on team/onboarding profile
+    EPHEMERAL = "ephemeral"  # Tier 3 -- spun up per-task, torn down when done
 
 
 # ---------------------------------------------------------------------------
@@ -109,35 +94,30 @@ class PackStatus(str, Enum):
 
 @dataclass
 class RuntimePack:
-    """
-    Describes a loadable domain pack.
+    """Definition and runtime state of a loadable capability pack.
 
     A pack bundles:
       - A set of *capabilities* it provides (e.g. ``{"hvac", "energy_management"}``).
+      - Tier, module list, and dependency declarations for tiered loading.
       - An optional *router_factory* callable that returns a FastAPI ``APIRouter``
         when the pack is active.
       - Optional *on_load* / *on_unload* hooks for setup/teardown.
     """
     name: str
-    capabilities: Set[str] = field(default_factory=set)
+    capabilities: Union[Set[str], List[str]] = field(default_factory=set)  # Set[str] or List[str]
     description: str = ""
     version: str = "1.0.0"
-    router_factory: Optional[Any] = None  # () -> APIRouter | None
-    on_load: Optional[Any] = None        # async () -> None
-    on_unload: Optional[Any] = None      # async () -> None
-    status: PackStatus = PackStatus.REGISTERED
-    router: Optional[Any] = None         # populated after load
-    """Definition and runtime state of a loadable capability pack."""
-
-    name: str
-    tier: RuntimeTier
-    modules: List[str]          # e.g. ["src.hvac_controller", "src.sensor_fusion"]
-    dependencies: List[str]     # other pack names this depends on
-    capabilities: List[str]     # capability tags from onboarding
-    api_routers: List[str]      # FastAPI router dotted paths
+    tier: Optional[Any] = None                # RuntimeTier, optional for simple packs
+    modules: List[str] = field(default_factory=list)
+    dependencies: List[str] = field(default_factory=list)
+    api_routers: List[str] = field(default_factory=list)
     idle_timeout_minutes: int = 30
     max_memory_mb: int = 512
+    router_factory: Optional[Any] = None      # () -> APIRouter | None
+    on_load: Optional[Any] = None             # async () -> None
+    on_unload: Optional[Any] = None           # async () -> None
     status: PackStatus = PackStatus.REGISTERED
+    router: Optional[Any] = None              # populated after load
     last_activity: Optional[float] = None
     load_time_ms: float = 0.0
     error: Optional[str] = None
@@ -147,16 +127,11 @@ class RuntimePack:
 class BootResult:
     """Result returned by :meth:`TieredOrchestrator.boot`."""
     success: bool
+    fallback_used: bool = False
     loaded_packs: List[str] = field(default_factory=list)
     skipped_packs: List[str] = field(default_factory=list)
     failed_packs: List[str] = field(default_factory=list)
     errors: List[str] = field(default_factory=list)
-    """Result of a ``TieredOrchestrator.boot()`` call."""
-
-    success: bool
-    fallback_used: bool = False
-    loaded_packs: List[str] = field(default_factory=list)
-    failed_packs: List[str] = field(default_factory=list)
     error: Optional[str] = None
     boot_time_ms: float = 0.0
 
@@ -312,7 +287,7 @@ class TieredOrchestrator:
     @property
     def packs(self) -> Dict[str, RuntimePack]:
         """Read-only view of all registered packs."""
-        return dict(self._packs)
+        return dict(self._registry)
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -357,6 +332,8 @@ class TieredOrchestrator:
 
         # Registry of all packs keyed by name
         self._registry: Dict[str, RuntimePack] = {}
+        # Alias for backward compat with methods that use self._packs
+        self._packs = self._registry
 
         # Active packs dict (name → pack)
         self._active_packs: Dict[str, RuntimePack] = {}
@@ -381,15 +358,12 @@ class TieredOrchestrator:
     def register_pack(self, pack: RuntimePack) -> None:
         """Register a ``RuntimePack`` with the orchestrator.
 
-        Raises ``ValueError`` if a pack with the same name is already
-        registered.
+        Silently ignores duplicate registrations (same pack name).
         """
         with self._lock:
             if pack.name in self._registry:
-                raise ValueError(
-                    f"Pack '{pack.name}' is already registered. "
-                    "Use a unique pack name."
-                )
+                logger.warning("Pack '%s' already registered -- skipping duplicate.", pack.name)
+                return
             self._registry[pack.name] = pack
             logger.debug("Registered pack '%s' (tier=%s)", pack.name, pack.tier)
 
@@ -477,18 +451,40 @@ class TieredOrchestrator:
                         "No pack found for capability '%s'", capability
                     )
 
+        # ---- Step 4: Untiered packs (tier=None) — for backward compat ----
+        # Packs with no tier are treated like simple packs: load all of them
+        # when no team_profile is given, or filter by capability intersection
+        # when a team_profile is provided.
+        skipped: List[str] = []
+        required_caps: set = set(team_profile.get("capabilities", [])) if team_profile else set()
+        with self._lock:
+            untiered_packs = [p for p in self._registry.values() if p.tier is None]
+        for pack in untiered_packs:
+            pack_caps = set(pack.capabilities) if pack.capabilities else set()
+            if not required_caps or pack_caps & required_caps:
+                ok = await self._load_pack(pack)
+                if ok:
+                    loaded.append(pack.name)
+                else:
+                    failed.append(pack.name)
+            else:
+                pack.status = PackStatus.UNLOADED
+                skipped.append(pack.name)
+
         elapsed_ms = (time.monotonic() - start) * 1000
         logger.info(
-            "TieredOrchestrator.boot() completed in %.1f ms — "
-            "loaded=%s, failed=%s",
+            "TieredOrchestrator.boot() completed in %.1f ms -- "
+            "loaded=%s, failed=%s, skipped=%s",
             elapsed_ms,
             loaded,
             failed,
+            skipped,
         )
         return BootResult(
-            success=True,
+            success=len(failed) == 0,
             fallback_used=False,
             loaded_packs=loaded,
+            skipped_packs=skipped,
             failed_packs=failed,
             boot_time_ms=elapsed_ms,
         )
@@ -517,7 +513,7 @@ class TieredOrchestrator:
             if pack is None:
                 logger.error("load_pack: unknown pack '%s'", pack_name)
                 return False
-            if pack.status == PackStatus.ACTIVE:
+            if pack.status in (PackStatus.LOADED, PackStatus.ACTIVE):
                 logger.debug("Pack '%s' is already active", pack_name)
                 return True
             if pack.status == PackStatus.LOADING:
@@ -585,7 +581,7 @@ class TieredOrchestrator:
         elapsed_ms = (time.monotonic() - load_start) * 1000
 
         with self._lock:
-            pack.status = PackStatus.ACTIVE
+            pack.status = PackStatus.LOADED
             pack.last_activity = time.time()
             pack.load_time_ms = elapsed_ms
             pack.error = None
@@ -619,7 +615,7 @@ class TieredOrchestrator:
                 )
                 return False
 
-            if pack.status not in (PackStatus.ACTIVE, PackStatus.IDLE):
+            if pack.status not in (PackStatus.LOADED, PackStatus.ACTIVE, PackStatus.IDLE):
                 logger.debug(
                     "unload_pack: pack '%s' is not active/idle (status=%s)",
                     pack_name,
