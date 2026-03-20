@@ -1257,6 +1257,8 @@ What additional information would help me assist you better?"""
         for gate in gates:
             # Simple check: if gate risk is mentioned in any answer, consider it addressed
             for answer in answers.values():
+                if answer is None:
+                    continue  # Skip unanswered question placeholders
                 if any(word in answer.lower() for word in gate['risk'].lower().split()[:3]):
                     gate['satisfied'] = True
                     satisfied_gates += 1
@@ -1297,7 +1299,7 @@ CRITICAL INSTRUCTIONS:
 
 EXECUTE NOW and provide the complete deliverable."""
 
-            if self.llm_available:
+            if self.llm_available and getattr(self, "llm_mode", "offline") != "offline":
                 try:
                     response = self._call_llm(execution_prompt, max_tokens=4000)
 
@@ -1353,7 +1355,10 @@ Generate 2-3 TARGETED questions that specifically address:
 
 Make questions specific and actionable."""
 
-            if self.llm_available:
+            # Only use the LLM for the questioning phase when a *real* external LLM
+            # is available.  The offline fallback does not handle the complex system
+            # prompt format well, so we skip directly to deterministic questions.
+            if self.llm_available and getattr(self, "llm_mode", "offline") != "offline":
                 try:
                     questions_text = self._call_llm(more_questions_prompt, max_tokens=400)
 
@@ -1389,12 +1394,53 @@ Make questions specific and actionable."""
                     }
                 except Exception as exc:
                     logger.debug("Caught exception: %s", exc)
-                    return {
-                        'content': f"Error generating questions: {str(exc)}",
-                        'confidence': confidence,
-                        'band': 'conversational',
-                        'error': str(exc)
-                    }
+                    # Fall through to offline structured response below
+
+            # Offline / LLM-failure path — build structured questions deterministically
+            # from the remaining unknowns so the conversation can still progress.
+            offline_questions = []
+            _unknown_to_question = {
+                "timeline": "What is your timeline or deadline for this project?",
+                "budget": "What is your approximate budget for this automation?",
+                "user personas": "Who are the main users or stakeholders involved?",
+                "decision makers": "Who needs to approve or sign off on this?",
+                "data sources": "What data sources or systems does this need to connect to?",
+                "integrations": "Which tools or platforms do you currently use that need to be integrated?",
+                "volume": "How many transactions, records, or events does this handle per day/week?",
+                "compliance": "Are there any compliance, legal, or security requirements to consider?",
+                "frequency": "How often should this automation run (real-time, hourly, daily, on-demand)?",
+                "success metrics": "How will you measure success? What does a good outcome look like?",
+            }
+            for unknown in expansion_result.remaining_unknowns[:4]:
+                unknown_lower = unknown.lower()
+                matched = False
+                for key, question in _unknown_to_question.items():
+                    if key in unknown_lower:
+                        if question not in offline_questions:
+                            offline_questions.append(question)
+                        matched = True
+                        break
+                if not matched:
+                    # Generic question from the unknown text
+                    offline_questions.append(f"Can you tell me more about: {unknown}?")
+
+            if offline_questions:
+                q_text = "\n".join(f"{i+1}. {q}" for i, q in enumerate(offline_questions[:3]))
+                status_msg = (
+                    f"I have a good start on your request. To build the best automation plan, "
+                    f"I need a few more details:\n\n{q_text}\n\n"
+                    f"*(Gate satisfaction: {gate_satisfaction:.0%} of 85% needed — "
+                    f"{unknowns_count} unknowns remaining)*"
+                )
+                return {
+                    'content': status_msg,
+                    'confidence': confidence,
+                    'band': 'conversational',
+                    'questioning_mode': True,
+                    'status': 'RESOLVING_GATES',
+                    'gate_satisfaction': gate_satisfaction,
+                    'unknowns_count': unknowns_count
+                }
 
         return {
             'content': "Unable to process with context",

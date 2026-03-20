@@ -157,6 +157,18 @@ class LocalLLMFallback:
             "murphy_setup": """To set up Murphy System: 1) Run the startup script (start_murphy_1.0.sh). 2) Set your Groq API key using 'set key groq gsk_yourKeyHere' in the terminal. 3) Type 'start interview' for guided onboarding. 4) Use 'status' to verify connectivity. 5) Use 'execute <task>' to start automating. For API keys, type 'api keys' to see all available integrations.""",
 
             "murphy_troubleshooting": """Common Murphy troubleshooting: If LLM is not working, check 'llm status' and ensure your API key is set with 'set key groq <key>'. If the backend is unreachable, try 'reconnect' or 'set api <url>'. If you're stuck, type 'help' for available commands. For API key issues, use 'set key <provider> <key>' to set keys inline without restarting.""",
+
+            "automation": """Business automation with Murphy System lets you streamline repetitive tasks and workflows. Common automation types include: order processing (route new orders → update inventory → send confirmation), customer onboarding (welcome emails → account setup → intro sequence), reporting (gather data → format → email to stakeholders), and lead nurturing (capture → score → route to CRM). Murphy integrates with Shopify, Stripe, QuickBooks, Slack, Gmail, and 80+ other platforms. Type 'start interview' to begin setting up your first automation.""",
+
+            "e-commerce": """Murphy System supports e-commerce automation across the full order lifecycle. Key automations include: order fulfillment (new order → pick/pack notification → shipping label → tracking email), inventory management (low stock → reorder alert → supplier notification), customer service (return request → auto-approve → refund trigger), and revenue reporting (daily sales summary → email to owner). Integrates with Shopify, WooCommerce, Amazon, Stripe, PayPal, and ShipStation. To get started, describe your store and what you want to automate.""",
+
+            "workflow": """Workflow automation connects your business tools so tasks happen automatically. A workflow consists of a trigger (what starts it), conditions (rules to check), and actions (what to do). Examples: "When a new lead fills out a form → add to CRM → send welcome email → schedule follow-up call". Murphy uses MFGC gates to ensure workflows are safe and complete before deploying. Key integrations: Zapier, Make (Integromat), HubSpot, Salesforce, Google Sheets, Airtable.""",
+
+            "integrations": """Murphy System connects with 80+ platforms including: CRM (HubSpot, Salesforce, Pipedrive), payments (Stripe, PayPal, Square), accounting (QuickBooks, Xero), email (Gmail, Outlook, Mailchimp), messaging (Slack, Teams, Twilio), e-commerce (Shopify, WooCommerce), project management (Asana, Trello, Jira), calendar (Google Calendar, Calendly), and storage (Google Drive, Dropbox, S3). Type 'api keys' to see all available integrations and how to connect them.""",
+
+            "crm": """CRM (Customer Relationship Management) automation with Murphy tracks leads, customers, and deals automatically. Common automations: new contact → add to CRM → assign to rep → send intro email; deal won → trigger onboarding workflow → update forecast; deal lost → add to re-engagement sequence. Murphy integrates with HubSpot, Salesforce, Pipedrive, and Zoho CRM. Murphy can also sync CRM data with your calendar, email, and billing systems.""",
+
+            "reporting": """Automated reporting with Murphy System generates and delivers business insights on schedule. Common report automations: daily sales summary (gather Stripe data → format → email to owner at 8am), weekly KPI report (pull metrics from CRM + analytics → create PDF → send to team), monthly P&L (QuickBooks data → formatted spreadsheet → send to accountant). Murphy can send reports via email, Slack, or save to Google Drive. Describe your reporting needs to get started.""",
         }
 
     def _build_patterns(self) -> List[Tuple[str, str]]:
@@ -170,6 +182,13 @@ class LocalLLMFallback:
             (r"(why|when|where) (.+)", "reasoning"),
             (r"(create|build|make|design) (.+)", "creation"),
             (r"(best|good|recommend) (.+)", "recommendation"),
+            (r"(automate|automation) (.+)", "automation"),
+            (r"(integrate|connect|sync) (.+)", "integration"),
+            (r"(help|assist|support) (.+)", "help"),
+            (r"i (run|own|have|manage|operate) (.+)", "business"),
+            (r"(my business|my company|our company|our business) (.+)", "business"),
+            (r"(set up|setup|configure|deploy) (.+)", "creation"),
+            (r"(fix|troubleshoot|debug|solve|resolve) (.+)", "explanation"),
         ]
 
     @property
@@ -204,22 +223,33 @@ class LocalLLMFallback:
         return self._generate_offline(prompt, max_tokens)
 
     def _generate_offline(self, prompt: str, max_tokens: int = 500) -> str:
-        """Generate a response using the built-in pattern matcher."""
-        prompt_lower = prompt.lower()
+        """Generate a response using the built-in pattern matcher.
 
-        # Check knowledge base for direct matches
+        When the prompt contains system-injected context (e.g. "Context: ...\n\n<user
+        message>"), only the actual user query (after the last blank-line separator)
+        is used for knowledge-base topic matching and pattern detection.  This prevents
+        system-context words such as "murphy" or "groq" from hijacking the topic lookup
+        and returning an irrelevant knowledge-base entry.
+        """
+        # Isolate the user-facing query from any prepended system context.
+        # Convention: context and query are separated by one or more blank lines.
+        parts = [p.strip() for p in prompt.split("\n\n") if p.strip()]
+        query = parts[-1] if parts else prompt
+        query_lower = query.lower()
+
+        # Check knowledge base against the user query only (not injected context).
         for topic, content in self.knowledge_base.items():
-            if topic.replace("_", " ") in prompt_lower:
+            if topic.replace("_", " ") in query_lower:
                 return self._format_response(content, max_tokens)
 
-        # Pattern-based responses
+        # Pattern-based responses — also applied to the user query.
         for pattern, response_type in self.patterns:
-            match = re.search(pattern, prompt_lower)
+            match = re.search(pattern, query_lower)
             if match:
-                return self._generate_by_type(response_type, prompt, max_tokens)
+                return self._generate_by_type(response_type, query, max_tokens)
 
-        # Default intelligent response
-        return self._generate_default_response(prompt, max_tokens)
+        # Default intelligent response uses the clean user query.
+        return self._generate_default_response(query, max_tokens)
 
     def _format_response(self, content: str, max_tokens: int) -> str:
         """Format response to fit within token limit"""
@@ -269,8 +299,8 @@ For detailed, up-to-date information, I recommend consulting online resources or
 
 Note: I'm currently in offline mode. For comprehensive, current information, please check online resources when available."""
 
-        elif response_type == "creation":
-            return f"""To create/build '{prompt}', here's a structured approach:
+        elif response_type in ("creation", "integration"):
+            return f"""To create/build/connect '{prompt}', here's a structured approach:
 
 **Planning Phase**:
 1. Define clear objectives and requirements
@@ -314,6 +344,69 @@ I'm operating in offline mode, so for specific technical details and current bes
 - Iterate based on feedback
 
 Note: I'm in offline mode. For current recommendations and comparisons, please check online resources and community forums when internet is available."""
+
+        elif response_type == "automation":
+            return f"""Great — let's automate '{prompt}'!
+
+Murphy System can help you build this automation. Here's the framework:
+
+**Step 1 — Define the Trigger**
+What event starts the automation? (e.g., new order, form submission, scheduled time)
+
+**Step 2 — Set the Conditions**
+Are there rules or checks? (e.g., order value > $50, customer is new, specific product category)
+
+**Step 3 — Define the Actions**
+What should happen automatically? (e.g., send email, update spreadsheet, notify Slack, create record)
+
+**Step 4 — Connect Your Tools**
+Which platforms need to be integrated? Murphy supports Shopify, Stripe, Gmail, Slack, QuickBooks, and 80+ others.
+
+**To proceed**: Type `start interview` to walk through your specific automation needs, or describe exactly what triggers and actions you want.
+
+💡 Add a Groq API key (`set key groq gsk_...`) to unlock full AI-powered planning."""
+
+        elif response_type == "business":
+            return f"""Thanks for sharing information about your business!
+
+To help you automate effectively, Murphy needs a few details:
+
+**1. What specific tasks take the most time?**
+(e.g., processing orders, sending invoices, answering customer emails, scheduling, data entry)
+
+**2. What tools do you currently use?**
+(e.g., Shopify, QuickBooks, Gmail, Slack, Airtable, Stripe)
+
+**3. What's your biggest pain point?**
+(e.g., orders get lost, manual data entry, slow customer response, missed follow-ups)
+
+**4. How often does this process happen?**
+(e.g., daily, per order, weekly)
+
+Once I understand your workflow, I can build an automation blueprint for you. Type `start interview` for a guided setup, or keep describing your situation here.
+
+💡 **Pro tip**: Add a Groq API key for richer, more tailored automation planning."""
+
+        elif response_type == "help":
+            return f"""I'm Murphy — your AI automation assistant. Here's how I can help:
+
+**Available Commands**:
+• `start interview` — Begin guided onboarding to set up your first automation
+• `help` — Show all available commands
+• `status` — Check system health
+• `api keys` — See all supported integrations and how to connect them
+• `set key groq <key>` — Add a Groq API key for full AI capabilities
+
+**What I Automate**:
+- Order fulfillment & e-commerce workflows
+- Customer onboarding & email sequences
+- CRM updates & lead routing
+- Invoicing & payment collection
+- Reporting & data sync
+
+**To get started**: Describe your business and what you want to automate, then type `start interview`.
+
+Get a free Groq key at https://console.groq.com/keys for the best experience."""
 
         else:
             return self._generate_default_response(prompt, max_tokens)
