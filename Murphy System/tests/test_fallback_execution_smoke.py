@@ -126,3 +126,32 @@ def test_executor_does_not_fallback_for_hitl_even_if_route_exists():
     assert result['success'] is False
     assert result['status'] == 'hitl_required'
     assert 'fallback_result' not in result
+
+
+def test_executor_does_not_fallback_for_planner_drift_without_blocking_gate():
+    executor = CoreExecutor()
+    executor._murphy = None
+    executor._swarm = None
+    planner = CorePlanner()
+    request = CoreRequest.new(message='drift task', mode='execute')
+    expansion = ControlExpansion(
+        request_id=request.request_id,
+        selected_route=RouteType.DETERMINISTIC,
+        selected_module_families=['operator'],
+        execution_constraints={'primary_family': 'swarm'},
+        allowed_actions=[{'action': 'respond'}, {'action': 'execute'}],
+        fallback_policy={
+            'fallback_route': 'legacy_adapter',
+            'allow_automatic_fallback': True,
+            'fallback_on_block': True,
+            'fallback_on_review': False,
+            'fallback_on_hitl': False,
+        },
+    )
+    plan = planner.compile_plan(expansion, gate_results=[], source_message=request.message)
+
+    result = asyncio.run(executor.execute(request, plan))
+
+    assert result['success'] is False
+    assert result['status'] == 'blocked'
+    assert 'fallback_result' not in result

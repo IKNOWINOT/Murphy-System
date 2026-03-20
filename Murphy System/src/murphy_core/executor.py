@@ -167,6 +167,7 @@ class CoreExecutor:
         fallback_on_block = bool(fallback_policy.get("fallback_on_block", True))
         fallback_on_review = bool(fallback_policy.get("fallback_on_review", False))
         fallback_on_hitl = bool(fallback_policy.get("fallback_on_hitl", False))
+        blocking_gates = list(gate_summary.get("blocking_gates") or [])
 
         if fallback_route != RouteType.LEGACY_ADAPTER.value:
             return None
@@ -176,7 +177,9 @@ class CoreExecutor:
             return None
         if gate_summary.get("requires_hitl") and not fallback_on_hitl:
             return None
-        if not gate_summary.get("blocking_gates") and not fallback_on_block:
+        if not blocking_gates:
+            return None
+        if not fallback_on_block:
             return None
 
         fallback_result = await self._execute_legacy_adapter_fallback(request)

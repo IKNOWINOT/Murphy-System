@@ -87,8 +87,9 @@ python -m src.runtime.main_core_v3_canonical_execution_surface_v5
 - review and HITL gate outcomes now pause execution explicitly instead of falling through to normal execution
 - fallback-policy metadata now flows through the execution plan and endpoint results
 - explicit legacy-adapter fallback execution is now supported for hard block conditions when the plan policy opts in
+- fallback no longer activates for planner/enforcement drift without actual blocking gates
 - canonical v5 app responses and stored traces now expose execution status and recovery/fallback state consistently
-- smoke tests now cover canonical v5 runtime-truth alignment, planner/executor enforcement drift blocking, endpoint-level review/HITL pauses, explicit fallback execution, and trace/recovery persistence
+- smoke tests now cover canonical v5 runtime-truth alignment, planner/executor enforcement drift blocking, endpoint-level review/HITL pauses, explicit fallback execution, fallback boundary enforcement, and trace/recovery persistence
 
 ---
 
