@@ -4830,12 +4830,68 @@ def create_app() -> FastAPI:
 
     @app.get("/api/llm/providers")
     async def llm_providers_list():
-        """List configured LLM providers."""
+        """List configured LLM providers with live Ollama status."""
+        from src.local_llm_fallback import (
+            _check_ollama_available,
+            _ollama_base_url,
+            _ollama_list_models,
+            _preferred_ollama_models,
+        )
+        base_url = _ollama_base_url()
+        ollama_up = _check_ollama_available(base_url)
+        pulled_models = _ollama_list_models(base_url) if ollama_up else []
+        preferred = _preferred_ollama_models()
+
+        providers = [
+            {
+                "id": "ollama",
+                "name": "Ollama (Local)",
+                "type": "local",
+                "available": ollama_up,
+                "default_model": preferred[0] if preferred else "phi3",
+                "preferred_models": preferred,
+                "pulled_models": pulled_models,
+                "base_url": base_url,
+                "description": "Local LLM inference via Ollama. Runs phi3 by default.",
+            },
+            {
+                "id": "groq",
+                "name": "Groq Cloud",
+                "type": "cloud",
+                "available": bool(os.getenv("GROQ_API_KEY") or os.getenv("GROQ_API_KEYS")),
+                "default_model": "llama3-70b-8192",
+                "description": "Groq fast inference cloud API. Requires GROQ_API_KEY.",
+            },
+            {
+                "id": "aristotle",
+                "name": "Aristotle (Deterministic)",
+                "type": "local",
+                "available": True,
+                "default_model": "aristotle-deterministic",
+                "description": "Deterministic validation engine for math/physics domains.",
+            },
+            {
+                "id": "wulfrum",
+                "name": "Wulfrum (Fuzzy Match)",
+                "type": "local",
+                "available": True,
+                "default_model": "wulfrum-fuzzy",
+                "description": "Fuzzy match engine for approximate validation.",
+            },
+        ]
+
+        active = None
+        if ollama_up and pulled_models:
+            active = "ollama"
+        elif os.getenv("GROQ_API_KEY") or os.getenv("GROQ_API_KEYS"):
+            active = "groq"
+
         return JSONResponse({
             "success": True,
-            "providers": [],
-            "active": None,
-            "message": "Configure MURPHY_LLM_PROVIDER to enable LLM integration",
+            "providers": providers,
+            "active": active,
+            "ollama_available": ollama_up,
+            "phi3_ready": ollama_up and any("phi3" in m for m in pulled_models),
         })
 
     @app.get("/api/hitl/queue")

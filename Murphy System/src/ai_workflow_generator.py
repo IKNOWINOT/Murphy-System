@@ -518,6 +518,10 @@ class AIWorkflowGenerator:
         """Convert a *generate_workflow()* output dict into a ``WorkflowDefinition``
         that can be registered with and executed by ``WorkflowDAGEngine``.
 
+        Accepts both the internal generator shape (``workflow_id``, ``steps``) and
+        the API response shape returned by ``POST /api/workflows/generate``
+        (``id``, ``nodes`` where each node wraps a step under a ``data`` key).
+
         Each step's ``type`` is mapped to the appropriate LLM-backed action
         handler so that every step actually produces real output when executed.
         """
@@ -526,15 +530,40 @@ class AIWorkflowGenerator:
         except ImportError as exc:
             raise ImportError("workflow_dag_engine is required") from exc
 
+        # ── Normalise workflow_id — accept "workflow_id" or "id" ──────────────
+        wf_id = (
+            workflow_dict.get("workflow_id")
+            or workflow_dict.get("id")
+            or hashlib.sha256(
+                workflow_dict.get("name", "workflow").encode()
+            ).hexdigest()[:12]
+        )
+
+        # ── Normalise step list — accept "steps" or "nodes" (API shape) ───────
+        raw_steps = workflow_dict.get("steps") or []
+        if not raw_steps:
+            # API /api/workflows/generate returns nodes: [{id, label, type, data}]
+            raw_steps = [
+                node.get("data") or {
+                    "name": node.get("id", f"step_{i}"),
+                    "type": node.get("type", "execution"),
+                    "description": node.get("label", ""),
+                    "depends_on": [],
+                }
+                for i, node in enumerate(workflow_dict.get("nodes") or [])
+            ]
+
         step_defs = []
-        for s in workflow_dict.get("steps", []):
+        for s in raw_steps:
+            # Prefer explicit step_id; fall back to name (generator shape)
+            sid = s.get("step_id") or s.get("name") or s.get("id", "step")
             action = self._STEP_TYPE_TO_ACTION.get(
                 s.get("type", "execution"), "execute"
             )
             step_defs.append(
                 StepDefinition(
-                    step_id=s["name"],
-                    name=s.get("description", s["name"]),
+                    step_id=sid,
+                    name=s.get("description") or s.get("name") or sid,
                     action=action,
                     depends_on=list(s.get("depends_on", [])),
                     metadata={
@@ -547,7 +576,7 @@ class AIWorkflowGenerator:
             )
 
         return WorkflowDefinition(
-            workflow_id=workflow_dict["workflow_id"],
+            workflow_id=wf_id,
             name=workflow_dict.get("name", "generated_workflow"),
             description=workflow_dict.get("description", "")[:300],
             steps=step_defs,
