@@ -105,6 +105,32 @@ def create_app() -> FastAPI:
     def _now_iso():
         return datetime.now(timezone.utc).isoformat()
 
+    # ═══════════════════════════════════════════════════════════════
+    # PRIORITY 1 — API Collection Agent (always loaded first)
+    # Guides users through getting every API/SDK key their system needs.
+    # This must be the first subsystem attached to app.state so every
+    # downstream route can reference it without ImportError.
+    # ═══════════════════════════════════════════════════════════════
+    try:
+        from src.api_collection_agent import APICollectionAgent as _APICollectionAgent
+        _api_collection_agent = _APICollectionAgent(base_url="http://localhost:8000")
+        app.state.api_collection_agent = _api_collection_agent
+        logger.info("APICollectionAgent initialised — ready to guide API/SDK setup")
+    except Exception as _aca_exc:
+        logger.warning("APICollectionAgent init failed: %s", _aca_exc)
+        app.state.api_collection_agent = None
+
+    # ── WorldModelRegistry (integration connectors) ──────────────
+    try:
+        from src.integrations.world_model_registry import WorldModelRegistry as _WMR
+        app.state.world_model_registry = _WMR()
+        logger.info("WorldModelRegistry initialised with %d connectors",
+                    len(app.state.world_model_registry.list_integrations()))
+    except Exception as _wmr_exc:
+        logger.warning("WorldModelRegistry init failed: %s", _wmr_exc)
+        app.state.world_model_registry = None
+
+
     # ── Account manager (singleton) — wraps OAuthProviderRegistry and
     #    handles account creation / linking after every OAuth callback.
     #    A simple in-memory session store maps session tokens to account IDs.
@@ -846,6 +872,236 @@ def create_app() -> FastAPI:
             "recommendations": recs,
             "count": len(recs),
         })
+
+    # ==================== API COLLECTION AGENT ENDPOINTS ====================
+    # These are loaded first and surface the "things to get done" checklist
+    # that guides every user through obtaining the API/SDK keys their system needs.
+
+    @app.get("/api/setup/checklist")
+    async def setup_checklist(request: Request):
+        """Return the system setup checklist — what API keys are missing and what
+        integrations are unconfigured.  This is the primary 'things to do' feed
+        shown on the dashboard."""
+        import os
+        # Core LLM keys
+        llm_items = []
+        for provider, env_var, label, url in [
+            ("groq",      "GROQ_API_KEY",      "Groq (recommended, free)",
+             "https://console.groq.com/keys"),
+            ("openai",    "OPENAI_API_KEY",     "OpenAI (GPT-4)",
+             "https://platform.openai.com/api-keys"),
+            ("anthropic", "ANTHROPIC_API_KEY",  "Anthropic (Claude)",
+             "https://console.anthropic.com/"),
+        ]:
+            val = os.environ.get(env_var, "")
+            configured = bool(val and not val.startswith("your_") and not val.startswith("sk-your")
+                               and val != "sk-ant-your_anthropic_key_here")
+            llm_items.append({
+                "id": f"llm_{provider}", "category": "llm", "label": label,
+                "env_var": env_var, "configured": configured,
+                "setup_url": url, "priority": 1,
+                "description": f"Needed for AI chat, workflow generation, and document assistance.",
+                "action": f"POST /api/credentials/store with provider={provider}",
+            })
+
+        # Integration connectors via WorldModelRegistry
+        integration_items = []
+        try:
+            wmr = getattr(request.app.state, "world_model_registry", None)
+            if wmr:
+                for item in wmr.list_integrations():
+                    integration_items.append({
+                        "id": f"integration_{item['id']}",
+                        "category": item["category"],
+                        "label": item["name"],
+                        "configured": item["configured"],
+                        "free_tier": item["free_tier"],
+                        "priority": 2,
+                        "description": f"Connect {item['name']} to enable automated {item['category']} workflows.",
+                        "action": f"POST /api/credentials/store with provider={item['id']}",
+                    })
+        except Exception as _e:
+            logger.debug("Checklist: WorldModelRegistry unavailable: %s", _e)
+
+        all_items = llm_items + integration_items
+        pending   = [i for i in all_items if not i["configured"]]
+        done      = [i for i in all_items if i["configured"]]
+
+        return JSONResponse({
+            "success": True,
+            "checklist": all_items,
+            "pending": pending,
+            "done": done,
+            "pending_count": len(pending),
+            "done_count": len(done),
+            "total_count": len(all_items),
+            "completion_pct": round(len(done) / max(len(all_items), 1) * 100, 1),
+        })
+
+    @app.get("/api/setup/api-collection/status")
+    async def api_collection_status(request: Request):
+        """Return the API Collection Agent queue — pending approvals, blanks to fill."""
+        agent = getattr(request.app.state, "api_collection_agent", None)
+        if agent is None:
+            return JSONResponse({"success": False, "error": "APICollectionAgent not initialised"}, status_code=503)
+        return JSONResponse({
+            "success": True,
+            "pending_count": len(agent.pending_requests()),
+            "requests_with_blanks": len(agent.requests_with_blanks()),
+            "pending": [r.to_dict() for r in agent.pending_requests()[:20]],
+        })
+
+    @app.get("/api/setup/api-collection/guide/{integration_id}")
+    async def api_collection_guide(integration_id: str, request: Request):
+        """Return step-by-step guidance for obtaining and configuring a specific
+        integration's API key/SDK.  The agent pre-fills everything it can from
+        the current environment so the user only has to fill in blanks."""
+        # Integration metadata from registry
+        try:
+            from src.integrations.world_model_registry import _CONNECTOR_MAP, _INTEGRATION_META
+        except Exception:
+            _CONNECTOR_MAP = {}
+            _INTEGRATION_META = {}
+
+        if integration_id not in _INTEGRATION_META and integration_id not in {
+            "groq", "openai", "anthropic"
+        }:
+            return JSONResponse({"success": False, "error": f"Unknown integration: {integration_id}"}, status_code=404)
+
+        # Standard LLM providers
+        _llm_guide = {
+            "groq": {
+                "name": "Groq", "env_var": "GROQ_API_KEY",
+                "steps": [
+                    {"step": 1, "title": "Create account", "url": "https://console.groq.com", "description": "Sign up at console.groq.com — free tier, no credit card needed."},
+                    {"step": 2, "title": "Generate API key", "url": "https://console.groq.com/keys", "description": "Click '+ Create API Key', name it 'murphy-system', copy the gsk_... value."},
+                    {"step": 3, "title": "Set key", "description": "In the Murphy terminal: set key groq <your-key>  or  POST /api/credentials/store"},
+                ],
+                "free_tier": True, "notes": "Rate limit: 30 req/min on free tier. Upgrade at console.groq.com/billing.",
+            },
+            "openai": {
+                "name": "OpenAI", "env_var": "OPENAI_API_KEY",
+                "steps": [
+                    {"step": 1, "title": "Create account", "url": "https://platform.openai.com", "description": "Sign up at platform.openai.com."},
+                    {"step": 2, "title": "Add billing", "url": "https://platform.openai.com/billing", "description": "Add a payment method — required even for the free credits tier."},
+                    {"step": 3, "title": "Generate API key", "url": "https://platform.openai.com/api-keys", "description": "Click '+ Create new secret key', copy the sk-... value."},
+                    {"step": 4, "title": "Set key", "description": "POST /api/credentials/store  or  set key openai <your-key>"},
+                ],
+                "free_tier": False, "notes": "New accounts include $5 free credits.",
+            },
+            "anthropic": {
+                "name": "Anthropic", "env_var": "ANTHROPIC_API_KEY",
+                "steps": [
+                    {"step": 1, "title": "Create account", "url": "https://console.anthropic.com", "description": "Sign up at console.anthropic.com."},
+                    {"step": 2, "title": "Generate API key", "url": "https://console.anthropic.com/account/keys", "description": "Click 'Create Key', copy the sk-ant-... value."},
+                    {"step": 3, "title": "Set key", "description": "POST /api/credentials/store  or  set key anthropic <your-key>"},
+                ],
+                "free_tier": False, "notes": "Generous free credits for new accounts.",
+            },
+        }
+
+        if integration_id in _llm_guide:
+            guide = _llm_guide[integration_id]
+        else:
+            meta = _INTEGRATION_META.get(integration_id, {})
+            # Try to pull setup URL from the connector class
+            setup_url = ""
+            doc_url = ""
+            try:
+                cls = None
+                from src.integrations import world_model_registry as _wmr_mod
+                dotted = _CONNECTOR_MAP.get(integration_id, "")
+                if dotted:
+                    cls = _wmr_mod._import_connector_class(dotted)
+                if cls:
+                    setup_url = getattr(cls, "SETUP_URL", "")
+                    doc_url   = getattr(cls, "DOCUMENTATION_URL", "")
+            except Exception:
+                pass
+            guide = {
+                "name": meta.get("name", integration_id),
+                "env_var": integration_id.upper() + "_API_KEY",
+                "free_tier": meta.get("free", True),
+                "setup_url": setup_url,
+                "docs_url": doc_url,
+                "steps": [
+                    {"step": 1, "title": "Get API credentials",
+                     "url": setup_url,
+                     "description": f"Visit {setup_url or 'the provider website'} and create API credentials."},
+                    {"step": 2, "title": "Configure in Murphy",
+                     "description": f"POST /api/credentials/store  with  provider={integration_id}  and  api_key=<your-key>"},
+                ],
+                "notes": f"See {doc_url} for full documentation.",
+            }
+
+        import os
+        env_var = guide.get("env_var", "")
+        current_val = os.environ.get(env_var, "")
+        guide["already_configured"] = bool(current_val and not current_val.startswith("your_"))
+
+        return JSONResponse({"success": True, "integration_id": integration_id, "guide": guide})
+
+    @app.post("/api/setup/api-collection/enqueue")
+    async def api_collection_enqueue(request: Request):
+        """Enqueue an API collection request for HITL review.  The agent pre-fills
+        all fields it can from the current environment context."""
+        agent = getattr(request.app.state, "api_collection_agent", None)
+        if agent is None:
+            return JSONResponse({"success": False, "error": "APICollectionAgent not initialised"}, status_code=503)
+        data = await request.json()
+        req_name = data.get("name", "")
+        context  = data.get("context", {})
+        # Find matching built-in requirement or accept custom
+        built_in = {r.name: r for r in agent.built_in_requirements()}
+        if req_name in built_in:
+            req = built_in[req_name]
+        else:
+            # Custom requirement passed inline
+            from src.api_collection_agent import APIRequirement, APIField, APIMethod
+            fields_raw = data.get("fields", [])
+            fields = [APIField(
+                name=f.get("name", ""), required=f.get("required", False),
+                description=f.get("description", ""),
+            ) for f in fields_raw]
+            req = APIRequirement(
+                name=req_name,
+                endpoint=data.get("endpoint", ""),
+                method=APIMethod(data.get("method", "POST").upper()),
+                description=data.get("description", ""),
+                fields=fields,
+            )
+        api_req = agent.enqueue(req, context=context)
+        return JSONResponse({"success": True, "request_id": api_req.id,
+                             "has_blanks": api_req.has_blanks,
+                             "request": api_req.to_dict()})
+
+    @app.post("/api/setup/api-collection/{request_id}/approve")
+    async def api_collection_approve(request_id: str, request: Request):
+        """Approve a queued API collection request and execute it."""
+        agent = getattr(request.app.state, "api_collection_agent", None)
+        if agent is None:
+            return JSONResponse({"success": False, "error": "APICollectionAgent not initialised"}, status_code=503)
+        data = await request.json()
+        approved_by = data.get("approved_by", "user")
+        agent.approve(request_id, approved_by=approved_by)
+        result = agent.execute(request_id)
+        return JSONResponse({"success": True, "result": result})
+
+    @app.post("/api/setup/api-collection/{request_id}/fill")
+    async def api_collection_fill_blank(request_id: str, request: Request):
+        """Fill a blank field in a queued API request."""
+        agent = getattr(request.app.state, "api_collection_agent", None)
+        if agent is None:
+            return JSONResponse({"success": False, "error": "APICollectionAgent not initialised"}, status_code=503)
+        data = await request.json()
+        field_name = data.get("field")
+        value      = data.get("value")
+        if not field_name:
+            return JSONResponse({"success": False, "error": "field is required"}, status_code=400)
+        agent.fill_blank(request_id, field_name, value)
+        req = agent.get_request(request_id)
+        return JSONResponse({"success": True, "request": req.to_dict() if req else None})
+
 
     # ==================== LIBRARIAN COMMAND CATALOG ====================
 
@@ -9774,15 +10030,20 @@ def create_app() -> FastAPI:
         """Return a machine-readable manifest of all registered API endpoints."""
         routes = []
         for route in app.routes:
-            if hasattr(route, "path") and route.path.startswith("/api/"):
-                # HEAD and OPTIONS are auto-generated by FastAPI for every route
-                # and are not part of the explicit API contract — exclude them.
-                methods = sorted((route.methods or set()) - {"HEAD", "OPTIONS"})
-                routes.append({
-                    "path": route.path,
-                    "methods": methods,
-                    "name": getattr(route, "name", ""),
-                })
+            if not hasattr(route, "path") or not route.path.startswith("/api/"):
+                continue
+            # Skip Mount objects (StaticFiles etc.) which have no methods attr
+            raw_methods = getattr(route, "methods", None)
+            if raw_methods is None:
+                continue
+            # HEAD and OPTIONS are auto-generated by FastAPI for every route
+            # and are not part of the explicit API contract — exclude them.
+            methods = sorted(raw_methods - {"HEAD", "OPTIONS"})
+            routes.append({
+                "path": route.path,
+                "methods": methods,
+                "name": getattr(route, "name", ""),
+            })
         return JSONResponse({"success": True, "data": {"endpoints": sorted(routes, key=lambda r: r["path"])}})
 
     return app
