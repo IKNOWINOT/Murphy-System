@@ -176,4 +176,82 @@ Redis instance and set `REDIS_URL` in `.env`.
 
 ---
 
-*Last updated: 2026-03-18. See [docs/PLANNED_FIXES.md](PLANNED_FIXES.md) for the resolution roadmap.*
+## 11. Onboard LLM Context Contamination (Fixed — PR 62)
+
+**Severity:** High
+**Status:** Fixed in PR 62
+
+`LocalLLMFallback._generate_offline()` searched for knowledge-base topics in the
+*entire* prompt string, including system-context prefixes injected by
+`_try_llm_generate` and `_call_llm`. Since the context included strings like
+`"Knowledge-base topics: murphy, murphy_setup, ..."` or `"Murphy onboarding
+wizard..."`, the matcher would find `"murphy"` in the context and return the
+generic Murphy System description for every query regardless of what the user
+actually asked.
+
+**Fix:** `_generate_offline` now splits the prompt on `\n\n` separators and
+performs topic matching and pattern detection only against the *last segment*
+(the actual user query). System context prepended to the prompt is ignored
+for matching purposes.
+
+---
+
+## 12. Onboard LLM Missing Business-Domain Knowledge (Fixed — PR 62)
+
+**Severity:** Medium
+**Status:** Fixed in PR 62
+
+`LocalLLMFallback` knowledge base contained only tech/programming topics
+(algorithms, Python, databases, etc.) and had no content about business
+automation, e-commerce, workflows, or integrations — the primary use-cases
+of Murphy System. Additionally the pattern list lacked handlers for
+`automation`, `integrate/connect`, `help`, `I run a business`, and
+`set up / configure` phrasing.
+
+**Fix:** Added knowledge-base entries for `automation`, `e-commerce`,
+`workflow`, `integrations`, `crm`, and `reporting`. Added 8 new pattern
+types with contextual response handlers that guide users toward setting up
+their first Murphy automation.
+
+---
+
+## 13. UnifiedMFGC Offline Mode Returns Wrong Content (Fixed — PR 62)
+
+**Severity:** High
+**Status:** Fixed in PR 62
+
+`UnifiedMFGC._process_with_context()` called `_call_llm()` (which in offline
+mode delegates to `LocalLLMFallback`) with the full multi-paragraph system
+prompt used for gate-resolution questioning. Because the system prompt ended
+with "Make questions specific and actionable.", the pattern matcher matched
+"make" and returned a generic creation-type response instead of asking the
+targeted onboarding questions.
+
+**Fix:** Gate-resolution and execution paths now check
+`getattr(self, "llm_mode", "offline") != "offline"` before calling `_call_llm`.
+When offline, `_process_with_context` generates structured onboarding questions
+deterministically from the `remaining_unknowns` list using a keyword-to-question
+mapping.
+
+---
+
+## 14. UnifiedMFGC None-Answer AttributeError Crash (Fixed — PR 62)
+
+**Severity:** High
+**Status:** Fixed in PR 62
+
+`_process_with_context` recorded unanswered follow-up questions as `None`
+placeholder values in the `answers` dict. On the second and subsequent turns,
+the gate-satisfaction check iterated over `answers.values()` and called
+`answer.lower()` on these `None` values, crashing with:
+`AttributeError: 'NoneType' object has no attribute 'lower'`.
+
+This caused `onboarding_mfgc_chat` to return `{"success": false}` for every
+message after the first.
+
+**Fix:** Added `if answer is None: continue` guard before the `.lower()` call
+in the gate satisfaction loop.
+
+---
+
+*Last updated: 2026-03-20. See [docs/PLANNED_FIXES.md](PLANNED_FIXES.md) for the resolution roadmap.*
