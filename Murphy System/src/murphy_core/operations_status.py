@@ -51,4 +51,9 @@ class OperationsStatus:
                 "title": "Verify recent execution outcome mix",
                 "command": "GET /api/ops/status and inspect recent_execution_outcomes",
             },
+            {
+                "step": "verify-scoped-hitl",
+                "title": "Verify founder vs organization HITL routing",
+                "command": "GET /api/ops/status and confirm recent_execution_outcomes.hitl_scope_counts plus latest_hitl_scope",
+            },
         ]

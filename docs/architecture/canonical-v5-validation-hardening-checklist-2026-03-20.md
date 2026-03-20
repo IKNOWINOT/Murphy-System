@@ -41,6 +41,9 @@ Confirm that live gate behavior matches the current enforced semantics.
 ### Checks
 - review outcomes produce `review_required` and `approval_pending=true`
 - HITL outcomes produce `hitl_required` and `approval_pending=true`
+- platform-changing requests route to founder HITL validation
+- organization-scoped changes route to organization HITL validation
+- scoped HITL decisions surface `target_scope` and `hitl_scope` consistently
 - hard blocking gates produce `blocked` unless explicit fallback policy allows rollback execution
 - planner/enforcement drift does not silently trigger fallback
 - fallback only activates for hard blocking gates when policy opts in
@@ -60,7 +63,7 @@ Confirm all visibility surfaces remain in parity under realistic runtime traffic
 - `/api/traces/{trace_id}`
 
 ### Expected outcome
-Recent execution outcomes, latest status, and recovery semantics should agree across all surfaces.
+Recent execution outcomes, latest status, recovery semantics, and scoped HITL visibility should agree across all surfaces.
 
 ## Validation pass 4 — Live MurphySystem fallback behavior
 
@@ -92,6 +95,7 @@ The branch can be treated as ready for promotion once:
 - hero-flow validation passes with realistic traffic
 - enforcement semantics behave as documented under live conditions
 - visibility surfaces remain in parity under repeated requests
+- scoped HITL routing remains visible and correct under repeated requests
 - fallback behavior is validated against live MurphySystem integrations
 - production boot/readiness checks pass without changing the canonical v5 default path
 
