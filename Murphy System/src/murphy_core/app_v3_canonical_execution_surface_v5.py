@@ -14,7 +14,7 @@ from .executor import CoreExecutor
 from .founder_visibility_surface import FounderVisibilitySurface
 from .gate_service import AdapterBackedGateService
 from .operations_status import OperationsStatus
-from .operator_runtime_surface_v7 import OperatorRuntimeSurfaceV7
+from .operator_runtime_surface_v8 import OperatorRuntimeSurfaceV8
 from .operator_status_runtime import ConfigurableOperatorStatusService
 from .planner import CorePlanner
 from .production_inventory import ProductionInventory
@@ -49,7 +49,7 @@ class CoreV3CanonicalExecutionSurfaceV5Services:
             self.system_map,
             preferred_factory="murphy_core_v3",
         )
-        self.runtime_surface = OperatorRuntimeSurfaceV7(self.operator_status)
+        self.runtime_surface = OperatorRuntimeSurfaceV8(self.operator_status)
         self.production_inventory = ProductionInventory()
         self.subsystem_selector = SubsystemFamilySelector(self.production_inventory)
         self.ui_dashboard = UIRuntimeDashboard(self.runtime_surface)
