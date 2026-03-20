@@ -108,3 +108,7 @@ telemetry_evidence/**/*.pid
 telemetry_evidence/**/*.xml
 telemetry_evidence/telemetry_log.jsonl
 .coverage
+
+# Benchmark report artifacts
+tests/benchmarks/.inference_reports/
+tests/benchmarks/.benchmarks/
