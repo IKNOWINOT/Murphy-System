@@ -24,11 +24,15 @@ class CorePlanner:
     ) -> ControlExpansion:
         module_families = list(rosetta.allowed_module_classes)
         allowed_actions = self._allowed_actions(inference, rosetta, route)
+        execution_constraints = dict(rosetta.canonical_constraints)
+        execution_constraints["target_scope"] = inference.constraints.get("target_scope", "user")
+        execution_constraints["platform_change"] = inference.constraints.get("platform_change", False)
+        execution_constraints["organization_change"] = inference.constraints.get("organization_change", False)
         return ControlExpansion(
             request_id=inference.request_id,
             selected_route=route,
             selected_module_families=module_families,
-            execution_constraints=dict(rosetta.canonical_constraints),
+            execution_constraints=execution_constraints,
             allowed_actions=allowed_actions,
             fallback_policy={
                 "fallback_route": RouteType.LEGACY_ADAPTER.value,
@@ -81,6 +85,7 @@ class CorePlanner:
         blocking_reasons: List[str] = []
         review_reasons: List[str] = []
         hitl_reasons: List[str] = []
+        hitl_scope = "none"
 
         for gate in gate_results:
             if gate.decision == GateDecision.BLOCK:
@@ -89,6 +94,8 @@ class CorePlanner:
                 review_reasons.append(gate.gate_name)
             elif gate.decision == GateDecision.REQUIRES_HITL:
                 hitl_reasons.append(gate.gate_name)
+                if gate.gate_name == "hitl":
+                    hitl_scope = str(gate.metadata.get("hitl_scope", hitl_scope))
 
         fallback_policy = dict(expansion.fallback_policy)
         fallback_route = fallback_policy.get("fallback_route") or RouteType.LEGACY_ADAPTER.value
@@ -100,6 +107,8 @@ class CorePlanner:
             "hitl_gates": hitl_reasons,
             "requires_review": bool(review_reasons),
             "requires_hitl": bool(hitl_reasons),
+            "hitl_scope": hitl_scope,
+            "target_scope": expansion.execution_constraints.get("target_scope", "user"),
             "fallback_route": fallback_route,
             "fallback_available": fallback_route == RouteType.LEGACY_ADAPTER.value,
             "fallback_policy": fallback_policy,
@@ -127,6 +136,9 @@ class CorePlanner:
             "primary_family": primary_family,
             "selected_module_families": selected_families,
             "selected_actions": sorted(action for action in selected_actions if action),
+            "target_scope": expansion.execution_constraints.get("target_scope", "user"),
+            "platform_change": expansion.execution_constraints.get("platform_change", False),
+            "organization_change": expansion.execution_constraints.get("organization_change", False),
         }
 
     def _steps_from_route(self, expansion: ControlExpansion, source_message: str) -> List[dict]:

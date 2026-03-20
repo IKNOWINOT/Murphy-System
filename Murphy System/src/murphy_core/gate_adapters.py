@@ -88,9 +88,34 @@ class DefaultHITLGateAdapter:
         return GateAdapterHealth(gate_name=self.gate_name, available=True)
 
     def evaluate(self, inference: InferenceEnvelope, rosetta: RosettaEnvelope) -> GateEvaluation:
-        if "hitl" in inference.required_approvals:
-            return GateEvaluation(self.gate_name, GateDecision.REQUIRES_HITL, ["HITL approval required by request risk"])
-        return GateEvaluation(self.gate_name, GateDecision.ALLOW, ["No HITL requirement triggered"])
+        approvals = set(inference.required_approvals)
+        if "founder_hitl" in approvals:
+            return GateEvaluation(
+                self.gate_name,
+                GateDecision.REQUIRES_HITL,
+                ["Founder HITL validation required for platform-changing request"],
+                metadata={"hitl_scope": "founder", "target_scope": inference.constraints.get("target_scope", "user")},
+            )
+        if "org_hitl" in approvals:
+            return GateEvaluation(
+                self.gate_name,
+                GateDecision.REQUIRES_HITL,
+                ["Organization HITL validation required for organization-scoped request"],
+                metadata={"hitl_scope": "organization", "target_scope": inference.constraints.get("target_scope", "user")},
+            )
+        if "hitl" in approvals:
+            return GateEvaluation(
+                self.gate_name,
+                GateDecision.REQUIRES_HITL,
+                ["HITL approval required by request risk"],
+                metadata={"hitl_scope": "generic", "target_scope": inference.constraints.get("target_scope", "user")},
+            )
+        return GateEvaluation(
+            self.gate_name,
+            GateDecision.ALLOW,
+            ["No HITL requirement triggered"],
+            metadata={"hitl_scope": "none", "target_scope": inference.constraints.get("target_scope", "user")},
+        )
 
 
 class DefaultBudgetGateAdapter:
