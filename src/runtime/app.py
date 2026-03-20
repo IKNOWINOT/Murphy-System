@@ -719,6 +719,15 @@ def create_app() -> FastAPI:
             "anthropic": "ANTHROPIC_API_KEY",
         }
         env_var = provider_env_vars.get(provider)
+        # Validate key format for known providers before persisting
+        if env_var and api_key:
+            try:
+                from src.env_manager import validate_api_key as _validate_api_key
+                _valid, _msg = _validate_api_key(provider, api_key)
+                if not _valid:
+                    return JSONResponse({"success": False, "error": _msg}, status_code=400)
+            except Exception as _exc:
+                logger.debug("API key format validation unavailable, proceeding without it: %s", _exc)
         if env_var and api_key:
             logger.warning(
                 "API key stored in process environment — use SecureKeyManager in production"
