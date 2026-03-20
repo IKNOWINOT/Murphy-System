@@ -93,7 +93,8 @@ python -m src.runtime.main_core_v3_canonical_execution_surface_v5
 - those endpoint outcome flags are now also persisted into trace recovery so API and trace consumers stay aligned
 - ops status and UI dashboard surfaces now summarize recent execution outcomes from traces instead of only static runtime topology
 - founder visibility summary now reflects the same recent execution-outcome truth as the privileged overlay on the canonical runtime
-- smoke tests now cover canonical v5 runtime-truth alignment, planner/executor enforcement drift blocking, endpoint-level review/HITL pauses, explicit fallback execution, fallback boundary enforcement, endpoint outcome flags, ops/dashboard outcome summaries, founder visibility outcome summaries, and trace/recovery persistence
+- founder visibility snapshot now exposes recent execution outcomes at the top level for privileged consumers
+- smoke tests now cover canonical v5 runtime-truth alignment, planner/executor enforcement drift blocking, endpoint-level review/HITL pauses, explicit fallback execution, fallback boundary enforcement, endpoint outcome flags, ops/dashboard outcome summaries, founder visibility outcome summaries, founder snapshot outcome visibility, and trace/recovery persistence
 
 ---
 

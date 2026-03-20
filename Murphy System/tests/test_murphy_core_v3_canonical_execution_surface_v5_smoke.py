@@ -202,3 +202,25 @@ def test_canonical_execution_surface_v5_founder_summary_reflects_recent_executio
     assert payload['recent_execution_total'] >= 1
     assert payload['recent_blocked'] >= 1
     assert payload['latest_execution_status'] == 'blocked'
+
+
+def test_canonical_execution_surface_v5_founder_snapshot_exposes_recent_execution_outcomes():
+    app = create_app()
+
+    async def fake_execute(request, plan):
+        return {
+            'success': False,
+            'status': 'review_required',
+            'gate_enforcement_summary': {'requires_review': True},
+            'enforcement_summary': {'blocked': False},
+        }
+
+    app.state.services.executor.execute = fake_execute
+    local_client = TestClient(app)
+    local_client.post('/api/execute', json={'task_description': 'review me'})
+    response = local_client.get('/api/founder/visibility')
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload['success'] is True
+    assert payload['recent_execution_outcomes']['approval_pending'] >= 1
+    assert payload['recent_execution_outcomes']['latest_status'] == 'review_required'

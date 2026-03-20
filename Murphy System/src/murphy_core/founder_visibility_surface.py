@@ -29,6 +29,8 @@ class FounderVisibilitySurface:
 
     def snapshot(self) -> Dict[str, object]:
         inventory = self.production_inventory.to_dict()
+        dashboard = self.ui_dashboard.build()
+        ops = self.ops_status.snapshot()
         return {
             "runtime": self.runtime_surface.snapshot(),
             "runtime_summary": self.runtime_surface.ui_summary(),
@@ -39,8 +41,9 @@ class FounderVisibilitySurface:
                 "by_layer": inventory["by_layer"],
                 "validation": inventory["validation"],
             },
-            "ui_dashboard": self.ui_dashboard.build(),
-            "ops": self.ops_status.snapshot(),
+            "recent_execution_outcomes": ops["recent_execution_outcomes"],
+            "ui_dashboard": dashboard,
+            "ops": ops,
             "ops_runbook": self.ops_status.runbook(),
         }
 
