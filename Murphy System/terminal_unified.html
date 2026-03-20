@@ -1369,13 +1369,23 @@
           btnSave.textContent = 'Saving\u2026';
           btnSave.setAttribute('aria-busy', 'true');
           try {
-            await api.post('/llm/configure', { provider: provider, api_key: apiKey });
+            var res = await api.post('/llm/configure', { provider: provider, api_key: apiKey });
+            btnSave.disabled    = false;
+            btnSave.textContent = SAVE_BTN_LABEL;
+            btnSave.setAttribute('aria-busy', 'false');
+            if (!res.ok) {
+              var errMsg = (res.data && res.data.error) || res.error || 'Failed to save provider';
+              toast.show(errMsg, 'danger');
+              return;
+            }
+            var activatedProvider = (res.data && res.data.provider) || provider;
+            toast.show('\u2713 ' + activatedProvider.charAt(0).toUpperCase() + activatedProvider.slice(1) + ' provider activated', 'success');
             renderLLM();
           } catch (err) {
             btnSave.disabled    = false;
             btnSave.textContent = SAVE_BTN_LABEL;
             btnSave.setAttribute('aria-busy', 'false');
-            alert('Error saving provider: ' + (err.message || err));
+            toast.show('Error saving provider: ' + (err.message || err), 'danger');
           }
         });
       }
