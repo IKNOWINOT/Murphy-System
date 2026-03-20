@@ -102,6 +102,9 @@ def _probe_all_ok() -> HetznerDeployProbeReport:
         namespace_exists=True,
         deployment_exists=True,
         current_image=f"{_DEFAULT_REGISTRY}/murphy-system:sha-old",
+        service_active=True,
+        ollama_running=True,
+        ollama_models=["llama3"],
         issues=[],
     )
 
@@ -118,12 +121,16 @@ def _probe_nothing_ready() -> HetznerDeployProbeReport:
         local_backend_running=False,
         cluster_exists=False,
         deployment_exists=False,
+        service_active=False,
+        ollama_running=False,
+        ollama_models=[],
         issues=[
             "HETZNER_API_TOKEN environment variable not set",
             "no internet connection",
             "hcloud CLI not installed",
             "kubectl not installed",
             "Docker not installed",
+            "Ollama is not running — start with: systemctl start ollama && ollama pull llama3",
         ],
     )
 
@@ -145,6 +152,9 @@ def _probe_tools_present_no_cluster() -> HetznerDeployProbeReport:
         local_backend_running=False,
         cluster_exists=False,
         deployment_exists=False,
+        service_active=False,
+        ollama_running=True,
+        ollama_models=["llama3"],
         issues=[],
     )
 
@@ -238,6 +248,7 @@ class TestHetznerDeployProbeReport:
             "internet_available", "local_backend_running",
             "cluster_exists", "cluster_name", "cluster_id", "node_count",
             "namespace_exists", "deployment_exists", "current_image",
+            "service_active", "ollama_running", "ollama_models",
             "issues", "ready_to_deploy",
         ]
         for key in expected_keys:
@@ -496,18 +507,17 @@ class TestHetznerDeployPlanGeneratorRollingUpdate:
     def test_rolling_update_generates_5_steps(self):
         gen = HetznerDeployPlanGenerator(image_tag="sha-new")
         plan = gen._rolling_update_plan(_probe_all_ok())
-        assert len(plan.steps) == 5
+        assert len(plan.steps) == 4
 
     def test_rolling_update_step_ids(self):
         gen = HetznerDeployPlanGenerator(image_tag="sha-new")
         plan = gen._rolling_update_plan(_probe_all_ok())
         step_ids = [s.step_id for s in plan.steps]
         assert step_ids == [
-            "hetzner-ru-01-build-image",
-            "hetzner-ru-02-push-image",
-            "hetzner-ru-03-rolling-update",
-            "hetzner-ru-04-wait-rollout",
-            "hetzner-ru-05-verify-deployment",
+            "hetzner-ru-01-git-pull",
+            "hetzner-ru-02-ensure-ollama",
+            "hetzner-ru-03-restart-service",
+            "hetzner-ru-04-verify-health",
         ]
 
     def test_rolling_update_verify_step_is_last(self):
@@ -519,11 +529,10 @@ class TestHetznerDeployPlanGeneratorRollingUpdate:
         gen = HetznerDeployPlanGenerator(image_tag="sha-new")
         plan = gen._rolling_update_plan(_probe_all_ok())
         risk_map = {s.step_id: s.risk_level for s in plan.steps}
-        assert risk_map["hetzner-ru-01-build-image"] == RiskLevel.MEDIUM
-        assert risk_map["hetzner-ru-02-push-image"] == RiskLevel.MEDIUM
-        assert risk_map["hetzner-ru-03-rolling-update"] == RiskLevel.MEDIUM
-        assert risk_map["hetzner-ru-04-wait-rollout"] == RiskLevel.LOW
-        assert risk_map["hetzner-ru-05-verify-deployment"] == RiskLevel.LOW
+        assert risk_map["hetzner-ru-01-git-pull"] == RiskLevel.LOW
+        assert risk_map["hetzner-ru-02-ensure-ollama"] == RiskLevel.MEDIUM
+        assert risk_map["hetzner-ru-03-restart-service"] == RiskLevel.MEDIUM
+        assert risk_map["hetzner-ru-04-verify-health"] == RiskLevel.LOW
 
     def test_rolling_update_image_in_command(self):
         gen = HetznerDeployPlanGenerator(
@@ -532,10 +541,11 @@ class TestHetznerDeployPlanGeneratorRollingUpdate:
             image_tag="sha-newver",
         )
         plan = gen._rolling_update_plan(_probe_all_ok())
-        rolling_step = next(
-            s for s in plan.steps if s.step_id == "hetzner-ru-03-rolling-update"
+        # SSH deploy uses git pull, not image references — verify git pull command
+        pull_step = next(
+            s for s in plan.steps if s.step_id == "hetzner-ru-01-git-pull"
         )
-        assert "ghcr.io/myorg/murphy-system:sha-newver" in rolling_step.command
+        assert "git pull" in pull_step.command
 
     def test_rolling_update_does_not_include_full_deploy_steps(self):
         gen = HetznerDeployPlanGenerator(image_tag="sha-new")
@@ -554,7 +564,7 @@ class TestHetznerDeployPlanGeneratorAutoSelect:
         gen = HetznerDeployPlanGenerator(image_tag="sha-new")
         plan = gen.generate(_probe_all_ok())
         step_ids = [s.step_id for s in plan.steps]
-        assert "hetzner-ru-03-rolling-update" in step_ids
+        assert "hetzner-ru-03-restart-service" in step_ids
         assert "hetzner-04-create-cluster" not in step_ids
 
     def test_generate_selects_full_deploy_when_no_cluster(self):
@@ -562,7 +572,7 @@ class TestHetznerDeployPlanGeneratorAutoSelect:
         plan = gen.generate(_probe_nothing_ready())
         step_ids = [s.step_id for s in plan.steps]
         assert "hetzner-04-create-cluster" in step_ids
-        assert "hetzner-ru-03-rolling-update" not in step_ids
+        assert "hetzner-ru-03-restart-service" not in step_ids
 
     def test_generate_selects_full_deploy_when_no_deployment(self):
         gen = HetznerDeployPlanGenerator(image_tag="sha-new")
@@ -586,7 +596,21 @@ class TestHetznerDeployVerifier:
         mock_resp.__exit__ = MagicMock(return_value=False)
         return mock_resp
 
+    def test_verify_operational_when_local_ok(self):
+        """In systemd mode (default), operational when local health responds."""
+        verifier = HetznerDeployVerifier(local_port=8000)
+        mock_resp = self._make_urlopen(200)
+        mock_pod_result = MagicMock(returncode=1, stdout="", stderr="no kubectl")
+        with (
+            patch("urllib.request.urlopen", return_value=mock_resp),
+            patch("subprocess.run", return_value=mock_pod_result),
+        ):
+            result = verifier.verify()
+        assert result["local_ok"] is True
+        assert result["operational"] is True
+
     def test_verify_operational_when_pods_ok_and_local_ok(self):
+        """operational is True in systemd mode with or without pods."""
         verifier = HetznerDeployVerifier(local_port=8000)
         mock_resp = self._make_urlopen(200)
         mock_pod_result = MagicMock(returncode=0, stdout="murphy-api-xxx Running\n", stderr="")
@@ -599,20 +623,21 @@ class TestHetznerDeployVerifier:
         assert result["pods_ok"] is True
         assert result["operational"] is True
 
-    def test_verify_not_operational_when_pods_fail(self):
+    def test_verify_not_operational_when_endpoint_fails(self):
+        """Not operational when neither local nor public endpoint responds."""
         verifier = HetznerDeployVerifier(local_port=8000)
-        mock_resp = self._make_urlopen(200)
-        mock_pod_result = MagicMock(returncode=1, stdout="", stderr="error")
+        mock_pod_result = MagicMock(returncode=0, stdout="murphy-api-xxx Running\n", stderr="")
         with (
-            patch("urllib.request.urlopen", return_value=mock_resp),
+            patch("urllib.request.urlopen", side_effect=Exception("connection refused")),
             patch("subprocess.run", return_value=mock_pod_result),
         ):
             result = verifier.verify()
-        assert result["pods_ok"] is False
+        assert result["local_ok"] is False
         assert result["operational"] is False
 
-    def test_verify_not_operational_when_no_running_pods(self):
-        verifier = HetznerDeployVerifier(local_port=8000)
+    def test_verify_k8s_mode_requires_pods(self):
+        """In k8s_mode=True, operational requires pods AND local/public endpoint."""
+        verifier = HetznerDeployVerifier(local_port=8000, k8s_mode=True)
         mock_resp = self._make_urlopen(200)
         mock_pod_result = MagicMock(returncode=0, stdout="", stderr="")
         with (
@@ -622,6 +647,18 @@ class TestHetznerDeployVerifier:
             result = verifier.verify()
         assert result["pods_ok"] is False
         assert result["operational"] is False
+
+    def test_verify_k8s_mode_operational_when_pods_and_local(self):
+        verifier = HetznerDeployVerifier(local_port=8000, k8s_mode=True)
+        mock_resp = self._make_urlopen(200)
+        mock_pod_result = MagicMock(returncode=0, stdout="murphy-api-xxx Running\n", stderr="")
+        with (
+            patch("urllib.request.urlopen", return_value=mock_resp),
+            patch("subprocess.run", return_value=mock_pod_result),
+        ):
+            result = verifier.verify()
+        assert result["pods_ok"] is True
+        assert result["operational"] is True
 
     def test_verify_checks_public_url_when_provided(self):
         verifier = HetznerDeployVerifier(
@@ -664,8 +701,8 @@ class TestHetznerDeployVerifier:
         assert "operational" in result
 
     def test_verify_operational_requires_pods_ok(self):
-        """Even if local is OK, operational is False without running pods."""
-        verifier = HetznerDeployVerifier()
+        """In k8s_mode, operational is False without running pods."""
+        verifier = HetznerDeployVerifier(k8s_mode=True)
         mock_resp = self._make_urlopen(200)
         with (
             patch("urllib.request.urlopen", return_value=mock_resp),
@@ -693,35 +730,35 @@ class TestMurphyUpdateControllerCIWorkflow:
         yaml_str = ctrl.generate_ci_workflow()
         assert "branches: [main]" in yaml_str
 
-    def test_generate_ci_workflow_contains_ghcr(self):
+    def test_generate_ci_workflow_uses_ssh_action(self):
         ctrl = MurphyUpdateController(user_id=FOUNDER_ID, _founder_gate=_mock_gate())
         yaml_str = ctrl.generate_ci_workflow()
-        assert "ghcr.io" in yaml_str
+        assert "appleboy/ssh-action" in yaml_str
 
-    def test_generate_ci_workflow_contains_kubectl_set_image(self):
+    def test_generate_ci_workflow_contains_hetzner_ssh_key_secret(self):
         ctrl = MurphyUpdateController(user_id=FOUNDER_ID, _founder_gate=_mock_gate())
         yaml_str = ctrl.generate_ci_workflow()
-        assert "kubectl set image" in yaml_str
+        assert "HETZNER_SSH_KEY" in yaml_str
 
-    def test_generate_ci_workflow_contains_hetzner_kubeconfig_secret(self):
+    def test_generate_ci_workflow_contains_systemctl_restart(self):
         ctrl = MurphyUpdateController(user_id=FOUNDER_ID, _founder_gate=_mock_gate())
         yaml_str = ctrl.generate_ci_workflow()
-        assert "HETZNER_KUBECONFIG" in yaml_str
+        assert "systemctl restart" in yaml_str
 
-    def test_generate_ci_workflow_contains_rollout_status(self):
+    def test_generate_ci_workflow_contains_ollama(self):
         ctrl = MurphyUpdateController(user_id=FOUNDER_ID, _founder_gate=_mock_gate())
         yaml_str = ctrl.generate_ci_workflow()
-        assert "rollout status" in yaml_str
+        assert "ollama" in yaml_str
 
-    def test_generate_ci_workflow_contains_docker_build(self):
+    def test_generate_ci_workflow_contains_health_check(self):
         ctrl = MurphyUpdateController(user_id=FOUNDER_ID, _founder_gate=_mock_gate())
         yaml_str = ctrl.generate_ci_workflow()
-        assert "docker/build-push-action" in yaml_str
+        assert "api/health" in yaml_str
 
-    def test_generate_ci_workflow_contains_namespace(self):
+    def test_generate_ci_workflow_contains_git_pull(self):
         ctrl = MurphyUpdateController(user_id=FOUNDER_ID, _founder_gate=_mock_gate())
         yaml_str = ctrl.generate_ci_workflow()
-        assert "murphy-system" in yaml_str
+        assert "git pull" in yaml_str
 
 
 class TestMurphyUpdateControllerTriggerUpdate:
@@ -739,7 +776,7 @@ class TestMurphyUpdateControllerTriggerUpdate:
     def test_trigger_update_returns_result(self):
         ctrl = self._make_ctrl()
         probe_report = _probe_all_ok()
-        verify_result = {"local_ok": True, "public_ok": False, "pods_ok": True, "operational": True}
+        verify_result = {"local_ok": True, "public_ok": False, "pods_ok": False, "operational": True}
         with (
             patch.object(HetznerDeployProbe, "probe", return_value=probe_report),
             patch.object(HetznerDeployExecutor, "execute_plan", return_value=[]),
@@ -751,7 +788,7 @@ class TestMurphyUpdateControllerTriggerUpdate:
     def test_trigger_update_uses_rolling_update_mode(self):
         ctrl = self._make_ctrl()
         probe_report = _probe_all_ok()
-        verify_result = {"local_ok": True, "public_ok": False, "pods_ok": True, "operational": True}
+        verify_result = {"local_ok": True, "public_ok": False, "pods_ok": False, "operational": True}
         with (
             patch.object(HetznerDeployProbe, "probe", return_value=probe_report),
             patch.object(HetznerDeployExecutor, "execute_plan", return_value=[]),
@@ -763,7 +800,7 @@ class TestMurphyUpdateControllerTriggerUpdate:
     def test_trigger_update_success_when_operational(self):
         ctrl = self._make_ctrl()
         probe_report = _probe_all_ok()
-        verify_result = {"local_ok": True, "public_ok": False, "pods_ok": True, "operational": True}
+        verify_result = {"local_ok": True, "public_ok": False, "pods_ok": False, "operational": True}
         with (
             patch.object(HetznerDeployProbe, "probe", return_value=probe_report),
             patch.object(HetznerDeployExecutor, "execute_plan", return_value=[]),
@@ -818,7 +855,7 @@ class TestHetznerDeployAgentProbeAndPlan:
     def test_rolling_update_probe_generates_5_steps(self, agent):
         with patch.object(HetznerDeployProbe, "probe", return_value=_probe_all_ok()):
             plan = agent.probe_and_plan()
-        assert len(plan.steps) == 5
+        assert len(plan.steps) == 4
 
     def test_nothing_ready_probe_generates_full_deploy_plan(self, agent):
         with patch.object(HetznerDeployProbe, "probe", return_value=_probe_nothing_ready()):
@@ -1116,14 +1153,12 @@ class TestHetznerStepType:
             "push_image", "apply_namespace", "apply_secrets", "apply_configmap",
             "apply_pvc", "apply_deployment", "apply_service", "apply_ingress",
             "apply_hpa", "apply_network_policy", "apply_pdb", "apply_redis",
-            "apply_resource_quota", "apply_backup_cronjob", "rolling_update",
-            "apply_prometheus", "apply_grafana", "apply_service_monitor",
-            "apply_postgres", "apply_staging_namespace", "run_production_readiness",
-            "verify_deployment",
-            "apply_hpa", "apply_network_policy", "apply_pdb",
-            "apply_resource_quota", "apply_limit_range", "apply_redis",
-            "apply_prometheus", "apply_grafana", "apply_service_monitor",
-            "apply_backup_cronjob", "rolling_update", "verify_deployment",
+            "apply_resource_quota", "apply_limit_range", "apply_backup_cronjob",
+            "rolling_update", "apply_prometheus", "apply_grafana",
+            "apply_service_monitor", "apply_postgres", "apply_staging_namespace",
+            "run_production_readiness", "verify_deployment",
+            # SSH / systemd update path
+            "ssh_git_pull", "ssh_ensure_ollama", "ssh_restart_service", "ssh_verify_health",
         }
         actual = {member.value for member in HetznerStepType}
         assert expected == actual
