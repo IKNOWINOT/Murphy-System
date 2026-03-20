@@ -57,7 +57,7 @@ jobs:
             fi
 
             # ── 4. Pull the default model if not already present ─────────────
-            OLLAMA_MODEL="${OLLAMA_MODEL:-llama3}"
+            OLLAMA_MODEL="${OLLAMA_MODEL:-phi3}"
             if ! ollama list | grep -q "${OLLAMA_MODEL}"; then
               echo "Pulling Ollama model: ${OLLAMA_MODEL}"
               ollama pull "${OLLAMA_MODEL}"
