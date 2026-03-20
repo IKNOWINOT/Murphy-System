@@ -237,7 +237,7 @@ WORKFLOW_TEMPLATES = {
     },
     "lead_nurture": {
         "description": "Automated lead scoring, nurturing, and CRM handoff",
-        "keywords": ["lead", "nurture", "crm", "salesforce", "prospect"],
+        "keywords": ["lead", "nurtur", "crm", "email"],
         "steps": [
             {"name": "capture_lead", "type": "data_retrieval", "description": "Capture lead from form, ad, or website event"},
             {"name": "score_lead", "type": "analysis", "description": "Score lead by firmographics, behaviour, and intent signals", "depends_on": ["capture_lead"]},
@@ -488,3 +488,73 @@ class AIWorkflowGenerator:
         if meaningful:
             return "_".join(meaningful[:4]) + "_workflow"
         return "generated_workflow"
+
+    # ------------------------------------------------------------------
+    # Adapter: convert generator output → WorkflowDAGEngine definition
+    # ------------------------------------------------------------------
+
+    # Maps from AIWorkflowGenerator step type to the DAG action handler key.
+    # Each value must match a handler registered in WorkflowDAGEngine.
+    _STEP_TYPE_TO_ACTION: Dict[str, str] = {
+        "data_retrieval": "data_retrieval",
+        "data_transformation": "data_transformation",
+        "data_filtering": "data_filtering",
+        "data_output": "data_output",
+        "validation": "validation",
+        "analysis": "llm_analyze",       # maps to llm_analyze handler in WorkflowDAGEngine
+        "computation": "computation",
+        "notification": "notification",
+        "deployment": "deployment",
+        "approval": "approval",
+        "execution": "execute",
+        "scheduling": "scheduling",
+        "error_handling": "error_handling",
+        "data_protection": "data_protection",
+        "security": "security",
+        "delay": "delay",
+    }
+
+    def to_workflow_definition(self, workflow_dict: Dict[str, Any]) -> "WorkflowDefinition":
+        """Convert a *generate_workflow()* output dict into a ``WorkflowDefinition``
+        that can be registered with and executed by ``WorkflowDAGEngine``.
+
+        Each step's ``type`` is mapped to the appropriate LLM-backed action
+        handler so that every step actually produces real output when executed.
+        """
+        try:
+            from workflow_dag_engine import WorkflowDefinition, StepDefinition
+        except ImportError as exc:
+            raise ImportError("workflow_dag_engine is required") from exc
+
+        step_defs = []
+        for s in workflow_dict.get("steps", []):
+            action = self._STEP_TYPE_TO_ACTION.get(
+                s.get("type", "execution"), "execute"
+            )
+            step_defs.append(
+                StepDefinition(
+                    step_id=s["name"],
+                    name=s.get("description", s["name"]),
+                    action=action,
+                    depends_on=list(s.get("depends_on", [])),
+                    metadata={
+                        "step_type": s.get("type", "execution"),
+                        "description": s.get("description", ""),
+                        "template": workflow_dict.get("template_used") or "",
+                        "strategy": workflow_dict.get("strategy") or "",
+                    },
+                )
+            )
+
+        return WorkflowDefinition(
+            workflow_id=workflow_dict["workflow_id"],
+            name=workflow_dict.get("name", "generated_workflow"),
+            description=workflow_dict.get("description", "")[:300],
+            steps=step_defs,
+            metadata={
+                "strategy": workflow_dict.get("strategy") or "",
+                "template_used": workflow_dict.get("template_used") or "",
+                "generated_at": workflow_dict.get("generated_at") or "",
+                "source": workflow_dict.get("context", {}).get("source") or "ai_workflow_generator",
+            },
+        )
