@@ -2041,13 +2041,70 @@ def create_app() -> FastAPI:
     _onboarding_mfgc_sessions: dict = {}
     _ONBOARDING_SESSION_TTL = 7200  # seconds
 
+    def _generate_automation_from_session(sess: dict) -> dict:
+        """Build an actual, wired automation workflow from accumulated onboarding answers.
+
+        Calls ``AIWorkflowGenerator.generate_workflow()`` so the output is an
+        *executable* DAG definition — not a text preview.  The result is embedded
+        in the ``/api/onboarding/mfgc-chat`` response when ``ready_for_plan=True``
+        so the front-end can display (and later execute) the real automation steps.
+
+        The description passed to the generator is composed from ALL non-None answers
+        so the template-matching engine can pick the most specific pre-built template
+        (e.g. ``order_fulfillment`` when the user mentions Shopify + orders, or
+        ``invoice_processing`` when they mention billing + accounts payable).
+        """
+        import sys as _sys
+        import os as _os
+        try:
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
+            from ai_workflow_generator import AIWorkflowGenerator
+        except Exception:
+            return {}
+
+        filled = {k: v for k, v in sess.get("answers", {}).items() if v is not None}
+
+        # Build a rich combined description from all answers so the template matcher
+        # can select the most specific pre-built template.
+        all_values = [str(v)[:150] for v in filled.values()]
+        combined_description = " ".join(all_values)
+
+        # Also try the initial request alone for a focused match.
+        initial_request = filled.get("initial_request", "business automation")
+
+        context_snippets = {
+            k: str(v)[:200] for k, v in filled.items() if k != "initial_request"
+        }
+
+        try:
+            generator = AIWorkflowGenerator()
+            # First try the combined description (picks up all context clues).
+            workflow = generator.generate_workflow(
+                description=combined_description,
+                context={"session_answers": context_snippets, "source": "onboarding"},
+            )
+            # If combined match is weak (< 3 steps or generic fallback), also try
+            # the initial request to capture the primary intent template.
+            if workflow.get("step_count", 0) < 3 or workflow.get("strategy") == "generic_fallback":
+                alt = generator.generate_workflow(
+                    description=initial_request,
+                    context={"session_answers": context_snippets, "source": "onboarding"},
+                )
+                if alt.get("step_count", 0) > workflow.get("step_count", 0):
+                    workflow = alt
+            return workflow
+        except Exception as _e:
+            logger.debug("automation generation failed: %s", _e)
+            return {}
+
     @app.post("/api/onboarding/mfgc-chat")
     async def onboarding_mfgc_chat(request: Request):
         """Route onboarding wizard messages through UnifiedMFGC gate system.
 
         Accepts ``{ "session_id": "...", "message": "..." }`` and returns
         ``{ "response": "...", "gate_satisfaction": 0.XX, "confidence": 0.XX,
-            "unknowns_remaining": N, "ready_for_plan": bool }``.
+            "unknowns_remaining": N, "ready_for_plan": bool,
+            "automation_config": {...} }``.
         """
         import time as _time
         data = await request.json()
@@ -2078,22 +2135,43 @@ def create_app() -> FastAPI:
                     "mfgc": UnifiedMFGC(),
                     "answers": {},
                     "context": "Murphy onboarding wizard: helping a new user describe their business and automation needs.",
+                    "turn_count": 0,
                     "last_access": now,
                 }
             sess = _onboarding_mfgc_sessions[session_id]
             sess["last_access"] = now
+            sess["turn_count"] = sess.get("turn_count", 0) + 1
             mfgc_instance = sess["mfgc"]
 
-            # Feed the new message as the latest answer (also used as the next request)
-            if sess["answers"]:
-                # Record the user reply to the last question asked
-                last_key = list(sess["answers"].keys())[-1]
-                if sess["answers"][last_key] is None:
-                    sess["answers"][last_key] = message
-            # Also treat the full message as the primary request on first turn
+            # ── Record the new user message ────────────────────────────────────
             if not sess["answers"]:
+                # First turn: store the full message as the initial request.
                 sess["answers"]["initial_request"] = message
+            else:
+                # Subsequent turns: fill the FIRST unanswered question slot so
+                # each user reply maps to a specific question.  If all slots are
+                # already filled, append a numbered turn entry.
+                filled_slot = False
+                for key in list(sess["answers"].keys()):
+                    if sess["answers"][key] is None:
+                        sess["answers"][key] = message
+                        filled_slot = True
+                        break
+                if not filled_slot:
+                    turn_num = sess["turn_count"]
+                    sess["answers"][f"user_turn_{turn_num}"] = message
 
+            # ── Update accumulated context with every answered turn ────────────
+            filled_answers = {k: v for k, v in sess["answers"].items() if v is not None}
+            ctx_lines = [
+                "Murphy onboarding wizard — accumulated user information:",
+                f"  Initial request: {filled_answers.get('initial_request', 'not yet provided')}",
+            ]
+            for k, v in list(filled_answers.items())[1:]:
+                ctx_lines.append(f"  {k}: {str(v)[:120]}")
+            sess["context"] = "\n".join(ctx_lines)
+
+            # ── Route through the MFGC gate ───────────────────────────────────
             result = mfgc_instance._process_with_context(
                 message=message,
                 answers=sess["answers"],
@@ -2105,6 +2183,21 @@ def create_app() -> FastAPI:
             unknowns_remaining = result.get("unknowns_remaining", 99)
             ready_for_plan = bool(result.get("execution_mode", False))
 
+            # ── Turn-count safety valve ───────────────────────────────────────
+            # After 3 conversation turns the onboarding has enough context to
+            # generate a plan regardless of MFGC gate arithmetic.
+            # "real" answers excludes the initial_request stored on turn 1.
+            real_answer_count = sum(
+                1 for k, v in filled_answers.items()
+                if v is not None and k != "initial_request"
+            )
+            if not ready_for_plan and (
+                real_answer_count >= 2 and sess.get("turn_count", 0) >= 3
+            ):
+                ready_for_plan = True
+                gate_satisfaction = max(gate_satisfaction, 0.85)
+                confidence = max(confidence, 0.85)
+
             response_text = (
                 result.get("content")
                 or result.get("response")
@@ -2112,12 +2205,34 @@ def create_app() -> FastAPI:
                 or "Murphy is gathering more information."
             )
 
-            # If the MFGC asked a follow-up question, record a placeholder for the answer
+            # ── Record question placeholders for next turn ────────────────────
             if result.get("questioning_mode"):
                 import re as _re
                 questions = _re.findall(r"[A-Z][^\n]*\?", response_text)
                 for q in questions:
-                    sess["answers"][q] = None
+                    if q not in sess["answers"]:
+                        sess["answers"][q] = None
+
+            # ── Generate the actual automation when ready ─────────────────────
+            automation_config: dict = {}
+            if ready_for_plan:
+                automation_config = _generate_automation_from_session(sess)
+                if automation_config and not result.get("execution_mode"):
+                    # Upgrade the response text to reflect a real plan
+                    wf_name = automation_config.get("name", "custom workflow")
+                    step_count = automation_config.get("step_count", 0)
+                    strategy = automation_config.get("strategy", "")
+                    steps_preview = "; ".join(
+                        s.get("description", s.get("name", ""))
+                        for s in automation_config.get("steps", [])[:4]
+                    )
+                    response_text = (
+                        f"I have enough information to build your automation plan!\n\n"
+                        f"**Generated Workflow:** {wf_name}\n"
+                        f"**Strategy:** {strategy or 'custom inference'}\n"
+                        f"**Steps ({step_count}):** {steps_preview}\n\n"
+                        f"Click **Continue → Plan** to review and deploy your automation."
+                    )
 
             return JSONResponse({
                 "success": True,
@@ -2126,6 +2241,7 @@ def create_app() -> FastAPI:
                 "confidence": round(float(confidence), 4),
                 "unknowns_remaining": int(unknowns_remaining),
                 "ready_for_plan": ready_for_plan,
+                "automation_config": automation_config,
             })
         except Exception as exc:
             logger.warning("onboarding_mfgc_chat error: %s", exc)
@@ -2137,6 +2253,31 @@ def create_app() -> FastAPI:
                 "unknowns_remaining": 99,
                 "ready_for_plan": False,
             }, status_code=200)  # Return 200 so the UI doesn't show a hard error
+
+    @app.get("/api/automations/workflows/{workflow_id}")
+    async def get_workflow_definition(workflow_id: str):
+        """Return the generated workflow definition for a given workflow_id.
+
+        The workflow_id is embedded in the Automation Blueprint section of every
+        deliverable.  Clients can call this endpoint to retrieve the full DAG
+        definition (steps, dependencies, strategy) for a generated automation.
+        """
+        try:
+            import sys as _sys
+            import os as _os
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
+            from ai_workflow_generator import AIWorkflowGenerator
+            generator = AIWorkflowGenerator()
+            history = generator.get_generation_history()  # list of past generations
+            match = next((h for h in history if h.get("workflow_id") == workflow_id), None)
+            if match:
+                return JSONResponse({"success": True, "workflow": match})
+            return JSONResponse(
+                {"success": False, "error": f"Workflow '{workflow_id}' not found in current session"},
+                status_code=404,
+            )
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
 
     # --- Onboarding Automation Engine (employee onboarding) ---
 
