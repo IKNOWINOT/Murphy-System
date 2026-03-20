@@ -299,8 +299,8 @@ For detailed, up-to-date information, I recommend consulting online resources or
 
 Note: I'm currently in offline mode. For comprehensive, current information, please check online resources when available."""
 
-        elif response_type in ("creation", "integration"):
-            return f"""To create/build/connect '{prompt}', here's a structured approach:
+        elif response_type == "creation":
+            return f"""To create/build '{prompt}', here's a structured approach:
 
 **Planning Phase**:
 1. Define clear objectives and requirements
@@ -321,6 +321,29 @@ Note: I'm currently in offline mode. For comprehensive, current information, ple
 - Get feedback early and often
 
 I'm operating in offline mode, so for specific technical details and current best practices, please consult online documentation when available."""
+
+        elif response_type == "integration":
+            return f"""To connect and integrate '{prompt}', here's how Murphy can help:
+
+**Integration Approach**:
+1. Identify the source system (e.g., Shopify, Gmail, Stripe)
+2. Identify the destination system (e.g., QuickBooks, Slack, Airtable)
+3. Define the data that needs to flow between them
+4. Set the trigger (webhook, scheduled sync, or real-time)
+
+**Murphy Supported Integrations**:
+- CRM: HubSpot, Salesforce, Pipedrive
+- Payments: Stripe, PayPal, Square
+- Accounting: QuickBooks, Xero
+- Email: Gmail, Outlook, Mailchimp
+- Messaging: Slack, Teams, Twilio
+- E-commerce: Shopify, WooCommerce
+- Calendar: Google Calendar, Calendly
+- Storage: Google Drive, Dropbox, S3
+
+**Next Steps**: Type `start interview` to describe your integration need, or type `api keys` to see all supported platforms.
+
+💡 Add a Groq API key (`set key groq gsk_...`) for AI-powered integration planning."""
 
         elif response_type == "recommendation":
             return f"""Regarding '{prompt}', here are some general recommendations:

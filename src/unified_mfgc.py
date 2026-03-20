@@ -1411,7 +1411,11 @@ Make questions specific and actionable."""
                 "frequency": "How often should this automation run (real-time, hourly, daily, on-demand)?",
                 "success metrics": "How will you measure success? What does a good outcome look like?",
             }
-            for unknown in expansion_result.remaining_unknowns[:4]:
+            # Process up to this many unknowns when generating offline questions.
+            _MAX_UNKNOWNS_TO_PROCESS = 4
+            # Display up to this many questions per turn to avoid overwhelming the user.
+            _MAX_QUESTIONS_TO_DISPLAY = 3
+            for unknown in expansion_result.remaining_unknowns[:_MAX_UNKNOWNS_TO_PROCESS]:
                 unknown_lower = unknown.lower()
                 matched = False
                 for key, question in _unknown_to_question.items():
@@ -1425,7 +1429,7 @@ Make questions specific and actionable."""
                     offline_questions.append(f"Can you tell me more about: {unknown}?")
 
             if offline_questions:
-                q_text = "\n".join(f"{i+1}. {q}" for i, q in enumerate(offline_questions[:3]))
+                q_text = "\n".join(f"{i+1}. {q}" for i, q in enumerate(offline_questions[:_MAX_QUESTIONS_TO_DISPLAY]))
                 status_msg = (
                     f"I have a good start on your request. To build the best automation plan, "
                     f"I need a few more details:\n\n{q_text}\n\n"
