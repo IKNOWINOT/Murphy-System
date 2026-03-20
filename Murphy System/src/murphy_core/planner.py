@@ -42,12 +42,18 @@ class CorePlanner:
         source_message: str,
     ) -> GatedExecutionPlan:
         blocked = any(g.decision == GateDecision.BLOCK for g in gate_results)
+        enforcement_summary = self._enforcement_summary(expansion)
+        blocked = blocked or enforcement_summary["blocked"]
         steps = self._steps_from_route(expansion, source_message)
         return GatedExecutionPlan(
             request_id=expansion.request_id,
             route=expansion.selected_route,
             steps=steps,
             gate_results=gate_results,
+            selected_module_families=list(expansion.selected_module_families),
+            execution_constraints=dict(expansion.execution_constraints),
+            allowed_actions=[dict(action) for action in expansion.allowed_actions],
+            enforcement_summary=enforcement_summary,
             blocked=blocked,
         )
 
@@ -56,11 +62,35 @@ class CorePlanner:
             {"action": "respond", "type": "ui_response"},
             {"action": "trace", "type": "audit"},
         ]
-        if route in {RouteType.DETERMINISTIC, RouteType.HYBRID, RouteType.SPECIALIST}:
+        if route in {RouteType.DETERMINISTIC, RouteType.HYBRID, RouteType.SPECIALIST, RouteType.LEGACY_ADAPTER}:
             actions.append({"action": "execute", "type": "typed_execution"})
         if route == RouteType.SWARM:
             actions.append({"action": "swarm_execute", "type": "typed_swarm"})
         return actions
+
+    def _enforcement_summary(self, expansion: ControlExpansion) -> dict:
+        primary_family = expansion.execution_constraints.get("primary_family")
+        selected_families = list(expansion.selected_module_families)
+        selected_actions = {action.get("action") for action in expansion.allowed_actions}
+        reasons: List[str] = []
+
+        if primary_family and selected_families and primary_family not in selected_families:
+            reasons.append("primary_family_missing_from_selected_module_families")
+
+        if expansion.selected_route == RouteType.SWARM and "swarm_execute" not in selected_actions:
+            reasons.append("swarm_route_missing_swarm_execute_action")
+
+        if expansion.selected_route != RouteType.SWARM and "execute" not in selected_actions:
+            reasons.append("non_swarm_route_missing_execute_action")
+
+        return {
+            "checked": True,
+            "blocked": bool(reasons),
+            "reasons": reasons,
+            "primary_family": primary_family,
+            "selected_module_families": selected_families,
+            "selected_actions": sorted(action for action in selected_actions if action),
+        }
 
     def _steps_from_route(self, expansion: ControlExpansion, source_message: str) -> List[dict]:
         if self._workflow_generator is not None and expansion.selected_route in {RouteType.HYBRID, RouteType.SPECIALIST}:

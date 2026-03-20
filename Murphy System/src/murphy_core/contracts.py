@@ -141,6 +141,10 @@ class GatedExecutionPlan:
     route: RouteType
     steps: List[Dict[str, Any]] = field(default_factory=list)
     gate_results: List[GateEvaluation] = field(default_factory=list)
+    selected_module_families: List[str] = field(default_factory=list)
+    execution_constraints: Dict[str, Any] = field(default_factory=dict)
+    allowed_actions: List[Dict[str, Any]] = field(default_factory=list)
+    enforcement_summary: Dict[str, Any] = field(default_factory=dict)
     blocked: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
@@ -149,6 +153,10 @@ class GatedExecutionPlan:
             "route": self.route.value,
             "steps": self.steps,
             "gate_results": [g.to_dict() for g in self.gate_results],
+            "selected_module_families": list(self.selected_module_families),
+            "execution_constraints": dict(self.execution_constraints),
+            "allowed_actions": [dict(action) for action in self.allowed_actions],
+            "enforcement_summary": dict(self.enforcement_summary),
             "blocked": self.blocked,
         }
 

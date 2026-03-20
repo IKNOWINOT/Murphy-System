@@ -26,6 +26,19 @@ class CoreExecutor:
             self._swarm = None
 
     async def execute(self, request: CoreRequest, plan: GatedExecutionPlan) -> Dict[str, Any]:
+        validation = self._validate_plan(request, plan)
+        if validation["blocked"]:
+            return {
+                "success": False,
+                "status": "blocked",
+                "message": "Execution blocked by plan enforcement",
+                "route": plan.route.value,
+                "steps": plan.steps,
+                "selected_module_families": plan.selected_module_families,
+                "execution_constraints": plan.execution_constraints,
+                "enforcement_summary": validation,
+            }
+
         if plan.blocked:
             return {
                 "success": False,
@@ -33,6 +46,9 @@ class CoreExecutor:
                 "message": "Execution blocked by gate pipeline",
                 "route": plan.route.value,
                 "steps": plan.steps,
+                "selected_module_families": plan.selected_module_families,
+                "execution_constraints": plan.execution_constraints,
+                "enforcement_summary": validation,
             }
 
         if plan.route == RouteType.SWARM and self._swarm is not None:
@@ -43,6 +59,9 @@ class CoreExecutor:
                 "route": plan.route.value,
                 "proposal": proposal.to_dict(),
                 "steps": plan.steps,
+                "selected_module_families": plan.selected_module_families,
+                "execution_constraints": plan.execution_constraints,
+                "enforcement_summary": validation,
             }
 
         if self._murphy is not None:
@@ -58,6 +77,9 @@ class CoreExecutor:
                     "route": plan.route.value,
                     "result": result,
                     "steps": plan.steps,
+                    "selected_module_families": plan.selected_module_families,
+                    "execution_constraints": plan.execution_constraints,
+                    "enforcement_summary": validation,
                 }
             result = await self._murphy.execute_task(
                 task_description=request.message,
@@ -71,6 +93,9 @@ class CoreExecutor:
                 "route": plan.route.value,
                 "result": result,
                 "steps": plan.steps,
+                "selected_module_families": plan.selected_module_families,
+                "execution_constraints": plan.execution_constraints,
+                "enforcement_summary": validation,
             }
 
         return {
@@ -79,4 +104,36 @@ class CoreExecutor:
             "route": plan.route.value,
             "message": request.message,
             "steps": plan.steps,
+            "selected_module_families": plan.selected_module_families,
+            "execution_constraints": plan.execution_constraints,
+            "enforcement_summary": validation,
+        }
+
+    def _validate_plan(self, request: CoreRequest, plan: GatedExecutionPlan) -> Dict[str, Any]:
+        reasons = list(plan.enforcement_summary.get("reasons", []))
+        allowed_actions = {action.get("action") for action in plan.allowed_actions}
+        primary_family = plan.execution_constraints.get("primary_family")
+        selected_families = list(plan.selected_module_families)
+
+        if primary_family and selected_families and primary_family not in selected_families:
+            reasons.append("executor_primary_family_missing_from_selected_module_families")
+
+        if plan.route == RouteType.SWARM:
+            if "swarm_execute" not in allowed_actions:
+                reasons.append("executor_swarm_route_missing_swarm_execute_action")
+            if primary_family and primary_family != "swarm":
+                reasons.append("executor_swarm_route_primary_family_mismatch")
+        else:
+            if "execute" not in allowed_actions:
+                reasons.append("executor_non_swarm_route_missing_execute_action")
+
+        return {
+            "checked": True,
+            "blocked": bool(reasons),
+            "reasons": reasons,
+            "request_mode": request.mode,
+            "route": plan.route.value,
+            "primary_family": primary_family,
+            "selected_module_families": selected_families,
+            "allowed_actions": sorted(action for action in allowed_actions if action),
         }
