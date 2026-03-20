@@ -277,13 +277,14 @@ class OpenAICompatibleProvider:
         if base_url is None and provider_type == ProviderType.GROQ:
             base_url = "https://api.groq.com/openai/v1"
         elif base_url is None and provider_type == ProviderType.OLLAMA:
-            base_url = "http://localhost:11434/v1"
+            _ollama_host = os.getenv("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
+            base_url = f"{_ollama_host}/v1"
 
         default_model = os.getenv("OPENAI_DEFAULT_MODEL", "gpt-3.5-turbo")
         if provider_type == ProviderType.GROQ and default_model == "gpt-3.5-turbo":
             default_model = "mixtral-8x7b-32768"
         elif provider_type == ProviderType.OLLAMA and default_model == "gpt-3.5-turbo":
-            default_model = "llama3"
+            default_model = os.getenv("OLLAMA_MODEL", "llama3")
         elif provider_type == ProviderType.ONBOARD:
             default_model = "murphy-onboard"
 

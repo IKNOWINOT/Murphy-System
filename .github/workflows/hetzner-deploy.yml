@@ -35,9 +35,47 @@ jobs:
           username: root
           key: ${{ secrets.HETZNER_SSH_KEY }}
           script: |
+            set -e
+
+            # ── 1. Pull latest code ──────────────────────────────────────────
             cd /opt/Murphy-System
             git pull origin main
-            MURPHY_DEPLOY_COMMIT=$(git rev-parse --short HEAD) \
-              systemctl restart murphy-production
+            DEPLOY_COMMIT=$(git rev-parse --short HEAD)
+
+            # ── 2. Ensure Ollama is installed ────────────────────────────────
+            if ! command -v ollama &>/dev/null; then
+              echo "Installing Ollama..."
+              curl -fsSL https://ollama.com/install.sh | sh
+            fi
+
+            # ── 3. Ensure Ollama systemd service is enabled and running ──────
+            systemctl enable ollama 2>/dev/null || true
+            if ! systemctl is-active --quiet ollama; then
+              echo "Starting Ollama service..."
+              systemctl start ollama
+              sleep 3
+            fi
+
+            # ── 4. Pull the default model if not already present ─────────────
+            OLLAMA_MODEL="${OLLAMA_MODEL:-llama3}"
+            if ! ollama list | grep -q "${OLLAMA_MODEL}"; then
+              echo "Pulling Ollama model: ${OLLAMA_MODEL}"
+              ollama pull "${OLLAMA_MODEL}"
+            else
+              echo "Ollama model ${OLLAMA_MODEL} already present"
+            fi
+
+            # ── 5. Restart Murphy with the new commit injected ───────────────
+            MURPHY_DEPLOY_COMMIT="${DEPLOY_COMMIT}" systemctl restart murphy-production
+
+            # ── 6. Wait and verify Murphy health ────────────────────────────
             sleep 5
-            curl -sf http://localhost:8000/api/health || echo "WARNING: Health check failed"
+            curl -sf http://localhost:8000/api/health || echo "WARNING: Murphy health check failed"
+
+            # ── 7. Verify Ollama is responding ───────────────────────────────
+            curl -sf http://localhost:11434/api/tags | python3 -c "
+            import sys, json
+            d = json.load(sys.stdin)
+            models = [m.get('name','') for m in d.get('models', [])]
+            print('Ollama models available:', models or 'none')
+            " || echo "WARNING: Ollama health check failed"

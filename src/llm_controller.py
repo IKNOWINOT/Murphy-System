@@ -525,19 +525,27 @@ class LLMController:
     async def _query_local_small(self, request: LLMRequest) -> LLMResponse:
         """Query local small model — tries Ollama first, then placeholder."""
         try:
-            from src.local_llm_fallback import _check_ollama_available, _query_ollama
-            if _check_ollama_available():
-                result = _query_ollama(request.prompt, model="phi3", max_tokens=request.max_tokens)
-                if result:
-                    return LLMResponse(
-                        content=result,
-                        model_used=LLMModel.LOCAL_SMALL,
-                        confidence=0.0,
-                        tokens_used=len(result.split()),
-                        cost=0.0,
-                        latency=0.0,
-                        metadata={"provider": "ollama", "model": "phi3"}
-                    )
+            from src.local_llm_fallback import (
+                _check_ollama_available, _query_ollama,
+                _ollama_base_url, _preferred_ollama_models, _OLLAMA_SMALL_MODELS,
+            )
+            _base = _ollama_base_url()
+            # Honour OLLAMA_MODEL if set, but keep small models at the front
+            _env_model = _preferred_ollama_models()[0]
+            _models = [_env_model] + [m for m in _OLLAMA_SMALL_MODELS if m != _env_model]
+            if _check_ollama_available(_base):
+                for _model in _models:
+                    result = _query_ollama(request.prompt, model=_model, base_url=_base, max_tokens=request.max_tokens)
+                    if result:
+                        return LLMResponse(
+                            content=result,
+                            model_used=LLMModel.LOCAL_SMALL,
+                            confidence=0.0,
+                            tokens_used=len(result.split()),
+                            cost=0.0,
+                            latency=0.0,
+                            metadata={"provider": "ollama", "model": _model}
+                        )
         except Exception as exc:
             logger.debug("Suppressed exception: %s", exc)
             pass
@@ -559,10 +567,17 @@ class LLMController:
     async def _query_local_medium(self, request: LLMRequest) -> LLMResponse:
         """Query local medium model — tries Ollama first, then placeholder."""
         try:
-            from src.local_llm_fallback import _check_ollama_available, _query_ollama
-            if _check_ollama_available():
-                for model in ["llama3", "mistral"]:
-                    result = _query_ollama(request.prompt, model=model, max_tokens=request.max_tokens)
+            from src.local_llm_fallback import (
+                _check_ollama_available, _query_ollama,
+                _ollama_base_url, _preferred_ollama_models, _OLLAMA_MEDIUM_MODELS,
+            )
+            _base = _ollama_base_url()
+            # Honour OLLAMA_MODEL if set, but keep medium models at the front
+            _env_model = _preferred_ollama_models()[0]
+            _models = [_env_model] + [m for m in _OLLAMA_MEDIUM_MODELS if m != _env_model]
+            if _check_ollama_available(_base):
+                for model in _models:
+                    result = _query_ollama(request.prompt, model=model, base_url=_base, max_tokens=request.max_tokens)
                     if result:
                         return LLMResponse(
                             content=result,
