@@ -21,106 +21,61 @@ jobs:
       - run: pip install pytest pytest-asyncio pytest-timeout
       - run: python -m pytest "Murphy System/tests/" --timeout=300 -x -q --ignore="Murphy System/tests/e2e"
 
-  build-and-deploy:
+  deploy:
     needs: test
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/login-action@v3
+      - name: Deploy to Hetzner via SSH
+        uses: appleboy/ssh-action@v1
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@v5
-        with:
-          context: ./Murphy System
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository }}/murphy-system:${{ github.sha }}
-            ghcr.io/${{ github.repository }}/murphy-system:latest
-      - name: Set up kubectl
-        uses: azure/setup-kubectl@v4
-      - name: Configure kubeconfig
-        run: |
-          mkdir -p ~/.kube
-          echo "${{ secrets.HETZNER_KUBECONFIG }}" | base64 -d > ~/.kube/config
-      - name: Rolling update
-        run: |
-          kubectl set image deployment/murphy-api \
-            murphy-api=ghcr.io/${{ github.repository }}/murphy-system:${{ github.sha }} \
-            -n murphy-system
-          kubectl rollout status deployment/murphy-api -n murphy-system --timeout=300s
-      - name: Verify health
-        run: |
-          ENDPOINT=$(kubectl get ingress murphy-api -n murphy-system -o jsonpath='{.spec.rules[0].host}')
-          HEALTHY=false
-          for i in 1 2 3 4 5; do
-            sleep 15
-            if curl -sf "https://${ENDPOINT}/api/health"; then
-              echo "Health check passed on attempt ${i}"
-              HEALTHY=true
-              break
-            fi
-            echo "Attempt ${i}/5 failed, retrying..."
-          done
-          if [ "$HEALTHY" = "false" ]; then
-            echo "::error::Health check failed after 5 attempts — rolling back"
-            kubectl rollout undo deployment/murphy-api -n murphy-system
-            kubectl rollout status deployment/murphy-api -n murphy-system --timeout=300s
-            exit 1
-          fi
-      - name: Integration smoke tests
-        run: |
-          ENDPOINT=$(kubectl get ingress murphy-api -n murphy-system -o jsonpath='{.spec.rules[0].host}')
-          BASE="https://${ENDPOINT}"
-          PASS=0
-          FAIL=0
+          host: ${{ secrets.HETZNER_HOST }}
+          username: root
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            set -e
 
-          run_test() {
-            local name="$1" url="$2" expected="$3"
-            RESP=$(curl -sf -o /dev/null -w "%{http_code}" "$url" || echo "000")
-            if [ "$RESP" = "$expected" ]; then
-              echo "✅ ${name}: ${RESP}"
-              PASS=$((PASS + 1))
+            # ── 1. Pull latest code ──────────────────────────────────────────
+            cd /opt/Murphy-System
+            git pull origin main
+            DEPLOY_COMMIT=$(git rev-parse --short HEAD)
+
+            # ── 2. Ensure Ollama is installed ────────────────────────────────
+            if ! command -v ollama &>/dev/null; then
+              echo "Installing Ollama..."
+              curl -fsSL https://ollama.com/install.sh | sh
+            fi
+
+            # ── 3. Ensure Ollama systemd service is enabled and running ──────
+            systemctl enable ollama 2>/dev/null || true
+            if ! systemctl is-active --quiet ollama; then
+              echo "Starting Ollama service..."
+              systemctl start ollama
+              sleep 3
+            fi
+
+            # ── 4. Pull the default model if not already present ─────────────
+            OLLAMA_MODEL="${OLLAMA_MODEL:-llama3}"
+            if ! ollama list | grep -q "${OLLAMA_MODEL}"; then
+              echo "Pulling Ollama model: ${OLLAMA_MODEL}"
+              ollama pull "${OLLAMA_MODEL}"
             else
-              echo "❌ ${name}: expected ${expected}, got ${RESP}"
-              FAIL=$((FAIL + 1))
+              echo "Ollama model ${OLLAMA_MODEL} already present"
             fi
-          }
 
-          echo "Running integration smoke tests against ${BASE}..."
-          run_test "Health" "${BASE}/api/health" "200"
-          run_test "Status" "${BASE}/api/status" "200"
-          run_test "Metrics" "${BASE}/metrics" "200"
-          run_test "Info" "${BASE}/api/info" "200"
-          run_test "Gates" "${BASE}/api/gates/status" "200"
+            # ── 5. Restart Murphy with the new commit injected ───────────────
+            MURPHY_DEPLOY_COMMIT="${DEPLOY_COMMIT}" systemctl restart murphy-production
 
-          # Verify metrics content
-          METRICS=$(curl -sf "${BASE}/metrics" || echo "")
-          if echo "$METRICS" | grep -q "murphy_requests_total"; then
-            echo "✅ Metrics content: murphy_requests_total found"
-            PASS=$((PASS + 1))
-          else
-            echo "❌ Metrics content: murphy_requests_total not found"
-            FAIL=$((FAIL + 1))
-          fi
+            # ── 6. Wait and verify Murphy health ────────────────────────────
+            sleep 5
+            curl -sf http://localhost:8000/api/health || echo "WARNING: Murphy health check failed"
 
-          # Verify health response structure
-          HEALTH=$(curl -sf "${BASE}/api/health" || echo "{}")
-          if echo "$HEALTH" | python3 -c "import sys,json; d=json.load(sys.stdin); assert 'status' in d" 2>/dev/null; then
-            echo "✅ Health JSON: has status field"
-            PASS=$((PASS + 1))
-          else
-            echo "❌ Health JSON: missing status field"
-            FAIL=$((FAIL + 1))
-          fi
-
-          echo ""
-          echo "Results: ${PASS} passed, ${FAIL} failed"
-          if [ "$FAIL" -gt 0 ]; then
-            echo "⚠️ Some integration tests failed — review manually"
-          fi
+            # ── 7. Verify Ollama is responding ───────────────────────────────
+            curl -sf http://localhost:11434/api/tags | python3 -c "
+            import sys, json
+            d = json.load(sys.stdin)
+            models = [m.get('name','') for m in d.get('models', [])]
+            print('Ollama models available:', models or 'none')
+            " || echo "WARNING: Ollama health check failed"

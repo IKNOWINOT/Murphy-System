@@ -32,6 +32,7 @@ License: BSL 1.1
 import enum
 import json
 import logging
+import os
 import threading
 import time
 import uuid
@@ -635,7 +636,7 @@ def _default_integration_templates() -> List[IntegrationSpec]:
         IntegrationSpec(
             name="Ollama", category=IntegrationCategory.AI_ML,
             description="Run open-source LLMs locally",
-            base_url="http://localhost:11434",
+            base_url=os.environ.get("OLLAMA_HOST", "http://localhost:11434").rstrip("/"),
             auth_method=IntegrationAuthMethod.NONE,
             actions=[
                 IntegrationAction("generate", "Generate text", "POST", "/api/generate"),

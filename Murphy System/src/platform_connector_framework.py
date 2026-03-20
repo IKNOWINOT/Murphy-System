@@ -10,6 +10,7 @@ with built-in auth management, rate limiting, retry logic, and health checks.
 import hashlib
 import json
 import logging
+import os
 import threading
 import time
 from dataclasses import dataclass, field
@@ -614,8 +615,7 @@ DEFAULT_PLATFORMS = [
         category=ConnectorCategory.CUSTOM,
         platform="ollama",
         auth_type=AuthType.NONE,
-        base_url="http://localhost:11434",
-        capabilities=["generate", "chat", "list_models", "pull_model", "embeddings"],
+        base_url=os.environ.get("OLLAMA_HOST", "http://localhost:11434").rstrip("/"),
     ),
     ConnectorDefinition(
         connector_id="replicate",
