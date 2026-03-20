@@ -36,6 +36,9 @@ requests>=2.31.0,<3.0.0
 httpx>=0.27.0,<1.0.0
 aiohttp>=3.9.0,<4.0.0
 
+# Coinbase Advanced Trade API (Trader Automation — PR 1)
+coinbase-advanced-py>=1.8.0,<2.0.0
+
 # Matrix bot integration (Synapse / Dendrite)
 matrix-nio[e2e]>=0.24.0,<1.0.0
 

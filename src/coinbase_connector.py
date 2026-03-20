@@ -171,12 +171,15 @@ class CoinbaseConnector:
         self,
         api_key:    str = "",
         api_secret: str = "",
-        sandbox:    bool = False,
+        sandbox:    bool = True,
         timeout:    int  = 10,
     ) -> None:
         self.api_key    = api_key or os.getenv("COINBASE_API_KEY", "")
         self.api_secret = api_secret or os.getenv("COINBASE_API_SECRET", "")
-        self.sandbox    = sandbox or os.getenv("COINBASE_SANDBOX", "").lower() == "true"
+        # Sandbox is ON by default. Only disable when COINBASE_LIVE_MODE=true is
+        # explicitly set AND the caller has passed sandbox=False.
+        live_mode = os.getenv("COINBASE_LIVE_MODE", "false").lower() == "true"
+        self.sandbox    = sandbox or (not live_mode)
         self.timeout    = timeout
 
         self._base_url  = COINBASE_REST_SAND if self.sandbox else COINBASE_REST_PROD
@@ -631,6 +634,55 @@ class CoinbaseConnector:
         """Return a snapshot of the local order ring buffer."""
         with self._lock:
             return list(self._order_history)
+
+    # ------------------------------------------------------------------
+    # Convenience aliases matching the interface contract
+    # ------------------------------------------------------------------
+
+    def get_accounts(self) -> List[Dict[str, Any]]:
+        """List all Coinbase brokerage accounts."""
+        resp = self._request("GET", "/api/v3/brokerage/accounts")
+        return resp.get("accounts", [])
+
+    def get_ticker(self, product_id: str) -> Optional[CoinbaseTicker]:
+        """Get the current best bid/ask for a single product."""
+        tickers = self.get_best_bid_ask([product_id])
+        return tickers[0] if tickers else None
+
+    def place_market_order(
+        self,
+        product_id: str,
+        side: str,
+        size: str,
+    ) -> Dict[str, Any]:
+        """Place a market order. *side* is 'BUY' or 'SELL'; *size* is base size."""
+        order_side = CoinbaseOrderSide(side.upper())
+        return self.create_market_order(product_id, order_side, base_size=size)
+
+    def place_limit_order(
+        self,
+        product_id: str,
+        side: str,
+        size: str,
+        price: str,
+    ) -> Dict[str, Any]:
+        """Place a GTC limit order."""
+        order_side = CoinbaseOrderSide(side.upper())
+        return self.create_limit_order(product_id, order_side, base_size=size, limit_price=price)
+
+    def cancel_order(self, order_id: str) -> Dict[str, Any]:
+        """Cancel a single open order by ID."""
+        return self.cancel_orders([order_id])
+
+    def get_product_candles(
+        self,
+        product_id:  str,
+        start:       int,
+        end:         int,
+        granularity: str = "ONE_HOUR",
+    ) -> List[Dict[str, Any]]:
+        """Return OHLCV candles (alias for get_candles)."""
+        return self.get_candles(product_id, start, end, granularity)
 
     def health_check(self) -> Dict[str, Any]:
         """Lightweight connectivity test — fetches the server time."""
