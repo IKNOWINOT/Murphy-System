@@ -427,22 +427,26 @@ class AIWorkflowGenerator:
         return found
 
     def _extract_context(self, description: str, keyword: str) -> str:
-        """Extract surrounding context for a keyword."""
+        """Extract surrounding context for a keyword (up to 60 chars each side)."""
         idx = description.find(keyword)
         if idx == -1:
             return ""
-        start = max(0, idx - 30)
-        end = min(len(description), idx + len(keyword) + 30)
+        start = max(0, idx - 60)
+        end = min(len(description), idx + len(keyword) + 60)
         return description[start:end].strip()
 
     def _build_steps_from_inference(self, inferred: List[Tuple[str, str, str]]) -> List[Dict[str, Any]]:
         steps = []
         for i, (keyword, step_type, context) in enumerate(inferred):
             step_name = f"{keyword}_{step_type}_{i}"
+            if context:
+                step_description = f"{keyword.title()}: {context} ({step_type})"
+            else:
+                step_description = f"{keyword.title()} {step_type} step"
             steps.append({
                 "name": step_name,
                 "type": step_type,
-                "description": f"{keyword.title()}: {context}" if context else f"{keyword.title()} step",
+                "description": step_description,
                 "depends_on": [],
             })
         return steps
