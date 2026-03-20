@@ -88,6 +88,42 @@ STEP_KEYWORDS = {
     "decrypt": "security",
     "authenticate": "security",
     "authorize": "security",
+    # E-commerce / business
+    "order": "data_retrieval",
+    "receive": "data_retrieval",
+    "import": "data_retrieval",
+    "sync": "data_retrieval",
+    "fulfill": "execution",
+    "ship": "execution",
+    "shipping": "execution",
+    "dispatch": "execution",
+    "assign": "execution",
+    "route": "execution",
+    "escalate": "execution",
+    "create": "execution",
+    "generate": "execution",
+    "build": "execution",
+    "update": "execution",
+    "post": "data_output",
+    "log": "data_output",
+    "record": "data_output",
+    "track": "data_output",
+    "invoice": "execution",
+    "pay": "execution",
+    "charge": "execution",
+    "reconcile": "computation",
+    "match": "computation",
+    "score": "computation",
+    "rank": "computation",
+    "enrich": "data_transformation",
+    "segment": "data_filtering",
+    "classify": "data_filtering",
+    "tag": "data_filtering",
+    "notify_team": "notification",
+    "alert_manager": "notification",
+    "reject": "approval",
+    "sign": "approval",
+    "book": "scheduling",
 }
 
 # Dependency inference: step type B depends on step type A
@@ -172,6 +208,70 @@ WORKFLOW_TEMPLATES = {
             {"name": "notify_owners", "type": "notification", "description": "Notify asset owners", "depends_on": ["generate_tickets"]},
         ],
     },
+    "order_fulfillment": {
+        "description": "End-to-end e-commerce order fulfillment automation",
+        "keywords": ["order", "shopify", "shipping", "inventory"],
+        "steps": [
+            {"name": "receive_order", "type": "data_retrieval", "description": "Receive new order event from e-commerce platform (Shopify webhook)"},
+            {"name": "validate_payment", "type": "validation", "description": "Verify payment authorisation via payment gateway (Stripe/PayPal)", "depends_on": ["receive_order"]},
+            {"name": "update_inventory", "type": "execution", "description": "Decrement stock levels in inventory system", "depends_on": ["validate_payment"]},
+            {"name": "create_shipping_label", "type": "execution", "description": "Generate shipping label via carrier API (FedEx/UPS/USPS)", "depends_on": ["validate_payment"]},
+            {"name": "notify_warehouse", "type": "notification", "description": "Send pick/pack instruction to warehouse team", "depends_on": ["create_shipping_label", "update_inventory"]},
+            {"name": "send_confirmation", "type": "notification", "description": "Email order confirmation + tracking number to customer", "depends_on": ["create_shipping_label"]},
+            {"name": "log_transaction", "type": "data_output", "description": "Record fulfillment details in CRM / ERP for reporting", "depends_on": ["send_confirmation"]},
+        ],
+    },
+    "invoice_processing": {
+        "description": "Automated invoice receipt, approval, and payment workflow",
+        "keywords": ["invoice", "billing", "accounts payable"],
+        "steps": [
+            {"name": "receive_invoice", "type": "data_retrieval", "description": "Receive invoice via email / API / file upload"},
+            {"name": "extract_data", "type": "data_transformation", "description": "Extract vendor, amount, line items, due date via OCR / API", "depends_on": ["receive_invoice"]},
+            {"name": "validate_invoice", "type": "validation", "description": "Match against purchase order and contract terms", "depends_on": ["extract_data"]},
+            {"name": "route_approval", "type": "approval", "description": "Route to approver based on amount thresholds and GL codes", "depends_on": ["validate_invoice"]},
+            {"name": "process_payment", "type": "execution", "description": "Execute payment via ACH / wire transfer on approval", "depends_on": ["route_approval"]},
+            {"name": "update_ledger", "type": "data_output", "description": "Post payment entry to accounting system (QuickBooks / NetSuite)", "depends_on": ["process_payment"]},
+            {"name": "notify_vendor", "type": "notification", "description": "Send payment confirmation to vendor", "depends_on": ["process_payment"]},
+        ],
+    },
+    "lead_nurture": {
+        "description": "Automated lead scoring, nurturing, and CRM handoff",
+        "keywords": ["lead", "nurtur", "crm", "email"],
+        "steps": [
+            {"name": "capture_lead", "type": "data_retrieval", "description": "Capture lead from form, ad, or website event"},
+            {"name": "score_lead", "type": "analysis", "description": "Score lead by firmographics, behaviour, and intent signals", "depends_on": ["capture_lead"]},
+            {"name": "enrich_profile", "type": "execution", "description": "Enrich contact data via Clearbit / Apollo / LinkedIn API", "depends_on": ["capture_lead"]},
+            {"name": "segment_lead", "type": "data_filtering", "description": "Assign to appropriate nurture track (cold / warm / hot)", "depends_on": ["score_lead", "enrich_profile"]},
+            {"name": "send_sequence", "type": "notification", "description": "Trigger personalised email sequence via Mailchimp / HubSpot", "depends_on": ["segment_lead"]},
+            {"name": "update_crm", "type": "data_output", "description": "Sync lead record and activity to CRM", "depends_on": ["enrich_profile"]},
+            {"name": "handoff_to_sales", "type": "notification", "description": "Alert sales rep when lead reaches hot threshold", "depends_on": ["score_lead"]},
+        ],
+    },
+    "employee_onboarding": {
+        "description": "Automated HR employee onboarding workflow",
+        "keywords": ["employee", "hire", "new hire", "hris", "orientation"],
+        "steps": [
+            {"name": "create_profile", "type": "execution", "description": "Create employee record in HRIS (BambooHR / Workday)"},
+            {"name": "provision_accounts", "type": "deployment", "description": "Provision email, Slack, JIRA, and app accounts", "depends_on": ["create_profile"]},
+            {"name": "assign_equipment", "type": "execution", "description": "Raise IT ticket for laptop, hardware, and access cards", "depends_on": ["create_profile"]},
+            {"name": "send_welcome_pack", "type": "notification", "description": "Send welcome email with first-day info and handbook link", "depends_on": ["provision_accounts"]},
+            {"name": "schedule_orientation", "type": "scheduling", "description": "Book orientation sessions and manager 1:1 in calendar", "depends_on": ["create_profile"]},
+            {"name": "assign_buddy", "type": "execution", "description": "Assign onboarding buddy and notify both parties", "depends_on": ["create_profile"]},
+            {"name": "track_completion", "type": "data_output", "description": "Track checklist completion and notify HR at 30 / 60 / 90 days", "depends_on": ["send_welcome_pack", "assign_buddy"]},
+        ],
+    },
+    "content_publishing": {
+        "description": "Automated content creation, review, and multi-channel publishing",
+        "keywords": ["content", "publish", "blog", "social media", "cms"],
+        "steps": [
+            {"name": "create_content", "type": "execution", "description": "Draft content using AI or human writer"},
+            {"name": "review_content", "type": "approval", "description": "Route draft for editorial review and brand-voice check", "depends_on": ["create_content"]},
+            {"name": "seo_optimise", "type": "data_transformation", "description": "Add metadata, alt text, and SEO keywords", "depends_on": ["review_content"]},
+            {"name": "publish_primary", "type": "deployment", "description": "Publish to primary CMS (WordPress / Contentful)", "depends_on": ["seo_optimise"]},
+            {"name": "syndicate_social", "type": "notification", "description": "Cross-post to LinkedIn, Twitter/X, Facebook via Buffer / Hootsuite", "depends_on": ["publish_primary"]},
+            {"name": "track_performance", "type": "data_output", "description": "Log publish event and schedule performance report at 7 / 30 days", "depends_on": ["publish_primary"]},
+        ],
+    },
 }
 
 
@@ -199,8 +299,11 @@ class AIWorkflowGenerator:
         # Step 2: Extract steps from description
         inferred_steps = self._infer_steps(description_lower)
 
-        # Step 3: Decide strategy
-        if template_match and template_match["score"] >= 0.6:
+        # Step 3: Decide strategy.
+        # Use 50% threshold (instead of 60%) so that templates with 4 keywords
+        # match when 2 of the core terms are present (e.g. "order" + "shopify"
+        # for the order_fulfillment template).
+        if template_match and template_match["score"] >= 0.5:
             steps = list(template_match["template"]["steps"])
             strategy = "template_match"
             template_name = template_match["name"]

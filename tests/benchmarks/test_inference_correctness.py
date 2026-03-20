@@ -94,10 +94,10 @@ SCENARIOS: List[Dict[str, Any]] = [
     },
     {
         "name": "invoice_processing",
-        "description": "Process invoices from our QuickBooks accounting system automatically",
+        "description": "Automate invoice processing billing accounts payable from QuickBooks",
         "expected_industry": "finance",
         "expected_template": "invoice_processing",
-        "expected_step_types": ["data_retrieval", "validation", "computation"],
+        "expected_step_types": ["data_retrieval", "validation", "approval"],
         "expected_gate_categories": ["compliance", "business", "validation"],
         "task_goal": "System should detect finance industry, match an invoice processing "
                      "template, and execute accounting-related steps.",
@@ -147,7 +147,7 @@ SCENARIOS: List[Dict[str, Any]] = [
         "description": "Nurture leads from our Salesforce CRM with automated email sequences",
         "expected_industry": "technology",
         "expected_template": "lead_nurture",
-        "expected_step_types": ["data_retrieval", "notification", "scheduling"],
+        "expected_step_types": ["data_retrieval", "notification", "data_filtering"],
         "expected_gate_categories": ["compliance", "business"],
         "task_goal": "System should match lead_nurture template and execute CRM-aware "
                      "data retrieval + email notification steps.",
@@ -157,10 +157,51 @@ SCENARIOS: List[Dict[str, Any]] = [
         "description": "Run automated security vulnerability scanning and compliance audit",
         "expected_industry": "technology",
         "expected_template": "security_scan",
-        "expected_step_types": ["validation", "notification"],
+        "expected_step_types": ["data_retrieval", "computation", "notification"],
         "expected_gate_categories": ["security", "compliance", "quality"],
         "task_goal": "System should match security_scan template and execute "
-                     "scanning + validation + reporting steps.",
+                     "scanning + analysis + reporting steps.",
+    },
+    # ── Full-spectrum business automation scenarios ──────────────────────
+    {
+        "name": "employee_onboarding",
+        "description": "Automate new hire employee onboarding with account provisioning and orientation scheduling",
+        "expected_industry": "technology",
+        "expected_template": "employee_onboarding",
+        "expected_step_types": ["deployment", "notification", "scheduling"],
+        "expected_gate_categories": ["compliance", "security", "business"],
+        "task_goal": "System should match employee_onboarding template and execute "
+                     "account provisioning + welcome pack + orientation scheduling steps.",
+    },
+    {
+        "name": "content_publishing",
+        "description": "Automate blog content creation, editorial review, and multi-channel social media publishing",
+        "expected_industry": "technology",
+        "expected_template": "content_publishing",
+        "expected_step_types": ["approval", "deployment", "notification"],
+        "expected_gate_categories": ["quality", "compliance", "business"],
+        "task_goal": "System should match content_publishing template and execute "
+                     "review → publish → syndicate steps.",
+    },
+    {
+        "name": "data_reporting",
+        "description": "Automate data report with dashboard metrics analysis and summary for stakeholders",
+        "expected_industry": "technology",
+        "expected_template": "data_report",
+        "expected_step_types": ["data_retrieval", "data_transformation", "notification"],
+        "expected_gate_categories": ["quality", "compliance"],
+        "task_goal": "System should match data_report template and execute "
+                     "collect → analyze → report → distribute steps.",
+    },
+    {
+        "name": "incident_response",
+        "description": "Set up automated incident detection, triage and escalation for production outages",
+        "expected_industry": "technology",
+        "expected_template": "incident_response",
+        "expected_step_types": ["data_retrieval", "notification"],
+        "expected_gate_categories": ["quality", "security", "compliance"],
+        "task_goal": "System should match incident_response template and execute "
+                     "detect → triage → notify → remediate steps.",
     },
 ]
 
