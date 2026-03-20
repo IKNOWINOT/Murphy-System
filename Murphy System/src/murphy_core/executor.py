@@ -27,6 +27,8 @@ class CoreExecutor:
 
     async def execute(self, request: CoreRequest, plan: GatedExecutionPlan) -> Dict[str, Any]:
         validation = self._validate_plan(request, plan)
+        gate_summary = dict(plan.gate_enforcement_summary)
+
         if validation["blocked"]:
             return {
                 "success": False,
@@ -36,7 +38,37 @@ class CoreExecutor:
                 "steps": plan.steps,
                 "selected_module_families": plan.selected_module_families,
                 "execution_constraints": plan.execution_constraints,
+                "fallback_policy": plan.fallback_policy,
                 "enforcement_summary": validation,
+                "gate_enforcement_summary": gate_summary,
+            }
+
+        if gate_summary.get("requires_hitl"):
+            return {
+                "success": False,
+                "status": "hitl_required",
+                "message": "Execution paused pending HITL approval",
+                "route": plan.route.value,
+                "steps": plan.steps,
+                "selected_module_families": plan.selected_module_families,
+                "execution_constraints": plan.execution_constraints,
+                "fallback_policy": plan.fallback_policy,
+                "enforcement_summary": validation,
+                "gate_enforcement_summary": gate_summary,
+            }
+
+        if gate_summary.get("requires_review"):
+            return {
+                "success": False,
+                "status": "review_required",
+                "message": "Execution paused pending review",
+                "route": plan.route.value,
+                "steps": plan.steps,
+                "selected_module_families": plan.selected_module_families,
+                "execution_constraints": plan.execution_constraints,
+                "fallback_policy": plan.fallback_policy,
+                "enforcement_summary": validation,
+                "gate_enforcement_summary": gate_summary,
             }
 
         if plan.blocked:
@@ -48,7 +80,9 @@ class CoreExecutor:
                 "steps": plan.steps,
                 "selected_module_families": plan.selected_module_families,
                 "execution_constraints": plan.execution_constraints,
+                "fallback_policy": plan.fallback_policy,
                 "enforcement_summary": validation,
+                "gate_enforcement_summary": gate_summary,
             }
 
         if plan.route == RouteType.SWARM and self._swarm is not None:
@@ -61,7 +95,9 @@ class CoreExecutor:
                 "steps": plan.steps,
                 "selected_module_families": plan.selected_module_families,
                 "execution_constraints": plan.execution_constraints,
+                "fallback_policy": plan.fallback_policy,
                 "enforcement_summary": validation,
+                "gate_enforcement_summary": gate_summary,
             }
 
         if self._murphy is not None:
@@ -79,7 +115,9 @@ class CoreExecutor:
                     "steps": plan.steps,
                     "selected_module_families": plan.selected_module_families,
                     "execution_constraints": plan.execution_constraints,
+                    "fallback_policy": plan.fallback_policy,
                     "enforcement_summary": validation,
+                    "gate_enforcement_summary": gate_summary,
                 }
             result = await self._murphy.execute_task(
                 task_description=request.message,
@@ -95,7 +133,9 @@ class CoreExecutor:
                 "steps": plan.steps,
                 "selected_module_families": plan.selected_module_families,
                 "execution_constraints": plan.execution_constraints,
+                "fallback_policy": plan.fallback_policy,
                 "enforcement_summary": validation,
+                "gate_enforcement_summary": gate_summary,
             }
 
         return {
@@ -106,7 +146,9 @@ class CoreExecutor:
             "steps": plan.steps,
             "selected_module_families": plan.selected_module_families,
             "execution_constraints": plan.execution_constraints,
+            "fallback_policy": plan.fallback_policy,
             "enforcement_summary": validation,
+            "gate_enforcement_summary": gate_summary,
         }
 
     def _validate_plan(self, request: CoreRequest, plan: GatedExecutionPlan) -> Dict[str, Any]:

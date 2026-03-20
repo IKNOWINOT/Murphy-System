@@ -41,7 +41,8 @@ class CorePlanner:
         gate_results: List[GateEvaluation],
         source_message: str,
     ) -> GatedExecutionPlan:
-        blocked = any(g.decision == GateDecision.BLOCK for g in gate_results)
+        gate_enforcement_summary = self._gate_enforcement_summary(gate_results, expansion)
+        blocked = gate_enforcement_summary["blocked"]
         enforcement_summary = self._enforcement_summary(expansion)
         blocked = blocked or enforcement_summary["blocked"]
         steps = self._steps_from_route(expansion, source_message)
@@ -53,7 +54,9 @@ class CorePlanner:
             selected_module_families=list(expansion.selected_module_families),
             execution_constraints=dict(expansion.execution_constraints),
             allowed_actions=[dict(action) for action in expansion.allowed_actions],
+            fallback_policy=dict(expansion.fallback_policy),
             enforcement_summary=enforcement_summary,
+            gate_enforcement_summary=gate_enforcement_summary,
             blocked=blocked,
         )
 
@@ -67,6 +70,32 @@ class CorePlanner:
         if route == RouteType.SWARM:
             actions.append({"action": "swarm_execute", "type": "typed_swarm"})
         return actions
+
+    def _gate_enforcement_summary(self, gate_results: List[GateEvaluation], expansion: ControlExpansion) -> dict:
+        blocking_reasons: List[str] = []
+        review_reasons: List[str] = []
+        hitl_reasons: List[str] = []
+
+        for gate in gate_results:
+            if gate.decision == GateDecision.BLOCK:
+                blocking_reasons.append(gate.gate_name)
+            elif gate.decision == GateDecision.REVIEW:
+                review_reasons.append(gate.gate_name)
+            elif gate.decision == GateDecision.REQUIRES_HITL:
+                hitl_reasons.append(gate.gate_name)
+
+        fallback_route = expansion.fallback_policy.get("fallback_route") or RouteType.LEGACY_ADAPTER.value
+        return {
+            "checked": True,
+            "blocked": bool(blocking_reasons or review_reasons or hitl_reasons),
+            "blocking_gates": blocking_reasons,
+            "review_gates": review_reasons,
+            "hitl_gates": hitl_reasons,
+            "requires_review": bool(review_reasons),
+            "requires_hitl": bool(hitl_reasons),
+            "fallback_route": fallback_route,
+            "fallback_available": fallback_route == RouteType.LEGACY_ADAPTER.value,
+        }
 
     def _enforcement_summary(self, expansion: ControlExpansion) -> dict:
         primary_family = expansion.execution_constraints.get("primary_family")
