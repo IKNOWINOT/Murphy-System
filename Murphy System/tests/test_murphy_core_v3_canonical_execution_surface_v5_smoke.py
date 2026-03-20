@@ -132,3 +132,50 @@ def test_canonical_execution_surface_v5_reports_blocked_state():
     assert payload['recovery']['approval_pending'] is False
     assert payload['recovery']['fallback_engaged'] is False
     assert payload['recovery']['blocked'] is True
+
+
+def test_canonical_execution_surface_v5_ops_status_reflects_recent_outcomes():
+    app = create_app()
+
+    async def fake_execute(request, plan):
+        return {
+            'success': False,
+            'status': 'review_required',
+            'gate_enforcement_summary': {'requires_review': True},
+            'enforcement_summary': {'blocked': False},
+        }
+
+    app.state.services.executor.execute = fake_execute
+    local_client = TestClient(app)
+    local_client.post('/api/execute', json={'task_description': 'review me'})
+    response = local_client.get('/api/ops/status')
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload['success'] is True
+    assert payload['recent_execution_outcomes']['approval_pending'] >= 1
+    assert payload['recent_execution_outcomes']['latest_status'] == 'review_required'
+
+
+def test_canonical_execution_surface_v5_dashboard_reflects_recent_fallback_outcomes():
+    app = create_app()
+
+    async def fake_execute(request, plan):
+        return {
+            'success': True,
+            'status': 'fallback_completed',
+            'fallback_route': 'legacy_adapter',
+            'fallback_result': {'adapter': 'legacy_adapter', 'status': 'simulated'},
+            'gate_enforcement_summary': {'blocking_gates': ['security']},
+            'enforcement_summary': {'blocked': False},
+        }
+
+    app.state.services.executor.execute = fake_execute
+    local_client = TestClient(app)
+    local_client.post('/api/execute', json={'task_description': 'fallback me'})
+    response = local_client.get('/api/ui/runtime-dashboard')
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload['success'] is True
+    assert payload['recent_execution_outcomes']['fallback_engaged'] >= 1
+    recent_card = next(card for card in payload['cards'] if card['id'] == 'recent-outcomes')
+    assert recent_card['value'] == 'fallback_completed'

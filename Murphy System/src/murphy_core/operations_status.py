@@ -2,17 +2,20 @@ from __future__ import annotations
 
 from typing import Dict, List
 
-from .operator_runtime_surface_v2 import OperatorRuntimeSurfaceV2
+from .operator_runtime_surface_v8 import OperatorRuntimeSurfaceV8
+from .tracing import TraceStore
 
 
 class OperationsStatus:
     """Build operations-focused status and runbook hints from runtime truth."""
 
-    def __init__(self, runtime_surface: OperatorRuntimeSurfaceV2) -> None:
+    def __init__(self, runtime_surface: OperatorRuntimeSurfaceV8, traces: TraceStore | None = None) -> None:
         self.runtime_surface = runtime_surface
+        self.traces = traces or TraceStore()
 
     def snapshot(self) -> Dict[str, object]:
         summary = self.runtime_surface.ui_summary()
+        trace_summary = self.traces.outcome_summary()
         return {
             "status": "operational",
             "preferred_runtime": summary["preferred_runtime_name"],
@@ -21,6 +24,7 @@ class OperationsStatus:
             "transitional_deployment_mode": summary["transitional_deployment_mode"],
             "rollback_layers": summary["rollback_layers"],
             "compatibility_layers": summary["compatibility_layers"],
+            "recent_execution_outcomes": trace_summary,
             "runbook": self.runbook(),
         }
 
@@ -41,5 +45,10 @@ class OperationsStatus:
                 "step": "verify-runtime",
                 "title": "Verify runtime summary endpoints",
                 "command": "GET /api/operator/runtime and GET /api/operator/runtime-summary",
+            },
+            {
+                "step": "verify-outcomes",
+                "title": "Verify recent execution outcome mix",
+                "command": "GET /api/ops/status and inspect recent_execution_outcomes",
             },
         ]

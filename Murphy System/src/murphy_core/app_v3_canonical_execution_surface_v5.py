@@ -52,8 +52,8 @@ class CoreV3CanonicalExecutionSurfaceV5Services:
         self.runtime_surface = OperatorRuntimeSurfaceV8(self.operator_status)
         self.production_inventory = ProductionInventory()
         self.subsystem_selector = SubsystemFamilySelector(self.production_inventory)
-        self.ui_dashboard = UIRuntimeDashboard(self.runtime_surface)
-        self.ops_status = OperationsStatus(self.runtime_surface)
+        self.ui_dashboard = UIRuntimeDashboard(self.runtime_surface, self.traces)
+        self.ops_status = OperationsStatus(self.runtime_surface, self.traces)
         self.founder_visibility = FounderVisibilitySurface(
             self.runtime_surface,
             self.production_inventory,

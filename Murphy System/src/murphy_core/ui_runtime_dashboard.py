@@ -2,14 +2,16 @@ from __future__ import annotations
 
 from typing import Dict, List
 
-from .operator_runtime_surface_v2 import OperatorRuntimeSurfaceV2
+from .operator_runtime_surface_v8 import OperatorRuntimeSurfaceV8
+from .tracing import TraceStore
 
 
 class UIRuntimeDashboard:
     """Build frontend-friendly runtime dashboard data from the unified surface."""
 
-    def __init__(self, runtime_surface: OperatorRuntimeSurfaceV2) -> None:
+    def __init__(self, runtime_surface: OperatorRuntimeSurfaceV8, traces: TraceStore | None = None) -> None:
         self.runtime_surface = runtime_surface
+        self.traces = traces or TraceStore()
 
     def build(self) -> Dict[str, object]:
         snapshot = self.runtime_surface.snapshot()
@@ -17,6 +19,7 @@ class UIRuntimeDashboard:
         preferred_runtime = snapshot["preferred_runtime"]
         preferred_deployment = snapshot["preferred_deployment"]
         transitional_deployment = snapshot["transitional_deployment"]
+        outcome_summary = self.traces.outcome_summary()
 
         cards: List[Dict[str, object]] = [
             {
@@ -43,11 +46,18 @@ class UIRuntimeDashboard:
                 "value": summary["preferred_provider"],
                 "detail": f"providers={summary['provider_count']}",
             },
+            {
+                "id": "recent-outcomes",
+                "title": "Recent Outcomes",
+                "value": outcome_summary["latest_status"] or "none",
+                "detail": f"approval_pending={outcome_summary['approval_pending']} fallback={outcome_summary['fallback_engaged']} blocked={outcome_summary['blocked']}",
+            },
         ]
 
         return {
             "cards": cards,
             "summary": summary,
+            "recent_execution_outcomes": outcome_summary,
             "actions": [
                 {
                     "id": "boot-direct-core",
