@@ -680,7 +680,7 @@ class EquityFeed:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _build_session():  # type: ignore[return]
+    def _build_session() -> "Optional[requests.Session]":
         try:
             import requests  # noqa: PLC0415
             s = requests.Session()

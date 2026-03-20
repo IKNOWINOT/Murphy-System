@@ -7184,13 +7184,12 @@ def create_app() -> FastAPI:
             from live_feed_service import get_live_feed
             from coinbase_connector import CoinbaseConnector
             _cb = CoinbaseConnector()
-            import os as _os2
             return get_live_feed(
                 coinbase_connector=_cb,
-                alpaca_key=_os2.getenv("ALPACA_API_KEY", ""),
-                alpaca_secret=_os2.getenv("ALPACA_API_SECRET", ""),
-                alpha_vantage_key=_os2.getenv("ALPHA_VANTAGE_API_KEY", ""),
-                polygon_key=_os2.getenv("POLYGON_API_KEY", ""),
+                alpaca_key=_os.getenv("ALPACA_API_KEY", ""),
+                alpaca_secret=_os.getenv("ALPACA_API_SECRET", ""),
+                alpha_vantage_key=_os.getenv("ALPHA_VANTAGE_API_KEY", ""),
+                polygon_key=_os.getenv("POLYGON_API_KEY", ""),
             )
         except Exception as _exc:
             logger.warning("LiveFeedService unavailable: %s", _exc)
