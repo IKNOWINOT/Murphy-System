@@ -391,6 +391,8 @@ class WorkflowDAGEngine:
         self._step_handlers.setdefault("error_handling", _handle_error_handling)
         self._step_handlers.setdefault("execution", _handle_execution)
         self._step_handlers.setdefault("analysis", _handle_analysis)
+        # Aliases: data_protection shares output logic with data_output;
+        # security steps perform validation-style checks.
         self._step_handlers.setdefault("data_protection", _handle_data_output)
         self._step_handlers.setdefault("security", _handle_validation)
         self._step_handlers.setdefault("delay", lambda sd, ctx: {

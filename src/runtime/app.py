@@ -4396,7 +4396,10 @@ def create_app() -> FastAPI:
                 {"success": False, "error": "integration ID required"},
                 status_code=400,
             )
-        # Store securely (in-memory for dev; production uses vault)
+        # Store metadata (in-memory for dev; production should use a vault).
+        # The actual credential value is intentionally NOT persisted in-memory
+        # to avoid leaking secrets in heap dumps.  Only metadata is kept.
+        # TODO: integrate with vault backend for production credential storage.
         _stored_credentials[integration_id] = {
             "integration": integration_id,
             "stored_at": datetime.now(timezone.utc).isoformat(),
@@ -5326,7 +5329,10 @@ def create_app() -> FastAPI:
             )
         # In production, this sends a reset email.  In dev mode, we log and
         # always report success (never reveal whether an account exists).
-        logger.info("Password reset requested for: %s", email)
+        # Log truncated email to avoid PII exposure in logs (GDPR compliance)
+        local, _, domain = email.partition("@")
+        masked = f"{local[0]}***@{domain}" if local else "***"
+        logger.info("Password reset requested for: %s", masked)
         return JSONResponse({
             "success": True,
             "message": "If an account with that email exists, a reset link has been sent.",
