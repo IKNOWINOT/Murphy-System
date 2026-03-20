@@ -489,6 +489,44 @@
 
   </div>
 
+  <!-- ── Trading Risk Panel ── -->
+  <div class="wallet-section-heading" style="margin-top:2rem;">⚡ Trading Risk &amp; Automation</div>
+  <div class="wallet-assets-grid" style="margin-bottom:1.5rem;" id="trading-risk-mini-grid">
+    <!-- Emergency stop status -->
+    <div class="asset-card" id="twc-estop">
+      <div class="asset-card-top">
+        <div class="asset-icon" style="background:rgba(0,255,65,.1);color:#00ff41;">🛡️</div>
+        <div><div class="asset-name">Emergency Stop</div><div class="asset-symbol" id="twc-estop-status">Loading…</div></div>
+      </div>
+    </div>
+    <!-- Graduation status -->
+    <div class="asset-card" id="twc-grad">
+      <div class="asset-card-top">
+        <div class="asset-icon" style="background:rgba(0,212,170,.1);color:var(--teal);">🎓</div>
+        <div><div class="asset-name">Graduation</div><div class="asset-symbol" id="twc-grad-status">Loading…</div></div>
+      </div>
+      <div class="asset-balance" id="twc-grad-pct" style="font-size:1.1rem;">—</div>
+      <div class="asset-usd">Criteria completion</div>
+    </div>
+    <!-- Risk level -->
+    <div class="asset-card" id="twc-risk">
+      <div class="asset-card-top">
+        <div class="asset-icon" style="background:rgba(255,170,0,.1);color:#ffaa00;">⚠️</div>
+        <div><div class="asset-name">Risk Level</div><div class="asset-symbol" id="twc-risk-regime">—</div></div>
+      </div>
+      <div class="asset-balance" id="twc-risk-level" style="font-size:1.1rem;">—</div>
+      <div class="asset-usd" id="twc-risk-score">Score: —</div>
+    </div>
+    <!-- Link to full dashboard -->
+    <div class="asset-card" style="align-items:center;justify-content:center;cursor:pointer;" onclick="window.location='/ui/risk-dashboard'">
+      <div style="text-align:center;padding:.5rem;">
+        <div style="font-size:2rem;margin-bottom:.5rem;">📊</div>
+        <div class="asset-name">Full Risk Dashboard</div>
+        <div class="asset-symbol">View audit log, graduation &amp; controls →</div>
+      </div>
+    </div>
+  </div>
+
 </main>
 
 <!-- ── Footer ── -->
@@ -651,6 +689,55 @@
       document.getElementById('murphy-wallet-insight').textContent = 'Could not reach Murphy right now.';
     });
   });
+
+  /* ── Trading Risk Mini Panel ── */
+  (function loadTradingRisk() {
+    /* Emergency stop */
+    fetch('/api/trading/emergency/status')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var s = d.emergency_stop || {};
+        var el = document.getElementById('twc-estop-status');
+        var card = document.getElementById('twc-estop');
+        if (s.is_stopped) {
+          el.textContent = 'TRIGGERED';
+          card.style.borderColor = 'rgba(255,68,68,.5)';
+        } else {
+          el.textContent = 'Armed & Ready';
+          card.style.borderColor = 'rgba(0,255,65,.3)';
+        }
+      })
+      .catch(function () {
+        var el = document.getElementById('twc-estop-status');
+        if (el) el.textContent = 'Unavailable';
+      });
+
+    /* Graduation */
+    fetch('/api/trading/graduation/status')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var g = d.graduation || {};
+        var statusEl = document.getElementById('twc-grad-status');
+        var pctEl    = document.getElementById('twc-grad-pct');
+        if (statusEl) statusEl.textContent = (g.status || '—').replace('_', ' ');
+        if (pctEl)    pctEl.textContent    = (g.completion_pct || 0).toFixed(0) + '%';
+      })
+      .catch(function () {});
+
+    /* Risk summary */
+    fetch('/api/trading/risk/assessment')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var s = d.summary || {};
+        var lvlEl    = document.getElementById('twc-risk-level');
+        var regEl    = document.getElementById('twc-risk-regime');
+        var scoreEl  = document.getElementById('twc-risk-score');
+        if (lvlEl)   lvlEl.textContent  = '—';
+        if (regEl)   regEl.textContent  = 'Regime: ' + (s.market_regime || '—');
+        if (scoreEl) scoreEl.textContent = 'Drawdown: ' + (s.current_drawdown_pct || 0).toFixed(1) + '%';
+      })
+      .catch(function () {});
+  })();
 
 })();
 </script>
