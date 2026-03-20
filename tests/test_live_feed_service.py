@@ -254,6 +254,36 @@ class TestCryptoFeedWithCoinbase(unittest.TestCase):
         self.assertEqual(quote.price, 50000.0)
         self.assertEqual(quote.provider, "coinbase")
 
+    def test_quote_via_coinbase_data_mapping(self):
+        """Verify _quote_via_coinbase correctly maps ticker fields to LiveQuote."""
+        from live_feed_service import CryptoFeed, FeedProvider, AssetClass
+        from dataclasses import dataclass
+
+        @dataclass
+        class FakeTicker:
+            price: float = 60000.0
+            best_bid: float = 59990.0
+            best_ask: float = 60010.0
+            volume_24h: float = 9876543.0
+            price_percent_chg_24h: float = 3.7
+            high_24h: float = 61000.0
+            low_24h: float = 59000.0
+
+        cb = MagicMock()
+        cb.sandbox = True
+        cb.get_ticker.return_value = FakeTicker()
+        feed = CryptoFeed(coinbase_connector=cb)
+        quote = feed._quote_via_coinbase("BTC-USD")
+        self.assertIsNotNone(quote)
+        self.assertEqual(quote.price, 60000.0)
+        self.assertEqual(quote.bid, 59990.0)
+        self.assertEqual(quote.ask, 60010.0)
+        self.assertEqual(quote.volume_24h, 9876543.0)
+        self.assertAlmostEqual(quote.change_pct_24h, 3.7)
+        self.assertEqual(quote.provider, FeedProvider.COINBASE.value)
+        self.assertEqual(quote.asset_class, AssetClass.CRYPTO.value)
+        self.assertTrue(quote.sandbox)
+
     def test_get_quote_normalises_slash_notation(self):
         from live_feed_service import CryptoFeed, LiveQuote, AssetClass, FeedProvider
         feed = CryptoFeed()
