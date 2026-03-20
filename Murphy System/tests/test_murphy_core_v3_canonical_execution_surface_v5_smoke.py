@@ -179,3 +179,26 @@ def test_canonical_execution_surface_v5_dashboard_reflects_recent_fallback_outco
     assert payload['recent_execution_outcomes']['fallback_engaged'] >= 1
     recent_card = next(card for card in payload['cards'] if card['id'] == 'recent-outcomes')
     assert recent_card['value'] == 'fallback_completed'
+
+
+def test_canonical_execution_surface_v5_founder_summary_reflects_recent_execution_outcomes():
+    app = create_app()
+
+    async def fake_execute(request, plan):
+        return {
+            'success': False,
+            'status': 'blocked',
+            'gate_enforcement_summary': {'blocking_gates': ['security']},
+            'enforcement_summary': {'blocked': True},
+        }
+
+    app.state.services.executor.execute = fake_execute
+    local_client = TestClient(app)
+    local_client.post('/api/execute', json={'task_description': 'block me'})
+    response = local_client.get('/api/founder/visibility-summary')
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload['success'] is True
+    assert payload['recent_execution_total'] >= 1
+    assert payload['recent_blocked'] >= 1
+    assert payload['latest_execution_status'] == 'blocked'
