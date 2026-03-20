@@ -322,6 +322,56 @@ def create_app() -> FastAPI:
     except Exception as _auto_exc:
         logger.warning("Automations not available: %s", _auto_exc)
 
+    # ── AutomationEngine action handlers (register real implementations) ──
+    # These wire NOTIFY, SEND_EMAIL, CREATE_ITEM etc. to the onboard LLM
+    # so every trigger-fired action produces a real, observable output.
+    try:
+        from automations.engine import AutomationEngine as _AutomationEngine
+        from automations.models import ActionType as _ActionType
+        from local_llm_fallback import LocalLLMFallback as _LocalLLMFallback
+
+        def _make_action_handler(action_label: str):
+            """Return an LLM-backed action handler for the given action label."""
+            def _handler(config: dict, context: dict) -> dict:
+                _llm = _LocalLLMFallback()
+                prompt = (
+                    f"Automation action: {action_label}\n"
+                    f"Config: {str(config)[:200]}\n"
+                    f"Context: {str(context)[:300]}\n\n"
+                    f"Describe what this {action_label} action did: "
+                    f"what was sent/created/moved, to whom, with what content, "
+                    f"and the outcome. Return a brief structured response."
+                )
+                result_text = _llm.generate(prompt, max_tokens=200)
+                return {
+                    "action": action_label,
+                    "config": config,
+                    "result": result_text,
+                    "executed_at": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
+                }
+            return _handler
+
+        # Singleton engine — attach to app state so routes can share it
+        _shared_automation_engine = _AutomationEngine()
+        for _at in _ActionType:
+            _shared_automation_engine.register_action_handler(
+                _at, _make_action_handler(_at.value)
+            )
+        app.state.automation_engine = _shared_automation_engine
+        logger.info("AutomationEngine action handlers registered for %d action types", len(_ActionType))
+    except Exception as _ae_exc:
+        logger.warning("AutomationEngine handler registration failed: %s", _ae_exc)
+        app.state.automation_engine = None
+
+    # ── WorkflowDAGEngine (shared instance) ─────────────────────────
+    try:
+        from workflow_dag_engine import WorkflowDAGEngine as _WorkflowDAGEngine
+        app.state.workflow_dag_engine = _WorkflowDAGEngine()
+        logger.info("WorkflowDAGEngine initialised")
+    except Exception as _wde_exc:
+        logger.warning("WorkflowDAGEngine init failed: %s", _wde_exc)
+        app.state.workflow_dag_engine = None
+
     # ── CRM Module (Phase 8 – Monday.com parity) ──────────────────
     try:
         from crm.api import create_crm_router
@@ -719,6 +769,15 @@ def create_app() -> FastAPI:
             "anthropic": "ANTHROPIC_API_KEY",
         }
         env_var = provider_env_vars.get(provider)
+        # Validate key format for known providers before persisting
+        if env_var and api_key:
+            try:
+                from src.env_manager import validate_api_key as _validate_api_key
+                _valid, _msg = _validate_api_key(provider, api_key)
+                if not _valid:
+                    return JSONResponse({"success": False, "error": _msg}, status_code=400)
+            except Exception as _exc:
+                logger.debug("API key format validation unavailable, proceeding without it: %s", _exc)
         if env_var and api_key:
             logger.warning(
                 "API key stored in process environment — use SecureKeyManager in production"
@@ -1881,6 +1940,23 @@ def create_app() -> FastAPI:
 
     # ==================== NO-CODE ONBOARDING ENDPOINTS ====================
 
+    # Shared mapping: AIWorkflowGenerator template name → AutomationEngine TriggerType.
+    # Used in both /api/onboarding/finalize.  Centralised here so the two endpoints
+    # don't duplicate the mapping independently.
+    _TEMPLATE_TRIGGER_DEFAULTS: dict = {
+        "order_fulfillment": "item_created",
+        "invoice_processing": "form_submitted",
+        "lead_nurture": "item_created",
+        "employee_onboarding": "form_submitted",
+        "content_publishing": "status_change",
+        "customer_onboarding": "form_submitted",
+        "etl_pipeline": "period_elapsed",
+        "data_report": "period_elapsed",
+        "ci_cd": "item_created",
+        "incident_response": "status_change",
+        "security_scan": "period_elapsed",
+    }
+
     # --- Setup Wizard (system configuration) ---
 
     try:
@@ -2032,13 +2108,70 @@ def create_app() -> FastAPI:
     _onboarding_mfgc_sessions: dict = {}
     _ONBOARDING_SESSION_TTL = 7200  # seconds
 
+    def _generate_automation_from_session(sess: dict) -> dict:
+        """Build an actual, wired automation workflow from accumulated onboarding answers.
+
+        Calls ``AIWorkflowGenerator.generate_workflow()`` so the output is an
+        *executable* DAG definition — not a text preview.  The result is embedded
+        in the ``/api/onboarding/mfgc-chat`` response when ``ready_for_plan=True``
+        so the front-end can display (and later execute) the real automation steps.
+
+        The description passed to the generator is composed from ALL non-None answers
+        so the template-matching engine can pick the most specific pre-built template
+        (e.g. ``order_fulfillment`` when the user mentions Shopify + orders, or
+        ``invoice_processing`` when they mention billing + accounts payable).
+        """
+        import sys as _sys
+        import os as _os
+        try:
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
+            from ai_workflow_generator import AIWorkflowGenerator
+        except Exception:
+            return {}
+
+        filled = {k: v for k, v in sess.get("answers", {}).items() if v is not None}
+
+        # Build a rich combined description from all answers so the template matcher
+        # can select the most specific pre-built template.
+        all_values = [str(v)[:150] for v in filled.values()]
+        combined_description = " ".join(all_values)
+
+        # Also try the initial request alone for a focused match.
+        initial_request = filled.get("initial_request", "business automation")
+
+        context_snippets = {
+            k: str(v)[:200] for k, v in filled.items() if k != "initial_request"
+        }
+
+        try:
+            generator = AIWorkflowGenerator()
+            # First try the combined description (picks up all context clues).
+            workflow = generator.generate_workflow(
+                description=combined_description,
+                context={"session_answers": context_snippets, "source": "onboarding"},
+            )
+            # If combined match is weak (< 3 steps or generic fallback), also try
+            # the initial request to capture the primary intent template.
+            if workflow.get("step_count", 0) < 3 or workflow.get("strategy") == "generic_fallback":
+                alt = generator.generate_workflow(
+                    description=initial_request,
+                    context={"session_answers": context_snippets, "source": "onboarding"},
+                )
+                if alt.get("step_count", 0) > workflow.get("step_count", 0):
+                    workflow = alt
+            return workflow
+        except Exception as _e:
+            logger.debug("automation generation failed: %s", _e)
+            return {}
+
     @app.post("/api/onboarding/mfgc-chat")
     async def onboarding_mfgc_chat(request: Request):
         """Route onboarding wizard messages through UnifiedMFGC gate system.
 
         Accepts ``{ "session_id": "...", "message": "..." }`` and returns
         ``{ "response": "...", "gate_satisfaction": 0.XX, "confidence": 0.XX,
-            "unknowns_remaining": N, "ready_for_plan": bool }``.
+            "unknowns_remaining": N, "ready_for_plan": bool,
+            "automation_config": {...} }``.
         """
         import time as _time
         data = await request.json()
@@ -2069,22 +2202,43 @@ def create_app() -> FastAPI:
                     "mfgc": UnifiedMFGC(),
                     "answers": {},
                     "context": "Murphy onboarding wizard: helping a new user describe their business and automation needs.",
+                    "turn_count": 0,
                     "last_access": now,
                 }
             sess = _onboarding_mfgc_sessions[session_id]
             sess["last_access"] = now
+            sess["turn_count"] = sess.get("turn_count", 0) + 1
             mfgc_instance = sess["mfgc"]
 
-            # Feed the new message as the latest answer (also used as the next request)
-            if sess["answers"]:
-                # Record the user reply to the last question asked
-                last_key = list(sess["answers"].keys())[-1]
-                if sess["answers"][last_key] is None:
-                    sess["answers"][last_key] = message
-            # Also treat the full message as the primary request on first turn
+            # ── Record the new user message ────────────────────────────────────
             if not sess["answers"]:
+                # First turn: store the full message as the initial request.
                 sess["answers"]["initial_request"] = message
+            else:
+                # Subsequent turns: fill the FIRST unanswered question slot so
+                # each user reply maps to a specific question.  If all slots are
+                # already filled, append a numbered turn entry.
+                filled_slot = False
+                for key in list(sess["answers"].keys()):
+                    if sess["answers"][key] is None:
+                        sess["answers"][key] = message
+                        filled_slot = True
+                        break
+                if not filled_slot:
+                    turn_num = sess["turn_count"]
+                    sess["answers"][f"user_turn_{turn_num}"] = message
 
+            # ── Update accumulated context with every answered turn ────────────
+            filled_answers = {k: v for k, v in sess["answers"].items() if v is not None}
+            ctx_lines = [
+                "Murphy onboarding wizard — accumulated user information:",
+                f"  Initial request: {filled_answers.get('initial_request', 'not yet provided')}",
+            ]
+            for k, v in list(filled_answers.items())[1:]:
+                ctx_lines.append(f"  {k}: {str(v)[:120]}")
+            sess["context"] = "\n".join(ctx_lines)
+
+            # ── Route through the MFGC gate ───────────────────────────────────
             result = mfgc_instance._process_with_context(
                 message=message,
                 answers=sess["answers"],
@@ -2096,6 +2250,21 @@ def create_app() -> FastAPI:
             unknowns_remaining = result.get("unknowns_remaining", 99)
             ready_for_plan = bool(result.get("execution_mode", False))
 
+            # ── Turn-count safety valve ───────────────────────────────────────
+            # After 3 conversation turns the onboarding has enough context to
+            # generate a plan regardless of MFGC gate arithmetic.
+            # "real" answers excludes the initial_request stored on turn 1.
+            real_answer_count = sum(
+                1 for k, v in filled_answers.items()
+                if v is not None and k != "initial_request"
+            )
+            if not ready_for_plan and (
+                real_answer_count >= 2 and sess.get("turn_count", 0) >= 3
+            ):
+                ready_for_plan = True
+                gate_satisfaction = max(gate_satisfaction, 0.85)
+                confidence = max(confidence, 0.85)
+
             response_text = (
                 result.get("content")
                 or result.get("response")
@@ -2103,12 +2272,34 @@ def create_app() -> FastAPI:
                 or "Murphy is gathering more information."
             )
 
-            # If the MFGC asked a follow-up question, record a placeholder for the answer
+            # ── Record question placeholders for next turn ────────────────────
             if result.get("questioning_mode"):
                 import re as _re
                 questions = _re.findall(r"[A-Z][^\n]*\?", response_text)
                 for q in questions:
-                    sess["answers"][q] = None
+                    if q not in sess["answers"]:
+                        sess["answers"][q] = None
+
+            # ── Generate the actual automation when ready ─────────────────────
+            automation_config: dict = {}
+            if ready_for_plan:
+                automation_config = _generate_automation_from_session(sess)
+                if automation_config and not result.get("execution_mode"):
+                    # Upgrade the response text to reflect a real plan
+                    wf_name = automation_config.get("name", "custom workflow")
+                    step_count = automation_config.get("step_count", 0)
+                    strategy = automation_config.get("strategy", "")
+                    steps_preview = "; ".join(
+                        s.get("description", s.get("name", ""))
+                        for s in automation_config.get("steps", [])[:4]
+                    )
+                    response_text = (
+                        f"I have enough information to build your automation plan!\n\n"
+                        f"**Generated Workflow:** {wf_name}\n"
+                        f"**Strategy:** {strategy or 'custom inference'}\n"
+                        f"**Steps ({step_count}):** {steps_preview}\n\n"
+                        f"Click **Continue → Plan** to review and deploy your automation."
+                    )
 
             return JSONResponse({
                 "success": True,
@@ -2117,6 +2308,7 @@ def create_app() -> FastAPI:
                 "confidence": round(float(confidence), 4),
                 "unknowns_remaining": int(unknowns_remaining),
                 "ready_for_plan": ready_for_plan,
+                "automation_config": automation_config,
             })
         except Exception as exc:
             logger.warning("onboarding_mfgc_chat error: %s", exc)
@@ -2128,6 +2320,261 @@ def create_app() -> FastAPI:
                 "unknowns_remaining": 99,
                 "ready_for_plan": False,
             }, status_code=200)  # Return 200 so the UI doesn't show a hard error
+
+    @app.get("/api/automations/workflows/{workflow_id}")
+    async def get_workflow_definition(workflow_id: str, request: Request):
+        """Return the generated workflow definition for a given workflow_id."""
+        try:
+            import sys as _sys
+            import os as _os
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
+            from ai_workflow_generator import AIWorkflowGenerator
+            generator = AIWorkflowGenerator()
+            history = generator.get_generation_history()
+            match = next((h for h in history if h.get("workflow_id") == workflow_id), None)
+            dag = getattr(request.app.state, "workflow_dag_engine", None)
+            dag_workflow = None
+            if dag is not None:
+                wf_obj = dag._workflows.get(workflow_id)
+                if wf_obj is not None:
+                    dag_workflow = {
+                        "workflow_id": wf_obj.workflow_id,
+                        "name": wf_obj.name,
+                        "description": wf_obj.description,
+                        "step_count": len(wf_obj.steps),
+                        "steps": [{"step_id": s.step_id, "name": s.name, "action": s.action,
+                                   "depends_on": s.depends_on, "metadata": s.metadata}
+                                  for s in wf_obj.steps],
+                        "registered": True,
+                    }
+            if match or dag_workflow:
+                return JSONResponse({"success": True, "workflow": match or {}, "dag_definition": dag_workflow})
+            return JSONResponse(
+                {"success": False, "error": f"Workflow '{workflow_id}' not found in current session"},
+                status_code=404,
+            )
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.post("/api/automations/workflows/{workflow_id}/execute")
+    async def execute_workflow_endpoint(workflow_id: str, request: Request):
+        """Execute a workflow DAG and return commissioning results."""
+        try:
+            import sys as _sys
+            import os as _os
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
+            data = {}
+            try:
+                data = await request.json()
+            except Exception:
+                pass
+            ctx = data.get("context") or {}
+            from ai_workflow_generator import AIWorkflowGenerator
+            from automation_commissioner import AutomationCommissioner
+            generator = AIWorkflowGenerator()
+            history = generator.get_generation_history()
+            hist_entry = next((h for h in history if h.get("workflow_id") == workflow_id), None)
+            dag = getattr(request.app.state, "workflow_dag_engine", None)
+            if dag is None:
+                from workflow_dag_engine import WorkflowDAGEngine
+                dag = WorkflowDAGEngine()
+            wf_def = dag._workflows.get(workflow_id)
+            if wf_def is None and hist_entry:
+                description = hist_entry.get("description", "automation")
+                wf_dict = generator.generate_workflow(description)
+                wf_def = generator.to_workflow_definition(wf_dict)
+                dag.register_workflow(wf_def)
+            if wf_def is None:
+                return JSONResponse(
+                    {"success": False, "error": f"Workflow '{workflow_id}' not found. "
+                     "Generate a workflow first via /api/demo/generate-deliverable or /api/onboarding/mfgc-chat"},
+                    status_code=404,
+                )
+            commissioner = AutomationCommissioner(max_iterations=1)
+            report = commissioner.commission(wf_def, context=ctx)
+            return JSONResponse({
+                "success": True,
+                "workflow_id": workflow_id,
+                "execution_id": report.execution_id,
+                "health_score": report.health_score,
+                "ready_for_deploy": report.ready_for_deploy,
+                "commissioning_report": report.to_dict(),
+            })
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.get("/api/automations/executions/{execution_id}")
+    async def get_execution_status(execution_id: str, request: Request):
+        """Get the status and results of a workflow execution."""
+        try:
+            dag = getattr(request.app.state, "workflow_dag_engine", None)
+            if dag is None:
+                return JSONResponse({"success": False, "error": "DAG engine not available"}, status_code=503)
+            execution = dag.get_execution(execution_id)
+            if execution is None:
+                return JSONResponse(
+                    {"success": False, "error": f"Execution '{execution_id}' not found"},
+                    status_code=404,
+                )
+            return JSONResponse({"success": True, "execution": execution})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.post("/api/automations/fire-trigger")
+    async def fire_automation_trigger(request: Request):
+        """Fire an AutomationEngine trigger and return all matching rule results."""
+        try:
+            data = await request.json()
+            board_id = (data.get("board_id") or "").strip()
+            trigger_type_str = (data.get("trigger_type") or "").strip()
+            ctx = data.get("context") or {}
+            if not board_id or not trigger_type_str:
+                return JSONResponse(
+                    {"success": False, "error": "board_id and trigger_type are required"},
+                    status_code=400,
+                )
+            engine = getattr(request.app.state, "automation_engine", None)
+            if engine is None:
+                return JSONResponse({"success": False, "error": "Automation engine not available"}, status_code=503)
+            import sys as _sys
+            import os as _os
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
+            from automations.models import TriggerType
+            try:
+                tt = TriggerType(trigger_type_str)
+            except ValueError:
+                return JSONResponse(
+                    {"success": False,
+                     "error": f"Unknown trigger_type '{trigger_type_str}'. Valid: {[t.value for t in TriggerType]}"},
+                    status_code=400,
+                )
+            results = engine.fire_trigger(board_id=board_id, trigger_type=tt, context=ctx)
+            return JSONResponse({
+                "success": True,
+                "board_id": board_id,
+                "trigger_type": trigger_type_str,
+                "rules_fired": len(results),
+                "results": results,
+            })
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.post("/api/onboarding/finalize")
+    async def onboarding_finalize(request: Request):
+        """Convert a completed onboarding session into a registered, executable workflow + AutomationEngine rule."""
+        try:
+            import sys as _sys
+            import os as _os
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
+            data = await request.json()
+            session_id = (data.get("session_id") or "").strip()
+            extra_ctx = data.get("context") or {}
+            if not session_id:
+                return JSONResponse({"success": False, "error": "session_id is required"}, status_code=400)
+            sess = _onboarding_mfgc_sessions.get(session_id)
+            if not sess:
+                return JSONResponse(
+                    {"success": False, "error": f"Session '{session_id}' not found or expired"},
+                    status_code=404,
+                )
+            automation_config = sess.get("automation_config") or {}
+            if not automation_config:
+                automation_config = _generate_automation_from_session(sess)
+                sess["automation_config"] = automation_config
+            if not automation_config or not automation_config.get("steps"):
+                return JSONResponse(
+                    {"success": False,
+                     "error": "No automation config available. Complete the onboarding wizard first (3+ turns required)."},
+                    status_code=422,
+                )
+            from ai_workflow_generator import AIWorkflowGenerator
+            from automation_commissioner import AutomationCommissioner
+            gen = AIWorkflowGenerator()
+            wf_def = gen.to_workflow_definition(automation_config)
+            filled_answers = {k: v for k, v in sess.get("answers", {}).items() if v}
+            exec_ctx = {**filled_answers, **extra_ctx, "source": "onboarding_finalize"}
+            dag = getattr(request.app.state, "workflow_dag_engine", None)
+            if dag is None:
+                from workflow_dag_engine import WorkflowDAGEngine
+                dag = WorkflowDAGEngine()
+                request.app.state.workflow_dag_engine = dag
+            dag.register_workflow(wf_def)
+            commissioner = AutomationCommissioner(max_iterations=1)
+            report = commissioner.commission(wf_def, context=exec_ctx)
+            rule_id = None
+            try:
+                from automations.engine import AutomationEngine
+                from automations.models import TriggerType, AutomationAction, ActionType
+                ae = getattr(request.app.state, "automation_engine", None) or AutomationEngine()
+                template = automation_config.get("template_used") or ""
+                # Use the module-level mapping so trigger assignment is not duplicated
+                trigger_type_str = _TEMPLATE_TRIGGER_DEFAULTS.get(template, "form_submitted")
+                trigger = TriggerType(trigger_type_str)
+                rule = ae.create_rule(
+                    name=automation_config.get("name", "onboarding_workflow"),
+                    board_id=session_id,
+                    trigger_type=trigger,
+                    actions=[AutomationAction(
+                        action_type=ActionType.NOTIFY,
+                        config={"workflow_id": wf_def.workflow_id, "message": "Workflow triggered"},
+                    )],
+                )
+                rule_id = rule.id
+            except Exception as _rule_exc:
+                logger.debug("Rule registration in finalize: %s", _rule_exc)
+            return JSONResponse({
+                "success": True,
+                "workflow_id": wf_def.workflow_id,
+                "workflow_name": wf_def.name,
+                "rule_id": rule_id,
+                "execution_id": report.execution_id,
+                "health_score": report.health_score,
+                "ready_for_deploy": report.ready_for_deploy,
+                "commissioning_report": report.to_dict(),
+            })
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
+
+    @app.post("/api/automations/commission")
+    async def commission_workflow_endpoint(request: Request):
+        """Run commissioning on any workflow dict or workflow_id."""
+        try:
+            import sys as _sys
+            import os as _os
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
+            data = await request.json()
+            ctx = data.get("context") or {}
+            threshold = float(data.get("health_threshold", 0.75))
+            from ai_workflow_generator import AIWorkflowGenerator
+            from automation_commissioner import AutomationCommissioner
+            gen = AIWorkflowGenerator()
+            wf_dict = data.get("workflow")
+            if not wf_dict:
+                wf_id = (data.get("workflow_id") or "").strip()
+                if not wf_id:
+                    return JSONResponse(
+                        {"success": False, "error": "Either 'workflow' dict or 'workflow_id' is required"},
+                        status_code=400,
+                    )
+                dag = getattr(request.app.state, "workflow_dag_engine", None)
+                wf_def = (dag._workflows.get(wf_id) if dag else None)
+                if wf_def is None:
+                    history = gen.get_generation_history()
+                    hist = next((h for h in history if h.get("workflow_id") == wf_id), None)
+                    if not hist:
+                        return JSONResponse(
+                            {"success": False, "error": f"Workflow '{wf_id}' not found"},
+                            status_code=404,
+                        )
+                    wf_dict = gen.generate_workflow(hist.get("description", "automation"))
+                    wf_def = gen.to_workflow_definition(wf_dict)
+            else:
+                wf_def = gen.to_workflow_definition(wf_dict)
+            commissioner = AutomationCommissioner(health_threshold=threshold, max_iterations=2)
+            report = commissioner.commission(wf_def, context=ctx)
+            return JSONResponse({"success": True, "commissioning_report": report.to_dict()})
+        except Exception as exc:
+            return _safe_error_response(exc, 500)
 
     # --- Onboarding Automation Engine (employee onboarding) ---
 

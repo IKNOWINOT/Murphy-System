@@ -176,4 +176,166 @@ Redis instance and set `REDIS_URL` in `.env`.
 
 ---
 
-*Last updated: 2026-03-18. See [docs/PLANNED_FIXES.md](PLANNED_FIXES.md) for the resolution roadmap.*
+## 11. Onboard LLM Context Contamination (Fixed — PR 62)
+
+**Severity:** High
+**Status:** Fixed in PR 62
+
+`LocalLLMFallback._generate_offline()` searched for knowledge-base topics in the
+*entire* prompt string, including system-context prefixes injected by
+`_try_llm_generate` and `_call_llm`. Since the context included strings like
+`"Knowledge-base topics: murphy, murphy_setup, ..."` or `"Murphy onboarding
+wizard..."`, the matcher would find `"murphy"` in the context and return the
+generic Murphy System description for every query regardless of what the user
+actually asked.
+
+**Fix:** `_generate_offline` now splits the prompt on `\n\n` separators and
+performs topic matching and pattern detection only against the *last segment*
+(the actual user query). System context prepended to the prompt is ignored
+for matching purposes.
+
+---
+
+## 12. Onboard LLM Missing Business-Domain Knowledge (Fixed — PR 62)
+
+**Severity:** Medium
+**Status:** Fixed in PR 62
+
+`LocalLLMFallback` knowledge base contained only tech/programming topics
+(algorithms, Python, databases, etc.) and had no content about business
+automation, e-commerce, workflows, or integrations — the primary use-cases
+of Murphy System. Additionally the pattern list lacked handlers for
+`automation`, `integrate/connect`, `help`, `I run a business`, and
+`set up / configure` phrasing.
+
+**Fix:** Added knowledge-base entries for `automation`, `e-commerce`,
+`workflow`, `integrations`, `crm`, and `reporting`. Added 8 new pattern
+types with contextual response handlers that guide users toward setting up
+their first Murphy automation.
+
+---
+
+## 13. UnifiedMFGC Offline Mode Returns Wrong Content (Fixed — PR 62)
+
+**Severity:** High
+**Status:** Fixed in PR 62
+
+`UnifiedMFGC._process_with_context()` called `_call_llm()` (which in offline
+mode delegates to `LocalLLMFallback`) with the full multi-paragraph system
+prompt used for gate-resolution questioning. Because the system prompt ended
+with "Make questions specific and actionable.", the pattern matcher matched
+"make" and returned a generic creation-type response instead of asking the
+targeted onboarding questions.
+
+**Fix:** Gate-resolution and execution paths now check
+`getattr(self, "llm_mode", "offline") != "offline"` before calling `_call_llm`.
+When offline, `_process_with_context` generates structured onboarding questions
+deterministically from the `remaining_unknowns` list using a keyword-to-question
+mapping.
+
+---
+
+## 14. UnifiedMFGC None-Answer AttributeError Crash (Fixed — PR 62)
+
+**Severity:** High
+**Status:** Fixed in PR 62
+
+`_process_with_context` recorded unanswered follow-up questions as `None`
+placeholder values in the `answers` dict. On the second and subsequent turns,
+the gate-satisfaction check iterated over `answers.values()` and called
+`answer.lower()` on these `None` values, crashing with:
+`AttributeError: 'NoneType' object has no attribute 'lower'`.
+
+This caused `onboarding_mfgc_chat` to return `{"success": false}` for every
+message after the first.
+
+**Fix:** Added `if answer is None: continue` guard before the `.lower()` call
+in the gate satisfaction loop.
+
+---
+
+## 15. MFGC Offline Session Never Advanced Past Turn 1 (Fixed — PR 62)
+
+**Severity:** Critical
+**Status:** Fixed in PR 62
+
+`onboarding_mfgc_chat` only filled ONE answer slot per turn (the last None key),
+`sess["context"]` never accumulated user information between turns, and
+`_process_with_context` received the same empty context every turn — causing the
+expansion engine to always return 4 unknowns and ask the same 3 questions forever.
+
+**Fix:**
+- Each turn now fills the **first** None slot (FIFO) so question/answer pairs map correctly
+- `sess["context"]` is rebuilt after each turn from all accumulated filled answers
+- `_process_with_context` incorporates filled answers into `enriched_task` so the expansion engine sees what has been provided
+- Novel unknowns are computed by subtracting answered items from `remaining_unknowns`
+- A turn-count safety valve fires `ready_for_plan=True` when `turn_count ≥ 3` AND `real_answer_count ≥ 2`, regardless of gate arithmetic
+
+---
+
+## 16. Automation Output Always "PREVIEW — Upgrade to Deploy" (Fixed — PR 62)
+
+**Severity:** Critical
+**Status:** Fixed in PR 62
+
+`_build_automation_blueprint()` in `demo_deliverable_generator.py` always returned
+a hardcoded "PREVIEW — Upgrade to deploy" string gated behind a "PAID TIER FEATURE"
+header. `AIWorkflowGenerator`, `AutomationTypeRegistry`, and `AutomationEngine`
+existed but were never called from the deliverable pipeline.
+
+**Fix:**
+- `_build_automation_blueprint` now calls `AIWorkflowGenerator.generate_workflow()`
+- The returned workflow DAG (with real step names, types, and dependency links) is
+  displayed in the deliverable
+- "PREVIEW — Upgrade to deploy" language removed
+- New header: "AUTOMATION BLUEPRINT — GENERATED WORKFLOW"
+- Includes: Workflow ID, strategy, template used, executable steps with dependencies
+
+---
+
+## 17. AIWorkflowGenerator Missing Business-Domain Templates (Fixed — PR 62)
+
+**Severity:** High
+**Status:** Fixed in PR 62
+
+Only 6 templates existed (etl, ci_cd, data_report, incident_response, customer_onboarding,
+security_scan). Core business automation use-cases had no templates, so queries about
+e-commerce fulfillment, invoicing, lead nurturing, employee onboarding, and content
+publishing fell through to `generic_fallback` with 1–3 meaningless steps.
+
+**Fix:**
+Added 6 new pre-built templates with full dependency-wired steps:
+- `order_fulfillment` — 7 steps: receive_order → validate_payment → update_inventory → create_shipping_label → notify_warehouse → send_confirmation → log_transaction
+- `invoice_processing` — 7 steps: receive_invoice → extract_data → validate_invoice → route_approval → process_payment → update_ledger → notify_vendor
+- `lead_nurture` — 7 steps: capture_lead → score_lead → enrich_profile → segment_lead → send_sequence → update_crm → handoff_to_sales
+- `employee_onboarding` — 7 steps: create_profile → provision_accounts → assign_equipment → send_welcome_pack → schedule_orientation → assign_buddy → track_completion
+- `content_publishing` — 6 steps: create_content → review_content → seo_optimise → publish_primary → syndicate_social → track_performance
+
+Template matching threshold lowered from 60% to 50% to improve recall. 30+ new
+business terms added to STEP_KEYWORDS.
+
+---
+
+## 18. Onboarding Chat Returns Automation Config (Fixed — PR 62)
+
+**Severity:** High
+**Status:** Fixed in PR 62
+
+When `ready_for_plan=True`, the `/api/onboarding/mfgc-chat` response included no
+actionable automation — just a boolean flag. The UI advanced to step 2 but had no
+concrete workflow to show.
+
+**Fix:** Added `_generate_automation_from_session(sess)` helper that:
+1. Composes a combined description from ALL accumulated answers
+2. Calls `AIWorkflowGenerator.generate_workflow()` for template matching
+3. Falls back to initial_request if combined description produces < 3 steps
+4. Returns the full workflow DAG (id, name, strategy, template, step count, steps)
+
+The `automation_config` field is now included in every `ready_for_plan=True` response.
+
+Added `/api/automations/workflows/{workflow_id}` endpoint for retrieving workflow
+definitions by ID (referenced in the automation blueprint).
+
+---
+
+*Last updated: 2026-03-20. See [docs/PLANNED_FIXES.md](PLANNED_FIXES.md) for the resolution roadmap.*
