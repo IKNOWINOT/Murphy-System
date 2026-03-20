@@ -1232,8 +1232,16 @@ What additional information would help me assist you better?"""
     def _process_with_context(self, message: str, answers: Dict[str, str], context_summary: str) -> Dict[str, Any]:
         """Process message with full context - use GATE SYSTEM to determine execution"""
 
-        # Re-run expansion with accumulated context to get updated unknowns
-        enriched_task = f"{message}\n\nContext gathered:\n{context_summary}"
+        # Build a rich enriched task that includes everything the user has already told us.
+        # This allows the expansion engine to recognise that many unknowns are already resolved.
+        filled_answers = {k: v for k, v in answers.items() if v is not None}
+        answered_summary = ""
+        if len(filled_answers) > 1:  # skip when only initial_request is present
+            answered_summary = "\n\nInformation already provided by user:\n" + "\n".join(
+                f"  - {str(v)[:120]}" for v in list(filled_answers.values())[:10]
+            )
+
+        enriched_task = f"{message}\n\nContext gathered:\n{context_summary}{answered_summary}"
 
         # Get domain
         _, domain = self.analyze_message(message)
@@ -1252,11 +1260,16 @@ What additional information would help me assist you better?"""
                     'satisfied': False  # Will check against answers
                 })
 
+        # Build a single string of all filled answer text for quick substring checks.
+        answered_text = " ".join(str(v).lower() for v in filled_answers.values() if v)
+
         # Check which gates are satisfied by our answers
         satisfied_gates = 0
         for gate in gates:
             # Simple check: if gate risk is mentioned in any answer, consider it addressed
             for answer in answers.values():
+                if answer is None:
+                    continue  # Skip unanswered question placeholders
                 if any(word in answer.lower() for word in gate['risk'].lower().split()[:3]):
                     gate['satisfied'] = True
                     satisfied_gates += 1
@@ -1266,17 +1279,27 @@ What additional information would help me assist you better?"""
         total_gates = len(gates)
         gate_satisfaction = satisfied_gates / total_gates if total_gates > 0 else 0
 
-        # Calculate confidence from gates + unknowns
-        unknowns_count = len(expansion_result.remaining_unknowns)
-        unknowns_resolved = max(0, 6 - unknowns_count)  # Assume started with ~6 unknowns
+        # Discount unknowns that are already addressed by user answers.
+        novel_unknowns = []
+        for unknown in expansion_result.remaining_unknowns:
+            # An unknown is "addressed" if its first 3 keywords appear in any answer.
+            if any(word in answered_text for word in unknown.lower().split()[:3]):
+                continue
+            novel_unknowns.append(unknown)
+
+        unknowns_count = len(novel_unknowns)
+        unknowns_resolved = max(0, 6 - unknowns_count)
 
         # Confidence formula: gate satisfaction + unknown resolution (no cap — can reach 1.0)
         confidence = (gate_satisfaction * 0.5) + (unknowns_resolved / 6 * 0.5)
 
-        # EXECUTION CRITERIA: High gate satisfaction (85%) AND critical unknowns resolved
+        # EXECUTION CRITERIA: High gate satisfaction (85%) AND critical unknowns resolved.
+        # For offline mode with 3+ real answers, also allow execution when novel unknowns ≤ 2.
+        real_answer_count = sum(1 for k, v in filled_answers.items()
+                                if v is not None and k != "initial_request")
         should_execute = (
-            gate_satisfaction >= 0.85 and  # 85% of gates satisfied
-            unknowns_count <= 2            # Only 2 or fewer unknowns left
+            (gate_satisfaction >= 0.85 and unknowns_count <= 2)
+            or (real_answer_count >= 3 and unknowns_count <= 2)
         )
 
         if should_execute:
@@ -1297,7 +1320,7 @@ CRITICAL INSTRUCTIONS:
 
 EXECUTE NOW and provide the complete deliverable."""
 
-            if self.llm_available:
+            if self.llm_available and getattr(self, "llm_mode", "offline") != "offline":
                 try:
                     response = self._call_llm(execution_prompt, max_tokens=4000)
 
@@ -1353,7 +1376,10 @@ Generate 2-3 TARGETED questions that specifically address:
 
 Make questions specific and actionable."""
 
-            if self.llm_available:
+            # Only use the LLM for the questioning phase when a *real* external LLM
+            # is available.  The offline fallback does not handle the complex system
+            # prompt format well, so we skip directly to deterministic questions.
+            if self.llm_available and getattr(self, "llm_mode", "offline") != "offline":
                 try:
                     questions_text = self._call_llm(more_questions_prompt, max_tokens=400)
 
@@ -1389,12 +1415,72 @@ Make questions specific and actionable."""
                     }
                 except Exception as exc:
                     logger.debug("Caught exception: %s", exc)
-                    return {
-                        'content': f"Error generating questions: {str(exc)}",
-                        'confidence': confidence,
-                        'band': 'conversational',
-                        'error': str(exc)
-                    }
+                    # Fall through to offline structured response below
+
+            # Offline / LLM-failure path — build structured questions deterministically
+            # from the *novel* (not yet answered) unknowns so the conversation progresses.
+            offline_questions = []
+            _unknown_to_question = {
+                "timeline": "What is your timeline or deadline for this project?",
+                "budget": "What is your approximate budget for this automation?",
+                "user personas": "Who are the main users or stakeholders involved?",
+                "decision makers": "Who needs to approve or sign off on this?",
+                "data sources": "What data sources or systems does this need to connect to?",
+                "integrations": "Which tools or platforms do you currently use that need to be integrated?",
+                "volume": "How many transactions, records, or events does this handle per day/week?",
+                "compliance": "Are there any compliance, legal, or security requirements to consider?",
+                "frequency": "How often should this automation run (real-time, hourly, daily, on-demand)?",
+                "success metrics": "How will you measure success? What does a good outcome look like?",
+            }
+            # Process up to this many unknowns when generating offline questions.
+            _MAX_UNKNOWNS_TO_PROCESS = 4
+            # Display up to this many questions per turn to avoid overwhelming the user.
+            _MAX_QUESTIONS_TO_DISPLAY = 3
+            # Use novel_unknowns (already filtered for answered items) not raw remaining_unknowns.
+            for unknown in novel_unknowns[:_MAX_UNKNOWNS_TO_PROCESS]:
+                unknown_lower = unknown.lower()
+                matched = False
+                for key, question in _unknown_to_question.items():
+                    if key in unknown_lower:
+                        if question not in offline_questions:
+                            offline_questions.append(question)
+                        matched = True
+                        break
+                if not matched:
+                    # Generic question from the unknown text
+                    offline_questions.append(f"Can you tell me more about: {unknown}?")
+
+            if offline_questions:
+                q_text = "\n".join(f"{i+1}. {q}" for i, q in enumerate(offline_questions[:_MAX_QUESTIONS_TO_DISPLAY]))
+                status_msg = (
+                    f"I have a good start on your request. To build the best automation plan, "
+                    f"I need a few more details:\n\n{q_text}\n\n"
+                    f"*(Gate satisfaction: {gate_satisfaction:.0%} of 85% needed — "
+                    f"{unknowns_count} unknowns remaining)*"
+                )
+                return {
+                    'content': status_msg,
+                    'confidence': confidence,
+                    'band': 'conversational',
+                    'questioning_mode': True,
+                    'status': 'RESOLVING_GATES',
+                    'gate_satisfaction': gate_satisfaction,
+                    'unknowns_count': unknowns_count
+                }
+
+            # No novel questions remain (all unknowns addressed) — transition to execution.
+            return {
+                'content': (
+                    "I have enough information to build your automation plan. "
+                    "Click **Continue → Plan** to see your personalized automation blueprint."
+                ),
+                'confidence': max(confidence, 0.85),
+                'band': 'execution',
+                'execution_mode': True,
+                'status': 'READY',
+                'gate_satisfaction': max(gate_satisfaction, 0.85),
+                'unknowns_count': 0,
+            }
 
         return {
             'content': "Unable to process with context",
