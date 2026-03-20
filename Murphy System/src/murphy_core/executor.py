@@ -72,6 +72,9 @@ class CoreExecutor:
             }
 
         if plan.blocked:
+            fallback_result = await self._attempt_fallback(request, plan, validation, gate_summary)
+            if fallback_result is not None:
+                return fallback_result
             return {
                 "success": False,
                 "status": "blocked",
@@ -149,6 +152,69 @@ class CoreExecutor:
             "fallback_policy": plan.fallback_policy,
             "enforcement_summary": validation,
             "gate_enforcement_summary": gate_summary,
+        }
+
+    async def _attempt_fallback(
+        self,
+        request: CoreRequest,
+        plan: GatedExecutionPlan,
+        validation: Dict[str, Any],
+        gate_summary: Dict[str, Any],
+    ) -> Dict[str, Any] | None:
+        fallback_policy = dict(plan.fallback_policy)
+        fallback_route = fallback_policy.get("fallback_route")
+        allow_automatic_fallback = bool(fallback_policy.get("allow_automatic_fallback"))
+        fallback_on_block = bool(fallback_policy.get("fallback_on_block", True))
+        fallback_on_review = bool(fallback_policy.get("fallback_on_review", False))
+        fallback_on_hitl = bool(fallback_policy.get("fallback_on_hitl", False))
+
+        if fallback_route != RouteType.LEGACY_ADAPTER.value:
+            return None
+        if not allow_automatic_fallback:
+            return None
+        if gate_summary.get("requires_review") and not fallback_on_review:
+            return None
+        if gate_summary.get("requires_hitl") and not fallback_on_hitl:
+            return None
+        if not gate_summary.get("blocking_gates") and not fallback_on_block:
+            return None
+
+        fallback_result = await self._execute_legacy_adapter_fallback(request)
+        return {
+            "success": True,
+            "status": "fallback_completed",
+            "route": plan.route.value,
+            "fallback_route": fallback_route,
+            "steps": plan.steps,
+            "selected_module_families": plan.selected_module_families,
+            "execution_constraints": plan.execution_constraints,
+            "fallback_policy": fallback_policy,
+            "enforcement_summary": validation,
+            "gate_enforcement_summary": gate_summary,
+            "fallback_result": fallback_result,
+        }
+
+    async def _execute_legacy_adapter_fallback(self, request: CoreRequest) -> Dict[str, Any]:
+        if self._murphy is not None:
+            if request.mode == "chat":
+                result = self._murphy.handle_chat(
+                    message=request.message,
+                    session_id=request.session_id,
+                    use_mfgc=False,
+                )
+                return {"adapter": RouteType.LEGACY_ADAPTER.value, "result": result}
+            result = await self._murphy.execute_task(
+                task_description=request.message,
+                task_type="general",
+                parameters=request.context,
+                session_id=request.session_id,
+            )
+            return {"adapter": RouteType.LEGACY_ADAPTER.value, "result": result}
+
+        return {
+            "adapter": RouteType.LEGACY_ADAPTER.value,
+            "status": "simulated",
+            "message": request.message,
         }
 
     def _validate_plan(self, request: CoreRequest, plan: GatedExecutionPlan) -> Dict[str, Any]:

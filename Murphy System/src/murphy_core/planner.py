@@ -30,7 +30,13 @@ class CorePlanner:
             selected_module_families=module_families,
             execution_constraints=dict(rosetta.canonical_constraints),
             allowed_actions=allowed_actions,
-            fallback_policy={"fallback_route": RouteType.LEGACY_ADAPTER.value},
+            fallback_policy={
+                "fallback_route": RouteType.LEGACY_ADAPTER.value,
+                "allow_automatic_fallback": False,
+                "fallback_on_block": True,
+                "fallback_on_review": False,
+                "fallback_on_hitl": False,
+            },
             approval_requirements=list(inference.required_approvals),
             expected_outputs=["response", "trace"],
         )
@@ -84,7 +90,8 @@ class CorePlanner:
             elif gate.decision == GateDecision.REQUIRES_HITL:
                 hitl_reasons.append(gate.gate_name)
 
-        fallback_route = expansion.fallback_policy.get("fallback_route") or RouteType.LEGACY_ADAPTER.value
+        fallback_policy = dict(expansion.fallback_policy)
+        fallback_route = fallback_policy.get("fallback_route") or RouteType.LEGACY_ADAPTER.value
         return {
             "checked": True,
             "blocked": bool(blocking_reasons or review_reasons or hitl_reasons),
@@ -95,6 +102,7 @@ class CorePlanner:
             "requires_hitl": bool(hitl_reasons),
             "fallback_route": fallback_route,
             "fallback_available": fallback_route == RouteType.LEGACY_ADAPTER.value,
+            "fallback_policy": fallback_policy,
         }
 
     def _enforcement_summary(self, expansion: ControlExpansion) -> dict:
