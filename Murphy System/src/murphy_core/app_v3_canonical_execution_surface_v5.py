@@ -186,11 +186,25 @@ def create_app() -> FastAPI:
 
         plan = services.planner.compile_plan(expansion, gate_results, req.message)
         trace.execution_status = "planned"
+        trace.recovery = {
+            "plan_route": plan.route.value,
+            "fallback_policy": dict(plan.fallback_policy),
+            "gate_enforcement_summary": dict(plan.gate_enforcement_summary),
+            "enforcement_summary": dict(plan.enforcement_summary),
+        }
         services.traces.save(trace)
 
         result = await services.executor.execute(req, plan)
         trace.execution_status = result.get("status", "completed")
         trace.outcome = result
+        trace.recovery = {
+            **trace.recovery,
+            "final_status": result.get("status", "completed"),
+            "fallback_route": result.get("fallback_route"),
+            "fallback_result": result.get("fallback_result"),
+            "gate_enforcement_summary": result.get("gate_enforcement_summary", trace.recovery.get("gate_enforcement_summary", {})),
+            "enforcement_summary": result.get("enforcement_summary", trace.recovery.get("enforcement_summary", {})),
+        }
         services.traces.save(trace)
 
         return {
@@ -198,9 +212,11 @@ def create_app() -> FastAPI:
             "trace_id": trace.trace_id,
             "request_id": req.request_id,
             "route": selected_route.value,
+            "execution_status": result.get("status", "completed"),
             "gate_results": [g.to_dict() for g in gate_results],
             "capability_gate": capability_gate.to_dict(),
             "subsystem_family_selection": family_selection,
+            "recovery": dict(trace.recovery),
             "result": result,
         }
 

@@ -17,16 +17,16 @@ Until the main README can be overwritten safely, this companion file serves as t
 | Category | Completion |
 |----------|-----------|
 | Core Architecture & Engine Wiring | 99% |
-| Hero Flow (Describe → Execute → Refine) | 91% |
+| Hero Flow (Describe → Execute → Refine) | 92% |
 | Librarian Command Coverage & Triage | 100% |
 | Security Hardening | 80% |
-| Test Coverage | 94% |
-| Documentation | 95% |
+| Test Coverage | 95% |
+| Documentation | 96% |
 | UI/UX | 100% |
-| Management Parity (12 Phases) | 76% |
+| Management Parity (12 Phases) | 77% |
 | CI/CD Pipeline | 90% |
-| Production Deployment Readiness | 76% |
-| **Weighted Overall** | **~93%** |
+| Production Deployment Readiness | 77% |
+| **Weighted Overall** | **~94%** |
 
 ---
 
@@ -34,25 +34,25 @@ Until the main README can be overwritten safely, this companion file serves as t
 
 | Area | Completion |
 | --- | --- |
-| Core automation pipeline (Describe → Execute) | 96% |
+| Core automation pipeline (Describe → Execute) | 97% |
 | Execution wiring (gate + swarm + orchestrator) | 99% |
 | Deterministic + LLM routing | 97% |
 | Persistence + replay | 70% |
 | Multi-channel delivery | 90% |
 | Compliance validation | 90% |
-| Operational automation | 94% |
+| Operational automation | 95% |
 | File system cleanup | 100% |
-| Test coverage (dynamic chains) | 93% |
+| Test coverage (dynamic chains) | 94% |
 | UI + user testing | 79% |
 | Security hardening | 80% |
-| Code quality audit (90 categories) | 95% |
-| Management parity (Phases 1–12) | 76% |
+| Code quality audit (90 categories) | 96% |
+| Management parity (Phases 1–12) | 77% |
 | CI/CD pipeline | 90% |
-| Documentation accuracy | 95% |
-| E2E Hero Flow Validation | 91% |
+| Documentation accuracy | 96% |
+| E2E Hero Flow Validation | 92% |
 | Librarian Command Coverage | 100% |
 | Librarian Triage Escalation | 100% |
-| **Weighted overall** | **~93%** |
+| **Weighted overall** | **~94%** |
 
 ---
 
@@ -87,7 +87,8 @@ python -m src.runtime.main_core_v3_canonical_execution_surface_v5
 - review and HITL gate outcomes now pause execution explicitly instead of falling through to normal execution
 - fallback-policy metadata now flows through the execution plan and endpoint results
 - explicit legacy-adapter fallback execution is now supported for hard block conditions when the plan policy opts in
-- smoke tests now cover canonical v5 runtime-truth alignment, planner/executor enforcement drift blocking, endpoint-level review/HITL pauses, and explicit fallback execution
+- canonical v5 app responses and stored traces now expose execution status and recovery/fallback state consistently
+- smoke tests now cover canonical v5 runtime-truth alignment, planner/executor enforcement drift blocking, endpoint-level review/HITL pauses, explicit fallback execution, and trace/recovery persistence
 
 ---
 
@@ -96,4 +97,4 @@ python -m src.runtime.main_core_v3_canonical_execution_surface_v5
 - real-world E2E hero-flow validation
 - production deployment hardening
 - deeper execution enforcement beyond current family-selection/gating layers
-- broader production validation for fallback behavior against live MurphySystem integrations
+- broader production validation for fallback behavior and recovery traces against live MurphySystem integrations

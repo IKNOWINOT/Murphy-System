@@ -18,25 +18,25 @@ Until `README.md` can be updated through a working overwrite path, this file ser
 
 | Area | Completion | Notes |
 | --- | --- | --- |
-| Core automation pipeline (Describe → Execute) | **96%** | Branch now includes canonical execution surfaces, capability-aware gating, subsystem-family selection, machine-readable canonical v5 runtime truth, planner/executor family-constraint enforcement, endpoint-level review/HITL pausing, and explicit fallback execution for hard block conditions when policy allows; final real-world hero-flow validation still pending |
-| Execution wiring (gate + swarm + orchestrator) | **99%** | Live execution path now includes gating, traces, family selection, bootable canonical runtime stacks, aligned runtime truth surfaces, explicit plan enforcement, endpoint-level gate enforcement, and opt-in fallback execution |
+| Core automation pipeline (Describe → Execute) | **97%** | Branch now includes canonical execution surfaces, capability-aware gating, subsystem-family selection, machine-readable canonical v5 runtime truth, planner/executor family-constraint enforcement, endpoint-level review/HITL pausing, explicit fallback execution for hard block conditions when policy allows, and app-level recovery/trace alignment; final real-world hero-flow validation still pending |
+| Execution wiring (gate + swarm + orchestrator) | **99%** | Live execution path now includes gating, traces, family selection, bootable canonical runtime stacks, aligned runtime truth surfaces, explicit plan enforcement, endpoint-level gate enforcement, opt-in fallback execution, and trace-level recovery persistence |
 | Deterministic + LLM routing | **97%** | Functional; provider/config hardening and broader real-world validation still pending |
 | Persistence + replay | **70%** | JSON, SQLite, and PostgreSQL backends; Alembic migrations; production pooling |
 | Multi-channel delivery | **90%** | Email, webhook, Slack stubs; real channel testing pending |
 | Compliance validation | **90%** | Framework complete; formal attestation (SOC 2, ISO 27001) pending |
-| Operational automation | **94%** | Core flows working; canonical execution, founder overlay, inventory, UI, ops surfaces, canonical runtime truth, plan enforcement, endpoint-level review/HITL pausing, and explicit fallback execution are now branch-wired |
+| Operational automation | **95%** | Core flows working; canonical execution, founder overlay, inventory, UI, ops surfaces, canonical runtime truth, plan enforcement, endpoint-level review/HITL pausing, explicit fallback execution, and trace recovery are now branch-wired |
 | File system cleanup | **100%** | Complete |
-| Test coverage (dynamic chains) | **93%** | Branch adds smoke coverage for canonical runtime, truth surfaces, bridge/startup paths, preserved-family selection, v5 runtime-summary alignment, planner/executor enforcement drift blocking, endpoint-level review/HITL pauses, and explicit fallback execution |
+| Test coverage (dynamic chains) | **94%** | Branch adds smoke coverage for canonical runtime, truth surfaces, bridge/startup paths, preserved-family selection, v5 runtime-summary alignment, planner/executor enforcement drift blocking, endpoint-level review/HITL pauses, explicit fallback execution, and trace/recovery persistence |
 | UI + user testing | **79%** | 14 web interfaces built; runtime/operator/dashboard/ops/founder overlay payloads now exposed; wider real-user validation pending |
 | Security hardening | **80%** | Auth/CORS/CSP/JWT done; E2EE stub gated for production |
-| Code quality audit (90 categories) | **95%** | Additional branch-level runtime truth, planner/executor enforcement, endpoint gate enforcement, and fallback execution reconciliation completed; remaining remediation still in progress |
-| Management parity (Phases 1–12) | **76%** | Branch improves runtime/admin/operator parity and canonical boot guidance, but not all management phases are fully production-validated |
+| Code quality audit (90 categories) | **96%** | Additional branch-level runtime truth, planner/executor enforcement, endpoint gate enforcement, fallback execution, and trace recovery reconciliation completed; remaining remediation still in progress |
+| Management parity (Phases 1–12) | **77%** | Branch improves runtime/admin/operator parity and canonical boot guidance, but not all management phases are fully production-validated |
 | CI/CD pipeline | **90%** | Ruff lint 0 errors; lightweight CI deps; prometheus safe for repeated init |
-| Documentation accuracy | **95%** | Branch adoption/boot/runtime-truth docs and progress status now track canonical v5 execution, endpoint-level enforcement, and explicit fallback execution corrections |
-| E2E Hero Flow Validation | **91%** | Describe→Generate→Execute chain is stronger on branch with canonical execution stack and enforcement checks, but real-user validation and production load testing remain |
+| Documentation accuracy | **96%** | Branch adoption/boot/runtime-truth docs and progress status now track canonical v5 execution, endpoint-level enforcement, explicit fallback execution, and app-level recovery corrections |
+| E2E Hero Flow Validation | **92%** | Describe→Generate→Execute chain is stronger on branch with canonical execution stack and enforcement checks, but real-user validation and production load testing remain |
 | Librarian Command Coverage | **100%** | All 154 commands wired into Librarian; `generate_command()` + triage escalation tested across every category |
 | Librarian Triage Escalation | **100%** | Mode-aware (ASK/ONBOARDING/PRODUCTION/ASSISTANT); triage→execution path validated with 57 tests |
-| **Weighted overall** | **~93%** | Branch is materially further along in runtime truth, canonical execution, visibility, bootability, endpoint-level execution enforcement, and explicit fallback handling than mainline README baseline |
+| **Weighted overall** | **~94%** | Branch is materially further along in runtime truth, canonical execution, visibility, bootability, endpoint-level execution enforcement, explicit fallback handling, and recovery trace alignment than mainline README baseline |
 
 ---
 
@@ -45,16 +45,16 @@ Until `README.md` can be updated through a working overwrite path, this file ser
 | Category | Completion |
 |----------|-----------|
 | Core Architecture & Engine Wiring | 99% |
-| Hero Flow (Describe → Execute → Refine) | 91% |
+| Hero Flow (Describe → Execute → Refine) | 92% |
 | Librarian Command Coverage & Triage | 100% |
 | Security Hardening | 80% |
-| Test Coverage | 94% |
-| Documentation | 95% |
+| Test Coverage | 95% |
+| Documentation | 96% |
 | UI/UX | 100% |
-| Management Parity (12 Phases) | 76% |
+| Management Parity (12 Phases) | 77% |
 | CI/CD Pipeline | 90% |
-| Production Deployment Readiness | 76% |
-| **Weighted Overall** | **~93%** |
+| Production Deployment Readiness | 77% |
+| **Weighted Overall** | **~94%** |
 
 ---
 
@@ -83,4 +83,4 @@ The biggest remaining gaps are:
 - real-world E2E hero-flow validation
 - production deployment hardening
 - deeper execution enforcement beyond current family-selection/gating layers
-- broader production validation for fallback behavior against live MurphySystem integrations
+- broader production validation for fallback behavior and recovery traces against live MurphySystem integrations
