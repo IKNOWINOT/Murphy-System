@@ -52,6 +52,12 @@ class UIRuntimeDashboard:
                 "value": outcome_summary["latest_status"] or "none",
                 "detail": f"approval_pending={outcome_summary['approval_pending']} fallback={outcome_summary['fallback_engaged']} blocked={outcome_summary['blocked']}",
             },
+            {
+                "id": "hitl-scope",
+                "title": "Latest HITL Scope",
+                "value": outcome_summary["latest_hitl_scope"] or "none",
+                "detail": f"founder={outcome_summary['hitl_scope_counts']['founder']} org={outcome_summary['hitl_scope_counts']['organization']} generic={outcome_summary['hitl_scope_counts']['generic']}",
+            },
         ]
 
         return {

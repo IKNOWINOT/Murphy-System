@@ -27,6 +27,11 @@ class TraceStore:
     def outcome_summary(self, limit: int = 20) -> Dict[str, object]:
         traces = self.recent(limit)
         statuses = [trace.execution_status for trace in traces]
+        hitl_scopes = [
+            str((trace.recovery or {}).get("gate_enforcement_summary", {}).get("hitl_scope", "none"))
+            for trace in traces
+            if trace.execution_status == "hitl_required"
+        ]
         counts = {
             "completed": sum(1 for status in statuses if status == "completed"),
             "simulated": sum(1 for status in statuses if status == "simulated"),
@@ -36,6 +41,12 @@ class TraceStore:
             "fallback_completed": sum(1 for status in statuses if status == "fallback_completed"),
             "blocked": sum(1 for status in statuses if status == "blocked"),
         }
+        hitl_scope_counts = {
+            "founder": sum(1 for scope in hitl_scopes if scope == "founder"),
+            "organization": sum(1 for scope in hitl_scopes if scope == "organization"),
+            "generic": sum(1 for scope in hitl_scopes if scope == "generic"),
+            "none": sum(1 for scope in hitl_scopes if scope == "none"),
+        }
         return {
             "window": limit,
             "total": len(traces),
@@ -43,5 +54,7 @@ class TraceStore:
             "approval_pending": counts["review_required"] + counts["hitl_required"],
             "fallback_engaged": counts["fallback_completed"],
             "blocked": counts["blocked"],
+            "hitl_scope_counts": hitl_scope_counts,
+            "latest_hitl_scope": hitl_scopes[0] if hitl_scopes else "none",
             "latest_status": statuses[0] if statuses else None,
         }
