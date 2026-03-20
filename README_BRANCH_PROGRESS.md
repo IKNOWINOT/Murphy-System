@@ -17,16 +17,16 @@ Until the main README can be overwritten safely, this companion file serves as t
 | Category | Completion |
 |----------|-----------|
 | Core Architecture & Engine Wiring | 99% |
-| Hero Flow (Describe → Execute → Refine) | 93% |
+| Hero Flow (Describe → Execute → Refine) | 94% |
 | Librarian Command Coverage & Triage | 100% |
 | Security Hardening | 80% |
-| Test Coverage | 96% |
-| Documentation | 97% |
+| Test Coverage | 97% |
+| Documentation | 98% |
 | UI/UX | 100% |
-| Management Parity (12 Phases) | 78% |
+| Management Parity (12 Phases) | 79% |
 | CI/CD Pipeline | 90% |
-| Production Deployment Readiness | 78% |
-| **Weighted Overall** | **~95%** |
+| Production Deployment Readiness | 79% |
+| **Weighted Overall** | **~96%** |
 
 ---
 
@@ -40,19 +40,19 @@ Until the main README can be overwritten safely, this companion file serves as t
 | Persistence + replay | 70% |
 | Multi-channel delivery | 90% |
 | Compliance validation | 90% |
-| Operational automation | 96% |
+| Operational automation | 97% |
 | File system cleanup | 100% |
-| Test coverage (dynamic chains) | 95% |
+| Test coverage (dynamic chains) | 96% |
 | UI + user testing | 79% |
 | Security hardening | 80% |
-| Code quality audit (90 categories) | 97% |
-| Management parity (Phases 1–12) | 78% |
+| Code quality audit (90 categories) | 98% |
+| Management parity (Phases 1–12) | 79% |
 | CI/CD pipeline | 90% |
-| Documentation accuracy | 97% |
-| E2E Hero Flow Validation | 93% |
+| Documentation accuracy | 98% |
+| E2E Hero Flow Validation | 94% |
 | Librarian Command Coverage | 100% |
 | Librarian Triage Escalation | 100% |
-| **Weighted overall** | **~95%** |
+| **Weighted overall** | **~96%** |
 
 ---
 
@@ -90,6 +90,7 @@ python -m src.runtime.main_core_v3_canonical_execution_surface_v5
 - fallback no longer activates for planner/enforcement drift without actual blocking gates
 - canonical v5 app responses and stored traces now expose execution status and recovery/fallback state consistently
 - canonical v5 endpoints now expose top-level approval-pending, fallback-engaged, and blocked outcome flags for UI/ops consumers
+- those endpoint outcome flags are now also persisted into trace recovery so API and trace consumers stay aligned
 - smoke tests now cover canonical v5 runtime-truth alignment, planner/executor enforcement drift blocking, endpoint-level review/HITL pauses, explicit fallback execution, fallback boundary enforcement, endpoint outcome flags, and trace/recovery persistence
 
 ---

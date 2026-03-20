@@ -191,26 +191,31 @@ def create_app() -> FastAPI:
             "fallback_policy": dict(plan.fallback_policy),
             "gate_enforcement_summary": dict(plan.gate_enforcement_summary),
             "enforcement_summary": dict(plan.enforcement_summary),
+            "approval_pending": False,
+            "fallback_engaged": False,
+            "blocked": False,
         }
         services.traces.save(trace)
 
         result = await services.executor.execute(req, plan)
         execution_status = result.get("status", "completed")
+        approval_pending = execution_status in {"review_required", "hitl_required"}
+        fallback_engaged = execution_status == "fallback_completed"
+        blocked = execution_status == "blocked"
         trace.execution_status = execution_status
         trace.outcome = result
         trace.recovery = {
             **trace.recovery,
             "final_status": execution_status,
+            "approval_pending": approval_pending,
+            "fallback_engaged": fallback_engaged,
+            "blocked": blocked,
             "fallback_route": result.get("fallback_route"),
             "fallback_result": result.get("fallback_result"),
             "gate_enforcement_summary": result.get("gate_enforcement_summary", trace.recovery.get("gate_enforcement_summary", {})),
             "enforcement_summary": result.get("enforcement_summary", trace.recovery.get("enforcement_summary", {})),
         }
         services.traces.save(trace)
-
-        approval_pending = execution_status in {"review_required", "hitl_required"}
-        fallback_engaged = execution_status == "fallback_completed"
-        blocked = execution_status == "blocked"
 
         return {
             "success": result.get("success", True),

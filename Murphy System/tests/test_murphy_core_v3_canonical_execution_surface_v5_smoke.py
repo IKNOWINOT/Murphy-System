@@ -52,6 +52,9 @@ def test_canonical_execution_surface_v5_trace_persists_recovery_state():
     assert trace_payload['execution_status'] == payload['execution_status']
     assert trace_payload['recovery']['plan_route'] == payload['route']
     assert 'final_status' in trace_payload['recovery']
+    assert 'approval_pending' in trace_payload['recovery']
+    assert 'fallback_engaged' in trace_payload['recovery']
+    assert 'blocked' in trace_payload['recovery']
 
 
 def test_canonical_execution_surface_v5_reports_approval_pending_for_review():
@@ -74,6 +77,9 @@ def test_canonical_execution_surface_v5_reports_approval_pending_for_review():
     assert payload['approval_pending'] is True
     assert payload['fallback_engaged'] is False
     assert payload['blocked'] is False
+    assert payload['recovery']['approval_pending'] is True
+    assert payload['recovery']['fallback_engaged'] is False
+    assert payload['recovery']['blocked'] is False
 
 
 def test_canonical_execution_surface_v5_reports_fallback_engaged():
@@ -98,6 +104,9 @@ def test_canonical_execution_surface_v5_reports_fallback_engaged():
     assert payload['approval_pending'] is False
     assert payload['fallback_engaged'] is True
     assert payload['blocked'] is False
+    assert payload['recovery']['approval_pending'] is False
+    assert payload['recovery']['fallback_engaged'] is True
+    assert payload['recovery']['blocked'] is False
 
 
 def test_canonical_execution_surface_v5_reports_blocked_state():
@@ -120,3 +129,6 @@ def test_canonical_execution_surface_v5_reports_blocked_state():
     assert payload['approval_pending'] is False
     assert payload['fallback_engaged'] is False
     assert payload['blocked'] is True
+    assert payload['recovery']['approval_pending'] is False
+    assert payload['recovery']['fallback_engaged'] is False
+    assert payload['recovery']['blocked'] is True
