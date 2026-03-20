@@ -7172,6 +7172,173 @@ def create_app() -> FastAPI:
             return JSONResponse({"success": False, "error": "product_not_found"}, 404)
         return JSONResponse({"success": True, "ticker": asdict(ticker), "sandbox": cb.sandbox})
 
+    # ==================== LIVE MARKET DATA FEED ENDPOINTS ====================
+
+    def _get_live_feed():
+        try:
+            import sys as _sys
+            import os as _os
+            _src = _os.path.join(_os.path.dirname(__file__), "..")
+            if _src not in _sys.path:
+                _sys.path.insert(0, _src)
+            from live_feed_service import get_live_feed
+            from coinbase_connector import CoinbaseConnector
+            _cb = CoinbaseConnector()
+            import os as _os2
+            return get_live_feed(
+                coinbase_connector=_cb,
+                alpaca_key=_os2.getenv("ALPACA_API_KEY", ""),
+                alpaca_secret=_os2.getenv("ALPACA_API_SECRET", ""),
+                alpha_vantage_key=_os2.getenv("ALPHA_VANTAGE_API_KEY", ""),
+                polygon_key=_os2.getenv("POLYGON_API_KEY", ""),
+            )
+        except Exception as _exc:
+            logger.warning("LiveFeedService unavailable: %s", _exc)
+            return None
+
+    @app.get("/api/market/quote/{symbol}")
+    async def market_quote(symbol: str):
+        """Return a live quote for any symbol (crypto or equity)."""
+        feed = _get_live_feed()
+        if feed is None:
+            return JSONResponse({"success": False, "error": "feed_unavailable", "symbol": symbol})
+        try:
+            from dataclasses import asdict
+            quote = feed.get_quote(symbol)
+            return JSONResponse({"success": True, "quote": asdict(quote), "symbol": symbol})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc), "symbol": symbol})
+
+    @app.get("/api/market/candles/{symbol}")
+    async def market_candles(symbol: str, granularity: str = "ONE_HOUR", limit: int = 100):
+        """Return OHLCV candles for a symbol."""
+        feed = _get_live_feed()
+        if feed is None:
+            return JSONResponse({"success": False, "error": "feed_unavailable", "symbol": symbol})
+        try:
+            from dataclasses import asdict
+            limit = min(limit, 500)
+            candles = feed.get_candles(symbol, granularity=granularity, limit=limit)
+            return JSONResponse({
+                "success": True,
+                "symbol": symbol,
+                "granularity": granularity,
+                "candles": [asdict(c) for c in candles],
+                "count": len(candles),
+            })
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc), "symbol": symbol})
+
+    @app.get("/api/market/movers")
+    async def market_movers(asset_class: str = "all", limit: int = 10):
+        """Return top market movers."""
+        feed = _get_live_feed()
+        if feed is None:
+            return JSONResponse({"success": False, "error": "feed_unavailable"})
+        try:
+            from dataclasses import asdict
+            movers = feed.get_top_movers(asset_class=asset_class, limit=limit)
+            return JSONResponse({
+                "success": True,
+                "movers": [asdict(m) for m in movers],
+                "asset_class": asset_class,
+                "count": len(movers),
+            })
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)})
+
+    @app.get("/api/market/search")
+    async def market_search(q: str = ""):
+        """Search instrument symbols via Yahoo Finance."""
+        if not q:
+            return JSONResponse({"success": False, "error": "query required", "results": []})
+        try:
+            import urllib.request as _req
+            import json as _json
+            url = (
+                f"https://query1.finance.yahoo.com/v1/finance/search"
+                f"?q={q}&quotesCount=10&newsCount=0"
+            )
+            with _req.urlopen(url, timeout=5) as resp:
+                data = _json.loads(resp.read())
+            results = data.get("finance", {}).get("result", [{}])[0].get("quotes", [])
+            return JSONResponse({"success": True, "results": results, "query": q})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc), "results": [], "query": q})
+
+    @app.get("/api/market/status")
+    async def market_status():
+        """Return live feed service status."""
+        feed = _get_live_feed()
+        if feed is None:
+            return JSONResponse({"success": False, "error": "feed_unavailable"})
+        return JSONResponse({"success": True, **feed.status()})
+
+    @app.get("/api/market/instruments")
+    async def market_instruments():
+        """List all known tradeable instruments with metadata."""
+        instruments = [
+            # Crypto
+            {"symbol": "BTC-USD", "name": "Bitcoin", "asset_class": "crypto", "exchange": "Coinbase"},
+            {"symbol": "ETH-USD", "name": "Ethereum", "asset_class": "crypto", "exchange": "Coinbase"},
+            {"symbol": "SOL-USD", "name": "Solana", "asset_class": "crypto", "exchange": "Coinbase"},
+            {"symbol": "MATIC-USD", "name": "Polygon", "asset_class": "crypto", "exchange": "Coinbase"},
+            {"symbol": "ATOM-USD", "name": "Cosmos", "asset_class": "crypto", "exchange": "Coinbase"},
+            {"symbol": "AVAX-USD", "name": "Avalanche", "asset_class": "crypto", "exchange": "Coinbase"},
+            {"symbol": "LINK-USD", "name": "Chainlink", "asset_class": "crypto", "exchange": "Coinbase"},
+            {"symbol": "ADA-USD", "name": "Cardano", "asset_class": "crypto", "exchange": "Coinbase"},
+            # Equities
+            {"symbol": "AAPL", "name": "Apple Inc.", "asset_class": "equity", "exchange": "NASDAQ"},
+            {"symbol": "MSFT", "name": "Microsoft Corp.", "asset_class": "equity", "exchange": "NASDAQ"},
+            {"symbol": "NVDA", "name": "NVIDIA Corp.", "asset_class": "equity", "exchange": "NASDAQ"},
+            {"symbol": "GOOGL", "name": "Alphabet Inc.", "asset_class": "equity", "exchange": "NASDAQ"},
+            {"symbol": "AMZN", "name": "Amazon.com Inc.", "asset_class": "equity", "exchange": "NASDAQ"},
+            {"symbol": "META", "name": "Meta Platforms", "asset_class": "equity", "exchange": "NASDAQ"},
+            {"symbol": "TSLA", "name": "Tesla Inc.", "asset_class": "equity", "exchange": "NASDAQ"},
+            {"symbol": "JPM", "name": "JPMorgan Chase", "asset_class": "equity", "exchange": "NYSE"},
+            # ETFs
+            {"symbol": "SPY", "name": "SPDR S&P 500 ETF", "asset_class": "etf", "exchange": "NYSE"},
+            {"symbol": "QQQ", "name": "Invesco QQQ ETF", "asset_class": "etf", "exchange": "NASDAQ"},
+        ]
+        return JSONResponse({"success": True, "instruments": instruments, "count": len(instruments)})
+
+    from fastapi import WebSocket, WebSocketDisconnect
+
+    @app.websocket("/ws/market/{symbol}")
+    async def ws_market(websocket: WebSocket, symbol: str):
+        """Stream live price updates for *symbol* every 2 seconds."""
+        import asyncio
+        await websocket.accept()
+        feed = _get_live_feed()
+        try:
+            while True:
+                try:
+                    if feed is not None:
+                        from dataclasses import asdict
+                        quote = feed.get_quote(symbol)
+                        await websocket.send_json({
+                            "symbol": symbol,
+                            "price": quote.price,
+                            "bid": quote.bid,
+                            "ask": quote.ask,
+                            "change_pct_24h": quote.change_pct_24h,
+                            "timestamp": quote.timestamp,
+                        })
+                    else:
+                        await websocket.send_json({
+                            "symbol": symbol,
+                            "price": 0.0,
+                            "timestamp": __import__("datetime").datetime.utcnow().isoformat(),
+                        })
+                except WebSocketDisconnect:
+                    break
+                except Exception as exc:
+                    logger.debug("ws_market send error: %s", exc)
+                    break
+                await asyncio.sleep(2)
+        except WebSocketDisconnect:
+            pass
+
     # ==================== ACCOUNT / SUBSCRIPTION ENDPOINTS ====================
 
     _account_data: Dict[str, Any] = {

@@ -5,6 +5,20 @@ All notable changes to Murphy System will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — Coinbase SDK Integration + Live Market Data Feeds (PR 1)
+
+### Added
+- **Coinbase Advanced Trade API** (`src/coinbase_connector.py`): HMAC-SHA256 auth, REST + WebSocket, sandbox-first (COINBASE_LIVE_MODE=true required for live), helper methods `get_accounts`, `get_ticker`, `place_market_order`, `place_limit_order`, `cancel_order`, `get_product_candles`
+- **Live Market Data Feed** (`src/live_feed_service.py`): Unified crypto + equity price service — Coinbase → CCXT for crypto; Yahoo Finance → Alpaca → Alpha Vantage → Polygon for equities; WebSocket live streaming; process-wide singleton
+- **API routes**: `/api/coinbase/*` (5 routes), `/api/market/*` (6 REST + 1 WebSocket)
+- **Wallet UI**: Coinbase Connection panel with sandbox indicator, live balance display, connect/refresh buttons wired to `/api/coinbase/*`
+- **SDK requirements**: `coinbase-advanced-py`, `ccxt`, `web3`, `websocket-client`, `yfinance`, `alpaca-py`, `alpha_vantage`, `polygon-api-client`, `ta`, `tweepy`, `slack-sdk`, `python-telegram-bot`, `hubspot-api-client`, `simple-salesforce`, `PyGithub`, `requests-oauthlib`, `authlib`
+- **`.env.example`**: Coinbase Advanced Trade keys, Alpaca, Alpha Vantage, Polygon.io market data keys
+
+### Changed
+- `src/coinbase_connector.py`: Default `sandbox=True` (was `False`); live mode requires `COINBASE_LIVE_MODE=true` env var
+- `Murphy System/` files synced with root (`coinbase_connector.py`, `wallet.html`, requirements)
+
 ## [Unreleased]
 
 ### Fixed — End-to-End Authentication Flow (Beta Launch Blocker)

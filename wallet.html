@@ -630,6 +630,50 @@
   }
   refreshBalances();
 
+  /* ── Live price refresh for asset cards ── */
+  var _priceMap = {
+    'BTC-USD': { el: null, usdEl: null, changeEl: null },
+    'ETH-USD': { el: null, usdEl: null, changeEl: null },
+    'SOL-USD': { el: null, usdEl: null, changeEl: null },
+    'MATIC-USD': { el: null, usdEl: null, changeEl: null },
+  };
+  function refreshLivePrices() {
+    var symbols = Object.keys(_priceMap);
+    symbols.forEach(function (sym) {
+      fetch('/api/market/quote/' + sym)
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (!d.success || !d.quote) return;
+          var q = d.quote;
+          var cards = document.querySelectorAll('.asset-card');
+          var base = sym.replace('-USD', '').toLowerCase();
+          cards.forEach(function (card) {
+            var nameEl = card.querySelector('.asset-symbol');
+            if (!nameEl) return;
+            var cardBase = nameEl.textContent.split('\u00b7')[0].trim().toLowerCase();
+            if (cardBase !== base) return;
+            var usdEl = card.querySelector('.asset-usd');
+            var changeEl = card.querySelector('.asset-change');
+            if (usdEl && q.price > 0) {
+              var bal = parseFloat(card.querySelector('.asset-balance')
+                ? card.querySelector('.asset-balance').textContent.split(' ')[0].replace(',','') : '0');
+              usdEl.textContent = '\u2248 $' + (bal * q.price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            }
+            if (changeEl && q.change_pct_24h !== undefined) {
+              var pct = q.change_pct_24h;
+              var isUp = pct >= 0;
+              changeEl.textContent = (isUp ? '\u25b2' : '\u25bc') + ' ' + (isUp ? '+' : '') + pct.toFixed(2) + '%';
+              changeEl.className = 'asset-change ' + (isUp ? 'up' : 'down');
+            }
+          });
+        })
+        .catch(function () { /* silent fail */ });
+    });
+  }
+  /* Auto-refresh prices every 30 seconds */
+  refreshLivePrices();
+  setInterval(refreshLivePrices, 30000);
+
   /* ── Theme ── */
   var themeBtn = document.getElementById('theme-toggle-btn');
   if (themeBtn) themeBtn.addEventListener('click', function () {

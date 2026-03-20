@@ -39,6 +39,18 @@ aiohttp>=3.9.0,<4.0.0
 # Coinbase Advanced Trade API (Trader Automation — PR 1)
 coinbase-advanced-py>=1.8.0,<2.0.0
 
+# Crypto exchange abstraction
+websocket-client>=1.6.0,<2.0.0
+ccxt>=4.4.0,<5.0.0
+web3>=6.20.0,<8.0.0
+
+# Market data feeds — stocks + crypto
+yfinance>=0.2.31,<2.0.0
+alpaca-py>=0.20.0,<1.0.0
+alpha_vantage>=2.3.1,<4.0.0
+polygon-api-client>=1.12.0,<2.0.0
+ta>=0.11.0,<1.0.0
+
 # Matrix bot integration (Synapse / Dendrite)
 matrix-nio[e2e]>=0.24.0,<1.0.0
 
