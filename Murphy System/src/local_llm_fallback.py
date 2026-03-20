@@ -230,6 +230,12 @@ class LocalLLMFallback:
         is used for knowledge-base topic matching and pattern detection.  This prevents
         system-context words such as "murphy" or "groq" from hijacking the topic lookup
         and returning an irrelevant knowledge-base entry.
+
+        Murphy-specific knowledge-base entries ("murphy", "murphy_setup",
+        "murphy_troubleshooting") are only returned when the user is explicitly asking
+        *about* Murphy as a subject — not when "Murphy" appears as an agent/actor in
+        their query (e.g. "What can Murphy do for my store?" should NOT return the
+        generic Murphy description).
         """
         # Isolate the user-facing query from any prepended system context.
         # Convention: context and query are separated by one or more blank lines.
@@ -237,10 +243,24 @@ class LocalLLMFallback:
         query = parts[-1] if parts else prompt
         query_lower = query.lower()
 
+        # Topic set whose entries should only fire when Murphy is the *subject* of
+        # the question, not merely mentioned as the agent doing the work.
+        _MURPHY_TOPICS = {"murphy", "murphy setup", "murphy troubleshooting"}
+        # Patterns that signal the user is asking *about* Murphy (subject-mode).
+        _MURPHY_ABOUT_RE = re.compile(
+            r"\b(what\s+is|about|tell\s+me\s+about|explain|describe|"
+            r"how\s+does|what\s+does|murphy\s+system)\b"
+        )
+
         # Check knowledge base against the user query only (not injected context).
         for topic, content in self.knowledge_base.items():
-            if topic.replace("_", " ") in query_lower:
-                return self._format_response(content, max_tokens)
+            topic_phrase = topic.replace("_", " ")
+            if topic_phrase not in query_lower:
+                continue
+            # Gate murphy-specific entries so they only fire in subject-mode queries.
+            if topic_phrase in _MURPHY_TOPICS and not _MURPHY_ABOUT_RE.search(query_lower):
+                continue
+            return self._format_response(content, max_tokens)
 
         # Pattern-based responses — also applied to the user query.
         for pattern, response_type in self.patterns:

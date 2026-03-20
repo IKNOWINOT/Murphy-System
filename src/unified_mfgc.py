@@ -1232,8 +1232,16 @@ What additional information would help me assist you better?"""
     def _process_with_context(self, message: str, answers: Dict[str, str], context_summary: str) -> Dict[str, Any]:
         """Process message with full context - use GATE SYSTEM to determine execution"""
 
-        # Re-run expansion with accumulated context to get updated unknowns
-        enriched_task = f"{message}\n\nContext gathered:\n{context_summary}"
+        # Build a rich enriched task that includes everything the user has already told us.
+        # This allows the expansion engine to recognise that many unknowns are already resolved.
+        filled_answers = {k: v for k, v in answers.items() if v is not None}
+        answered_summary = ""
+        if len(filled_answers) > 1:  # skip when only initial_request is present
+            answered_summary = "\n\nInformation already provided by user:\n" + "\n".join(
+                f"  - {str(v)[:120]}" for v in list(filled_answers.values())[:10]
+            )
+
+        enriched_task = f"{message}\n\nContext gathered:\n{context_summary}{answered_summary}"
 
         # Get domain
         _, domain = self.analyze_message(message)
@@ -1252,6 +1260,9 @@ What additional information would help me assist you better?"""
                     'satisfied': False  # Will check against answers
                 })
 
+        # Build a single string of all filled answer text for quick substring checks.
+        answered_text = " ".join(str(v).lower() for v in filled_answers.values() if v)
+
         # Check which gates are satisfied by our answers
         satisfied_gates = 0
         for gate in gates:
@@ -1268,17 +1279,27 @@ What additional information would help me assist you better?"""
         total_gates = len(gates)
         gate_satisfaction = satisfied_gates / total_gates if total_gates > 0 else 0
 
-        # Calculate confidence from gates + unknowns
-        unknowns_count = len(expansion_result.remaining_unknowns)
-        unknowns_resolved = max(0, 6 - unknowns_count)  # Assume started with ~6 unknowns
+        # Discount unknowns that are already addressed by user answers.
+        novel_unknowns = []
+        for unknown in expansion_result.remaining_unknowns:
+            # An unknown is "addressed" if its first 3 keywords appear in any answer.
+            if any(word in answered_text for word in unknown.lower().split()[:3]):
+                continue
+            novel_unknowns.append(unknown)
+
+        unknowns_count = len(novel_unknowns)
+        unknowns_resolved = max(0, 6 - unknowns_count)
 
         # Confidence formula: gate satisfaction + unknown resolution (no cap — can reach 1.0)
         confidence = (gate_satisfaction * 0.5) + (unknowns_resolved / 6 * 0.5)
 
-        # EXECUTION CRITERIA: High gate satisfaction (85%) AND critical unknowns resolved
+        # EXECUTION CRITERIA: High gate satisfaction (85%) AND critical unknowns resolved.
+        # For offline mode with 3+ real answers, also allow execution when novel unknowns ≤ 2.
+        real_answer_count = sum(1 for k, v in filled_answers.items()
+                                if v is not None and k != "initial_request")
         should_execute = (
-            gate_satisfaction >= 0.85 and  # 85% of gates satisfied
-            unknowns_count <= 2            # Only 2 or fewer unknowns left
+            (gate_satisfaction >= 0.85 and unknowns_count <= 2)
+            or (real_answer_count >= 3 and unknowns_count <= 2)
         )
 
         if should_execute:
@@ -1397,7 +1418,7 @@ Make questions specific and actionable."""
                     # Fall through to offline structured response below
 
             # Offline / LLM-failure path — build structured questions deterministically
-            # from the remaining unknowns so the conversation can still progress.
+            # from the *novel* (not yet answered) unknowns so the conversation progresses.
             offline_questions = []
             _unknown_to_question = {
                 "timeline": "What is your timeline or deadline for this project?",
@@ -1415,7 +1436,8 @@ Make questions specific and actionable."""
             _MAX_UNKNOWNS_TO_PROCESS = 4
             # Display up to this many questions per turn to avoid overwhelming the user.
             _MAX_QUESTIONS_TO_DISPLAY = 3
-            for unknown in expansion_result.remaining_unknowns[:_MAX_UNKNOWNS_TO_PROCESS]:
+            # Use novel_unknowns (already filtered for answered items) not raw remaining_unknowns.
+            for unknown in novel_unknowns[:_MAX_UNKNOWNS_TO_PROCESS]:
                 unknown_lower = unknown.lower()
                 matched = False
                 for key, question in _unknown_to_question.items():
@@ -1445,6 +1467,20 @@ Make questions specific and actionable."""
                     'gate_satisfaction': gate_satisfaction,
                     'unknowns_count': unknowns_count
                 }
+
+            # No novel questions remain (all unknowns addressed) — transition to execution.
+            return {
+                'content': (
+                    "I have enough information to build your automation plan. "
+                    "Click **Continue → Plan** to see your personalized automation blueprint."
+                ),
+                'confidence': max(confidence, 0.85),
+                'band': 'execution',
+                'execution_mode': True,
+                'status': 'READY',
+                'gate_satisfaction': max(gate_satisfaction, 0.85),
+                'unknowns_count': 0,
+            }
 
         return {
             'content': "Unable to process with context",
