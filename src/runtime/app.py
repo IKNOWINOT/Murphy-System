@@ -7104,6 +7104,74 @@ def create_app() -> FastAPI:
         _wallet_transactions.insert(0, tx)
         return JSONResponse({"success": True, "transaction": tx, "new_balance": balances[asset]})
 
+    # ==================== COINBASE ADVANCED TRADE API ENDPOINTS ====================
+
+    def _get_coinbase_connector():
+        """Lazily instantiate a CoinbaseConnector from environment variables."""
+        try:
+            from coinbase_connector import CoinbaseConnector
+            return CoinbaseConnector()
+        except Exception as _exc:
+            logger.warning("CoinbaseConnector unavailable: %s", _exc)
+            return None
+
+    @app.get("/api/coinbase/status")
+    async def coinbase_status():
+        """Return Coinbase connection status and sandbox mode indicator."""
+        cb = _get_coinbase_connector()
+        if cb is None:
+            return JSONResponse({"success": False, "error": "connector_unavailable"}, 503)
+        import os as _os
+        live_mode = _os.getenv("COINBASE_LIVE_MODE", "false").lower() == "true"
+        return JSONResponse({
+            "success":    True,
+            "sandbox":    cb.sandbox,
+            "live_mode":  live_mode,
+            "status":     cb.status.value,
+            "api_key_set": bool(cb.api_key),
+        })
+
+    @app.get("/api/coinbase/accounts")
+    async def coinbase_accounts():
+        """List all Coinbase brokerage accounts."""
+        cb = _get_coinbase_connector()
+        if cb is None:
+            return JSONResponse({"success": False, "error": "connector_unavailable"}, 503)
+        accounts = cb.get_accounts()
+        return JSONResponse({"success": True, "accounts": accounts, "count": len(accounts)})
+
+    @app.get("/api/coinbase/balances")
+    async def coinbase_balances():
+        """Return Coinbase account balances for each asset."""
+        cb = _get_coinbase_connector()
+        if cb is None:
+            return JSONResponse({"success": False, "error": "connector_unavailable"}, 503)
+        from dataclasses import asdict
+        balances = [asdict(b) for b in cb.get_balances()]
+        return JSONResponse({"success": True, "balances": balances, "sandbox": cb.sandbox})
+
+    @app.get("/api/coinbase/products")
+    async def coinbase_products():
+        """List available Coinbase trading pairs."""
+        cb = _get_coinbase_connector()
+        if cb is None:
+            return JSONResponse({"success": False, "error": "connector_unavailable"}, 503)
+        from dataclasses import asdict
+        products = [asdict(p) for p in cb.list_products()]
+        return JSONResponse({"success": True, "products": products, "count": len(products)})
+
+    @app.get("/api/coinbase/ticker/{product_id}")
+    async def coinbase_ticker(product_id: str):
+        """Return current best bid/ask price for a trading pair."""
+        cb = _get_coinbase_connector()
+        if cb is None:
+            return JSONResponse({"success": False, "error": "connector_unavailable"}, 503)
+        from dataclasses import asdict
+        ticker = cb.get_ticker(product_id)
+        if ticker is None:
+            return JSONResponse({"success": False, "error": "product_not_found"}, 404)
+        return JSONResponse({"success": True, "ticker": asdict(ticker), "sandbox": cb.sandbox})
+
     # ==================== ACCOUNT / SUBSCRIPTION ENDPOINTS ====================
 
     _account_data: Dict[str, Any] = {

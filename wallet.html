@@ -212,6 +212,56 @@
     .wallet-panel-row { grid-template-columns: 1fr; }
     .wallet-networth-value { font-size: 2rem; }
   }
+
+  /* ── Coinbase Connection panel ── */
+  .cb-panel {
+    background: var(--bg-surface); border: 1px solid var(--border-default);
+    border-radius: var(--radius-xl); padding: 1.5rem; margin-bottom: 2rem;
+  }
+  .cb-panel.cb-sandbox { border-color: rgba(255,196,0,.35); }
+  .cb-panel.cb-connected { border-color: rgba(0,212,170,.35); }
+  .cb-panel-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem; }
+  .cb-panel-header h3 { font-size: var(--text-base); font-weight: 600; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: .5rem; }
+  .cb-logo { width: 22px; height: 22px; background: #1652f0; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: .7rem; font-weight: 800; color: #fff; flex-shrink: 0; }
+  .cb-status-badge {
+    display: inline-flex; align-items: center; gap: .4rem;
+    font-size: var(--text-xs); font-weight: 600; padding: .25rem .7rem;
+    border-radius: var(--radius-full);
+  }
+  .cb-status-badge.sandbox { background: rgba(255,196,0,.12); border: 1px solid rgba(255,196,0,.3); color: #ffc400; }
+  .cb-status-badge.connected { background: rgba(0,212,170,.12); border: 1px solid rgba(0,212,170,.3); color: var(--teal); }
+  .cb-status-badge.disconnected { background: rgba(255,68,68,.1); border: 1px solid rgba(255,68,68,.25); color: #ff4444; }
+  .cb-status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .cb-status-dot.sandbox { background: #ffc400; }
+  .cb-status-dot.connected { background: var(--teal); animation: cb-pulse 2s infinite; }
+  .cb-status-dot.disconnected { background: #ff4444; }
+  @keyframes cb-pulse { 0%,100%{opacity:1;} 50%{opacity:.45;} }
+  .cb-sandbox-notice {
+    background: rgba(255,196,0,.07); border: 1px solid rgba(255,196,0,.2);
+    border-radius: var(--radius-md); padding: .625rem 1rem; margin-bottom: 1rem;
+    font-size: var(--text-xs); color: #ffc400; display: flex; align-items: center; gap: .5rem;
+  }
+  .cb-balances-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: .75rem; margin-bottom: 1.25rem;
+  }
+  .cb-balance-card {
+    background: var(--bg-elevated); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg); padding: .875rem;
+  }
+  .cb-balance-currency { font-size: var(--text-xs); color: var(--text-tertiary); margin-bottom: .25rem; }
+  .cb-balance-amount { font-size: var(--text-lg); font-weight: 700; color: var(--text-primary); }
+  .cb-balance-hold { font-size: var(--text-xs); color: var(--text-tertiary); }
+  .cb-actions { display: flex; gap: .75rem; flex-wrap: wrap; }
+  .cb-btn {
+    padding: .5rem 1.25rem; border-radius: var(--radius-md); font-family: var(--font-ui);
+    font-size: var(--text-sm); font-weight: 600; cursor: pointer;
+    transition: opacity var(--transition-base), transform var(--transition-base);
+  }
+  .cb-btn:hover { opacity: .9; transform: translateY(-1px); }
+  .cb-btn.primary { background: #1652f0; border: none; color: #fff; }
+  .cb-btn.outline { background: transparent; border: 1px solid var(--border-default); color: var(--text-secondary); }
+  .cb-btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
 </style>
 </head>
 <body class="murphy-no-sidebar">
@@ -489,6 +539,47 @@
 
   </div>
 
+  <!-- ── Coinbase Connection ── -->
+  <div class="wallet-section-heading">Coinbase Advanced Trade</div>
+  <div class="cb-panel cb-sandbox" id="cb-panel" role="region" aria-label="Coinbase connection status">
+
+    <!-- Header row -->
+    <div class="cb-panel-header">
+      <h3>
+        <span class="cb-logo" aria-hidden="true">C</span>
+        Coinbase Connection
+      </h3>
+      <span class="cb-status-badge sandbox" id="cb-status-badge" role="status" aria-live="polite">
+        <span class="cb-status-dot sandbox" id="cb-status-dot"></span>
+        <span id="cb-status-text">Checking…</span>
+      </span>
+    </div>
+
+    <!-- Sandbox notice (always visible when sandbox=true) -->
+    <div class="cb-sandbox-notice" id="cb-sandbox-notice" aria-live="polite">
+      ⚠️ <strong>Sandbox / Paper-Trading Mode</strong> — No real funds are at risk. Set <code>COINBASE_LIVE_MODE=true</code> to enable live trading.
+    </div>
+
+    <!-- Balances grid (populated from API) -->
+    <div class="cb-balances-grid" id="cb-balances-grid" aria-label="Coinbase account balances">
+      <div class="cb-balance-card" aria-label="Loading balances">
+        <div class="cb-balance-currency">Loading…</div>
+        <div class="cb-balance-amount">—</div>
+      </div>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="cb-actions">
+      <button class="cb-btn primary" id="cb-connect-btn" aria-label="Validate Coinbase API key connection">
+        Connect Coinbase
+      </button>
+      <button class="cb-btn outline" id="cb-refresh-btn" aria-label="Refresh Coinbase balances">
+        ↻ Refresh
+      </button>
+    </div>
+
+  </div>
+
 </main>
 
 <!-- ── Footer ── -->
@@ -651,6 +742,104 @@
       document.getElementById('murphy-wallet-insight').textContent = 'Could not reach Murphy right now.';
     });
   });
+
+  /* ── Coinbase Connection panel ── */
+  function cbSetStatus(status) {
+    var badge = document.getElementById('cb-status-badge');
+    var dot   = document.getElementById('cb-status-dot');
+    var text  = document.getElementById('cb-status-text');
+    var panel = document.getElementById('cb-panel');
+    if (!badge) return;
+    badge.className = 'cb-status-badge ' + status;
+    dot.className   = 'cb-status-dot ' + status;
+    var labels = { sandbox: 'Sandbox', connected: 'Connected', disconnected: 'Disconnected' };
+    text.textContent = labels[status] || status;
+    panel.className  = 'cb-panel cb-' + status;
+  }
+
+  function cbRenderBalances(balances) {
+    var grid = document.getElementById('cb-balances-grid');
+    if (!grid) return;
+    if (!balances || balances.length === 0) {
+      grid.innerHTML = '<p style="font-size:var(--text-xs);color:var(--text-tertiary);">No balances available. Add your Coinbase API key to see live data.</p>';
+      return;
+    }
+    grid.innerHTML = balances.map(function (b) {
+      var avail = parseFloat(b.available_balance || 0);
+      if (avail <= 0) return '';
+      return '<div class="cb-balance-card">' +
+        '<div class="cb-balance-currency">' + b.currency + '</div>' +
+        '<div class="cb-balance-amount">' + avail.toFixed(6).replace(/\.?0+$/, '') + '</div>' +
+        '<div class="cb-balance-hold">Hold: ' + (parseFloat(b.hold || 0).toFixed(6).replace(/\.?0+$/, '') || '0') + '</div>' +
+        '</div>';
+    }).filter(Boolean).join('') ||
+    '<p style="font-size:var(--text-xs);color:var(--text-tertiary);">All balances are zero.</p>';
+  }
+
+  function cbLoadStatus() {
+    fetch('/api/coinbase/status')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.success) { cbSetStatus('disconnected'); return; }
+        var notice = document.getElementById('cb-sandbox-notice');
+        if (d.sandbox) {
+          cbSetStatus('sandbox');
+          if (notice) notice.style.display = 'flex';
+        } else {
+          cbSetStatus('connected');
+          if (notice) notice.style.display = 'none';
+        }
+      })
+      .catch(function () { cbSetStatus('disconnected'); });
+  }
+
+  function cbLoadBalances() {
+    var btn = document.getElementById('cb-refresh-btn');
+    if (btn) btn.disabled = true;
+    fetch('/api/coinbase/balances')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.success) cbRenderBalances(d.balances);
+        else cbRenderBalances([]);
+      })
+      .catch(function () { cbRenderBalances([]); })
+      .finally(function () { if (btn) btn.disabled = false; });
+  }
+
+  var cbConnectBtn = document.getElementById('cb-connect-btn');
+  if (cbConnectBtn) {
+    cbConnectBtn.addEventListener('click', function () {
+      cbConnectBtn.disabled = true;
+      cbConnectBtn.textContent = 'Connecting…';
+      fetch('/api/coinbase/status')
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (d.success) {
+            cbSetStatus(d.sandbox ? 'sandbox' : 'connected');
+            cbLoadBalances();
+            cbConnectBtn.textContent = d.sandbox ? '✓ Sandbox Active' : '✓ Connected';
+          } else {
+            cbConnectBtn.textContent = '✗ Connection Failed';
+          }
+        })
+        .catch(function () { cbConnectBtn.textContent = '✗ Connection Failed'; })
+        .finally(function () {
+          setTimeout(function () {
+            cbConnectBtn.textContent = 'Connect Coinbase';
+            cbConnectBtn.disabled = false;
+          }, 3000);
+        });
+    });
+  }
+
+  var cbRefreshBtn = document.getElementById('cb-refresh-btn');
+  if (cbRefreshBtn) {
+    cbRefreshBtn.addEventListener('click', function () { cbLoadBalances(); });
+  }
+
+  /* Initialise Coinbase panel on page load */
+  cbLoadStatus();
+  cbLoadBalances();
 
 })();
 </script>
