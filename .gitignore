@@ -111,4 +111,5 @@ telemetry_evidence/telemetry_log.jsonl
 
 # Benchmark report artifacts
 tests/benchmarks/.inference_reports/
+tests/benchmarks/.correctness_reports/
 tests/benchmarks/.benchmarks/
