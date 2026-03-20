@@ -106,11 +106,19 @@ def create_app() -> FastAPI:
 
     @app.get("/api/operator/runtime")
     async def operator_runtime() -> JSONResponse:
-        return JSONResponse({"success": True, **services.runtime_surface.snapshot()})
+        return JSONResponse({
+            "success": True,
+            **services.runtime_surface.snapshot(),
+            "recent_execution_outcomes": services.traces.outcome_summary(),
+        })
 
     @app.get("/api/operator/runtime-summary")
     async def operator_runtime_summary() -> JSONResponse:
-        return JSONResponse({"success": True, **services.runtime_surface.ui_summary()})
+        return JSONResponse({
+            "success": True,
+            **services.runtime_surface.ui_summary(),
+            "recent_execution_outcomes": services.traces.outcome_summary(),
+        })
 
     @app.get("/api/operator/production-inventory")
     async def production_inventory() -> JSONResponse:

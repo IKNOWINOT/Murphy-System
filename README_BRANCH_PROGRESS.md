@@ -17,16 +17,16 @@ Until the main README can be overwritten safely, this companion file serves as t
 | Category | Completion |
 |----------|-----------|
 | Core Architecture & Engine Wiring | 99% |
-| Hero Flow (Describe → Execute → Refine) | 96% |
+| Hero Flow (Describe → Execute → Refine) | 97% |
 | Librarian Command Coverage & Triage | 100% |
 | Security Hardening | 80% |
 | Test Coverage | 99% |
 | Documentation | 99% |
 | UI/UX | 100% |
-| Management Parity (12 Phases) | 81% |
+| Management Parity (12 Phases) | 82% |
 | CI/CD Pipeline | 90% |
-| Production Deployment Readiness | 81% |
-| **Weighted Overall** | **~98%** |
+| Production Deployment Readiness | 82% |
+| **Weighted Overall** | **~99%** |
 
 ---
 
@@ -42,17 +42,17 @@ Until the main README can be overwritten safely, this companion file serves as t
 | Compliance validation | 90% |
 | Operational automation | 99% |
 | File system cleanup | 100% |
-| Test coverage (dynamic chains) | 98% |
+| Test coverage (dynamic chains) | 99% |
 | UI + user testing | 79% |
 | Security hardening | 80% |
 | Code quality audit (90 categories) | 99% |
-| Management parity (Phases 1–12) | 81% |
+| Management parity (Phases 1–12) | 82% |
 | CI/CD pipeline | 90% |
 | Documentation accuracy | 99% |
-| E2E Hero Flow Validation | 96% |
+| E2E Hero Flow Validation | 97% |
 | Librarian Command Coverage | 100% |
 | Librarian Triage Escalation | 100% |
-| **Weighted overall** | **~98%** |
+| **Weighted overall** | **~99%** |
 
 ---
 
@@ -91,10 +91,8 @@ python -m src.runtime.main_core_v3_canonical_execution_surface_v5
 - canonical v5 app responses and stored traces now expose execution status and recovery/fallback state consistently
 - canonical v5 endpoints now expose top-level approval-pending, fallback-engaged, and blocked outcome flags for UI/ops consumers
 - those endpoint outcome flags are now also persisted into trace recovery so API and trace consumers stay aligned
-- ops status and UI dashboard surfaces now summarize recent execution outcomes from traces instead of only static runtime topology
-- founder visibility summary now reflects the same recent execution-outcome truth as the privileged overlay on the canonical runtime
-- founder visibility snapshot now exposes recent execution outcomes at the top level for privileged consumers
-- smoke tests now cover canonical v5 runtime-truth alignment, planner/executor enforcement drift blocking, endpoint-level review/HITL pauses, explicit fallback execution, fallback boundary enforcement, endpoint outcome flags, ops/dashboard outcome summaries, founder visibility outcome summaries, founder snapshot outcome visibility, and trace/recovery persistence
+- ops status, runtime dashboard, founder summary, founder snapshot, operator runtime, and operator runtime summary now all summarize recent execution outcomes from the same trace truth
+- smoke tests now cover canonical v5 runtime-truth alignment, planner/executor enforcement drift blocking, endpoint-level review/HITL pauses, explicit fallback execution, fallback boundary enforcement, endpoint outcome flags, operator/ops/dashboard/founder outcome summaries, and trace/recovery persistence
 
 ---
 
@@ -103,4 +101,4 @@ python -m src.runtime.main_core_v3_canonical_execution_surface_v5
 - real-world E2E hero-flow validation
 - production deployment hardening
 - deeper execution enforcement beyond current family-selection/gating layers
-- broader production validation for fallback behavior, endpoint flags, ops/dashboard summaries, founder visibility summaries, and recovery traces against live MurphySystem integrations
+- broader production validation for fallback behavior, endpoint flags, operator/ops/dashboard/founder summaries, and recovery traces against live MurphySystem integrations

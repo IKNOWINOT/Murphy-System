@@ -224,3 +224,49 @@ def test_canonical_execution_surface_v5_founder_snapshot_exposes_recent_executio
     assert payload['success'] is True
     assert payload['recent_execution_outcomes']['approval_pending'] >= 1
     assert payload['recent_execution_outcomes']['latest_status'] == 'review_required'
+
+
+def test_canonical_execution_surface_v5_operator_runtime_reflects_recent_execution_outcomes():
+    app = create_app()
+
+    async def fake_execute(request, plan):
+        return {
+            'success': True,
+            'status': 'fallback_completed',
+            'fallback_route': 'legacy_adapter',
+            'fallback_result': {'adapter': 'legacy_adapter', 'status': 'simulated'},
+            'gate_enforcement_summary': {'blocking_gates': ['security']},
+            'enforcement_summary': {'blocked': False},
+        }
+
+    app.state.services.executor.execute = fake_execute
+    local_client = TestClient(app)
+    local_client.post('/api/execute', json={'task_description': 'fallback me'})
+    response = local_client.get('/api/operator/runtime')
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload['success'] is True
+    assert payload['recent_execution_outcomes']['fallback_engaged'] >= 1
+    assert payload['recent_execution_outcomes']['latest_status'] == 'fallback_completed'
+
+
+def test_canonical_execution_surface_v5_operator_runtime_summary_reflects_recent_execution_outcomes():
+    app = create_app()
+
+    async def fake_execute(request, plan):
+        return {
+            'success': False,
+            'status': 'blocked',
+            'gate_enforcement_summary': {'blocking_gates': ['security']},
+            'enforcement_summary': {'blocked': True},
+        }
+
+    app.state.services.executor.execute = fake_execute
+    local_client = TestClient(app)
+    local_client.post('/api/execute', json={'task_description': 'block me'})
+    response = local_client.get('/api/operator/runtime-summary')
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload['success'] is True
+    assert payload['recent_execution_outcomes']['blocked'] >= 1
+    assert payload['recent_execution_outcomes']['latest_status'] == 'blocked'
