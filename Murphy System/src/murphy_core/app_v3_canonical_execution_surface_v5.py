@@ -11,6 +11,7 @@ from .capability_gating import CapabilityGatingService
 from .config import CoreConfig
 from .contracts import ControlTrace, CoreRequest
 from .executor import CoreExecutor
+from .founder_privilege_overlay import FounderPrivilegeOverlay
 from .founder_visibility_surface import FounderVisibilitySurface
 from .gate_service import AdapterBackedGateService
 from .operations_status import OperationsStatus
@@ -54,11 +55,13 @@ class CoreV3CanonicalExecutionSurfaceV5Services:
         self.subsystem_selector = SubsystemFamilySelector(self.production_inventory)
         self.ui_dashboard = UIRuntimeDashboard(self.runtime_surface, self.traces)
         self.ops_status = OperationsStatus(self.runtime_surface, self.traces)
+        self.founder_privileges = FounderPrivilegeOverlay()
         self.founder_visibility = FounderVisibilitySurface(
             self.runtime_surface,
             self.production_inventory,
             self.ui_dashboard,
             self.ops_status,
+            self.founder_privileges,
         )
 
 
@@ -158,6 +161,18 @@ def create_app() -> FastAPI:
     @app.get("/api/founder/layer-index")
     async def founder_layer_index() -> JSONResponse:
         return JSONResponse({"success": True, "by_layer": services.founder_visibility.layer_index()})
+
+    @app.get("/api/founder/workstation-policy")
+    async def founder_workstation_policy() -> JSONResponse:
+        return JSONResponse({"success": True, **services.founder_privileges.workstation_policy()})
+
+    @app.get("/api/founder/automation-policy")
+    async def founder_automation_policy() -> JSONResponse:
+        return JSONResponse({"success": True, **services.founder_privileges.automation_policy()})
+
+    @app.get("/api/founder/account-policy-matrix")
+    async def founder_account_policy_matrix() -> JSONResponse:
+        return JSONResponse({"success": True, **services.founder_privileges.account_policy_matrix()})
 
     async def _run_core(message: str, session_id: str | None, mode: str, context: Dict[str, Any]) -> Dict[str, Any]:
         req = CoreRequest.new(message=message, session_id=session_id, mode=mode, context=context)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Dict, List
 
+from .founder_privilege_overlay import FounderPrivilegeOverlay
 from .operations_status import OperationsStatus
 from .operator_runtime_surface_v8 import OperatorRuntimeSurfaceV8
 from .production_inventory import ProductionInventory
@@ -12,7 +13,8 @@ class FounderVisibilitySurface:
     """Unified founder/admin visibility payload.
 
     This combines runtime truth, preserved-family inventory, UI dashboard data,
-    and operations guidance into one machine-readable control surface.
+    operations guidance, and founder privilege policy into one machine-readable
+    control surface.
     """
 
     def __init__(
@@ -21,16 +23,19 @@ class FounderVisibilitySurface:
         production_inventory: ProductionInventory,
         ui_dashboard: UIRuntimeDashboard,
         ops_status: OperationsStatus,
+        privilege_overlay: FounderPrivilegeOverlay | None = None,
     ) -> None:
         self.runtime_surface = runtime_surface
         self.production_inventory = production_inventory
         self.ui_dashboard = ui_dashboard
         self.ops_status = ops_status
+        self.privilege_overlay = privilege_overlay or FounderPrivilegeOverlay()
 
     def snapshot(self) -> Dict[str, object]:
         inventory = self.production_inventory.to_dict()
         dashboard = self.ui_dashboard.build()
         ops = self.ops_status.snapshot()
+        privilege_summary = self.privilege_overlay.summary()
         return {
             "runtime": self.runtime_surface.snapshot(),
             "runtime_summary": self.runtime_surface.ui_summary(),
@@ -42,6 +47,12 @@ class FounderVisibilitySurface:
                 "validation": inventory["validation"],
             },
             "recent_execution_outcomes": ops["recent_execution_outcomes"],
+            "founder_privileges": {
+                "summary": privilege_summary,
+                "workstation": self.privilege_overlay.workstation_policy(),
+                "automation": self.privilege_overlay.automation_policy(),
+                "account_policy_matrix": self.privilege_overlay.account_policy_matrix(),
+            },
             "ui_dashboard": dashboard,
             "ops": ops,
             "ops_runbook": self.ops_status.runbook(),
@@ -53,6 +64,7 @@ class FounderVisibilitySurface:
         dashboard = self.ui_dashboard.build()
         ops = self.ops_status.snapshot()
         recent_outcomes = ops["recent_execution_outcomes"]
+        privilege_summary = self.privilege_overlay.summary()
         return {
             "preferred_factory": runtime_summary["preferred_factory"],
             "preferred_runtime_name": runtime_summary["preferred_runtime_name"],
@@ -71,6 +83,11 @@ class FounderVisibilitySurface:
             "recent_fallback_engaged": recent_outcomes["fallback_engaged"],
             "recent_blocked": recent_outcomes["blocked"],
             "latest_execution_status": recent_outcomes["latest_status"],
+            "founder_overlay_enabled": privilege_summary["founder_overlay_enabled"],
+            "founder_direct_platform_changes": privilege_summary["direct_platform_changes"],
+            "founder_direct_code_additions": privilege_summary["direct_code_additions"],
+            "founder_full_automation_features": privilege_summary["full_automation_features"],
+            "standard_accounts_constrained": privilege_summary["standard_accounts_constrained"],
         }
 
     def layer_index(self) -> Dict[str, List[str]]:

@@ -270,3 +270,60 @@ def test_canonical_execution_surface_v5_operator_runtime_summary_reflects_recent
     assert payload['success'] is True
     assert payload['recent_execution_outcomes']['blocked'] >= 1
     assert payload['recent_execution_outcomes']['latest_status'] == 'blocked'
+
+
+def test_canonical_execution_surface_v5_founder_workstation_policy_exposes_privileged_write_and_code_access():
+    response = client.get('/api/founder/workstation-policy')
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload['success'] is True
+    assert payload['identity'] == 'founder_overlay'
+    assert payload['direct_platform_changes'] is True
+    assert payload['direct_code_additions'] is True
+    assert payload['workstation_mode'] == 'privileged'
+
+
+def test_canonical_execution_surface_v5_founder_automation_policy_is_full_bore():
+    response = client.get('/api/founder/automation-policy')
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload['success'] is True
+    assert payload['founder_automation_mode'] == 'full_bore'
+    assert 'all_available_automation_features' in payload['founder_feature_set']
+    assert 'no_founder_privileged_runtime_actions' in payload['standard_account_restrictions']
+
+
+def test_canonical_execution_surface_v5_founder_account_policy_matrix_keeps_founder_as_overlay_not_default_identity():
+    response = client.get('/api/founder/account-policy-matrix')
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload['success'] is True
+    assert payload['founder']['overlay_identity'] is True
+    assert payload['founder']['default_runtime_identity'] is False
+    assert payload['founder']['direct_platform_changes'] is True
+    assert payload['founder']['direct_code_additions'] is True
+    assert payload['standard']['default_runtime_identity'] is True
+    assert payload['standard']['full_automation_features'] is False
+
+
+def test_canonical_execution_surface_v5_founder_summary_exposes_privilege_overlay_flags():
+    response = client.get('/api/founder/visibility-summary')
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload['success'] is True
+    assert payload['founder_overlay_enabled'] is True
+    assert payload['founder_direct_platform_changes'] is True
+    assert payload['founder_direct_code_additions'] is True
+    assert payload['founder_full_automation_features'] is True
+    assert payload['standard_accounts_constrained'] is True
+
+
+def test_canonical_execution_surface_v5_founder_snapshot_exposes_privilege_overlay_payload():
+    response = client.get('/api/founder/visibility')
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload['success'] is True
+    assert payload['founder_privileges']['summary']['full_automation_features'] is True
+    assert payload['founder_privileges']['workstation']['direct_platform_changes'] is True
+    assert payload['founder_privileges']['workstation']['direct_code_additions'] is True
+    assert payload['founder_privileges']['account_policy_matrix']['standard']['full_automation_features'] is False
