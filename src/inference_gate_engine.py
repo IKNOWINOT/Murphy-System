@@ -228,13 +228,22 @@ INDUSTRY_POSITIONS: Dict[str, Dict[str, Dict[str, Any]]] = {
 INDUSTRY_KEYWORDS: Dict[str, List[str]] = {
     "technology": [
         "tech", "software", "saas", "cloud", "ai", "startup", "app", "platform", "api", "devops",
+        "ci/cd", "ci cd", "pipeline", "deploy", "microservice", "container", "kubernetes", "docker",
+        "security scan", "vulnerability scan", "incident", "outage", "triage", "escalation",
+        "etl", "data pipeline", "bigquery", "data warehouse",
+        "onboarding", "account provisioning", "orientation",
+        "dashboard", "metrics", "report", "data report",
+        "blog", "content", "cms", "publishing",
+        "crm", "lead", "nurtur", "email sequence",
+        "automate", "automation", "workflow",
     ],
     "manufacturing": [
-        "factory", "manufacturing", "production", "assembly", "industrial", "plant", "supply chain",
+        "factory", "manufacturing", "production", "assembly", "industrial", "plant",
     ],
     "finance": [
         "bank", "finance", "financial", "fintech", "insurance", "investment", "trading", "lending",
-        "payments",
+        "payments", "invoice", "billing", "accounts payable", "quickbooks", "netsuite", "ledger",
+        "accounting",
     ],
     "healthcare": [
         "hospital", "clinic", "health", "healthcare", "medical", "pharma", "biotech", "patient",

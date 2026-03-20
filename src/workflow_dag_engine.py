@@ -349,6 +349,34 @@ class WorkflowDAGEngine:
                 "result": _llm_enrich("Error handling completed", f"{desc}"),
             }
 
+        def _handle_execution(step_def, context: Dict[str, Any]) -> Dict[str, Any]:
+            meta = getattr(step_def, "metadata", {}) or {}
+            desc = meta.get("description") or step_def.name
+            ctx_s = _ctx_summary(context)
+            return {
+                "action": "execution",
+                "step_id": step_def.step_id,
+                "status": "completed",
+                "task": desc,
+                "outcome": "success",
+                "artifacts": [f"artifact_{step_def.step_id}"],
+                "result": _llm_enrich("Executed task", f"{desc}. Context: {ctx_s}"),
+            }
+
+        def _handle_analysis(step_def, context: Dict[str, Any]) -> Dict[str, Any]:
+            meta = getattr(step_def, "metadata", {}) or {}
+            desc = meta.get("description") or step_def.name
+            ctx_s = _ctx_summary(context)
+            return {
+                "action": "analysis",
+                "step_id": step_def.step_id,
+                "status": "completed",
+                "findings": ["analysis_complete"],
+                "severity": "informational",
+                "recommendations": ["continue_workflow"],
+                "result": _llm_enrich("Analyzed", f"{desc}. Context: {ctx_s}"),
+            }
+
         # Register all semantic handlers
         self._step_handlers.setdefault("data_retrieval", _handle_data_retrieval)
         self._step_handlers.setdefault("data_transformation", _handle_data_transformation)
@@ -361,6 +389,8 @@ class WorkflowDAGEngine:
         self._step_handlers.setdefault("computation", _handle_computation)
         self._step_handlers.setdefault("data_output", _handle_data_output)
         self._step_handlers.setdefault("error_handling", _handle_error_handling)
+        self._step_handlers.setdefault("execution", _handle_execution)
+        self._step_handlers.setdefault("analysis", _handle_analysis)
         self._step_handlers.setdefault("data_protection", _handle_data_output)
         self._step_handlers.setdefault("security", _handle_validation)
         self._step_handlers.setdefault("delay", lambda sd, ctx: {
