@@ -52,3 +52,71 @@ def test_canonical_execution_surface_v5_trace_persists_recovery_state():
     assert trace_payload['execution_status'] == payload['execution_status']
     assert trace_payload['recovery']['plan_route'] == payload['route']
     assert 'final_status' in trace_payload['recovery']
+
+
+def test_canonical_execution_surface_v5_reports_approval_pending_for_review():
+    app = create_app()
+
+    async def fake_execute(request, plan):
+        return {
+            'success': False,
+            'status': 'review_required',
+            'gate_enforcement_summary': {'requires_review': True},
+            'enforcement_summary': {'blocked': False},
+        }
+
+    app.state.services.executor.execute = fake_execute
+    local_client = TestClient(app)
+    response = local_client.post('/api/execute', json={'task_description': 'review me'})
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload['execution_status'] == 'review_required'
+    assert payload['approval_pending'] is True
+    assert payload['fallback_engaged'] is False
+    assert payload['blocked'] is False
+
+
+def test_canonical_execution_surface_v5_reports_fallback_engaged():
+    app = create_app()
+
+    async def fake_execute(request, plan):
+        return {
+            'success': True,
+            'status': 'fallback_completed',
+            'fallback_route': 'legacy_adapter',
+            'fallback_result': {'adapter': 'legacy_adapter', 'status': 'simulated'},
+            'gate_enforcement_summary': {'blocking_gates': ['security']},
+            'enforcement_summary': {'blocked': False},
+        }
+
+    app.state.services.executor.execute = fake_execute
+    local_client = TestClient(app)
+    response = local_client.post('/api/execute', json={'task_description': 'fallback me'})
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload['execution_status'] == 'fallback_completed'
+    assert payload['approval_pending'] is False
+    assert payload['fallback_engaged'] is True
+    assert payload['blocked'] is False
+
+
+def test_canonical_execution_surface_v5_reports_blocked_state():
+    app = create_app()
+
+    async def fake_execute(request, plan):
+        return {
+            'success': False,
+            'status': 'blocked',
+            'gate_enforcement_summary': {'blocking_gates': ['security']},
+            'enforcement_summary': {'blocked': True},
+        }
+
+    app.state.services.executor.execute = fake_execute
+    local_client = TestClient(app)
+    response = local_client.post('/api/execute', json={'task_description': 'block me'})
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload['execution_status'] == 'blocked'
+    assert payload['approval_pending'] is False
+    assert payload['fallback_engaged'] is False
+    assert payload['blocked'] is True
