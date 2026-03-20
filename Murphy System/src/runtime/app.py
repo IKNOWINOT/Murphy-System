@@ -539,7 +539,11 @@ def create_app() -> FastAPI:
         """
         # Shallow liveness probe — instant, no I/O
         if not deep:
-            return JSONResponse({"status": "healthy", "version": murphy.version})
+            return JSONResponse({
+                "status": "healthy",
+                "version": murphy.version,
+                "deploy_commit": os.environ.get("MURPHY_DEPLOY_COMMIT", "unknown"),
+            })
 
         # Deep readiness probe — checks all critical subsystems
         checks: dict = {"runtime": "ok"}
@@ -587,10 +591,14 @@ def create_app() -> FastAPI:
         else:
             checks["redis"] = "not_configured"
 
-        # LLM provider check
+        # LLM provider check (includes Ollama reachability when using onboard mode)
         try:
             llm_status = murphy._get_llm_status()
             checks["llm"] = "ok" if llm_status.get("enabled") else "unavailable"
+            if llm_status.get("provider") == "onboard":
+                checks["ollama_running"] = llm_status.get("ollama_running", False)
+                checks["ollama_models"] = llm_status.get("ollama_models", [])
+                checks["ollama_host"] = llm_status.get("ollama_host", os.environ.get("OLLAMA_HOST", "http://localhost:11434"))
         except Exception:
             checks["llm"] = "unavailable"
 
@@ -614,6 +622,7 @@ def create_app() -> FastAPI:
             checks["modules_loaded"] = 0
 
         checks["version"] = murphy.version
+        checks["deploy_commit"] = os.environ.get("MURPHY_DEPLOY_COMMIT", "unknown")
 
         # Determine overall status
         str_checks = [v for v in checks.values() if isinstance(v, str)]

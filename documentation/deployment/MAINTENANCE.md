@@ -231,7 +231,18 @@ kill -HUP $(cat /var/run/murphy.pid)
 docker compose restart murphy-api
 ```
 
-### Zero-downtime rolling upgrade (Docker Compose / k8s)
+### Zero-downtime rolling upgrade (systemd / Docker Compose)
+
+**Hetzner bare-metal (systemd) — recommended:**
+```bash
+# The deploy workflow handles this automatically on every push to main.
+# To run manually on the server:
+cd /opt/Murphy-System
+git pull origin main
+MURPHY_DEPLOY_COMMIT=$(git rev-parse --short HEAD) systemctl restart murphy-production
+sleep 5
+curl -sf http://localhost:8000/api/health
+```
 
 **Docker Compose:**
 ```bash
@@ -239,13 +250,27 @@ docker compose build murphy-api
 docker compose up -d --no-deps murphy-api
 ```
 
-**Kubernetes:**
-```bash
-kubectl -n murphy set image deployment/murphy-api \
-  murphy-api=murphy-system:1.0.1
+### Ollama (onboard LLM) maintenance
 
-# Watch rollout
-kubectl -n murphy rollout status deployment/murphy-api
+```bash
+# Check Ollama service status
+systemctl status ollama
+
+# View which models are pulled
+ollama list
+
+# Pull an additional model
+ollama pull mistral
+
+# Remove an unused model to free disk space
+ollama rm tinyllama
+
+# Restart Ollama if it becomes unresponsive
+systemctl restart ollama
+
+# Verify via Murphy health endpoint
+curl -s 'http://localhost:8000/api/health?deep=true' \
+  | python3 -c "import sys,json; d=json.load(sys.stdin); print('Ollama:', d.get('checks',{}).get('ollama_running'), d.get('checks',{}).get('ollama_models'))"
 ```
 
 ### Database migrations
@@ -263,12 +288,19 @@ docker compose up -d --no-deps murphy-api
 ### Rollback
 
 ```bash
+# Systemd (Hetzner bare-metal) — roll back via git
+cd /opt/Murphy-System
+git log --oneline -5          # find the last good commit
+git checkout <good-commit>
+systemctl restart murphy-production
+
+# Or simply revert the last commit and redeploy
+git revert HEAD --no-edit
+git push origin main          # triggers the deploy workflow
+
 # Docker Compose — roll back to previous image
 docker compose up -d --no-deps murphy-api \
   --image murphy-system:1.0.0
-
-# Kubernetes
-kubectl -n murphy rollout undo deployment/murphy-api
 ```
 
 ---

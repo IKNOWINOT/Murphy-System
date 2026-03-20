@@ -591,10 +591,14 @@ def create_app() -> FastAPI:
         else:
             checks["redis"] = "not_configured"
 
-        # LLM provider check
+        # LLM provider check (includes Ollama reachability when using onboard mode)
         try:
             llm_status = murphy._get_llm_status()
             checks["llm"] = "ok" if llm_status.get("enabled") else "unavailable"
+            if llm_status.get("provider") == "onboard":
+                checks["ollama_running"] = llm_status.get("ollama_running", False)
+                checks["ollama_models"] = llm_status.get("ollama_models", [])
+                checks["ollama_host"] = llm_status.get("ollama_host", os.environ.get("OLLAMA_HOST", "http://localhost:11434"))
         except Exception:
             checks["llm"] = "unavailable"
 

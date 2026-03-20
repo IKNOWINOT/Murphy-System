@@ -882,6 +882,80 @@ curl http://localhost:8000/api/health
 
 ---
 
+## Ollama / Onboard LLM Troubleshooting
+
+Murphy uses Ollama for local LLM inference when no external API key is set.
+Use these steps when LLM responses are canned/generic or the health endpoint
+reports `"ollama_running": false`.
+
+### Check Ollama service
+
+```bash
+systemctl status ollama
+# If inactive:
+systemctl start ollama
+```
+
+### Check which models are pulled
+
+```bash
+ollama list
+# Expected output (at minimum):
+#   NAME          ID          SIZE   MODIFIED
+#   llama3:latest ...         4.7 GB ...
+```
+
+### Pull a model if none are present
+
+```bash
+ollama pull llama3       # ~4.7 GB — default (requires 6 GB+ RAM)
+ollama pull phi3         # ~2.3 GB — use on 2.5–6 GB systems
+ollama pull tinyllama    # ~1 GB   — minimal (< 2.5 GB RAM)
+```
+
+### Verify Ollama responds directly
+
+```bash
+curl -s http://localhost:11434/api/tags | python3 -m json.tool
+# Should show {"models": [...]}
+
+# Quick generation test
+curl -s http://localhost:11434/api/generate \
+  -d '{"model":"llama3","prompt":"Say hi","stream":false}' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin).get('response',''))"
+```
+
+### Check Murphy's view of Ollama
+
+```bash
+curl -s 'http://localhost:8000/api/health?deep=true' \
+  | python3 -c "
+import sys, json
+d = json.load(sys.stdin).get('checks', {})
+print('LLM:           ', d.get('llm'))
+print('Ollama running:', d.get('ollama_running'))
+print('Ollama models: ', d.get('ollama_models'))
+print('Ollama host:   ', d.get('ollama_host'))
+"
+
+# Or via the LLM status endpoint
+curl -s http://localhost:8000/api/llm/status | python3 -m json.tool
+```
+
+### Set OLLAMA_MODEL to a pulled model
+
+If Ollama is running but Murphy still falls back to pattern-matching, make
+sure the `OLLAMA_MODEL` env var matches an actually-pulled model name:
+
+```bash
+# Add to /etc/murphy-production/environment (or your .env)
+OLLAMA_MODEL=llama3    # must match a name shown by `ollama list`
+
+# Then restart Murphy
+systemctl restart murphy-production
+```
+
+---
 **© 2025 Corey Post InonI LLC. All rights reserved.**  
 **Licensed under BSL 1.1 (converts to Apache 2.0 after 4 years)**  
 **Contact: corey.gfc@gmail.com**

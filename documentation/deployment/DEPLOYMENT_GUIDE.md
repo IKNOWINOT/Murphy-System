@@ -422,7 +422,7 @@ Create `/etc/systemd/system/murphy-production.service`:
 ```ini
 [Unit]
 Description=Murphy System Runtime Production Server
-After=network.target postgresql.service
+After=network.target postgresql.service ollama.service
 
 [Service]
 Type=simple
@@ -457,9 +457,44 @@ Create environment file `/etc/murphy-production/environment`:
 MURPHY_SECRET_KEY=your-secret-key-here
 MURPHY_DB_PASSWORD=your-database-password
 MURPHY_SLACK_WEBHOOK=your-slack-webhook-url
+
+# Onboard LLM (Ollama) — must match the model you pulled with `ollama pull`
+OLLAMA_HOST=http://localhost:11434
+OLLAMA_MODEL=llama3
 ```
 
-Enable and start the service:
+### Step 4b: Install and Start Ollama (Onboard LLM)
+
+Murphy's onboard LLM runs locally via Ollama. This must be installed and
+running **before** starting the Murphy service.
+
+```bash
+# Install Ollama
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Enable and start the Ollama system service
+systemctl enable ollama
+systemctl start ollama
+
+# Pull the default model (llama3 requires ~4 GB of disk and ~4 GB RAM)
+ollama pull llama3
+
+# Verify Ollama is serving models
+curl -s http://localhost:11434/api/tags | python3 -m json.tool
+```
+
+> **Model selection guide by RAM:**
+> | Available RAM | Recommended model | Command |
+> |--------------|-------------------|---------|
+> | 6 GB+ | `llama3` (default) | `ollama pull llama3` |
+> | 2.5–6 GB | `phi3` | `ollama pull phi3` |
+> | < 2.5 GB | `tinyllama` | `ollama pull tinyllama` |
+>
+> `llama3` needs ~4.7 GB of disk and ~6 GB of usable RAM.
+> `phi3` needs ~2.3 GB and runs comfortably on 4 GB systems.
+> `tinyllama` needs ~1 GB and is the minimal-footprint option.
+
+Enable and start the Murphy service:
 
 ```bash
 # Set permissions

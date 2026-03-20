@@ -810,7 +810,7 @@ Check system health.
 
 **Authentication**: Not required
 
-#### Response
+#### Shallow response (default)
 
 ```json
 {
@@ -820,13 +820,33 @@ Check system health.
 }
 ```
 
-> `deploy_commit` reflects the short git SHA set via the `MURPHY_DEPLOY_COMMIT`
-> environment variable at service startup. It is `"unknown"` when the variable is
-> not set (e.g. local development). After each production deploy the value updates
-> automatically, so you can confirm which commit is live by hitting this endpoint.
->
-> Pass `?deep=true` for a full readiness probe that checks persistence, database,
-> Redis, LLM provider, and loaded modules.
+#### Deep response (`?deep=true`)
+
+```json
+{
+  "status": "healthy",
+  "checks": {
+    "runtime": "ok",
+    "persistence": "ok",
+    "database": "stub",
+    "redis": "not_configured",
+    "llm": "ok",
+    "ollama_running": true,
+    "ollama_models": ["llama3"],
+    "ollama_host": "http://localhost:11434",
+    "event_backbone": "not_configured",
+    "modules_loaded": 42,
+    "version": "1.0.0",
+    "deploy_commit": "a1b2c3d"
+  },
+  "critical_failures": []
+}
+```
+
+> - `deploy_commit` — short git SHA injected via `MURPHY_DEPLOY_COMMIT` at startup (`"unknown"` in local dev).
+> - `ollama_running` — `true` when Ollama is reachable at `OLLAMA_HOST`.
+> - `ollama_models` — list of model names currently pulled in Ollama.
+> - Pass `?deep=true` for a full readiness probe; omit for a fast liveness check.
 
 ---
 
