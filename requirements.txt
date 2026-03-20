@@ -21,3 +21,33 @@ aiosmtpd>=1.4.0
 
 # HTTP transport interception for SendGrid tests
 respx>=0.21.0
+
+# ─── Integration SDKs ───────────────────────────────────────────────────────
+# These are used by the world-model connectors in src/integrations/.
+# All connectors implement graceful fallback when the SDK is absent, so these
+# are soft dependencies — the system runs without them but integrations will
+# use the httpx-based connector instead.
+
+# Communication
+slack-sdk>=3.27.0,<4.0.0          # Slack Web API + RTM
+twilio>=9.0.0,<10.0.0              # SMS / Voice / Verify
+
+# CRM
+simple-salesforce>=1.12.0,<2.0.0  # Salesforce REST API
+
+# Productivity / Project Management
+notion-client>=2.2.0,<3.0.0       # Notion API v1
+jira>=3.8.0,<4.0.0                 # Jira Cloud REST API v3
+pyairtable>=2.3.0,<3.0.0           # Airtable REST API
+
+# Dev / Source Control
+PyGithub>=2.3.0,<3.0.0             # GitHub REST API v3
+
+# Monitoring / Alerting
+# pagerduty — uses httpx directly (no PyPI SDK needed for v2 REST)
+
+# Cloud / Infrastructure
+boto3>=1.34.0,<2.0.0               # AWS SDK (S3, SES, SNS, SQS, Lambda)
+
+# Video / Meetings
+# zoom — uses httpx directly (Server-to-Server OAuth, no SDK required)
