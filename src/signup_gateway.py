@@ -286,7 +286,6 @@ class UserProfile:
     phone_validation_code: str = ""
     phone_otp_created_at: str = ""
     terminal_config: Dict[str, Any] = field(default_factory=dict)
-    preferred_terminal: str = ""
     preferred_terminal: str = ""  # saved from onboarding dashboard selection
     created_at: str = field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
@@ -759,8 +758,6 @@ class SignupGateway:
             }
             config["terminal_path"] = "/ui/terminal-worker"
             config["commands"] = ["submit_work", "view_tasks", "chat"]
-        else:
-            # Worker — infer from position text, extend with task-focused features
         elif profile.role in ("worker", "employee", "staff"):
             config["features"] = {
                 "task_inbox": True,
@@ -811,7 +808,6 @@ class SignupGateway:
                 "/ui/terminal-enhanced",
                 "/ui/terminal-architect",
             ]
-        elif profile.role in ("manager", "team_lead"):
         elif profile.role in ("admin", "org_admin", "system_admin"):
             config["recommended_terminal"] = "/ui/terminal-architect"
             config["allowed_terminals"] = [

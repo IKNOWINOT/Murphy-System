@@ -12036,15 +12036,33 @@ class MurphySystem:
                 # No external API key — fall back to always-available onboard model.
                 # The system is still fully operational; responses come from
                 # LocalLLMFallback (Ollama when present, pattern-matcher otherwise).
+                try:
+                    from local_llm_fallback import _check_ollama_available, _ollama_base_url, _ollama_list_models
+                    _base = _ollama_base_url()
+                    _ollama_up = _check_ollama_available(_base)
+                    _pulled = _ollama_list_models(_base) if _ollama_up else []
+                except Exception:
+                    _ollama_up = False
+                    _pulled = []
                 return {
                     "enabled": True,
                     "provider": "onboard",
-                    "model": "local_fallback",
+                    "model": os.environ.get("OLLAMA_MODEL", "llama3") if _ollama_up else "pattern_matcher",
                     "healthy": True,
                     "mode": "onboard",
+                    "ollama_running": _ollama_up,
+                    "ollama_models": _pulled,
+                    "ollama_host": os.environ.get("OLLAMA_HOST", "http://localhost:11434"),
                     "note": (
-                        "Running on onboard LLM (no external API key set). "
-                        "Add a Groq key via 'set key groq <key>' for enhanced responses."
+                        (
+                            f"Ollama running at {os.environ.get('OLLAMA_HOST', 'http://localhost:11434')} "
+                            f"with models: {', '.join(_pulled) or 'none pulled yet'}. "
+                            "Pull a model with: ollama pull llama3"
+                        ) if _ollama_up else
+                        (
+                            "Ollama is not running — LLM responses use the built-in pattern-matcher. "
+                            "Start Ollama with: systemctl start ollama && ollama pull llama3"
+                        )
                     ),
                 }
         # Validate provider-specific keys

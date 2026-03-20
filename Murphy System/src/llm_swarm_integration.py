@@ -48,8 +48,8 @@ class LLMSwarmController:
     Provides command interface for swarm control
     """
 
-    def __init__(self, ollama_url: str = "http://localhost:11434"):
-        self.ollama_url = ollama_url
+    def __init__(self, ollama_url: str = None):
+        self.ollama_url = (ollama_url or os.environ.get("OLLAMA_HOST", "http://localhost:11434")).rstrip("/")
         self.swarm_system = TrueSwarmSystem()
         self.memory_system = MemoryArtifactSystem()
         self.llm_available = self._check_llm()
@@ -89,7 +89,7 @@ class LLMSwarmController:
             response = requests.post(
                 f"{self.ollama_url}/api/generate",
                 json={
-                    "model": "tinyllama",
+                    "model": os.environ.get("OLLAMA_MODEL", "llama3").split(":")[0],
                     "prompt": prompt,
                     "stream": False,
                     "options": {

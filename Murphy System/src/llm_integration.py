@@ -23,40 +23,40 @@ class LLMProvider(Enum):
 class LLMConfig:
     """LLM configuration"""
 
-    # Recommended models by size (for 4GB RAM system)
+    # Recommended models by RAM tier.  Names match Ollama pull names exactly.
     MODELS = {
         'tiny': {
             'name': 'tinyllama',
             'size': '1.1B',
-            'ram': '1.5GB',
+            'ram': '1 GB',
             'provider': LLMProvider.OLLAMA,
-            'description': 'TinyLlama 1.1B - Fast, minimal RAM'
+            'description': 'TinyLlama 1.1B — fast, < 2 GB RAM required'
         },
         'small': {
-            'name': 'phi',
-            'size': '2.7B',
-            'ram': '2.5GB',
+            'name': 'phi3',
+            'size': '3.8B',
+            'ram': '2.3 GB',
             'provider': LLMProvider.OLLAMA,
-            'description': 'Microsoft Phi-2 - Best quality for size'
+            'description': 'Microsoft Phi-3 — best quality under 4 GB RAM'
         },
         'medium': {
-            'name': 'mistral',
-            'size': '7B',
-            'ram': '4.5GB',
+            'name': 'llama3',
+            'size': '8B',
+            'ram': '4.7 GB',
             'provider': LLMProvider.OLLAMA,
-            'description': 'Mistral 7B - High quality (needs 8GB+ RAM)'
+            'description': 'Meta Llama 3 8B — default, requires 6 GB+ RAM'
         }
     }
 
     @classmethod
     def get_recommended_model(cls, available_ram_gb: float) -> str:
-        """Get recommended model based on available RAM"""
+        """Return the recommended model tier for the given available RAM."""
         if available_ram_gb >= 6:
-            return 'medium'
-        elif available_ram_gb >= 3:
-            return 'small'
+            return 'medium'    # llama3 — needs ~4.7 GB, safe at 6 GB+
+        elif available_ram_gb >= 2.5:
+            return 'small'     # phi3 — needs ~2.3 GB, safe at 2.5 GB+
         else:
-            return 'tiny'
+            return 'tiny'      # tinyllama — needs ~1 GB
 
 
 class OllamaLLM:
@@ -70,15 +70,17 @@ class OllamaLLM:
     - Multiple model support
     """
 
-    def __init__(self, model_name: str = "phi"):
+    def __init__(self, model_name: str = "llama3"):
         """
         Initialize Ollama LLM
 
         Args:
-            model_name: Ollama model name (tinyllama, phi, mistral, etc.)
+            model_name: Ollama model name — must match a pulled model.
+                        Defaults to "llama3" (requires ~6 GB RAM).
+                        Use "phi3" on 2.5–6 GB systems, "tinyllama" under 2.5 GB.
         """
         self.model_name = model_name
-        self.base_url = "http://localhost:11434"
+        self.base_url = os.environ.get("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
 
         # Check if Ollama is available
         self.available = self._check_ollama()
@@ -394,23 +396,25 @@ To enable LLM-enhanced MFGC, install Ollama:
 1. Install Ollama:
    curl -fsSL https://ollama.com/install.sh | sh
 
-2. Start Ollama (if not auto-started):
-   ollama serve
+2. Enable and start Ollama as a system service:
+   systemctl enable ollama
+   systemctl start ollama
 
-3. Pull a model (choose based on your RAM):
+3. Pull a model (choose based on available RAM):
 
-   For 2-4GB RAM (Recommended for this system):
-   ollama pull phi
+   For 6 GB+ RAM (default, best quality):
+   ollama pull llama3
 
-   For 1-2GB RAM (Minimal):
+   For 2.5–6 GB RAM:
+   ollama pull phi3
+
+   For < 2.5 GB RAM (minimal):
    ollama pull tinyllama
 
-   For 8GB+ RAM (Best quality):
-   ollama pull mistral
+4. Set OLLAMA_MODEL in your environment file if not using llama3:
+   OLLAMA_MODEL=phi3
 
-4. Restart the MFGC server
-
-Models will be downloaded automatically on first use.
+5. Restart the Murphy service
 
 Current system specs:
 """)

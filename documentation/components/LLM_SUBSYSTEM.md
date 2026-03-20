@@ -290,10 +290,41 @@ response: CompletionResponse = await provider.complete(messages)
 | `OPENAI_API_KEY` | — | OpenAI API key (optional) |
 | `OPENAI_MODEL` | `gpt-4o-mini` | Default OpenAI model |
 | `GROQ_MODEL` | `mixtral-8x7b-32768` | Default Groq model |
-| `OLLAMA_HOST` | `http://localhost:11434` | Ollama server URL |
+| `OLLAMA_HOST` | `http://localhost:11434` | Ollama server base URL (read by all Ollama call-sites) |
+| `OLLAMA_MODEL` | `llama3` | Default Ollama model; overrides the built-in probe order |
 | `MURPHY_LLM_BUDGET_USD` | `50` | Monthly LLM spend cap |
 | `MURPHY_LLM_DEFAULT_PROVIDER` | `groq` | Default provider for AUTO routing |
 | `MURPHY_LLM_TIMEOUT` | `30` | Request timeout in seconds |
+
+### Onboard LLM (Ollama)
+
+When no external API key (`GROQ_API_KEY`, `OPENAI_API_KEY`, etc.) is set,
+Murphy automatically uses its **onboard LLM** powered by Ollama:
+
+1. **Install Ollama** (one-time, already done on the Hetzner server):
+   ```bash
+   curl -fsSL https://ollama.com/install.sh | sh
+   systemctl enable ollama
+   systemctl start ollama
+   ```
+2. **Pull a model** (choose based on available RAM):
+   ```bash
+   ollama pull llama3        # ~4.7 GB — default, requires 6 GB+ RAM
+   ollama pull phi3          # ~2.3 GB — use on 2.5–6 GB systems
+   ollama pull tinyllama     # ~1 GB   — minimal footprint (< 2.5 GB RAM)
+   ```
+3. **Select the model** via env var (optional — auto-detected otherwise):
+   ```bash
+   export OLLAMA_MODEL=llama3
+   ```
+4. **Verify** via the health endpoint:
+   ```bash
+   curl -s http://localhost:8000/api/health?deep=true | python3 -m json.tool
+   # Look for "ollama_running": true and "ollama_models": ["llama3"]
+   ```
+
+The deploy workflow automatically installs Ollama, starts the service, and
+pulls `OLLAMA_MODEL` (default `llama3`) on every `git push` to `main`.
 
 ---
 

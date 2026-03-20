@@ -6,6 +6,7 @@ Integrates with Ollama for local model inference when available
 """
 
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 import random
@@ -19,9 +20,18 @@ try:
 except ImportError:
     _HAS_URLLIB = False
 
+_DEFAULT_OLLAMA_HOST = "http://localhost:11434"
 
-def _check_ollama_available(base_url: str = "http://localhost:11434") -> bool:
+
+def _ollama_base_url() -> str:
+    """Return the Ollama base URL, honouring the OLLAMA_HOST env var."""
+    return os.environ.get("OLLAMA_HOST", _DEFAULT_OLLAMA_HOST).rstrip("/")
+
+
+def _check_ollama_available(base_url: str = None) -> bool:
     """Check if an Ollama instance is reachable."""
+    if base_url is None:
+        base_url = _ollama_base_url()
     if not _HAS_URLLIB:
         return False
     try:
@@ -33,13 +43,33 @@ def _check_ollama_available(base_url: str = "http://localhost:11434") -> bool:
         return False
 
 
+def _ollama_list_models(base_url: str = None) -> List[str]:
+    """Return the list of model names currently pulled in Ollama."""
+    if base_url is None:
+        base_url = _ollama_base_url()
+    if not _HAS_URLLIB:
+        return []
+    try:
+        req = urllib.request.Request(f"{base_url}/api/tags", method="GET")
+        with urllib.request.urlopen(req, timeout=2) as resp:
+            data = _json.loads(resp.read().decode("utf-8"))
+            # Keep base name only (strip `:tag` suffix) so comparisons against
+            # OLLAMA_MODEL (which users set without a tag) work correctly.
+            return [m.get("name", "").split(":")[0] for m in data.get("models", [])]
+    except Exception as exc:
+        logger.debug("Suppressed exception listing Ollama models: %s", exc)
+        return []
+
+
 def _query_ollama(
     prompt: str,
     model: str = "llama3",
-    base_url: str = "http://localhost:11434",
+    base_url: str = None,
     max_tokens: int = 500,
 ) -> Optional[str]:
     """Query a local Ollama model. Returns the response text or None on failure."""
+    if base_url is None:
+        base_url = _ollama_base_url()
     if not _HAS_URLLIB:
         return None
     try:
@@ -63,8 +93,27 @@ def _query_ollama(
         return None
 
 
-# Preferred Ollama models in priority order
-_OLLAMA_MODELS = ["llama3", "mistral", "phi3", "phi"]
+# Canonical model probe order — imported by llm_controller and other callers
+# so there is a single source of truth for model names.
+_OLLAMA_MODELS = ["llama3", "mistral", "phi3", "phi", "tinyllama"]
+
+# Small models: fast, low RAM (phi3 ≈ 2 GB, phi ≈ 1.5 GB)
+_OLLAMA_SMALL_MODELS = ["phi3", "phi", "tinyllama"]
+
+# Medium models: best quality available locally (llama3/mistral ≈ 4–5 GB)
+_OLLAMA_MEDIUM_MODELS = ["llama3", "mistral"]
+
+
+def _preferred_ollama_models() -> List[str]:
+    """Return model probe order, honouring OLLAMA_MODEL env var if set.
+
+    Tags (`:latest`, etc.) are stripped so that OLLAMA_MODEL=llama3 and
+    OLLAMA_MODEL=llama3:latest both resolve to the same probe entry.
+    """
+    env_model = os.environ.get("OLLAMA_MODEL", "").strip().split(":")[0]
+    if env_model:
+        return [env_model] + [m for m in _OLLAMA_MODELS if m != env_model]
+    return _OLLAMA_MODELS
 
 
 class LocalLLMFallback:
@@ -127,11 +176,12 @@ class LocalLLMFallback:
     def ollama_available(self) -> bool:
         """Check (and cache) whether Ollama is reachable."""
         if self._ollama_available is None:
-            self._ollama_available = _check_ollama_available()
+            base_url = _ollama_base_url()
+            self._ollama_available = _check_ollama_available(base_url)
             if self._ollama_available:
                 # Detect which model is available
-                for model in _OLLAMA_MODELS:
-                    result = _query_ollama("hi", model=model, max_tokens=5)
+                for model in _preferred_ollama_models():
+                    result = _query_ollama("hi", model=model, base_url=base_url, max_tokens=5)
                     if result is not None:
                         self._ollama_model = model
                         break
@@ -146,7 +196,8 @@ class LocalLLMFallback:
         """
         # Try Ollama if available
         if self.ollama_available and self._ollama_model:
-            result = _query_ollama(prompt, model=self._ollama_model, max_tokens=max_tokens)
+            result = _query_ollama(prompt, model=self._ollama_model,
+                                   base_url=_ollama_base_url(), max_tokens=max_tokens)
             if result:
                 return result
 

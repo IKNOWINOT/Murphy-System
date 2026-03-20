@@ -84,6 +84,11 @@ _DEFAULT_REGISTRY = "ghcr.io"
 _DEFAULT_NODE_TYPE = "cpx31"
 _DEFAULT_NODE_COUNT = 2
 _DEFAULT_BACKEND_PORT = 8000
+
+# SSH / systemd (current production) constants
+_DEFAULT_DEPLOY_DIR = "/opt/Murphy-System"
+_DEFAULT_SERVICE = "murphy-production"
+_DEFAULT_OLLAMA_SERVICE = "ollama"
 _STATE_FILE = os.path.join(os.path.expanduser("~"), ".murphy", "hetzner_deploy_state.json")
 
 
@@ -136,6 +141,11 @@ class HetznerStepType(str, Enum):
     APPLY_STAGING_NAMESPACE = "apply_staging_namespace"
     RUN_PRODUCTION_READINESS = "run_production_readiness"
     VERIFY_DEPLOYMENT = "verify_deployment"
+    # SSH / systemd update path (current production)
+    SSH_GIT_PULL = "ssh_git_pull"
+    SSH_ENSURE_OLLAMA = "ssh_ensure_ollama"
+    SSH_RESTART_SERVICE = "ssh_restart_service"
+    SSH_VERIFY_HEALTH = "ssh_verify_health"
 
 
 # ---------------------------------------------------------------------------
@@ -186,6 +196,11 @@ class HetznerDeployProbeReport:
     deployment_exists: bool = False
     current_image: str = ""
 
+    # SSH / systemd (current production path)
+    service_active: bool = False       # murphy-production systemd service running
+    ollama_running: bool = False       # Ollama service reachable
+    ollama_models: List[str] = field(default_factory=list)  # pulled Ollama models
+
     issues: List[str] = field(default_factory=list)
 
     def is_ready_to_deploy(self) -> bool:
@@ -219,6 +234,9 @@ class HetznerDeployProbeReport:
             "namespace_exists": self.namespace_exists,
             "deployment_exists": self.deployment_exists,
             "current_image": self.current_image,
+            "service_active": self.service_active,
+            "ollama_running": self.ollama_running,
+            "ollama_models": self.ollama_models,
             "issues": self.issues,
             "ready_to_deploy": self.is_ready_to_deploy(),
         }
@@ -284,6 +302,8 @@ class HetznerDeployProbe:
         self._check_internet(report)
         self._check_local_backend(report)
         self._check_cluster(report)
+        self._check_systemd_service(report)
+        self._check_ollama(report)
         self._collect_issues(report)
         return report
 
@@ -422,6 +442,28 @@ class HetznerDeployProbe:
         except Exception as exc:
             logger.debug("Deployment check failed: %s", exc)
 
+    def _check_systemd_service(self, r: HetznerDeployProbeReport) -> None:
+        """Check whether the murphy-production systemd service is active."""
+        try:
+            result = subprocess.run(
+                ["systemctl", "is-active", "--quiet", _DEFAULT_SERVICE],
+                capture_output=True, timeout=5,
+            )
+            r.service_active = result.returncode == 0
+        except Exception as exc:
+            logger.debug("systemd service check failed: %s", exc)
+
+    def _check_ollama(self, r: HetznerDeployProbeReport) -> None:
+        """Check whether Ollama is running and which models are pulled."""
+        try:
+            from local_llm_fallback import _check_ollama_available, _ollama_base_url, _ollama_list_models
+            base = _ollama_base_url()
+            r.ollama_running = _check_ollama_available(base)
+            if r.ollama_running:
+                r.ollama_models = _ollama_list_models(base)
+        except Exception as exc:
+            logger.debug("Ollama probe failed: %s", exc)
+
     def _collect_issues(self, r: HetznerDeployProbeReport) -> None:
         if not r.hetzner_token_set:
             r.issues.append("HETZNER_API_TOKEN environment variable not set")
@@ -433,6 +475,11 @@ class HetznerDeployProbe:
             r.issues.append("kubectl not installed")
         if not r.docker_installed:
             r.issues.append("Docker not installed")
+        if not r.ollama_running:
+            r.issues.append(
+                "Ollama is not running — start with: "
+                "systemctl start ollama && ollama pull llama3"
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -562,7 +609,7 @@ class HetznerDeployPlanGenerator:
                 risk_level=RiskLevel.MEDIUM,
                 command=(
                     f'docker build -t {self._image_ref()} '
-                    f'-f "Dockerfile" "."'
+                    f'-f "Murphy System/Dockerfile" "Murphy System/"'
                 ),
                 liability_note="You approved this action. Murphy executed it as instructed.",
             ))
@@ -777,7 +824,7 @@ class HetznerDeployPlanGenerator:
             description="Run production readiness check script to validate all resources",
             risk_level=RiskLevel.LOW,
             command=(
-                f'bash "scripts/production_readiness_check.sh" '
+                f'bash "Murphy System/scripts/production_readiness_check.sh" '
                 f'{self.namespace}'
             ),
             liability_note="Read-only verification. No system change.",
@@ -786,64 +833,61 @@ class HetznerDeployPlanGenerator:
         return SetupPlan(steps=steps)
 
     def _rolling_update_plan(self, report: HetznerDeployProbeReport) -> SetupPlan:
-        """Generate a minimal rolling update plan for an existing cluster."""
+        """Generate an SSH/systemd rolling update plan (current production path).
+
+        Production runs on a Hetzner bare-metal box managed by systemd, NOT
+        Kubernetes.  This plan uses the same pattern as the CI workflow:
+        git pull → ensure Ollama → restart service → verify health.
+        """
+        deploy_dir = os.environ.get("MURPHY_DEPLOY_DIR", _DEFAULT_DEPLOY_DIR)
+        service = os.environ.get("MURPHY_SERVICE", _DEFAULT_SERVICE)
+        ollama_model = os.environ.get("OLLAMA_MODEL", "llama3").split(":")[0]
+        backend_port = self._port if hasattr(self, "_port") else _DEFAULT_BACKEND_PORT
         steps: List[SetupStep] = []
 
-        # 1. Build Docker image
+        # 1. Pull latest code
         steps.append(SetupStep(
-            step_id="hetzner-ru-01-build-image",
-            description=f"Build Docker image {self._image_ref()}",
-            risk_level=RiskLevel.MEDIUM,
-            command=(
-                f'docker build -t {self._image_ref()} '
-                f'-f "Dockerfile" "."'
-            ),
+            step_id="hetzner-ru-01-git-pull",
+            description=f"Pull latest code into {deploy_dir}",
+            risk_level=RiskLevel.LOW,
+            command=f"cd {deploy_dir} && git pull origin main",
             liability_note="You approved this action. Murphy executed it as instructed.",
         ))
 
-        # 2. Push image to registry
+        # 2. Ensure Ollama is running and model is pulled
         steps.append(SetupStep(
-            step_id="hetzner-ru-02-push-image",
-            description=f"Push Docker image {self._image_ref()} to registry",
-            risk_level=RiskLevel.MEDIUM,
-            command=f"docker push {self._image_ref()}",
-            liability_note="You approved this action. Murphy executed it as instructed.",
-        ))
-
-        # 3. Rolling update
-        steps.append(SetupStep(
-            step_id="hetzner-ru-03-rolling-update",
+            step_id="hetzner-ru-02-ensure-ollama",
             description=(
-                f"Rolling update deployment/{self.deployment} → {self._image_ref()}"
+                f"Ensure Ollama service is running and model '{ollama_model}' is pulled"
             ),
             risk_level=RiskLevel.MEDIUM,
             command=(
-                f"kubectl set image deployment/{self.deployment} "
-                f"{self.deployment}={self._image_ref()} "
-                f"-n {self.namespace}"
+                "systemctl is-active --quiet ollama || systemctl start ollama; "
+                f"ollama list | grep -q '{ollama_model}' || ollama pull {ollama_model}"
             ),
             liability_note="You approved this action. Murphy executed it as instructed.",
         ))
 
-        # 4. Wait for rollout
+        # 3. Restart Murphy service with new commit SHA injected
         steps.append(SetupStep(
-            step_id="hetzner-ru-04-wait-rollout",
-            description=f"Wait for rollout of deployment/{self.deployment} to complete",
-            risk_level=RiskLevel.LOW,
+            step_id="hetzner-ru-03-restart-service",
+            description=f"Restart systemd service '{service}' with new code",
+            risk_level=RiskLevel.MEDIUM,
             command=(
-                f"kubectl rollout status deployment/{self.deployment} "
-                f"-n {self.namespace} --timeout=300s"
+                f"MURPHY_DEPLOY_COMMIT=$(cd {deploy_dir} && git rev-parse --short HEAD) "
+                f"systemctl restart {service}"
             ),
-            liability_note="Read-only wait. No system change.",
+            liability_note="You approved this action. Murphy executed it as instructed.",
         ))
 
-        # 5. Verify deployment
+        # 4. Verify health endpoint
         steps.append(SetupStep(
-            step_id="hetzner-ru-05-verify-deployment",
-            description="Verify deployment health via kubectl and /api/health endpoint",
+            step_id="hetzner-ru-04-verify-health",
+            description="Verify Murphy /api/health endpoint responds",
             risk_level=RiskLevel.LOW,
             command=(
-                f"kubectl get pods -n {self.namespace} --field-selector=status.phase=Running"
+                f"sleep 5 && "
+                f"curl -sf http://localhost:{backend_port}/api/health"
             ),
             liability_note="Read-only verification. No system change.",
         ))
@@ -866,12 +910,18 @@ class HetznerDeployExecutor(SetupExecutor):
 
 
 class HetznerDeployVerifier:
-    """Verifies that the deployed Murphy System is operational on Hetzner K8s.
+    """Verifies that the deployed Murphy System is operational.
+
+    Supports two modes:
+      - systemd mode (current production): operational when the local health
+        endpoint responds.  kubectl pod checks are optional / informational.
+      - k8s mode (future migration): operational when pods are running AND
+        the local or public endpoint responds.
 
     Checks:
-      1. Local backend at localhost:8000/api/health (if applicable)
-      2. Public Hetzner endpoint (from Ingress or LoadBalancer IP)
-      3. kubectl get pods -n murphy-system for Running/Ready status
+      1. Local backend at localhost:8000/api/health
+      2. Public Hetzner endpoint (from Ingress or LoadBalancer IP) if provided
+      3. kubectl get pods (optional — required for k8s mode only)
     """
 
     def __init__(
@@ -880,11 +930,13 @@ class HetznerDeployVerifier:
         local_port: int = _DEFAULT_BACKEND_PORT,
         namespace: str = _DEFAULT_NAMESPACE,
         deployment: str = _DEFAULT_DEPLOYMENT,
+        k8s_mode: bool = False,
     ) -> None:
         self.public_url = public_url
         self.local_port = local_port
         self.namespace = namespace
         self.deployment = deployment
+        self.k8s_mode = k8s_mode
 
     def verify(self) -> Dict[str, Any]:
         results: Dict[str, Any] = {
@@ -902,13 +954,17 @@ class HetznerDeployVerifier:
         if self.public_url:
             results["public_ok"] = self._check_url(self.public_url)
 
-        # Check pods via kubectl
+        # Check pods via kubectl (informational; required in k8s_mode)
         results["pods_ok"] = self._check_pods()
 
-        # Operational when pods are running + either local or public endpoint responds
-        results["operational"] = results["pods_ok"] and (
-            results["local_ok"] or results["public_ok"]
-        )
+        # Operational definition:
+        #   k8s mode  — pods running AND (local or public) endpoint responds
+        #   systemd   — (local or public) endpoint responds (pods optional)
+        endpoint_ok = results["local_ok"] or results["public_ok"]
+        if self.k8s_mode:
+            results["operational"] = results["pods_ok"] and endpoint_ok
+        else:
+            results["operational"] = endpoint_ok
 
         return results
 
@@ -976,7 +1032,13 @@ class MurphyUpdateController:
         self.max_attempts = max_attempts
 
     def generate_ci_workflow(self) -> str:
-        """Return the GitHub Actions workflow YAML for CI/CD deployment to Hetzner."""
+        """Return the GitHub Actions workflow YAML for CI/CD deployment to Hetzner.
+
+        Production runs on a Hetzner bare-metal box managed by systemd (NOT
+        Kubernetes).  The workflow SSHes into the server, pulls code, ensures
+        Ollama is running, restarts the murphy-production service, and verifies
+        the health endpoint.
+        """
         return """\
 name: Build & Deploy to Hetzner
 on:
@@ -991,61 +1053,54 @@ jobs:
       contents: read
     env:
       MURPHY_ENV: test
-      PYTHONPATH: "${{ github.workspace }}:${{ github.workspace }}/src"
+      PYTHONPATH: "${{ github.workspace }}/Murphy System:${{ github.workspace }}/Murphy System/src"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -r "requirements_murphy_1.0.txt"
+      - run: pip install -r "Murphy System/requirements_murphy_1.0.txt"
       - run: pip install pytest pytest-asyncio pytest-timeout
-      - run: python -m pytest "tests/" --timeout=300 -x -q --ignore="tests/e2e"
+      - run: python -m pytest "Murphy System/tests/" --timeout=300 -x -q --ignore="Murphy System/tests/e2e"
 
-  build-and-deploy:
+  deploy:
     needs: test
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/login-action@v3
+      - name: Deploy to Hetzner via SSH
+        uses: appleboy/ssh-action@v1
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@v5
-        with:
-          context: ./Murphy System
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository }}/murphy-system:${{ github.sha }}
-            ghcr.io/${{ github.repository }}/murphy-system:latest
-      - name: Set up kubectl
-        uses: azure/setup-kubectl@v4
-      - name: Configure kubeconfig
-        run: |
-          mkdir -p ~/.kube
-          echo "${{ secrets.HETZNER_KUBECONFIG }}" | base64 -d > ~/.kube/config
-      - name: Rolling update
-        run: |
-          kubectl set image deployment/murphy-api \\
-            murphy-api=ghcr.io/${{ github.repository }}/murphy-system:${{ github.sha }} \\
-            -n murphy-system
-          kubectl rollout status deployment/murphy-api -n murphy-system --timeout=300s
-      - name: Verify health
-        run: |
-          ENDPOINT=$(kubectl get ingress murphy-api -n murphy-system -o jsonpath='{.spec.rules[0].host}')
-          for i in 1 2 3 4 5; do
-            sleep 15
-            if curl -sf "https://${ENDPOINT}/api/health"; then
-              echo "Health check passed on attempt ${i}"
-              exit 0
+          host: ${{ secrets.HETZNER_HOST }}
+          username: root
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            set -e
+            cd /opt/Murphy-System
+            git pull origin main
+            DEPLOY_COMMIT=$(git rev-parse --short HEAD)
+
+            if ! command -v ollama &>/dev/null; then
+              curl -fsSL https://ollama.com/install.sh | sh
             fi
-            echo "Attempt ${i}/5 failed, retrying..."
-          done
-          echo "Warning: health check failed after 5 attempts, verify manually"
+            systemctl enable ollama 2>/dev/null || true
+            systemctl is-active --quiet ollama || systemctl start ollama && sleep 3
+
+            OLLAMA_MODEL="${OLLAMA_MODEL:-llama3}"
+            ollama list | grep -q "${OLLAMA_MODEL}" || ollama pull "${OLLAMA_MODEL}"
+
+            MURPHY_DEPLOY_COMMIT="${DEPLOY_COMMIT}" systemctl restart murphy-production
+            sleep 5
+            curl -sf http://localhost:8000/api/health || echo "WARNING: Murphy health check failed"
+
+            curl -sf http://localhost:11434/api/tags | python3 -c "
+            import sys, json
+            d = json.load(sys.stdin)
+            models = [m.get('name','') for m in d.get('models', [])]
+            print('Ollama models available:', models or 'none')
+            " || echo "WARNING: Ollama health check failed"
 """
 
     def trigger_update(self) -> "HetznerDeployResult":
