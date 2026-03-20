@@ -84,6 +84,34 @@ def test_canonical_v5_recent_outcome_visibility_surfaces_stay_in_parity_for_revi
     assert payloads['founder_snapshot']['recent_execution_outcomes']['approval_pending'] >= 1
 
 
+def test_canonical_v5_recent_outcome_visibility_surfaces_stay_in_parity_for_hitl():
+    payloads = _exercise_surfaces(
+        {
+            'success': False,
+            'status': 'hitl_required',
+            'gate_enforcement_summary': {'requires_hitl': True},
+            'enforcement_summary': {'blocked': False},
+        },
+        task_description='hitl me',
+    )
+
+    assert payloads['execute']['execution_status'] == 'hitl_required'
+    assert payloads['execute']['approval_pending'] is True
+    assert payloads['operator_runtime']['recent_execution_outcomes']['latest_status'] == 'hitl_required'
+    assert payloads['operator_summary']['recent_execution_outcomes']['latest_status'] == 'hitl_required'
+    assert payloads['ops_status']['recent_execution_outcomes']['latest_status'] == 'hitl_required'
+    assert payloads['dashboard']['recent_execution_outcomes']['latest_status'] == 'hitl_required'
+    assert payloads['founder_summary']['latest_execution_status'] == 'hitl_required'
+    assert payloads['founder_snapshot']['recent_execution_outcomes']['latest_status'] == 'hitl_required'
+
+    assert payloads['operator_runtime']['recent_execution_outcomes']['approval_pending'] >= 1
+    assert payloads['operator_summary']['recent_execution_outcomes']['approval_pending'] >= 1
+    assert payloads['ops_status']['recent_execution_outcomes']['approval_pending'] >= 1
+    assert payloads['dashboard']['recent_execution_outcomes']['approval_pending'] >= 1
+    assert payloads['founder_summary']['recent_approval_pending'] >= 1
+    assert payloads['founder_snapshot']['recent_execution_outcomes']['approval_pending'] >= 1
+
+
 def test_canonical_v5_recent_outcome_visibility_surfaces_stay_in_parity_for_blocked():
     payloads = _exercise_surfaces(
         {
