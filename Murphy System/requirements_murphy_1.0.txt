@@ -152,15 +152,25 @@ psutil>=5.9.6
 # ==================== Crypto Trading ====================
 # Coinbase Advanced Trade REST + WebSocket
 websocket-client>=1.6.0
-# Multi-exchange abstraction (optional CCXT integration)
-# ccxt>=4.2.0
-# EVM wallet signing (optional — required for SoftwareWallet.sign_transaction)
-# web3>=6.11.0
+# Official Coinbase Advanced Trade Python SDK (REST + WebSocket, HMAC auth)
+coinbase-advanced-py>=1.8.2
+# Multi-exchange abstraction — enables Binance, Kraken, Bybit, KuCoin, OKX, etc.
+ccxt>=4.5.0
+# EVM wallet signing — required for SoftwareWallet.sign_transaction & Web3 DeFi
+web3>=7.0.0
 # Bitcoin wallet utilities (optional)
 # bitcoin-utils>=0.6.0
 # Hardware wallet support (optional)
 # ledgerblue>=0.1.48
 # trezor>=0.13.0
+
+# ==================== Market Data & Technical Analysis ====================
+# Yahoo Finance historical + real-time price data
+yfinance>=1.2.0
+# Pure-Python technical analysis (RSI, MACD, BB, ATR, stoch, etc.) — no C deps
+ta>=0.11.0
+# Statistical modelling — Sharpe/Sortino, OLS regression, ARIMA forecasts
+statsmodels>=0.14.0
 
 # ==================== Development Dependencies ====================
 ipython>=8.17.0
@@ -186,7 +196,7 @@ notebook>=7.0.0
 # pygraphviz>=1.11
 
 # Time Series
-# statsmodels>=0.14.0
+statsmodels>=0.14.0
 # prophet>=1.1.5
 
 # Geospatial
