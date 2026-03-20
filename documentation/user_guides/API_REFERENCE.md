@@ -112,6 +112,7 @@ and `MURPHY_PORT` (see `.env.example` for all configuration options).
 | `POST` | `/api/auth/signup` | Create account (bcrypt hashed, sets session cookie) |
 | `POST` | `/api/auth/login` | Sign in (sets HttpOnly murphy_session cookie) |
 | `POST` | `/api/auth/logout` | Sign out (clears session) |
+| `POST` | `/api/auth/forgot-password` | Initiate password reset flow (accepts `{email}`) |
 | `GET` | `/api/auth/providers` | List available OAuth providers |
 | `GET` | `/api/profiles/me` | Get current user profile |
 

@@ -38,6 +38,7 @@ Dev mode: Auth is disabled when `MURPHY_API_KEY` is unset.
 | POST | /api/auth/register | No | Create new account (alias for signup) |
 | POST | /api/auth/login | No | Validate credentials — returns `{ session_token, account_id, … }` + sets `murphy_session` cookie |
 | POST | /api/auth/logout | No | Invalidate session and clear `murphy_session` cookie |
+| POST | /api/auth/forgot-password | No | Initiate password reset flow — accepts `{email}`, always returns success (never reveals account existence) |
 | GET | /api/auth/session-token | Yes | Return active session token for the current user (used by `murphy_auth.js` after OAuth redirect to mirror HttpOnly cookie to localStorage) |
 | GET | /api/auth/oauth/{provider} | No | Initiate OAuth flow |
 | GET | /api/auth/callback | No | OAuth callback — sets `murphy_session` cookie and redirects to `/ui/terminal-unified?oauth_success=1&provider=<name>` |
@@ -90,6 +91,7 @@ Dev mode: Auth is disabled when `MURPHY_API_KEY` is unset.
 | GET | /api/workflow-terminal/list | Yes | List workflow programs |
 | GET | /api/workflow-terminal/load | Yes | Load a workflow program |
 | POST | /api/workflow-terminal/save | Yes | Save a workflow program |
+| POST | /api/workflow-terminal/execute | Yes | Execute a workflow from canvas UI — accepts nodes/edges, runs through DAG engine |
 | GET | /api/workflow-terminal/sessions | Yes | List active sessions |
 | POST | /api/workflow-terminal/sessions | Yes | Create session |
 | GET | /api/workflow-terminal/sessions/{session_id} | Yes | Get session |
@@ -341,6 +343,7 @@ Dev mode: Auth is disabled when `MURPHY_API_KEY` is unset.
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | GET | /api/credentials/list | Yes | List credentials |
+| POST | /api/credentials/store | Yes | Store integration credential — accepts `{integration, credential}`, called by onboarding wizard Step 3 |
 
 ---
 
@@ -393,6 +396,7 @@ Dev mode: Auth is disabled when `MURPHY_API_KEY` is unset.
 |--------|------|------|-------------|
 | GET | /api/integrations | Yes | List integrations |
 | GET | /api/integrations/{status} | Yes | List integrations by status |
+| GET | /api/integrations/list | Yes | Alias for integrations catalog (used by terminal_unified.html, workflow_canvas.html) |
 | GET | /api/universal-integrations/categories | Yes | Integration categories |
 | GET | /api/universal-integrations/services | Yes | Available services |
 | POST | /api/universal-integrations/register | Yes | Register integration |
@@ -544,6 +548,7 @@ Dev mode: Auth is disabled when `MURPHY_API_KEY` is unset.
 | POST | /api/ip/assets | Yes | Create IP asset |
 | POST | /api/ip/assets/{asset_id}/access-check | Yes | Check access |
 | GET | /api/ip/summary | Yes | IP summary |
+| GET | /api/ip/portfolio | Yes | IP portfolio view — returns total assets, summary, and full asset list (used by terminal_unified.html) |
 | GET | /api/ip/trade-secrets | Yes | Trade secrets |
 | GET | /api/supply/status | Yes | Supply chain status |
 | POST | /api/events/subscribe | Yes | Subscribe to events |

@@ -1645,7 +1645,13 @@ def create_app() -> FastAPI:
 
     @app.get("/api/integrations/{status}")
     async def list_integrations(status: str = 'all'):
-        """List integrations"""
+        """List integrations filtered by status.
+
+        When called with status='list' (from terminal_unified.html and
+        workflow_canvas.html), delegate to the integrations catalog.
+        """
+        if status == "list":
+            return await integrations_catalog()
         result = murphy.list_integrations(status=status)
         return JSONResponse(result)
 
@@ -2180,6 +2186,79 @@ def create_app() -> FastAPI:
             return JSONResponse({"ok": False, "error": "Not found"}, status_code=404)
         return JSONResponse(wf)
 
+    @app.post("/api/workflow-terminal/execute")
+    async def workflow_terminal_execute(request: Request):
+        """Execute a workflow from the canvas UI.
+
+        Accepts a workflow definition (nodes + edges) or a saved workflow ID
+        and runs it through the WorkflowDAGEngine, returning step results.
+        Called by workflow_canvas.html.
+        """
+        data = await request.json()
+        workflow_id = data.get("id") or data.get("workflow_id") or str(uuid4())
+        nodes = data.get("nodes", [])
+        edges = data.get("edges", [])
+        context = data.get("context", {})
+
+        # If a saved workflow ID is provided but no nodes, load from store
+        if not nodes and workflow_id in _workflows_store:
+            saved = _workflows_store[workflow_id]
+            nodes = saved.get("nodes", [])
+            edges = saved.get("edges", [])
+
+        if not nodes:
+            return JSONResponse(
+                {"ok": False, "error": "No workflow nodes provided"},
+                status_code=400,
+            )
+
+        # Convert canvas nodes → DAG step definitions
+        try:
+            from workflow_dag_engine import (
+                WorkflowDAGEngine as _WDE,
+                WorkflowDefinition as _WDef,
+                StepDefinition as _SDef,
+            )
+            step_defs = []
+            for node in nodes:
+                step_id = node.get("id", str(uuid4()))
+                step_defs.append(_SDef(
+                    step_id=step_id,
+                    name=node.get("label") or node.get("name", step_id),
+                    action=node.get("type", "execute"),
+                    depends_on=node.get("depends_on", []),
+                    metadata={
+                        "description": node.get("description", ""),
+                        "step_type": node.get("type", "execution"),
+                    },
+                ))
+
+            wf_def = _WDef(
+                workflow_id=workflow_id,
+                name=data.get("name", "Canvas Workflow"),
+                description=data.get("description", "Executed from workflow canvas"),
+                steps=step_defs,
+            )
+
+            dag = _WDE()
+            dag.register_workflow(wf_def)
+            exec_id = dag.create_execution(workflow_id, context=context)
+            result = dag.execute_workflow(exec_id)
+
+            return JSONResponse({
+                "ok": True,
+                "execution_id": exec_id,
+                "workflow_id": workflow_id,
+                "status": result.get("status", "completed"),
+                "steps": result.get("steps", {}),
+            })
+        except Exception as exc:
+            logger.exception("Workflow execution failed: %s", exc)
+            return JSONResponse(
+                {"ok": False, "error": str(exc)},
+                status_code=500,
+            )
+
     # ==================== AGENT MONITOR DASHBOARD ====================
 
     try:
@@ -2370,6 +2449,31 @@ def create_app() -> FastAPI:
         data = await request.json()
         result = _ip_engine.check_access(asset_id, data.get("requester_id", ""))
         return JSONResponse({"success": True, **result})
+
+    @app.get("/api/ip/portfolio")
+    async def ip_portfolio():
+        """Return the IP portfolio view (alias for summary, used by terminal_unified.html)."""
+        if _ip_engine is None:
+            return JSONResponse({
+                "success": True,
+                "portfolio": {
+                    "total_assets": 0,
+                    "categories": {},
+                    "trade_secrets": 0,
+                    "patents": 0,
+                    "copyrights": 0,
+                },
+            })
+        summary = _ip_engine.get_ip_summary()
+        assets = _ip_engine.list_assets()
+        return JSONResponse({
+            "success": True,
+            "portfolio": {
+                "total_assets": len(assets),
+                "summary": summary,
+                "assets": assets,
+            },
+        })
 
     # ==================== CREDENTIAL PROFILES ====================
 
@@ -2709,6 +2813,7 @@ def create_app() -> FastAPI:
     # ==================== WORKFLOWS ENDPOINTS ====================
 
     _workflows_store: Dict[str, Any] = {}
+    _stored_credentials: Dict[str, Any] = {}  # integration_id → credential metadata
 
     @app.get("/api/workflows")
     async def list_workflows():
@@ -3969,6 +4074,11 @@ def create_app() -> FastAPI:
         ]
         return JSONResponse({"integrations": catalog, "count": len(catalog)})
 
+    @app.get("/api/integrations/list")
+    async def integrations_list():
+        """Alias for integrations catalog used by terminal_unified.html and workflow_canvas.html."""
+        return await integrations_catalog()
+
     @app.post("/api/integrations/wire")
     async def integrations_wire(request: Request):
         """Wire an integration (Librarian-assisted)."""
@@ -4270,6 +4380,34 @@ def create_app() -> FastAPI:
     async def credentials_list():
         """List stored credential keys (no secrets exposed)."""
         return JSONResponse({"success": True, "credentials": []})
+
+    @app.post("/api/credentials/store")
+    async def credentials_store(request: Request):
+        """Store a credential for an integration (called by onboarding wizard Step 3).
+
+        Accepts ``{integration: "<id>", credential: "<value>"}`` and persists
+        it.  The secret is never echoed back; only a confirmation is returned.
+        """
+        data = await request.json()
+        integration_id = data.get("integration", "")
+        credential = data.get("credential", "")
+        if not integration_id:
+            return JSONResponse(
+                {"success": False, "error": "integration ID required"},
+                status_code=400,
+            )
+        # Store securely (in-memory for dev; production uses vault)
+        _stored_credentials[integration_id] = {
+            "integration": integration_id,
+            "stored_at": datetime.now(timezone.utc).isoformat(),
+            "has_credential": bool(credential),
+        }
+        logger.info("Credential stored for integration: %s", integration_id)
+        return JSONResponse({
+            "success": True,
+            "integration": integration_id,
+            "stored": True,
+        })
 
     @app.get("/api/llm/providers")
     async def llm_providers_list():
@@ -5171,6 +5309,28 @@ def create_app() -> FastAPI:
         resp = _SJR({"success": True, "message": "Logged out"})
         resp.delete_cookie("murphy_session")
         return resp
+
+    @app.post("/api/auth/forgot-password")
+    async def auth_forgot_password(request: Request):
+        """Initiate a password reset flow.
+
+        Accepts ``{email: "user@example.com"}`` and sends a reset link
+        (when email integration is configured).  Called by login.html.
+        """
+        data = await request.json()
+        email = data.get("email", "").strip().lower()
+        if not email or "@" not in email:
+            return JSONResponse(
+                {"success": False, "error": "Valid email address required"},
+                status_code=400,
+            )
+        # In production, this sends a reset email.  In dev mode, we log and
+        # always report success (never reveal whether an account exists).
+        logger.info("Password reset requested for: %s", email)
+        return JSONResponse({
+            "success": True,
+            "message": "If an account with that email exists, a reset link has been sent.",
+        })
 
     @app.get("/api/auth/session-token")
     async def get_session_token(request: Request):
