@@ -311,6 +311,24 @@ class DispatchLog(Base):
     timestamp = Column(String(64), default="")
 
 
+class PendingApproval(Base):
+    """Queued tool calls awaiting HITL approval."""
+    __tablename__ = "dispatch_pending_approvals"
+    id = Column(String(32), primary_key=True)
+    call_id = Column(String(32), nullable=False, index=True)
+    tool_name = Column(String(256), nullable=False)
+    caller_id = Column(String(256), nullable=True)
+    caller_type = Column(String(64), default="agent")
+    args = Column(JSON, default=dict)
+    approval_tier = Column(String(32), nullable=False)
+    status = Column(String(32), default="pending")
+    approved_by = Column(String(256), nullable=True)
+    rejection_reason = Column(Text, nullable=True)
+    created_at = Column(String(64), default="")
+    decided_at = Column(String(64), nullable=True)
+    result_data = Column(JSON, nullable=True)
+
+
 # ---------------------------------------------------------------------------
 # Engine & Session Factory (synchronous — works with SQLite out of the box)
 # ---------------------------------------------------------------------------
