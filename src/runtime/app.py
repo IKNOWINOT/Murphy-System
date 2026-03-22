@@ -105,6 +105,32 @@ def create_app() -> FastAPI:
     def _now_iso():
         return datetime.now(timezone.utc).isoformat()
 
+    # ═══════════════════════════════════════════════════════════════
+    # PRIORITY 1 — API Collection Agent (always loaded first)
+    # Guides users through getting every API/SDK key their system needs.
+    # This must be the first subsystem attached to app.state so every
+    # downstream route can reference it without ImportError.
+    # ═══════════════════════════════════════════════════════════════
+    try:
+        from src.api_collection_agent import APICollectionAgent as _APICollectionAgent
+        _api_collection_agent = _APICollectionAgent(base_url="http://localhost:8000")
+        app.state.api_collection_agent = _api_collection_agent
+        logger.info("APICollectionAgent initialised — ready to guide API/SDK setup")
+    except Exception as _aca_exc:
+        logger.warning("APICollectionAgent init failed: %s", _aca_exc)
+        app.state.api_collection_agent = None
+
+    # ── WorldModelRegistry (integration connectors) ──────────────
+    try:
+        from src.integrations.world_model_registry import WorldModelRegistry as _WMR
+        app.state.world_model_registry = _WMR()
+        logger.info("WorldModelRegistry initialised with %d connectors",
+                    len(app.state.world_model_registry.list_integrations()))
+    except Exception as _wmr_exc:
+        logger.warning("WorldModelRegistry init failed: %s", _wmr_exc)
+        app.state.world_model_registry = None
+
+
     # ── Account manager (singleton) — wraps OAuthProviderRegistry and
     #    handles account creation / linking after every OAuth callback.
     #    A simple in-memory session store maps session tokens to account IDs.
@@ -741,6 +767,27 @@ def create_app() -> FastAPI:
         )
         return JSONResponse(result)
 
+    @app.post("/api/librarian/query")
+    async def librarian_query(request: Request):
+        """Alias for /api/librarian/ask — accepts the same body."""
+        data = await request.json()
+        message = data.get("message") or data.get("query") or data.get("question") or ""
+        mode = data.get("mode")
+        if mode == "execute":
+            result = murphy.handle_chat(
+                message=message,
+                session_id=data.get("session_id"),
+                use_mfgc=True,
+            )
+            result["librarian_mode"] = "execute"
+            return JSONResponse(result)
+        result = murphy.librarian_ask(
+            message=message,
+            session_id=data.get("session_id"),
+            mode=mode,
+        )
+        return JSONResponse(result)
+
     @app.get("/api/librarian/status")
     async def librarian_status():
         """Return librarian health status."""
@@ -846,6 +893,236 @@ def create_app() -> FastAPI:
             "recommendations": recs,
             "count": len(recs),
         })
+
+    # ==================== API COLLECTION AGENT ENDPOINTS ====================
+    # These are loaded first and surface the "things to get done" checklist
+    # that guides every user through obtaining the API/SDK keys their system needs.
+
+    @app.get("/api/setup/checklist")
+    async def setup_checklist(request: Request):
+        """Return the system setup checklist — what API keys are missing and what
+        integrations are unconfigured.  This is the primary 'things to do' feed
+        shown on the dashboard."""
+        import os
+        # Core LLM keys
+        llm_items = []
+        for provider, env_var, label, url in [
+            ("groq",      "GROQ_API_KEY",      "Groq (recommended, free)",
+             "https://console.groq.com/keys"),
+            ("openai",    "OPENAI_API_KEY",     "OpenAI (GPT-4)",
+             "https://platform.openai.com/api-keys"),
+            ("anthropic", "ANTHROPIC_API_KEY",  "Anthropic (Claude)",
+             "https://console.anthropic.com/"),
+        ]:
+            val = os.environ.get(env_var, "")
+            configured = bool(val and not val.startswith("your_") and not val.startswith("sk-your")
+                               and val != "sk-ant-your_anthropic_key_here")
+            llm_items.append({
+                "id": f"llm_{provider}", "category": "llm", "label": label,
+                "env_var": env_var, "configured": configured,
+                "setup_url": url, "priority": 1,
+                "description": f"Needed for AI chat, workflow generation, and document assistance.",
+                "action": f"POST /api/credentials/store with provider={provider}",
+            })
+
+        # Integration connectors via WorldModelRegistry
+        integration_items = []
+        try:
+            wmr = getattr(request.app.state, "world_model_registry", None)
+            if wmr:
+                for item in wmr.list_integrations():
+                    integration_items.append({
+                        "id": f"integration_{item['id']}",
+                        "category": item["category"],
+                        "label": item["name"],
+                        "configured": item["configured"],
+                        "free_tier": item["free_tier"],
+                        "priority": 2,
+                        "description": f"Connect {item['name']} to enable automated {item['category']} workflows.",
+                        "action": f"POST /api/credentials/store with provider={item['id']}",
+                    })
+        except Exception as _e:
+            logger.debug("Checklist: WorldModelRegistry unavailable: %s", _e)
+
+        all_items = llm_items + integration_items
+        pending   = [i for i in all_items if not i["configured"]]
+        done      = [i for i in all_items if i["configured"]]
+
+        return JSONResponse({
+            "success": True,
+            "checklist": all_items,
+            "pending": pending,
+            "done": done,
+            "pending_count": len(pending),
+            "done_count": len(done),
+            "total_count": len(all_items),
+            "completion_pct": round(len(done) / max(len(all_items), 1) * 100, 1),
+        })
+
+    @app.get("/api/setup/api-collection/status")
+    async def api_collection_status(request: Request):
+        """Return the API Collection Agent queue — pending approvals, blanks to fill."""
+        agent = getattr(request.app.state, "api_collection_agent", None)
+        if agent is None:
+            return JSONResponse({"success": False, "error": "APICollectionAgent not initialised"}, status_code=503)
+        return JSONResponse({
+            "success": True,
+            "pending_count": len(agent.pending_requests()),
+            "requests_with_blanks": len(agent.requests_with_blanks()),
+            "pending": [r.to_dict() for r in agent.pending_requests()[:20]],
+        })
+
+    @app.get("/api/setup/api-collection/guide/{integration_id}")
+    async def api_collection_guide(integration_id: str, request: Request):
+        """Return step-by-step guidance for obtaining and configuring a specific
+        integration's API key/SDK.  The agent pre-fills everything it can from
+        the current environment so the user only has to fill in blanks."""
+        # Integration metadata from registry
+        try:
+            from src.integrations.world_model_registry import _CONNECTOR_MAP, _INTEGRATION_META
+        except Exception:
+            _CONNECTOR_MAP = {}
+            _INTEGRATION_META = {}
+
+        if integration_id not in _INTEGRATION_META and integration_id not in {
+            "groq", "openai", "anthropic"
+        }:
+            return JSONResponse({"success": False, "error": f"Unknown integration: {integration_id}"}, status_code=404)
+
+        # Standard LLM providers
+        _llm_guide = {
+            "groq": {
+                "name": "Groq", "env_var": "GROQ_API_KEY",
+                "steps": [
+                    {"step": 1, "title": "Create account", "url": "https://console.groq.com", "description": "Sign up at console.groq.com — free tier, no credit card needed."},
+                    {"step": 2, "title": "Generate API key", "url": "https://console.groq.com/keys", "description": "Click '+ Create API Key', name it 'murphy-system', copy the gsk_... value."},
+                    {"step": 3, "title": "Set key", "description": "In the Murphy terminal: set key groq <your-key>  or  POST /api/credentials/store"},
+                ],
+                "free_tier": True, "notes": "Rate limit: 30 req/min on free tier. Upgrade at console.groq.com/billing.",
+            },
+            "openai": {
+                "name": "OpenAI", "env_var": "OPENAI_API_KEY",
+                "steps": [
+                    {"step": 1, "title": "Create account", "url": "https://platform.openai.com", "description": "Sign up at platform.openai.com."},
+                    {"step": 2, "title": "Add billing", "url": "https://platform.openai.com/billing", "description": "Add a payment method — required even for the free credits tier."},
+                    {"step": 3, "title": "Generate API key", "url": "https://platform.openai.com/api-keys", "description": "Click '+ Create new secret key', copy the sk-... value."},
+                    {"step": 4, "title": "Set key", "description": "POST /api/credentials/store  or  set key openai <your-key>"},
+                ],
+                "free_tier": False, "notes": "New accounts include $5 free credits.",
+            },
+            "anthropic": {
+                "name": "Anthropic", "env_var": "ANTHROPIC_API_KEY",
+                "steps": [
+                    {"step": 1, "title": "Create account", "url": "https://console.anthropic.com", "description": "Sign up at console.anthropic.com."},
+                    {"step": 2, "title": "Generate API key", "url": "https://console.anthropic.com/account/keys", "description": "Click 'Create Key', copy the sk-ant-... value."},
+                    {"step": 3, "title": "Set key", "description": "POST /api/credentials/store  or  set key anthropic <your-key>"},
+                ],
+                "free_tier": False, "notes": "Generous free credits for new accounts.",
+            },
+        }
+
+        if integration_id in _llm_guide:
+            guide = _llm_guide[integration_id]
+        else:
+            meta = _INTEGRATION_META.get(integration_id, {})
+            # Try to pull setup URL from the connector class
+            setup_url = ""
+            doc_url = ""
+            try:
+                cls = None
+                from src.integrations import world_model_registry as _wmr_mod
+                dotted = _CONNECTOR_MAP.get(integration_id, "")
+                if dotted:
+                    cls = _wmr_mod._import_connector_class(dotted)
+                if cls:
+                    setup_url = getattr(cls, "SETUP_URL", "")
+                    doc_url   = getattr(cls, "DOCUMENTATION_URL", "")
+            except Exception:
+                pass
+            guide = {
+                "name": meta.get("name", integration_id),
+                "env_var": integration_id.upper() + "_API_KEY",
+                "free_tier": meta.get("free", True),
+                "setup_url": setup_url,
+                "docs_url": doc_url,
+                "steps": [
+                    {"step": 1, "title": "Get API credentials",
+                     "url": setup_url,
+                     "description": f"Visit {setup_url or 'the provider website'} and create API credentials."},
+                    {"step": 2, "title": "Configure in Murphy",
+                     "description": f"POST /api/credentials/store  with  provider={integration_id}  and  api_key=<your-key>"},
+                ],
+                "notes": f"See {doc_url} for full documentation.",
+            }
+
+        import os
+        env_var = guide.get("env_var", "")
+        current_val = os.environ.get(env_var, "")
+        guide["already_configured"] = bool(current_val and not current_val.startswith("your_"))
+
+        return JSONResponse({"success": True, "integration_id": integration_id, "guide": guide})
+
+    @app.post("/api/setup/api-collection/enqueue")
+    async def api_collection_enqueue(request: Request):
+        """Enqueue an API collection request for HITL review.  The agent pre-fills
+        all fields it can from the current environment context."""
+        agent = getattr(request.app.state, "api_collection_agent", None)
+        if agent is None:
+            return JSONResponse({"success": False, "error": "APICollectionAgent not initialised"}, status_code=503)
+        data = await request.json()
+        req_name = data.get("name", "")
+        context  = data.get("context", {})
+        # Find matching built-in requirement or accept custom
+        built_in = {r.name: r for r in agent.built_in_requirements()}
+        if req_name in built_in:
+            req = built_in[req_name]
+        else:
+            # Custom requirement passed inline
+            from src.api_collection_agent import APIRequirement, APIField, APIMethod
+            fields_raw = data.get("fields", [])
+            fields = [APIField(
+                name=f.get("name", ""), required=f.get("required", False),
+                description=f.get("description", ""),
+            ) for f in fields_raw]
+            req = APIRequirement(
+                name=req_name,
+                endpoint=data.get("endpoint", ""),
+                method=APIMethod(data.get("method", "POST").upper()),
+                description=data.get("description", ""),
+                fields=fields,
+            )
+        api_req = agent.enqueue(req, context=context)
+        return JSONResponse({"success": True, "request_id": api_req.id,
+                             "has_blanks": api_req.has_blanks,
+                             "request": api_req.to_dict()})
+
+    @app.post("/api/setup/api-collection/{request_id}/approve")
+    async def api_collection_approve(request_id: str, request: Request):
+        """Approve a queued API collection request and execute it."""
+        agent = getattr(request.app.state, "api_collection_agent", None)
+        if agent is None:
+            return JSONResponse({"success": False, "error": "APICollectionAgent not initialised"}, status_code=503)
+        data = await request.json()
+        approved_by = data.get("approved_by", "user")
+        agent.approve(request_id, approved_by=approved_by)
+        result = agent.execute(request_id)
+        return JSONResponse({"success": True, "result": result})
+
+    @app.post("/api/setup/api-collection/{request_id}/fill")
+    async def api_collection_fill_blank(request_id: str, request: Request):
+        """Fill a blank field in a queued API request."""
+        agent = getattr(request.app.state, "api_collection_agent", None)
+        if agent is None:
+            return JSONResponse({"success": False, "error": "APICollectionAgent not initialised"}, status_code=503)
+        data = await request.json()
+        field_name = data.get("field")
+        value      = data.get("value")
+        if not field_name:
+            return JSONResponse({"success": False, "error": "field is required"}, status_code=400)
+        agent.fill_blank(request_id, field_name, value)
+        req = agent.get_request(request_id)
+        return JSONResponse({"success": True, "request": req.to_dict() if req else None})
+
 
     # ==================== LIBRARIAN COMMAND CATALOG ====================
 
@@ -2403,6 +2680,40 @@ def create_app() -> FastAPI:
         except Exception as exc:
             return _safe_error_response(exc, 500)
 
+    @app.get("/api/automations/executions")
+    async def list_all_executions(request: Request):
+        """List all workflow executions — powers the Live Automations panel in System Map."""
+        try:
+            dag = getattr(request.app.state, "workflow_dag_engine", None)
+            if dag is None:
+                return JSONResponse({"success": True, "executions": []})
+            # DAGEngine stores executions in _executions dict
+            all_execs = getattr(dag, "_executions", {})
+            items = []
+            for exec_id, ex in list(all_execs.items())[-50:]:  # last 50
+                wf_id = getattr(ex, "workflow_id", "")
+                wf_def = getattr(dag, "_workflows", {}).get(wf_id)
+                total_steps = len(wf_def.steps) if wf_def else 0
+                steps_map = getattr(ex, "steps", {})
+                completed = sum(1 for s in steps_map.values() if getattr(s, "status", None) and s.status.value in ("completed", "skipped"))
+                start_t = getattr(ex, "start_time", None)
+                end_t   = getattr(ex, "end_time", None)
+                duration_ms = ((end_t or 0) - (start_t or 0)) * 1000 if start_t else None
+                items.append({
+                    "id": exec_id,
+                    "workflow_id": wf_id,
+                    "name": (wf_def.name if wf_def else wf_id) or exec_id,
+                    "status": getattr(ex, "status", "unknown").value if hasattr(getattr(ex, "status", None), "value") else str(getattr(ex, "status", "unknown")),
+                    "completed": completed,
+                    "total_steps": total_steps,
+                    "progress": round(completed / total_steps * 100) if total_steps else 0,
+                    "duration_ms": duration_ms,
+                    "step_label": f"{completed}/{total_steps} steps",
+                })
+            return JSONResponse({"success": True, "executions": sorted(items, key=lambda x: x["status"] == "running", reverse=True)})
+        except Exception as exc:
+            return JSONResponse({"success": True, "executions": []})
+
     @app.get("/api/automations/executions/{execution_id}")
     async def get_execution_status(execution_id: str, request: Request):
         """Get the status and results of a workflow execution."""
@@ -2572,6 +2883,19 @@ def create_app() -> FastAPI:
                 wf_def = gen.to_workflow_definition(wf_dict)
             commissioner = AutomationCommissioner(health_threshold=threshold, max_iterations=2)
             report = commissioner.commission(wf_def, context=ctx)
+
+            # Register workflow + execution in the app-state DAG engine so the
+            # Live Automations panel in system_visualizer.html can track it.
+            try:
+                app_dag = getattr(request.app.state, "workflow_dag_engine", None)
+                if app_dag is not None:
+                    app_dag.register_workflow(wf_def)
+                    exec_id = app_dag.create_execution(wf_def.workflow_id, ctx)
+                    if exec_id:
+                        app_dag.execute_workflow(exec_id)
+            except Exception as _dag_exc:
+                logger.debug("Live panel DAG wiring skipped: %s", _dag_exc)
+
             return JSONResponse({"success": True, "commissioning_report": report.to_dict()})
         except Exception as exc:
             return _safe_error_response(exc, 500)
@@ -4828,14 +5152,143 @@ def create_app() -> FastAPI:
         """List stored credential keys (no secrets exposed)."""
         return JSONResponse({"success": True, "credentials": []})
 
-    @app.get("/api/llm/providers")
-    async def llm_providers_list():
-        """List configured LLM providers."""
+    @app.post("/api/credentials/store")
+    async def credentials_store(request: Request):
+        """Store an integration credential securely.
+
+        Body: { "integration": "sendgrid", "credential": "SG.xxx..." }
+        Persists to .env via env_manager and updates os.environ immediately.
+        Performs lightweight format validation before storing.
+        """
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+
+        integration = (data.get("integration") or "").strip().lower()
+        credential = (data.get("credential") or "").strip()
+        if not integration:
+            return JSONResponse({"success": False, "error": "integration is required"}, status_code=400)
+        if not credential:
+            return JSONResponse({"success": False, "error": "credential is required"}, status_code=400)
+
+        # --- Format validation (best-effort, non-blocking) ---
+        try:
+            from src.env_manager import validate_api_key as _validate_api_key, API_KEY_FORMATS as _AKF
+            if integration in _AKF:
+                _valid, _msg = _validate_api_key(integration, credential)
+                if not _valid:
+                    return JSONResponse({"success": False, "error": _msg}, status_code=400)
+        except Exception:
+            pass  # Validation is best-effort; never block a store on import failure
+
+        # Map integration name to env var
+        _INTEGRATION_ENV_VARS = {
+            "groq": "GROQ_API_KEY",
+            "openai": "OPENAI_API_KEY",
+            "anthropic": "ANTHROPIC_API_KEY",
+            "sendgrid": "SENDGRID_API_KEY",
+            "slack": "SLACK_BOT_TOKEN",
+            "stripe": "STRIPE_SECRET_KEY",
+            "hubspot": "HUBSPOT_API_KEY",
+            "github": "GITHUB_TOKEN",
+            "twilio": "TWILIO_AUTH_TOKEN",
+            "google_calendar": "GOOGLE_CALENDAR_API_KEY",
+            "google_sheets": "GOOGLE_SHEETS_API_KEY",
+            "datadog": "DATADOG_API_KEY",
+            "openweather": "OPENWEATHER_API_KEY",
+            "postgres": "DATABASE_URL",
+            "notion": "NOTION_API_KEY",
+            "airtable": "AIRTABLE_API_KEY",
+            "jira": "JIRA_API_TOKEN",
+            "salesforce": "SALESFORCE_CONSUMER_KEY",
+            "pagerduty": "PAGERDUTY_API_KEY",
+            "zoom": "ZOOM_CLIENT_SECRET",
+            "monday": "MONDAY_API_KEY",
+            "shopify": "SHOPIFY_ACCESS_TOKEN",
+            "twitch": "TWITCH_CLIENT_SECRET",
+            "discord": "DISCORD_BOT_TOKEN",
+            "telegram": "TELEGRAM_BOT_TOKEN",
+        }
+        env_var = _INTEGRATION_ENV_VARS.get(integration, f"{integration.upper()}_API_KEY")
+        os.environ[env_var] = credential
+        _env_path = Path(__file__).resolve().parent.parent.parent / ".env"
+        try:
+            from src.env_manager import write_env_key as _write_env_key
+            _write_env_key(str(_env_path), env_var, credential)
+        except Exception as _exc:
+            logger.debug("Could not persist credential to .env: %s", _exc)
         return JSONResponse({
             "success": True,
-            "providers": [],
-            "active": None,
-            "message": "Configure MURPHY_LLM_PROVIDER to enable LLM integration",
+            "integration": integration,
+            "env_var": env_var,
+            "message": f"{integration} credential stored successfully.",
+        })
+
+    @app.get("/api/llm/providers")
+    async def llm_providers_list():
+        """List configured LLM providers with live Ollama status."""
+        from src.local_llm_fallback import (
+            _check_ollama_available,
+            _ollama_base_url,
+            _ollama_list_models,
+            _preferred_ollama_models,
+        )
+        base_url = _ollama_base_url()
+        ollama_up = _check_ollama_available(base_url)
+        pulled_models = _ollama_list_models(base_url) if ollama_up else []
+        preferred = _preferred_ollama_models()
+
+        providers = [
+            {
+                "id": "ollama",
+                "name": "Ollama (Local)",
+                "type": "local",
+                "available": ollama_up,
+                "default_model": preferred[0] if preferred else "phi3",
+                "preferred_models": preferred,
+                "pulled_models": pulled_models,
+                "base_url": base_url,
+                "description": "Local LLM inference via Ollama. Runs phi3 by default.",
+            },
+            {
+                "id": "groq",
+                "name": "Groq Cloud",
+                "type": "cloud",
+                "available": bool(os.getenv("GROQ_API_KEY") or os.getenv("GROQ_API_KEYS")),
+                "default_model": "llama3-70b-8192",
+                "description": "Groq fast inference cloud API. Requires GROQ_API_KEY.",
+            },
+            {
+                "id": "aristotle",
+                "name": "Aristotle (Deterministic)",
+                "type": "local",
+                "available": True,
+                "default_model": "aristotle-deterministic",
+                "description": "Deterministic validation engine for math/physics domains.",
+            },
+            {
+                "id": "wulfrum",
+                "name": "Wulfrum (Fuzzy Match)",
+                "type": "local",
+                "available": True,
+                "default_model": "wulfrum-fuzzy",
+                "description": "Fuzzy match engine for approximate validation.",
+            },
+        ]
+
+        active = None
+        if ollama_up and pulled_models:
+            active = "ollama"
+        elif os.getenv("GROQ_API_KEY") or os.getenv("GROQ_API_KEYS"):
+            active = "groq"
+
+        return JSONResponse({
+            "success": True,
+            "providers": providers,
+            "active": active,
+            "ollama_available": ollama_up,
+            "phi3_ready": ollama_up and any("phi3" in m for m in pulled_models),
         })
 
     @app.get("/api/hitl/queue")
@@ -5070,7 +5523,46 @@ def create_app() -> FastAPI:
             "max": 100,
         })
 
-    @app.get("/api/efficiency/metrics")
+    @app.get("/api/heatmap/coverage")
+    async def heatmap_coverage():
+        """Return heatmap module coverage statistics for the production wizard."""
+        from src.local_llm_fallback import _check_ollama_available, _ollama_base_url
+        total_modules = 12
+        active_modules = sum([
+            1,  # integration_bus
+            1,  # llm_integration_layer
+            1 if bool(os.getenv("GROQ_API_KEY")) else 0,   # groq
+            1 if _check_ollama_available(_ollama_base_url()) else 0,  # ollama
+            1,  # workflow_dag_engine
+            1,  # automation_commissioner
+            1,  # ai_workflow_generator
+            1,  # production_assistant
+            1,  # hitl
+            1,  # auth
+            1 if bool(os.getenv("SENDGRID_API_KEY")) else 0,  # email
+            1 if bool(os.getenv("SLACK_BOT_TOKEN")) else 0,   # slack
+        ])
+        return JSONResponse({
+            "success": True,
+            "total_modules": total_modules,
+            "active_modules": active_modules,
+            "coverage_pct": round(active_modules / total_modules * 100, 1),
+            "modules": [
+                {"name": "integration_bus", "active": True},
+                {"name": "llm_integration_layer", "active": True},
+                {"name": "groq", "active": bool(os.getenv("GROQ_API_KEY"))},
+                {"name": "ollama", "active": _check_ollama_available(_ollama_base_url())},
+                {"name": "workflow_dag_engine", "active": True},
+                {"name": "automation_commissioner", "active": True},
+                {"name": "ai_workflow_generator", "active": True},
+                {"name": "production_assistant", "active": True},
+                {"name": "hitl", "active": True},
+                {"name": "auth", "active": True},
+                {"name": "email", "active": bool(os.getenv("SENDGRID_API_KEY"))},
+                {"name": "slack", "active": bool(os.getenv("SLACK_BOT_TOKEN"))},
+            ],
+        })
+
     async def efficiency_metrics():
         """Return efficiency and performance metrics."""
         return JSONResponse({
@@ -5872,6 +6364,31 @@ def create_app() -> FastAPI:
         resp = _SJR({"success": True, "message": "Logged out"})
         resp.delete_cookie("murphy_session")
         return resp
+
+    @app.post("/api/auth/forgot-password")
+    async def auth_forgot_password(request: Request):
+        """Initiate a password-reset flow.
+
+        Body: { "email": "user@example.com" }
+        Always returns success to prevent user enumeration.
+        """
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+        email = (data.get("email") or "").strip().lower()
+        if not email:
+            return JSONResponse({"success": False, "error": "email is required"}, status_code=400)
+        # Best-effort: ask AccountManager to send a reset link.
+        if _account_manager is not None:
+            try:
+                _account_manager.request_password_reset(email)
+            except Exception:
+                pass  # Never expose whether the email exists — always return success.
+        return JSONResponse({
+            "success": True,
+            "message": "If an account with that email exists, a reset link has been sent.",
+        })
 
     @app.get("/api/auth/session-token")
     async def get_session_token(request: Request):
@@ -6800,7 +7317,73 @@ def create_app() -> FastAPI:
         """List all stored meeting intelligence sessions (stub)."""
         return JSONResponse({"ok": True, "sessions": [], "ts": _now_iso()})
 
-    # ==================== AMBIENT INTELLIGENCE API ====================
+    # ── Meetings CRUD (called from terminal_unified.html / workspace.html) ─────
+
+    _meetings_store: Dict[str, Any] = {}  # in-memory store; replace with DB in prod
+
+    @app.get("/api/meetings/")
+    async def meetings_list(request: Request):
+        """List all meeting sessions for the current user."""
+        account = _get_account_from_session(request)
+        account_id = account.get("account_id") if account else None
+        sessions = [
+            s for s in _meetings_store.values()
+            if account_id is None or s.get("account_id") == account_id
+        ]
+        return JSONResponse({"ok": True, "meetings": sessions, "count": len(sessions)})
+
+    @app.post("/api/meetings/start")
+    async def meetings_start(request: Request):
+        """Start a new meeting session and return a session_id."""
+        import hashlib as _hashlib
+        try:
+            data = await request.json()
+        except Exception:
+            data = {}
+        session_id = _hashlib.sha256(f"meeting:{_now_iso()}:{id(data)}".encode()).hexdigest()[:16]
+        _meetings_store[session_id] = {
+            "session_id": session_id,
+            "title": data.get("title", "Untitled Meeting"),
+            "participants": data.get("participants", []),
+            "started_at": _now_iso(),
+            "ended_at": None,
+            "transcript": [],
+            "suggestions": [],
+            "status": "active",
+        }
+        return JSONResponse({"ok": True, "session_id": session_id, "status": "active"})
+
+    @app.post("/api/meetings/{session_id}/end")
+    async def meetings_end(session_id: str, request: Request):
+        """End a meeting session."""
+        session = _meetings_store.get(session_id)
+        if not session:
+            return JSONResponse({"ok": False, "error": "Session not found"}, status_code=404)
+        session["status"] = "ended"
+        session["ended_at"] = _now_iso()
+        return JSONResponse({"ok": True, "session_id": session_id, "status": "ended"})
+
+    @app.get("/api/meetings/{session_id}/transcript")
+    async def meetings_transcript(session_id: str):
+        """Get the transcript for a meeting session."""
+        session = _meetings_store.get(session_id)
+        if not session:
+            return JSONResponse({"ok": False, "error": "Session not found"}, status_code=404)
+        return JSONResponse({"ok": True, "session_id": session_id, "transcript": session.get("transcript", [])})
+
+    @app.get("/api/meetings/{session_id}/suggestions")
+    async def meetings_suggestions(session_id: str):
+        """Get AI-generated action item suggestions for a meeting session."""
+        session = _meetings_store.get(session_id)
+        if not session:
+            return JSONResponse({"ok": False, "error": "Session not found"}, status_code=404)
+        # In production, these would be generated by an LLM from the transcript.
+        suggestions = session.get("suggestions") or [
+            {"type": "action_item", "text": "Review meeting notes and assign owners."},
+            {"type": "follow_up", "text": "Schedule follow-up for unresolved items."},
+        ]
+        return JSONResponse({"ok": True, "session_id": session_id, "suggestions": suggestions})
+
 
     @app.post("/api/ambient/context")
     async def ambient_context(request: Request):
@@ -9536,15 +10119,20 @@ def create_app() -> FastAPI:
         """Return a machine-readable manifest of all registered API endpoints."""
         routes = []
         for route in app.routes:
-            if hasattr(route, "path") and route.path.startswith("/api/"):
-                # HEAD and OPTIONS are auto-generated by FastAPI for every route
-                # and are not part of the explicit API contract — exclude them.
-                methods = sorted((route.methods or set()) - {"HEAD", "OPTIONS"})
-                routes.append({
-                    "path": route.path,
-                    "methods": methods,
-                    "name": getattr(route, "name", ""),
-                })
+            if not hasattr(route, "path") or not route.path.startswith("/api/"):
+                continue
+            # Skip Mount objects (StaticFiles etc.) which have no methods attr
+            raw_methods = getattr(route, "methods", None)
+            if raw_methods is None:
+                continue
+            # HEAD and OPTIONS are auto-generated by FastAPI for every route
+            # and are not part of the explicit API contract — exclude them.
+            methods = sorted(raw_methods - {"HEAD", "OPTIONS"})
+            routes.append({
+                "path": route.path,
+                "methods": methods,
+                "name": getattr(route, "name", ""),
+            })
         return JSONResponse({"success": True, "data": {"endpoints": sorted(routes, key=lambda r: r["path"])}})
 
     return app

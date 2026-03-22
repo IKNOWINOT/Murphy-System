@@ -710,8 +710,10 @@ Copy `Murphy System/.env.example` to `Murphy System/.env` and fill in the values
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `GROQ_API_KEY` | *(none)* | Groq API key — enables Mixtral/Llama/Gemma cloud LLMs. Optional: the onboard local LLM works without this. |
+| `GROQ_API_KEY` | *(none)* | Groq API key — enables Mixtral/Llama/Gemma cloud LLMs. Optional: the onboard local LLM (phi3 via Ollama) works without this. |
 | `MURPHY_LLM_PROVIDER` | `local` | LLM provider to use: `local`, `groq`, `openai`, or `anthropic`. |
+| `OLLAMA_MODEL` | `phi3` | Default Ollama model. `phi3` is pulled automatically by the deploy workflow. |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama API endpoint. |
 | `MURPHY_ENV` | `development` | Runtime environment: `development` (auth optional) or `production` (auth required). |
 | `MURPHY_API_KEYS` | *(none)* | Comma-separated API keys for request authentication in production mode. |
 | `MURPHY_CORS_ORIGINS` | `http://localhost:3000,...` | Comma-separated list of allowed CORS origins. |
