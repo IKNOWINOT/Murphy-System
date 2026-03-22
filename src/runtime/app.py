@@ -5158,6 +5158,7 @@ def create_app() -> FastAPI:
 
         Body: { "integration": "sendgrid", "credential": "SG.xxx..." }
         Persists to .env via env_manager and updates os.environ immediately.
+        Performs lightweight format validation before storing.
         """
         try:
             data = await request.json()
@@ -5170,6 +5171,16 @@ def create_app() -> FastAPI:
             return JSONResponse({"success": False, "error": "integration is required"}, status_code=400)
         if not credential:
             return JSONResponse({"success": False, "error": "credential is required"}, status_code=400)
+
+        # --- Format validation (best-effort, non-blocking) ---
+        try:
+            from src.env_manager import validate_api_key as _validate_api_key, API_KEY_FORMATS as _AKF
+            if integration in _AKF:
+                _valid, _msg = _validate_api_key(integration, credential)
+                if not _valid:
+                    return JSONResponse({"success": False, "error": _msg}, status_code=400)
+        except Exception:
+            pass  # Validation is best-effort; never block a store on import failure
 
         # Map integration name to env var
         _INTEGRATION_ENV_VARS = {
@@ -5187,6 +5198,17 @@ def create_app() -> FastAPI:
             "datadog": "DATADOG_API_KEY",
             "openweather": "OPENWEATHER_API_KEY",
             "postgres": "DATABASE_URL",
+            "notion": "NOTION_API_KEY",
+            "airtable": "AIRTABLE_API_KEY",
+            "jira": "JIRA_API_TOKEN",
+            "salesforce": "SALESFORCE_CONSUMER_KEY",
+            "pagerduty": "PAGERDUTY_API_KEY",
+            "zoom": "ZOOM_CLIENT_SECRET",
+            "monday": "MONDAY_API_KEY",
+            "shopify": "SHOPIFY_ACCESS_TOKEN",
+            "twitch": "TWITCH_CLIENT_SECRET",
+            "discord": "DISCORD_BOT_TOKEN",
+            "telegram": "TELEGRAM_BOT_TOKEN",
         }
         env_var = _INTEGRATION_ENV_VARS.get(integration, f"{integration.upper()}_API_KEY")
         os.environ[env_var] = credential

@@ -38,6 +38,7 @@ Dev mode: Auth is disabled when `MURPHY_API_KEY` is unset.
 | POST | /api/auth/register | No | Create new account (alias for signup) |
 | POST | /api/auth/login | No | Validate credentials — returns `{ session_token, account_id, … }` + sets `murphy_session` cookie |
 | POST | /api/auth/logout | No | Invalidate session and clear `murphy_session` cookie |
+| POST | /api/auth/forgot-password | No | Initiate password-reset flow — always returns success to prevent user enumeration |
 | GET | /api/auth/session-token | Yes | Return active session token for the current user (used by `murphy_auth.js` after OAuth redirect to mirror HttpOnly cookie to localStorage) |
 | GET | /api/auth/oauth/{provider} | No | Initiate OAuth flow |
 | GET | /api/auth/callback | No | OAuth callback — sets `murphy_session` cookie and redirects to `/ui/terminal-unified?oauth_success=1&provider=<name>` |
@@ -409,6 +410,7 @@ Dev mode: Auth is disabled when `MURPHY_API_KEY` is unset.
 |--------|------|------|-------------|
 | GET | /api/librarian/commands | Yes | Get command catalog (160+ commands) |
 | POST | /api/librarian/ask | Yes | Ask the librarian |
+| POST | /api/librarian/query | Yes | Alias for /api/librarian/ask |
 | GET | /api/librarian/status | Yes | Librarian status |
 | GET | /api/librarian/api-links | Yes | API link map |
 | POST | /api/librarian/integrations | Yes | Integration help |
@@ -477,6 +479,16 @@ Dev mode: Auth is disabled when `MURPHY_API_KEY` is unset.
 | POST | /api/meeting-intelligence/vote | Yes | Vote on draft |
 | POST | /api/meeting-intelligence/email-report | Yes | Email meeting report |
 | GET | /api/meeting-intelligence/sessions | Yes | List sessions |
+
+## Meetings (FastAPI — src/runtime/app.py)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /api/meetings/ | Yes | List all meeting sessions |
+| POST | /api/meetings/start | Yes | Start a new meeting session — returns `{ session_id }` |
+| POST | /api/meetings/{session_id}/end | Yes | End a meeting session |
+| GET | /api/meetings/{session_id}/transcript | Yes | Get meeting transcript |
+| GET | /api/meetings/{session_id}/suggestions | Yes | Get AI-powered suggestions for the meeting |
 
 ---
 
