@@ -14,6 +14,17 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import requests
 
+try:
+    from src.local_llm_fallback import (
+        _check_ollama_available,
+        _ollama_base_url,
+        _preferred_ollama_models,
+        _query_ollama,
+    )
+    _HAS_OLLAMA_FALLBACK = True
+except ImportError:
+    _HAS_OLLAMA_FALLBACK = False
+
 logger = logging.getLogger(__name__)
 
 
@@ -482,6 +493,30 @@ class LLMIntegrationLayer:
                 pass  # fall through to local engine
 
         response_text = self._local_groq_response(request)
+        # Before returning a canned template, try Ollama for a real response.
+        if _HAS_OLLAMA_FALLBACK:
+            try:
+                base_url = _ollama_base_url()
+                if _check_ollama_available(base_url):
+                    for model in _preferred_ollama_models():
+                        ollama_result = _query_ollama(
+                            request.prompt, model=model, base_url=base_url, max_tokens=1024
+                        )
+                        if ollama_result:
+                            return LLMResponse(
+                                request_id=request.request_id,
+                                provider=LLMProvider.MFM,
+                                response=ollama_result,
+                                confidence=0.75,
+                                metadata={
+                                    "model": model,
+                                    "source": "ollama",
+                                    "domain": request.domain.value,
+                                    "processing_type": "generative",
+                                },
+                            )
+            except Exception as exc:
+                logger.debug("Suppressed Ollama exception in _call_groq: %s", exc)
         return LLMResponse(
             request_id=request.request_id,
             provider=LLMProvider.GROQ,
