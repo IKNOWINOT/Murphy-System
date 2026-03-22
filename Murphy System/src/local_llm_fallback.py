@@ -63,7 +63,7 @@ def _ollama_list_models(base_url: str = None) -> List[str]:
 
 def _query_ollama(
     prompt: str,
-    model: str = "llama3",
+    model: str = "phi3",
     base_url: str = None,
     max_tokens: int = 500,
 ) -> Optional[str]:
@@ -95,9 +95,9 @@ def _query_ollama(
 
 # Canonical model probe order — imported by llm_controller and other callers
 # so there is a single source of truth for model names.
-_OLLAMA_MODELS = ["llama3", "mistral", "phi3", "phi", "tinyllama"]
+_OLLAMA_MODELS = ["phi3", "llama3", "mistral", "phi", "tinyllama"]
 
-# Small models: fast, low RAM (phi3 ≈ 2 GB, phi ≈ 1.5 GB)
+# Small models: fast, low RAM (phi3 ≈ 2.3 GB, phi ≈ 1.5 GB)
 _OLLAMA_SMALL_MODELS = ["phi3", "phi", "tinyllama"]
 
 # Medium models: best quality available locally (llama3/mistral ≈ 4–5 GB)

@@ -70,14 +70,14 @@ class OllamaLLM:
     - Multiple model support
     """
 
-    def __init__(self, model_name: str = "llama3"):
+    def __init__(self, model_name: str = "phi3"):
         """
         Initialize Ollama LLM
 
         Args:
             model_name: Ollama model name — must match a pulled model.
-                        Defaults to "llama3" (requires ~6 GB RAM).
-                        Use "phi3" on 2.5–6 GB systems, "tinyllama" under 2.5 GB.
+                        Defaults to "phi3" (requires ~2.3 GB RAM).
+                        Use "llama3" on 6 GB+ systems, "tinyllama" under 2.5 GB.
         """
         self.model_name = model_name
         self.base_url = os.environ.get("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
