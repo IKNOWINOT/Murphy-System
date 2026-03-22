@@ -248,7 +248,7 @@ def validate_llm_boot_status() -> Dict[str, Any]:
         - note: Human-readable status message
     """
     provider = os.environ.get("MURPHY_LLM_PROVIDER", "").strip().lower()
-    
+
     # Auto-detect provider from available API keys
     if not provider:
         if os.environ.get("GROQ_API_KEY", "").strip():
@@ -257,7 +257,7 @@ def validate_llm_boot_status() -> Dict[str, Any]:
             provider = "openai"
         elif os.environ.get("ANTHROPIC_API_KEY", "").strip():
             provider = "anthropic"
-    
+
     # Check if external provider has valid API key
     external_api_configured = False
     if provider == "groq" and os.environ.get("GROQ_API_KEY", "").strip():
@@ -266,7 +266,7 @@ def validate_llm_boot_status() -> Dict[str, Any]:
         external_api_configured = True
     elif provider == "anthropic" and os.environ.get("ANTHROPIC_API_KEY", "").strip():
         external_api_configured = True
-    
+
     if external_api_configured:
         return {
             "mode": "external_api",
@@ -274,7 +274,7 @@ def validate_llm_boot_status() -> Dict[str, Any]:
             "healthy": True,
             "note": f"LLM configured with {provider} provider",
         }
-    
+
     return {
         "mode": "onboard",
         "provider": "onboard",
