@@ -7,6 +7,7 @@ from typing import List
 from src.billing.grants.models import Grant, ProgramType
 
 _MURPHY_VERTICALS = [
+    "agentic",
     "ai_ml",
     "software",
     "building_automation",
