@@ -32,6 +32,8 @@ logger = logging.getLogger(__name__)
 # Project type aliases — normalize user input to internal project types
 # ---------------------------------------------------------------------------
 _PROJECT_TYPE_ALIASES: Dict[str, str] = {
+    "agentic_ai": "agentic",
+    "agentic_automation": "agentic",
     "building_automation": "bas_bms",
     "bas": "bas_bms",
     "bms": "bas_bms",
