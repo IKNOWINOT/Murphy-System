@@ -38,6 +38,7 @@ Dev mode: Auth is disabled when `MURPHY_API_KEY` is unset.
 | POST | /api/auth/register | No | Create new account (alias for signup) |
 | POST | /api/auth/login | No | Validate credentials — returns `{ session_token, account_id, … }` + sets `murphy_session` cookie |
 | POST | /api/auth/logout | No | Invalidate session and clear `murphy_session` cookie |
+| POST | /api/auth/forgot-password | No | Initiate password-reset flow — always returns success to prevent user enumeration |
 | GET | /api/auth/session-token | Yes | Return active session token for the current user (used by `murphy_auth.js` after OAuth redirect to mirror HttpOnly cookie to localStorage) |
 | GET | /api/auth/oauth/{provider} | No | Initiate OAuth flow |
 | GET | /api/auth/callback | No | OAuth callback — sets `murphy_session` cookie and redirects to `/ui/terminal-unified?oauth_success=1&provider=<name>` |
@@ -409,6 +410,7 @@ Dev mode: Auth is disabled when `MURPHY_API_KEY` is unset.
 |--------|------|------|-------------|
 | GET | /api/librarian/commands | Yes | Get command catalog (160+ commands) |
 | POST | /api/librarian/ask | Yes | Ask the librarian |
+| POST | /api/librarian/query | Yes | Alias for /api/librarian/ask |
 | GET | /api/librarian/status | Yes | Librarian status |
 | GET | /api/librarian/api-links | Yes | API link map |
 | POST | /api/librarian/integrations | Yes | Integration help |
@@ -441,6 +443,82 @@ Dev mode: Auth is disabled when `MURPHY_API_KEY` is unset.
 | GET | /api/wallet/addresses | Yes | Wallet addresses |
 | POST | /api/wallet/send | Yes | Send transaction |
 | POST | /api/wallet/receive | Yes | Generate receive address |
+
+---
+
+## Coinbase Advanced Trade (FastAPI — src/runtime/app.py)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /api/coinbase/status | Yes | Connection status, sandbox mode indicator |
+| GET | /api/coinbase/accounts | Yes | List Coinbase brokerage accounts |
+| GET | /api/coinbase/balances | Yes | Account balances per asset |
+| GET | /api/coinbase/products | Yes | List available trading pairs |
+| GET | /api/coinbase/ticker/{product_id} | Yes | Current best bid/ask for trading pair |
+
+---
+
+## Live Market Data Feed (FastAPI — src/runtime/app.py)
+
+Providers: **Crypto** — Coinbase → Binance → CCXT | **Equity** — Yahoo Finance → Alpaca → Alpha Vantage → Polygon → IEX Cloud → IBKR
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /api/market/quote/{symbol} | Yes | Live quote for any symbol (crypto or equity) |
+| GET | /api/market/candles/{symbol} | Yes | OHLCV candles — `?granularity=ONE_HOUR&limit=100` |
+| GET | /api/market/movers | Yes | Top market movers — `?asset_class=all&limit=10` |
+| GET | /api/market/search | Yes | Search instruments — `?q=bitcoin` |
+| GET | /api/market/status | Yes | Live feed service status (shows all provider WS state) |
+| GET | /api/market/instruments | Yes | List all known tradeable instruments |
+| WebSocket | /ws/market/{symbol} | No | Live price stream — sends `{symbol, price, bid, ask, change_pct_24h, timestamp}` every 2 s |
+
+---
+
+## Trading Compliance (FastAPI — src/runtime/app.py)
+
+Mandatory gate before live trading is permitted. All checks must pass.
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /api/trading/compliance/status | Yes | Latest compliance evaluation result |
+| POST | /api/trading/compliance/evaluate | Yes | Run full compliance check — body: `{jurisdiction, kyc_acknowledged, regulations_acknowledged, paper_trading_days, …}` |
+| GET | /api/trading/compliance/graduation | Yes | Paper-trading graduation tracker summary + daily history |
+| POST | /api/trading/compliance/graduation/record | Yes | Record a completed paper-trading day — body: `{date, start_equity, end_equity, trades}` |
+## Paper Trading Engine (FastAPI — src/paper_trading_routes.py)
+
+All trading is **PAPER/SIMULATED only** — no real money is moved.
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | /api/trading/paper/start | Yes | Start paper trading session with selected strategies |
+| POST | /api/trading/paper/stop | Yes | Stop paper trading session (optionally liquidate all positions) |
+| GET | /api/trading/paper/status | Yes | Current session state: active flag, portfolio snapshot, available strategies |
+| GET | /api/trading/paper/positions | Yes | All currently open paper positions with unrealized P&L |
+| GET | /api/trading/paper/trades | Yes | Trade journal — paginated by `limit` and optional `strategy` filter |
+| GET | /api/trading/paper/performance | Yes | Full performance metrics: Sharpe, Sortino, drawdown, win rate, profit factor, fees |
+| GET | /api/trading/paper/strategies | Yes | List all 9 strategy templates with params and description |
+| POST | /api/trading/paper/trade | Yes | Execute a manual paper buy or sell |
+| POST | /api/trading/backtest | Yes | Run a historical backtest via yfinance or supplied OHLCV JSON |
+| GET | /api/trading/calibration/costs | Yes | Hidden cost calibrator summary: observed slippage, fee, spread discrepancies |
+| GET | /api/trading/calibration/errors | Yes | Error calibrator: per-strategy bias, MAE, RMSE, recalibration history |
+
+### Strategy Templates (9 available)
+
+| Name | Class | Algorithm |
+|------|-------|-----------|
+| `momentum` | `MomentumStrategy` | RSI + MACD crossover + volume confirmation |
+| `mean_reversion` | `MeanReversionStrategy` | Bollinger Bands + Z-score mean reversion |
+| `breakout` | `BreakoutStrategy` | Support/resistance levels + volume breakout confirmation |
+| `scalping` | `ScalpingStrategy` | Short timeframe, tight stops, high-frequency entries |
+| `dca` | `DCAStrategy` | Dollar Cost Average — time-based or price-dip accumulation |
+| `grid` | `GridStrategy` | Grid levels: buy at lower levels, sell at upper levels |
+| `trajectory` | `TrajectoryStrategy` | Parabolic move detection, projected peak exit, trailing stop |
+| `sentiment` | `SentimentStrategy` | Fear/greed index + social signals — contrarian entries |
+| `arbitrage` | `ArbitrageStrategy` | Cross-pair Z-score spread detection and mean reversion |
+
+### Dashboard UI
+- **Route:** `/ui/paper-trading` — `templates/paper_trading_dashboard.html`
+- **Wallet widget:** `/ui/wallet` shows live engine status panel linking to the full dashboard
 
 ---
 
@@ -477,6 +555,16 @@ Dev mode: Auth is disabled when `MURPHY_API_KEY` is unset.
 | POST | /api/meeting-intelligence/vote | Yes | Vote on draft |
 | POST | /api/meeting-intelligence/email-report | Yes | Email meeting report |
 | GET | /api/meeting-intelligence/sessions | Yes | List sessions |
+
+## Meetings (FastAPI — src/runtime/app.py)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /api/meetings/ | Yes | List all meeting sessions |
+| POST | /api/meetings/start | Yes | Start a new meeting session — returns `{ session_id }` |
+| POST | /api/meetings/{session_id}/end | Yes | End a meeting session |
+| GET | /api/meetings/{session_id}/transcript | Yes | Get meeting transcript |
+| GET | /api/meetings/{session_id}/suggestions | Yes | Get AI-powered suggestions for the meeting |
 
 ---
 
@@ -605,6 +693,75 @@ Dev mode: Auth is disabled when `MURPHY_API_KEY` is unset.
 |--------|------|------|-------------|
 | POST | /api/automation/review-response | Yes | Automate review response |
 | POST | /api/automation/{engine_name}/{action} | Yes | Run automation action |
+
+---
+
+## Voice Command Interface — VCI (FastAPI — src/runtime/app.py)
+
+Natural language voice/typed command processing for generative automation.
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | /api/vci/recognise | Yes | Speech-to-text recognition |
+| POST | /api/vci/parse | Yes | Parse command from transcript |
+| POST | /api/vci/process | Yes | End-to-end voice processing (recognise → parse → result) |
+
+**Process Endpoint Request:**
+```json
+{
+  "text_input": "Monitor sales data and send weekly summary to Slack",
+  "session_id": "optional-session-id"
+}
+```
+
+**Response:**
+```json
+{
+  "stt": { "transcript": "...", "confidence": 0.95 },
+  "command": { "action": "create_automation", "category": "workflow", "params": {...} },
+  "session_id": "vci-abc123"
+}
+```
+
+### Related Documentation
+- **[Generative Automation Presets](documentation/features/GENERATIVE_AUTOMATION_PRESETS.md)** — Complete guide to voice/typed command automation
+
+---
+
+## Generative Automation Presets (FastAPI — src/runtime/app.py)
+
+Pre-configured automation patterns that wire together subsystems via natural language.
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /api/presets | Yes | List available automation presets |
+| GET | /api/presets/{preset_id} | Yes | Get preset details |
+| POST | /api/presets/activate | Yes | Activate preset via trigger phrase |
+| POST | /api/workflows | Yes | Create workflow from natural language description |
+| POST | /api/execute | Yes | Execute a generated workflow DAG |
+
+**Activate Preset Request:**
+```json
+{
+  "trigger_phrase": "run weekly sales report",
+  "tenant_id": "tenant-123",
+  "context": { "week_start": "2026-03-16" }
+}
+```
+
+### Template-Based Workflow Generation
+
+The system includes 12+ built-in templates:
+
+| Template ID | Pattern | Description |
+|-------------|---------|-------------|
+| `etl_pipeline` | Extract-Transform-Load | Data pipeline automation |
+| `ci_cd` | CI/CD Pipeline | Build, test, deploy automation |
+| `incident_response` | Incident Handling | Alert triage and escalation |
+| `monitoring_alert` | Metric Monitoring | Threshold-based alerting |
+| `report_generation` | Report & Distribute | Scheduled report generation |
+| `order_fulfillment` | E-commerce | Order processing and shipping |
+| `invoice_processing` | AP Automation | Invoice approval and payment |
 
 ---
 

@@ -1119,3 +1119,145 @@ List all MFM versions with their deployment status and metrics.
   ]
 }
 ```
+
+---
+
+## Voice Command Interface (VCI) Endpoints
+
+For natural language voice/typed command processing that generates governed automation workflows.
+
+**Full documentation:** [Generative Automation Presets](../features/GENERATIVE_AUTOMATION_PRESETS.md)
+
+### POST /api/vci/process
+
+End-to-end voice/text processing: recognise → parse → return automation command.
+
+**Authentication**: Required
+
+#### Request
+
+```json
+{
+  "text_input": "Monitor sales data and send weekly summary to Slack",
+  "session_id": "optional-session-id"
+}
+```
+
+#### Response
+
+```json
+{
+  "stt": {
+    "transcript": "Monitor sales data and send weekly summary to Slack",
+    "confidence": 0.95,
+    "language": "en"
+  },
+  "command": {
+    "action": "create_automation",
+    "category": "workflow",
+    "params": {
+      "description": "Monitor sales data and send weekly summary to Slack"
+    }
+  },
+  "session_id": "vci-abc123"
+}
+```
+
+---
+
+### POST /api/workflows
+
+Create a governed workflow from natural language description.
+
+**Authentication**: Required
+
+#### Request
+
+```json
+{
+  "description": "Build an ETL pipeline to extract data from Salesforce and load into BigQuery",
+  "tenant_id": "tenant-123"
+}
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "workflow_id": "wf-abc123",
+    "strategy": "template_match",
+    "template_used": "etl_pipeline",
+    "steps": [
+      {"step_id": "extract", "name": "Extract Data", "type": "data_retrieval"},
+      {"step_id": "transform", "name": "Transform Data", "type": "data_transformation"},
+      {"step_id": "validate", "name": "Validate Data", "type": "validation"},
+      {"step_id": "load", "name": "Load Data", "type": "data_output"}
+    ],
+    "governance_gates": ["approval_before_load"],
+    "ready_to_execute": true
+  }
+}
+```
+
+---
+
+### GET /api/presets
+
+List available automation presets.
+
+**Authentication**: Required
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "presets": [
+      {
+        "preset_id": "sales-weekly-report",
+        "name": "Weekly Sales Report",
+        "trigger_phrases": ["run weekly sales report", "generate sales summary"],
+        "required_permissions": ["execute_scoped"],
+        "role_scope": "tenant"
+      }
+    ]
+  }
+}
+```
+
+---
+
+### POST /api/presets/activate
+
+Activate an automation preset via trigger phrase.
+
+**Authentication**: Required
+
+#### Request
+
+```json
+{
+  "trigger_phrase": "run weekly sales report",
+  "tenant_id": "tenant-123",
+  "context": {
+    "week_start": "2026-03-16"
+  }
+}
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "execution_id": "exec-xyz789",
+    "preset_id": "sales-weekly-report",
+    "status": "started",
+    "governance_gates_pending": 1
+  }
+}
+```

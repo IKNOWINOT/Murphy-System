@@ -216,6 +216,7 @@ Detailed documentation for each system component:
 - [Confidence Engine](components/CONFIDENCE_ENGINE.md) - Confidence computation
 - [Telemetry](components/TELEMETRY.md) - System monitoring and metrics
 - [Librarian](components/LIBRARIAN.md) - Knowledge management
+- [Generative Automation Presets](features/GENERATIVE_AUTOMATION_PRESETS.md) - Voice/typed command automation with natural language workflow generation (GAP-001)
 - **CEO Branch Activation** (`src/ceo_branch_activation.py`) — Top-level autonomous decision-making, org chart automation, operational planning (CEO-002)
 - **Production Assistant Engine** (`src/production_assistant_engine.py`) — Request lifecycle management with deliverable gate validation (PROD-ENG-001)
 - **Self-Codebase Swarm** (`src/self_codebase_swarm.py`) — Autonomous BMS spec generation, RFP parsing, deliverable packaging (SCS-001)
@@ -446,6 +447,10 @@ When reporting issues, please include:
 - [Confidence Engine](components/CONFIDENCE_ENGINE.md)
 - [Telemetry](components/TELEMETRY.md)
 - [Librarian](components/LIBRARIAN.md)
+
+### Features
+- [Generative Automation Presets](features/GENERATIVE_AUTOMATION_PRESETS.md) - Voice/typed command automation
+- [Meeting Intelligence](features/MEETING_INTELLIGENCE.md)
 
 ### Testing
 - [Test Coverage](testing/TEST_COVERAGE.md)

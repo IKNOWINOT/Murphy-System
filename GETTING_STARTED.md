@@ -30,6 +30,11 @@ Self-Healing Coordinator (5 recovery handlers), Confidence Engine (Bayesian scor
 Murphy Index), Learning Engine (full ML closed loop → threshold auto-adjustment),
 and the AionMind Kernel (cognitive execution with legacy fallback).
 
+**Voice/Typed Command Automation:** Murphy supports natural language automation via 
+Voice Command Interface (VCI) and generative preset activation. See the comprehensive
+[Generative Automation Presets Guide](documentation/features/GENERATIVE_AUTOMATION_PRESETS.md)
+for details on template matching, industry presets, role-based execution, and HITL governance.
+
 See the full [README](README.md) for the complete module map and completion status,
 and [ROADMAP.md](ROADMAP.md) for the sprint plan.
 
