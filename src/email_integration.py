@@ -18,6 +18,9 @@ SENDGRID_API_KEY : str
     SendGrid v3 API key.  Takes priority over SMTP when both are set.
 SENDGRID_FROM_EMAIL : str
     Default sender address used by the SendGrid backend.
+MURPHY_MAIL_INTERNAL : str
+    Set to ``true`` to use the internal docker-mailserver (``murphy-mailserver:587``).
+    When set, overrides ``SMTP_HOST`` / ``SMTP_PORT`` with the internal container address.
 SMTP_HOST : str
     SMTP server hostname.
 SMTP_PORT : int
@@ -407,6 +410,28 @@ class EmailService:
         if sendgrid_key:
             logger.info("Email backend: SendGrid", extra={"provider": "sendgrid"})
             return cls(SendGridBackend(api_key=sendgrid_key))
+
+        # Internal docker-mailserver auto-detection
+        if os.getenv("MURPHY_MAIL_INTERNAL", "").lower() == "true":
+            internal_host = "murphy-mailserver"
+            internal_port = 587
+            smtp_user = os.getenv("SMTP_USER") or os.getenv("MAIL_ADMIN_EMAIL")
+            smtp_pass = os.getenv("SMTP_PASSWORD") or os.getenv("MAIL_ADMIN_PASSWORD")
+            logger.info(
+                "Email backend: internal docker-mailserver (%s:%s)",
+                internal_host,
+                internal_port,
+                extra={"provider": "internal_smtp", "host": internal_host},
+            )
+            return cls(
+                SMTPBackend(
+                    host=internal_host,
+                    port=internal_port,
+                    username=smtp_user,
+                    password=smtp_pass,
+                    use_tls=True,
+                )
+            )
 
         smtp_host = os.getenv("SMTP_HOST")
         if smtp_host:
