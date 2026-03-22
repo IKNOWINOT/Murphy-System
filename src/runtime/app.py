@@ -459,6 +459,13 @@ def create_app() -> FastAPI:
         logger.info("Grants Submission API registered at /api/grants")
     except Exception as _grants_exc:
         logger.warning("Grants Submission API not available: %s", _grants_exc)
+    # ── Grants, Tax Credits & Financing API ──────────────────────────
+    try:
+        from src.billing.grants.api import router as _grants_router
+        app.include_router(_grants_router)
+        logger.info("Grants API registered at /api/grants")
+    except Exception as _grants_exc:
+        logger.warning("Grants API not available: %s", _grants_exc)
 
     # ── Trading Automation (PR 4) ─────────────────────────────────────
     try:
@@ -479,6 +486,14 @@ def create_app() -> FastAPI:
         )
     except Exception as _risk_exc:
         logger.warning("Trading Risk API not available: %s", _risk_exc)
+    # ── Platform Onboarding DAG ──────────────────────────────────────────
+    try:
+        from src.platform_onboarding.onboarding_api import create_onboarding_router
+        _onboarding_router = create_onboarding_router()
+        app.include_router(_onboarding_router)
+        logger.info("Platform Onboarding API registered at /api/onboarding/*")
+    except Exception as _e:  # pragma: no cover
+        logger.warning("Platform onboarding router not loaded: %s", _e)
 
     # Register RBAC governance with security layer (SEC-005)
     rbac = getattr(murphy, 'rbac_governance', None)
