@@ -129,6 +129,13 @@ h2.stitle{font-size:clamp(1.8rem,4vw,2.8rem);font-weight:800;line-height:1.2;bac
 .seg-layout{display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center;}
 .seg-layout.rev{direction:rtl;}
 .seg-layout.rev>*{direction:ltr;}
+
+/* How It Works */
+.step-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:2rem 1.5rem;text-align:center;position:relative;transition:border-color .25s,transform .2s;}
+.step-card:hover{border-color:rgba(0,212,170,.45);transform:translateY(-3px);}
+.step-num{display:inline-flex;align-items:center;justify-content:center;width:2.5rem;height:2.5rem;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--cyan));color:#0a0a0a;font-size:1rem;font-weight:800;margin-bottom:1rem;}
+.step-card h3{font-size:1.05rem;font-weight:700;color:var(--text-primary);margin-bottom:.5rem;}
+.step-card p{font-size:.875rem;color:var(--muted);line-height:1.55;}
 .seg-content h2{margin-bottom:.75rem;}
 .seg-content p{color:var(--muted);margin-bottom:1.5rem;}
 .uc-list{list-style:none;display:flex;flex-direction:column;gap:.6rem;margin-bottom:1.75rem;}
@@ -305,7 +312,8 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
   </a>
 
   <div class="murphy-nav-links" id="main-nav" role="menubar">
-    <a href="#solution" role="menuitem">Features</a>
+    <a href="#features" role="menuitem">Features</a>
+    <a href="#how-it-works" role="menuitem">How It Works</a>
     <a href="#pricing" role="menuitem">Pricing</a>
     <a href="#compliance" role="menuitem">Compliance</a>
     <a href="#demo-modal" role="menuitem" onclick="openDemo(event)">Demo</a>
@@ -414,6 +422,8 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
 
 <!-- SOLUTION -->
 <section id="solution" class="lp-bg3" aria-labelledby="sol-h">
+  <!-- Anchor for #features nav link -->
+  <span id="features" aria-hidden="true" style="position:absolute;visibility:hidden;"></span>
   <div class="si">
     <span class="slabel">The Solution</span>
     <h2 class="stitle" id="sol-h">One System. Every Department.</h2>
@@ -427,6 +437,36 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
       <article class="sol-card" role="listitem"><span class="chk" aria-hidden="true">&#10003;</span><h3>IT</h3></article>
       <article class="sol-card" role="listitem"><span class="chk" aria-hidden="true">&#10003;</span><h3>Compliance</h3></article>
       <article class="sol-card" role="listitem"><span class="chk" aria-hidden="true">&#10003;</span><h3>Customer Success</h3></article>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how-it-works" aria-labelledby="hiw-h">
+  <div class="si" style="padding:4rem 1rem;">
+    <span class="slabel">How It Works</span>
+    <h2 class="stitle" id="hiw-h">Automate in Three Steps</h2>
+    <p class="ssub">No code. No complex setup. Go from idea to running automation in minutes.</p>
+    <div class="g3" role="list" aria-label="How Murphy System works" style="margin-top:2rem;">
+      <article class="step-card" role="listitem">
+        <div class="step-num" aria-hidden="true">1</div>
+        <h3>Connect Your Tools</h3>
+        <p>Link your existing apps — CRM, email, Slack, spreadsheets, APIs — in a few clicks. Murphy supports 80+ integrations out of the box.</p>
+      </article>
+      <article class="step-card" role="listitem">
+        <div class="step-num" aria-hidden="true">2</div>
+        <h3>Describe Your Workflow</h3>
+        <p>Type what you want in plain English. Murphy's AI understands your intent and builds the automation plan, complete with compliance gates and approval steps.</p>
+      </article>
+      <article class="step-card" role="listitem">
+        <div class="step-num" aria-hidden="true">3</div>
+        <h3>Murphy Runs It</h3>
+        <p>Your workflow executes automatically. Shadow Agents learn your patterns over time so each run gets smarter, faster, and more tailored to your business.</p>
+      </article>
+    </div>
+    <div style="text-align:center;margin-top:2.5rem;">
+      <a href="/ui/signup" class="btn-p" style="margin-right:.75rem;">Get Started Free</a>
+      <button class="btn-s" onclick="openDemo(event)" aria-label="See a live demo">&#9654; See It Live</button>
     </div>
   </div>
 </section>
