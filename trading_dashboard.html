@@ -1,0 +1,688 @@
+<!-- Murphy System — Trading Dashboard / © 2020 Inoni Limited Liability Company by Corey Post / License: BSL 1.1 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — Trading Dashboard</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
+<style>
+/* ── Neon terminal theme — Color Key: green=#00ff41, cyan=#00ffff, teal=#00D4AA, bg=#0a0a0a ── */
+*:focus-visible{outline:2px solid #00ff41;outline-offset:2px}
+body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);margin:0}
+.td-layout{max-width:1400px;margin:0 auto;padding:1.5rem 1rem 4rem}
+
+/* ── Header ── */
+.td-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;margin-bottom:1.5rem}
+.td-title{font-size:var(--text-2xl);font-weight:700;color:var(--text-primary)}
+.td-badges{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:.375rem;padding:.25rem .75rem;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:700;letter-spacing:.05em;border:1px solid}
+.badge-paper{background:rgba(255,200,0,.1);border-color:rgba(255,200,0,.3);color:#ffcc00}
+.badge-live{background:rgba(0,255,65,.1);border-color:rgba(0,255,65,.3);color:#00ff41;animation:pulse 2s infinite}
+.badge-sandbox{background:rgba(255,100,0,.1);border-color:rgba(255,100,0,.3);color:#ff6400}
+.badge-estop-safe{background:rgba(0,212,170,.1);border-color:rgba(0,212,170,.3);color:var(--teal)}
+.badge-estop-danger{background:rgba(255,60,60,.2);border-color:#ff3c3c;color:#ff3c3c;animation:pulse 1s infinite}
+.badge-health-ok{background:rgba(0,255,65,.1);border-color:rgba(0,255,65,.3);color:#00ff41}
+.badge-health-warn{background:rgba(255,200,0,.1);border-color:rgba(255,200,0,.3);color:#ffcc00}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* ── Grid ── */
+.td-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;margin-bottom:1.5rem}
+.td-card{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-xl);padding:1.25rem;transition:border-color .2s}
+.td-card:hover{border-color:var(--teal)}
+.td-card-label{font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.07em;color:var(--text-tertiary);margin-bottom:.375rem}
+.td-card-value{font-size:1.75rem;font-weight:800;color:var(--text-primary);line-height:1.1}
+.td-card-sub{font-size:var(--text-sm);font-weight:600;margin-top:.25rem}
+.up{color:#00ff41}.down{color:#ff4444}.neutral{color:var(--text-secondary)}
+
+/* ── Wide card ── */
+.td-wide{grid-column:1/-1;background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-xl);padding:1.25rem;margin-bottom:1rem}
+.td-section-heading{font-size:var(--text-base);font-weight:600;color:var(--text-primary);margin-bottom:1rem;display:flex;align-items:center;gap:.625rem}
+.td-section-heading::after{content:'';flex:1;height:1px;background:var(--border-subtle)}
+
+/* ── Tables ── */
+.td-table{width:100%;border-collapse:collapse;font-size:var(--text-sm)}
+.td-table th{padding:.5rem .75rem;text-align:left;font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.05em;color:var(--text-tertiary);border-bottom:1px solid var(--border-subtle)}
+.td-table td{padding:.625rem .75rem;border-bottom:1px solid var(--border-subtle);color:var(--text-secondary)}
+.td-table tr:last-child td{border-bottom:none}
+.td-table tr:hover td{background:rgba(0,212,170,.04)}
+.tag{display:inline-block;padding:.15rem .5rem;border-radius:var(--radius-sm);font-size:.7rem;font-weight:600}
+.tag-buy{background:rgba(0,255,65,.15);color:#00ff41}
+.tag-sell{background:rgba(255,68,68,.15);color:#ff4444}
+.tag-hold{background:rgba(255,200,0,.15);color:#ffcc00}
+
+/* ── Strategy cards ── */
+.strategy-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:.75rem}
+.strategy-card{background:var(--bg-base);border:1px solid var(--border-default);border-radius:var(--radius-lg);padding:1rem;cursor:default;transition:border-color .2s}
+.strategy-card:hover{border-color:rgba(0,255,65,.3)}
+.strategy-name{font-size:var(--text-sm);font-weight:600;color:var(--text-primary);margin-bottom:.5rem}
+.strategy-metric{display:flex;justify-content:space-between;font-size:var(--text-xs);margin-bottom:.2rem}
+.strategy-metric span:first-child{color:var(--text-tertiary)}
+
+/* ── Sweep section ── */
+.sweep-next{background:linear-gradient(135deg,rgba(0,212,170,.1) 0%,rgba(0,255,65,.05) 100%);border:1px solid rgba(0,212,170,.25);border-radius:var(--radius-xl);padding:1.25rem;margin-bottom:1rem}
+.sweep-next-label{font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.07em;color:var(--text-tertiary);margin-bottom:.375rem}
+.sweep-next-value{font-size:1.5rem;font-weight:700;color:var(--teal)}
+.sweep-countdown{font-size:var(--text-sm);color:var(--text-secondary);margin-top:.25rem}
+
+/* ── Risk panel ── */
+.risk-bar-wrap{background:var(--bg-base);border-radius:var(--radius-full);height:8px;overflow:hidden;margin-top:.375rem}
+.risk-bar{height:100%;border-radius:var(--radius-full);transition:width .5s ease}
+.risk-low{background:#00ff41}.risk-medium{background:#ffcc00}.risk-high{background:#ff4444}
+
+/* ── Controls ── */
+.control-bar{display:flex;gap:.75rem;flex-wrap:wrap;margin-top:.75rem}
+.ctrl-btn{padding:.5rem 1.25rem;border-radius:var(--radius-md);font-family:var(--font-ui);font-size:var(--text-sm);font-weight:600;cursor:pointer;border:none;transition:opacity .15s,transform .15s;display:inline-flex;align-items:center;gap:.4rem}
+.ctrl-btn:hover{opacity:.9;transform:translateY(-1px)}
+.ctrl-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn-primary{background:var(--teal);color:#0C1017}
+.btn-outline{background:transparent;border:1px solid var(--teal);color:var(--teal)}
+.btn-danger{background:#ff3c3c;color:#fff}
+.btn-danger-outline{background:transparent;border:1px solid #ff4444;color:#ff4444}
+.btn-warning{background:#ffcc00;color:#0C1017}
+
+/* ── Toggle switch ── */
+.toggle-wrap{display:flex;align-items:center;gap:.5rem;font-size:var(--text-sm);color:var(--text-secondary)}
+.toggle{appearance:none;width:38px;height:20px;border-radius:10px;background:#333;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0}
+.toggle:checked{background:var(--teal)}
+.toggle::after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;top:2px;left:2px;transition:left .2s}
+.toggle:checked::after{left:20px}
+
+/* ── Loading skeleton ── */
+.skeleton{background:linear-gradient(90deg,var(--bg-surface) 25%,rgba(0,212,170,.06) 50%,var(--bg-surface) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.skeleton-text{height:.875rem;border-radius:var(--radius-sm);margin-bottom:.4rem}
+
+/* ── Atom staking card ── */
+.atom-card{background:linear-gradient(135deg,rgba(100,40,200,.15) 0%,rgba(0,212,170,.08) 100%);border:1px solid rgba(100,40,200,.3);border-radius:var(--radius-xl);padding:1.25rem}
+.atom-symbol{font-size:2rem;margin-bottom:.25rem}
+.atom-value{font-size:1.5rem;font-weight:700;color:#a78bfa}
+.atom-apy{font-size:var(--text-sm);color:var(--text-secondary);margin-top:.25rem}
+
+/* ── Toasts ── */
+#toast-container{position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;display:flex;flex-direction:column;gap:.5rem}
+.toast{padding:.625rem 1rem;border-radius:var(--radius-md);font-size:var(--text-sm);font-weight:500;min-width:220px;max-width:340px;animation:slideIn .25s ease;color:#fff}
+.toast-success{background:#1a3d2b;border:1px solid #00ff41}
+.toast-error{background:#3d1a1a;border:1px solid #ff4444}
+.toast-info{background:#1a2a3d;border:1px solid var(--teal)}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* ── Back link ── */
+.td-back{display:inline-flex;align-items:center;gap:.375rem;color:var(--text-tertiary);font-size:var(--text-sm);text-decoration:none;margin-bottom:1rem;transition:color .15s}
+.td-back:hover{color:var(--teal)}
+</style>
+</head>
+<body>
+<div class="td-layout">
+
+  <!-- Back nav -->
+  <a href="/ui/wallet" class="td-back">← Wallet</a>
+
+  <!-- ── Header ── -->
+  <div class="td-header">
+    <div>
+      <div class="td-title">🤖 Trading Dashboard</div>
+      <div style="font-size:var(--text-sm);color:var(--text-secondary);margin-top:.25rem">Murphy Automated Trading System — Real-time overview</div>
+    </div>
+    <div class="td-badges" id="header-badges">
+      <span class="badge badge-paper" id="mode-badge">◉ PAPER MODE</span>
+      <span class="badge badge-estop-safe" id="estop-badge">✓ EMERGENCY STOP ARMED</span>
+      <span class="badge badge-health-ok" id="health-badge">✓ HEALTHY</span>
+    </div>
+  </div>
+
+  <!-- ── Portfolio overview cards ── -->
+  <div class="td-grid">
+    <div class="td-card">
+      <div class="td-card-label">Total Portfolio Value</div>
+      <div class="td-card-value" id="portfolio-total">$—</div>
+      <div class="td-card-sub neutral" id="portfolio-updated">Loading…</div>
+    </div>
+    <div class="td-card">
+      <div class="td-card-label">Today's P&L</div>
+      <div class="td-card-value" id="pnl-today">$—</div>
+      <div class="td-card-sub neutral" id="pnl-today-pct">— %</div>
+    </div>
+    <div class="td-card">
+      <div class="td-card-label">Total P&L (Since Inception)</div>
+      <div class="td-card-value" id="pnl-total">$—</div>
+      <div class="td-card-sub neutral" id="pnl-total-pct">—</div>
+    </div>
+    <div class="td-card">
+      <div class="td-card-label">Available Cash</div>
+      <div class="td-card-value" id="cash-available">$—</div>
+      <div class="td-card-sub neutral" id="cash-pct">—</div>
+    </div>
+    <!-- ATOM staking -->
+    <div class="atom-card">
+      <div class="atom-symbol">⚛️</div>
+      <div class="td-card-label">ATOM Staking Balance</div>
+      <div class="atom-value" id="atom-staked">— ATOM</div>
+      <div class="atom-apy" id="atom-apy">APY: loading…</div>
+      <div style="font-size:var(--text-xs);color:var(--text-tertiary);margin-top:.5rem" id="atom-usd-swept">Total swept: $—</div>
+    </div>
+    <!-- Open positions count -->
+    <div class="td-card">
+      <div class="td-card-label">Open Positions</div>
+      <div class="td-card-value" id="open-positions-count">—</div>
+      <div class="td-card-sub neutral" id="open-positions-sub">Loading…</div>
+    </div>
+  </div>
+
+  <!-- ── Active positions table ── -->
+  <div class="td-wide">
+    <div class="td-section-heading">📊 Active Positions</div>
+    <div style="overflow-x:auto">
+      <table class="td-table">
+        <thead>
+          <tr>
+            <th>Asset</th><th>Side</th><th>Entry Price</th><th>Current Price</th>
+            <th>P&L</th><th>Stop Loss</th><th>Take Profit</th><th>Strategy</th>
+          </tr>
+        </thead>
+        <tbody id="positions-tbody">
+          <tr><td colspan="8" style="text-align:center;color:var(--text-tertiary);padding:1.5rem">Loading positions…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Trade history ── -->
+  <div class="td-wide">
+    <div class="td-section-heading">📜 Recent Trades</div>
+    <div style="overflow-x:auto">
+      <table class="td-table">
+        <thead>
+          <tr>
+            <th>Time</th><th>Asset</th><th>Side</th><th>Size</th>
+            <th>Avg Price</th><th>P&L</th><th>Engine</th><th>Strategy</th>
+          </tr>
+        </thead>
+        <tbody id="trades-tbody">
+          <tr><td colspan="8" style="text-align:center;color:var(--text-tertiary);padding:1.5rem">Loading trades…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Strategy performance ── -->
+  <div class="td-wide">
+    <div class="td-section-heading">🧠 Strategy Performance</div>
+    <div class="strategy-grid" id="strategy-grid">
+      <!-- filled by JS -->
+      <div class="strategy-card skeleton" style="height:120px"></div>
+      <div class="strategy-card skeleton" style="height:120px"></div>
+      <div class="strategy-card skeleton" style="height:120px"></div>
+    </div>
+  </div>
+
+  <!-- ── Profit sweep section ── -->
+  <div class="td-wide">
+    <div class="td-section-heading">💰 Profit Sweep → ATOM Staking</div>
+    <div class="sweep-next" id="sweep-next-card">
+      <div class="sweep-next-label">Next Scheduled Sweep</div>
+      <div class="sweep-next-value" id="sweep-next-time">Loading…</div>
+      <div class="sweep-countdown" id="sweep-countdown">—</div>
+      <div style="margin-top:.75rem;font-size:var(--text-sm)">
+        <span style="color:var(--text-tertiary)">Estimated sweep amount: </span>
+        <span style="color:var(--teal);font-weight:700" id="sweep-estimate">$—</span>
+        &nbsp;|&nbsp;
+        <span style="color:var(--text-tertiary)">Mode: </span>
+        <span style="font-weight:600" id="sweep-mode-label">DRY-RUN</span>
+      </div>
+    </div>
+
+    <!-- Sweep stats row -->
+    <div class="td-grid" style="margin-bottom:1rem">
+      <div class="td-card">
+        <div class="td-card-label">Total ATOM Accumulated</div>
+        <div class="td-card-value" id="sweep-atom-total">—</div>
+        <div class="td-card-sub neutral">from profit sweeps</div>
+      </div>
+      <div class="td-card">
+        <div class="td-card-label">Total USD Swept</div>
+        <div class="td-card-value" id="sweep-usd-total">$—</div>
+        <div class="td-card-sub neutral" id="sweep-executions">— sweeps executed</div>
+      </div>
+      <div class="td-card">
+        <div class="td-card-label">Staking APY</div>
+        <div class="td-card-value" id="sweep-apy">—%</div>
+        <div class="td-card-sub neutral">Cosmos ATOM</div>
+      </div>
+    </div>
+
+    <!-- Sweep history -->
+    <div class="td-section-heading" style="font-size:var(--text-sm)">Sweep History (last 30 days)</div>
+    <div style="overflow-x:auto">
+      <table class="td-table">
+        <thead>
+          <tr>
+            <th>Time</th><th>Status</th><th>USD Swept</th>
+            <th>ATOM Purchased</th><th>ATOM Price</th><th>Staking TX</th>
+          </tr>
+        </thead>
+        <tbody id="sweep-history-tbody">
+          <tr><td colspan="6" style="text-align:center;color:var(--text-tertiary);padding:1.5rem">Loading sweep history…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Risk panel ── -->
+  <div class="td-wide">
+    <div class="td-section-heading">🛡 Risk Panel</div>
+    <div class="td-grid">
+      <div class="td-card">
+        <div class="td-card-label">Current Risk Level</div>
+        <div class="td-card-value" id="risk-level">—</div>
+        <div class="risk-bar-wrap"><div class="risk-bar risk-low" id="risk-bar" style="width:0%"></div></div>
+      </div>
+      <div class="td-card">
+        <div class="td-card-label">Graduation Progress</div>
+        <div class="td-card-value" id="graduation-status">—</div>
+        <div class="risk-bar-wrap"><div class="risk-bar" id="graduation-bar" style="width:0%;background:var(--teal)"></div></div>
+        <div style="font-size:var(--text-xs);color:var(--text-tertiary);margin-top:.375rem" id="graduation-detail">—</div>
+      </div>
+      <div class="td-card">
+        <div class="td-card-label">Portfolio Exposure</div>
+        <div class="td-card-value" id="exposure-pct">—%</div>
+        <div class="risk-bar-wrap"><div class="risk-bar risk-medium" id="exposure-bar" style="width:0%"></div></div>
+      </div>
+      <div class="td-card">
+        <div class="td-card-label">Live Gates Status</div>
+        <div id="gates-list" style="font-size:var(--text-xs);display:flex;flex-direction:column;gap:.25rem;margin-top:.5rem">
+          <div>Loading gates…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Controls ── -->
+  <div class="td-wide">
+    <div class="td-section-heading">⚙️ Controls</div>
+    <div class="control-bar">
+      <button class="ctrl-btn btn-primary" id="btn-start" onclick="startOrchestrator()">▶ Start Paper Trading</button>
+      <button class="ctrl-btn btn-outline" id="btn-stop" onclick="stopOrchestrator()">⏹ Stop</button>
+      <button class="ctrl-btn btn-warning" id="btn-trigger-sweep" onclick="triggerSweep()">💰 Trigger Dry-Run Sweep</button>
+      <button class="ctrl-btn btn-danger-outline" id="btn-estop" onclick="confirmEmergencyStop()">🚨 Emergency Stop</button>
+    </div>
+
+    <!-- Strategy toggles -->
+    <div style="margin-top:1rem">
+      <div style="font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.07em;color:var(--text-tertiary);margin-bottom:.625rem">Strategy Toggles</div>
+      <div id="strategy-toggles" style="display:flex;flex-wrap:wrap;gap:.75rem">
+        <!-- filled by JS -->
+      </div>
+    </div>
+  </div>
+
+</div><!-- /td-layout -->
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<script>
+// ── State ────────────────────────────────────────────────────────────────
+const state = {
+  mode: 'paper',
+  estop: false,
+  healthy: true,
+  strategies: [
+    {id:'momentum',    name:'Momentum',       winRate:62, pnl:342,  signal:'buy'},
+    {id:'mean_rev',    name:'Mean Reversion', winRate:58, pnl:187,  signal:'hold'},
+    {id:'breakout',    name:'Breakout',       winRate:55, pnl:94,   signal:'sell'},
+    {id:'scalp',       name:'Scalping',       winRate:61, pnl:220,  signal:'buy'},
+    {id:'dca',         name:'DCA',            winRate:70, pnl:510,  signal:'buy'},
+    {id:'grid',        name:'Grid',           winRate:65, pnl:380,  signal:'hold'},
+    {id:'trajectory',  name:'Trajectory',     winRate:53, pnl:140,  signal:'buy'},
+    {id:'sentiment',   name:'Sentiment',      winRate:48, pnl:-22,  signal:'hold'},
+    {id:'arbitrage',   name:'Arbitrage',      winRate:72, pnl:660,  signal:'buy'},
+  ],
+  enabledStrategies: new Set(['momentum','dca','grid','arbitrage','trajectory']),
+};
+
+// ── Utilities ────────────────────────────────────────────────────────────
+function fmt$(v){ return v == null ? '$—' : '$' + (+v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtPct(v){ return v == null ? '—%' : (+v).toFixed(2)+'%'; }
+function fmtAtom(v){ return v == null ? '— ATOM' : (+v).toFixed(4)+' ATOM'; }
+function fmtDate(s){ try{return new Date(s).toLocaleString();}catch{return s||'—';} }
+function el(id){ return document.getElementById(id); }
+function setText(id, v){ const e=el(id); if(e) e.textContent=v; }
+function setClass(e, cls){ if(e && typeof cls==='string') e.className=cls; }
+
+function toast(msg, type='info'){
+  const c = el('toast-container');
+  const d = document.createElement('div');
+  d.className = 'toast toast-'+type;
+  d.textContent = msg;
+  c.appendChild(d);
+  setTimeout(()=>d.remove(), 3500);
+}
+
+// ── API helpers ──────────────────────────────────────────────────────────
+async function apiFetch(url, opts={}){
+  try {
+    const r = await fetch(url, opts);
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    return await r.json();
+  } catch(e){
+    console.warn('API error', url, e.message);
+    return null;
+  }
+}
+
+// ── Render ───────────────────────────────────────────────────────────────
+function renderHeader(){
+  const modeBadge = el('mode-badge');
+  if(state.mode==='live'){
+    modeBadge.className='badge badge-live';
+    modeBadge.textContent='⚡ LIVE MODE';
+  } else {
+    modeBadge.className='badge badge-paper';
+    modeBadge.textContent='◉ PAPER MODE';
+  }
+  const estopBadge = el('estop-badge');
+  if(state.estop){
+    estopBadge.className='badge badge-estop-danger';
+    estopBadge.textContent='🚨 EMERGENCY STOP TRIGGERED';
+  } else {
+    estopBadge.className='badge badge-estop-safe';
+    estopBadge.textContent='✓ EMERGENCY STOP ARMED';
+  }
+  const healthBadge = el('health-badge');
+  healthBadge.className = state.healthy ? 'badge badge-health-ok' : 'badge badge-health-warn';
+  healthBadge.textContent = state.healthy ? '✓ HEALTHY' : '⚠ DEGRADED';
+}
+
+function renderPortfolio(d){
+  if(!d) return;
+  const tv = d.total_value_usd || 0;
+  const dp = d.daily_pnl      || 0;
+  const tp = d.total_pnl      || 0;
+  const ac = d.available_cash || 0;
+
+  setText('portfolio-total', fmt$(tv));
+  setText('portfolio-updated', 'Updated: '+(d.updated_at ? fmtDate(d.updated_at) : 'just now'));
+
+  el('pnl-today').textContent = fmt$(dp);
+  el('pnl-today').className   = 'td-card-value '+(dp>=0?'up':'down');
+  setText('pnl-today-pct', tv>0 ? fmtPct(dp/tv*100) : '— %');
+
+  el('pnl-total').textContent = fmt$(tp);
+  el('pnl-total').className   = 'td-card-value '+(tp>=0?'up':'down');
+
+  setText('cash-available', fmt$(ac));
+  setText('cash-pct', tv>0 ? fmtPct(ac/tv*100)+' of portfolio' : '—');
+}
+
+function renderPositions(list){
+  const tbody = el('positions-tbody');
+  if(!tbody) return;
+  if(!list || !list.length){
+    tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--text-tertiary);padding:1.5rem">No open positions</td></tr>';
+    setText('open-positions-count', '0');
+    setText('open-positions-sub', 'No open positions');
+    return;
+  }
+  setText('open-positions-count', list.length);
+  setText('open-positions-sub', list.length+' position'+(list.length!==1?'s':''));
+  tbody.innerHTML = list.map(p=>{
+    const pnl = p.unrealised_pnl||0;
+    const pnlClass = pnl>=0?'up':'down';
+    return `<tr>
+      <td style="color:var(--text-primary);font-weight:600">${p.product_id||'—'}</td>
+      <td><span class="tag tag-${(p.side||'').toLowerCase()}">${(p.side||'').toUpperCase()}</span></td>
+      <td>${fmt$(p.entry_price)}</td>
+      <td>${fmt$(p.current_price)}</td>
+      <td class="${pnlClass}">${fmt$(pnl)}</td>
+      <td>${p.stop_loss ? fmt$(p.stop_loss) : '—'}</td>
+      <td>${p.take_profit ? fmt$(p.take_profit) : '—'}</td>
+      <td style="font-size:var(--text-xs);color:var(--text-tertiary)">${p.strategy_id||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderTrades(list){
+  const tbody = el('trades-tbody');
+  if(!tbody) return;
+  if(!list || !list.length){
+    tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--text-tertiary);padding:1.5rem">No trades yet</td></tr>';
+    return;
+  }
+  const recent = list.slice(-50).reverse();
+  tbody.innerHTML = recent.map(t=>{
+    const result = t.result||{};
+    const order  = result.order||{};
+    const pnl    = order.realised_pnl||0;
+    return `<tr>
+      <td style="font-size:var(--text-xs);color:var(--text-tertiary)">${fmtDate(t.timestamp||order.submitted_at)}</td>
+      <td style="color:var(--text-primary)">${t.product_id||order.product_id||'—'}</td>
+      <td><span class="tag tag-${(t.side||'').toLowerCase()}">${(t.side||'').toUpperCase()}</span></td>
+      <td>${(order.filled_size||0).toFixed(4)||'—'}</td>
+      <td>${fmt$(order.average_price)}</td>
+      <td class="${pnl>=0?'up':'down'}">${pnl!==0?fmt$(pnl):'—'}</td>
+      <td style="font-size:var(--text-xs);color:var(--text-tertiary)">${t.engine||'paper'}</td>
+      <td style="font-size:var(--text-xs);color:var(--text-tertiary)">${t.strategy_id||order.strategy_id||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderStrategies(){
+  const grid = el('strategy-grid');
+  const toggles = el('strategy-toggles');
+  if(!grid) return;
+  grid.innerHTML = state.strategies.map(s=>`
+    <div class="strategy-card">
+      <div class="strategy-name">${s.name} <span class="tag tag-${s.signal}">${s.signal.toUpperCase()}</span></div>
+      <div class="strategy-metric"><span>Win Rate</span><span style="color:var(--text-primary);font-weight:600">${s.winRate}%</span></div>
+      <div class="strategy-metric"><span>P&L</span><span class="${s.pnl>=0?'up':'down'} " style="font-weight:600">${fmt$(s.pnl)}</span></div>
+      <div class="strategy-metric"><span>Status</span><span style="color:${state.enabledStrategies.has(s.id)?'#00ff41':'#666'}">${state.enabledStrategies.has(s.id)?'Active':'Paused'}</span></div>
+    </div>`).join('');
+  if(toggles) toggles.innerHTML = state.strategies.map(s=>`
+    <label class="toggle-wrap">
+      <input type="checkbox" class="toggle" ${state.enabledStrategies.has(s.id)?'checked':''} onchange="toggleStrategy('${s.id}',this.checked)">
+      ${s.name}
+    </label>`).join('');
+}
+
+function renderSweep(statusData){
+  if(!statusData) return;
+  const next  = statusData.next_sweep || {};
+  const stats = statusData.stats      || {};
+
+  const nextTime = next.next_sweep_time;
+  setText('sweep-next-time', nextTime ? fmtDate(nextTime) : 'Calculating…');
+  el('sweep-mode-label').textContent = stats.sweep_enabled ? 'LIVE' : 'DRY-RUN';
+  el('sweep-mode-label').style.color  = stats.sweep_enabled ? '#00ff41' : '#ffcc00';
+
+  // countdown
+  if(next.seconds_until_sweep != null){
+    const s = next.seconds_until_sweep;
+    const h = Math.floor(s/3600), m = Math.floor((s%3600)/60);
+    setText('sweep-countdown', `In ${h}h ${m}m (${next.sweep_timezone||''})`);
+  }
+
+  setText('sweep-atom-total',   fmtAtom(stats.total_atom_accumulated));
+  setText('sweep-usd-total',    fmt$(stats.total_usd_swept));
+  setText('sweep-executions',   (stats.total_sweeps_executed||0)+' sweeps executed');
+  setText('sweep-apy',          stats.atom_staking_apy != null ? fmtPct(stats.atom_staking_apy) : '—%');
+}
+
+function renderAtomBalance(d){
+  if(!d) return;
+  setText('atom-staked',    fmtAtom(d.atom_staked));
+  setText('atom-apy',       'APY: '+(d.staking_apy != null ? fmtPct(d.staking_apy) : '—'));
+  setText('atom-usd-swept', 'Total swept: '+fmt$(d.total_usd_swept));
+}
+
+function renderSweepHistory(list){
+  const tbody = el('sweep-history-tbody');
+  if(!tbody) return;
+  if(!list || !list.length){
+    tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--text-tertiary);padding:1rem">No sweep history yet</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(r=>{
+    const statusColors = {executed:'#00ff41',dry_run:'#ffcc00',skipped:'#888',failed:'#ff4444',partial:'#ff8800'};
+    const c = statusColors[r.status]||'#888';
+    return `<tr>
+      <td style="font-size:var(--text-xs);color:var(--text-tertiary)">${fmtDate(r.timestamp)}</td>
+      <td><span style="color:${c};font-weight:600;font-size:var(--text-xs)">${r.status.toUpperCase()}</span></td>
+      <td>${fmt$(r.sweep_amount_usd)}</td>
+      <td>${r.atom_purchased ? fmtAtom(r.atom_purchased) : '—'}</td>
+      <td>${r.atom_price_usd ? fmt$(r.atom_price_usd) : '—'}</td>
+      <td style="font-size:var(--text-xs);color:var(--text-tertiary)">${r.staking_tx_id || (r.dry_run?'DRY-RUN':'—')}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderStatus(d){
+  if(!d) return;
+  state.mode = d.mode || 'paper';
+  renderHeader();
+  // gates
+  const gates = d.live_gates||{};
+  const gateList = el('gates-list');
+  if(gateList){
+    const items = [
+      ['COINBASE_LIVE_MODE',    gates.gate_coinbase_live],
+      ['LIVE_TRADING_ENABLED',  gates.gate_live_enabled],
+      ['GRADUATED',             gates.gate_graduated],
+      ['EMERGENCY STOP SAFE',   gates.gate_emergency_stop],
+      ['API CONNECTION',        gates.gate_api_valid],
+    ];
+    gateList.innerHTML = items.map(([label,val])=>{
+      const pass = val==='pass';
+      const skip = val==='skip';
+      const icon = pass?'✓':skip?'↷':'✗';
+      const color = pass?'#00ff41':skip?'#888':'#ff4444';
+      return `<div style="color:${color}">${icon} ${label}</div>`;
+    }).join('');
+  }
+}
+
+// ── Actions ──────────────────────────────────────────────────────────────
+async function startOrchestrator(){
+  const btn = el('btn-start');
+  btn.disabled=true;
+  const d = await apiFetch('/api/trading/start', {method:'POST'});
+  btn.disabled=false;
+  if(d && d.success) toast('Orchestrator started ✓','success');
+  else toast('Could not start orchestrator','error');
+  await refreshAll();
+}
+
+async function stopOrchestrator(){
+  const btn = el('btn-stop');
+  btn.disabled=true;
+  const d = await apiFetch('/api/trading/stop', {method:'POST'});
+  btn.disabled=false;
+  if(d && d.success!==false) toast('Orchestrator stopped','info');
+  else toast('Stop command failed','error');
+  await refreshAll();
+}
+
+async function triggerSweep(){
+  const btn = el('btn-trigger-sweep');
+  btn.disabled=true;
+  const d = await apiFetch('/api/trading/sweep/trigger', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({dry_run: true}),
+  });
+  btn.disabled=false;
+  if(d && d.success){
+    const r = d.record||{};
+    toast(`Dry-run sweep: $${(r.sweep_amount_usd||0).toFixed(2)} sweepable (${r.status})`, 'info');
+  } else {
+    toast('Sweep trigger failed','error');
+  }
+  await loadSweepData();
+}
+
+function confirmEmergencyStop(){
+  if(confirm('⚠️ Are you sure you want to trigger EMERGENCY STOP?\nThis will halt all trading immediately.')){
+    toast('🚨 Emergency stop triggered!','error');
+    state.estop = true;
+    renderHeader();
+  }
+}
+
+function toggleStrategy(id, enabled){
+  if(enabled) state.enabledStrategies.add(id);
+  else        state.enabledStrategies.delete(id);
+  renderStrategies();
+  toast(`Strategy ${id} ${enabled?'enabled':'paused'}`, 'info');
+}
+
+// ── Data loading ─────────────────────────────────────────────────────────
+async function loadTradingStatus(){
+  const d = await apiFetch('/api/trading/status');
+  if(d) renderStatus(d);
+  const portfolio = (d && d.portfolio) ? d.portfolio : await apiFetch('/api/trading/portfolio');
+  renderPortfolio(portfolio);
+}
+
+async function loadPositions(){
+  const d = await apiFetch('/api/trading/positions');
+  renderPositions(d ? d.positions : []);
+}
+
+async function loadTrades(){
+  const d = await apiFetch('/api/trading/trades');
+  renderTrades(d ? d.trades : []);
+}
+
+async function loadSweepData(){
+  const [status, history, atom] = await Promise.all([
+    apiFetch('/api/trading/sweep/status'),
+    apiFetch('/api/trading/sweep/history'),
+    apiFetch('/api/trading/sweep/atom-balance'),
+  ]);
+  renderSweep(status);
+  renderSweepHistory(history ? history.history : []);
+  renderAtomBalance(atom);
+  // estimate — use starting_capital from portfolio API (not hardcoded)
+  const stats = (status && status.stats) || {};
+  const portfolio = (await apiFetch('/api/trading/portfolio')) || {};
+  const pv = portfolio.total_value_usd || 0;
+  const sc = portfolio.starting_capital || 10000;
+  const gross = Math.max(0, pv - sc);
+  const est = gross * (1 - (stats.cash_reserve_pct||20)/100);
+  setText('sweep-estimate', est > 0 ? fmt$(est) : '$0.00');
+}
+
+async function refreshAll(){
+  await Promise.all([
+    loadTradingStatus(),
+    loadPositions(),
+    loadTrades(),
+    loadSweepData(),
+  ]);
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async()=>{
+  renderStrategies();
+  renderHeader();
+  await refreshAll();
+  // Auto-refresh every 30 seconds
+  setInterval(refreshAll, 30_000);
+  // Countdown tick
+  setInterval(()=>{
+    const cd = el('sweep-countdown');
+    if(!cd || !cd.textContent.startsWith('In ')) return;
+    const m = cd.textContent.match(/In (\d+)h (\d+)m/);
+    if(!m) return;
+    let [h,min] = [+m[1],+m[2]];
+    if(min > 0) min--;
+    else { h--; min=59; }
+    if(h < 0) return;
+    const rest = cd.textContent.split('(')[1]||'';
+    cd.textContent = `In ${h}h ${min}m${rest?'('+rest:''}`;
+  }, 60_000);
+});
+</script>
+</body>
+</html>
