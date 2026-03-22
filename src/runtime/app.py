@@ -452,6 +452,14 @@ def create_app() -> FastAPI:
     except Exception as _bill_exc:
         logger.warning("Billing API not available: %s", _bill_exc)
 
+    # ── Grants, Tax Credits & Financing API ──────────────────────────
+    try:
+        from src.billing.grants.api import router as _grants_router
+        app.include_router(_grants_router)
+        logger.info("Grants API registered at /api/grants")
+    except Exception as _grants_exc:
+        logger.warning("Grants API not available: %s", _grants_exc)
+
     # ── Trading Automation (PR 4) ─────────────────────────────────────
     try:
         from trading_routes import create_trading_router
