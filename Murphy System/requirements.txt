@@ -49,7 +49,13 @@ yfinance>=0.2.31,<2.0.0
 alpaca-py>=0.20.0,<1.0.0
 alpha_vantage>=2.3.1,<4.0.0
 polygon-api-client>=1.12.0,<2.0.0
+iexfinance>=0.5.0,<1.0.0
 ta>=0.11.0,<1.0.0
+
+# Binance exchange feed
+python-binance>=1.0.16,<2.0.0
+# Interactive Brokers — optional, requires IB TWS/Gateway running locally
+# ib_insync>=0.9.70,<1.0.0  # Install manually if needed
 
 # Matrix bot integration (Synapse / Dendrite)
 matrix-nio[e2e]>=0.24.0,<1.0.0

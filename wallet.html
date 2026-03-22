@@ -655,8 +655,8 @@
             var usdEl = card.querySelector('.asset-usd');
             var changeEl = card.querySelector('.asset-change');
             if (usdEl && q.price > 0) {
-              var bal = parseFloat(card.querySelector('.asset-balance')
-                ? card.querySelector('.asset-balance').textContent.split(' ')[0].replace(',','') : '0');
+              var balEl = card.querySelector('.asset-balance');
+              var bal = parseFloat(balEl ? balEl.textContent.split(' ')[0].replace(',','') : '0');
               usdEl.textContent = '\u2248 $' + (bal * q.price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
             }
             if (changeEl && q.change_pct_24h !== undefined) {

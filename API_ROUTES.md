@@ -458,15 +458,30 @@ Dev mode: Auth is disabled when `MURPHY_API_KEY` is unset.
 
 ## Live Market Data Feed (FastAPI — src/runtime/app.py)
 
+Providers: **Crypto** — Coinbase → Binance → CCXT | **Equity** — Yahoo Finance → Alpaca → Alpha Vantage → Polygon → IEX Cloud → IBKR
+
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | GET | /api/market/quote/{symbol} | Yes | Live quote for any symbol (crypto or equity) |
 | GET | /api/market/candles/{symbol} | Yes | OHLCV candles — `?granularity=ONE_HOUR&limit=100` |
 | GET | /api/market/movers | Yes | Top market movers — `?asset_class=all&limit=10` |
 | GET | /api/market/search | Yes | Search instruments — `?q=bitcoin` |
-| GET | /api/market/status | Yes | Live feed service status |
+| GET | /api/market/status | Yes | Live feed service status (shows all provider WS state) |
 | GET | /api/market/instruments | Yes | List all known tradeable instruments |
-| WebSocket | /ws/market/{symbol} | No | Live price stream — sends `{symbol, price, timestamp}` every 2 s |
+| WebSocket | /ws/market/{symbol} | No | Live price stream — sends `{symbol, price, bid, ask, change_pct_24h, timestamp}` every 2 s |
+
+---
+
+## Trading Compliance (FastAPI — src/runtime/app.py)
+
+Mandatory gate before live trading is permitted. All checks must pass.
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /api/trading/compliance/status | Yes | Latest compliance evaluation result |
+| POST | /api/trading/compliance/evaluate | Yes | Run full compliance check — body: `{jurisdiction, kyc_acknowledged, regulations_acknowledged, paper_trading_days, …}` |
+| GET | /api/trading/compliance/graduation | Yes | Paper-trading graduation tracker summary + daily history |
+| POST | /api/trading/compliance/graduation/record | Yes | Record a completed paper-trading day — body: `{date, start_equity, end_equity, trades}` |
 
 ---
 

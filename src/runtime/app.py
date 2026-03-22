@@ -7117,18 +7117,37 @@ def create_app() -> FastAPI:
 
     @app.get("/api/coinbase/status")
     async def coinbase_status():
-        """Return Coinbase connection status and sandbox mode indicator."""
+        """Return Coinbase connection status, sandbox indicator, and compliance summary."""
         cb = _get_coinbase_connector()
         if cb is None:
             return JSONResponse({"success": False, "error": "connector_unavailable"}, 503)
         import os as _os
         live_mode = _os.getenv("COINBASE_LIVE_MODE", "false").lower() == "true"
+        # Quick compliance snapshot
+        compliance_allowed = False
+        compliance_blockers = 0
+        try:
+            import sys as _sys
+            _src = _os.path.join(_os.path.dirname(__file__), "..")
+            if _src not in _sys.path:
+                _sys.path.insert(0, _src)
+            from trading_compliance_engine import get_compliance_engine
+            _ce = get_compliance_engine()
+            _last = _ce.last_report()
+            if _last is not None:
+                compliance_allowed = _last.live_mode_allowed
+                compliance_blockers = len(_last.blockers())
+        except Exception:
+            pass
         return JSONResponse({
-            "success":    True,
-            "sandbox":    cb.sandbox,
-            "live_mode":  live_mode,
-            "status":     cb.status.value,
-            "api_key_set": bool(cb.api_key),
+            "success":              True,
+            "sandbox":              cb.sandbox,
+            "live_mode":            live_mode,
+            "status":               cb.status.value,
+            "api_key_set":          bool(cb.api_key),
+            "compliance_evaluated": compliance_allowed or compliance_blockers > 0,
+            "compliance_passed":    compliance_allowed,
+            "compliance_blockers":  compliance_blockers,
         })
 
     @app.get("/api/coinbase/accounts")
@@ -7186,10 +7205,16 @@ def create_app() -> FastAPI:
             _cb = CoinbaseConnector()
             return get_live_feed(
                 coinbase_connector=_cb,
+                binance_key=_os.getenv("BINANCE_API_KEY", ""),
+                binance_secret=_os.getenv("BINANCE_API_SECRET", ""),
                 alpaca_key=_os.getenv("ALPACA_API_KEY", ""),
                 alpaca_secret=_os.getenv("ALPACA_API_SECRET", ""),
                 alpha_vantage_key=_os.getenv("ALPHA_VANTAGE_API_KEY", ""),
                 polygon_key=_os.getenv("POLYGON_API_KEY", ""),
+                iex_cloud_key=_os.getenv("IEX_CLOUD_API_KEY", ""),
+                ibkr_host=_os.getenv("IBKR_HOST", "127.0.0.1"),
+                ibkr_port=int(_os.getenv("IBKR_PORT", "7497")),
+                ibkr_client_id=int(_os.getenv("IBKR_CLIENT_ID", "1")),
             )
         except Exception as _exc:
             logger.warning("LiveFeedService unavailable: %s", _exc)
@@ -7338,7 +7363,154 @@ def create_app() -> FastAPI:
         except WebSocketDisconnect:
             pass
 
-    # ==================== ACCOUNT / SUBSCRIPTION ENDPOINTS ====================
+    # ==================== TRADING COMPLIANCE ENDPOINTS ====================
+
+    def _get_compliance_engine():
+        try:
+            import sys as _sys
+            import os as _os
+            _src = _os.path.join(_os.path.dirname(__file__), "..")
+            if _src not in _sys.path:
+                _sys.path.insert(0, _src)
+            from trading_compliance_engine import get_compliance_engine as _gce
+            return _gce()
+        except Exception as _exc:
+            logger.warning("ComplianceEngine unavailable: %s", _exc)
+            return None
+
+    @app.get("/api/trading/compliance/status")
+    async def trading_compliance_status():
+        """Return the latest compliance evaluation result."""
+        ce = _get_compliance_engine()
+        if ce is None:
+            return JSONResponse({"success": False, "error": "compliance_engine_unavailable"}, 503)
+        last = ce.last_report()
+        if last is None:
+            return JSONResponse({
+                "success": True,
+                "evaluated": False,
+                "live_mode_allowed": False,
+                "message": "No compliance evaluation has been run. POST /api/trading/compliance/evaluate to run one.",
+            })
+        return JSONResponse({"success": True, "evaluated": True, **last.to_dict()})
+
+    @app.post("/api/trading/compliance/evaluate")
+    async def trading_compliance_evaluate(request: Request):
+        """
+        Run a full compliance evaluation.
+
+        Body (JSON, all optional):
+          jurisdiction              : str  — e.g. "us", "eu", "personal"
+          kyc_acknowledged          : bool
+          regulations_acknowledged  : bool
+          paper_trading_days        : int
+          paper_trading_profitable_days : int
+          paper_trading_win_rate    : float (0.0–1.0)
+          paper_trading_total_return_pct : float
+          override_paper_graduation : bool  — privileged override
+        """
+        ce = _get_compliance_engine()
+        if ce is None:
+            return JSONResponse({"success": False, "error": "compliance_engine_unavailable"}, 503)
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        # Also pull summary from graduation tracker if available
+        try:
+            import sys as _sys
+            import os as _os
+            _src = _os.path.join(_os.path.dirname(__file__), "..")
+            if _src not in _sys.path:
+                _sys.path.insert(0, _src)
+            from trading_compliance_engine import get_graduation_tracker
+            _gt = get_graduation_tracker()
+            _gs = _gt.summary()
+            # Auto-populate paper trading stats from tracker if not provided in body
+            body.setdefault("paper_trading_days", _gs["total_days"])
+            body.setdefault("paper_trading_profitable_days", _gs["profitable_days"])
+            body.setdefault("paper_trading_win_rate", _gs["win_rate"])
+            body.setdefault("paper_trading_total_return_pct", _gs["total_return_pct"])
+        except Exception:
+            pass
+        report = ce.evaluate(
+            jurisdiction=body.get("jurisdiction", ""),
+            kyc_acknowledged=bool(body.get("kyc_acknowledged", False)),
+            regulations_acknowledged=bool(body.get("regulations_acknowledged", False)),
+            paper_trading_days=int(body.get("paper_trading_days", 0)),
+            paper_trading_profitable_days=int(body.get("paper_trading_profitable_days", 0)),
+            paper_trading_win_rate=float(body.get("paper_trading_win_rate", 0.0)),
+            paper_trading_total_return_pct=float(body.get("paper_trading_total_return_pct", 0.0)),
+            override_paper_graduation=bool(body.get("override_paper_graduation", False)),
+        )
+        return JSONResponse({"success": True, **report.to_dict()})
+
+    @app.get("/api/trading/compliance/graduation")
+    async def trading_compliance_graduation():
+        """Return paper-trading graduation tracker summary and daily history."""
+        try:
+            import sys as _sys
+            import os as _os
+            _src = _os.path.join(_os.path.dirname(__file__), "..")
+            if _src not in _sys.path:
+                _sys.path.insert(0, _src)
+            from trading_compliance_engine import get_graduation_tracker
+            gt = get_graduation_tracker()
+            summary = gt.summary()
+            results = [
+                {
+                    "date": r.date,
+                    "start_equity": r.start_equity,
+                    "end_equity": r.end_equity,
+                    "trades": r.trades,
+                    "profitable": r.profitable,
+                }
+                for r in gt.all_results()
+            ]
+            return JSONResponse({
+                "success": True,
+                "summary": summary,
+                "meets_threshold": gt.meets_graduation_threshold(),
+                "daily_results": results,
+            })
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)})
+
+    @app.post("/api/trading/compliance/graduation/record")
+    async def trading_compliance_graduation_record(request: Request):
+        """
+        Record a completed paper-trading day for graduation tracking.
+
+        Body (JSON):
+          date         : str   — YYYY-MM-DD (optional, defaults to today UTC)
+          start_equity : float — portfolio value at start of day
+          end_equity   : float — portfolio value at end of day
+          trades       : int   — number of trades executed
+        """
+        try:
+            import sys as _sys
+            import os as _os
+            _src = _os.path.join(_os.path.dirname(__file__), "..")
+            if _src not in _sys.path:
+                _sys.path.insert(0, _src)
+            from trading_compliance_engine import get_graduation_tracker
+            body = await request.json()
+            gt = get_graduation_tracker()
+            result = gt.record_day(
+                date=body.get("date"),
+                start_equity=float(body.get("start_equity", 0)),
+                end_equity=float(body.get("end_equity", 0)),
+                trades=int(body.get("trades", 0)),
+            )
+            return JSONResponse({
+                "success": True,
+                "date": result.date,
+                "profitable": result.profitable,
+                "summary": gt.summary(),
+            })
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)})
+
 
     _account_data: Dict[str, Any] = {
         "id": "acct_default",
