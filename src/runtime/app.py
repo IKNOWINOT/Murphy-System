@@ -6074,6 +6074,15 @@ def create_app() -> FastAPI:
     except Exception as _kh_exc:
         logger.warning("Key harvester router not available: %s", _kh_exc)
 
+    # ── Paper Trading Engine (PR-2) ────────────────────────────────────
+    try:
+        from paper_trading_routes import create_paper_trading_router
+        _pt_router = create_paper_trading_router()
+        app.include_router(_pt_router)
+        logger.info("Paper Trading API registered at /api/trading/*")
+    except Exception as _pt_exc:
+        logger.warning("Paper Trading routes not available: %s", _pt_exc)
+
     # ==================== ALL HANDS MEETING SYSTEM ====================
 
     try:
@@ -6916,6 +6925,7 @@ def create_app() -> FastAPI:
             "/ui/calendar": "calendar.html",
             "/ui/meeting-intelligence": "meeting_intelligence.html",
             "/ui/ambient": "ambient_intelligence.html",
+            "/ui/paper-trading": "paper_trading_dashboard.html",
         }
 
         # ── Route classification: public vs auth-required ──────────
