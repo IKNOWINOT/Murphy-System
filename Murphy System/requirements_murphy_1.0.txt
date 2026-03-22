@@ -213,3 +213,12 @@ tomli>=2.0.0;python_version<'3.11'
 
 # Protective floor — if weasyprint IS installed, ensure tinycss2 is compatible
 tinycss2>=1.5.0
+
+# ─── Integration SDKs (world-model connectors) ──────────────────────────────
+slack-sdk>=3.27.0,<4.0.0
+twilio>=9.0.0,<10.0.0
+simple-salesforce>=1.12.0,<2.0.0
+notion-client>=2.2.0,<3.0.0
+jira>=3.8.0,<4.0.0
+pyairtable>=2.3.0,<3.0.0
+PyGithub>=2.3.0,<3.0.0
