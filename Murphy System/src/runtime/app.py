@@ -428,8 +428,7 @@ def create_app() -> FastAPI:
 
     # ── Grants, Tax Credits & Financing API ──────────────────────────
     try:
-        from src.billing.grants.api import create_grants_router
-        _grants_router = create_grants_router()
+        from src.billing.grants.api import router as _grants_router
         app.include_router(_grants_router)
         logger.info("Grants API registered at /api/grants")
     except Exception as _grants_exc:
