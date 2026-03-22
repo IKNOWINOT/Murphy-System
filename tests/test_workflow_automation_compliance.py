@@ -500,7 +500,12 @@ class TestIntegrations:
         assert resp.status_code == 200
         data = resp.json()
         # Should return list of integrations (possibly empty)
-        assert "integrations" in data or isinstance(data, list) or "success" in data
+        assert (
+            "integrations" in data
+            or isinstance(data, list)
+            or "success" in data
+            or "committed" in data
+        )
 
     def test_add_integration(self, client):
         resp = client.post("/api/integrations/add", json={

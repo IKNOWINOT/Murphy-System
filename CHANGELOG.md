@@ -5,7 +5,95 @@ All notable changes to Murphy System will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — Live Feeds: Binance, IBKR, IEX Cloud + Regulatory Compliance Engine
+
+### Added
+- **Binance feed** (`src/live_feed_service.py` `CryptoFeed`): REST ticker/candles/movers (public endpoint, no key required) + WebSocket combined miniticker stream via `start_binance_websocket()`
+- **IEX Cloud feed** (`EquityFeed._quote_via_iex`): `iexfinance` SDK + HTTP fallback; sandbox and production tiers supported (key prefix `T` = sandbox)
+- **IBKR feed** (`EquityFeed._quote_via_ibkr`): Interactive Brokers via `ib_insync`; requires IB TWS or IB Gateway running locally; graceful skip when not available
+- **Alpaca WebSocket** (`EquityFeed._alpaca_ws_loop` + `LiveFeedService.start_alpaca_websocket()`): live equity trade stream via Alpaca market data WS
+- **`src/trading_compliance_engine.py`**: Mandatory 7-check regulatory compliance gate — env config, live-mode flag, jurisdiction, regulations/KYC acknowledgement, paper-trading graduation, risk parameters, personal-use notice. Also `PaperTradingGraduationTracker` for persistent daily P&L tracking
+- **API routes** (4 new): `GET /api/trading/compliance/status`, `POST /api/trading/compliance/evaluate`, `GET /api/trading/compliance/graduation`, `POST /api/trading/compliance/graduation/record`
+- **Compliance wired into** `GET /api/coinbase/status`: response now includes `compliance_evaluated`, `compliance_passed`, `compliance_blockers`
+- **SDK requirements**: `python-binance`, `iexfinance` added; `ib_insync` documented as optional manual install
+- **`.env.example`**: `BINANCE_API_KEY/SECRET`, `IEX_CLOUD_API_KEY`, `IBKR_HOST/PORT/CLIENT_ID`, `COMPLIANCE_MIN_*` thresholds
+
+### Changed
+- `LiveFeedService.__init__`: new params `binance_key`, `binance_secret`, `iex_cloud_key`, `ibkr_host`, `ibkr_port`, `ibkr_client_id`
+- `LiveFeedService.status()`: now reports per-exchange WebSocket state (`crypto_ws.coinbase`, `crypto_ws.binance`, `equity_ws.alpaca`)
+- `_get_live_feed()` in app.py: passes all new env vars to `LiveFeedService`
+- Crypto provider priority: Coinbase → **Binance** → CCXT (was Coinbase → CCXT)
+- Equity provider priority: Yahoo → Alpaca → Alpha Vantage → Polygon → **IEX Cloud** → **IBKR** → stub
+
+## [Unreleased] — Coinbase SDK Integration + Live Market Data Feeds (PR 1)
+
+### Added
+- **Coinbase Advanced Trade API** (`src/coinbase_connector.py`): HMAC-SHA256 auth, REST + WebSocket, sandbox-first (COINBASE_LIVE_MODE=true required for live), helper methods `get_accounts`, `get_ticker`, `place_market_order`, `place_limit_order`, `cancel_order`, `get_product_candles`
+- **Live Market Data Feed** (`src/live_feed_service.py`): Unified crypto + equity price service — Coinbase → CCXT for crypto; Yahoo Finance → Alpaca → Alpha Vantage → Polygon for equities; WebSocket live streaming; process-wide singleton
+- **API routes**: `/api/coinbase/*` (5 routes), `/api/market/*` (6 REST + 1 WebSocket)
+- **Wallet UI**: Coinbase Connection panel with sandbox indicator, live balance display, connect/refresh buttons wired to `/api/coinbase/*`
+- **SDK requirements**: `coinbase-advanced-py`, `ccxt`, `web3`, `websocket-client`, `yfinance`, `alpaca-py`, `alpha_vantage`, `polygon-api-client`, `ta`, `tweepy`, `slack-sdk`, `python-telegram-bot`, `hubspot-api-client`, `simple-salesforce`, `PyGithub`, `requests-oauthlib`, `authlib`
+- **`.env.example`**: Coinbase Advanced Trade keys, Alpaca, Alpha Vantage, Polygon.io market data keys
+
+### Changed
+- `src/coinbase_connector.py`: Default `sandbox=True` (was `False`); live mode requires `COINBASE_LIVE_MODE=true` env var
+- `Murphy System/` files synced with root (`coinbase_connector.py`, `wallet.html`, requirements)
+
 ## [Unreleased]
+
+### Added — Paper Trading Engine + Strategy Templates (PR-2)
+
+Full paper-trading simulation system with 9 strategy templates, hidden-cost detection,
+self-calibrating error correction, and backtesting harness.  All trading is
+PAPER/SIMULATED — no real money is moved.
+
+#### New files
+- **`src/paper_trading_engine.py`** — `PaperTradingEngine`: full simulator with
+  slippage model, tiered fee schedule, position tracking, FIFO trade journal,
+  stop-loss/take-profit price triggers, and the complete metric suite (Sharpe,
+  Sortino, max drawdown, profit factor, win rate, avg win/loss, total fees, net profit).
+  `reset()` restarts from initial capital. Default: $10,000.
+- **`src/strategy_templates/`** — 9 ready-to-use strategy templates:
+  - `momentum.py` — RSI + MACD crossover + volume confirmation
+  - `mean_reversion.py` — Bollinger Bands + Z-score mean reversion
+  - `breakout.py` — Support/resistance + volume breakout confirmation
+  - `scalping.py` — Short timeframe, tight stops, high-frequency entries
+  - `dca.py` — Dollar Cost Average (time-based or price-dip accumulation)
+  - `grid.py` — Grid trading (buy low / sell high within a configurable range)
+  - `trajectory.py` — Parabolic move detection with projected peak exit and trailing stop
+  - `sentiment.py` — Fear/greed index + social signal framework (contrarian entries)
+  - `arbitrage.py` — Cross-pair Z-score spread detection and mean reversion
+- **`src/cost_calibrator.py`** — `CostCalibrator`: tracks expected vs actual execution
+  prices; detects and quantifies spread, slippage, exchange fees, and network fees;
+  auto-adjusts future cost estimates; fires configurable alerts when costs exceed thresholds.
+- **`src/error_calibrator.py`** — `ErrorCalibrator`: per-strategy bias/MAE/RMSE tracking;
+  when divergence exceeds threshold, trims the rolling window, logs the calibration event,
+  and optionally calls a user-supplied recalibration hook.
+- **`src/backtester.py`** — `Backtester`: replays any `BaseStrategy` over historical OHLCV
+  data (from CSV, pre-loaded dicts, or yfinance); multi-timeframe support (1m/5m/15m/1h/4h/1d);
+  side-by-side strategy comparison ranked by Sharpe ratio; JSON-serialisable `BacktestResult`.
+- **`src/paper_trading_routes.py`** — FastAPI router (`/api/trading/*`) with 11 endpoints
+  for starting/stopping sessions, querying positions/trades/performance, listing strategies,
+  manual trade execution, backtest runs, and calibration summaries.
+- **`paper_trading_dashboard.html`** — Full paper trading dashboard at `/ui/paper-trading`:
+  live equity curve chart, open positions table, strategy performance comparison, trade journal,
+  hidden cost analysis, error calibration status, backtest panel, Murphy AI bar.
+- **`tests/test_paper_trading.py`** — 41 tests: open/close positions, P&L, fees, stop-loss/
+  take-profit triggers, reset, all performance metric keys, cost calibrator, error calibrator,
+  and backtester.
+- **`tests/test_strategies.py`** — 34 tests: all 9 strategies instantiate, produce valid
+  `Signal` objects (confidence 0–1, valid action enum), and respond correctly to uptrend,
+  downtrend, parabolic, and extreme-sentiment inputs.  Registry completeness test.
+
+#### Updated files
+- **`requirements_murphy_1.0.txt`** and **`Murphy System/requirements_murphy_1.0.txt`** —
+  uncommented/added: `coinbase-advanced-py>=1.8.2`, `ccxt>=4.5.0`, `web3>=7.0.0`,
+  `yfinance>=1.2.0`, `ta>=0.11.0`, `statsmodels>=0.14.0`.
+- **`src/runtime/app.py`** — added `paper_trading_routes` router registration at
+  `/api/trading/*`; added `/ui/paper-trading` → `paper_trading_dashboard.html` HTML route.
+- **`wallet.html`** — added Paper Trading quick-access section (card linking to dashboard,
+  live engine-status widget populated via `/api/trading/paper/status`).
+- **`API_ROUTES.md`** — documented all 11 paper trading endpoints and 9 strategy templates.
 
 ### Fixed — End-to-End Authentication Flow (Beta Launch Blocker)
 
