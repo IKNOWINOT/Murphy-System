@@ -12113,12 +12113,15 @@ class MurphySystem:
         runs in ``onboard`` (deterministic) mode using built-in system
         knowledge.
         """
+        # Providers that indicate onboard/local fallback mode (not external API)
+        _ONBOARD_PROVIDERS = frozenset(("onboard", "local", "local_fallback", "pattern_matcher"))
+        
         librarian = getattr(self, "librarian", None)
         llm_status = self._get_llm_status()
         # Check if using external LLM provider (not onboard/local)
         provider = llm_status.get("provider", "onboard")
         llm_mode = llm_status.get("mode", "onboard")
-        is_external_llm = provider not in ("onboard", "local", "local_fallback", "pattern_matcher") and llm_mode == "external_api"
+        is_external_llm = provider not in _ONBOARD_PROVIDERS and llm_mode == "external_api"
         mode = "llm" if is_external_llm else "onboard"
         return {
             "enabled": True,
