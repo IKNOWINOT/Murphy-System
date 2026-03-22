@@ -6,17 +6,23 @@ Live Market Data Feed Service — Murphy System
 
 Unified real-time and historical price feed for:
   - Crypto pairs    : Coinbase Advanced Trade (REST + WebSocket)
-  - Stock equities  : Yahoo Finance (free, no key) with Alpaca + Alpha Vantage + Polygon fallbacks
-  - Cross-asset     : Normalised quote / candle / ticker interface
+                      Binance REST + WebSocket (python-binance / HTTP fallback)
+                      CCXT multi-exchange fallback
+  - Stock equities  : Yahoo Finance (free, no key)
+                      Alpaca Markets (REST + WebSocket)
+                      Alpha Vantage (REST, free tier 500 req/day)
+                      Polygon.io (REST, free tier)
+                      IEX Cloud (REST, free tier)
+                      Interactive Brokers (IBKR) via ib_insync (requires TWS/Gateway)
 
 All providers are tried in priority order with graceful fallback.
 No external SDK is required — each provider has an HTTP fallback.
-WebSocket streaming is supported for Coinbase and Alpaca live feeds.
+WebSocket streaming is supported for Coinbase, Binance, and Alpaca.
 
 Architecture:
   LiveFeedService
-    ├── CryptoFeed      : Coinbase → CCXT fallback
-    └── EquityFeed      : Yahoo Finance → Alpaca → Alpha Vantage → Polygon
+    ├── CryptoFeed      : Coinbase → Binance → CCXT fallback
+    └── EquityFeed      : Yahoo → Alpaca → Alpha Vantage → Polygon → IEX → IBKR → stub
 
 Business Source License 1.1 (BSL 1.1)
 Copyright © 2020 Inoni Limited Liability Company
@@ -53,11 +59,14 @@ class AssetClass(Enum):
 class FeedProvider(Enum):
     """Data provider identifiers."""
     COINBASE      = "coinbase"
+    BINANCE       = "binance"
     CCXT          = "ccxt"
     YAHOO         = "yahoo"
     ALPACA        = "alpaca"
     ALPHA_VANTAGE = "alpha_vantage"
     POLYGON       = "polygon"
+    IEX_CLOUD     = "iex_cloud"
+    IBKR          = "ibkr"
     STUB          = "stub"
 
 
@@ -130,15 +139,18 @@ class CryptoFeed:
     """
     Real-time crypto price feed.
 
-    Provider priority: CoinbaseConnector → CCXT → stub.
+    Provider priority: CoinbaseConnector → Binance REST → CCXT → stub.
     All provider calls are wrapped with try/except so that import or network
     failures degrade gracefully to the next fallback.
     """
 
-    def __init__(self, coinbase_connector: Any = None) -> None:
+    def __init__(self, coinbase_connector: Any = None, binance_key: str = "", binance_secret: str = "") -> None:
         self._cb = coinbase_connector
+        self._binance_key = binance_key
+        self._binance_secret = binance_secret
         self._price_cache: Dict[str, LiveQuote] = {}
         self._lock = threading.Lock()
+        self._binance_ws_running: bool = False
 
     # ------------------------------------------------------------------
     # Public interface
@@ -148,8 +160,8 @@ class CryptoFeed:
         """
         Return a live quote for *symbol* (e.g. ``"BTC-USD"`` or ``"BTC/USD"``).
 
-        Tries CoinbaseConnector first, then CCXT, then returns a stub with
-        ``price=0.0`` so callers always get a valid object.
+        Tries CoinbaseConnector first, then Binance REST, then CCXT, then
+        returns a stub with ``price=0.0`` so callers always get a valid object.
         """
         symbol = symbol.upper().replace("/", "-")
 
@@ -160,14 +172,21 @@ class CryptoFeed:
                 self._price_cache[symbol] = quote
             return quote
 
-        # 2. CCXT
+        # 2. Binance REST
+        quote = self._quote_via_binance(symbol)
+        if quote is not None:
+            with self._lock:
+                self._price_cache[symbol] = quote
+            return quote
+
+        # 3. CCXT
         quote = self._quote_via_ccxt(symbol)
         if quote is not None:
             with self._lock:
                 self._price_cache[symbol] = quote
             return quote
 
-        # 3. Stub
+        # 4. Stub
         return self._stub_quote(symbol)
 
     def get_candles(
@@ -183,6 +202,10 @@ class CryptoFeed:
         if candles:
             return candles
 
+        candles = self._candles_via_binance(symbol, granularity, limit)
+        if candles:
+            return candles
+
         candles = self._candles_via_ccxt(symbol, granularity, limit)
         if candles:
             return candles
@@ -191,10 +214,35 @@ class CryptoFeed:
 
     def get_top_movers(self, limit: int = 10) -> List[MarketMover]:
         """Return the top *limit* crypto movers (gainers + losers)."""
+        movers = self._movers_via_binance(limit)
+        if movers:
+            return movers
         movers = self._movers_via_ccxt(limit)
         if movers:
             return movers
         return self._stub_movers(limit)
+
+    def start_binance_websocket(
+        self,
+        symbols: List[str],
+        callback: Callable[[str, float], None],
+    ) -> None:
+        """
+        Start a Binance combined stream WebSocket for *symbols*.
+
+        Each tick calls *callback(symbol, price)*. Runs in a daemon thread.
+        Falls back silently if ``websocket-client`` is not installed.
+        """
+        if self._binance_ws_running:
+            return
+        self._binance_ws_running = True
+        t = threading.Thread(
+            target=self._binance_ws_loop,
+            args=(symbols, callback),
+            daemon=True,
+            name="binance-ws",
+        )
+        t.start()
 
     # ------------------------------------------------------------------
     # Coinbase provider
@@ -259,6 +307,161 @@ class CryptoFeed:
         except Exception as exc:
             logger.debug("CryptoFeed Coinbase candles failed for %s: %s", symbol, exc)
             return []
+
+    # ------------------------------------------------------------------
+    # Binance provider (REST + WebSocket)
+    # ------------------------------------------------------------------
+
+    # Granularity → Binance interval string
+    _BINANCE_INTERVAL_MAP: Dict[str, str] = {
+        "ONE_MINUTE": "1m", "FIVE_MINUTE": "5m", "FIFTEEN_MINUTE": "15m",
+        "THIRTY_MINUTE": "30m", "ONE_HOUR": "1h", "TWO_HOUR": "2h",
+        "SIX_HOUR": "6h", "ONE_DAY": "1d",
+    }
+
+    def _binance_symbol(self, symbol: str) -> str:
+        """Convert ``BTC-USD`` → ``BTCUSDT`` for Binance API."""
+        # Strip known quote suffixes (longest first to avoid partial matches)
+        for suffix in ("-USDT", "-USD", "-BTC", "-ETH", "-USDC"):
+            if symbol.endswith(suffix):
+                return symbol[: -len(suffix)] + "USDT"
+        # Fallback: strip all dashes and append USDT
+        return symbol.replace("-", "") + "USDT"
+
+    def _quote_via_binance(self, symbol: str) -> Optional[LiveQuote]:
+        """Fetch quote via Binance REST API (public endpoint, no key required for ticker)."""
+        try:
+            import requests as _req  # noqa: PLC0415
+            bsym = self._binance_symbol(symbol)
+            url = f"https://api.binance.com/api/v3/ticker/24hr?symbol={bsym}"
+            resp = _req.get(url, timeout=5)
+            if resp.status_code != 200:
+                return None
+            d = resp.json()
+            return LiveQuote(
+                symbol=symbol,
+                asset_class=AssetClass.CRYPTO.value,
+                price=float(d.get("lastPrice", 0) or 0),
+                bid=float(d.get("bidPrice", 0) or 0),
+                ask=float(d.get("askPrice", 0) or 0),
+                volume_24h=float(d.get("volume", 0) or 0),
+                change_pct_24h=float(d.get("priceChangePercent", 0) or 0),
+                high_24h=float(d.get("highPrice", 0) or 0),
+                low_24h=float(d.get("lowPrice", 0) or 0),
+                provider=FeedProvider.BINANCE.value,
+            )
+        except Exception as exc:
+            logger.debug("CryptoFeed Binance quote failed for %s: %s", symbol, exc)
+            return None
+
+    def _candles_via_binance(
+        self, symbol: str, granularity: str, limit: int
+    ) -> List[LiveCandle]:
+        """Fetch OHLCV from Binance REST (public endpoint)."""
+        try:
+            import requests as _req  # noqa: PLC0415
+            bsym = self._binance_symbol(symbol)
+            interval = self._BINANCE_INTERVAL_MAP.get(granularity, "1h")
+            url = (
+                f"https://api.binance.com/api/v3/klines"
+                f"?symbol={bsym}&interval={interval}&limit={min(limit, 1000)}"
+            )
+            resp = _req.get(url, timeout=10)
+            if resp.status_code != 200:
+                return []
+            return [
+                LiveCandle(
+                    symbol=symbol,
+                    open_time=int(row[0] / 1000),
+                    open=float(row[1] or 0),
+                    high=float(row[2] or 0),
+                    low=float(row[3] or 0),
+                    close=float(row[4] or 0),
+                    volume=float(row[5] or 0),
+                    provider=FeedProvider.BINANCE.value,
+                )
+                for row in resp.json()
+            ]
+        except Exception as exc:
+            logger.debug("CryptoFeed Binance candles failed for %s: %s", symbol, exc)
+            return []
+
+    def _movers_via_binance(self, limit: int) -> List[MarketMover]:
+        """Fetch top movers from Binance 24hr ticker (public endpoint)."""
+        try:
+            import requests as _req  # noqa: PLC0415
+            resp = _req.get(
+                "https://api.binance.com/api/v3/ticker/24hr", timeout=10
+            )
+            if resp.status_code != 200:
+                return []
+            tickers = [
+                t for t in resp.json()
+                if str(t.get("symbol", "")).endswith("USDT")
+                and float(t.get("quoteVolume", 0) or 0) > 1_000_000
+            ]
+            tickers.sort(key=lambda t: abs(float(t.get("priceChangePercent", 0) or 0)), reverse=True)
+            return [
+                MarketMover(
+                    symbol=t["symbol"].replace("USDT", "-USD"),
+                    price=float(t.get("lastPrice", 0) or 0),
+                    change_pct=float(t.get("priceChangePercent", 0) or 0),
+                    volume=float(t.get("quoteVolume", 0) or 0),
+                    asset_class=AssetClass.CRYPTO.value,
+                )
+                for t in tickers[:limit]
+            ]
+        except Exception as exc:
+            logger.debug("CryptoFeed Binance movers failed: %s", exc)
+            return []
+
+    def _binance_ws_loop(
+        self, symbols: List[str], callback: Callable[[str, float], None]
+    ) -> None:
+        """Background thread: subscribe to Binance combined miniticker stream."""
+        try:
+            import websocket  # type: ignore  # noqa: PLC0415
+            import json as _json  # noqa: PLC0415
+        except ImportError as exc:
+            logger.warning("websocket-client not installed — Binance WS disabled: %s", exc)
+            self._binance_ws_running = False
+            return
+
+        # Build combined stream URL: <sym1>@miniTicker/<sym2>@miniTicker/...
+        streams = "/".join(
+            self._binance_symbol(s).lower() + "@miniTicker" for s in symbols
+        )
+        ws_url = f"wss://stream.binance.com:9443/stream?streams={streams}"
+
+        def on_message(ws: Any, raw: str) -> None:  # noqa: ANN001
+            try:
+                msg = _json.loads(raw)
+                data = msg.get("data", msg)
+                bsym = data.get("s", "")
+                price = float(data.get("c", 0) or 0)
+                if bsym and price:
+                    # Convert BTCUSDT → BTC-USD
+                    sym = bsym.replace("USDT", "-USD")
+                    callback(sym, price)
+            except Exception as exc:
+                logger.debug("Binance WS message error: %s", exc)
+
+        def on_error(ws: Any, err: Any) -> None:  # noqa: ANN001
+            logger.warning("Binance WS error: %s", err)
+
+        def on_close(ws: Any, code: Any, reason: Any) -> None:  # noqa: ANN001
+            logger.info("Binance WS closed — code=%s", code)
+            self._binance_ws_running = False
+
+        ws_app = websocket.WebSocketApp(
+            ws_url, on_message=on_message, on_error=on_error, on_close=on_close
+        )
+        try:
+            ws_app.run_forever(ping_interval=20, ping_timeout=10)
+        except Exception as exc:
+            logger.error("Binance WS loop terminated: %s", exc)
+        finally:
+            self._binance_ws_running = False
 
     # ------------------------------------------------------------------
     # CCXT provider
@@ -391,7 +594,7 @@ class EquityFeed:
     """
     Real-time equity/ETF/index price feed.
 
-    Provider priority: Yahoo Finance → Alpaca → Alpha Vantage → Polygon → stub.
+    Provider priority: Yahoo Finance → Alpaca → Alpha Vantage → Polygon → IEX Cloud → IBKR → stub.
     No API key is required for Yahoo Finance (free tier).
     """
 
@@ -401,11 +604,20 @@ class EquityFeed:
         alpaca_secret: str = "",
         alpha_vantage_key: str = "",
         polygon_key: str = "",
+        iex_cloud_key: str = "",
+        ibkr_host: str = "127.0.0.1",
+        ibkr_port: int = 7497,
+        ibkr_client_id: int = 1,
     ) -> None:
         self._alpaca_key = alpaca_key
         self._alpaca_secret = alpaca_secret
         self._av_key = alpha_vantage_key
         self._polygon_key = polygon_key
+        self._iex_key = iex_cloud_key
+        self._ibkr_host = ibkr_host
+        self._ibkr_port = ibkr_port
+        self._ibkr_client_id = ibkr_client_id
+        self._alpaca_ws_running: bool = False
         self._session = self._build_session()
 
     # ------------------------------------------------------------------
@@ -420,6 +632,8 @@ class EquityFeed:
             self._quote_via_alpaca,
             self._quote_via_alpha_vantage,
             self._quote_via_polygon,
+            self._quote_via_iex,
+            self._quote_via_ibkr,
         ):
             try:
                 quote = fn(symbol)
@@ -445,6 +659,28 @@ class EquityFeed:
         if movers:
             return movers
         return self._stub_movers(limit)
+
+    def start_alpaca_websocket(
+        self,
+        symbols: List[str],
+        callback: Callable[[str, float], None],
+    ) -> None:
+        """
+        Start an Alpaca market data WebSocket for *symbols*.
+
+        Calls *callback(symbol, price)* on each trade update.
+        Requires ALPACA_API_KEY and ALPACA_API_SECRET to be configured.
+        """
+        if self._alpaca_ws_running or not self._alpaca_key:
+            return
+        self._alpaca_ws_running = True
+        t = threading.Thread(
+            target=self._alpaca_ws_loop,
+            args=(symbols, callback),
+            daemon=True,
+            name="alpaca-ws",
+        )
+        t.start()
 
     # ------------------------------------------------------------------
     # Yahoo Finance provider
@@ -642,7 +878,169 @@ class EquityFeed:
             return None
 
     # ------------------------------------------------------------------
-    # Stubs
+    # IEX Cloud provider
+    # ------------------------------------------------------------------
+
+    def _quote_via_iex(self, symbol: str) -> Optional[LiveQuote]:
+        """Fetch quote from IEX Cloud (free sandbox or paid production tier)."""
+        if not self._iex_key:
+            return None
+        try:
+            # IEX Cloud: try iexfinance SDK first, then HTTP fallback
+            try:
+                import iexfinance.stocks as _iex  # type: ignore  # noqa: PLC0415
+                import os as _os  # noqa: PLC0415
+                _os.environ["IEX_TOKEN"] = self._iex_key
+                stock = _iex.Stock(symbol)
+                price = float(stock.get_price() or 0)
+                if price > 0:
+                    q_data = stock.get_quote()
+                    return LiveQuote(
+                        symbol=symbol,
+                        asset_class=AssetClass.EQUITY.value,
+                        price=price,
+                        bid=float(q_data.get("iexBidPrice", price) or price),
+                        ask=float(q_data.get("iexAskPrice", price) or price),
+                        volume_24h=float(q_data.get("latestVolume", 0) or 0),
+                        change_pct_24h=float(q_data.get("changePercent", 0) or 0) * 100,
+                        high_24h=float(q_data.get("high", price) or price),
+                        low_24h=float(q_data.get("low", price) or price),
+                        provider=FeedProvider.IEX_CLOUD.value,
+                    )
+            except (ImportError, Exception):
+                pass
+            # HTTP fallback — IEX Cloud v1 REST
+            base = (
+                "https://sandbox.iexapis.com/stable"
+                if self._iex_key.startswith("T")
+                else "https://cloud.iexapis.com/stable"
+            )
+            url = f"{base}/stock/{symbol}/quote?token={self._iex_key}"
+            if self._session is None:
+                import requests as _req  # noqa: PLC0415
+                resp = _req.get(url, timeout=5)
+            else:
+                resp = self._session.get(url, timeout=5)
+            if resp.status_code != 200:
+                return None
+            d = resp.json()
+            price = float(d.get("latestPrice", 0) or 0)
+            if not price:
+                return None
+            return LiveQuote(
+                symbol=symbol,
+                asset_class=AssetClass.EQUITY.value,
+                price=price,
+                bid=float(d.get("iexBidPrice", price) or price),
+                ask=float(d.get("iexAskPrice", price) or price),
+                volume_24h=float(d.get("latestVolume", 0) or 0),
+                change_pct_24h=float(d.get("changePercent", 0) or 0) * 100,
+                high_24h=float(d.get("high", price) or price),
+                low_24h=float(d.get("low", price) or price),
+                provider=FeedProvider.IEX_CLOUD.value,
+            )
+        except Exception as exc:
+            logger.debug("EquityFeed IEX Cloud quote failed for %s: %s", symbol, exc)
+            return None
+
+    # ------------------------------------------------------------------
+    # IBKR (Interactive Brokers) provider — requires TWS or IB Gateway
+    # ------------------------------------------------------------------
+
+    def _quote_via_ibkr(self, symbol: str) -> Optional[LiveQuote]:
+        """
+        Fetch a snapshot quote from Interactive Brokers via ib_insync.
+
+        Requires IB TWS or IB Gateway running locally and ``ib_insync``
+        installed.  This method is a last-resort fallback; timeout is kept
+        short so it does not block the provider waterfall.
+        """
+        try:
+            from ib_insync import IB, Stock  # type: ignore  # noqa: PLC0415
+            ib = IB()
+            ib.connect(self._ibkr_host, self._ibkr_port, clientId=self._ibkr_client_id + 100)
+            contract = Stock(symbol, "SMART", "USD")
+            ib.qualifyContracts(contract)
+            [ticker] = ib.reqTickers(contract)
+            price = float(ticker.marketPrice() or 0)
+            ib.disconnect()
+            if not price or price != price:  # NaN guard
+                return None
+            return LiveQuote(
+                symbol=symbol,
+                asset_class=AssetClass.EQUITY.value,
+                price=price,
+                bid=float(ticker.bid or price),
+                ask=float(ticker.ask or price),
+                volume_24h=float(ticker.volume or 0),
+                change_pct_24h=0.0,
+                high_24h=float(ticker.high or price),
+                low_24h=float(ticker.low or price),
+                provider=FeedProvider.IBKR.value,
+            )
+        except Exception as exc:
+            logger.debug("EquityFeed IBKR quote failed for %s: %s", symbol, exc)
+            return None
+
+    # ------------------------------------------------------------------
+    # Alpaca WebSocket loop
+    # ------------------------------------------------------------------
+
+    def _alpaca_ws_loop(
+        self, symbols: List[str], callback: Callable[[str, float], None]
+    ) -> None:
+        """Subscribe to Alpaca market data WebSocket feed (iex data source)."""
+        try:
+            import websocket  # type: ignore  # noqa: PLC0415
+            import json as _json  # noqa: PLC0415
+        except ImportError as exc:
+            logger.warning("websocket-client not installed — Alpaca WS disabled: %s", exc)
+            self._alpaca_ws_running = False
+            return
+
+        ws_url = "wss://stream.data.alpaca.markets/v2/iex"
+        auth_msg = _json.dumps({"action": "auth", "key": self._alpaca_key, "secret": self._alpaca_secret})
+        sub_msg = _json.dumps({"action": "subscribe", "trades": symbols})
+
+        def on_open(ws: Any) -> None:  # noqa: ANN001
+            ws.send(auth_msg)
+            ws.send(sub_msg)
+
+        def on_message(ws: Any, raw: str) -> None:  # noqa: ANN001
+            try:
+                msgs = _json.loads(raw)
+                for msg in (msgs if isinstance(msgs, list) else [msgs]):
+                    if msg.get("T") == "t":  # trade message
+                        sym = msg.get("S", "")
+                        price = float(msg.get("p", 0) or 0)
+                        if sym and price:
+                            callback(sym, price)
+            except Exception as exc:
+                logger.debug("Alpaca WS message error: %s", exc)
+
+        def on_error(ws: Any, err: Any) -> None:  # noqa: ANN001
+            logger.warning("Alpaca WS error: %s", err)
+
+        def on_close(ws: Any, code: Any, reason: Any) -> None:  # noqa: ANN001
+            logger.info("Alpaca WS closed — code=%s", code)
+            self._alpaca_ws_running = False
+
+        ws_app = websocket.WebSocketApp(
+            ws_url,
+            on_open=on_open,
+            on_message=on_message,
+            on_error=on_error,
+            on_close=on_close,
+        )
+        try:
+            ws_app.run_forever(ping_interval=20, ping_timeout=10)
+        except Exception as exc:
+            logger.error("Alpaca WS loop terminated: %s", exc)
+        finally:
+            self._alpaca_ws_running = False
+
+    # ------------------------------------------------------------------
+    # Equity stubs
     # ------------------------------------------------------------------
 
     def _stub_quote(self, symbol: str) -> LiveQuote:
@@ -708,17 +1106,31 @@ class LiveFeedService:
     def __init__(
         self,
         coinbase_connector: Any = None,
+        binance_key: str = "",
+        binance_secret: str = "",
         alpaca_key: str = "",
         alpaca_secret: str = "",
         alpha_vantage_key: str = "",
         polygon_key: str = "",
+        iex_cloud_key: str = "",
+        ibkr_host: str = "127.0.0.1",
+        ibkr_port: int = 7497,
+        ibkr_client_id: int = 1,
     ) -> None:
-        self._crypto = CryptoFeed(coinbase_connector=coinbase_connector)
+        self._crypto = CryptoFeed(
+            coinbase_connector=coinbase_connector,
+            binance_key=binance_key,
+            binance_secret=binance_secret,
+        )
         self._equity = EquityFeed(
             alpaca_key=alpaca_key,
             alpaca_secret=alpaca_secret,
             alpha_vantage_key=alpha_vantage_key,
             polygon_key=polygon_key,
+            iex_cloud_key=iex_cloud_key,
+            ibkr_host=ibkr_host,
+            ibkr_port=ibkr_port,
+            ibkr_client_id=ibkr_client_id,
         )
         self._subscriptions: Dict[str, List[Callable[[LiveQuote], None]]] = {}
         self._lock = threading.Lock()
@@ -811,6 +1223,54 @@ class LiveFeedService:
         except Exception as exc:
             logger.warning("LiveFeedService: Coinbase WS subscribe failed: %s", exc)
 
+    def start_binance_websocket(self, symbols: List[str]) -> None:
+        """
+        Start a Binance combined miniticker WebSocket for *symbols*.
+
+        Ticks are forwarded to all registered subscribers for each symbol.
+        Does not require API credentials (uses public stream endpoint).
+        """
+        def _on_binance_tick(sym: str, price: float) -> None:
+            quote = LiveQuote(
+                symbol=sym,
+                asset_class=AssetClass.CRYPTO.value,
+                price=price,
+                bid=price,
+                ask=price,
+                volume_24h=0.0,
+                change_pct_24h=0.0,
+                high_24h=0.0,
+                low_24h=0.0,
+                provider=FeedProvider.BINANCE.value,
+            )
+            self._notify(sym, quote)
+
+        self._crypto.start_binance_websocket(symbols, _on_binance_tick)
+
+    def start_alpaca_websocket(self, symbols: List[str]) -> None:
+        """
+        Start an Alpaca market data WebSocket for equity *symbols*.
+
+        Requires ALPACA_API_KEY and ALPACA_API_SECRET to be configured.
+        Ticks are forwarded to all registered subscribers.
+        """
+        def _on_alpaca_tick(sym: str, price: float) -> None:
+            quote = LiveQuote(
+                symbol=sym,
+                asset_class=AssetClass.EQUITY.value,
+                price=price,
+                bid=price,
+                ask=price,
+                volume_24h=0.0,
+                change_pct_24h=0.0,
+                high_24h=0.0,
+                low_24h=0.0,
+                provider=FeedProvider.ALPACA.value,
+            )
+            self._notify(sym, quote)
+
+        self._equity.start_alpaca_websocket(symbols, _on_alpaca_tick)
+
     def _on_coinbase_tick(self, data: dict) -> None:
         """Parse an incoming Coinbase WebSocket tick and notify subscribers."""
         try:
@@ -881,12 +1341,24 @@ class LiveFeedService:
                     FeedProvider.ALPACA.value,
                     FeedProvider.ALPHA_VANTAGE.value,
                     FeedProvider.POLYGON.value,
+                    FeedProvider.IEX_CLOUD.value,
+                    FeedProvider.IBKR.value,
                 ],
+                "crypto_ws": {
+                    "coinbase": self._ws_active,
+                    "binance": self._crypto._binance_ws_running,
+                },
+                "equity_ws": {
+                    "alpaca": self._equity._alpaca_ws_running,
+                },
             },
             "coinbase_connected": self._coinbase_connector is not None,
+            "binance_configured": bool(self._crypto._binance_key),
             "alpaca_configured": bool(self._equity._alpaca_key),
             "alpha_vantage_configured": bool(self._equity._av_key),
             "polygon_configured": bool(self._equity._polygon_key),
+            "iex_cloud_configured": bool(self._equity._iex_key),
+            "ibkr_configured": self._equity._ibkr_port != 0,
         }
 
 

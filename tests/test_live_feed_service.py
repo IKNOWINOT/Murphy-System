@@ -92,7 +92,7 @@ class TestFeedProviderEnum(unittest.TestCase):
     def test_all_providers_present(self):
         from live_feed_service import FeedProvider
         names = {p.value for p in FeedProvider}
-        expected = {"coinbase", "ccxt", "yahoo", "alpaca", "alpha_vantage", "polygon", "stub"}
+        expected = {"coinbase", "binance", "ccxt", "yahoo", "alpaca", "alpha_vantage", "polygon", "iex_cloud", "ibkr", "stub"}
         self.assertEqual(names, expected)
 
 
@@ -592,5 +592,191 @@ class TestGetTopMovers(unittest.TestCase):
         mock_em.assert_not_called()
 
 
+# ---------------------------------------------------------------------------
+# New providers: Binance, IEX Cloud, IBKR
+# ---------------------------------------------------------------------------
+
+class TestBinanceFeed(unittest.TestCase):
+    """CryptoFeed Binance REST provider."""
+
+    def test_binance_quote_returns_live_quote(self):
+        from live_feed_service import CryptoFeed, LiveQuote, FeedProvider
+        feed = CryptoFeed()
+        mock_data = {
+            "lastPrice": "65000.00",
+            "bidPrice": "64990.00",
+            "askPrice": "65010.00",
+            "volume": "1234.56",
+            "priceChangePercent": "2.5",
+            "highPrice": "66000.00",
+            "lowPrice": "63500.00",
+        }
+        with patch("requests.get") as mock_get:
+            mock_get.return_value.status_code = 200
+            mock_get.return_value.json.return_value = mock_data
+            quote = feed._quote_via_binance("BTC-USD")
+        self.assertIsNotNone(quote)
+        self.assertIsInstance(quote, LiveQuote)
+        self.assertAlmostEqual(quote.price, 65000.0)
+        self.assertEqual(quote.provider, FeedProvider.BINANCE.value)
+
+    def test_binance_quote_returns_none_on_error(self):
+        from live_feed_service import CryptoFeed
+        feed = CryptoFeed()
+        with patch("requests.get", side_effect=Exception("network error")):
+            result = feed._quote_via_binance("BTC-USD")
+        self.assertIsNone(result)
+
+    def test_binance_quote_returns_none_on_non_200(self):
+        from live_feed_service import CryptoFeed
+        feed = CryptoFeed()
+        with patch("requests.get") as mock_get:
+            mock_get.return_value.status_code = 429
+        result = feed._quote_via_binance("ETH-USD")
+        self.assertIsNone(result)
+
+    def test_binance_candles_returns_list(self):
+        from live_feed_service import CryptoFeed, LiveCandle, FeedProvider
+        feed = CryptoFeed()
+        raw_klines = [
+            [1700000000000, "64000", "65000", "63000", "64500", "100", 0, 0, 0, 0, 0, 0],
+            [1700003600000, "64500", "65500", "64000", "65000", "120", 0, 0, 0, 0, 0, 0],
+        ]
+        with patch("requests.get") as mock_get:
+            mock_get.return_value.status_code = 200
+            mock_get.return_value.json.return_value = raw_klines
+            candles = feed._candles_via_binance("BTC-USD", "ONE_HOUR", 100)
+        self.assertEqual(len(candles), 2)
+        self.assertIsInstance(candles[0], LiveCandle)
+        self.assertEqual(candles[0].provider, FeedProvider.BINANCE.value)
+
+    def test_binance_movers_returns_list(self):
+        from live_feed_service import CryptoFeed, MarketMover
+        feed = CryptoFeed()
+        mock_tickers = [
+            {"symbol": "BTCUSDT", "lastPrice": "65000", "priceChangePercent": "3.5",
+             "quoteVolume": "5000000000"},
+        ]
+        with patch("requests.get") as mock_get:
+            mock_get.return_value.status_code = 200
+            mock_get.return_value.json.return_value = mock_tickers
+            movers = feed._movers_via_binance(10)
+        self.assertIsInstance(movers, list)
+
+    def test_binance_symbol_conversion(self):
+        from live_feed_service import CryptoFeed
+        feed = CryptoFeed()
+        self.assertEqual(feed._binance_symbol("BTC-USD"), "BTCUSDT")
+        self.assertEqual(feed._binance_symbol("ETH-USDT"), "ETHUSDT")
+
+    def test_binance_ws_running_flag_initially_false(self):
+        from live_feed_service import CryptoFeed
+        feed = CryptoFeed()
+        self.assertFalse(feed._binance_ws_running)
+
+    def test_live_feed_service_has_binance_configured(self):
+        from live_feed_service import LiveFeedService
+        feed = LiveFeedService(binance_key="test_key", binance_secret="test_secret")
+        self.assertTrue(feed.status()["binance_configured"])
+
+    def test_live_feed_service_start_binance_ws_method_exists(self):
+        from live_feed_service import LiveFeedService
+        feed = LiveFeedService()
+        self.assertTrue(hasattr(feed, "start_binance_websocket"))
+        self.assertTrue(callable(feed.start_binance_websocket))
+
+
+class TestIEXCloudFeed(unittest.TestCase):
+    """EquityFeed IEX Cloud provider."""
+
+    def test_iex_returns_none_without_key(self):
+        from live_feed_service import EquityFeed
+        feed = EquityFeed()
+        result = feed._quote_via_iex("AAPL")
+        self.assertIsNone(result)
+
+    def test_iex_http_fallback_returns_quote(self):
+        from live_feed_service import EquityFeed, LiveQuote, FeedProvider
+        feed = EquityFeed(iex_cloud_key="Ttest_sandbox_key")
+        mock_response = {
+            "latestPrice": 185.5,
+            "iexBidPrice": 185.4,
+            "iexAskPrice": 185.6,
+            "latestVolume": 12345678,
+            "changePercent": 0.012,
+            "high": 187.0,
+            "low": 184.0,
+        }
+        with patch.object(feed._session, "get") as mock_get:
+            mock_get.return_value.status_code = 200
+            mock_get.return_value.json.return_value = mock_response
+            quote = feed._quote_via_iex("AAPL")
+        self.assertIsNotNone(quote)
+        self.assertAlmostEqual(quote.price, 185.5)
+        self.assertEqual(quote.provider, FeedProvider.IEX_CLOUD.value)
+
+    def test_iex_returns_none_on_non_200(self):
+        from live_feed_service import EquityFeed
+        feed = EquityFeed(iex_cloud_key="Ttest_key")
+        with patch.object(feed._session, "get") as mock_get:
+            mock_get.return_value.status_code = 403
+            result = feed._quote_via_iex("AAPL")
+        self.assertIsNone(result)
+
+    def test_iex_sandbox_url_for_T_prefix_key(self):
+        from live_feed_service import EquityFeed
+        feed = EquityFeed(iex_cloud_key="Tsandbox_test_key")
+        with patch.object(feed._session, "get") as mock_get:
+            mock_get.return_value.status_code = 200
+            mock_get.return_value.json.return_value = {"latestPrice": 100.0}
+            feed._quote_via_iex("MSFT")
+        call_url = mock_get.call_args[0][0]
+        self.assertIn("sandbox.iexapis.com", call_url)
+
+    def test_iex_cloud_configured_in_status(self):
+        from live_feed_service import LiveFeedService
+        feed = LiveFeedService(iex_cloud_key="Ttest_key")
+        self.assertTrue(feed.status()["iex_cloud_configured"])
+
+
+class TestIBKRFeed(unittest.TestCase):
+    """EquityFeed IBKR provider — graceful fallback when not available."""
+
+    def test_ibkr_returns_none_when_ib_insync_not_installed(self):
+        from live_feed_service import EquityFeed
+        feed = EquityFeed()
+        # ib_insync is not installed in test env — should gracefully return None
+        result = feed._quote_via_ibkr("AAPL")
+        self.assertIsNone(result)
+
+    def test_ibkr_configured_flag_in_status(self):
+        from live_feed_service import LiveFeedService
+        feed = LiveFeedService(ibkr_host="127.0.0.1", ibkr_port=7497)
+        # ibkr_configured = True when port != 0
+        self.assertTrue(feed.status()["ibkr_configured"])
+
+
+class TestAlpacaWebSocket(unittest.TestCase):
+    """EquityFeed Alpaca WebSocket."""
+
+    def test_alpaca_ws_running_initially_false(self):
+        from live_feed_service import EquityFeed
+        feed = EquityFeed()
+        self.assertFalse(feed._alpaca_ws_running)
+
+    def test_start_alpaca_ws_skips_without_key(self):
+        from live_feed_service import EquityFeed
+        feed = EquityFeed()
+        # Should not start (no key) — ws_running stays False
+        feed.start_alpaca_websocket(["AAPL"], lambda s, p: None)
+        self.assertFalse(feed._alpaca_ws_running)
+
+    def test_live_feed_start_alpaca_ws_method_exists(self):
+        from live_feed_service import LiveFeedService
+        feed = LiveFeedService()
+        self.assertTrue(hasattr(feed, "start_alpaca_websocket"))
+
+
 if __name__ == "__main__":
     unittest.main()
+
