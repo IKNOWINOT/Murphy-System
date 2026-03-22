@@ -1,0 +1,279 @@
+<!--
+  Murphy System — Financing Options Comparison
+  © 2020 Inoni Limited Liability Company by Corey Post
+  License: BSL 1.1 (Business Source License 1.1)
+  See LICENSE file in repository root for full terms.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — Financing Options</title>
+<meta name="description" content="Compare Wisetack, GreenSky, Affirm, C-PACE, PayPal Pay Later, and more financing options for your building automation or energy project.">
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
+<link rel="stylesheet" href="static/grant-wizard.css">
+</head>
+<body class="grant-page-wrap">
+
+<a class="murphy-skip-link" href="#financing-content">Skip to content</a>
+
+<!-- ── Top Navigation Bar ── -->
+<nav class="murphy-topbar" role="navigation" aria-label="Main navigation">
+  <div class="murphy-topbar-left flex items-center gap-3">
+    <a href="/ui/landing" class="murphy-topbar-brand">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect width="32" height="32" rx="8" fill="var(--teal)"/>
+        <text x="16" y="22" text-anchor="middle" fill="#0C1017" font-size="18" font-weight="700" font-family="Inter, sans-serif">M</text>
+      </svg>
+      <span class="murphy-topbar-brand-name">Murphy System</span>
+    </a>
+    <div class="murphy-nav-links nav-links-desktop">
+      <a href="/ui/landing"          class="murphy-btn murphy-btn-ghost murphy-btn-sm">Home</a>
+      <a href="/ui/terminal-unified" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Terminal</a>
+      <a href="/ui/onboarding"       class="murphy-btn murphy-btn-ghost murphy-btn-sm">Onboarding</a>
+      <a href="/ui/compliance"       class="murphy-btn murphy-btn-ghost murphy-btn-sm">Compliance</a>
+      <a href="#" aria-current="page" class="murphy-btn murphy-btn-ghost murphy-btn-sm" style="color:#00D4AA;">Financing &amp; Grants</a>
+    </div>
+  </div>
+  <div class="murphy-topbar-right flex items-center gap-2">
+    <a href="/ui/grant-wizard"    class="murphy-btn murphy-btn-ghost murphy-btn-sm">Find Grants</a>
+    <a href="/ui/grant-dashboard" class="murphy-btn murphy-btn-primary murphy-btn-sm">My Applications</a>
+  </div>
+</nav>
+
+<!-- ── Main Content ── -->
+<main id="financing-content" role="main" aria-label="Financing Options Comparison">
+  <div class="grant-wizard-container" style="max-width:1100px;">
+
+    <!-- ── Hero ── -->
+    <div class="grant-hero">
+      <div class="grant-hero-eyebrow" aria-hidden="true">💳 Financing Options</div>
+      <h1>Financing Options for <span>Your Project</span></h1>
+      <p class="grant-hero-sub">
+        Compare leading financing programs side by side. Layer grants and tax credits on top
+        to reduce your out-of-pocket cost to near zero.
+      </p>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:20px;">
+        <a href="/ui/grant-wizard" class="murphy-btn murphy-btn-primary">Find Grants to Layer On Top →</a>
+        <a href="/ui/grant-dashboard" class="murphy-btn murphy-btn-ghost murphy-btn-sm">My Applications</a>
+      </div>
+    </div>
+
+    <!-- ── Comparison Table ── -->
+    <div class="financing-table-wrap" role="region" aria-label="Financing comparison table">
+      <table class="financing-table" aria-describedby="table-desc">
+        <caption id="table-desc" style="display:none;">
+          Comparison of financing providers: Wisetack, GreenSky, Affirm, C-PACE, and PayPal Pay Later
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Feature</th>
+            <th scope="col">Wisetack</th>
+            <th scope="col" class="highlight-col">GreenSky</th>
+            <th scope="col">Affirm</th>
+            <th scope="col">C-PACE</th>
+            <th scope="col">PayPal Pay Later</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Amount Range</td>
+            <td>$500 – $25K</td>
+            <td class="highlight-col">$1K – $65K</td>
+            <td>$50 – $17.5K</td>
+            <td>Up to 100% project cost</td>
+            <td>Up to $10K</td>
+          </tr>
+          <tr>
+            <td>Term</td>
+            <td>3 – 60 months</td>
+            <td class="highlight-col">12 – 84 months</td>
+            <td>3 – 60 months</td>
+            <td>10 – 30 years</td>
+            <td>4 payments (6 weeks)</td>
+          </tr>
+          <tr>
+            <td>Rate</td>
+            <td>As low as 0%</td>
+            <td class="highlight-col">Varies by program</td>
+            <td>As low as 0% APR</td>
+            <td>Varies (typically below market)</td>
+            <td>0% if paid in 4 payments</td>
+          </tr>
+          <tr>
+            <td>Best For</td>
+            <td>Equipment &amp; systems</td>
+            <td class="highlight-col">Large commercial projects</td>
+            <td>Smaller purchases</td>
+            <td>Commercial real estate &amp; ESPC</td>
+            <td>Quick checkout, smaller jobs</td>
+          </tr>
+          <tr>
+            <td>Approval Speed</td>
+            <td>Instant (soft pull)</td>
+            <td class="highlight-col">Same day</td>
+            <td>Instant</td>
+            <td>2–8 weeks (underwriting)</td>
+            <td>Instant</td>
+          </tr>
+          <tr>
+            <td>Credit Check</td>
+            <td>Soft pull (no impact)</td>
+            <td class="highlight-col">Hard pull</td>
+            <td>Soft pull</td>
+            <td>Property-based (no personal)</td>
+            <td>Soft pull</td>
+          </tr>
+          <tr>
+            <td>Collateral</td>
+            <td>None</td>
+            <td class="highlight-col">None</td>
+            <td>None</td>
+            <td>Property lien (PACE assessment)</td>
+            <td>None</td>
+          </tr>
+          <tr>
+            <td>Eligible Sectors</td>
+            <td>Residential &amp; commercial</td>
+            <td class="highlight-col">Residential &amp; commercial</td>
+            <td>Residential</td>
+            <td>Commercial &amp; industrial</td>
+            <td>Residential &amp; small commercial</td>
+          </tr>
+          <tr>
+            <td>Apply</td>
+            <td>
+              <a href="https://wisetack.com" target="_blank" rel="noopener noreferrer"
+                 class="murphy-btn murphy-btn-ghost murphy-btn-sm" aria-label="Apply with Wisetack (opens new tab)">
+                Apply ↗
+              </a>
+            </td>
+            <td class="highlight-col">
+              <a href="https://greensky.com" target="_blank" rel="noopener noreferrer"
+                 class="murphy-btn murphy-btn-primary murphy-btn-sm" aria-label="Apply with GreenSky (opens new tab)">
+                Apply ↗
+              </a>
+            </td>
+            <td>
+              <a href="https://affirm.com" target="_blank" rel="noopener noreferrer"
+                 class="murphy-btn murphy-btn-ghost murphy-btn-sm" aria-label="Apply with Affirm (opens new tab)">
+                Apply ↗
+              </a>
+            </td>
+            <td>
+              <a href="https://pacenation.org/find-a-lender/" target="_blank" rel="noopener noreferrer"
+                 class="murphy-btn murphy-btn-ghost murphy-btn-sm" aria-label="Find a C-PACE lender (opens new tab)">
+                Find Lender ↗
+              </a>
+            </td>
+            <td>
+              <a href="https://www.paypal.com/us/webapps/mpp/paypal-installments" target="_blank" rel="noopener noreferrer"
+                 class="murphy-btn murphy-btn-ghost murphy-btn-sm" aria-label="Apply with PayPal Pay Later (opens new tab)">
+                Apply ↗
+              </a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div><!-- /financing-table-wrap -->
+
+    <p style="font-family:var(--font-ui,Inter,sans-serif);font-size:11px;color:var(--text-muted,#566778);margin:8px 0 40px;text-align:center;">
+      Rates and terms are subject to lender approval and may vary. Murphy System is not a lender. Apply directly with providers.
+    </p>
+
+    <!-- ── C-PACE & ESPC Explanation ── -->
+    <div class="info-section" aria-labelledby="pace-heading">
+      <h2 id="pace-heading">Understanding C-PACE &amp; ESPC Financing</h2>
+      <p>
+        Property Assessed Clean Energy (C-PACE) and Energy Savings Performance Contracts (ESPC) are
+        powerful financing tools designed specifically for energy efficiency, renewable energy,
+        and building automation upgrades — often with no upfront cost.
+      </p>
+
+      <div class="info-grid">
+        <div class="info-card">
+          <h4>🏢 C-PACE (Commercial PACE)</h4>
+          <p>
+            Repaid as a property tax assessment over 10–30 years. Available in 38+ states for
+            commercial, industrial, and multifamily properties. The assessment transfers with
+            the property on sale, making it attractive for building owners.
+          </p>
+          <p style="margin-top:8px;">
+            <strong style="color:var(--text-primary);">Best for:</strong> Large retrofits, BAS upgrades,
+            solar, HVAC, roofing, and EV charging infrastructure.
+          </p>
+        </div>
+
+        <div class="info-card">
+          <h4>⚡ ESPC (Energy Savings Performance Contract)</h4>
+          <p>
+            An ESPC lets you fund energy upgrades with zero upfront cost. An Energy Service Company
+            (ESCO) designs, installs, and guarantees the energy savings — the savings pay back the
+            project over time.
+          </p>
+          <p style="margin-top:8px;">
+            <strong style="color:var(--text-primary);">Best for:</strong> Federal, state, local
+            government, and institutional facilities. Murphy's BAS/BMS integration is ESPC-ready.
+          </p>
+        </div>
+
+        <div class="info-card">
+          <h4>💡 Stacking Strategy</h4>
+          <p>
+            The most powerful approach is to stack multiple programs: use a federal tax credit (IRA §48C)
+            to reduce net cost, layer a PACE assessment for the remainder, and capture utility rebates
+            as a lump-sum incentive at completion.
+          </p>
+          <p style="margin-top:8px;">
+            Murphy's grant wizard helps you identify every program you're eligible for so you can
+            optimize your stacking strategy before you break ground.
+          </p>
+        </div>
+
+        <div class="info-card">
+          <h4>📋 IRA &amp; IIJa Incentives (2023–2032)</h4>
+          <p>
+            The Inflation Reduction Act and Infrastructure Investment and Jobs Act created or expanded
+            dozens of incentives for energy efficiency and automation, including the §179D deduction,
+            §48C tax credit, and REAP grants for rural energy upgrades.
+          </p>
+          <p style="margin-top:8px;">
+            <strong style="color:var(--text-primary);">Bonus:</strong> Many incentives are
+            "direct pay" for tax-exempt entities — meaning nonprofits and government agencies
+            receive cash refunds.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CTA ── -->
+    <div style="background:var(--bg-elevated,#1A2332);border:1px solid var(--border-subtle,#1E2A3A);border-radius:16px;padding:40px 32px;text-align:center;margin-bottom:40px;">
+      <div style="font-size:32px;margin-bottom:16px;" aria-hidden="true">🚀</div>
+      <h2 style="font-family:var(--font-ui,Inter,sans-serif);font-size:1.4rem;font-weight:700;color:var(--text-primary,#E6ECF2);margin:0 0 10px;">
+        Ready to reduce your project cost?
+      </h2>
+      <p style="font-family:var(--font-ui,Inter,sans-serif);font-size:14px;color:var(--text-secondary,#8899AA);max-width:480px;margin:0 auto 24px;line-height:1.6;">
+        Let Murphy find every grant, tax credit, and rebate you qualify for.
+        Most customers unlock $15,000–$150,000+ in combined incentives.
+      </p>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+        <a href="/ui/grant-wizard" class="murphy-btn murphy-btn-primary" style="padding:12px 24px;font-size:15px;">
+          Find Grants to Layer On Top →
+        </a>
+        <a href="/ui/grant-dashboard" class="murphy-btn murphy-btn-ghost murphy-btn-sm">
+          View My Applications
+        </a>
+      </div>
+    </div>
+
+  </div><!-- /grant-wizard-container -->
+</main>
+
+<footer style="text-align:center;padding:32px 24px;font-family:var(--font-ui,Inter,sans-serif);font-size:12px;color:var(--text-muted,#566778);border-top:1px solid var(--border-subtle,#1E2A3A);">
+  © 2020 Inoni Limited Liability Company · Creator: Corey Post · License: BSL 1.1
+</footer>
+
+</body>
+</html>
