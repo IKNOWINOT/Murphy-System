@@ -66,12 +66,45 @@ except ImportError:
 
 # Placeholder strings that appear in template .env files but are not real keys.
 _PLACEHOLDER_KEY_VALUES = frozenset({
+    # Generic placeholders
     "your_groq_key_here", "your_openai_key_here",
-    # Placeholders used in .env.example
+    "your_key_here", "your-key-here", "change_me", "changeme", "xxx", "none",
+    # .env.example placeholders — AI / LLM
     "your_groq_api_key_here", "sk-your_openai_key_here",
     "sk-ant-your_anthropic_key_here",
-    "your_key_here", "your-key-here", "change_me",
-    "changeme", "xxx", "none",
+    # Communication
+    "sg.your_sendgrid_key_here",
+    "xoxb-your-slack-bot-token-here",
+    "your_twilio_auth_token_here",
+    "your_twilio_account_sid_here",
+    # CRM / Sales
+    "your_hubspot_api_key_here",
+    "your_pipedrive_token_here",
+    "your_salesforce_consumer_key_here",
+    # Payments
+    "sk_test_your_stripe_key_here",
+    # Dev / Hosting
+    "ghp_your_github_token_here",
+    # Monitoring
+    "your_datadog_api_key_here",
+    "your_pagerduty_api_key_here",
+    # Productivity
+    "secret_your_notion_key_here",
+    "your_jira_api_token_here",
+    "your_asana_access_token_here",
+    "your_monday_api_key_here",
+    "your_airtable_api_key_here",
+    # Cloud
+    "your_aws_access_key_id_here",
+    "your_aws_secret_access_key_here",
+    # Video / Meetings
+    "your_zoom_api_key_here",
+    # Analytics / Data
+    "your_google_analytics_api_key_here",
+    "your_openweather_api_key_here",
+    # Legacy
+    "your_aristotle_api_key_here",
+    "your_wulfrum_api_key_here",
 })
 
 DEFAULT_API_URL = "http://localhost:8000"
@@ -954,6 +987,13 @@ class MurphyTerminalApp(App):
         self._update_status_url()
         self._check_connection()
         self._check_api_key_on_startup()
+        # Ensure the input widget has focus so the user can type immediately.
+        # _check_api_key_on_startup focuses it when the gate triggers, but not
+        # when a key already exists — this call covers that case.
+        try:
+            self.query_one("#user-input", MurphyInput).focus()
+        except Exception:
+            pass
 
     # -- connection --
 
@@ -1102,6 +1142,11 @@ class MurphyTerminalApp(App):
             "  [green]set key groq gsk_yourKeyHere[/green]\n"
             "  [green]skip[/green] — continue in offline mode (limited functionality)\n"
         )
+        # Ensure the Input widget has focus so key presses are routed correctly
+        try:
+            self.query_one("#user-input", MurphyInput).focus()
+        except Exception:
+            pass
 
     def _handle_startup_key_input(self, message: str) -> None:
         """Handle user input during the first-run API key prompt."""
@@ -1464,18 +1509,11 @@ class MurphyTerminalApp(App):
         write_env_key(env_path, env_var, key_value)
         write_env_key(env_path, "MURPHY_LLM_PROVIDER", provider)
 
-        # Hot-reload into current process
+        # Hot-reload into current process — this ALWAYS happens, even if
+        # the backend is unreachable, so the key is immediately usable.
         os.environ[env_var] = key_value
         os.environ["MURPHY_LLM_PROVIDER"] = provider
         reload_env(env_path)
-
-        # Notify the backend to hot-reload its LLM config
-        configure_result = self.client.configure_llm(provider, key_value)
-        if not configure_result.get("success", False):
-            self._write_murphy(
-                f"[red]✗ Backend configure failed: {configure_result.get('error', 'unknown error')}[/red]"
-            )
-            return
 
         self._write_murphy(
             f"[bold green]✓ {provider.capitalize()} API key saved![/bold green]\n"
@@ -1483,20 +1521,28 @@ class MurphyTerminalApp(App):
             f"  .env    : [dim]{env_path}[/dim]"
         )
 
-        # Verify the key actually authenticates with the provider
-        test_result = self.client.llm_test()
-        if test_result.get("success"):
+        # Notify the backend to hot-reload its LLM config (best-effort)
+        configure_result = self.client.configure_llm(provider, key_value)
+        if not configure_result.get("success", False):
             self._write_murphy(
-                "[bold green]✓ Key verified — LLM is active and responding.[/bold green]\n"
-                "[dim]The key is active immediately — no restart needed.[/dim]"
+                f"[yellow]⚠ Backend configure failed: {configure_result.get('error', 'unknown error')}[/yellow]\n"
+                "[dim]Key is saved locally — will activate when backend reconnects.[/dim]"
             )
         else:
-            err = test_result.get("error", "unknown error")
-            self._write_murphy(
-                f"[yellow]⚠ Key saved but authentication failed: {err}[/yellow]\n"
-                "[dim]Please verify your key at "
-                "[link=https://console.groq.com/keys]https://console.groq.com/keys[/link][/dim]"
-            )
+            # Verify the key actually authenticates with the provider
+            test_result = self.client.llm_test()
+            if test_result.get("success"):
+                self._write_murphy(
+                    "[bold green]✓ Key verified — LLM is active and responding.[/bold green]\n"
+                    "[dim]The key is active immediately — no restart needed.[/dim]"
+                )
+            else:
+                err = test_result.get("error", "unknown error")
+                self._write_murphy(
+                    f"[yellow]⚠ Key saved but authentication failed: {err}[/yellow]\n"
+                    "[dim]Please verify your key at "
+                    "[link=https://console.groq.com/keys]https://console.groq.com/keys[/link][/dim]"
+                )
 
         # Refresh the StatusBar — only mark LLM On if the test passed
         self._check_llm_status()

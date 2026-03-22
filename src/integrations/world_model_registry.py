@@ -26,17 +26,25 @@ logger = logging.getLogger(__name__)
 _CONNECTOR_MAP: Dict[str, str] = {
     # Category: CRM
     "hubspot":           "integrations.hubspot_connector.HubSpotConnector",
-    # Category: Email Marketing
+    "salesforce":        "integrations.salesforce_connector.SalesforceConnector",
+    # Category: Email / Communication
     "mailchimp":         "integrations.mailchimp_connector.MailchimpConnector",
+    "sendgrid":          "integrations.sendgrid_connector.SendGridConnector",
+    "slack":             "integrations.slack_connector.SlackConnector",
+    "twilio":            "integrations.twilio_connector.TwilioConnector",
     # Category: Cloud Storage
     "google_drive":      "integrations.google_drive_connector.GoogleDriveConnector",
     "dropbox":           "integrations.dropbox_connector.DropboxConnector",
-    # Category: Communication
+    # Category: Communication / Chat
     "discord":           "integrations.discord_connector.DiscordConnector",
     "telegram":          "integrations.telegram_connector.TelegramConnector",
     # Category: Project Management
     "trello":            "integrations.trello_connector.TrelloConnector",
     "asana":             "integrations.asana_connector.AsanaConnector",
+    "jira":              "integrations.jira_connector.JiraConnector",
+    "monday":            "integrations.monday_connector.MondayConnector",
+    "notion":            "integrations.notion_connector.NotionConnector",
+    "airtable":          "integrations.airtable_connector.AirtableConnector",
     # Category: E-Commerce
     "shopify":           "integrations.shopify_connector.ShopifyConnector",
     # Category: Payments
@@ -51,10 +59,17 @@ _CONNECTOR_MAP: Dict[str, str] = {
     # Category: AI/ML
     "openai":            "integrations.openai_connector.OpenAIConnector",
     "anthropic":         "integrations.anthropic_connector.AnthropicConnector",
-    # Category: Monitoring
+    # Category: Monitoring / Alerting
     "datadog":           "integrations.datadog_connector.DatadogConnector",
+    "pagerduty":         "integrations.pagerduty_connector.PagerDutyConnector",
     # Category: DNS/CDN
     "cloudflare":        "integrations.cloudflare_connector.CloudflareConnector",
+    # Category: Dev / Source Control
+    "github":            "integrations.github_connector.GitHubConnector",
+    # Category: Cloud / Infrastructure
+    "aws":               "integrations.aws_connector.AWSConnector",
+    # Category: Video / Meetings
+    "zoom":              "integrations.zoom_connector.ZoomConnector",
     # Category: Market Data
     "yahoo_finance":     "integrations.yahoo_finance_connector.YahooFinanceConnector",
     # Category: Weather
@@ -65,27 +80,58 @@ _CONNECTOR_MAP: Dict[str, str] = {
 
 # Human-readable metadata for each integration
 _INTEGRATION_META: Dict[str, Dict[str, Any]] = {
+    # CRM
     "hubspot":          {"name": "HubSpot",           "category": "crm",             "free": True},
+    "salesforce":       {"name": "Salesforce",         "category": "crm",             "free": False},
+    # Email / Communication
     "mailchimp":        {"name": "Mailchimp",          "category": "email_marketing",  "free": True},
-    "google_drive":     {"name": "Google Drive",       "category": "cloud_storage",    "free": True},
-    "dropbox":          {"name": "Dropbox",            "category": "cloud_storage",    "free": True},
-    "discord":          {"name": "Discord",            "category": "communication",    "free": True},
-    "telegram":         {"name": "Telegram",           "category": "communication",    "free": True},
-    "trello":           {"name": "Trello",             "category": "project_mgmt",     "free": True},
-    "asana":            {"name": "Asana",              "category": "project_mgmt",     "free": True},
-    "shopify":          {"name": "Shopify",            "category": "ecommerce",        "free": False},
-    "stripe":           {"name": "Stripe",             "category": "payments",         "free": True},
-    "google_analytics": {"name": "Google Analytics",  "category": "analytics",        "free": True},
-    "twitter":          {"name": "Twitter / X",        "category": "social_media",     "free": True},
-    "supabase":         {"name": "Supabase",           "category": "database",         "free": True},
-    "firebase":         {"name": "Firebase",           "category": "database",         "free": True},
-    "openai":           {"name": "OpenAI",             "category": "ai_ml",            "free": False},
-    "anthropic":        {"name": "Anthropic",          "category": "ai_ml",            "free": False},
-    "datadog":          {"name": "Datadog",            "category": "monitoring",       "free": True},
-    "cloudflare":       {"name": "Cloudflare",         "category": "dns_cdn",          "free": True},
-    "yahoo_finance":    {"name": "Yahoo Finance",      "category": "market_data",      "free": True},
-    "openweathermap":   {"name": "OpenWeatherMap",     "category": "weather",          "free": True},
-    "scada":            {"name": "SCADA / ICS",        "category": "industrial",       "free": True},
+    "sendgrid":         {"name": "SendGrid",           "category": "email",           "free": True},
+    "slack":            {"name": "Slack",              "category": "communication",   "free": True},
+    "twilio":           {"name": "Twilio",             "category": "communication",   "free": True},
+    # Cloud Storage
+    "google_drive":     {"name": "Google Drive",       "category": "cloud_storage",   "free": True},
+    "dropbox":          {"name": "Dropbox",            "category": "cloud_storage",   "free": True},
+    # Communication / Chat
+    "discord":          {"name": "Discord",            "category": "communication",   "free": True},
+    "telegram":         {"name": "Telegram",           "category": "communication",   "free": True},
+    # Project Management
+    "trello":           {"name": "Trello",             "category": "project_mgmt",    "free": True},
+    "asana":            {"name": "Asana",              "category": "project_mgmt",    "free": True},
+    "jira":             {"name": "Jira",               "category": "project_mgmt",    "free": True},
+    "monday":           {"name": "Monday.com",         "category": "project_mgmt",    "free": True},
+    "notion":           {"name": "Notion",             "category": "productivity",    "free": True},
+    "airtable":         {"name": "Airtable",           "category": "productivity",    "free": True},
+    # E-Commerce
+    "shopify":          {"name": "Shopify",            "category": "ecommerce",       "free": False},
+    # Payments
+    "stripe":           {"name": "Stripe",             "category": "payments",        "free": True},
+    # Analytics
+    "google_analytics": {"name": "Google Analytics",  "category": "analytics",       "free": True},
+    # Social Media
+    "twitter":          {"name": "Twitter / X",        "category": "social_media",    "free": True},
+    # Database / Backend
+    "supabase":         {"name": "Supabase",           "category": "database",        "free": True},
+    "firebase":         {"name": "Firebase",           "category": "database",        "free": True},
+    # AI/ML
+    "openai":           {"name": "OpenAI",             "category": "ai_ml",           "free": False},
+    "anthropic":        {"name": "Anthropic",          "category": "ai_ml",           "free": False},
+    # Monitoring / Alerting
+    "datadog":          {"name": "Datadog",            "category": "monitoring",      "free": True},
+    "pagerduty":        {"name": "PagerDuty",          "category": "monitoring",      "free": True},
+    # DNS/CDN
+    "cloudflare":       {"name": "Cloudflare",         "category": "dns_cdn",         "free": True},
+    # Dev / Source Control
+    "github":           {"name": "GitHub",             "category": "dev",             "free": True},
+    # Cloud / Infrastructure
+    "aws":              {"name": "AWS",                "category": "cloud",           "free": True},
+    # Video / Meetings
+    "zoom":             {"name": "Zoom",               "category": "meetings",        "free": True},
+    # Market Data
+    "yahoo_finance":    {"name": "Yahoo Finance",      "category": "market_data",     "free": True},
+    # Weather
+    "openweathermap":   {"name": "OpenWeatherMap",     "category": "weather",         "free": True},
+    # Industrial / SCADA
+    "scada":            {"name": "SCADA / ICS",        "category": "industrial",      "free": True},
 }
 
 

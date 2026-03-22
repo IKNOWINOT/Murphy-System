@@ -89,7 +89,7 @@ class LLMSwarmController:
             response = requests.post(
                 f"{self.ollama_url}/api/generate",
                 json={
-                    "model": os.environ.get("OLLAMA_MODEL", "llama3").split(":")[0],
+                    "model": os.environ.get("OLLAMA_MODEL", "phi3").split(":")[0],
                     "prompt": prompt,
                     "stream": False,
                     "options": {

@@ -434,6 +434,17 @@ def create_app() -> FastAPI:
         logger.info("Trading Automation API registered at /api/trading/*")
     except Exception as _tr_exc:
         logger.warning("Trading Automation routes not available: %s", _tr_exc)
+    # ── Trading Risk Management, Graduation & Emergency Stop ────────────
+    try:
+        from src.risk_routes import create_risk_router
+        _risk_router = create_risk_router()
+        app.include_router(_risk_router)
+        logger.info(
+            "Trading Risk API registered at /api/trading/* "
+            "(risk, trajectory, graduation, emergency, audit)"
+        )
+    except Exception as _risk_exc:
+        logger.warning("Trading Risk API not available: %s", _risk_exc)
 
     # Register RBAC governance with security layer (SEC-005)
     rbac = getattr(murphy, 'rbac_governance', None)
@@ -6927,6 +6938,7 @@ def create_app() -> FastAPI:
             "/ui/ambient": "ambient_intelligence.html",
             "/ui/trading": "trading_dashboard.html",
             "/ui/trading-dashboard": "trading_dashboard.html",
+            "/ui/risk-dashboard": "risk_dashboard.html",
         }
 
         # ── Route classification: public vs auth-required ──────────
