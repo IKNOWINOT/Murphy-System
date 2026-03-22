@@ -12104,12 +12104,16 @@ class MurphySystem:
         """
         librarian = getattr(self, "librarian", None)
         llm_status = self._get_llm_status()
-        mode = "llm" if llm_status.get("enabled") else "onboard"
+        # Check if using external LLM provider (not onboard/local)
+        provider = llm_status.get("provider", "onboard")
+        llm_mode = llm_status.get("mode", "onboard")
+        is_external_llm = provider not in ("onboard", "local", "local_fallback", "pattern_matcher") and llm_mode == "external_api"
+        mode = "llm" if is_external_llm else "onboard"
         return {
             "enabled": True,
             "healthy": librarian is not None,
             "mode": mode,
-            "llm_provider": llm_status.get("provider") if mode == "llm" else "onboard",
+            "llm_provider": provider if is_external_llm else "onboard",
         }
 
     # -- Librarian ask --------------------------------------------------------
@@ -12364,14 +12368,27 @@ class MurphySystem:
         if llm_text:
             # Store in conversation history
             profile.setdefault("history", []).append((message, llm_text[:100]))
+            # Determine if response came from external LLM or onboard fallback
+            librarian_status = self._get_librarian_status()
+            response_mode = librarian_status.get("mode", "onboard")
+            response_text = llm_text
+            # Add onboard mode notice once per session when not using external LLM
+            if response_mode == "onboard" and not session.get("_llm_notice_shown"):
+                response_text += (
+                    "\n\n_Librarian is operating in **onboard** mode using built-in "
+                    "system knowledge. To upgrade to LLM-powered responses: set "
+                    "MURPHY_LLM_PROVIDER and the appropriate API key "
+                    "(e.g. GROQ_API_KEY). Get a free key at https://console.groq.com/keys_"
+                )
+                session["_llm_notice_shown"] = True
             result: Dict[str, Any] = {
                 "success": True,
                 "session_id": session_id,
-                "reply_text": llm_text,
-                "response": llm_text,
-                "message": llm_text,
+                "reply_text": response_text,
+                "response": response_text,
+                "message": response_text,
                 "intent": nl_intent,
-                "mode": "llm",
+                "mode": response_mode,
                 "librarian_mode": mode or "onboard",
                 "mfgc_score": score,
                 "suggested_commands": self._suggest_commands(nl_intent),
@@ -12408,8 +12425,11 @@ class MurphySystem:
         else:
             fallback_reply = self._deterministic_reply(message, nl_intent, session_id=session_id)
         llm_status = self._get_llm_status()
+        librarian_status = self._get_librarian_status()
         # Show LLM upgrade notice once per session (librarian is always active)
-        if not llm_status.get("enabled") and not session.get("_llm_notice_shown"):
+        # Notice is shown when in onboard mode (not using external LLM)
+        is_onboard_mode = librarian_status.get("mode") == "onboard"
+        if is_onboard_mode and not session.get("_llm_notice_shown"):
             fallback_reply += (
                 "\n\n_Librarian is operating in **onboard** mode using built-in "
                 "system knowledge. To upgrade to LLM-powered responses: set "
