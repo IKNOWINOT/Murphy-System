@@ -125,32 +125,18 @@ def test_circular_dependency_detected(mgr):
     t1 = mgr.add_task(SESSION_ID, "Task 1", "desc")
     t2 = mgr.add_task(SESSION_ID, "Task 2", "desc", dependencies=[t1.task_id])
 
-    # Now try to make t1 depend on t2 — this would create a cycle
-    with pytest.raises(CircularDependencyError):
-        mgr.add_task(SESSION_ID, "Task 3", "desc", dependencies=[t1.task_id, t2.task_id])
-        # The circular check runs on the dep list; t2 already depends on t1
-        # so adding t1->t2 via t2 as dep creates cycle
-        # Actually let's directly test: modify t1 deps to include t2
-        # Since we can't do this directly in the API, let's create a proper cycle scenario
-    # Reset and test properly
-    mgr2 = HitlTaskManager()
-    s2 = "session-cycle"
-    a = mgr2.add_task(s2, "A", "desc")
-    b = mgr2.add_task(s2, "B", "desc", dependencies=[a.task_id])
-    # Try to add C that depends on B — then try to add with dep that creates cycle
-    # by checking that a depends_on b would cycle: a->b->a
-    # We'll hack it: make a.dependencies = [b.task_id] and then check
-    a.dependencies = [b.task_id]  # Direct manipulation
-    # Now trying to add a new task that has b as dependency: fine
-    # Adding task with [a] dep when a depends on b: a->b, new->a, not circular (chain)
-    # Let's verify the DFS approach by creating an actual cycle
+    # Diamond pattern — t1 and t2 both as deps — is NOT circular; must succeed
+    t3 = mgr.add_task(SESSION_ID, "Task 3", "desc", dependencies=[t1.task_id, t2.task_id])
+    assert t3 is not None
+
+    # Build a real cycle by direct manipulation and verify DFS detects it
     mgr3 = HitlTaskManager()
     s3 = "session-direct-cycle"
     x = mgr3.add_task(s3, "X", "desc")
     y = mgr3.add_task(s3, "Y", "desc", dependencies=[x.task_id])
-    # Manually set x to depend on y to simulate cycle detection
+    # Inject cycle: x now also depends on y → x→y→x
     x.dependencies = [y.task_id]
-    # Now adding a task that depends on x should detect the x->y->x cycle
+    # Adding Z with dep on y should traverse y→x→y and raise
     with pytest.raises(CircularDependencyError):
         mgr3.add_task(s3, "Z", "desc", dependencies=[y.task_id])
 
