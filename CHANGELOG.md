@@ -5,6 +5,32 @@ All notable changes to Murphy System will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — Communication Hub: IM, Voice, Video, Email + Moderator Console
+
+### Added
+- **Communication Hub engine** (`src/communication_hub.py`): Unified onboard communication system with full SQLite persistence via `src/db.py` ORM. Includes:
+  - `IMStore` — multi-account thread-based instant messaging, with automod on every message and emoji reactions
+  - `CallSessionStore` — voice and video call session lifecycle (ringing → active → on-hold → ended/rejected), SDP/ICE signalling storage, duration tracking, voicemail URL
+  - `EmailStore` — compose/send, per-user inbox/outbox (including CC/BCC), mark-read, per-message automod
+  - `AutomationRuleStore` — configurable per-channel triggers (`on_message`, `on_email`, `on_missed_call`, etc.) with keyword and automod-flag conditions; fire-count tracking
+  - `ModeratorConsole` — Discord-style moderator controls: warn/mute/unmute/kick/ban/unban, custom blocked-word lists, multi-platform broadcast, broadcast history, full audit log
+- **Communication Hub router** (`src/comms_hub_routes.py`): 38 FastAPI endpoints at `/api/comms/*` and `/api/moderator/*`
+- **Communication Hub UI** (`communication_hub.html`): Full-featured single-page dashboard — IM panel with threaded chat, voice/video call controls, email compose/inbox/outbox, automation rule manager, moderator console with broadcast panel and audit log. Registered at `/ui/comms-hub`
+- **8 new ORM models** in `src/db.py`: `IMThread`, `IMMessage`, `CallSession`, `EmailRecord`, `CommsAutomationRule`, `CommsModAuditLog`, `CommsBroadcast`, `CommsUserProfile`. All tables created automatically by `create_tables()`
+- **83 tests** in `tests/test_communication_hub.py` covering automod, IM cross-account messaging, call lifecycle, email multi-recipient, automation rule evaluation, and moderator actions
+- **`tests/conftest.py`** extended with an autouse fixture that truncates comms hub tables between tests for full isolation
+- **Session persistence confirmed**: messages, calls, and emails written by one store instance are immediately readable by any other instance (same SQLite DB), surviving server restarts
+- **3 default automation rules** seeded on startup: auto-reply on missed call, escalate urgent emails, auto-moderate flagged IM
+- **3 default broadcast targets** seeded: `im#general`, `email#all-staff`, `matrix#murphy-general`
+- Supported broadcast platforms: `im`, `voice`, `video`, `email`, `slack`, `discord`, `matrix`, `sms`
+- All new files mirrored to `Murphy System/` subdirectory
+- `docs/COMMS_HUB.md` — detailed system documentation
+
+### Changed
+- `src/runtime/app.py` and `Murphy System/src/runtime/app.py`: comms hub router registered; `/ui/comms-hub` added to HTML routes
+- `API_ROUTES.md`: full Communication Hub section added (38 endpoints)
+- `ARCHITECTURE_MAP.md`: Communication Hub module added
+
 ## [Unreleased] — Live Feeds: Binance, IBKR, IEX Cloud + Regulatory Compliance Engine
 
 ### Added

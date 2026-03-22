@@ -1906,3 +1906,86 @@ Next-generation autonomous self-coding system that wraps and extends all existin
 5. **Chaos validation required** before ImmunityMemory promotion.
 6. **Cascade check required** before ImmunityMemory promotion.
 7. **Full audit trail** via EventBackbone + PersistenceManager.
+
+---
+
+## Communication Hub (COMMS-001)
+
+**Location:** `src/communication_hub.py`, `src/comms_hub_routes.py`  
+**UI:** `communication_hub.html` at `/ui/comms-hub`  
+**Database:** 8 SQLAlchemy ORM models in `src/db.py` (tables prefixed `comms_`)
+
+### Purpose
+Unified onboard communication layer providing instant messaging, voice/video calling
+(WebRTC signalling), email, per-channel automation rules, and a Discord-style moderator
+console capable of broadcasting to multiple external platforms simultaneously.
+
+### Store Components
+
+| Class | Table(s) | Responsibility |
+|-------|----------|----------------|
+| `IMStore` | `comms_im_threads`, `comms_im_messages` | Thread/message CRUD, automod, reactions |
+| `CallSessionStore` | `comms_call_sessions` | Voice/video session lifecycle, SDP/ICE, duration |
+| `EmailStore` | `comms_emails` | Compose, inbox/outbox, mark-read, automod |
+| `AutomationRuleStore` | `comms_automation_rules` | Rule CRUD, trigger evaluation, fire-count tracking |
+| `ModeratorConsole` | `comms_user_profiles`, `comms_mod_audit`, `comms_broadcasts` | Moderation actions, blocked-word lists, multi-platform broadcast, audit log |
+
+### API Surface
+
+| Prefix | Count | Description |
+|--------|-------|-------------|
+| `/api/comms/im/*` | 6 | IM threads and messages |
+| `/api/comms/voice/*` | 8 | Voice call sessions |
+| `/api/comms/video/*` | 5 | Video call sessions |
+| `/api/comms/email/*` | 5 | Email send, inbox, outbox |
+| `/api/comms/automate/*` | 6 | Automation rules |
+| `/api/moderator/*` | 18 | Moderator console |
+
+### Persistence Model
+
+```
+         ┌─────────────────────────────────────────┐
+         │           SQLite (murphy_logs.db)        │
+         │   comms_im_threads  comms_im_messages    │
+         │   comms_call_sessions  comms_emails      │
+         │   comms_automation_rules                 │
+         │   comms_user_profiles  comms_mod_audit   │
+         │   comms_broadcasts                       │
+         └─────────────────────────────────────────┘
+                            ▲
+              ┌─────────────┴──────────────┐
+              │       Store Layer           │
+              │  IMStore  CallSessionStore  │
+              │  EmailStore  AutomRule…     │
+              │  ModeratorConsole           │
+              └─────────────┬──────────────┘
+                            ▲
+              ┌─────────────┴──────────────┐
+              │     FastAPI Router          │
+              │  /api/comms/*               │
+              │  /api/moderator/*           │
+              └────────────────────────────┘
+```
+
+### Fallback Behaviour
+When SQLAlchemy is unavailable (import error, DB connection failure), every store
+automatically falls back to in-process dicts.  The server continues to function; data
+is not persisted between restarts.
+
+### Auto-Moderation
+- Default blocked-word list: `spam`, `scam`, `phishing`, `malware`, `ransomware`
+- Custom words configurable per-deployment via `POST /api/moderator/automod/words`
+- Every message and email is checked before storage; automod result attached to record
+- Flagged messages trigger the `auto-moderate flagged IM` automation rule by default
+
+### Broadcast Platforms
+Supported: `im`, `voice`, `video`, `email`, `slack`, `discord`, `matrix`, `sms`
+
+### Default Seeds (on startup)
+- 3 automation rules: auto-reply missed call, escalate urgent email, automod-delete flagged IM
+- 3 broadcast targets: `im#general`, `email#all-staff`, `matrix#murphy-general`
+
+### Integration Points
+- `src/db.py` — SQLAlchemy engine, session factory, `create_tables()`
+- `src/runtime/app.py` — router registration, `/ui/comms-hub` HTML route
+- `tests/test_communication_hub.py` — 83 tests
