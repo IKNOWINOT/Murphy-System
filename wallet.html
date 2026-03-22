@@ -212,6 +212,56 @@
     .wallet-panel-row { grid-template-columns: 1fr; }
     .wallet-networth-value { font-size: 2rem; }
   }
+
+  /* ── Coinbase Connection panel ── */
+  .cb-panel {
+    background: var(--bg-surface); border: 1px solid var(--border-default);
+    border-radius: var(--radius-xl); padding: 1.5rem; margin-bottom: 2rem;
+  }
+  .cb-panel.cb-sandbox { border-color: rgba(255,196,0,.35); }
+  .cb-panel.cb-connected { border-color: rgba(0,212,170,.35); }
+  .cb-panel-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem; }
+  .cb-panel-header h3 { font-size: var(--text-base); font-weight: 600; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: .5rem; }
+  .cb-logo { width: 22px; height: 22px; background: #1652f0; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: .7rem; font-weight: 800; color: #fff; flex-shrink: 0; }
+  .cb-status-badge {
+    display: inline-flex; align-items: center; gap: .4rem;
+    font-size: var(--text-xs); font-weight: 600; padding: .25rem .7rem;
+    border-radius: var(--radius-full);
+  }
+  .cb-status-badge.sandbox { background: rgba(255,196,0,.12); border: 1px solid rgba(255,196,0,.3); color: #ffc400; }
+  .cb-status-badge.connected { background: rgba(0,212,170,.12); border: 1px solid rgba(0,212,170,.3); color: var(--teal); }
+  .cb-status-badge.disconnected { background: rgba(255,68,68,.1); border: 1px solid rgba(255,68,68,.25); color: #ff4444; }
+  .cb-status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .cb-status-dot.sandbox { background: #ffc400; }
+  .cb-status-dot.connected { background: var(--teal); animation: cb-pulse 2s infinite; }
+  .cb-status-dot.disconnected { background: #ff4444; }
+  @keyframes cb-pulse { 0%,100%{opacity:1;} 50%{opacity:.45;} }
+  .cb-sandbox-notice {
+    background: rgba(255,196,0,.07); border: 1px solid rgba(255,196,0,.2);
+    border-radius: var(--radius-md); padding: .625rem 1rem; margin-bottom: 1rem;
+    font-size: var(--text-xs); color: #ffc400; display: flex; align-items: center; gap: .5rem;
+  }
+  .cb-balances-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: .75rem; margin-bottom: 1.25rem;
+  }
+  .cb-balance-card {
+    background: var(--bg-elevated); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg); padding: .875rem;
+  }
+  .cb-balance-currency { font-size: var(--text-xs); color: var(--text-tertiary); margin-bottom: .25rem; }
+  .cb-balance-amount { font-size: var(--text-lg); font-weight: 700; color: var(--text-primary); }
+  .cb-balance-hold { font-size: var(--text-xs); color: var(--text-tertiary); }
+  .cb-actions { display: flex; gap: .75rem; flex-wrap: wrap; }
+  .cb-btn {
+    padding: .5rem 1.25rem; border-radius: var(--radius-md); font-family: var(--font-ui);
+    font-size: var(--text-sm); font-weight: 600; cursor: pointer;
+    transition: opacity var(--transition-base), transform var(--transition-base);
+  }
+  .cb-btn:hover { opacity: .9; transform: translateY(-1px); }
+  .cb-btn.primary { background: #1652f0; border: none; color: #fff; }
+  .cb-btn.outline { background: transparent; border: 1px solid var(--border-default); color: var(--text-secondary); }
+  .cb-btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
 </style>
 </head>
 <body class="murphy-no-sidebar">
@@ -490,6 +540,111 @@
 
   </div>
 
+  <!-- ── Trading Risk Panel ── -->
+  <div class="wallet-section-heading" style="margin-top:2rem;">⚡ Trading Risk &amp; Automation</div>
+  <div class="wallet-assets-grid" style="margin-bottom:1.5rem;" id="trading-risk-mini-grid">
+    <!-- Emergency stop status -->
+    <div class="asset-card" id="twc-estop">
+      <div class="asset-card-top">
+        <div class="asset-icon" style="background:rgba(0,255,65,.1);color:#00ff41;">🛡️</div>
+        <div><div class="asset-name">Emergency Stop</div><div class="asset-symbol" id="twc-estop-status">Loading…</div></div>
+      </div>
+    </div>
+    <!-- Graduation status -->
+    <div class="asset-card" id="twc-grad">
+      <div class="asset-card-top">
+        <div class="asset-icon" style="background:rgba(0,212,170,.1);color:var(--teal);">🎓</div>
+        <div><div class="asset-name">Graduation</div><div class="asset-symbol" id="twc-grad-status">Loading…</div></div>
+      </div>
+      <div class="asset-balance" id="twc-grad-pct" style="font-size:1.1rem;">—</div>
+      <div class="asset-usd">Criteria completion</div>
+    </div>
+    <!-- Risk level -->
+    <div class="asset-card" id="twc-risk">
+      <div class="asset-card-top">
+        <div class="asset-icon" style="background:rgba(255,170,0,.1);color:#ffaa00;">⚠️</div>
+        <div><div class="asset-name">Risk Level</div><div class="asset-symbol" id="twc-risk-regime">—</div></div>
+      </div>
+      <div class="asset-balance" id="twc-risk-level" style="font-size:1.1rem;">—</div>
+      <div class="asset-usd" id="twc-risk-score">Score: —</div>
+    </div>
+    <!-- Link to full dashboard -->
+    <div class="asset-card" style="align-items:center;justify-content:center;cursor:pointer;" onclick="window.location='/ui/risk-dashboard'">
+      <div style="text-align:center;padding:.5rem;">
+        <div style="font-size:2rem;margin-bottom:.5rem;">📊</div>
+        <div class="asset-name">Full Risk Dashboard</div>
+        <div class="asset-symbol">View audit log, graduation &amp; controls →</div>
+      </div>
+  <!-- ── Coinbase Connection ── -->
+  <div class="wallet-section-heading">Coinbase Advanced Trade</div>
+  <div class="cb-panel cb-sandbox" id="cb-panel" role="region" aria-label="Coinbase connection status">
+
+    <!-- Header row -->
+    <div class="cb-panel-header">
+      <h3>
+        <span class="cb-logo" aria-hidden="true">C</span>
+        Coinbase Connection
+      </h3>
+      <span class="cb-status-badge sandbox" id="cb-status-badge" role="status" aria-live="polite">
+        <span class="cb-status-dot sandbox" id="cb-status-dot"></span>
+        <span id="cb-status-text">Checking…</span>
+      </span>
+    </div>
+
+    <!-- Sandbox notice (always visible when sandbox=true) -->
+    <div class="cb-sandbox-notice" id="cb-sandbox-notice" aria-live="polite">
+      ⚠️ <strong>Sandbox / Paper-Trading Mode</strong> — No real funds are at risk. Set <code>COINBASE_LIVE_MODE=true</code> to enable live trading.
+    </div>
+
+    <!-- Balances grid (populated from API) -->
+    <div class="cb-balances-grid" id="cb-balances-grid" aria-label="Coinbase account balances">
+      <div class="cb-balance-card" aria-label="Loading balances">
+        <div class="cb-balance-currency">Loading…</div>
+        <div class="cb-balance-amount">—</div>
+      </div>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="cb-actions">
+      <button class="cb-btn primary" id="cb-connect-btn" aria-label="Validate Coinbase API key connection">
+        Connect Coinbase
+      </button>
+      <button class="cb-btn outline" id="cb-refresh-btn" aria-label="Refresh Coinbase balances">
+        ↻ Refresh
+      </button>
+    </div>
+
+  <!-- ── Paper Trading Quick Access ── -->
+  <div class="wallet-section-heading">Trading</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem;margin-bottom:2rem">
+    <a href="/ui/paper-trading" style="text-decoration:none">
+      <div class="asset-card" style="cursor:pointer;border-color:rgba(0,212,170,.2)">
+        <div class="asset-card-top">
+          <div class="asset-icon mrph" aria-hidden="true">📊</div>
+          <div>
+            <div class="asset-name">Paper Trading Dashboard</div>
+            <div class="asset-symbol">Simulate · Backtest · Calibrate</div>
+          </div>
+        </div>
+        <div class="asset-balance" style="font-size:var(--text-base)">9 Strategy Templates</div>
+        <div class="asset-usd">Momentum · Mean Reversion · Breakout · Scalping · DCA · Grid · Trajectory · Sentiment · Arbitrage</div>
+        <div class="asset-change up">No real money — paper trades only</div>
+      </div>
+    </a>
+    <div class="asset-card" id="pt-status-widget" style="border-color:rgba(86,103,120,.2)">
+      <div class="asset-card-top">
+        <div class="asset-icon" style="background:rgba(0,255,65,.1);color:#00ff41" aria-hidden="true">⚡</div>
+        <div>
+          <div class="asset-name">Engine Status</div>
+          <div class="asset-symbol" id="pt-widget-status">Loading…</div>
+        </div>
+      </div>
+      <div class="asset-balance" id="pt-widget-equity" style="font-size:var(--text-base)">—</div>
+      <div class="asset-usd" id="pt-widget-trades">0 trades completed</div>
+      <div class="asset-change" id="pt-widget-return">—</div>
+    </div>
+  </div>
+
 </main>
 
 <!-- ── Footer ── -->
@@ -539,6 +694,50 @@
       .catch(function () {});
   }
   refreshBalances();
+
+  /* ── Live price refresh for asset cards ── */
+  var _priceMap = {
+    'BTC-USD': { el: null, usdEl: null, changeEl: null },
+    'ETH-USD': { el: null, usdEl: null, changeEl: null },
+    'SOL-USD': { el: null, usdEl: null, changeEl: null },
+    'MATIC-USD': { el: null, usdEl: null, changeEl: null },
+  };
+  function refreshLivePrices() {
+    var symbols = Object.keys(_priceMap);
+    symbols.forEach(function (sym) {
+      fetch('/api/market/quote/' + sym)
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (!d.success || !d.quote) return;
+          var q = d.quote;
+          var cards = document.querySelectorAll('.asset-card');
+          var base = sym.replace('-USD', '').toLowerCase();
+          cards.forEach(function (card) {
+            var nameEl = card.querySelector('.asset-symbol');
+            if (!nameEl) return;
+            var cardBase = nameEl.textContent.split('\u00b7')[0].trim().toLowerCase();
+            if (cardBase !== base) return;
+            var usdEl = card.querySelector('.asset-usd');
+            var changeEl = card.querySelector('.asset-change');
+            if (usdEl && q.price > 0) {
+              var balEl = card.querySelector('.asset-balance');
+              var bal = parseFloat(balEl ? balEl.textContent.split(' ')[0].replace(',','') : '0');
+              usdEl.textContent = '\u2248 $' + (bal * q.price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            }
+            if (changeEl && q.change_pct_24h !== undefined) {
+              var pct = q.change_pct_24h;
+              var isUp = pct >= 0;
+              changeEl.textContent = (isUp ? '\u25b2' : '\u25bc') + ' ' + (isUp ? '+' : '') + pct.toFixed(2) + '%';
+              changeEl.className = 'asset-change ' + (isUp ? 'up' : 'down');
+            }
+          });
+        })
+        .catch(function () { /* silent fail */ });
+    });
+  }
+  /* Auto-refresh prices every 30 seconds */
+  refreshLivePrices();
+  setInterval(refreshLivePrices, 30000);
 
   /* ── Theme ── */
   var themeBtn = document.getElementById('theme-toggle-btn');
@@ -652,6 +851,172 @@
       document.getElementById('murphy-wallet-insight').textContent = 'Could not reach Murphy right now.';
     });
   });
+
+  /* ── Trading Risk Mini Panel ── */
+  (function loadTradingRisk() {
+    /* Emergency stop */
+    fetch('/api/trading/emergency/status')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var s = d.emergency_stop || {};
+        var el = document.getElementById('twc-estop-status');
+        var card = document.getElementById('twc-estop');
+        if (s.is_stopped) {
+          el.textContent = 'TRIGGERED';
+          card.style.borderColor = 'rgba(255,68,68,.5)';
+        } else {
+          el.textContent = 'Armed & Ready';
+          card.style.borderColor = 'rgba(0,255,65,.3)';
+        }
+      })
+      .catch(function () {
+        var el = document.getElementById('twc-estop-status');
+        if (el) el.textContent = 'Unavailable';
+      });
+
+    /* Graduation */
+    fetch('/api/trading/graduation/status')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var g = d.graduation || {};
+        var statusEl = document.getElementById('twc-grad-status');
+        var pctEl    = document.getElementById('twc-grad-pct');
+        if (statusEl) statusEl.textContent = (g.status || '—').replace('_', ' ');
+        if (pctEl)    pctEl.textContent    = (g.completion_pct || 0).toFixed(0) + '%';
+      })
+      .catch(function () {});
+
+    /* Risk summary */
+    fetch('/api/trading/risk/assessment')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var s = d.summary || {};
+        var lvlEl    = document.getElementById('twc-risk-level');
+        var regEl    = document.getElementById('twc-risk-regime');
+        var scoreEl  = document.getElementById('twc-risk-score');
+        if (lvlEl)   lvlEl.textContent  = '—';
+        if (regEl)   regEl.textContent  = 'Regime: ' + (s.market_regime || '—');
+        if (scoreEl) scoreEl.textContent = 'Drawdown: ' + (s.current_drawdown_pct || 0).toFixed(1) + '%';
+      })
+      .catch(function () {});
+  /* ── Coinbase Connection panel ── */
+  function cbSetStatus(status) {
+    var badge = document.getElementById('cb-status-badge');
+    var dot   = document.getElementById('cb-status-dot');
+    var text  = document.getElementById('cb-status-text');
+    var panel = document.getElementById('cb-panel');
+    if (!badge) return;
+    badge.className = 'cb-status-badge ' + status;
+    dot.className   = 'cb-status-dot ' + status;
+    var labels = { sandbox: 'Sandbox', connected: 'Connected', disconnected: 'Disconnected' };
+    text.textContent = labels[status] || status;
+    panel.className  = 'cb-panel cb-' + status;
+  }
+
+  function cbRenderBalances(balances) {
+    var grid = document.getElementById('cb-balances-grid');
+    if (!grid) return;
+    if (!balances || balances.length === 0) {
+      grid.innerHTML = '<p style="font-size:var(--text-xs);color:var(--text-tertiary);">No balances available. Add your Coinbase API key to see live data.</p>';
+      return;
+    }
+    grid.innerHTML = balances.map(function (b) {
+      var avail = parseFloat(b.available_balance || 0);
+      if (avail <= 0) return '';
+      return '<div class="cb-balance-card">' +
+        '<div class="cb-balance-currency">' + b.currency + '</div>' +
+        '<div class="cb-balance-amount">' + avail.toFixed(6).replace(/\.?0+$/, '') + '</div>' +
+        '<div class="cb-balance-hold">Hold: ' + (parseFloat(b.hold || 0).toFixed(6).replace(/\.?0+$/, '') || '0') + '</div>' +
+        '</div>';
+    }).filter(Boolean).join('') ||
+    '<p style="font-size:var(--text-xs);color:var(--text-tertiary);">All balances are zero.</p>';
+  }
+
+  function cbLoadStatus() {
+    fetch('/api/coinbase/status')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.success) { cbSetStatus('disconnected'); return; }
+        var notice = document.getElementById('cb-sandbox-notice');
+        if (d.sandbox) {
+          cbSetStatus('sandbox');
+          if (notice) notice.style.display = 'flex';
+        } else {
+          cbSetStatus('connected');
+          if (notice) notice.style.display = 'none';
+        }
+      })
+      .catch(function () { cbSetStatus('disconnected'); });
+  }
+
+  function cbLoadBalances() {
+    var btn = document.getElementById('cb-refresh-btn');
+    if (btn) btn.disabled = true;
+    fetch('/api/coinbase/balances')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.success) cbRenderBalances(d.balances);
+        else cbRenderBalances([]);
+      })
+      .catch(function () { cbRenderBalances([]); })
+      .finally(function () { if (btn) btn.disabled = false; });
+  }
+
+  var cbConnectBtn = document.getElementById('cb-connect-btn');
+  if (cbConnectBtn) {
+    cbConnectBtn.addEventListener('click', function () {
+      cbConnectBtn.disabled = true;
+      cbConnectBtn.textContent = 'Connecting…';
+      fetch('/api/coinbase/status')
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (d.success) {
+            cbSetStatus(d.sandbox ? 'sandbox' : 'connected');
+            cbLoadBalances();
+            cbConnectBtn.textContent = d.sandbox ? '✓ Sandbox Active' : '✓ Connected';
+          } else {
+            cbConnectBtn.textContent = '✗ Connection Failed';
+          }
+        })
+        .catch(function () { cbConnectBtn.textContent = '✗ Connection Failed'; })
+        .finally(function () {
+          setTimeout(function () {
+            cbConnectBtn.textContent = 'Connect Coinbase';
+            cbConnectBtn.disabled = false;
+          }, 3000);
+        });
+    });
+  }
+
+  var cbRefreshBtn = document.getElementById('cb-refresh-btn');
+  if (cbRefreshBtn) {
+    cbRefreshBtn.addEventListener('click', function () { cbLoadBalances(); });
+  }
+
+  /* Initialise Coinbase panel on page load */
+  cbLoadStatus();
+  cbLoadBalances();
+  /* ── Paper Trading status widget ── */
+  (function () {
+    fetch('/api/trading/paper/status')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var p = (d.portfolio || {});
+        var eq = p.equity || 0;
+        var ret = p.total_return_pct || 0;
+        var active = d.active;
+        document.getElementById('pt-widget-status').textContent = active ? '● Session Active' : '○ Inactive';
+        document.getElementById('pt-widget-status').style.color = active ? '#00ff41' : '#8899AA';
+        document.getElementById('pt-widget-equity').textContent = eq ? ('$' + parseFloat(eq).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})) : '—';
+        document.getElementById('pt-widget-trades').textContent = (p.positions !== undefined ? Object.keys(p.positions || {}).length : 0) + ' open positions';
+        var retEl = document.getElementById('pt-widget-return');
+        retEl.textContent = ret ? ((ret >= 0 ? '+' : '') + parseFloat(ret).toFixed(2) + '% total return') : '—';
+        retEl.className = 'asset-change ' + (ret > 0 ? 'up' : ret < 0 ? 'down' : '');
+      })
+      .catch(function () {
+        document.getElementById('pt-widget-status').textContent = 'Engine offline';
+      });
+  })();
 
 })();
 </script>

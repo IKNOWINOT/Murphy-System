@@ -369,6 +369,12 @@
      ============================================================ -->
 <main class="murphy-main" id="content">
 
+<!-- ── AUTH ERROR BANNER ──────────────────────────────────────── -->
+<div id="auth-error-banner" style="display:none;background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;padding:12px 16px;margin:12px 16px;color:#991b1b;font-size:0.9rem;">
+  <strong>Authentication required.</strong>
+  Please <a href="/ui/login?next=/ui/production-wizard" style="color:#7f1d1d;font-weight:600;text-decoration:underline;">log in</a> to access the Production Wizard.
+</div>
+
   <!-- ── DASHBOARD VIEW ─────────────────────────────────────── -->
   <div id="view-dashboard" class="murphy-view active">
     <div class="murphy-page-header">
@@ -791,6 +797,11 @@ const log = (msg) => {
   if (el) el.textContent += `\n[${new Date().toISOString()}] ${msg}`;
 };
 const _prodApi = new MurphyAPI(BASE + '/api');
+const _showAuthBanner = () => {
+  const banner = document.getElementById('auth-error-banner');
+  if (banner) banner.style.display = 'block';
+};
+
 const apiFetch = async (path, opts = {}) => {
   const method = (opts.method || 'GET').toUpperCase();
   const apiPath = path.replace(/^\/api/, '');
@@ -801,7 +812,14 @@ const apiFetch = async (path, opts = {}) => {
   else if (method === 'PUT') result = await _prodApi.put(apiPath, body);
   else if (method === 'DELETE') result = await _prodApi.delete(apiPath);
   else result = await _prodApi.get(apiPath);
-  if (!result.ok) throw new Error(result.error || `HTTP error`);
+  if (!result.ok) {
+    // Show inline login prompt for auth errors instead of crashing/redirecting.
+    if (result.status === 401 || result.status === 403) {
+      _showAuthBanner();
+      throw new Error('Authentication required');
+    }
+    throw new Error(result.error || `HTTP error`);
+  }
   return result.data;
 };
 

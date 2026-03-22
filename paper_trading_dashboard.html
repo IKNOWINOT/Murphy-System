@@ -1,0 +1,871 @@
+<!-- Murphy System — Paper Trading Dashboard / © 2020 Inoni Limited Liability Company by Corey Post / License: BSL 1.1 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — Paper Trading</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
+<style>
+  /* Neon terminal theme — matching wallet.html color scheme */
+  *:focus-visible { outline: 2px solid #00ff41; outline-offset: 2px; }
+  body { background: #0a0a0a; color: var(--text-primary); font-family: var(--font-ui); margin: 0; }
+
+  .pt-layout { max-width: 1280px; margin: 0 auto; padding: 2rem 1rem 4rem; }
+
+  /* ── Page header ── */
+  .pt-hero {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;
+  }
+  .pt-hero-left h1 { font-size: var(--text-2xl); font-weight: 700; color: var(--text-primary); margin-bottom: .25rem; }
+  .pt-hero-left p  { font-size: var(--text-sm); color: var(--text-secondary); }
+  .pt-badge {
+    font-size: var(--text-xs); font-weight: 600; letter-spacing: .05em;
+    padding: .25rem .75rem; border-radius: var(--radius-full);
+    background: rgba(0,212,170,.1); border: 1px solid rgba(0,212,170,.25); color: var(--teal);
+  }
+  .pt-badge.live { background: rgba(0,255,65,.1); border-color: rgba(0,255,65,.3); color: #00ff41; }
+  .pt-badge.warn { background: rgba(255,166,62,.1); border-color: rgba(255,166,62,.3); color: #ffa63e; }
+
+  /* ── Top metrics row ── */
+  .pt-metrics-row {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: .875rem; margin-bottom: 2rem;
+  }
+  .pt-metric-card {
+    background: var(--bg-surface); border: 1px solid var(--border-default);
+    border-radius: var(--radius-xl); padding: 1.125rem 1.25rem;
+    transition: border-color var(--transition-base);
+  }
+  .pt-metric-card:hover { border-color: var(--teal); }
+  .pt-metric-label { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: .07em; color: var(--text-tertiary); margin-bottom: .4rem; }
+  .pt-metric-value { font-size: var(--text-xl); font-weight: 700; color: var(--text-primary); }
+  .pt-metric-sub   { font-size: var(--text-xs); color: var(--text-secondary); margin-top: .2rem; }
+  .pt-metric-value.up   { color: #00ff41; }
+  .pt-metric-value.down { color: #ff4444; }
+  .pt-metric-value.teal { color: var(--teal); }
+
+  /* ── Controls row ── */
+  .pt-controls {
+    display: flex; gap: .75rem; flex-wrap: wrap; align-items: center;
+    background: var(--bg-surface); border: 1px solid var(--border-default);
+    border-radius: var(--radius-xl); padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  .pt-btn {
+    padding: .5rem 1.25rem; border-radius: var(--radius-md);
+    font-family: var(--font-ui); font-size: var(--text-sm); font-weight: 600;
+    cursor: pointer; border: none; transition: opacity .15s, transform .15s;
+    display: flex; align-items: center; gap: .4rem;
+  }
+  .pt-btn:hover { opacity: .88; transform: translateY(-1px); }
+  .pt-btn.primary { background: var(--teal); color: #0C1017; }
+  .pt-btn.danger  { background: #EF4444; color: #fff; }
+  .pt-btn.outline { background: transparent; border: 1px solid var(--teal); color: var(--teal); }
+  .pt-btn.outline-green { background: transparent; border: 1px solid #00ff41; color: #00ff41; }
+  .pt-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+  .pt-select {
+    padding: .5rem .75rem; border-radius: var(--radius-md);
+    background: var(--bg-elevated); border: 1px solid var(--border-default);
+    color: var(--text-primary); font-family: var(--font-ui); font-size: var(--text-sm);
+    cursor: pointer; min-width: 140px;
+  }
+  .pt-input {
+    padding: .5rem .75rem; border-radius: var(--radius-md);
+    background: var(--bg-elevated); border: 1px solid var(--border-default);
+    color: var(--text-primary); font-family: var(--font-ui); font-size: var(--text-sm);
+    width: 120px;
+  }
+  .pt-input:focus { outline: none; border-color: var(--teal); }
+  .pt-status-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #566778; flex-shrink: 0;
+  }
+  .pt-status-dot.active { background: #00ff41; box-shadow: 0 0 6px #00ff41; }
+
+  /* ── Two-column grid ── */
+  .pt-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+  @media (max-width: 860px) { .pt-grid-2 { grid-template-columns: 1fr; } }
+
+  /* ── Panel ── */
+  .pt-panel {
+    background: var(--bg-surface); border: 1px solid var(--border-default);
+    border-radius: var(--radius-xl); overflow: hidden;
+  }
+  .pt-panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: .875rem 1.25rem; border-bottom: 1px solid var(--border-subtle);
+  }
+  .pt-panel-title { font-size: var(--text-sm); font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: .5rem; }
+  .pt-panel-body  { padding: 1.25rem; }
+
+  /* ── Table ── */
+  .pt-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+  .pt-table th { text-align: left; font-size: var(--text-xs); text-transform: uppercase; letter-spacing: .05em; color: var(--text-tertiary); padding: .5rem .75rem; border-bottom: 1px solid var(--border-subtle); }
+  .pt-table td { padding: .625rem .75rem; border-bottom: 1px solid var(--border-subtle); color: var(--text-secondary); }
+  .pt-table tr:last-child td { border-bottom: none; }
+  .pt-table tr:hover td { background: var(--bg-elevated); color: var(--text-primary); }
+  .pt-table .num { font-variant-numeric: tabular-nums; }
+  .pnl-pos { color: #00ff41; font-weight: 600; }
+  .pnl-neg { color: #ff4444; font-weight: 600; }
+
+  /* ── Strategy grid ── */
+  .pt-strategies-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: .75rem;
+  }
+  .pt-strategy-card {
+    background: var(--bg-elevated); border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg); padding: .875rem 1rem;
+    cursor: pointer; transition: border-color .15s;
+  }
+  .pt-strategy-card:hover  { border-color: var(--teal); }
+  .pt-strategy-card.active { border-color: #00ff41; background: rgba(0,255,65,.05); }
+  .ps-name   { font-size: var(--text-sm); font-weight: 600; color: var(--text-primary); margin-bottom: .2rem; }
+  .ps-desc   { font-size: var(--text-xs); color: var(--text-tertiary); }
+  .ps-signal { margin-top: .5rem; font-size: var(--text-xs); font-weight: 600; padding: .15rem .5rem; border-radius: var(--radius-sm); display: inline-block; }
+  .ps-signal.buy  { background: rgba(0,255,65,.15);  color: #00ff41; }
+  .ps-signal.sell { background: rgba(239,68,68,.15); color: #ff4444; }
+  .ps-signal.hold { background: rgba(86,103,120,.15); color: #8899AA; }
+
+  /* ── Equity chart canvas ── */
+  .pt-chart-wrap { position: relative; height: 160px; }
+  canvas#eq-chart { width: 100%; height: 100%; }
+
+  /* ── Backtest panel ── */
+  .pt-backtest-form { display: flex; flex-wrap: wrap; gap: .75rem; align-items: flex-end; }
+  .pt-form-group { display: flex; flex-direction: column; gap: .3rem; }
+  .pt-form-label { font-size: var(--text-xs); color: var(--text-secondary); }
+
+  /* ── Cost / Error calibration ── */
+  .pt-cal-row { display: flex; justify-content: space-between; align-items: center; padding: .5rem 0; border-bottom: 1px solid var(--border-subtle); font-size: var(--text-sm); }
+  .pt-cal-row:last-child { border-bottom: none; }
+  .pt-cal-key { color: var(--text-secondary); }
+  .pt-cal-val { font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
+  /* ── Toast notification ── */
+  .pt-toast {
+    position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999;
+    background: var(--bg-surface); border: 1px solid var(--teal);
+    border-radius: var(--radius-lg); padding: .875rem 1.25rem;
+    font-size: var(--text-sm); color: var(--text-primary);
+    box-shadow: 0 8px 32px rgba(0,0,0,.4);
+    display: none; max-width: 340px;
+  }
+  .pt-toast.show { display: block; }
+  .pt-toast.error { border-color: #EF4444; }
+
+  /* ── Wallet nav link ── */
+  .pt-back-link { display: inline-flex; align-items: center; gap: .4rem; font-size: var(--text-sm); color: var(--teal); text-decoration: none; margin-bottom: 1.5rem; }
+  .pt-back-link:hover { opacity: .8; }
+
+  /* ── Section heading ── */
+  .pt-section-heading {
+    font-size: var(--text-base); font-weight: 600; color: var(--text-primary);
+    margin-bottom: 1rem; display: flex; align-items: center; gap: .625rem;
+  }
+  .pt-section-heading::after { content: ''; flex: 1; height: 1px; background: var(--border-subtle); }
+
+  /* ── Murphy AI bar ── */
+  .murphy-ai-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--bg-surface); border-top: 1px solid var(--border-subtle);
+    padding: .75rem 1.5rem; display: flex; align-items: center; gap: 1rem; z-index: 100;
+  }
+  .murphy-ai-label { font-size: var(--text-xs); font-weight: 600; color: var(--teal); white-space: nowrap; }
+  .murphy-ai-insight { font-size: var(--text-xs); color: var(--text-secondary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .murphy-ai-btn { padding: .375rem .875rem; border-radius: var(--radius-md); background: transparent; border: 1px solid var(--teal); color: var(--teal); font-family: var(--font-ui); font-size: var(--text-xs); cursor: pointer; white-space: nowrap; }
+  .murphy-ai-btn:hover { background: rgba(0,212,170,.1); }
+</style>
+</head>
+<body>
+<div class="pt-layout">
+
+  <!-- Back navigation -->
+  <a class="pt-back-link" href="/ui/wallet">← Back to Wallet</a>
+
+  <!-- Hero -->
+  <div class="pt-hero">
+    <div class="pt-hero-left">
+      <h1>📊 Paper Trading</h1>
+      <p>Simulate trades against live market data — no real money involved</p>
+    </div>
+    <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+      <span class="pt-badge" id="session-badge">⏸ Inactive</span>
+      <span class="pt-badge warn" id="mode-badge">🔒 Paper Only</span>
+    </div>
+  </div>
+
+  <!-- Metrics row -->
+  <div class="pt-metrics-row" id="metrics-row">
+    <div class="pt-metric-card">
+      <div class="pt-metric-label">Total Equity</div>
+      <div class="pt-metric-value teal" id="m-equity">$10,000.00</div>
+      <div class="pt-metric-sub">Starting: <span id="m-initial">$10,000</span></div>
+    </div>
+    <div class="pt-metric-card">
+      <div class="pt-metric-label">Total P&amp;L</div>
+      <div class="pt-metric-value" id="m-pnl">$0.00</div>
+      <div class="pt-metric-sub"><span id="m-return-pct">0.00%</span> return</div>
+    </div>
+    <div class="pt-metric-card">
+      <div class="pt-metric-label">Win Rate</div>
+      <div class="pt-metric-value" id="m-winrate">—</div>
+      <div class="pt-metric-sub"><span id="m-wins">0</span>W / <span id="m-losses">0</span>L</div>
+    </div>
+    <div class="pt-metric-card">
+      <div class="pt-metric-label">Sharpe Ratio</div>
+      <div class="pt-metric-value" id="m-sharpe">—</div>
+      <div class="pt-metric-sub">Sortino: <span id="m-sortino">—</span></div>
+    </div>
+    <div class="pt-metric-card">
+      <div class="pt-metric-label">Max Drawdown</div>
+      <div class="pt-metric-value down" id="m-drawdown">0.00%</div>
+      <div class="pt-metric-sub">Profit Factor: <span id="m-pf">—</span></div>
+    </div>
+    <div class="pt-metric-card">
+      <div class="pt-metric-label">Total Fees</div>
+      <div class="pt-metric-value" id="m-fees">$0.00</div>
+      <div class="pt-metric-sub">Net after costs: <span id="m-net">$0.00</span></div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="pt-controls">
+    <div class="pt-status-dot" id="status-dot"></div>
+    <span id="status-label" style="font-size:var(--text-sm);color:var(--text-secondary)">Session inactive</span>
+    <div style="flex:1"></div>
+    <select class="pt-select" id="capital-select">
+      <option value="10000">$10,000 (default)</option>
+      <option value="25000">$25,000</option>
+      <option value="50000">$50,000</option>
+      <option value="100000">$100,000</option>
+    </select>
+    <button class="pt-btn primary" id="btn-start">▶ Start</button>
+    <button class="pt-btn danger" id="btn-stop" disabled>⏹ Stop</button>
+    <button class="pt-btn outline" id="btn-reset">↺ Reset</button>
+    <button class="pt-btn outline" id="btn-refresh">⟳ Refresh</button>
+  </div>
+
+  <!-- Equity chart + Positions -->
+  <div class="pt-grid-2">
+    <!-- Equity curve -->
+    <div class="pt-panel">
+      <div class="pt-panel-header">
+        <span class="pt-panel-title">📈 Equity Curve</span>
+        <span id="eq-points" style="font-size:var(--text-xs);color:var(--text-tertiary)">0 points</span>
+      </div>
+      <div class="pt-panel-body">
+        <div class="pt-chart-wrap">
+          <canvas id="eq-chart"></canvas>
+        </div>
+      </div>
+    </div>
+    <!-- Open Positions -->
+    <div class="pt-panel">
+      <div class="pt-panel-header">
+        <span class="pt-panel-title">💼 Open Positions</span>
+        <span id="pos-count" style="font-size:var(--text-xs);color:var(--text-tertiary)">0 open</span>
+      </div>
+      <div class="pt-panel-body" style="padding:0">
+        <div style="overflow-x:auto">
+          <table class="pt-table">
+            <thead><tr>
+              <th>Symbol</th><th>Strategy</th><th>Qty</th><th>Avg Entry</th><th>Current</th><th>Unreal P&L</th>
+            </tr></thead>
+            <tbody id="positions-tbody">
+              <tr><td colspan="6" style="text-align:center;color:var(--text-tertiary);padding:1.5rem">No open positions</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Strategy section heading -->
+  <div class="pt-section-heading">Strategy Templates</div>
+  <div class="pt-strategies-grid" id="strategies-grid">
+    <div style="color:var(--text-tertiary);font-size:var(--text-sm)">Loading strategies…</div>
+  </div>
+
+  <div style="margin-top:1.5rem"></div>
+
+  <!-- Strategy performance + Trade journal -->
+  <div class="pt-grid-2">
+    <!-- Strategy performance -->
+    <div class="pt-panel">
+      <div class="pt-panel-header">
+        <span class="pt-panel-title">⚡ Strategy Performance</span>
+      </div>
+      <div class="pt-panel-body" style="padding:0">
+        <div style="overflow-x:auto">
+          <table class="pt-table">
+            <thead><tr>
+              <th>Strategy</th><th>Trades</th><th>Win%</th><th>P&L</th><th>Fees</th>
+            </tr></thead>
+            <tbody id="strat-tbody">
+              <tr><td colspan="5" style="text-align:center;color:var(--text-tertiary);padding:1.5rem">No data yet</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <!-- Recent trades -->
+    <div class="pt-panel">
+      <div class="pt-panel-header">
+        <span class="pt-panel-title">📋 Trade Journal</span>
+        <span id="journal-count" style="font-size:var(--text-xs);color:var(--text-tertiary)">0 trades</span>
+      </div>
+      <div class="pt-panel-body" style="padding:0">
+        <div style="overflow-x:auto">
+          <table class="pt-table">
+            <thead><tr>
+              <th>Symbol</th><th>Strategy</th><th>Entry</th><th>Exit</th><th>Net P&L</th><th>Reason</th>
+            </tr></thead>
+            <tbody id="journal-tbody">
+              <tr><td colspan="6" style="text-align:center;color:var(--text-tertiary);padding:1.5rem">No trades yet</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:1.5rem"></div>
+
+  <!-- Cost calibration + Error calibration -->
+  <div class="pt-grid-2">
+    <!-- Cost calibration -->
+    <div class="pt-panel">
+      <div class="pt-panel-header">
+        <span class="pt-panel-title">🔬 Hidden Cost Analysis</span>
+        <button class="pt-btn outline" style="padding:.25rem .75rem;font-size:var(--text-xs)" onclick="refreshCalibration()">Refresh</button>
+      </div>
+      <div class="pt-panel-body" id="cost-cal-body">
+        <div style="color:var(--text-tertiary);font-size:var(--text-sm)">No cost observations yet</div>
+      </div>
+    </div>
+    <!-- Error calibration -->
+    <div class="pt-panel">
+      <div class="pt-panel-header">
+        <span class="pt-panel-title">🎯 Error Calibration</span>
+        <button class="pt-btn outline" style="padding:.25rem .75rem;font-size:var(--text-xs)" onclick="refreshCalibration()">Refresh</button>
+      </div>
+      <div class="pt-panel-body" id="err-cal-body">
+        <div style="color:var(--text-tertiary);font-size:var(--text-sm)">No strategy observations yet</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:1.5rem"></div>
+
+  <!-- Backtest panel -->
+  <div class="pt-section-heading">Backtest</div>
+  <div class="pt-panel">
+    <div class="pt-panel-header">
+      <span class="pt-panel-title">⏮ Run Historical Backtest</span>
+    </div>
+    <div class="pt-panel-body">
+      <div class="pt-backtest-form">
+        <div class="pt-form-group">
+          <label class="pt-form-label">Strategy</label>
+          <select class="pt-select" id="bt-strategy">
+            <option value="">Loading…</option>
+          </select>
+        </div>
+        <div class="pt-form-group">
+          <label class="pt-form-label">Symbol</label>
+          <input class="pt-input" id="bt-symbol" value="BTC-USD" placeholder="e.g. BTC-USD">
+        </div>
+        <div class="pt-form-group">
+          <label class="pt-form-label">Timeframe</label>
+          <select class="pt-select" id="bt-timeframe">
+            <option value="1d">1D</option>
+            <option value="1h">1H</option>
+            <option value="4h">4H</option>
+            <option value="15m">15M</option>
+            <option value="5m">5M</option>
+          </select>
+        </div>
+        <div class="pt-form-group">
+          <label class="pt-form-label">Period</label>
+          <select class="pt-select" id="bt-period">
+            <option value="1mo">1 Month</option>
+            <option value="3mo">3 Months</option>
+            <option value="6mo" selected>6 Months</option>
+            <option value="1y">1 Year</option>
+            <option value="2y">2 Years</option>
+          </select>
+        </div>
+        <div class="pt-form-group">
+          <label class="pt-form-label">Capital ($)</label>
+          <input class="pt-input" id="bt-capital" value="10000" type="number" min="100">
+        </div>
+        <button class="pt-btn primary" id="btn-backtest">▶ Run Backtest</button>
+      </div>
+      <div id="bt-result" style="margin-top:1.25rem;display:none">
+        <div class="pt-section-heading" style="font-size:var(--text-sm)">Backtest Results</div>
+        <div id="bt-result-body"></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding-bottom:5rem"></div>
+</div>
+
+<!-- Murphy AI bar -->
+<div class="murphy-ai-bar" role="region" aria-label="Murphy AI assistant">
+  <span class="murphy-ai-label">🤖 Murphy</span>
+  <span class="murphy-ai-insight" id="murphy-pt-insight" aria-live="polite">Paper trading engine ready. Start a session to begin simulating trades.</span>
+  <input
+    type="text"
+    id="murphy-pt-input"
+    class="pt-input"
+    placeholder="Ask Murphy…"
+    aria-label="Ask Murphy about paper trading"
+    style="width:220px;flex-shrink:0"
+  >
+  <button class="murphy-ai-btn" id="murphy-pt-ask" aria-label="Submit question to Murphy">Ask</button>
+</div>
+
+<!-- Toast -->
+<div class="pt-toast" id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ─── State ─── */
+  var sessionActive  = false;
+  var eqData         = [];
+  var refreshTimer   = null;
+  var POLL_INTERVAL  = 8000;  // ms
+
+  /* ─── Utils ─── */
+  function fmt$(v) { return '$' + parseFloat(v || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
+  function fmtPct(v) { return (parseFloat(v || 0) * 100).toFixed(2) + '%'; }
+  function fmtN(v, d) { return parseFloat(v || 0).toFixed(d !== undefined ? d : 4); }
+  function pnlClass(v) { return parseFloat(v) > 0 ? 'pnl-pos' : (parseFloat(v) < 0 ? 'pnl-neg' : ''); }
+
+  function toast(msg, err) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'pt-toast show' + (err ? ' error' : '');
+    setTimeout(function () { t.className = 'pt-toast'; }, 3500);
+  }
+
+  /* ─── API helpers ─── */
+  function api(method, path, body) {
+    var opts = { method: method, headers: { 'Content-Type': 'application/json' } };
+    if (body) opts.body = JSON.stringify(body);
+    return fetch(path, opts).then(function (r) { return r.json(); });
+  }
+
+  /* ─── Load strategies into grid and selects ─── */
+  function loadStrategies() {
+    api('GET', '/api/trading/paper/strategies')
+      .then(function (d) {
+        var grid   = document.getElementById('strategies-grid');
+        var btSel  = document.getElementById('bt-strategy');
+        grid.innerHTML = '';
+        btSel.innerHTML = '';
+        (d.strategies || []).forEach(function (s) {
+          // Grid card
+          var card = document.createElement('div');
+          card.className = 'pt-strategy-card';
+          card.innerHTML = '<div class="ps-name">' + s.name + '</div>' +
+            '<div class="ps-desc">' + (s.description || '') + '</div>' +
+            '<span class="ps-signal hold">HOLD</span>';
+          card.dataset.name = s.name;
+          grid.appendChild(card);
+          // Select option
+          var opt = document.createElement('option');
+          opt.value = s.name; opt.textContent = s.name;
+          btSel.appendChild(opt);
+        });
+        if (!d.strategies || !d.strategies.length) {
+          grid.innerHTML = '<div style="color:var(--text-tertiary);font-size:var(--text-sm)">No strategy templates available</div>';
+        }
+      })
+      .catch(function () { /* silent */ });
+  }
+
+  /* ─── Refresh dashboard data ─── */
+  function refresh() {
+    // Performance
+    api('GET', '/api/trading/paper/performance')
+      .then(function (d) {
+        var m = d.overall || {};
+        updateMetrics(m, d.equity_curve || []);
+        updateStrategyTable(d.by_strategy || {});
+      })
+      .catch(function () {});
+
+    // Positions
+    api('GET', '/api/trading/paper/positions')
+      .then(function (d) { updatePositions(d.positions || []); })
+      .catch(function () {});
+
+    // Trades
+    api('GET', '/api/trading/paper/trades?limit=50')
+      .then(function (d) { updateJournal(d.trades || []); })
+      .catch(function () {});
+  }
+
+  function refreshCalibration() {
+    api('GET', '/api/trading/calibration/costs')
+      .then(function (d) { renderCostCal(d); })
+      .catch(function () {});
+    api('GET', '/api/trading/calibration/errors')
+      .then(function (d) { renderErrCal(d); })
+      .catch(function () {});
+  }
+
+  /* ─── Metric update ─── */
+  function updateMetrics(m, eq) {
+    var equity  = m.equity  || 10000;
+    var initial = m.initial_capital || 10000;
+    var pnl     = m.total_pnl || 0;
+    var retPct  = m.total_return_pct || 0;
+
+    document.getElementById('m-equity').textContent  = fmt$(equity);
+    document.getElementById('m-initial').textContent = fmt$(initial);
+
+    var pnlEl = document.getElementById('m-pnl');
+    pnlEl.textContent = fmt$(pnl);
+    pnlEl.className   = 'pt-metric-value ' + (pnl >= 0 ? 'up' : 'down');
+
+    var retEl = document.getElementById('m-return-pct');
+    retEl.textContent = (retPct >= 0 ? '+' : '') + retPct.toFixed(2) + '%';
+    retEl.style.color = retPct >= 0 ? '#00ff41' : '#ff4444';
+
+    var wr = m.win_rate;
+    document.getElementById('m-winrate').textContent = wr !== undefined ? (wr * 100).toFixed(1) + '%' : '—';
+    document.getElementById('m-wins').textContent    = m.wins    || 0;
+    document.getElementById('m-losses').textContent  = m.losses  || 0;
+    document.getElementById('m-sharpe').textContent  = m.sharpe_ratio  !== undefined ? fmtN(m.sharpe_ratio,  2) : '—';
+    document.getElementById('m-sortino').textContent = m.sortino_ratio !== undefined ? fmtN(m.sortino_ratio, 2) : '—';
+
+    var dd = m.max_drawdown_pct || 0;
+    document.getElementById('m-drawdown').textContent = dd.toFixed(2) + '%';
+    document.getElementById('m-pf').textContent       = m.profit_factor !== undefined ? fmtN(m.profit_factor, 2) : '—';
+    document.getElementById('m-fees').textContent     = fmt$(m.total_fees || 0);
+    document.getElementById('m-net').textContent      = fmt$(m.net_profit_after_costs || 0);
+
+    if (eq && eq.length) {
+      eqData = eq;
+      drawEquityChart(eq);
+      document.getElementById('eq-points').textContent = eq.length + ' points';
+    }
+  }
+
+  /* ─── Simple equity chart ─── */
+  function drawEquityChart(data) {
+    var canvas = document.getElementById('eq-chart');
+    if (!canvas || !canvas.getContext) return;
+    var ctx    = canvas.getContext('2d');
+    var W = canvas.offsetWidth || 400;
+    var H = canvas.offsetHeight || 160;
+    canvas.width  = W;
+    canvas.height = H;
+    ctx.clearRect(0, 0, W, H);
+    if (data.length < 2) return;
+
+    var vals  = data.map(function (d) { return d.equity || d; });
+    var minV  = Math.min.apply(null, vals);
+    var maxV  = Math.max.apply(null, vals);
+    var range = maxV - minV || 1;
+    var pad   = { l: 8, r: 8, t: 8, b: 8 };
+    var inner = { w: W - pad.l - pad.r, h: H - pad.t - pad.b };
+
+    var toX = function (i) { return pad.l + (i / (vals.length - 1)) * inner.w; };
+    var toY = function (v) { return pad.t + (1 - (v - minV) / range) * inner.h; };
+
+    // Gradient fill
+    var grad = ctx.createLinearGradient(0, pad.t, 0, H - pad.b);
+    grad.addColorStop(0, 'rgba(0,212,170,.25)');
+    grad.addColorStop(1, 'rgba(0,212,170,.01)');
+
+    ctx.beginPath();
+    ctx.moveTo(toX(0), toY(vals[0]));
+    for (var i = 1; i < vals.length; i++) ctx.lineTo(toX(i), toY(vals[i]));
+    ctx.lineTo(toX(vals.length - 1), H - pad.b);
+    ctx.lineTo(toX(0), H - pad.b);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Line
+    ctx.beginPath();
+    ctx.moveTo(toX(0), toY(vals[0]));
+    for (var j = 1; j < vals.length; j++) ctx.lineTo(toX(j), toY(vals[j]));
+    ctx.strokeStyle = '#00D4AA';
+    ctx.lineWidth   = 1.5;
+    ctx.stroke();
+
+    // Baseline
+    var baseY = toY(data[0].equity || vals[0]);
+    ctx.beginPath();
+    ctx.moveTo(pad.l, baseY);
+    ctx.lineTo(W - pad.r, baseY);
+    ctx.strokeStyle = 'rgba(86,103,120,.35)';
+    ctx.lineWidth   = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  /* ─── Positions table ─── */
+  function updatePositions(positions) {
+    var tb = document.getElementById('positions-tbody');
+    document.getElementById('pos-count').textContent = positions.length + ' open';
+    if (!positions.length) {
+      tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-tertiary);padding:1.5rem">No open positions</td></tr>';
+      return;
+    }
+    tb.innerHTML = positions.map(function (p) {
+      var pnl = p.unrealized_pnl || 0;
+      return '<tr>' +
+        '<td class="num">' + p.symbol + '</td>' +
+        '<td>' + (p.strategy || '—') + '</td>' +
+        '<td class="num">' + fmtN(p.quantity, 6) + '</td>' +
+        '<td class="num">' + fmt$(p.avg_entry) + '</td>' +
+        '<td class="num">' + fmt$(p.current_price) + '</td>' +
+        '<td class="num ' + pnlClass(pnl) + '">' + fmt$(pnl) + '</td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  /* ─── Strategy table ─── */
+  function updateStrategyTable(byStrat) {
+    var tb = document.getElementById('strat-tbody');
+    var rows = Object.entries(byStrat);
+    if (!rows.length) {
+      tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-tertiary);padding:1.5rem">No data yet</td></tr>';
+      return;
+    }
+    tb.innerHTML = rows.map(function (kv) {
+      var name = kv[0]; var s = kv[1];
+      var wr = s.win_rate !== undefined ? (s.win_rate * 100).toFixed(1) + '%' : '—';
+      return '<tr>' +
+        '<td>' + name + '</td>' +
+        '<td class="num">' + (s.trades || 0) + '</td>' +
+        '<td class="num">' + wr + '</td>' +
+        '<td class="num ' + pnlClass(s.total_pnl) + '">' + fmt$(s.total_pnl) + '</td>' +
+        '<td class="num">' + fmt$(s.total_fees) + '</td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  /* ─── Trade journal ─── */
+  function updateJournal(trades) {
+    var tb = document.getElementById('journal-tbody');
+    document.getElementById('journal-count').textContent = trades.length + ' trades';
+    if (!trades.length) {
+      tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-tertiary);padding:1.5rem">No trades yet</td></tr>';
+      return;
+    }
+    tb.innerHTML = trades.slice(-30).reverse().map(function (t) {
+      var pnl = t.net_pnl || 0;
+      return '<tr>' +
+        '<td>' + t.symbol + '</td>' +
+        '<td>' + (t.strategy || '—') + '</td>' +
+        '<td class="num">' + fmt$(t.entry_price) + '</td>' +
+        '<td class="num">' + fmt$(t.exit_price) + '</td>' +
+        '<td class="num ' + pnlClass(pnl) + '">' + fmt$(pnl) + '</td>' +
+        '<td><span style="font-size:var(--text-xs);color:var(--text-tertiary)">' + (t.exit_reason || '—') + '</span></td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  /* ─── Cost calibration render ─── */
+  function renderCostCal(d) {
+    var el = document.getElementById('cost-cal-body');
+    if (!d || d.error) { el.innerHTML = '<div style="color:var(--text-tertiary);font-size:var(--text-sm)">' + (d && d.error || 'No data') + '</div>'; return; }
+    var s = d.summary || {};
+    var rows = [
+      ['Observations',        s.observations || 0],
+      ['Avg hidden cost/trade', fmt$(s.avg_hidden_cost_per_trade || 0)],
+      ['Total hidden cost',   fmt$(s.total_hidden_cost || 0)],
+      ['Slippage adj (bps)',  fmtN((s.calibration_adjustments || {}).slippage_bps_added, 4)],
+      ['Fee adj (%)',         fmtN((s.calibration_adjustments || {}).fee_pct_added, 6)],
+      ['Pending alerts',      s.pending_alerts || 0],
+    ];
+    el.innerHTML = rows.map(function (r) {
+      return '<div class="pt-cal-row"><span class="pt-cal-key">' + r[0] + '</span><span class="pt-cal-val">' + r[1] + '</span></div>';
+    }).join('');
+  }
+
+  /* ─── Error calibration render ─── */
+  function renderErrCal(d) {
+    var el = document.getElementById('err-cal-body');
+    if (!d || d.error) { el.innerHTML = '<div style="color:var(--text-tertiary);font-size:var(--text-sm)">' + (d && d.error || 'No data') + '</div>'; return; }
+    var s = d.summary || {};
+    var rows = [
+      ['Tracked strategies',    s.tracked_strategies || 0],
+      ['Total observations',    s.total_observations || 0],
+      ['Total recalibrations',  s.total_recalibrations || 0],
+      ['Pending alerts',        s.pending_alerts || 0],
+      ['High-bias strategies',  (s.strategies_with_high_bias || []).join(', ') || 'None'],
+    ];
+    el.innerHTML = rows.map(function (r) {
+      return '<div class="pt-cal-row"><span class="pt-cal-key">' + r[0] + '</span><span class="pt-cal-val">' + r[1] + '</span></div>';
+    }).join('');
+  }
+
+  /* ─── Session controls ─── */
+  document.getElementById('btn-start').addEventListener('click', function () {
+    var capital = parseFloat(document.getElementById('capital-select').value) || 10000;
+    api('POST', '/api/trading/paper/start', { initial_capital: capital, strategies: [], symbols: [] })
+      .then(function (d) {
+        sessionActive = true;
+        document.getElementById('session-badge').textContent = '● Active';
+        document.getElementById('session-badge').className   = 'pt-badge live';
+        document.getElementById('status-dot').className   = 'pt-status-dot active';
+        document.getElementById('status-label').textContent = 'Session active — started ' + new Date().toLocaleTimeString();
+        document.getElementById('btn-start').disabled = true;
+        document.getElementById('btn-stop').disabled  = false;
+        toast('Paper trading session started with $' + capital.toLocaleString());
+        startPolling();
+      })
+      .catch(function (e) { toast('Failed to start session', true); });
+  });
+
+  document.getElementById('btn-stop').addEventListener('click', function () {
+    if (!confirm('Stop paper trading session?')) return;
+    api('POST', '/api/trading/paper/stop', { liquidate: false })
+      .then(function () {
+        sessionActive = false;
+        document.getElementById('session-badge').textContent = '⏸ Inactive';
+        document.getElementById('session-badge').className   = 'pt-badge';
+        document.getElementById('status-dot').className   = 'pt-status-dot';
+        document.getElementById('status-label').textContent = 'Session inactive';
+        document.getElementById('btn-start').disabled = false;
+        document.getElementById('btn-stop').disabled  = true;
+        stopPolling();
+        toast('Paper trading session stopped');
+      });
+  });
+
+  document.getElementById('btn-reset').addEventListener('click', function () {
+    if (!confirm('Reset paper trading engine? This clears all trades and positions.')) return;
+    api('POST', '/api/trading/paper/start', { initial_capital: parseFloat(document.getElementById('capital-select').value) || 10000, strategies: [], symbols: [] })
+      .then(function () { toast('Engine reset'); refresh(); });
+  });
+
+  document.getElementById('btn-refresh').addEventListener('click', function () {
+    refresh();
+    refreshCalibration();
+    toast('Dashboard refreshed');
+  });
+
+  /* ─── Polling ─── */
+  function startPolling() {
+    if (refreshTimer) return;
+    refreshTimer = setInterval(function () { if (sessionActive) refresh(); }, POLL_INTERVAL);
+  }
+  function stopPolling() {
+    if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
+  }
+
+  /* ─── Backtest ─── */
+  document.getElementById('btn-backtest').addEventListener('click', function () {
+    var btn = this;
+    var strategy  = document.getElementById('bt-strategy').value;
+    var symbol    = document.getElementById('bt-symbol').value.trim().toUpperCase();
+    var timeframe = document.getElementById('bt-timeframe').value;
+    var period    = document.getElementById('bt-period').value;
+    var capital   = parseFloat(document.getElementById('bt-capital').value) || 10000;
+    if (!strategy || !symbol) { toast('Select a strategy and enter a symbol', true); return; }
+    btn.disabled = true; btn.textContent = '⏳ Running…';
+    api('POST', '/api/trading/backtest', { strategy: strategy, symbol: symbol, timeframe: timeframe, period: period, initial_capital: capital })
+      .then(function (d) {
+        btn.disabled = false; btn.textContent = '▶ Run Backtest';
+        renderBacktestResult(d);
+        document.getElementById('bt-result').style.display = 'block';
+      })
+      .catch(function () {
+        btn.disabled = false; btn.textContent = '▶ Run Backtest';
+        toast('Backtest failed — check console', true);
+      });
+  });
+
+  function renderBacktestResult(d) {
+    var el = document.getElementById('bt-result-body');
+    var m  = d.metrics || {};
+    var rows = [
+      ['Strategy',          d.strategy],
+      ['Symbol',            d.symbol + ' / ' + d.timeframe],
+      ['Period',            (d.start_date || '').slice(0,10) + ' → ' + (d.end_date || '').slice(0,10)],
+      ['Total Bars',        d.total_bars],
+      ['Total Trades',      m.total_trades || 0],
+      ['Win Rate',          ((m.win_rate || 0) * 100).toFixed(1) + '%'],
+      ['Total Return',      (m.total_return_pct || 0).toFixed(2) + '%'],
+      ['Sharpe Ratio',      fmtN(m.sharpe_ratio, 3)],
+      ['Sortino Ratio',     fmtN(m.sortino_ratio, 3)],
+      ['Max Drawdown',      (m.max_drawdown_pct || 0).toFixed(2) + '%'],
+      ['Profit Factor',     fmtN(m.profit_factor, 2)],
+      ['Total Fees',        fmt$(m.total_fees)],
+      ['Net Profit',        fmt$(m.net_profit_after_costs)],
+      ['Run Duration',      (d.run_duration_s || 0).toFixed(2) + 's'],
+    ];
+    el.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">' +
+      rows.map(function (r) {
+        var valClass = '';
+        if (r[0] === 'Total Return' || r[0] === 'Net Profit') valClass = parseFloat(r[1]) >= 0 ? 'pnl-pos' : 'pnl-neg';
+        return '<div class="pt-cal-row"><span class="pt-cal-key">' + r[0] + '</span><span class="pt-cal-val ' + valClass + '">' + r[1] + '</span></div>';
+      }).join('') + '</div>';
+  }
+
+  /* ─── Murphy AI ask ─── */
+  function askMurphy(q) {
+    if (!q || !q.trim()) return;
+    document.getElementById('murphy-pt-insight').textContent = 'Murphy is thinking…';
+    fetch('/api/librarian/query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: q.trim(), context: 'paper_trading' })
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      document.getElementById('murphy-pt-insight').textContent = d.response || d.result || 'Murphy is analysing your results…';
+      document.getElementById('murphy-pt-input').value = '';
+    })
+    .catch(function () {
+      document.getElementById('murphy-pt-insight').textContent = 'Could not reach Murphy right now.';
+    });
+  }
+
+  document.getElementById('murphy-pt-ask').addEventListener('click', function () {
+    askMurphy(document.getElementById('murphy-pt-input').value);
+  });
+
+  document.getElementById('murphy-pt-input').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') askMurphy(this.value);
+  });
+
+  /* ─── Initialise ─── */
+  loadStrategies();
+  refresh();
+  refreshCalibration();
+
+  // Check if session is already active
+  api('GET', '/api/trading/paper/status')
+    .then(function (d) {
+      if (d.active) {
+        sessionActive = true;
+        document.getElementById('session-badge').textContent = '● Active';
+        document.getElementById('session-badge').className   = 'pt-badge live';
+        document.getElementById('status-dot').className   = 'pt-status-dot active';
+        document.getElementById('status-label').textContent = 'Session already active';
+        document.getElementById('btn-start').disabled = true;
+        document.getElementById('btn-stop').disabled  = false;
+        startPolling();
+      }
+    })
+    .catch(function () {});
+
+})();
+</script>
+</body>
+</html>

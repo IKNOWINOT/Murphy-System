@@ -487,6 +487,24 @@ Murphy **runs Inoni LLC autonomously** via configurable automation templates:
 | **Integration Engine** | GitHub ingestion with HITL | 6 components |
 | **Orchestrator** | Two-phase execution | 1 file |
 | **Final Runtime** | Complete system | 1 file |
+| **Paper Trading Engine** | Simulated crypto trading + 9 strategies | 7+ files |
+
+### Paper Trading System (PR-2)
+
+Murphy includes a full paper-trading simulation engine for personal crypto trading research:
+
+| Module | Purpose |
+|--------|---------|
+| `src/paper_trading_engine.py` | Portfolio simulator: slippage, fees, stop-loss, P&L metrics |
+| `src/strategy_templates/` | 9 strategy templates (momentum, mean reversion, breakout, scalping, DCA, grid, trajectory, sentiment, arbitrage) |
+| `src/cost_calibrator.py` | Detects hidden costs (spread, slippage, fees) and auto-adjusts estimates |
+| `src/error_calibrator.py` | Tracks prediction vs actual divergence; triggers recalibration when bias is detected |
+| `src/backtester.py` | Historical backtesting via CSV or yfinance; multi-strategy comparison |
+| `src/paper_trading_routes.py` | FastAPI routes at `/api/trading/*` |
+| `paper_trading_dashboard.html` | Dashboard at `/ui/paper-trading` |
+
+> **Note:** All trading is PAPER/SIMULATED only in this phase. No real money is moved.
+> The system is for personal use — see the graduation system (PR-3) before enabling live trading.
 
 ### Documentation (10+ guides)
 
@@ -692,8 +710,10 @@ Copy `Murphy System/.env.example` to `Murphy System/.env` and fill in the values
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `GROQ_API_KEY` | *(none)* | Groq API key — enables Mixtral/Llama/Gemma cloud LLMs. Optional: the onboard local LLM works without this. |
+| `GROQ_API_KEY` | *(none)* | Groq API key — enables Mixtral/Llama/Gemma cloud LLMs. Optional: the onboard local LLM (phi3 via Ollama) works without this. |
 | `MURPHY_LLM_PROVIDER` | `local` | LLM provider to use: `local`, `groq`, `openai`, or `anthropic`. |
+| `OLLAMA_MODEL` | `phi3` | Default Ollama model. `phi3` is pulled automatically by the deploy workflow. |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama API endpoint. |
 | `MURPHY_ENV` | `development` | Runtime environment: `development` (auth optional) or `production` (auth required). |
 | `MURPHY_API_KEYS` | *(none)* | Comma-separated API keys for request authentication in production mode. |
 | `MURPHY_CORS_ORIGINS` | `http://localhost:3000,...` | Comma-separated list of allowed CORS origins. |
