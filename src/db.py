@@ -114,6 +114,133 @@ class HITLIntervention(Base):
 
 
 # ---------------------------------------------------------------------------
+# Communication Hub ORM Models
+# ---------------------------------------------------------------------------
+
+
+class IMThread(Base):
+    """Persistent IM thread record."""
+    __tablename__ = "comms_im_threads"
+
+    id = Column(String(32), primary_key=True)
+    name = Column(String(256), default="")
+    type = Column(String(32), default="direct")
+    participants = Column(JSON, default=list)
+    created = Column(String(64), default="")
+
+
+class IMMessage(Base):
+    """Persistent IM message record."""
+    __tablename__ = "comms_im_messages"
+
+    id = Column(String(32), primary_key=True)
+    thread_id = Column(String(32), nullable=False)
+    sender = Column(String(256), nullable=False)
+    content = Column(Text, default="")
+    attachments = Column(JSON, default=list)
+    created = Column(String(64), default="")
+    edited = Column(String(64), nullable=True)
+    reactions = Column(JSON, default=dict)
+    automod = Column(JSON, default=dict)
+
+
+class CallSession(Base):
+    """Persistent voice/video call session record."""
+    __tablename__ = "comms_call_sessions"
+
+    id = Column(String(32), primary_key=True)
+    type = Column(String(16), default="voice")
+    caller = Column(String(256), nullable=False)
+    participants = Column(JSON, default=list)
+    state = Column(String(32), default="ringing")
+    created = Column(String(64), default="")
+    answered_at = Column(String(64), nullable=True)
+    ended_at = Column(String(64), nullable=True)
+    sdp_offer = Column(Text, nullable=True)
+    sdp_answer = Column(Text, nullable=True)
+    ice_candidates = Column(JSON, default=list)
+    duration_seconds = Column(Integer, nullable=True)
+    recording_url = Column(String(512), nullable=True)
+    voicemail_url = Column(String(512), nullable=True)
+
+
+class EmailRecord(Base):
+    """Persistent email record."""
+    __tablename__ = "comms_emails"
+
+    id = Column(String(32), primary_key=True)
+    sender = Column(String(256), nullable=False)
+    recipients = Column(JSON, default=list)
+    cc = Column(JSON, default=list)
+    bcc = Column(JSON, default=list)
+    subject = Column(String(512), default="")
+    body = Column(Text, default="")
+    attachments = Column(JSON, default=list)
+    priority = Column(String(32), default="normal")
+    thread_id = Column(String(32), nullable=True)
+    created = Column(String(64), default="")
+    read_by = Column(JSON, default=list)
+    status = Column(String(32), default="sent")
+    automod = Column(JSON, default=dict)
+
+
+class CommsAutomationRule(Base):
+    """Persistent automation rule for the comms hub."""
+    __tablename__ = "comms_automation_rules"
+
+    id = Column(String(32), primary_key=True)
+    name = Column(String(256), default="")
+    trigger = Column(String(64), default="")
+    channel = Column(String(64), default="*")
+    action = Column(String(64), default="")
+    conditions = Column(JSON, default=dict)
+    action_params = Column(JSON, default=dict)
+    enabled = Column(Integer, default=1)
+    created_by = Column(String(256), default="system")
+    created = Column(String(64), default="")
+    last_fired = Column(String(64), nullable=True)
+    fire_count = Column(Integer, default=0)
+
+
+class CommsModAuditLog(Base):
+    """Moderator audit log entry."""
+    __tablename__ = "comms_mod_audit"
+
+    id = Column(String(32), primary_key=True)
+    actor = Column(String(256), nullable=False)
+    action = Column(String(64), nullable=False)
+    target = Column(String(256), nullable=False)
+    reason = Column(String(512), default="")
+    details = Column(JSON, default=dict)
+    timestamp = Column(String(64), default="")
+
+
+class CommsBroadcast(Base):
+    """Persistent broadcast record."""
+    __tablename__ = "comms_broadcasts"
+
+    id = Column(String(32), primary_key=True)
+    sender = Column(String(256), nullable=False)
+    message = Column(Text, default="")
+    subject = Column(String(512), nullable=True)
+    priority = Column(String(32), default="normal")
+    platforms = Column(JSON, default=list)
+    results = Column(JSON, default=dict)
+    created = Column(String(64), default="")
+
+
+class CommsUserProfile(Base):
+    """Moderator-managed user profile."""
+    __tablename__ = "comms_user_profiles"
+
+    user = Column(String(256), primary_key=True)
+    role = Column(String(64), default="member")
+    muted = Column(Integer, default=0)
+    banned = Column(Integer, default=0)
+    warnings = Column(Integer, default=0)
+
+
+# ---------------------------------------------------------------------------
 # Engine & Session Factory (synchronous — works with SQLite out of the box)
 # ---------------------------------------------------------------------------
 
