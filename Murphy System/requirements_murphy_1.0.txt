@@ -153,8 +153,17 @@ zstandard>=0.22.0
 psutil>=5.9.6
 
 # ==================== Crypto Trading ====================
-# Coinbase Advanced Trade REST + WebSocket
+# Coinbase Advanced Trade REST + WebSocket SDK (official)
+coinbase-advanced-py>=1.7.0
 websocket-client>=1.6.0
+# Multi-exchange abstraction — CCXT (MIT Licensed)
+ccxt>=4.3.0
+# EVM wallet signing — required for SoftwareWallet.sign_transaction
+web3>=6.15.0
+# Bitcoin wallet utilities
+bitcoin-utils>=0.6.0
+# Alpaca Markets (stocks + crypto, free paper trading API)
+alpaca-trade-api>=3.3.0
 # Multi-exchange abstraction
 ccxt>=4.4.0
 # EVM wallet signing (required for SoftwareWallet.sign_transaction)
@@ -226,6 +235,7 @@ notebook>=7.0.0
 # pygraphviz>=1.11
 
 # Time Series
+statsmodels>=0.14.2
 statsmodels>=0.14.0
 # prophet>=1.1.5
 
