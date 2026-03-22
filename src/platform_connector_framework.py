@@ -979,6 +979,23 @@ DEFAULT_PLATFORMS = [
                       "get_tariff", "get_carbon_intensity", "generate_report",
                       "get_real_time_data", "health_check"],
     ),
+    ConnectorDefinition(
+        connector_id="internal_email",
+        name="Murphy Internal Mail Server",
+        category=ConnectorCategory.COMMUNICATION,
+        platform="internal_email",
+        auth_type=AuthType.API_KEY,
+        base_url="murphy-mailserver",
+        capabilities=[
+            "send_email",
+            "receive_email",
+            "manage_accounts",
+            "manage_aliases",
+            "search_mailbox",
+            "manage_filters",
+            "health_check",
+        ],
+    ),
 ]
 
 
