@@ -319,7 +319,7 @@ def create_onboarding_router() -> "APIRouter":
         if _sessions:
             try:
                 session = _resolve_session(session_id)
-            except Exception:
+            except (KeyError, ValueError):
                 pass
         tasks_with_value = [t for t in TASK_CATALOG if t.estimated_value]
         completed_ids: set = set()
@@ -351,9 +351,8 @@ def create_onboarding_router() -> "APIRouter":
         if _sessions:
             try:
                 session = _resolve_session(session_id)
-            except Exception:
+            except (KeyError, ValueError):
                 pass
-
         total_remaining_minutes = sum(
             t.time_estimate_minutes
             for t in TASK_CATALOG
