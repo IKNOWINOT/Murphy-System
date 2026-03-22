@@ -223,8 +223,10 @@ class CostCalibrator:
         slips  = [o.slippage_discrepancy / max(o.expected_slippage, 1e-9) for o in obs]
 
         # Use median to be robust to outliers
-        self._spread_adj   = statistics.median(prices)
-        self._fee_adj      = max(0.0, statistics.median(fees))
+        self._spread_adj = statistics.median(prices)
+        self._fee_adj    = max(0.0, statistics.median(fees))
+        # slips is a ratio of discrepancy/expected; scale by 0.0001 so the
+        # adjustment is expressed as a fractional rate (1 basis point = 0.0001)
         self._slippage_adj = max(0.0, statistics.median([abs(s) for s in slips]) * 0.0001)
 
     # ------------------------------------------------------------------

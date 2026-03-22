@@ -22,7 +22,7 @@ class DCAStrategy(BaseStrategy):
     DEFAULT_PARAMS: Dict[str, Any] = {
         "mode":             "time",     # "time" | "dip" | "both"
         "interval_seconds": 3600,       # time mode: buy every N seconds
-        "dip_pct":          0.03,       # dip mode: buy when price drops N% from reference
+        "dip_threshold_pct": 0.03,      # dip mode: buy when price drops N% from reference
         "reference_period": 20,         # bars used to compute reference price
         "position_size":    0.05,       # fraction of capital per DCA buy
         "max_buys":         20,         # maximum number of DCA entries to track
@@ -56,7 +56,7 @@ class DCAStrategy(BaseStrategy):
 
         if p["mode"] in ("dip", "both") and not should_buy:
             dip = (reference - price) / reference if reference > 0 else 0.0
-            if dip >= p["dip_pct"]:
+            if dip >= p["dip_threshold_pct"]:
                 should_buy = True
                 reason = f"Price dipped {dip*100:.2f}% below reference {reference:.4f}"
 

@@ -259,7 +259,7 @@ class TestCostCalibrator:
             trade_id="t1", symbol="BTC-USD", strategy="test",
             expected_price=1_000, actual_price=1_000,
             expected_fee=1.0, actual_fee=1.0,
-            expected_slippage=0.05, actual_slippage=5.0,   # 0.5 % slippage — way above 1 bps threshold
+            expected_slippage=0.05, actual_slippage=5.0,   # 0.5% slippage — way above 1 bps threshold
         )
         alerts = cal.get_alerts()
         assert len(alerts) >= 1

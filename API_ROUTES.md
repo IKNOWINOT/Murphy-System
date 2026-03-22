@@ -444,6 +444,44 @@ Dev mode: Auth is disabled when `MURPHY_API_KEY` is unset.
 
 ---
 
+## Paper Trading Engine (FastAPI — src/paper_trading_routes.py)
+
+All trading is **PAPER/SIMULATED only** — no real money is moved.
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | /api/trading/paper/start | Yes | Start paper trading session with selected strategies |
+| POST | /api/trading/paper/stop | Yes | Stop paper trading session (optionally liquidate all positions) |
+| GET | /api/trading/paper/status | Yes | Current session state: active flag, portfolio snapshot, available strategies |
+| GET | /api/trading/paper/positions | Yes | All currently open paper positions with unrealized P&L |
+| GET | /api/trading/paper/trades | Yes | Trade journal — paginated by `limit` and optional `strategy` filter |
+| GET | /api/trading/paper/performance | Yes | Full performance metrics: Sharpe, Sortino, drawdown, win rate, profit factor, fees |
+| GET | /api/trading/paper/strategies | Yes | List all 9 strategy templates with params and description |
+| POST | /api/trading/paper/trade | Yes | Execute a manual paper buy or sell |
+| POST | /api/trading/backtest | Yes | Run a historical backtest via yfinance or supplied OHLCV JSON |
+| GET | /api/trading/calibration/costs | Yes | Hidden cost calibrator summary: observed slippage, fee, spread discrepancies |
+| GET | /api/trading/calibration/errors | Yes | Error calibrator: per-strategy bias, MAE, RMSE, recalibration history |
+
+### Strategy Templates (9 available)
+
+| Name | Class | Algorithm |
+|------|-------|-----------|
+| `momentum` | `MomentumStrategy` | RSI + MACD crossover + volume confirmation |
+| `mean_reversion` | `MeanReversionStrategy` | Bollinger Bands + Z-score mean reversion |
+| `breakout` | `BreakoutStrategy` | Support/resistance levels + volume breakout confirmation |
+| `scalping` | `ScalpingStrategy` | Short timeframe, tight stops, high-frequency entries |
+| `dca` | `DCAStrategy` | Dollar Cost Average — time-based or price-dip accumulation |
+| `grid` | `GridStrategy` | Grid levels: buy at lower levels, sell at upper levels |
+| `trajectory` | `TrajectoryStrategy` | Parabolic move detection, projected peak exit, trailing stop |
+| `sentiment` | `SentimentStrategy` | Fear/greed index + social signals — contrarian entries |
+| `arbitrage` | `ArbitrageStrategy` | Cross-pair Z-score spread detection and mean reversion |
+
+### Dashboard UI
+- **Route:** `/ui/paper-trading` — `templates/paper_trading_dashboard.html`
+- **Wallet widget:** `/ui/wallet` shows live engine status panel linking to the full dashboard
+
+---
+
 ## Analytics (FastAPI — src/runtime/app.py)
 
 | Method | Path | Auth | Description |

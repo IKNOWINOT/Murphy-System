@@ -161,7 +161,7 @@ def create_paper_trading_router() -> Any:
         engine = _get_engine()
         liquidated = []
         if req.liquidate and engine:
-            for pos in list(engine._positions.values()):  # noqa: SLF001
+            for pos in engine.iter_open_positions():
                 result = engine.close_position(
                     pos.symbol, pos.current_price or pos.avg_entry,
                     exit_reason="session_stop",
