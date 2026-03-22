@@ -426,6 +426,18 @@ def create_app() -> FastAPI:
     except Exception as _bill_exc:
         logger.warning("Billing API not available: %s", _bill_exc)
 
+    # ── Trading Risk Management, Graduation & Emergency Stop ────────────
+    try:
+        from src.risk_routes import create_risk_router
+        _risk_router = create_risk_router()
+        app.include_router(_risk_router)
+        logger.info(
+            "Trading Risk API registered at /api/trading/* "
+            "(risk, trajectory, graduation, emergency, audit)"
+        )
+    except Exception as _risk_exc:
+        logger.warning("Trading Risk API not available: %s", _risk_exc)
+
     # Register RBAC governance with security layer (SEC-005)
     rbac = getattr(murphy, 'rbac_governance', None)
     if rbac is not None:
@@ -6916,6 +6928,7 @@ def create_app() -> FastAPI:
             "/ui/calendar": "calendar.html",
             "/ui/meeting-intelligence": "meeting_intelligence.html",
             "/ui/ambient": "ambient_intelligence.html",
+            "/ui/risk-dashboard": "risk_dashboard.html",
         }
 
         # ── Route classification: public vs auth-required ──────────
