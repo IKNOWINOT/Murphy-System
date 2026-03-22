@@ -452,6 +452,13 @@ def create_app() -> FastAPI:
     except Exception as _bill_exc:
         logger.warning("Billing API not available: %s", _bill_exc)
 
+    # ── Grants Submission API (Phase 4) ──────────────────────────────
+    try:
+        from src.billing.grants.api import router as _grants_router
+        app.include_router(_grants_router)
+        logger.info("Grants Submission API registered at /api/grants")
+    except Exception as _grants_exc:
+        logger.warning("Grants Submission API not available: %s", _grants_exc)
     # ── Grants, Tax Credits & Financing API ──────────────────────────
     try:
         from src.billing.grants.api import router as _grants_router
