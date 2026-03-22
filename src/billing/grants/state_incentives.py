@@ -10,6 +10,7 @@ from src.billing.grants.models import Grant, ProgramType
 logger = logging.getLogger(__name__)
 
 _MURPHY_VERTICALS = [
+    "agentic",
     "building_automation",
     "energy_management",
     "hvac_controls",

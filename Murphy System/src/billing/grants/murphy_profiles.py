@@ -18,6 +18,7 @@ murphy_sbir_profile: Dict[str, Any] = {
     "entity_type": "small_business",
     "state": "OR",
     "verticals": [
+        "agentic",
         "ai_ml",
         "software",
         "building_automation",
@@ -90,6 +91,7 @@ murphy_doe_profile: Dict[str, Any] = {
     "entity_type": "small_business",
     "state": "OR",
     "verticals": [
+        "agentic",
         "building_automation",
         "energy_management",
         "hvac_controls",
@@ -158,6 +160,7 @@ murphy_nsf_profile: Dict[str, Any] = {
     "entity_type": "small_business",
     "state": "OR",
     "verticals": [
+        "agentic",
         "ai_ml",
         "software",
         "building_automation",
@@ -226,6 +229,7 @@ murphy_manufacturing_profile: Dict[str, Any] = {
     "entity_type": "small_business",
     "state": "OR",
     "verticals": [
+        "agentic",
         "smart_manufacturing",
         "industrial_iot",
         "energy_management",
