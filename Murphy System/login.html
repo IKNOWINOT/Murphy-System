@@ -424,15 +424,15 @@
   }());
 
   // ── OAuth provider availability check ────────────────
-  // Query /api/auth/providers and disable buttons for unconfigured providers.
-  // Buttons stay visible but are styled as "Coming soon" so users understand
-  // the feature exists but isn't available yet.
+  // Query /api/auth/providers and hide buttons for unconfigured providers.
+  // Only show providers that are actually configured and ready to use.
   (function checkOAuthProviders() {
     fetch('/api/auth/providers')
       .then(function (res) { return res.ok ? res.json() : null; })
       .then(function (data) {
         if (!data || !data.providers) return;
         var providerMap = data.providers;
+        var oauthGroup = document.querySelector('.oauth-group');
         document.querySelectorAll('.oauth-btn[href]').forEach(function (btn) {
           var href = btn.getAttribute('href') || '';
           var match = href.match(/\/api\/auth\/oauth\/([^/?]+)/);
@@ -440,18 +440,16 @@
           var name = match[1];
           var configured = providerMap[name];
           if (configured === false) {
-            // Disable the button and show "Coming soon"
-            btn.removeAttribute('href');
-            btn.setAttribute('aria-disabled', 'true');
-            btn.setAttribute('tabindex', '-1');
-            btn.setAttribute('title', (name.charAt(0).toUpperCase() + name.slice(1)) + ' sign-in coming soon');
-            btn.style.opacity = '0.45';
-            btn.style.cursor = 'not-allowed';
-            btn.style.pointerEvents = 'none';
-            var label = btn.querySelector('.oauth-btn-label');
-            if (label) label.textContent = 'Coming soon';
+            // Hide the button for unconfigured providers
+            btn.style.display = 'none';
+            btn.setAttribute('aria-hidden', 'true');
           }
         });
+        // Hide the entire OAuth group if all buttons are hidden
+        if (oauthGroup) {
+          var visible = oauthGroup.querySelectorAll('.oauth-btn[href]:not([style*="display: none"]):not([style*="display:none"])');
+          if (visible.length === 0) oauthGroup.style.display = 'none';
+        }
       })
       .catch(function () { /* silently ignore — provider buttons remain enabled */ });
   }());
