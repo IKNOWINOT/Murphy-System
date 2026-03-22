@@ -161,6 +161,12 @@ ccxt>=4.4.0
 web3>=6.20.0
 # Binance REST + WebSocket feed
 python-binance>=1.0.16
+# Official Coinbase Advanced Trade Python SDK (REST + WebSocket, HMAC auth)
+coinbase-advanced-py>=1.8.2
+# Multi-exchange abstraction — enables Binance, Kraken, Bybit, KuCoin, OKX, etc.
+ccxt>=4.5.0
+# EVM wallet signing — required for SoftwareWallet.sign_transaction & Web3 DeFi
+web3>=7.0.0
 # Bitcoin wallet utilities (optional)
 # bitcoin-utils>=0.6.0
 # Hardware wallet support (optional)
@@ -188,6 +194,13 @@ simple-salesforce>=1.12.0
 PyGithub>=2.1.0
 requests-oauthlib>=1.3.0
 authlib>=1.2.0
+# ==================== Market Data & Technical Analysis ====================
+# Yahoo Finance historical + real-time price data
+yfinance>=1.2.0
+# Pure-Python technical analysis (RSI, MACD, BB, ATR, stoch, etc.) — no C deps
+ta>=0.11.0
+# Statistical modelling — Sharpe/Sortino, OLS regression, ARIMA forecasts
+statsmodels>=0.14.0
 
 # ==================== Development Dependencies ====================
 ipython>=8.17.0
@@ -213,7 +226,7 @@ notebook>=7.0.0
 # pygraphviz>=1.11
 
 # Time Series
-# statsmodels>=0.14.0
+statsmodels>=0.14.0
 # prophet>=1.1.5
 
 # Geospatial
@@ -230,3 +243,12 @@ tomli>=2.0.0;python_version<'3.11'
 
 # Protective floor — if weasyprint IS installed, ensure tinycss2 is compatible
 tinycss2>=1.5.0
+
+# ─── Integration SDKs (world-model connectors) ──────────────────────────────
+slack-sdk>=3.27.0,<4.0.0
+twilio>=9.0.0,<10.0.0
+simple-salesforce>=1.12.0,<2.0.0
+notion-client>=2.2.0,<3.0.0
+jira>=3.8.0,<4.0.0
+pyairtable>=2.3.0,<3.0.0
+PyGithub>=2.3.0,<3.0.0

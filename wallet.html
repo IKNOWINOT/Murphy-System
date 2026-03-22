@@ -578,6 +578,35 @@
       </button>
     </div>
 
+  <!-- ── Paper Trading Quick Access ── -->
+  <div class="wallet-section-heading">Trading</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem;margin-bottom:2rem">
+    <a href="/ui/paper-trading" style="text-decoration:none">
+      <div class="asset-card" style="cursor:pointer;border-color:rgba(0,212,170,.2)">
+        <div class="asset-card-top">
+          <div class="asset-icon mrph" aria-hidden="true">📊</div>
+          <div>
+            <div class="asset-name">Paper Trading Dashboard</div>
+            <div class="asset-symbol">Simulate · Backtest · Calibrate</div>
+          </div>
+        </div>
+        <div class="asset-balance" style="font-size:var(--text-base)">9 Strategy Templates</div>
+        <div class="asset-usd">Momentum · Mean Reversion · Breakout · Scalping · DCA · Grid · Trajectory · Sentiment · Arbitrage</div>
+        <div class="asset-change up">No real money — paper trades only</div>
+      </div>
+    </a>
+    <div class="asset-card" id="pt-status-widget" style="border-color:rgba(86,103,120,.2)">
+      <div class="asset-card-top">
+        <div class="asset-icon" style="background:rgba(0,255,65,.1);color:#00ff41" aria-hidden="true">⚡</div>
+        <div>
+          <div class="asset-name">Engine Status</div>
+          <div class="asset-symbol" id="pt-widget-status">Loading…</div>
+        </div>
+      </div>
+      <div class="asset-balance" id="pt-widget-equity" style="font-size:var(--text-base)">—</div>
+      <div class="asset-usd" id="pt-widget-trades">0 trades completed</div>
+      <div class="asset-change" id="pt-widget-return">—</div>
+    </div>
   </div>
 
 </main>
@@ -884,6 +913,27 @@
   /* Initialise Coinbase panel on page load */
   cbLoadStatus();
   cbLoadBalances();
+  /* ── Paper Trading status widget ── */
+  (function () {
+    fetch('/api/trading/paper/status')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var p = (d.portfolio || {});
+        var eq = p.equity || 0;
+        var ret = p.total_return_pct || 0;
+        var active = d.active;
+        document.getElementById('pt-widget-status').textContent = active ? '● Session Active' : '○ Inactive';
+        document.getElementById('pt-widget-status').style.color = active ? '#00ff41' : '#8899AA';
+        document.getElementById('pt-widget-equity').textContent = eq ? ('$' + parseFloat(eq).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})) : '—';
+        document.getElementById('pt-widget-trades').textContent = (p.positions !== undefined ? Object.keys(p.positions || {}).length : 0) + ' open positions';
+        var retEl = document.getElementById('pt-widget-return');
+        retEl.textContent = ret ? ((ret >= 0 ? '+' : '') + parseFloat(ret).toFixed(2) + '% total return') : '—';
+        retEl.className = 'asset-change ' + (ret > 0 ? 'up' : ret < 0 ? 'down' : '');
+      })
+      .catch(function () {
+        document.getElementById('pt-widget-status').textContent = 'Engine offline';
+      });
+  })();
 
 })();
 </script>
