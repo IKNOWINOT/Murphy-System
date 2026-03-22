@@ -7532,6 +7532,10 @@ def create_app() -> FastAPI:
             "/ui/trading-dashboard": "trading_dashboard.html",
             "/ui/risk-dashboard": "risk_dashboard.html",
             "/ui/paper-trading": "paper_trading_dashboard.html",
+            "/ui/grant-wizard": "grant_wizard.html",
+            "/ui/grant-dashboard": "grant_dashboard.html",
+            "/ui/grant-application": "grant_application.html",
+            "/ui/financing": "financing_options.html",
         }
 
         # ── Route classification: public vs auth-required ──────────
