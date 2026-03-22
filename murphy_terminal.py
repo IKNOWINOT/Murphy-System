@@ -987,6 +987,13 @@ class MurphyTerminalApp(App):
         self._update_status_url()
         self._check_connection()
         self._check_api_key_on_startup()
+        # Ensure the input widget has focus so the user can type immediately.
+        # _check_api_key_on_startup focuses it when the gate triggers, but not
+        # when a key already exists — this call covers that case.
+        try:
+            self.query_one("#user-input", MurphyInput).focus()
+        except Exception:
+            pass
 
     # -- connection --
 

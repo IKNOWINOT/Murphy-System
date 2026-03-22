@@ -28,12 +28,22 @@ respx>=0.21.0
 # are soft dependencies — the system runs without them but integrations will
 # use the httpx-based connector instead.
 
+# AI / LLM
+openai>=1.30.0,<2.0.0              # OpenAI GPT models
+anthropic>=0.25.0,<1.0.0           # Anthropic Claude models
+groq>=0.9.0,<1.0.0                 # Groq cloud LLM API
+
 # Communication
+sendgrid>=6.11.0,<7.0.0            # SendGrid email delivery
 slack-sdk>=3.27.0,<4.0.0          # Slack Web API + RTM
 twilio>=9.0.0,<10.0.0              # SMS / Voice / Verify
 
 # CRM
 simple-salesforce>=1.12.0,<2.0.0  # Salesforce REST API
+hubspot-api-client>=8.2.0,<9.0.0  # HubSpot CRM v3 API
+
+# Payments
+stripe>=9.0.0,<10.0.0              # Stripe payment processing
 
 # Productivity / Project Management
 notion-client>=2.2.0,<3.0.0       # Notion API v1
@@ -43,7 +53,13 @@ pyairtable>=2.3.0,<3.0.0           # Airtable REST API
 # Dev / Source Control
 PyGithub>=2.3.0,<3.0.0             # GitHub REST API v3
 
+# Google APIs
+google-api-python-client>=2.100.0,<3.0.0  # Google Calendar, Sheets, Drive
+google-auth>=2.28.0,<3.0.0                # Google auth library
+google-auth-httplib2>=0.2.0               # httplib2 transport for google-auth
+
 # Monitoring / Alerting
+datadog>=0.49.0,<1.0.0             # Datadog metrics and events API
 # pagerduty — uses httpx directly (no PyPI SDK needed for v2 REST)
 
 # Cloud / Infrastructure

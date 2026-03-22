@@ -292,6 +292,7 @@ class TestSetKeyTUI:
                 await pilot.press(ch)
             await pilot.press("enter")
             await pilot.pause()
+            await pilot.pause()  # extra pause for async event flush
             # Key should now be in os.environ
             assert os.environ.get("GROQ_API_KEY") == "gsk_abcdefghijklmnopqrstuvwx"
             # Key should be persisted in .env
@@ -314,6 +315,7 @@ class TestSetKeyTUI:
                 await pilot.press(ch)
             await pilot.press("enter")
             await pilot.pause()
+            await pilot.pause()  # extra pause for async event flush
             # MURPHY_LLM_PROVIDER should be set in os.environ
             assert os.environ.get("MURPHY_LLM_PROVIDER") == "groq"
             # MURPHY_LLM_PROVIDER should be persisted to .env

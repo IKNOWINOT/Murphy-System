@@ -767,6 +767,27 @@ def create_app() -> FastAPI:
         )
         return JSONResponse(result)
 
+    @app.post("/api/librarian/query")
+    async def librarian_query(request: Request):
+        """Alias for /api/librarian/ask — accepts the same body."""
+        data = await request.json()
+        message = data.get("message") or data.get("query") or data.get("question") or ""
+        mode = data.get("mode")
+        if mode == "execute":
+            result = murphy.handle_chat(
+                message=message,
+                session_id=data.get("session_id"),
+                use_mfgc=True,
+            )
+            result["librarian_mode"] = "execute"
+            return JSONResponse(result)
+        result = murphy.librarian_ask(
+            message=message,
+            session_id=data.get("session_id"),
+            mode=mode,
+        )
+        return JSONResponse(result)
+
     @app.get("/api/librarian/status")
     async def librarian_status():
         """Return librarian health status."""
@@ -6322,6 +6343,31 @@ def create_app() -> FastAPI:
         resp.delete_cookie("murphy_session")
         return resp
 
+    @app.post("/api/auth/forgot-password")
+    async def auth_forgot_password(request: Request):
+        """Initiate a password-reset flow.
+
+        Body: { "email": "user@example.com" }
+        Always returns success to prevent user enumeration.
+        """
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+        email = (data.get("email") or "").strip().lower()
+        if not email:
+            return JSONResponse({"success": False, "error": "email is required"}, status_code=400)
+        # Best-effort: ask AccountManager to send a reset link.
+        if _account_manager is not None:
+            try:
+                _account_manager.request_password_reset(email)
+            except Exception:
+                pass  # Never expose whether the email exists — always return success.
+        return JSONResponse({
+            "success": True,
+            "message": "If an account with that email exists, a reset link has been sent.",
+        })
+
     @app.get("/api/auth/session-token")
     async def get_session_token(request: Request):
         """Return the active session token for the current user.
@@ -7243,6 +7289,17 @@ def create_app() -> FastAPI:
     # ── Meetings CRUD (called from terminal_unified.html / workspace.html) ─────
 
     _meetings_store: Dict[str, Any] = {}  # in-memory store; replace with DB in prod
+
+    @app.get("/api/meetings/")
+    async def meetings_list(request: Request):
+        """List all meeting sessions for the current user."""
+        account = _get_account_from_session(request)
+        account_id = account.get("account_id") if account else None
+        sessions = [
+            s for s in _meetings_store.values()
+            if account_id is None or s.get("account_id") == account_id
+        ]
+        return JSONResponse({"ok": True, "meetings": sessions, "count": len(sessions)})
 
     @app.post("/api/meetings/start")
     async def meetings_start(request: Request):
