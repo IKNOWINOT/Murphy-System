@@ -19,7 +19,7 @@ _manager = SubmissionManager()
 _tracker = SubmissionTracker()
 _alert_system = DeadlineAlertSystem()
 
-# In-memory deadlines store for demo
+# In-memory deadlines store — populated by grant discovery/import flows (demo placeholder)
 _deadlines: List[Dict] = []
 
 
@@ -143,6 +143,12 @@ def get_deadlines():
 
 @router.get("/deadlines/alerts")
 def get_deadline_alerts():
+    """Return active (non-dismissed) deadline alerts.
+
+    Checks _deadlines against ALERT_THRESHOLDS_DAYS (30/14/7/3/1 days) and
+    returns all alerts that have not been dismissed. Each deadline dict must
+    contain ``grant_id``, ``title``, and ``deadline`` (ISO string or datetime).
+    """
     _alert_system.check_deadlines(_deadlines)
     active = _alert_system.get_active_alerts()
     return {
@@ -163,6 +169,13 @@ def dismiss_alert(alert_id: str):
 
 @router.post("/sessions/{sid}/applications/{aid}/submission/auto-submit")
 def auto_submit(sid: str, aid: str):
+    """Phase B placeholder for direct portal API submission.
+
+    Automated end-to-end submission (filling forms, uploading files, and
+    receiving confirmation numbers via portal APIs) is planned for Phase B.
+    Until then, callers should follow the manual submission instructions
+    returned by the generate endpoint.
+    """
     return {
         "status": "not_yet_available",
         "message": "Automated submission is planned for Phase B. Please follow the manual submission instructions.",
