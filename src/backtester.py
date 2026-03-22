@@ -152,6 +152,7 @@ def load_yfinance(
         df = ticker.history(period=period, interval=interval)
         rows = []
         for dt, row in df.iterrows():
+            # pandas DatetimeTZDtype has .timestamp(); pandas Timestamp uses .value (nanoseconds)
             ts = dt.timestamp() if hasattr(dt, "timestamp") else float(dt.value) / 1e9
             rows.append(OHLCVRow(
                 timestamp=ts,

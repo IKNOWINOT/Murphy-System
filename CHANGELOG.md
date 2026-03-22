@@ -7,6 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Paper Trading Engine + Strategy Templates (PR-2)
+
+Full paper-trading simulation system with 9 strategy templates, hidden-cost detection,
+self-calibrating error correction, and backtesting harness.  All trading is
+PAPER/SIMULATED — no real money is moved.
+
+#### New files
+- **`src/paper_trading_engine.py`** — `PaperTradingEngine`: full simulator with
+  slippage model, tiered fee schedule, position tracking, FIFO trade journal,
+  stop-loss/take-profit price triggers, and the complete metric suite (Sharpe,
+  Sortino, max drawdown, profit factor, win rate, avg win/loss, total fees, net profit).
+  `reset()` restarts from initial capital. Default: $10,000.
+- **`src/strategy_templates/`** — 9 ready-to-use strategy templates:
+  - `momentum.py` — RSI + MACD crossover + volume confirmation
+  - `mean_reversion.py` — Bollinger Bands + Z-score mean reversion
+  - `breakout.py` — Support/resistance + volume breakout confirmation
+  - `scalping.py` — Short timeframe, tight stops, high-frequency entries
+  - `dca.py` — Dollar Cost Average (time-based or price-dip accumulation)
+  - `grid.py` — Grid trading (buy low / sell high within a configurable range)
+  - `trajectory.py` — Parabolic move detection with projected peak exit and trailing stop
+  - `sentiment.py` — Fear/greed index + social signal framework (contrarian entries)
+  - `arbitrage.py` — Cross-pair Z-score spread detection and mean reversion
+- **`src/cost_calibrator.py`** — `CostCalibrator`: tracks expected vs actual execution
+  prices; detects and quantifies spread, slippage, exchange fees, and network fees;
+  auto-adjusts future cost estimates; fires configurable alerts when costs exceed thresholds.
+- **`src/error_calibrator.py`** — `ErrorCalibrator`: per-strategy bias/MAE/RMSE tracking;
+  when divergence exceeds threshold, trims the rolling window, logs the calibration event,
+  and optionally calls a user-supplied recalibration hook.
+- **`src/backtester.py`** — `Backtester`: replays any `BaseStrategy` over historical OHLCV
+  data (from CSV, pre-loaded dicts, or yfinance); multi-timeframe support (1m/5m/15m/1h/4h/1d);
+  side-by-side strategy comparison ranked by Sharpe ratio; JSON-serialisable `BacktestResult`.
+- **`src/paper_trading_routes.py`** — FastAPI router (`/api/trading/*`) with 11 endpoints
+  for starting/stopping sessions, querying positions/trades/performance, listing strategies,
+  manual trade execution, backtest runs, and calibration summaries.
+- **`paper_trading_dashboard.html`** — Full paper trading dashboard at `/ui/paper-trading`:
+  live equity curve chart, open positions table, strategy performance comparison, trade journal,
+  hidden cost analysis, error calibration status, backtest panel, Murphy AI bar.
+- **`tests/test_paper_trading.py`** — 41 tests: open/close positions, P&L, fees, stop-loss/
+  take-profit triggers, reset, all performance metric keys, cost calibrator, error calibrator,
+  and backtester.
+- **`tests/test_strategies.py`** — 34 tests: all 9 strategies instantiate, produce valid
+  `Signal` objects (confidence 0–1, valid action enum), and respond correctly to uptrend,
+  downtrend, parabolic, and extreme-sentiment inputs.  Registry completeness test.
+
+#### Updated files
+- **`requirements_murphy_1.0.txt`** and **`Murphy System/requirements_murphy_1.0.txt`** —
+  uncommented/added: `coinbase-advanced-py>=1.8.2`, `ccxt>=4.5.0`, `web3>=7.0.0`,
+  `yfinance>=1.2.0`, `ta>=0.11.0`, `statsmodels>=0.14.0`.
+- **`src/runtime/app.py`** — added `paper_trading_routes` router registration at
+  `/api/trading/*`; added `/ui/paper-trading` → `paper_trading_dashboard.html` HTML route.
+- **`wallet.html`** — added Paper Trading quick-access section (card linking to dashboard,
+  live engine-status widget populated via `/api/trading/paper/status`).
+- **`API_ROUTES.md`** — documented all 11 paper trading endpoints and 9 strategy templates.
+
 ### Fixed — End-to-End Authentication Flow (Beta Launch Blocker)
 
 All three auth paths — email/password, OAuth, and programmatic API access — are

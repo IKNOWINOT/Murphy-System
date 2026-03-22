@@ -414,10 +414,18 @@
 </div>
 
 <!-- Murphy AI bar -->
-<div class="murphy-ai-bar">
+<div class="murphy-ai-bar" role="region" aria-label="Murphy AI assistant">
   <span class="murphy-ai-label">🤖 Murphy</span>
-  <span class="murphy-ai-insight" id="murphy-pt-insight">Paper trading engine ready. Start a session to begin simulating trades.</span>
-  <button class="murphy-ai-btn" id="murphy-pt-ask">Ask Murphy</button>
+  <span class="murphy-ai-insight" id="murphy-pt-insight" aria-live="polite">Paper trading engine ready. Start a session to begin simulating trades.</span>
+  <input
+    type="text"
+    id="murphy-pt-input"
+    class="pt-input"
+    placeholder="Ask Murphy…"
+    aria-label="Ask Murphy about paper trading"
+    style="width:220px;flex-shrink:0"
+  >
+  <button class="murphy-ai-btn" id="murphy-pt-ask" aria-label="Submit question to Murphy">Ask</button>
 </div>
 
 <!-- Toast -->
@@ -810,21 +818,30 @@
   }
 
   /* ─── Murphy AI ask ─── */
-  document.getElementById('murphy-pt-ask').addEventListener('click', function () {
-    var q = prompt('Ask Murphy about your paper trading results:');
-    if (!q) return;
+  function askMurphy(q) {
+    if (!q || !q.trim()) return;
+    document.getElementById('murphy-pt-insight').textContent = 'Murphy is thinking…';
     fetch('/api/librarian/query', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: q, context: 'paper_trading' })
+      body: JSON.stringify({ query: q.trim(), context: 'paper_trading' })
     })
     .then(function (r) { return r.json(); })
     .then(function (d) {
       document.getElementById('murphy-pt-insight').textContent = d.response || d.result || 'Murphy is analysing your results…';
+      document.getElementById('murphy-pt-input').value = '';
     })
     .catch(function () {
       document.getElementById('murphy-pt-insight').textContent = 'Could not reach Murphy right now.';
     });
+  }
+
+  document.getElementById('murphy-pt-ask').addEventListener('click', function () {
+    askMurphy(document.getElementById('murphy-pt-input').value);
+  });
+
+  document.getElementById('murphy-pt-input').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') askMurphy(this.value);
   });
 
   /* ─── Initialise ─── */

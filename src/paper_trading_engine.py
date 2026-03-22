@@ -516,6 +516,11 @@ class PaperTradingEngine:
         with self._lock:
             return [p.to_dict() for p in self._positions.values()]
 
+    def iter_open_positions(self) -> List["Position"]:
+        """Return a snapshot list of all open Position objects (for iteration / liquidation)."""
+        with self._lock:
+            return list(self._positions.values())
+
     # ------------------------------------------------------------------
     # Trade journal
     # ------------------------------------------------------------------

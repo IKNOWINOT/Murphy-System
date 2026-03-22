@@ -240,10 +240,10 @@ class TestGridStrategy:
 
     def test_grid_initialises_on_first_bar(self):
         from strategy_templates.grid import GridStrategy
-        s = GridStrategy("grid_test", params={"num_levels": 5})
-        bars = _make_bars(5)
+        s = GridStrategy("grid_test", params={"grid_levels": 5})
+        bars = _make_bars(60)   # need >= init_period (50) bars to auto-detect range
         s.analyze(bars)
-        assert s._grid_levels is not None  # noqa: SLF001
+        assert s._grids is not None  # noqa: SLF001
 
 
 # ---------------------------------------------------------------------------
