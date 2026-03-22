@@ -1339,6 +1339,25 @@ Inspect any agent's activity during workflow building:
 curl http://localhost:8000/api/workflow-terminal/sessions/{session_id}/agents/{agent_id}
 ```
 
+### 20.7 Generative Automation Presets
+
+For advanced users who want to utilize pre-configured automation patterns that wire together multiple subsystems via voice activation or typed commands, see the comprehensive **[Generative Automation Presets Guide](documentation/features/GENERATIVE_AUTOMATION_PRESETS.md)**.
+
+**Key capabilities include:**
+- **Voice Command Interface (VCI)** — Speak natural language commands via `/api/vci/process`
+- **Template Matching** — 12+ built-in automation templates (ETL, CI/CD, monitoring, etc.)
+- **Industry Presets** — Pre-configured packages for SaaS, retail, finance, manufacturing, etc.
+- **Role-Aware Execution** — Automations respect RBAC permissions (Platform Admin → Tenant Owner → Operator → Viewer)
+- **Human-in-the-Loop Gates** — Automatic governance injection at critical points
+
+**Quick example:**
+```bash
+# Create automation from natural language
+curl -X POST http://localhost:8000/api/vci/process \
+  -H "Content-Type: application/json" \
+  -d '{"text_input": "Monitor sales data and send weekly summary to Slack"}'
+```
+
 ---
 
 ## Chapter 21: Onboarding & Org Chart
