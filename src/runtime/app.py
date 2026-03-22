@@ -478,6 +478,15 @@ def create_app() -> FastAPI:
     except Exception as _ch_exc:
         logger.warning("Communication Hub routes not available: %s", _ch_exc)
 
+    # ── Dispatch Tool-Calling Engine ───────────────────────────────────
+    try:
+        from src.dispatch_routes import create_dispatch_router
+        _dispatch_router = create_dispatch_router()
+        app.include_router(_dispatch_router)
+        logger.info("Dispatch Tool-Calling Engine API registered at /api/dispatch/*")
+    except Exception as _dp_exc:
+        logger.warning("Dispatch routes not available: %s", _dp_exc)
+
     # ── Trading Automation (PR 4) ─────────────────────────────────────
     try:
         from trading_routes import create_trading_router

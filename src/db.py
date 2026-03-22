@@ -241,6 +241,77 @@ class CommsUserProfile(Base):
 
 
 # ---------------------------------------------------------------------------
+# Meetings, Shadow, Avatar, and Dispatch ORM Models
+# ---------------------------------------------------------------------------
+
+
+class MeetingSession(Base):
+    __tablename__ = "meeting_sessions"
+    session_id = Column(String(32), primary_key=True)
+    title = Column(String(512), default="Untitled Meeting")
+    account_id = Column(String(256), nullable=True)
+    participants = Column(JSON, default=list)
+    im_thread_id = Column(String(32), nullable=True)
+    started_at = Column(String(64), default="")
+    ended_at = Column(String(64), nullable=True)
+    status = Column(String(32), default="active")
+    metadata_ = Column("metadata", JSON, default=dict)
+
+
+class MeetingTranscriptEntry(Base):
+    __tablename__ = "meeting_transcript"
+    id = Column(String(32), primary_key=True)
+    session_id = Column(String(32), nullable=False, index=True)
+    speaker = Column(String(256), nullable=False)
+    text = Column(Text, default="")
+    timestamp = Column(String(64), default="")
+    is_ai = Column(Integer, default=0)
+
+
+class ShadowAgentCommsLog(Base):
+    __tablename__ = "shadow_agent_comms_log"
+    id = Column(String(32), primary_key=True)
+    agent_id = Column(String(256), nullable=False)
+    action = Column(String(64), nullable=False)
+    content = Column(Text, default="")
+    primary_account = Column(String(256), nullable=True)
+    cc_accounts = Column(JSON, default=list)
+    im_thread_id = Column(String(32), nullable=True)
+    email_ids = Column(JSON, default=list)
+    timestamp = Column(String(64), default="")
+
+
+class AvatarCommsLog(Base):
+    __tablename__ = "avatar_comms_log"
+    id = Column(String(32), primary_key=True)
+    avatar_id = Column(String(256), nullable=False)
+    user_id = Column(String(256), nullable=False)
+    session_id = Column(String(256), nullable=True)
+    channel = Column(String(32), default="im")
+    content = Column(Text, default="")
+    im_thread_id = Column(String(32), nullable=True)
+    email_id = Column(String(32), nullable=True)
+    shadow_agent_id = Column(String(256), nullable=True)
+    org_node_id = Column(String(256), nullable=True)
+    rosetta_translated = Column(Integer, default=0)
+    timestamp = Column(String(64), default="")
+
+
+class DispatchLog(Base):
+    __tablename__ = "dispatch_log"
+    id = Column(String(32), primary_key=True)
+    tool_name = Column(String(256), nullable=False, index=True)
+    caller_id = Column(String(256), nullable=True)
+    caller_type = Column(String(64), default="agent")
+    args = Column(JSON, default=dict)
+    result_ok = Column(Integer, default=1)
+    result_data = Column(JSON, nullable=True)
+    error = Column(Text, nullable=True)
+    duration_ms = Column(Integer, default=0)
+    timestamp = Column(String(64), default="")
+
+
+# ---------------------------------------------------------------------------
 # Engine & Session Factory (synchronous — works with SQLite out of the box)
 # ---------------------------------------------------------------------------
 
