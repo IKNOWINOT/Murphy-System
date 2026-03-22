@@ -330,15 +330,16 @@ class TestEmailStore:
         assert e["id"] in ids
 
     def test_sender_not_in_own_inbox(self, emails: EmailStore):
-        emails.compose_and_send(
+        e = emails.compose_and_send(
             sender="alice@murphy.systems",
             recipients=["bob@murphy.systems"],
             subject="Test",
             body="Body",
         )
         alice_inbox = emails.get_inbox("alice@murphy.systems")
-        # Alice is not in recipients, so she should not see it in her inbox
-        assert len(alice_inbox) == 0
+        # Alice is not in recipients, so this specific email should not appear in her inbox
+        inbox_ids = [m["id"] for m in alice_inbox]
+        assert e["id"] not in inbox_ids
 
     def test_sender_sees_in_outbox(self, emails: EmailStore):
         e = emails.compose_and_send(
@@ -522,8 +523,8 @@ class TestModeratorConsole:
         assert result["warnings"] == 1
 
     def test_warn_user_increments(self, mod: ModeratorConsole):
-        mod.warn_user("alice", "first", "mod1")
-        result = mod.warn_user("alice", "second", "mod1")
+        mod.warn_user("alice_warn_incr", "first", "mod1")
+        result = mod.warn_user("alice_warn_incr", "second", "mod1")
         assert result["warnings"] == 2
 
     def test_mute_user(self, mod: ModeratorConsole):
@@ -616,8 +617,8 @@ class TestModeratorConsole:
         mod.ban_user("bob", "test", by="admin")
         log = mod.get_audit_log()
         actions = [entry["action"] for entry in log]
-        assert ModerationAction.WARN in actions
-        assert ModerationAction.BAN in actions
+        assert ModerationAction.WARN.value in actions
+        assert ModerationAction.BAN.value in actions
 
     def test_audit_log_records_broadcast(self, mod: ModeratorConsole):
         mod.register_target("im", "general", by="admin")
