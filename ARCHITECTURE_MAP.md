@@ -289,7 +289,72 @@ This is by design — Murphy's safety-first architecture treats HITL as a featur
 - Generates submission IDs
 - Stores submissions for tracking
 
-### 6. Confidence Engine (Murphy Validation)
+### 6. Generative Automation System (GAP-001)
+
+**Components:** 
+- `src/voice_command_interface.py` — Voice/typed command processing
+- `src/ai_workflow_generator.py` — Natural language to workflow DAG
+- `strategic/gap_closure/text_to_automation/text_to_automation.py` — Core "Describe → Execute" engine
+- `src/org_build_plan/workflow_templates.py` — Template library and industry presets
+
+**Responsibilities:**
+- Convert natural language descriptions into governed automation workflows
+- Template matching for common automation patterns (ETL, CI/CD, monitoring)
+- Keyword inference to map action verbs to step types
+- Dependency resolution and DAG construction
+- Automatic governance gate injection at critical points
+- Role-aware execution respecting RBAC permissions
+
+**Generative Automation Flow:**
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    DESCRIBE → EXECUTE PIPELINE                       │
+├─────────────────────────────────────────────────────────────────────┤
+│  1. USER INPUT                                                       │
+│     Voice Command (/api/vci/process) or Typed (/api/workflows)      │
+│                           │                                          │
+│  2. NATURAL LANGUAGE PROCESSING                                      │
+│     Template Matching → Keyword Inference → Step Type Mapping        │
+│                           │                                          │
+│  3. DAG GENERATION                                                   │
+│     Dependency Resolution → Topological Sort → Parallel Markers      │
+│                           │                                          │
+│  4. GOVERNANCE INJECTION                                             │
+│     Auto-insert HITL gates before deploy/output/approval steps       │
+│                           │                                          │
+│  5. EXECUTION                                                        │
+│     WorkflowDAGEngine (24 handlers) → Connector Framework            │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Built-in Templates (12+):**
+
+| Template | Pattern | Steps |
+|----------|---------|-------|
+| `etl_pipeline` | Extract-Transform-Load | 4 |
+| `ci_cd` | CI/CD Pipeline | 6 |
+| `incident_response` | Incident Handling | 5 |
+| `monitoring_alert` | Metric Monitoring | 3 |
+| `report_generation` | Report & Distribute | 4 |
+| `order_fulfillment` | E-commerce | 7 |
+| `invoice_processing` | AP Automation | 6 |
+| `lead_nurture` | CRM Lead Management | 6 |
+| `employee_onboarding` | HR Onboarding | 6 |
+| `content_publishing` | Content Pipeline | 5 |
+
+**User Role Permissions:**
+
+| Role | Capabilities |
+|------|-------------|
+| Platform Admin | System-wide presets, global governance |
+| Tenant Owner | Tenant presets, user management |
+| Operator | Execute scoped, approve gates |
+| Viewer | Read-only metrics |
+| HITL Operator | Credential-gated approvals |
+
+**Documentation:** [Generative Automation Presets](documentation/features/GENERATIVE_AUTOMATION_PRESETS.md)
+
+### 7. Confidence Engine (Murphy Validation)
 
 **Component:** `src/confidence_engine/`
 
@@ -324,7 +389,7 @@ Safe if: murphy_index > threshold (default 0.5)
 - Multi-gate validation chains
 - Dynamic gate generation
 
-### 7. Execution Engine
+### 8. Execution Engine
 
 **Component:** `src/execution_engine/`
 
@@ -346,7 +411,7 @@ Safe if: murphy_index > threshold (default 0.5)
 - Error handling and recovery
 - Execution telemetry
 
-### 8. Learning Engine (Correction System)
+### 9. Learning Engine (Correction System)
 
 **Component:** `src/learning_engine/`
 
@@ -377,7 +442,7 @@ Safe if: murphy_index > threshold (default 0.5)
 - After corrections: 95%+
 - Continuous improvement over time
 
-### 9. Supervisor System (HITL)
+### 10. Supervisor System (HITL)
 
 **Component:** `src/supervisor_system/`
 
@@ -435,7 +500,7 @@ platforms (Fiverr, Upwork, or a generic self-hosted queue).
 6. **Ingest** — CriteriaEngine scores the response, derives verdict
 7. **Wire** — FreelancerHITLBridge calls `respond_to_intervention()` on HITL monitor
 
-### 10. Security Plane
+### 11. Security Plane
 
 **Component:** `src/security_plane/`
 
@@ -463,7 +528,7 @@ platforms (Fiverr, Upwork, or a generic self-hosted queue).
 **Current Status:**
 ⚠️ **Implemented but not integrated into API** - Priority 1 security gap
 
-### 11. Integration Engine (SwissKiss)
+### 12. Integration Engine (SwissKiss)
 
 **Component:** `src/integration_engine/`
 
@@ -491,7 +556,7 @@ platforms (Fiverr, Upwork, or a generic self-hosted queue).
 - Communication services (Twilio, SendGrid)
 - Cloud services (AWS, GCP, Azure)
 
-### 12. Bot System
+### 13. Bot System
 
 **Component:** `bots/` (70+ specialized bots)
 

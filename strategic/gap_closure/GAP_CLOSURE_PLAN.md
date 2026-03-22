@@ -126,6 +126,15 @@ a governed, validated DAG workflow. This is backed by real implementation:
    - Pre-loaded healthcare workflow: Patient Data → HIPAA Gate → AI Diagnosis → Confidence Score → Doctor Approval → Treatment Output
    - Save/Load (localStorage), Export JSON, Run simulation
 
+4. **Generative Automation Presets (GAP-001)** — Complete documentation at
+   [`documentation/features/GENERATIVE_AUTOMATION_PRESETS.md`](../../documentation/features/GENERATIVE_AUTOMATION_PRESETS.md):
+   - Voice Command Interface (VCI) for speech-to-automation
+   - 12+ built-in workflow templates with template matching
+   - Industry presets (SaaS, retail, finance, manufacturing, etc.)
+   - Role-based execution (Platform Admin → Tenant Owner → Operator → Viewer)
+   - Automatic HITL governance gate injection
+   - 40+ pre-wired connectors across all categories
+
 ---
 
 ## Phase 2 — Significant Gap Closure (Gaps 3-4)
