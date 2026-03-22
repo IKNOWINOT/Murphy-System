@@ -66,8 +66,11 @@ def _make_prerequisites() -> List[Prerequisite]:
             is_recurring=False,
             order=2,
             notes=(
-                f"Inoni LLC UEI: {os.environ.get('INONI_SAM_UEI', '[Not yet obtained — "
-                "complete SAM.gov registration]')}"
+                "Inoni LLC UEI: "
+                + os.environ.get(
+                    "INONI_SAM_UEI",
+                    "[Not yet obtained — complete SAM.gov registration]",
+                )
             ),
         ),
         Prerequisite(
