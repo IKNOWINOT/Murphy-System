@@ -1,0 +1,27 @@
+# Murphy System — Postfix Virtual Aliases
+# Format: alias@domain  target1@domain,target2@domain,...
+# Managed via: python scripts/mail_admin.py add-alias / remove-alias
+
+# ── Group / role aliases ──────────────────────────────────────────────────
+sales@murphy.systems          cpost@murphy.systems,jcarney@murphy.systems
+marketing@murphy.systems      cpost@murphy.systems,bgillespie@murphy.systems
+pr@murphy.systems             cpost@murphy.systems,bgillespie@murphy.systems
+operations@murphy.systems     cpost@murphy.systems,hpost@murphy.systems,mpost@murphy.systems
+support@murphy.systems        cpost@murphy.systems,jcarney@murphy.systems
+billing@murphy.systems        cpost@murphy.systems,mpost@murphy.systems
+legal@murphy.systems          cpost@murphy.systems,abeltaine@murphy.systems
+hr@murphy.systems             cpost@murphy.systems,hpost@murphy.systems
+admin@murphy.systems          cpost@murphy.systems
+postmaster@murphy.systems     cpost@murphy.systems
+abuse@murphy.systems          cpost@murphy.systems
+info@murphy.systems           cpost@murphy.systems,jcarney@murphy.systems
+hello@murphy.systems          cpost@murphy.systems
+security@murphy.systems       cpost@murphy.systems,abeltaine@murphy.systems
+engineering@murphy.systems    cpost@murphy.systems,abeltaine@murphy.systems
+careers@murphy.systems        cpost@murphy.systems,hpost@murphy.systems
+
+# ── All-staff broadcast ────────────────────────────────────────────────────
+allstaff@murphy.systems       cpost@murphy.systems,hpost@murphy.systems,abeltaine@murphy.systems,mpost@murphy.systems,jcarney@murphy.systems,bgillespie@murphy.systems,lpost@murphy.systems,kpost@murphy.systems,d.post@murphy.systems,zgillespie@murphy.systems
+
+# ── System sender (no forward — send only) ────────────────────────────────
+# noreply@murphy.systems is configured as a send-only address; no forward needed.
