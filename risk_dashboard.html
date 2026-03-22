@@ -1,0 +1,645 @@
+<!-- Murphy System — Risk Dashboard / © 2020 Inoni Limited Liability Company by Corey Post / License: BSL 1.1 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — Risk Dashboard</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
+<style>
+  /* Neon terminal theme — Color Key: green=#00ff41, cyan=#00ffff, teal=#00D4AA, bg=#0a0a0a */
+  *:focus-visible { outline: 2px solid #00ff41; outline-offset: 2px; }
+  body { background: #0a0a0a; color: var(--text-primary); font-family: var(--font-ui); margin: 0; }
+
+  .risk-layout {
+    max-width: 1200px; margin: 0 auto;
+    padding: 2rem 1rem 4rem;
+  }
+
+  /* ── Page header ── */
+  .risk-hero {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;
+  }
+  .risk-hero-left h1 { font-size: var(--text-2xl); font-weight: 700; color: var(--text-primary); margin-bottom: .25rem; }
+  .risk-hero-left p  { font-size: var(--text-sm); color: var(--text-secondary); }
+  .risk-hero-badge {
+    font-size: var(--text-xs); font-weight: 600; letter-spacing: .05em;
+    padding: .25rem .75rem; border-radius: var(--radius-full);
+    background: rgba(0,212,170,.1); border: 1px solid rgba(0,212,170,.25); color: var(--teal);
+  }
+
+  /* ── Section heading ── */
+  .risk-section-heading {
+    font-size: var(--text-base); font-weight: 600; color: var(--text-primary);
+    margin: 1.5rem 0 1rem; display: flex; align-items: center; gap: .625rem;
+  }
+  .risk-section-heading::after { content: ''; flex: 1; height: 1px; background: var(--border-subtle); }
+
+  /* ── Status cards grid ── */
+  .risk-status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem; margin-bottom: 1.5rem;
+  }
+  .risk-stat-card {
+    background: var(--bg-surface); border: 1px solid var(--border-default);
+    border-radius: var(--radius-xl); padding: 1.25rem;
+    display: flex; flex-direction: column; gap: .5rem;
+    transition: border-color var(--transition-base);
+  }
+  .risk-stat-card:hover { border-color: var(--teal); }
+  .risk-stat-label { font-size: var(--text-xs); font-weight: 500; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: .05em; }
+  .risk-stat-value { font-size: 1.6rem; font-weight: 800; color: var(--text-primary); font-family: var(--font-ui); }
+  .risk-stat-sub   { font-size: var(--text-xs); color: var(--text-secondary); }
+  .risk-stat-card.danger  { border-color: rgba(255,68,68,.4); }
+  .risk-stat-card.warning { border-color: rgba(255,170,0,.4); }
+  .risk-stat-card.success { border-color: rgba(0,255,65,.4); }
+
+  /* ── Emergency stop badge ── */
+  .estop-banner {
+    border-radius: var(--radius-xl); padding: 1rem 1.5rem;
+    display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .estop-banner.armed   { background: rgba(0,255,65,.07); border: 1px solid rgba(0,255,65,.25); }
+  .estop-banner.tripped { background: rgba(255,68,68,.1); border: 1px solid rgba(255,68,68,.4); }
+  .estop-banner-icon { font-size: 1.8rem; }
+  .estop-banner-text strong { font-size: var(--text-sm); font-weight: 700; color: var(--text-primary); display: block; }
+  .estop-banner-text p { font-size: var(--text-xs); color: var(--text-secondary); margin: 0; }
+  .estop-banner-actions { margin-left: auto; display: flex; gap: .5rem; }
+
+  /* ── Panel (generic card) ── */
+  .risk-panel {
+    background: var(--bg-surface); border: 1px solid var(--border-default);
+    border-radius: var(--radius-xl); padding: 1.5rem; margin-bottom: 1.25rem;
+  }
+  .risk-panel h3 { font-size: var(--text-base); font-weight: 600; color: var(--text-primary); margin: 0 0 1rem; display: flex; align-items: center; gap: .5rem; }
+
+  /* ── Graduation progress ── */
+  .grad-criteria-list { display: flex; flex-direction: column; gap: .625rem; }
+  .grad-criterion {
+    display: flex; align-items: center; gap: .75rem;
+    font-size: var(--text-sm); padding: .5rem .75rem;
+    border-radius: var(--radius-md);
+    background: var(--bg-elevated);
+  }
+  .grad-criterion-icon { font-size: 1rem; flex-shrink: 0; width: 22px; text-align: center; }
+  .grad-criterion-name { flex: 1; color: var(--text-primary); }
+  .grad-criterion-value { color: var(--text-tertiary); font-size: var(--text-xs); }
+  .grad-criterion.met { background: rgba(0,255,65,.05); }
+  .grad-criterion.unmet { background: rgba(255,68,68,.05); }
+
+  /* ── Progress bar ── */
+  .grad-progress-wrap { margin-bottom: 1.25rem; }
+  .grad-progress-label { display: flex; justify-content: space-between; font-size: var(--text-xs); color: var(--text-secondary); margin-bottom: .375rem; }
+  .grad-progress-bar { height: 6px; background: var(--bg-elevated); border-radius: 9999px; overflow: hidden; }
+  .grad-progress-fill { height: 100%; border-radius: 9999px; background: linear-gradient(90deg, var(--teal), #00ff41); transition: width .4s ease; }
+
+  /* ── Heat map ── */
+  .heatmap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: .625rem; }
+  .heatmap-cell {
+    border-radius: var(--radius-md); padding: .875rem .75rem;
+    display: flex; flex-direction: column; gap: .25rem;
+    transition: opacity var(--transition-base);
+  }
+  .heatmap-cell-symbol { font-size: var(--text-xs); font-weight: 600; color: var(--text-primary); }
+  .heatmap-cell-pct    { font-size: var(--text-xl); font-weight: 800; }
+  .heatmap-cell-label  { font-size: 10px; color: rgba(255,255,255,.5); }
+
+  /* ── Audit log table ── */
+  .audit-table-wrap { overflow-x: auto; }
+  .audit-table {
+    width: 100%; border-collapse: collapse;
+    font-size: var(--text-xs);
+  }
+  .audit-table th {
+    text-align: left; padding: .5rem .75rem;
+    color: var(--text-tertiary); text-transform: uppercase; letter-spacing: .05em;
+    border-bottom: 1px solid var(--border-subtle); font-weight: 600;
+  }
+  .audit-table td {
+    padding: .5rem .75rem; border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-secondary); vertical-align: middle;
+  }
+  .audit-table tr:last-child td { border-bottom: none; }
+  .audit-table tr:hover td { background: var(--bg-elevated); }
+  .badge {
+    display: inline-flex; align-items: center;
+    padding: .125rem .5rem; border-radius: 9999px; font-size: 10px; font-weight: 600;
+  }
+  .badge-executed { background: rgba(0,255,65,.1); color: #00ff41; border: 1px solid rgba(0,255,65,.2); }
+  .badge-rejected { background: rgba(255,68,68,.1); color: #ff4444; border: 1px solid rgba(255,68,68,.2); }
+  .badge-pending  { background: rgba(255,170,0,.1);  color: #ffaa00; border: 1px solid rgba(255,170,0,.2); }
+
+  /* ── Risk level badge ── */
+  .risk-level-badge {
+    display: inline-flex; align-items: center; gap: .375rem;
+    padding: .375rem 1rem; border-radius: var(--radius-full);
+    font-size: var(--text-sm); font-weight: 700;
+  }
+  .risk-level-badge.conservative { background: rgba(0,255,65,.1);  border: 1px solid rgba(0,255,65,.3);  color: #00ff41; }
+  .risk-level-badge.moderate     { background: rgba(255,170,0,.1); border: 1px solid rgba(255,170,0,.3); color: #ffaa00; }
+  .risk-level-badge.aggressive   { background: rgba(255,68,68,.1); border: 1px solid rgba(255,68,68,.3);  color: #ff4444; }
+
+  /* ── Action button ── */
+  .risk-btn {
+    padding: .5rem 1.25rem; border-radius: var(--radius-md); font-family: var(--font-ui);
+    font-size: var(--text-sm); font-weight: 600; cursor: pointer;
+    transition: opacity .15s, transform .15s; display: inline-flex; align-items: center; gap: .375rem;
+  }
+  .risk-btn:hover { opacity: .85; transform: translateY(-1px); }
+  .risk-btn.primary { background: var(--teal); border: none; color: #0C1017; }
+  .risk-btn.danger  { background: transparent; border: 1px solid rgba(255,68,68,.5); color: #ff4444; }
+  .risk-btn.outline { background: transparent; border: 1px solid var(--teal); color: var(--teal); }
+
+  /* ── Two-column layout ── */
+  .risk-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+  @media(max-width:768px) { .risk-two-col { grid-template-columns: 1fr; } }
+
+  /* ── Murphy AI bar ── */
+  .risk-murphy-bar {
+    display: flex; align-items: center; gap: .875rem; margin-bottom: 2rem;
+    background: rgba(0,255,65,.05); border: 1px solid rgba(0,255,65,.15);
+    border-radius: var(--radius-xl); padding: 1rem 1.25rem;
+  }
+  .risk-murphy-icon {
+    width: 38px; height: 38px; border-radius: var(--radius-md);
+    background: rgba(0,255,65,.1); border: 1px solid rgba(0,255,65,.25);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    font-weight: 800; font-size: 1rem; color: #00ff41; font-family: var(--font-ui);
+  }
+  .risk-murphy-text { flex: 1; min-width: 0; }
+  .risk-murphy-text strong { font-size: var(--text-sm); color: #00ff41; display: block; margin-bottom: .2rem; }
+  .risk-murphy-text p { font-size: var(--text-xs); color: var(--text-secondary); margin: 0; }
+
+  /* ── Loading spinner ── */
+  .risk-loading { color: var(--text-tertiary); font-size: var(--text-xs); padding: .75rem 0; text-align: center; }
+
+  @media(max-width: 600px) {
+    .risk-status-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body class="murphy-no-sidebar">
+
+<a class="murphy-skip-link" href="#risk-main">Skip to content</a>
+
+<!-- ── Topbar ── -->
+<nav class="murphy-topbar" role="navigation" aria-label="Main navigation">
+  <div class="murphy-topbar-left flex items-center gap-3">
+    <a href="/ui/landing" class="murphy-topbar-brand">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect width="32" height="32" rx="8" fill="var(--teal)"/>
+        <text x="16" y="22" text-anchor="middle" fill="#0C1017" font-size="18" font-weight="700" font-family="Inter,sans-serif">M</text>
+      </svg>
+      <span class="murphy-topbar-brand-name">Murphy System</span>
+    </a>
+    <div class="murphy-nav-links nav-links-desktop">
+      <a href="/ui/terminal-unified" class="murphy-btn murphy-btn-ghost murphy-btn-sm">Dashboard</a>
+      <a href="/ui/wallet"           class="murphy-btn murphy-btn-ghost murphy-btn-sm">Wallet</a>
+      <a href="/ui/management"       class="murphy-btn murphy-btn-ghost murphy-btn-sm">Management</a>
+    </div>
+  </div>
+  <div class="murphy-topbar-right flex items-center gap-2">
+    <button class="murphy-btn murphy-btn-ghost murphy-btn-icon" id="theme-toggle-btn" aria-label="Toggle theme">🌙</button>
+    <a href="/ui/login"  class="murphy-btn murphy-btn-ghost murphy-btn-sm">Sign In</a>
+    <a href="/ui/signup" class="murphy-btn murphy-btn-primary murphy-btn-sm">Get Started</a>
+  </div>
+</nav>
+
+<!-- ── Main ── -->
+<main id="risk-main" class="risk-layout" role="main" aria-label="Trading Risk Dashboard">
+
+  <!-- Hero -->
+  <div class="risk-hero">
+    <div class="risk-hero-left">
+      <h1>⚡ Risk Dashboard</h1>
+      <p>Real-time risk assessment, graduation progress, emergency controls, and audit log.</p>
+    </div>
+    <span class="risk-hero-badge" id="trading-mode-badge">Paper Mode</span>
+  </div>
+
+  <!-- Murphy AI bar -->
+  <div class="risk-murphy-bar" role="region" aria-label="Murphy AI risk assistant">
+    <div class="risk-murphy-icon" aria-hidden="true">M</div>
+    <div class="risk-murphy-text">
+      <strong>Murphy Risk Engine is active</strong>
+      <p id="murphy-risk-insight">Loading risk assessment…</p>
+    </div>
+    <button class="risk-btn outline" id="btn-refresh-all" aria-label="Refresh all risk data">↻ Refresh</button>
+  </div>
+
+  <!-- ── Emergency Stop Banner ── -->
+  <div class="estop-banner armed" id="estop-banner" role="alert" aria-live="assertive">
+    <span class="estop-banner-icon">🛡️</span>
+    <div class="estop-banner-text">
+      <strong id="estop-title">Emergency Stop: ARMED</strong>
+      <p id="estop-detail">All circuit breakers operational. Trading is active.</p>
+    </div>
+    <div class="estop-banner-actions">
+      <button class="risk-btn danger"   id="btn-estop-trigger" aria-label="Manually trigger emergency stop">⛔ Trigger Stop</button>
+      <button class="risk-btn outline"  id="btn-estop-reset"   aria-label="Reset emergency stop" style="display:none">↩ Reset</button>
+    </div>
+  </div>
+
+  <!-- ── Summary stats ── -->
+  <h2 class="risk-section-heading">📊 Risk Overview</h2>
+  <div class="risk-status-grid" id="risk-stats-grid">
+    <div class="risk-stat-card" id="card-risk-score">
+      <div class="risk-stat-label">Risk Score</div>
+      <div class="risk-stat-value" id="stat-risk-score">—</div>
+      <div class="risk-stat-sub">0 = safe · 100 = extreme</div>
+    </div>
+    <div class="risk-stat-card" id="card-risk-level">
+      <div class="risk-stat-label">Recommended Level</div>
+      <div class="risk-stat-value" id="stat-risk-level">—</div>
+      <div class="risk-stat-sub" id="stat-regime">—</div>
+    </div>
+    <div class="risk-stat-card" id="card-drawdown">
+      <div class="risk-stat-label">Drawdown</div>
+      <div class="risk-stat-value" id="stat-drawdown">—</div>
+      <div class="risk-stat-sub">From peak equity</div>
+    </div>
+    <div class="risk-stat-card" id="card-position-size">
+      <div class="risk-stat-label">Max Position Size</div>
+      <div class="risk-stat-value" id="stat-position-size">—</div>
+      <div class="risk-stat-sub">Kelly-adjusted</div>
+    </div>
+    <div class="risk-stat-card" id="card-daily-loss">
+      <div class="risk-stat-label">Daily Loss</div>
+      <div class="risk-stat-value" id="stat-daily-loss">$0</div>
+      <div class="risk-stat-sub" id="stat-daily-loss-limit">Limit: $—</div>
+    </div>
+    <div class="risk-stat-card" id="card-consecutive">
+      <div class="risk-stat-label">Consecutive Losses</div>
+      <div class="risk-stat-value" id="stat-consec-losses">0</div>
+      <div class="risk-stat-sub">Circuit breaks at 5</div>
+    </div>
+  </div>
+
+  <!-- ── Reasoning panel ── -->
+  <div class="risk-two-col">
+    <!-- Risk reasoning -->
+    <div class="risk-panel" id="panel-reasoning">
+      <h3>🧠 Risk Reasoning</h3>
+      <ul id="risk-reasoning-list" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:.5rem;">
+        <li class="risk-loading">Loading…</li>
+      </ul>
+    </div>
+
+    <!-- Portfolio heat map -->
+    <div class="risk-panel" id="panel-heatmap">
+      <h3>🌡️ Portfolio Heat Map</h3>
+      <div class="heatmap-grid" id="heatmap-grid">
+        <div class="risk-loading">No positions loaded.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Graduation progress ── -->
+  <h2 class="risk-section-heading">🎓 Graduation Progress</h2>
+  <div class="risk-panel" id="panel-graduation">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.25rem;">
+      <div>
+        <span style="font-size:var(--text-sm);color:var(--text-secondary);">Status: </span>
+        <span id="grad-status-badge" style="font-weight:700;color:var(--teal);">Loading…</span>
+      </div>
+      <button class="risk-btn primary" id="btn-confirm-grad" style="display:none" aria-label="Confirm graduation to live trading">
+        ✅ Confirm &amp; Enable Live Trading
+      </button>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="grad-progress-wrap">
+      <div class="grad-progress-label">
+        <span id="grad-progress-text">0 / 8 criteria met</span>
+        <span id="grad-progress-pct">0%</span>
+      </div>
+      <div class="grad-progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="grad-progress-bar-wrap">
+        <div class="grad-progress-fill" id="grad-progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- Criteria list -->
+    <div class="grad-criteria-list" id="grad-criteria-list">
+      <div class="risk-loading">Loading criteria…</div>
+    </div>
+  </div>
+
+  <!-- ── Drawdown chart placeholder ── -->
+  <h2 class="risk-section-heading">📉 Equity Curve &amp; Drawdown</h2>
+  <div class="risk-panel" id="panel-drawdown">
+    <div id="drawdown-chart-container" style="height:160px;display:flex;align-items:center;justify-content:center;color:var(--text-tertiary);font-size:var(--text-xs);">
+      <!-- Chart rendered by JS / Chart.js if available -->
+      <canvas id="drawdown-canvas" width="800" height="150" style="max-width:100%;display:none;"></canvas>
+      <span id="drawdown-no-data">Equity curve will appear after trades are recorded.</span>
+    </div>
+  </div>
+
+  <!-- ── Hidden cost dashboard ── -->
+  <h2 class="risk-section-heading">💰 Hidden Cost Tracker</h2>
+  <div class="risk-status-grid" id="cost-stats-grid">
+    <div class="risk-stat-card">
+      <div class="risk-stat-label">Total Fees Paid</div>
+      <div class="risk-stat-value" id="stat-total-fees">$0</div>
+      <div class="risk-stat-sub">Exchange fees (cumulative)</div>
+    </div>
+    <div class="risk-stat-card">
+      <div class="risk-stat-label">Avg Slippage</div>
+      <div class="risk-stat-value" id="stat-avg-slip">$0</div>
+      <div class="risk-stat-sub">Per trade</div>
+    </div>
+    <div class="risk-stat-card">
+      <div class="risk-stat-label">Cost % of Trade</div>
+      <div class="risk-stat-value" id="stat-cost-pct">0%</div>
+      <div class="risk-stat-sub">Total cost ÷ trade value</div>
+    </div>
+    <div class="risk-stat-card">
+      <div class="risk-stat-label">Discrepancies</div>
+      <div class="risk-stat-value" id="stat-discrepancies">0</div>
+      <div class="risk-stat-sub">Cost model deviations</div>
+    </div>
+  </div>
+
+  <!-- ── Audit log viewer ── -->
+  <h2 class="risk-section-heading">📋 Recent Trade Decisions</h2>
+  <div class="risk-panel" id="panel-audit">
+    <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap;">
+      <select id="audit-filter-outcome" class="murphy-select" style="font-size:var(--text-xs);padding:.375rem .625rem;background:var(--bg-elevated);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);" aria-label="Filter by outcome">
+        <option value="">All outcomes</option>
+        <option value="executed">Executed</option>
+        <option value="rejected">Rejected</option>
+        <option value="pending">Pending</option>
+      </select>
+      <select id="audit-filter-limit" class="murphy-select" style="font-size:var(--text-xs);padding:.375rem .625rem;background:var(--bg-elevated);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);" aria-label="Number of rows">
+        <option value="20">Last 20</option>
+        <option value="50">Last 50</option>
+        <option value="100">Last 100</option>
+      </select>
+      <button class="risk-btn outline" id="btn-audit-export" style="font-size:var(--text-xs);padding:.375rem .875rem;" aria-label="Export audit log as CSV">⬇ Export CSV</button>
+    </div>
+    <div class="audit-table-wrap">
+      <table class="audit-table" role="grid" aria-label="Audit log">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Pair</th>
+            <th>Strategy</th>
+            <th>Direction</th>
+            <th>Outcome</th>
+            <th>P&amp;L</th>
+            <th>Reason</th>
+          </tr>
+        </thead>
+        <tbody id="audit-log-body">
+          <tr><td colspan="7" class="risk-loading" style="text-align:center;">Loading audit log…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ── Configuration ── */
+  var ESTOP_REFRESH_MS  = 30000;   // refresh emergency stop status every 30 s
+  var AUDIT_REFRESH_MS  = 60000;   // refresh audit log every 60 s
+
+  /* ── Utility ── */
+  function fmt$(v) {
+    if (v == null) return '—';
+    return '$' + Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function fmtPct(v) {
+    if (v == null) return '—';
+    return Number(v).toFixed(1) + '%';
+  }
+  function fmtTime(iso) {
+    if (!iso) return '—';
+    try { return new Date(iso).toLocaleTimeString(); } catch (_) { return iso.slice(11, 19); }
+  }
+
+  /* ── API helpers ── */
+  function apiFetch(path) {
+    return fetch(path).then(function (r) {
+      if (!r.ok) throw new Error(r.statusText);
+      return r.json();
+    });
+  }
+  function apiPost(path, body) {
+    return fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }).then(function (r) { return r.json(); });
+  }
+
+  /* ── Emergency stop ── */
+  function loadEmergencyStop() {
+    apiFetch('/api/trading/emergency/status').then(function (d) {
+      var s      = d.emergency_stop;
+      var banner = document.getElementById('estop-banner');
+      var title  = document.getElementById('estop-title');
+      var detail = document.getElementById('estop-detail');
+      var btnR   = document.getElementById('btn-estop-reset');
+      var t      = s.thresholds || {};
+
+      if (s.is_stopped) {
+        banner.className = 'estop-banner tripped';
+        title.textContent = '⛔ Emergency Stop: TRIGGERED';
+        var ev = s.active_event || {};
+        detail.textContent = (ev.reason || '') + ' — ' + (ev.details || '');
+        btnR.style.display = '';
+      } else {
+        banner.className = 'estop-banner armed';
+        title.textContent = '🛡️ Emergency Stop: ARMED';
+        detail.textContent = 'Daily loss: ' + fmt$(s.daily_loss_usd) + ' / limit ' +
+          fmtPct(t.daily_loss_pct * 100) + '  ·  Consecutive losses: ' + (s.consecutive_losses || 0) + ' / ' + (t.consecutive_losses || 5);
+        btnR.style.display = 'none';
+      }
+      /* stats cards */
+      document.getElementById('stat-daily-loss').textContent = fmt$(s.daily_loss_usd);
+      document.getElementById('stat-daily-loss-limit').textContent = 'Limit: ' + fmtPct((t.daily_loss_pct || 0.05) * 100) + ' of portfolio';
+      document.getElementById('stat-consec-losses').textContent = s.consecutive_losses || 0;
+      var conseqCard = document.getElementById('card-consecutive');
+      if ((s.consecutive_losses || 0) >= 3) conseqCard.className = 'risk-stat-card warning';
+      if ((s.consecutive_losses || 0) >= 5) conseqCard.className = 'risk-stat-card danger';
+    }).catch(function () {
+      document.getElementById('estop-detail').textContent = 'Could not reach emergency stop API.';
+    });
+  }
+
+  /* ── Risk summary ── */
+  function loadRiskSummary() {
+    apiFetch('/api/trading/risk/assessment').then(function (d) {
+      var s = d.summary || {};
+      document.getElementById('stat-drawdown').textContent = fmtPct(s.current_drawdown_pct);
+      var ddCard = document.getElementById('card-drawdown');
+      if ((s.current_drawdown_pct || 0) >= 7)  ddCard.className = 'risk-stat-card warning';
+      if ((s.current_drawdown_pct || 0) >= 10) ddCard.className = 'risk-stat-card danger';
+      document.getElementById('murphy-risk-insight').textContent =
+        'Portfolio: ' + fmt$(s.portfolio_value_usd) + ' · Peak: ' + fmt$(s.peak_value_usd) +
+        ' · Drawdown: ' + fmtPct(s.current_drawdown_pct) +
+        ' · Win streak: ' + (s.win_streak || 0) + ' · Loss streak: ' + (s.loss_streak || 0);
+    }).catch(function () {
+      document.getElementById('murphy-risk-insight').textContent = 'Risk API unavailable.';
+    });
+  }
+
+  /* ── Graduation ── */
+  function loadGraduation() {
+    apiFetch('/api/trading/graduation/status').then(function (d) {
+      var g     = d.graduation;
+      var badge = document.getElementById('grad-status-badge');
+      var pText = document.getElementById('grad-progress-text');
+      var pPct  = document.getElementById('grad-progress-pct');
+      var pFill = document.getElementById('grad-progress-fill');
+      var pBar  = document.getElementById('grad-progress-bar-wrap');
+      var btnC  = document.getElementById('btn-confirm-grad');
+      var list  = document.getElementById('grad-criteria-list');
+
+      badge.textContent = (g.status || '').replace('_', ' ').toUpperCase();
+      var colorMap = {
+        not_ready:   '#ff4444',
+        approaching: '#ffaa00',
+        ready:       '#00ffff',
+        graduated:   '#00ff41',
+        suspended:   '#ff4444',
+      };
+      badge.style.color = colorMap[g.status] || 'var(--teal)';
+
+      var pct = g.completion_pct || 0;
+      pText.textContent = (g.criteria_met || 0) + ' / ' + (g.criteria_total || 8) + ' criteria met';
+      pPct.textContent  = fmtPct(pct);
+      pFill.style.width = pct + '%';
+      pBar.setAttribute('aria-valuenow', pct);
+
+      if (g.status === 'ready') btnC.style.display = '';
+      else                      btnC.style.display = 'none';
+
+      /* render criteria */
+      var criteria = g.criteria || [];
+      if (!criteria.length) { list.innerHTML = '<div class="risk-loading">No criteria data.</div>'; return; }
+      list.innerHTML = criteria.map(function (c) {
+        var icon  = c.met ? '✅' : '❌';
+        var cls   = c.met ? 'met' : 'unmet';
+        return '<div class="grad-criterion ' + cls + '">' +
+          '<span class="grad-criterion-icon">' + icon + '</span>' +
+          '<span class="grad-criterion-name">' + (c.description || c.name) + '</span>' +
+          '<span class="grad-criterion-value">' + c.actual + ' / ' + c.required + '</span>' +
+          '</div>';
+      }).join('');
+    }).catch(function () {
+      document.getElementById('grad-criteria-list').innerHTML = '<div class="risk-loading">Graduation API unavailable.</div>';
+    });
+  }
+
+  /* ── Hidden costs ── */
+  function loadCosts() {
+    apiFetch('/api/trading/risk/costs').then(function (d) {
+      var c = d.costs || {};
+      document.getElementById('stat-total-fees').textContent = fmt$(c.total_fees_usd);
+      document.getElementById('stat-avg-slip').textContent   = fmt$(c.avg_slippage_usd);
+      document.getElementById('stat-cost-pct').textContent   = fmtPct(c.cost_as_pct_of_trade);
+      document.getElementById('stat-discrepancies').textContent = c.discrepancy_count || 0;
+    }).catch(function () {});
+  }
+
+  /* ── Audit log ── */
+  function loadAuditLog() {
+    var outcome = document.getElementById('audit-filter-outcome').value;
+    var limit   = document.getElementById('audit-filter-limit').value;
+    var url     = '/api/trading/audit/log?limit=' + limit + (outcome ? '&outcome=' + outcome : '');
+    apiFetch(url).then(function (d) {
+      var entries = d.entries || [];
+      var tbody   = document.getElementById('audit-log-body');
+      if (!entries.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-tertiary);padding:.75rem;">No audit entries yet.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = entries.map(function (e) {
+        var sig = e.signal || {};
+        var badgeCls = 'badge badge-' + (e.outcome || 'pending');
+        var pnl = e.pnl_usd != null ? (e.pnl_usd >= 0 ? '<span style="color:#00ff41">+' + fmt$(e.pnl_usd) + '</span>' : '<span style="color:#ff4444">' + fmt$(e.pnl_usd) + '</span>') : '—';
+        return '<tr>' +
+          '<td>' + fmtTime(e.timestamp) + '</td>' +
+          '<td style="color:var(--teal)">' + (e.pair || '—') + '</td>' +
+          '<td>' + (e.strategy_id || '—') + '</td>' +
+          '<td>' + (sig.direction || '—') + '</td>' +
+          '<td><span class="' + badgeCls + '">' + (e.outcome || '—') + '</span></td>' +
+          '<td>' + pnl + '</td>' +
+          '<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + (e.rejection_reason || '') + '">' + (e.rejection_reason || '—') + '</td>' +
+          '</tr>';
+      }).join('');
+    }).catch(function () {
+      document.getElementById('audit-log-body').innerHTML =
+        '<tr><td colspan="7" style="text-align:center;color:var(--text-tertiary);">Audit log unavailable.</td></tr>';
+    });
+  }
+
+  /* ── Emergency stop button handlers ── */
+  document.getElementById('btn-estop-trigger').addEventListener('click', function () {
+    if (!confirm('Manually trigger emergency stop? This will switch to paper mode and halt all trading.')) return;
+    apiPost('/api/trading/emergency/trigger', { reason: 'Manual trigger from risk dashboard' })
+      .then(function () { loadEmergencyStop(); })
+      .catch(function (e) { alert('Error triggering stop: ' + e.message); });
+  });
+
+  document.getElementById('btn-estop-reset').addEventListener('click', function () {
+    if (!confirm('Reset the emergency stop? Ensure all issues are resolved before continuing.')) return;
+    apiPost('/api/trading/emergency/reset', { reset_by: 'dashboard_user' })
+      .then(function (d) {
+        if (d.success) { loadEmergencyStop(); }
+        else           { alert(d.detail || 'Reset failed — cooldown may still be active.'); }
+      })
+      .catch(function (e) { alert('Reset error: ' + e.message); });
+  });
+
+  /* ── Graduation confirm ── */
+  document.getElementById('btn-confirm-grad').addEventListener('click', function () {
+    if (!confirm('Confirm graduation to live trading? This will enable real money trading. Make sure all criteria are genuinely met.')) return;
+    apiPost('/api/trading/graduation/confirm', { confirmed_by: 'dashboard_user' })
+      .then(function (d) {
+        if (d.success) { alert('✅ ' + d.message); loadGraduation(); }
+        else           { alert('❌ ' + (d.detail || 'Confirmation failed')); }
+      })
+      .catch(function (e) { alert('Error: ' + e.message); });
+  });
+
+  /* ── Refresh all ── */
+  document.getElementById('btn-refresh-all').addEventListener('click', function () { loadAll(); });
+
+  /* ── Audit filter change ── */
+  document.getElementById('audit-filter-outcome').addEventListener('change', loadAuditLog);
+  document.getElementById('audit-filter-limit').addEventListener('change', loadAuditLog);
+
+  /* ── CSV export ── */
+  document.getElementById('btn-audit-export').addEventListener('click', function () {
+    window.location.href = '/api/trading/audit/export';
+  });
+
+  /* ── Load all ── */
+  function loadAll() {
+    loadEmergencyStop();
+    loadRiskSummary();
+    loadGraduation();
+    loadCosts();
+    loadAuditLog();
+  }
+
+  loadAll();
+
+  /* Auto-refresh emergency status every 30 s */
+  setInterval(loadEmergencyStop, ESTOP_REFRESH_MS);
+  /* Auto-refresh audit log every 60 s */
+  setInterval(loadAuditLog, AUDIT_REFRESH_MS);
+
+})();
+</script>
+</body>
+</html>
