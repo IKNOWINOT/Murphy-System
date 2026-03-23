@@ -19,6 +19,8 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
+from murphy_identity import MURPHY_SYSTEM_IDENTITY
+
 # INC-01 / C-01: Import the OpenAI-compatible provider (unified LLM gateway)
 from openai_compatible_provider import (  # noqa: F401
     ChatMessage,
@@ -403,7 +405,7 @@ class LLMController:
 
             client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
-            messages = [{"role": "system", "content": "You are Murphy, an AI system builder assistant."}]
+            messages = [{"role": "system", "content": MURPHY_SYSTEM_IDENTITY}]
 
             if request.context:
                 messages.append({
@@ -445,7 +447,7 @@ class LLMController:
 
             client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
-            messages = [{"role": "system", "content": "You are Murphy, an AI system builder assistant."}]
+            messages = [{"role": "system", "content": MURPHY_SYSTEM_IDENTITY}]
 
             if request.context:
                 messages.append({
@@ -487,7 +489,7 @@ class LLMController:
 
             client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
-            messages = [{"role": "system", "content": "You are Murphy, a code generation assistant."}]
+            messages = [{"role": "system", "content": MURPHY_SYSTEM_IDENTITY}]
 
             if request.context:
                 messages.append({
