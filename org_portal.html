@@ -1,0 +1,732 @@
+<!-- Murphy System — Organization Portal / © 2020 Inoni Limited Liability Company by Corey Post / License: BSL 1.1 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — Organization Portal</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
+<style>
+:root{--sidebar-width:220px;--topbar-h:52px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-ui);overflow:hidden;height:100vh;display:flex;flex-direction:column}
+/* TOPBAR */
+.m-topbar{height:var(--topbar-h);background:var(--bg-surface);border-bottom:1px solid var(--border-default);display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:200;flex-shrink:0}
+.m-brand{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--teal);font-weight:700;font-size:1rem;letter-spacing:.05em}
+.m-topbar-right{display:flex;align-items:center;gap:8px}
+.m-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--radius-md);border:1px solid var(--border-default);background:var(--bg-elevated);color:var(--text-primary);font-size:13px;cursor:pointer;font-family:var(--font-ui);transition:background var(--transition-fast)}
+.m-btn:hover{background:var(--bg-input);border-color:var(--teal)}
+.m-btn-primary{background:var(--teal);color:#000;border-color:var(--teal);font-weight:600}
+.m-btn-primary:hover{background:#00b890}
+.m-btn-danger{background:rgba(239,68,68,.15);color:#ef4444;border-color:rgba(239,68,68,.4)}
+.m-btn-danger:hover{background:rgba(239,68,68,.25)}
+.m-btn-icon{padding:6px;border:none;background:none;color:var(--text-secondary);cursor:pointer;border-radius:var(--radius-sm);display:flex;align-items:center}
+.m-btn-icon:hover{background:var(--bg-elevated);color:var(--text-primary)}
+.org-badge{background:rgba(0,212,170,.15);color:var(--teal);border:1px solid rgba(0,212,170,.3);padding:2px 10px;border-radius:var(--radius-full);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+/* SHELL */
+.m-shell{display:flex;flex:1;overflow:hidden}
+/* SIDEBAR */
+.m-sidebar{width:var(--sidebar-width);background:var(--bg-surface);border-right:1px solid var(--border-default);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.m-sidebar-item{display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;font-size:13px;color:var(--text-secondary);transition:background var(--transition-fast);user-select:none;border-left:3px solid transparent}
+.m-sidebar-item:hover{background:var(--bg-elevated);color:var(--text-primary)}
+.m-sidebar-item.active{background:var(--teal-glow);color:var(--teal);border-left-color:var(--teal)}
+.m-sidebar-item.disabled{opacity:.4;cursor:not-allowed;pointer-events:none}
+.m-sidebar-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;padding:12px 16px 4px;margin-top:8px}
+.m-user-info{padding:12px 16px;border-top:1px solid var(--border-subtle);margin-top:auto;font-size:12px;color:var(--text-muted)}
+.m-user-email{font-weight:600;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* MAIN */
+.m-main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.m-main-header{padding:12px 20px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:12px;flex-shrink:0;background:var(--bg-surface)}
+.m-page-title{font-size:16px;font-weight:700;color:var(--text-primary)}
+.m-header-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
+/* CONTENT */
+.m-content{flex:1;overflow:auto;padding:20px}
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px}
+.stat-card{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:16px}
+.stat-value{font-size:28px;font-weight:700;color:var(--teal);line-height:1}
+.stat-label{font-size:11px;color:var(--text-muted);margin-top:6px;text-transform:uppercase;letter-spacing:.06em}
+/* ORG HERO */
+.org-hero{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:20px;margin-bottom:20px;display:flex;align-items:flex-start;gap:20px}
+.org-avatar{width:52px;height:52px;border-radius:var(--radius-lg);background:linear-gradient(135deg,var(--teal),#3b9eff);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#000;flex-shrink:0}
+.org-hero-info{flex:1}
+.org-hero-name{font-size:20px;font-weight:700;color:var(--text-primary);margin-bottom:4px}
+.org-hero-desc{font-size:13px;color:var(--text-muted)}
+.org-hero-meta{display:flex;gap:12px;margin-top:8px;font-size:12px;color:var(--text-muted)}
+/* TABLE */
+.tbl-wrap{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);overflow:hidden}
+.tbl-toolbar{padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border-subtle)}
+.tbl-title{font-size:14px;font-weight:600;color:var(--text-primary)}
+.tbl-search{flex:1;background:var(--bg-elevated);border:1px solid var(--border-default);color:var(--text-primary);padding:7px 10px;border-radius:var(--radius-md);font-size:13px;font-family:var(--font-ui);outline:none}
+.tbl-search:focus{border-color:var(--teal)}
+table{width:100%;border-collapse:collapse}
+thead th{padding:9px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border-default);background:var(--bg-surface);white-space:nowrap}
+tbody td{padding:10px 12px;border-bottom:1px solid var(--border-subtle);font-size:13px;vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--bg-elevated)}
+.pill{display:inline-block;padding:2px 9px;border-radius:var(--radius-full);font-size:11px;font-weight:600}
+.pill-org_owner{background:rgba(232,121,249,.15);color:#e879f9}
+.pill-org_admin{background:rgba(239,68,68,.15);color:#ef4444}
+.pill-member,.pill-platform_admin{background:rgba(86,103,120,.2);color:#8899aa}
+.pill-active{background:rgba(34,197,94,.15);color:#22c55e}
+.pill-suspended,.pill-deactivated{background:rgba(239,68,68,.15);color:#ef4444}
+.pill-free{background:rgba(86,103,120,.2);color:#8899aa}
+.pill-team,.pill-professional,.pill-enterprise{background:rgba(0,212,170,.15);color:#00d4aa}
+.pill-text,.pill-forum{background:rgba(59,158,255,.15);color:#3b9eff}
+.pill-voice{background:rgba(232,121,249,.15);color:#e879f9}
+.row-actions{display:flex;gap:6px;opacity:0;transition:opacity .15s}
+tbody tr:hover .row-actions{opacity:1}
+.row-actions button{background:none;border:1px solid var(--border-default);color:var(--text-secondary);padding:3px 8px;border-radius:var(--radius-sm);font-size:11px;cursor:pointer;font-family:var(--font-ui);transition:background .15s,color .15s,border-color .15s}
+.row-actions button:hover{background:var(--bg-input);color:var(--text-primary);border-color:var(--teal)}
+.row-actions button.danger:hover{background:rgba(239,68,68,.15);color:#ef4444;border-color:rgba(239,68,68,.4)}
+/* CHANNELS */
+.channel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.channel-card{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:14px 16px}
+.channel-card-header{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.channel-icon{width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.channel-icon.text{background:rgba(59,158,255,.15)}
+.channel-icon.voice{background:rgba(232,121,249,.15)}
+.channel-icon.forum{background:rgba(0,212,170,.15)}
+.channel-name{font-weight:600;font-size:13px}
+.channel-desc{font-size:12px;color:var(--text-muted)}
+.channel-meta{font-size:11px;color:var(--text-muted);margin-top:6px}
+/* ACTIVITY */
+.activity-entry{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-subtle);font-size:13px;align-items:flex-start}
+.activity-entry:last-child{border-bottom:none}
+.activity-dot{width:8px;height:8px;border-radius:50%;background:var(--teal);flex-shrink:0;margin-top:5px}
+.activity-action{font-weight:600;color:var(--text-primary)}
+.activity-detail{font-size:12px;color:var(--text-muted)}
+.activity-ts{font-size:11px;color:var(--text-muted);margin-left:auto;white-space:nowrap;flex-shrink:0}
+/* SETTINGS */
+.settings-section{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:20px;margin-bottom:16px}
+.settings-title{font-size:14px;font-weight:600;margin-bottom:16px;color:var(--text-primary)}
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:12px;color:var(--text-muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em}
+.form-input{width:100%;background:var(--bg-elevated);border:1px solid var(--border-default);color:var(--text-primary);padding:8px 10px;border-radius:var(--radius-md);font-family:var(--font-ui);font-size:13px;outline:none}
+.form-input:focus{border-color:var(--teal)}
+.form-input:disabled{opacity:.5;cursor:not-allowed}
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;display:flex;align-items:center;justify-content:center}
+.modal-overlay[hidden]{display:none}
+.modal{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-xl);width:460px;max-height:85vh;overflow-y:auto;padding:24px}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:20px;color:var(--text-primary);display:flex;align-items:center;gap:8px}
+.form-select{width:100%;background:var(--bg-elevated);border:1px solid var(--border-default);color:var(--text-primary);padding:8px 10px;border-radius:var(--radius-md);font-family:var(--font-ui);font-size:13px;outline:none}
+.form-select:focus{border-color:var(--teal)}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border-subtle)}
+/* SECTIONS */
+.section{display:none}
+.section.active{display:block}
+/* EMPTY STATE */
+.empty-state{padding:40px 20px;text-align:center;color:var(--text-muted);font-size:13px}
+/* NO ORG STATE */
+.no-org-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;padding:40px;text-align:center}
+/* PENDING TABLE */
+.pending-section{margin-top:20px}
+.pending-title{font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;padding:0 16px}
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:10px 16px;font-size:13px;z-index:999;box-shadow:0 4px 16px rgba(0,0,0,.4);animation:slideIn .2s ease}
+.toast.success{border-color:var(--teal);color:var(--teal)}
+.toast.error{border-color:#ef4444;color:#ef4444}
+@keyframes slideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+</style>
+</head>
+<body>
+<a href="#main-content" class="murphy-skip-link">Skip to main content</a>
+
+<!-- TOPBAR -->
+<header class="m-topbar" role="banner">
+  <div style="display:flex;align-items:center;gap:12px">
+    <a href="/ui/landing" class="m-brand" aria-label="Murphy System home">
+      <svg width="24" height="24" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#00D4AA"/><text x="12" y="17" text-anchor="middle" fill="#000" font-size="13" font-weight="700" font-family="Inter,sans-serif">M</text></svg>
+      <span>MURPHY</span>
+    </a>
+    <span class="org-badge" id="topbar-org-name">Organization Portal</span>
+  </div>
+  <nav class="m-topbar-right" aria-label="Top navigation">
+    <a href="/ui/community" class="m-btn">Community</a>
+    <a href="/ui/dashboard" class="m-btn">Dashboard</a>
+    <span id="topbar-user" class="m-btn" style="cursor:default">—</span>
+  </nav>
+</header>
+
+<!-- SHELL -->
+<div class="m-shell">
+
+  <!-- SIDEBAR -->
+  <nav class="m-sidebar" role="navigation" aria-label="Org portal sections">
+    <div style="padding:12px 0">
+      <div class="m-sidebar-label">My Organization</div>
+      <div class="m-sidebar-item active" onclick="showSection('overview')" id="nav-overview">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Overview
+      </div>
+      <div class="m-sidebar-item" onclick="showSection('members')" id="nav-members">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Members
+      </div>
+      <div class="m-sidebar-item" onclick="showSection('channels')" id="nav-channels">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Channels
+      </div>
+      <div class="m-sidebar-item" onclick="showSection('activity')" id="nav-activity">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Activity
+      </div>
+      <div class="m-sidebar-item" onclick="showSection('settings')" id="nav-settings-item">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </div>
+    </div>
+    <div class="m-user-info">
+      <div class="m-user-email" id="sidebar-email">—</div>
+      <div id="sidebar-org-role" style="color:var(--text-muted);margin-top:2px">—</div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="m-main" id="main-content">
+
+    <!-- No Org state -->
+    <div id="no-org-view" style="display:none;flex:1;align-items:center;justify-content:center;flex-direction:column;gap:16px;padding:40px;text-align:center">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <div style="font-size:20px;font-weight:700;color:var(--text-primary)">No Organization Found</div>
+      <div id="no-org-msg" style="font-size:14px;color:var(--text-muted);max-width:380px">You are not a member of any organization yet, or you need to sign in first.</div>
+      <div style="display:flex;gap:8px">
+        <a href="/ui/login?next=/ui/org-portal" class="m-btn m-btn-primary">Sign In</a>
+        <a href="/ui/community" class="m-btn">Browse Community</a>
+      </div>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div id="section-overview" class="section active">
+      <div class="m-main-header">
+        <div class="m-page-title" id="overview-title">Organization Overview</div>
+        <div class="m-header-actions">
+          <button class="m-btn" onclick="loadOverview()">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="m-content">
+        <div class="org-hero" id="org-hero">
+          <div class="org-avatar" id="org-avatar">?</div>
+          <div class="org-hero-info">
+            <div class="org-hero-name" id="org-hero-name">Loading…</div>
+            <div class="org-hero-desc" id="org-hero-desc"></div>
+            <div class="org-hero-meta">
+              <span id="org-hero-plan"></span>
+              <span id="org-hero-status"></span>
+              <span id="org-hero-created"></span>
+            </div>
+          </div>
+          <span class="pill" id="caller-role-pill">—</span>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-value" id="stat-members">—</div><div class="stat-label">Members</div></div>
+          <div class="stat-card"><div class="stat-value" id="stat-channels">—</div><div class="stat-label">Channels</div></div>
+          <div class="stat-card"><div class="stat-value" id="stat-pending">—</div><div class="stat-label">Pending Invites</div></div>
+          <div class="stat-card"><div class="stat-value" id="stat-events">—</div><div class="stat-label">Activity Events</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MEMBERS -->
+    <div id="section-members" class="section">
+      <div class="m-main-header">
+        <div class="m-page-title">Members</div>
+        <div class="m-header-actions">
+          <button class="m-btn m-btn-primary" id="btn-invite" onclick="openInviteModal()" style="display:none">+ Invite</button>
+          <button class="m-btn" onclick="loadMembers()">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="m-content">
+        <div class="tbl-wrap">
+          <div class="tbl-toolbar">
+            <span class="tbl-title">Active Members</span>
+            <input class="tbl-search" id="member-search" placeholder="Search by email or name…" oninput="filterMembers()" />
+          </div>
+          <table>
+            <thead><tr>
+              <th>Email</th><th>Name</th><th>Org Role</th><th>Status</th><th></th>
+            </tr></thead>
+            <tbody id="members-tbody"><tr><td colspan="5" class="empty-state">Loading…</td></tr></tbody>
+          </table>
+        </div>
+        <div class="pending-section" id="pending-section" style="display:none">
+          <div class="pending-title">Pending Invites</div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>User / Email</th><th>Invited At</th><th>Invited By</th></tr></thead>
+              <tbody id="pending-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHANNELS -->
+    <div id="section-channels" class="section">
+      <div class="m-main-header">
+        <div class="m-page-title">Channels</div>
+        <div class="m-header-actions">
+          <a href="/ui/community" class="m-btn">Open Community Forum</a>
+          <button class="m-btn" onclick="loadChannels()">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="m-content">
+        <div id="channels-grid" class="channel-grid">
+          <div class="empty-state" style="grid-column:1/-1">Loading…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTIVITY -->
+    <div id="section-activity" class="section">
+      <div class="m-main-header">
+        <div class="m-page-title">Activity Log</div>
+        <div class="m-header-actions">
+          <button class="m-btn" onclick="loadActivity()">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="m-content">
+        <div class="tbl-wrap" style="padding:8px 16px">
+          <div id="activity-entries"><div class="empty-state">Loading…</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="section-settings" class="section">
+      <div class="m-main-header">
+        <div class="m-page-title">Organization Settings</div>
+        <div class="m-header-actions">
+          <button class="m-btn m-btn-primary" id="btn-save-settings" onclick="saveSettings()" style="display:none">Save Changes</button>
+        </div>
+      </div>
+      <div class="m-content">
+        <div class="settings-section">
+          <div class="settings-title">General</div>
+          <div class="form-group">
+            <label class="form-label">Organization Name</label>
+            <input class="form-input" id="settings-name" type="text" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Description</label>
+            <input class="form-input" id="settings-desc" type="text" />
+          </div>
+        </div>
+        <div class="settings-section">
+          <div class="settings-title">Plan &amp; Info</div>
+          <div class="form-group">
+            <label class="form-label">Plan</label>
+            <input class="form-input" id="settings-plan" type="text" disabled />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Slug</label>
+            <input class="form-input" id="settings-slug" type="text" disabled />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Org ID</label>
+            <input class="form-input" id="settings-id" type="text" disabled />
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ── INVITE MODAL ──────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-invite" hidden>
+  <div class="modal" role="dialog" aria-labelledby="modal-invite-title">
+    <div class="modal-title" id="modal-invite-title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+      Invite Member
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email address</label>
+      <input class="form-input" id="invite-email" type="email" placeholder="member@example.com" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Or Account ID (if known)</label>
+      <input class="form-input" id="invite-user-id" type="text" placeholder="Optional — leave blank to use email" />
+    </div>
+    <div class="modal-footer">
+      <button class="m-btn" onclick="closeModal('modal-invite')">Cancel</button>
+      <button class="m-btn m-btn-primary" onclick="submitInvite()">Send Invite</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── CHANGE ROLE MODAL ─────────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-change-role" hidden>
+  <div class="modal" role="dialog" aria-labelledby="modal-role-title">
+    <div class="modal-title" id="modal-role-title">Change Member Role</div>
+    <input type="hidden" id="cr-user-id" />
+    <div id="cr-member-info" style="color:var(--text-muted);font-size:13px;margin-bottom:16px"></div>
+    <div class="form-group">
+      <label class="form-label">New Role</label>
+      <select class="form-select" id="cr-role">
+        <option value="member">Member</option>
+        <option value="org_admin">Org Admin</option>
+        <option value="org_owner">Org Owner</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="m-btn" onclick="closeModal('modal-change-role')">Cancel</button>
+      <button class="m-btn m-btn-primary" onclick="submitChangeRole()">Update Role</button>
+    </div>
+  </div>
+</div>
+
+<script src="murphy_auth.js"></script>
+<script>
+/* ── State ──────────────────────────────────────────────────────────── */
+let _orgId = null;
+let _orgName = '';
+let _callerRole = null;
+let _allMembers = [];
+let _currentSection = 'overview';
+
+const API = (path, opts = {}) => fetch(path, {
+  headers: { 'Content-Type': 'application/json', ...MurphyAuth.headers() },
+  ...opts,
+}).then(r => r.json());
+
+/* ── Helpers ─────────────────────────────────────────────────────────── */
+function v(id)  { return (document.getElementById(id) || {}).value || ''; }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtDate(iso) { if (!iso) return '—'; try { return new Date(iso).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'}); } catch { return iso; } }
+function openModal(id)  { document.getElementById(id).hidden = false; }
+function closeModal(id) { document.getElementById(id).hidden = true; }
+let _toastTimer;
+function toast(msg, type='success') {
+  clearTimeout(_toastTimer);
+  let el = document.getElementById('_toast');
+  if (!el) { el = document.createElement('div'); el.id='_toast'; document.body.appendChild(el); }
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  _toastTimer = setTimeout(() => el.remove(), 4000);
+}
+
+/* ── Bootstrap ──────────────────────────────────────────────────────── */
+async function init() {
+  // Detect org_id from URL: /ui/org-portal?org=<id>  OR first org for user
+  const params = new URLSearchParams(location.search);
+  let orgId = params.get('org') || params.get('org_id') || '';
+
+  let accountEmail = '—';
+  let accountRole = '';
+
+  try {
+    // Resolve current user
+    const me = await API('/api/auth/session-token').catch(() => ({}));
+    if (!me.session_token) {
+      showNoOrg('Please sign in to view your organization.');
+      return;
+    }
+    const profile = await API('/api/account/profile').catch(() => ({}));
+    accountEmail = profile.email || '—';
+    accountRole  = profile.role || 'user';
+    document.getElementById('topbar-user').textContent = accountEmail;
+    document.getElementById('sidebar-email').textContent = accountEmail;
+  } catch {
+    showNoOrg('Please sign in to view your organization.');
+    return;
+  }
+
+  // If no org_id in URL: platform admins can list all orgs; regular users
+  // cannot — show a picker or "no org" state.
+  if (!orgId) {
+    if (['admin','owner'].includes(accountRole)) {
+      // Try to load org list so admin can pick
+      try {
+        const d = await API('/api/admin/organizations?limit=1');
+        const orgs = (d.organizations || []);
+        if (orgs.length) {
+          orgId = orgs[0].org_id;
+        } else {
+          showNoOrg('No organizations have been created yet. Use the Admin Panel to create one.');
+          return;
+        }
+      } catch { showNoOrg('Could not load organizations.'); return; }
+    } else {
+      showNoOrg('No organization ID specified. Use a link like /ui/org-portal?org=<org_id> or contact your admin.');
+      return;
+    }
+  }
+
+  _orgId = orgId;
+
+  // Verify membership
+  try {
+    const d = await API('/api/org/portal/' + orgId);
+    if (!d.success) { showNoOrg(d.error || 'You are not a member of this organization.'); return; }
+    _callerRole = d.caller_role;
+    _orgName = d.org.name;
+    updateOrgUI(d);
+    updateRoleUI(_callerRole);
+    loadOverview();
+  } catch { showNoOrg('Could not connect to the server.'); return; }
+}
+
+function showNoOrg(msg) {
+  document.getElementById('no-org-msg').textContent = msg;
+  document.getElementById('no-org-view').style.display = 'flex';
+  document.querySelector('.m-sidebar').style.visibility = 'hidden';
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+}
+
+function updateOrgUI(d) {
+  const org = d.org;
+  const stats = d.stats;
+  // Topbar badge
+  document.getElementById('topbar-org-name').textContent = org.name;
+  // Sidebar role
+  document.getElementById('sidebar-org-role').textContent = (_callerRole || '').replace('_',' ').toUpperCase();
+  // Overview
+  document.getElementById('overview-title').textContent = org.name + ' — Overview';
+  const initials = org.name.split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('org-avatar').textContent = initials;
+  document.getElementById('org-hero-name').textContent = org.name;
+  document.getElementById('org-hero-desc').textContent = org.description || 'No description.';
+  document.getElementById('org-hero-plan').textContent = '📦 ' + (org.plan || 'free');
+  document.getElementById('org-hero-status').textContent = '● ' + (org.status || 'active');
+  document.getElementById('org-hero-created').textContent = 'Created ' + fmtDate(org.created_at);
+  const rolePill = document.getElementById('caller-role-pill');
+  rolePill.textContent = (_callerRole || '').replace(/_/g,' ');
+  rolePill.className = 'pill pill-' + (_callerRole || 'member');
+  // Stats
+  document.getElementById('stat-members').textContent = stats.member_count;
+  document.getElementById('stat-channels').textContent = stats.channel_count;
+  document.getElementById('stat-pending').textContent  = stats.pending_invites;
+  document.getElementById('stat-events').textContent   = stats.activity_events;
+}
+
+function updateRoleUI(role) {
+  const canManage = ['org_admin','org_owner','platform_admin'].includes(role);
+  // Show/hide invite button
+  document.getElementById('btn-invite').style.display = canManage ? '' : 'none';
+  // Show/hide settings save button
+  document.getElementById('btn-save-settings').style.display = canManage ? '' : 'none';
+  // Make settings inputs editable only for managers
+  ['settings-name','settings-desc'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = !canManage;
+  });
+  // Disable settings sidebar item for plain members
+  if (!canManage) {
+    const navSettings = document.getElementById('nav-settings-item');
+    if (navSettings) navSettings.classList.add('disabled');
+  }
+}
+
+/* ── Navigation ─────────────────────────────────────────────────────── */
+function showSection(name) {
+  _currentSection = name;
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.m-sidebar-item').forEach(i => i.classList.remove('active'));
+  const sec = document.getElementById('section-' + name);
+  const nav = document.getElementById('nav-' + name);
+  if (sec) sec.classList.add('active');
+  if (nav) nav.classList.add('active');
+
+  if (name === 'overview') loadOverview();
+  if (name === 'members')  loadMembers();
+  if (name === 'channels') loadChannels();
+  if (name === 'activity') loadActivity();
+  if (name === 'settings') loadSettings();
+}
+
+/* ── Overview ────────────────────────────────────────────────────────── */
+async function loadOverview() {
+  if (!_orgId) return;
+  try {
+    const d = await API('/api/org/portal/' + _orgId);
+    if (d.success) updateOrgUI(d);
+  } catch { toast('Failed to refresh overview', 'error'); }
+}
+
+/* ── Members ─────────────────────────────────────────────────────────── */
+async function loadMembers() {
+  if (!_orgId) return;
+  try {
+    const d = await API('/api/org/portal/' + _orgId + '/members');
+    _allMembers = d.members || [];
+    renderMembers(_allMembers);
+
+    // Pending invites
+    const pending = d.pending_invites || [];
+    const ps = document.getElementById('pending-section');
+    if (pending.length && ['org_admin','org_owner','platform_admin'].includes(_callerRole)) {
+      ps.style.display = '';
+      document.getElementById('pending-tbody').innerHTML = pending.map(p => `
+        <tr>
+          <td>${esc(p.email || p.user || '—')}</td>
+          <td style="color:var(--text-muted);font-size:12px">${fmtDate(p.at)}</td>
+          <td style="color:var(--text-muted);font-size:12px">${esc(p.invited_by || '—')}</td>
+        </tr>`).join('');
+    } else {
+      ps.style.display = 'none';
+    }
+  } catch { toast('Failed to load members', 'error'); }
+}
+
+function filterMembers() {
+  const q = (document.getElementById('member-search').value || '').toLowerCase();
+  renderMembers(q ? _allMembers.filter(m => m.email.toLowerCase().includes(q) || (m.full_name||'').toLowerCase().includes(q)) : _allMembers);
+}
+
+function renderMembers(members) {
+  const tb = document.getElementById('members-tbody');
+  if (!members.length) { tb.innerHTML = '<tr><td colspan="5" class="empty-state">No members found.</td></tr>'; return; }
+  const canManage = ['org_admin','org_owner','platform_admin'].includes(_callerRole);
+  const isOwner = ['org_owner','platform_admin'].includes(_callerRole);
+  tb.innerHTML = members.map(m => `
+    <tr>
+      <td>${esc(m.email)}</td>
+      <td>${esc(m.full_name || '—')}</td>
+      <td><span class="pill pill-${m.role}">${(m.role||'member').replace(/_/g,' ')}</span></td>
+      <td><span class="pill pill-${m.status||'active'}">${m.status||'active'}</span></td>
+      <td>
+        <div class="row-actions">
+          ${isOwner ? `<button onclick="openChangeRole('${m.account_id}','${esc(m.email)}','${m.role}')">Change Role</button>` : ''}
+          ${canManage ? `<button class="danger" onclick="removeMember('${m.account_id}')">Remove</button>` : ''}
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function openInviteModal() { openModal('modal-invite'); }
+
+async function submitInvite() {
+  const email = v('invite-email');
+  const userId = v('invite-user-id');
+  if (!email && !userId) { toast('Enter an email or user ID','error'); return; }
+  try {
+    const d = await API('/api/org/portal/' + _orgId + '/members/invite', {
+      method: 'POST',
+      body: JSON.stringify({ email, user_id: userId }),
+    });
+    if (!d.success) { toast(d.error || 'Failed','error'); return; }
+    closeModal('modal-invite');
+    document.getElementById('invite-email').value = '';
+    document.getElementById('invite-user-id').value = '';
+    toast('Invite sent to ' + (email || userId));
+    loadMembers(); loadOverview();
+  } catch { toast('Request failed','error'); }
+}
+
+async function removeMember(userId) {
+  if (!confirm('Remove this member from the organization?')) return;
+  const d = await API('/api/org/portal/' + _orgId + '/members/' + userId, { method: 'DELETE' });
+  if (d.success) { toast('Member removed'); loadMembers(); loadOverview(); }
+  else toast(d.error || 'Failed','error');
+}
+
+function openChangeRole(userId, email, currentRole) {
+  document.getElementById('cr-user-id').value = userId;
+  document.getElementById('cr-member-info').textContent = email;
+  document.getElementById('cr-role').value = currentRole || 'member';
+  openModal('modal-change-role');
+}
+
+async function submitChangeRole() {
+  const userId = v('cr-user-id');
+  const role   = v('cr-role');
+  const d = await API('/api/org/portal/' + _orgId + '/members/' + userId + '/role', {
+    method: 'PATCH', body: JSON.stringify({ role }),
+  });
+  if (d.success) { closeModal('modal-change-role'); toast('Role updated'); loadMembers(); }
+  else toast(d.error || 'Failed','error');
+}
+
+/* ── Channels ────────────────────────────────────────────────────────── */
+async function loadChannels() {
+  if (!_orgId) return;
+  const grid = document.getElementById('channels-grid');
+  try {
+    const d = await API('/api/org/portal/' + _orgId + '/channels');
+    const channels = d.channels || [];
+    if (!channels.length) {
+      grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">No channels for this organization yet. Create one in the Community Forum.</div>';
+      return;
+    }
+    grid.innerHTML = channels.map(c => {
+      const typeIcon = c.type === 'voice' ? '🔊' : c.type === 'forum' ? '📋' : '💬';
+      const typeClass = c.type || 'text';
+      return `
+        <div class="channel-card">
+          <div class="channel-card-header">
+            <div class="channel-icon ${typeClass}">${typeIcon}</div>
+            <div>
+              <div class="channel-name">#${esc(c.name)}</div>
+              <span class="pill pill-${typeClass}" style="font-size:10px">${c.type||'text'}</span>
+            </div>
+          </div>
+          <div class="channel-desc">${esc(c.description||'')}</div>
+          <div class="channel-meta">${c.members ? c.members.length + ' members' : ''} ${c.created ? '· ' + fmtDate(c.created) : ''}</div>
+        </div>`;
+    }).join('');
+  } catch { grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">Failed to load channels.</div>'; }
+}
+
+/* ── Activity ────────────────────────────────────────────────────────── */
+async function loadActivity() {
+  if (!_orgId) return;
+  try {
+    const d = await API('/api/org/portal/' + _orgId + '/activity?limit=50');
+    const events = d.events || [];
+    const el = document.getElementById('activity-entries');
+    if (!events.length) { el.innerHTML = '<div class="empty-state">No activity recorded for this organization yet.</div>'; return; }
+    el.innerHTML = events.map(e => `
+      <div class="activity-entry">
+        <div class="activity-dot"></div>
+        <div style="flex:1">
+          <div class="activity-action">${esc(e.action.replace(/_/g,' '))}</div>
+          <div class="activity-detail">${JSON.stringify(e.detail||{})}</div>
+        </div>
+        <span class="activity-ts">${fmtDate(e.ts)}</span>
+      </div>`).join('');
+  } catch { toast('Failed to load activity','error'); }
+}
+
+/* ── Settings ────────────────────────────────────────────────────────── */
+async function loadSettings() {
+  if (!_orgId) return;
+  try {
+    const d = await API('/api/org/portal/' + _orgId);
+    if (!d.success) return;
+    const org = d.org;
+    document.getElementById('settings-name').value = org.name || '';
+    document.getElementById('settings-desc').value = org.description || '';
+    document.getElementById('settings-plan').value = org.plan || 'free';
+    document.getElementById('settings-slug').value = org.slug || '';
+    document.getElementById('settings-id').value  = org.org_id || '';
+  } catch { toast('Failed to load settings','error'); }
+}
+
+async function saveSettings() {
+  const d = await API('/api/org/portal/' + _orgId + '/settings', {
+    method: 'PATCH',
+    body: JSON.stringify({ name: v('settings-name'), description: v('settings-desc') }),
+  });
+  if (d.success) {
+    _orgName = v('settings-name') || _orgName;
+    document.getElementById('topbar-org-name').textContent = _orgName;
+    toast('Settings saved');
+    loadOverview();
+  } else toast(d.error || 'Failed','error');
+}
+
+/* ── Modal close helpers ─────────────────────────────────────────────── */
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.hidden = true; });
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.querySelectorAll('.modal-overlay').forEach(m => m.hidden = true);
+});
+
+init();
+</script>
+</body>
+</html>
