@@ -1723,6 +1723,1605 @@ def get_mss_controller() -> MSSController:
     return _MSS_CONTROLLER
 
 
+# ===========================================================================
+# LIBRARIAN EXECUTION SUGGESTOR
+# Analyzes requests and suggests executions to agents (like Copilot for PRs)
+# ===========================================================================
+
+class ExecutionPriority(Enum):
+    """Priority levels for suggested executions."""
+    CRITICAL = "critical"      # Must execute immediately
+    HIGH = "high"              # Execute soon
+    NORMAL = "normal"          # Standard priority
+    LOW = "low"                # Execute when available
+    DEFERRED = "deferred"      # Can wait / batch
+
+
+class ExecutionType(Enum):
+    """Types of executions that can be suggested."""
+    AGENT_TASK = "agent_task"           # Task for a specific agent
+    WORKFLOW = "workflow"                # Multi-step workflow
+    TOOL_CALL = "tool_call"              # Direct tool invocation
+    MSS_PIPELINE = "mss_pipeline"        # MSS transformation pipeline
+    PARALLEL_TASKS = "parallel_tasks"    # Multiple parallel executions
+    SEQUENTIAL_TASKS = "sequential_tasks"  # Ordered task sequence
+    CLARIFICATION = "clarification"      # Needs clarification first
+    HANDOFF = "handoff"                  # Hand off to another agent
+
+
+@dataclass
+class ExecutionSuggestion:
+    """A suggested execution from the Librarian."""
+    suggestion_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    execution_type: ExecutionType = ExecutionType.AGENT_TASK
+    title: str = ""
+    description: str = ""
+    
+    # Routing
+    target_agent: Optional[str] = None  # Agent module ID
+    target_tools: List[str] = field(default_factory=list)
+    
+    # Parameters
+    parameters: Dict[str, Any] = field(default_factory=dict)
+    input_data: Dict[str, Any] = field(default_factory=dict)
+    
+    # Confidence and priority
+    confidence: float = 0.0
+    priority: ExecutionPriority = ExecutionPriority.NORMAL
+    mfgc_score: float = 0.0
+    
+    # Dependencies
+    depends_on: List[str] = field(default_factory=list)  # Other suggestion IDs
+    blocks: List[str] = field(default_factory=list)
+    
+    # Context
+    source_request: str = ""
+    reasoning: str = ""
+    alternatives: List[str] = field(default_factory=list)
+    
+    # Timestamps
+    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    expires_at: Optional[str] = None
+
+
+@dataclass
+class ExecutionPlan:
+    """A complete execution plan with multiple suggestions."""
+    plan_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    source_request: str = ""
+    suggestions: List[ExecutionSuggestion] = field(default_factory=list)
+    
+    # Execution order
+    execution_order: List[str] = field(default_factory=list)  # suggestion_ids in order
+    parallel_groups: List[List[str]] = field(default_factory=list)  # Groups that can run in parallel
+    
+    # Overall assessment
+    total_confidence: float = 0.0
+    estimated_duration_ms: int = 0
+    mfgc_gate_passed: bool = False
+    requires_clarification: bool = False
+    clarification_questions: List[str] = field(default_factory=list)
+    
+    # Status
+    status: str = "pending"  # pending, approved, executing, completed, failed
+    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class LibrarianExecutionSuggestor:
+    """Librarian system that suggests executions to agents.
+    
+    Works like GitHub Copilot analyzing PRs and telling agents what to do:
+    1. Analyzes incoming request/query
+    2. Identifies relevant agents and tools
+    3. Suggests execution plan with confidence scores
+    4. Routes to appropriate execution handlers
+    5. Tracks execution history for learning
+    
+    Integration with other systems:
+    - Uses MSS for clarification when confidence is low
+    - Uses Tool Registry to find best tools
+    - Uses MFGC gates for execution approval
+    - Coordinates with Agent Module Loader for agent dispatch
+    
+    Usage:
+        suggestor = LibrarianExecutionSuggestor()
+        
+        # Analyze a request (like PR analysis)
+        plan = suggestor.analyze_request(
+            "scan the codebase for security vulnerabilities and fix critical ones"
+        )
+        
+        # Review suggestions
+        for suggestion in plan.suggestions:
+            print(f"Suggested: {suggestion.title}")
+            print(f"  Agent: {suggestion.target_agent}")
+            print(f"  Tools: {suggestion.target_tools}")
+            print(f"  Confidence: {suggestion.confidence:.0%}")
+        
+        # Execute approved plan
+        if plan.mfgc_gate_passed:
+            results = await suggestor.execute_plan(plan)
+    """
+    
+    # Request type patterns for classification
+    REQUEST_PATTERNS = {
+        "security": [
+            "scan", "vulnerability", "audit", "security", "penetration",
+            "compliance", "threat", "risk", "credential", "secret",
+        ],
+        "devops": [
+            "deploy", "kubernetes", "k8s", "docker", "ci", "cd", "pipeline",
+            "infrastructure", "terraform", "helm", "rollback", "scale",
+        ],
+        "data": [
+            "data", "etl", "transform", "query", "database", "sql", "analytics",
+            "report", "dashboard", "metric", "visualization",
+        ],
+        "finance": [
+            "finance", "payment", "invoice", "billing", "budget", "cost",
+            "trading", "portfolio", "risk", "profit", "revenue",
+        ],
+        "communications": [
+            "email", "slack", "notify", "message", "alert", "webhook",
+            "communication", "announce", "broadcast",
+        ],
+        "workflow": [
+            "automate", "workflow", "process", "schedule", "trigger",
+            "orchestrate", "chain", "sequence", "batch",
+        ],
+        "code": [
+            "code", "refactor", "review", "fix", "bug", "test", "lint",
+            "format", "document", "generate",
+        ],
+    }
+    
+    # Agent mapping based on request type
+    AGENT_MAPPING = {
+        "security": "security-agent",
+        "devops": "devops-agent",
+        "data": "data-agent",
+        "finance": "finance-agent",
+        "communications": "comms-agent",
+        "workflow": "general-agent",
+        "code": "devops-agent",
+    }
+    
+    def __init__(
+        self,
+        mfgc_threshold: float = 0.85,
+        auto_clarify: bool = True,
+    ):
+        self.mfgc_threshold = mfgc_threshold
+        self.auto_clarify = auto_clarify
+        self._plans: Dict[str, ExecutionPlan] = {}
+        self._execution_history: List[Dict[str, Any]] = []
+        self._tool_registry = get_tool_registry()
+        self._mss = get_mss_controller()
+    
+    def analyze_request(
+        self,
+        request: str,
+        context: Optional[Dict[str, Any]] = None,
+        requestor_agent: Optional[str] = None,
+    ) -> ExecutionPlan:
+        """Analyze a request and suggest executions.
+        
+        This is the main entry point, similar to how Copilot analyzes PRs.
+        
+        Args:
+            request: The user's request or task description
+            context: Optional context (previous conversation, user info, etc.)
+            requestor_agent: If another agent is making this request
+            
+        Returns:
+            ExecutionPlan with suggested executions
+        """
+        context = context or {}
+        
+        # Step 1: Run through MSS to clarify the request
+        mss_result = self._mss.execute_pipeline(
+            request,
+            sequence=MSSSequence.MMS,  # Magnify → Magnify → Simplify
+            require_mfgc=False,
+        )
+        
+        clarified_request = mss_result.final_output.get(
+            "core_objective", 
+            mss_result.final_output.get("concept_overview", request)
+        )
+        
+        # Step 2: Classify the request type
+        request_types = self._classify_request(request)
+        
+        # Step 3: Identify target agents and tools
+        suggestions = self._generate_suggestions(
+            original_request=request,
+            clarified_request=clarified_request,
+            request_types=request_types,
+            context=context,
+            mss_result=mss_result,
+        )
+        
+        # Step 4: Determine execution order and parallelism
+        execution_order, parallel_groups = self._plan_execution_order(suggestions)
+        
+        # Step 5: Calculate overall confidence and MFGC gate
+        total_confidence = self._calculate_plan_confidence(suggestions)
+        mfgc_passed = total_confidence >= self.mfgc_threshold
+        
+        # Step 6: Check if clarification is needed
+        requires_clarification = total_confidence < 0.5 or len(suggestions) == 0
+        clarification_questions = []
+        if requires_clarification and self.auto_clarify:
+            clarification_questions = self._generate_clarification_questions(
+                request, request_types, suggestions
+            )
+        
+        # Build the plan
+        plan = ExecutionPlan(
+            source_request=request,
+            suggestions=suggestions,
+            execution_order=execution_order,
+            parallel_groups=parallel_groups,
+            total_confidence=total_confidence,
+            estimated_duration_ms=sum(s.parameters.get("est_duration_ms", 1000) for s in suggestions),
+            mfgc_gate_passed=mfgc_passed,
+            requires_clarification=requires_clarification,
+            clarification_questions=clarification_questions,
+        )
+        
+        self._plans[plan.plan_id] = plan
+        return plan
+    
+    def _classify_request(self, request: str) -> Dict[str, float]:
+        """Classify request into types with confidence scores."""
+        request_lower = request.lower()
+        scores: Dict[str, float] = {}
+        
+        for req_type, keywords in self.REQUEST_PATTERNS.items():
+            score = 0.0
+            for keyword in keywords:
+                if keyword in request_lower:
+                    score += 1.0
+            # Normalize by keyword count
+            if keywords:
+                score = score / len(keywords)
+            if score > 0:
+                scores[req_type] = min(1.0, score * 3)  # Amplify small matches
+        
+        return scores
+    
+    def _generate_suggestions(
+        self,
+        original_request: str,
+        clarified_request: str,
+        request_types: Dict[str, float],
+        context: Dict[str, Any],
+        mss_result: MSSPipelineResult,
+    ) -> List[ExecutionSuggestion]:
+        """Generate execution suggestions based on analysis."""
+        suggestions: List[ExecutionSuggestion] = []
+        
+        # Sort request types by confidence
+        sorted_types = sorted(request_types.items(), key=lambda x: x[1], reverse=True)
+        
+        # Get components from MSS analysis
+        components = mss_result.final_output.get("key_components", [])
+        
+        # Generate a suggestion for each relevant request type
+        for req_type, type_confidence in sorted_types[:3]:  # Top 3 types
+            if type_confidence < 0.1:
+                continue
+            
+            # Find the best agent
+            target_agent = self.AGENT_MAPPING.get(req_type, "general-agent")
+            
+            # Find relevant tools
+            tools = self._tool_registry.recommend_tools(
+                clarified_request,
+                agent_type=target_agent,
+                max_tools=5,
+            )
+            tool_ids = [t.tool_id for t in tools]
+            
+            # Determine priority based on keywords
+            priority = self._determine_priority(original_request)
+            
+            # Create suggestion
+            suggestion = ExecutionSuggestion(
+                execution_type=ExecutionType.AGENT_TASK,
+                title=f"{req_type.title()} Task: {clarified_request[:50]}...",
+                description=f"Execute {req_type} operations using {target_agent}",
+                target_agent=target_agent,
+                target_tools=tool_ids,
+                parameters={
+                    "request_type": req_type,
+                    "components": components,
+                    "est_duration_ms": 5000,
+                },
+                input_data={
+                    "original_request": original_request,
+                    "clarified_request": clarified_request,
+                    "context": context,
+                },
+                confidence=type_confidence * mss_result.final_confidence,
+                priority=priority,
+                mfgc_score=mss_result.final_confidence,
+                source_request=original_request,
+                reasoning=f"Request classified as {req_type} with {type_confidence:.0%} confidence. "
+                         f"MSS clarification confidence: {mss_result.final_confidence:.0%}",
+            )
+            suggestions.append(suggestion)
+        
+        # If no suggestions, add a general one
+        if not suggestions:
+            suggestion = ExecutionSuggestion(
+                execution_type=ExecutionType.AGENT_TASK,
+                title=f"General Task: {clarified_request[:50]}...",
+                description="Execute using general-purpose agent",
+                target_agent="general-agent",
+                target_tools=[],
+                parameters={"request_type": "general", "est_duration_ms": 5000},
+                input_data={"original_request": original_request},
+                confidence=0.3,
+                priority=ExecutionPriority.NORMAL,
+                source_request=original_request,
+                reasoning="Could not classify request type; using general agent",
+            )
+            suggestions.append(suggestion)
+        
+        return suggestions
+    
+    def _determine_priority(self, request: str) -> ExecutionPriority:
+        """Determine execution priority from request."""
+        request_lower = request.lower()
+        
+        critical_keywords = ["critical", "urgent", "emergency", "immediately", "asap", "now"]
+        high_keywords = ["important", "priority", "soon", "quickly"]
+        low_keywords = ["when possible", "eventually", "low priority", "background"]
+        
+        for kw in critical_keywords:
+            if kw in request_lower:
+                return ExecutionPriority.CRITICAL
+        
+        for kw in high_keywords:
+            if kw in request_lower:
+                return ExecutionPriority.HIGH
+        
+        for kw in low_keywords:
+            if kw in request_lower:
+                return ExecutionPriority.LOW
+        
+        return ExecutionPriority.NORMAL
+    
+    def _plan_execution_order(
+        self,
+        suggestions: List[ExecutionSuggestion],
+    ) -> tuple[List[str], List[List[str]]]:
+        """Plan execution order and identify parallel groups."""
+        if not suggestions:
+            return [], []
+        
+        # Sort by priority and confidence
+        sorted_suggestions = sorted(
+            suggestions,
+            key=lambda s: (
+                -["critical", "high", "normal", "low", "deferred"].index(s.priority.value),
+                -s.confidence,
+            ),
+        )
+        
+        execution_order = [s.suggestion_id for s in sorted_suggestions]
+        
+        # Group suggestions that can run in parallel (same priority, no dependencies)
+        parallel_groups: List[List[str]] = []
+        current_group: List[str] = []
+        current_priority = None
+        
+        for s in sorted_suggestions:
+            if current_priority is None or s.priority == current_priority:
+                current_group.append(s.suggestion_id)
+                current_priority = s.priority
+            else:
+                if current_group:
+                    parallel_groups.append(current_group)
+                current_group = [s.suggestion_id]
+                current_priority = s.priority
+        
+        if current_group:
+            parallel_groups.append(current_group)
+        
+        return execution_order, parallel_groups
+    
+    def _calculate_plan_confidence(
+        self,
+        suggestions: List[ExecutionSuggestion],
+    ) -> float:
+        """Calculate overall plan confidence."""
+        if not suggestions:
+            return 0.0
+        
+        # Weighted average by priority
+        weights = {
+            ExecutionPriority.CRITICAL: 2.0,
+            ExecutionPriority.HIGH: 1.5,
+            ExecutionPriority.NORMAL: 1.0,
+            ExecutionPriority.LOW: 0.5,
+            ExecutionPriority.DEFERRED: 0.25,
+        }
+        
+        total_weight = 0.0
+        weighted_confidence = 0.0
+        
+        for s in suggestions:
+            weight = weights.get(s.priority, 1.0)
+            weighted_confidence += s.confidence * weight
+            total_weight += weight
+        
+        return weighted_confidence / total_weight if total_weight > 0 else 0.0
+    
+    def _generate_clarification_questions(
+        self,
+        request: str,
+        request_types: Dict[str, float],
+        suggestions: List[ExecutionSuggestion],
+    ) -> List[str]:
+        """Generate clarification questions when confidence is low."""
+        questions = []
+        
+        # If no clear type
+        if not request_types or max(request_types.values(), default=0) < 0.3:
+            questions.append("What is the primary goal of this request?")
+            questions.append("Which area does this relate to: security, devops, data, finance, or communications?")
+        
+        # If multiple types with similar confidence
+        if len(request_types) > 1:
+            top_types = sorted(request_types.items(), key=lambda x: x[1], reverse=True)[:2]
+            if len(top_types) == 2 and abs(top_types[0][1] - top_types[1][1]) < 0.2:
+                questions.append(
+                    f"Should I prioritize {top_types[0][0]} or {top_types[1][0]} aspects?"
+                )
+        
+        # If suggestions have low confidence
+        if suggestions and suggestions[0].confidence < 0.5:
+            questions.append("Can you provide more details about what you want to achieve?")
+        
+        return questions[:3]  # Max 3 questions
+    
+    async def execute_plan(
+        self,
+        plan: ExecutionPlan,
+        agent_loader: Optional["AgentModuleLoader"] = None,
+    ) -> Dict[str, Any]:
+        """Execute an approved plan.
+        
+        Args:
+            plan: The execution plan to run
+            agent_loader: Optional agent loader instance
+            
+        Returns:
+            Execution results
+        """
+        if not plan.mfgc_gate_passed:
+            return {
+                "status": "blocked",
+                "reason": f"MFGC confidence {plan.total_confidence:.0%} below threshold {self.mfgc_threshold:.0%}",
+                "plan_id": plan.plan_id,
+            }
+        
+        plan.status = "executing"
+        results: Dict[str, Any] = {
+            "plan_id": plan.plan_id,
+            "suggestions_executed": 0,
+            "suggestions_failed": 0,
+            "results": [],
+        }
+        
+        # Execute each parallel group
+        for group in plan.parallel_groups:
+            group_results = []
+            for suggestion_id in group:
+                suggestion = next(
+                    (s for s in plan.suggestions if s.suggestion_id == suggestion_id),
+                    None,
+                )
+                if suggestion:
+                    result = await self._execute_suggestion(suggestion, agent_loader)
+                    group_results.append(result)
+                    if result.get("success"):
+                        results["suggestions_executed"] += 1
+                    else:
+                        results["suggestions_failed"] += 1
+            
+            results["results"].append(group_results)
+        
+        plan.status = "completed" if results["suggestions_failed"] == 0 else "partial"
+        
+        # Record in history
+        self._execution_history.append({
+            "plan_id": plan.plan_id,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "results": results,
+        })
+        
+        return results
+    
+    async def _execute_suggestion(
+        self,
+        suggestion: ExecutionSuggestion,
+        agent_loader: Optional["AgentModuleLoader"],
+    ) -> Dict[str, Any]:
+        """Execute a single suggestion."""
+        try:
+            # For now, simulate execution
+            await asyncio.sleep(0.01)  # Async yield
+            
+            return {
+                "suggestion_id": suggestion.suggestion_id,
+                "success": True,
+                "target_agent": suggestion.target_agent,
+                "execution_type": suggestion.execution_type.value,
+                "message": f"Executed {suggestion.title}",
+            }
+        except Exception as e:
+            return {
+                "suggestion_id": suggestion.suggestion_id,
+                "success": False,
+                "error": str(e),
+            }
+    
+    def suggest_for_pr(
+        self,
+        pr_title: str,
+        pr_description: str,
+        changed_files: List[str],
+        diff_summary: Optional[str] = None,
+    ) -> ExecutionPlan:
+        """Analyze a PR and suggest executions (Copilot-style).
+        
+        Args:
+            pr_title: PR title
+            pr_description: PR description/body
+            changed_files: List of changed file paths
+            diff_summary: Optional summary of changes
+            
+        Returns:
+            ExecutionPlan with suggested tasks
+        """
+        # Build context from PR info
+        context = {
+            "pr_title": pr_title,
+            "changed_files": changed_files,
+            "file_count": len(changed_files),
+            "diff_summary": diff_summary,
+        }
+        
+        # Identify file types for better classification
+        file_types = self._analyze_changed_files(changed_files)
+        context["file_types"] = file_types
+        
+        # Build request from PR
+        request = f"{pr_title}. {pr_description}"
+        if diff_summary:
+            request += f" Changes: {diff_summary}"
+        
+        # Add file-type specific hints
+        if "test" in file_types:
+            request += " [involves tests]"
+        if "security" in file_types:
+            request += " [involves security]"
+        if "config" in file_types:
+            request += " [involves configuration]"
+        
+        # Analyze and generate plan
+        plan = self.analyze_request(request, context)
+        
+        # Add PR-specific suggestions
+        pr_suggestions = self._generate_pr_specific_suggestions(
+            pr_title, changed_files, file_types
+        )
+        plan.suggestions.extend(pr_suggestions)
+        
+        # Recalculate confidence
+        plan.total_confidence = self._calculate_plan_confidence(plan.suggestions)
+        plan.mfgc_gate_passed = plan.total_confidence >= self.mfgc_threshold
+        
+        return plan
+    
+    def _analyze_changed_files(self, files: List[str]) -> Dict[str, int]:
+        """Analyze changed files to identify types."""
+        types: Dict[str, int] = {}
+        
+        patterns = {
+            "test": ["test_", "_test.py", ".test.", "spec."],
+            "security": ["security", "auth", "credential", "secret", "encrypt"],
+            "config": ["config", ".yaml", ".yml", ".json", ".env", ".toml"],
+            "docs": [".md", "readme", "doc/", "documentation"],
+            "ui": [".html", ".css", ".js", ".tsx", ".vue", "static/"],
+            "api": ["api", "route", "endpoint", "handler"],
+            "database": ["migration", "model", "schema", "db"],
+        }
+        
+        for file in files:
+            file_lower = file.lower()
+            for file_type, keywords in patterns.items():
+                for kw in keywords:
+                    if kw in file_lower:
+                        types[file_type] = types.get(file_type, 0) + 1
+                        break
+        
+        return types
+    
+    def _generate_pr_specific_suggestions(
+        self,
+        pr_title: str,
+        changed_files: List[str],
+        file_types: Dict[str, int],
+    ) -> List[ExecutionSuggestion]:
+        """Generate PR-specific suggestions."""
+        suggestions = []
+        
+        # If tests changed, suggest running tests
+        if file_types.get("test", 0) > 0:
+            suggestions.append(ExecutionSuggestion(
+                execution_type=ExecutionType.TOOL_CALL,
+                title="Run affected tests",
+                description="Execute tests related to the changed files",
+                target_agent="devops-agent",
+                target_tools=["pytest", "test_runner"],
+                parameters={"test_files": [f for f in changed_files if "test" in f.lower()]},
+                confidence=0.9,
+                priority=ExecutionPriority.HIGH,
+                reasoning="Tests were modified; should verify they pass",
+            ))
+        
+        # If security files changed, suggest security scan
+        if file_types.get("security", 0) > 0:
+            suggestions.append(ExecutionSuggestion(
+                execution_type=ExecutionType.AGENT_TASK,
+                title="Security review required",
+                description="Review security-related changes",
+                target_agent="security-agent",
+                target_tools=["scan_vulnerabilities", "audit_access"],
+                confidence=0.95,
+                priority=ExecutionPriority.CRITICAL,
+                reasoning="Security-related files were modified",
+            ))
+        
+        # If config changed, suggest validation
+        if file_types.get("config", 0) > 0:
+            suggestions.append(ExecutionSuggestion(
+                execution_type=ExecutionType.TOOL_CALL,
+                title="Validate configuration changes",
+                description="Ensure configuration is valid and consistent",
+                target_agent="devops-agent",
+                target_tools=["config_validator", "lint_yaml"],
+                confidence=0.85,
+                priority=ExecutionPriority.HIGH,
+                reasoning="Configuration files were modified",
+            ))
+        
+        # If API changed, suggest API docs update
+        if file_types.get("api", 0) > 0:
+            suggestions.append(ExecutionSuggestion(
+                execution_type=ExecutionType.TOOL_CALL,
+                title="Update API documentation",
+                description="Regenerate API documentation for changed endpoints",
+                target_agent="devops-agent",
+                target_tools=["generate_api_docs", "openapi_spec"],
+                confidence=0.75,
+                priority=ExecutionPriority.NORMAL,
+                reasoning="API endpoints were modified",
+            ))
+        
+        return suggestions
+    
+    def get_plan(self, plan_id: str) -> Optional[ExecutionPlan]:
+        """Retrieve a plan by ID."""
+        return self._plans.get(plan_id)
+    
+    def get_execution_history(self, limit: int = 50) -> List[Dict[str, Any]]:
+        """Get recent execution history."""
+        return self._execution_history[-limit:]
+
+
+# Create global suggestor instance
+_LIBRARIAN_SUGGESTOR: Optional[LibrarianExecutionSuggestor] = None
+
+
+def get_librarian_suggestor() -> LibrarianExecutionSuggestor:
+    """Get or create the global librarian execution suggestor."""
+    global _LIBRARIAN_SUGGESTOR
+    if _LIBRARIAN_SUGGESTOR is None:
+        _LIBRARIAN_SUGGESTOR = LibrarianExecutionSuggestor()
+    return _LIBRARIAN_SUGGESTOR
+
+
+# ===========================================================================
+# HITL MODAL SYSTEM
+# Human-in-the-Loop approval modal for execution acceptance
+# ===========================================================================
+
+class HITLAction(Enum):
+    """Actions available in HITL modal."""
+    APPROVE = "approve"
+    REJECT = "reject"
+    MODIFY = "modify"
+    DEFER = "defer"
+    ESCALATE = "escalate"
+    REWIND = "rewind"
+
+
+class HITLGateType(Enum):
+    """Types of HITL gates."""
+    EXECUTIVE = "executive"     # C-level approval needed
+    OPERATIONS = "operations"   # Ops team approval
+    QA = "qa"                   # Quality assurance
+    COMPLIANCE = "compliance"   # Legal/compliance review
+    SECURITY = "security"       # Security team approval
+    BUDGET = "budget"           # Financial approval
+    GENERAL = "general"         # General approval
+
+
+@dataclass
+class HITLApprovalRequest:
+    """A request awaiting human approval."""
+    request_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    gate_type: HITLGateType = HITLGateType.GENERAL
+    title: str = ""
+    description: str = ""
+    
+    # What's being approved
+    target_type: str = ""  # execution_plan, suggestion, step, chain
+    target_id: str = ""
+    target_data: Dict[str, Any] = field(default_factory=dict)
+    
+    # Context
+    chain_id: Optional[str] = None  # If part of a creation chain
+    step_index: Optional[int] = None  # Position in chain
+    confidence: float = 0.0
+    mfgc_score: float = 0.0
+    
+    # Risk assessment
+    risk_level: str = "medium"  # low, medium, high, critical
+    risk_factors: List[str] = field(default_factory=list)
+    
+    # Approval requirements
+    required_approvers: List[str] = field(default_factory=list)
+    min_approvals: int = 1
+    
+    # Status
+    status: str = "pending"  # pending, approved, rejected, modified, deferred, escalated
+    approvals: List[Dict[str, Any]] = field(default_factory=list)
+    rejections: List[Dict[str, Any]] = field(default_factory=list)
+    modifications: List[Dict[str, Any]] = field(default_factory=list)
+    
+    # Timestamps
+    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    expires_at: Optional[str] = None
+    resolved_at: Optional[str] = None
+
+
+@dataclass
+class HITLModalState:
+    """State for the HITL approval modal UI."""
+    request: HITLApprovalRequest
+    is_visible: bool = True
+    can_modify: bool = True
+    can_rewind: bool = True
+    available_rewind_points: List[int] = field(default_factory=list)
+    modification_form: Dict[str, Any] = field(default_factory=dict)
+    notes: str = ""
+
+
+class HITLModalSystem:
+    """Human-in-the-Loop modal system for execution approvals.
+    
+    Provides a structured approval workflow with:
+    - Multiple gate types (executive, compliance, security, etc.)
+    - Risk assessment and confidence display
+    - Modification capabilities
+    - Rewind to any step in creation chain
+    - Audit logging
+    
+    Integration with Creation Chain:
+    - Every step can be approved, rejected, or modified
+    - Rewind to any previous step and edit
+    - Re-execute from any point
+    
+    Usage:
+        hitl = HITLModalSystem()
+        
+        # Create approval request
+        request = hitl.create_request(
+            gate_type=HITLGateType.SECURITY,
+            title="Deploy to Production",
+            target_type="execution_plan",
+            target_id=plan.plan_id,
+            target_data=plan.__dict__,
+            chain_id=chain.chain_id,
+            step_index=3,
+        )
+        
+        # Show modal
+        modal = hitl.show_modal(request.request_id)
+        
+        # User actions
+        hitl.approve(request.request_id, approver="alice@example.com")
+        # or
+        hitl.reject(request.request_id, rejector="bob@example.com", reason="Needs tests")
+        # or
+        hitl.modify(request.request_id, modifier="charlie@example.com", changes={"timeout": 60})
+        # or
+        hitl.rewind(request.request_id, to_step=2, reason="Fix config first")
+    """
+    
+    # Default thresholds per gate type
+    GATE_THRESHOLDS = {
+        HITLGateType.EXECUTIVE: 0.90,
+        HITLGateType.COMPLIANCE: 0.85,
+        HITLGateType.SECURITY: 0.85,
+        HITLGateType.OPERATIONS: 0.80,
+        HITLGateType.QA: 0.75,
+        HITLGateType.BUDGET: 0.80,
+        HITLGateType.GENERAL: 0.70,
+    }
+    
+    def __init__(self):
+        self._requests: Dict[str, HITLApprovalRequest] = {}
+        self._modals: Dict[str, HITLModalState] = {}
+        self._audit_log: List[Dict[str, Any]] = []
+    
+    def create_request(
+        self,
+        gate_type: HITLGateType,
+        title: str,
+        target_type: str,
+        target_id: str,
+        target_data: Optional[Dict[str, Any]] = None,
+        description: str = "",
+        chain_id: Optional[str] = None,
+        step_index: Optional[int] = None,
+        confidence: float = 0.0,
+        risk_level: str = "medium",
+        required_approvers: Optional[List[str]] = None,
+        expires_in_seconds: Optional[int] = None,
+    ) -> HITLApprovalRequest:
+        """Create a new HITL approval request."""
+        request = HITLApprovalRequest(
+            gate_type=gate_type,
+            title=title,
+            description=description or f"Approval required for {target_type}: {title}",
+            target_type=target_type,
+            target_id=target_id,
+            target_data=target_data or {},
+            chain_id=chain_id,
+            step_index=step_index,
+            confidence=confidence,
+            mfgc_score=confidence,
+            risk_level=risk_level,
+            risk_factors=self._assess_risk_factors(target_data, confidence),
+            required_approvers=required_approvers or [],
+        )
+        
+        if expires_in_seconds:
+            from datetime import timedelta
+            expires = datetime.now(timezone.utc) + timedelta(seconds=expires_in_seconds)
+            request.expires_at = expires.isoformat()
+        
+        self._requests[request.request_id] = request
+        self._log_audit("request_created", request)
+        
+        return request
+    
+    def show_modal(self, request_id: str) -> Optional[HITLModalState]:
+        """Show the approval modal for a request."""
+        request = self._requests.get(request_id)
+        if not request:
+            return None
+        
+        # Determine available rewind points
+        rewind_points = []
+        if request.chain_id and request.step_index is not None:
+            rewind_points = list(range(request.step_index))
+        
+        modal = HITLModalState(
+            request=request,
+            is_visible=True,
+            can_modify=request.status == "pending",
+            can_rewind=len(rewind_points) > 0,
+            available_rewind_points=rewind_points,
+        )
+        
+        self._modals[request_id] = modal
+        return modal
+    
+    def approve(
+        self,
+        request_id: str,
+        approver: str,
+        notes: str = "",
+    ) -> bool:
+        """Approve a pending request."""
+        request = self._requests.get(request_id)
+        if not request or request.status != "pending":
+            return False
+        
+        request.approvals.append({
+            "approver": approver,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "notes": notes,
+        })
+        
+        # Check if enough approvals
+        if len(request.approvals) >= request.min_approvals:
+            request.status = "approved"
+            request.resolved_at = datetime.now(timezone.utc).isoformat()
+        
+        self._log_audit("approved", request, {"approver": approver, "notes": notes})
+        return True
+    
+    def reject(
+        self,
+        request_id: str,
+        rejector: str,
+        reason: str = "",
+    ) -> bool:
+        """Reject a pending request."""
+        request = self._requests.get(request_id)
+        if not request or request.status != "pending":
+            return False
+        
+        request.rejections.append({
+            "rejector": rejector,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "reason": reason,
+        })
+        
+        request.status = "rejected"
+        request.resolved_at = datetime.now(timezone.utc).isoformat()
+        
+        self._log_audit("rejected", request, {"rejector": rejector, "reason": reason})
+        return True
+    
+    def modify(
+        self,
+        request_id: str,
+        modifier: str,
+        changes: Dict[str, Any],
+        notes: str = "",
+    ) -> bool:
+        """Modify and approve a pending request."""
+        request = self._requests.get(request_id)
+        if not request or request.status != "pending":
+            return False
+        
+        request.modifications.append({
+            "modifier": modifier,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "changes": changes,
+            "notes": notes,
+        })
+        
+        # Apply modifications to target data
+        request.target_data.update(changes)
+        
+        request.status = "modified"
+        request.resolved_at = datetime.now(timezone.utc).isoformat()
+        
+        self._log_audit("modified", request, {
+            "modifier": modifier,
+            "changes": changes,
+            "notes": notes,
+        })
+        return True
+    
+    def defer(
+        self,
+        request_id: str,
+        deferrer: str,
+        defer_until: Optional[str] = None,
+        reason: str = "",
+    ) -> bool:
+        """Defer a pending request for later review."""
+        request = self._requests.get(request_id)
+        if not request or request.status != "pending":
+            return False
+        
+        request.status = "deferred"
+        if defer_until:
+            request.expires_at = defer_until
+        
+        self._log_audit("deferred", request, {
+            "deferrer": deferrer,
+            "defer_until": defer_until,
+            "reason": reason,
+        })
+        return True
+    
+    def escalate(
+        self,
+        request_id: str,
+        escalator: str,
+        escalate_to: List[str],
+        reason: str = "",
+    ) -> bool:
+        """Escalate a request to higher authority."""
+        request = self._requests.get(request_id)
+        if not request or request.status != "pending":
+            return False
+        
+        request.status = "escalated"
+        request.required_approvers.extend(escalate_to)
+        
+        self._log_audit("escalated", request, {
+            "escalator": escalator,
+            "escalate_to": escalate_to,
+            "reason": reason,
+        })
+        
+        # Reset status to pending for new approvers
+        request.status = "pending"
+        return True
+    
+    def rewind(
+        self,
+        request_id: str,
+        to_step: int,
+        rewinder: str,
+        reason: str = "",
+    ) -> Dict[str, Any]:
+        """Rewind to a previous step in the creation chain.
+        
+        Returns:
+            Dict with rewind_to_step and chain_id for the caller to handle
+        """
+        request = self._requests.get(request_id)
+        if not request:
+            return {"success": False, "error": "Request not found"}
+        
+        if request.step_index is None or request.chain_id is None:
+            return {"success": False, "error": "Request is not part of a creation chain"}
+        
+        if to_step >= request.step_index:
+            return {"success": False, "error": "Cannot rewind to current or future step"}
+        
+        if to_step < 0:
+            return {"success": False, "error": "Invalid step index"}
+        
+        self._log_audit("rewind", request, {
+            "rewinder": rewinder,
+            "from_step": request.step_index,
+            "to_step": to_step,
+            "reason": reason,
+        })
+        
+        return {
+            "success": True,
+            "chain_id": request.chain_id,
+            "rewind_to_step": to_step,
+            "from_step": request.step_index,
+            "rewinder": rewinder,
+            "reason": reason,
+        }
+    
+    def get_pending_requests(
+        self,
+        gate_type: Optional[HITLGateType] = None,
+        chain_id: Optional[str] = None,
+    ) -> List[HITLApprovalRequest]:
+        """Get pending approval requests."""
+        pending = [r for r in self._requests.values() if r.status == "pending"]
+        
+        if gate_type:
+            pending = [r for r in pending if r.gate_type == gate_type]
+        
+        if chain_id:
+            pending = [r for r in pending if r.chain_id == chain_id]
+        
+        return pending
+    
+    def get_request(self, request_id: str) -> Optional[HITLApprovalRequest]:
+        """Get a specific request."""
+        return self._requests.get(request_id)
+    
+    def _assess_risk_factors(
+        self,
+        target_data: Optional[Dict[str, Any]],
+        confidence: float,
+    ) -> List[str]:
+        """Assess risk factors from target data and confidence."""
+        factors = []
+        
+        if confidence < 0.5:
+            factors.append("Low confidence score")
+        if confidence < 0.7:
+            factors.append("Below recommended confidence threshold")
+        
+        if target_data:
+            if target_data.get("priority") == "critical":
+                factors.append("Critical priority task")
+            if "production" in str(target_data).lower():
+                factors.append("Affects production environment")
+            if "security" in str(target_data).lower():
+                factors.append("Security-related changes")
+            if "database" in str(target_data).lower():
+                factors.append("Database modifications")
+        
+        return factors
+    
+    def _log_audit(
+        self,
+        action: str,
+        request: HITLApprovalRequest,
+        details: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Log an audit entry."""
+        self._audit_log.append({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "action": action,
+            "request_id": request.request_id,
+            "gate_type": request.gate_type.value,
+            "target_type": request.target_type,
+            "target_id": request.target_id,
+            "details": details or {},
+        })
+    
+    def get_audit_log(self, limit: int = 100) -> List[Dict[str, Any]]:
+        """Get recent audit log entries."""
+        return self._audit_log[-limit:]
+
+
+# ===========================================================================
+# CREATION CHAIN
+# Step-by-step creation with edit and rewind from any point
+# ===========================================================================
+
+class ChainStepStatus(Enum):
+    """Status of a creation chain step."""
+    PENDING = "pending"
+    EXECUTING = "executing"
+    AWAITING_HITL = "awaiting_hitl"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    SKIPPED = "skipped"
+    REWOUND = "rewound"
+
+
+@dataclass
+class CreationChainStep:
+    """A single step in a creation chain."""
+    step_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    step_index: int = 0
+    title: str = ""
+    description: str = ""
+    
+    # Execution
+    execution_type: str = ""  # agent_task, tool_call, mss_pipeline, etc.
+    agent_id: Optional[str] = None
+    tool_ids: List[str] = field(default_factory=list)
+    parameters: Dict[str, Any] = field(default_factory=dict)
+    
+    # Input/Output
+    input_data: Dict[str, Any] = field(default_factory=dict)
+    output_data: Dict[str, Any] = field(default_factory=dict)
+    
+    # Status
+    status: ChainStepStatus = ChainStepStatus.PENDING
+    error: Optional[str] = None
+    
+    # HITL
+    requires_hitl: bool = False
+    hitl_gate_type: Optional[HITLGateType] = None
+    hitl_request_id: Optional[str] = None
+    
+    # Checkpoint for rewind
+    checkpoint: Optional[Dict[str, Any]] = None
+    
+    # Timestamps
+    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
+
+
+@dataclass
+class CreationChain:
+    """A chain of creation steps with edit and rewind capabilities.
+    
+    Supports:
+    - Step-by-step execution with HITL gates
+    - Edit any step's parameters before execution
+    - Rewind to any previous step
+    - Re-execute from any point
+    - Checkpoint/restore state
+    """
+    chain_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    name: str = ""
+    description: str = ""
+    
+    # Steps
+    steps: List[CreationChainStep] = field(default_factory=list)
+    current_step_index: int = 0
+    
+    # State
+    status: str = "pending"  # pending, executing, paused, completed, failed
+    
+    # Source
+    source_request: str = ""
+    source_plan_id: Optional[str] = None
+    
+    # Rewind history
+    rewind_history: List[Dict[str, Any]] = field(default_factory=list)
+    
+    # Timestamps
+    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
+
+
+class CreationChainManager:
+    """Manages creation chains with edit and rewind capabilities.
+    
+    Features:
+    - Build chains from execution plans
+    - Execute step-by-step with HITL approval
+    - Edit any step before execution
+    - Rewind to any previous step and re-execute
+    - Checkpoint state at each step for rollback
+    
+    Usage:
+        manager = CreationChainManager()
+        
+        # Create chain from execution plan
+        chain = manager.create_from_plan(execution_plan)
+        
+        # Execute with HITL
+        await manager.execute_step(chain.chain_id)
+        
+        # Edit a step
+        manager.edit_step(chain.chain_id, step_index=2, changes={"timeout": 60})
+        
+        # Rewind to step 1 and re-execute
+        manager.rewind_to(chain.chain_id, step_index=1)
+        await manager.execute_from(chain.chain_id, step_index=1)
+    """
+    
+    def __init__(self):
+        self._chains: Dict[str, CreationChain] = {}
+        self._hitl = HITLModalSystem()
+    
+    def create_chain(
+        self,
+        name: str,
+        steps: List[Dict[str, Any]],
+        description: str = "",
+        source_request: str = "",
+    ) -> CreationChain:
+        """Create a new creation chain."""
+        chain = CreationChain(
+            name=name,
+            description=description,
+            source_request=source_request,
+        )
+        
+        for i, step_data in enumerate(steps):
+            step = CreationChainStep(
+                step_index=i,
+                title=step_data.get("title", f"Step {i+1}"),
+                description=step_data.get("description", ""),
+                execution_type=step_data.get("execution_type", "agent_task"),
+                agent_id=step_data.get("agent_id"),
+                tool_ids=step_data.get("tool_ids", []),
+                parameters=step_data.get("parameters", {}),
+                input_data=step_data.get("input_data", {}),
+                requires_hitl=step_data.get("requires_hitl", False),
+                hitl_gate_type=step_data.get("hitl_gate_type"),
+            )
+            chain.steps.append(step)
+        
+        self._chains[chain.chain_id] = chain
+        return chain
+    
+    def create_from_plan(self, plan: ExecutionPlan) -> CreationChain:
+        """Create a creation chain from an execution plan."""
+        steps = []
+        for suggestion in plan.suggestions:
+            steps.append({
+                "title": suggestion.title,
+                "description": suggestion.description,
+                "execution_type": suggestion.execution_type.value,
+                "agent_id": suggestion.target_agent,
+                "tool_ids": suggestion.target_tools,
+                "parameters": suggestion.parameters,
+                "input_data": suggestion.input_data,
+                "requires_hitl": suggestion.confidence < 0.85,
+                "hitl_gate_type": HITLGateType.GENERAL,
+            })
+        
+        chain = self.create_chain(
+            name=f"Chain for: {plan.source_request[:50]}",
+            steps=steps,
+            source_request=plan.source_request,
+        )
+        chain.source_plan_id = plan.plan_id
+        
+        return chain
+    
+    def get_chain(self, chain_id: str) -> Optional[CreationChain]:
+        """Get a chain by ID."""
+        return self._chains.get(chain_id)
+    
+    def edit_step(
+        self,
+        chain_id: str,
+        step_index: int,
+        changes: Dict[str, Any],
+    ) -> bool:
+        """Edit a step's parameters.
+        
+        Can edit:
+        - title, description
+        - parameters
+        - tool_ids
+        - requires_hitl
+        """
+        chain = self._chains.get(chain_id)
+        if not chain:
+            return False
+        
+        if step_index < 0 or step_index >= len(chain.steps):
+            return False
+        
+        step = chain.steps[step_index]
+        
+        # Only allow editing pending or failed steps
+        if step.status not in (ChainStepStatus.PENDING, ChainStepStatus.FAILED, ChainStepStatus.REWOUND):
+            return False
+        
+        # Apply changes
+        for key, value in changes.items():
+            if hasattr(step, key):
+                setattr(step, key, value)
+            elif key in step.parameters:
+                step.parameters[key] = value
+        
+        return True
+    
+    def rewind_to(
+        self,
+        chain_id: str,
+        step_index: int,
+        reason: str = "",
+    ) -> bool:
+        """Rewind chain to a specific step.
+        
+        All steps from step_index onward are reset to REWOUND status.
+        """
+        chain = self._chains.get(chain_id)
+        if not chain:
+            return False
+        
+        if step_index < 0 or step_index >= len(chain.steps):
+            return False
+        
+        # Record rewind in history
+        chain.rewind_history.append({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "from_step": chain.current_step_index,
+            "to_step": step_index,
+            "reason": reason,
+        })
+        
+        # Reset steps from target onward
+        for i in range(step_index, len(chain.steps)):
+            step = chain.steps[i]
+            # Save checkpoint before rewinding
+            if step.status == ChainStepStatus.COMPLETED:
+                step.checkpoint = {
+                    "output_data": step.output_data.copy(),
+                    "completed_at": step.completed_at,
+                }
+            step.status = ChainStepStatus.REWOUND if i > step_index else ChainStepStatus.PENDING
+            step.output_data = {}
+            step.error = None
+            step.completed_at = None
+        
+        chain.current_step_index = step_index
+        chain.status = "pending"
+        
+        return True
+    
+    def restore_checkpoint(
+        self,
+        chain_id: str,
+        step_index: int,
+    ) -> bool:
+        """Restore a step from its checkpoint."""
+        chain = self._chains.get(chain_id)
+        if not chain:
+            return False
+        
+        if step_index < 0 or step_index >= len(chain.steps):
+            return False
+        
+        step = chain.steps[step_index]
+        if not step.checkpoint:
+            return False
+        
+        step.output_data = step.checkpoint.get("output_data", {})
+        step.completed_at = step.checkpoint.get("completed_at")
+        step.status = ChainStepStatus.COMPLETED
+        
+        return True
+    
+    async def execute_step(
+        self,
+        chain_id: str,
+        step_index: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Execute a specific step or the current step.
+        
+        If the step requires HITL, it will pause and return the approval request.
+        """
+        chain = self._chains.get(chain_id)
+        if not chain:
+            return {"success": False, "error": "Chain not found"}
+        
+        idx = step_index if step_index is not None else chain.current_step_index
+        if idx < 0 or idx >= len(chain.steps):
+            return {"success": False, "error": "Invalid step index"}
+        
+        step = chain.steps[idx]
+        
+        # Check if HITL required
+        if step.requires_hitl and step.status != ChainStepStatus.AWAITING_HITL:
+            hitl_request = self._hitl.create_request(
+                gate_type=step.hitl_gate_type or HITLGateType.GENERAL,
+                title=f"Approve: {step.title}",
+                target_type="chain_step",
+                target_id=step.step_id,
+                target_data=step.parameters,
+                chain_id=chain_id,
+                step_index=idx,
+            )
+            step.hitl_request_id = hitl_request.request_id
+            step.status = ChainStepStatus.AWAITING_HITL
+            
+            return {
+                "success": True,
+                "awaiting_hitl": True,
+                "hitl_request_id": hitl_request.request_id,
+                "step_index": idx,
+            }
+        
+        # Check if HITL approved
+        if step.status == ChainStepStatus.AWAITING_HITL:
+            request = self._hitl.get_request(step.hitl_request_id)
+            if not request or request.status == "pending":
+                return {
+                    "success": False,
+                    "error": "Awaiting HITL approval",
+                    "hitl_request_id": step.hitl_request_id,
+                }
+            if request.status == "rejected":
+                step.status = ChainStepStatus.FAILED
+                step.error = "Rejected by HITL"
+                return {"success": False, "error": "Rejected by HITL"}
+        
+        # Execute the step
+        step.status = ChainStepStatus.EXECUTING
+        step.started_at = datetime.now(timezone.utc).isoformat()
+        
+        try:
+            # Simulate execution
+            await asyncio.sleep(0.01)
+            
+            # Get input from previous step if available
+            if idx > 0 and chain.steps[idx - 1].status == ChainStepStatus.COMPLETED:
+                step.input_data.update(chain.steps[idx - 1].output_data)
+            
+            step.output_data = {
+                "result": f"Executed: {step.title}",
+                "parameters": step.parameters,
+            }
+            step.status = ChainStepStatus.COMPLETED
+            step.completed_at = datetime.now(timezone.utc).isoformat()
+            
+            # Move to next step
+            chain.current_step_index = min(idx + 1, len(chain.steps) - 1)
+            
+            # Check if chain is complete
+            if all(s.status == ChainStepStatus.COMPLETED for s in chain.steps):
+                chain.status = "completed"
+                chain.completed_at = datetime.now(timezone.utc).isoformat()
+            
+            return {
+                "success": True,
+                "step_index": idx,
+                "output": step.output_data,
+            }
+            
+        except Exception as e:
+            step.status = ChainStepStatus.FAILED
+            step.error = str(e)
+            return {"success": False, "error": str(e)}
+    
+    async def execute_from(
+        self,
+        chain_id: str,
+        step_index: int = 0,
+    ) -> List[Dict[str, Any]]:
+        """Execute all steps starting from a specific step."""
+        chain = self._chains.get(chain_id)
+        if not chain:
+            return [{"success": False, "error": "Chain not found"}]
+        
+        results = []
+        chain.status = "executing"
+        chain.started_at = datetime.now(timezone.utc).isoformat()
+        
+        for i in range(step_index, len(chain.steps)):
+            result = await self.execute_step(chain_id, i)
+            results.append(result)
+            
+            # Stop if HITL required or failed
+            if result.get("awaiting_hitl") or not result.get("success"):
+                break
+        
+        return results
+    
+    def get_chain_status(self, chain_id: str) -> Dict[str, Any]:
+        """Get detailed chain status."""
+        chain = self._chains.get(chain_id)
+        if not chain:
+            return {"error": "Chain not found"}
+        
+        return {
+            "chain_id": chain.chain_id,
+            "name": chain.name,
+            "status": chain.status,
+            "current_step": chain.current_step_index,
+            "total_steps": len(chain.steps),
+            "steps": [
+                {
+                    "index": s.step_index,
+                    "title": s.title,
+                    "status": s.status.value,
+                    "requires_hitl": s.requires_hitl,
+                    "hitl_request_id": s.hitl_request_id,
+                    "has_checkpoint": s.checkpoint is not None,
+                }
+                for s in chain.steps
+            ],
+            "rewind_history": chain.rewind_history,
+        }
+    
+    def get_hitl_system(self) -> HITLModalSystem:
+        """Get the HITL modal system for external access."""
+        return self._hitl
+
+
+# Create global instances
+_HITL_MODAL: Optional[HITLModalSystem] = None
+_CHAIN_MANAGER: Optional[CreationChainManager] = None
+
+
+def get_hitl_modal() -> HITLModalSystem:
+    """Get or create the global HITL modal system."""
+    global _HITL_MODAL
+    if _HITL_MODAL is None:
+        _HITL_MODAL = HITLModalSystem()
+    return _HITL_MODAL
+
+
+def get_chain_manager() -> CreationChainManager:
+    """Get or create the global creation chain manager."""
+    global _CHAIN_MANAGER
+    if _CHAIN_MANAGER is None:
+        _CHAIN_MANAGER = CreationChainManager()
+    return _CHAIN_MANAGER
+
+
 # ---------------------------------------------------------------------------
 # Type Definitions
 # ---------------------------------------------------------------------------

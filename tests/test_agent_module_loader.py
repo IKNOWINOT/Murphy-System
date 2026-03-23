@@ -837,5 +837,413 @@ class TestMSSIntegration:
         assert second_rm >= initial_rm or second_rm == 5
 
 
+# ============================================================================
+# Librarian Execution Suggestor Tests
+# ============================================================================
+
+from agent_module_loader import (
+    LibrarianExecutionSuggestor,
+    ExecutionPriority,
+    ExecutionType,
+    ExecutionSuggestion,
+    ExecutionPlan,
+    get_librarian_suggestor,
+)
+
+
+class TestLibrarianExecutionSuggestor:
+    """Test the librarian execution suggestor."""
+    
+    def test_suggestor_initialization(self):
+        """Suggestor initializes correctly."""
+        suggestor = LibrarianExecutionSuggestor()
+        assert suggestor.mfgc_threshold == 0.85
+        assert suggestor.auto_clarify == True
+    
+    def test_analyze_security_request(self):
+        """Security requests are classified correctly."""
+        suggestor = get_librarian_suggestor()
+        plan = suggestor.analyze_request(
+            "scan for security vulnerabilities in the codebase"
+        )
+        
+        assert len(plan.suggestions) > 0
+        # Should have a security-related suggestion
+        security_suggestions = [
+            s for s in plan.suggestions 
+            if s.target_agent == "security-agent"
+        ]
+        assert len(security_suggestions) > 0
+    
+    def test_analyze_devops_request(self):
+        """DevOps requests are classified correctly."""
+        suggestor = LibrarianExecutionSuggestor()
+        plan = suggestor.analyze_request(
+            "deploy application to kubernetes cluster"
+        )
+        
+        assert len(plan.suggestions) > 0
+        devops_suggestions = [
+            s for s in plan.suggestions 
+            if s.target_agent == "devops-agent"
+        ]
+        assert len(devops_suggestions) > 0
+    
+    def test_pr_analysis(self):
+        """PR analysis generates relevant suggestions."""
+        suggestor = LibrarianExecutionSuggestor()
+        plan = suggestor.suggest_for_pr(
+            pr_title="Add authentication module",
+            pr_description="Implements OAuth2 authentication",
+            changed_files=[
+                "src/auth/oauth.py",
+                "tests/test_auth.py",
+                "config/auth.yaml",
+            ],
+        )
+        
+        assert len(plan.suggestions) > 0
+        # Should have suggestions for tests and config
+        assert any(s.title for s in plan.suggestions if "test" in s.title.lower())
+    
+    def test_clarification_for_ambiguous_request(self):
+        """Ambiguous requests generate clarification questions."""
+        suggestor = LibrarianExecutionSuggestor(auto_clarify=True)
+        plan = suggestor.analyze_request("do something")
+        
+        assert plan.requires_clarification == True
+        assert len(plan.clarification_questions) > 0
+    
+    def test_priority_detection(self):
+        """Priority keywords are detected correctly."""
+        suggestor = LibrarianExecutionSuggestor()
+        
+        critical_plan = suggestor.analyze_request("urgent: fix production bug now")
+        high_plan = suggestor.analyze_request("important update needed soon")
+        normal_plan = suggestor.analyze_request("update documentation")
+        
+        # Check priorities
+        assert any(s.priority == ExecutionPriority.CRITICAL for s in critical_plan.suggestions)
+
+
+# ============================================================================
+# HITL Modal System Tests
+# ============================================================================
+
+from agent_module_loader import (
+    HITLModalSystem,
+    HITLGateType,
+    HITLApprovalRequest,
+    HITLModalState,
+    get_hitl_modal,
+)
+
+
+class TestHITLModalSystem:
+    """Test the HITL modal approval system."""
+    
+    def test_create_request(self):
+        """Can create HITL approval request."""
+        hitl = HITLModalSystem()
+        request = hitl.create_request(
+            gate_type=HITLGateType.SECURITY,
+            title="Deploy Update",
+            target_type="deployment",
+            target_id="deploy-123",
+        )
+        
+        assert request.gate_type == HITLGateType.SECURITY
+        assert request.status == "pending"
+        assert request.title == "Deploy Update"
+    
+    def test_show_modal(self):
+        """Can show modal for request."""
+        hitl = HITLModalSystem()
+        request = hitl.create_request(
+            gate_type=HITLGateType.GENERAL,
+            title="Test",
+            target_type="test",
+            target_id="test-1",
+        )
+        
+        modal = hitl.show_modal(request.request_id)
+        
+        assert modal is not None
+        assert modal.is_visible == True
+        assert modal.can_modify == True
+    
+    def test_approve_request(self):
+        """Can approve a pending request."""
+        hitl = HITLModalSystem()
+        request = hitl.create_request(
+            gate_type=HITLGateType.GENERAL,
+            title="Test",
+            target_type="test",
+            target_id="test-1",
+        )
+        
+        result = hitl.approve(request.request_id, approver="alice@example.com")
+        
+        assert result == True
+        assert request.status == "approved"
+        assert len(request.approvals) == 1
+    
+    def test_reject_request(self):
+        """Can reject a pending request."""
+        hitl = HITLModalSystem()
+        request = hitl.create_request(
+            gate_type=HITLGateType.GENERAL,
+            title="Test",
+            target_type="test",
+            target_id="test-1",
+        )
+        
+        result = hitl.reject(
+            request.request_id, 
+            rejector="bob@example.com",
+            reason="Needs more tests",
+        )
+        
+        assert result == True
+        assert request.status == "rejected"
+        assert len(request.rejections) == 1
+    
+    def test_modify_request(self):
+        """Can modify and approve a request."""
+        hitl = HITLModalSystem()
+        request = hitl.create_request(
+            gate_type=HITLGateType.GENERAL,
+            title="Test",
+            target_type="test",
+            target_id="test-1",
+            target_data={"timeout": 30},
+        )
+        
+        result = hitl.modify(
+            request.request_id,
+            modifier="charlie@example.com",
+            changes={"timeout": 60},
+        )
+        
+        assert result == True
+        assert request.status == "modified"
+        assert request.target_data["timeout"] == 60
+    
+    def test_rewind_request(self):
+        """Can rewind to previous step."""
+        hitl = HITLModalSystem()
+        request = hitl.create_request(
+            gate_type=HITLGateType.GENERAL,
+            title="Test",
+            target_type="chain_step",
+            target_id="step-5",
+            chain_id="chain-1",
+            step_index=5,
+        )
+        
+        result = hitl.rewind(
+            request.request_id,
+            to_step=2,
+            rewinder="dave@example.com",
+            reason="Fix earlier step",
+        )
+        
+        assert result["success"] == True
+        assert result["rewind_to_step"] == 2
+        assert result["from_step"] == 5
+    
+    def test_get_pending_requests(self):
+        """Can get pending requests filtered by gate type."""
+        hitl = HITLModalSystem()
+        
+        hitl.create_request(HITLGateType.SECURITY, "Sec 1", "test", "t1")
+        hitl.create_request(HITLGateType.SECURITY, "Sec 2", "test", "t2")
+        hitl.create_request(HITLGateType.COMPLIANCE, "Comp 1", "test", "t3")
+        
+        security_pending = hitl.get_pending_requests(gate_type=HITLGateType.SECURITY)
+        
+        assert len(security_pending) == 2
+    
+    def test_audit_log(self):
+        """Audit log records all actions."""
+        hitl = HITLModalSystem()
+        request = hitl.create_request(
+            HITLGateType.GENERAL, "Test", "test", "t1"
+        )
+        hitl.approve(request.request_id, "alice@example.com")
+        
+        log = hitl.get_audit_log()
+        
+        assert len(log) >= 2  # create + approve
+        assert any(e["action"] == "request_created" for e in log)
+        assert any(e["action"] == "approved" for e in log)
+
+
+# ============================================================================
+# Creation Chain Tests
+# ============================================================================
+
+from agent_module_loader import (
+    CreationChainManager,
+    CreationChain,
+    CreationChainStep,
+    ChainStepStatus,
+    get_chain_manager,
+)
+
+
+class TestCreationChain:
+    """Test the creation chain system."""
+    
+    def test_create_chain(self):
+        """Can create a creation chain."""
+        manager = CreationChainManager()
+        chain = manager.create_chain(
+            name="Test Chain",
+            steps=[
+                {"title": "Step 1"},
+                {"title": "Step 2"},
+                {"title": "Step 3"},
+            ],
+        )
+        
+        assert chain.name == "Test Chain"
+        assert len(chain.steps) == 3
+        assert chain.status == "pending"
+    
+    def test_edit_step(self):
+        """Can edit a step's parameters."""
+        manager = CreationChainManager()
+        chain = manager.create_chain(
+            name="Test",
+            steps=[{"title": "Step 1", "parameters": {"timeout": 30}}],
+        )
+        
+        result = manager.edit_step(
+            chain.chain_id,
+            step_index=0,
+            changes={"parameters": {"timeout": 60}},
+        )
+        
+        assert result == True
+    
+    def test_rewind_chain(self):
+        """Can rewind chain to a previous step."""
+        manager = CreationChainManager()
+        chain = manager.create_chain(
+            name="Test",
+            steps=[
+                {"title": "Step 1"},
+                {"title": "Step 2"},
+                {"title": "Step 3"},
+            ],
+        )
+        
+        # Mark first two as completed
+        chain.steps[0].status = ChainStepStatus.COMPLETED
+        chain.steps[1].status = ChainStepStatus.COMPLETED
+        chain.current_step_index = 2
+        
+        # Rewind to step 1
+        result = manager.rewind_to(chain.chain_id, step_index=1, reason="Fix step 1")
+        
+        assert result == True
+        assert chain.current_step_index == 1
+        assert chain.steps[0].status == ChainStepStatus.COMPLETED
+        assert chain.steps[1].status == ChainStepStatus.PENDING
+        assert chain.steps[2].status == ChainStepStatus.REWOUND
+    
+    @pytest.mark.asyncio
+    async def test_execute_step(self):
+        """Can execute a chain step."""
+        manager = CreationChainManager()
+        chain = manager.create_chain(
+            name="Test",
+            steps=[{"title": "Step 1", "requires_hitl": False}],
+        )
+        
+        result = await manager.execute_step(chain.chain_id, step_index=0)
+        
+        assert result["success"] == True
+        assert chain.steps[0].status == ChainStepStatus.COMPLETED
+    
+    @pytest.mark.asyncio
+    async def test_hitl_pauses_execution(self):
+        """HITL requirement pauses execution."""
+        manager = CreationChainManager()
+        chain = manager.create_chain(
+            name="Test",
+            steps=[{"title": "Step 1", "requires_hitl": True}],
+        )
+        
+        result = await manager.execute_step(chain.chain_id, step_index=0)
+        
+        assert result["awaiting_hitl"] == True
+        assert chain.steps[0].status == ChainStepStatus.AWAITING_HITL
+    
+    def test_get_chain_status(self):
+        """Can get detailed chain status."""
+        manager = CreationChainManager()
+        chain = manager.create_chain(
+            name="Test Chain",
+            steps=[
+                {"title": "Step 1"},
+                {"title": "Step 2"},
+            ],
+        )
+        
+        status = manager.get_chain_status(chain.chain_id)
+        
+        assert status["chain_id"] == chain.chain_id
+        assert status["total_steps"] == 2
+        assert len(status["steps"]) == 2
+    
+    def test_create_from_plan(self):
+        """Can create chain from execution plan."""
+        suggestor = LibrarianExecutionSuggestor()
+        manager = CreationChainManager()
+        
+        plan = suggestor.analyze_request("deploy to kubernetes")
+        chain = manager.create_from_plan(plan)
+        
+        assert chain.source_plan_id == plan.plan_id
+        assert len(chain.steps) == len(plan.suggestions)
+
+
+# ============================================================================
+# Full Integration Test
+# ============================================================================
+
+class TestFullIntegration:
+    """Full integration tests for the complete system."""
+    
+    @pytest.mark.asyncio
+    async def test_librarian_to_hitl_to_chain_flow(self):
+        """Test complete flow: Librarian → HITL → Chain execution."""
+        suggestor = get_librarian_suggestor()
+        manager = get_chain_manager()
+        
+        # Step 1: Analyze request
+        plan = suggestor.analyze_request(
+            "deploy security update to production"
+        )
+        
+        # Step 2: Create chain from plan
+        chain = manager.create_from_plan(plan)
+        
+        # Step 3: Execute (will hit HITL)
+        results = await manager.execute_from(chain.chain_id)
+        
+        # Step 4: Approve HITL if needed
+        hitl = manager.get_hitl_system()
+        pending = hitl.get_pending_requests()
+        for req in pending:
+            hitl.approve(req.request_id, "test@example.com")
+        
+        # Verify chain was created and processed
+        assert chain.source_plan_id == plan.plan_id
+        assert len(results) > 0
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
