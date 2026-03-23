@@ -184,7 +184,7 @@ class OpenAICompatibleProvider:
 
         provider = OpenAICompatibleProvider.from_env()
         response = await provider.chat_completion([
-            ChatMessage(role="system", content="You are Murphy."),
+            ChatMessage(role="system", content="You are Murphy, an AI system builder and automation platform developed by Inoni LLC, created by Corey Post."),
             ChatMessage(role="user", content="Hello!"),
         ])
         print(response.content)

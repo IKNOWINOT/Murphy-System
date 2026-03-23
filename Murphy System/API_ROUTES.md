@@ -134,6 +134,10 @@ Dev mode: Auth is disabled when `MURPHY_API_KEY` is unset.
 | POST | /api/llm/configure | Yes | Configure LLM |
 | POST | /api/llm/reload | Yes | Reload LLM |
 | POST | /api/llm/test | Yes | Test LLM inference |
+| GET | /api/llm/models/local | Yes | List downloaded Ollama models |
+| POST | /api/llm/models/pull | Yes | Download a model via Ollama |
+| POST | /api/llm/models/delete | Yes | Delete a downloaded Ollama model |
+| POST | /api/llm/models/load | Yes | Set active Ollama model |
 | POST | /api/chat | Yes | Chat completion |
 | GET | /api/learning/status | Yes | Learning system status |
 | POST | /api/learning/toggle | Yes | Toggle learning |
