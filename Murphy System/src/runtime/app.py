@@ -14,6 +14,7 @@ from src.runtime._deps import (
     Any,
     ConceptTranslationEngine,
     CORSMiddleware,
+    BackgroundTasks,
     Depends,
     Dict,
     # Web framework
@@ -1014,6 +1015,86 @@ def create_app() -> FastAPI:
         except Exception as _exc:
             logger.debug("LLMController refresh_availability skipped: %s", _exc)
         return JSONResponse({"success": True, **murphy._get_llm_status()})
+
+    @app.get("/api/llm/models/local")
+    async def llm_models_local():
+        """List all Ollama models currently downloaded on this machine."""
+        from src.local_llm_fallback import (
+            _check_ollama_available,
+            _ollama_base_url,
+            _ollama_list_models_full,
+        )
+        base_url = _ollama_base_url()
+        ollama_running = _check_ollama_available(base_url)
+        models = _ollama_list_models_full(base_url) if ollama_running else []
+        active_model = os.environ.get("OLLAMA_MODEL", "").strip()
+        return JSONResponse({
+            "ollama_running": ollama_running,
+            "ollama_host": base_url,
+            "active_model": active_model,
+            "models": models,
+        })
+
+    @app.post("/api/llm/models/pull")
+    async def llm_models_pull(request: Request, background_tasks: BackgroundTasks):
+        """Download a model via Ollama (background task — poll /api/llm/models/local to check progress)."""
+        try:
+            data = await request.json()
+        except (ValueError, KeyError):
+            data = {}
+        model = (data.get("model") or "").strip()
+        if not model:
+            return JSONResponse({"success": False, "error": "model name is required"}, status_code=400)
+        from src.local_llm_fallback import _ollama_base_url, _check_ollama_available, _ollama_pull_model
+        base_url = _ollama_base_url()
+        if not _check_ollama_available(base_url):
+            return JSONResponse({"success": False, "error": "Ollama is not running"}, status_code=503)
+        background_tasks.add_task(_ollama_pull_model, model, base_url)
+        return JSONResponse({"success": True, "model": model, "status": "downloading"})
+
+    @app.post("/api/llm/models/delete")
+    async def llm_models_delete(request: Request):
+        """Delete a downloaded Ollama model."""
+        try:
+            data = await request.json()
+        except (ValueError, KeyError):
+            data = {}
+        model = (data.get("model") or "").strip()
+        if not model:
+            return JSONResponse({"success": False, "error": "model name is required"}, status_code=400)
+        from src.local_llm_fallback import _ollama_base_url, _check_ollama_available, _ollama_delete_model
+        base_url = _ollama_base_url()
+        if not _check_ollama_available(base_url):
+            return JSONResponse({"success": False, "error": "Ollama is not running"}, status_code=503)
+        result = _ollama_delete_model(model, base_url)
+        if not result.get("success"):
+            return JSONResponse({"success": False, "error": result.get("error", "Delete failed")}, status_code=500)
+        return JSONResponse({"success": True, "model": model})
+
+    @app.post("/api/llm/models/load")
+    async def llm_models_load(request: Request):
+        """Set a downloaded Ollama model as the active model for Murphy."""
+        try:
+            data = await request.json()
+        except (ValueError, KeyError):
+            data = {}
+        model = (data.get("model") or "").strip()
+        if not model:
+            return JSONResponse({"success": False, "error": "model name is required"}, status_code=400)
+        os.environ["OLLAMA_MODEL"] = model
+        _env_path = Path(__file__).resolve().parent.parent.parent / ".env"
+        try:
+            from src.env_manager import write_env_key as _write_env_key
+            _write_env_key(str(_env_path), "OLLAMA_MODEL", model)
+        except Exception as _exc:
+            logger.debug("Could not persist OLLAMA_MODEL to .env: %s", _exc)
+        try:
+            from src.llm_controller import LLMController as _LLMController
+            if isinstance(getattr(murphy, "_llm_controller", None), _LLMController):
+                murphy._llm_controller.refresh_availability()
+        except Exception as _exc:
+            logger.debug("LLMController refresh_availability skipped: %s", _exc)
+        return JSONResponse({"success": True, "active_model": model})
 
     @app.get("/api/librarian/api-links")
     async def api_links():

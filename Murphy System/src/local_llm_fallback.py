@@ -116,6 +116,76 @@ def _preferred_ollama_models() -> List[str]:
     return _OLLAMA_MODELS
 
 
+def _ollama_list_models_full(base_url: str = None) -> List[Dict[str, Any]]:
+    """Return full model details (name, size, modified) from Ollama /api/tags."""
+    if base_url is None:
+        base_url = _ollama_base_url()
+    if not _HAS_URLLIB:
+        return []
+    try:
+        req = urllib.request.Request(f"{base_url}/api/tags", method="GET")
+        with urllib.request.urlopen(req, timeout=2) as resp:
+            data = _json.loads(resp.read().decode("utf-8"))
+            return data.get("models", [])
+    except Exception as exc:
+        logger.debug("Suppressed exception listing Ollama models (full): %s", exc)
+        return []
+
+
+def _ollama_pull_model(model: str, base_url: str = None) -> Dict[str, Any]:
+    """Initiate a model pull via Ollama /api/pull (non-streaming).
+
+    Returns a dict with ``success`` bool and optional ``error`` string.
+    Note: this call can take minutes for large models.
+    """
+    if base_url is None:
+        base_url = _ollama_base_url()
+    if not _HAS_URLLIB:
+        return {"success": False, "error": "urllib not available"}
+    logger.info("Starting Ollama pull for model '%s' from %s", model, base_url)
+    try:
+        payload = _json.dumps({"name": model, "stream": False}).encode("utf-8")
+        req = urllib.request.Request(
+            f"{base_url}/api/pull",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=600) as resp:
+            data = _json.loads(resp.read().decode("utf-8"))
+            status = data.get("status", "done")
+            logger.info("Ollama pull for '%s' completed: %s", model, status)
+            return {"success": True, "status": status}
+    except Exception as exc:
+        logger.warning("Ollama pull for model '%s' failed: %s", model, exc)
+        return {"success": False, "error": str(exc)}
+
+
+def _ollama_delete_model(model: str, base_url: str = None) -> Dict[str, Any]:
+    """Delete a pulled model via Ollama /api/delete.
+
+    Returns a dict with ``success`` bool and optional ``error`` string.
+    """
+    if base_url is None:
+        base_url = _ollama_base_url()
+    if not _HAS_URLLIB:
+        return {"success": False, "error": "urllib not available"}
+    try:
+        payload = _json.dumps({"name": model}).encode("utf-8")
+        req = urllib.request.Request(
+            f"{base_url}/api/delete",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="DELETE",
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            resp.read()
+            return {"success": True}
+    except Exception as exc:
+        logger.debug("Suppressed exception deleting Ollama model %s: %s", model, exc)
+        return {"success": False, "error": str(exc)}
+
+
 class LocalLLMFallback:
     """
     Lightweight fallback LLM for offline operation
