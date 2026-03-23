@@ -471,8 +471,20 @@ if ! systemctl list-unit-files "${SERVICE_NAME}.service" &>/dev/null \
   warn "          /etc/systemd/system/murphy-production.service"
   warn "  sudo systemctl daemon-reload && sudo systemctl enable murphy-production"
 else
+  # Write the current deploy commit into the environment file so systemd picks
+  # it up on restart and /api/health?deep=true reports the correct SHA.
+  # systemctl restart does NOT inherit the calling shell's env variables, so
+  # a simple `MURPHY_DEPLOY_COMMIT=x systemctl restart ...` does nothing.
+  if [ -f "$MURPHY_ENV_FILE" ]; then
+    # Remove any existing MURPHY_DEPLOY_COMMIT line then append the new one
+    sed -i '/^MURPHY_DEPLOY_COMMIT=/d' "$MURPHY_ENV_FILE"
+    echo "MURPHY_DEPLOY_COMMIT=${DEPLOY_COMMIT}" >> "$MURPHY_ENV_FILE"
+    ok "MURPHY_DEPLOY_COMMIT=${DEPLOY_COMMIT} written to ${MURPHY_ENV_FILE}"
+  else
+    warn "Env file not found at ${MURPHY_ENV_FILE} — MURPHY_DEPLOY_COMMIT not persisted"
+  fi
   info "Restarting ${SERVICE_NAME} (commit: ${DEPLOY_COMMIT}) ..."
-  MURPHY_DEPLOY_COMMIT="${DEPLOY_COMMIT}" systemctl restart "${SERVICE_NAME}"
+  systemctl restart "${SERVICE_NAME}"
   ok "${SERVICE_NAME} restarted"
 fi
 
