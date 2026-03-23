@@ -1,0 +1,632 @@
+<!-- Murphy System — Dispatch UI / © 2020 Inoni Limited Liability Company by Corey Post / License: BSL 1.1 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dispatch — Murphy System</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
+<style>
+:root {
+  --bg-base: #0C1017;
+  --bg-surface: #131A24;
+  --bg-elevated: #1A2332;
+  --bg-input: #0F1620;
+  --border-subtle: #1E2A3A;
+  --border-default: #2A3A4E;
+  --border-focus: #00D4AA;
+  --text-primary: #E6ECF2;
+  --text-secondary: #8899AA;
+  --text-muted: #566778;
+  --teal: #00D4AA;
+  --teal-glow: rgba(0, 212, 170, 0.12);
+  --success: #22C55E;
+  --warning: #FFA63E;
+  --danger: #EF4444;
+  --info: #3B9EFF;
+  --color-accent: #00D4AA;
+  --font-ui: Inter, system-ui, -apple-system, sans-serif;
+  --font-code: 'JetBrains Mono', monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  line-height: 1.6;
+  padding: 0;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: rgba(12, 16, 23, 0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-default);
+  padding: 0.75rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.topbar-brand {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--teal);
+  text-decoration: none;
+}
+
+.topbar-nav {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.topbar-nav a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 0.2s;
+}
+
+.topbar-nav a:hover {
+  color: var(--teal);
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.page-header {
+  margin-bottom: 2rem;
+}
+
+.page-title {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, var(--teal) 0%, var(--info) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.page-subtitle {
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+.panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.panel-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+}
+
+.category-filter {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  padding: 0.4rem 0.9rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-btn:hover {
+  border-color: var(--border-focus);
+  color: var(--text-primary);
+}
+
+.filter-btn.active {
+  background: var(--teal);
+  color: var(--bg-base);
+  border-color: var(--teal);
+}
+
+.tool-list {
+  max-height: 400px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tool-item {
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tool-item:hover {
+  border-color: var(--border-focus);
+  transform: translateY(-1px);
+}
+
+.tool-name {
+  font-family: var(--font-code);
+  font-size: 0.9rem;
+  color: var(--teal);
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+}
+
+.tool-category {
+  display: inline-block;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.tool-description {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.tool-params {
+  font-family: var(--font-code);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.4rem;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  padding: 0.6rem;
+  border-radius: 6px;
+  font-family: var(--font-ui);
+  font-size: 0.9rem;
+  transition: border-color 0.2s;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--border-focus);
+}
+
+.form-textarea {
+  font-family: var(--font-code);
+  resize: vertical;
+  min-height: 100px;
+}
+
+.btn {
+  background: var(--teal);
+  color: var(--bg-base);
+  border: none;
+  padding: 0.65rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn:hover {
+  background: var(--info);
+  transform: translateY(-1px);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.result-box {
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 1rem;
+  font-family: var(--font-code);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 1rem;
+}
+
+.result-box.success {
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.result-box.error {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.log-panel {
+  grid-column: 1 / -1;
+}
+
+.log-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.log-table thead {
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-default);
+}
+
+.log-table th {
+  text-align: left;
+  padding: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+.log-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+.log-table tr:hover {
+  background: var(--bg-elevated);
+}
+
+.log-tool {
+  font-family: var(--font-code);
+  color: var(--teal);
+}
+
+.log-status {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.log-status.ok {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--success);
+}
+
+.log-status.error {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
+}
+
+.log-duration {
+  font-family: var(--font-code);
+  color: var(--text-muted);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-muted);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-input);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-focus);
+}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="/" class="topbar-brand">Murphy Dispatch</a>
+  <div class="topbar-nav">
+    <a href="/workspace.html">Workspace</a>
+    <a href="/communication_hub.html">Comms Hub</a>
+    <a href="/terminal_unified.html">Terminal</a>
+    <a href="/dispatch.html" style="color: var(--teal);">Dispatch</a>
+  </div>
+</div>
+
+<div class="container">
+  <div class="page-header">
+    <h1 class="page-title">Dispatch Tool-Calling Engine</h1>
+    <p class="page-subtitle">Unified registry and orchestrator for all Murphy System tools</p>
+  </div>
+
+  <div class="panels">
+    <!-- Tool Catalog Panel -->
+    <div class="panel">
+      <h2 class="panel-title">Tool Catalog</h2>
+      <div class="category-filter">
+        <button class="filter-btn active" data-category="">All</button>
+        <button class="filter-btn" data-category="comms">Comms</button>
+        <button class="filter-btn" data-category="meetings">Meetings</button>
+        <button class="filter-btn" data-category="shadow">Shadow</button>
+        <button class="filter-btn" data-category="avatar">Avatar</button>
+        <button class="filter-btn" data-category="ambient">Ambient</button>
+        <button class="filter-btn" data-category="system">System</button>
+      </div>
+      <div class="tool-list" id="toolList">
+        <div class="empty-state">Loading tools...</div>
+      </div>
+    </div>
+
+    <!-- Call Tool Panel -->
+    <div class="panel">
+      <h2 class="panel-title">Call Tool</h2>
+      <form id="callForm">
+        <div class="form-group">
+          <label class="form-label">Tool Name</label>
+          <select class="form-select" id="toolSelect" required>
+            <option value="">Select a tool...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Arguments (JSON)</label>
+          <textarea class="form-textarea" id="toolArgs" placeholder='{"key": "value"}' required>{}</textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Caller ID</label>
+          <input type="text" class="form-input" id="callerId" value="web-ui" required>
+        </div>
+        <button type="submit" class="btn">Execute Tool</button>
+      </form>
+      <div id="resultContainer"></div>
+    </div>
+  </div>
+
+  <!-- Live Log Panel -->
+  <div class="panels">
+    <div class="panel log-panel">
+      <h2 class="panel-title">Live Dispatch Log</h2>
+      <div style="overflow-x: auto;">
+        <table class="log-table">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Tool</th>
+              <th>Caller</th>
+              <th>Status</th>
+              <th>Duration</th>
+            </tr>
+          </thead>
+          <tbody id="logTableBody">
+            <tr>
+              <td colspan="5" class="empty-state">No log entries yet</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="static/murphy_auth.js"></script>
+<script>
+// State
+let allTools = [];
+let selectedCategory = '';
+
+// Fetch tools from API
+async function fetchTools(category = '') {
+  try {
+    const url = category ? `/api/dispatch/tools?category=${category}` : '/api/dispatch/tools';
+    const response = await fetch(url);
+    const data = await response.json();
+    allTools = data.tools || [];
+    renderTools();
+    populateToolSelect();
+  } catch (error) {
+    console.error('Failed to fetch tools:', error);
+    document.getElementById('toolList').innerHTML = '<div class="empty-state">Failed to load tools</div>';
+  }
+}
+
+// Render tool catalog
+function renderTools() {
+  const toolList = document.getElementById('toolList');
+  if (allTools.length === 0) {
+    toolList.innerHTML = '<div class="empty-state">No tools found</div>';
+    return;
+  }
+
+  toolList.innerHTML = allTools.map(tool => `
+    <div class="tool-item" onclick="selectTool('${tool.name}')">
+      <div class="tool-category">${tool.category}</div>
+      <div class="tool-name">${tool.name}</div>
+      <div class="tool-description">${tool.description}</div>
+      <div class="tool-params">Required: ${JSON.stringify(tool.parameters.required || [])}</div>
+    </div>
+  `).join('');
+}
+
+// Populate tool select dropdown
+function populateToolSelect() {
+  const select = document.getElementById('toolSelect');
+  select.innerHTML = '<option value="">Select a tool...</option>' +
+    allTools.map(tool => `<option value="${tool.name}">${tool.name}</option>`).join('');
+}
+
+// Select a tool from catalog
+function selectTool(toolName) {
+  document.getElementById('toolSelect').value = toolName;
+  const tool = allTools.find(t => t.name === toolName);
+  if (tool && tool.parameters.properties) {
+    // Generate example args
+    const exampleArgs = {};
+    for (const [key, schema] of Object.entries(tool.parameters.properties)) {
+      if (tool.parameters.required && tool.parameters.required.includes(key)) {
+        exampleArgs[key] = schema.type === 'string' ? '' : schema.type === 'array' ? [] : {};
+      }
+    }
+    document.getElementById('toolArgs').value = JSON.stringify(exampleArgs, null, 2);
+  }
+}
+
+// Category filter
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedCategory = btn.dataset.category;
+    fetchTools(selectedCategory);
+  });
+});
+
+// Call tool form
+document.getElementById('callForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const toolName = document.getElementById('toolSelect').value;
+  const argsText = document.getElementById('toolArgs').value;
+  const callerId = document.getElementById('callerId').value;
+
+  let args;
+  try {
+    args = JSON.parse(argsText);
+  } catch (error) {
+    showResult({ ok: false, error: 'Invalid JSON in arguments' }, 'error');
+    return;
+  }
+
+  try {
+    const response = await fetch('/api/dispatch/call', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tool_name: toolName,
+        args: args,
+        caller_id: callerId,
+        caller_type: 'human',
+      }),
+    });
+    const result = await response.json();
+    showResult(result, result.ok ? 'success' : 'error');
+    
+    // Refresh log
+    setTimeout(fetchLog, 500);
+  } catch (error) {
+    console.error('Failed to call tool:', error);
+    showResult({ ok: false, error: error.message }, 'error');
+  }
+});
+
+// Show result
+function showResult(result, type) {
+  const container = document.getElementById('resultContainer');
+  container.innerHTML = `
+    <div class="result-box ${type}">
+${JSON.stringify(result, null, 2)}
+    </div>
+  `;
+}
+
+// Fetch dispatch log
+async function fetchLog() {
+  try {
+    const response = await fetch('/api/dispatch/log?limit=50');
+    const data = await response.json();
+    renderLog(data.log || []);
+  } catch (error) {
+    console.error('Failed to fetch log:', error);
+  }
+}
+
+// Render log table
+function renderLog(entries) {
+  const tbody = document.getElementById('logTableBody');
+  if (entries.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No log entries yet</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = entries.map(entry => {
+    const timestamp = new Date(entry.timestamp).toLocaleString();
+    const status = entry.result_ok ? 'ok' : 'error';
+    return `
+      <tr>
+        <td>${timestamp}</td>
+        <td class="log-tool">${entry.tool_name}</td>
+        <td>${entry.caller_id} <span style="color: var(--text-muted);">(${entry.caller_type})</span></td>
+        <td><span class="log-status ${status}">${status.toUpperCase()}</span></td>
+        <td class="log-duration">${entry.duration_ms}ms</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// Auto-refresh log every 5 seconds
+setInterval(fetchLog, 5000);
+
+// Initial load
+fetchTools();
+fetchLog();
+</script>
+</body>
+</html>

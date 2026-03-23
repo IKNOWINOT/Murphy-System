@@ -27,6 +27,7 @@
 | **Shadow Learning System** | ✅ **New** | Paper bots practice vs live prices; winning weeks save patterns; human reviews before promoting |
 | **Email Delivery** | ✅ **New** | Real SMTP (`aiosmtplib`) + SendGrid (`httpx`) — no mock path. 29 tests using live `aiosmtpd` + `respx`. |
 | **Rosetta State Wiring** | ✅ **New** | INC-07 complete: P3-001→P3-006 wired. `subsystem_wiring.py` + 38 tests. |
+| **Communication Hub** | ✅ **New** | IM, voice, video, email, automation rules + moderator console. SQLite-persisted. 38 API endpoints, 83 tests. `/ui/comms-hub` |
 | UI / Landing Page | ⚠️ Partial | Landing page, terminal UIs exist; dashboard incomplete |
 | **Documentation** | ✅ Complete | API docs, architecture docs (incl. Security Plane), LLM subsystem ref, 14 package READMEs, deployment guides |
 

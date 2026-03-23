@@ -467,6 +467,26 @@ def create_app() -> FastAPI:
     except Exception as _grants_exc:
         logger.warning("Grants API not available: %s", _grants_exc)
 
+    # ── Communication Hub (IM, Voice, Video, Email, Moderator) ───────
+    try:
+        from src.comms_hub_routes import create_comms_hub_router
+        _comms_hub_router = create_comms_hub_router()
+        app.include_router(_comms_hub_router)
+        logger.info(
+            "Communication Hub API registered at /api/comms/* and /api/moderator/*"
+        )
+    except Exception as _ch_exc:
+        logger.warning("Communication Hub routes not available: %s", _ch_exc)
+
+    # ── Dispatch Tool-Calling Engine ───────────────────────────────────
+    try:
+        from src.dispatch_routes import create_dispatch_router
+        _dispatch_router = create_dispatch_router()
+        app.include_router(_dispatch_router)
+        logger.info("Dispatch Tool-Calling Engine API registered at /api/dispatch/*")
+    except Exception as _dp_exc:
+        logger.warning("Dispatch routes not available: %s", _dp_exc)
+
     # ── Trading Automation (PR 4) ─────────────────────────────────────
     try:
         from trading_routes import create_trading_router
@@ -7559,6 +7579,7 @@ def create_app() -> FastAPI:
             "/ui/grant-dashboard": "grant_dashboard.html",
             "/ui/grant-application": "grant_application.html",
             "/ui/financing": "financing_options.html",
+            "/ui/comms-hub": "communication_hub.html",
         }
 
         # ── Route classification: public vs auth-required ──────────
