@@ -612,24 +612,91 @@
 
       var html = sectionHeader('System Status', 'Health and module information');
 
-      html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">';
-      html += statCard('Overall Health', (hData.health || data.health || '\u2014') + '%');
-      html += statCard('Uptime', hData.uptime || data.uptime || '\u2014');
-      html += statCard('API Latency', (hData.latency_ms || data.latency_ms || '\u2014') + ' ms');
+      // ── Stat cards ───────────────────────────────────────────────────────
+      var stats     = data.statistics || {};
+      var uptimeSec = data.uptime_seconds;
+      var uptimeStr = uptimeSec != null
+        ? (uptimeSec < 3600
+            ? Math.floor(uptimeSec / 60) + 'm'
+            : Math.floor(uptimeSec / 3600) + 'h ' + Math.floor((uptimeSec % 3600) / 60) + 'm')
+        : (hData.uptime || data.uptime || '\u2014');
+
+      html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr));">';
+      html += statCard('System Status', data.status || hData.status || '\u2014');
+      html += statCard('Version',       data.version || '\u2014');
+      html += statCard('Uptime',        uptimeStr);
+      html += statCard('Sessions',      stats.sessions != null ? stats.sessions : '\u2014');
+      html += statCard('Automations',   stats.active_automations != null ? stats.active_automations : '\u2014');
+      html += statCard('Executions',    stats.executions != null ? stats.executions : '\u2014');
       html += '</div>';
 
-      var modules = data.modules || hData.modules || [];
-      if (modules.length) {
-        html += cardWrap('Modules', tableHTML(
-          [
-            { key: 'name', label: 'Module' },
-            { key: 'status', label: 'Status', render: function (v) { return badge(v || 'unknown', v === 'running' || v === 'healthy' ? 'success' : (v === 'error' ? 'danger' : 'warning')); } },
-            { key: 'version', label: 'Version' }
-          ],
-          modules
-        ));
-      } else {
-        html += emptyState('No Modules', 'Module status data is not available.');
+      // ── Build components rows from data.components dict ──────────────────
+      var componentRows = [];
+      var components = data.components || {};
+      Object.keys(components).sort().forEach(function (key) {
+        var val = components[key];
+        var st  = (typeof val === 'string') ? val : (val && val.status ? val.status : 'unknown');
+        componentRows.push({ name: key.replace(/_/g, ' '), id: key, status: st, source: 'component' });
+      });
+
+      // ── Build module rows from data.module_registry.modules dict ─────────
+      var moduleRows = [];
+      var registry = (data.module_registry && data.module_registry.modules) ? data.module_registry.modules : {};
+      Object.keys(registry).sort().forEach(function (key) {
+        var info = registry[key] || {};
+        moduleRows.push({
+          name:        key.replace(/_/g, ' '),
+          id:          key,
+          status:      info.status || 'unknown',
+          description: info.description || '',
+          source:      'module'
+        });
+      });
+
+      // ── Component / subsystem table ───────────────────────────────────────
+      var statusBadge = function (v) {
+        var colour = (v === 'active' || v === 'running' || v === 'healthy') ? 'success'
+                   : (v === 'error'  || v === 'failed')                     ? 'danger'
+                   : (v === 'inactive' || v === 'unavailable')               ? 'neutral'
+                   :                                                           'warning';
+        return badge(v || 'unknown', colour);
+      };
+
+      if (componentRows.length) {
+        var activeCount   = componentRows.filter(function (r) { return r.status === 'active';   }).length;
+        var inactiveCount = componentRows.filter(function (r) { return r.status === 'inactive'; }).length;
+        html += cardWrap(
+          'System Components (' + activeCount + ' active, ' + inactiveCount + ' inactive)',
+          tableHTML(
+            [
+              { key: 'name',   label: 'Component' },
+              { key: 'status', label: 'Status', render: statusBadge }
+            ],
+            componentRows
+          )
+        );
+      }
+
+      // ── Registered module table ───────────────────────────────────────────
+      if (moduleRows.length) {
+        var regActive = (data.module_registry && data.module_registry.total_active) || 0;
+        var regTotal  = (data.module_registry && data.module_registry.total_available) || moduleRows.length;
+        html += cardWrap(
+          'Registered Modules (' + regActive + ' active / ' + regTotal + ' available)',
+          tableHTML(
+            [
+              { key: 'name',        label: 'Module' },
+              { key: 'status',      label: 'Status',      render: statusBadge },
+              { key: 'description', label: 'Description' }
+            ],
+            moduleRows
+          )
+        );
+      }
+
+      // ── Fallback when no data at all ──────────────────────────────────────
+      if (!componentRows.length && !moduleRows.length) {
+        html += emptyState('No Module Data', 'No component or module status was returned by the API.');
       }
 
       contentEl.innerHTML = html;
