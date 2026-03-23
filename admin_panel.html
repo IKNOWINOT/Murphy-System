@@ -1,0 +1,945 @@
+<!-- Murphy System — Platform Admin Panel / © 2020 Inoni Limited Liability Company by Corey Post / License: BSL 1.1 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy System — Platform Admin</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/murphy-design-system.css">
+<style>
+:root{--sidebar-width:220px;--topbar-h:52px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-ui);overflow:hidden;height:100vh;display:flex;flex-direction:column}
+/* TOPBAR */
+.m-topbar{height:var(--topbar-h);background:var(--bg-surface);border-bottom:1px solid var(--border-default);display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:200;flex-shrink:0}
+.m-brand{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--teal);font-weight:700;font-size:1rem;letter-spacing:.05em}
+.m-topbar-right{display:flex;align-items:center;gap:8px}
+.m-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--radius-md);border:1px solid var(--border-default);background:var(--bg-elevated);color:var(--text-primary);font-size:13px;cursor:pointer;font-family:var(--font-ui);transition:background var(--transition-fast)}
+.m-btn:hover{background:var(--bg-input);border-color:var(--teal)}
+.m-btn-primary{background:var(--teal);color:#000;border-color:var(--teal);font-weight:600}
+.m-btn-primary:hover{background:#00b890}
+.m-btn-danger{background:rgba(239,68,68,.15);color:#ef4444;border-color:rgba(239,68,68,.4)}
+.m-btn-danger:hover{background:rgba(239,68,68,.25)}
+.m-btn-icon{padding:6px;border:none;background:none;color:var(--text-secondary);cursor:pointer;border-radius:var(--radius-sm);display:flex;align-items:center}
+.m-btn-icon:hover{background:var(--bg-elevated);color:var(--text-primary)}
+.admin-badge{background:rgba(239,68,68,.2);color:#ef4444;border:1px solid rgba(239,68,68,.4);padding:2px 10px;border-radius:var(--radius-full);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+/* SHELL */
+.m-shell{display:flex;flex:1;overflow:hidden}
+/* SIDEBAR */
+.m-sidebar{width:var(--sidebar-width);background:var(--bg-surface);border-right:1px solid var(--border-default);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.m-sidebar-item{display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;font-size:13px;color:var(--text-secondary);transition:background var(--transition-fast);user-select:none;border-left:3px solid transparent}
+.m-sidebar-item:hover{background:var(--bg-elevated);color:var(--text-primary)}
+.m-sidebar-item.active{background:var(--teal-glow);color:var(--teal);border-left-color:var(--teal)}
+.m-sidebar-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;padding:12px 16px 4px;margin-top:8px}
+.m-user-info{padding:12px 16px;border-top:1px solid var(--border-subtle);margin-top:auto;font-size:12px;color:var(--text-muted)}
+.m-user-email{font-weight:600;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* MAIN */
+.m-main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.m-main-header{padding:12px 20px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:12px;flex-shrink:0;background:var(--bg-surface)}
+.m-page-title{font-size:16px;font-weight:700;color:var(--text-primary)}
+.m-header-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
+/* CONTENT */
+.m-content{flex:1;overflow:auto;padding:20px}
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px}
+.stat-card{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:16px}
+.stat-value{font-size:28px;font-weight:700;color:var(--teal);line-height:1}
+.stat-label{font-size:11px;color:var(--text-muted);margin-top:6px;text-transform:uppercase;letter-spacing:.06em}
+/* TABLE */
+.tbl-wrap{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);overflow:hidden}
+.tbl-toolbar{padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border-subtle)}
+.tbl-search{flex:1;background:var(--bg-elevated);border:1px solid var(--border-default);color:var(--text-primary);padding:7px 10px;border-radius:var(--radius-md);font-size:13px;font-family:var(--font-ui);outline:none}
+.tbl-search:focus{border-color:var(--teal)}
+.tbl-filter{background:var(--bg-elevated);border:1px solid var(--border-default);color:var(--text-primary);padding:7px 8px;border-radius:var(--radius-md);font-size:12px;font-family:var(--font-ui);outline:none;cursor:pointer}
+.tbl-filter:focus{border-color:var(--teal)}
+table{width:100%;border-collapse:collapse}
+thead th{padding:9px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border-default);background:var(--bg-surface);white-space:nowrap}
+tbody td{padding:10px 12px;border-bottom:1px solid var(--border-subtle);font-size:13px;vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--bg-elevated)}
+.pill{display:inline-block;padding:2px 9px;border-radius:var(--radius-full);font-size:11px;font-weight:600}
+.pill-active{background:rgba(34,197,94,.15);color:#22c55e}
+.pill-suspended{background:rgba(239,68,68,.15);color:#ef4444}
+.pill-deactivated{background:rgba(86,103,120,.2);color:#8899aa}
+.pill-pending{background:rgba(255,166,62,.15);color:#ffa63e}
+.pill-owner{background:rgba(232,121,249,.15);color:#e879f9}
+.pill-admin{background:rgba(239,68,68,.15);color:#ef4444}
+.pill-user{background:rgba(86,103,120,.2);color:#8899aa}
+.pill-free{background:rgba(86,103,120,.2);color:#8899aa}
+.pill-solo,.pill-team{background:rgba(59,158,255,.15);color:#3b9eff}
+.pill-professional,.pill-enterprise{background:rgba(0,212,170,.15);color:#00d4aa}
+.row-actions{display:flex;gap:6px;opacity:0;transition:opacity .15s}
+tbody tr:hover .row-actions{opacity:1}
+.row-actions button{background:none;border:1px solid var(--border-default);color:var(--text-secondary);padding:3px 8px;border-radius:var(--radius-sm);font-size:11px;cursor:pointer;font-family:var(--font-ui);transition:background .15s,color .15s,border-color .15s}
+.row-actions button:hover{background:var(--bg-input);color:var(--text-primary);border-color:var(--teal)}
+.row-actions button.danger:hover{background:rgba(239,68,68,.15);color:#ef4444;border-color:rgba(239,68,68,.4)}
+/* PAGINATION */
+.pagination{display:flex;align-items:center;gap:8px;padding:12px 16px;justify-content:flex-end;border-top:1px solid var(--border-subtle);font-size:12px;color:var(--text-muted)}
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;display:flex;align-items:center;justify-content:center}
+.modal-overlay[hidden]{display:none}
+.modal{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-xl);width:500px;max-height:88vh;overflow-y:auto;padding:24px}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:20px;color:var(--text-primary);display:flex;align-items:center;gap:8px}
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:12px;color:var(--text-muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em}
+.form-input,.form-select{width:100%;background:var(--bg-elevated);border:1px solid var(--border-default);color:var(--text-primary);padding:8px 10px;border-radius:var(--radius-md);font-family:var(--font-ui);font-size:13px;outline:none}
+.form-input:focus,.form-select:focus{border-color:var(--teal)}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border-subtle)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+/* AUDIT LOG */
+.audit-entry{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-subtle);font-size:13px;align-items:flex-start}
+.audit-entry:last-child{border-bottom:none}
+.audit-action{font-weight:600;color:var(--teal);min-width:160px;flex-shrink:0}
+.audit-target{color:var(--text-muted);font-size:11px;font-family:monospace;white-space:nowrap}
+.audit-ts{font-size:11px;color:var(--text-muted);margin-left:auto;white-space:nowrap;flex-shrink:0}
+/* ACCESS DENIED */
+.access-denied{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:var(--text-muted);text-align:center}
+.access-denied svg{color:#ef4444;opacity:.5}
+/* SECTION hidden */
+.section{display:none}
+.section.active{display:block}
+/* EMPTY STATE */
+.empty-state{padding:40px 20px;text-align:center;color:var(--text-muted);font-size:13px}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:10px 16px;font-size:13px;z-index:999;box-shadow:0 4px 16px rgba(0,0,0,.4);animation:slideIn .2s ease}
+.toast.success{border-color:var(--teal);color:var(--teal)}
+.toast.error{border-color:#ef4444;color:#ef4444}
+@keyframes slideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+</style>
+</head>
+<body>
+<a href="#main-content" class="murphy-skip-link">Skip to main content</a>
+
+<!-- TOPBAR -->
+<header class="m-topbar" role="banner">
+  <div style="display:flex;align-items:center;gap:12px">
+    <a href="/ui/landing" class="m-brand" aria-label="Murphy System home">
+      <svg width="24" height="24" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#00D4AA"/><text x="12" y="17" text-anchor="middle" fill="#000" font-size="13" font-weight="700" font-family="Inter,sans-serif">M</text></svg>
+      <span>MURPHY</span>
+    </a>
+    <span class="admin-badge">Platform Admin</span>
+  </div>
+  <nav class="m-topbar-right" aria-label="Top navigation">
+    <a href="/ui/terminal-unified" class="m-btn">Terminal</a>
+    <a href="/ui/dashboard" class="m-btn">Dashboard</a>
+    <span id="topbar-user" class="m-btn" style="cursor:default">—</span>
+  </nav>
+</header>
+
+<!-- SHELL -->
+<div class="m-shell">
+
+  <!-- SIDEBAR -->
+  <nav class="m-sidebar" role="navigation" aria-label="Admin sections">
+    <div style="padding:12px 0">
+      <div class="m-sidebar-label">Overview</div>
+      <div class="m-sidebar-item active" onclick="showSection('stats')" id="nav-stats">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Stats
+      </div>
+      <div class="m-sidebar-label">Users</div>
+      <div class="m-sidebar-item" onclick="showSection('users')" id="nav-users">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        All Users
+      </div>
+      <div class="m-sidebar-item" onclick="showSection('sessions')" id="nav-sessions">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Active Sessions
+      </div>
+      <div class="m-sidebar-label">Organizations</div>
+      <div class="m-sidebar-item" onclick="showSection('orgs')" id="nav-orgs">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Organizations
+      </div>
+      <div class="m-sidebar-label">Audit</div>
+      <div class="m-sidebar-item" onclick="showSection('audit')" id="nav-audit">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        Audit Log
+      </div>
+    </div>
+    <div class="m-user-info">
+      <div class="m-user-email" id="sidebar-email">Not signed in</div>
+      <div id="sidebar-role" style="color:var(--text-muted);margin-top:2px">—</div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="m-main" id="main-content">
+
+    <!-- Access denied state (shown before auth confirmed) -->
+    <div id="access-denied-view" style="display:none;flex:1;align-items:center;justify-content:center;flex-direction:column;gap:16px;padding:40px;text-align:center">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      <div style="font-size:20px;font-weight:700;color:#ef4444">Admin Access Required</div>
+      <div style="font-size:14px;color:var(--text-muted);max-width:360px">You must be signed in with an admin or owner account to access this panel.</div>
+      <a href="/ui/login?next=/ui/admin" class="m-btn m-btn-primary">Sign In</a>
+    </div>
+
+    <!-- STATS SECTION -->
+    <div id="section-stats" class="section active">
+      <div class="m-main-header">
+        <div class="m-page-title">Platform Statistics</div>
+        <div class="m-header-actions">
+          <button class="m-btn" onclick="loadStats()">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="m-content">
+        <div class="stats-grid" id="stats-grid">
+          <div class="stat-card"><div class="stat-value" id="stat-total-users">—</div><div class="stat-label">Total Users</div></div>
+          <div class="stat-card"><div class="stat-value" id="stat-active-users">—</div><div class="stat-label">Active Users</div></div>
+          <div class="stat-card"><div class="stat-value" id="stat-suspended">—</div><div class="stat-label">Suspended</div></div>
+          <div class="stat-card"><div class="stat-value" id="stat-sessions">—</div><div class="stat-label">Live Sessions</div></div>
+          <div class="stat-card"><div class="stat-value" id="stat-orgs">—</div><div class="stat-label">Organizations</div></div>
+          <div class="stat-card"><div class="stat-value" id="stat-audit">—</div><div class="stat-label">Audit Events</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="tbl-wrap">
+            <div class="tbl-toolbar" style="font-weight:600;font-size:13px">Users by Role</div>
+            <table><tbody id="role-breakdown"></tbody></table>
+          </div>
+          <div class="tbl-wrap">
+            <div class="tbl-toolbar" style="font-weight:600;font-size:13px">Users by Tier</div>
+            <table><tbody id="tier-breakdown"></tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- USERS SECTION -->
+    <div id="section-users" class="section">
+      <div class="m-main-header">
+        <div class="m-page-title">Users</div>
+        <div class="m-header-actions">
+          <button class="m-btn m-btn-primary" onclick="openCreateUserModal()">+ Create User</button>
+        </div>
+      </div>
+      <div class="m-content">
+        <div class="tbl-wrap">
+          <div class="tbl-toolbar">
+            <input class="tbl-search" id="user-search" placeholder="Search by email or name…" oninput="filterUsers()" />
+            <select class="tbl-filter" id="user-role-filter" onchange="filterUsers()">
+              <option value="">All Roles</option>
+              <option value="owner">Owner</option>
+              <option value="admin">Admin</option>
+              <option value="user">User</option>
+            </select>
+            <select class="tbl-filter" id="user-tier-filter" onchange="filterUsers()">
+              <option value="">All Tiers</option>
+              <option value="free">Free</option>
+              <option value="solo">Solo</option>
+              <option value="team">Team</option>
+              <option value="professional">Professional</option>
+              <option value="enterprise">Enterprise</option>
+            </select>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Name</th>
+                <th>Role</th>
+                <th>Tier</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody">
+              <tr><td colspan="7" class="empty-state">Loading…</td></tr>
+            </tbody>
+          </table>
+          <div class="pagination" id="users-pagination"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SESSIONS SECTION -->
+    <div id="section-sessions" class="section">
+      <div class="m-main-header">
+        <div class="m-page-title">Active Sessions</div>
+        <div class="m-header-actions">
+          <button class="m-btn" onclick="loadSessions()">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="m-content">
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr><th>Token (prefix)</th><th>Account ID</th><th>Email</th><th>Role</th><th></th></tr>
+            </thead>
+            <tbody id="sessions-tbody">
+              <tr><td colspan="5" class="empty-state">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ORGANIZATIONS SECTION -->
+    <div id="section-orgs" class="section">
+      <div class="m-main-header">
+        <div class="m-page-title">Organizations</div>
+        <div class="m-header-actions">
+          <button class="m-btn m-btn-primary" onclick="openCreateOrgModal()">+ Create Org</button>
+        </div>
+      </div>
+      <div class="m-content">
+        <div class="tbl-wrap">
+          <div class="tbl-toolbar">
+            <input class="tbl-search" id="org-search" placeholder="Search organizations…" oninput="filterOrgs()" />
+          </div>
+          <table>
+            <thead>
+              <tr><th>Name</th><th>Slug</th><th>Plan</th><th>Status</th><th>Members</th><th>Created</th><th></th></tr>
+            </thead>
+            <tbody id="orgs-tbody">
+              <tr><td colspan="7" class="empty-state">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- AUDIT LOG SECTION -->
+    <div id="section-audit" class="section">
+      <div class="m-main-header">
+        <div class="m-page-title">Audit Log</div>
+        <div class="m-header-actions">
+          <select class="tbl-filter" id="audit-action-filter" onchange="loadAuditLog()">
+            <option value="">All Actions</option>
+            <option value="create_user">create_user</option>
+            <option value="update_user">update_user</option>
+            <option value="deactivate_user">deactivate_user</option>
+            <option value="suspend_user">suspend_user</option>
+            <option value="unsuspend_user">unsuspend_user</option>
+            <option value="reset_password">reset_password</option>
+            <option value="create_org">create_org</option>
+            <option value="update_org">update_org</option>
+            <option value="deactivate_org">deactivate_org</option>
+            <option value="add_org_member">add_org_member</option>
+            <option value="remove_org_member">remove_org_member</option>
+            <option value="revoke_sessions">revoke_sessions</option>
+          </select>
+          <button class="m-btn" onclick="loadAuditLog()">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="m-content">
+        <div class="tbl-wrap" style="padding:8px 16px">
+          <div id="audit-entries"><div class="empty-state">Loading…</div></div>
+          <div class="pagination" id="audit-pagination"></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ── CREATE USER MODAL ──────────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-create-user" hidden>
+  <div class="modal" role="dialog" aria-labelledby="modal-create-user-title">
+    <div class="modal-title" id="modal-create-user-title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+      Create User
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Email *</label>
+        <input class="form-input" id="cu-email" type="email" placeholder="user@example.com" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password * (min 8 chars)</label>
+        <input class="form-input" id="cu-password" type="password" placeholder="••••••••" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <input class="form-input" id="cu-name" type="text" placeholder="Alice Smith" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Job Title</label>
+        <input class="form-input" id="cu-title" type="text" placeholder="Founder" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Role</label>
+        <select class="form-select" id="cu-role">
+          <option value="user">User</option>
+          <option value="admin">Admin</option>
+          <option value="owner">Owner</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tier</label>
+        <select class="form-select" id="cu-tier">
+          <option value="free">Free</option>
+          <option value="solo">Solo</option>
+          <option value="team">Team</option>
+          <option value="professional">Professional</option>
+          <option value="enterprise">Enterprise</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Company</label>
+      <input class="form-input" id="cu-company" type="text" placeholder="Acme Corp" />
+    </div>
+    <div class="modal-footer">
+      <button class="m-btn" onclick="closeModal('modal-create-user')">Cancel</button>
+      <button class="m-btn m-btn-primary" onclick="submitCreateUser()">Create User</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── EDIT USER MODAL ────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-edit-user" hidden>
+  <div class="modal" role="dialog" aria-labelledby="modal-edit-user-title">
+    <div class="modal-title" id="modal-edit-user-title">Edit User</div>
+    <input type="hidden" id="eu-id" />
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" id="eu-email" type="email" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <input class="form-input" id="eu-name" type="text" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Role</label>
+        <select class="form-select" id="eu-role">
+          <option value="user">User</option>
+          <option value="admin">Admin</option>
+          <option value="owner">Owner</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tier</label>
+        <select class="form-select" id="eu-tier">
+          <option value="free">Free</option>
+          <option value="solo">Solo</option>
+          <option value="team">Team</option>
+          <option value="professional">Professional</option>
+          <option value="enterprise">Enterprise</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select class="form-select" id="eu-status">
+          <option value="active">Active</option>
+          <option value="suspended">Suspended</option>
+          <option value="deactivated">Deactivated</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Company</label>
+        <input class="form-input" id="eu-company" type="text" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="m-btn" onclick="closeModal('modal-edit-user')">Cancel</button>
+      <button class="m-btn m-btn-primary" onclick="submitEditUser()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── RESET PASSWORD MODAL ───────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-reset-pw" hidden>
+  <div class="modal" role="dialog" aria-labelledby="modal-reset-pw-title">
+    <div class="modal-title" id="modal-reset-pw-title">Reset Password</div>
+    <input type="hidden" id="rp-id" />
+    <div id="rp-email-display" style="color:var(--text-muted);font-size:13px;margin-bottom:16px"></div>
+    <div class="form-group">
+      <label class="form-label">New Password (min 8 chars) *</label>
+      <input class="form-input" id="rp-password" type="password" placeholder="••••••••" />
+    </div>
+    <div style="font-size:12px;color:var(--text-muted);margin-top:-8px;margin-bottom:12px">All active sessions for this user will be invalidated.</div>
+    <div class="modal-footer">
+      <button class="m-btn" onclick="closeModal('modal-reset-pw')">Cancel</button>
+      <button class="m-btn m-btn-danger" onclick="submitResetPassword()">Reset Password</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── CREATE ORG MODAL ───────────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-create-org" hidden>
+  <div class="modal" role="dialog" aria-labelledby="modal-create-org-title">
+    <div class="modal-title" id="modal-create-org-title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Create Organization
+    </div>
+    <div class="form-group">
+      <label class="form-label">Organization Name *</label>
+      <input class="form-input" id="co-name" type="text" placeholder="Acme Corp" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Description</label>
+      <input class="form-input" id="co-desc" type="text" placeholder="Optional description" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Plan</label>
+        <select class="form-select" id="co-plan">
+          <option value="free">Free</option>
+          <option value="team">Team</option>
+          <option value="professional">Professional</option>
+          <option value="enterprise">Enterprise</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Owner Account ID</label>
+        <input class="form-input" id="co-owner" type="text" placeholder="(defaults to you)" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="m-btn" onclick="closeModal('modal-create-org')">Cancel</button>
+      <button class="m-btn m-btn-primary" onclick="submitCreateOrg()">Create Organization</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── EDIT ORG MODAL ─────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-edit-org" hidden>
+  <div class="modal" role="dialog" aria-labelledby="modal-edit-org-title">
+    <div class="modal-title" id="modal-edit-org-title">Edit Organization</div>
+    <input type="hidden" id="eo-id" />
+    <div class="form-group">
+      <label class="form-label">Name</label>
+      <input class="form-input" id="eo-name" type="text" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Description</label>
+      <input class="form-input" id="eo-desc" type="text" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Plan</label>
+        <select class="form-select" id="eo-plan">
+          <option value="free">Free</option>
+          <option value="team">Team</option>
+          <option value="professional">Professional</option>
+          <option value="enterprise">Enterprise</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select class="form-select" id="eo-status">
+          <option value="active">Active</option>
+          <option value="deactivated">Deactivated</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="m-btn" onclick="closeModal('modal-edit-org')">Cancel</button>
+      <button class="m-btn m-btn-primary" onclick="submitEditOrg()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<script src="murphy_auth.js"></script>
+<script>
+/* ── State ──────────────────────────────────────────────────────────── */
+let _allUsers = [];
+let _allOrgs  = [];
+let _currentSection = 'stats';
+let _adminAccount = null;
+
+const API = (path, opts = {}) => fetch(path, {
+  headers: { 'Content-Type': 'application/json', ...MurphyAuth.headers() },
+  ...opts,
+}).then(r => r.json());
+
+/* ── Bootstrap ──────────────────────────────────────────────────────── */
+async function init() {
+  try {
+    const me = await API('/api/auth/session-token');
+    if (!me.session_token) throw new Error('not authed');
+    const profile = await API('/api/account/profile');
+    _adminAccount = profile;
+
+    const email = profile.email || '—';
+    const role  = profile.role  || 'user';
+
+    document.getElementById('topbar-user').textContent = email;
+    document.getElementById('sidebar-email').textContent = email;
+    document.getElementById('sidebar-role').textContent  = role.toUpperCase();
+
+    if (!['admin','owner'].includes(role)) {
+      document.getElementById('access-denied-view').style.display = 'flex';
+      document.querySelector('.m-sidebar').style.display = 'none';
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      return;
+    }
+
+    loadStats();
+    loadUsers();
+  } catch {
+    document.getElementById('access-denied-view').style.display = 'flex';
+    document.querySelector('.m-sidebar').style.display = 'none';
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  }
+}
+
+/* ── Navigation ─────────────────────────────────────────────────────── */
+function showSection(name) {
+  _currentSection = name;
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.m-sidebar-item').forEach(i => i.classList.remove('active'));
+  document.getElementById('section-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+
+  if (name === 'stats')    loadStats();
+  if (name === 'users')    loadUsers();
+  if (name === 'sessions') loadSessions();
+  if (name === 'orgs')     loadOrgs();
+  if (name === 'audit')    loadAuditLog();
+}
+
+/* ── Stats ──────────────────────────────────────────────────────────── */
+async function loadStats() {
+  try {
+    const d = await API('/api/admin/stats');
+    const s = d.stats;
+    set('stat-total-users', s.total_users);
+    set('stat-active-users', s.active_users);
+    set('stat-suspended', s.suspended_users);
+    set('stat-sessions', s.active_sessions);
+    set('stat-orgs', s.total_organizations);
+    set('stat-audit', s.audit_log_entries);
+
+    const rb = Object.entries(s.users_by_role).map(([k,v]) =>
+      `<tr><td style="color:var(--text-muted);text-transform:capitalize">${k}</td>
+       <td style="font-weight:600">${v}</td></tr>`).join('');
+    document.getElementById('role-breakdown').innerHTML = rb || '<tr><td colspan="2" class="empty-state">No data</td></tr>';
+
+    const tb = Object.entries(s.users_by_tier).filter(([,v]) => v > 0).map(([k,v]) =>
+      `<tr><td style="color:var(--text-muted);text-transform:capitalize">${k}</td>
+       <td style="font-weight:600">${v}</td></tr>`).join('');
+    document.getElementById('tier-breakdown').innerHTML = tb || '<tr><td colspan="2" class="empty-state">No data</td></tr>';
+  } catch(e) { toast('Failed to load stats', 'error'); }
+}
+
+/* ── Users ──────────────────────────────────────────────────────────── */
+async function loadUsers() {
+  try {
+    const d = await API('/api/admin/users?limit=500');
+    _allUsers = d.users || [];
+    renderUsers(_allUsers);
+  } catch { toast('Failed to load users', 'error'); }
+}
+
+function filterUsers() {
+  const q  = (document.getElementById('user-search').value || '').toLowerCase();
+  const rf = document.getElementById('user-role-filter').value;
+  const tf = document.getElementById('user-tier-filter').value;
+  let list = _allUsers;
+  if (q)  list = list.filter(u => u.email.toLowerCase().includes(q) || (u.full_name||'').toLowerCase().includes(q));
+  if (rf) list = list.filter(u => u.role === rf);
+  if (tf) list = list.filter(u => u.tier === tf);
+  renderUsers(list);
+}
+
+function renderUsers(users) {
+  const tb = document.getElementById('users-tbody');
+  if (!users.length) { tb.innerHTML = '<tr><td colspan="7" class="empty-state">No users found.</td></tr>'; return; }
+  tb.innerHTML = users.map(u => `
+    <tr>
+      <td>${esc(u.email)}</td>
+      <td>${esc(u.full_name || '—')}</td>
+      <td><span class="pill pill-${u.role}">${u.role}</span></td>
+      <td><span class="pill pill-${u.tier}">${u.tier}</span></td>
+      <td><span class="pill pill-${u.status||'active'}">${u.status||'active'}</span></td>
+      <td style="color:var(--text-muted);font-size:12px">${fmtDate(u.created_at)}</td>
+      <td>
+        <div class="row-actions">
+          <button onclick="openEditUser('${u.account_id}')">Edit</button>
+          <button onclick="openResetPw('${u.account_id}','${esc(u.email)}')">Reset PW</button>
+          ${u.status==='suspended'
+            ? `<button onclick="unsuspendUser('${u.account_id}')">Unsuspend</button>`
+            : `<button onclick="suspendUser('${u.account_id}')">Suspend</button>`}
+          <button class="danger" onclick="deactivateUser('${u.account_id}')">Deactivate</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+/* ── User actions ────────────────────────────────────────────────────── */
+function openCreateUserModal() { openModal('modal-create-user'); }
+
+async function submitCreateUser() {
+  const email    = v('cu-email');
+  const password = v('cu-password');
+  const full_name = v('cu-name');
+  if (!email || !password) { toast('Email and password are required','error'); return; }
+  try {
+    const d = await API('/api/admin/users', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, full_name,
+        job_title: v('cu-title'), company: v('cu-company'),
+        role: v('cu-role'), tier: v('cu-tier') }),
+    });
+    if (!d.success) { toast(d.error || 'Failed', 'error'); return; }
+    closeModal('modal-create-user');
+    toast('User created: ' + email);
+    loadUsers(); loadStats();
+  } catch { toast('Request failed','error'); }
+}
+
+async function openEditUser(id) {
+  try {
+    const d = await API('/api/admin/users/' + id);
+    const u = d.user;
+    set('eu-id', u.account_id, true);
+    set('eu-email', u.email, true);
+    set('eu-name', u.full_name || '', true);
+    set('eu-company', u.company || '', true);
+    setSelect('eu-role', u.role || 'user');
+    setSelect('eu-tier', u.tier || 'free');
+    setSelect('eu-status', u.status || 'active');
+    openModal('modal-edit-user');
+  } catch { toast('Failed to load user','error'); }
+}
+
+async function submitEditUser() {
+  const id = v('eu-id');
+  try {
+    const d = await API('/api/admin/users/' + id, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        email: v('eu-email'), full_name: v('eu-name'),
+        company: v('eu-company'), role: v('eu-role'),
+        tier: v('eu-tier'), status: v('eu-status'),
+      }),
+    });
+    if (!d.success) { toast(d.error || 'Failed','error'); return; }
+    closeModal('modal-edit-user');
+    toast('User updated');
+    loadUsers();
+  } catch { toast('Request failed','error'); }
+}
+
+function openResetPw(id, email) {
+  set('rp-id', id, true);
+  document.getElementById('rp-email-display').textContent = 'Account: ' + email;
+  set('rp-password', '', true);
+  openModal('modal-reset-pw');
+}
+
+async function submitResetPassword() {
+  const id = v('rp-id');
+  const pw = v('rp-password');
+  if (!pw || pw.length < 8) { toast('Password must be at least 8 characters','error'); return; }
+  try {
+    const d = await API('/api/admin/users/' + id + '/reset-password', {
+      method: 'POST', body: JSON.stringify({ new_password: pw }),
+    });
+    if (!d.success) { toast(d.error || 'Failed','error'); return; }
+    closeModal('modal-reset-pw');
+    toast('Password reset successfully');
+  } catch { toast('Request failed','error'); }
+}
+
+async function suspendUser(id) {
+  if (!confirm('Suspend this user? Their active sessions will be invalidated.')) return;
+  const d = await API('/api/admin/users/' + id + '/suspend', { method: 'POST', body: '{}' });
+  if (d.success) { toast('User suspended'); loadUsers(); loadStats(); }
+  else toast(d.error || 'Failed','error');
+}
+
+async function unsuspendUser(id) {
+  const d = await API('/api/admin/users/' + id + '/unsuspend', { method: 'POST', body: '{}' });
+  if (d.success) { toast('User unsuspended'); loadUsers(); loadStats(); }
+  else toast(d.error || 'Failed','error');
+}
+
+async function deactivateUser(id) {
+  if (!confirm('Deactivate this user account? This cannot be easily undone.')) return;
+  const d = await API('/api/admin/users/' + id, { method: 'DELETE' });
+  if (d.success) { toast('User deactivated'); loadUsers(); loadStats(); }
+  else toast(d.error || 'Failed','error');
+}
+
+/* ── Sessions ────────────────────────────────────────────────────────── */
+async function loadSessions() {
+  try {
+    const d = await API('/api/admin/sessions');
+    const sessions = d.sessions || [];
+    const tb = document.getElementById('sessions-tbody');
+    if (!sessions.length) { tb.innerHTML = '<tr><td colspan="5" class="empty-state">No active sessions.</td></tr>'; return; }
+    tb.innerHTML = sessions.map(s => `
+      <tr>
+        <td style="font-family:monospace;font-size:12px">${esc(s.token_prefix)}</td>
+        <td style="font-family:monospace;font-size:12px">${esc(s.account_id)}</td>
+        <td>${esc(s.email)}</td>
+        <td><span class="pill pill-${s.role||'user'}">${s.role||'user'}</span></td>
+        <td>
+          <div class="row-actions">
+            <button class="danger" onclick="revokeSession('${s.account_id}')">Revoke</button>
+          </div>
+        </td>
+      </tr>`).join('');
+  } catch { toast('Failed to load sessions','error'); }
+}
+
+async function revokeSession(accountId) {
+  if (!confirm('Revoke all sessions for this account?')) return;
+  const d = await API('/api/admin/sessions/' + accountId, { method: 'DELETE' });
+  if (d.success) { toast('Sessions revoked (' + d.revoked + ')'); loadSessions(); }
+  else toast(d.error || 'Failed','error');
+}
+
+/* ── Organizations ───────────────────────────────────────────────────── */
+async function loadOrgs() {
+  try {
+    const d = await API('/api/admin/organizations?limit=200');
+    _allOrgs = d.organizations || [];
+    renderOrgs(_allOrgs);
+  } catch { toast('Failed to load organizations','error'); }
+}
+
+function filterOrgs() {
+  const q = (document.getElementById('org-search').value || '').toLowerCase();
+  renderOrgs(q ? _allOrgs.filter(o => o.name.toLowerCase().includes(q) || (o.slug||'').includes(q)) : _allOrgs);
+}
+
+function renderOrgs(orgs) {
+  const tb = document.getElementById('orgs-tbody');
+  if (!orgs.length) { tb.innerHTML = '<tr><td colspan="7" class="empty-state">No organizations yet.</td></tr>'; return; }
+  tb.innerHTML = orgs.map(o => `
+    <tr>
+      <td style="font-weight:600">${esc(o.name)}</td>
+      <td style="font-family:monospace;font-size:12px;color:var(--text-muted)">${esc(o.slug||'')}</td>
+      <td><span class="pill pill-${o.plan||'free'}">${o.plan||'free'}</span></td>
+      <td><span class="pill pill-${o.status||'active'}">${o.status||'active'}</span></td>
+      <td>${(o.members||[]).length}</td>
+      <td style="color:var(--text-muted);font-size:12px">${fmtDate(o.created_at)}</td>
+      <td>
+        <div class="row-actions">
+          <button onclick="openEditOrg('${o.org_id}')">Edit</button>
+          <button onclick="viewOrgMembers('${o.org_id}','${esc(o.name)}')">Members</button>
+          <button class="danger" onclick="deactivateOrg('${o.org_id}')">Deactivate</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function openCreateOrgModal() { openModal('modal-create-org'); }
+
+async function submitCreateOrg() {
+  const name = v('co-name');
+  if (!name) { toast('Name is required','error'); return; }
+  try {
+    const d = await API('/api/admin/organizations', {
+      method: 'POST',
+      body: JSON.stringify({ name, description: v('co-desc'), plan: v('co-plan'), owner_id: v('co-owner') || undefined }),
+    });
+    if (!d.success) { toast(d.error || 'Failed','error'); return; }
+    closeModal('modal-create-org');
+    toast('Organization created');
+    loadOrgs(); loadStats();
+  } catch { toast('Request failed','error'); }
+}
+
+async function openEditOrg(id) {
+  const o = _allOrgs.find(x => x.org_id === id);
+  if (!o) return;
+  set('eo-id', o.org_id, true);
+  set('eo-name', o.name, true);
+  set('eo-desc', o.description || '', true);
+  setSelect('eo-plan', o.plan || 'free');
+  setSelect('eo-status', o.status || 'active');
+  openModal('modal-edit-org');
+}
+
+async function submitEditOrg() {
+  const id = v('eo-id');
+  const d = await API('/api/admin/organizations/' + id, {
+    method: 'PATCH',
+    body: JSON.stringify({ name: v('eo-name'), description: v('eo-desc'), plan: v('eo-plan'), status: v('eo-status') }),
+  });
+  if (d.success) { closeModal('modal-edit-org'); toast('Organization updated'); loadOrgs(); }
+  else toast(d.error || 'Failed','error');
+}
+
+async function deactivateOrg(id) {
+  if (!confirm('Deactivate this organization?')) return;
+  const d = await API('/api/admin/organizations/' + id, { method: 'DELETE' });
+  if (d.success) { toast('Organization deactivated'); loadOrgs(); loadStats(); }
+  else toast(d.error || 'Failed','error');
+}
+
+async function viewOrgMembers(id, name) {
+  try {
+    const d = await API('/api/admin/organizations/' + id + '/members');
+    const members = d.members || [];
+    alert('Members of "' + name + '" (' + members.length + '):\n' +
+      (members.length ? members.map(m => m.email + ' [' + m.role + ']').join('\n') : '(none)'));
+  } catch { toast('Failed to load members','error'); }
+}
+
+/* ── Audit Log ───────────────────────────────────────────────────────── */
+async function loadAuditLog() {
+  const action_f = document.getElementById('audit-action-filter').value;
+  try {
+    const url = '/api/admin/audit-log?limit=100' + (action_f ? '&action=' + action_f : '');
+    const d = await API(url);
+    const entries = d.entries || [];
+    const el = document.getElementById('audit-entries');
+    if (!entries.length) { el.innerHTML = '<div class="empty-state">No audit log entries.</div>'; return; }
+    el.innerHTML = entries.map(e => `
+      <div class="audit-entry">
+        <span class="audit-action">${esc(e.action)}</span>
+        <span style="font-size:12px;color:var(--text-secondary)">${esc(e.target)}</span>
+        <span style="font-size:11px;color:var(--text-muted);margin-left:8px">${JSON.stringify(e.detail||{})}</span>
+        <span class="audit-ts">${fmtDate(e.ts)}</span>
+      </div>`).join('');
+    document.getElementById('audit-pagination').textContent = 'Showing ' + entries.length + ' of ' + d.total;
+  } catch { toast('Failed to load audit log','error'); }
+}
+
+/* ── Helpers ─────────────────────────────────────────────────────────── */
+function v(id) { return (document.getElementById(id) || {}).value || ''; }
+function set(id, val, asValue=false) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (asValue) el.value = val; else el.textContent = val;
+}
+function setSelect(id, val) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const opt = Array.from(el.options).find(o => o.value === val);
+  if (opt) el.value = val;
+}
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtDate(iso) { if (!iso) return '—'; try { return new Date(iso).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'}); } catch { return iso; } }
+function openModal(id)  { document.getElementById(id).hidden = false; }
+function closeModal(id) { document.getElementById(id).hidden = true; }
+
+let _toastTimer;
+function toast(msg, type='success') {
+  clearTimeout(_toastTimer);
+  let el = document.getElementById('_toast');
+  if (!el) { el = document.createElement('div'); el.id='_toast'; document.body.appendChild(el); }
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  _toastTimer = setTimeout(() => el.remove(), 4000);
+}
+
+// Close modals on backdrop click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.hidden = true; });
+});
+
+// Keyboard: Escape closes modals
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.querySelectorAll('.modal-overlay').forEach(m => m.hidden = true);
+});
+
+init();
+</script>
+</body>
+</html>
