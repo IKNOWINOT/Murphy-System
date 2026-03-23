@@ -603,9 +603,19 @@ async function triggerSweep(){
 
 function confirmEmergencyStop(){
   if(confirm('⚠️ Are you sure you want to trigger EMERGENCY STOP?\nThis will halt all trading immediately.')){
-    toast('🚨 Emergency stop triggered!','error');
-    state.estop = true;
-    renderHeader();
+    apiFetch('/api/trading/emergency/trigger', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({reason:'Manual trigger from trading dashboard'}),
+    }).then(d => {
+      if(d && d.triggered !== false){
+        state.estop = true;
+        renderHeader();
+        toast('🚨 Emergency stop triggered!','error');
+      } else {
+        toast('Emergency stop request failed','error');
+      }
+    });
   }
 }
 
@@ -653,12 +663,49 @@ async function loadSweepData(){
   setText('sweep-estimate', est > 0 ? fmt$(est) : '$0.00');
 }
 
+async function loadRiskData(){
+  const [riskData, emergencyData, gradData] = await Promise.all([
+    apiFetch('/api/trading/risk/assessment'),
+    apiFetch('/api/trading/emergency/status'),
+    apiFetch('/api/trading/graduation/status'),
+  ]);
+  if(riskData){
+    const level = riskData.risk_level || riskData.level || 'unknown';
+    const score = riskData.risk_score ?? riskData.score ?? 0;
+    setText('risk-level', level.toUpperCase());
+    const bar = el('risk-bar');
+    if(bar){
+      bar.style.width = Math.min(100, score) + '%';
+      bar.className = 'risk-bar ' + (score > 66 ? 'risk-high' : score > 33 ? 'risk-medium' : 'risk-low');
+    }
+    const exposure = riskData.exposure_pct ?? riskData.portfolio_exposure ?? 0;
+    setText('exposure-pct', fmtPct(exposure));
+    const expBar = el('exposure-bar');
+    if(expBar) expBar.style.width = Math.min(100, exposure) + '%';
+  }
+  if(emergencyData){
+    state.estop = emergencyData.triggered === true || emergencyData.active === true;
+    renderHeader();
+  }
+  if(gradData){
+    const progress = gradData.progress_pct ?? gradData.progress ?? 0;
+    const status = gradData.status || gradData.current_stage || '—';
+    setText('graduation-status', status);
+    const gradBar = el('graduation-bar');
+    if(gradBar) gradBar.style.width = Math.min(100, progress) + '%';
+    const criteria = gradData.criteria_met ?? gradData.met ?? 0;
+    const total = gradData.criteria_total ?? gradData.total ?? 0;
+    setText('graduation-detail', total > 0 ? `${criteria}/${total} criteria met` : '—');
+  }
+}
+
 async function refreshAll(){
   await Promise.all([
     loadTradingStatus(),
     loadPositions(),
     loadTrades(),
     loadSweepData(),
+    loadRiskData(),
   ]);
 }
 

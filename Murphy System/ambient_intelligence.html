@@ -393,6 +393,8 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);ove
   </main>
 </div>
 
+<script src="static/murphy-components.js"></script>
+<script src="murphy_auth.js"></script>
 <script src="static/murphy_ambient.js" defer></script>
 <script>
 (function () {
@@ -505,6 +507,42 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);ove
       }
     })
     .catch(function () {});
+
+  /* ── Load live stats from /api/ambient/stats ── */
+  function loadAmbientStats() {
+    fetch('/api/ambient/stats')
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .then(function (data) {
+        if (!data || !data.ok) return;
+        var statInsights = $id('stat-insights');
+        var statDelivered = $id('stat-delivered');
+        var statActioned = $id('stat-actioned');
+        var statConfidence = $id('stat-confidence');
+        if (statInsights && data.total_signals != null) {
+          statInsights.textContent = String(data.total_signals);
+        }
+        if (statDelivered && data.deliveries_sent != null) {
+          statDelivered.textContent = String(data.deliveries_sent);
+        }
+        if (statActioned && data.actioned != null) {
+          statActioned.textContent = String(data.actioned);
+        }
+        if (statConfidence && data.avg_confidence != null) {
+          statConfidence.textContent = data.avg_confidence + '%';
+        }
+        var streamCount = $id('stream-count');
+        if (streamCount && data.total_signals != null) {
+          streamCount.textContent = String(data.total_signals);
+        }
+        var badgeStream = $id('badge-stream');
+        if (badgeStream && data.total_signals != null) {
+          badgeStream.textContent = String(data.total_signals);
+        }
+      })
+      .catch(function () {});
+  }
+  loadAmbientStats();
+  setInterval(loadAmbientStats, 30000);
 
 })();
 </script>
