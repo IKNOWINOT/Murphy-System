@@ -276,7 +276,8 @@ from src.billing.grants.task_queue import HitlTaskManager, TaskNotFoundError, ge
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/grants", tags=["grants"])
+# NOTE: router already defined at module top - using the same router instance
+# router = APIRouter(prefix="/api/grants", tags=["grants"])
 
 # Singletons — module-level so they are shared across requests
 _session_manager = GrantSessionManager()
@@ -325,34 +326,40 @@ def _validate_application_id(aid: str) -> str:
 
 # --- Request/Response Models ---
 
-class EligibilityRequest(BaseModel):
+class EligibilityCheckRequestLegacy(BaseModel):
+    """Legacy model for Phase 2 HITL eligibility checks."""
     program_ids: List[str]
     project_params: Dict[str, Any] = Field(default_factory=dict)
 
 
-class CreateSessionRequest(BaseModel):
+class CreateSessionRequestLegacy(BaseModel):
+    """Legacy model for HITL form-filling system (Phase 2). Uses explicit tenant_id."""
     tenant_id: str
     name: str
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
-class CreateApplicationRequest(BaseModel):
+class CreateApplicationRequestLegacy(BaseModel):
+    """Legacy model for HITL form-filling system (Phase 2)."""
     tenant_id: str
     program_id: str
     form_id: str
 
 
-class FillFormRequest(BaseModel):
+class FillFormRequestLegacy(BaseModel):
+    """Legacy model for HITL form-filling system (Phase 2)."""
     tenant_id: str
     force_refill: bool = False
 
 
-class StartReviewRequest(BaseModel):
+class StartReviewRequestLegacy(BaseModel):
+    """Legacy model for HITL form-filling system (Phase 2)."""
     tenant_id: str
     reviewer_id: str
 
 
-class SubmitReviewRequest(BaseModel):
+class SubmitReviewRequestLegacy(BaseModel):
+    """Legacy model for HITL form-filling system (Phase 2)."""
     tenant_id: str
     reviewer_id: str
     action: str  # "approve" or "reject"
@@ -377,8 +384,9 @@ class CompletePrereqRequest(BaseModel):
 
 # --- Program endpoints ---
 
-@router.get("/programs")
-def list_all_programs():
+# DISABLED: Duplicate route - use main API
+# @router.get("/programs")
+def _legacy_list_all_programs():
     programs = list_programs()
     return [
         {
@@ -398,8 +406,9 @@ def list_all_programs():
     ]
 
 
-@router.get("/programs/{program_id}")
-def get_single_program(program_id: str):
+# DISABLED: Duplicate route - use main API
+# @router.get("/programs/{program_id}")
+def _legacy_get_single_program(program_id: str):
     _validate_program_id(program_id)
     prog = get_program(program_id)
     if prog is None:
@@ -419,8 +428,9 @@ def get_single_program(program_id: str):
     }
 
 
-@router.post("/eligibility")
-def check_eligibility(request: EligibilityRequest):
+# DISABLED: Duplicate route - use main API
+# @router.post("/eligibility")
+def _legacy_check_eligibility(request: EligibilityCheckRequestLegacy):
     results = _eligibility_engine.check_multiple(request.program_ids, request.project_params)
     return [
         {
@@ -437,8 +447,9 @@ def check_eligibility(request: EligibilityRequest):
 
 # --- Session endpoints ---
 
-@router.post("/sessions")
-def create_session(request: CreateSessionRequest):
+# DISABLED: Duplicate route - use main API
+# @router.post("/sessions")
+def _legacy_create_session_phase2(request: CreateSessionRequestLegacy):
     _validate_tenant_id(request.tenant_id)
     session = _session_manager.create_session(
         request.tenant_id, request.name, request.metadata
@@ -455,8 +466,9 @@ def create_session(request: CreateSessionRequest):
     }
 
 
-@router.get("/sessions/{sid}")
-def get_session(sid: str, tenant_id: str = Query(...)):
+# DISABLED: Duplicate route - use main API
+# @router.get("/sessions/{sid}")
+def _legacy_get_session_phase2(sid: str, tenant_id: str = Query(...)):
     _validate_session_id(sid)
     _validate_tenant_id(tenant_id)
     session = _session_manager.get_session(sid, tenant_id)
@@ -472,16 +484,18 @@ def get_session(sid: str, tenant_id: str = Query(...)):
     }
 
 
-@router.get("/sessions/{sid}/applications")
-def list_applications(sid: str, tenant_id: str = Query(...)):
+# DISABLED: Duplicate route - use main API
+# @router.get("/sessions/{sid}/applications")
+def _legacy_list_applications_phase2(sid: str, tenant_id: str = Query(...)):
     _validate_session_id(sid)
     _validate_tenant_id(tenant_id)
     apps = _session_manager.list_applications(sid, tenant_id)
     return [_app_to_dict(a) for a in apps]
 
 
-@router.post("/sessions/{sid}/applications")
-def create_application(sid: str, request: CreateApplicationRequest):
+# DISABLED: Duplicate route - use main API
+# @router.post("/sessions/{sid}/applications")
+def _legacy_create_application_phase2(sid: str, request: CreateApplicationRequestLegacy):
     _validate_session_id(sid)
     _validate_tenant_id(request.tenant_id)
     _validate_program_id(request.program_id)
@@ -495,8 +509,9 @@ def create_application(sid: str, request: CreateApplicationRequest):
     return _app_to_dict(app)
 
 
-@router.get("/sessions/{sid}/applications/{aid}")
-def get_application(sid: str, aid: str, tenant_id: str = Query(...)):
+# DISABLED: Duplicate route - use main API
+# @router.get("/sessions/{sid}/applications/{aid}")
+def _legacy_get_application_phase2(sid: str, aid: str, tenant_id: str = Query(...)):
     _validate_session_id(sid)
     _validate_application_id(aid)
     _validate_tenant_id(tenant_id)
@@ -526,7 +541,7 @@ def get_form_definition(form_id: str):
 # --- Fill endpoints ---
 
 @router.post("/sessions/{sid}/applications/{aid}/fill")
-def fill_form(sid: str, aid: str, request: FillFormRequest):
+def fill_form(sid: str, aid: str, request: FillFormRequestLegacy):
     _validate_session_id(sid)
     _validate_application_id(aid)
     _validate_tenant_id(request.tenant_id)
@@ -569,7 +584,7 @@ def get_filled_fields(sid: str, aid: str, tenant_id: str = Query(...)):
 # --- Review endpoints ---
 
 @router.post("/sessions/{sid}/applications/{aid}/review")
-def start_review(sid: str, aid: str, request: StartReviewRequest):
+def start_review(sid: str, aid: str, request: StartReviewRequestLegacy):
     _validate_session_id(sid)
     _validate_application_id(aid)
     _validate_tenant_id(request.tenant_id)
@@ -605,7 +620,7 @@ def get_review_status(sid: str, aid: str, tenant_id: str = Query(...)):
 
 
 @router.put("/sessions/{sid}/applications/{aid}/review")
-def submit_review(sid: str, aid: str, request: SubmitReviewRequest):
+def submit_review(sid: str, aid: str, request: SubmitReviewRequestLegacy):
     _validate_session_id(sid)
     _validate_application_id(aid)
     _validate_tenant_id(request.tenant_id)
@@ -722,8 +737,9 @@ def download_export(sid: str, aid: str, fmt: str, tenant_id: str = Query(...)):
 
 # --- Prerequisites endpoints ---
 
-@router.get("/prerequisites")
-def get_prerequisites(session_id: str = Query(...), tenant_id: str = Query(...)):
+# DISABLED: Duplicate route - use main API
+# @router.get("/prerequisites")
+def _legacy_get_prerequisites_session(session_id: str = Query(...), tenant_id: str = Query(...)):
     _validate_session_id(session_id)
     _validate_tenant_id(tenant_id)
 
