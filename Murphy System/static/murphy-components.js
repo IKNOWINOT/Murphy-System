@@ -37,15 +37,42 @@ class MurphyHeader extends HTMLElement {
         <div class="murphy-header-controls" id="mh-controls-${this._uid()}">
           <span class="status-pill status-idle" id="mh-api-${this._uid()}">● API</span>
           <span class="status-pill status-idle" id="mh-mfgc-${this._uid()}">● MFGC</span>
+          <a href="/ui/workspace" class="murphy-notif-bell" id="mh-notif-${this._uid()}" title="Notifications" style="position:relative;margin-left:8px;text-decoration:none;color:var(--text-secondary,#aaa);font-size:16px;cursor:pointer;">
+            🔔<span class="murphy-notif-badge" id="mh-notif-count-${this._uid()}" style="display:none;position:absolute;top:-6px;right:-8px;min-width:16px;height:16px;line-height:16px;text-align:center;border-radius:8px;background:#ff4444;color:#fff;font-size:9px;font-weight:700;padding:0 4px;">0</span>
+          </a>
         </div>
       </header>`;
 
     this._pollStatus(apiUrl);
+    this._pollNotifications(apiUrl);
   }
 
   _uid() {
     if (!this.__uid) this.__uid = Math.random().toString(36).slice(2, 7);
     return this.__uid;
+  }
+
+  _pollNotifications(apiUrl) {
+    const update = async () => {
+      try {
+        const userId = localStorage.getItem('murphy_user_id') || 'default';
+        const r = await fetch(`${apiUrl}/collaboration/notifications/${userId}/count`, { signal: AbortSignal.timeout(3000) });
+        if (!r.ok) return;
+        const d = await r.json();
+        const count = d.unread ?? d.count ?? 0;
+        const badge = this.querySelector(`[id^="mh-notif-count-"]`);
+        if (badge) {
+          if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : String(count);
+            badge.style.display = 'inline-block';
+          } else {
+            badge.style.display = 'none';
+          }
+        }
+      } catch { /* ignore — notifications are optional */ }
+    };
+    update();
+    setInterval(update, 30000);
   }
 
   _pollStatus(apiUrl) {
@@ -87,6 +114,17 @@ class MurphySidebar extends HTMLElement {
       { icon: '⊞', label: 'COSTS',        href: '/ui/terminal-costs' },
       { icon: '⋮', label: 'WORKFLOWS',    href: '/ui/workflow-canvas' },
       { icon: '🏭', label: 'PRODUCTION',   href: '/ui/production-wizard' },
+      { icon: '📈', label: 'TRADING',      href: '/ui/trading' },
+      { icon: '🛡', label: 'RISK',         href: '/ui/risk-dashboard' },
+      { icon: '📝', label: 'PAPER TRADE',  href: '/ui/paper-trading' },
+      { icon: '🎯', label: 'GRANTS',       href: '/ui/grant-wizard' },
+      { icon: '☑', label: 'COMPLIANCE',   href: '/ui/compliance' },
+      { icon: '📅', label: 'CALENDAR',     href: '/ui/calendar' },
+      { icon: '🧠', label: 'MEETINGS',     href: '/ui/meeting-intelligence' },
+      { icon: '⚡', label: 'AMBIENT',      href: '/ui/ambient' },
+      { icon: '💬', label: 'WORKSPACE',    href: '/ui/workspace' },
+      { icon: '🏘', label: 'COMMUNITY',    href: '/ui/community' },
+      { icon: '📋', label: 'MANAGEMENT',   href: '/ui/management' },
     ];
 
     const links = navItems.map(item => `
@@ -179,6 +217,17 @@ class MurphyCommandPalette extends HTMLElement {
       { icon:'◎', label:'Worker Terminal',          href:'/ui/terminal-worker',          shortcut:'' },
       { icon:'⊞', label:'Cost Dashboard',           href:'/ui/terminal-costs',           shortcut:'' },
       { icon:'⋮', label:'Workflow Builder',         href:'/ui/workflow-canvas', shortcut:'' },
+      { icon:'📈', label:'Trading Dashboard',       href:'/ui/trading',                  shortcut:'' },
+      { icon:'🛡', label:'Risk Dashboard',           href:'/ui/risk-dashboard',           shortcut:'' },
+      { icon:'📝', label:'Paper Trading',            href:'/ui/paper-trading',            shortcut:'' },
+      { icon:'🎯', label:'Grant Wizard',             href:'/ui/grant-wizard',             shortcut:'' },
+      { icon:'☑', label:'Compliance Settings',      href:'/ui/compliance',               shortcut:'' },
+      { icon:'📅', label:'Calendar',                 href:'/ui/calendar',                 shortcut:'' },
+      { icon:'🧠', label:'Meeting Intelligence',     href:'/ui/meeting-intelligence',     shortcut:'' },
+      { icon:'⚡', label:'Ambient Intelligence',     href:'/ui/ambient',                  shortcut:'' },
+      { icon:'💬', label:'Workspace',                href:'/ui/workspace',                shortcut:'' },
+      { icon:'🏘', label:'Community Forum',          href:'/ui/community',                shortcut:'' },
+      { icon:'📋', label:'Management',               href:'/ui/management',               shortcut:'' },
     ];
 
     this._selected = 0;
@@ -447,10 +496,12 @@ class MurphyAPI {
           data = await response.text();
         }
 
+        const parsed = this._parseResponse(data, response.status);
         if (!response.ok) {
-          return { ok: false, data, error: data?.error || data?.message || `HTTP ${response.status}`, status: response.status };
+          const errMsg = parsed?.error?.message || `HTTP ${response.status}`;
+          return { ok: false, data: parsed, error: errMsg, status: response.status };
         }
-        return { ok: true, data, error: null, status: response.status };
+        return { ok: true, data: parsed, error: null, status: response.status };
 
       } catch (err) {
         clearTimeout(timeoutId);
@@ -468,6 +519,34 @@ class MurphyAPI {
   _backoff(attempt) {
     const ms = Math.min(1000 * Math.pow(2, attempt), 8000);
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Normalise various backend error formats into the standard envelope.
+   * Handles: Flask {status/message}, FastAPI {detail}, custom {error/code},
+   * and the standard {success, data/error} envelope.
+   * @param {*} data  Parsed response body.
+   * @param {number} status HTTP status code.
+   * @returns {{success:boolean, data?:*, error?:{code:string,message:string}}}
+   */
+  _parseResponse(data, status) {
+    if (data === null || data === undefined) return { success: status < 400, data };
+    if (typeof data !== 'object') return { success: status < 400, data };
+    // Already standard envelope
+    if ('success' in data) return data;
+    // Flask legacy: { status: 'error', message: '...' }
+    if ('status' in data && data.status === 'error') {
+      return { success: false, error: { code: 'LEGACY_ERROR', message: data.message || 'Unknown error' } };
+    }
+    // FastAPI validation: { detail: '...' }
+    if ('detail' in data) {
+      return { success: false, error: { code: `HTTP_${status}`, message: String(data.detail) } };
+    }
+    // Custom: { error: '...', code: '...' }
+    if ('error' in data && typeof data.error === 'string') {
+      return { success: false, error: { code: data.code || 'ERROR', message: data.error } };
+    }
+    return { success: status < 400, data };
   }
 }
 
@@ -1154,7 +1233,7 @@ class MurphyTheme {
   }
 
   _apply() {
-    document.body.classList.remove('murphy-light');
+    /* Murphy System is dark-only; no action needed on theme class application. */
   }
 }
 
@@ -1831,7 +1910,65 @@ const MurphyMarkdown = {
  *  SECTION 3 — EXPORTS & GLOBALS
  * ═══════════════════════════════════════════════════════════════════ */
 
+/* ── MurphyWebSocket ──────────────────────────────────────────────── */
+/**
+ * WebSocket client with automatic reconnection and exponential backoff.
+ * Usage:
+ *   const ws = new MurphyWebSocket('/ws/terminal')
+ *     .on('message', data => console.log(data))
+ *     .connect();
+ */
+class MurphyWebSocket {
+  constructor(path, options = {}) {
+    this._path = path;
+    this._reconnectDelay = options.reconnectDelay || 3000;
+    this._maxReconnectDelay = options.maxReconnectDelay || 30000;
+    this._currentDelay = this._reconnectDelay;
+    this._handlers = { message: [], open: [], close: [], error: [] };
+    this._ws = null;
+    this._shouldReconnect = true;
+  }
+
+  /** Open the WebSocket connection. Returns `this` for chaining. */
+  connect() {
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    this._ws = new WebSocket(`${protocol}//${location.host}${this._path}`);
+    this._ws.onopen = (e) => { this._currentDelay = this._reconnectDelay; this._emit('open', e); };
+    this._ws.onmessage = (e) => {
+      let data = e.data;
+      try { data = JSON.parse(e.data); } catch (_) { /* leave as string */ }
+      this._emit('message', data);
+    };
+    this._ws.onclose = (e) => { this._emit('close', e); if (this._shouldReconnect) this._reconnect(); };
+    this._ws.onerror = (e) => { this._emit('error', e); };
+    return this;
+  }
+
+  /** Send a JSON-serialisable message. */
+  send(data) {
+    if (this._ws && this._ws.readyState === WebSocket.OPEN) {
+      this._ws.send(JSON.stringify(data));
+    }
+  }
+
+  /** Register an event handler. Returns `this` for chaining. */
+  on(event, handler) { (this._handlers[event] = this._handlers[event] || []).push(handler); return this; }
+
+  /** Close the connection and disable auto-reconnect. */
+  disconnect() { this._shouldReconnect = false; if (this._ws) this._ws.close(); }
+
+  _emit(event, data) { (this._handlers[event] || []).forEach(h => h(data)); }
+
+  _reconnect() {
+    setTimeout(() => {
+      this._currentDelay = Math.min(this._currentDelay * 1.5, this._maxReconnectDelay);
+      this.connect();
+    }, this._currentDelay);
+  }
+}
+
 window.MurphyAPI            = MurphyAPI;
+window.MurphyWebSocket      = MurphyWebSocket;
 window.MurphyToast          = MurphyToast;
 window.MurphyModal          = MurphyModal;
 window.MurphyHealth         = MurphyHealth;
