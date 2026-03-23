@@ -49,6 +49,7 @@ _MAX_AUDIT_LOG = 5_000
 
 class SubscriptionTier(str, enum.Enum):
     """Murphy System subscription tiers."""
+    FREE = "free"
     SOLO = "solo"
     BUSINESS = "business"
     PROFESSIONAL = "professional"
@@ -159,6 +160,22 @@ class SubscriptionRecord:
 # ---------------------------------------------------------------------------
 
 PRICING_PLANS: Dict[SubscriptionTier, PricingPlan] = {
+    SubscriptionTier.FREE: PricingPlan(
+        tier=SubscriptionTier.FREE,
+        name="Free",
+        monthly_price=0.00,
+        annual_price=0.00,
+        max_users=1,
+        max_automations=0,
+        features=[
+            "1 user",
+            "10 actions per day",
+            "Shadow agent actions and training (view only)",
+            "Crypto wallet",
+            "Community access",
+            "All system capabilities (10 uses/day)",
+        ],
+    ),
     SubscriptionTier.SOLO: PricingPlan(
         tier=SubscriptionTier.SOLO,
         name="Solo",
@@ -283,6 +300,13 @@ class SubscriptionManager:
         self._EVENT_DEDUP_WINDOW = 3600  # 1 hour
         self._MAX_DEDUP_ENTRIES = 50_000  # hard cap on dedup map (CWE-400)
         self._MAX_SUBSCRIPTIONS = 100_000  # hard cap on subscriptions map (CWE-400)
+
+        # Daily usage tracking: account_id -> {"date": "YYYY-MM-DD", "count": int}
+        self._daily_usage: Dict[str, Dict[str, Any]] = {}
+        # Anonymous usage tracking: ip_or_fingerprint -> {"date": "YYYY-MM-DD", "count": int}
+        self._anon_usage: Dict[str, Dict[str, Any]] = {}
+        self._ANON_DAILY_LIMIT = 5
+        self._FREE_DAILY_LIMIT = 10
 
     # ------------------------------------------------------------------
     # Stripe
@@ -714,6 +738,31 @@ class SubscriptionManager:
     # Feature availability by tier — controls what each tier can access.
     # True = available, False = locked.
     TIER_FEATURES: Dict[SubscriptionTier, Dict[str, bool]] = {
+        SubscriptionTier.FREE: {
+            "terminal_access": True,
+            "basic_compliance": False,
+            "advanced_compliance": False,
+            "all_compliance_frameworks": False,
+            "api_access": False,
+            "webhooks": False,
+            "integrations_core": False,
+            "integrations_all": False,
+            "shadow_agent_training": True,   # view/train but not sell
+            "shadow_agent_sell": False,       # requires subscription to sell
+            "hitl_graduation": False,
+            "hitl_automations": False,        # requires subscription
+            "white_label": False,
+            "dedicated_onboarding": False,
+            "sla_guaranteed": False,
+            "production_wizard": True,
+            "workflow_canvas": True,
+            "matrix_bridge": False,
+            "custom_workflows": False,
+            "priority_support": False,
+            "crypto_wallet": True,            # free crypto wallet
+            "daily_action_limit": 10,         # 10 actions per day for free
+            "can_create_org": False,          # requires Professional or higher
+        },
         SubscriptionTier.SOLO: {
             "terminal_access": True,
             "basic_compliance": True,      # GDPR, SOC2 only
@@ -733,6 +782,7 @@ class SubscriptionManager:
             "matrix_bridge": False,
             "custom_workflows": False,
             "priority_support": False,
+            "can_create_org": False,          # requires Professional or higher
         },
         SubscriptionTier.BUSINESS: {
             "terminal_access": True,
@@ -753,6 +803,7 @@ class SubscriptionManager:
             "matrix_bridge": True,
             "custom_workflows": True,
             "priority_support": True,
+            "can_create_org": False,          # requires Professional or higher
         },
         SubscriptionTier.PROFESSIONAL: {
             "terminal_access": True,
@@ -773,6 +824,7 @@ class SubscriptionManager:
             "matrix_bridge": True,
             "custom_workflows": True,
             "priority_support": True,
+            "can_create_org": True,           # Professional+ can create organizations
         },
         SubscriptionTier.ENTERPRISE: {
             "terminal_access": True,
@@ -793,6 +845,7 @@ class SubscriptionManager:
             "matrix_bridge": True,
             "custom_workflows": True,
             "priority_support": True,
+            "can_create_org": True,           # Professional+ can create organizations
         },
     }
 
@@ -929,6 +982,24 @@ class SubscriptionManager:
     # Internal helpers
     # ------------------------------------------------------------------
 
+    def start_trial(self, account_id: str, tier: SubscriptionTier) -> "SubscriptionRecord":
+        """Start a 14-day free trial for an account without requiring payment.
+
+        Creates (or updates) a TRIAL subscription record for the given tier.
+        Enterprise tier is not available for self-service trials.
+        """
+        if tier == SubscriptionTier.ENTERPRISE:
+            raise ValueError("Enterprise requires custom pricing — contact sales@murphy.ai")
+        sub = self._upsert_subscription(
+            account_id=account_id,
+            tier=tier,
+            status=SubscriptionStatus.TRIAL,
+            provider=PaymentProvider.STRIPE,
+            external_id="",
+        )
+        self._audit("trial_started", account_id, {"tier": tier.value, "trial_days": _TRIAL_DAYS})
+        return sub
+
     def _upsert_subscription(
         self,
         account_id: str,
@@ -1020,3 +1091,110 @@ class SubscriptionManager:
         """Return a copy of the audit log."""
         with self._lock:
             return list(self._audit_log)
+
+    # ------------------------------------------------------------------
+    # Daily usage tracking
+    # ------------------------------------------------------------------
+
+    def record_usage(self, account_id: str) -> Dict[str, Any]:
+        """Record a daily action for an account and return usage info.
+
+        Returns dict with ``allowed``, ``remaining``, ``limit``, ``used``.
+        """
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        sub = self.get_subscription(account_id)
+        is_free = sub is None or sub.tier == SubscriptionTier.FREE
+        limit = self._FREE_DAILY_LIMIT if is_free else -1  # -1 = unlimited
+
+        with self._lock:
+            entry = self._daily_usage.get(account_id, {"date": "", "count": 0})
+            if entry["date"] != today:
+                entry = {"date": today, "count": 0}
+            used = entry["count"]
+            if limit != -1 and used >= limit:
+                return {
+                    "allowed": False,
+                    "remaining": 0,
+                    "limit": limit,
+                    "used": used,
+                    "tier": sub.tier.value if sub else "free",
+                    "message": f"Daily limit of {limit} actions reached. Upgrade for unlimited access.",
+                }
+            entry["count"] = used + 1
+            self._daily_usage[account_id] = entry
+            remaining = (limit - entry["count"]) if limit != -1 else -1
+            return {
+                "allowed": True,
+                "remaining": remaining,
+                "limit": limit,
+                "used": entry["count"],
+                "tier": sub.tier.value if sub else "free",
+            }
+
+    def record_anon_usage(self, fingerprint: str) -> Dict[str, Any]:
+        """Record a daily action for an anonymous visitor.
+
+        Anonymous visitors get 5 actions per day.
+        """
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        limit = self._ANON_DAILY_LIMIT
+
+        with self._lock:
+            # Evict stale (non-today) entries to prevent memory exhaustion (CWE-400)
+            if len(self._anon_usage) > 100_000:
+                stale = [k for k, v in self._anon_usage.items() if v.get("date") != today]
+                for k in stale:
+                    del self._anon_usage[k]
+                # If still too large after evicting stale, drop oldest half
+                if len(self._anon_usage) > 100_000:
+                    keys = list(self._anon_usage.keys())[:len(self._anon_usage) // 2]
+                    for k in keys:
+                        del self._anon_usage[k]
+
+            entry = self._anon_usage.get(fingerprint, {"date": "", "count": 0})
+            if entry["date"] != today:
+                entry = {"date": today, "count": 0}
+            used = entry["count"]
+            if used >= limit:
+                return {
+                    "allowed": False,
+                    "remaining": 0,
+                    "limit": limit,
+                    "used": used,
+                    "tier": "anonymous",
+                    "message": f"Anonymous daily limit of {limit} reached. Sign up free for {self._FREE_DAILY_LIMIT} daily actions.",
+                }
+            entry["count"] = used + 1
+            self._anon_usage[fingerprint] = entry
+            return {
+                "allowed": True,
+                "remaining": limit - entry["count"],
+                "limit": limit,
+                "used": entry["count"],
+                "tier": "anonymous",
+            }
+
+    def get_daily_usage(self, account_id: str) -> Dict[str, Any]:
+        """Return current daily usage for an account."""
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        sub = self.get_subscription(account_id)
+        is_free = sub is None or sub.tier == SubscriptionTier.FREE
+        limit = self._FREE_DAILY_LIMIT if is_free else -1
+
+        with self._lock:
+            entry = self._daily_usage.get(account_id, {"date": "", "count": 0})
+            tier_val = sub.tier.value if sub else "free"
+            if entry["date"] != today:
+                return {
+                    "used": 0,
+                    "limit": limit,
+                    "remaining": limit if limit != -1 else -1,
+                    "tier": tier_val,
+                }
+            remaining = (limit - entry["count"]) if limit != -1 else -1
+            return {
+                "used": entry["count"],
+                "limit": limit,
+                "remaining": remaining,
+                "tier": tier_val,
+            }
