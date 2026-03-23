@@ -7713,6 +7713,314 @@ def create_app() -> FastAPI:
         page = entries[offset: offset + limit]
         return JSONResponse({"success": True, "entries": page, "total": total, "offset": offset, "limit": limit})
 
+    # ==================== ORG PORTAL (MEMBER-LEVEL SELF-SERVICE) ====================
+    # Self-service org management for members and org-admins.
+    # A caller can only access the org they belong to — they never see other orgs.
+    #
+    # Roles inside an org:
+    #   org_owner  — can change settings, manage all members, delete the org
+    #   org_admin  — can invite/remove members and change member roles
+    #   member     — read-only view of org info, members, channels, activity
+    #
+    # Each org record in _org_store may have an `org_roles` dict:
+    #   { account_id: "org_owner"|"org_admin"|"member" }
+
+    _org_activity_log: "Dict[str, List[Dict[str, Any]]]" = {}  # org_id → events
+
+    def _get_org_role(org: "Dict[str, Any]", account_id: str) -> "Optional[str]":
+        """Return the caller's role within the org, or None if not a member."""
+        roles = org.get("org_roles", {})
+        if account_id in roles:
+            return roles[account_id]
+        # Fall back: check members list (legacy records have no roles dict)
+        if account_id in org.get("members", []):
+            return "member"
+        # The org owner_id always has org_owner role
+        if account_id == org.get("owner_id"):
+            return "org_owner"
+        return None
+
+    def _require_org_member(request: "Request", org_id: str) -> "Optional[tuple]":
+        """Return (account, org, org_role) if the caller belongs to this org.
+
+        Returns None if unauthenticated, org not found, or caller not a member.
+        """
+        account = _get_account_from_session(request)
+        if account is None:
+            return None
+        org = _org_store.get(org_id)
+        if org is None:
+            return None
+        role = _get_org_role(org, account["account_id"])
+        if role is None:
+            # Platform admins can always view any org
+            if account.get("role") in ("admin", "owner"):
+                role = "platform_admin"
+            else:
+                return None
+        return account, org, role
+
+    def _org_log(org_id: str, actor_id: str, action: str, detail: "Dict[str, Any]") -> None:
+        """Append an event to the org's activity log."""
+        import uuid as _uuid
+        if org_id not in _org_activity_log:
+            _org_activity_log[org_id] = []
+        _org_activity_log[org_id].append({
+            "id": _uuid.uuid4().hex[:10],
+            "actor_id": actor_id,
+            "action": action,
+            "detail": detail,
+            "ts": _now_iso(),
+        })
+
+    # ── Org portal endpoints ────────────────────────────────────────────────
+
+    @app.get("/api/org/portal/{org_id}")
+    async def org_portal_get(org_id: str, request: Request):
+        """Get the calling user's view of an organisation.
+
+        Returns org metadata, member count, channel count, plan, and the
+        caller's role within the org.  Callers must be members (or platform
+        admins) — they never see other orgs' data via this endpoint.
+        """
+        result = _require_org_member(request, org_id)
+        if result is None:
+            return JSONResponse({"error": "Not a member of this organization"}, status_code=403)
+        account, org, caller_role = result
+
+        channels = [c for c in _community_channels.values() if c.get("org_id") == org_id]
+        members = org.get("members", [])
+        pending = _org_memberships.get(org_id, {}).get("pending", [])
+
+        return JSONResponse({
+            "success": True,
+            "org": {
+                "org_id": org_id,
+                "name": org.get("name", ""),
+                "slug": org.get("slug", ""),
+                "description": org.get("description", ""),
+                "plan": org.get("plan", "free"),
+                "status": org.get("status", "active"),
+                "created_at": org.get("created_at", ""),
+                "owner_id": org.get("owner_id", ""),
+            },
+            "stats": {
+                "member_count": len(members),
+                "channel_count": len(channels),
+                "pending_invites": len(pending),
+                "activity_events": len(_org_activity_log.get(org_id, [])),
+            },
+            "caller_role": caller_role,
+        })
+
+    @app.get("/api/org/portal/{org_id}/members")
+    async def org_portal_members(org_id: str, request: Request):
+        """List members of the org with their roles.
+
+        Only accessible to members of this specific org.
+        """
+        result = _require_org_member(request, org_id)
+        if result is None:
+            return JSONResponse({"error": "Not a member of this organization"}, status_code=403)
+        account, org, caller_role = result
+
+        members = []
+        for uid in org.get("members", []):
+            user = _user_store.get(uid)
+            role_in_org = _get_org_role(org, uid) or "member"
+            members.append({
+                "account_id": uid,
+                "email": user.get("email", "") if user else uid,
+                "full_name": user.get("full_name", "") if user else "",
+                "role": role_in_org,
+                "status": user.get("status", "active") if user else "unknown",
+                "joined_at": "",  # future: track join date
+            })
+
+        pending = _org_memberships.get(org_id, {}).get("pending", [])
+        return JSONResponse({
+            "success": True,
+            "org_id": org_id,
+            "members": members,
+            "pending_invites": pending,
+            "total": len(members),
+            "caller_role": caller_role,
+        })
+
+    @app.post("/api/org/portal/{org_id}/members/invite")
+    async def org_portal_invite(org_id: str, request: Request):
+        """Invite a user to the org by email or account_id.
+
+        Requires org_admin, org_owner, or platform admin.
+        """
+        result = _require_org_member(request, org_id)
+        if result is None:
+            return JSONResponse({"error": "Not a member of this organization"}, status_code=403)
+        account, org, caller_role = result
+
+        if caller_role not in ("org_admin", "org_owner", "platform_admin"):
+            return JSONResponse({"error": "Org admin role required"}, status_code=403)
+
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
+        invitee_email = (data.get("email") or "").strip().lower()
+        invitee_id = data.get("user_id", "")
+
+        # Resolve by email if no user_id given
+        if not invitee_id and invitee_email:
+            invitee_id = _email_to_account.get(invitee_email, "")
+
+        if not invitee_id and not invitee_email:
+            return JSONResponse({"error": "Provide email or user_id"}, status_code=400)
+
+        if org_id not in _org_memberships:
+            _org_memberships[org_id] = {"members": [], "moderators": [], "pending": []}
+
+        label = invitee_id or invitee_email
+        _org_memberships[org_id]["pending"].append({
+            "user": label,
+            "email": invitee_email,
+            "user_id": invitee_id,
+            "at": _now_iso(),
+            "invited_by": account["account_id"],
+        })
+        _org_log(org_id, account["account_id"], "member_invited", {"invitee": label})
+        return JSONResponse({"success": True, "org_id": org_id, "invited": label})
+
+    @app.delete("/api/org/portal/{org_id}/members/{user_id}")
+    async def org_portal_remove_member(org_id: str, user_id: str, request: Request):
+        """Remove a member from the org.
+
+        Requires org_admin, org_owner, or platform admin.
+        Cannot remove the org owner.
+        """
+        result = _require_org_member(request, org_id)
+        if result is None:
+            return JSONResponse({"error": "Not a member of this organization"}, status_code=403)
+        account, org, caller_role = result
+
+        if caller_role not in ("org_admin", "org_owner", "platform_admin"):
+            return JSONResponse({"error": "Org admin role required"}, status_code=403)
+        if user_id == org.get("owner_id") and caller_role != "platform_admin":
+            return JSONResponse({"error": "Cannot remove the org owner"}, status_code=400)
+
+        if user_id in org.get("members", []):
+            org["members"].remove(user_id)
+        # Clean up roles entry
+        org.get("org_roles", {}).pop(user_id, None)
+
+        _org_log(org_id, account["account_id"], "member_removed", {"user_id": user_id})
+        return JSONResponse({"success": True, "org_id": org_id, "user_id": user_id, "member_count": len(org.get("members", []))})
+
+    @app.patch("/api/org/portal/{org_id}/members/{user_id}/role")
+    async def org_portal_update_member_role(org_id: str, user_id: str, request: Request):
+        """Change a member's role within the org.
+
+        Requires org_owner or platform admin.
+        Valid roles: org_owner, org_admin, member.
+        """
+        result = _require_org_member(request, org_id)
+        if result is None:
+            return JSONResponse({"error": "Not a member of this organization"}, status_code=403)
+        account, org, caller_role = result
+
+        if caller_role not in ("org_owner", "platform_admin"):
+            return JSONResponse({"error": "Org owner role required"}, status_code=403)
+
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
+        new_role = data.get("role", "")
+        if new_role not in ("org_owner", "org_admin", "member"):
+            return JSONResponse({"error": "Invalid role. Use: org_owner, org_admin, member"}, status_code=400)
+
+        if user_id not in org.get("members", []):
+            return JSONResponse({"error": "User is not a member of this org"}, status_code=404)
+
+        if "org_roles" not in org:
+            org["org_roles"] = {}
+        org["org_roles"][user_id] = new_role
+
+        _org_log(org_id, account["account_id"], "member_role_changed", {"user_id": user_id, "new_role": new_role})
+        return JSONResponse({"success": True, "org_id": org_id, "user_id": user_id, "role": new_role})
+
+    @app.get("/api/org/portal/{org_id}/channels")
+    async def org_portal_channels(org_id: str, request: Request):
+        """List channels scoped to this org.
+
+        Only accessible to members of this specific org.
+        """
+        result = _require_org_member(request, org_id)
+        if result is None:
+            return JSONResponse({"error": "Not a member of this organization"}, status_code=403)
+        _account, org, caller_role = result
+
+        channels = [c for c in _community_channels.values() if c.get("org_id") == org_id]
+        return JSONResponse({
+            "success": True,
+            "org_id": org_id,
+            "channels": channels,
+            "total": len(channels),
+            "caller_role": caller_role,
+        })
+
+    @app.get("/api/org/portal/{org_id}/activity")
+    async def org_portal_activity(org_id: str, request: Request):
+        """Return recent activity events for this org (newest first).
+
+        Only accessible to members of this specific org.
+        """
+        result = _require_org_member(request, org_id)
+        if result is None:
+            return JSONResponse({"error": "Not a member of this organization"}, status_code=403)
+        _account, org, caller_role = result
+
+        limit = min(int(request.query_params.get("limit", "50")), 200)
+        offset = int(request.query_params.get("offset", "0"))
+        events = list(reversed(_org_activity_log.get(org_id, [])))
+        total = len(events)
+        return JSONResponse({
+            "success": True,
+            "org_id": org_id,
+            "events": events[offset: offset + limit],
+            "total": total,
+            "caller_role": caller_role,
+        })
+
+    @app.patch("/api/org/portal/{org_id}/settings")
+    async def org_portal_update_settings(org_id: str, request: Request):
+        """Update org name and/or description.
+
+        Requires org_admin, org_owner, or platform admin.
+        """
+        result = _require_org_member(request, org_id)
+        if result is None:
+            return JSONResponse({"error": "Not a member of this organization"}, status_code=403)
+        account, org, caller_role = result
+
+        if caller_role not in ("org_admin", "org_owner", "platform_admin"):
+            return JSONResponse({"error": "Org admin role required"}, status_code=403)
+
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
+        changes: "Dict[str, Any]" = {}
+        for field_name in ("name", "description"):
+            if field_name in data:
+                org[field_name] = data[field_name]
+                changes[field_name] = data[field_name]
+
+        org["updated_at"] = _now_iso()
+        _org_log(org_id, account["account_id"], "settings_updated", changes)
+        return JSONResponse({"success": True, "org_id": org_id, "changes": changes})
+
     # ==================== REVIEW AUTOMATION ENGINE ====================
 
     @app.post("/api/automation/review-response")
@@ -8115,6 +8423,7 @@ def create_app() -> FastAPI:
             "/ui/financing": "financing_options.html",
             "/ui/comms-hub": "communication_hub.html",
             "/ui/admin": "admin_panel.html",
+            "/ui/org-portal": "org_portal.html",
         }
 
         # ── Route classification: public vs auth-required ──────────
