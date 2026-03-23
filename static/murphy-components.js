@@ -423,6 +423,8 @@ class MurphyAPI {
         const key = localStorage.getItem('murphy_api_key');
         if (key) headers['X-API-Key'] = key;
       }
+      const userId = localStorage.getItem('murphy_user_id');
+      if (userId) headers['X-User-ID'] = userId.replace(/[\r\n]/g, '');
     } catch { /* localStorage unavailable */ }
     return headers;
   }
