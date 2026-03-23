@@ -316,6 +316,88 @@ python tests/test_load.py
 
 ## Production Deployment
 
+### ⚡ First-Time Hetzner Server Setup
+
+Before running `hetzner_load.sh` for the first time, complete these one-time
+setup steps on the server:
+
+#### 1 — Clone the repository
+
+```bash
+git clone https://github.com/IKNOWINOT/Murphy-System /opt/Murphy-System
+cd /opt/Murphy-System
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements_murphy_1.0.txt
+```
+
+#### 2 — Create the production environment file
+
+The environment file holds all secrets and connection strings for every
+subsystem. A complete template is provided in the repo:
+
+```bash
+sudo mkdir -p /etc/murphy-production
+sudo cp /opt/Murphy-System/config/murphy-production.environment.example \
+        /etc/murphy-production/environment
+sudo nano /etc/murphy-production/environment   # fill in real secrets
+sudo chmod 600 /etc/murphy-production/environment
+sudo useradd -r -s /bin/false murphy 2>/dev/null || true
+sudo chown murphy:murphy /etc/murphy-production/environment
+```
+
+Generate strong secrets:
+```bash
+python3 -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+#### 3 — Install the systemd service unit
+
+```bash
+sudo cp /opt/Murphy-System/config/systemd/murphy-production.service \
+        /etc/systemd/system/murphy-production.service
+sudo systemctl daemon-reload
+sudo systemctl enable murphy-production
+```
+
+#### 4 — Install nginx and the vhost config
+
+```bash
+sudo apt-get install -y nginx
+sudo cp /opt/Murphy-System/config/nginx/murphy-production.conf \
+        /etc/nginx/sites-available/murphy-production
+# Edit server_name to your actual domain:
+sudo nano /etc/nginx/sites-available/murphy-production
+sudo ln -sf /etc/nginx/sites-available/murphy-production \
+            /etc/nginx/sites-enabled/murphy-production
+sudo nginx -t && sudo systemctl enable nginx
+```
+
+Get a free TLS certificate with Let's Encrypt:
+```bash
+sudo apt-get install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d murphy.systems -d mail.murphy.systems
+```
+
+#### 5 — Install Docker Engine + Compose plugin
+
+```bash
+curl -fsSL https://get.docker.com | sh
+# Verify:
+docker compose version
+```
+
+#### 6 — Run the full-stack load
+
+Once steps 1–5 are complete, **everything from this point forward** is handled
+by a single command:
+
+```bash
+bash /opt/Murphy-System/scripts/hetzner_load.sh
+```
+
+---
+
 ### Step 1: Prepare Environment
 
 ```bash
@@ -793,55 +875,66 @@ The recommended way to deploy new code is to push to `main` — the
 `Build & Deploy to Hetzner` GitHub Actions workflow will SSH into the
 production server and run the update automatically.
 
-#### ⚡ One-Command Hetzner Load (recommended for manual updates)
+#### ⚡ One-Command Hetzner Full-Stack Load (recommended for manual updates)
 
-Use the built-in `hetzner_load.sh` script to pull the latest code, reload
-the environment, update dependencies, ensure Ollama is running, and restart
-Murphy in a single command:
+This single command brings **every subsystem** up-to-date and running:
 
 ```bash
 bash /opt/Murphy-System/scripts/hetzner_load.sh
 ```
 
-This is **the command** to run on Hetzner whenever you need to bring the
-server fully up-to-date. It performs all steps in order:
+What it does in order:
 
 1. `git pull origin main` — latest code
-2. `pip install --upgrade -r requirements_murphy_1.0.txt` — latest deps
-3. Ensure Ollama is installed, enabled, and the configured model is pulled
-4. `systemctl restart murphy-production` — hot-reload with new commit SHA
-5. Health-check `http://localhost:8000/api/health` and Ollama
+2. `pip install --upgrade` — latest Python dependencies
+3. Audit `/etc/murphy-production/environment` — warn on missing connection vars
+4. nginx — ensure reverse proxy is running and vhost config is loaded
+5. ollama — ensure onboard LLM is running; pull model if needed
+6. `docker compose -f docker-compose.hetzner.yml up -d` — start all support services:
+   PostgreSQL, Redis, Prometheus, Grafana, Mailserver (Postfix+Dovecot), Webmail (Roundcube)
+7. `scripts/mail_setup.sh` — provision mailboxes (idempotent)
+8. `systemctl restart murphy-production` — hot-reload Murphy with new commit SHA
+9. Health-check every subsystem and print a summary
 
 **Common flags:**
 
 ```bash
-# Fastest restart — skip dependency update (code-only change)
+# Fastest restart — skip pip and Docker pull (code-only change)
 bash /opt/Murphy-System/scripts/hetzner_load.sh --skip-deps
 
-# Skip Ollama check (Ollama already healthy)
-bash /opt/Murphy-System/scripts/hetzner_load.sh --skip-ollama
+# Skip Docker services (already healthy — don't restart them)
+bash /opt/Murphy-System/scripts/hetzner_load.sh --skip-docker
 
-# Silent restart — skip the post-restart health probe
-bash /opt/Murphy-System/scripts/hetzner_load.sh --no-health-check
+# Skip Ollama (already running)
+bash /opt/Murphy-System/scripts/hetzner_load.sh --skip-ollama
 
 # Show all options
 bash /opt/Murphy-System/scripts/hetzner_load.sh --help
 ```
 
-**Environment overrides** (set as shell variables before running):
+**Environment overrides:**
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `MURPHY_REPO_DIR` | `/opt/Murphy-System` | Path to the git repository |
 | `MURPHY_SERVICE` | `murphy-production` | systemd service name |
-| `MURPHY_VENV` | `${MURPHY_REPO_DIR}/venv` | Path to the Python virtualenv |
+| `MURPHY_VENV` | `${MURPHY_REPO_DIR}/venv` | Python virtualenv path |
+| `MURPHY_COMPOSE_FILE` | `docker-compose.hetzner.yml` | Compose file for support services |
+| `MURPHY_ENV_FILE` | `/etc/murphy-production/environment` | Secrets and connection strings |
 | `OLLAMA_MODEL` | `phi3` | Ollama model to ensure is pulled |
-| `MURPHY_PORT` | `8000` | Murphy HTTP port for health check |
 
 Example with overrides:
 ```bash
 OLLAMA_MODEL=llama3 bash /opt/Murphy-System/scripts/hetzner_load.sh
 ```
+
+**Config templates (already in the repo — copy and fill in before first run):**
+
+| Template file | Install to |
+|---------------|------------|
+| `config/murphy-production.environment.example` | `/etc/murphy-production/environment` |
+| `config/nginx/murphy-production.conf` | `/etc/nginx/sites-available/murphy-production` |
+| `config/systemd/murphy-production.service` | `/etc/systemd/system/murphy-production.service` |
 
 #### Manual step-by-step update
 
