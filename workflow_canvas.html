@@ -481,8 +481,13 @@
       selectedNodes = nodes;
       if (nodes.length === 1) {
         showConfigPanel(nodes[0]);
+        hideSelectionSummary();
+      } else if (nodes.length > 1) {
+        hideConfigPanel();
+        showSelectionSummary(nodes);
       } else {
         hideConfigPanel();
+        hideSelectionSummary();
       }
     });
 
@@ -502,7 +507,86 @@
     $configClose.addEventListener('click', function () {
       interaction.deselectAll();
       hideConfigPanel();
+      hideSelectionSummary();
     });
+
+    /* ── Multi-node selection summary panel ─────────────── */
+    var $selSummary = (function () {
+      var el = document.createElement('div');
+      el.id = 'selection-summary';
+      el.style.cssText = [
+        'position:absolute', 'bottom:var(--space-4)', 'left:50%',
+        'transform:translateX(-50%) translateY(120%)',
+        'transition:transform 0.25s ease',
+        'background:var(--bg-surface)', 'border:1px solid var(--border-default)',
+        'border-radius:var(--radius-md)', 'padding:var(--space-3) var(--space-4)',
+        'box-shadow:var(--shadow-lg)', 'z-index:200',
+        'min-width:320px', 'max-width:560px',
+      ].join(';');
+      var parent = document.querySelector('.murphy-canvas-wrap');
+      if (parent) { parent.appendChild(el); } else { document.body.appendChild(el); }
+      return el;
+    })();
+
+    function showSelectionSummary(nodes) {
+      var types = {};
+      nodes.forEach(function (n) {
+        var t = n.type || 'action';
+        types[t] = (types[t] || 0) + 1;
+      });
+      var typeSummary = Object.keys(types).map(function (t) {
+        return types[t] + ' ' + t;
+      }).join(', ');
+
+      var hasHITL = nodes.some(function (n) {
+        return n.type === 'approval' || (n.data && n.data.subtype === 'approval');
+      });
+
+      var html = '<div style="display:flex;align-items:center;justify-content:space-between;gap:var(--space-4)">';
+      html += '<div>';
+      html += '<div style="font-weight:600;color:var(--text-primary);margin-bottom:var(--space-1)">';
+      html += nodes.length + ' nodes selected</div>';
+      html += '<div style="font-size:0.8rem;color:var(--text-muted)">' + escapeHTML(typeSummary) + '</div>';
+      if (hasHITL) {
+        html += '<div style="font-size:0.75rem;color:var(--color-warning);margin-top:var(--space-1)">⚠ Contains HITL approval gates</div>';
+      }
+      html += '</div>';
+      html += '<div style="display:flex;gap:var(--space-2)">';
+      html += '<button class="murphy-btn murphy-btn-sm murphy-btn-secondary" id="sel-summary-hitl">✋ Review in HITL</button>';
+      html += '<button class="murphy-btn murphy-btn-sm murphy-btn-ghost" id="sel-summary-close">✕</button>';
+      html += '</div></div>';
+      $selSummary.innerHTML = html;
+      $selSummary.style.transform = 'translateX(-50%) translateY(0)';
+
+      var $hitlBtn = document.getElementById('sel-summary-hitl');
+      if ($hitlBtn) {
+        $hitlBtn.addEventListener('click', function () {
+          reviewSelectionInHITL(nodes);
+        });
+      }
+      var $closeBtn = document.getElementById('sel-summary-close');
+      if ($closeBtn) {
+        $closeBtn.addEventListener('click', function () {
+          interaction.deselectAll();
+          hideSelectionSummary();
+        });
+      }
+    }
+
+    function hideSelectionSummary() {
+      $selSummary.style.transform = 'translateX(-50%) translateY(120%)';
+    }
+
+    function reviewSelectionInHITL(nodes) {
+      var lines = ['🔍 HITL Review — ' + nodes.length + ' nodes selected:'];
+      nodes.forEach(function (n, i) {
+        lines.push('  ' + (i + 1) + '. [' + (n.type || 'action') + '] ' + (n.label || n.id));
+      });
+      lines.push('');
+      lines.push('To raise an objection or approve, visit the HITL panel or type "object: <reason>" here.');
+      terminal.output(lines.join('\n'));
+      hideSelectionSummary();
+    }
 
     /* ── Config form builder ────────────────────────────── */
     function renderConfigForm(node) {
@@ -622,37 +706,143 @@
     }
 
     /* ── Natural language input ─────────────────────────── */
+
+    /* Robot-meeting state: follow-up questions queue */
+    var _robotMeeting = null;
+
+    function startRobotMeeting(description, wf, meta) {
+      var questions = [];
+      var descLower = description.toLowerCase();
+      var sched = wf.schedule || {};
+
+      /* Ask about schedule only if on_demand (no time keyword found) */
+      if (sched.interval === 'on_demand') {
+        questions.push({
+          key: 'schedule',
+          text: '🤖 When should this run? (e.g. "daily at 9am", "every Monday", or "on demand")',
+        });
+      }
+      /* Ask about target/output if unclear */
+      if (!/send|email|slack|notify|report|export|save|store|upload/.test(descLower)) {
+        questions.push({
+          key: 'output',
+          text: '🤖 Where should the results go? (e.g. "send to Slack #ops", "email team@co.com", or "save to database")',
+        });
+      }
+      /* Ask about data source if not mentioned */
+      if (!/from|source|database|api|csv|sheet|file|crm|salesforce|hubspot/.test(descLower)) {
+        questions.push({
+          key: 'source',
+          text: '🤖 What data source should this use? (e.g. "our CRM", "Postgres database", "CSV uploads")',
+        });
+      }
+
+      if (questions.length === 0) return;
+
+      _robotMeeting = { questions: questions, idx: 0, answers: {}, wf: wf, description: description };
+      terminal.output('');
+      terminal.output('🤖 Robot Meeting — Murphy has ' + questions.length + ' quick question(s) before finalising:');
+      terminal.output(questions[0].text);
+      $nlInput.value = '';
+      $nlInput.placeholder = 'Answer Murphy's question…';
+      $nlInput.disabled = false;
+    }
+
+    function advanceRobotMeeting(answer) {
+      if (!_robotMeeting) return false;
+      var rm = _robotMeeting;
+      var q  = rm.questions[rm.idx];
+      rm.answers[q.key] = answer;
+      terminal.output('  ↳ ' + answer);
+      rm.idx++;
+
+      if (rm.idx < rm.questions.length) {
+        terminal.output(rm.questions[rm.idx].text);
+        return true;
+      }
+
+      /* All questions answered — summarise and close meeting */
+      terminal.output('');
+      terminal.output('✅ Robot Meeting complete. Workflow finalised with your input:');
+      Object.keys(rm.answers).forEach(function (k) {
+        terminal.output('  • ' + k + ': ' + rm.answers[k]);
+      });
+      if (rm.answers.schedule) {
+        terminal.output('📅 Note: Schedule preference recorded — the platform will apply it on save.');
+      }
+      terminal.output('');
+      _robotMeeting = null;
+      $nlInput.placeholder = 'Describe a workflow in plain English…';
+      return true;
+    }
+
     $nlInput.addEventListener('keydown', function (e) {
       if (e.key !== 'Enter') return;
       var query = $nlInput.value.trim();
       if (!query) return;
 
-      $nlInput.disabled = true;
-      terminal.output('⏳ Interpreting: "' + query + '"…');
+      /* If a robot meeting is in progress, answer the current question */
+      if (_robotMeeting) {
+        advanceRobotMeeting(query);
+        $nlInput.value = '';
+        return;
+      }
 
-      api.post('/librarian/ask', { query: query, context: 'workflow_canvas' })
+      $nlInput.disabled = true;
+      terminal.output('⏳ Generating workflow: "' + query + '"…');
+
+      api.post('/api/workflows/generate', { description: query })
         .then(function (res) {
           $nlInput.disabled = false;
           if (!res.ok) {
-            terminal.output('✗ ' + (res.error || 'Failed to reach Librarian'));
+            terminal.output('✗ ' + (res.error || 'Workflow generation failed'));
             return;
           }
           var data = res.data;
+          if (!data.success) {
+            terminal.output('✗ ' + (data.error || 'Workflow generation failed'));
+            return;
+          }
 
-          /* Attempt to parse structured workflow from response */
-          var workflow = data.workflow || data.nodes;
-          if (workflow && Array.isArray(workflow)) {
-            importNLWorkflow(workflow, data.edges || []);
-            terminal.output('✓ Created ' + workflow.length + ' node(s) from description.');
+          var wf    = data.workflow || {};
+          var nodes = wf.nodes || [];
+
+          /* Build edges from step depends_on relationships */
+          var edges = [];
+          nodes.forEach(function (nd) {
+            var rawDeps = (nd.data && nd.data.depends_on);
+            var deps = Array.isArray(rawDeps) ? rawDeps : [];
+            deps.forEach(function (dep) {
+              edges.push({ source: dep, target: nd.id });
+            });
+          });
+
+          if (nodes.length > 0) {
+            importNLWorkflow(nodes, edges);
+            terminal.output('✓ Created ' + nodes.length + ' node(s): ' + (wf.name || 'workflow'));
+
+            /* Schedule info */
+            var sched = wf.schedule || {};
+            if (sched.interval && sched.interval !== 'on_demand') {
+              terminal.output('📅 Schedule: ' + sched.interval + (sched.cron ? ' (' + sched.cron + ')' : ''));
+            }
+
+            /* API integration suggestions */
+            var apis = wf.api_suggestions || [];
+            if (apis.length > 0) {
+              terminal.output('🔌 Suggested integrations: ' + apis.map(function (a) { return a.name; }).join(', '));
+            }
+
+            /* Start robot meeting for any ambiguous aspects */
+            startRobotMeeting(query, wf, data.generation_meta || {});
           } else {
-            var text = data.answer || data.response || JSON.stringify(data);
-            terminal.output('📝 ' + text);
+            terminal.output('ℹ No workflow steps generated. Try a more specific description.');
           }
           $nlInput.value = '';
         })
         .catch(function () {
           $nlInput.disabled = false;
-          terminal.output('✗ Network error — could not reach Librarian');
+          terminal.output('✗ Network error — could not generate workflow');
         });
     });
 
