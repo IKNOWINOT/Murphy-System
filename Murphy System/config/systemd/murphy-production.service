@@ -1,0 +1,90 @@
+# Murphy System — Production systemd Service Unit
+# Copyright © 2020 Inoni Limited Liability Company | License: BSL-1.1
+#
+# Install:
+#   sudo cp config/systemd/murphy-production.service \
+#            /etc/systemd/system/murphy-production.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable murphy-production
+#   sudo systemctl start murphy-production
+#
+# Depends on (must be running first):
+#   postgresql.service or docker (for murphy-postgres container)
+#   redis.service      or docker (for murphy-redis container)
+#   ollama.service     (onboard LLM — systemd service)
+#   nginx.service      (reverse proxy)
+#
+# Environment is read from /etc/murphy-production/environment
+# Copy config/murphy-production.environment.example → /etc/murphy-production/environment
+# then fill in real secrets before starting.
+# ---------------------------------------------------------------------------
+
+[Unit]
+Description=Murphy System — Universal AI Automation Platform
+Documentation=https://github.com/IKNOWINOT/Murphy-System
+After=network-online.target docker.service ollama.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=murphy
+Group=murphy
+
+WorkingDirectory=/opt/Murphy-System
+
+# Python virtualenv takes precedence; falls back to system python3
+Environment="PATH=/opt/Murphy-System/venv/bin:/usr/local/bin:/usr/bin:/bin"
+
+# All secrets and connection strings — fill in before starting
+EnvironmentFile=/etc/murphy-production/environment
+
+# Inject the git commit SHA so /api/health reports which version is live
+# Uses sed to replace any existing MURPHY_DEPLOY_COMMIT line (idempotent).
+ExecStartPre=/bin/bash -c \
+    'COMMIT=$(git -C /opt/Murphy-System rev-parse --short HEAD 2>/dev/null || echo unknown); \
+     if grep -q "^MURPHY_DEPLOY_COMMIT=" /etc/murphy-production/environment 2>/dev/null; then \
+       sed -i "s|^MURPHY_DEPLOY_COMMIT=.*|MURPHY_DEPLOY_COMMIT=${COMMIT}|" /etc/murphy-production/environment; \
+     else \
+       echo "MURPHY_DEPLOY_COMMIT=${COMMIT}" >> /etc/murphy-production/environment; \
+     fi'
+
+ExecStart=/opt/Murphy-System/venv/bin/python murphy_system_1.0_runtime.py
+
+Restart=always
+RestartSec=10
+TimeoutStartSec=120
+TimeoutStopSec=30
+
+# ── Resource limits ──────────────────────────────────────────────────────────
+LimitNOFILE=65536
+LimitNPROC=4096
+MemoryMax=4G
+CPUQuota=400%
+
+# ── Logging ──────────────────────────────────────────────────────────────────
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=murphy-production
+
+# ── Security hardening ───────────────────────────────────────────────────────
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+# Allow writes to logs, data, sessions, and module cache
+ReadWritePaths=/var/log/murphy-production /var/lib/murphy-production \
+               /opt/Murphy-System/logs /opt/Murphy-System/data \
+               /opt/Murphy-System/sessions /opt/Murphy-System/modules \
+               /opt/Murphy-System/repositories
+# Allow reads from the repo and venv
+ReadOnlyPaths=/opt/Murphy-System
+
+[Install]
+WantedBy=multi-user.target
