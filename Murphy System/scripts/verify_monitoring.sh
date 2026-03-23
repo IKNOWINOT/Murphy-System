@@ -17,6 +17,45 @@
 
 set -euo pipefail
 
+# ── Help ─────────────────────────────────────────────────────────────────────
+show_help() {
+  cat <<EOF
+Murphy System — Monitoring Verification
+
+Verifies that the monitoring stack (Prometheus, Grafana) is properly
+configured and running, and displays a UI access summary.
+
+Usage:
+  $(basename "$0") [OPTIONS]
+
+Options:
+  -h, --help           Show this help message and exit
+  --version            Show version information
+  --namespace NAME     Kubernetes namespace (default: murphy-system)
+  --port-forward       Start port-forwards for local access
+  --prom-port PORT     Prometheus port (default: 9090)
+  --grafana-port PORT  Grafana port (default: 3000)
+  --murphy-port PORT   Murphy API port (default: 8000)
+  --ui-port PORT       Static UI server port (default: 8090)
+
+Checks performed:
+  1. Kubernetes pod health (Prometheus, Grafana, Murphy API)
+  2. Prometheus connectivity and health
+  3. Prometheus scrape targets
+  4. Prometheus alert rules
+  5. Grafana connectivity
+  6. Murphy API /metrics endpoint
+
+Examples:
+  $(basename "$0")                           # Basic verification
+  $(basename "$0") --port-forward            # With port forwarding
+  $(basename "$0") --namespace prod          # Check 'prod' namespace
+  $(basename "$0") --prom-port 9091          # Custom Prometheus port
+
+EOF
+  exit 0
+}
+
 # ── Defaults ──────────────────────────────────────────────────────────────────
 NAMESPACE="${NAMESPACE:-murphy-system}"
 PROM_PORT="${PROM_PORT:-9090}"
@@ -28,13 +67,15 @@ USE_PORT_FORWARD=false
 # ── Argument parsing ──────────────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    -h|--help) show_help ;;
+    --version) echo "Murphy System Monitoring Verification v1.0.0"; exit 0 ;;
     --namespace) NAMESPACE="$2"; shift 2 ;;
     --port-forward) USE_PORT_FORWARD=true; shift ;;
     --prom-port) PROM_PORT="$2"; shift 2 ;;
     --grafana-port) GRAFANA_PORT="$2"; shift 2 ;;
     --murphy-port) MURPHY_PORT="$2"; shift 2 ;;
     --ui-port) UI_PORT="$2"; shift 2 ;;
-    *) echo "Unknown option: $1"; exit 1 ;;
+    *) echo "Unknown option: $1"; echo "Use --help for usage information"; exit 1 ;;
   esac
 done
 
