@@ -16,6 +16,9 @@ from typing import Dict, List, Optional
 class AmbientContextStore:
     def __init__(self, max_signals: int = 1000, ttl_seconds: int = 3600):
         self._signals = deque(maxlen=max_signals)
+        self._insights = deque(maxlen=500)
+        self._deliveries = deque(maxlen=200)
+        self._settings = {"enabled": True, "delivery_channel": "im", "min_confidence": 0.6}
         self._lock = threading.Lock()
         self._ttl = ttl_seconds
 
@@ -56,3 +59,44 @@ class AmbientContextStore:
         now = time.time()
         while self._signals and (now - self._signals[0].get('_stored_at', 0)) > self._ttl:
             self._signals.popleft()
+
+    def store_signals(self, signals: List[Dict]) -> int:
+        """Alias for push() — store signals and return count."""
+        return self.push(signals)
+
+    def store_insight(self, insight: dict) -> dict:
+        """Store an insight in bounded deque."""
+        now = time.time()
+        insight['_stored_at'] = now
+        with self._lock:
+            self._insights.append(insight)
+        return insight
+
+    def store_delivery(self, delivery: dict) -> dict:
+        """Store a delivery record in bounded deque."""
+        with self._lock:
+            self._deliveries.append(delivery)
+        return delivery
+
+    def get_settings(self) -> dict:
+        """Return current ambient settings."""
+        with self._lock:
+            return self._settings.copy()
+
+    def save_settings(self, settings: dict) -> dict:
+        """Merge new settings into current settings."""
+        with self._lock:
+            self._settings.update(settings)
+            return self._settings.copy()
+
+    def get_insights(self, limit: int = 20) -> List[dict]:
+        """Return last N insights."""
+        with self._lock:
+            result = list(self._insights)
+        return result[-limit:]
+
+    def get_deliveries(self, limit: int = 20) -> List[dict]:
+        """Return last N deliveries."""
+        with self._lock:
+            result = list(self._deliveries)
+        return result[-limit:]
