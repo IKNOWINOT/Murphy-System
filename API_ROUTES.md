@@ -696,6 +696,75 @@ All trading is **PAPER/SIMULATED only** — no real money is moved.
 
 ---
 
+## Voice Command Interface — VCI (FastAPI — src/runtime/app.py)
+
+Natural language voice/typed command processing for generative automation.
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | /api/vci/recognise | Yes | Speech-to-text recognition |
+| POST | /api/vci/parse | Yes | Parse command from transcript |
+| POST | /api/vci/process | Yes | End-to-end voice processing (recognise → parse → result) |
+
+**Process Endpoint Request:**
+```json
+{
+  "text_input": "Monitor sales data and send weekly summary to Slack",
+  "session_id": "optional-session-id"
+}
+```
+
+**Response:**
+```json
+{
+  "stt": { "transcript": "...", "confidence": 0.95 },
+  "command": { "action": "create_automation", "category": "workflow", "params": {...} },
+  "session_id": "vci-abc123"
+}
+```
+
+### Related Documentation
+- **[Generative Automation Presets](documentation/features/GENERATIVE_AUTOMATION_PRESETS.md)** — Complete guide to voice/typed command automation
+
+---
+
+## Generative Automation Presets (FastAPI — src/runtime/app.py)
+
+Pre-configured automation patterns that wire together subsystems via natural language.
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /api/presets | Yes | List available automation presets |
+| GET | /api/presets/{preset_id} | Yes | Get preset details |
+| POST | /api/presets/activate | Yes | Activate preset via trigger phrase |
+| POST | /api/workflows | Yes | Create workflow from natural language description |
+| POST | /api/execute | Yes | Execute a generated workflow DAG |
+
+**Activate Preset Request:**
+```json
+{
+  "trigger_phrase": "run weekly sales report",
+  "tenant_id": "tenant-123",
+  "context": { "week_start": "2026-03-16" }
+}
+```
+
+### Template-Based Workflow Generation
+
+The system includes 12+ built-in templates:
+
+| Template ID | Pattern | Description |
+|-------------|---------|-------------|
+| `etl_pipeline` | Extract-Transform-Load | Data pipeline automation |
+| `ci_cd` | CI/CD Pipeline | Build, test, deploy automation |
+| `incident_response` | Incident Handling | Alert triage and escalation |
+| `monitoring_alert` | Metric Monitoring | Threshold-based alerting |
+| `report_generation` | Report & Distribute | Scheduled report generation |
+| `order_fulfillment` | E-commerce | Order processing and shipping |
+| `invoice_processing` | AP Automation | Invoice approval and payment |
+
+---
+
 ## Stub Endpoints (FastAPI — src/runtime/app.py, 501 Not Implemented)
 
 These endpoints return `501 Not Implemented` and will be fully implemented in future iterations.

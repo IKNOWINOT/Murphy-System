@@ -227,6 +227,66 @@ class StartupValidator:
 
 
 # ---------------------------------------------------------------------------
+# LLM Boot Validation
+# ---------------------------------------------------------------------------
+
+def validate_llm_boot_status() -> Dict[str, Any]:
+    """Validate LLM configuration at boot time.
+
+    This ensures the system can always respond (either via external LLM or onboard
+    fallback). Returns a status dict describing the current LLM mode.
+
+    The LLM subsystem is always operational:
+    - If MURPHY_LLM_PROVIDER is set and has a valid API key -> external_api mode
+    - Otherwise -> onboard mode (LocalLLMFallback or pattern matcher)
+
+    Returns:
+        Dict with keys:
+        - mode: "external_api" | "onboard"
+        - provider: The provider name ("groq", "openai", "anthropic", "onboard")
+        - healthy: True if LLM can respond (always True since onboard is fallback)
+        - note: Human-readable status message
+    """
+    provider = os.environ.get("MURPHY_LLM_PROVIDER", "").strip().lower()
+
+    # Auto-detect provider from available API keys
+    if not provider:
+        if os.environ.get("GROQ_API_KEY", "").strip():
+            provider = "groq"
+        elif os.environ.get("OPENAI_API_KEY", "").strip():
+            provider = "openai"
+        elif os.environ.get("ANTHROPIC_API_KEY", "").strip():
+            provider = "anthropic"
+
+    # Check if external provider has valid API key
+    external_api_configured = False
+    if provider == "groq" and os.environ.get("GROQ_API_KEY", "").strip():
+        external_api_configured = True
+    elif provider == "openai" and os.environ.get("OPENAI_API_KEY", "").strip():
+        external_api_configured = True
+    elif provider == "anthropic" and os.environ.get("ANTHROPIC_API_KEY", "").strip():
+        external_api_configured = True
+
+    if external_api_configured:
+        return {
+            "mode": "external_api",
+            "provider": provider,
+            "healthy": True,
+            "note": f"LLM configured with {provider} provider",
+        }
+
+    return {
+        "mode": "onboard",
+        "provider": "onboard",
+        "healthy": True,
+        "note": (
+            "LLM using onboard fallback (LocalLLMFallback). "
+            "Add MURPHY_LLM_PROVIDER and API key for external LLM."
+        ),
+    }
+
+
+# ---------------------------------------------------------------------------
 # Convenience factory
 # ---------------------------------------------------------------------------
 

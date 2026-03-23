@@ -71,6 +71,9 @@ Murphy's hero flow inverts the traditional automation paradigm — you describe 
 
 Murphy uses [`ai_workflow_generator.py`](<Murphy System/src/ai_workflow_generator.py>) to convert your description into a structured workflow, [`nocode_workflow_terminal.py`](<Murphy System/src/nocode_workflow_terminal.py>) as the Librarian-powered conversation interface, and [`workflow_canvas.html`](<Murphy System/workflow_canvas.html>) as the optional visual refinement layer once the plan is generated.
 
+**📖 For comprehensive documentation on voice/typed command automation, see:**
+- [Generative Automation Presets](documentation/features/GENERATIVE_AUTOMATION_PRESETS.md) — Complete guide to natural language workflow generation, industry presets, role-based execution, and human-in-the-loop governance
+
 See the full [Roadmap](ROADMAP.md) for the sprint plan that takes this from prototype to production.
 
 ---
