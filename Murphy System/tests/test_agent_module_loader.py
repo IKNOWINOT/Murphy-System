@@ -58,6 +58,14 @@ from agent_module_loader import (
     ComplianceLogger,
     LogLevel,
     LogFormat,
+    
+    # MSS System
+    MSSController,
+    MSSPhase,
+    MSSSequence,
+    MSSTransformationResult,
+    MSSPipelineResult,
+    get_mss_controller,
 )
 
 
@@ -647,6 +655,186 @@ class TestIntegration:
         
         assert result1.status == MultiCursorTaskStatus.COMPLETED
         assert result2.status == MultiCursorTaskStatus.COMPLETED
+
+
+# ============================================================================
+# MSS (Magnify/Simplify/Solidify) Tests
+# ============================================================================
+
+class TestMSSController:
+    """Test the MSS transformation system."""
+    
+    def test_controller_initialization(self):
+        """MSS controller initializes correctly."""
+        mss = MSSController()
+        assert mss.mfgc_threshold == 0.85
+        assert mss.enable_governance == True
+    
+    def test_magnify_increases_resolution(self):
+        """Magnify increases resolution level."""
+        mss = MSSController()
+        result = mss.magnify("deploy to kubernetes")
+        
+        assert result.phase == MSSPhase.MAGNIFY
+        assert "technical_components" in result.output
+        assert "functional_requirements" in result.output
+        assert "RM" in result.resolution_level
+    
+    def test_simplify_reduces_resolution(self):
+        """Simplify reduces resolution level."""
+        mss = MSSController()
+        result = mss.simplify("We need to set up a complex multi-tier architecture with databases, caches, load balancers, and microservices")
+        
+        assert result.phase == MSSPhase.SIMPLIFY
+        assert "core_objective" in result.output
+        assert "key_components" in result.output
+        assert len(result.output.get("key_components", [])) <= 5
+    
+    def test_solidify_requires_85_percent_confidence(self):
+        """Solidify requires 85% MFGC confidence to proceed."""
+        mss = MSSController(mfgc_threshold=0.85)
+        result = mss.solidify("simple task", require_mfgc=True)
+        
+        assert result.phase == MSSPhase.SOLIDIFY
+        # Check that MFGC gate is enforced
+        if result.confidence < 0.85:
+            assert result.governance_status == "blocked_low_confidence"
+            assert "status" in result.output
+            assert result.output.get("status") == "blocked"
+    
+    def test_solidify_without_mfgc_requirement(self):
+        """Solidify can proceed without MFGC requirement."""
+        mss = MSSController()
+        result = mss.solidify("deploy api server", require_mfgc=False)
+        
+        assert result.phase == MSSPhase.SOLIDIFY
+        assert "execution_plan" in result.output or "status" in result.output
+    
+    def test_pipeline_mmms_sequence(self):
+        """MMMS pipeline executes correct sequence."""
+        mss = MSSController()
+        result = mss.execute_pipeline(
+            "set up infrastructure",
+            sequence=MSSSequence.MMMS,
+        )
+        
+        assert result.sequence == MSSSequence.MMMS
+        assert len(result.transformations) == 4  # M, M, M, S
+        
+        phases = [t.phase for t in result.transformations]
+        assert phases == [MSSPhase.MAGNIFY, MSSPhase.MAGNIFY, MSSPhase.MAGNIFY, MSSPhase.SIMPLIFY]
+    
+    def test_pipeline_mmsmms_sequence(self):
+        """MMSMMS pipeline executes full sequence."""
+        mss = MSSController()
+        result = mss.execute_pipeline(
+            "deploy application",
+            sequence=MSSSequence.MMSMMS,
+        )
+        
+        assert result.sequence == MSSSequence.MMSMMS
+        assert len(result.transformations) == 6  # M, M, S, M, M, S
+    
+    def test_pipeline_mmsmm_solidify_for_retry(self):
+        """MMSMM_SOLIDIFY pipeline for setup retry."""
+        mss = MSSController()
+        result = mss.execute_pipeline(
+            "ERROR: deployment failed, need to retry",
+            sequence=MSSSequence.MMSMM_SOLIDIFY,
+        )
+        
+        assert result.sequence == MSSSequence.MMSMM_SOLIDIFY
+        assert len(result.transformations) == 6
+        assert result.transformations[-1].phase == MSSPhase.SOLIDIFY
+    
+    def test_mfgc_gate_passed_flag(self):
+        """Pipeline reports MFGC gate status."""
+        mss = MSSController(mfgc_threshold=0.85)
+        result = mss.execute_pipeline(
+            "configure complex system",
+            sequence=MSSSequence.MSS,
+            require_mfgc=True,
+        )
+        
+        # mfgc_gate_passed should reflect whether confidence >= 0.85
+        assert isinstance(result.mfgc_gate_passed, bool)
+        assert result.mfgc_gate_passed == (result.final_confidence >= 0.85)
+    
+    def test_transformation_history(self):
+        """Transformations are recorded in history."""
+        mss = MSSController()
+        
+        mss.magnify("test 1")
+        mss.simplify("test 2")
+        mss.solidify("test 3", require_mfgc=False)
+        
+        history = mss.get_transformation_history()
+        assert len(history) >= 3
+    
+    def test_global_mss_controller(self):
+        """Global MSS controller is accessible."""
+        mss1 = get_mss_controller()
+        mss2 = get_mss_controller()
+        
+        # Should be same instance
+        assert mss1 is mss2
+
+
+class TestMSSIntegration:
+    """Integration tests for MSS with other systems."""
+    
+    def test_mss_with_agent_loader(self):
+        """MSS can be used with agent loader."""
+        loader = AgentModuleLoader()
+        mss = get_mss_controller()
+        
+        agent = loader.start("devops-agent")
+        
+        # Use MSS to clarify a deployment request
+        result = mss.execute_pipeline(
+            f"Deploy using {agent['name']} agent",
+            sequence=MSSSequence.MMS,
+        )
+        
+        assert result.transformations[-1].phase == MSSPhase.SIMPLIFY
+        assert result.final_confidence > 0
+    
+    def test_mss_with_checklist_system(self):
+        """MSS can inform checklist creation."""
+        mss = MSSController()
+        checklist_system = ChecklistSystem()
+        
+        # Solidify a deployment plan
+        result = mss.solidify(
+            "deploy to production with testing and monitoring",
+            require_mfgc=False,
+        )
+        
+        # Create checklist from solidified plan
+        if "execution_plan" in result.output:
+            steps = result.output["execution_plan"].get("steps", [])
+            checklist = checklist_system.create_checklist(
+                name="Deployment Checklist",
+                items=[{"title": step.get("action", "Step")} for step in steps],
+            )
+            
+            assert len(checklist.items) > 0
+    
+    def test_mss_resolution_levels(self):
+        """Resolution levels progress correctly through pipeline."""
+        mss = MSSController()
+        
+        # Start with vague input
+        mag1 = mss.magnify("do something")
+        # Should increase resolution
+        initial_rm = int(mag1.resolution_level.replace("RM", ""))
+        
+        # Magnify again
+        mag2 = mss.magnify(mag1.output.get("concept_overview", ""))
+        second_rm = int(mag2.resolution_level.replace("RM", ""))
+        
+        # Resolution should increase (capped at RM5)
+        assert second_rm >= initial_rm or second_rm == 5
 
 
 if __name__ == "__main__":

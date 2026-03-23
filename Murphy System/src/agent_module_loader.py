@@ -1162,6 +1162,567 @@ def get_tool_registry() -> UnifiedToolRegistry:
     return _TOOL_REGISTRY
 
 
+# ===========================================================================
+# MSS (MAGNIFY / SIMPLIFY / SOLIDIFY) INTEGRATION
+# Transformation pipeline for deploying across lots of ground
+# ===========================================================================
+
+class MSSPhase(Enum):
+    """MSS transformation phases."""
+    MAGNIFY = "magnify"      # Expand: increase resolution, add detail
+    SIMPLIFY = "simplify"    # Compress: distill to essence, reduce noise
+    SOLIDIFY = "solidify"    # Lock: convert to actionable execution plan
+
+
+class MSSSequence(Enum):
+    """Standard MSS transformation sequences."""
+    # Standard expansion sequence
+    MMS = "MMS"              # Magnify → Magnify → Simplify
+    MMMS = "MMMS"            # M → M → M → S (prompt clarification)
+    MMSMMS = "MMSMMS"        # M → M → S → M → M → S (full pipeline)
+    
+    # Setup retry sequence (for error recovery)
+    MMSMM_SOLIDIFY = "MMSMM_SOLIDIFY"  # M → M → S → M → M → Solidify
+    
+    # Quick sequences
+    MS = "MS"                # Magnify → Simplify
+    MSS = "MSS"              # Magnify → Simplify → Solidify
+
+
+@dataclass
+class MSSTransformationResult:
+    """Result of an MSS transformation."""
+    phase: MSSPhase
+    input_text: str
+    output: Dict[str, Any]
+    confidence: float
+    resolution_level: str  # RM0-RM5
+    governance_status: str
+    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+@dataclass
+class MSSPipelineResult:
+    """Result of a complete MSS pipeline execution."""
+    sequence: MSSSequence
+    transformations: List[MSSTransformationResult]
+    final_output: Dict[str, Any]
+    final_confidence: float
+    mfgc_gate_passed: bool
+    execution_allowed: bool
+    total_duration_ms: float
+
+
+class MSSController:
+    """Magnify/Simplify/Solidify transformation controller.
+    
+    Provides the core MSS transformation pipeline for Murphy System agents.
+    Every request goes through MSS phases to ensure clarity and actionability.
+    
+    The MSS system works with MFGC gates to ensure:
+    - Magnify: Expand context, increase resolution (RM+2 levels)
+    - Simplify: Distill to essence, identify root cause (RM-2 levels)
+    - Solidify: Lock as executable plan (requires 85% confidence)
+    
+    Standard sequences:
+    - MMMS: Prompt clarification (M→M→M→S)
+    - MMSMMS: Full generation pipeline (M→M→S→M→M→S)
+    - MMSMM_SOLIDIFY: Setup retry with recovery (M→M→S→M→M→Solidify)
+    
+    Usage:
+        mss = MSSController()
+        
+        # Single transformation
+        result = mss.magnify("deploy to kubernetes")
+        
+        # Full pipeline with MFGC gate
+        pipeline_result = mss.execute_pipeline(
+            "deploy application to production",
+            sequence=MSSSequence.MMSMMS,
+            require_mfgc=True,
+        )
+        
+        if pipeline_result.execution_allowed:
+            # Proceed with deployment
+            pass
+    """
+    
+    # Resolution levels (RM0 = vague, RM5 = fully specified)
+    RESOLUTION_LEVELS = ["RM0", "RM1", "RM2", "RM3", "RM4", "RM5"]
+    
+    # MFGC confidence thresholds per phase
+    MFGC_THRESHOLDS = {
+        "expand": 0.50,      # Exploration phase
+        "refine": 0.65,      # Refinement phase
+        "execute": 0.85,     # Execution phase (solidify requires this)
+    }
+    
+    def __init__(
+        self,
+        mfgc_threshold: float = 0.85,
+        enable_governance: bool = True,
+    ):
+        self.mfgc_threshold = mfgc_threshold
+        self.enable_governance = enable_governance
+        self._transformation_history: List[MSSTransformationResult] = []
+    
+    def magnify(
+        self,
+        text: str,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> MSSTransformationResult:
+        """Magnify: Expand resolution by 2 RM levels (cap at RM5).
+        
+        Expands input into:
+        - Concrete components
+        - Explicit processes
+        - Measurable outcomes
+        - Technical requirements
+        - Architecture mapping
+        """
+        current_rm = self._assess_resolution(text)
+        target_rm_idx = min(self.RESOLUTION_LEVELS.index(current_rm) + 2, 5)
+        target_rm = self.RESOLUTION_LEVELS[target_rm_idx]
+        
+        # Extract components and requirements
+        components = self._extract_components(text, context)
+        requirements = self._extract_requirements(text, context)
+        
+        output = {
+            "concept_overview": text,
+            "functional_requirements": requirements,
+            "technical_components": components,
+            "architecture_mapping": {
+                "components": components,
+                "data_flows": self._infer_data_flows(components),
+                "control_logic": self._infer_control_logic(text),
+            },
+            "resolution_progression": f"{current_rm} → {target_rm}",
+            "expanded_scope": self._expand_scope(text, context),
+        }
+        
+        confidence = self._calculate_confidence(output, "magnify")
+        
+        result = MSSTransformationResult(
+            phase=MSSPhase.MAGNIFY,
+            input_text=text,
+            output=output,
+            confidence=confidence,
+            resolution_level=target_rm,
+            governance_status="approved" if confidence >= 0.5 else "review_required",
+        )
+        
+        self._transformation_history.append(result)
+        return result
+    
+    def simplify(
+        self,
+        text: str,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> MSSTransformationResult:
+        """Simplify: Reduce resolution by 2 RM levels (floor at RM0).
+        
+        Distills input into:
+        - Core objective
+        - Key components (max 5)
+        - Essential metadata
+        - Root cause (for errors)
+        """
+        current_rm = self._assess_resolution(text)
+        target_rm_idx = max(self.RESOLUTION_LEVELS.index(current_rm) - 2, 0)
+        target_rm = self.RESOLUTION_LEVELS[target_rm_idx]
+        
+        # Extract core elements
+        objective = self._extract_objective(text, context)
+        key_components = self._extract_key_components(text, context)[:5]
+        
+        output = {
+            "core_objective": objective,
+            "key_components": key_components,
+            "scope_estimate": "small" if len(key_components) <= 2 else (
+                "medium" if len(key_components) <= 4 else "large"
+            ),
+            "resolution_progression": f"{current_rm} → {target_rm}",
+            "distilled_essence": self._distill_essence(text),
+        }
+        
+        confidence = self._calculate_confidence(output, "simplify")
+        
+        result = MSSTransformationResult(
+            phase=MSSPhase.SIMPLIFY,
+            input_text=text,
+            output=output,
+            confidence=confidence,
+            resolution_level=target_rm,
+            governance_status="approved",
+        )
+        
+        self._transformation_history.append(result)
+        return result
+    
+    def solidify(
+        self,
+        text: str,
+        context: Optional[Dict[str, Any]] = None,
+        require_mfgc: bool = True,
+    ) -> MSSTransformationResult:
+        """Solidify: Lock as executable plan (requires 85% MFGC confidence).
+        
+        Converts input into:
+        - Executable tasks with measurable outcomes
+        - Resource requirements
+        - Timeline estimates
+        - Risk assessment
+        - Rollback procedures
+        
+        Args:
+            text: Input to solidify
+            context: Optional context
+            require_mfgc: If True, requires 85% confidence to proceed
+        """
+        # Calculate confidence first
+        preliminary_output = self._build_execution_plan(text, context)
+        confidence = self._calculate_confidence(preliminary_output, "solidify")
+        
+        # MFGC gate check
+        mfgc_passed = confidence >= self.mfgc_threshold
+        governance_status = "approved" if mfgc_passed else "blocked_low_confidence"
+        
+        if require_mfgc and not mfgc_passed:
+            output = {
+                "status": "blocked",
+                "reason": f"MFGC confidence {confidence:.2%} below threshold {self.mfgc_threshold:.0%}",
+                "required_confidence": self.mfgc_threshold,
+                "actual_confidence": confidence,
+                "recommendation": "Run additional magnify/simplify cycles to increase clarity",
+            }
+        else:
+            output = preliminary_output
+            output["execution_approved"] = True
+            output["confidence_at_lock"] = confidence
+        
+        result = MSSTransformationResult(
+            phase=MSSPhase.SOLIDIFY,
+            input_text=text,
+            output=output,
+            confidence=confidence,
+            resolution_level="RM5" if mfgc_passed else "RM3",
+            governance_status=governance_status,
+        )
+        
+        self._transformation_history.append(result)
+        return result
+    
+    def execute_pipeline(
+        self,
+        text: str,
+        sequence: MSSSequence = MSSSequence.MMSMMS,
+        context: Optional[Dict[str, Any]] = None,
+        require_mfgc: bool = True,
+    ) -> MSSPipelineResult:
+        """Execute a complete MSS transformation pipeline.
+        
+        Args:
+            text: Input text to transform
+            sequence: MSS sequence to execute
+            context: Optional context dictionary
+            require_mfgc: Require 85% confidence for solidify
+            
+        Returns:
+            MSSPipelineResult with all transformations and final output
+        """
+        start_time = time.monotonic()
+        transformations: List[MSSTransformationResult] = []
+        current_text = text
+        current_context = context or {}
+        
+        # Map sequence to phases
+        sequence_map = {
+            MSSSequence.MS: [MSSPhase.MAGNIFY, MSSPhase.SIMPLIFY],
+            MSSSequence.MMS: [MSSPhase.MAGNIFY, MSSPhase.MAGNIFY, MSSPhase.SIMPLIFY],
+            MSSSequence.MSS: [MSSPhase.MAGNIFY, MSSPhase.SIMPLIFY, MSSPhase.SOLIDIFY],
+            MSSSequence.MMMS: [
+                MSSPhase.MAGNIFY, MSSPhase.MAGNIFY, MSSPhase.MAGNIFY, MSSPhase.SIMPLIFY
+            ],
+            MSSSequence.MMSMMS: [
+                MSSPhase.MAGNIFY, MSSPhase.MAGNIFY, MSSPhase.SIMPLIFY,
+                MSSPhase.MAGNIFY, MSSPhase.MAGNIFY, MSSPhase.SIMPLIFY,
+            ],
+            MSSSequence.MMSMM_SOLIDIFY: [
+                MSSPhase.MAGNIFY, MSSPhase.MAGNIFY, MSSPhase.SIMPLIFY,
+                MSSPhase.MAGNIFY, MSSPhase.MAGNIFY, MSSPhase.SOLIDIFY,
+            ],
+        }
+        
+        phases = sequence_map.get(sequence, sequence_map[MSSSequence.MMSMMS])
+        
+        for phase in phases:
+            if phase == MSSPhase.MAGNIFY:
+                result = self.magnify(current_text, current_context)
+            elif phase == MSSPhase.SIMPLIFY:
+                result = self.simplify(current_text, current_context)
+            else:  # SOLIDIFY
+                result = self.solidify(current_text, current_context, require_mfgc)
+            
+            transformations.append(result)
+            
+            # Update current text from output
+            if "distilled_essence" in result.output:
+                current_text = result.output["distilled_essence"]
+            elif "core_objective" in result.output:
+                current_text = result.output["core_objective"]
+            elif "concept_overview" in result.output:
+                current_text = result.output["concept_overview"]
+            
+            # Carry forward context
+            current_context.update(result.output)
+        
+        # Final assessment
+        final_result = transformations[-1]
+        mfgc_passed = final_result.confidence >= self.mfgc_threshold
+        execution_allowed = (
+            final_result.phase == MSSPhase.SOLIDIFY and 
+            final_result.governance_status == "approved"
+        ) or (
+            final_result.phase != MSSPhase.SOLIDIFY and 
+            final_result.confidence >= 0.5
+        )
+        
+        return MSSPipelineResult(
+            sequence=sequence,
+            transformations=transformations,
+            final_output=final_result.output,
+            final_confidence=final_result.confidence,
+            mfgc_gate_passed=mfgc_passed,
+            execution_allowed=execution_allowed,
+            total_duration_ms=(time.monotonic() - start_time) * 1000,
+        )
+    
+    # --- Internal helpers ---
+    
+    def _assess_resolution(self, text: str) -> str:
+        """Assess the resolution level of text."""
+        # Simple heuristic based on specificity indicators
+        specificity_score = 0
+        
+        # Check for specific technical terms
+        tech_terms = ["api", "database", "server", "deploy", "config", "endpoint"]
+        for term in tech_terms:
+            if term in text.lower():
+                specificity_score += 1
+        
+        # Check for measurable quantities
+        if any(c.isdigit() for c in text):
+            specificity_score += 1
+        
+        # Check for action verbs
+        action_verbs = ["create", "deploy", "configure", "setup", "install", "run"]
+        for verb in action_verbs:
+            if verb in text.lower():
+                specificity_score += 1
+        
+        # Map to RM level
+        if specificity_score >= 5:
+            return "RM4"
+        elif specificity_score >= 3:
+            return "RM3"
+        elif specificity_score >= 2:
+            return "RM2"
+        elif specificity_score >= 1:
+            return "RM1"
+        return "RM0"
+    
+    def _extract_components(
+        self, text: str, context: Optional[Dict[str, Any]]
+    ) -> List[str]:
+        """Extract technical components from text."""
+        components = []
+        
+        # Common component keywords
+        keywords = {
+            "database": "Database Service",
+            "api": "API Gateway",
+            "server": "Application Server",
+            "cache": "Cache Layer",
+            "queue": "Message Queue",
+            "auth": "Authentication Service",
+            "storage": "Storage Service",
+            "monitor": "Monitoring Service",
+            "log": "Logging Service",
+            "kubernetes": "Kubernetes Cluster",
+            "docker": "Container Runtime",
+            "load balancer": "Load Balancer",
+        }
+        
+        text_lower = text.lower()
+        for keyword, component in keywords.items():
+            if keyword in text_lower:
+                components.append(component)
+        
+        if not components:
+            components = ["Core Service"]
+        
+        return components
+    
+    def _extract_requirements(
+        self, text: str, context: Optional[Dict[str, Any]]
+    ) -> List[str]:
+        """Extract functional requirements from text."""
+        requirements = []
+        
+        # Look for requirement patterns
+        patterns = [
+            ("must", "MUST: "),
+            ("should", "SHOULD: "),
+            ("need", "NEED: "),
+            ("require", "REQUIRE: "),
+        ]
+        
+        sentences = text.split(".")
+        for sentence in sentences:
+            sentence_lower = sentence.lower().strip()
+            for pattern, prefix in patterns:
+                if pattern in sentence_lower:
+                    requirements.append(f"{prefix}{sentence.strip()}")
+                    break
+        
+        if not requirements:
+            requirements = [f"Implement: {text[:100]}"]
+        
+        return requirements
+    
+    def _extract_objective(
+        self, text: str, context: Optional[Dict[str, Any]]
+    ) -> str:
+        """Extract core objective from text."""
+        # Take first sentence or up to 200 chars
+        first_sentence = text.split(".")[0].strip()
+        return first_sentence[:200] if len(first_sentence) > 200 else first_sentence
+    
+    def _extract_key_components(
+        self, text: str, context: Optional[Dict[str, Any]]
+    ) -> List[str]:
+        """Extract key components (max 5) from text."""
+        components = self._extract_components(text, context)
+        return components[:5]
+    
+    def _distill_essence(self, text: str) -> str:
+        """Distill text to its essence."""
+        # Remove filler words and compress
+        filler_words = ["the", "a", "an", "is", "are", "was", "were", "be", "been", "being"]
+        words = text.split()
+        essential_words = [w for w in words if w.lower() not in filler_words]
+        return " ".join(essential_words[:30])
+    
+    def _expand_scope(
+        self, text: str, context: Optional[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Expand the scope of the request."""
+        return {
+            "primary_scope": text,
+            "implied_dependencies": self._extract_components(text, context),
+            "potential_risks": ["Resource constraints", "Timeline pressure"],
+            "success_criteria": ["Functional deployment", "Passing tests"],
+        }
+    
+    def _infer_data_flows(self, components: List[str]) -> List[str]:
+        """Infer data flows between components."""
+        flows = []
+        for i, comp in enumerate(components[:-1]):
+            flows.append(f"{comp} → {components[i+1]}")
+        return flows
+    
+    def _infer_control_logic(self, text: str) -> List[str]:
+        """Infer control logic from text."""
+        logic = []
+        if "if" in text.lower():
+            logic.append("Conditional branching")
+        if "loop" in text.lower() or "each" in text.lower():
+            logic.append("Iteration")
+        if "error" in text.lower() or "fail" in text.lower():
+            logic.append("Error handling")
+        if not logic:
+            logic = ["Sequential execution"]
+        return logic
+    
+    def _build_execution_plan(
+        self, text: str, context: Optional[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Build a concrete execution plan."""
+        components = self._extract_components(text, context)
+        
+        return {
+            "execution_plan": {
+                "steps": [
+                    {"step": 1, "action": "Validate prerequisites", "duration": "5m"},
+                    {"step": 2, "action": "Configure environment", "duration": "10m"},
+                    {"step": 3, "action": "Deploy components", "duration": "15m"},
+                    {"step": 4, "action": "Run validation tests", "duration": "10m"},
+                    {"step": 5, "action": "Enable monitoring", "duration": "5m"},
+                ],
+                "estimated_duration": "45m",
+                "resources_required": components,
+            },
+            "rollback_procedure": {
+                "trigger": "Any step failure",
+                "steps": ["Pause deployment", "Restore previous state", "Notify team"],
+            },
+            "success_metrics": {
+                "deployment_success": True,
+                "health_checks_passing": True,
+                "no_error_logs": True,
+            },
+            "risk_assessment": {
+                "level": "medium",
+                "mitigations": ["Staged rollout", "Monitoring alerts", "Rollback ready"],
+            },
+        }
+    
+    def _calculate_confidence(
+        self, output: Dict[str, Any], phase: str
+    ) -> float:
+        """Calculate MFGC confidence score."""
+        score = 0.5  # Base score
+        
+        # Boost for completeness
+        if "execution_plan" in output:
+            score += 0.2
+        if "core_objective" in output:
+            score += 0.1
+        if "technical_components" in output:
+            score += 0.1
+        if len(output) >= 5:
+            score += 0.1
+        
+        # Phase-specific adjustments
+        if phase == "solidify":
+            # Solidify needs more complete output
+            if "rollback_procedure" in output:
+                score += 0.05
+            if "success_metrics" in output:
+                score += 0.05
+        
+        return min(1.0, score)
+    
+    def get_transformation_history(
+        self, limit: int = 50
+    ) -> List[MSSTransformationResult]:
+        """Get recent transformation history."""
+        return self._transformation_history[-limit:]
+
+
+# Create global MSS controller
+_MSS_CONTROLLER: Optional[MSSController] = None
+
+
+def get_mss_controller() -> MSSController:
+    """Get or create the global MSS controller."""
+    global _MSS_CONTROLLER
+    if _MSS_CONTROLLER is None:
+        _MSS_CONTROLLER = MSSController()
+    return _MSS_CONTROLLER
+
+
 # ---------------------------------------------------------------------------
 # Type Definitions
 # ---------------------------------------------------------------------------
