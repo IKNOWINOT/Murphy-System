@@ -4,7 +4,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Murphy System — Sign In</title>
+<title>Sign In — Murphy System | AI Business Automation Platform</title>
+<meta name="description" content="Sign in to Murphy System. Access your AI-powered business automation dashboard, Shadow Agents, workflow canvas, and compliance tools.">
+<meta name="robots" content="noindex, follow">
 <link rel="icon" href="static/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="static/murphy-design-system.css">
 <style>
@@ -520,19 +522,9 @@
   document.getElementById('forgot-link').addEventListener('click', function (e) {
     e.preventDefault();
     var email = document.getElementById('email').value.trim();
-    if (!email) {
-      showError('email-error', 'Enter your email address above first.');
-      return;
-    }
-    fetch('/api/auth/forgot-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email })
-    }).then(function () {
-      showFormError('If that email is registered you will receive a reset link shortly.');
-    }).catch(function () {
-      showFormError('Network error — please try again.');
-    });
+    var dest = '/ui/reset-password';
+    if (email) dest += '?prefill=' + encodeURIComponent(email);
+    location.href = dest;
   });
 
   // ── Form submission ──────────────────────────────────
@@ -569,7 +561,10 @@
         if (result.data.session_token) {
           localStorage.setItem('murphy_session_token', result.data.session_token);
         }
-        window.location.href = '/ui/terminal-unified';
+        // Redirect to requested page or terminal
+        var urlParams = new URLSearchParams(window.location.search);
+        var next = urlParams.get('next') || '/ui/terminal-unified';
+        window.location.href = next;
       } else {
         showFormError(result.data.message || result.data.error || 'Sign in failed. Please try again.');
       }

@@ -6307,26 +6307,34 @@ def create_app() -> FastAPI:
                 return JSONResponse({"success": False, "error": "An account with this email already exists"}, status_code=409)
 
             account_id = uuid4().hex[:20]
+            # Founder email always gets the owner role regardless of how the
+            # account is created.
+            _assigned_role = "owner" if email == _FOUNDER_EMAIL else "user"
+            _assigned_tier = "enterprise" if email == _FOUNDER_EMAIL else "free"
             _user_store[account_id] = {
                 "account_id": account_id,
                 "email": email,
                 "password_hash": _hash_password(password),
-                "full_name": full_name,
+                "full_name": full_name or ("Corey Post" if email == _FOUNDER_EMAIL else ""),
                 "job_title": job_title,
                 "company": company,
-                "tier": "free",
+                "tier": _assigned_tier,
                 "email_validated": True,    # auto-validate for now (MVP)
                 "eula_accepted": True,      # accepted at signup form
-                "role": "user",
+                "role": _assigned_role,
                 "created_at": _now_iso(),
             }
             _email_to_account[email] = account_id
 
             # Create a free-tier subscription record
             if _sub_manager is not None and _SubTier is not None:
+                _sub_tier_val = (
+                    _SubTier.ENTERPRISE if email == _FOUNDER_EMAIL and hasattr(_SubTier, "ENTERPRISE")
+                    else _SubTier.FREE
+                )
                 _sub_manager._subscriptions[account_id] = _SubRec(
                     account_id=account_id,
-                    tier=_SubTier.FREE,
+                    tier=_sub_tier_val,
                     status=_SubStatus.ACTIVE,
                 )
 
@@ -6453,7 +6461,173 @@ def create_app() -> FastAPI:
             "message": "If an account with that email exists, a reset link has been sent.",
         })
 
-    @app.get("/api/auth/session-token")
+    # ── Self-service password management ──────────────────────────────────
+    # In-process token store for password-reset flows.
+    # Each entry: token → { account_id, expires_at, used }
+    _password_reset_tokens: "Dict[str, Dict[str, Any]]" = {}
+
+    @app.post("/api/auth/change-password")
+    async def auth_change_password(request: Request):
+        """Change the authenticated user's own password.
+
+        Body: { "current_password": "...", "new_password": "..." }
+        Requires an active session.  New password must be at least 8 characters.
+        """
+        account = _get_account_from_session(request)
+        if account is None:
+            return JSONResponse({"success": False, "error": "Authentication required"}, status_code=401)
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+
+        current_pw = data.get("current_password", "")
+        new_pw = data.get("new_password", "")
+
+        if not current_pw or not new_pw:
+            return JSONResponse({"success": False, "error": "current_password and new_password are required"}, status_code=400)
+        if len(new_pw) < 8:
+            return JSONResponse({"success": False, "error": "New password must be at least 8 characters"}, status_code=400)
+
+        stored_hash = account.get("password_hash", "")
+        if not stored_hash or not _verify_password(current_pw, stored_hash):
+            return JSONResponse({"success": False, "error": "Current password is incorrect"}, status_code=400)
+
+        if current_pw == new_pw:
+            return JSONResponse({"success": False, "error": "New password must differ from the current password"}, status_code=400)
+
+        account["password_hash"] = _hash_password(new_pw)
+        account["password_changed_at"] = _now_iso()
+        logger.info("Password changed for account %s", account["account_id"])
+        return JSONResponse({"success": True, "message": "Password updated successfully."})
+
+    @app.post("/api/auth/request-password-reset")
+    async def auth_request_password_reset(request: Request):
+        """Generate a password-reset token and (in production) email it to the user.
+
+        Body: { "email": "user@example.com" }
+        Always returns the same success response to prevent user enumeration.
+        In development the token is returned directly in the response so that
+        the flow can be tested without an email server.
+        """
+        import secrets as _sec
+        import time as _time
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+
+        email = (data.get("email") or "").strip().lower()
+        if not email:
+            return JSONResponse({"success": False, "error": "email is required"}, status_code=400)
+
+        account_id = _email_to_account.get(email)
+        resp_body: "Dict[str, Any]" = {
+            "success": True,
+            "message": "If an account with that email exists, a reset link has been sent.",
+        }
+        if account_id:
+            # Expire any existing unused token for this account
+            for t, meta in list(_password_reset_tokens.items()):
+                if meta.get("account_id") == account_id and not meta.get("used"):
+                    meta["used"] = True
+
+            token = _sec.token_urlsafe(32)
+            # Token valid for 1 hour
+            _password_reset_tokens[token] = {
+                "account_id": account_id,
+                "email": email,
+                "expires_at": _time.time() + 3600,
+                "used": False,
+            }
+
+            reset_url = f"/ui/reset-password?token={token}"
+
+            # Send via Murphy email API (best-effort)
+            try:
+                import httpx as _httpx
+                _httpx.post(
+                    "http://localhost:8000/api/email/send",
+                    json={
+                        "to": email,
+                        "subject": "Murphy System — Reset your password",
+                        "body": (
+                            f"Hi,\n\nClick the link below to reset your Murphy System password. "
+                            f"This link expires in 1 hour.\n\n"
+                            f"https://murphy.systems{reset_url}\n\n"
+                            f"If you did not request this, you can safely ignore this email.\n\n"
+                            f"— Murphy System"
+                        ),
+                    },
+                    timeout=3,
+                )
+            except Exception:
+                pass  # Email delivery failure must not block the response
+
+            # In development expose the token so the flow can be tested without email
+            if os.environ.get("MURPHY_ENV", "development").lower() == "development":
+                resp_body["dev_token"] = token
+                resp_body["dev_reset_url"] = reset_url
+
+        return JSONResponse(resp_body)
+
+    @app.get("/api/auth/reset-password/validate")
+    async def auth_validate_reset_token(request: Request):
+        """Check whether a password-reset token is valid and unexpired.
+
+        Query param: token=<token>
+        Returns { valid: true/false, email: "..." }
+        """
+        import time as _time
+        token = request.query_params.get("token", "").strip()
+        if not token:
+            return JSONResponse({"valid": False, "error": "token is required"}, status_code=400)
+        meta = _password_reset_tokens.get(token)
+        if meta is None or meta.get("used") or _time.time() > meta.get("expires_at", 0):
+            return JSONResponse({"valid": False, "error": "Token is invalid or has expired"})
+        return JSONResponse({"valid": True, "email": meta.get("email", "")})
+
+    @app.post("/api/auth/reset-password")
+    async def auth_reset_password(request: Request):
+        """Consume a password-reset token and set the new password.
+
+        Body: { "token": "...", "new_password": "..." }
+        The token is single-use and expires after 1 hour.
+        """
+        import time as _time
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+
+        token = (data.get("token") or "").strip()
+        new_pw = data.get("new_password", "")
+
+        if not token:
+            return JSONResponse({"success": False, "error": "token is required"}, status_code=400)
+        if not new_pw or len(new_pw) < 8:
+            return JSONResponse({"success": False, "error": "New password must be at least 8 characters"}, status_code=400)
+
+        meta = _password_reset_tokens.get(token)
+        if meta is None or meta.get("used"):
+            return JSONResponse({"success": False, "error": "Token is invalid or has already been used"}, status_code=400)
+        if _time.time() > meta.get("expires_at", 0):
+            return JSONResponse({"success": False, "error": "Token has expired. Please request a new reset link."}, status_code=400)
+
+        account_id = meta.get("account_id", "")
+        user = _user_store.get(account_id)
+        if user is None:
+            return JSONResponse({"success": False, "error": "Account not found"}, status_code=404)
+
+        # Mark token as used before writing the new hash (prevents replay even if
+        # the hash write fails partway through)
+        meta["used"] = True
+        user["password_hash"] = _hash_password(new_pw)
+        user["password_changed_at"] = _now_iso()
+        logger.info("Password reset consumed for account %s", account_id)
+        return JSONResponse({"success": True, "message": "Password has been reset. You can now sign in."})
+
+
     async def get_session_token(request: Request):
         """Return the active session token for the current user.
 
@@ -7179,6 +7353,848 @@ def create_app() -> FastAPI:
         _org_memberships[org_id]["pending"].append({"user": invitee, "at": _now_iso()})
         return JSONResponse({"ok": True, "invited": invitee})
 
+    # ==================== PLATFORM ADMIN (FOUNDER-LEVEL) ====================
+    # All endpoints in this section require role == "admin" or "owner".
+    # They are the primary tool for the founder/platform operator to manage
+    # users and organisations without touching a database directly.
+    #
+    # Data stores used by this section:
+    #   _user_store          — already defined above (account_id → user dict)
+    #   _email_to_account    — already defined above (email → account_id)
+    #   _org_store           — organisations registry (org_id → org dict)
+    #   _admin_audit_log     — immutable audit trail of every admin action
+
+    _org_store: "Dict[str, Dict[str, Any]]" = {}          # org_id → org record
+    _admin_audit_log: "List[Dict[str, Any]]" = []         # chronological events
+
+    def _require_admin(request: "Request") -> "Optional[Dict[str, Any]]":
+        """Return the account dict if the caller has admin/owner role.
+
+        Returns None if the request is not authenticated or the account does
+        not have the required role.  Callers should return HTTP 401/403.
+        """
+        account = _get_account_from_session(request)
+        if account is None:
+            return None
+        if account.get("role") not in ("admin", "owner"):
+            return None
+        return account
+
+    def _admin_log(actor_id: str, action: str, target: str, detail: "Dict[str, Any]") -> None:
+        """Append an immutable audit-log entry."""
+        import uuid as _uuid
+        _admin_audit_log.append({
+            "id": _uuid.uuid4().hex[:12],
+            "actor_id": actor_id,
+            "action": action,
+            "target": target,
+            "detail": detail,
+            "ts": _now_iso(),
+        })
+
+    # ── Users ──────────────────────────────────────────────────────────────
+
+    @app.get("/api/admin/users")
+    async def admin_list_users(request: Request):
+        """List all platform users. Admin/owner only."""
+        actor = _require_admin(request)
+        if actor is None:
+            return JSONResponse({"error": "Admin access required"}, status_code=403)
+
+        q = (request.query_params.get("q") or "").lower()
+        role_f = request.query_params.get("role", "")
+        tier_f = request.query_params.get("tier", "")
+        limit = min(int(request.query_params.get("limit", "100")), 500)
+        offset = int(request.query_params.get("offset", "0"))
+
+        users = [
+            {
+                "account_id": v["account_id"],
+                "email": v.get("email", ""),
+                "full_name": v.get("full_name", ""),
+                "role": v.get("role", "user"),
+                "tier": v.get("tier", "free"),
+                "status": v.get("status", "active"),
+                "created_at": v.get("created_at", ""),
+                "job_title": v.get("job_title", ""),
+                "company": v.get("company", ""),
+            }
+            for v in _user_store.values()
+        ]
+
+        if q:
+            users = [u for u in users if q in u["email"].lower() or q in u["full_name"].lower()]
+        if role_f:
+            users = [u for u in users if u["role"] == role_f]
+        if tier_f:
+            users = [u for u in users if u["tier"] == tier_f]
+
+        total = len(users)
+        users_page = users[offset: offset + limit]
+        return JSONResponse({"success": True, "users": users_page, "total": total, "offset": offset, "limit": limit})
+
+    @app.post("/api/admin/users")
+    async def admin_create_user(request: Request):
+        """Admin-create a user account (bypasses self-signup flow). Admin/owner only."""
+        actor = _require_admin(request)
+        if actor is None:
+            return JSONResponse({"error": "Admin access required"}, status_code=403)
+
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
+        email = (data.get("email") or "").strip().lower()
+        password = data.get("password", "")
+        if not email:
+            return JSONResponse({"error": "email is required"}, status_code=400)
+        if not password or len(password) < 8:
+            return JSONResponse({"error": "password must be at least 8 characters"}, status_code=400)
+        if email in _email_to_account:
+            return JSONResponse({"error": "An account with this email already exists"}, status_code=409)
+
+        import uuid as _uuid
+        account_id = _uuid.uuid4().hex[:20]
+        user_record = {
+            "account_id": account_id,
+            "email": email,
+            "password_hash": _hash_password(password),
+            "full_name": data.get("full_name", ""),
+            "job_title": data.get("job_title", ""),
+            "company": data.get("company", ""),
+            "tier": data.get("tier", "free"),
+            "role": data.get("role", "user"),
+            "status": "active",
+            "email_validated": True,
+            "eula_accepted": True,
+            "created_at": _now_iso(),
+            "created_by_admin": actor["account_id"],
+        }
+        _user_store[account_id] = user_record
+        _email_to_account[email] = account_id
+        _admin_log(actor["account_id"], "create_user", account_id, {"email": email, "role": user_record["role"], "tier": user_record["tier"]})
+
+        return JSONResponse({"success": True, "account_id": account_id, "email": email}, status_code=201)
+
+    @app.get("/api/admin/users/{user_id}")
+    async def admin_get_user(user_id: str, request: Request):
+        """Get a single user's full profile. Admin/owner only."""
+        actor = _require_admin(request)
+        if actor is None:
+            return JSONResponse({"error": "Admin access required"}, status_code=403)
+
+        user = _user_store.get(user_id)
+        if not user:
+            return JSONResponse({"error": "User not found"}, status_code=404)
+
+        safe = {k: v for k, v in user.items() if k != "password_hash"}
+        return JSONResponse({"success": True, "user": safe})
+
+    @app.patch("/api/admin/users/{user_id}")
+    async def admin_update_user(user_id: str, request: Request):
+        """Update a user's role, tier, status, name, or email. Admin/owner only."""
+        actor = _require_admin(request)
+        if actor is None:
+            return JSONResponse({"error": "Admin access required"}, status_code=403)
+
+        user = _user_store.get(user_id)
+        if not user:
+            return JSONResponse({"error": "User not found"}, status_code=404)
+
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
+        changes: "Dict[str, Any]" = {}
+        for field_name in ("full_name", "job_title", "company", "tier", "role", "status"):
+            if field_name in data:
+                changes[field_name] = data[field_name]
+                user[field_name] = data[field_name]
+
+        # Email change — update index
+        if "email" in data:
+            new_email = data["email"].strip().lower()
+            if new_email != user.get("email", ""):
+                if new_email in _email_to_account and _email_to_account[new_email] != user_id:
+                    return JSONResponse({"error": "Email already in use"}, status_code=409)
+                old_email = user.get("email", "")
+                _email_to_account.pop(old_email, None)
+                _email_to_account[new_email] = user_id
+                user["email"] = new_email
+                changes["email"] = new_email
+
+        user["updated_at"] = _now_iso()
+        _admin_log(actor["account_id"], "update_user", user_id, changes)
+        return JSONResponse({"success": True, "account_id": user_id, "changes": changes})
+
+    @app.delete("/api/admin/users/{user_id}")
+    async def admin_delete_user(user_id: str, request: Request):
+        """Deactivate (soft-delete) a user account. Admin/owner only."""
+        actor = _require_admin(request)
+        if actor is None:
+            return JSONResponse({"error": "Admin access required"}, status_code=403)
+
+        user = _user_store.get(user_id)
+        if not user:
+            return JSONResponse({"error": "User not found"}, status_code=404)
+        if user_id == actor["account_id"]:
+            return JSONResponse({"error": "Cannot deactivate your own account"}, status_code=400)
+
+        user["status"] = "deactivated"
+        user["deactivated_at"] = _now_iso()
+        # Invalidate all sessions for this user
+        with _session_lock:
+            dead_tokens = [t for t, uid in _session_store.items() if uid == user_id]
+            for t in dead_tokens:
+                _session_store.pop(t, None)
+
+        _admin_log(actor["account_id"], "deactivate_user", user_id, {"email": user.get("email", "")})
+        return JSONResponse({"success": True, "account_id": user_id, "status": "deactivated"})
+
+    @app.post("/api/admin/users/{user_id}/reset-password")
+    async def admin_reset_password(user_id: str, request: Request):
+        """Force-reset a user's password. Admin/owner only."""
+        actor = _require_admin(request)
+        if actor is None:
+            return JSONResponse({"error": "Admin access required"}, status_code=403)
+
+        user = _user_store.get(user_id)
+        if not user:
+            return JSONResponse({"error": "User not found"}, status_code=404)
+
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
+        new_password = data.get("new_password", "")
+        if not new_password or len(new_password) < 8:
+            return JSONResponse({"error": "new_password must be at least 8 characters"}, status_code=400)
+
+        user["password_hash"] = _hash_password(new_password)
+        user["password_reset_at"] = _now_iso()
+        user["password_reset_by"] = actor["account_id"]
+        # Invalidate all existing sessions
+        with _session_lock:
+            dead_tokens = [t for t, uid in _session_store.items() if uid == user_id]
+            for t in dead_tokens:
+                _session_store.pop(t, None)
+
+        _admin_log(actor["account_id"], "reset_password", user_id, {"email": user.get("email", "")})
+        return JSONResponse({"success": True, "message": "Password reset. All active sessions invalidated."})
+
+    @app.post("/api/admin/users/{user_id}/suspend")
+    async def admin_suspend_user(user_id: str, request: Request):
+        """Suspend a user account (blocks login). Admin/owner only."""
+        actor = _require_admin(request)
+        if actor is None:
+            return JSONResponse({"error": "Admin access required"}, status_code=403)
+
+        user = _user_store.get(user_id)
+        if not user:
+            return JSONResponse({"error": "User not found"}, status_code=404)
+        if user_id == actor["account_id"]:
+            return JSONResponse({"error": "Cannot suspend your own account"}, status_code=400)
+
+        user["status"] = "suspended"
+        user["suspended_at"] = _now_iso()
+        # Invalidate sessions
+        with _session_lock:
+            dead_tokens = [t for t, uid in _session_store.items() if uid == user_id]
+            for t in dead_tokens:
+                _session_store.pop(t, None)
+
+        _admin_log(actor["account_id"], "suspend_user", user_id, {"email": user.get("email", "")})
+        return JSONResponse({"success": True, "account_id": user_id, "status": "suspended"})
+
+    @app.post("/api/admin/users/{user_id}/unsuspend")
+    async def admin_unsuspend_user(user_id: str, request: Request):
+        """Restore a suspended user account. Admin/owner only."""
+        actor = _require_admin(request)
+        if actor is None:
+            return JSONResponse({"error": "Admin access required"}, status_code=403)
+
+        user = _user_store.get(user_id)
+        if not user:
+            return JSONResponse({"error": "User not found"}, status_code=404)
+
+        user["status"] = "active"
+        user.pop("suspended_at", None)
+        _admin_log(actor["account_id"], "unsuspend_user", user_id, {"email": user.get("email", "")})
+        return JSONResponse({"success": True, "account_id": user_id, "status": "active"})
+
+    # ── Organizations ───────────────────────────────────────────────────────
+
+    @app.get("/api/admin/organizations")
+    async def admin_list_orgs(request: Request):
+        """List all organisations. Admin/owner only."""
+        actor = _require_admin(request)
+        if actor is None:
+            return JSONResponse({"error": "Admin access required"}, status_code=403)
+
+        q = (request.query_params.get("q") or "").lower()
+        orgs = list(_org_store.values())
+        if q:
+            orgs = [o for o in orgs if q in o.get("name", "").lower() or q in o.get("slug", "").lower()]
+        return JSONResponse({"success": True, "organizations": orgs, "total": len(orgs)})
+
+    @app.post("/api/admin/organizations")
+    async def admin_create_org(request: Request):
+        """Create a new organisation. Admin/owner only."""
+        actor = _require_admin(request)
+        if actor is None:
+            return JSONResponse({"error": "Admin access required"}, status_code=403)
+
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
+        name = (data.get("name") or "").strip()
+        if not name:
+            return JSONResponse({"error": "name is required"}, status_code=400)
+
+        import uuid as _uuid, re as _re
+        org_id = _uuid.uuid4().hex[:12]
+        slug = _re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+        org = {
+            "org_id": org_id,
+            "name": name,
+            "slug": slug,
+            "description": data.get("description", ""),
+            "owner_id": data.get("owner_id", actor["account_id"]),
+            "plan": data.get("plan", "free"),
+            "status": "active",
+            "members": [],
+            "created_at": _now_iso(),
+            "created_by": actor["account_id"],
+        }
+        _org_store[org_id] = org
+        _admin_log(actor["account_id"], "create_org", org_id, {"name": name})
+        return JSONResponse({"success": True, "org_id": org_id, "organization": org}, status_code=201)
+
+    @app.get("/api/admin/organizations/{org_id}")
+    async def admin_get_org(org_id: str, request: Request):
+        """Get a single organisation. Admin/owner only."""
+        actor = _require_admin(request)
+        if actor is None:
+            return JSONResponse({"error": "Admin access required"}, status_code=403)
+
+        org = _org_store.get(org_id)
+        if not org:
+            return JSONResponse({"error": "Organization not found"}, status_code=404)
+        return JSONResponse({"success": True, "organization": org})
+
+    @app.patch("/api/admin/organizations/{org_id}")
+    async def admin_update_org(org_id: str, request: Request):
+        """Update an organisation's name, description, plan, or status. Admin/owner only."""
+        actor = _require_admin(request)
+        if actor is None:
+            return JSONResponse({"error": "Admin access required"}, status_code=403)
+
+        org = _org_store.get(org_id)
+        if not org:
+            return JSONResponse({"error": "Organization not found"}, status_code=404)
+
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
+        changes: "Dict[str, Any]" = {}
+        for field_name in ("name", "description", "plan", "status", "owner_id"):
+            if field_name in data:
+                org[field_name] = data[field_name]
+                changes[field_name] = data[field_name]
+
+        org["updated_at"] = _now_iso()
+        _admin_log(actor["account_id"], "update_org", org_id, changes)
+        return JSONResponse({"success": True, "org_id": org_id, "changes": changes})
+
+    @app.delete("/api/admin/organizations/{org_id}")
+    async def admin_delete_org(org_id: str, request: Request):
+        """Deactivate an organisation. Admin/owner only."""
+        actor = _require_admin(request)
+        if actor is None:
+            return JSONResponse({"error": "Admin access required"}, status_code=403)
+
+        org = _org_store.get(org_id)
+        if not org:
+            return JSONResponse({"error": "Organization not found"}, status_code=404)
+
+        org["status"] = "deactivated"
+        org["deactivated_at"] = _now_iso()
+        _admin_log(actor["account_id"], "deactivate_org", org_id, {"name": org.get("name", "")})
+        return JSONResponse({"success": True, "org_id": org_id, "status": "deactivated"})
+
+    @app.get("/api/admin/organizations/{org_id}/members")
+    async def admin_org_members(org_id: str, request: Request):
+        """List members of an organisation. Admin/owner only."""
+        actor = _require_admin(request)
+        if actor is None:
+            return JSONResponse({"error": "Admin access required"}, status_code=403)
+
+        org = _org_store.get(org_id)
+        if not org:
+            return JSONResponse({"error": "Organization not found"}, status_code=404)
+
+        members = []
+        for uid in org.get("members", []):
+            user = _user_store.get(uid)
+            if user:
+                members.append({
+                    "account_id": uid,
+                    "email": user.get("email", ""),
+                    "full_name": user.get("full_name", ""),
+                    "role": user.get("role", "user"),
+                    "status": user.get("status", "active"),
+                })
+        return JSONResponse({"success": True, "org_id": org_id, "members": members, "total": len(members)})
+
+    @app.post("/api/admin/organizations/{org_id}/members")
+    async def admin_add_org_member(org_id: str, request: Request):
+        """Add a user to an organisation. Admin/owner only."""
+        actor = _require_admin(request)
+        if actor is None:
+            return JSONResponse({"error": "Admin access required"}, status_code=403)
+
+        org = _org_store.get(org_id)
+        if not org:
+            return JSONResponse({"error": "Organization not found"}, status_code=404)
+
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
+        user_id = data.get("user_id", "")
+        if not user_id or user_id not in _user_store:
+            return JSONResponse({"error": "User not found"}, status_code=404)
+
+        if user_id not in org["members"]:
+            org["members"].append(user_id)
+        _admin_log(actor["account_id"], "add_org_member", org_id, {"user_id": user_id})
+        return JSONResponse({"success": True, "org_id": org_id, "user_id": user_id, "member_count": len(org["members"])})
+
+    @app.delete("/api/admin/organizations/{org_id}/members/{user_id}")
+    async def admin_remove_org_member(org_id: str, user_id: str, request: Request):
+        """Remove a user from an organisation. Admin/owner only."""
+        actor = _require_admin(request)
+        if actor is None:
+            return JSONResponse({"error": "Admin access required"}, status_code=403)
+
+        org = _org_store.get(org_id)
+        if not org:
+            return JSONResponse({"error": "Organization not found"}, status_code=404)
+
+        if user_id in org["members"]:
+            org["members"].remove(user_id)
+        _admin_log(actor["account_id"], "remove_org_member", org_id, {"user_id": user_id})
+        return JSONResponse({"success": True, "org_id": org_id, "user_id": user_id, "member_count": len(org["members"])})
+
+    # ── Platform Stats & Audit Log ─────────────────────────────────────────
+
+    @app.get("/api/admin/stats")
+    async def admin_stats(request: Request):
+        """Platform-wide statistics. Admin/owner only."""
+        actor = _require_admin(request)
+        if actor is None:
+            return JSONResponse({"error": "Admin access required"}, status_code=403)
+
+        with _session_lock:
+            active_sessions = len(_session_store)
+
+        users = list(_user_store.values())
+        return JSONResponse({
+            "success": True,
+            "stats": {
+                "total_users": len(users),
+                "active_users": sum(1 for u in users if u.get("status", "active") == "active"),
+                "suspended_users": sum(1 for u in users if u.get("status") == "suspended"),
+                "deactivated_users": sum(1 for u in users if u.get("status") == "deactivated"),
+                "users_by_role": {
+                    "owner": sum(1 for u in users if u.get("role") == "owner"),
+                    "admin": sum(1 for u in users if u.get("role") == "admin"),
+                    "user": sum(1 for u in users if u.get("role", "user") == "user"),
+                },
+                "users_by_tier": {
+                    "free": sum(1 for u in users if u.get("tier", "free") == "free"),
+                    "solo": sum(1 for u in users if u.get("tier") == "solo"),
+                    "team": sum(1 for u in users if u.get("tier") == "team"),
+                    "professional": sum(1 for u in users if u.get("tier") == "professional"),
+                    "enterprise": sum(1 for u in users if u.get("tier") == "enterprise"),
+                },
+                "total_organizations": len(_org_store),
+                "active_organizations": sum(1 for o in _org_store.values() if o.get("status", "active") == "active"),
+                "active_sessions": active_sessions,
+                "audit_log_entries": len(_admin_audit_log),
+            },
+        })
+
+    @app.get("/api/admin/sessions")
+    async def admin_sessions(request: Request):
+        """List all active sessions (token → account summary). Admin/owner only."""
+        actor = _require_admin(request)
+        if actor is None:
+            return JSONResponse({"error": "Admin access required"}, status_code=403)
+
+        with _session_lock:
+            session_snapshot = dict(_session_store)
+
+        sessions = []
+        for token, account_id in session_snapshot.items():
+            user = _user_store.get(account_id)
+            sessions.append({
+                "token_prefix": token[:8] + "…",
+                "account_id": account_id,
+                "email": user.get("email", "") if user else "",
+                "role": user.get("role", "user") if user else "unknown",
+            })
+        return JSONResponse({"success": True, "sessions": sessions, "total": len(sessions)})
+
+    @app.delete("/api/admin/sessions/{account_id}")
+    async def admin_revoke_sessions(account_id: str, request: Request):
+        """Revoke all sessions for an account. Admin/owner only."""
+        actor = _require_admin(request)
+        if actor is None:
+            return JSONResponse({"error": "Admin access required"}, status_code=403)
+
+        with _session_lock:
+            dead = [t for t, uid in _session_store.items() if uid == account_id]
+            for t in dead:
+                _session_store.pop(t, None)
+
+        _admin_log(actor["account_id"], "revoke_sessions", account_id, {"revoked": len(dead)})
+        return JSONResponse({"success": True, "account_id": account_id, "revoked": len(dead)})
+
+    @app.get("/api/admin/audit-log")
+    async def admin_audit_log(request: Request):
+        """Return the admin audit log (newest first). Admin/owner only."""
+        actor = _require_admin(request)
+        if actor is None:
+            return JSONResponse({"error": "Admin access required"}, status_code=403)
+
+        limit = min(int(request.query_params.get("limit", "100")), 500)
+        offset = int(request.query_params.get("offset", "0"))
+        action_f = request.query_params.get("action", "")
+
+        entries = list(reversed(_admin_audit_log))
+        if action_f:
+            entries = [e for e in entries if e.get("action") == action_f]
+        total = len(entries)
+        page = entries[offset: offset + limit]
+        return JSONResponse({"success": True, "entries": page, "total": total, "offset": offset, "limit": limit})
+
+    # ==================== ORG PORTAL (MEMBER-LEVEL SELF-SERVICE) ====================
+    # Self-service org management for members and org-admins.
+    # A caller can only access the org they belong to — they never see other orgs.
+    #
+    # Roles inside an org:
+    #   org_owner  — can change settings, manage all members, delete the org
+    #   org_admin  — can invite/remove members and change member roles
+    #   member     — read-only view of org info, members, channels, activity
+    #
+    # Each org record in _org_store may have an `org_roles` dict:
+    #   { account_id: "org_owner"|"org_admin"|"member" }
+
+    _org_activity_log: "Dict[str, List[Dict[str, Any]]]" = {}  # org_id → events
+
+    def _get_org_role(org: "Dict[str, Any]", account_id: str) -> "Optional[str]":
+        """Return the caller's role within the org, or None if not a member."""
+        roles = org.get("org_roles", {})
+        if account_id in roles:
+            return roles[account_id]
+        # Fall back: check members list (legacy records have no roles dict)
+        if account_id in org.get("members", []):
+            return "member"
+        # The org owner_id always has org_owner role
+        if account_id == org.get("owner_id"):
+            return "org_owner"
+        return None
+
+    def _require_org_member(request: "Request", org_id: str) -> "Optional[tuple]":
+        """Return (account, org, org_role) if the caller belongs to this org.
+
+        Returns None if unauthenticated, org not found, or caller not a member.
+        """
+        account = _get_account_from_session(request)
+        if account is None:
+            return None
+        org = _org_store.get(org_id)
+        if org is None:
+            return None
+        role = _get_org_role(org, account["account_id"])
+        if role is None:
+            # Platform admins can always view any org
+            if account.get("role") in ("admin", "owner"):
+                role = "platform_admin"
+            else:
+                return None
+        return account, org, role
+
+    def _org_log(org_id: str, actor_id: str, action: str, detail: "Dict[str, Any]") -> None:
+        """Append an event to the org's activity log."""
+        import uuid as _uuid
+        if org_id not in _org_activity_log:
+            _org_activity_log[org_id] = []
+        _org_activity_log[org_id].append({
+            "id": _uuid.uuid4().hex[:10],
+            "actor_id": actor_id,
+            "action": action,
+            "detail": detail,
+            "ts": _now_iso(),
+        })
+
+    # ── Org portal endpoints ────────────────────────────────────────────────
+
+    @app.get("/api/org/portal/{org_id}")
+    async def org_portal_get(org_id: str, request: Request):
+        """Get the calling user's view of an organisation.
+
+        Returns org metadata, member count, channel count, plan, and the
+        caller's role within the org.  Callers must be members (or platform
+        admins) — they never see other orgs' data via this endpoint.
+        """
+        result = _require_org_member(request, org_id)
+        if result is None:
+            return JSONResponse({"error": "Not a member of this organization"}, status_code=403)
+        account, org, caller_role = result
+
+        channels = [c for c in _community_channels.values() if c.get("org_id") == org_id]
+        members = org.get("members", [])
+        pending = _org_memberships.get(org_id, {}).get("pending", [])
+
+        return JSONResponse({
+            "success": True,
+            "org": {
+                "org_id": org_id,
+                "name": org.get("name", ""),
+                "slug": org.get("slug", ""),
+                "description": org.get("description", ""),
+                "plan": org.get("plan", "free"),
+                "status": org.get("status", "active"),
+                "created_at": org.get("created_at", ""),
+                "owner_id": org.get("owner_id", ""),
+            },
+            "stats": {
+                "member_count": len(members),
+                "channel_count": len(channels),
+                "pending_invites": len(pending),
+                "activity_events": len(_org_activity_log.get(org_id, [])),
+            },
+            "caller_role": caller_role,
+        })
+
+    @app.get("/api/org/portal/{org_id}/members")
+    async def org_portal_members(org_id: str, request: Request):
+        """List members of the org with their roles.
+
+        Only accessible to members of this specific org.
+        """
+        result = _require_org_member(request, org_id)
+        if result is None:
+            return JSONResponse({"error": "Not a member of this organization"}, status_code=403)
+        account, org, caller_role = result
+
+        members = []
+        for uid in org.get("members", []):
+            user = _user_store.get(uid)
+            role_in_org = _get_org_role(org, uid) or "member"
+            members.append({
+                "account_id": uid,
+                "email": user.get("email", "") if user else uid,
+                "full_name": user.get("full_name", "") if user else "",
+                "role": role_in_org,
+                "status": user.get("status", "active") if user else "unknown",
+                "joined_at": "",  # future: track join date
+            })
+
+        pending = _org_memberships.get(org_id, {}).get("pending", [])
+        return JSONResponse({
+            "success": True,
+            "org_id": org_id,
+            "members": members,
+            "pending_invites": pending,
+            "total": len(members),
+            "caller_role": caller_role,
+        })
+
+    @app.post("/api/org/portal/{org_id}/members/invite")
+    async def org_portal_invite(org_id: str, request: Request):
+        """Invite a user to the org by email or account_id.
+
+        Requires org_admin, org_owner, or platform admin.
+        """
+        result = _require_org_member(request, org_id)
+        if result is None:
+            return JSONResponse({"error": "Not a member of this organization"}, status_code=403)
+        account, org, caller_role = result
+
+        if caller_role not in ("org_admin", "org_owner", "platform_admin"):
+            return JSONResponse({"error": "Org admin role required"}, status_code=403)
+
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
+        invitee_email = (data.get("email") or "").strip().lower()
+        invitee_id = data.get("user_id", "")
+
+        # Resolve by email if no user_id given
+        if not invitee_id and invitee_email:
+            invitee_id = _email_to_account.get(invitee_email, "")
+
+        if not invitee_id and not invitee_email:
+            return JSONResponse({"error": "Provide email or user_id"}, status_code=400)
+
+        if org_id not in _org_memberships:
+            _org_memberships[org_id] = {"members": [], "moderators": [], "pending": []}
+
+        label = invitee_id or invitee_email
+        _org_memberships[org_id]["pending"].append({
+            "user": label,
+            "email": invitee_email,
+            "user_id": invitee_id,
+            "at": _now_iso(),
+            "invited_by": account["account_id"],
+        })
+        _org_log(org_id, account["account_id"], "member_invited", {"invitee": label})
+        return JSONResponse({"success": True, "org_id": org_id, "invited": label})
+
+    @app.delete("/api/org/portal/{org_id}/members/{user_id}")
+    async def org_portal_remove_member(org_id: str, user_id: str, request: Request):
+        """Remove a member from the org.
+
+        Requires org_admin, org_owner, or platform admin.
+        Cannot remove the org owner.
+        """
+        result = _require_org_member(request, org_id)
+        if result is None:
+            return JSONResponse({"error": "Not a member of this organization"}, status_code=403)
+        account, org, caller_role = result
+
+        if caller_role not in ("org_admin", "org_owner", "platform_admin"):
+            return JSONResponse({"error": "Org admin role required"}, status_code=403)
+        if user_id == org.get("owner_id") and caller_role != "platform_admin":
+            return JSONResponse({"error": "Cannot remove the org owner"}, status_code=400)
+
+        if user_id in org.get("members", []):
+            org["members"].remove(user_id)
+        # Clean up roles entry
+        org.get("org_roles", {}).pop(user_id, None)
+
+        _org_log(org_id, account["account_id"], "member_removed", {"user_id": user_id})
+        return JSONResponse({"success": True, "org_id": org_id, "user_id": user_id, "member_count": len(org.get("members", []))})
+
+    @app.patch("/api/org/portal/{org_id}/members/{user_id}/role")
+    async def org_portal_update_member_role(org_id: str, user_id: str, request: Request):
+        """Change a member's role within the org.
+
+        Requires org_owner or platform admin.
+        Valid roles: org_owner, org_admin, member.
+        """
+        result = _require_org_member(request, org_id)
+        if result is None:
+            return JSONResponse({"error": "Not a member of this organization"}, status_code=403)
+        account, org, caller_role = result
+
+        if caller_role not in ("org_owner", "platform_admin"):
+            return JSONResponse({"error": "Org owner role required"}, status_code=403)
+
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
+        new_role = data.get("role", "")
+        if new_role not in ("org_owner", "org_admin", "member"):
+            return JSONResponse({"error": "Invalid role. Use: org_owner, org_admin, member"}, status_code=400)
+
+        if user_id not in org.get("members", []):
+            return JSONResponse({"error": "User is not a member of this org"}, status_code=404)
+
+        if "org_roles" not in org:
+            org["org_roles"] = {}
+        org["org_roles"][user_id] = new_role
+
+        _org_log(org_id, account["account_id"], "member_role_changed", {"user_id": user_id, "new_role": new_role})
+        return JSONResponse({"success": True, "org_id": org_id, "user_id": user_id, "role": new_role})
+
+    @app.get("/api/org/portal/{org_id}/channels")
+    async def org_portal_channels(org_id: str, request: Request):
+        """List channels scoped to this org.
+
+        Only accessible to members of this specific org.
+        """
+        result = _require_org_member(request, org_id)
+        if result is None:
+            return JSONResponse({"error": "Not a member of this organization"}, status_code=403)
+        _account, org, caller_role = result
+
+        channels = [c for c in _community_channels.values() if c.get("org_id") == org_id]
+        return JSONResponse({
+            "success": True,
+            "org_id": org_id,
+            "channels": channels,
+            "total": len(channels),
+            "caller_role": caller_role,
+        })
+
+    @app.get("/api/org/portal/{org_id}/activity")
+    async def org_portal_activity(org_id: str, request: Request):
+        """Return recent activity events for this org (newest first).
+
+        Only accessible to members of this specific org.
+        """
+        result = _require_org_member(request, org_id)
+        if result is None:
+            return JSONResponse({"error": "Not a member of this organization"}, status_code=403)
+        _account, org, caller_role = result
+
+        limit = min(int(request.query_params.get("limit", "50")), 200)
+        offset = int(request.query_params.get("offset", "0"))
+        events = list(reversed(_org_activity_log.get(org_id, [])))
+        total = len(events)
+        return JSONResponse({
+            "success": True,
+            "org_id": org_id,
+            "events": events[offset: offset + limit],
+            "total": total,
+            "caller_role": caller_role,
+        })
+
+    @app.patch("/api/org/portal/{org_id}/settings")
+    async def org_portal_update_settings(org_id: str, request: Request):
+        """Update org name and/or description.
+
+        Requires org_admin, org_owner, or platform admin.
+        """
+        result = _require_org_member(request, org_id)
+        if result is None:
+            return JSONResponse({"error": "Not a member of this organization"}, status_code=403)
+        account, org, caller_role = result
+
+        if caller_role not in ("org_admin", "org_owner", "platform_admin"):
+            return JSONResponse({"error": "Org admin role required"}, status_code=403)
+
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
+        changes: "Dict[str, Any]" = {}
+        for field_name in ("name", "description"):
+            if field_name in data:
+                org[field_name] = data[field_name]
+                changes[field_name] = data[field_name]
+
+        org["updated_at"] = _now_iso()
+        _org_log(org_id, account["account_id"], "settings_updated", changes)
+        return JSONResponse({"success": True, "org_id": org_id, "changes": changes})
+
     # ==================== REVIEW AUTOMATION ENGINE ====================
 
     @app.post("/api/automation/review-response")
@@ -7580,6 +8596,10 @@ def create_app() -> FastAPI:
             "/ui/grant-application": "grant_application.html",
             "/ui/financing": "financing_options.html",
             "/ui/comms-hub": "communication_hub.html",
+            "/ui/admin": "admin_panel.html",
+            "/ui/org-portal": "org_portal.html",
+            "/ui/change-password": "change_password.html",
+            "/ui/reset-password": "reset_password.html",
         }
 
         # ── Route classification: public vs auth-required ──────────
@@ -7590,6 +8610,7 @@ def create_app() -> FastAPI:
             "/ui/login", "/ui/signup", "/ui/pricing",
             "/ui/docs", "/ui/blog", "/ui/careers", "/ui/legal", "/ui/privacy",
             "/ui/partner", "/ui/smoke-test",
+            "/ui/reset-password",
         })
 
         # Redirect bare /ui/ to /ui/landing
@@ -10611,6 +11632,61 @@ def create_app() -> FastAPI:
                 "name": getattr(route, "name", ""),
             })
         return JSONResponse({"success": True, "data": {"endpoints": sorted(routes, key=lambda r: r["path"])}})
+
+    # ── Founder account seed ────────────────────────────────────────────────
+    # On every startup the platform ensures a founder/owner account exists so
+    # that cpost@murphy.systems (or the value of MURPHY_FOUNDER_EMAIL) always
+    # has role=owner and can access the admin panel even on a fresh deploy.
+    #
+    # The account is created with MURPHY_FOUNDER_PASSWORD (defaults to the
+    # temporary password below — override via env var in production).
+    # If the account already exists its role is silently promoted to owner.
+    _FOUNDER_EMAIL: str = os.environ.get("MURPHY_FOUNDER_EMAIL", "cpost@murphy.systems").strip().lower()
+    _FOUNDER_PASSWORD: str = os.environ.get("MURPHY_FOUNDER_PASSWORD", "Password1").strip()  # temporary — change after first login
+    if _FOUNDER_PASSWORD == "Password1" and os.environ.get("MURPHY_ENV", "development").lower() != "development":
+        logger.warning(
+            "SECURITY: Founder account is using the default temporary password. "
+            "Set MURPHY_FOUNDER_PASSWORD in your environment before going live."
+        )
+
+    def _ensure_founder_account() -> None:
+        """Create or promote the founder/owner account."""
+        existing_id = _email_to_account.get(_FOUNDER_EMAIL)
+        if existing_id:
+            # Account already exists — promote to owner unconditionally
+            _user_store[existing_id]["role"] = "owner"
+            _user_store[existing_id]["full_name"] = _user_store[existing_id].get("full_name") or "Corey Post"
+            return
+
+        # Create the account from scratch
+        founder_id = "founder-" + uuid4().hex[:16]
+        pwd_hash = _hash_password(_FOUNDER_PASSWORD)
+        _user_store[founder_id] = {
+            "account_id": founder_id,
+            "email": _FOUNDER_EMAIL,
+            "password_hash": pwd_hash,
+            "full_name": "Corey Post",
+            "job_title": "Founder",
+            "company": "Inoni LLC",
+            "tier": "enterprise",
+            "email_validated": True,
+            "eula_accepted": True,
+            "role": "owner",
+            "created_at": _now_iso(),
+        }
+        _email_to_account[_FOUNDER_EMAIL] = founder_id
+        if _sub_manager is not None and _SubRec is not None and _SubTier is not None:
+            try:
+                _sub_manager._subscriptions[founder_id] = _SubRec(
+                    account_id=founder_id,
+                    tier=_SubTier.ENTERPRISE if hasattr(_SubTier, "ENTERPRISE") else _SubTier.FREE,
+                    status=_SubStatus.ACTIVE if _SubStatus is not None else "active",
+                )
+            except Exception:
+                pass  # subscription manager unavailable — not critical
+        logger.info("Founder account seeded: %s (%s)", founder_id, _FOUNDER_EMAIL)
+
+    _ensure_founder_account()
 
     return app
 
