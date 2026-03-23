@@ -414,7 +414,7 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);ove
   var urlParams = new URLSearchParams(window.location.search);
   var sesId = urlParams.get('session');
 
-  /* ── Also load all sessions ── */
+  /* ── Also load all sessions (localStorage as cache/fallback) ── */
   var allSessions = [];
   try {
     var allRaw = localStorage.getItem('murphy_all_meetings');
@@ -428,11 +428,59 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);ove
     }
   }
 
-  /* ── Seed with demo if empty ── */
-  if (!allSessions.length) {
-    allSessions = [
-      {
-        id: 'demo-001',
+  /* ── Normalise a server session record to match local schema ── */
+  function normaliseServerSession(s) {
+    return {
+      id: s.session_id || s.id,
+      title: s.title || 'Untitled session',
+      date: s.started_at || s.date || new Date().toISOString(),
+      duration: s.duration || '',
+      participants: s.participants || [],
+      confidence: s.confidence || 0,
+      suggestions: s.suggestions || [],
+      drafts: s.drafts || {},
+      transcript: s.transcript || [],
+      status: s.status || 'ended',
+    };
+  }
+
+  /* ── Fetch sessions from API, merge with localStorage, then render ── */
+  function initSessions(localSessions) {
+    fetch('/api/meeting-intelligence/sessions')
+      .then(function (res) { return res.ok ? res.json() : Promise.reject(new Error('HTTP ' + res.status)); })
+      .then(function (data) {
+        var serverSessions = (data && data.sessions) ? data.sessions.map(normaliseServerSession) : [];
+        // Merge: server sessions take precedence; local-only sessions appended after
+        var merged = serverSessions.slice();
+        localSessions.forEach(function (ls) {
+          var lsId = ls.id || ls.session_id;
+          if (lsId && !merged.find(function (m) { return (m.id || m.session_id) === lsId; })) {
+            merged.push(ls);
+          }
+        });
+        allSessions = merged;
+        // Update localStorage cache
+        if (allSessions.length) {
+          try { localStorage.setItem('murphy_all_meetings', JSON.stringify(allSessions.slice(0, 50))); } catch (_) {}
+        }
+        // Seed demo only when both API and localStorage returned nothing
+        if (!allSessions.length) {
+          allSessions = DEMO_SESSIONS;
+        }
+        renderAll();
+      })
+      .catch(function (err) {
+        console.error('[MeetingIntelligence] Failed to load sessions from API:', err);
+        // Fall back to localStorage-only
+        allSessions = localSessions.length ? localSessions : DEMO_SESSIONS;
+        renderAll();
+      });
+  }
+
+  /* ── Demo seed data (only used when API + localStorage are both empty) ── */
+  var DEMO_SESSIONS = [
+    {
+      id: 'demo-001',
         title: 'Product Roadmap Q2 2026',
         date: '2026-03-14T14:00:00Z',
         duration: '47 min',
@@ -464,18 +512,8 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);ove
         ]
       }
     ];
-  }
 
-  /* ── ORG stats ── */
-  var orgSessions = parseInt(localStorage.getItem('murphy_org_sessions') || '0', 10) || allSessions.length;
-  var orgInsights = parseInt(localStorage.getItem('murphy_org_insights') || '0', 10) || 4;
-  var orgDraftsAccepted = parseInt(localStorage.getItem('murphy_org_drafts_accepted') || '0', 10) || 2;
-  $id('footer-org-sessions').textContent = orgSessions;
-  $id('stat-sessions').textContent = orgSessions;
-  $id('stat-insights').textContent = orgInsights;
-  $id('stat-drafts-accepted').textContent = orgDraftsAccepted;
-  $id('stat-agents').textContent = Math.max(1, Math.floor(orgSessions * 1.4));
-
+  /* ── Render everything after sessions are resolved ── */
   /* ── Render session list ── */
   function renderSessionList(filter) {
     var list = $id('session-list');
@@ -514,8 +552,6 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);ove
   $id('session-search').addEventListener('input', function () {
     renderSessionList(this.value);
   });
-
-  renderSessionList('');
 
   /* ── Load session data into panels ── */
   var currentSession = null;
@@ -557,6 +593,33 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);ove
     'proposal':       { icon: '📄', title: 'Proposal', sub: 'Ideas for implementation' },
     'risk-register':  { icon: '🚨', title: 'Risk Register', sub: 'Identified risks and mitigations' }
   };
+
+  /* ── Render everything after sessions are resolved ── */
+  /* NOTE: defined after DRAFT_META so loadSession() can access it safely. */
+  function renderAll() {
+    /* ── ORG stats ── */
+    var orgSessions = parseInt(localStorage.getItem('murphy_org_sessions') || '0', 10) || allSessions.length;
+    var orgInsights = parseInt(localStorage.getItem('murphy_org_insights') || '0', 10) || 4;
+    var orgDraftsAccepted = parseInt(localStorage.getItem('murphy_org_drafts_accepted') || '0', 10) || 2;
+    $id('footer-org-sessions').textContent = orgSessions;
+    $id('stat-sessions').textContent = orgSessions;
+    $id('stat-insights').textContent = orgInsights;
+    $id('stat-drafts-accepted').textContent = orgDraftsAccepted;
+    $id('stat-agents').textContent = Math.max(1, Math.floor(orgSessions * 1.4));
+
+    renderSessionList('');
+
+    /* Auto-select session from URL param or first in list */
+    if (sesId) {
+      var urlSession = allSessions.find(function (s) { return (s.id || s.session_id) === sesId; });
+      if (urlSession) loadSession(urlSession);
+    } else if (allSessions.length) {
+      loadSession(allSessions[0]);
+    }
+  }
+
+  /* ── Kick off: fetch from API, merge with localStorage, render ── */
+  initSessions(allSessions);
 
   function renderDrafts(s) {
     var grid = $id('draft-grid');
@@ -746,8 +809,6 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);ove
   }
 
   /* ── Tabs ── */
-  /* Load first session automatically (after all render functions are defined) */
-  if (allSessions.length) loadSession(allSessions[0]);
 
   document.querySelectorAll('.mi-tab').forEach(function (tab) {
     tab.addEventListener('click', function () {
@@ -800,12 +861,18 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);ove
   /* ── Email report ── */
   $id('btn-email-report').addEventListener('click', function () {
     if (!currentSession) { showToast('Select a session first'); return; }
+    var sessionId = currentSession.id || currentSession.session_id;
     fetch('/api/meeting-intelligence/email-report', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session_id: currentSession.id, title: currentSession.title, participants: currentSession.participants })
-    }).catch(function () {});
-    showToast('Report queued for delivery to participants');
+      body: JSON.stringify({ session_id: sessionId, title: currentSession.title, participants: currentSession.participants })
+    })
+      .then(function (res) { return res.ok ? res.json() : Promise.reject(res.status); })
+      .then(function () { showToast('Report queued for delivery to participants ✓'); })
+      .catch(function (err) {
+        console.error('[MeetingIntelligence] Email report failed:', err);
+        showToast('Failed to queue report — check console for details');
+      });
   });
 
   /* ── Export all ── */
@@ -824,19 +891,27 @@ body{background:#0a0a0a;color:var(--text-primary);font-family:var(--font-ui);ove
 
   /* ── API helpers ── */
   function submitDraftToAPI(key, content, status) {
+    var sessionId = currentSession ? (currentSession.id || currentSession.session_id) : undefined;
     fetch('/api/meeting-intelligence/drafts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ draft_type: key, content: content, status: status })
-    }).catch(function () {});
+      body: JSON.stringify({ session_id: sessionId, draft_type: key, content: content, status: status })
+    })
+      .then(function (res) { return res.ok ? res.json() : Promise.reject(res.status); })
+      .then(function () { showToast('Draft saved to server ✓'); })
+      .catch(function (err) { console.error('[MeetingIntelligence] Draft save failed:', err); });
   }
 
   function submitVoteToAPI(key, vote, comment) {
+    var sessionId = currentSession ? (currentSession.id || currentSession.session_id) : undefined;
     fetch('/api/meeting-intelligence/vote', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ draft_type: key, vote: vote, comment: comment })
-    }).catch(function () {});
+      body: JSON.stringify({ session_id: sessionId, draft_type: key, vote: vote, comment: comment })
+    })
+      .then(function (res) { return res.ok ? res.json() : Promise.reject(res.status); })
+      .then(function () { showToast('Vote recorded on server ✓'); })
+      .catch(function (err) { console.error('[MeetingIntelligence] Vote submit failed:', err); });
   }
 
   /* ── Utilities ── */
