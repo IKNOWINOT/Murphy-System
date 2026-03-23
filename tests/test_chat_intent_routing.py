@@ -246,15 +246,16 @@ class TestLLMStatus(unittest.TestCase):
         self.murphy = MurphySystem()
 
     def test_llm_status_not_configured_by_default(self):
-        """Without env vars, LLM should report as not configured."""
+        """Without env vars, LLM should use onboard mode."""
         # Clear relevant env vars for test
         old_provider = os.environ.pop("MURPHY_LLM_PROVIDER", None)
         old_key = os.environ.pop("GROQ_API_KEY", None)
         try:
             status = self.murphy._get_llm_status()
-            self.assertFalse(status["enabled"])
-            self.assertFalse(status["healthy"])
-            self.assertIn("error", status)
+            # LLM is always enabled - uses onboard fallback when no external API configured
+            self.assertTrue(status["enabled"])
+            self.assertEqual(status["provider"], "onboard")
+            self.assertEqual(status["mode"], "onboard")
         finally:
             if old_provider is not None:
                 os.environ["MURPHY_LLM_PROVIDER"] = old_provider
@@ -262,15 +263,16 @@ class TestLLMStatus(unittest.TestCase):
                 os.environ["GROQ_API_KEY"] = old_key
 
     def test_llm_status_groq_no_key(self):
-        """Provider set to groq but no API key should be unhealthy."""
+        """Provider set to groq but no API key should fall back to onboard."""
         old_provider = os.environ.get("MURPHY_LLM_PROVIDER")
         old_key = os.environ.pop("GROQ_API_KEY", None)
         os.environ["MURPHY_LLM_PROVIDER"] = "groq"
         try:
             status = self.murphy._get_llm_status()
-            self.assertFalse(status["enabled"])
-            self.assertEqual(status["provider"], "groq")
-            self.assertIn("GROQ_API_KEY", status.get("error", ""))
+            # LLM is always enabled - gracefully falls back to onboard when key missing
+            self.assertTrue(status["enabled"])
+            self.assertEqual(status["provider"], "onboard")
+            self.assertEqual(status["mode"], "onboard")
         finally:
             if old_provider is not None:
                 os.environ["MURPHY_LLM_PROVIDER"] = old_provider

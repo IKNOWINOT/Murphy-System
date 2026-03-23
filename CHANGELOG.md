@@ -5,6 +5,23 @@ All notable changes to Murphy System will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — Critical LLM Mode Detection Fixes
+
+### Fixed
+- **LLM Mode Detection** (`_get_librarian_status`): Fixed bug where mode was always reported as "llm" even when no external LLM was configured. Now correctly distinguishes between `external_api` and `onboard` modes.
+- **Librarian Ask Response Mode**: `librarian_ask()` now correctly reports `mode="onboard"` when using LocalLLMFallback instead of incorrectly reporting `mode="llm"`.
+- **Onboard Notice Display**: Fixed the onboard mode notice not appearing when no external LLM is configured. Users now see helpful guidance about how to configure external LLM.
+- **Integration Recommendations**: `infer_needed_integrations()` now correctly recommends groq when in onboard mode (checks `mode` field instead of `enabled` field).
+- **Clarifying Questions**: `_try_llm_clarifying_questions()` now correctly returns empty list when in onboard mode, allowing proper fallback to onboard clarifying questions.
+- **API Setup Intent**: `librarian_ask()` now handles `api_setup` intent directly without going through LLM, ensuring users always get API signup links when asking about credentials.
+- **Grant Module Syntax**: Fixed syntax errors in `src/billing/grants/__init__.py` caused by corrupted merge content.
+
+### Added
+- **Boot Validation** (`startup_validator.py`): New `validate_llm_boot_status()` function provides boot-time LLM configuration validation with clear status reporting.
+
+### Changed
+- **Test Expectations**: Updated `TestLLMStatus` tests to reflect correct behavior where LLM is always "enabled" (because onboard is always available) and to check `mode` field for external API detection.
+
 ## [Unreleased] — Live Feeds: Binance, IBKR, IEX Cloud + Regulatory Compliance Engine
 
 ### Added
