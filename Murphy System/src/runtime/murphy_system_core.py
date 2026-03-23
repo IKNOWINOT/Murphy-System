@@ -17,6 +17,7 @@ globals().update(
 )
 del _runtime_deps
 from src.runtime.living_document import LivingDocument
+from src.murphy_identity import MURPHY_SYSTEM_IDENTITY
 
 
 class MurphySystem:
@@ -12185,7 +12186,7 @@ class MurphySystem:
                         "model": model,
                         "messages": [
                             {"role": "system", "content": (
-                                "You are Murphy, a professional automation assistant created by Inoni LLC. "
+                                MURPHY_SYSTEM_IDENTITY + " "
                                 "You help teams automate operations, onboard users, "
                                 "manage integrations, and run end-to-end workflows. "
                                 "Be concise, friendly, and action-oriented.\n\n"
