@@ -56,7 +56,7 @@ def _admin_headers(client) -> dict:
     """
     email = "portal-admin@murphy.system"
     token = _signup_login(client, email)
-    headers = {"Authorization": f"******"}
+    headers = {"Authorization": f"Bearer {token}"}
 
     # Directly elevate the user to platform admin in the live store.
     # The store is a module-level dict inside the app closure; we reach it
@@ -119,7 +119,7 @@ class TestOrgPortalAuthGate:
     def test_regular_user_non_member_gets_403(self, client, method, path):
         """A signed-in user who is NOT a member of the org gets 403."""
         token = _signup_login(client, "outsider-portal@murphy.system")
-        resp = client.request(method, path, json={}, headers={"Authorization": f"******"})
+        resp = client.request(method, path, json={}, headers={"Authorization": f"Bearer {token}"})
         assert resp.status_code in (403, 422), (
             f"{method} {path} returned {resp.status_code} for non-member"
         )

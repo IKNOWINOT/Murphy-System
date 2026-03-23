@@ -5927,6 +5927,185 @@ def create_app() -> FastAPI:
         resp.delete_cookie("murphy_session")
         return resp
 
+    @app.post("/api/auth/forgot-password")
+    async def auth_forgot_password(request: Request):
+        """Initiate a password-reset flow.
+
+        Body: { "email": "user@example.com" }
+        Always returns success to prevent user enumeration.
+        """
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+        email = (data.get("email") or "").strip().lower()
+        if not email:
+            return JSONResponse({"success": False, "error": "email is required"}, status_code=400)
+        if _account_manager is not None:
+            try:
+                _account_manager.request_password_reset(email)
+            except Exception:
+                pass
+        return JSONResponse({
+            "success": True,
+            "message": "If an account with that email exists, a reset link has been sent.",
+        })
+
+    # ── Self-service password management ──────────────────────────────────
+    _password_reset_tokens: "Dict[str, Dict[str, Any]]" = {}
+
+    @app.post("/api/auth/change-password")
+    async def auth_change_password(request: Request):
+        """Change the authenticated user's own password.
+
+        Body: { "current_password": "...", "new_password": "..." }
+        Requires an active session.  New password must be at least 8 characters.
+        """
+        account = _get_account_from_session(request)
+        if account is None:
+            return JSONResponse({"success": False, "error": "Authentication required"}, status_code=401)
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+
+        current_pw = data.get("current_password", "")
+        new_pw = data.get("new_password", "")
+
+        if not current_pw or not new_pw:
+            return JSONResponse({"success": False, "error": "current_password and new_password are required"}, status_code=400)
+        if len(new_pw) < 8:
+            return JSONResponse({"success": False, "error": "New password must be at least 8 characters"}, status_code=400)
+
+        stored_hash = account.get("password_hash", "")
+        if not stored_hash or not _verify_password(current_pw, stored_hash):
+            return JSONResponse({"success": False, "error": "Current password is incorrect"}, status_code=400)
+
+        if current_pw == new_pw:
+            return JSONResponse({"success": False, "error": "New password must differ from the current password"}, status_code=400)
+
+        account["password_hash"] = _hash_password(new_pw)
+        account["password_changed_at"] = _now_iso()
+        logger.info("Password changed for account %s", account["account_id"])
+        return JSONResponse({"success": True, "message": "Password updated successfully."})
+
+    @app.post("/api/auth/request-password-reset")
+    async def auth_request_password_reset(request: Request):
+        """Generate a password-reset token and (in production) email it to the user.
+
+        Body: { "email": "user@example.com" }
+        Always returns the same success response to prevent user enumeration.
+        In development the token is returned directly in the response.
+        """
+        import secrets as _sec
+        import time as _time
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+
+        email = (data.get("email") or "").strip().lower()
+        if not email:
+            return JSONResponse({"success": False, "error": "email is required"}, status_code=400)
+
+        account_id = _email_to_account.get(email)
+        resp_body: "Dict[str, Any]" = {
+            "success": True,
+            "message": "If an account with that email exists, a reset link has been sent.",
+        }
+        if account_id:
+            for t, meta in list(_password_reset_tokens.items()):
+                if meta.get("account_id") == account_id and not meta.get("used"):
+                    meta["used"] = True
+
+            token = _sec.token_urlsafe(32)
+            _password_reset_tokens[token] = {
+                "account_id": account_id,
+                "email": email,
+                "expires_at": _time.time() + 3600,
+                "used": False,
+            }
+
+            reset_url = f"/ui/reset-password?token={token}"
+
+            try:
+                import httpx as _httpx
+                _httpx.post(
+                    "http://localhost:8000/api/email/send",
+                    json={
+                        "to": email,
+                        "subject": "Murphy System — Reset your password",
+                        "body": (
+                            f"Hi,\n\nClick the link below to reset your Murphy System password. "
+                            f"This link expires in 1 hour.\n\n"
+                            f"https://murphy.systems{reset_url}\n\n"
+                            f"If you did not request this, you can safely ignore this email.\n\n"
+                            f"— Murphy System"
+                        ),
+                    },
+                    timeout=3,
+                )
+            except Exception:
+                pass
+
+            if os.environ.get("MURPHY_ENV", "development").lower() == "development":
+                resp_body["dev_token"] = token
+                resp_body["dev_reset_url"] = reset_url
+
+        return JSONResponse(resp_body)
+
+    @app.get("/api/auth/reset-password/validate")
+    async def auth_validate_reset_token(request: Request):
+        """Check whether a password-reset token is valid and unexpired.
+
+        Query param: token=<token>
+        """
+        import time as _time
+        token = request.query_params.get("token", "").strip()
+        if not token:
+            return JSONResponse({"valid": False, "error": "token is required"}, status_code=400)
+        meta = _password_reset_tokens.get(token)
+        if meta is None or meta.get("used") or _time.time() > meta.get("expires_at", 0):
+            return JSONResponse({"valid": False, "error": "Token is invalid or has expired"})
+        return JSONResponse({"valid": True, "email": meta.get("email", "")})
+
+    @app.post("/api/auth/reset-password")
+    async def auth_reset_password(request: Request):
+        """Consume a password-reset token and set the new password.
+
+        Body: { "token": "...", "new_password": "..." }
+        """
+        import time as _time
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+
+        token = (data.get("token") or "").strip()
+        new_pw = data.get("new_password", "")
+
+        if not token:
+            return JSONResponse({"success": False, "error": "token is required"}, status_code=400)
+        if not new_pw or len(new_pw) < 8:
+            return JSONResponse({"success": False, "error": "New password must be at least 8 characters"}, status_code=400)
+
+        meta = _password_reset_tokens.get(token)
+        if meta is None or meta.get("used"):
+            return JSONResponse({"success": False, "error": "Token is invalid or has already been used"}, status_code=400)
+        if _time.time() > meta.get("expires_at", 0):
+            return JSONResponse({"success": False, "error": "Token has expired. Please request a new reset link."}, status_code=400)
+
+        account_id = meta.get("account_id", "")
+        user = _user_store.get(account_id)
+        if user is None:
+            return JSONResponse({"success": False, "error": "Account not found"}, status_code=404)
+
+        meta["used"] = True
+        user["password_hash"] = _hash_password(new_pw)
+        user["password_changed_at"] = _now_iso()
+        logger.info("Password reset consumed for account %s", account_id)
+        return JSONResponse({"success": True, "message": "Password has been reset. You can now sign in."})
+
     @app.get("/api/auth/session-token")
     async def get_session_token(request: Request):
         """Return the active session token for the current user.
@@ -7822,6 +8001,8 @@ def create_app() -> FastAPI:
             "/ui/comms-hub": "communication_hub.html",
             "/ui/admin": "admin_panel.html",
             "/ui/org-portal": "org_portal.html",
+            "/ui/change-password": "change_password.html",
+            "/ui/reset-password": "reset_password.html",
         }
         # Public routes are accessible without a session.  Auth-required
         # routes redirect to /ui/login when no valid session cookie exists.
@@ -7830,6 +8011,7 @@ def create_app() -> FastAPI:
             "/ui/login", "/ui/signup", "/ui/pricing",
             "/ui/docs", "/ui/blog", "/ui/careers", "/ui/legal", "/ui/privacy",
             "/ui/partner", "/ui/smoke-test",
+            "/ui/reset-password",
         })
 
         # Redirect bare /ui/ to /ui/landing
@@ -10450,8 +10632,11 @@ def create_app() -> FastAPI:
     # temporary password below — override via env var in production).
     _FOUNDER_EMAIL: str = os.environ.get("MURPHY_FOUNDER_EMAIL", "cpost@murphy.systems").strip().lower()
     _FOUNDER_PASSWORD: str = os.environ.get("MURPHY_FOUNDER_PASSWORD", "Password1").strip()  # temporary — change after first login
-
-    def _ensure_founder_account() -> None:
+    if _FOUNDER_PASSWORD == "Password1" and os.environ.get("MURPHY_ENV", "development").lower() != "development":
+        logger.warning(
+            "SECURITY: Founder account is using the default temporary password. "
+            "Set MURPHY_FOUNDER_PASSWORD in your environment before going live."
+        )
         """Create or promote the founder/owner account."""
         existing_id = _email_to_account.get(_FOUNDER_EMAIL)
         if existing_id:
@@ -10482,7 +10667,7 @@ def create_app() -> FastAPI:
                 _sub_manager._subscriptions[founder_id] = _SubRec(
                     account_id=founder_id,
                     tier=_SubTier.ENTERPRISE if hasattr(_SubTier, "ENTERPRISE") else _SubTier.FREE,
-                    status=_SubStatus.ACTIVE if _SubStatus is not None else _SubRec.__class__,
+                    status=_SubStatus.ACTIVE if _SubStatus is not None else "active",
                 )
             except Exception:
                 pass  # subscription manager unavailable — not critical
