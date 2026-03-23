@@ -1,0 +1,601 @@
+#!/usr/bin/env bash
+# Copyright © 2020 Inoni Limited Liability Company
+# Creator: Corey Post | License: BSL-1.1
+#
+# Murphy System — Hetzner Full-Stack Load Script
+#
+# Brings up the COMPLETE Murphy production environment on the Hetzner server,
+# including every subsystem and the glue (nginx, env file) that ties them
+# together into a single working platform.
+#
+# ┌─────────────────────────────────────────────────────────────────────────┐
+# │  WHAT THIS SCRIPT STARTS                                                │
+# │                                                                         │
+# │  ① Code & deps    git pull + pip install (latest code & packages)      │
+# │                                                                         │
+# │  ② Env audit      /etc/murphy-production/environment:                  │
+# │                   DATABASE_URL, REDIS_URL, OLLAMA_HOST,                 │
+# │                   SMTP_HOST, MATRIX_HOMESERVER_URL, MURPHY_SECRET_KEY   │
+# │                                                                         │
+# │  ③ Nginx          Reverse proxy / TLS — routes everything:             │
+# │                   /  /ui/ /api/ /static/ /docs → Murphy API :8000       │
+# │                   /grafana/                     → Grafana      :3000    │
+# │                   /mail/                        → Roundcube    :8443    │
+# │                   /metrics                      → Murphy API   :8000    │
+# │                                                                         │
+# │  ④ Onboard LLM    ollama (systemd) — phi3 / llama3                    │
+# │                                                                         │
+# │  ⑤ Docker stack   docker-compose.hetzner.yml:                          │
+# │                   • murphy-postgres  PostgreSQL      :5432              │
+# │                   • murphy-redis     Redis           :6379              │
+# │                   • murphy-prometheus Prometheus     :9090              │
+# │                   • murphy-grafana   Grafana         :3000              │
+# │                   • murphy-mailserver Postfix+Dovecot :25/:587/:993     │
+# │                   • murphy-webmail   Roundcube       :8443              │
+# │                                                                         │
+# │  ⑥ Mail setup     scripts/mail_setup.sh (mailbox provisioning)         │
+# │                                                                         │
+# │  ⑦ Murphy app     murphy-production (systemd):                         │
+# │                   • REST API          /api/*                            │
+# │                   • Website           / + /ui/* + /static/*             │
+# │                   • Matrix IM bridge  (runs inside Murphy process)      │
+# │                   • Slack/Twilio IM   (runs inside Murphy process)      │
+# │                   • Metrics           /metrics                          │
+# │                                                                         │
+# │  ⑧ Health checks  Every subsystem verified                             │
+# └─────────────────────────────────────────────────────────────────────────┘
+#
+# Run on the Hetzner box as root (or a user with systemctl + docker rights):
+#
+#   bash /opt/Murphy-System/scripts/hetzner_load.sh
+#
+# Exit code: 0 on success, 1 on critical failure.
+
+set -euo pipefail
+
+# ── Help / version ────────────────────────────────────────────────────────────
+show_help() {
+  cat <<EOF
+Murphy System — Hetzner Full-Stack Load Script
+
+Brings the COMPLETE Murphy production environment up-to-date and running.
+Covers every subsystem: LLM, database, cache, mail, IM, monitoring,
+the website, and the nginx glue that links them all together.
+
+Usage:
+  $(basename "$0") [OPTIONS]
+
+Options:
+  -h, --help           Show this help message and exit
+  --version            Show version information
+  --skip-pull          Skip git pull (use current code on disk)
+  --skip-deps          Skip pip dependency update (faster restart)
+  --skip-env-audit     Skip environment file completeness check
+  --skip-nginx         Skip nginx vhost check and reload
+  --skip-ollama        Skip Ollama (onboard LLM) check/pull
+  --skip-docker        Skip Docker Compose services
+  --skip-mail-setup    Skip post-boot mailbox provisioning
+  --no-health-check    Skip post-start health checks
+
+What gets started (in order):
+  1. git pull origin main
+  2. pip install --upgrade (Python dependencies)
+  3. Environment file audit (warn on missing connection vars)
+  4. nginx              reverse proxy / TLS / website routing  [systemd]
+  5. ollama             onboard LLM                            [systemd]
+  6. docker-compose.hetzner.yml  support services:
+       murphy-postgres  PostgreSQL
+       murphy-redis     Redis
+       murphy-prometheus Prometheus
+       murphy-grafana   Grafana
+       murphy-mailserver Postfix + Dovecot (SMTP/IMAP)
+       murphy-webmail   Roundcube webmail
+  7. scripts/mail_setup.sh       mailbox provisioning
+  8. murphy-production  Murphy app (REST API + website + IM bridge) [systemd]
+  9. Health checks on every subsystem
+
+Environment overrides (shell variables):
+  MURPHY_REPO_DIR      Repo path             (default: /opt/Murphy-System)
+  MURPHY_SERVICE       systemd service name  (default: murphy-production)
+  MURPHY_VENV          Python virtualenv     (default: \$REPO_DIR/venv)
+  MURPHY_COMPOSE_FILE  Compose file          (default: \$REPO_DIR/docker-compose.hetzner.yml)
+  MURPHY_ENV_FILE      Murphy env file       (default: /etc/murphy-production/environment)
+  NGINX_SITE_NAME      nginx site name       (default: murphy-production)
+  OLLAMA_MODEL         LLM model             (default: phi3)
+  MURPHY_PORT          Murphy port           (default: 8000)
+  OLLAMA_PORT          Ollama port           (default: 11434)
+  GRAFANA_PORT         Grafana port          (default: 3000)
+  PROMETHEUS_PORT      Prometheus port       (default: 9090)
+  MURPHY_WEBMAIL_PORT  Roundcube port        (default: 8443)
+
+Config templates (copy and fill in before first run):
+  config/murphy-production.environment.example → /etc/murphy-production/environment
+  config/nginx/murphy-production.conf          → /etc/nginx/sites-available/murphy-production
+  config/systemd/murphy-production.service     → /etc/systemd/system/murphy-production.service
+
+Examples:
+  $(basename "$0")                     # Full load — all subsystems
+  $(basename "$0") --skip-deps         # Skip pip (code-only change)
+  $(basename "$0") --skip-docker       # Docker services already running
+  $(basename "$0") --skip-ollama       # Ollama already healthy
+  OLLAMA_MODEL=llama3 $(basename "$0") # Use llama3 instead of phi3
+
+One-liner (from anywhere on the server):
+  bash /opt/Murphy-System/scripts/hetzner_load.sh
+
+EOF
+  exit 0
+}
+
+# ── Defaults ──────────────────────────────────────────────────────────────────
+REPO_DIR="${MURPHY_REPO_DIR:-/opt/Murphy-System}"
+SERVICE_NAME="${MURPHY_SERVICE:-murphy-production}"
+VENV_DIR="${MURPHY_VENV:-${REPO_DIR}/venv}"
+REQUIREMENTS_FILE="${REPO_DIR}/requirements_murphy_1.0.txt"
+COMPOSE_FILE="${MURPHY_COMPOSE_FILE:-${REPO_DIR}/docker-compose.hetzner.yml}"
+MURPHY_ENV_FILE="${MURPHY_ENV_FILE:-/etc/murphy-production/environment}"
+NGINX_SITE_NAME="${NGINX_SITE_NAME:-murphy-production}"
+OLLAMA_MODEL="${OLLAMA_MODEL:-phi3}"
+MURPHY_PORT="${MURPHY_PORT:-8000}"
+OLLAMA_PORT="${OLLAMA_PORT:-11434}"
+GRAFANA_PORT="${GRAFANA_PORT:-3000}"
+PROMETHEUS_PORT="${PROMETHEUS_PORT:-9090}"
+WEBMAIL_PORT="${MURPHY_WEBMAIL_PORT:-8443}"
+
+SKIP_PULL=false
+SKIP_DEPS=false
+SKIP_ENV_AUDIT=false
+SKIP_NGINX=false
+SKIP_OLLAMA=false
+SKIP_DOCKER=false
+SKIP_MAIL_SETUP=false
+SKIP_HEALTH=false
+
+# ── Parse arguments ───────────────────────────────────────────────────────────
+for arg in "$@"; do
+  case "$arg" in
+    -h|--help)          show_help ;;
+    --version)          echo "Murphy System Hetzner Load Script v3.0.0"; exit 0 ;;
+    --skip-pull)        SKIP_PULL=true ;;
+    --skip-deps)        SKIP_DEPS=true ;;
+    --skip-env-audit)   SKIP_ENV_AUDIT=true ;;
+    --skip-nginx)       SKIP_NGINX=true ;;
+    --skip-ollama)      SKIP_OLLAMA=true ;;
+    --skip-docker)      SKIP_DOCKER=true ;;
+    --skip-mail-setup)  SKIP_MAIL_SETUP=true ;;
+    --no-health-check)  SKIP_HEALTH=true ;;
+    *)
+      echo "Unknown option: $arg" >&2
+      echo "Run '$(basename "$0") --help' for usage." >&2
+      exit 1
+      ;;
+  esac
+done
+
+# ── Colours ───────────────────────────────────────────────────────────────────
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+ok()      { echo -e "${GREEN}  ✓ $*${NC}"; }
+info()    { echo -e "${BLUE}  ▶ $*${NC}"; }
+section() { echo -e "\n${CYAN}══ $* ${NC}"; }
+warn()    { echo -e "${YELLOW}  ⚠ $*${NC}"; }
+fail()    { echo -e "${RED}  ✗ FATAL: $*${NC}" >&2; exit 1; }
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+# Ensure a systemd service is enabled and active
+ensure_service() {
+  local svc="$1"
+  local label="${2:-$1}"
+  if ! systemctl is-enabled --quiet "$svc" 2>/dev/null; then
+    systemctl enable "$svc" 2>/dev/null || true
+  fi
+  if ! systemctl is-active --quiet "$svc" 2>/dev/null; then
+    info "Starting ${label} ..."
+    systemctl start "$svc"
+    sleep 2
+  fi
+  ok "${label} is running"
+}
+
+# Audit a single env var: ok if set, warn if missing
+audit_var() {
+  local varname="$1"
+  local hint="$2"
+  local val
+  val=$(printenv "$varname" 2>/dev/null || true)
+  if [ -n "$val" ]; then
+    ok "${varname} is set"
+  else
+    warn "${varname} not set — ${hint}"
+  fi
+}
+
+# HTTP health probe (non-fatal — returns 0/1)
+http_check() {
+  local label="$1"
+  local url="$2"
+  if curl -sf --max-time 5 "$url" >/dev/null 2>&1; then
+    ok "${label}"
+    return 0
+  else
+    warn "${label} not responding at ${url}"
+    return 1
+  fi
+}
+
+# ── Banner ────────────────────────────────────────────────────────────────────
+echo ""
+echo "  ☠  ══════════════════════════════════════════════════════════════  ☠"
+echo "    💀  M U R P H Y   H E T Z N E R   F U L L - S T A C K   L O A D"
+echo "  ☠  ══════════════════════════════════════════════════════════════  ☠"
+echo ""
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PREFLIGHT
+# ═══════════════════════════════════════════════════════════════════════════════
+section "Preflight"
+[ -d "${REPO_DIR}/.git" ] \
+  || fail "Repository not found at ${REPO_DIR}. Set MURPHY_REPO_DIR or clone first."
+command -v docker &>/dev/null \
+  || fail "Docker not installed. Install Docker Engine before running this script."
+docker compose version &>/dev/null 2>&1 \
+  || fail "docker compose v2 not available. Install the Compose plugin."
+ok "Preflight checks passed"
+cd "$REPO_DIR"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# STEP 1 — Pull latest code
+# ═══════════════════════════════════════════════════════════════════════════════
+section "Step 1 — Code Update"
+if [ "$SKIP_PULL" = false ]; then
+  info "git pull origin main ..."
+  git pull origin main
+  ok "Code updated"
+else
+  info "Skipping git pull (--skip-pull)"
+fi
+DEPLOY_COMMIT=$(git rev-parse --short HEAD)
+ok "Active commit: ${DEPLOY_COMMIT}"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# STEP 2 — Python dependencies
+# ═══════════════════════════════════════════════════════════════════════════════
+section "Step 2 — Python Dependencies"
+if [ "$SKIP_DEPS" = false ]; then
+  if [ -f "${VENV_DIR}/bin/pip" ]; then
+    info "pip install --upgrade (venv) ..."
+    "${VENV_DIR}/bin/pip" install --quiet --upgrade -r "$REQUIREMENTS_FILE"
+    ok "Dependencies updated (venv: ${VENV_DIR})"
+  elif command -v pip3 &>/dev/null; then
+    info "pip3 install --upgrade (system) ..."
+    pip3 install --quiet --upgrade -r "$REQUIREMENTS_FILE"
+    ok "Dependencies updated (system pip3)"
+  else
+    warn "No pip found — skipping Python dependency update"
+  fi
+else
+  info "Skipping pip install (--skip-deps)"
+fi
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# STEP 3 — Environment file audit
+#   Checks that /etc/murphy-production/environment has all the connection
+#   variables needed to reach every subsystem.  Warnings only — not fatal.
+# ═══════════════════════════════════════════════════════════════════════════════
+section "Step 3 — Environment File Audit"
+if [ "$SKIP_ENV_AUDIT" = false ]; then
+  if [ -f "$MURPHY_ENV_FILE" ]; then
+    ok "Env file found: ${MURPHY_ENV_FILE}"
+    # Source the env file so audit_var can read it via printenv.
+    # set +u is scoped narrowly to the source call only — the env file may
+    # legitimately have unset variables which is exactly what we are auditing.
+    set +u
+    # shellcheck disable=SC1090,SC1091
+    source "$MURPHY_ENV_FILE" 2>/dev/null || true
+    set -u
+
+    audit_var "MURPHY_SECRET_KEY"      "sessions will be insecure — generate: python3 -c \"import secrets; print(secrets.token_urlsafe(48))\""
+    audit_var "DATABASE_URL"           "Murphy runs without persistent DB — set to: postgresql://murphy:<pass>@localhost:5432/murphy"
+    audit_var "REDIS_URL"              "caching/sessions degraded — set to: redis://:password@localhost:6379/0"
+    audit_var "OLLAMA_HOST"            "defaulting to http://localhost:11434"
+    audit_var "SMTP_HOST"              "outbound email disabled — set to: localhost (to use murphy-mailserver)"
+    audit_var "SMTP_USER"              "SMTP auth disabled — set to a mailbox address e.g. murphy@murphy.systems"
+    audit_var "SMTP_PASSWORD"          "SMTP auth disabled"
+    audit_var "MATRIX_HOMESERVER_URL"  "Matrix IM bridge inactive (optional)"
+    audit_var "MATRIX_ACCESS_TOKEN"    "Matrix IM bridge inactive (optional)"
+    audit_var "MATRIX_USER_ID"         "Matrix IM bridge inactive (optional)"
+  else
+    warn "Env file not found at ${MURPHY_ENV_FILE}"
+    warn "Murphy will start with defaults. To enable all subsystem connections:"
+    warn "  sudo mkdir -p /etc/murphy-production"
+    warn "  sudo cp ${REPO_DIR}/config/murphy-production.environment.example \\"
+    warn "          /etc/murphy-production/environment"
+    warn "  sudo nano /etc/murphy-production/environment  # fill in real secrets"
+    warn "  sudo chmod 600 /etc/murphy-production/environment"
+  fi
+else
+  info "Skipping environment audit (--skip-env-audit)"
+fi
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# STEP 4 — Nginx (reverse proxy — the glue that links all services together)
+#   Routes all external traffic through one URL space.
+# ═══════════════════════════════════════════════════════════════════════════════
+section "Step 4 — Nginx (Reverse Proxy + Website Routing)"
+if [ "$SKIP_NGINX" = false ]; then
+  if command -v nginx &>/dev/null; then
+    ensure_service nginx "Nginx"
+
+    NGINX_ENABLED="/etc/nginx/sites-enabled/${NGINX_SITE_NAME}"
+    NGINX_AVAIL="/etc/nginx/sites-available/${NGINX_SITE_NAME}"
+    NGINX_TEMPLATE="${REPO_DIR}/config/nginx/murphy-production.conf"
+
+    if [ -f "$NGINX_ENABLED" ] || [ -L "$NGINX_ENABLED" ]; then
+      ok "Nginx vhost '${NGINX_SITE_NAME}' is enabled"
+    elif [ -f "$NGINX_AVAIL" ]; then
+      info "Enabling nginx vhost '${NGINX_SITE_NAME}' ..."
+      ln -sf "$NGINX_AVAIL" "$NGINX_ENABLED"
+      ok "Nginx vhost '${NGINX_SITE_NAME}' enabled"
+    elif [ -f "$NGINX_TEMPLATE" ]; then
+      info "Installing nginx vhost from repo template ..."
+      cp "$NGINX_TEMPLATE" "$NGINX_AVAIL"
+      ln -sf "$NGINX_AVAIL" "$NGINX_ENABLED"
+      ok "Nginx vhost installed from ${NGINX_TEMPLATE}"
+      warn "Review /etc/nginx/sites-available/${NGINX_SITE_NAME} and update server_name before going live"
+    else
+      warn "No nginx vhost found for '${NGINX_SITE_NAME}'."
+      warn "Install with:"
+      warn "  sudo cp ${REPO_DIR}/config/nginx/murphy-production.conf \\"
+      warn "          /etc/nginx/sites-available/murphy-production"
+      warn "  sudo ln -sf /etc/nginx/sites-available/murphy-production \\"
+      warn "              /etc/nginx/sites-enabled/murphy-production"
+    fi
+
+    if nginx -t -q 2>/dev/null; then
+      systemctl reload nginx 2>/dev/null || true
+      ok "Nginx config valid — reloaded"
+    else
+      warn "Nginx config test failed — NOT reloading. Run: sudo nginx -t"
+    fi
+  else
+    warn "Nginx not installed — website unreachable externally on ports 80/443"
+    warn "Install: apt-get install nginx && cp config/nginx/murphy-production.conf /etc/nginx/sites-available/murphy-production"
+  fi
+else
+  info "Skipping nginx (--skip-nginx)"
+fi
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# STEP 5 — Onboard LLM (Ollama)
+# ═══════════════════════════════════════════════════════════════════════════════
+section "Step 5 — Onboard LLM (Ollama)"
+if [ "$SKIP_OLLAMA" = false ]; then
+  if ! command -v ollama &>/dev/null; then
+    info "Ollama not found — installing ..."
+    curl -fsSL https://ollama.com/install.sh | sh
+    ok "Ollama installed"
+  fi
+  ensure_service ollama "Ollama (systemd)"
+  if ! ollama list 2>/dev/null | grep -q "${OLLAMA_MODEL}"; then
+    info "Pulling model '${OLLAMA_MODEL}' (this may take several minutes) ..."
+    ollama pull "${OLLAMA_MODEL}"
+    ok "Model '${OLLAMA_MODEL}' ready"
+  else
+    ok "Model '${OLLAMA_MODEL}' already present"
+  fi
+else
+  info "Skipping Ollama (--skip-ollama)"
+fi
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# STEP 6 — Docker Compose support services
+#   Uses docker-compose.hetzner.yml which contains ONLY support services
+#   (no murphy-api container) so there is no port :8000 conflict with
+#   the murphy-production systemd service.
+# ═══════════════════════════════════════════════════════════════════════════════
+section "Step 6 — Docker Compose Support Services (DB · Cache · Monitoring · Mail)"
+if [ "$SKIP_DOCKER" = false ]; then
+  if [ ! -f "$COMPOSE_FILE" ]; then
+    fail "Compose file not found: ${COMPOSE_FILE}. Set MURPHY_COMPOSE_FILE."
+  fi
+
+  # Build docker compose command with --env-file pointing to production secrets
+  COMPOSE_CMD="docker compose -f ${COMPOSE_FILE}"
+  if [ -f "$MURPHY_ENV_FILE" ]; then
+    COMPOSE_CMD="${COMPOSE_CMD} --env-file ${MURPHY_ENV_FILE}"
+  else
+    warn "Env file ${MURPHY_ENV_FILE} not found — docker compose may fail on required vars"
+  fi
+
+  info "Pulling latest Docker images ..."
+  ${COMPOSE_CMD} pull --quiet 2>/dev/null \
+    || warn "Some images could not be pulled (continuing with cached versions)"
+
+  info "Starting all support services ..."
+  ${COMPOSE_CMD} up -d --remove-orphans
+
+  echo ""
+  ${COMPOSE_CMD} ps \
+    --format "table {{.Service}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null \
+    || ${COMPOSE_CMD} ps
+  echo ""
+  ok "Docker Compose support services are up"
+else
+  info "Skipping Docker Compose (--skip-docker)"
+fi
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# STEP 7 — Mail provisioning (idempotent mailbox setup via mail_setup.sh)
+# ═══════════════════════════════════════════════════════════════════════════════
+section "Step 7 — Mail Provisioning (Postfix + Dovecot mailboxes)"
+if [ "$SKIP_MAIL_SETUP" = false ]; then
+  MAIL_SETUP="${REPO_DIR}/scripts/mail_setup.sh"
+  if [ -f "$MAIL_SETUP" ]; then
+    MAIL_STATUS=$(docker inspect \
+      --format='{{.State.Health.Status}}' murphy-mailserver 2>/dev/null || echo "missing")
+    if [ "$MAIL_STATUS" = "healthy" ]; then
+      info "Running mail_setup.sh (mailbox provisioning) ..."
+      bash "$MAIL_SETUP" || warn "mail_setup.sh reported errors — check mailboxes manually"
+      ok "Mail provisioning complete"
+    elif [ "$MAIL_STATUS" = "starting" ]; then
+      warn "Mailserver still starting — re-run after it becomes healthy:"
+      warn "  docker inspect murphy-mailserver --format='{{.State.Health.Status}}'"
+      warn "  bash ${MAIL_SETUP}"
+    else
+      warn "Mailserver container not healthy (status: ${MAIL_STATUS}) — skipping mail_setup.sh"
+    fi
+  else
+    warn "scripts/mail_setup.sh not found — skipping mailbox provisioning"
+  fi
+else
+  info "Skipping mail provisioning (--skip-mail-setup)"
+fi
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# STEP 8 — Murphy System application (systemd)
+#   Serves: REST API · Website (static HTML via FastAPI StaticFiles) ·
+#           Matrix IM bridge · Slack/Twilio integrations · /metrics
+# ═══════════════════════════════════════════════════════════════════════════════
+section "Step 8 — Murphy System Application (systemd)"
+if ! systemctl list-unit-files "${SERVICE_NAME}.service" &>/dev/null \
+    || systemctl list-unit-files "${SERVICE_NAME}.service" | grep -q "not-found"; then
+  warn "systemd unit '${SERVICE_NAME}' not installed."
+  warn "Install it with:"
+  warn "  sudo cp ${REPO_DIR}/config/systemd/murphy-production.service \\"
+  warn "          /etc/systemd/system/murphy-production.service"
+  warn "  sudo systemctl daemon-reload && sudo systemctl enable murphy-production"
+else
+  info "Restarting ${SERVICE_NAME} (commit: ${DEPLOY_COMMIT}) ..."
+  MURPHY_DEPLOY_COMMIT="${DEPLOY_COMMIT}" systemctl restart "${SERVICE_NAME}"
+  ok "${SERVICE_NAME} restarted"
+fi
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# STEP 9 — Health checks
+# ═══════════════════════════════════════════════════════════════════════════════
+section "Step 9 — Health Checks"
+if [ "$SKIP_HEALTH" = false ]; then
+  info "Waiting 10 s for services to settle ..."
+  sleep 10
+  echo ""
+  printf "  %-40s %s\n" "Subsystem" "Result"
+  printf "  %-40s %s\n" "──────────────────────────────────────" "──────"
+
+  # Murphy API
+  http_check "Murphy API           :${MURPHY_PORT}" \
+    "http://localhost:${MURPHY_PORT}/api/health"
+
+  # Website through nginx (the public entry point)
+  if command -v nginx &>/dev/null && systemctl is-active --quiet nginx 2>/dev/null; then
+    http_check "Website via Nginx (port 80)" \
+      "http://localhost/api/health" \
+      || http_check "Website via Nginx (port 443)" \
+           "https://localhost/api/health" 2>/dev/null || true
+  fi
+
+  # Onboard LLM
+  if [ "$SKIP_OLLAMA" = false ]; then
+    http_check "Ollama / Onboard LLM :${OLLAMA_PORT}" \
+      "http://localhost:${OLLAMA_PORT}/api/tags"
+  fi
+
+  if [ "$SKIP_DOCKER" = false ]; then
+    # PostgreSQL
+    if docker exec murphy-postgres pg_isready -U murphy -d murphy \
+        >/dev/null 2>&1; then
+      ok "PostgreSQL (murphy-postgres)      — accepting connections"
+    else
+      warn "PostgreSQL not ready — check: docker logs murphy-postgres"
+    fi
+
+    # Redis
+    if docker exec murphy-redis redis-cli ping 2>/dev/null | grep -q "PONG"; then
+      ok "Redis      (murphy-redis)         — PONG"
+    else
+      warn "Redis not ready — check: docker logs murphy-redis"
+    fi
+
+    # Prometheus
+    http_check "Prometheus           :${PROMETHEUS_PORT}" \
+      "http://localhost:${PROMETHEUS_PORT}/-/healthy"
+
+    # Grafana
+    http_check "Grafana              :${GRAFANA_PORT}" \
+      "http://localhost:${GRAFANA_PORT}/api/health"
+
+    # Mailserver SMTP
+    if docker exec murphy-mailserver \
+        sh -c 'ss -lntp 2>/dev/null | grep -q ":25"' 2>/dev/null; then
+      ok "Mail SMTP  (murphy-mailserver)    — :25 listening"
+    else
+      warn "Mail SMTP not ready — check: docker logs murphy-mailserver"
+    fi
+
+    # Mailserver IMAPS
+    if docker exec murphy-mailserver \
+        sh -c 'ss -lntp 2>/dev/null | grep -q ":993"' 2>/dev/null; then
+      ok "Mail IMAPS (murphy-mailserver)    — :993 listening"
+    else
+      warn "Mail IMAPS not ready — check: docker logs murphy-mailserver"
+    fi
+
+    # Roundcube
+    http_check "Webmail / Roundcube  :${WEBMAIL_PORT}" \
+      "http://localhost:${WEBMAIL_PORT}/"
+  fi
+
+  # Matrix IM bridge (in-process — probe via Murphy API)
+  MATRIX_JSON=$(curl -sf --max-time 5 \
+    "http://localhost:${MURPHY_PORT}/api/matrix/status" 2>/dev/null || echo '{}')
+  if echo "$MATRIX_JSON" | grep -q '"connected":true'; then
+    ok "Matrix IM bridge                   — connected"
+  else
+    HOMESERVER=$(echo "$MATRIX_JSON" | \
+      python3 -c \
+        "import sys,json; d=json.load(sys.stdin); print(d.get('homeserver','not configured'))" \
+      2>/dev/null || echo "?")
+    if [ -n "${MATRIX_ACCESS_TOKEN:-}" ]; then
+      warn "Matrix IM bridge not connected (homeserver: ${HOMESERVER}) — check MATRIX_* vars"
+    else
+      warn "Matrix IM bridge inactive — set MATRIX_ACCESS_TOKEN to enable (optional)"
+    fi
+  fi
+
+  # Nginx summary
+  if command -v nginx &>/dev/null; then
+    if systemctl is-active --quiet nginx 2>/dev/null; then
+      ok "Nginx (reverse proxy)              — active"
+    else
+      warn "Nginx is not active — run: sudo systemctl start nginx"
+    fi
+  fi
+  echo ""
+else
+  info "Skipping health checks (--no-health-check)"
+fi
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DONE
+# ═══════════════════════════════════════════════════════════════════════════════
+echo ""
+echo "  ☠  ══════════════════════════════════════════════════════════════  ☠"
+echo -e "    ${GREEN}💀  MURPHY FULL-STACK LOADED — commit ${DEPLOY_COMMIT}  💀${NC}   "
+echo "  ☠  ══════════════════════════════════════════════════════════════  ☠"
+echo ""
+echo -e "  ${BLUE}Website (public):${NC}    https://<your-domain>/            (nginx)"
+echo -e "  ${BLUE}Murphy API:${NC}          http://localhost:${MURPHY_PORT}/api/health"
+echo -e "  ${BLUE}Onboard LLM:${NC}         http://localhost:${OLLAMA_PORT}/api/tags"
+echo -e "  ${BLUE}Grafana:${NC}             http://localhost:${GRAFANA_PORT}  (or /grafana/ via nginx)"
+echo -e "  ${BLUE}Prometheus:${NC}          http://localhost:${PROMETHEUS_PORT}"
+echo -e "  ${BLUE}Webmail:${NC}             http://localhost:${WEBMAIL_PORT}  (or /mail/ via nginx)"
+echo -e "  ${BLUE}Matrix bridge:${NC}       http://localhost:${MURPHY_PORT}/api/matrix/status"
+echo ""
+echo -e "  App logs: ${YELLOW}journalctl -u ${SERVICE_NAME} -f${NC}"
+echo -e "  Stack:    ${YELLOW}docker compose -f ${COMPOSE_FILE} ps${NC}"
+echo ""

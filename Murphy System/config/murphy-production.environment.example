@@ -1,0 +1,110 @@
+# Murphy System — Production Environment File Template
+# Copyright © 2020 Inoni Limited Liability Company | License: BSL-1.1
+#
+# Install:
+#   sudo mkdir -p /etc/murphy-production
+#   sudo cp config/murphy-production.environment.example \
+#            /etc/murphy-production/environment
+#   sudo nano /etc/murphy-production/environment   # fill in real secrets
+#   sudo chmod 600 /etc/murphy-production/environment
+#   sudo chown murphy:murphy /etc/murphy-production/environment
+#
+# This file is read by the systemd murphy-production service
+# (EnvironmentFile=/etc/murphy-production/environment) and by
+# docker-compose.hetzner.yml for the support containers.
+#
+# Generate strong secrets with:
+#   python3 -c "import secrets; print(secrets.token_urlsafe(48))"
+# ---------------------------------------------------------------------------
+
+# ── Core ─────────────────────────────────────────────────────────────────────
+MURPHY_ENV=production
+MURPHY_PORT=8000
+MURPHY_SECRET_KEY=CHANGEME_generate_with_secrets.token_urlsafe_48
+
+# Runtime mode: monolith (all modules) or tiered (on-demand)
+MURPHY_RUNTIME_MODE=monolith
+
+# DB mode: live = real PostgreSQL; stub = in-memory (NOT for production)
+MURPHY_DB_MODE=live
+
+# Rate limiting (requests per minute per IP)
+MURPHY_RATE_LIMIT_RPM=600
+
+# ── PostgreSQL (murphy-postgres Docker container) ─────────────────────────────
+# The DATABASE_URL uses 'localhost' because the container port 5432 is
+# published to the host. Murphy (systemd) connects via localhost.
+POSTGRES_USER=murphy
+POSTGRES_DB=murphy
+POSTGRES_PASSWORD=CHANGEME_generate_strong_password
+DATABASE_URL=postgresql://murphy:CHANGEME_generate_strong_password@localhost:5432/murphy
+
+# ── Redis (murphy-redis Docker container) ─────────────────────────────────────
+REDIS_PASSWORD=CHANGEME_generate_strong_password
+REDIS_URL=redis://:CHANGEME_generate_strong_password@localhost:6379/0
+# Alias used by some modules
+MURPHY_REDIS_URL=redis://:CHANGEME_generate_strong_password@localhost:6379/0
+REDIS_PORT=6379
+
+# ── Grafana (murphy-grafana Docker container) ─────────────────────────────────
+GRAFANA_ADMIN_USER=admin
+GRAFANA_ADMIN_PASSWORD=CHANGEME_generate_strong_password
+GRAFANA_PORT=3000
+
+# ── Onboard LLM — Ollama (systemd service on the host) ───────────────────────
+# phi3   = ~2.3 GB RAM  (recommended for ≤8 GB servers)
+# llama3 = ~6.0 GB RAM  (recommended for ≥16 GB servers)
+OLLAMA_HOST=http://localhost:11434
+OLLAMA_MODEL=phi3
+MURPHY_LLM_PROVIDER=local
+
+# ── Mail subsystem (murphy-mailserver Docker container) ───────────────────────
+# Setting MURPHY_MAIL_INTERNAL=true tells Murphy to auto-configure
+# SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASSWORD using the values below.
+MURPHY_MAIL_INTERNAL=true
+MURPHY_MAIL_HOSTNAME=mail.murphy.systems
+MURPHY_MAIL_DOMAIN=murphy.systems
+SMTP_HOST=localhost
+SMTP_PORT=587
+SMTP_USER=murphy@murphy.systems
+SMTP_PASSWORD=CHANGEME_same_as_mailbox_password_set_in_mail_setup
+SMTP_USE_TLS=true
+SMTP_FROM_EMAIL=murphy@murphy.systems
+MURPHY_WEBMAIL_PORT=8443
+
+# ── IM / Matrix bridge ────────────────────────────────────────────────────────
+# Get an access token from your Matrix homeserver:
+#   curl -XPOST https://matrix.org/_matrix/client/r0/login \
+#     -d '{"type":"m.login.password","user":"@you:matrix.org","password":"yourpass"}'
+# Leave blank to disable the Matrix bridge entirely.
+MATRIX_HOMESERVER_URL=https://matrix.org
+MATRIX_USER_ID=@murphy:matrix.org
+MATRIX_ACCESS_TOKEN=CHANGEME_your_matrix_access_token
+MATRIX_DEVICE_ID=MURPHYBOT
+MATRIX_E2E_ENABLED=false
+MATRIX_AUTO_CREATE_ROOMS=true
+MATRIX_SPACE_NAME=Murphy System
+
+# ── Prometheus / monitoring ────────────────────────────────────────────────────
+PROMETHEUS_PORT=9090
+
+# ── Nginx ─────────────────────────────────────────────────────────────────────
+# Used by hetzner_load.sh to find and validate the nginx vhost
+NGINX_SITE_NAME=murphy-production
+
+# ── Optional external API keys ────────────────────────────────────────────────
+# Uncomment and set any keys you have.  Murphy falls back to the onboard LLM
+# if none are set.
+# GROQ_API_KEY=gsk_...
+# OPENAI_API_KEY=sk-...
+# ANTHROPIC_API_KEY=sk-ant-...
+# STRIPE_SECRET_KEY=sk_live_...
+# SENDGRID_API_KEY=SG....
+# SLACK_BOT_TOKEN=xoxb-...
+# TWILIO_ACCOUNT_SID=AC...
+# TWILIO_AUTH_TOKEN=...
+# TWILIO_PHONE_NUMBER=+1...
+
+# ── Injected at deploy time by hetzner_load.sh ───────────────────────────────
+# (Do not set manually — overwritten on every deploy)
+# MURPHY_DEPLOY_COMMIT=abc1234
