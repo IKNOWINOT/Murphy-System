@@ -5798,26 +5798,34 @@ def create_app() -> FastAPI:
                 return JSONResponse({"success": False, "error": "An account with this email already exists"}, status_code=409)
 
             account_id = uuid4().hex[:20]
+            # Founder email always gets the owner role regardless of how the
+            # account is created.
+            _assigned_role = "owner" if email == _FOUNDER_EMAIL else "user"
+            _assigned_tier = "enterprise" if email == _FOUNDER_EMAIL else "free"
             _user_store[account_id] = {
                 "account_id": account_id,
                 "email": email,
                 "password_hash": _hash_password(password),
-                "full_name": full_name,
+                "full_name": full_name or ("Corey Post" if email == _FOUNDER_EMAIL else ""),
                 "job_title": job_title,
                 "company": company,
-                "tier": "free",
+                "tier": _assigned_tier,
                 "email_validated": True,    # auto-validate for now (MVP)
                 "eula_accepted": True,      # accepted at signup form
-                "role": "user",
+                "role": _assigned_role,
                 "created_at": _now_iso(),
             }
             _email_to_account[email] = account_id
 
             # Create a free-tier subscription record
             if _sub_manager is not None and _SubTier is not None:
+                _sub_tier_val = (
+                    _SubTier.ENTERPRISE if email == _FOUNDER_EMAIL and hasattr(_SubTier, "ENTERPRISE")
+                    else _SubTier.FREE
+                )
                 _sub_manager._subscriptions[account_id] = _SubRec(
                     account_id=account_id,
-                    tier=_SubTier.FREE,
+                    tier=_sub_tier_val,
                     status=_SubStatus.ACTIVE,
                 )
 
@@ -10432,6 +10440,55 @@ def create_app() -> FastAPI:
                     "name": getattr(route, "name", ""),
                 })
         return JSONResponse({"success": True, "data": {"endpoints": sorted(routes, key=lambda r: r["path"])}})
+
+    # ── Founder account seed ────────────────────────────────────────────────
+    # On every startup the platform ensures a founder/owner account exists so
+    # that cpost@murphy.systems (or the value of MURPHY_FOUNDER_EMAIL) always
+    # has role=owner and can access the admin panel even on a fresh deploy.
+    #
+    # The account is created with MURPHY_FOUNDER_PASSWORD (defaults to the
+    # temporary password below — override via env var in production).
+    _FOUNDER_EMAIL: str = os.environ.get("MURPHY_FOUNDER_EMAIL", "cpost@murphy.systems").strip().lower()
+    _FOUNDER_PASSWORD: str = os.environ.get("MURPHY_FOUNDER_PASSWORD", "Password1").strip()  # temporary — change after first login
+
+    def _ensure_founder_account() -> None:
+        """Create or promote the founder/owner account."""
+        existing_id = _email_to_account.get(_FOUNDER_EMAIL)
+        if existing_id:
+            # Account already exists — promote to owner unconditionally
+            _user_store[existing_id]["role"] = "owner"
+            _user_store[existing_id]["full_name"] = _user_store[existing_id].get("full_name") or "Corey Post"
+            return
+
+        # Create the account from scratch
+        founder_id = "founder-" + uuid4().hex[:16]
+        pwd_hash = _hash_password(_FOUNDER_PASSWORD)
+        _user_store[founder_id] = {
+            "account_id": founder_id,
+            "email": _FOUNDER_EMAIL,
+            "password_hash": pwd_hash,
+            "full_name": "Corey Post",
+            "job_title": "Founder",
+            "company": "Inoni LLC",
+            "tier": "enterprise",
+            "email_validated": True,
+            "eula_accepted": True,
+            "role": "owner",
+            "created_at": _now_iso(),
+        }
+        _email_to_account[_FOUNDER_EMAIL] = founder_id
+        if _sub_manager is not None and _SubRec is not None and _SubTier is not None:
+            try:
+                _sub_manager._subscriptions[founder_id] = _SubRec(
+                    account_id=founder_id,
+                    tier=_SubTier.ENTERPRISE if hasattr(_SubTier, "ENTERPRISE") else _SubTier.FREE,
+                    status=_SubStatus.ACTIVE if _SubStatus is not None else _SubRec.__class__,
+                )
+            except Exception:
+                pass  # subscription manager unavailable — not critical
+        logger.info("Founder account seeded: %s (%s)", founder_id, _FOUNDER_EMAIL)
+
+    _ensure_founder_account()
 
     return app
 
