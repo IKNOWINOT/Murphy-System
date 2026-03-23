@@ -875,6 +875,45 @@ The recommended way to deploy new code is to push to `main` — the
 `Build & Deploy to Hetzner` GitHub Actions workflow will SSH into the
 production server and run the update automatically.
 
+#### How the CI/CD pipeline works (end-to-end)
+
+```
+git push → main branch
+    │
+    ▼
+[GitHub Actions: hetzner-deploy.yml]
+    │
+    ├─ job: test  (ubuntu-latest, Python 3.12)
+    │       pip install -r "Murphy System/requirements_murphy_1.0.txt"
+    │       pytest "Murphy System/tests/"
+    │       └── MUST PASS before deploy runs
+    │
+    └─ job: deploy  (needs: test)
+            SSH into Hetzner server
+            git pull origin main
+            bash scripts/hetzner_load.sh --skip-pull
+            └── restarts murphy-production systemd service
+                with MURPHY_DEPLOY_COMMIT written to the env file
+```
+
+**To confirm a deploy actually landed**, check:
+```bash
+# From the Hetzner server
+curl -s https://murphy.systems/api/health | python3 -m json.tool | grep deploy_commit
+
+# Or remotely (substituting the real domain)
+curl -s https://murphy.systems/api/health?deep=true | python3 -m json.tool | grep deploy_commit
+```
+
+The `deploy_commit` field in the health response shows the **git short SHA**
+of the code that is currently running.  Compare it to `git rev-parse --short HEAD`
+on the repository to verify the latest commit is live.
+
+**Troubleshooting a stale deploy:**
+1. Check the [GitHub Actions run](https://github.com/IKNOWINOT/Murphy-System/actions/workflows/hetzner-deploy.yml) — if the `test` job is red, the deploy never ran.
+2. Common test-job failure: a Python package in `requirements_murphy_1.0.txt` has a version constraint that cannot be satisfied.  Check `pip install --dry-run -r "Murphy System/requirements_murphy_1.0.txt"` locally.
+3. If the deploy job ran but the site is stale, check `journalctl -u murphy-production -n 30` on the server.
+
 #### ⚡ One-Command Hetzner Full-Stack Load (recommended for manual updates)
 
 This single command brings **every subsystem** up-to-date and running:

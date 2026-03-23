@@ -164,7 +164,7 @@ web3>=6.15.0
 # Bitcoin wallet utilities
 bitcoin-utils>=0.6.0
 # Alpaca Markets (stocks + crypto, free paper trading API)
-alpaca-trade-api>=3.3.0
+alpaca-trade-api>=3.2.0
 # Multi-exchange abstraction
 ccxt>=4.4.0
 # EVM wallet signing (required for SoftwareWallet.sign_transaction)
