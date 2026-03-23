@@ -29,6 +29,8 @@ import re
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from murphy_identity import MURPHY_SYSTEM_IDENTITY
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -1250,7 +1252,8 @@ def _generate_llm_content(
             from src.llm_controller import LLMController, LLMRequest
             controller = LLMController()
             llm_prompt = (
-                f"You are Murphy, an AI system builder. Enrich this structured plan "
+                f"{MURPHY_SYSTEM_IDENTITY}\n\n"
+                f"Enrich this structured plan "
                 f"with conversational prose. Keep ALL existing data intact but add "
                 f"context, explanations, and actionable insights.\n\n"
                 f"Request: {query}\n\n"
