@@ -17,6 +17,8 @@ import re
 import time
 from typing import Any, Dict, List, Optional
 
+from murphy_identity import MURPHY_SYSTEM_IDENTITY
+
 logger = logging.getLogger(__name__)
 
 
@@ -222,7 +224,7 @@ async def _llm_insight(
     try:
         controller = LLMController()
         prompt = (
-            "You are Murphy, an ambient intelligence assistant. "
+            f"{MURPHY_SYSTEM_IDENTITY} "
             "Based on the following context signals, write a concise, actionable insight "
             f"of type '{insight_type}'. "
             "Reply with only a JSON object with keys: title (str), body (str), confidence (int 0-100). "

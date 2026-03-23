@@ -139,9 +139,9 @@
       <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-plug"></use></svg>
       <span>Integrations</span>
     </a>
-    <a href="#llm" class="murphy-sidebar-item" data-view="llm" aria-label="LLM Config">
+    <a href="#llm" class="murphy-sidebar-item" data-view="llm" aria-label="Model Hub">
       <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-settings"></use></svg>
-      <span>LLM Config</span>
+      <span>Model Hub</span>
     </a>
     <a href="#credentials" class="murphy-sidebar-item" data-view="credentials" aria-label="Credentials">
       <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-unlock"></use></svg>
@@ -1354,54 +1354,140 @@
   }
 
   /* ===========================================================
-     29. VIEW: LLM CONFIG
+     29. VIEW: MODEL HUB
      =========================================================== */
+  var MURPHY_RECOMMENDED = [
+    { name: 'phi4',      ollamaName: 'phi4',        params: '14B',  ram: '8 GB',   reasoning: 5, description: 'Microsoft Phi-4 — best reasoning-per-GB ratio. Excels at logic, QA, and agent tasks.' },
+    { name: 'qwen2.5',   ollamaName: 'qwen2.5:14b', params: '14B',  ram: '10 GB',  reasoning: 5, description: 'Alibaba Qwen 2.5 — top multilingual reasoning and coding. Great for agentic workflows.' },
+    { name: 'llama3',    ollamaName: 'llama3',      params: '8B',   ram: '4.7 GB', reasoning: 4, description: 'Meta Llama 3 — excellent all-around. Best balance of speed and intelligence.' },
+    { name: 'mistral',   ollamaName: 'mistral',     params: '7B',   ram: '5.5 GB', reasoning: 4, description: 'Mistral 7B — fast reasoning with minimal RAM. Great for real-time automation.' },
+    { name: 'phi3',      ollamaName: 'phi3',        params: '3.8B', ram: '2.3 GB', reasoning: 3, description: 'Microsoft Phi-3 — Murphy default. Runs on almost anything, solid reasoning.' },
+    { name: 'gemma',     ollamaName: 'gemma',       params: '7B',   ram: '5 GB',   reasoning: 3, description: 'Google Gemma — strong at conversation and instruction following.' },
+    { name: 'tinyllama', ollamaName: 'tinyllama',   params: '1.1B', ram: '1 GB',   reasoning: 2, description: 'TinyLlama — ultra-lightweight. For minimum hardware or Raspberry Pi.' },
+  ];
+
+  function renderStars(n) {
+    var s = '';
+    for (var i = 0; i < 5; i++) s += (i < n ? '⭐' : '☆');
+    return s;
+  }
+
   async function renderLLM() {
-    contentEl.innerHTML = sectionHeader('LLM Config') + skeletonRows(4);
+    contentEl.innerHTML = sectionHeader('Model Hub') + skeletonRows(4);
     try {
-      var res    = await api.get('/llm/status');
-      var data   = (res && res.data) || res || {};
-      var models = data.models || data.providers || (Array.isArray(data) ? data : []);
-      var html   = sectionHeader('LLM Config', 'Language model settings');
+      var statusRes  = await api.get('/llm/status');
+      var statusData = (statusRes && statusRes.data) || statusRes || {};
 
-      // Show cloud provider (distinct from the always-available onboard LLM)
-      var cloudProvider = (data.provider && data.provider !== 'onboard') ? data.provider : 'None';
-      var activeModel   = data.active_model || data.model || 'murphy-onboard';
+      var localRes  = await api.get('/llm/models/local');
+      var localData = (localRes && localRes.data) || localRes || {};
 
+      var ollamaRunning  = localData.ollama_running || statusData.ollama_running || false;
+      var downloadedList = localData.models || [];
+      var activeModel    = localData.active_model || statusData.active_model || statusData.model || '';
+      var cloudProvider  = (statusData.provider && statusData.provider !== 'onboard') ? statusData.provider : 'None';
+
+      var downloadedNames = {};
+      downloadedList.forEach(function(m) {
+        var base = (m.name || '').split(':')[0];
+        downloadedNames[base] = m;
+        downloadedNames[m.name] = m;
+      });
+
+      var html = sectionHeader('Model Hub', '🧠 Recommended for Murphy — small models, big reasoning');
+
+      // ── 1. Status Dashboard ────────────────────────────────
       html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">';
+      html += statCard('Active Model', activeModel || '\u2014');
+      html += statCard('Ollama', ollamaRunning ? '🟢 Running' : '🔴 Not Running');
       html += statCard('Cloud Provider', cloudProvider);
-      html += statCard('Active Model',   activeModel);
-      html += statCard('Onboard LLM',    'Always Available');
-      html += statCard('Requests Today', data.requests_today || '\u2014');
+      html += statCard('Downloaded', downloadedList.length + ' model' + (downloadedList.length !== 1 ? 's' : ''));
       html += '</div>';
 
-      // Ensure onboard is always shown in the models list
-      var hasOnboard = models.some(function (m) { return (m.provider || m.name || '').toLowerCase() === 'onboard'; });
-      if (!hasOnboard) {
-        models = models.concat([{
-          name: 'murphy-onboard',
-          provider: 'onboard',
-          status: 'active',
-          context_window: '2048',
-        }]);
+      // ── Ollama not running warning ─────────────────────────
+      if (!ollamaRunning) {
+        html += '<div class="murphy-card mb-6" style="border-left:4px solid #f59e0b;">';
+        html += '<div class="murphy-card-body">';
+        html += '<div class="font-bold mb-1">⚠️ Ollama is not running</div>';
+        html += '<p class="text-sm text-secondary mb-2">Install and start Ollama to use local models:</p>';
+        html += '<code class="text-xs" style="background:var(--surface-2,#1e293b);padding:4px 8px;border-radius:4px;display:block;">curl -fsSL https://ollama.com/install.sh | sh &amp;&amp; ollama serve</code>';
+        html += '</div></div>';
       }
 
-      if (models.length) {
-        html += cardWrap('Available Models', tableHTML(
-          [
-            { key: 'name',           label: 'Model' },
-            { key: 'provider',       label: 'Provider' },
-            { key: 'status',         label: 'Status', render: function (v) { return badge(v || 'available', v === 'active' ? 'success' : 'neutral'); } },
-            { key: 'context_window', label: 'Context' }
-          ],
-          models
-        ));
-      }
+      // ── 2. Recommended Models ──────────────────────────────
+      html += '<div class="murphy-card mb-6">';
+      html += '<div class="murphy-card-header font-bold">🧠 Recommended for Murphy</div>';
+      html += '<div class="murphy-card-body">';
+      html += '<div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr));">';
 
-      // ── Add / Configure provider form ─────────────────────
+      MURPHY_RECOMMENDED.forEach(function(m) {
+        var dlName = m.ollamaName.split(':')[0];
+        var isActive = (activeModel === m.ollamaName || activeModel === m.name || activeModel === dlName);
+        var isDownloaded = !!(downloadedNames[m.ollamaName] || downloadedNames[dlName] || downloadedNames[m.name]);
+        html += '<div class="murphy-card" style="border:1px solid var(--border,#334155);">';
+        html += '<div class="murphy-card-body">';
+        html += '<div class="flex items-center justify-between mb-1">';
+        html += '<span class="font-bold">' + esc(m.name) + '</span>';
+        if (isActive) html += badge('Active', 'success');
+        else if (isDownloaded) html += badge('Downloaded', 'success');
+        html += '</div>';
+        html += '<div class="text-xs text-secondary mb-1">' + esc(m.params) + ' params · ' + esc(m.ram) + ' RAM · ' + renderStars(m.reasoning) + '</div>';
+        html += '<p class="text-xs text-secondary mb-2">' + esc(m.description) + '</p>';
+        if (isActive) {
+          html += '<button class="murphy-btn murphy-btn-sm" disabled style="opacity:.5;cursor:default;">✓ Active</button>';
+        } else if (isDownloaded) {
+          html += '<button class="murphy-btn murphy-btn-sm murphy-btn-primary btn-load-model" data-model="' + esc(m.ollamaName) + '">▶ Load</button>';
+        } else {
+          html += '<button class="murphy-btn murphy-btn-sm btn-pull-model" data-model="' + esc(m.ollamaName) + '" ' + (ollamaRunning ? '' : 'disabled title="Start Ollama first"') + '>⬇ Download</button>';
+        }
+        html += '</div></div>';
+      });
+
+      html += '</div></div></div>';
+
+      // ── 3. Downloaded Models ───────────────────────────────
+      html += '<div class="murphy-card mb-6">';
+      html += '<div class="murphy-card-header font-bold">📦 Downloaded Models</div>';
+      html += '<div class="murphy-card-body">';
+      if (!ollamaRunning) {
+        html += '<p class="text-sm text-secondary">Start Ollama to manage local models.</p>';
+      } else if (!downloadedList.length) {
+        html += '<p class="text-sm text-secondary">No models downloaded yet. Pull one above or use the search below.</p>';
+      } else {
+        html += '<div class="overflow-auto"><table class="murphy-table" style="width:100%;">';
+        html += '<thead><tr><th>Model</th><th>Size</th><th>Modified</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+        downloadedList.forEach(function(m) {
+          var mName = m.name || '';
+          var mBase = mName.split(':')[0];
+          var isAct = (activeModel === mName || activeModel === mBase);
+          var sizeMB = m.size ? (m.size > 1073741824 ? (m.size / 1073741824).toFixed(1) + ' GB' : (m.size / 1048576).toFixed(0) + ' MB') : '\u2014';
+          var mod = m.modified_at ? m.modified_at.substring(0, 10) : (m.modified ? m.modified.substring(0, 10) : '\u2014');
+          html += '<tr>';
+          html += '<td class="font-mono text-sm">' + esc(mName) + '</td>';
+          html += '<td class="text-sm">' + sizeMB + '</td>';
+          html += '<td class="text-sm">' + esc(mod) + '</td>';
+          html += '<td>' + badge(isAct ? 'Active' : 'Available', isAct ? 'success' : 'neutral') + '</td>';
+          html += '<td>';
+          if (!isAct) html += '<button class="murphy-btn murphy-btn-sm murphy-btn-primary btn-load-model mr-1" data-model="' + esc(mName) + '">▶ Load</button>';
+          html += '<button class="murphy-btn murphy-btn-sm murphy-btn-danger btn-delete-model" data-model="' + esc(mName) + '">🗑 Delete</button>';
+          html += '</td></tr>';
+        });
+        html += '</tbody></table></div>';
+      }
+      html += '</div></div>';
+
+      // ── 4. Download New Model ──────────────────────────────
+      html += cardWrap(
+        '<span class="font-bold">⬇ Download New Model</span>',
+        '<div class="flex gap-2 flex-wrap">' +
+          '<input id="llm-pull-input" type="text" placeholder="Enter model name (e.g. phi4, deepseek-coder, gemma3…)" class="murphy-input" style="flex:1;min-width:200px;" ' + (ollamaRunning ? '' : 'disabled title="Start Ollama first"') + ' />' +
+          '<button id="btn-pull-model" class="murphy-btn murphy-btn-primary" ' + (ollamaRunning ? '' : 'disabled') + '>' + icon('download', 16) + ' Download</button>' +
+        '</div>'
+      );
+
+      // ── 5. Cloud Provider Configuration ───────────────────
       html += cardWrap(
         '<div class="flex items-center justify-between">' +
-          '<span class="font-bold">Add Cloud Provider</span>' +
+          '<span class="font-bold">☁ Cloud Provider</span>' +
           '<span class="text-xs text-secondary">Onboard LLM is always active</span>' +
         '</div>',
         '<div class="flex flex-col gap-3">' +
@@ -1421,43 +1507,137 @@
 
       contentEl.innerHTML = html;
 
-      // ── Wire up Save button ───────────────────────────────
+      // ── Wire: Load model buttons ───────────────────────────
+      contentEl.querySelectorAll('.btn-load-model').forEach(function(btn) {
+        btn.addEventListener('click', async function() {
+          var model = btn.dataset.model;
+          btn.disabled = true;
+          btn.textContent = 'Loading\u2026';
+          try {
+            var r = await api.post('/llm/models/load', { model: model });
+            if (r && r.ok !== false) {
+              toast.show('\u2713 ' + model + ' is now the active model', 'success');
+              renderLLM();
+            } else {
+              toast.show((r && r.data && r.data.error) || 'Failed to load model', 'danger');
+              btn.disabled = false;
+              btn.textContent = '\u25b6 Load';
+            }
+          } catch (err) {
+            toast.show('Error: ' + (err.message || err), 'danger');
+            btn.disabled = false;
+            btn.textContent = '\u25b6 Load';
+          }
+        });
+      });
+
+      // ── Wire: Pull (download) buttons in recommended cards ─
+      contentEl.querySelectorAll('.btn-pull-model').forEach(function(btn) {
+        btn.addEventListener('click', async function() {
+          var model = btn.dataset.model;
+          btn.disabled = true;
+          btn.innerHTML = icon('download', 14) + ' Downloading\u2026';
+          btn.classList.add('murphy-btn-loading');
+          try {
+            var r = await api.post('/llm/models/pull', { model: model });
+            if (r && r.ok !== false) {
+              toast.show('\u2713 Download started for ' + model + '. Poll \u201cDownloaded Models\u201d to see when it finishes.', 'success');
+            } else {
+              toast.show((r && r.data && r.data.error) || 'Failed to start download', 'danger');
+            }
+          } catch (err) {
+            toast.show('Error: ' + (err.message || err), 'danger');
+          }
+          btn.disabled = false;
+          btn.classList.remove('murphy-btn-loading');
+          btn.innerHTML = '\u2b07 Download';
+        });
+      });
+
+      // ── Wire: Delete model buttons ─────────────────────────
+      contentEl.querySelectorAll('.btn-delete-model').forEach(function(btn) {
+        btn.addEventListener('click', async function() {
+          var model = btn.dataset.model;
+          if (!confirm('Delete model "' + model + '"? This cannot be undone.')) return;
+          btn.disabled = true;
+          btn.textContent = 'Deleting\u2026';
+          try {
+            var r = await api.post('/llm/models/delete', { model: model });
+            if (r && r.ok !== false) {
+              toast.show('\u2713 ' + model + ' deleted', 'success');
+              renderLLM();
+            } else {
+              toast.show((r && r.data && r.data.error) || 'Failed to delete model', 'danger');
+              btn.disabled = false;
+              btn.textContent = '🗑 Delete';
+            }
+          } catch (err) {
+            toast.show('Error: ' + (err.message || err), 'danger');
+            btn.disabled = false;
+            btn.textContent = '🗑 Delete';
+          }
+        });
+      });
+
+      // ── Wire: Download new model input ─────────────────────
+      var btnPull   = document.getElementById('btn-pull-model');
+      var inpPull   = document.getElementById('llm-pull-input');
+      if (btnPull && inpPull) {
+        btnPull.addEventListener('click', async function() {
+          var model = inpPull.value.trim();
+          if (!model) { alert('Enter a model name.'); return; }
+          btnPull.disabled  = true;
+          btnPull.innerHTML = icon('download', 14) + ' Downloading\u2026';
+          btnPull.classList.add('murphy-btn-loading');
+          try {
+            var r = await api.post('/llm/models/pull', { model: model });
+            if (r && r.ok !== false) {
+              toast.show('\u2713 Download started for ' + model + '. Refresh the Downloaded Models list to check progress.', 'success');
+              inpPull.value = '';
+            } else {
+              toast.show((r && r.data && r.data.error) || 'Failed to start download', 'danger');
+            }
+          } catch (err) {
+            toast.show('Error: ' + (err.message || err), 'danger');
+          }
+          btnPull.disabled  = false;
+          btnPull.classList.remove('murphy-btn-loading');
+          btnPull.innerHTML = icon('download', 16) + ' Download';
+        });
+      }
+
+      // ── Wire: Cloud provider Save button ──────────────────
       var btnSave  = document.getElementById('btn-uni-save-llm');
       var selProv  = document.getElementById('llm-uni-provider-select');
       var inpKey   = document.getElementById('llm-uni-api-key-input');
-      var SAVE_BTN_LABEL = 'Save & Activate';
       if (btnSave) {
-        btnSave.addEventListener('click', async function () {
+        btnSave.addEventListener('click', async function() {
           var provider = selProv ? selProv.value : '';
           var apiKey   = inpKey  ? inpKey.value.trim() : '';
           if (!provider) { alert('Please select a provider.'); return; }
           if (!apiKey)   { alert('Please enter an API key.'); return; }
           btnSave.disabled    = true;
           btnSave.textContent = 'Saving\u2026';
-          btnSave.setAttribute('aria-busy', 'true');
           try {
-            var res = await api.post('/llm/configure', { provider: provider, api_key: apiKey });
+            var r = await api.post('/llm/configure', { provider: provider, api_key: apiKey });
             btnSave.disabled    = false;
-            btnSave.textContent = SAVE_BTN_LABEL;
-            btnSave.setAttribute('aria-busy', 'false');
-            if (!res.ok) {
-              var errMsg = (res.data && res.data.error) || res.error || 'Failed to save provider';
-              toast.show(errMsg, 'danger');
+            btnSave.textContent = 'Save & Activate';
+            if (!r.ok) {
+              toast.show((r.data && r.data.error) || r.error || 'Failed to save provider', 'danger');
               return;
             }
-            var activatedProvider = (res.data && res.data.provider) || provider;
+            var activatedProvider = (r.data && r.data.provider) || provider;
             toast.show('\u2713 ' + activatedProvider.charAt(0).toUpperCase() + activatedProvider.slice(1) + ' provider activated', 'success');
             renderLLM();
           } catch (err) {
             btnSave.disabled    = false;
-            btnSave.textContent = SAVE_BTN_LABEL;
-            btnSave.setAttribute('aria-busy', 'false');
-            toast.show('Error saving provider: ' + (err.message || err), 'danger');
+            btnSave.textContent = 'Save & Activate';
+            toast.show('Error: ' + (err.message || err), 'danger');
           }
         });
       }
     } catch (e) {
-      contentEl.innerHTML = sectionHeader('LLM Config') + errorCard(e.message, '#llm');
+      contentEl.innerHTML = sectionHeader('Model Hub') + errorCard(e.message, '#llm');
     }
   }
 

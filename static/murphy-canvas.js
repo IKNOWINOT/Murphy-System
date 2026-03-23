@@ -1091,14 +1091,15 @@ class MurphyCanvasInteraction {
       return;
     }
 
-    // Empty space: start pan or rubber-band
+    // Empty space: rubber-band (default) or pan (Shift+drag)
     if (e.shiftKey) {
-      // Rubber-band selection
-      this._rubberBand = { sx: pos.x, sy: pos.y, ex: pos.x, ey: pos.y };
-    } else {
+      // Shift+drag → pan
       this._deselectAll();
       this._panning = true;
       this._dragStart = pos;
+    } else {
+      // Default left-click-drag on empty space → rubber-band selection
+      this._rubberBand = { sx: pos.x, sy: pos.y, ex: pos.x, ey: pos.y };
     }
   }
 

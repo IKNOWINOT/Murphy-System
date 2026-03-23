@@ -573,7 +573,7 @@ except ImportError as e:
 # FastAPI for REST API
 try:
     import uvicorn
-    from fastapi import Depends, FastAPI, HTTPException, Request
+    from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.responses import JSONResponse
 except ImportError:
@@ -585,6 +585,7 @@ except ImportError:
     JSONResponse = None
     Depends = None
     Request = None
+    BackgroundTasks = None
 
 # Dynamic Assist Engine (PR #195)
 try:
@@ -646,7 +647,7 @@ __all__ = [
     "logger",
     # FastAPI / web
     "FastAPI", "uvicorn", "CORSMiddleware", "HTTPException", "JSONResponse",
-    "Depends", "Request",
+    "Depends", "Request", "BackgroundTasks",
     # Governance
     "GOVERNANCE_AVAILABLE", "GovernanceScheduler", "GovernanceKernel",
     "GovernanceActionType", "ActionSet", "ScheduledAgent", "PriorityLevel",

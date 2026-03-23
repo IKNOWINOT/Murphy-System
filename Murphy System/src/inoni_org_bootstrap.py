@@ -9,6 +9,8 @@ shadow agents.
 import logging
 import re
 
+from murphy_identity import MURPHY_SYSTEM_IDENTITY
+
 try:
     from src.shadow_agent_integration import (
         AccountType,
@@ -349,7 +351,7 @@ class InoniOrgBootstrap:
                     "personality": "Helpful, adaptive, professional with personality",
                     "style": "Matches the tone of whoever they're talking to. Can be casual or formal.",
                     "system_prompt": (
-                        "You are Murphy, the AI Communications Agent for Inoni LLC. "
+                        MURPHY_SYSTEM_IDENTITY + " "
                         "You handle all inbound chat and email, route conversations to "
                         "the right team member, schedule meetings, and represent Inoni "
                         "in client-facing interactions. You adapt your tone to match "
