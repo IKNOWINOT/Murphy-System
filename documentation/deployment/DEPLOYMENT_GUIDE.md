@@ -793,16 +793,57 @@ The recommended way to deploy new code is to push to `main` — the
 `Build & Deploy to Hetzner` GitHub Actions workflow will SSH into the
 production server and run the update automatically.
 
-To update manually on the server:
+#### ⚡ One-Command Hetzner Load (recommended for manual updates)
+
+Use the built-in `hetzner_load.sh` script to pull the latest code, reload
+the environment, update dependencies, ensure Ollama is running, and restart
+Murphy in a single command:
 
 ```bash
-# Pull latest code and restart (the recommended one-liner)
-cd /opt/Murphy-System && git pull origin main && systemctl restart murphy-production
-
-# Confirm the new commit is live
-curl -s http://localhost:8000/api/health | python3 -m json.tool
-# Look for "deploy_commit" in the output
+bash /opt/Murphy-System/scripts/hetzner_load.sh
 ```
+
+This is **the command** to run on Hetzner whenever you need to bring the
+server fully up-to-date. It performs all steps in order:
+
+1. `git pull origin main` — latest code
+2. `pip install --upgrade -r requirements_murphy_1.0.txt` — latest deps
+3. Ensure Ollama is installed, enabled, and the configured model is pulled
+4. `systemctl restart murphy-production` — hot-reload with new commit SHA
+5. Health-check `http://localhost:8000/api/health` and Ollama
+
+**Common flags:**
+
+```bash
+# Fastest restart — skip dependency update (code-only change)
+bash /opt/Murphy-System/scripts/hetzner_load.sh --skip-deps
+
+# Skip Ollama check (Ollama already healthy)
+bash /opt/Murphy-System/scripts/hetzner_load.sh --skip-ollama
+
+# Silent restart — skip the post-restart health probe
+bash /opt/Murphy-System/scripts/hetzner_load.sh --no-health-check
+
+# Show all options
+bash /opt/Murphy-System/scripts/hetzner_load.sh --help
+```
+
+**Environment overrides** (set as shell variables before running):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MURPHY_REPO_DIR` | `/opt/Murphy-System` | Path to the git repository |
+| `MURPHY_SERVICE` | `murphy-production` | systemd service name |
+| `MURPHY_VENV` | `${MURPHY_REPO_DIR}/venv` | Path to the Python virtualenv |
+| `OLLAMA_MODEL` | `phi3` | Ollama model to ensure is pulled |
+| `MURPHY_PORT` | `8000` | Murphy HTTP port for health check |
+
+Example with overrides:
+```bash
+OLLAMA_MODEL=llama3 bash /opt/Murphy-System/scripts/hetzner_load.sh
+```
+
+#### Manual step-by-step update
 
 For dependency updates or migrations, stop the service first:
 
