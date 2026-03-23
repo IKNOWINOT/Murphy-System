@@ -148,12 +148,151 @@ def create_app() -> FastAPI:
         _account_manager = None
         _oauth_registry = None
 
-    # session_token → account_id (in-memory; replace with Redis/DB in prod)
+    # session_token → account_id — Redis-backed with in-memory fallback
     import threading as _threading
     import secrets as _secrets
     import bcrypt as _bcrypt
     _session_lock = _threading.Lock()
-    _session_store: "Dict[str, str]" = {}  # session_token → account_id
+
+    class _RedisSessionStore:
+        """Session store backed by Redis (with in-memory fallback).
+
+        Implements a dict-like interface: session_token → account_id.
+        Entries expire after 24 hours (matching the murphy_session cookie Max-Age).
+        Falls back to an in-memory dict if Redis is unavailable or not configured.
+        """
+
+        _SESSION_PREFIX = "murphy:session:"
+        _SESSION_TTL = 86400  # 24 hours
+
+        def __init__(self) -> None:
+            self._fallback: "Dict[str, str]" = {}
+            self._redis = None
+            _redis_url = os.environ.get("REDIS_URL", "")
+            if _redis_url:
+                try:
+                    import redis as _redis_pkg
+                    _client = _redis_pkg.from_url(
+                        _redis_url, decode_responses=True, socket_connect_timeout=2
+                    )
+                    _client.ping()
+                    self._redis = _client
+                    logger.info("Session store: connected to Redis at %s", _redis_url)
+                except Exception as _exc:
+                    logger.warning(
+                        "Session store: Redis unavailable (%s) — using in-memory fallback", _exc
+                    )
+
+        def _k(self, token: str) -> str:
+            return self._SESSION_PREFIX + token
+
+        def __contains__(self, token: object) -> bool:
+            if self._redis is not None:
+                try:
+                    return bool(self._redis.exists(self._k(str(token))))
+                except Exception:
+                    pass
+            return token in self._fallback
+
+        def __setitem__(self, token: str, account_id: str) -> None:
+            if self._redis is not None:
+                try:
+                    self._redis.setex(self._k(token), self._SESSION_TTL, account_id)
+                    return
+                except Exception:
+                    pass
+            self._fallback[token] = account_id
+
+        def __delitem__(self, token: str) -> None:
+            if self._redis is not None:
+                try:
+                    self._redis.delete(self._k(token))
+                    return
+                except Exception:
+                    pass
+            self._fallback.pop(token, None)
+
+        def __getitem__(self, token: str) -> str:
+            val = self.get(token)
+            if val is None:
+                raise KeyError(token)
+            return val
+
+        def __len__(self) -> int:
+            if self._redis is not None:
+                try:
+                    count, cur = 0, 0
+                    while True:
+                        cur, keys = self._redis.scan(
+                            cur, match=self._SESSION_PREFIX + "*", count=100
+                        )
+                        count += len(keys)
+                        if cur == 0:
+                            break
+                    return count
+                except Exception:
+                    pass
+            return len(self._fallback)
+
+        def get(self, token: str, default: "Optional[str]" = None) -> "Optional[str]":
+            if self._redis is not None:
+                try:
+                    val = self._redis.get(self._k(token))
+                    return val if val is not None else default
+                except Exception:
+                    pass
+            return self._fallback.get(token, default)
+
+        def pop(self, token: str, *args: "Any") -> "Optional[str]":
+            if self._redis is not None:
+                try:
+                    val = self._redis.get(self._k(token))
+                    self._redis.delete(self._k(token))
+                    if val is not None:
+                        return val
+                    return args[0] if args else None
+                except Exception:
+                    pass
+            return self._fallback.pop(token, *args)
+
+        def keys(self) -> "List[str]":
+            if self._redis is not None:
+                try:
+                    result: "List[str]" = []
+                    cur = 0
+                    while True:
+                        cur, batch = self._redis.scan(
+                            cur, match=self._SESSION_PREFIX + "*", count=100
+                        )
+                        result.extend(k[len(self._SESSION_PREFIX):] for k in batch)
+                        if cur == 0:
+                            break
+                    return result
+                except Exception:
+                    pass
+            return list(self._fallback.keys())
+
+        def items(self) -> "List[tuple]":
+            if self._redis is not None:
+                try:
+                    result: "List[tuple]" = []
+                    cur = 0
+                    while True:
+                        cur, batch = self._redis.scan(
+                            cur, match=self._SESSION_PREFIX + "*", count=100
+                        )
+                        for k in batch:
+                            val = self._redis.get(k)
+                            if val is not None:
+                                result.append((k[len(self._SESSION_PREFIX):], val))
+                        if cur == 0:
+                            break
+                    return result
+                except Exception:
+                    pass
+            return list(self._fallback.items())
+
+    _session_store: "_RedisSessionStore" = _RedisSessionStore()
 
     # ── User account store (in-memory; replace with DB in production) ──
     # account_id → {email, password_hash, full_name, job_title, company,

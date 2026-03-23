@@ -50,9 +50,11 @@
     const token = _getSessionToken();
     const headers = token ? { Authorization: "Bearer " + token } : {};
     try {
-      const res = await fetch(url, { headers });
+      const res = await fetch(url, { headers, credentials: "same-origin" });
       if (!res.ok) return null;
-      return await res.json();
+      const data = await res.json();
+      if (!data || !data.found) return null;
+      return data;
     } catch (_) {
       return null;
     }
@@ -63,7 +65,7 @@
     const token = _getSessionToken();
     const headers = token ? { Authorization: "Bearer " + token } : {};
     try {
-      const res = await fetch(url, { headers });
+      const res = await fetch(url, { headers, credentials: "same-origin" });
       if (!res.ok) return null;
       return await res.json();
     } catch (_) {
@@ -144,10 +146,12 @@
   // ---------------------------------------------------------------------------
 
   function redirectToSignup(reason) {
+    const nextUrl = encodeURIComponent(window.location.pathname + window.location.search);
     const url =
-      LANDING_PAGE +
+      "/ui/login" +
       "?auth_required=1&reason=" +
-      encodeURIComponent(reason || "not_authenticated");
+      encodeURIComponent(reason || "not_authenticated") +
+      "&next=" + nextUrl;
     window.location.href = url;
   }
 
@@ -232,7 +236,25 @@
   async function boot() {
     await _handleOAuthSuccess();
 
-    const profile = await fetchProfile();
+    let profile = await fetchProfile();
+
+    // If the Bearer-token fetch failed, attempt cookie-based session recovery.
+    // The server may still recognise the murphy_session HttpOnly cookie even
+    // when the localStorage token has been invalidated (e.g. after a restart).
+    if (!profile && _getSessionToken()) {
+      try {
+        const recoveryRes = await fetch("/api/auth/session-token", { credentials: "include" });
+        if (recoveryRes.ok) {
+          const recoveryData = await recoveryRes.json();
+          if (recoveryData && recoveryData.session_token) {
+            localStorage.setItem("murphy_session_token", recoveryData.session_token);
+            profile = await fetchProfile();
+          }
+        }
+      } catch (_) {
+        // Ignore errors — fall through to redirect
+      }
+    }
 
     if (!profile) {
       redirectToSignup("session_missing_or_expired");
