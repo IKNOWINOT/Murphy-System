@@ -192,7 +192,13 @@ class MurphyProfileManager:
 
     def get_mvp_modules(self, flavor: ProfileFlavor) -> List[str]:
         return list(_MVP_MODULES.get(flavor, _MVP_MODULES[ProfileFlavor.GENERAL]))
-Murphy/Inoni Grant Profiles — Grant-optimized descriptions for each application flavor.
+
+
+# ===========================================================================
+# Extended Grant Profile Content (GrantProfile instances with full narratives)
+# ===========================================================================
+"""
+Murphy/Inoni Grant Profiles - Grant-optimized descriptions for each application flavor.
 
 Four flavors: R&D, Energy, Manufacturing, General.
 Each profile is tailored to a different grant category and highlights the most
@@ -204,8 +210,6 @@ Copyright © 2020 Inoni Limited Liability Company
 Creator: Corey Post
 License: BSL 1.1
 """
-
-from __future__ import annotations
 
 from typing import Dict, List, Optional
 
