@@ -8,6 +8,56 @@
 
 set -euo pipefail
 
+# ── Help ─────────────────────────────────────────────────────────────────────
+show_help() {
+  cat <<EOF
+Murphy System — Production Readiness Check
+
+Validates that all Kubernetes resources are deployed and healthy for
+production deployment.
+
+Usage:
+  $(basename "$0") [OPTIONS] [namespace]
+
+Arguments:
+  namespace    Kubernetes namespace to check (default: murphy-system)
+
+Options:
+  -h, --help   Show this help message and exit
+  --version    Show version information
+
+Checks performed:
+  • Core Resources (Deployment, Service, Ingress, HPA, ConfigMap, Secret, PVC)
+  • Security & Reliability (NetworkPolicy, PDB, ResourceQuota, LimitRange)
+  • Data Services (Redis, PostgreSQL deployments and services)
+  • Backup & Recovery (CronJob, Backup PVC)
+  • Pod Health (Running state verification)
+  • Health Endpoints (API, Redis, PostgreSQL connectivity)
+
+Examples:
+  $(basename "$0")                    # Check default namespace
+  $(basename "$0") my-namespace       # Check specific namespace
+  $(basename "$0") --help             # Show this help
+
+Exit codes:
+  0  All checks passed
+  1  One or more checks failed
+
+EOF
+  exit 0
+}
+
+# ── Parse arguments ──────────────────────────────────────────────────────────
+case "${1:-}" in
+  -h|--help)
+    show_help
+    ;;
+  --version)
+    echo "Murphy System Production Readiness Check v1.0.0"
+    exit 0
+    ;;
+esac
+
 NAMESPACE="${1:-murphy-system}"
 PASS=0
 FAIL=0

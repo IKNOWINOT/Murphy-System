@@ -28,7 +28,17 @@ error() { echo "[ERROR] $*" >&2; }
 
 usage() {
     cat <<EOF
-Usage: $(basename "$0") [BENCHMARK...]
+Murphy System — Benchmark Runner
+
+Runs external benchmarks to evaluate Murphy System performance against
+industry-standard AI agent benchmarks.
+
+Usage:
+  $(basename "$0") [OPTIONS] [BENCHMARK...]
+
+Options:
+  -h, --help     Show this help message and exit
+  --version      Show version information
 
 Available benchmarks:
   all            Run all benchmarks
@@ -41,11 +51,17 @@ Available benchmarks:
   terminal-bench CLI/system automation (Terminal-Bench)
 
 Environment variables:
-  MURPHY_BENCHMARK_MAX_TASKS  Max tasks per suite (default: 5)
-  MURPHY_BENCHMARK_RESULTS_DIR  Output directory for JSON/MD reports
+  MURPHY_BENCHMARK_MAX_TASKS     Max tasks per suite (default: 5)
+  MURPHY_BENCHMARK_RESULTS_DIR   Output directory for JSON/MD reports
+
+Examples:
+  $(basename "$0") all              # Run all benchmarks
+  $(basename "$0") swe-bench        # Run only SWE-bench
+  $(basename "$0") gaia agent-bench # Run multiple benchmarks
+  $(basename "$0") --help           # Show this help
 
 EOF
-    exit 1
+    exit 0
 }
 
 # ---------------------------------------------------------------------------
@@ -94,6 +110,17 @@ build_filter() {
 # ---------------------------------------------------------------------------
 
 main() {
+    # Handle help/version flags
+    case "${1:-}" in
+        -h|--help)
+            usage
+            ;;
+        --version)
+            echo "Murphy System Benchmark Runner v1.0.0"
+            exit 0
+            ;;
+    esac
+
     if [ $# -eq 0 ]; then
         usage
     fi
