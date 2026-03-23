@@ -181,11 +181,14 @@ def auto_submit(sid: str, aid: str):
         "message": "Automated submission is planned for Phase B. Please follow the manual submission instructions.",
         "manual_instructions_url": f"/api/grants/sessions/{sid}/applications/{aid}/submission",
     }
+
+# ===========================================================================
+# Grants API - Phase 2 HITL Agentic Form-Filling System
+# ===========================================================================
 """
-Grants API — FastAPI router for Phase 2 HITL Agentic Form-Filling System.
+Grants API - FastAPI router for Phase 2 HITL Agentic Form-Filling System.
 © 2020 Inoni Limited Liability Company · Creator: Corey Post · License: BSL 1.1
 """
-from __future__ import annotations
 
 import logging
 import re
@@ -205,7 +208,12 @@ from src.billing.grants.hitl_task_queue import HITLTaskQueue
 from src.billing.grants.murphy_profiles import MurphyProfileManager
 from src.billing.grants.prerequisites_tracker import PrerequisitesTracker
 from src.billing.grants.session_manager import GrantSessionManager
-Grant API — FastAPI router for all grant system endpoints.
+
+# ===========================================================================
+# Extended Grant API (Full endpoint catalog)
+# ===========================================================================
+"""
+Grant API - FastAPI router for all grant system endpoints.
 
 All endpoints under /api/grants/. Follows src/billing/api.py patterns:
 FastAPI, Pydantic models, proper error handling, logging, tenant isolation.
@@ -240,8 +248,6 @@ Copyright © 2020 Inoni Limited Liability Company
 Creator: Corey Post
 License: BSL 1.1
 """
-
-from __future__ import annotations
 
 import logging
 import os
