@@ -9,8 +9,10 @@ Covers:
   - Usage metering
 """
 
+import sys
 import os
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 import json
 import pytest
@@ -405,3 +407,89 @@ class TestUsageSummary:
         summary = mgr.get_usage_summary("any")
         assert "generated_at" in summary
         assert len(summary["generated_at"]) > 0
+
+
+# ---------------------------------------------------------------------------
+# start_trial
+# ---------------------------------------------------------------------------
+
+class TestStartTrial:
+    def test_start_trial_returns_subscription(self):
+        mgr = SubscriptionManager()
+        sub = mgr.start_trial("trial_acc_1", SubscriptionTier.SOLO)
+        assert sub is not None
+        assert sub.account_id == "trial_acc_1"
+
+    def test_start_trial_status_is_trial(self):
+        mgr = SubscriptionManager()
+        sub = mgr.start_trial("trial_acc_2", SubscriptionTier.SOLO)
+        assert sub.status == SubscriptionStatus.TRIAL
+
+    def test_start_trial_tier_is_correct(self):
+        mgr = SubscriptionManager()
+        sub = mgr.start_trial("trial_acc_3", SubscriptionTier.BUSINESS)
+        assert sub.tier == SubscriptionTier.BUSINESS
+
+    def test_start_trial_sets_trial_end(self):
+        mgr = SubscriptionManager()
+        sub = mgr.start_trial("trial_acc_4", SubscriptionTier.SOLO)
+        assert sub.trial_end != ""
+
+    def test_start_trial_professional_allowed(self):
+        mgr = SubscriptionManager()
+        sub = mgr.start_trial("trial_acc_5", SubscriptionTier.PROFESSIONAL)
+        assert sub.tier == SubscriptionTier.PROFESSIONAL
+
+    def test_start_trial_enterprise_raises(self):
+        mgr = SubscriptionManager()
+        with pytest.raises(ValueError, match="Enterprise"):
+            mgr.start_trial("trial_acc_6", SubscriptionTier.ENTERPRISE)
+
+    def test_start_trial_subscription_is_active(self):
+        mgr = SubscriptionManager()
+        sub = mgr.start_trial("trial_acc_7", SubscriptionTier.BUSINESS)
+        assert sub.is_active() is True
+
+
+# ---------------------------------------------------------------------------
+# can_create_org feature flag
+# ---------------------------------------------------------------------------
+
+class TestCanCreateOrg:
+    def _make_active(self, mgr, account_id, tier):
+        mgr._upsert_subscription(account_id, tier, SubscriptionStatus.ACTIVE, PaymentProvider.STRIPE)
+
+    def test_free_cannot_create_org(self):
+        mgr = SubscriptionManager()
+        self._make_active(mgr, "org_free", SubscriptionTier.FREE)
+        result = mgr.check_feature_access("org_free", "can_create_org")
+        assert result["allowed"] is False
+
+    def test_solo_cannot_create_org(self):
+        mgr = SubscriptionManager()
+        self._make_active(mgr, "org_solo", SubscriptionTier.SOLO)
+        result = mgr.check_feature_access("org_solo", "can_create_org")
+        assert result["allowed"] is False
+
+    def test_business_cannot_create_org(self):
+        mgr = SubscriptionManager()
+        self._make_active(mgr, "org_biz", SubscriptionTier.BUSINESS)
+        result = mgr.check_feature_access("org_biz", "can_create_org")
+        assert result["allowed"] is False
+
+    def test_professional_can_create_org(self):
+        mgr = SubscriptionManager()
+        self._make_active(mgr, "org_pro", SubscriptionTier.PROFESSIONAL)
+        result = mgr.check_feature_access("org_pro", "can_create_org")
+        assert result["allowed"] is True
+
+    def test_enterprise_can_create_org(self):
+        mgr = SubscriptionManager()
+        self._make_active(mgr, "org_ent", SubscriptionTier.ENTERPRISE)
+        result = mgr.check_feature_access("org_ent", "can_create_org")
+        assert result["allowed"] is True
+
+    def test_no_subscription_cannot_create_org(self):
+        mgr = SubscriptionManager()
+        result = mgr.check_feature_access("org_unknown", "can_create_org")
+        assert result["allowed"] is False

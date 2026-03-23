@@ -4890,6 +4890,81 @@ def create_app() -> FastAPI:
         except Exception as e:
             return JSONResponse({"success": False, "error": str(e)}, 500)
 
+    @app.post("/api/billing/start-trial")
+    async def billing_start_trial(request: Request):
+        """Start a 14-day free trial for the chosen tier without requiring payment.
+
+        Body: {
+            "tier": "solo"|"business"|"professional",
+            "account_id": "...",   # optional; falls back to session or derived from email
+            "name": "...",
+            "email": "..."
+        }
+        """
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+
+        tier_val = (data.get("tier") or "solo").strip().lower()
+        name = (data.get("name") or "").strip()
+        email = (data.get("email") or "").strip()
+
+        # Resolve account_id: prefer session > request body > derive from email
+        account = _get_account_from_session(request)
+        if account:
+            account_id = account["account_id"]
+        elif data.get("account_id", "").strip():
+            account_id = data["account_id"].strip()
+        elif email:
+            import hashlib as _hashlib
+            account_id = "trial_" + _hashlib.sha256(email.lower().encode()).hexdigest()[:16]
+        else:
+            account_id = "trial_" + uuid4().hex[:16]
+
+        from src.subscription_manager import SubscriptionTier as _TrialTier
+        try:
+            tier_enum = _TrialTier(tier_val)
+        except ValueError:
+            return JSONResponse(
+                {"success": False, "error": f"Unknown tier: {tier_val}"},
+                status_code=400,
+            )
+
+        if tier_enum == _TrialTier.ENTERPRISE:
+            return JSONResponse(
+                {"success": False, "error": "Enterprise pricing is custom — contact sales@murphy.ai"},
+                status_code=400,
+            )
+
+        from datetime import datetime as _dt, timedelta as _td, timezone as _tz_mod
+        trial_end = (_dt.now(_tz_mod.utc) + _td(days=14)).isoformat()
+
+        mgr = _get_sub_manager()
+        if mgr is not None:
+            try:
+                sub = mgr.start_trial(account_id, tier_enum)
+                trial_end = sub.trial_end or trial_end
+                sub_dict = sub.to_dict()
+            except Exception as exc:
+                logger.warning("start_trial failed: %s", exc)
+                sub_dict = {"tier": tier_val, "status": "trial", "trial_end": trial_end}
+        else:
+            sub_dict = {"tier": tier_val, "status": "trial", "trial_end": trial_end}
+
+        redirect_url = "/ui/signup?tier=" + tier_val + "&trial=started"
+        if email:
+            redirect_url += "&email=" + email
+
+        return JSONResponse({
+            "success": True,
+            "account_id": account_id,
+            "subscription": sub_dict,
+            "trial_days": 14,
+            "trial_end": trial_end,
+            "redirect_url": redirect_url,
+        })
+
     # ==================== TELEMETRY ENDPOINT ====================
 
     @app.get("/api/telemetry")
@@ -7572,6 +7647,66 @@ def create_app() -> FastAPI:
             _org_memberships[org_id] = {"members": [], "moderators": [], "pending": []}
         _org_memberships[org_id]["pending"].append({"user": invitee, "at": _now_iso()})
         return JSONResponse({"ok": True, "invited": invitee})
+
+    @app.post("/api/org/create")
+    async def org_create(request: Request):
+        """Create a new organization. Requires an active Professional or Enterprise plan.
+
+        Body: { "name": "...", "description": "..." }
+        """
+        account = _get_account_from_session(request)
+        if account is None:
+            return JSONResponse({"error": "Authentication required"}, status_code=401)
+
+        # Tier gating: Professional+ required to create organizations
+        mgr = _get_sub_manager()
+        if mgr is not None:
+            gate = mgr.check_feature_access(account["account_id"], "can_create_org")
+            if not gate.get("allowed", False):
+                return JSONResponse(
+                    {
+                        "error": "Organization creation requires a Professional or Enterprise plan",
+                        "upgrade_url": "/ui/pricing",
+                        "required_tier": "professional",
+                    },
+                    status_code=403,
+                )
+
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
+        name = (data.get("name") or "").strip()
+        if not name:
+            return JSONResponse({"error": "name is required"}, status_code=400)
+
+        import uuid as _uuid_org, re as _re_org
+        org_id = _uuid_org.uuid4().hex[:12]
+        slug = _re_org.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+
+        # Use the verified subscription tier so the org record reflects
+        # the actual plan rather than a potentially stale account field.
+        org_plan = account.get("tier", "professional")
+        if mgr is not None:
+            _sub = mgr.get_subscription(account["account_id"])
+            if _sub is not None:
+                org_plan = _sub.tier.value
+
+        org = {
+            "org_id": org_id,
+            "name": name,
+            "slug": slug,
+            "description": (data.get("description") or "").strip(),
+            "owner_id": account["account_id"],
+            "plan": org_plan,
+            "status": "active",
+            "members": [account["account_id"]],
+            "created_at": _now_iso(),
+            "created_by": account["account_id"],
+        }
+        _org_store[org_id] = org
+        return JSONResponse({"success": True, "org_id": org_id, "organization": org}, status_code=201)
 
     # ==================== PLATFORM ADMIN (FOUNDER-LEVEL) ====================
     # All endpoints in this section require role == "admin" or "owner".
