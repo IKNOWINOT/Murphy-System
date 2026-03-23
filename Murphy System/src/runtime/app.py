@@ -7826,45 +7826,111 @@ def create_app() -> FastAPI:
         })
 
     # ==================== MEETING INTELLIGENCE API ====================
+    # In-memory stores for drafts and votes — keyed by session_id.
+    # TODO: migrate to DB models (MeetingDraft, MeetingVote) in a future sprint.
+    _mi_drafts: Dict[str, Any] = {}   # {session_id: {draft_type: {content, status, ts}}}
+    _mi_votes: Dict[str, Any] = {}    # {session_id: {draft_type: {vote, comment, ts}}}
 
     @app.post("/api/meeting-intelligence/drafts")
     async def mi_save_draft(request: Request):
-        """Accept a draft produced by a Shadow AI meeting session."""
-        body = await request.json()
+        """Accept a draft produced by a Shadow AI meeting session and persist it."""
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"ok": False, "error": "Invalid JSON"}, status_code=400)
+        session_id = body.get("session_id") or "default"
+        draft_type = body.get("draft_type")
+        content = body.get("content", "")
+        status = body.get("status", "saved")
+        ts = _now_iso()
+        if session_id not in _mi_drafts:
+            _mi_drafts[session_id] = {}
+        _mi_drafts[session_id][draft_type] = {"content": content, "status": status, "ts": ts}
+        logger.info("Meeting draft saved: session=%s type=%s status=%s", session_id, draft_type, status)
         return JSONResponse({
             "ok": True,
-            "draft_type": body.get("draft_type"),
-            "status": body.get("status", "saved"),
-            "ts": _now_iso(),
+            "draft_type": draft_type,
+            "status": status,
+            "ts": ts,
         })
 
     @app.post("/api/meeting-intelligence/vote")
     async def mi_vote(request: Request):
-        """Record a participant vote on a Shadow AI draft."""
-        body = await request.json()
+        """Record a participant vote on a Shadow AI draft and persist it."""
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"ok": False, "error": "Invalid JSON"}, status_code=400)
+        session_id = body.get("session_id") or "default"
+        draft_type = body.get("draft_type")
+        vote = body.get("vote")
+        comment = body.get("comment", "")
+        ts = _now_iso()
+        if session_id not in _mi_votes:
+            _mi_votes[session_id] = {}
+        _mi_votes[session_id][draft_type] = {"vote": vote, "comment": comment, "ts": ts}
+        logger.info("Meeting vote recorded: session=%s type=%s vote=%s", session_id, draft_type, vote)
         return JSONResponse({
             "ok": True,
-            "draft_type": body.get("draft_type"),
-            "vote": body.get("vote"),
-            "ts": _now_iso(),
+            "draft_type": draft_type,
+            "vote": vote,
+            "ts": ts,
         })
 
     @app.post("/api/meeting-intelligence/email-report")
     async def mi_email_report(request: Request):
         """Queue a meeting intelligence report for email delivery to participants."""
-        body = await request.json()
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"ok": False, "error": "Invalid JSON"}, status_code=400)
+        session_id = body.get("session_id", "")
+        title = body.get("title", "Meeting Report")
+        participants = body.get("participants", [])
+        ts = _now_iso()
+        try:
+            from src.communication_hub import email_store as _email_store_hub
+            _email_store_hub.compose_and_send(
+                sender="murphy-meetings@system",
+                recipients=participants if participants else ["team@murphy.systems"],
+                subject=f"Meeting Intelligence Report: {title}",
+                body=(
+                    f"Your meeting report for '{title}' (session: {session_id}) is ready.\n\n"
+                    "Visit the Meeting Intelligence dashboard to view full drafts, "
+                    "suggestions, and accepted action items."
+                ),
+                priority="normal",
+            )
+            logger.info("Meeting report emailed: session=%s recipients=%s", session_id, participants)
+        except Exception as exc:
+            logger.warning("Could not send meeting report email: %s", exc)
         return JSONResponse({
             "ok": True,
             "queued": True,
-            "session_id": body.get("session_id"),
-            "recipients": body.get("participants", []),
-            "ts": _now_iso(),
+            "session_id": session_id,
+            "recipients": participants,
+            "ts": ts,
         })
 
     @app.get("/api/meeting-intelligence/sessions")
-    async def mi_sessions():
-        """List all stored meeting intelligence sessions (stub)."""
-        return JSONResponse({"ok": True, "sessions": [], "ts": _now_iso()})
+    async def mi_sessions(request: Request):
+        """List all meeting intelligence sessions from DB with drafts and suggestions."""
+        account = _get_account_from_session(request)
+        account_id = account.get("account_id") if account else None
+        sessions = []
+        try:
+            from src.ai_comms_orchestrator import meetings_bridge as _mb
+            sessions = _mb.list_meetings(account_id=account_id)
+        except Exception as exc:
+            logger.warning("Could not load sessions from MeetingsBridge: %s", exc)
+        # Merge in-memory draft/vote data into each session
+        for s in sessions:
+            sid = s.get("session_id", "")
+            if sid in _mi_drafts:
+                s["drafts"] = _mi_drafts[sid]
+            if sid in _mi_votes:
+                s["votes"] = _mi_votes[sid]
+        return JSONResponse({"ok": True, "sessions": sessions, "ts": _now_iso()})
 
     # ==================== AMBIENT INTELLIGENCE API ====================
 
