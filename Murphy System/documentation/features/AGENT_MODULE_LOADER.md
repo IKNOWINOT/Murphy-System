@@ -300,7 +300,7 @@ python src/agent_module_loader.py --demo-org
 ## Testing
 
 ```bash
-# Run all tests (60 tests)
+# Run all tests (82 tests)
 pytest tests/test_agent_module_loader.py -v --override-ini="addopts="
 ```
 

@@ -904,7 +904,7 @@ class TestLibrarianExecutionSuggestor:
         
         assert len(plan.suggestions) > 0
         # Should have suggestions for tests and config
-        assert any(s.title for s in plan.suggestions if "test" in s.title.lower())
+        assert any("test" in s.title.lower() for s in plan.suggestions)
     
     def test_clarification_for_ambiguous_request(self):
         """Ambiguous requests generate clarification questions."""
