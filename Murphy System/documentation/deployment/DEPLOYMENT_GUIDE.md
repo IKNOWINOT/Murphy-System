@@ -115,30 +115,33 @@ pip install -r requirements_murphy_1.0.txt
 
 ### Step 2: Configure Development Settings
 
-Edit `config/murphy.yaml` to override development defaults:
+Create `config/config.yaml`:
 
 ```yaml
-# config/murphy.yaml — development overrides
-system:
-  env: development
+# Development Configuration
+mode: development
 
-api:
+# Server Settings
+server:
   host: "localhost"
   port: 8000
+  workers: 1
 
+# Logging
 logging:
   level: DEBUG
-  format: text
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
+# Cache Settings
 cache:
-  enabled: false
-  ttl: 300
-```
+  enabled: true
+  level: 1  # L1 cache only
+  ttl: 300  # 5 minutes
 
-You can also override individual settings via environment variables (env vars always win over YAML):
-```bash
-export LOG_LEVEL=DEBUG
-export MURPHY_ENV=development
+# Telemetry
+telemetry:
+  enabled: true
+  metrics_interval: 60  # seconds
 ```
 
 ### Step 3: Start the Server
@@ -147,8 +150,8 @@ export MURPHY_ENV=development
 # Start API server
 python murphy_system_1.0_runtime.py
 
-# Or start with an explicit environment override
-MURPHY_ENV=development python murphy_system_1.0_runtime.py
+# Or with custom configuration
+python murphy_system_1.0_runtime.py --config config/config.yaml
 ```
 
 ### Step 4: Verify Deployment
@@ -188,31 +191,40 @@ pip install -r requirements_murphy_1.0.txt
 
 ### Step 2: Configure Staging Settings
 
-Edit `config/murphy.yaml` to set staging defaults (or use environment variables — env vars always win):
+Create `config/config.yaml`:
 
 ```yaml
-# config/murphy.yaml — staging overrides
-system:
-  env: staging
+# Staging Configuration
+mode: staging
 
-api:
+# Server Settings
+server:
   host: "0.0.0.0"
   port: 8000
+  workers: 4
 
+# Logging
 logging:
   level: INFO
-  format: json
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
   file: "/var/log/murphy-staging.log"
 
+# Cache Settings
 cache:
   enabled: true
-  ttl: 3600
-```
+  level: 2  # L1 and L2 cache
+  ttl: 3600  # 1 hour
 
-For secrets and per-deployment values, use environment variables or a `.env` file — never the YAML file:
-```bash
-export MURPHY_ENV=staging
-export DATABASE_URL=sqlite:////var/lib/murphy-staging/data.db
+# Persistence
+persistence:
+  enabled: true
+  type: "sqlite"
+  path: "/var/lib/murphy-staging/data.db"
+
+# Telemetry
+telemetry:
+  enabled: true
+  metrics_interval: 30  # seconds
 ```
 
 ### Step 3: Set Up System Service
@@ -304,6 +316,88 @@ python tests/test_load.py
 
 ## Production Deployment
 
+### ⚡ First-Time Hetzner Server Setup
+
+Before running `hetzner_load.sh` for the first time, complete these one-time
+setup steps on the server:
+
+#### 1 — Clone the repository
+
+```bash
+git clone https://github.com/IKNOWINOT/Murphy-System /opt/Murphy-System
+cd /opt/Murphy-System
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements_murphy_1.0.txt
+```
+
+#### 2 — Create the production environment file
+
+The environment file holds all secrets and connection strings for every
+subsystem. A complete template is provided in the repo:
+
+```bash
+sudo mkdir -p /etc/murphy-production
+sudo cp /opt/Murphy-System/config/murphy-production.environment.example \
+        /etc/murphy-production/environment
+sudo nano /etc/murphy-production/environment   # fill in real secrets
+sudo chmod 600 /etc/murphy-production/environment
+sudo useradd -r -s /bin/false murphy 2>/dev/null || true
+sudo chown murphy:murphy /etc/murphy-production/environment
+```
+
+Generate strong secrets:
+```bash
+python3 -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+#### 3 — Install the systemd service unit
+
+```bash
+sudo cp /opt/Murphy-System/config/systemd/murphy-production.service \
+        /etc/systemd/system/murphy-production.service
+sudo systemctl daemon-reload
+sudo systemctl enable murphy-production
+```
+
+#### 4 — Install nginx and the vhost config
+
+```bash
+sudo apt-get install -y nginx
+sudo cp /opt/Murphy-System/config/nginx/murphy-production.conf \
+        /etc/nginx/sites-available/murphy-production
+# Edit server_name to your actual domain:
+sudo nano /etc/nginx/sites-available/murphy-production
+sudo ln -sf /etc/nginx/sites-available/murphy-production \
+            /etc/nginx/sites-enabled/murphy-production
+sudo nginx -t && sudo systemctl enable nginx
+```
+
+Get a free TLS certificate with Let's Encrypt:
+```bash
+sudo apt-get install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d murphy.systems -d mail.murphy.systems
+```
+
+#### 5 — Install Docker Engine + Compose plugin
+
+```bash
+curl -fsSL https://get.docker.com | sh
+# Verify:
+docker compose version
+```
+
+#### 6 — Run the full-stack load
+
+Once steps 1–5 are complete, **everything from this point forward** is handled
+by a single command:
+
+```bash
+bash /opt/Murphy-System/scripts/hetzner_load.sh
+```
+
+---
+
 ### Step 1: Prepare Environment
 
 ```bash
@@ -321,47 +415,70 @@ pip install --no-cache-dir -r requirements_murphy_1.0.txt
 
 ### Step 2: Configure Production Settings
 
-Edit `config/murphy.yaml` for production defaults:
+Create `config/config.yaml`:
 
 ```yaml
-# config/murphy.yaml — production overrides
-system:
-  env: production
+# Production Configuration
+mode: production
 
-api:
+# Server Settings
+server:
   host: "0.0.0.0"
   port: 8000
+  workers: 8
 
+# Logging
 logging:
   level: WARNING
-  format: json
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
   file: "/var/log/murphy-production.log"
-  backup_count: 30
+  rotation: daily
+  retention: 30  # days
 
+# Cache Settings
 cache:
   enabled: true
-  ttl: 86400
+  level: 3  # L1, L2, L3 cache
+  ttl: 86400  # 24 hours
+  max_size: 1024  # MB
 
-safety:
-  fail_closed: true
-  governance_strict: true
+# Persistence
+persistence:
+  enabled: true
+  type: "postgresql"
+  host: "localhost"
+  port: 5432
+  database: "murphy_production"
+  username: "murphy_user"
+  password: "${MURPHY_DB_PASSWORD}"
+
+# Security
+security:
+  secret_key: "${MURPHY_SECRET_KEY}"
+  allowed_origins:
+    - "https://yourdomain.com"
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 1000
+
+# Telemetry
+telemetry:
+  enabled: true
+  metrics_interval: 10  # seconds
+  export_to:
+    - prometheus
+    - datadog
+
+# Monitoring
+monitoring:
+  enabled: true
+  health_check_interval: 30  # seconds
+  alerting:
+    enabled: true
+    slack_webhook: "${MURPHY_SLACK_WEBHOOK}"
+    email_recipients:
+      - "ops@yourdomain.com"
 ```
-
-> **Important:** Production secrets (`DATABASE_URL`, `MURPHY_API_KEYS`,
-> `MURPHY_CREDENTIAL_MASTER_KEY`, `JWT_SECRET`) must **never** be stored in
-> `config/murphy.yaml`. Use environment variables loaded from a secrets manager:
->
-> ```bash
-> # Docker Swarm secrets
-> docker secret create murphy_api_key ./api_key.txt
->
-> # Kubernetes secrets
-> kubectl create secret generic murphy-secrets \
->   --from-literal=DATABASE_URL="postgresql://..."
->
-> # HashiCorp Vault
-> vault kv put secret/murphy DATABASE_URL="postgresql://..."
-> ```
 
 ### Step 3: Set Up Database (PostgreSQL)
 
@@ -380,36 +497,6 @@ GRANT ALL PRIVILEGES ON DATABASE murphy_production TO murphy_user;
 \q
 ```
 
-Set the database connection in your environment file:
-
-> **Security:** Never commit credentials to version control.  Use your
-> platform's secrets manager (AWS Secrets Manager, HashiCorp Vault,
-> Kubernetes Secrets, etc.) or a protected `.env` file with restricted
-> permissions (`chmod 600`) that is listed in `.gitignore`.
-
-```bash
-export DATABASE_URL=postgresql://murphy_user:your_password@localhost:5432/murphy_production
-export MURPHY_DB_MODE=live
-export MURPHY_ENV=production
-export MURPHY_AUTO_MIGRATE=false   # Migrate explicitly before each deploy
-```
-
-**Run Alembic migrations before starting the service:**
-
-```bash
-cd /opt/murphy-production/Murphy\ System
-bash scripts/db_migrate.sh status   # Check current state
-bash scripts/db_migrate.sh          # Apply all pending migrations
-```
-
-> **⚠️ Important:** Never run with `MURPHY_DB_MODE=stub` in production.
-> Murphy System will raise a `RuntimeError` at startup if stub mode is
-> detected in a `production` or `staging` environment.
-
-> **Note:** `MURPHY_AUTO_MIGRATE=false` is the default in production and
-> staging.  Always run `scripts/db_migrate.sh` explicitly as part of your
-> deployment pipeline before restarting the service.
-
 ### Step 4: Set Up System Service
 
 Create `/etc/systemd/system/murphy-production.service`:
@@ -417,7 +504,7 @@ Create `/etc/systemd/system/murphy-production.service`:
 ```ini
 [Unit]
 Description=Murphy System Runtime Production Server
-After=network.target postgresql.service
+After=network.target postgresql.service ollama.service
 
 [Service]
 Type=simple
@@ -452,9 +539,44 @@ Create environment file `/etc/murphy-production/environment`:
 MURPHY_SECRET_KEY=your-secret-key-here
 MURPHY_DB_PASSWORD=your-database-password
 MURPHY_SLACK_WEBHOOK=your-slack-webhook-url
+
+# Onboard LLM (Ollama) — must match the model you pulled with `ollama pull`
+OLLAMA_HOST=http://localhost:11434
+OLLAMA_MODEL=llama3
 ```
 
-Enable and start the service:
+### Step 4b: Install and Start Ollama (Onboard LLM)
+
+Murphy's onboard LLM runs locally via Ollama. This must be installed and
+running **before** starting the Murphy service.
+
+```bash
+# Install Ollama
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Enable and start the Ollama system service
+systemctl enable ollama
+systemctl start ollama
+
+# Pull the default model (llama3 requires ~4 GB of disk and ~4 GB RAM)
+ollama pull llama3
+
+# Verify Ollama is serving models
+curl -s http://localhost:11434/api/tags | python3 -m json.tool
+```
+
+> **Model selection guide by RAM:**
+> | Available RAM | Recommended model | Command |
+> |--------------|-------------------|---------|
+> | 6 GB+ | `llama3` (default) | `ollama pull llama3` |
+> | 2.5–6 GB | `phi3` | `ollama pull phi3` |
+> | < 2.5 GB | `tinyllama` | `ollama pull tinyllama` |
+>
+> `llama3` needs ~4.7 GB of disk and ~6 GB of usable RAM.
+> `phi3` needs ~2.3 GB and runs comfortably on 4 GB systems.
+> `tinyllama` needs ~1 GB and is the minimal-footprint option.
+
+Enable and start the Murphy service:
 
 ```bash
 # Set permissions
@@ -749,12 +871,81 @@ crontab -e
 
 ### Updates and Upgrades
 
+The recommended way to deploy new code is to push to `main` — the
+`Build & Deploy to Hetzner` GitHub Actions workflow will SSH into the
+production server and run the update automatically.
+
+#### ⚡ One-Command Hetzner Full-Stack Load (recommended for manual updates)
+
+This single command brings **every subsystem** up-to-date and running:
+
+```bash
+bash /opt/Murphy-System/scripts/hetzner_load.sh
+```
+
+What it does in order:
+
+1. `git pull origin main` — latest code
+2. `pip install --upgrade` — latest Python dependencies
+3. Audit `/etc/murphy-production/environment` — warn on missing connection vars
+4. nginx — ensure reverse proxy is running and vhost config is loaded
+5. ollama — ensure onboard LLM is running; pull model if needed
+6. `docker compose -f docker-compose.hetzner.yml up -d` — start all support services:
+   PostgreSQL, Redis, Prometheus, Grafana, Mailserver (Postfix+Dovecot), Webmail (Roundcube)
+7. `scripts/mail_setup.sh` — provision mailboxes (idempotent)
+8. `systemctl restart murphy-production` — hot-reload Murphy with new commit SHA
+9. Health-check every subsystem and print a summary
+
+**Common flags:**
+
+```bash
+# Fastest restart — skip pip and Docker pull (code-only change)
+bash /opt/Murphy-System/scripts/hetzner_load.sh --skip-deps
+
+# Skip Docker services (already healthy — don't restart them)
+bash /opt/Murphy-System/scripts/hetzner_load.sh --skip-docker
+
+# Skip Ollama (already running)
+bash /opt/Murphy-System/scripts/hetzner_load.sh --skip-ollama
+
+# Show all options
+bash /opt/Murphy-System/scripts/hetzner_load.sh --help
+```
+
+**Environment overrides:**
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MURPHY_REPO_DIR` | `/opt/Murphy-System` | Path to the git repository |
+| `MURPHY_SERVICE` | `murphy-production` | systemd service name |
+| `MURPHY_VENV` | `${MURPHY_REPO_DIR}/venv` | Python virtualenv path |
+| `MURPHY_COMPOSE_FILE` | `docker-compose.hetzner.yml` | Compose file for support services |
+| `MURPHY_ENV_FILE` | `/etc/murphy-production/environment` | Secrets and connection strings |
+| `OLLAMA_MODEL` | `phi3` | Ollama model to ensure is pulled |
+
+Example with overrides:
+```bash
+OLLAMA_MODEL=llama3 bash /opt/Murphy-System/scripts/hetzner_load.sh
+```
+
+**Config templates (already in the repo — copy and fill in before first run):**
+
+| Template file | Install to |
+|---------------|------------|
+| `config/murphy-production.environment.example` | `/etc/murphy-production/environment` |
+| `config/nginx/murphy-production.conf` | `/etc/nginx/sites-available/murphy-production` |
+| `config/systemd/murphy-production.service` | `/etc/systemd/system/murphy-production.service` |
+
+#### Manual step-by-step update
+
+For dependency updates or migrations, stop the service first:
+
 ```bash
 # Stop service
 sudo systemctl stop murphy-production
 
 # Update code
-cd /opt/murphy-production
+cd /opt/Murphy-System
 git pull origin main
 
 # Update dependencies
@@ -781,8 +972,8 @@ sudo systemctl start murphy-production
 # Check logs
 sudo journalctl -u murphy-production -n 50
 
-# Check configuration (validate YAML syntax)
-python -c "import yaml; yaml.safe_load(open('config/murphy.yaml'))"
+# Check configuration
+python -c "import yaml; yaml.safe_load(open('config/config.yaml'))"
 
 # Check ports
 sudo netstat -tuln | grep 8000
@@ -797,12 +988,10 @@ sudo netstat -tuln | grep 8000
 # Check memory usage
 ps aux | grep murphy
 
-# Reduce cache TTL in config/murphy.yaml:
-# cache:
-#   ttl: 1800  # Reduce from 3600
-
-# Or via environment variable (takes precedence):
-export MURPHY_CACHE__TTL=1800
+# Reduce cache size
+# Edit config/config.yaml
+cache:
+  max_size: 512  # Reduce from 1024
 
 # Restart service
 sudo systemctl restart murphy-production
@@ -820,10 +1009,10 @@ htop
 # Check database queries
 sudo -u postgres psql -c "SELECT * FROM pg_stat_activity;"
 
-# Enable caching in config/murphy.yaml:
-# cache:
-#   enabled: true
-#   ttl: 86400
+# Enable caching
+# Edit config/config.yaml
+cache:
+  level: 3  # Enable L3 cache
 ```
 
 ### Database Connection Issues
