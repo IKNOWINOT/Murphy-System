@@ -297,9 +297,35 @@ class PerformanceOptimizer:
 
 def main():
     """Main entry point"""
-    src_dir = "/workspace/src"
-    
-    optimizer = PerformanceOptimizer(src_dir)
+    import argparse
+
+    # Determine default paths relative to this script's location
+    script_dir = Path(__file__).resolve().parent
+    repo_root = script_dir.parent
+    default_src_dir = repo_root / "src"
+    default_output_file = repo_root / "PERFORMANCE_OPTIMIZATION_REPORT.json"
+
+    parser = argparse.ArgumentParser(
+        description="Analyze Python codebase for performance optimization opportunities"
+    )
+    parser.add_argument(
+        "--src-dir",
+        type=Path,
+        default=default_src_dir,
+        help=f"Source directory to analyze (default: {default_src_dir})",
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=default_output_file,
+        help=f"Output JSON report file (default: {default_output_file})",
+    )
+    args = parser.parse_args()
+
+    src_dir = args.src_dir
+    output_file = args.output
+
+    optimizer = PerformanceOptimizer(str(src_dir))
     report = optimizer.optimize()
     
     # Print summary
@@ -326,7 +352,6 @@ def main():
             print(f"  Description: {opt['description']}")
     
     # Save full report
-    output_file = "/workspace/PERFORMANCE_OPTIMIZATION_REPORT.json"
     with open(output_file, 'w') as f:
         json.dump(report, f, indent=2)
     
