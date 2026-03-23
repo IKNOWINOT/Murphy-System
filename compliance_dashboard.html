@@ -399,10 +399,36 @@
       <div class="compliance-banner" role="region" aria-label="Auto-detection status">
         <span class="compliance-banner-icon" aria-hidden="true">⚡</span>
         <p class="compliance-banner-text">
-          Based on your location and industry profile, we've pre-enabled recommended frameworks.
-          Toggle any framework to customize your compliance posture.
+          Select your country and industry below, then click <strong>Refresh Detection</strong> to get recommended compliance frameworks.
         </p>
-        <div class="compliance-banner-actions">
+        <div class="compliance-banner-actions" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <select id="detect-country" aria-label="Country" style="padding:4px 8px;border-radius:4px;border:1px solid var(--border-default,#333);background:var(--bg-surface,#1a1a2e);color:var(--text-primary,#eee);font-size:13px;">
+            <option value="">— Country —</option>
+            <option value="US">United States</option>
+            <option value="GB">United Kingdom</option>
+            <option value="DE">Germany</option>
+            <option value="FR">France</option>
+            <option value="CA">Canada</option>
+            <option value="AU">Australia</option>
+            <option value="JP">Japan</option>
+            <option value="SG">Singapore</option>
+            <option value="BR">Brazil</option>
+            <option value="IN">India</option>
+            <option value="EU">EU (General)</option>
+          </select>
+          <select id="detect-industry" aria-label="Industry" style="padding:4px 8px;border-radius:4px;border:1px solid var(--border-default,#333);background:var(--bg-surface,#1a1a2e);color:var(--text-primary,#eee);font-size:13px;">
+            <option value="">— Industry —</option>
+            <option value="technology">Technology</option>
+            <option value="finance">Finance &amp; Banking</option>
+            <option value="healthcare">Healthcare</option>
+            <option value="retail">Retail &amp; E-Commerce</option>
+            <option value="manufacturing">Manufacturing</option>
+            <option value="energy">Energy</option>
+            <option value="education">Education</option>
+            <option value="government">Government</option>
+            <option value="legal">Legal</option>
+            <option value="media">Media &amp; Entertainment</option>
+          </select>
           <button
             class="murphy-btn murphy-btn-ghost murphy-btn-sm"
             id="refresh-detection-btn"
@@ -1306,10 +1332,16 @@
   /* ── Refresh detection ── */
   document.getElementById('refresh-detection-btn').addEventListener('click', function () {
     var btn = this;
+    var country = document.getElementById('detect-country').value;
+    var industry = document.getElementById('detect-industry').value;
+    if (!country || !industry) {
+      showToast('Please select both a country and an industry.', 'error');
+      return;
+    }
     btn.disabled = true;
     btn.textContent = '⏳ Detecting…';
 
-    fetch(API_BASE + '/recommended?country=XX&industry=YY', { credentials: 'same-origin' })
+    fetch(API_BASE + '/recommended?country=' + encodeURIComponent(country) + '&industry=' + encodeURIComponent(industry), { credentials: 'same-origin' })
       .then(function (res) {
         if (!res.ok) { throw new Error('HTTP ' + res.status); }
         return res.json();

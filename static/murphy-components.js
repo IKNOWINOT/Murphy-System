@@ -37,15 +37,42 @@ class MurphyHeader extends HTMLElement {
         <div class="murphy-header-controls" id="mh-controls-${this._uid()}">
           <span class="status-pill status-idle" id="mh-api-${this._uid()}">● API</span>
           <span class="status-pill status-idle" id="mh-mfgc-${this._uid()}">● MFGC</span>
+          <a href="/ui/workspace" class="murphy-notif-bell" id="mh-notif-${this._uid()}" title="Notifications" style="position:relative;margin-left:8px;text-decoration:none;color:var(--text-secondary,#aaa);font-size:16px;cursor:pointer;">
+            🔔<span class="murphy-notif-badge" id="mh-notif-count-${this._uid()}" style="display:none;position:absolute;top:-6px;right:-8px;min-width:16px;height:16px;line-height:16px;text-align:center;border-radius:8px;background:#ff4444;color:#fff;font-size:9px;font-weight:700;padding:0 4px;">0</span>
+          </a>
         </div>
       </header>`;
 
     this._pollStatus(apiUrl);
+    this._pollNotifications(apiUrl);
   }
 
   _uid() {
     if (!this.__uid) this.__uid = Math.random().toString(36).slice(2, 7);
     return this.__uid;
+  }
+
+  _pollNotifications(apiUrl) {
+    const update = async () => {
+      try {
+        const userId = localStorage.getItem('murphy_user_id') || 'default';
+        const r = await fetch(`${apiUrl}/collaboration/notifications/${userId}/count`, { signal: AbortSignal.timeout(3000) });
+        if (!r.ok) return;
+        const d = await r.json();
+        const count = d.unread ?? d.count ?? 0;
+        const badge = this.querySelector(`[id^="mh-notif-count-"]`);
+        if (badge) {
+          if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : String(count);
+            badge.style.display = 'inline-block';
+          } else {
+            badge.style.display = 'none';
+          }
+        }
+      } catch { /* ignore — notifications are optional */ }
+    };
+    update();
+    setInterval(update, 30000);
   }
 
   _pollStatus(apiUrl) {
@@ -87,6 +114,17 @@ class MurphySidebar extends HTMLElement {
       { icon: '⊞', label: 'COSTS',        href: '/ui/terminal-costs' },
       { icon: '⋮', label: 'WORKFLOWS',    href: '/ui/workflow-canvas' },
       { icon: '🏭', label: 'PRODUCTION',   href: '/ui/production-wizard' },
+      { icon: '📈', label: 'TRADING',      href: '/ui/trading' },
+      { icon: '🛡', label: 'RISK',         href: '/ui/risk-dashboard' },
+      { icon: '📝', label: 'PAPER TRADE',  href: '/ui/paper-trading' },
+      { icon: '🎯', label: 'GRANTS',       href: '/ui/grant-wizard' },
+      { icon: '☑', label: 'COMPLIANCE',   href: '/ui/compliance' },
+      { icon: '📅', label: 'CALENDAR',     href: '/ui/calendar' },
+      { icon: '🧠', label: 'MEETINGS',     href: '/ui/meeting-intelligence' },
+      { icon: '⚡', label: 'AMBIENT',      href: '/ui/ambient' },
+      { icon: '💬', label: 'WORKSPACE',    href: '/ui/workspace' },
+      { icon: '🏘', label: 'COMMUNITY',    href: '/ui/community' },
+      { icon: '📋', label: 'MANAGEMENT',   href: '/ui/management' },
     ];
 
     const links = navItems.map(item => `
@@ -179,6 +217,17 @@ class MurphyCommandPalette extends HTMLElement {
       { icon:'◎', label:'Worker Terminal',          href:'/ui/terminal-worker',          shortcut:'' },
       { icon:'⊞', label:'Cost Dashboard',           href:'/ui/terminal-costs',           shortcut:'' },
       { icon:'⋮', label:'Workflow Builder',         href:'/ui/workflow-canvas', shortcut:'' },
+      { icon:'📈', label:'Trading Dashboard',       href:'/ui/trading',                  shortcut:'' },
+      { icon:'🛡', label:'Risk Dashboard',           href:'/ui/risk-dashboard',           shortcut:'' },
+      { icon:'📝', label:'Paper Trading',            href:'/ui/paper-trading',            shortcut:'' },
+      { icon:'🎯', label:'Grant Wizard',             href:'/ui/grant-wizard',             shortcut:'' },
+      { icon:'☑', label:'Compliance Settings',      href:'/ui/compliance',               shortcut:'' },
+      { icon:'📅', label:'Calendar',                 href:'/ui/calendar',                 shortcut:'' },
+      { icon:'🧠', label:'Meeting Intelligence',     href:'/ui/meeting-intelligence',     shortcut:'' },
+      { icon:'⚡', label:'Ambient Intelligence',     href:'/ui/ambient',                  shortcut:'' },
+      { icon:'💬', label:'Workspace',                href:'/ui/workspace',                shortcut:'' },
+      { icon:'🏘', label:'Community Forum',          href:'/ui/community',                shortcut:'' },
+      { icon:'📋', label:'Management',               href:'/ui/management',               shortcut:'' },
     ];
 
     this._selected = 0;
