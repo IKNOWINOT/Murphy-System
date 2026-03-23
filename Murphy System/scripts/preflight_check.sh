@@ -14,6 +14,67 @@
 
 set -euo pipefail
 
+# ── Help ─────────────────────────────────────────────────────────────────────
+show_help() {
+  cat <<EOF
+Murphy System — Deploy Preflight Check
+
+Validates that the environment is ready for a production Hetzner deployment.
+Safe to run multiple times (idempotent, read-only checks only).
+
+Usage:
+  $(basename "$0") [OPTIONS]
+
+Options:
+  -h, --help     Show this help message and exit
+  --version      Show version information
+  -v, --verbose  Show detailed output for each check
+
+Checks performed:
+  1. Required Tools
+     • kubectl, docker, curl installed and in PATH
+
+  2. Kubeconfig / Cluster Access
+     • ~/.kube/config exists, or
+     • KUBECONFIG env var points to valid file, or
+     • HETZNER_KUBECONFIG is set (GitHub Actions)
+
+  3. Secret Placeholder Validation
+     • k8s/secret.yaml has no 'change-me' values
+
+  4. Kubernetes Namespace
+     • 'murphy-system' namespace exists (warning if not)
+
+  5. cert-manager
+     • cert-manager installed with letsencrypt-prod ClusterIssuer
+
+  6. Nginx Ingress Controller
+     • IngressClass 'nginx' exists or ingress-nginx pods running
+
+Exit codes:
+  0  All critical checks passed (warnings OK)
+  1  One or more critical checks failed
+
+Examples:
+  $(basename "$0")             # Run preflight checks
+  $(basename "$0") --help      # Show this help
+  $(basename "$0") --verbose   # Detailed output
+
+EOF
+  exit 0
+}
+
+# ── Parse arguments ──────────────────────────────────────────────────────────
+case "${1:-}" in
+  -h|--help)
+    show_help
+    ;;
+  --version)
+    echo "Murphy System Preflight Check v1.0.0"
+    exit 0
+    ;;
+esac
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
