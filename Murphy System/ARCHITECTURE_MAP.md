@@ -289,7 +289,72 @@ This is by design — Murphy's safety-first architecture treats HITL as a featur
 - Generates submission IDs
 - Stores submissions for tracking
 
-### 6. Confidence Engine (Murphy Validation)
+### 6. Generative Automation System (GAP-001)
+
+**Components:** 
+- `src/voice_command_interface.py` — Voice/typed command processing
+- `src/ai_workflow_generator.py` — Natural language to workflow DAG
+- `strategic/gap_closure/text_to_automation/text_to_automation.py` — Core "Describe → Execute" engine
+- `src/org_build_plan/workflow_templates.py` — Template library and industry presets
+
+**Responsibilities:**
+- Convert natural language descriptions into governed automation workflows
+- Template matching for common automation patterns (ETL, CI/CD, monitoring)
+- Keyword inference to map action verbs to step types
+- Dependency resolution and DAG construction
+- Automatic governance gate injection at critical points
+- Role-aware execution respecting RBAC permissions
+
+**Generative Automation Flow:**
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    DESCRIBE → EXECUTE PIPELINE                       │
+├─────────────────────────────────────────────────────────────────────┤
+│  1. USER INPUT                                                       │
+│     Voice Command (/api/vci/process) or Typed (/api/workflows)      │
+│                           │                                          │
+│  2. NATURAL LANGUAGE PROCESSING                                      │
+│     Template Matching → Keyword Inference → Step Type Mapping        │
+│                           │                                          │
+│  3. DAG GENERATION                                                   │
+│     Dependency Resolution → Topological Sort → Parallel Markers      │
+│                           │                                          │
+│  4. GOVERNANCE INJECTION                                             │
+│     Auto-insert HITL gates before deploy/output/approval steps       │
+│                           │                                          │
+│  5. EXECUTION                                                        │
+│     WorkflowDAGEngine (24 handlers) → Connector Framework            │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Built-in Templates (12+):**
+
+| Template | Pattern | Steps |
+|----------|---------|-------|
+| `etl_pipeline` | Extract-Transform-Load | 4 |
+| `ci_cd` | CI/CD Pipeline | 6 |
+| `incident_response` | Incident Handling | 5 |
+| `monitoring_alert` | Metric Monitoring | 3 |
+| `report_generation` | Report & Distribute | 4 |
+| `order_fulfillment` | E-commerce | 7 |
+| `invoice_processing` | AP Automation | 6 |
+| `lead_nurture` | CRM Lead Management | 6 |
+| `employee_onboarding` | HR Onboarding | 6 |
+| `content_publishing` | Content Pipeline | 5 |
+
+**User Role Permissions:**
+
+| Role | Capabilities |
+|------|-------------|
+| Platform Admin | System-wide presets, global governance |
+| Tenant Owner | Tenant presets, user management |
+| Operator | Execute scoped, approve gates |
+| Viewer | Read-only metrics |
+| HITL Operator | Credential-gated approvals |
+
+**Documentation:** [Generative Automation Presets](documentation/features/GENERATIVE_AUTOMATION_PRESETS.md)
+
+### 7. Confidence Engine (Murphy Validation)
 
 **Component:** `src/confidence_engine/`
 
@@ -324,7 +389,7 @@ Safe if: murphy_index > threshold (default 0.5)
 - Multi-gate validation chains
 - Dynamic gate generation
 
-### 7. Execution Engine
+### 8. Execution Engine
 
 **Component:** `src/execution_engine/`
 
@@ -346,7 +411,7 @@ Safe if: murphy_index > threshold (default 0.5)
 - Error handling and recovery
 - Execution telemetry
 
-### 8. Learning Engine (Correction System)
+### 9. Learning Engine (Correction System)
 
 **Component:** `src/learning_engine/`
 
@@ -377,7 +442,7 @@ Safe if: murphy_index > threshold (default 0.5)
 - After corrections: 95%+
 - Continuous improvement over time
 
-### 9. Supervisor System (HITL)
+### 10. Supervisor System (HITL)
 
 **Component:** `src/supervisor_system/`
 
@@ -435,7 +500,7 @@ platforms (Fiverr, Upwork, or a generic self-hosted queue).
 6. **Ingest** — CriteriaEngine scores the response, derives verdict
 7. **Wire** — FreelancerHITLBridge calls `respond_to_intervention()` on HITL monitor
 
-### 10. Security Plane
+### 11. Security Plane
 
 **Component:** `src/security_plane/`
 
@@ -463,7 +528,7 @@ platforms (Fiverr, Upwork, or a generic self-hosted queue).
 **Current Status:**
 ⚠️ **Implemented but not integrated into API** - Priority 1 security gap
 
-### 11. Integration Engine (SwissKiss)
+### 12. Integration Engine (SwissKiss)
 
 **Component:** `src/integration_engine/`
 
@@ -491,7 +556,7 @@ platforms (Fiverr, Upwork, or a generic self-hosted queue).
 - Communication services (Twilio, SendGrid)
 - Cloud services (AWS, GCP, Azure)
 
-### 12. Bot System
+### 13. Bot System
 
 **Component:** `bots/` (70+ specialized bots)
 
@@ -1906,218 +1971,3 @@ Next-generation autonomous self-coding system that wraps and extends all existin
 5. **Chaos validation required** before ImmunityMemory promotion.
 6. **Cascade check required** before ImmunityMemory promotion.
 7. **Full audit trail** via EventBackbone + PersistenceManager.
-
-
----
-
-## Multi-Cursor Split-Screen Desktop Automation
-
-Murphy's desktop automation stack is **100% native** — no Playwright, Selenium, or external browser drivers are required.
-
-### Stack Layers
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│              SplitScreenCoordinator                             │
-│   ┌──────────────────┐  ┌──────────────────┐                   │
-│   │ TicketTriageEngine│  │RubixEvidenceAdapter│                  │
-│   │  (priority score) │  │  (Monte Carlo gate)│                  │
-│   └────────┬─────────┘  └────────┬──────────┘                  │
-│            └──────────┬──────────┘                              │
-│                       ▼                                         │
-│              SplitScreenManager                                 │
-│   ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐      │
-│   │  Zone 0  │  │  Zone 1  │  │  Zone 2  │  │  Zone 3  │      │
-│   │ Cursor 0 │  │ Cursor 1 │  │ Cursor 2 │  │ Cursor 3 │      │
-│   │(thread-0)│  │(thread-1)│  │(thread-2)│  │(thread-3)│      │
-│   └──────────┘  └──────────┘  └──────────┘  └──────────┘      │
-│              MultiCursorDesktop                                 │
-└─────────────────────────────────────────────────────────────────┘
-           │                            │
-    MurphyNativeRunner          GhostDesktopRunner
-    (UITestingFramework,         (PyAutoGUI / OCR,
-     MurphyAPIClient,             multi-cursor_id
-     webbrowser.open)             playback_runner.py)
-```
-
-### Key Components
-
-| Component | File | Purpose |
-|---|---|---|
-| `ScreenZone` | `src/murphy_native_automation.py` | Rectangular viewport region; absolute ↔ relative coordinate helpers |
-| `CursorContext` | `src/murphy_native_automation.py` | Independent virtual pointer: warp, click, drag, scroll, history, zone clamping |
-| `SplitScreenLayout` | `src/murphy_native_automation.py` | Layout presets: SINGLE / DUAL_H / DUAL_V / TRIPLE_H / QUAD / HEXA / CUSTOM |
-| `MultiCursorDesktop` | `src/murphy_native_automation.py` | Manages N independent cursors; `run_parallel_tasks()` dispatches per zone |
-| `SplitScreenManager` | `src/murphy_native_automation.py` | High-level orchestrator; `enqueue()` + `run_all(parallel=True)` |
-| `SplitScreenCoordinator` | `src/split_screen_coordinator.py` | Triage → Evidence → Dispatch pipeline; wires Rubix + TicketTriage |
-| `playback_runner.py` | `bots/ghost_controller_bot/desktop/playback_runner.py` | Physical desktop actions with per-cursor `cursor_id` registry |
-| `playwright_task_definitions.py` | `src/playwright_task_definitions.py` | Murphy-native async task API (NavigateTask, ClickTask, FillTask, EvaluateTask, MultiCursorTask, SplitScreenSequenceTask, …). **KeyHarvester** now uses `murphy_native_automation` directly. |
-
-### Split-Screen Layouts
-
-| Layout | Zones | Description |
-|---|---|---|
-| `SINGLE` | 1 | Full screen — one cursor |
-| `DUAL_H` | 2 | Left \| Right — 2-player horizontal split |
-| `DUAL_V` | 2 | Top / Bottom — 2-player vertical split |
-| `TRIPLE_H` | 3 | Left \| Center \| Right — 3-zone horizontal |
-| `QUAD` | 4 | 2×2 grid — classic 4-player console split-screen |
-| `HEXA` | 6 | 3×2 grid — 6-agent grid |
-| `CUSTOM` | N | Caller-supplied `ScreenZone` list (max 16) |
-
-### SplitScreenCoordinator Pipeline
-
-```
-coordinate({zone_id: (NativeTask, description), ...})
-    │
-    ├─ Stage 1: TRIAGE  (TicketTriageEngine.triage per zone)
-    │           → severity: critical / high / medium / low
-    │           → confidence: 0.0–1.0
-    │           → team routing
-    │
-    ├─ Stage 2: EVIDENCE (RubixEvidenceAdapter.check_monte_carlo per zone)
-    │           → verdict: pass / fail / inconclusive
-    │           → strict_mode=True → skip failed zones
-    │
-    └─ Stage 3: DISPATCH (SplitScreenManager.run_all parallel=True)
-                → all passing zones run simultaneously
-                → each zone has its own CursorContext
-                → returns CoordinationReport with full per-zone detail
-```
-
-### Cursor Independence Guarantee
-
-Every `CursorContext` maintains completely independent state:
-- Position (`abs_x`, `abs_y`, `rel_x`, `rel_y`)
-- Button state (`buttons_down`)
-- Velocity (`velocity_x`, `velocity_y`)
-- Event history (capped at 500 entries)
-- Zone clamping (position never escapes its `ScreenZone`)
-
-Moving or clicking cursor-0 has **zero effect** on cursor-1 through cursor-N.  All parallel operations are protected by per-cursor threading with the global desktop lock guarding zone/cursor registry mutations only.
-
-### Tests
-
-`tests/test_multi_cursor_split_screen.py` — 116 tests:
-- **Part 1** `ScreenZone` geometry helpers
-- **Part 2** Every `CursorContext` individually (warp, clamp, click, drag, scroll, history, velocity)
-- **Part 3** All cursors together — isolation, thread-safety, parallel dispatch, MAX_CURSORS guard
-- **Part 4** All 6 `SplitScreenLayout` presets — zone counts and geometry
-- **Part 5** `SplitScreenManager` — serial and parallel execution
-- **Part 6** `SplitScreenCoordinator` — full triage+evidence+dispatch pipeline
-- **Part 7** `playback_runner.py` — multi-cursor registry (`register_cursor`, `list_cursors`, independence)
-
----
-
-## Collaborative Task Orchestration Pipeline
-
-*Added: 2026-03-16 | Closes Gaps 1–5 of the Murphy System integration spec*
-
-### End-to-End Flow
-
-```
-Natural-Language Task Description
-        │
-        ▼
-┌─────────────────────────────────────────────────────────────┐
-│  CollaborativeTaskOrchestrator.orchestrate(task, budget)    │
-│  src/collaborative_task_orchestrator.py                     │
-└─────────────────────────────────────────────────────────────┘
-        │
-        ├─1─► SwarmProposalGenerator.generate_proposal()
-        │       Decomposes task → SwarmProposal
-        │       (agents, SwarmSteps with dependencies, SafetyGates)
-        │
-        ├─2─► WorkflowDAGEngine.register_workflow()
-        │       Converts SwarmSteps → WorkflowDefinition (StepDefinitions)
-        │       WorkflowDAGEngine.get_parallel_groups() → [[s1,s2], [s3], ...]
-        │
-        ├─3─► select_layout(n_agents) → SplitScreenLayout
-        │       1→SINGLE  2→DUAL_H  3→TRIPLE_H  4→QUAD  ≤6→HEXA  >6→CUSTOM
-        │
-        ├─4─► DurableSwarmOrchestrator.spawn_task() per step
-        │       Budget tracking / retry / circuit-breaker
-        │
-        ├─5─► SplitScreenCoordinator.coordinate()
-        │       (or HybridExecutionEngine fallback)
-        │       Parallel group execution — each group runs concurrently
-        │       via ThreadPoolExecutor (step_timeout=120s, total_timeout=600s)
-        │
-        ├─6─► ResultSynthesizer.synthesize()
-        │       Conflict detection → confidence-weighted voting → Wingman validate
-        │       Returns SynthesizedResult
-        │
-        ├─7─► WorkspaceMemoryBridge.write_artifact()
-        │       Writes to TypedGenerativeWorkspace AND auto-promotes to
-        │       MemoryArtifactSystem sandbox plane
-        │
-        └─8─► CollaborativeExecutionReport
-              (run_id, layout, zone_results, agent_results, step_results,
-               synthesized, total_cost, duration_ms, parallel_groups,
-               execution_log, idempotency_key)
-```
-
-### Component Table
-
-| Class | File | Purpose |
-|-------|------|---------|
-| `CollaborativeTaskOrchestrator` | `src/collaborative_task_orchestrator.py` | Top-level orchestration — wires all five subsystems |
-| `ResultSynthesizer` | `src/collaborative_task_orchestrator.py` | Conflict-aware result merging (Gap 4) |
-| `WorkspaceMemoryBridge` | `src/collaborative_task_orchestrator.py` | TGW ↔ MAS unified bridge (Gap 5) |
-| `CollaborativeExecutionReport` | `src/collaborative_task_orchestrator.py` | Serializable per-zone/agent/step execution report |
-| `SynthesizedResult` | `src/collaborative_task_orchestrator.py` | Merged output + conflict report + validation status |
-| `WorkflowDAGEngine.execute_workflow_parallel()` | `src/workflow_dag_engine.py` | Parallel group execution via ThreadPoolExecutor (Gap 1) |
-| `SwarmProposalGenerator.execute_proposal()` | `src/swarm_proposal_generator.py` | Proposal execution with budget/safety-gate guards (Gap 2) |
-| `SwarmExecutionResult` | `src/swarm_proposal_generator.py` | Per-step outcome + total cost + confidence |
-
-### Layout Selection Algorithm
-
-```python
-def select_layout(n_agents: int) -> SplitScreenLayout:
-    if n_agents == 1:  return SINGLE
-    if n_agents == 2:  return DUAL_H
-    if n_agents == 3:  return TRIPLE_H
-    if n_agents == 4:  return QUAD
-    if n_agents <= 6:  return HEXA
-    return CUSTOM      # 7–16 agents
-```
-
-Maximum agents per orchestration: **16** (matches `MAX_CURSORS`).
-
-### Trainer / Overlay Wiring
-
-The highlight-overlay trainer system is now fully wired:
-
-| Endpoint | Handler | Description |
-|----------|---------|-------------|
-| `GET /api/overlay/suggestions` | `OverlayManager.get_pending_suggestions()` | Polled by `murphy_overlay.js` |
-| `POST /api/overlay/suggestions` | `OverlayManager.add_suggestion()` | Shadow agents submit hints |
-| `POST /api/overlay/suggestions/{id}/accept` | `OverlayManager.accept_suggestion()` | User accepts a glow-key hint |
-| `POST /api/overlay/suggestions/{id}/ignore` | `OverlayManager.ignore_suggestion()` | User dismisses a hint |
-| `GET /api/overlay/summary` | `OverlayManager.summary()` | Stats for the overlay status bar |
-| `GET /api/trainer/status` | `ShadowPolicy.to_dict()` | Shadow trainer policy + buffer size |
-| `POST /api/trainer/reward` | `PolicyUpdater.compute_reward()` | Record reward signal |
-
-`murphy_overlay.js` is now included in:
-- `terminal_orchestrator.html`
-- `terminal_worker.html`
-- `terminal_enhanced.html`
-- `terminal_integrated.html`
-
-### Hardening
-
-- **Thread safety** — all new classes use `threading.Lock` for shared state
-- **CWE-770** — history lists capped at `MAX_HISTORY = 1_000`
-- **Timeouts** — `step_timeout=120s`, `total_timeout=600s` (configurable)
-- **Error isolation** — one agent/zone failure never crashes others
-- **Idempotency** — `idempotency_key` prevents duplicate execution
-- **Graceful degradation** — SplitScreenCoordinator → HybridExecutionEngine → direct; DurableSwarmOrchestrator → direct; all Murphy imports use `try/except`
-
-### Tests
-
-`tests/test_collaborative_task_orchestrator.py` — 31 tests across 5 classes:
-- **TestWorkflowDAGParallelExecution** (5) — concurrency, sequential ordering, diamond DAG, failure isolation, checkpoint/resume
-- **TestSwarmProposalExecution** (5) — simple/collaborative proposals, budget exhaustion, safety gates, input validation
-- **TestCollaborativeTaskOrchestrator** (9) — E2E simple/complex, layout selection, budget/input validation, idempotency, report structure, history bounds, graceful degradation
-- **TestResultSynthesizer** (6) — non-conflicting/conflicting merges, error handling, Wingman validation, thread safety
-- **TestWorkspaceMemoryBridge** (6) — TGW write→MAS sandbox promotion, verify→working promotion, unified query, thread safety, graceful degradation

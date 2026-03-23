@@ -810,15 +810,43 @@ Check system health.
 
 **Authentication**: Not required
 
-#### Response
+#### Shallow response (default)
 
 ```json
 {
   "status": "healthy",
-  "system_id": "murphy_system_20260117_100000",
-  "timestamp": "2024-01-01T10:00:00Z"
+  "version": "1.0.0",
+  "deploy_commit": "a1b2c3d"
 }
 ```
+
+#### Deep response (`?deep=true`)
+
+```json
+{
+  "status": "healthy",
+  "checks": {
+    "runtime": "ok",
+    "persistence": "ok",
+    "database": "stub",
+    "redis": "not_configured",
+    "llm": "ok",
+    "ollama_running": true,
+    "ollama_models": ["llama3"],
+    "ollama_host": "http://localhost:11434",
+    "event_backbone": "not_configured",
+    "modules_loaded": 42,
+    "version": "1.0.0",
+    "deploy_commit": "a1b2c3d"
+  },
+  "critical_failures": []
+}
+```
+
+> - `deploy_commit` — short git SHA injected via `MURPHY_DEPLOY_COMMIT` at startup (`"unknown"` in local dev).
+> - `ollama_running` — `true` when Ollama is reachable at `OLLAMA_HOST`.
+> - `ollama_models` — list of model names currently pulled in Ollama.
+> - Pass `?deep=true` for a full readiness probe; omit for a fast liveness check.
 
 ---
 
@@ -897,19 +925,27 @@ Resolve a specific trigger.
 
 ---
 
-## MFM Endpoints (Murphy Foundation Model)
+**© 2025 Corey Post InonI LLC. All rights reserved.**  
+**Licensed under BSL 1.1 (converts to Apache 2.0 after 4 years)**  
+**Contact: corey.gfc@gmail.com**
+---
 
-Murphy Foundation Model (MFM) endpoints manage the on-device language model lifecycle,
-including shadow deployments, canary promotion, and self-improvement retraining.
+## Murphy Foundation Model (MFM) Endpoints
 
-**Authentication**: Required  
-**Base path**: `/api/mfm`
+The Murphy Foundation Model (MFM) is Murphy's self-trained local language model. These endpoints manage its lifecycle: deployment mode, training, version promotion, and rollback.
+
+**Environment variable prerequisites:**
+- `MFM_ENABLED=true` — activates MFM inference.
+- `MFM_MODE` — one of `shadow`, `canary`, `production`, `disabled`.
+- `MFM_BASE_MODEL` — base model identifier (default: `microsoft/Phi-3-mini-4k-instruct`).
 
 ---
 
 ### GET /api/mfm/status
 
-Returns the current MFM deployment mode and configuration.
+Return the current MFM deployment status.
+
+**Authentication**: Required
 
 #### Response
 
@@ -918,33 +954,35 @@ Returns the current MFM deployment mode and configuration.
   "enabled": true,
   "mode": "shadow",
   "base_model": "microsoft/Phi-3-mini-4k-instruct",
-  "device": "auto"
+  "device": "cuda"
 }
 ```
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `enabled` | `bool` | Whether MFM is active (env: `MFM_ENABLED`) |
-| `mode` | `string` | One of: `disabled`, `shadow`, `canary`, `production` (env: `MFM_MODE`) |
-| `base_model` | `string` | Base model identifier (env: `MFM_BASE_MODEL`) |
-| `device` | `string` | Compute device: `cpu`, `cuda`, `mps`, or `auto` (env: `MFM_DEVICE`) |
+| enabled | boolean | Whether MFM inference is active |
+| mode | string | `shadow` / `canary` / `production` / `disabled` |
+| base_model | string | HuggingFace model identifier |
+| device | string | Compute device (`cuda`, `cpu`, `auto`) |
 
 ---
 
 ### GET /api/mfm/metrics
 
-Returns training metrics and shadow deployment comparison statistics.
+Return training metrics and shadow-mode comparison statistics.
+
+**Authentication**: Required
 
 #### Response
 
 ```json
 {
   "metrics": {
-    "shadow_calls": 1240,
-    "shadow_agreement_rate": 0.87,
-    "avg_latency_ms": 145.2,
-    "training_loss": 0.0423,
-    "eval_perplexity": 12.1
+    "shadow_requests": 1420,
+    "shadow_agreements": 1391,
+    "agreement_rate": 0.9796,
+    "avg_latency_ms": 312,
+    "training_loss": 0.042
   }
 }
 ```
@@ -953,17 +991,19 @@ Returns training metrics and shadow deployment comparison statistics.
 
 ### GET /api/mfm/traces/stats
 
-Returns action trace collection statistics used for training data generation.
+Return action-trace collection statistics used for self-improvement training.
+
+**Authentication**: Required
 
 #### Response
 
 ```json
 {
-  "total_traces": 8842,
-  "traces_by_type": {"task": 4210, "gate": 2100, "automation": 2532},
-  "collection_active": true,
+  "total_traces": 8420,
+  "labelled_traces": 6100,
+  "unlabelled_traces": 2320,
   "oldest_trace": "2026-01-01T00:00:00Z",
-  "newest_trace": "2026-03-16T06:55:00Z"
+  "newest_trace": "2026-03-16T06:00:00Z"
 }
 ```
 
@@ -971,75 +1011,75 @@ Returns action trace collection statistics used for training data generation.
 
 ### POST /api/mfm/retrain
 
-Triggers a manual MFM retraining cycle using collected action traces.
+Trigger a manual MFM retraining cycle using collected action traces.
 
-#### Request
+**Authentication**: Required  
+**Scope**: `admin:write`
 
-```json
-{}
-```
+#### Request body
+
+No body required.
 
 #### Response
 
 ```json
 {
-  "triggered": true,
-  "cycle_id": "retrain_20260316_001",
-  "estimated_duration_minutes": 45,
-  "training_examples": 8842
+  "status": "started",
+  "cycle_id": "retrain-20260316-0600",
+  "estimated_duration_minutes": 45
 }
 ```
-
-**Error codes:**
-- `503` — MFM retraining module not available (MFM not installed)
-- `500` — Retraining failed (see logs)
 
 ---
 
 ### POST /api/mfm/promote
 
-Promotes an MFM version from shadow → canary → production.
+Promote an MFM version through the deployment pipeline: `shadow` → `canary` → `production`.
+
+**Authentication**: Required  
+**Scope**: `admin:write`
 
 #### Request
 
 ```json
 {
-  "version_id": "mfm_v1_20260315_143022"
+  "version_id": "mfm-v0.3.1-20260316"
 }
 ```
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| version_id | string | Yes | Version identifier to promote |
 
 #### Response
 
 ```json
 {
   "promoted": true,
-  "version_id": "mfm_v1_20260315_143022",
+  "version_id": "mfm-v0.3.1-20260316",
   "new_status": "canary"
 }
 ```
-
-**Error codes:**
-- `503` — MFM registry not available
-- `500` — Promotion failed
 
 ---
 
 ### POST /api/mfm/rollback
 
-Rolls back the MFM to the previous production version.
+Roll back to the previous MFM production version.
 
-#### Request
+**Authentication**: Required  
+**Scope**: `admin:write`
 
-```json
-{}
-```
+#### Request body
+
+No body required.
 
 #### Response
 
 ```json
 {
   "rolled_back": true,
-  "current_version": "mfm_v0_20260301_090000"
+  "current_version": "mfm-v0.3.0-20260310"
 }
 ```
 
@@ -1047,7 +1087,9 @@ Rolls back the MFM to the previous production version.
 
 ### GET /api/mfm/versions
 
-Lists all registered MFM versions with metrics and status.
+List all MFM versions with their deployment status and metrics.
+
+**Authentication**: Required
 
 #### Response
 
@@ -1055,14 +1097,23 @@ Lists all registered MFM versions with metrics and status.
 {
   "versions": [
     {
-      "version_id": "mfm_v1_20260315_143022",
-      "version_str": "1.0.0-20260315",
+      "version_id": "mfm-v0.3.1-20260316",
+      "version_str": "0.3.1",
       "status": "canary",
-      "created_at": "2026-03-15T14:30:22Z",
+      "created_at": "2026-03-16T06:00:00Z",
       "metrics": {
-        "eval_perplexity": 12.1,
-        "training_loss": 0.0423,
-        "agreement_rate": 0.87
+        "agreement_rate": 0.9796,
+        "avg_latency_ms": 312
+      }
+    },
+    {
+      "version_id": "mfm-v0.3.0-20260310",
+      "version_str": "0.3.0",
+      "status": "production",
+      "created_at": "2026-03-10T08:00:00Z",
+      "metrics": {
+        "agreement_rate": 0.9751,
+        "avg_latency_ms": 298
       }
     }
   ]
@@ -1071,6 +1122,142 @@ Lists all registered MFM versions with metrics and status.
 
 ---
 
-**© 2025 Corey Post InonI LLC. All rights reserved.**  
-**Licensed under BSL 1.1 (converts to Apache 2.0 after 4 years)**  
-**Contact: corey.gfc@gmail.com**
+## Voice Command Interface (VCI) Endpoints
+
+For natural language voice/typed command processing that generates governed automation workflows.
+
+**Full documentation:** [Generative Automation Presets](../features/GENERATIVE_AUTOMATION_PRESETS.md)
+
+### POST /api/vci/process
+
+End-to-end voice/text processing: recognise → parse → return automation command.
+
+**Authentication**: Required
+
+#### Request
+
+```json
+{
+  "text_input": "Monitor sales data and send weekly summary to Slack",
+  "session_id": "optional-session-id"
+}
+```
+
+#### Response
+
+```json
+{
+  "stt": {
+    "transcript": "Monitor sales data and send weekly summary to Slack",
+    "confidence": 0.95,
+    "language": "en"
+  },
+  "command": {
+    "action": "create_automation",
+    "category": "workflow",
+    "params": {
+      "description": "Monitor sales data and send weekly summary to Slack"
+    }
+  },
+  "session_id": "vci-abc123"
+}
+```
+
+---
+
+### POST /api/workflows
+
+Create a governed workflow from natural language description.
+
+**Authentication**: Required
+
+#### Request
+
+```json
+{
+  "description": "Build an ETL pipeline to extract data from Salesforce and load into BigQuery",
+  "tenant_id": "tenant-123"
+}
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "workflow_id": "wf-abc123",
+    "strategy": "template_match",
+    "template_used": "etl_pipeline",
+    "steps": [
+      {"step_id": "extract", "name": "Extract Data", "type": "data_retrieval"},
+      {"step_id": "transform", "name": "Transform Data", "type": "data_transformation"},
+      {"step_id": "validate", "name": "Validate Data", "type": "validation"},
+      {"step_id": "load", "name": "Load Data", "type": "data_output"}
+    ],
+    "governance_gates": ["approval_before_load"],
+    "ready_to_execute": true
+  }
+}
+```
+
+---
+
+### GET /api/presets
+
+List available automation presets.
+
+**Authentication**: Required
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "presets": [
+      {
+        "preset_id": "sales-weekly-report",
+        "name": "Weekly Sales Report",
+        "trigger_phrases": ["run weekly sales report", "generate sales summary"],
+        "required_permissions": ["execute_scoped"],
+        "role_scope": "tenant"
+      }
+    ]
+  }
+}
+```
+
+---
+
+### POST /api/presets/activate
+
+Activate an automation preset via trigger phrase.
+
+**Authentication**: Required
+
+#### Request
+
+```json
+{
+  "trigger_phrase": "run weekly sales report",
+  "tenant_id": "tenant-123",
+  "context": {
+    "week_start": "2026-03-16"
+  }
+}
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "execution_id": "exec-xyz789",
+    "preset_id": "sales-weekly-report",
+    "status": "started",
+    "governance_gates_pending": 1
+  }
+}
+```
