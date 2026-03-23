@@ -236,7 +236,25 @@
   async function boot() {
     await _handleOAuthSuccess();
 
-    const profile = await fetchProfile();
+    let profile = await fetchProfile();
+
+    // If the Bearer-token fetch failed, attempt cookie-based session recovery.
+    // The server may still recognise the murphy_session HttpOnly cookie even
+    // when the localStorage token has been invalidated (e.g. after a restart).
+    if (!profile && _getSessionToken()) {
+      try {
+        const recoveryRes = await fetch("/api/auth/session-token", { credentials: "include" });
+        if (recoveryRes.ok) {
+          const recoveryData = await recoveryRes.json();
+          if (recoveryData && recoveryData.session_token) {
+            localStorage.setItem("murphy_session_token", recoveryData.session_token);
+            profile = await fetchProfile();
+          }
+        }
+      } catch (_) {
+        // Ignore errors — fall through to redirect
+      }
+    }
 
     if (!profile) {
       redirectToSignup("session_missing_or_expired");
