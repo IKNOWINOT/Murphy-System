@@ -20,9 +20,9 @@ converts to Apache 2.0 after four years per version release.
 
 | Tier | Monthly | Annual | Users | Automations | Integrations |
 |------|---------|--------|-------|-------------|--------------|
-| **Solo** | $29/mo | $24/mo | 1 | 3 active | 5 integrations |
-| **Business** | $99/mo | $79/mo | 10 | Unlimited | 20 integrations |
-| **Professional** | Custom | Custom | Unlimited | Unlimited | All 90+ integrations |
+| **Solo** | $99/mo | $79/mo | 1 | 3 active | 5 integrations |
+| **Business** | $299/mo | $239/mo | 10 | Unlimited | 20 integrations |
+| **Professional** | $599/mo | $479/mo | Unlimited | Unlimited | All 90+ integrations |
 | **Enterprise** | Custom | Custom | Unlimited | Unlimited | All + custom |
 
 All tiers include:
@@ -96,12 +96,12 @@ creator capabilities gated to Professional and above — commanding a premium
 over general-purpose automation tools.
 | Tier | Monthly | Annual/mo | Users | Automations | Includes |
 |------|---------|-----------|-------|-------------|----------|
-| **Solo** | $29 | $24 | 1 | 3 | Core runtime, community support |
-| **Business** | $99 | $79 | 10 | Unlimited | Multi-user, API access, email support |
-| **Professional** | Custom | Custom | Unlimited | Unlimited | SSO, RBAC, priority support |
+| **Solo** | $99 | $79 | 1 | 3 | Core runtime, community support |
+| **Business** | $299 | $239 | 10 | Unlimited | Multi-user, API access, email support |
+| **Professional** | $599 | $479 | Unlimited | Unlimited | SSO, RBAC, priority support |
 | **Enterprise** | Custom | Custom | Unlimited | Unlimited | SLA, dedicated support, white-label, multi-tenant |
 
-> **Self-hosted is always free for development** (BSL 1.1). Production licensing starts at Solo $29/mo.
+> **Self-hosted is always free for development** (BSL 1.1). Production licensing starts at Solo $99/mo.
 
 ### 2. Managed Cloud Hosting
 

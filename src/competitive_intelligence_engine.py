@@ -243,8 +243,8 @@ _MURPHY_CAPABILITIES: Set[str] = {
 # Murphy pricing for competitive comparison
 _MURPHY_PRICING: Dict[str, str] = {
     "community": "Free (open source)",
-    "solo": "$29/mo",
-    "pro": "$299/mo per seat",
+    "solo": "$99/mo",
+    "pro": "$599/mo per seat",
     "enterprise": "Contact us",
     "creator_starter": "$20/mo",
     "creator_pro": "$299/mo",

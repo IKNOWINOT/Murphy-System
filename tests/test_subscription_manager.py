@@ -43,22 +43,22 @@ class TestPricingPlans:
 
     def test_solo_pricing(self):
         plan = PRICING_PLANS[SubscriptionTier.SOLO]
-        assert plan.monthly_price == 29.00
-        assert plan.annual_price == 24.00
+        assert plan.monthly_price == 99.00
+        assert plan.annual_price == 79.00
         assert plan.max_users == 1
         assert plan.max_automations == 3
 
     def test_business_pricing(self):
         plan = PRICING_PLANS[SubscriptionTier.BUSINESS]
-        assert plan.monthly_price == 99.00
-        assert plan.annual_price == 79.00
+        assert plan.monthly_price == 299.00
+        assert plan.annual_price == 249.00
         assert plan.max_users == 10
         assert plan.max_automations == -1  # unlimited
 
     def test_professional_pricing(self):
         plan = PRICING_PLANS[SubscriptionTier.PROFESSIONAL]
-        assert plan.monthly_price == 299.00
-        assert plan.annual_price == 249.00
+        assert plan.monthly_price == 599.00
+        assert plan.annual_price == 479.00
         assert plan.max_users == -1  # unlimited
         assert plan.max_automations == -1
 
@@ -82,7 +82,7 @@ class TestPricingPlans:
         plan = PRICING_PLANS[SubscriptionTier.SOLO]
         d = plan.to_dict()
         assert d["tier"] == "solo"
-        assert d["monthly_price"] == 29.00
+        assert d["monthly_price"] == 99.00
         assert "features" in d
 
 

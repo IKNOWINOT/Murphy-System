@@ -12,7 +12,7 @@ processing and what we provide back at scale?"
 
 Computes:
   1. Per-customer processing cost (LLM tokens, compute, storage, support)
-  2. Revenue per tier (Free, Solo $29/mo, Business $299/mo, Enterprise custom pricing, Creator Starter $20/mo)
+  2. Revenue per tier (Free, Solo $99/mo, Business $299/mo, Enterprise custom pricing, Creator Starter $20/mo)
   3. Gross margin per tier
   4. Breakeven customer counts
   5. Scale projections (100 / 1K / 10K / 100K customers)
@@ -253,8 +253,8 @@ _DEFAULT_COST_PROFILES: Dict[str, ProcessingCostProfile] = {
 # Default tier revenue assumptions
 _DEFAULT_TIER_REVENUES: Dict[str, float] = {
     "community": 0.00,       # Free — budgeted from total paid income
-    "solo": 29.00,           # $29/mo per seat
-    "pro": 299.00,           # $299/mo per seat (Business tier)
+    "solo": 99.00,           # $99/mo per seat
+    "pro": 599.00,           # $599/mo per seat (Professional tier)
     "enterprise": 750.00,    # Contact us (custom pricing, 750 used as baseline for modeling)
     "creator_starter": 20.00,  # $20/mo monthly
     "creator_pro": 299.00,   # Direct $299/mo subscription
