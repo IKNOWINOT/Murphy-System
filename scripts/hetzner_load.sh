@@ -464,9 +464,26 @@ if [ "$SKIP_MAIL_SETUP" = false ]; then
       bash "$MAIL_SETUP" || warn "mail_setup.sh reported errors — check mailboxes manually"
       ok "Mail provisioning complete"
     elif [ "$MAIL_STATUS" = "starting" ]; then
-      warn "Mailserver still starting — re-run after it becomes healthy:"
-      warn "  docker inspect murphy-mailserver --format='{{.State.Health.Status}}'"
-      warn "  bash ${MAIL_SETUP}"
+      info "Mailserver still starting — waiting up to 180 s for it to become healthy ..."
+      MAIL_WAIT=0
+      MAIL_WAIT_MAX=180
+      while [ "$MAIL_WAIT" -lt "$MAIL_WAIT_MAX" ]; do
+        sleep 10
+        MAIL_WAIT=$((MAIL_WAIT + 10))
+        MAIL_STATUS=$(docker inspect --format='{{.State.Health.Status}}' murphy-mailserver 2>/dev/null || echo "missing")
+        if [ "$MAIL_STATUS" = "healthy" ]; then
+          break
+        fi
+        info "Still waiting ... (${MAIL_WAIT}s / ${MAIL_WAIT_MAX}s, status: ${MAIL_STATUS})"
+      done
+      if [ "$MAIL_STATUS" = "healthy" ]; then
+        info "Running mail_setup.sh (mailbox provisioning) ..."
+        bash "$MAIL_SETUP" || warn "mail_setup.sh reported errors — check mailboxes manually"
+        ok "Mail provisioning complete"
+      else
+        warn "Mailserver did not become healthy within ${MAIL_WAIT_MAX}s (status: ${MAIL_STATUS})"
+        warn "  Re-run manually: bash ${MAIL_SETUP}"
+      fi
     else
       warn "Mailserver container not healthy (status: ${MAIL_STATUS}) — skipping mail_setup.sh"
     fi
