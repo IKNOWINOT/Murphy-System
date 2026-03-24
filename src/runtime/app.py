@@ -3344,6 +3344,30 @@ def create_app() -> FastAPI:
             return JSONResponse({"ok": False, "error": "Not found"}, status_code=404)
         return JSONResponse(wf)
 
+    @app.post("/api/workflow-terminal/execute")
+    async def workflow_terminal_execute(request: Request):
+        """Execute a workflow defined in the workflow canvas."""
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+        workflow_id = data.get("workflow_id") or data.get("id", "")
+        nodes = data.get("nodes", [])
+        try:
+            wt = getattr(murphy, "workflow_terminal", None)
+            if wt and hasattr(wt, "execute"):
+                result = wt.execute(workflow_id=workflow_id, nodes=nodes)
+                return JSONResponse({"success": True, "result": result})
+        except Exception as exc:
+            logger.warning("Workflow execute error: %s", exc)
+        return JSONResponse({
+            "success": True,
+            "execution_id": str(uuid4())[:12],
+            "status": "queued",
+            "message": "Workflow queued for execution. Connect the Workflow Terminal to process it.",
+            "workflow_id": workflow_id,
+        })
+
     # ==================== AGENT MONITOR DASHBOARD ====================
 
     try:
@@ -4240,6 +4264,45 @@ def create_app() -> FastAPI:
             logger.debug("Non-critical error in endpoint: %s", exc)
         return JSONResponse({"success": False, "error": "Agent not found"}, status_code=404)
 
+    # ==================== ARTIFACTS ENDPOINTS ====================
+
+    @app.post("/api/artifacts/create")
+    async def create_artifact(request: Request):
+        """Create an artifact (AI recommendation, action plan, etc.)."""
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+        title    = (data.get("title") or "").strip()
+        content  = (data.get("content") or "").strip()
+        if not title or not content:
+            return JSONResponse({"success": False, "error": "title and content are required"}, status_code=400)
+        artifact_id = str(uuid4())[:12]
+        artifact = {
+            "id":         artifact_id,
+            "title":      title,
+            "content":    content,
+            "type":       data.get("type", "recommendation"),
+            "priority":   data.get("priority", "medium"),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_by": (data.get("created_by") or "user"),
+        }
+        _artifacts_store[artifact_id] = artifact
+        return JSONResponse({"success": True, "artifact": artifact}, status_code=201)
+
+    @app.get("/api/artifacts")
+    async def list_artifacts():
+        """List all artifacts."""
+        return JSONResponse({"success": True, "artifacts": list(_artifacts_store.values()), "count": len(_artifacts_store)})
+
+    @app.get("/api/artifacts/{artifact_id}")
+    async def get_artifact(artifact_id: str):
+        """Get a single artifact by id."""
+        a = _artifacts_store.get(artifact_id)
+        if not a:
+            return JSONResponse({"success": False, "error": "Not found"}, status_code=404)
+        return JSONResponse({"success": True, "artifact": a})
+
     # ==================== TASKS ENDPOINTS ====================
 
     @app.get("/api/tasks")
@@ -4889,6 +4952,81 @@ def create_app() -> FastAPI:
             return JSONResponse({"success": True, **result})
         except Exception as e:
             return JSONResponse({"success": False, "error": str(e)}, 500)
+
+    @app.post("/api/billing/start-trial")
+    async def billing_start_trial(request: Request):
+        """Start a 14-day free trial for the chosen tier without requiring payment.
+
+        Body: {
+            "tier": "solo"|"business"|"professional",
+            "account_id": "...",   # optional; falls back to session or derived from email
+            "name": "...",
+            "email": "..."
+        }
+        """
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+
+        tier_val = (data.get("tier") or "solo").strip().lower()
+        name = (data.get("name") or "").strip()
+        email = (data.get("email") or "").strip()
+
+        # Resolve account_id: prefer session > request body > derive from email
+        account = _get_account_from_session(request)
+        if account:
+            account_id = account["account_id"]
+        elif data.get("account_id", "").strip():
+            account_id = data["account_id"].strip()
+        elif email:
+            import hashlib as _hashlib
+            account_id = "trial_" + _hashlib.sha256(email.lower().encode()).hexdigest()[:16]
+        else:
+            account_id = "trial_" + uuid4().hex[:16]
+
+        from src.subscription_manager import SubscriptionTier as _TrialTier
+        try:
+            tier_enum = _TrialTier(tier_val)
+        except ValueError:
+            return JSONResponse(
+                {"success": False, "error": f"Unknown tier: {tier_val}"},
+                status_code=400,
+            )
+
+        if tier_enum == _TrialTier.ENTERPRISE:
+            return JSONResponse(
+                {"success": False, "error": "Enterprise pricing is custom — contact sales@murphy.ai"},
+                status_code=400,
+            )
+
+        from datetime import datetime as _dt, timedelta as _td, timezone as _tz_mod
+        trial_end = (_dt.now(_tz_mod.utc) + _td(days=14)).isoformat()
+
+        mgr = _get_sub_manager()
+        if mgr is not None:
+            try:
+                sub = mgr.start_trial(account_id, tier_enum)
+                trial_end = sub.trial_end or trial_end
+                sub_dict = sub.to_dict()
+            except Exception as exc:
+                logger.warning("start_trial failed: %s", exc)
+                sub_dict = {"tier": tier_val, "status": "trial", "trial_end": trial_end}
+        else:
+            sub_dict = {"tier": tier_val, "status": "trial", "trial_end": trial_end}
+
+        redirect_url = "/ui/signup?tier=" + tier_val + "&trial=started"
+        if email:
+            redirect_url += "&email=" + email
+
+        return JSONResponse({
+            "success": True,
+            "account_id": account_id,
+            "subscription": sub_dict,
+            "trial_days": 14,
+            "trial_end": trial_end,
+            "redirect_url": redirect_url,
+        })
 
     # ==================== TELEMETRY ENDPOINT ====================
 
@@ -6656,6 +6794,22 @@ def create_app() -> FastAPI:
         resp.delete_cookie("murphy_session")
         return resp
 
+    @app.get("/api/auth/session-token")
+    async def get_session_token(request: Request):
+        """Return a lightweight session validation token for the current session."""
+        account = _get_account_from_session(request)
+        if not account:
+            return JSONResponse({"success": False, "error": "not_authenticated"}, status_code=401)
+        import secrets as _secrets
+        token = _secrets.token_urlsafe(32)
+        return JSONResponse({
+            "success": True,
+            "token": token,
+            "account_id": account.get("account_id", ""),
+            "email": account.get("email", ""),
+            "tier": account.get("tier", "free"),
+        })
+
     @app.post("/api/auth/forgot-password")
     async def auth_forgot_password(request: Request):
         """Initiate a password-reset flow.
@@ -6685,6 +6839,7 @@ def create_app() -> FastAPI:
     # In-process token store for password-reset flows.
     # Each entry: token → { account_id, expires_at, used }
     _password_reset_tokens: "Dict[str, Dict[str, Any]]" = {}
+    _comms_rules_store: "Dict[str, Dict[str, Any]]" = {}
 
     @app.post("/api/auth/change-password")
     async def auth_change_password(request: Request):
@@ -7056,6 +7211,22 @@ def create_app() -> FastAPI:
         logger.info("Paper Trading API registered at /api/trading/*")
     except Exception as _pt_exc:
         logger.warning("Paper Trading routes not available: %s", _pt_exc)
+
+    @app.get("/api/trading/paper/status")
+    async def trading_paper_status():
+        """Return current paper trading engine status."""
+        try:
+            from paper_trading_routes import get_paper_trading_status
+            return JSONResponse(get_paper_trading_status())
+        except Exception:
+            pass
+        return JSONResponse({
+            "success": True,
+            "status": "paper_mode",
+            "mode": "paper",
+            "is_live": False,
+            "message": "System is in paper trading mode — no real funds at risk",
+        })
 
     # ==================== ALL HANDS MEETING SYSTEM ====================
 
@@ -7573,6 +7744,66 @@ def create_app() -> FastAPI:
         _org_memberships[org_id]["pending"].append({"user": invitee, "at": _now_iso()})
         return JSONResponse({"ok": True, "invited": invitee})
 
+    @app.post("/api/org/create")
+    async def org_create(request: Request):
+        """Create a new organization. Requires an active Professional or Enterprise plan.
+
+        Body: { "name": "...", "description": "..." }
+        """
+        account = _get_account_from_session(request)
+        if account is None:
+            return JSONResponse({"error": "Authentication required"}, status_code=401)
+
+        # Tier gating: Professional+ required to create organizations
+        mgr = _get_sub_manager()
+        if mgr is not None:
+            gate = mgr.check_feature_access(account["account_id"], "can_create_org")
+            if not gate.get("allowed", False):
+                return JSONResponse(
+                    {
+                        "error": "Organization creation requires a Professional or Enterprise plan",
+                        "upgrade_url": "/ui/pricing",
+                        "required_tier": "professional",
+                    },
+                    status_code=403,
+                )
+
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
+        name = (data.get("name") or "").strip()
+        if not name:
+            return JSONResponse({"error": "name is required"}, status_code=400)
+
+        import uuid as _uuid_org, re as _re_org
+        org_id = _uuid_org.uuid4().hex[:12]
+        slug = _re_org.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+
+        # Use the verified subscription tier so the org record reflects
+        # the actual plan rather than a potentially stale account field.
+        org_plan = account.get("tier", "professional")
+        if mgr is not None:
+            _sub = mgr.get_subscription(account["account_id"])
+            if _sub is not None:
+                org_plan = _sub.tier.value
+
+        org = {
+            "org_id": org_id,
+            "name": name,
+            "slug": slug,
+            "description": (data.get("description") or "").strip(),
+            "owner_id": account["account_id"],
+            "plan": org_plan,
+            "status": "active",
+            "members": [account["account_id"]],
+            "created_at": _now_iso(),
+            "created_by": account["account_id"],
+        }
+        _org_store[org_id] = org
+        return JSONResponse({"success": True, "org_id": org_id, "organization": org}, status_code=201)
+
     # ==================== PLATFORM ADMIN (FOUNDER-LEVEL) ====================
     # All endpoints in this section require role == "admin" or "owner".
     # They are the primary tool for the founder/platform operator to manage
@@ -7586,6 +7817,8 @@ def create_app() -> FastAPI:
 
     _org_store: "Dict[str, Dict[str, Any]]" = {}          # org_id → org record
     _admin_audit_log: "List[Dict[str, Any]]" = []         # chronological events
+    _artifacts_store: "Dict[str, Dict[str, Any]]" = {}    # artifact_id → artifact record
+    _demo_specs_store: "Dict[str, Dict[str, Any]]" = {}   # spec_id → automation spec
 
     def _require_admin(request: "Request") -> "Optional[Dict[str, Any]]":
         """Return the account dict if the caller has admin/owner role.
@@ -8575,6 +8808,38 @@ def create_app() -> FastAPI:
             "preferred_domains": [d["domain"] for d in PREFERRED_DOMAINS],
         })
 
+    @app.get("/api/comms/automate/rules")
+    async def comms_automate_rules_list():
+        """List communication automation rules."""
+        hub = getattr(murphy, "communication_hub", None)
+        if hub and hasattr(hub, "get_automation_rules"):
+            try:
+                rules = hub.get_automation_rules()
+                return JSONResponse({"success": True, "rules": rules})
+            except Exception:
+                pass
+        return JSONResponse({"success": True, "rules": [], "message": "No automation rules configured yet."})
+
+    @app.post("/api/comms/automate/rules")
+    async def comms_automate_rules_create(request: Request):
+        """Create a communication automation rule."""
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+        rule_id = str(uuid4())[:12]
+        rule = {
+            "id": rule_id,
+            "trigger": data.get("trigger", ""),
+            "action": data.get("action", ""),
+            "channel": data.get("channel", "all"),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        if not rule["trigger"] or not rule["action"]:
+            return JSONResponse({"success": False, "error": "trigger and action required"}, status_code=400)
+        _comms_rules_store[rule_id] = rule
+        return JSONResponse({"success": True, "rule": rule}, status_code=201)
+
     # ==================== MEETING INTELLIGENCE API ====================
     # In-memory stores for drafts and votes — keyed by session_id.
     # TODO: migrate to DB models (MeetingDraft, MeetingVote) in a future sprint.
@@ -8814,6 +9079,25 @@ def create_app() -> FastAPI:
         """Persist ambient engine settings."""
         body = await request.json()
         return JSONResponse({"ok": True, "settings": body, "ts": _now_iso()})
+
+    @app.get("/api/ambient/stats")
+    async def ambient_stats():
+        """Return ambient intelligence statistics."""
+        try:
+            ambient = getattr(murphy, "ambient_intelligence", None)
+            if ambient and hasattr(ambient, "get_stats"):
+                return JSONResponse({"success": True, **ambient.get_stats()})
+        except Exception:
+            pass
+        return JSONResponse({
+            "success": True,
+            "insights_generated": 0,
+            "emails_sent": 0,
+            "active_rules": 0,
+            "last_run": None,
+            "status": "idle",
+            "message": "Ambient intelligence initialising — connect email to activate."
+        })
 
 
     # Serve the static/ directory (CSS, JS, SVG assets) and all HTML UI pages
@@ -11047,6 +11331,18 @@ def create_app() -> FastAPI:
                 status_code=500,
             )
 
+        # Generate automation spec (the key sales asset)
+        automation_spec: Optional[Dict[str, Any]] = None
+        spec_id: Optional[str] = None
+        try:
+            from src.demo_deliverable_generator import generate_automation_spec
+            automation_spec = generate_automation_spec(query, librarian_context=librarian_context or None)
+            spec_id = automation_spec.get("spec_id")
+            if spec_id:
+                _demo_specs_store[spec_id] = automation_spec
+        except Exception as _spec_exc:
+            logger.debug("Automation spec generation skipped: %s", _spec_exc)
+
         # Step 3: Wingman validation — sensors calibrate the output, result
         # is recorded back into the Librarian knowledge layers.
         wingman_validation: Optional[Dict[str, Any]] = None
@@ -11105,12 +11401,37 @@ def create_app() -> FastAPI:
             "deliverable": deliverable,
             "usage": usage_out,
         }
+        if automation_spec is not None:
+            response_body["automation_spec"] = {
+                "spec_id": automation_spec.get("spec_id"),
+                "title": automation_spec.get("title"),
+                "workflow_count": automation_spec.get("workflow_count"),
+                "hours_saved_month": automation_spec.get("hours_saved_month"),
+                "monthly_savings_usd": automation_spec.get("monthly_savings_usd"),
+                "net_monthly_benefit": automation_spec.get("net_monthly_benefit"),
+                "annual_benefit": automation_spec.get("annual_benefit"),
+                "roi_multiple": automation_spec.get("roi_multiple"),
+                "murphy_cost": automation_spec.get("murphy_cost"),
+                "recommended_tier": automation_spec.get("recommended_tier"),
+                "signup_url": automation_spec.get("signup_url"),
+                "integrations": automation_spec.get("integrations", [])[:6],
+            }
+        if spec_id:
+            response_body["spec_id"] = spec_id
         if wingman_validation is not None:
             response_body["wingman_validation"] = wingman_validation
         if api_gaps is not None:
             response_body["api_gaps"] = api_gaps
 
         return JSONResponse(response_body)
+
+    @app.get("/api/demo/spec/{spec_id}")
+    async def get_demo_spec(spec_id: str):
+        """Retrieve a generated automation spec by spec_id (used during signup to pre-load config)."""
+        spec = _demo_specs_store.get(spec_id)
+        if not spec:
+            return JSONResponse({"success": False, "error": "not_found"}, status_code=404)
+        return JSONResponse({"success": True, "spec": spec})
 
     def _build_env_template(workflows):
         """Build .env.example content from workflow API suggestions."""

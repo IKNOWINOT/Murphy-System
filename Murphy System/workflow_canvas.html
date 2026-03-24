@@ -917,7 +917,7 @@
     });
 
     function finishExecution(data) {
-      api.post('/workflow-terminal/execute', data)
+      api.post('/api/workflow-terminal/execute', data)
         .then(function (res) {
           $btnRun.classList.remove('murphy-btn-loading');
           if (res.ok) {
@@ -953,7 +953,7 @@
       $btnSave.classList.add('murphy-btn-loading');
       terminal.output('💾 Saving workflow…');
 
-      api.post('/workflow-terminal/save', data)
+      api.post('/api/workflow-terminal/save', data)
         .then(function (res) {
           $btnSave.classList.remove('murphy-btn-loading');
           if (res.ok) {
@@ -972,7 +972,7 @@
     $btnLoad.addEventListener('click', function () {
       terminal.output('📂 Fetching saved workflows…');
 
-      api.get('/workflow-terminal/list')
+      api.get('/api/workflow-terminal/list')
         .then(function (res) {
           if (!res.ok || !res.data) {
             terminal.output('✗ Could not load workflow list: ' + (res.error || 'Unknown'));
@@ -1023,7 +1023,7 @@
 
     function loadWorkflow(id) {
       terminal.output('📥 Loading workflow ' + id + '…');
-      api.get('/workflow-terminal/load?id=' + encodeURIComponent(id))
+      api.get('/api/workflow-terminal/load?id=' + encodeURIComponent(id))
         .then(function (res) {
           if (res.ok && res.data) {
             canvas.fromJSON(res.data);
@@ -1061,7 +1061,7 @@
 
     /* ── Load integrations from API ─────────────────────── */
     (function loadIntegrations() {
-      api.get('/integrations/list')
+      api.get('/api/integrations/list')
         .then(function (res) {
           var skel = $integrationBox.querySelector('.murphy-skeleton');
           if (skel) skel.remove();
@@ -1206,7 +1206,7 @@
         }
       } else {
         /* Fetch from API if not in localStorage */
-        api.get('/production/proposals/' + encodeURIComponent(prodId))
+        api.get('/api/production/proposals/' + encodeURIComponent(prodId))
           .then(function(res) {
             if (res.ok && res.data && res.data.proposal && res.data.proposal.workflow) {
               canvas.fromJSON(res.data.proposal.workflow);

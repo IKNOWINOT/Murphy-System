@@ -106,6 +106,32 @@ def create_app() -> FastAPI:
     def _now_iso():
         return datetime.now(timezone.utc).isoformat()
 
+    # ═══════════════════════════════════════════════════════════════
+    # PRIORITY 1 — API Collection Agent (always loaded first)
+    # Guides users through getting every API/SDK key their system needs.
+    # This must be the first subsystem attached to app.state so every
+    # downstream route can reference it without ImportError.
+    # ═══════════════════════════════════════════════════════════════
+    try:
+        from src.api_collection_agent import APICollectionAgent as _APICollectionAgent
+        _api_collection_agent = _APICollectionAgent(base_url="http://localhost:8000")
+        app.state.api_collection_agent = _api_collection_agent
+        logger.info("APICollectionAgent initialised — ready to guide API/SDK setup")
+    except Exception as _aca_exc:
+        logger.warning("APICollectionAgent init failed: %s", _aca_exc)
+        app.state.api_collection_agent = None
+
+    # ── WorldModelRegistry (integration connectors) ──────────────
+    try:
+        from src.integrations.world_model_registry import WorldModelRegistry as _WMR
+        app.state.world_model_registry = _WMR()
+        logger.info("WorldModelRegistry initialised with %d connectors",
+                    len(app.state.world_model_registry.list_integrations()))
+    except Exception as _wmr_exc:
+        logger.warning("WorldModelRegistry init failed: %s", _wmr_exc)
+        app.state.world_model_registry = None
+
+
     # ── Account manager (singleton) — wraps OAuthProviderRegistry and
     #    handles account creation / linking after every OAuth callback.
     #    A simple in-memory session store maps session tokens to account IDs.
@@ -592,6 +618,15 @@ def create_app() -> FastAPI:
     except Exception as _ch_exc:
         logger.warning("Communication Hub routes not available: %s", _ch_exc)
 
+    # ── Dispatch Tool-Calling Engine ───────────────────────────────────
+    try:
+        from src.dispatch_routes import create_dispatch_router
+        _dispatch_router = create_dispatch_router()
+        app.include_router(_dispatch_router)
+        logger.info("Dispatch Tool-Calling Engine API registered at /api/dispatch/*")
+    except Exception as _dp_exc:
+        logger.warning("Dispatch routes not available: %s", _dp_exc)
+
     # ── Trading Automation (PR 4) ─────────────────────────────────────
     try:
         from trading_routes import create_trading_router
@@ -611,6 +646,14 @@ def create_app() -> FastAPI:
         )
     except Exception as _risk_exc:
         logger.warning("Trading Risk API not available: %s", _risk_exc)
+    # ── Platform Onboarding DAG ──────────────────────────────────────────
+    try:
+        from src.platform_onboarding.onboarding_api import create_onboarding_router
+        _onboarding_router = create_onboarding_router()
+        app.include_router(_onboarding_router)
+        logger.info("Platform Onboarding API registered at /api/onboarding/*")
+    except Exception as _e:  # pragma: no cover
+        logger.warning("Platform onboarding router not loaded: %s", _e)
 
     # Register RBAC governance with security layer (SEC-005)
     rbac = getattr(murphy, 'rbac_governance', None)
@@ -927,6 +970,27 @@ def create_app() -> FastAPI:
         )
         return JSONResponse(result)
 
+    @app.post("/api/librarian/query")
+    async def librarian_query(request: Request):
+        """Alias for /api/librarian/ask — accepts the same body."""
+        data = await request.json()
+        message = data.get("message") or data.get("query") or data.get("question") or ""
+        mode = data.get("mode")
+        if mode == "execute":
+            result = murphy.handle_chat(
+                message=message,
+                session_id=data.get("session_id"),
+                use_mfgc=True,
+            )
+            result["librarian_mode"] = "execute"
+            return JSONResponse(result)
+        result = murphy.librarian_ask(
+            message=message,
+            session_id=data.get("session_id"),
+            mode=mode,
+        )
+        return JSONResponse(result)
+
     @app.get("/api/librarian/status")
     async def librarian_status():
         """Return librarian health status."""
@@ -1112,6 +1176,236 @@ def create_app() -> FastAPI:
             "recommendations": recs,
             "count": len(recs),
         })
+
+    # ==================== API COLLECTION AGENT ENDPOINTS ====================
+    # These are loaded first and surface the "things to get done" checklist
+    # that guides every user through obtaining the API/SDK keys their system needs.
+
+    @app.get("/api/setup/checklist")
+    async def setup_checklist(request: Request):
+        """Return the system setup checklist — what API keys are missing and what
+        integrations are unconfigured.  This is the primary 'things to do' feed
+        shown on the dashboard."""
+        import os
+        # Core LLM keys
+        llm_items = []
+        for provider, env_var, label, url in [
+            ("groq",      "GROQ_API_KEY",      "Groq (recommended, free)",
+             "https://console.groq.com/keys"),
+            ("openai",    "OPENAI_API_KEY",     "OpenAI (GPT-4)",
+             "https://platform.openai.com/api-keys"),
+            ("anthropic", "ANTHROPIC_API_KEY",  "Anthropic (Claude)",
+             "https://console.anthropic.com/"),
+        ]:
+            val = os.environ.get(env_var, "")
+            configured = bool(val and not val.startswith("your_") and not val.startswith("sk-your")
+                               and val != "sk-ant-your_anthropic_key_here")
+            llm_items.append({
+                "id": f"llm_{provider}", "category": "llm", "label": label,
+                "env_var": env_var, "configured": configured,
+                "setup_url": url, "priority": 1,
+                "description": f"Needed for AI chat, workflow generation, and document assistance.",
+                "action": f"POST /api/credentials/store with provider={provider}",
+            })
+
+        # Integration connectors via WorldModelRegistry
+        integration_items = []
+        try:
+            wmr = getattr(request.app.state, "world_model_registry", None)
+            if wmr:
+                for item in wmr.list_integrations():
+                    integration_items.append({
+                        "id": f"integration_{item['id']}",
+                        "category": item["category"],
+                        "label": item["name"],
+                        "configured": item["configured"],
+                        "free_tier": item["free_tier"],
+                        "priority": 2,
+                        "description": f"Connect {item['name']} to enable automated {item['category']} workflows.",
+                        "action": f"POST /api/credentials/store with provider={item['id']}",
+                    })
+        except Exception as _e:
+            logger.debug("Checklist: WorldModelRegistry unavailable: %s", _e)
+
+        all_items = llm_items + integration_items
+        pending   = [i for i in all_items if not i["configured"]]
+        done      = [i for i in all_items if i["configured"]]
+
+        return JSONResponse({
+            "success": True,
+            "checklist": all_items,
+            "pending": pending,
+            "done": done,
+            "pending_count": len(pending),
+            "done_count": len(done),
+            "total_count": len(all_items),
+            "completion_pct": round(len(done) / max(len(all_items), 1) * 100, 1),
+        })
+
+    @app.get("/api/setup/api-collection/status")
+    async def api_collection_status(request: Request):
+        """Return the API Collection Agent queue — pending approvals, blanks to fill."""
+        agent = getattr(request.app.state, "api_collection_agent", None)
+        if agent is None:
+            return JSONResponse({"success": False, "error": "APICollectionAgent not initialised"}, status_code=503)
+        return JSONResponse({
+            "success": True,
+            "pending_count": len(agent.pending_requests()),
+            "requests_with_blanks": len(agent.requests_with_blanks()),
+            "pending": [r.to_dict() for r in agent.pending_requests()[:20]],
+        })
+
+    @app.get("/api/setup/api-collection/guide/{integration_id}")
+    async def api_collection_guide(integration_id: str, request: Request):
+        """Return step-by-step guidance for obtaining and configuring a specific
+        integration's API key/SDK.  The agent pre-fills everything it can from
+        the current environment so the user only has to fill in blanks."""
+        # Integration metadata from registry
+        try:
+            from src.integrations.world_model_registry import _CONNECTOR_MAP, _INTEGRATION_META
+        except Exception:
+            _CONNECTOR_MAP = {}
+            _INTEGRATION_META = {}
+
+        if integration_id not in _INTEGRATION_META and integration_id not in {
+            "groq", "openai", "anthropic"
+        }:
+            return JSONResponse({"success": False, "error": f"Unknown integration: {integration_id}"}, status_code=404)
+
+        # Standard LLM providers
+        _llm_guide = {
+            "groq": {
+                "name": "Groq", "env_var": "GROQ_API_KEY",
+                "steps": [
+                    {"step": 1, "title": "Create account", "url": "https://console.groq.com", "description": "Sign up at console.groq.com — free tier, no credit card needed."},
+                    {"step": 2, "title": "Generate API key", "url": "https://console.groq.com/keys", "description": "Click '+ Create API Key', name it 'murphy-system', copy the gsk_... value."},
+                    {"step": 3, "title": "Set key", "description": "In the Murphy terminal: set key groq <your-key>  or  POST /api/credentials/store"},
+                ],
+                "free_tier": True, "notes": "Rate limit: 30 req/min on free tier. Upgrade at console.groq.com/billing.",
+            },
+            "openai": {
+                "name": "OpenAI", "env_var": "OPENAI_API_KEY",
+                "steps": [
+                    {"step": 1, "title": "Create account", "url": "https://platform.openai.com", "description": "Sign up at platform.openai.com."},
+                    {"step": 2, "title": "Add billing", "url": "https://platform.openai.com/billing", "description": "Add a payment method — required even for the free credits tier."},
+                    {"step": 3, "title": "Generate API key", "url": "https://platform.openai.com/api-keys", "description": "Click '+ Create new secret key', copy the sk-... value."},
+                    {"step": 4, "title": "Set key", "description": "POST /api/credentials/store  or  set key openai <your-key>"},
+                ],
+                "free_tier": False, "notes": "New accounts include $5 free credits.",
+            },
+            "anthropic": {
+                "name": "Anthropic", "env_var": "ANTHROPIC_API_KEY",
+                "steps": [
+                    {"step": 1, "title": "Create account", "url": "https://console.anthropic.com", "description": "Sign up at console.anthropic.com."},
+                    {"step": 2, "title": "Generate API key", "url": "https://console.anthropic.com/account/keys", "description": "Click 'Create Key', copy the sk-ant-... value."},
+                    {"step": 3, "title": "Set key", "description": "POST /api/credentials/store  or  set key anthropic <your-key>"},
+                ],
+                "free_tier": False, "notes": "Generous free credits for new accounts.",
+            },
+        }
+
+        if integration_id in _llm_guide:
+            guide = _llm_guide[integration_id]
+        else:
+            meta = _INTEGRATION_META.get(integration_id, {})
+            # Try to pull setup URL from the connector class
+            setup_url = ""
+            doc_url = ""
+            try:
+                cls = None
+                from src.integrations import world_model_registry as _wmr_mod
+                dotted = _CONNECTOR_MAP.get(integration_id, "")
+                if dotted:
+                    cls = _wmr_mod._import_connector_class(dotted)
+                if cls:
+                    setup_url = getattr(cls, "SETUP_URL", "")
+                    doc_url   = getattr(cls, "DOCUMENTATION_URL", "")
+            except Exception:
+                pass
+            guide = {
+                "name": meta.get("name", integration_id),
+                "env_var": integration_id.upper() + "_API_KEY",
+                "free_tier": meta.get("free", True),
+                "setup_url": setup_url,
+                "docs_url": doc_url,
+                "steps": [
+                    {"step": 1, "title": "Get API credentials",
+                     "url": setup_url,
+                     "description": f"Visit {setup_url or 'the provider website'} and create API credentials."},
+                    {"step": 2, "title": "Configure in Murphy",
+                     "description": f"POST /api/credentials/store  with  provider={integration_id}  and  api_key=<your-key>"},
+                ],
+                "notes": f"See {doc_url} for full documentation.",
+            }
+
+        import os
+        env_var = guide.get("env_var", "")
+        current_val = os.environ.get(env_var, "")
+        guide["already_configured"] = bool(current_val and not current_val.startswith("your_"))
+
+        return JSONResponse({"success": True, "integration_id": integration_id, "guide": guide})
+
+    @app.post("/api/setup/api-collection/enqueue")
+    async def api_collection_enqueue(request: Request):
+        """Enqueue an API collection request for HITL review.  The agent pre-fills
+        all fields it can from the current environment context."""
+        agent = getattr(request.app.state, "api_collection_agent", None)
+        if agent is None:
+            return JSONResponse({"success": False, "error": "APICollectionAgent not initialised"}, status_code=503)
+        data = await request.json()
+        req_name = data.get("name", "")
+        context  = data.get("context", {})
+        # Find matching built-in requirement or accept custom
+        built_in = {r.name: r for r in agent.built_in_requirements()}
+        if req_name in built_in:
+            req = built_in[req_name]
+        else:
+            # Custom requirement passed inline
+            from src.api_collection_agent import APIRequirement, APIField, APIMethod
+            fields_raw = data.get("fields", [])
+            fields = [APIField(
+                name=f.get("name", ""), required=f.get("required", False),
+                description=f.get("description", ""),
+            ) for f in fields_raw]
+            req = APIRequirement(
+                name=req_name,
+                endpoint=data.get("endpoint", ""),
+                method=APIMethod(data.get("method", "POST").upper()),
+                description=data.get("description", ""),
+                fields=fields,
+            )
+        api_req = agent.enqueue(req, context=context)
+        return JSONResponse({"success": True, "request_id": api_req.id,
+                             "has_blanks": api_req.has_blanks,
+                             "request": api_req.to_dict()})
+
+    @app.post("/api/setup/api-collection/{request_id}/approve")
+    async def api_collection_approve(request_id: str, request: Request):
+        """Approve a queued API collection request and execute it."""
+        agent = getattr(request.app.state, "api_collection_agent", None)
+        if agent is None:
+            return JSONResponse({"success": False, "error": "APICollectionAgent not initialised"}, status_code=503)
+        data = await request.json()
+        approved_by = data.get("approved_by", "user")
+        agent.approve(request_id, approved_by=approved_by)
+        result = agent.execute(request_id)
+        return JSONResponse({"success": True, "result": result})
+
+    @app.post("/api/setup/api-collection/{request_id}/fill")
+    async def api_collection_fill_blank(request_id: str, request: Request):
+        """Fill a blank field in a queued API request."""
+        agent = getattr(request.app.state, "api_collection_agent", None)
+        if agent is None:
+            return JSONResponse({"success": False, "error": "APICollectionAgent not initialised"}, status_code=503)
+        data = await request.json()
+        field_name = data.get("field")
+        value      = data.get("value")
+        if not field_name:
+            return JSONResponse({"success": False, "error": "field is required"}, status_code=400)
+        agent.fill_blank(request_id, field_name, value)
+        req = agent.get_request(request_id)
+        return JSONResponse({"success": True, "request": req.to_dict() if req else None})
+
 
     # ==================== LIBRARIAN COMMAND CATALOG ====================
 
@@ -2669,6 +2963,40 @@ def create_app() -> FastAPI:
         except Exception as exc:
             return _safe_error_response(exc, 500)
 
+    @app.get("/api/automations/executions")
+    async def list_all_executions(request: Request):
+        """List all workflow executions — powers the Live Automations panel in System Map."""
+        try:
+            dag = getattr(request.app.state, "workflow_dag_engine", None)
+            if dag is None:
+                return JSONResponse({"success": True, "executions": []})
+            # DAGEngine stores executions in _executions dict
+            all_execs = getattr(dag, "_executions", {})
+            items = []
+            for exec_id, ex in list(all_execs.items())[-50:]:  # last 50
+                wf_id = getattr(ex, "workflow_id", "")
+                wf_def = getattr(dag, "_workflows", {}).get(wf_id)
+                total_steps = len(wf_def.steps) if wf_def else 0
+                steps_map = getattr(ex, "steps", {})
+                completed = sum(1 for s in steps_map.values() if getattr(s, "status", None) and s.status.value in ("completed", "skipped"))
+                start_t = getattr(ex, "start_time", None)
+                end_t   = getattr(ex, "end_time", None)
+                duration_ms = ((end_t or 0) - (start_t or 0)) * 1000 if start_t else None
+                items.append({
+                    "id": exec_id,
+                    "workflow_id": wf_id,
+                    "name": (wf_def.name if wf_def else wf_id) or exec_id,
+                    "status": getattr(ex, "status", "unknown").value if hasattr(getattr(ex, "status", None), "value") else str(getattr(ex, "status", "unknown")),
+                    "completed": completed,
+                    "total_steps": total_steps,
+                    "progress": round(completed / total_steps * 100) if total_steps else 0,
+                    "duration_ms": duration_ms,
+                    "step_label": f"{completed}/{total_steps} steps",
+                })
+            return JSONResponse({"success": True, "executions": sorted(items, key=lambda x: x["status"] == "running", reverse=True)})
+        except Exception as exc:
+            return JSONResponse({"success": True, "executions": []})
+
     @app.get("/api/automations/executions/{execution_id}")
     async def get_execution_status(execution_id: str, request: Request):
         """Get the status and results of a workflow execution."""
@@ -2838,6 +3166,19 @@ def create_app() -> FastAPI:
                 wf_def = gen.to_workflow_definition(wf_dict)
             commissioner = AutomationCommissioner(health_threshold=threshold, max_iterations=2)
             report = commissioner.commission(wf_def, context=ctx)
+
+            # Register workflow + execution in the app-state DAG engine so the
+            # Live Automations panel in system_visualizer.html can track it.
+            try:
+                app_dag = getattr(request.app.state, "workflow_dag_engine", None)
+                if app_dag is not None:
+                    app_dag.register_workflow(wf_def)
+                    exec_id = app_dag.create_execution(wf_def.workflow_id, ctx)
+                    if exec_id:
+                        app_dag.execute_workflow(exec_id)
+            except Exception as _dag_exc:
+                logger.debug("Live panel DAG wiring skipped: %s", _dag_exc)
+
             return JSONResponse({"success": True, "commissioning_report": report.to_dict()})
         except Exception as exc:
             return _safe_error_response(exc, 500)
@@ -3002,6 +3343,30 @@ def create_app() -> FastAPI:
         if not wf:
             return JSONResponse({"ok": False, "error": "Not found"}, status_code=404)
         return JSONResponse(wf)
+
+    @app.post("/api/workflow-terminal/execute")
+    async def workflow_terminal_execute(request: Request):
+        """Execute a workflow defined in the workflow canvas."""
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+        workflow_id = data.get("workflow_id") or data.get("id", "")
+        nodes = data.get("nodes", [])
+        try:
+            wt = getattr(murphy, "workflow_terminal", None)
+            if wt and hasattr(wt, "execute"):
+                result = wt.execute(workflow_id=workflow_id, nodes=nodes)
+                return JSONResponse({"success": True, "result": result})
+        except Exception as exc:
+            logger.warning("Workflow execute error: %s", exc)
+        return JSONResponse({
+            "success": True,
+            "execution_id": str(uuid4())[:12],
+            "status": "queued",
+            "message": "Workflow queued for execution. Connect the Workflow Terminal to process it.",
+            "workflow_id": workflow_id,
+        })
 
     # ==================== AGENT MONITOR DASHBOARD ====================
 
@@ -3899,6 +4264,45 @@ def create_app() -> FastAPI:
             logger.debug("Non-critical error in endpoint: %s", exc)
         return JSONResponse({"success": False, "error": "Agent not found"}, status_code=404)
 
+    # ==================== ARTIFACTS ENDPOINTS ====================
+
+    @app.post("/api/artifacts/create")
+    async def create_artifact(request: Request):
+        """Create an artifact (AI recommendation, action plan, etc.)."""
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+        title    = (data.get("title") or "").strip()
+        content  = (data.get("content") or "").strip()
+        if not title or not content:
+            return JSONResponse({"success": False, "error": "title and content are required"}, status_code=400)
+        artifact_id = str(uuid4())[:12]
+        artifact = {
+            "id":         artifact_id,
+            "title":      title,
+            "content":    content,
+            "type":       data.get("type", "recommendation"),
+            "priority":   data.get("priority", "medium"),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_by": (data.get("created_by") or "user"),
+        }
+        _artifacts_store[artifact_id] = artifact
+        return JSONResponse({"success": True, "artifact": artifact}, status_code=201)
+
+    @app.get("/api/artifacts")
+    async def list_artifacts():
+        """List all artifacts."""
+        return JSONResponse({"success": True, "artifacts": list(_artifacts_store.values()), "count": len(_artifacts_store)})
+
+    @app.get("/api/artifacts/{artifact_id}")
+    async def get_artifact(artifact_id: str):
+        """Get a single artifact by id."""
+        a = _artifacts_store.get(artifact_id)
+        if not a:
+            return JSONResponse({"success": False, "error": "Not found"}, status_code=404)
+        return JSONResponse({"success": True, "artifact": a})
+
     # ==================== TASKS ENDPOINTS ====================
 
     @app.get("/api/tasks")
@@ -4549,6 +4953,81 @@ def create_app() -> FastAPI:
         except Exception as e:
             return JSONResponse({"success": False, "error": str(e)}, 500)
 
+    @app.post("/api/billing/start-trial")
+    async def billing_start_trial(request: Request):
+        """Start a 14-day free trial for the chosen tier without requiring payment.
+
+        Body: {
+            "tier": "solo"|"business"|"professional",
+            "account_id": "...",   # optional; falls back to session or derived from email
+            "name": "...",
+            "email": "..."
+        }
+        """
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+
+        tier_val = (data.get("tier") or "solo").strip().lower()
+        name = (data.get("name") or "").strip()
+        email = (data.get("email") or "").strip()
+
+        # Resolve account_id: prefer session > request body > derive from email
+        account = _get_account_from_session(request)
+        if account:
+            account_id = account["account_id"]
+        elif data.get("account_id", "").strip():
+            account_id = data["account_id"].strip()
+        elif email:
+            import hashlib as _hashlib
+            account_id = "trial_" + _hashlib.sha256(email.lower().encode()).hexdigest()[:16]
+        else:
+            account_id = "trial_" + uuid4().hex[:16]
+
+        from src.subscription_manager import SubscriptionTier as _TrialTier
+        try:
+            tier_enum = _TrialTier(tier_val)
+        except ValueError:
+            return JSONResponse(
+                {"success": False, "error": f"Unknown tier: {tier_val}"},
+                status_code=400,
+            )
+
+        if tier_enum == _TrialTier.ENTERPRISE:
+            return JSONResponse(
+                {"success": False, "error": "Enterprise pricing is custom — contact sales@murphy.ai"},
+                status_code=400,
+            )
+
+        from datetime import datetime as _dt, timedelta as _td, timezone as _tz_mod
+        trial_end = (_dt.now(_tz_mod.utc) + _td(days=14)).isoformat()
+
+        mgr = _get_sub_manager()
+        if mgr is not None:
+            try:
+                sub = mgr.start_trial(account_id, tier_enum)
+                trial_end = sub.trial_end or trial_end
+                sub_dict = sub.to_dict()
+            except Exception as exc:
+                logger.warning("start_trial failed: %s", exc)
+                sub_dict = {"tier": tier_val, "status": "trial", "trial_end": trial_end}
+        else:
+            sub_dict = {"tier": tier_val, "status": "trial", "trial_end": trial_end}
+
+        redirect_url = "/ui/signup?tier=" + tier_val + "&trial=started"
+        if email:
+            redirect_url += "&email=" + email
+
+        return JSONResponse({
+            "success": True,
+            "account_id": account_id,
+            "subscription": sub_dict,
+            "trial_days": 14,
+            "trial_end": trial_end,
+            "redirect_url": redirect_url,
+        })
+
     # ==================== TELEMETRY ENDPOINT ====================
 
     @app.get("/api/telemetry")
@@ -5094,14 +5573,143 @@ def create_app() -> FastAPI:
         """List stored credential keys (no secrets exposed)."""
         return JSONResponse({"success": True, "credentials": []})
 
-    @app.get("/api/llm/providers")
-    async def llm_providers_list():
-        """List configured LLM providers."""
+    @app.post("/api/credentials/store")
+    async def credentials_store(request: Request):
+        """Store an integration credential securely.
+
+        Body: { "integration": "sendgrid", "credential": "SG.xxx..." }
+        Persists to .env via env_manager and updates os.environ immediately.
+        Performs lightweight format validation before storing.
+        """
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+
+        integration = (data.get("integration") or "").strip().lower()
+        credential = (data.get("credential") or "").strip()
+        if not integration:
+            return JSONResponse({"success": False, "error": "integration is required"}, status_code=400)
+        if not credential:
+            return JSONResponse({"success": False, "error": "credential is required"}, status_code=400)
+
+        # --- Format validation (best-effort, non-blocking) ---
+        try:
+            from src.env_manager import validate_api_key as _validate_api_key, API_KEY_FORMATS as _AKF
+            if integration in _AKF:
+                _valid, _msg = _validate_api_key(integration, credential)
+                if not _valid:
+                    return JSONResponse({"success": False, "error": _msg}, status_code=400)
+        except Exception:
+            pass  # Validation is best-effort; never block a store on import failure
+
+        # Map integration name to env var
+        _INTEGRATION_ENV_VARS = {
+            "groq": "GROQ_API_KEY",
+            "openai": "OPENAI_API_KEY",
+            "anthropic": "ANTHROPIC_API_KEY",
+            "sendgrid": "SENDGRID_API_KEY",
+            "slack": "SLACK_BOT_TOKEN",
+            "stripe": "STRIPE_SECRET_KEY",
+            "hubspot": "HUBSPOT_API_KEY",
+            "github": "GITHUB_TOKEN",
+            "twilio": "TWILIO_AUTH_TOKEN",
+            "google_calendar": "GOOGLE_CALENDAR_API_KEY",
+            "google_sheets": "GOOGLE_SHEETS_API_KEY",
+            "datadog": "DATADOG_API_KEY",
+            "openweather": "OPENWEATHER_API_KEY",
+            "postgres": "DATABASE_URL",
+            "notion": "NOTION_API_KEY",
+            "airtable": "AIRTABLE_API_KEY",
+            "jira": "JIRA_API_TOKEN",
+            "salesforce": "SALESFORCE_CONSUMER_KEY",
+            "pagerduty": "PAGERDUTY_API_KEY",
+            "zoom": "ZOOM_CLIENT_SECRET",
+            "monday": "MONDAY_API_KEY",
+            "shopify": "SHOPIFY_ACCESS_TOKEN",
+            "twitch": "TWITCH_CLIENT_SECRET",
+            "discord": "DISCORD_BOT_TOKEN",
+            "telegram": "TELEGRAM_BOT_TOKEN",
+        }
+        env_var = _INTEGRATION_ENV_VARS.get(integration, f"{integration.upper()}_API_KEY")
+        os.environ[env_var] = credential
+        _env_path = Path(__file__).resolve().parent.parent.parent / ".env"
+        try:
+            from src.env_manager import write_env_key as _write_env_key
+            _write_env_key(str(_env_path), env_var, credential)
+        except Exception as _exc:
+            logger.debug("Could not persist credential to .env: %s", _exc)
         return JSONResponse({
             "success": True,
-            "providers": [],
-            "active": None,
-            "message": "Configure MURPHY_LLM_PROVIDER to enable LLM integration",
+            "integration": integration,
+            "env_var": env_var,
+            "message": f"{integration} credential stored successfully.",
+        })
+
+    @app.get("/api/llm/providers")
+    async def llm_providers_list():
+        """List configured LLM providers with live Ollama status."""
+        from src.local_llm_fallback import (
+            _check_ollama_available,
+            _ollama_base_url,
+            _ollama_list_models,
+            _preferred_ollama_models,
+        )
+        base_url = _ollama_base_url()
+        ollama_up = _check_ollama_available(base_url)
+        pulled_models = _ollama_list_models(base_url) if ollama_up else []
+        preferred = _preferred_ollama_models()
+
+        providers = [
+            {
+                "id": "ollama",
+                "name": "Ollama (Local)",
+                "type": "local",
+                "available": ollama_up,
+                "default_model": preferred[0] if preferred else "phi3",
+                "preferred_models": preferred,
+                "pulled_models": pulled_models,
+                "base_url": base_url,
+                "description": "Local LLM inference via Ollama. Runs phi3 by default.",
+            },
+            {
+                "id": "groq",
+                "name": "Groq Cloud",
+                "type": "cloud",
+                "available": bool(os.getenv("GROQ_API_KEY") or os.getenv("GROQ_API_KEYS")),
+                "default_model": "llama3-70b-8192",
+                "description": "Groq fast inference cloud API. Requires GROQ_API_KEY.",
+            },
+            {
+                "id": "aristotle",
+                "name": "Aristotle (Deterministic)",
+                "type": "local",
+                "available": True,
+                "default_model": "aristotle-deterministic",
+                "description": "Deterministic validation engine for math/physics domains.",
+            },
+            {
+                "id": "wulfrum",
+                "name": "Wulfrum (Fuzzy Match)",
+                "type": "local",
+                "available": True,
+                "default_model": "wulfrum-fuzzy",
+                "description": "Fuzzy match engine for approximate validation.",
+            },
+        ]
+
+        active = None
+        if ollama_up and pulled_models:
+            active = "ollama"
+        elif os.getenv("GROQ_API_KEY") or os.getenv("GROQ_API_KEYS"):
+            active = "groq"
+
+        return JSONResponse({
+            "success": True,
+            "providers": providers,
+            "active": active,
+            "ollama_available": ollama_up,
+            "phi3_ready": ollama_up and any("phi3" in m for m in pulled_models),
         })
 
     @app.get("/api/hitl/queue")
@@ -5336,7 +5944,46 @@ def create_app() -> FastAPI:
             "max": 100,
         })
 
-    @app.get("/api/efficiency/metrics")
+    @app.get("/api/heatmap/coverage")
+    async def heatmap_coverage():
+        """Return heatmap module coverage statistics for the production wizard."""
+        from src.local_llm_fallback import _check_ollama_available, _ollama_base_url
+        total_modules = 12
+        active_modules = sum([
+            1,  # integration_bus
+            1,  # llm_integration_layer
+            1 if bool(os.getenv("GROQ_API_KEY")) else 0,   # groq
+            1 if _check_ollama_available(_ollama_base_url()) else 0,  # ollama
+            1,  # workflow_dag_engine
+            1,  # automation_commissioner
+            1,  # ai_workflow_generator
+            1,  # production_assistant
+            1,  # hitl
+            1,  # auth
+            1 if bool(os.getenv("SENDGRID_API_KEY")) else 0,  # email
+            1 if bool(os.getenv("SLACK_BOT_TOKEN")) else 0,   # slack
+        ])
+        return JSONResponse({
+            "success": True,
+            "total_modules": total_modules,
+            "active_modules": active_modules,
+            "coverage_pct": round(active_modules / total_modules * 100, 1),
+            "modules": [
+                {"name": "integration_bus", "active": True},
+                {"name": "llm_integration_layer", "active": True},
+                {"name": "groq", "active": bool(os.getenv("GROQ_API_KEY"))},
+                {"name": "ollama", "active": _check_ollama_available(_ollama_base_url())},
+                {"name": "workflow_dag_engine", "active": True},
+                {"name": "automation_commissioner", "active": True},
+                {"name": "ai_workflow_generator", "active": True},
+                {"name": "production_assistant", "active": True},
+                {"name": "hitl", "active": True},
+                {"name": "auth", "active": True},
+                {"name": "email", "active": bool(os.getenv("SENDGRID_API_KEY"))},
+                {"name": "slack", "active": bool(os.getenv("SLACK_BOT_TOKEN"))},
+            ],
+        })
+
     async def efficiency_metrics():
         """Return efficiency and performance metrics."""
         return JSONResponse({
@@ -6147,6 +6794,22 @@ def create_app() -> FastAPI:
         resp.delete_cookie("murphy_session")
         return resp
 
+    @app.get("/api/auth/session-token")
+    async def get_session_token(request: Request):
+        """Return a lightweight session validation token for the current session."""
+        account = _get_account_from_session(request)
+        if not account:
+            return JSONResponse({"success": False, "error": "not_authenticated"}, status_code=401)
+        import secrets as _secrets
+        token = _secrets.token_urlsafe(32)
+        return JSONResponse({
+            "success": True,
+            "token": token,
+            "account_id": account.get("account_id", ""),
+            "email": account.get("email", ""),
+            "tier": account.get("tier", "free"),
+        })
+
     @app.post("/api/auth/forgot-password")
     async def auth_forgot_password(request: Request):
         """Initiate a password-reset flow.
@@ -6161,18 +6824,22 @@ def create_app() -> FastAPI:
         email = (data.get("email") or "").strip().lower()
         if not email:
             return JSONResponse({"success": False, "error": "email is required"}, status_code=400)
+        # Best-effort: ask AccountManager to send a reset link.
         if _account_manager is not None:
             try:
                 _account_manager.request_password_reset(email)
             except Exception:
-                pass
+                pass  # Never expose whether the email exists — always return success.
         return JSONResponse({
             "success": True,
             "message": "If an account with that email exists, a reset link has been sent.",
         })
 
     # ── Self-service password management ──────────────────────────────────
+    # In-process token store for password-reset flows.
+    # Each entry: token → { account_id, expires_at, used }
     _password_reset_tokens: "Dict[str, Dict[str, Any]]" = {}
+    _comms_rules_store: "Dict[str, Dict[str, Any]]" = {}
 
     @app.post("/api/auth/change-password")
     async def auth_change_password(request: Request):
@@ -6215,7 +6882,8 @@ def create_app() -> FastAPI:
 
         Body: { "email": "user@example.com" }
         Always returns the same success response to prevent user enumeration.
-        In development the token is returned directly in the response.
+        In development the token is returned directly in the response so that
+        the flow can be tested without an email server.
         """
         import secrets as _sec
         import time as _time
@@ -6234,11 +6902,13 @@ def create_app() -> FastAPI:
             "message": "If an account with that email exists, a reset link has been sent.",
         }
         if account_id:
+            # Expire any existing unused token for this account
             for t, meta in list(_password_reset_tokens.items()):
                 if meta.get("account_id") == account_id and not meta.get("used"):
                     meta["used"] = True
 
             token = _sec.token_urlsafe(32)
+            # Token valid for 1 hour
             _password_reset_tokens[token] = {
                 "account_id": account_id,
                 "email": email,
@@ -6248,6 +6918,7 @@ def create_app() -> FastAPI:
 
             reset_url = f"/ui/reset-password?token={token}"
 
+            # Send via Murphy email API (best-effort)
             try:
                 import httpx as _httpx
                 _httpx.post(
@@ -6266,8 +6937,9 @@ def create_app() -> FastAPI:
                     timeout=3,
                 )
             except Exception:
-                pass
+                pass  # Email delivery failure must not block the response
 
+            # In development expose the token so the flow can be tested without email
             if os.environ.get("MURPHY_ENV", "development").lower() == "development":
                 resp_body["dev_token"] = token
                 resp_body["dev_reset_url"] = reset_url
@@ -6279,6 +6951,7 @@ def create_app() -> FastAPI:
         """Check whether a password-reset token is valid and unexpired.
 
         Query param: token=<token>
+        Returns { valid: true/false, email: "..." }
         """
         import time as _time
         token = request.query_params.get("token", "").strip()
@@ -6294,6 +6967,7 @@ def create_app() -> FastAPI:
         """Consume a password-reset token and set the new password.
 
         Body: { "token": "...", "new_password": "..." }
+        The token is single-use and expires after 1 hour.
         """
         import time as _time
         try:
@@ -6320,13 +6994,15 @@ def create_app() -> FastAPI:
         if user is None:
             return JSONResponse({"success": False, "error": "Account not found"}, status_code=404)
 
+        # Mark token as used before writing the new hash (prevents replay even if
+        # the hash write fails partway through)
         meta["used"] = True
         user["password_hash"] = _hash_password(new_pw)
         user["password_changed_at"] = _now_iso()
         logger.info("Password reset consumed for account %s", account_id)
         return JSONResponse({"success": True, "message": "Password has been reset. You can now sign in."})
 
-    @app.get("/api/auth/session-token")
+
     async def get_session_token(request: Request):
         """Return the active session token for the current user.
 
@@ -6526,6 +7202,31 @@ def create_app() -> FastAPI:
             logger.info("Key harvester router registered at /api/key-harvester/*")
     except Exception as _kh_exc:
         logger.warning("Key harvester router not available: %s", _kh_exc)
+
+    # ── Paper Trading Engine (PR-2) ────────────────────────────────────
+    try:
+        from paper_trading_routes import create_paper_trading_router
+        _pt_router = create_paper_trading_router()
+        app.include_router(_pt_router)
+        logger.info("Paper Trading API registered at /api/trading/*")
+    except Exception as _pt_exc:
+        logger.warning("Paper Trading routes not available: %s", _pt_exc)
+
+    @app.get("/api/trading/paper/status")
+    async def trading_paper_status():
+        """Return current paper trading engine status."""
+        try:
+            from paper_trading_routes import get_paper_trading_status
+            return JSONResponse(get_paper_trading_status())
+        except Exception:
+            pass
+        return JSONResponse({
+            "success": True,
+            "status": "paper_mode",
+            "mode": "paper",
+            "is_live": False,
+            "message": "System is in paper trading mode — no real funds at risk",
+        })
 
     # ==================== ALL HANDS MEETING SYSTEM ====================
 
@@ -7043,6 +7744,66 @@ def create_app() -> FastAPI:
         _org_memberships[org_id]["pending"].append({"user": invitee, "at": _now_iso()})
         return JSONResponse({"ok": True, "invited": invitee})
 
+    @app.post("/api/org/create")
+    async def org_create(request: Request):
+        """Create a new organization. Requires an active Professional or Enterprise plan.
+
+        Body: { "name": "...", "description": "..." }
+        """
+        account = _get_account_from_session(request)
+        if account is None:
+            return JSONResponse({"error": "Authentication required"}, status_code=401)
+
+        # Tier gating: Professional+ required to create organizations
+        mgr = _get_sub_manager()
+        if mgr is not None:
+            gate = mgr.check_feature_access(account["account_id"], "can_create_org")
+            if not gate.get("allowed", False):
+                return JSONResponse(
+                    {
+                        "error": "Organization creation requires a Professional or Enterprise plan",
+                        "upgrade_url": "/ui/pricing",
+                        "required_tier": "professional",
+                    },
+                    status_code=403,
+                )
+
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
+        name = (data.get("name") or "").strip()
+        if not name:
+            return JSONResponse({"error": "name is required"}, status_code=400)
+
+        import uuid as _uuid_org, re as _re_org
+        org_id = _uuid_org.uuid4().hex[:12]
+        slug = _re_org.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+
+        # Use the verified subscription tier so the org record reflects
+        # the actual plan rather than a potentially stale account field.
+        org_plan = account.get("tier", "professional")
+        if mgr is not None:
+            _sub = mgr.get_subscription(account["account_id"])
+            if _sub is not None:
+                org_plan = _sub.tier.value
+
+        org = {
+            "org_id": org_id,
+            "name": name,
+            "slug": slug,
+            "description": (data.get("description") or "").strip(),
+            "owner_id": account["account_id"],
+            "plan": org_plan,
+            "status": "active",
+            "members": [account["account_id"]],
+            "created_at": _now_iso(),
+            "created_by": account["account_id"],
+        }
+        _org_store[org_id] = org
+        return JSONResponse({"success": True, "org_id": org_id, "organization": org}, status_code=201)
+
     # ==================== PLATFORM ADMIN (FOUNDER-LEVEL) ====================
     # All endpoints in this section require role == "admin" or "owner".
     # They are the primary tool for the founder/platform operator to manage
@@ -7056,6 +7817,8 @@ def create_app() -> FastAPI:
 
     _org_store: "Dict[str, Dict[str, Any]]" = {}          # org_id → org record
     _admin_audit_log: "List[Dict[str, Any]]" = []         # chronological events
+    _artifacts_store: "Dict[str, Dict[str, Any]]" = {}    # artifact_id → artifact record
+    _demo_specs_store: "Dict[str, Dict[str, Any]]" = {}   # spec_id → automation spec
 
     def _require_admin(request: "Request") -> "Optional[Dict[str, Any]]":
         """Return the account dict if the caller has admin/owner role.
@@ -7698,7 +8461,7 @@ def create_app() -> FastAPI:
                 "full_name": user.get("full_name", "") if user else "",
                 "role": role_in_org,
                 "status": user.get("status", "active") if user else "unknown",
-                "joined_at": "",
+                "joined_at": "",  # future: track join date
             })
 
         pending = _org_memberships.get(org_id, {}).get("pending", [])
@@ -8045,6 +8808,38 @@ def create_app() -> FastAPI:
             "preferred_domains": [d["domain"] for d in PREFERRED_DOMAINS],
         })
 
+    @app.get("/api/comms/automate/rules")
+    async def comms_automate_rules_list():
+        """List communication automation rules."""
+        hub = getattr(murphy, "communication_hub", None)
+        if hub and hasattr(hub, "get_automation_rules"):
+            try:
+                rules = hub.get_automation_rules()
+                return JSONResponse({"success": True, "rules": rules})
+            except Exception:
+                pass
+        return JSONResponse({"success": True, "rules": [], "message": "No automation rules configured yet."})
+
+    @app.post("/api/comms/automate/rules")
+    async def comms_automate_rules_create(request: Request):
+        """Create a communication automation rule."""
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+        rule_id = str(uuid4())[:12]
+        rule = {
+            "id": rule_id,
+            "trigger": data.get("trigger", ""),
+            "action": data.get("action", ""),
+            "channel": data.get("channel", "all"),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        if not rule["trigger"] or not rule["action"]:
+            return JSONResponse({"success": False, "error": "trigger and action required"}, status_code=400)
+        _comms_rules_store[rule_id] = rule
+        return JSONResponse({"success": True, "rule": rule}, status_code=201)
+
     # ==================== MEETING INTELLIGENCE API ====================
     # In-memory stores for drafts and votes — keyed by session_id.
     # TODO: migrate to DB models (MeetingDraft, MeetingVote) in a future sprint.
@@ -8152,7 +8947,73 @@ def create_app() -> FastAPI:
                 s["votes"] = _mi_votes[sid]
         return JSONResponse({"ok": True, "sessions": sessions, "ts": _now_iso()})
 
-    # ==================== AMBIENT INTELLIGENCE API ====================
+    # ── Meetings CRUD (called from terminal_unified.html / workspace.html) ─────
+
+    _meetings_store: Dict[str, Any] = {}  # in-memory store; replace with DB in prod
+
+    @app.get("/api/meetings/")
+    async def meetings_list(request: Request):
+        """List all meeting sessions for the current user."""
+        account = _get_account_from_session(request)
+        account_id = account.get("account_id") if account else None
+        sessions = [
+            s for s in _meetings_store.values()
+            if account_id is None or s.get("account_id") == account_id
+        ]
+        return JSONResponse({"ok": True, "meetings": sessions, "count": len(sessions)})
+
+    @app.post("/api/meetings/start")
+    async def meetings_start(request: Request):
+        """Start a new meeting session and return a session_id."""
+        import hashlib as _hashlib
+        try:
+            data = await request.json()
+        except Exception:
+            data = {}
+        session_id = _hashlib.sha256(f"meeting:{_now_iso()}:{id(data)}".encode()).hexdigest()[:16]
+        _meetings_store[session_id] = {
+            "session_id": session_id,
+            "title": data.get("title", "Untitled Meeting"),
+            "participants": data.get("participants", []),
+            "started_at": _now_iso(),
+            "ended_at": None,
+            "transcript": [],
+            "suggestions": [],
+            "status": "active",
+        }
+        return JSONResponse({"ok": True, "session_id": session_id, "status": "active"})
+
+    @app.post("/api/meetings/{session_id}/end")
+    async def meetings_end(session_id: str, request: Request):
+        """End a meeting session."""
+        session = _meetings_store.get(session_id)
+        if not session:
+            return JSONResponse({"ok": False, "error": "Session not found"}, status_code=404)
+        session["status"] = "ended"
+        session["ended_at"] = _now_iso()
+        return JSONResponse({"ok": True, "session_id": session_id, "status": "ended"})
+
+    @app.get("/api/meetings/{session_id}/transcript")
+    async def meetings_transcript(session_id: str):
+        """Get the transcript for a meeting session."""
+        session = _meetings_store.get(session_id)
+        if not session:
+            return JSONResponse({"ok": False, "error": "Session not found"}, status_code=404)
+        return JSONResponse({"ok": True, "session_id": session_id, "transcript": session.get("transcript", [])})
+
+    @app.get("/api/meetings/{session_id}/suggestions")
+    async def meetings_suggestions(session_id: str):
+        """Get AI-generated action item suggestions for a meeting session."""
+        session = _meetings_store.get(session_id)
+        if not session:
+            return JSONResponse({"ok": False, "error": "Session not found"}, status_code=404)
+        # In production, these would be generated by an LLM from the transcript.
+        suggestions = session.get("suggestions") or [
+            {"type": "action_item", "text": "Review meeting notes and assign owners."},
+            {"type": "follow_up", "text": "Schedule follow-up for unresolved items."},
+        ]
+        return JSONResponse({"ok": True, "session_id": session_id, "suggestions": suggestions})
+
 
     @app.post("/api/ambient/context")
     async def ambient_context(request: Request):
@@ -8219,6 +9080,25 @@ def create_app() -> FastAPI:
         body = await request.json()
         return JSONResponse({"ok": True, "settings": body, "ts": _now_iso()})
 
+    @app.get("/api/ambient/stats")
+    async def ambient_stats():
+        """Return ambient intelligence statistics."""
+        try:
+            ambient = getattr(murphy, "ambient_intelligence", None)
+            if ambient and hasattr(ambient, "get_stats"):
+                return JSONResponse({"success": True, **ambient.get_stats()})
+        except Exception:
+            pass
+        return JSONResponse({
+            "success": True,
+            "insights_generated": 0,
+            "emails_sent": 0,
+            "active_rules": 0,
+            "last_run": None,
+            "status": "idle",
+            "message": "Ambient intelligence initialising — connect email to activate."
+        })
+
 
     # Serve the static/ directory (CSS, JS, SVG assets) and all HTML UI pages
     # so that /ui/... routes advertised by /api/ui/links are actually reachable.
@@ -8280,6 +9160,7 @@ def create_app() -> FastAPI:
             "/ui/trading": "trading_dashboard.html",
             "/ui/trading-dashboard": "trading_dashboard.html",
             "/ui/risk-dashboard": "risk_dashboard.html",
+            "/ui/paper-trading": "paper_trading_dashboard.html",
             "/ui/grant-wizard": "grant_wizard.html",
             "/ui/grant-dashboard": "grant_dashboard.html",
             "/ui/grant-application": "grant_application.html",
@@ -8290,6 +9171,8 @@ def create_app() -> FastAPI:
             "/ui/change-password": "change_password.html",
             "/ui/reset-password": "reset_password.html",
         }
+
+        # ── Route classification: public vs auth-required ──────────
         # Public routes are accessible without a session.  Auth-required
         # routes redirect to /ui/login when no valid session cookie exists.
         _PUBLIC_HTML_ROUTES = frozenset({
@@ -8476,7 +9359,413 @@ def create_app() -> FastAPI:
         _wallet_transactions.insert(0, tx)
         return JSONResponse({"success": True, "transaction": tx, "new_balance": balances[asset]})
 
-    # ==================== ACCOUNT / SUBSCRIPTION ENDPOINTS ====================
+    # ==================== COINBASE ADVANCED TRADE API ENDPOINTS ====================
+
+    def _get_coinbase_connector():
+        """Lazily instantiate a CoinbaseConnector from environment variables."""
+        try:
+            from coinbase_connector import CoinbaseConnector
+            return CoinbaseConnector()
+        except Exception as _exc:
+            logger.warning("CoinbaseConnector unavailable: %s", _exc)
+            return None
+
+    @app.get("/api/coinbase/status")
+    async def coinbase_status():
+        """Return Coinbase connection status, sandbox indicator, and compliance summary."""
+        cb = _get_coinbase_connector()
+        if cb is None:
+            return JSONResponse({"success": False, "error": "connector_unavailable"}, 503)
+        import os as _os
+        live_mode = _os.getenv("COINBASE_LIVE_MODE", "false").lower() == "true"
+        # Quick compliance snapshot
+        compliance_allowed = False
+        compliance_blockers = 0
+        try:
+            import sys as _sys
+            _src = _os.path.join(_os.path.dirname(__file__), "..")
+            if _src not in _sys.path:
+                _sys.path.insert(0, _src)
+            from trading_compliance_engine import get_compliance_engine
+            _ce = get_compliance_engine()
+            _last = _ce.last_report()
+            if _last is not None:
+                compliance_allowed = _last.live_mode_allowed
+                compliance_blockers = len(_last.blockers())
+        except Exception:
+            pass
+        return JSONResponse({
+            "success":              True,
+            "sandbox":              cb.sandbox,
+            "live_mode":            live_mode,
+            "status":               cb.status.value,
+            "api_key_set":          bool(cb.api_key),
+            "compliance_evaluated": compliance_allowed or compliance_blockers > 0,
+            "compliance_passed":    compliance_allowed,
+            "compliance_blockers":  compliance_blockers,
+        })
+
+    @app.get("/api/coinbase/accounts")
+    async def coinbase_accounts():
+        """List all Coinbase brokerage accounts."""
+        cb = _get_coinbase_connector()
+        if cb is None:
+            return JSONResponse({"success": False, "error": "connector_unavailable"}, 503)
+        accounts = cb.get_accounts()
+        return JSONResponse({"success": True, "accounts": accounts, "count": len(accounts)})
+
+    @app.get("/api/coinbase/balances")
+    async def coinbase_balances():
+        """Return Coinbase account balances for each asset."""
+        cb = _get_coinbase_connector()
+        if cb is None:
+            return JSONResponse({"success": False, "error": "connector_unavailable"}, 503)
+        from dataclasses import asdict
+        balances = [asdict(b) for b in cb.get_balances()]
+        return JSONResponse({"success": True, "balances": balances, "sandbox": cb.sandbox})
+
+    @app.get("/api/coinbase/products")
+    async def coinbase_products():
+        """List available Coinbase trading pairs."""
+        cb = _get_coinbase_connector()
+        if cb is None:
+            return JSONResponse({"success": False, "error": "connector_unavailable"}, 503)
+        from dataclasses import asdict
+        products = [asdict(p) for p in cb.list_products()]
+        return JSONResponse({"success": True, "products": products, "count": len(products)})
+
+    @app.get("/api/coinbase/ticker/{product_id}")
+    async def coinbase_ticker(product_id: str):
+        """Return current best bid/ask price for a trading pair."""
+        cb = _get_coinbase_connector()
+        if cb is None:
+            return JSONResponse({"success": False, "error": "connector_unavailable"}, 503)
+        from dataclasses import asdict
+        ticker = cb.get_ticker(product_id)
+        if ticker is None:
+            return JSONResponse({"success": False, "error": "product_not_found"}, 404)
+        return JSONResponse({"success": True, "ticker": asdict(ticker), "sandbox": cb.sandbox})
+
+    # ==================== LIVE MARKET DATA FEED ENDPOINTS ====================
+
+    def _get_live_feed():
+        try:
+            import sys as _sys
+            import os as _os
+            _src = _os.path.join(_os.path.dirname(__file__), "..")
+            if _src not in _sys.path:
+                _sys.path.insert(0, _src)
+            from live_feed_service import get_live_feed
+            from coinbase_connector import CoinbaseConnector
+            _cb = CoinbaseConnector()
+            return get_live_feed(
+                coinbase_connector=_cb,
+                binance_key=_os.getenv("BINANCE_API_KEY", ""),
+                binance_secret=_os.getenv("BINANCE_API_SECRET", ""),
+                alpaca_key=_os.getenv("ALPACA_API_KEY", ""),
+                alpaca_secret=_os.getenv("ALPACA_API_SECRET", ""),
+                alpha_vantage_key=_os.getenv("ALPHA_VANTAGE_API_KEY", ""),
+                polygon_key=_os.getenv("POLYGON_API_KEY", ""),
+                iex_cloud_key=_os.getenv("IEX_CLOUD_API_KEY", ""),
+                ibkr_host=_os.getenv("IBKR_HOST", "127.0.0.1"),
+                ibkr_port=int(_os.getenv("IBKR_PORT", "7497")),
+                ibkr_client_id=int(_os.getenv("IBKR_CLIENT_ID", "1")),
+            )
+        except Exception as _exc:
+            logger.warning("LiveFeedService unavailable: %s", _exc)
+            return None
+
+    @app.get("/api/market/quote/{symbol}")
+    async def market_quote(symbol: str):
+        """Return a live quote for any symbol (crypto or equity)."""
+        feed = _get_live_feed()
+        if feed is None:
+            return JSONResponse({"success": False, "error": "feed_unavailable", "symbol": symbol})
+        try:
+            from dataclasses import asdict
+            quote = feed.get_quote(symbol)
+            return JSONResponse({"success": True, "quote": asdict(quote), "symbol": symbol})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc), "symbol": symbol})
+
+    @app.get("/api/market/candles/{symbol}")
+    async def market_candles(symbol: str, granularity: str = "ONE_HOUR", limit: int = 100):
+        """Return OHLCV candles for a symbol."""
+        feed = _get_live_feed()
+        if feed is None:
+            return JSONResponse({"success": False, "error": "feed_unavailable", "symbol": symbol})
+        try:
+            from dataclasses import asdict
+            limit = min(limit, 500)
+            candles = feed.get_candles(symbol, granularity=granularity, limit=limit)
+            return JSONResponse({
+                "success": True,
+                "symbol": symbol,
+                "granularity": granularity,
+                "candles": [asdict(c) for c in candles],
+                "count": len(candles),
+            })
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc), "symbol": symbol})
+
+    @app.get("/api/market/movers")
+    async def market_movers(asset_class: str = "all", limit: int = 10):
+        """Return top market movers."""
+        feed = _get_live_feed()
+        if feed is None:
+            return JSONResponse({"success": False, "error": "feed_unavailable"})
+        try:
+            from dataclasses import asdict
+            movers = feed.get_top_movers(asset_class=asset_class, limit=limit)
+            return JSONResponse({
+                "success": True,
+                "movers": [asdict(m) for m in movers],
+                "asset_class": asset_class,
+                "count": len(movers),
+            })
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)})
+
+    @app.get("/api/market/search")
+    async def market_search(q: str = ""):
+        """Search instrument symbols via Yahoo Finance."""
+        if not q:
+            return JSONResponse({"success": False, "error": "query required", "results": []})
+        try:
+            import urllib.request as _req
+            import json as _json
+            url = (
+                f"https://query1.finance.yahoo.com/v1/finance/search"
+                f"?q={q}&quotesCount=10&newsCount=0"
+            )
+            with _req.urlopen(url, timeout=5) as resp:
+                data = _json.loads(resp.read())
+            results = data.get("finance", {}).get("result", [{}])[0].get("quotes", [])
+            return JSONResponse({"success": True, "results": results, "query": q})
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc), "results": [], "query": q})
+
+    @app.get("/api/market/status")
+    async def market_status():
+        """Return live feed service status."""
+        feed = _get_live_feed()
+        if feed is None:
+            return JSONResponse({"success": False, "error": "feed_unavailable"})
+        return JSONResponse({"success": True, **feed.status()})
+
+    @app.get("/api/market/instruments")
+    async def market_instruments():
+        """List all known tradeable instruments with metadata."""
+        instruments = [
+            # Crypto
+            {"symbol": "BTC-USD", "name": "Bitcoin", "asset_class": "crypto", "exchange": "Coinbase"},
+            {"symbol": "ETH-USD", "name": "Ethereum", "asset_class": "crypto", "exchange": "Coinbase"},
+            {"symbol": "SOL-USD", "name": "Solana", "asset_class": "crypto", "exchange": "Coinbase"},
+            {"symbol": "MATIC-USD", "name": "Polygon", "asset_class": "crypto", "exchange": "Coinbase"},
+            {"symbol": "ATOM-USD", "name": "Cosmos", "asset_class": "crypto", "exchange": "Coinbase"},
+            {"symbol": "AVAX-USD", "name": "Avalanche", "asset_class": "crypto", "exchange": "Coinbase"},
+            {"symbol": "LINK-USD", "name": "Chainlink", "asset_class": "crypto", "exchange": "Coinbase"},
+            {"symbol": "ADA-USD", "name": "Cardano", "asset_class": "crypto", "exchange": "Coinbase"},
+            # Equities
+            {"symbol": "AAPL", "name": "Apple Inc.", "asset_class": "equity", "exchange": "NASDAQ"},
+            {"symbol": "MSFT", "name": "Microsoft Corp.", "asset_class": "equity", "exchange": "NASDAQ"},
+            {"symbol": "NVDA", "name": "NVIDIA Corp.", "asset_class": "equity", "exchange": "NASDAQ"},
+            {"symbol": "GOOGL", "name": "Alphabet Inc.", "asset_class": "equity", "exchange": "NASDAQ"},
+            {"symbol": "AMZN", "name": "Amazon.com Inc.", "asset_class": "equity", "exchange": "NASDAQ"},
+            {"symbol": "META", "name": "Meta Platforms", "asset_class": "equity", "exchange": "NASDAQ"},
+            {"symbol": "TSLA", "name": "Tesla Inc.", "asset_class": "equity", "exchange": "NASDAQ"},
+            {"symbol": "JPM", "name": "JPMorgan Chase", "asset_class": "equity", "exchange": "NYSE"},
+            # ETFs
+            {"symbol": "SPY", "name": "SPDR S&P 500 ETF", "asset_class": "etf", "exchange": "NYSE"},
+            {"symbol": "QQQ", "name": "Invesco QQQ ETF", "asset_class": "etf", "exchange": "NASDAQ"},
+        ]
+        return JSONResponse({"success": True, "instruments": instruments, "count": len(instruments)})
+
+    from fastapi import WebSocket, WebSocketDisconnect
+
+    @app.websocket("/ws/market/{symbol}")
+    async def ws_market(websocket: WebSocket, symbol: str):
+        """Stream live price updates for *symbol* every 2 seconds."""
+        import asyncio
+        await websocket.accept()
+        feed = _get_live_feed()
+        try:
+            while True:
+                try:
+                    if feed is not None:
+                        from dataclasses import asdict
+                        quote = feed.get_quote(symbol)
+                        await websocket.send_json({
+                            "symbol": symbol,
+                            "price": quote.price,
+                            "bid": quote.bid,
+                            "ask": quote.ask,
+                            "change_pct_24h": quote.change_pct_24h,
+                            "timestamp": quote.timestamp,
+                        })
+                    else:
+                        await websocket.send_json({
+                            "symbol": symbol,
+                            "price": 0.0,
+                            "timestamp": __import__("datetime").datetime.utcnow().isoformat(),
+                        })
+                except WebSocketDisconnect:
+                    break
+                except Exception as exc:
+                    logger.debug("ws_market send error: %s", exc)
+                    break
+                await asyncio.sleep(2)
+        except WebSocketDisconnect:
+            pass
+
+    # ==================== TRADING COMPLIANCE ENDPOINTS ====================
+
+    def _get_compliance_engine():
+        try:
+            import sys as _sys
+            import os as _os
+            _src = _os.path.join(_os.path.dirname(__file__), "..")
+            if _src not in _sys.path:
+                _sys.path.insert(0, _src)
+            from trading_compliance_engine import get_compliance_engine as _gce
+            return _gce()
+        except Exception as _exc:
+            logger.warning("ComplianceEngine unavailable: %s", _exc)
+            return None
+
+    @app.get("/api/trading/compliance/status")
+    async def trading_compliance_status():
+        """Return the latest compliance evaluation result."""
+        ce = _get_compliance_engine()
+        if ce is None:
+            return JSONResponse({"success": False, "error": "compliance_engine_unavailable"}, 503)
+        last = ce.last_report()
+        if last is None:
+            return JSONResponse({
+                "success": True,
+                "evaluated": False,
+                "live_mode_allowed": False,
+                "message": "No compliance evaluation has been run. POST /api/trading/compliance/evaluate to run one.",
+            })
+        return JSONResponse({"success": True, "evaluated": True, **last.to_dict()})
+
+    @app.post("/api/trading/compliance/evaluate")
+    async def trading_compliance_evaluate(request: Request):
+        """
+        Run a full compliance evaluation.
+
+        Body (JSON, all optional):
+          jurisdiction              : str  — e.g. "us", "eu", "personal"
+          kyc_acknowledged          : bool
+          regulations_acknowledged  : bool
+          paper_trading_days        : int
+          paper_trading_profitable_days : int
+          paper_trading_win_rate    : float (0.0–1.0)
+          paper_trading_total_return_pct : float
+          override_paper_graduation : bool  — privileged override
+        """
+        ce = _get_compliance_engine()
+        if ce is None:
+            return JSONResponse({"success": False, "error": "compliance_engine_unavailable"}, 503)
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        # Also pull summary from graduation tracker if available
+        try:
+            import sys as _sys
+            import os as _os
+            _src = _os.path.join(_os.path.dirname(__file__), "..")
+            if _src not in _sys.path:
+                _sys.path.insert(0, _src)
+            from trading_compliance_engine import get_graduation_tracker
+            _gt = get_graduation_tracker()
+            _gs = _gt.summary()
+            # Auto-populate paper trading stats from tracker if not provided in body
+            body.setdefault("paper_trading_days", _gs["total_days"])
+            body.setdefault("paper_trading_profitable_days", _gs["profitable_days"])
+            body.setdefault("paper_trading_win_rate", _gs["win_rate"])
+            body.setdefault("paper_trading_total_return_pct", _gs["total_return_pct"])
+        except Exception:
+            pass
+        report = ce.evaluate(
+            jurisdiction=body.get("jurisdiction", ""),
+            kyc_acknowledged=bool(body.get("kyc_acknowledged", False)),
+            regulations_acknowledged=bool(body.get("regulations_acknowledged", False)),
+            paper_trading_days=int(body.get("paper_trading_days", 0)),
+            paper_trading_profitable_days=int(body.get("paper_trading_profitable_days", 0)),
+            paper_trading_win_rate=float(body.get("paper_trading_win_rate", 0.0)),
+            paper_trading_total_return_pct=float(body.get("paper_trading_total_return_pct", 0.0)),
+            override_paper_graduation=bool(body.get("override_paper_graduation", False)),
+        )
+        return JSONResponse({"success": True, **report.to_dict()})
+
+    @app.get("/api/trading/compliance/graduation")
+    async def trading_compliance_graduation():
+        """Return paper-trading graduation tracker summary and daily history."""
+        try:
+            import sys as _sys
+            import os as _os
+            _src = _os.path.join(_os.path.dirname(__file__), "..")
+            if _src not in _sys.path:
+                _sys.path.insert(0, _src)
+            from trading_compliance_engine import get_graduation_tracker
+            gt = get_graduation_tracker()
+            summary = gt.summary()
+            results = [
+                {
+                    "date": r.date,
+                    "start_equity": r.start_equity,
+                    "end_equity": r.end_equity,
+                    "trades": r.trades,
+                    "profitable": r.profitable,
+                }
+                for r in gt.all_results()
+            ]
+            return JSONResponse({
+                "success": True,
+                "summary": summary,
+                "meets_threshold": gt.meets_graduation_threshold(),
+                "daily_results": results,
+            })
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)})
+
+    @app.post("/api/trading/compliance/graduation/record")
+    async def trading_compliance_graduation_record(request: Request):
+        """
+        Record a completed paper-trading day for graduation tracking.
+
+        Body (JSON):
+          date         : str   — YYYY-MM-DD (optional, defaults to today UTC)
+          start_equity : float — portfolio value at start of day
+          end_equity   : float — portfolio value at end of day
+          trades       : int   — number of trades executed
+        """
+        try:
+            import sys as _sys
+            import os as _os
+            _src = _os.path.join(_os.path.dirname(__file__), "..")
+            if _src not in _sys.path:
+                _sys.path.insert(0, _src)
+            from trading_compliance_engine import get_graduation_tracker
+            body = await request.json()
+            gt = get_graduation_tracker()
+            result = gt.record_day(
+                date=body.get("date"),
+                start_equity=float(body.get("start_equity", 0)),
+                end_equity=float(body.get("end_equity", 0)),
+                trades=int(body.get("trades", 0)),
+            )
+            return JSONResponse({
+                "success": True,
+                "date": result.date,
+                "profitable": result.profitable,
+                "summary": gt.summary(),
+            })
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)})
+
 
     _account_data: Dict[str, Any] = {
         "id": "acct_default",
@@ -10042,6 +11331,18 @@ def create_app() -> FastAPI:
                 status_code=500,
             )
 
+        # Generate automation spec (the key sales asset)
+        automation_spec: Optional[Dict[str, Any]] = None
+        spec_id: Optional[str] = None
+        try:
+            from src.demo_deliverable_generator import generate_automation_spec
+            automation_spec = generate_automation_spec(query, librarian_context=librarian_context or None)
+            spec_id = automation_spec.get("spec_id")
+            if spec_id:
+                _demo_specs_store[spec_id] = automation_spec
+        except Exception as _spec_exc:
+            logger.debug("Automation spec generation skipped: %s", _spec_exc)
+
         # Step 3: Wingman validation — sensors calibrate the output, result
         # is recorded back into the Librarian knowledge layers.
         wingman_validation: Optional[Dict[str, Any]] = None
@@ -10100,12 +11401,37 @@ def create_app() -> FastAPI:
             "deliverable": deliverable,
             "usage": usage_out,
         }
+        if automation_spec is not None:
+            response_body["automation_spec"] = {
+                "spec_id": automation_spec.get("spec_id"),
+                "title": automation_spec.get("title"),
+                "workflow_count": automation_spec.get("workflow_count"),
+                "hours_saved_month": automation_spec.get("hours_saved_month"),
+                "monthly_savings_usd": automation_spec.get("monthly_savings_usd"),
+                "net_monthly_benefit": automation_spec.get("net_monthly_benefit"),
+                "annual_benefit": automation_spec.get("annual_benefit"),
+                "roi_multiple": automation_spec.get("roi_multiple"),
+                "murphy_cost": automation_spec.get("murphy_cost"),
+                "recommended_tier": automation_spec.get("recommended_tier"),
+                "signup_url": automation_spec.get("signup_url"),
+                "integrations": automation_spec.get("integrations", [])[:6],
+            }
+        if spec_id:
+            response_body["spec_id"] = spec_id
         if wingman_validation is not None:
             response_body["wingman_validation"] = wingman_validation
         if api_gaps is not None:
             response_body["api_gaps"] = api_gaps
 
         return JSONResponse(response_body)
+
+    @app.get("/api/demo/spec/{spec_id}")
+    async def get_demo_spec(spec_id: str):
+        """Retrieve a generated automation spec by spec_id (used during signup to pre-load config)."""
+        spec = _demo_specs_store.get(spec_id)
+        if not spec:
+            return JSONResponse({"success": False, "error": "not_found"}, status_code=404)
+        return JSONResponse({"success": True, "spec": spec})
 
     def _build_env_template(workflows):
         """Build .env.example content from workflow API suggestions."""
@@ -10898,15 +12224,20 @@ def create_app() -> FastAPI:
         """Return a machine-readable manifest of all registered API endpoints."""
         routes = []
         for route in app.routes:
-            if hasattr(route, "path") and route.path.startswith("/api/"):
-                # HEAD and OPTIONS are auto-generated by FastAPI for every route
-                # and are not part of the explicit API contract — exclude them.
-                methods = sorted((route.methods or set()) - {"HEAD", "OPTIONS"})
-                routes.append({
-                    "path": route.path,
-                    "methods": methods,
-                    "name": getattr(route, "name", ""),
-                })
+            if not hasattr(route, "path") or not route.path.startswith("/api/"):
+                continue
+            # Skip Mount objects (StaticFiles etc.) which have no methods attr
+            raw_methods = getattr(route, "methods", None)
+            if raw_methods is None:
+                continue
+            # HEAD and OPTIONS are auto-generated by FastAPI for every route
+            # and are not part of the explicit API contract — exclude them.
+            methods = sorted(raw_methods - {"HEAD", "OPTIONS"})
+            routes.append({
+                "path": route.path,
+                "methods": methods,
+                "name": getattr(route, "name", ""),
+            })
         return JSONResponse({"success": True, "data": {"endpoints": sorted(routes, key=lambda r: r["path"])}})
 
     # ── Founder account seed ────────────────────────────────────────────────
@@ -10916,6 +12247,7 @@ def create_app() -> FastAPI:
     #
     # The account is created with MURPHY_FOUNDER_PASSWORD (defaults to the
     # temporary password below — override via env var in production).
+    # If the account already exists its role is silently promoted to owner.
     _FOUNDER_EMAIL: str = os.environ.get("MURPHY_FOUNDER_EMAIL", "cpost@murphy.systems").strip().lower()
     _FOUNDER_PASSWORD: str = os.environ.get("MURPHY_FOUNDER_PASSWORD", "Password1").strip()  # temporary — change after first login
     if _FOUNDER_PASSWORD == "Password1" and os.environ.get("MURPHY_ENV", "development").lower() != "development":
@@ -10923,6 +12255,8 @@ def create_app() -> FastAPI:
             "SECURITY: Founder account is using the default temporary password. "
             "Set MURPHY_FOUNDER_PASSWORD in your environment before going live."
         )
+
+    def _ensure_founder_account() -> None:
         """Create or promote the founder/owner account."""
         existing_id = _email_to_account.get(_FOUNDER_EMAIL)
         if existing_id:

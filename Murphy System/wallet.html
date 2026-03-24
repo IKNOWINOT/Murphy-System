@@ -575,7 +575,6 @@
         <div class="asset-name">Full Risk Dashboard</div>
         <div class="asset-symbol">View audit log, graduation &amp; controls →</div>
       </div>
-    </div>
   <!-- ── Coinbase Connection ── -->
   <div class="wallet-section-heading">Coinbase Advanced Trade</div>
   <div class="cb-panel cb-sandbox" id="cb-panel" role="region" aria-label="Coinbase connection status">
@@ -615,6 +614,35 @@
       </button>
     </div>
 
+  <!-- ── Paper Trading Quick Access ── -->
+  <div class="wallet-section-heading">Trading</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem;margin-bottom:2rem">
+    <a href="/ui/paper-trading" style="text-decoration:none">
+      <div class="asset-card" style="cursor:pointer;border-color:rgba(0,212,170,.2)">
+        <div class="asset-card-top">
+          <div class="asset-icon mrph" aria-hidden="true">📊</div>
+          <div>
+            <div class="asset-name">Paper Trading Dashboard</div>
+            <div class="asset-symbol">Simulate · Backtest · Calibrate</div>
+          </div>
+        </div>
+        <div class="asset-balance" style="font-size:var(--text-base)">9 Strategy Templates</div>
+        <div class="asset-usd">Momentum · Mean Reversion · Breakout · Scalping · DCA · Grid · Trajectory · Sentiment · Arbitrage</div>
+        <div class="asset-change up">No real money — paper trades only</div>
+      </div>
+    </a>
+    <div class="asset-card" id="pt-status-widget" style="border-color:rgba(86,103,120,.2)">
+      <div class="asset-card-top">
+        <div class="asset-icon" style="background:rgba(0,255,65,.1);color:#00ff41" aria-hidden="true">⚡</div>
+        <div>
+          <div class="asset-name">Engine Status</div>
+          <div class="asset-symbol" id="pt-widget-status">Loading…</div>
+        </div>
+      </div>
+      <div class="asset-balance" id="pt-widget-equity" style="font-size:var(--text-base)">—</div>
+      <div class="asset-usd" id="pt-widget-trades">0 trades completed</div>
+      <div class="asset-change" id="pt-widget-return">—</div>
+    </div>
   </div>
 
 </main>
@@ -692,8 +720,8 @@
             var usdEl = card.querySelector('.asset-usd');
             var changeEl = card.querySelector('.asset-change');
             if (usdEl && q.price > 0) {
-              var bal = parseFloat(card.querySelector('.asset-balance')
-                ? card.querySelector('.asset-balance').textContent.split(' ')[0].replace(',','') : '0');
+              var balEl = card.querySelector('.asset-balance');
+              var bal = parseFloat(balEl ? balEl.textContent.split(' ')[0].replace(',','') : '0');
               usdEl.textContent = '\u2248 $' + (bal * q.price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
             }
             if (changeEl && q.change_pct_24h !== undefined) {
@@ -725,6 +753,11 @@
         t.classList.remove('active'); t.setAttribute('aria-selected', 'false');
       });
       tab.classList.add('active'); tab.setAttribute('aria-selected', 'true');
+      var chain = tab.dataset.chain || 'all';
+      document.querySelectorAll('.wallet-asset-row,[data-chain]').forEach(function (row) {
+        var rc = row.dataset.chain || 'all';
+        row.style.display = (chain === 'all' || rc === chain || rc === 'all') ? '' : 'none';
+      });
     });
   });
 
@@ -760,6 +793,22 @@
     addrEl.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); copyAddress(); } });
   }
 
+  /* ── Action panel openers ── */
+  (function () {
+    function showPanel(id) {
+      ['send-panel','receive-panel','swap-panel'].forEach(function (p) {
+        var el = document.getElementById(p);
+        if (el) el.style.display = p === id ? 'block' : 'none';
+      });
+    }
+    var sendOpen = document.getElementById('btn-send-open');
+    if (sendOpen) sendOpen.addEventListener('click', function () { showPanel('send-panel'); });
+    var recvOpen = document.getElementById('btn-receive-open');
+    if (recvOpen) recvOpen.addEventListener('click', function () { showPanel('receive-panel'); });
+    var swapOpen = document.getElementById('btn-swap-open');
+    if (swapOpen) swapOpen.addEventListener('click', function () { showPanel('swap-panel'); });
+  }());
+
   /* ── MAX button ── */
   var balances = { btc: '0.3142', eth: '3.875', sol: '28.5', usdc: '985.29', matic: '1240' };
   document.getElementById('btn-send-max').addEventListener('click', function () {
@@ -772,8 +821,8 @@
     var to     = document.getElementById('send-to').value.trim();
     var amount = document.getElementById('send-amount').value.trim();
     var asset  = document.getElementById('send-asset').value.toUpperCase();
-    if (!to) { alert('Please enter a recipient address.'); return; }
-    if (!amount || parseFloat(amount) <= 0) { alert('Please enter a valid amount.'); return; }
+    if (!to) { (function(){var el=document.getElementById('send-to');if(el){el.style.border='1px solid #ff4444';el.focus();setTimeout(function(){el.style.border='';},3000);}})(); return; }
+    if (!amount || parseFloat(amount) <= 0) { (function(){var el=document.getElementById('send-amount');if(el){el.style.border='1px solid #ff4444';el.focus();setTimeout(function(){el.style.border='';},3000);}})(); return; }
     if (!confirm('Send ' + amount + ' ' + asset + ' to\n' + to + '?\n\nThis action cannot be undone.')) return;
     fetch('/api/wallet/send', {
       method: 'POST',
@@ -783,15 +832,15 @@
     .then(function (r) { return r.json(); })
     .then(function (d) {
       if (d.success) {
-        alert('✅ Transaction submitted! TX ID: ' + (d.transaction && d.transaction.id || 'pending'));
+        (function(txId){var el=document.getElementById('send-panel-status')||document.querySelector('.send-status,.wallet-status');if(el){el.textContent='✅ Transaction submitted! TX ID: '+(txId||'pending');el.style.color='#00D4AA';el.style.display='block';}else{var d2=document.createElement('div');d2.style.cssText='padding:8px 12px;background:rgba(0,212,170,.1);border:1px solid #00D4AA;border-radius:6px;color:#00D4AA;margin-top:8px;font-size:.85rem;';d2.textContent='✅ Transaction submitted! TX ID: '+(txId||'pending');var p=document.getElementById('send-panel');if(p)p.appendChild(d2);}})(d.transaction && d.transaction.id || 'pending');
         document.getElementById('send-to').value = '';
         document.getElementById('send-amount').value = '';
         refreshBalances();
       } else {
-        alert('❌ ' + (d.error || 'Transaction failed'));
+        (function(msg){var el=document.getElementById('send-panel-status')||document.querySelector('.send-status,.wallet-status');if(el){el.textContent='❌ '+(msg||'Transaction failed');el.style.color='#ff4444';el.style.display='block';}else{var d2=document.createElement('div');d2.style.cssText='padding:8px 12px;background:rgba(255,68,68,.1);border:1px solid #ff4444;border-radius:6px;color:#ff4444;margin-top:8px;font-size:.85rem;';d2.textContent='❌ '+(msg||'Transaction failed');var p=document.getElementById('send-panel');if(p)p.appendChild(d2);}})(d.error || 'Transaction failed');
       }
     })
-    .catch(function () { alert('❌ Network error — could not submit transaction.'); });
+    .catch(function () { (function(){var el=document.getElementById('send-panel-status')||document.querySelector('.send-status,.wallet-status');if(el){el.textContent='❌ Network error — could not submit transaction.';el.style.color='#ff4444';el.style.display='block';}else{var d2=document.createElement('div');d2.style.cssText='padding:8px 12px;background:rgba(255,68,68,.1);border:1px solid #ff4444;border-radius:6px;color:#ff4444;margin-top:8px;font-size:.85rem;';d2.textContent='❌ Network error — could not submit transaction.';var p=document.getElementById('send-panel');if(p)p.appendChild(d2);}})(); });
   });
 
   /* ── Receive asset change (update address stub) ── */
@@ -871,7 +920,6 @@
         if (scoreEl) scoreEl.textContent = 'Drawdown: ' + (s.current_drawdown_pct || 0).toFixed(1) + '%';
       })
       .catch(function () {});
-  })();
   /* ── Coinbase Connection panel ── */
   function cbSetStatus(status) {
     var badge = document.getElementById('cb-status-badge');
@@ -969,6 +1017,27 @@
   /* Initialise Coinbase panel on page load */
   cbLoadStatus();
   cbLoadBalances();
+  /* ── Paper Trading status widget ── */
+  (function () {
+    fetch('/api/trading/paper/status')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var p = (d.portfolio || {});
+        var eq = p.equity || 0;
+        var ret = p.total_return_pct || 0;
+        var active = d.active;
+        document.getElementById('pt-widget-status').textContent = active ? '● Session Active' : '○ Inactive';
+        document.getElementById('pt-widget-status').style.color = active ? '#00ff41' : '#8899AA';
+        document.getElementById('pt-widget-equity').textContent = eq ? ('$' + parseFloat(eq).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})) : '—';
+        document.getElementById('pt-widget-trades').textContent = (p.positions !== undefined ? Object.keys(p.positions || {}).length : 0) + ' open positions';
+        var retEl = document.getElementById('pt-widget-return');
+        retEl.textContent = ret ? ((ret >= 0 ? '+' : '') + parseFloat(ret).toFixed(2) + '% total return') : '—';
+        retEl.className = 'asset-change ' + (ret > 0 ? 'up' : ret < 0 ? 'down' : '');
+      })
+      .catch(function () {
+        document.getElementById('pt-widget-status').textContent = 'Engine offline';
+      });
+  })();
 
 })();
 </script>
