@@ -52,3 +52,12 @@ skips:
   # name from the Hub. Revision pinning is managed at the deployment layer via
   # environment variables and the MFM model registry, not in-code constants.
   - B615
+
+  # B608 hardcoded_sql_expressions: The Salesforce connector uses f-strings to
+  # build SOQL (Salesforce Object Query Language) queries sent over HTTPS REST.
+  # SOQL is not SQL — it is a read-only, object-level query language executed by
+  # Salesforce servers. The only variable part is an integer limit clamped with
+  # min(limit, 200), so there is no injection risk.  local_llm_fallback.py also
+  # triggers B608 on a multi-line f-string that is a UI help text template, not
+  # any kind of database query.
+  - B608
