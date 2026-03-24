@@ -132,6 +132,9 @@ class SubscriptionRecord:
     )
     canceled_at: str = ""
     cancel_at_period_end: bool = False
+    provisioning_status: Optional[str] = None   # ProvisioningStatus value or None
+    server_ip: str = ""                          # IP of the customer's Hetzner server
+    tenant_id: str = ""                          # linked workspace tenant_id
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -148,6 +151,9 @@ class SubscriptionRecord:
             "created_at": self.created_at,
             "canceled_at": self.canceled_at,
             "cancel_at_period_end": self.cancel_at_period_end,
+            "provisioning_status": self.provisioning_status,
+            "server_ip": self.server_ip,
+            "tenant_id": self.tenant_id,
         }
 
     def is_active(self) -> bool:
