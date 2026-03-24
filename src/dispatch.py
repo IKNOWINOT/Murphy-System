@@ -7,6 +7,7 @@ Dispatch — Unified Tool-Calling Engine for Murphy System
 Enhanced with HITL approval tiers, natural language parsing, and MultiCursor snapshots.
 """
 
+import json
 import logging
 import threading
 import time
@@ -424,10 +425,10 @@ class Dispatcher:
         for tc_dict in tool_calls:
             name = tc_dict.get("function", {}).get("name") or tc_dict.get("name", "unknown")
             args_str = tc_dict.get("function", {}).get("arguments", "{}")
-            import json
             try:
                 args = json.loads(args_str) if isinstance(args_str, str) else args_str
-            except:
+            except (ValueError, TypeError) as exc:
+                logger.debug("Failed to parse tool call arguments for %s: %s", name, exc)
                 args = {}
             tc = ToolCall(name, args, caller_id, "llm")
             results.append(self.call(tc))
@@ -514,7 +515,8 @@ def _register_builtin_tools(registry: ToolRegistry):
             from bots.analysisbot import AnalysisBot
             ab = AnalysisBot()
             return ab.analyze(args["task"], args.get("context", ""))
-        except:
+        except Exception as exc:
+            logger.debug("analysis.run handler unavailable: %s", exc)
             return {"result": f"Analysis: {args['task']}"}
     
     registry.register(Tool("analysis.run", "Run analysis", {"type": "object"}, analysis_handler, "analysis", approval_tier="platform"))
@@ -525,7 +527,8 @@ def _register_builtin_tools(registry: ToolRegistry):
             from bots.memory_cortex_bot import MemoryCortexBot
             mb = MemoryCortexBot()
             return mb.store(args["key"], args["value"], args.get("tags", []))
-        except:
+        except Exception as exc:
+            logger.debug("memory.store handler unavailable: %s", exc)
             return {"stored": True}
     
     registry.register(Tool("memory.store", "Store memory", {"type": "object"}, memory_store_handler, "memory", approval_tier="platform"))
@@ -535,7 +538,8 @@ def _register_builtin_tools(registry: ToolRegistry):
             from bots.memory_cortex_bot import MemoryCortexBot
             mb = MemoryCortexBot()
             return mb.recall(args["query"], args.get("limit", 5))
-        except:
+        except Exception as exc:
+            logger.debug("memory.recall handler unavailable: %s", exc)
             return {"results": []}
     
     registry.register(Tool("memory.recall", "Recall memory", {"type": "object"}, memory_recall_handler, "memory", approval_tier="platform"))
@@ -546,7 +550,8 @@ def _register_builtin_tools(registry: ToolRegistry):
             from src.llm_controller import LLMController
             llm = LLMController()
             return llm.query(args["prompt"], args.get("context", ""), args.get("max_tokens", 500))
-        except:
+        except Exception as exc:
+            logger.debug("llm.query handler unavailable: %s", exc)
             return {"response": "LLM unavailable"}
     
     registry.register(Tool("llm.query", "LLM query", {"type": "object"}, llm_query_handler, "llm", approval_tier="platform"))
@@ -557,7 +562,8 @@ def _register_builtin_tools(registry: ToolRegistry):
             from src.org_chart_enforcement import OrgChartEnforcement
             oce = OrgChartEnforcement()
             return oce.check_permission(args["node_id"], args["action"])
-        except:
+        except Exception as exc:
+            logger.debug("org.check_permission handler unavailable: %s", exc)
             return {"allowed": True}
     
     registry.register(Tool("org.check_permission", "Check org permission", {"type": "object"}, org_check_handler, "org", approval_tier="platform"))
@@ -567,7 +573,8 @@ def _register_builtin_tools(registry: ToolRegistry):
             from src.org_chart_enforcement import OrgChartEnforcement
             oce = OrgChartEnforcement()
             return oce.escalate(args["node_id"], args["reason"], args.get("target_level"))
-        except:
+        except Exception as exc:
+            logger.debug("org.escalate handler unavailable: %s", exc)
             return {"escalated": True}
     
     registry.register(Tool("org.escalate", "Escalate org issue", {"type": "object"}, org_escalate_handler, "org", approval_tier="user"))
