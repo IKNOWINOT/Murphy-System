@@ -1599,9 +1599,15 @@ class TestOperatingAnalysisDashboardAnalysis:
     def test_high_bug_pattern_count_generates_maintenance_rec(self, rec_engine, pm):
         from bug_pattern_detector import BugPatternDetector
         detector = BugPatternDetector(min_occurrences=1)
-        # Ingest 6 distinct errors (> BUG_PATTERN_WARN=5)
-        for i in range(6):
-            detector.ingest_error(f"Unique error message #{i}", component="api")
+        # Ingest 6 distinct errors using different components + error_types so
+        # each gets a unique fingerprint (hash of error_type:component:normalised_msg).
+        error_types = ["timeout", "oom", "permission", "connection", "null_ref", "assertion"]
+        for i, etype in enumerate(error_types):
+            detector.ingest_error(
+                "Error in subsystem component",
+                component=f"module_{i}",
+                error_type=etype,
+            )
         detector.run_detection_cycle()
 
         dash = OperatingAnalysisDashboard(
