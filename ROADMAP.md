@@ -83,7 +83,7 @@ Murphy's hero flow is already built. This roadmap is about getting it in front o
 - [ ] Ship 50 connectors using the self-integration engine:
   - Slack, Jira, Salesforce, HubSpot, GitHub, Google Workspace, Microsoft 365, Stripe, Shopify, Twilio, SendGrid, AWS, Azure, GCP, PostgreSQL, MySQL, MongoDB, Redis, Elasticsearch, Notion, Airtable, Asana, Trello, Zendesk, Freshdesk, Intercom, Mailchimp, Typeform, Calendly, Zoom, Discord, Telegram, Dropbox, Box, Linear, PagerDuty, Datadog, Splunk, Kafka, RabbitMQ, Snowflake, BigQuery, Plaid, QuickBooks, Xero, and more
 - [ ] Pricing page goes live (ref: PR #211)
-- [ ] Publish **Solo tier at $29/mo**
+- [ ] Publish **Solo tier at $99/mo**
 - [ ] Target: **first 10 paying customers**
 
 ---
@@ -122,12 +122,12 @@ Murphy's hero flow is already built. This roadmap is about getting it in front o
 
 | Tier | Monthly | Annual/mo | Users | Automations |
 |---|---|---|---|---|
-| **Solo** | $29 | $24 | 1 | 3 |
-| **Business** | $99 | $79 | 10 | Unlimited |
-| **Professional** | Custom | Custom | Unlimited | Unlimited |
+| **Solo** | $99 | $79 | 1 | 3 |
+| **Business** | $299 | $239 | 10 | Unlimited |
+| **Professional** | $599 | $479 | Unlimited | Unlimited |
 | **Enterprise** | Custom | Custom | Unlimited | Unlimited |
 
-> **Self-hosted is always free for development** (BSL 1.1). Production licensing starts at Solo $29/mo.
+> **Self-hosted is always free for development** (BSL 1.1). Production licensing starts at Solo $99/mo.
 
 ---
 

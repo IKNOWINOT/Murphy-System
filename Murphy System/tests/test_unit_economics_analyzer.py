@@ -189,7 +189,7 @@ class TestUnitEconomicsAnalyzer:
         econ = analyzer.get_tier_economics("pro")
         assert econ is not None
         assert econ.tier == "pro"
-        assert econ.monthly_revenue == 299.0
+        assert econ.monthly_revenue == 599.0
 
     def test_get_tier_economics_missing(self, analyzer):
         econ = analyzer.get_tier_economics("nonexistent")
@@ -202,7 +202,7 @@ class TestUnitEconomicsAnalyzer:
         assert "enterprise" in all_tiers
 
     def test_pro_tier_is_viable(self, analyzer):
-        """Pro tier at $299/mo with ~$32.50 cost should be viable."""
+        """Pro tier at $599/mo with ~$32.50 cost should be viable."""
         econ = analyzer.get_tier_economics("pro")
         assert econ is not None
         assert econ.is_viable is True
