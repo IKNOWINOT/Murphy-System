@@ -310,6 +310,10 @@ fi
 # ═══════════════════════════════════════════════════════════════════════════════
 section "Step 3 — Environment File Audit"
 if [ "$SKIP_ENV_AUDIT" = false ]; then
+  if [ ! -f "$MURPHY_ENV_FILE" ]; then
+    info "No env file found — generating fresh production secrets..."
+    bash "${REPO_DIR}/scripts/generate_secrets.sh" --production
+  fi
   if [ -f "$MURPHY_ENV_FILE" ]; then
     ok "Env file found: ${MURPHY_ENV_FILE}"
     # Source the env file so audit_var can read it via printenv.
