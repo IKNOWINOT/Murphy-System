@@ -36,6 +36,8 @@ class TriggerType(Enum):
     PERIOD_ELAPSED = "period_elapsed"
     PERSON_ASSIGNED = "person_assigned"
     FORM_SUBMITTED = "form_submitted"
+    SCHEDULE = "schedule"          # recurrence / cron-based trigger
+    WEBHOOK = "webhook"            # external HTTP trigger
 
 
 class ActionType(Enum):
@@ -49,6 +51,8 @@ class ActionType(Enum):
     ARCHIVE_ITEM = "archive_item"
     DUPLICATE_ITEM = "duplicate_item"
     ASSIGN_PERSON = "assign_person"
+    CROSS_BOARD_CREATE = "cross_board_create"   # create item on another board
+    CROSS_BOARD_UPDATE = "cross_board_update"   # update item on another board
 
 
 class ConditionOperator(Enum):
@@ -142,3 +146,137 @@ class AutomationRule:
             "last_run_at": self.last_run_at,
             "created_at": self.created_at,
         }
+
+
+# ---------------------------------------------------------------------------
+# Recurrence / Schedule support
+# ---------------------------------------------------------------------------
+
+class RecurrenceFrequency(Enum):
+    """How often a scheduled automation fires."""
+    MINUTELY = "minutely"   # for testing / high-frequency use-cases
+    HOURLY = "hourly"
+    DAILY = "daily"
+    WEEKLY = "weekly"
+    MONTHLY = "monthly"
+    CRON = "cron"           # arbitrary cron expression in trigger_config["cron"]
+
+
+@dataclass
+class RecurrenceRule:
+    """Recurrence configuration attached to a SCHEDULE-triggered automation.
+
+    For CRON frequency the ``trigger_config`` of the parent rule should
+    contain a ``"cron"`` key with a 5-field cron expression, e.g.
+    ``"0 9 * * 1"`` (every Monday at 09:00).
+    """
+    id: str = field(default_factory=_new_id)
+    rule_id: str = ""            # ID of the parent AutomationRule
+    frequency: RecurrenceFrequency = RecurrenceFrequency.DAILY
+    interval: int = 1            # fire every ``interval`` units of frequency
+    next_run_at: str = field(default_factory=_now)
+    last_run_at: str = ""
+    active: bool = True
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "rule_id": self.rule_id,
+            "frequency": self.frequency.value,
+            "interval": self.interval,
+            "next_run_at": self.next_run_at,
+            "last_run_at": self.last_run_at,
+            "active": self.active,
+        }
+
+
+# ---------------------------------------------------------------------------
+# Automation template marketplace
+# ---------------------------------------------------------------------------
+
+@dataclass
+class AutomationTemplate:
+    """A reusable automation blueprint.
+
+    Templates describe a trigger + typical conditions + actions so users can
+    instantiate a :class:`AutomationRule` without building it from scratch.
+    """
+    id: str = field(default_factory=_new_id)
+    name: str = ""
+    description: str = ""
+    category: str = ""   # "project_management", "notifications", "crm", etc.
+    trigger_type: TriggerType = TriggerType.STATUS_CHANGE
+    trigger_config: Dict[str, Any] = field(default_factory=dict)
+    conditions: List[Dict[str, Any]] = field(default_factory=list)
+    actions: List[Dict[str, Any]] = field(default_factory=list)
+    created_at: str = field(default_factory=_now)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "category": self.category,
+            "trigger_type": self.trigger_type.value,
+            "trigger_config": self.trigger_config,
+            "conditions": self.conditions,
+            "actions": self.actions,
+            "created_at": self.created_at,
+        }
+
+
+# Built-in template definitions
+_BUILTIN_AUTOMATION_TEMPLATES: List[Dict[str, Any]] = [
+    {
+        "name": "Notify on Status Change",
+        "description": "Send a notification when an item status changes",
+        "category": "notifications",
+        "trigger_type": "status_change",
+        "actions": [{"action_type": "notify", "config": {"message": "Status changed"}}],
+    },
+    {
+        "name": "Daily Standup Reminder",
+        "description": "Post a recurring daily standup checklist item",
+        "category": "project_management",
+        "trigger_type": "schedule",
+        "trigger_config": {"frequency": "daily", "interval": 1},
+        "actions": [{"action_type": "create_item", "config": {"title": "Daily Standup"}}],
+    },
+    {
+        "name": "Overdue Item Alert",
+        "description": "Notify assignee when a date column arrives without completion",
+        "category": "project_management",
+        "trigger_type": "date_arrived",
+        "actions": [{"action_type": "notify", "config": {"message": "Item is due today"}}],
+    },
+    {
+        "name": "New Lead to CRM",
+        "description": "When a form is submitted, create an item on the CRM board",
+        "category": "crm",
+        "trigger_type": "form_submitted",
+        "actions": [{"action_type": "cross_board_create", "config": {"target_board_id": ""}}],
+    },
+    {
+        "name": "Weekly Summary Email",
+        "description": "Send a weekly summary email of board activity",
+        "category": "notifications",
+        "trigger_type": "schedule",
+        "trigger_config": {"frequency": "weekly", "interval": 1},
+        "actions": [{"action_type": "send_email", "config": {"subject": "Weekly Summary"}}],
+    },
+    {
+        "name": "Auto-assign on Item Create",
+        "description": "Automatically assign a default person when an item is created",
+        "category": "project_management",
+        "trigger_type": "item_created",
+        "actions": [{"action_type": "assign_person", "config": {"user_id": ""}}],
+    },
+    {
+        "name": "Webhook on Deal Close",
+        "description": "Fire a webhook when a deal is moved to Closed Won",
+        "category": "crm",
+        "trigger_type": "status_change",
+        "conditions": [{"column_id": "stage", "operator": "equals", "value": "closed_won"}],
+        "actions": [{"action_type": "notify", "config": {"message": "Deal closed!"}}],
+    },
+]

@@ -1,6 +1,6 @@
 # Murphy System — Project Status
 
-> **Last updated**: 2026-03-16
+> **Last updated**: 2026-03-24
 > **License**: BSL 1.1 (Business Source License)
 > Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post
 
@@ -64,7 +64,7 @@ Murphy System is **aligned with** (not formally attested to) the following frame
 | G-006 | Formal security pen-test | High | Engage third-party security firm for penetration testing |
 | G-007 | ~~Database persistence JSON-only~~ | ~~Critical~~ | ✅ **IMPROVED** — PostgreSQL wired via DATABASE_URL; SQLite fallback; Alembic migrations; connection pooling configured |
 | G-008 | E2EE encryption is stubbed | Critical | Integrate matrix-nio SDK for real encryption |
-| G-009 | ~~Management parity Phases 2–8 unvalidated~~ | ~~High~~ | ✅ **RESOLVED** — All phases verified: collaboration (1,107 LOC), portfolio/Gantt (931 LOC), workdocs (629 LOC), time tracking (484 LOC), automations (495 LOC), CRM (706 LOC) |
+| G-009 | ~~Management parity Phases 2–8 unvalidated~~ | ~~High~~ | ✅ **RESOLVED** — All 12 phases complete: Phase 2 (WebSocket push, 1,107 LOC), Phase 3 (dashboards + CRM widget), Phase 4 (Gantt/critical-path, 931 LOC), Phase 5 (workdocs + template library), Phase 6 (time tracking, 484 LOC), Phase 7 (automations + recurrence scheduler + webhook + 7 template marketplace templates), Phase 8 (CRM + email tracking + pipeline templates + crm_summary widget) |
 | G-010 | ~~JWT/OAuth not in production~~ | ~~High~~ | ✅ **RESOLVED** — JWT token validation added to FastAPI and Flask security middleware |
 | G-011 | ~~Documentation placeholders~~ | ~~Medium~~ | ✅ **RESOLVED** — All 12+ placeholder docs filled with real content |
 | ~~G-008~~ | ~~Production deployment hardening~~ | ~~Medium~~ | ✅ **RESOLVED** — `SecurityContext`, `PodDisruptionBudget`, `NetworkPolicy` added to `kubernetes_deployment.py` with YAML rendering |
