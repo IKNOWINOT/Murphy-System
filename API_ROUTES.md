@@ -867,6 +867,67 @@ Unified onboard communication system: IM, voice, video, email, automation rules,
 
 ---
 
+## System Update Recommendation Engine (FastAPI — src/system_update_api.py)
+
+Founder-level orchestrator (ARCH-020) exposing the `SystemUpdateRecommendationEngine` with five recommendation domains: maintenance, SDK updates, auto-updates, bug report auto-responses, and system operations analysis.
+
+### Status & Recommendations
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /api/system-updates/status | Yes | Current engine status and summary |
+| GET | /api/system-updates/recommendations | Yes | List all recommendations; filter with `?category=` `?priority=` `?status=` |
+| GET | /api/system-updates/recommendations/{rec_id} | Yes | Get a specific recommendation by ID |
+| PUT | /api/system-updates/recommendations/{rec_id}/status | Yes | Approve or dismiss a recommendation — body: `{"action": "approve"|"dismiss", "reason": "…", "approved_by": "…"}` |
+
+### Maintenance Domain
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | /api/system-updates/maintenance/scan | Yes | Trigger a maintenance integration scan |
+| GET | /api/system-updates/maintenance/recommendations | Yes | Get maintenance-specific recommendations; filter with `?priority=` `?status=` |
+
+### SDK Update Domain
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | /api/system-updates/sdk/scan | Yes | Trigger an SDK/dependency update scan |
+| GET | /api/system-updates/sdk/recommendations | Yes | Get SDK update recommendations; filter with `?priority=` `?status=` |
+
+### Auto-Update Domain
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | /api/system-updates/auto-update/scan | Yes | Trigger an auto-update assessment |
+| GET | /api/system-updates/auto-update/recommendations | Yes | Get auto-update recommendations; filter with `?priority=` `?status=` |
+
+### Bug Report Auto-Response Domain
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | /api/system-updates/bug-responses/ingest | Yes | Ingest a bug report for automated triage — body: `{title, description, component, severity, stack_trace, reporter}` |
+| GET | /api/system-updates/bug-responses/recommendations | Yes | Get bug response recommendations; filter with `?priority=` `?status=` |
+
+### System Operations Domain
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | /api/system-updates/operations/analyze | Yes | Trigger a system operations analysis |
+| GET | /api/system-updates/operations/recommendations | Yes | Get operations recommendations; filter with `?priority=` `?status=` |
+
+### Full Scan
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | /api/system-updates/full-scan | Yes | Trigger a full scan across all 5 domains simultaneously |
+
+**Valid filter values:**
+- `category`: `maintenance`, `sdk_update`, `auto_update`, `bug_response`, `operations`
+- `priority`: `critical`, `high`, `medium`, `low`, `informational`
+- `status`: `pending`, `approved`, `dismissed`, `executed`
+
+---
+
 ## Frontend Architecture
 
 ### API Clients
