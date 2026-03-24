@@ -268,7 +268,7 @@ System. Each step is annotated with what works and what breaks.
 
 User runs:
   git clone https://github.com/IKNOWINOT/Murphy-System.git
-  cd Murphy-System/Murphy\ System
+  Murphy\ System
   bash ../setup_and_start.sh
 
 WHAT HAPPENS:
@@ -335,7 +335,9 @@ WHAT ACTUALLY HAPPENS:
   ❌ GAP: TwoPhaseOrchestrator is referenced in storyline docs but not
      found as a standalone module in src/ — it lives inside the runtime
   ❌ GAP: No real LLM is configured by default (MURPHY_LLM_PROVIDER=local)
-     — the "local" LLM is mock_compatible_local_llm.py (400 bytes!)
+     — mock_compatible_local_llm.py is now a deprecation shim that
+       redirects to local_inference_engine.py; the real enhanced LLM
+       implementation is in enhanced_local_llm.py (62KB)
   ❌ GAP: Without a real LLM, NL understanding, domain classification,
      and content generation ALL produce mock/stub responses
   ❌ GAP: No actual CRM integration exists to receive leads
@@ -417,12 +419,12 @@ WHAT HAPPENS:
 CRITICAL GAPS (System cannot function without fixing these):
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-C-01  NO WORKING LLM BY DEFAULT
-      mock_compatible_local_llm.py is 400 bytes of stub.
-      enhanced_local_llm.py (62KB) exists but requires model files.
-      Without a working LLM, ALL NL-dependent features fail:
-      conversation understanding, domain classification, content
-      generation, reasoning, swarm agent thinking.
+C-01  LLM CONFIGURATION REQUIRED
+      mock_compatible_local_llm.py is now a deprecation shim redirecting
+      to local_inference_engine.py. enhanced_local_llm.py (62KB) provides
+      the real implementation but requires model files to be present.
+      Without a configured LLM provider, NL-dependent features will use
+      the pattern-matcher fallback in enhanced_local_llm.py.
 
 C-02  EXECUTION COMPILER IS A STUB
       execution_compiler.py is 173 bytes. It's supposed to compile
@@ -856,11 +858,11 @@ SMALLEST MODULES (potential stubs):
   1. __init__.py                           166 bytes
   2. execution_compiler.py                 173 bytes  ← STUB
   3. deterministic_compute.py              188 bytes  ← STUB
-  4. mock_compatible_local_llm.py          400 bytes  ← STUB
+  4. mock_compatible_local_llm.py          ~400 bytes  (deprecation shim → local_inference_engine)
 
 DOCUMENTATION FILES:
-  • README.md (root and Murphy System/)
-  • GETTING_STARTED.md (root and Murphy System/)
+  • README.md (repository root)
+  • GETTING_STARTED.md (repository root)
   • USER_MANUAL.md
   • ARCHITECTURE_MAP.md
   • MURPHY_SYSTEM_1.0_SPECIFICATION.md
