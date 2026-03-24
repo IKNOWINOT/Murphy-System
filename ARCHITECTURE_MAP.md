@@ -2054,3 +2054,107 @@ Supported: `im`, `voice`, `video`, `email`, `slack`, `discord`, `matrix`, `sms`
 - `src/db.py` — SQLAlchemy engine, session factory, `create_tables()`
 - `src/runtime/app.py` — router registration, `/ui/comms-hub` HTML route
 - `tests/test_communication_hub.py` — 83 tests
+
+---
+
+## Founder Update Engine (ARCH-007)
+
+**Location:** `src/founder_update_engine/`  
+**Tests:** `tests/test_founder_update_engine.py` (133 tests)  
+**Design Label:** ARCH-007
+
+### Purpose
+Central intelligence layer that monitors how Murphy updates and maintains itself.
+Provides the Founder with a live operating picture (health scores, bug patterns,
+vulnerability counts, recovery rates) and generates actionable recommendations for
+SDK updates, security patches, maintenance tasks, and bug responses.  All actions
+are proposals — execution always requires explicit approval unless flagged
+`auto_applicable=True`.
+
+### Modules
+
+| Module | Class | Responsibility |
+|--------|-------|----------------|
+| `recommendation_engine.py` | `RecommendationEngine` | Central recommendation store — 9 types, 5 priorities, persistence, 6 query methods |
+| `subsystem_registry.py` | `SubsystemRegistry` | Auto-discovers Murphy subsystems; tracks health, update history, pending recs |
+| `update_coordinator.py` | `UpdateCoordinator` | Applies updates within maintenance windows; rate-limits changes; full audit trail |
+| `sdk_update_scanner.py` | `SdkUpdateScanner` | Scans requirements files; detects patch/minor/major bumps; integrates vulnerability data |
+| `auto_update_applicator.py` | `AutoUpdateApplicator` | Applies auto-applicable recs with health gates, rate limiting, dry-run mode |
+| `bug_response_handler.py` | `BugResponseHandler` | Classifies bug reports; generates response drafts + BUG_RESPONSE/SECURITY recs |
+| `operating_analysis_dashboard.py` | `OperatingAnalysisDashboard` | Aggregates fleet health, bug patterns, recovery rates, vuln counts → snapshots + recs |
+
+### Recommendation Types
+
+| Type | Source | Auto-Applicable |
+|------|--------|----------------|
+| `SDK_UPDATE` (patch bump) | `SdkUpdateScanner` | ✅ Yes |
+| `SDK_UPDATE` (minor/major bump) | `SdkUpdateScanner` | ❌ No |
+| `SECURITY` | `SdkUpdateScanner`, `BugResponseHandler`, `OperatingAnalysisDashboard` | ❌ No |
+| `AUTO_UPDATE` | `SdkUpdateScanner` | ✅ Yes |
+| `BUG_RESPONSE` | `BugResponseHandler` | ❌ No |
+| `PERFORMANCE` | `OperatingAnalysisDashboard` | ❌ No |
+| `MAINTENANCE` | `OperatingAnalysisDashboard` | ❌ No |
+
+### Operating Analysis Thresholds
+
+| Metric | Warning Threshold | Action |
+|--------|-------------------|--------|
+| Fleet health score | < 80% | `PERFORMANCE` recommendation (HIGH) |
+| Fleet health score | < 50% | `MAINTENANCE` recommendation (CRITICAL) |
+| Active bug patterns | > 5 | `MAINTENANCE` recommendation |
+| Self-healing recovery rate | < 70% | `MAINTENANCE` recommendation |
+| Open vulnerabilities | > 3 | `SECURITY` recommendation |
+
+### Data Flow
+
+```
+External Inputs                  Founder Update Engine
+─────────────────────────────────────────────────────────────────
+requirements*.txt ──────────────▶ SdkUpdateScanner
+                                       │ SDK_UPDATE / SECURITY / AUTO_UPDATE recs
+                                       ▼
+Incoming bug reports ────────────▶ BugResponseHandler
+                                       │ BUG_RESPONSE / SECURITY recs
+                                       ▼
+SubsystemRegistry   ─────────────▶ OperatingAnalysisDashboard
+BugPatternDetector  ─────────────▶       │ DashboardSnapshot
+SelfHealingCoord.   ─────────────▶       │ PERFORMANCE / MAINTENANCE / SECURITY recs
+DependencyAudit     ─────────────▶       │
+                                         ▼
+                               RecommendationEngine (central store)
+                                         │
+                                         ▼
+                               UpdateCoordinator (applies auto_applicable recs)
+                                         │
+                               AutoUpdateApplicator (health-gated execution)
+```
+
+### Subsystem Health States
+
+```
+healthy ──▶ degraded ──▶ failed
+   ▲                        │
+   └─────── recovered ───────┘
+unknown (initial state for auto-discovered subsystems)
+```
+
+### Safety Invariants
+
+1. **Never modifies source files on disk** — all actions are proposals only.
+2. **Health gate** — `AutoUpdateApplicator` aborts a cycle if any subsystem is FAILED.
+3. **Rate limiting** — configurable max applications per maintenance window.
+4. **Dry-run mode** — full simulation without execution; all outcomes logged as `SKIPPED_DRY_RUN`.
+5. **Founder approval required** for CRITICAL/HIGH security and all major version bumps.
+6. **Thread-safe** — all shared state guarded by `threading.Lock`.
+7. **Bounded history** — all stores cap their history (responses: 1000, snapshots: 200, records: 500).
+
+### Integration Points
+
+| Component | How Used |
+|-----------|---------|
+| `BugPatternDetector` (DEV-004) | `BugResponseHandler` feeds errors in; `OperatingAnalysisDashboard` reads active pattern counts |
+| `SelfHealingCoordinator` (OBS-004) | `OperatingAnalysisDashboard` reads recovery history and success rate |
+| `DependencyAuditEngine` (DEV-005) | `SdkUpdateScanner` reads vulnerability findings; `OperatingAnalysisDashboard` reads open vuln count |
+| `SubsystemRegistry` (ARCH-007) | `UpdateCoordinator`, `OperatingAnalysisDashboard` iterate registered subsystems |
+| `PersistenceManager` | All modules persist state via `save_document` / `load_document` |
+| `EventBackbone` | Publishes `LEARNING_FEEDBACK` and `SYSTEM_HEALTH` events on key actions |

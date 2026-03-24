@@ -881,3 +881,39 @@ Unified onboard communication system: IM, voice, video, email, automation rules,
 ### WebSocket
 - Use `MurphyWebSocket` from `static/murphy-components.js` for real-time connections
 - Auto-reconnects with exponential backoff (3s → 30s)
+
+### UI Navigation (MurphySidebar + Command Palette)
+
+The sidebar and Ctrl+K command palette are defined in `static/murphy-components.js`.
+All links below are accessible after login. Section dividers group related pages.
+
+| Section | Label | Path | Notes |
+|---------|-------|------|-------|
+| SETUP | 🚀 ONBOARDING | `/ui/onboarding` | **First-run setup wizard — start here after login** |
+| SETUP | 🔍 VISUALIZER | `/ui/system-visualizer` | System topology visualizer |
+| TERMINAL | ⬡ ORCHESTRATOR | `/ui/terminal-orchestrator` | Task orchestration dashboard |
+| TERMINAL | ✦ ORG CHART | `/ui/terminal-orgchart` | Organisation structure |
+| TERMINAL | ⬢ INTEGRATIONS | `/ui/terminal-integrations` | LLM & service integrations setup |
+| TERMINAL | ◈ ARCHITECT | `/ui/terminal-architect` | Build / MSS / gates terminal |
+| TERMINAL | ◎ WORKER | `/ui/terminal-worker` | Worker execution terminal |
+| TERMINAL | ⊞ COSTS | `/ui/terminal-costs` | Cost tracking terminal |
+| BUILD | ⋮ WORKFLOWS | `/ui/workflow-canvas` | Visual workflow builder |
+| BUILD | 🏭 PRODUCTION | `/ui/production-wizard` | Proposals, work orders, deliverables |
+| FINANCE | 📈 TRADING | `/ui/trading` | Live trading dashboard |
+| FINANCE | 🛡 RISK | `/ui/risk-dashboard` | Risk management |
+| FINANCE | 📝 PAPER TRADE | `/ui/paper-trading` | Paper trading engine |
+| FINANCE | 🎯 GRANTS | `/ui/grant-wizard` | Grant discovery wizard |
+| FINANCE | 📊 GRANT DASH | `/ui/grant-dashboard` | Grant portfolio dashboard |
+| FINANCE | 💼 FINANCING | `/ui/financing` | Financing options explorer |
+| FINANCE | 💰 WALLET | `/ui/wallet` | Wallet & assets |
+| OPS | ☑ COMPLIANCE | `/ui/compliance` | Compliance dashboard |
+| OPS | 📅 CALENDAR | `/ui/calendar` | Calendar |
+| OPS | 🧠 MEETINGS | `/ui/meeting-intelligence` | Meeting intelligence |
+| OPS | ⚡ AMBIENT | `/ui/ambient` | Ambient intelligence |
+| OPS | 📋 MANAGEMENT | `/ui/management` | Management dashboard |
+| COMMUNITY | 💬 WORKSPACE | `/ui/workspace` | Workspace |
+| COMMUNITY | 🏘 COMMUNITY | `/ui/community` | Community forum |
+| COMMUNITY | ✉ COMMS HUB | `/ui/comms-hub` | Communications hub |
+| ACCOUNT | 🏢 ORG PORTAL | `/ui/org-portal` | Organisation self-service portal |
+| ACCOUNT | 📚 DOCS | `/ui/docs` | Documentation |
+| ACCOUNT | ⚙ ADMIN | `/ui/admin` | Admin panel (admin/owner only) |
