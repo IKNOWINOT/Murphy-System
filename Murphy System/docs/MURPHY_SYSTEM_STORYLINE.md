@@ -1150,7 +1150,7 @@ improves the system; governance ensures it doesn't improve itself into a dangero
 | LLM request routing | `llm_integration_layer.py`, `LLMIntegrationLayer`, `route_request()` |
 | LLM safety wrapper | `safe_llm_wrapper.py`, `SafeLLMWrapper`, `safe_generate()` |
 | LLM controller | `llm_controller.py`, `llm_integration.py`, `llm_routing_completeness.py` |
-| Local LLM fallback | `local_llm_fallback.py`, `local_model_layer.py`, `mock_compatible_local_llm.py` |
+| Local LLM fallback | `local_llm_fallback.py`, `local_model_layer.py`, `enhanced_local_llm.py` |
 | Rosetta state management | `rosetta/rosetta_manager.py`, `RosettaManager`, `save_state()`, `load_state()` |
 | Rosetta archive classifier | `rosetta/archive_classifier.py`, `ArchiveClassifier`, `classify()` |
 | Rosetta heartbeat | `rosetta_stone_heartbeat.py`, `RosettaStoneHeartbeat`, `emit_pulse()` |

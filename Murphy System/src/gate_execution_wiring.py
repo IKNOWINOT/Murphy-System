@@ -364,3 +364,77 @@ class GateExecutionWiring:
         self.register_gate(GateType.COMPLIANCE, _security_evaluator, GatePolicy.WARN)
         logger.info("Registered security plane defaults (%d modules loaded)", loaded_count)
         return loaded_count
+
+    # -- execution engine wiring --------------------------------------------
+
+    def wire_to_execution_engine(self) -> "GateExecutionWiring":
+        """Wire this instance to the execution_engine and execution_orchestrator.
+
+        Registers a default executor that dispatches through:
+          GateExecutionWiring.wrap_execution()
+            → execution_engine.TaskExecutor (schedules and runs the task)
+            → execution_orchestrator.ExecutionOrchestrator (certifies and records)
+
+        Returns *self* for fluent chaining.
+        """
+        try:
+            from src.execution_engine import TaskExecutor, Task, TaskState, create_task
+            from src.execution_orchestrator import ExecutionOrchestrator
+
+            _task_executor = TaskExecutor()
+            _orchestrator = ExecutionOrchestrator()
+
+            def _engine_executor(task: Dict[str, Any]) -> Dict[str, Any]:
+                """Dispatch task through execution_engine → orchestrator."""
+                task_type = task.get("type", "generic")
+
+                # Build an execution packet and pass to orchestrator
+                packet: Dict[str, Any] = {
+                    "task": task_type,
+                    "authority": task.get("authority", "low"),
+                    "requires_human_approval": task.get("requires_human_approval", False),
+                }
+                orch_result = _orchestrator.execute(packet)
+
+                # Also schedule via task_executor for tracking / retry
+                murphy_task = create_task(
+                    task_type=task_type,
+                    parameters=task,
+                )
+                task_id = _task_executor.schedule_task(murphy_task)
+
+                return {
+                    "status": orch_result.get("status", "completed"),
+                    "orchestrator_result": orch_result,
+                    "task_executor_id": task_id,
+                }
+
+            self._engine_executor = _engine_executor
+            logger.info("Wired to execution_engine + execution_orchestrator")
+        except Exception as exc:
+            logger.warning("Could not wire to execution engine: %s", exc)
+            self._engine_executor = None
+
+        return self
+
+    def execute_via_pipeline(
+        self,
+        task: Dict[str, Any],
+        session_id: str,
+    ) -> Dict[str, Any]:
+        """Evaluate gates then dispatch through the wired execution pipeline.
+
+        This is the complete gate → execution_engine → orchestrator path.
+        Call :meth:`wire_to_execution_engine` first to attach the pipeline;
+        if not wired, falls back to a minimal direct executor.
+        """
+        executor = getattr(self, "_engine_executor", None)
+
+        if executor is None:
+            # Fallback: direct wrap with a no-op executor
+            def _noop_executor(t: Dict[str, Any]) -> Dict[str, Any]:
+                return {"status": "completed", "result": t}
+
+            executor = _noop_executor
+
+        return self.wrap_execution(task, executor, session_id)
