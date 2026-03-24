@@ -816,9 +816,16 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
     <!-- ROI + CTA (shown after demo completes) -->
     <div class="demo-roi-block" id="demo-roi-block" hidden>
       <div class="demo-roi-stat" id="demo-roi-stat"></div>
+      <!-- Automation Spec Card (populated by JS after API responds) -->
+      <div class="demo-spec-card" id="demo-spec-card" style="display:none;margin:.75rem 0;padding:1rem;background:rgba(0,212,170,.06);border:1px solid rgba(0,212,170,.3);border-radius:10px;font-size:.82rem;line-height:1.7;">
+        <div style="font-weight:700;color:var(--teal);margin-bottom:.5rem;" id="demo-spec-title">Your Automation Plan</div>
+        <div id="demo-spec-body" style="color:#cdd6e0;"></div>
+        <div style="margin-top:.75rem;padding:.5rem .75rem;background:rgba(0,212,170,.08);border:1px solid rgba(0,212,170,.2);border-radius:6px;font-size:.78rem;color:#94a3b8;" id="demo-spec-compare"></div>
+      </div>
       <div class="lp-demo-btns">
-        <a href="/ui/signup" class="btn-p lp-flex-center">Start Free Trial</a>
-        <button class="btn-s" id="demo-download-btn" onclick="demoDownload()" hidden>&#128229; Download Deliverable</button>
+        <a href="/ui/signup" class="btn-p lp-flex-center" id="demo-signup-btn">&#128640; Start Free Trial</a>
+        <a href="/ui/signup" class="btn-p lp-flex-center" id="demo-activate-btn" style="display:none;background:linear-gradient(135deg,#00D4AA,#0088cc)">&#9889; Activate This Config</a>
+        <button class="btn-s" id="demo-download-btn" onclick="demoDownload()" hidden>&#128229; Download Spec</button>
         <button class="btn-s demo-reset-btn" onclick="demoReset()">&#8635; Try Another</button>
       </div>
       <div class="demo-usage-counter" id="demo-usage-counter"></div>
@@ -1081,6 +1088,8 @@ function demoRun(query){
         document.getElementById('demo-roi-stat').textContent=scenario.roi;
         roiBlock.hidden=false;
         if(dlBtn)dlBtn.hidden=false;
+        // Fetch automation spec from API
+        _fetchDemoSpec(query);
       },400);
       return;
     }
@@ -1105,6 +1114,58 @@ function demoRun(query){
     },18+Math.random()*14);
   }
   addLine(0);
+}
+
+function _fetchDemoSpec(query) {
+  var specCard = document.getElementById('demo-spec-card');
+  var specTitle = document.getElementById('demo-spec-title');
+  var specBody = document.getElementById('demo-spec-body');
+  var specCompare = document.getElementById('demo-spec-compare');
+  var activateBtn = document.getElementById('demo-activate-btn');
+  var signupBtn = document.getElementById('demo-signup-btn');
+  var dlBtn = document.getElementById('demo-download-btn');
+  if(!specCard) return;
+  specTitle.textContent = 'Building your automation plan…';
+  specCard.style.display = 'block';
+  specBody.innerHTML = '<span style="color:#00D4AA">⟳ Murphy is specifying your workflows…</span>';
+  fetch('/api/demo/generate-deliverable', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({query: query, format: 'automation_spec'})
+  })
+  .then(function(r){return r.json();})
+  .then(function(data){
+    if(data.automation_spec) {
+      var s = data.automation_spec;
+      var specId = s.spec_id || data.spec_id;
+      specTitle.textContent = '📋 ' + s.title;
+      specBody.innerHTML =
+        '<strong>' + s.workflow_count + ' workflows</strong> automated · ' +
+        '<strong>' + s.hours_saved_month + ' hrs/month</strong> saved · ' +
+        'ROI: <strong style="color:#00D4AA">' + s.roi_multiple + '×</strong><br>' +
+        'Monthly savings: <strong>$' + (s.monthly_savings_usd||0).toLocaleString() + '</strong> · ' +
+        'Murphy cost: <strong>$' + (s.murphy_cost||99) + '/mo</strong> · ' +
+        'Net benefit: <strong style="color:#00D4AA">$' + (s.net_monthly_benefit||0).toLocaleString() + '/mo</strong>';
+      var intgs = (s.integrations||[]).slice(0,4).join(' · ');
+      if(intgs) specBody.innerHTML += '<br>Key integrations: ' + intgs;
+      specCompare.textContent = '💡 Zapier charges $299/mo for fewer features. Make.com $159/mo. Custom dev $8,000+/mo. Murphy: $' + (s.murphy_cost||99) + '/mo with AI planning included.';
+      if(specId) {
+        var activateUrl = '/ui/signup?spec=' + encodeURIComponent(specId);
+        if(activateBtn){activateBtn.href=activateUrl;activateBtn.style.display='flex';}
+        if(signupBtn){signupBtn.style.display='none';}
+        _demoLastContent = data.deliverable ? (data.deliverable.content||_demoLastContent) : _demoLastContent;
+        if(dlBtn){dlBtn.hidden=false;}
+      }
+    } else if(data.deliverable) {
+      specTitle.textContent = '📋 Your Automation Plan';
+      specBody.textContent = 'Plan generated — download to see the full specification.';
+      _demoLastContent = data.deliverable.content || _demoLastContent;
+      if(dlBtn){dlBtn.hidden=false;}
+    }
+  })
+  .catch(function(){
+    specCard.style.display = 'none';
+  });
 }
 
 // Wire demo input
