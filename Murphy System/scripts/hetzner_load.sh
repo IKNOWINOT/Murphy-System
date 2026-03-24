@@ -444,9 +444,26 @@ if [ "$SKIP_MAIL_SETUP" = false ]; then
       bash "$MAIL_SETUP" || warn "mail_setup.sh reported errors — check mailboxes manually"
       ok "Mail provisioning complete"
     elif [ "$MAIL_STATUS" = "starting" ]; then
-      warn "Mailserver still starting — re-run after it becomes healthy:"
-      warn "  docker inspect murphy-mailserver --format='{{.State.Health.Status}}'"
-      warn "  bash ${MAIL_SETUP}"
+      info "Mailserver still starting — waiting up to 180 s for it to become healthy ..."
+      MAIL_WAIT=0
+      MAIL_WAIT_MAX=180
+      while [ "$MAIL_WAIT" -lt "$MAIL_WAIT_MAX" ]; do
+        sleep 10
+        MAIL_WAIT=$((MAIL_WAIT + 10))
+        MAIL_STATUS=$(docker inspect --format='{{.State.Health.Status}}' murphy-mailserver 2>/dev/null || echo "missing")
+        if [ "$MAIL_STATUS" = "healthy" ]; then
+          break
+        fi
+        info "Still waiting ... (${MAIL_WAIT}s / ${MAIL_WAIT_MAX}s, status: ${MAIL_STATUS})"
+      done
+      if [ "$MAIL_STATUS" = "healthy" ]; then
+        info "Running mail_setup.sh (mailbox provisioning) ..."
+        bash "$MAIL_SETUP" || warn "mail_setup.sh reported errors — check mailboxes manually"
+        ok "Mail provisioning complete"
+      else
+        warn "Mailserver did not become healthy within ${MAIL_WAIT_MAX}s (status: ${MAIL_STATUS})"
+        warn "  Re-run manually: bash ${MAIL_SETUP}"
+      fi
     else
       warn "Mailserver container not healthy (status: ${MAIL_STATUS}) — skipping mail_setup.sh"
     fi
@@ -499,9 +516,22 @@ if [ "$SKIP_HEALTH" = false ]; then
   printf "  %-40s %s\n" "Subsystem" "Result"
   printf "  %-40s %s\n" "──────────────────────────────────────" "──────"
 
-  # Murphy API
-  http_check "Murphy API           :${MURPHY_PORT}" \
-    "http://localhost:${MURPHY_PORT}/api/health"
+  # Murphy API — retry up to 60 s for FastAPI to finish loading
+  info "Waiting for Murphy API to become ready (up to 60 s) ..."
+  MURPHY_READY=false
+  for i in $(seq 1 12); do
+    if curl -sf --max-time 5 "http://localhost:${MURPHY_PORT}/api/health" >/dev/null 2>&1; then
+      MURPHY_READY=true
+      break
+    fi
+    sleep 5
+  done
+  if [ "$MURPHY_READY" = true ]; then
+    ok "Murphy API           :${MURPHY_PORT}"
+  else
+    warn "Murphy API           :${MURPHY_PORT} not responding at http://localhost:${MURPHY_PORT}/api/health"
+    warn "  Check logs: journalctl -u ${SERVICE_NAME} -n 50"
+  fi
 
   # Website through nginx (the public entry point)
   if command -v nginx &>/dev/null && systemctl is-active --quiet nginx 2>/dev/null; then
