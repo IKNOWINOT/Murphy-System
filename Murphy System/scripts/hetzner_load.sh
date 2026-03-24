@@ -216,17 +216,37 @@ audit_var() {
   fi
 }
 
-# HTTP health probe (non-fatal — returns 0/1)
+# HTTP health probe (non-fatal — always returns 0 so set -e does not abort)
 http_check() {
   local label="$1"
   local url="$2"
   if curl -sf --max-time 5 "$url" >/dev/null 2>&1; then
     ok "${label}"
-    return 0
   else
     warn "${label} not responding at ${url}"
-    return 1
   fi
+  return 0
+}
+
+# HTTP health probe with retry — polls every INTERVAL seconds until the
+# endpoint responds or MAX_WAIT seconds have elapsed.  Always returns 0.
+wait_for_http() {
+  local label="$1"
+  local url="$2"
+  local max_wait="${3:-60}"
+  local interval="${4:-5}"
+  local waited=0
+  info "Waiting for ${label} (timeout: ${max_wait}s) ..."
+  while [ "$waited" -lt "$max_wait" ]; do
+    if curl -sf --max-time 5 "$url" >/dev/null 2>&1; then
+      ok "${label}"
+      return 0
+    fi
+    sleep "$interval"
+    waited=$((waited + interval))
+  done
+  warn "${label} not responding after ${max_wait}s — check: journalctl -u ${SERVICE_NAME:-murphy-production} -n 50"
+  return 0
 }
 
 # ── Banner ────────────────────────────────────────────────────────────────────
@@ -444,9 +464,26 @@ if [ "$SKIP_MAIL_SETUP" = false ]; then
       bash "$MAIL_SETUP" || warn "mail_setup.sh reported errors — check mailboxes manually"
       ok "Mail provisioning complete"
     elif [ "$MAIL_STATUS" = "starting" ]; then
-      warn "Mailserver still starting — re-run after it becomes healthy:"
-      warn "  docker inspect murphy-mailserver --format='{{.State.Health.Status}}'"
-      warn "  bash ${MAIL_SETUP}"
+      info "Mailserver still starting — waiting up to 180 s for it to become healthy ..."
+      MAIL_WAIT=0
+      MAIL_WAIT_MAX=180
+      while [ "$MAIL_WAIT" -lt "$MAIL_WAIT_MAX" ]; do
+        sleep 10
+        MAIL_WAIT=$((MAIL_WAIT + 10))
+        MAIL_STATUS=$(docker inspect --format='{{.State.Health.Status}}' murphy-mailserver 2>/dev/null || echo "missing")
+        if [ "$MAIL_STATUS" = "healthy" ]; then
+          break
+        fi
+        info "Still waiting ... (${MAIL_WAIT}s / ${MAIL_WAIT_MAX}s, status: ${MAIL_STATUS})"
+      done
+      if [ "$MAIL_STATUS" = "healthy" ]; then
+        info "Running mail_setup.sh (mailbox provisioning) ..."
+        bash "$MAIL_SETUP" || warn "mail_setup.sh reported errors — check mailboxes manually"
+        ok "Mail provisioning complete"
+      else
+        warn "Mailserver did not become healthy within ${MAIL_WAIT_MAX}s (status: ${MAIL_STATUS})"
+        warn "  Re-run manually: bash ${MAIL_SETUP}"
+      fi
     else
       warn "Mailserver container not healthy (status: ${MAIL_STATUS}) — skipping mail_setup.sh"
     fi
@@ -493,15 +530,14 @@ fi
 # ═══════════════════════════════════════════════════════════════════════════════
 section "Step 9 — Health Checks"
 if [ "$SKIP_HEALTH" = false ]; then
-  info "Waiting 10 s for services to settle ..."
-  sleep 10
   echo ""
   printf "  %-40s %s\n" "Subsystem" "Result"
   printf "  %-40s %s\n" "──────────────────────────────────────" "──────"
 
-  # Murphy API
-  http_check "Murphy API           :${MURPHY_PORT}" \
-    "http://localhost:${MURPHY_PORT}/api/health"
+  # Murphy API — retry with up to 60 s so that a slow first-boot or a
+  # systemd RestartSec=10 cycle does not produce a false failure.
+  wait_for_http "Murphy API           :${MURPHY_PORT}" \
+    "http://localhost:${MURPHY_PORT}/api/health" 60 5
 
   # Website through nginx (the public entry point)
   if command -v nginx &>/dev/null && systemctl is-active --quiet nginx 2>/dev/null; then
@@ -514,7 +550,7 @@ if [ "$SKIP_HEALTH" = false ]; then
   # Onboard LLM
   if [ "$SKIP_OLLAMA" = false ]; then
     http_check "Ollama / Onboard LLM :${OLLAMA_PORT}" \
-      "http://localhost:${OLLAMA_PORT}/api/tags"
+      "http://localhost:${OLLAMA_PORT}/api/tags" || true
   fi
 
   if [ "$SKIP_DOCKER" = false ]; then
@@ -535,11 +571,11 @@ if [ "$SKIP_HEALTH" = false ]; then
 
     # Prometheus
     http_check "Prometheus           :${PROMETHEUS_PORT}" \
-      "http://localhost:${PROMETHEUS_PORT}/-/healthy"
+      "http://localhost:${PROMETHEUS_PORT}/-/healthy" || true
 
     # Grafana
     http_check "Grafana              :${GRAFANA_PORT}" \
-      "http://localhost:${GRAFANA_PORT}/api/health"
+      "http://localhost:${GRAFANA_PORT}/api/health" || true
 
     # Mailserver SMTP
     if docker exec murphy-mailserver \
@@ -559,7 +595,7 @@ if [ "$SKIP_HEALTH" = false ]; then
 
     # Roundcube
     http_check "Webmail / Roundcube  :${WEBMAIL_PORT}" \
-      "http://localhost:${WEBMAIL_PORT}/"
+      "http://localhost:${WEBMAIL_PORT}/" || true
   fi
 
   # Matrix IM bridge (in-process — probe via Murphy API)
