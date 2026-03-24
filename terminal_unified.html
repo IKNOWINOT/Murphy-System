@@ -1600,7 +1600,7 @@
       if (btnPull && inpPull) {
         btnPull.addEventListener('click', async function() {
           var model = inpPull.value.trim();
-          if (!model) { alert('Enter a model name.'); return; }
+          if (!model) { (function(){var e=document.getElementById('llm-pull-input');if(e){e.style.border='1px solid #ff4444';e.placeholder='⚠ Enter a model name first';setTimeout(function(){e.style.border='';e.placeholder='Enter model name (e.g. phi4, deepseek-coder, gemma3…)';},3000);}})(); return; }
           btnPull.disabled  = true;
           btnPull.innerHTML = icon('download', 14) + ' Downloading\u2026';
           btnPull.classList.add('murphy-btn-loading');
@@ -1629,8 +1629,8 @@
         btnSave.addEventListener('click', async function() {
           var provider = selProv ? selProv.value : '';
           var apiKey   = inpKey  ? inpKey.value.trim() : '';
-          if (!provider) { alert('Please select a provider.'); return; }
-          if (!apiKey)   { alert('Please enter an API key.'); return; }
+          if (!provider) { (function(){var el=document.querySelector('#llm-uni-provider-select,#provider-select,[id*=provider]');if(el){el.style.border='1px solid #ff4444';setTimeout(function(){el.style.border='';},3000);}else{console.warn('Please select a provider');}})(); return; }
+          if (!apiKey)   { (function(){var el=document.getElementById('llm-uni-api-key-input');if(el){el.style.border='1px solid #ff4444';el.placeholder='⚠ API key required';setTimeout(function(){el.style.border='';el.placeholder='Paste API key here…';},3000);}})(); return; }
           btnSave.disabled    = true;
           btnSave.textContent = 'Saving\u2026';
           try {
@@ -1954,7 +1954,7 @@
       modal.querySelector('#guide-close2').onclick = function() { modal.remove(); };
       modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
     } catch (e) {
-      alert('Could not load guide: ' + e.message);
+      console.warn('Could not load guide: ' + e.message);
     }
   }
 

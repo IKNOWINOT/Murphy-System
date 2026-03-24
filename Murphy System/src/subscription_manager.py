@@ -179,8 +179,8 @@ PRICING_PLANS: Dict[SubscriptionTier, PricingPlan] = {
     SubscriptionTier.SOLO: PricingPlan(
         tier=SubscriptionTier.SOLO,
         name="Solo",
-        monthly_price=29.00,
-        annual_price=24.00,
+        monthly_price=99.00,
+        annual_price=79.00,
         max_users=1,
         max_automations=3,
         stripe_price_id_monthly=os.environ.get("STRIPE_PRICE_SOLO_MONTHLY", ""),
@@ -218,8 +218,8 @@ PRICING_PLANS: Dict[SubscriptionTier, PricingPlan] = {
     SubscriptionTier.PROFESSIONAL: PricingPlan(
         tier=SubscriptionTier.PROFESSIONAL,
         name="Professional",
-        monthly_price=0.00,   # custom pricing — contact sales
-        annual_price=0.00,
+        monthly_price=599.00,
+        annual_price=479.00,
         max_users=-1,
         max_automations=-1,
         stripe_price_id_monthly=os.environ.get("STRIPE_PRICE_PRO_MONTHLY", ""),

@@ -79,6 +79,10 @@
       <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-database"></use></svg>
       <span>Documents</span>
     </a>
+    <a href="#chat" class="murphy-sidebar-item" data-view="chat" aria-label="Chat">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-message-circle"></use></svg>
+      <span>Chat</span>
+    </a>
 
     <!-- Governance -->
     <div class="murphy-sidebar-section" aria-label="Governance">Governance</div>
@@ -135,6 +139,11 @@
 
     <!-- Admin -->
     <div class="murphy-sidebar-section" aria-label="Admin">Admin</div>
+    <a href="#setup" class="murphy-sidebar-item" data-view="setup" aria-label="API Setup Checklist" style="position:relative;">
+      <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-key"></use></svg>
+      <span>API Setup</span>
+      <span id="setup-badge" style="display:none;position:absolute;right:8px;top:50%;transform:translateY(-50%);background:#f59e0b;color:#000;border-radius:99px;font-size:10px;font-weight:700;padding:1px 6px;min-width:16px;text-align:center;"></span>
+    </a>
     <a href="#integrations" class="murphy-sidebar-item" data-view="integrations" aria-label="Integrations">
       <svg width="18" height="18"><use href="static/murphy-icons.svg#icon-plug"></use></svg>
       <span>Integrations</span>
@@ -232,6 +241,7 @@
      JAVASCRIPT
      ============================================================ -->
 <script src="static/murphy-components.js"></script>
+<script src="murphy_auth.js"></script>
 <script>
 (function () {
   'use strict';
@@ -483,6 +493,7 @@
 
   var views = {
     dashboard:    renderDashboard,
+    setup:        renderSetup,
     status:       renderStatus,
     execute:      renderExecute,
     workflows:    renderWorkflows,
@@ -548,6 +559,59 @@
 
       var html = sectionHeader('Dashboard', 'System overview and quick actions');
 
+      // ── API Setup Checklist Banner (always first) ──────────────────────────
+      try {
+        var clRes = await api.get('/setup/checklist');
+        var cl = (clRes && clRes.data) || clRes || {};
+        var pending = cl.pending || [];
+        var pct = cl.completion_pct || 0;
+        // Update sidebar badge
+        var badge_el = document.getElementById('setup-badge');
+        if (badge_el) {
+          if (pending.length > 0) {
+            badge_el.textContent = pending.length;
+            badge_el.style.display = '';
+          } else {
+            badge_el.style.display = 'none';
+          }
+        }
+        if (pending.length > 0) {
+          html += '<div class="murphy-card mb-6" style="border-left:4px solid #f59e0b;">';
+          html += '<div class="murphy-card-header" style="display:flex;align-items:center;justify-content:space-between;">';
+          html += '<span>🔑 API Setup Checklist — ' + pending.length + ' item' + (pending.length !== 1 ? 's' : '') + ' pending</span>';
+          html += '<span style="font-size:12px;color:var(--text-muted);">' + pct + '% complete</span>';
+          html += '</div>';
+          html += '<div class="murphy-card-body">';
+          // Progress bar
+          html += '<div style="background:rgba(255,255,255,0.08);border-radius:4px;height:6px;margin-bottom:12px;">';
+          html += '<div style="background:#f59e0b;height:6px;border-radius:4px;width:' + pct + '%;transition:width .4s;"></div></div>';
+          // Top 5 priority items
+          var top = pending.slice(0, 5);
+          html += '<div class="flex flex-col gap-2">';
+          top.forEach(function (item) {
+            html += '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);">';
+            html += '<span style="font-size:16px;">' + (item.configured ? '✅' : '⬜') + '</span>';
+            html += '<div style="flex:1;">';
+            html += '<div style="font-size:13px;font-weight:500;">' + esc(item.label) + '</div>';
+            html += '<div style="font-size:11px;color:var(--text-muted);">' + esc(item.description || '') + '</div>';
+            html += '</div>';
+            html += '<a href="#setup" onclick="navigate(\'setup\')" class="murphy-btn murphy-btn-primary" style="padding:3px 10px;font-size:11px;">Guide</a>';
+            html += '</div>';
+          });
+          html += '</div>';
+          if (pending.length > 5) {
+            html += '<div style="margin-top:8px;font-size:12px;color:var(--text-muted);">+ ' + (pending.length - 5) + ' more — <a href="#setup" onclick="navigate(\'setup\')" style="color:#f59e0b;">See all</a></div>';
+          }
+          html += '</div></div>';
+        } else {
+          html += '<div class="murphy-card mb-6" style="border-left:4px solid #10b981;">';
+          html += '<div class="murphy-card-body" style="display:flex;align-items:center;gap:10px;">';
+          html += '<span style="font-size:20px;">✅</span>';
+          html += '<span>All API integrations configured! System is fully connected.</span>';
+          html += '</div></div>';
+        }
+      } catch (_ce) { /* checklist optional */ }
+
       html += '<div class="grid gap-4 mb-6" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">';
       html += statCard('Active Workflows', activeWf);
       html += statCard('HITL Pending', hitlPend, hitlPend > 5 ? 'up' : null, hitlPend > 5 ? 'Attention' : '');
@@ -588,7 +652,8 @@
       }
 
       html += '<div class="flex flex-wrap gap-3 mt-6">';
-      html += '<a href="#workflows" class="murphy-btn murphy-btn-primary">' + icon('workflow') + ' New Workflow</a>';
+      html += '<a href="#setup" onclick="navigate(\'setup\')" class="murphy-btn murphy-btn-primary">' + icon('key') + ' API Setup</a>';
+      html += '<a href="#workflows" class="murphy-btn murphy-btn-secondary">' + icon('workflow') + ' New Workflow</a>';
       html += '<a href="#execute" class="murphy-btn murphy-btn-secondary">' + icon('terminal') + ' Run Command</a>';
       html += '<a href="#chat" class="murphy-btn murphy-btn-secondary">' + icon('message-circle') + ' Open Chat</a>';
       html += '</div>';
@@ -686,20 +751,36 @@
     contentEl.innerHTML = sectionHeader('Workflows') + skeletonRows(8);
     try {
       var res   = await api.get('/workflow-terminal/list');
-      var items = (res && res.data) || (Array.isArray(res) ? res : []);
+      var raw   = (res && res.data) || {};
+      var items = Array.isArray(raw) ? raw : (Array.isArray(raw.data) ? raw.data : []);
       var html  = sectionHeader('Workflows', 'Manage and monitor workflows');
 
       if (!items.length) {
         html += emptyState('No Workflows', 'No workflows have been created yet.');
       } else {
+        /* Map backend fields to table-friendly shape */
+        var rows = items.map(function (w) {
+          var sched = w.schedule || {};
+          var schedLabel = sched.interval && sched.interval !== 'on_demand'
+            ? sched.interval + (sched.cron ? ' (' + sched.cron + ')' : '')
+            : 'on demand';
+          return {
+            name:     w.name || 'Untitled',
+            status:   w.status || 'idle',
+            schedule: schedLabel,
+            created:  (w.created_at || w.created || '').replace('T', ' ').slice(0, 19),
+            steps:    (w.nodes || []).length
+          };
+        });
         html += tableHTML(
           [
-            { key: 'name',    label: 'Name' },
-            { key: 'status',  label: 'Status', render: function (v) { return badge(v, v === 'active' || v === 'running' ? 'success' : (v === 'error' || v === 'failed' ? 'danger' : 'neutral')); } },
-            { key: 'created', label: 'Created' },
-            { key: 'steps',   label: 'Steps' }
+            { key: 'name',     label: 'Name' },
+            { key: 'status',   label: 'Status', render: function (v) { return badge(v, v === 'active' || v === 'running' ? 'success' : (v === 'error' || v === 'failed' ? 'danger' : 'neutral')); } },
+            { key: 'schedule', label: 'Schedule' },
+            { key: 'created',  label: 'Created' },
+            { key: 'steps',    label: 'Steps' }
           ],
-          items
+          rows
         );
       }
       contentEl.innerHTML = html;
@@ -1319,6 +1400,7 @@
       var activeModel    = localData.active_model || statusData.active_model || statusData.model || '';
       var cloudProvider  = (statusData.provider && statusData.provider !== 'onboard') ? statusData.provider : 'None';
 
+      // Build set of downloaded model base names for quick lookup
       var downloadedNames = {};
       downloadedList.forEach(function(m) {
         var base = (m.name || '').split(':')[0];
@@ -1518,7 +1600,7 @@
       if (btnPull && inpPull) {
         btnPull.addEventListener('click', async function() {
           var model = inpPull.value.trim();
-          if (!model) { alert('Enter a model name.'); return; }
+          if (!model) { (function(){var e=document.getElementById('llm-pull-input');if(e){e.style.border='1px solid #ff4444';e.placeholder='⚠ Enter a model name first';setTimeout(function(){e.style.border='';e.placeholder='Enter model name (e.g. phi4, deepseek-coder, gemma3…)';},3000);}})(); return; }
           btnPull.disabled  = true;
           btnPull.innerHTML = icon('download', 14) + ' Downloading\u2026';
           btnPull.classList.add('murphy-btn-loading');
@@ -1547,8 +1629,8 @@
         btnSave.addEventListener('click', async function() {
           var provider = selProv ? selProv.value : '';
           var apiKey   = inpKey  ? inpKey.value.trim() : '';
-          if (!provider) { alert('Please select a provider.'); return; }
-          if (!apiKey)   { alert('Please enter an API key.'); return; }
+          if (!provider) { (function(){var el=document.querySelector('#llm-uni-provider-select,#provider-select,[id*=provider]');if(el){el.style.border='1px solid #ff4444';setTimeout(function(){el.style.border='';},3000);}else{console.warn('Please select a provider');}})(); return; }
+          if (!apiKey)   { (function(){var el=document.getElementById('llm-uni-api-key-input');if(el){el.style.border='1px solid #ff4444';el.placeholder='⚠ API key required';setTimeout(function(){el.style.border='';el.placeholder='Paste API key here…';},3000);}})(); return; }
           btnSave.disabled    = true;
           btnSave.textContent = 'Saving\u2026';
           try {
@@ -1677,6 +1759,202 @@
       contentEl.innerHTML = html;
     } catch (e) {
       contentEl.innerHTML = sectionHeader('Graduation') + errorCard(e.message, '#graduation');
+    }
+  }
+
+  /* ===========================================================
+     SETUP VIEW — API Collection Agent / API Key Checklist
+     =========================================================== */
+  async function renderSetup() {
+    contentEl.innerHTML = sectionHeader('API Setup', 'Connect your integrations — the API Collection Agent guides you through every step') + skeletonRows(6);
+    try {
+      var clRes = await api.get('/setup/checklist');
+      var cl = (clRes && clRes.data) || clRes || {};
+      var pending  = cl.pending  || [];
+      var done     = cl.done     || [];
+      var allItems = cl.checklist || [];
+      var pct      = cl.completion_pct || 0;
+
+      // Update sidebar badge
+      var badge_el = document.getElementById('setup-badge');
+      if (badge_el) {
+        badge_el.textContent = pending.length;
+        badge_el.style.display = pending.length > 0 ? '' : 'none';
+      }
+
+      var html = sectionHeader('API Setup', 'Connect your integrations');
+
+      // Progress header
+      html += '<div class="murphy-card mb-6"><div class="murphy-card-body">';
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">';
+      html += '<span style="font-weight:600;">Setup Progress</span>';
+      html += '<span style="font-size:13px;color:var(--text-muted);">' + done.length + ' / ' + allItems.length + ' configured (' + pct + '%)</span>';
+      html += '</div>';
+      html += '<div style="background:rgba(255,255,255,0.08);border-radius:4px;height:10px;">';
+      html += '<div style="background:' + (pct >= 100 ? '#10b981' : (pct >= 50 ? '#3b82f6' : '#f59e0b')) + ';height:10px;border-radius:4px;width:' + pct + '%;transition:width .6s;"></div>';
+      html += '</div>';
+      if (pending.length === 0) {
+        html += '<div style="margin-top:10px;color:#10b981;font-weight:500;">✅ All integrations configured! Your system is fully connected.</div>';
+      } else {
+        html += '<div style="margin-top:10px;color:#f59e0b;font-size:13px;">⚡ ' + pending.length + ' integration' + (pending.length !== 1 ? 's' : '') + ' need setup to unlock full automation capabilities.</div>';
+      }
+      html += '</div></div>';
+
+      // What is this section
+      html += '<div class="murphy-card mb-6" style="border-left:3px solid #3b82f6;">';
+      html += '<div class="murphy-card-header">🤖 About the API Collection Agent</div>';
+      html += '<div class="murphy-card-body" style="font-size:13px;line-height:1.6;">';
+      html += 'The <strong>API Collection Agent</strong> scans your system and determines which external API keys and SDK credentials you need. ';
+      html += 'For each missing integration it:<br>';
+      html += '<ul style="margin:8px 0 0 18px;">';
+      html += '<li>Tells you exactly <strong>where to get</strong> the key (with signup link)</li>';
+      html += '<li>Pre-fills every field it can from your existing configuration</li>';
+      html += '<li>Highlights only the fields <strong>you</strong> need to fill in</li>';
+      html += '<li>Validates the key format before saving</li>';
+      html += '<li>Hot-reloads the credential — no restart needed</li>';
+      html += '</ul>';
+      html += '</div></div>';
+
+      // LLM section (priority 1)
+      var llmItems = allItems.filter(function(i) { return i.category === 'llm'; });
+      if (llmItems.length) {
+        html += '<div class="murphy-card mb-6">';
+        html += '<div class="murphy-card-header">🧠 AI / LLM Keys (Priority — Required for Core Features)</div>';
+        html += '<div class="murphy-card-body">';
+        llmItems.forEach(function(item) {
+          html += renderSetupItem(item);
+        });
+        html += '</div></div>';
+      }
+
+      // Group remaining by category
+      var cats = {};
+      allItems.filter(function(i){ return i.category !== 'llm'; }).forEach(function(item) {
+        var c = item.category || 'other';
+        if (!cats[c]) cats[c] = [];
+        cats[c].push(item);
+      });
+
+      var catLabels = {
+        crm: '👥 CRM', email: '📧 Email', email_marketing: '📧 Email Marketing',
+        communication: '💬 Communication', cloud_storage: '☁️ Cloud Storage',
+        project_mgmt: '📋 Project Management', productivity: '🗂 Productivity',
+        ecommerce: '🛒 E-Commerce', payments: '💳 Payments',
+        analytics: '📊 Analytics', social_media: '📱 Social Media',
+        database: '🗄 Database', ai_ml: '🤖 AI/ML',
+        monitoring: '🔍 Monitoring', dns_cdn: '🌐 DNS/CDN',
+        dev: '💻 Dev / Source Control', cloud: '☁️ Cloud / AWS',
+        meetings: '🎥 Video / Meetings', market_data: '📈 Market Data',
+        weather: '🌤 Weather', industrial: '🏭 Industrial',
+        other: '🔌 Other',
+      };
+
+      Object.keys(cats).sort().forEach(function(cat) {
+        var catItems = cats[cat];
+        var unconfigured = catItems.filter(function(i){ return !i.configured; }).length;
+        html += '<div class="murphy-card mb-4">';
+        html += '<div class="murphy-card-header" style="display:flex;align-items:center;justify-content:space-between;">';
+        html += '<span>' + (catLabels[cat] || cat) + '</span>';
+        html += '<span style="font-size:11px;color:var(--text-muted);">';
+        if (unconfigured > 0) html += '<span style="color:#f59e0b;">' + unconfigured + ' pending</span>';
+        else html += '<span style="color:#10b981;">all set</span>';
+        html += '</span></div>';
+        html += '<div class="murphy-card-body">';
+        catItems.forEach(function(item) { html += renderSetupItem(item); });
+        html += '</div></div>';
+      });
+
+      contentEl.innerHTML = html;
+
+      // Wire up "Copy command" and "Get Guide" buttons
+      contentEl.querySelectorAll('[data-copy-cmd]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var cmd = btn.getAttribute('data-copy-cmd');
+          navigator.clipboard && navigator.clipboard.writeText(cmd);
+          btn.textContent = 'Copied!';
+          setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+        });
+      });
+
+      contentEl.querySelectorAll('[data-guide-id]').forEach(function(btn) {
+        btn.addEventListener('click', async function() {
+          var intId = btn.getAttribute('data-guide-id');
+          await showIntegrationGuide(intId);
+        });
+      });
+
+    } catch (e) {
+      contentEl.innerHTML = sectionHeader('API Setup') + errorCard(e.message, '#setup');
+    }
+  }
+
+  function renderSetupItem(item) {
+    var statusColor = item.configured ? '#10b981' : '#f59e0b';
+    var statusIcon  = item.configured ? '✅' : '⬜';
+    var html = '<div style="display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);">';
+    html += '<span style="font-size:18px;margin-top:2px;">' + statusIcon + '</span>';
+    html += '<div style="flex:1;">';
+    html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
+    html += '<strong style="font-size:13px;">' + esc(item.label) + '</strong>';
+    if (item.free_tier) html += '<span style="font-size:10px;background:#064e3b;color:#10b981;padding:1px 6px;border-radius:99px;">FREE</span>';
+    if (item.configured) html += '<span style="font-size:10px;background:#064e3b;color:#10b981;padding:1px 6px;border-radius:99px;">CONFIGURED</span>';
+    html += '</div>';
+    html += '<div style="font-size:11px;color:var(--text-muted);margin-top:3px;">' + esc(item.description || '') + '</div>';
+    if (!item.configured) {
+      html += '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">';
+      html += '<button class="murphy-btn murphy-btn-primary" data-guide-id="' + esc(item.id.replace('integration_','').replace('llm_','')) + '" style="padding:3px 10px;font-size:11px;">📖 Get Guide</button>';
+      html += '<a href="#credentials" onclick="navigate(\'credentials\')" class="murphy-btn murphy-btn-secondary" style="padding:3px 10px;font-size:11px;">🔑 Add Key</a>';
+      html += '</div>';
+    }
+    html += '</div></div>';
+    return html;
+  }
+
+  async function showIntegrationGuide(integrationId) {
+    try {
+      var res = await api.get('/setup/api-collection/guide/' + integrationId);
+      var guide = (res && res.guide) || res || {};
+      var steps = guide.steps || [];
+      var modal = document.createElement('div');
+      modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+      var inner = '<div style="background:#111827;border:1px solid rgba(255,255,255,0.12);border-radius:12px;max-width:560px;width:100%;padding:28px;max-height:80vh;overflow-y:auto;">';
+      inner += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">';
+      inner += '<h3 style="font-size:18px;font-weight:700;margin:0;">🔑 ' + esc(guide.name || integrationId) + ' Setup Guide</h3>';
+      inner += '<button id="guide-close" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:20px;">✕</button>';
+      inner += '</div>';
+      if (guide.already_configured) {
+        inner += '<div style="background:#064e3b;border:1px solid #10b981;border-radius:6px;padding:10px 14px;margin-bottom:16px;color:#10b981;font-size:13px;">✅ This integration is already configured.</div>';
+      }
+      if (guide.free_tier) {
+        inner += '<div style="background:#1c1917;border:1px solid #f59e0b;border-radius:6px;padding:8px 14px;margin-bottom:16px;font-size:12px;color:#fbbf24;">🎉 Free tier available — no credit card needed to get started.</div>';
+      }
+      inner += '<div style="display:flex;flex-direction:column;gap:12px;">';
+      steps.forEach(function(s) {
+        inner += '<div style="display:flex;gap:12px;align-items:flex-start;">';
+        inner += '<span style="background:#1d4ed8;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">' + s.step + '</span>';
+        inner += '<div>';
+        inner += '<div style="font-weight:600;font-size:13px;">' + esc(s.title) + '</div>';
+        inner += '<div style="font-size:12px;color:#9ca3af;margin-top:2px;">' + esc(s.description || '') + '</div>';
+        if (s.url) {
+          inner += '<a href="' + esc(s.url) + '" target="_blank" rel="noopener" style="font-size:12px;color:#60a5fa;text-decoration:underline;margin-top:4px;display:inline-block;">🔗 ' + esc(s.url) + '</a>';
+        }
+        inner += '</div></div>';
+      });
+      inner += '</div>';
+      if (guide.notes) {
+        inner += '<div style="margin-top:16px;font-size:11px;color:#9ca3af;background:rgba(255,255,255,0.04);padding:10px;border-radius:6px;">' + esc(guide.notes) + '</div>';
+      }
+      inner += '<div style="margin-top:20px;display:flex;gap:10px;">';
+      inner += '<a href="#credentials" onclick="navigate(\'credentials\');modal.remove();" class="murphy-btn murphy-btn-primary" style="flex:1;text-align:center;">🔑 Add Key Now</a>';
+      inner += '<button id="guide-close2" class="murphy-btn murphy-btn-secondary" style="flex:1;">Close</button>';
+      inner += '</div></div>';
+      modal.innerHTML = inner;
+      document.body.appendChild(modal);
+      modal.querySelector('#guide-close').onclick  = function() { modal.remove(); };
+      modal.querySelector('#guide-close2').onclick = function() { modal.remove(); };
+      modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
+    } catch (e) {
+      console.warn('Could not load guide: ' + e.message);
     }
   }
 

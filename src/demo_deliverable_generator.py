@@ -1565,8 +1565,9 @@ COMPETITOR_PRICING: list[dict] = [
     {"name": "UiPath Automation Suite",        "price": "$420/mo",             "notes": "RPA only; no AI; steep learning curve"},
     {"name": "Microsoft Power Automate Prem.", "price": "$150/mo",             "notes": "Microsoft ecosystem lock-in; per-user pricing"},
     {"name": "n8n Cloud Pro",                  "price": "$50/mo",              "notes": "Technical setup required; no AI strategy layer"},
-    {"name": "━━ Murphy Solo",                 "price": "$29/mo",              "notes": "✦ UNLIMITED automations · AI-powered · no setup fee"},
-    {"name": "━━ Murphy Business",             "price": "$99/mo",              "notes": "✦ Teams + orgs + dedicated support"},
+    {"name": "━━ Murphy Solo",                 "price": "$99/mo",              "notes": "✦ UNLIMITED automations · AI-powered · no setup fee"},
+    {"name": "━━ Murphy Business",             "price": "$299/mo",             "notes": "✦ Teams + orgs + dedicated support"},
+    {"name": "━━ Murphy Professional",         "price": "$599/mo",             "notes": "✦ Full org management · white-label · SSO"},
 ]
 
 # ---------------------------------------------------------------------------
@@ -1579,7 +1580,7 @@ _AUTO_SPECS: dict[str, dict] = {
         "business_context": "professional services / agency",
         "manual_hours_month": 40,
         "hourly_rate": 65,
-        "recommended_tier": "Solo ($29/mo)",
+        "recommended_tier": "Solo ($99/mo)",
         "workflows": [
             {
                 "name": "New Client Intake",
@@ -1638,7 +1639,7 @@ _AUTO_SPECS: dict[str, dict] = {
         "business_context": "small-to-mid business",
         "manual_hours_month": 32,
         "hourly_rate": 75,
-        "recommended_tier": "Solo ($29/mo)",
+        "recommended_tier": "Solo ($99/mo)",
         "workflows": [
             {
                 "name": "Automated Transaction Ingestion",
@@ -1696,7 +1697,7 @@ _AUTO_SPECS: dict[str, dict] = {
         "business_context": "growing team / SMB",
         "manual_hours_month": 50,
         "hourly_rate": 70,
-        "recommended_tier": "Solo ($29/mo)",
+        "recommended_tier": "Solo ($99/mo)",
         "workflows": [
             {
                 "name": "Job Posting & Distribution",
@@ -1756,7 +1757,7 @@ _AUTO_SPECS: dict[str, dict] = {
         "business_context": "regulated industry / SaaS",
         "manual_hours_month": 60,
         "hourly_rate": 120,
-        "recommended_tier": "Business ($99/mo)",
+        "recommended_tier": "Business ($299/mo)",
         "workflows": [
             {
                 "name": "Continuous Controls Monitoring",
@@ -1801,7 +1802,7 @@ _AUTO_SPECS: dict[str, dict] = {
         "business_context": "agency / product team",
         "manual_hours_month": 35,
         "hourly_rate": 65,
-        "recommended_tier": "Solo ($29/mo)",
+        "recommended_tier": "Solo ($99/mo)",
         "workflows": [
             {
                 "name": "Project Kickoff Automation",
@@ -1859,7 +1860,7 @@ _AUTO_SPECS: dict[str, dict] = {
         "business_context": "operations / finance team",
         "manual_hours_month": 25,
         "hourly_rate": 60,
-        "recommended_tier": "Solo ($29/mo)",
+        "recommended_tier": "Solo ($99/mo)",
         "workflows": [
             {
                 "name": "Invoice Ingestion & Parsing",
@@ -1959,7 +1960,7 @@ def _build_generic_spec(query: str) -> dict:
         "business_context": ctx,
         "manual_hours_month": hrs,
         "hourly_rate": rate,
-        "recommended_tier": "Solo ($29/mo)",
+        "recommended_tier": "Solo ($99/mo)",
         "workflows": [
             {
                 "name": f"Intake & Routing — {words}",
@@ -2054,7 +2055,7 @@ def generate_automation_spec(
     recommended_tier   = spec_template["recommended_tier"]
 
     # Derive tier cost
-    tier_cost = 29 if "Solo" in recommended_tier else (99 if "Business" in recommended_tier else 29)
+    tier_cost = 99 if "Solo" in recommended_tier else (299 if "Business" in recommended_tier else (599 if "Professional" in recommended_tier else 99))
 
     # Total hours saved = sum of per-workflow savings (capped below manual total)
     hours_saved = min(
