@@ -66,11 +66,16 @@ class TestSidebarNavigation:
         self.js = (ROOT / "static" / "murphy-components.js").read_text()
 
     EXPECTED_SIDEBAR_HREFS = [
+        "/ui/onboarding",
+        "/ui/system-visualizer",
         "/ui/terminal-orchestrator",
         "/ui/trading",
         "/ui/risk-dashboard",
         "/ui/paper-trading",
         "/ui/grant-wizard",
+        "/ui/grant-dashboard",
+        "/ui/financing",
+        "/ui/wallet",
         "/ui/compliance",
         "/ui/calendar",
         "/ui/meeting-intelligence",
@@ -78,6 +83,9 @@ class TestSidebarNavigation:
         "/ui/workspace",
         "/ui/community",
         "/ui/management",
+        "/ui/org-portal",
+        "/ui/docs",
+        "/ui/admin",
     ]
 
     @pytest.mark.parametrize("href", EXPECTED_SIDEBAR_HREFS)
@@ -95,10 +103,15 @@ class TestCommandPaletteNavigation:
         self.js = (ROOT / "static" / "murphy-components.js").read_text()
 
     EXPECTED_PALETTE_HREFS = [
+        "/ui/onboarding",
+        "/ui/system-visualizer",
         "/ui/trading",
         "/ui/risk-dashboard",
         "/ui/paper-trading",
         "/ui/grant-wizard",
+        "/ui/grant-dashboard",
+        "/ui/financing",
+        "/ui/wallet",
         "/ui/compliance",
         "/ui/calendar",
         "/ui/meeting-intelligence",
@@ -106,6 +119,9 @@ class TestCommandPaletteNavigation:
         "/ui/workspace",
         "/ui/community",
         "/ui/management",
+        "/ui/org-portal",
+        "/ui/docs",
+        "/ui/admin",
     ]
 
     @pytest.mark.parametrize("href", EXPECTED_PALETTE_HREFS)

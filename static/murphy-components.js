@@ -105,38 +105,57 @@ class MurphySidebar extends HTMLElement {
   connectedCallback() {
     const active = this.getAttribute('active') || '';
 
+    // Items may be nav links OR section dividers { section: 'LABEL' }
     const navItems = [
+      { section: 'SETUP' },
+      { icon: '🚀', label: 'ONBOARDING',   href: '/ui/onboarding' },
+      { icon: '🔍', label: 'VISUALIZER',   href: '/ui/system-visualizer' },
+      { section: 'TERMINAL' },
       { icon: '⬡', label: 'ORCHESTRATOR', href: '/ui/terminal-orchestrator' },
       { icon: '✦', label: 'ORG CHART',    href: '/ui/terminal-orgchart' },
       { icon: '⬢', label: 'INTEGRATIONS', href: '/ui/terminal-integrations' },
       { icon: '◈', label: 'ARCHITECT',    href: '/ui/terminal-architect' },
       { icon: '◎', label: 'WORKER',       href: '/ui/terminal-worker' },
       { icon: '⊞', label: 'COSTS',        href: '/ui/terminal-costs' },
+      { section: 'BUILD' },
       { icon: '⋮', label: 'WORKFLOWS',    href: '/ui/workflow-canvas' },
       { icon: '🏭', label: 'PRODUCTION',   href: '/ui/production-wizard' },
+      { section: 'FINANCE' },
       { icon: '📈', label: 'TRADING',      href: '/ui/trading' },
       { icon: '🛡', label: 'RISK',         href: '/ui/risk-dashboard' },
       { icon: '📝', label: 'PAPER TRADE',  href: '/ui/paper-trading' },
       { icon: '🎯', label: 'GRANTS',       href: '/ui/grant-wizard' },
+      { icon: '📊', label: 'GRANT DASH',   href: '/ui/grant-dashboard' },
+      { icon: '💼', label: 'FINANCING',    href: '/ui/financing' },
+      { icon: '💰', label: 'WALLET',       href: '/ui/wallet' },
+      { section: 'OPS' },
       { icon: '☑', label: 'COMPLIANCE',   href: '/ui/compliance' },
       { icon: '📅', label: 'CALENDAR',     href: '/ui/calendar' },
       { icon: '🧠', label: 'MEETINGS',     href: '/ui/meeting-intelligence' },
       { icon: '⚡', label: 'AMBIENT',      href: '/ui/ambient' },
+      { icon: '📋', label: 'MANAGEMENT',   href: '/ui/management' },
+      { section: 'COMMUNITY' },
       { icon: '💬', label: 'WORKSPACE',    href: '/ui/workspace' },
       { icon: '🏘', label: 'COMMUNITY',    href: '/ui/community' },
-      { icon: '📋', label: 'MANAGEMENT',   href: '/ui/management' },
       { icon: '✉', label: 'COMMS HUB',   href: '/ui/comms-hub' },
-      { icon: '💰', label: 'WALLET',      href: '/ui/wallet' },
+      { section: 'ACCOUNT' },
+      { icon: '🏢', label: 'ORG PORTAL',  href: '/ui/org-portal' },
+      { icon: '📚', label: 'DOCS',         href: '/ui/docs' },
       { icon: '⚙', label: 'ADMIN',       href: '/ui/admin' },
     ];
 
-    const links = navItems.map(item => `
+    const links = navItems.map(item => {
+      if (item.section) {
+        return `<li class="nav-section nav-label" style="padding:8px 12px 2px;font-size:8px;letter-spacing:2px;color:var(--text-dim);pointer-events:none;user-select:none;">${item.section}</li>`;
+      }
+      return `
       <li>
         <a href="${item.href}" class="${active === item.label ? 'active' : ''}">
           <span class="nav-icon">${item.icon}</span>
           <span class="nav-label">${item.label}</span>
         </a>
-      </li>`).join('');
+      </li>`;
+    }).join('');
 
     this.innerHTML = `
       <nav class="murphy-sidebar" id="ms-sidebar">
@@ -213,27 +232,34 @@ class MurphyCommandPalette extends HTMLElement {
       </div>`;
 
     this._commands = [
-      { icon:'⬡', label:'Orchestrator Dashboard',  href:'/ui/terminal-orchestrator',   shortcut:'' },
-      { icon:'✦', label:'Org Chart',               href:'/ui/terminal-orgchart',        shortcut:'' },
-      { icon:'⬢', label:'Integration Wiring',      href:'/ui/terminal-integrations',   shortcut:'' },
-      { icon:'◈', label:'Architect Terminal',       href:'/ui/terminal-architect',       shortcut:'' },
-      { icon:'◎', label:'Worker Terminal',          href:'/ui/terminal-worker',          shortcut:'' },
-      { icon:'⊞', label:'Cost Dashboard',           href:'/ui/terminal-costs',           shortcut:'' },
-      { icon:'⋮', label:'Workflow Builder',         href:'/ui/workflow-canvas', shortcut:'' },
-      { icon:'📈', label:'Trading Dashboard',       href:'/ui/trading',                  shortcut:'' },
-      { icon:'🛡', label:'Risk Dashboard',           href:'/ui/risk-dashboard',           shortcut:'' },
-      { icon:'📝', label:'Paper Trading',            href:'/ui/paper-trading',            shortcut:'' },
-      { icon:'🎯', label:'Grant Wizard',             href:'/ui/grant-wizard',             shortcut:'' },
-      { icon:'☑', label:'Compliance Settings',      href:'/ui/compliance',               shortcut:'' },
-      { icon:'📅', label:'Calendar',                 href:'/ui/calendar',                 shortcut:'' },
-      { icon:'🧠', label:'Meeting Intelligence',     href:'/ui/meeting-intelligence',     shortcut:'' },
-      { icon:'⚡', label:'Ambient Intelligence',     href:'/ui/ambient',                  shortcut:'' },
-      { icon:'💬', label:'Workspace',                href:'/ui/workspace',                shortcut:'' },
-      { icon:'🏘', label:'Community Forum',          href:'/ui/community',                shortcut:'' },
-      { icon:'📋', label:'Management',               href:'/ui/management',               shortcut:'' },
-      { icon:'✉',  label:'Communications Hub',  href:'/ui/comms-hub',  shortcut:'' },
-      { icon:'💰', label:'Wallet & Assets',      href:'/ui/wallet',     shortcut:'' },
-      { icon:'⚙',  label:'Admin Panel',          href:'/ui/admin',      shortcut:'' },
+      { icon:'🚀', label:'Onboarding & Setup',        href:'/ui/onboarding',               shortcut:'' },
+      { icon:'🔍', label:'System Visualizer',          href:'/ui/system-visualizer',        shortcut:'' },
+      { icon:'⬡', label:'Orchestrator Dashboard',     href:'/ui/terminal-orchestrator',    shortcut:'' },
+      { icon:'✦', label:'Org Chart',                  href:'/ui/terminal-orgchart',        shortcut:'' },
+      { icon:'⬢', label:'Integration Wiring',         href:'/ui/terminal-integrations',    shortcut:'' },
+      { icon:'◈', label:'Architect Terminal',          href:'/ui/terminal-architect',       shortcut:'' },
+      { icon:'◎', label:'Worker Terminal',             href:'/ui/terminal-worker',          shortcut:'' },
+      { icon:'⊞', label:'Cost Dashboard',              href:'/ui/terminal-costs',           shortcut:'' },
+      { icon:'⋮', label:'Workflow Builder',            href:'/ui/workflow-canvas',          shortcut:'' },
+      { icon:'🏭', label:'Production Wizard',          href:'/ui/production-wizard',        shortcut:'' },
+      { icon:'📈', label:'Trading Dashboard',          href:'/ui/trading',                  shortcut:'' },
+      { icon:'🛡', label:'Risk Dashboard',              href:'/ui/risk-dashboard',           shortcut:'' },
+      { icon:'📝', label:'Paper Trading',               href:'/ui/paper-trading',            shortcut:'' },
+      { icon:'🎯', label:'Grant Wizard',                href:'/ui/grant-wizard',             shortcut:'' },
+      { icon:'📊', label:'Grant Dashboard',             href:'/ui/grant-dashboard',          shortcut:'' },
+      { icon:'💼', label:'Financing Options',           href:'/ui/financing',                shortcut:'' },
+      { icon:'💰', label:'Wallet & Assets',             href:'/ui/wallet',                   shortcut:'' },
+      { icon:'☑', label:'Compliance Settings',         href:'/ui/compliance',               shortcut:'' },
+      { icon:'📅', label:'Calendar',                    href:'/ui/calendar',                 shortcut:'' },
+      { icon:'🧠', label:'Meeting Intelligence',        href:'/ui/meeting-intelligence',     shortcut:'' },
+      { icon:'⚡', label:'Ambient Intelligence',        href:'/ui/ambient',                  shortcut:'' },
+      { icon:'📋', label:'Management',                  href:'/ui/management',               shortcut:'' },
+      { icon:'💬', label:'Workspace',                   href:'/ui/workspace',                shortcut:'' },
+      { icon:'🏘', label:'Community Forum',             href:'/ui/community',                shortcut:'' },
+      { icon:'✉',  label:'Communications Hub',         href:'/ui/comms-hub',                shortcut:'' },
+      { icon:'🏢', label:'Org Portal',                  href:'/ui/org-portal',               shortcut:'' },
+      { icon:'📚', label:'Documentation',               href:'/ui/docs',                     shortcut:'' },
+      { icon:'⚙',  label:'Admin Panel',                href:'/ui/admin',                    shortcut:'' },
     ];
 
     this._selected = 0;
