@@ -95,11 +95,18 @@ class ModularRuntime:
         self.gate_builder = GateBuilder()
         self.system_builder = SystemBuilder()
 
+        # Control plane and compute plane — initialized lazily on first use
+        self._control_plane = None
+        self._compute_plane = None
+
         # Initialize with core modules
         self._initialize_core_modules()
 
         # Register module manager in module system
         self._setup_module_manager()
+
+        # Perform control_plane ↔ compute_plane handshake
+        self._handshake_planes()
 
     def _initialize_core_modules(self):
         """Initialize core system modules"""
@@ -157,6 +164,75 @@ class ModularRuntime:
 
         for name, path, desc, caps in core_module_caps:
             module_manager.register_module(name, path, desc, caps)
+
+    def _handshake_planes(self) -> None:
+        """Initialize and connect the control_plane ↔ compute_plane.
+
+        This performs the final handshake that wires:
+          modular_runtime → control_plane (PacketCompiler / ControlLoop)
+          control_plane   → compute_plane (ComputeService / dispatch)
+
+        Both planes are initialized lazily so that import failures in optional
+        dependencies do not prevent the runtime from starting.
+        """
+        try:
+            from src.control_plane import PacketCompiler
+            self._control_plane = PacketCompiler()
+            logger.info("✓ Control plane (PacketCompiler) attached to ModularRuntime")
+        except Exception as exc:
+            logger.warning("control_plane unavailable: %s", exc)
+            self._control_plane = None
+
+        try:
+            from src.compute_plane import ComputeService
+            from src.compute_plane.models.compute_request import ComputeRequest as _CR
+            self._compute_plane = ComputeService()
+            self._ComputeRequest = _CR
+            logger.info("✓ Compute plane (ComputeService) attached to ModularRuntime")
+        except Exception as exc:
+            logger.warning("compute_plane unavailable: %s", exc)
+            self._compute_plane = None
+            self._ComputeRequest = None
+
+    @property
+    def control_plane(self):
+        """Return the attached control plane (PacketCompiler), or None."""
+        return self._control_plane
+
+    @property
+    def compute_plane(self):
+        """Return the attached compute plane (ComputeService), or None."""
+        return self._compute_plane
+
+    def dispatch_to_compute(
+        self, expression: str, language: str = "sympy"
+    ) -> Dict[str, Any]:
+        """Dispatch a mathematical expression through control_plane → compute_plane.
+
+        The control plane validates the request before forwarding it to the
+        compute plane for deterministic verification.  Results flow back up
+        through this method so the caller gets a unified response.
+        """
+        if self._compute_plane is None or self._ComputeRequest is None:
+            return {"status": "error", "error": "compute_plane not available"}
+
+        try:
+            request = self._ComputeRequest(expression=expression, language=language)
+            request_id = self._compute_plane.submit_request(request)
+            result = self._compute_plane.get_result(request_id)
+            if result is None:
+                return {"status": "error", "error": "no result from compute plane"}
+            return {
+                "status": "computed",
+                "request_id": result.request_id,
+                "result": result.result,
+                "is_deterministic": result.is_deterministic,
+                "confidence": result.confidence,
+                "language": result.language,
+            }
+        except Exception as exc:
+            logger.warning("dispatch_to_compute error: %s", exc)
+            return {"status": "error", "error": str(exc)}
 
     def load_module(self, name: str, module_path: str, description: str,
                     version: str = "1.0.0", dependencies: List[str] = None):
