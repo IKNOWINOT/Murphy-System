@@ -212,6 +212,7 @@ SUBSYSTEM_ROOMS: Dict[str, _RoomSpec] = {
     "predictive-failure-engine":        ("self-healing", False),
     "predictive-maintenance-engine":    ("self-healing", False),
     "blackstart-controller":            ("self-healing", False),
+    "system-update-recommendation-engine": ("self-healing", False),
 
     # ── Domain & Expert Systems ──────────────────────────────────────────────
     "domain-engine":                    ("domain-expert", False),
