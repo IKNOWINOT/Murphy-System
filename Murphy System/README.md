@@ -212,7 +212,7 @@ Murphy-System/
 └── Murphy System/                      ← ACTIVE SYSTEM
     ├── murphy                          ← CLI tool (start/stop/status/…)
     ├── murphy_system_1.0_runtime.py    ← Single production runtime
-    ├── src/                            ← 1055 production modules
+    ├── src/                            ← 1056 production modules
     ├── tests/                          ← 644 test files
     ├── bots/                           ← 104 bot modules
     ├── documentation/                  ← Structured API/user docs
@@ -1004,7 +1004,7 @@ curl http://localhost:8000/api/status
 | **Weighted Overall** | **~85%** |
 
 > The overall percentage reflects the reality that while code coverage is extensive
-> (1055 modules, 922 in `src/`, 644 test files), the critical **E2E validation of the
+> (1056 modules, 922 in `src/`, 644 test files), the critical **E2E validation of the
 > hero flow** and **production deployment hardening** are the primary gaps preventing
 > a 100% readiness declaration.
 
