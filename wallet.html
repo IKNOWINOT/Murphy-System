@@ -788,6 +788,22 @@
     addrEl.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); copyAddress(); } });
   }
 
+  /* ── Action panel openers ── */
+  (function () {
+    function showPanel(id) {
+      ['send-panel','receive-panel','swap-panel'].forEach(function (p) {
+        var el = document.getElementById(p);
+        if (el) el.style.display = p === id ? 'block' : 'none';
+      });
+    }
+    var sendOpen = document.getElementById('btn-send-open');
+    if (sendOpen) sendOpen.addEventListener('click', function () { showPanel('send-panel'); });
+    var recvOpen = document.getElementById('btn-receive-open');
+    if (recvOpen) recvOpen.addEventListener('click', function () { showPanel('receive-panel'); });
+    var swapOpen = document.getElementById('btn-swap-open');
+    if (swapOpen) swapOpen.addEventListener('click', function () { showPanel('swap-panel'); });
+  }());
+
   /* ── MAX button ── */
   var balances = { btc: '0.3142', eth: '3.875', sol: '28.5', usdc: '985.29', matic: '1240' };
   document.getElementById('btn-send-max').addEventListener('click', function () {

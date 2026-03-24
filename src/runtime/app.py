@@ -4240,6 +4240,45 @@ def create_app() -> FastAPI:
             logger.debug("Non-critical error in endpoint: %s", exc)
         return JSONResponse({"success": False, "error": "Agent not found"}, status_code=404)
 
+    # ==================== ARTIFACTS ENDPOINTS ====================
+
+    @app.post("/api/artifacts/create")
+    async def create_artifact(request: Request):
+        """Create an artifact (AI recommendation, action plan, etc.)."""
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+        title    = (data.get("title") or "").strip()
+        content  = (data.get("content") or "").strip()
+        if not title or not content:
+            return JSONResponse({"success": False, "error": "title and content are required"}, status_code=400)
+        artifact_id = str(uuid4())[:12]
+        artifact = {
+            "id":         artifact_id,
+            "title":      title,
+            "content":    content,
+            "type":       data.get("type", "recommendation"),
+            "priority":   data.get("priority", "medium"),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_by": (data.get("created_by") or "user"),
+        }
+        _artifacts_store[artifact_id] = artifact
+        return JSONResponse({"success": True, "artifact": artifact}, status_code=201)
+
+    @app.get("/api/artifacts")
+    async def list_artifacts():
+        """List all artifacts."""
+        return JSONResponse({"success": True, "artifacts": list(_artifacts_store.values()), "count": len(_artifacts_store)})
+
+    @app.get("/api/artifacts/{artifact_id}")
+    async def get_artifact(artifact_id: str):
+        """Get a single artifact by id."""
+        a = _artifacts_store.get(artifact_id)
+        if not a:
+            return JSONResponse({"success": False, "error": "Not found"}, status_code=404)
+        return JSONResponse({"success": True, "artifact": a})
+
     # ==================== TASKS ENDPOINTS ====================
 
     @app.get("/api/tasks")
@@ -7132,6 +7171,22 @@ def create_app() -> FastAPI:
     except Exception as _pt_exc:
         logger.warning("Paper Trading routes not available: %s", _pt_exc)
 
+    @app.get("/api/trading/paper/status")
+    async def trading_paper_status():
+        """Return current paper trading engine status."""
+        try:
+            from paper_trading_routes import get_paper_trading_status
+            return JSONResponse(get_paper_trading_status())
+        except Exception:
+            pass
+        return JSONResponse({
+            "success": True,
+            "status": "paper_mode",
+            "mode": "paper",
+            "is_live": False,
+            "message": "System is in paper trading mode — no real funds at risk",
+        })
+
     # ==================== ALL HANDS MEETING SYSTEM ====================
 
     try:
@@ -7721,6 +7776,7 @@ def create_app() -> FastAPI:
 
     _org_store: "Dict[str, Dict[str, Any]]" = {}          # org_id → org record
     _admin_audit_log: "List[Dict[str, Any]]" = []         # chronological events
+    _artifacts_store: "Dict[str, Dict[str, Any]]" = {}    # artifact_id → artifact record
 
     def _require_admin(request: "Request") -> "Optional[Dict[str, Any]]":
         """Return the account dict if the caller has admin/owner role.
