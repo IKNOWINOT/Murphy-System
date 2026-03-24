@@ -216,17 +216,37 @@ audit_var() {
   fi
 }
 
-# HTTP health probe (non-fatal — returns 0/1)
+# HTTP health probe (non-fatal — always returns 0 so set -e does not abort)
 http_check() {
   local label="$1"
   local url="$2"
   if curl -sf --max-time 5 "$url" >/dev/null 2>&1; then
     ok "${label}"
-    return 0
   else
     warn "${label} not responding at ${url}"
-    return 1
   fi
+  return 0
+}
+
+# HTTP health probe with retry — polls every INTERVAL seconds until the
+# endpoint responds or MAX_WAIT seconds have elapsed.  Always returns 0.
+wait_for_http() {
+  local label="$1"
+  local url="$2"
+  local max_wait="${3:-60}"
+  local interval="${4:-5}"
+  local waited=0
+  info "Waiting for ${label} (timeout: ${max_wait}s) ..."
+  while [ "$waited" -lt "$max_wait" ]; do
+    if curl -sf --max-time 5 "$url" >/dev/null 2>&1; then
+      ok "${label}"
+      return 0
+    fi
+    sleep "$interval"
+    waited=$((waited + interval))
+  done
+  warn "${label} not responding after ${max_wait}s — check: journalctl -u ${SERVICE_NAME:-murphy-production} -n 50"
+  return 0
 }
 
 # ── Banner ────────────────────────────────────────────────────────────────────
@@ -510,28 +530,14 @@ fi
 # ═══════════════════════════════════════════════════════════════════════════════
 section "Step 9 — Health Checks"
 if [ "$SKIP_HEALTH" = false ]; then
-  info "Waiting 10 s for services to settle ..."
-  sleep 10
   echo ""
   printf "  %-40s %s\n" "Subsystem" "Result"
   printf "  %-40s %s\n" "──────────────────────────────────────" "──────"
 
-  # Murphy API — retry up to 60 s for FastAPI to finish loading
-  info "Waiting for Murphy API to become ready (up to 60 s) ..."
-  MURPHY_READY=false
-  for i in $(seq 1 12); do
-    if curl -sf --max-time 5 "http://localhost:${MURPHY_PORT}/api/health" >/dev/null 2>&1; then
-      MURPHY_READY=true
-      break
-    fi
-    sleep 5
-  done
-  if [ "$MURPHY_READY" = true ]; then
-    ok "Murphy API           :${MURPHY_PORT}"
-  else
-    warn "Murphy API           :${MURPHY_PORT} not responding at http://localhost:${MURPHY_PORT}/api/health"
-    warn "  Check logs: journalctl -u ${SERVICE_NAME} -n 50"
-  fi
+  # Murphy API — retry with up to 60 s so that a slow first-boot or a
+  # systemd RestartSec=10 cycle does not produce a false failure.
+  wait_for_http "Murphy API           :${MURPHY_PORT}" \
+    "http://localhost:${MURPHY_PORT}/api/health" 60 5
 
   # Website through nginx (the public entry point)
   if command -v nginx &>/dev/null && systemctl is-active --quiet nginx 2>/dev/null; then
@@ -544,7 +550,7 @@ if [ "$SKIP_HEALTH" = false ]; then
   # Onboard LLM
   if [ "$SKIP_OLLAMA" = false ]; then
     http_check "Ollama / Onboard LLM :${OLLAMA_PORT}" \
-      "http://localhost:${OLLAMA_PORT}/api/tags"
+      "http://localhost:${OLLAMA_PORT}/api/tags" || true
   fi
 
   if [ "$SKIP_DOCKER" = false ]; then
@@ -565,11 +571,11 @@ if [ "$SKIP_HEALTH" = false ]; then
 
     # Prometheus
     http_check "Prometheus           :${PROMETHEUS_PORT}" \
-      "http://localhost:${PROMETHEUS_PORT}/-/healthy"
+      "http://localhost:${PROMETHEUS_PORT}/-/healthy" || true
 
     # Grafana
     http_check "Grafana              :${GRAFANA_PORT}" \
-      "http://localhost:${GRAFANA_PORT}/api/health"
+      "http://localhost:${GRAFANA_PORT}/api/health" || true
 
     # Mailserver SMTP
     if docker exec murphy-mailserver \
@@ -589,7 +595,7 @@ if [ "$SKIP_HEALTH" = false ]; then
 
     # Roundcube
     http_check "Webmail / Roundcube  :${WEBMAIL_PORT}" \
-      "http://localhost:${WEBMAIL_PORT}/"
+      "http://localhost:${WEBMAIL_PORT}/" || true
   fi
 
   # Matrix IM bridge (in-process — probe via Murphy API)
