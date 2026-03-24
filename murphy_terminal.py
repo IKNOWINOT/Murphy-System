@@ -818,19 +818,30 @@ ACCOUNT_LIFECYCLE_FLOW: list[dict[str, str]] = [
 
 USER_TYPE_UI_LINKS: dict[str, list[dict[str, str]]] = {
     "owner": [
+        {"name": "Onboarding Wizard", "url": "/ui/onboarding", "file": "onboarding_wizard.html"},
         {"name": "Architect Terminal", "url": "/ui/terminal-architect", "file": "terminal_architect.html"},
         {"name": "Integrated Terminal", "url": "/ui/terminal-integrated", "file": "murphy_ui_integrated_terminal.html"},
         {"name": "Full Dashboard", "url": "/ui/dashboard", "file": "murphy_ui_integrated.html"},
-        {"name": "Onboarding Wizard", "url": "/ui/onboarding", "file": "onboarding_wizard.html"},
+        {"name": "Grant Wizard", "url": "/ui/grant-wizard", "file": "grant_wizard.html"},
+        {"name": "Grant Dashboard", "url": "/ui/grant-dashboard", "file": "grant_dashboard.html"},
+        {"name": "Financing Options", "url": "/ui/financing", "file": "financing_options.html"},
+        {"name": "System Visualizer", "url": "/ui/system-visualizer", "file": "system_visualizer.html"},
+        {"name": "Org Portal", "url": "/ui/org-portal", "file": "org_portal.html"},
+        {"name": "Admin Panel", "url": "/ui/admin", "file": "admin_panel.html"},
         {"name": "Landing Page", "url": "/ui/landing", "file": "murphy_landing_page.html"},
     ],
     "admin": [
+        {"name": "Onboarding Wizard", "url": "/ui/onboarding", "file": "onboarding_wizard.html"},
         {"name": "Architect Terminal", "url": "/ui/terminal-architect", "file": "terminal_architect.html"},
         {"name": "Integrated Terminal", "url": "/ui/terminal-integrated", "file": "murphy_ui_integrated_terminal.html"},
         {"name": "Full Dashboard", "url": "/ui/dashboard", "file": "murphy_ui_integrated.html"},
-        {"name": "Onboarding Wizard", "url": "/ui/onboarding", "file": "onboarding_wizard.html"},
+        {"name": "Grant Wizard", "url": "/ui/grant-wizard", "file": "grant_wizard.html"},
+        {"name": "Grant Dashboard", "url": "/ui/grant-dashboard", "file": "grant_dashboard.html"},
+        {"name": "Org Portal", "url": "/ui/org-portal", "file": "org_portal.html"},
+        {"name": "Admin Panel", "url": "/ui/admin", "file": "admin_panel.html"},
     ],
     "operator": [
+        {"name": "Onboarding Wizard", "url": "/ui/onboarding", "file": "onboarding_wizard.html"},
         {"name": "Worker Terminal", "url": "/ui/terminal-worker", "file": "terminal_worker.html"},
         {"name": "Enhanced Terminal", "url": "/ui/terminal-enhanced", "file": "terminal_enhanced.html"},
         {"name": "Operator Terminal", "url": "/ui/terminal-operator", "file": "terminal_integrated.html"},

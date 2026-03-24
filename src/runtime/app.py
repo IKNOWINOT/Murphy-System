@@ -1655,19 +1655,30 @@ def create_app() -> FastAPI:
         """Return role-based UI links mapping each user type to their HTML interfaces."""
         ui_map = {
             "owner": [
+                {"name": "Onboarding Wizard", "url": "/ui/onboarding"},
                 {"name": "Architect Terminal", "url": "/ui/terminal-architect"},
                 {"name": "Integrated Terminal", "url": "/ui/terminal-integrated"},
                 {"name": "Full Dashboard", "url": "/ui/dashboard"},
-                {"name": "Onboarding Wizard", "url": "/ui/onboarding"},
+                {"name": "Grant Wizard", "url": "/ui/grant-wizard"},
+                {"name": "Grant Dashboard", "url": "/ui/grant-dashboard"},
+                {"name": "Financing Options", "url": "/ui/financing"},
+                {"name": "System Visualizer", "url": "/ui/system-visualizer"},
+                {"name": "Org Portal", "url": "/ui/org-portal"},
+                {"name": "Admin Panel", "url": "/ui/admin"},
                 {"name": "Landing Page", "url": "/ui/landing"},
             ],
             "admin": [
+                {"name": "Onboarding Wizard", "url": "/ui/onboarding"},
                 {"name": "Architect Terminal", "url": "/ui/terminal-architect"},
                 {"name": "Integrated Terminal", "url": "/ui/terminal-integrated"},
                 {"name": "Full Dashboard", "url": "/ui/dashboard"},
-                {"name": "Onboarding Wizard", "url": "/ui/onboarding"},
+                {"name": "Grant Wizard", "url": "/ui/grant-wizard"},
+                {"name": "Grant Dashboard", "url": "/ui/grant-dashboard"},
+                {"name": "Org Portal", "url": "/ui/org-portal"},
+                {"name": "Admin Panel", "url": "/ui/admin"},
             ],
             "operator": [
+                {"name": "Onboarding Wizard", "url": "/ui/onboarding"},
                 {"name": "Worker Terminal", "url": "/ui/terminal-worker"},
                 {"name": "Enhanced Terminal", "url": "/ui/terminal-enhanced"},
                 {"name": "Operator Terminal", "url": "/ui/terminal-operator"},
