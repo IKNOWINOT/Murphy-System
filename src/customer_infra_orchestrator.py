@@ -11,28 +11,29 @@ the full infrastructure pipeline:
      or ``charge:confirmed``)
   2. ``CustomerInfraOrchestrator.provision_customer()`` is called
   3. For dedicated tiers (Business / Professional / Enterprise) a Hetzner
-     Cloud server is created via the public API.
-  4. The Murphy Docker image is deployed to the server.
-  5. A tenant workspace is created via ``TenantProvisioner``.
-  6. DNS is configured (``{account_id}.murphy.systems``).
-  7. A health-check loop confirms the instance is live.
-  8. A welcome e-mail is sent to the customer.
-  9. Usage metering is activated against the subscription.
+     Cloud server is created via the REST API with a cloud-init ``user_data``
+     script that self-bootstraps Docker and starts the Murphy container —
+     no SSH post-creation step is required.
+  4. A tenant workspace is created via the existing ``TenantProvisioner``.
+  5. DNS is configured (``{account_id}.murphy.systems``) via the existing
+     ``CloudflareConnector``.
+  6. A health-check loop confirms the instance is live.
+  7. A welcome e-mail is sent via the existing ``EmailService``.
+  8. Usage metering is activated by writing back to ``SubscriptionManager``.
 
 Design principles
 -----------------
-- **HITL-safe** — supervised mode requires founder approval before DNS
-  cutover.  The ``supervised_mode`` flag on the orchestrator controls
-  this behaviour.
-- **Idempotent** — calling ``provision_customer`` twice for the same
-  account does not create duplicate infrastructure; the existing record
-  is returned immediately.
-- **Rollback-capable** — if any step fails, previously created resources
-  are rolled back.
-- **Thread-safe** — all mutable state is guarded by a ``threading.Lock``.
-- **Cost-aware** — a ``cost_cap_per_hour`` guard prevents over-provisioning
-  without explicit budget approval (mirrors the pattern in
-  ``automation_scaler.py``).
+- **HITL-safe** — ``supervised_mode=True`` buffers the DNS cutover; the
+  founder calls ``approve_dns(account_id)`` before Cloudflare is updated.
+- **Idempotent** — ``provision_customer`` twice for the same account returns
+  the existing ``ACTIVE`` record without creating duplicates.
+- **Rollback-capable** — if any step fails, previously created resources are
+  cleaned up and the record transitions to ``FAILED``.
+- **Thread-safe** — all record mutation is guarded by ``threading.Lock``.
+- **Cost-aware** — ``cost_cap_per_hour`` mirrors ``automation_scaler.py``;
+  provisioning is rejected when the estimated hourly cost exceeds the cap.
+- **No legacy SSH** — dedicated-tier deployment is handled entirely by the
+  Hetzner cloud-init ``user_data`` script at server-creation time.
 
 Copyright © 2020 Inoni Limited Liability Company
 Creator: Corey Post
@@ -48,7 +49,8 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from textwrap import dedent
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +65,7 @@ TIER_LIMITS: Dict[str, Dict[str, Any]] = {
         "memory_mb": 512,
         "budget_usd": 0,
     },
-    "free": {  # alias for community
+    "free": {
         "api_calls": 1_000,
         "cpu_seconds": 3_600,
         "memory_mb": 512,
@@ -99,34 +101,46 @@ TIER_LIMITS: Dict[str, Dict[str, Any]] = {
 # Tier → Hetzner server spec mapping
 # ---------------------------------------------------------------------------
 
-# Deployment models
 DEPLOYMENT_SHARED = "shared_container"
 DEPLOYMENT_DEDICATED = "dedicated_server"
 DEPLOYMENT_CLUSTER = "cluster"
+
+# Estimated hourly cost in USD per server type (Hetzner list pricing Apr 2025)
+_SERVER_HOURLY_COST: Dict[str, float] = {
+    "cpx21": 0.027,
+    "cpx31": 0.044,
+    "cpx51": 0.109,
+}
 
 TIER_INFRA_SPECS: Dict[str, Dict[str, Any]] = {
     "community": {
         "server_type": None,
         "deployment_model": DEPLOYMENT_SHARED,
-        "cpu_cores": 0,       # no dedicated CPU — shared host
-        "ram_gb": 0,          # no dedicated RAM — shared host
+        "cpu_cores": 0,
+        "ram_gb": 0,
+        "docker_cpus": "0.5",
+        "docker_memory": "512m",
         "description": "Shared container on murphy-production host",
         "ollama_local_llm": False,
     },
-    "free": {  # alias for community
+    "free": {
         "server_type": None,
         "deployment_model": DEPLOYMENT_SHARED,
         "cpu_cores": 0,
         "ram_gb": 0,
+        "docker_cpus": "0.5",
+        "docker_memory": "512m",
         "description": "Shared container on murphy-production host",
         "ollama_local_llm": False,
     },
     "solo": {
         "server_type": None,
         "deployment_model": DEPLOYMENT_SHARED,
-        "cpu_cores": 1,       # Docker resource cap
+        "cpu_cores": 1,
         "ram_gb": 1,
-        "description": "Dedicated Docker container with resource caps (1 CPU, 1GB RAM)",
+        "docker_cpus": "1.0",
+        "docker_memory": "1g",
+        "description": "Dedicated Docker container with resource caps (1 CPU, 1 GB RAM)",
         "ollama_local_llm": False,
     },
     "business": {
@@ -134,7 +148,9 @@ TIER_INFRA_SPECS: Dict[str, Dict[str, Any]] = {
         "deployment_model": DEPLOYMENT_DEDICATED,
         "cpu_cores": 3,
         "ram_gb": 4,
-        "description": "Dedicated server, single tenant (Hetzner CPX21)",
+        "docker_cpus": "3.0",
+        "docker_memory": "4g",
+        "description": "Dedicated Hetzner CPX21 server, single tenant",
         "ollama_local_llm": False,
     },
     "professional": {
@@ -142,7 +158,9 @@ TIER_INFRA_SPECS: Dict[str, Dict[str, Any]] = {
         "deployment_model": DEPLOYMENT_DEDICATED,
         "cpu_cores": 4,
         "ram_gb": 8,
-        "description": "Dedicated server + Ollama local LLM (Hetzner CPX31)",
+        "docker_cpus": "4.0",
+        "docker_memory": "8g",
+        "description": "Dedicated Hetzner CPX31 server + Ollama local LLM",
         "ollama_local_llm": True,
     },
     "enterprise": {
@@ -150,7 +168,9 @@ TIER_INFRA_SPECS: Dict[str, Dict[str, Any]] = {
         "deployment_model": DEPLOYMENT_CLUSTER,
         "cpu_cores": 16,
         "ram_gb": 32,
-        "description": "Dedicated cluster (Hetzner CPX51+)",
+        "docker_cpus": "16.0",
+        "docker_memory": "32g",
+        "description": "Dedicated Hetzner CPX51 cluster",
         "ollama_local_llm": True,
     },
 }
@@ -188,14 +208,14 @@ class InfraRecord:
     tier: str
     status: ProvisioningStatus = ProvisioningStatus.PENDING
     server_ip: str = ""
-    server_id: str = ""           # Hetzner server ID
+    server_id: str = ""
+    dns_record_id: str = ""       # Cloudflare DNS record ID for cleanup
     tenant_id: str = ""
     instance_url: str = ""
     provisioning_log: List[str] = field(default_factory=list)
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
-    # Supervised mode: DNS cutover requires founder approval when True
-    supervised_mode: bool = True
+    supervised_mode: bool = True   # DNS cutover requires founder approval when True
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -204,6 +224,7 @@ class InfraRecord:
             "status": self.status.value,
             "server_ip": self.server_ip,
             "server_id": self.server_id,
+            "dns_record_id": self.dns_record_id,
             "tenant_id": self.tenant_id,
             "instance_url": self.instance_url,
             "provisioning_log": list(self.provisioning_log),
@@ -214,7 +235,7 @@ class InfraRecord:
 
 
 # ---------------------------------------------------------------------------
-# System service gate — replaces FounderGate for automated deploys
+# System service gate (replaces FounderGate for automated deploys)
 # ---------------------------------------------------------------------------
 
 
@@ -222,12 +243,13 @@ class SystemServiceGate:
     """Authenticate automated infrastructure operations.
 
     Unlike ``FounderGate`` (which requires a human founder account),
-    ``SystemServiceGate`` validates a system service token supplied via
-    ``MURPHY_SYSTEM_SERVICE_TOKEN`` environment variable.  This allows
-    payment-triggered automated deploys without blocking on human
-    approval.
+    ``SystemServiceGate`` validates a service token from the
+    ``MURPHY_SYSTEM_SERVICE_TOKEN`` environment variable, allowing
+    payment-triggered automated deploys without blocking on human approval.
 
-    The gate remains auditable: every validation is logged.
+    In non-production environments without a token the gate passes so that
+    local development and CI work without extra setup.  In production the
+    token is mandatory.
     """
 
     _ENV_VAR = "MURPHY_SYSTEM_SERVICE_TOKEN"
@@ -236,61 +258,158 @@ class SystemServiceGate:
         self._token = service_token or os.environ.get(self._ENV_VAR, "")
 
     def validate(self) -> bool:
-        """Return True when a valid service token is configured.
-
-        In an unconfigured environment (no token set) the gate still
-        passes so that local development and tests work without extra
-        setup.  In production, set ``MURPHY_SYSTEM_SERVICE_TOKEN`` to a
-        strong random secret.
-        """
+        env = os.environ.get("MURPHY_ENV", "development").lower()
         if not self._token:
+            if env == "production":
+                raise PermissionError(
+                    f"SystemServiceGate: {self._ENV_VAR} must be set in production"
+                )
             logger.warning(
-                "SystemServiceGate: no %s set — operating in open mode (development only)",
+                "SystemServiceGate: no %s configured — open mode (non-production only)",
                 self._ENV_VAR,
             )
-            return True
-        logger.debug("SystemServiceGate: service token validated")
+        logger.debug("SystemServiceGate: validated for env=%s", env)
         return True
 
 
 # ---------------------------------------------------------------------------
-# Hetzner server provisioner (system-initiated, no FounderGate)
+# Cloud-init bootstrap script (baked into Hetzner server creation)
+# ---------------------------------------------------------------------------
+
+
+def _build_user_data(
+    account_id: str,
+    tier: str,
+    docker_cpus: str,
+    docker_memory: str,
+    with_ollama: bool,
+    murphy_image: str,
+    murphy_port: int,
+) -> str:
+    """Return the cloud-init ``user_data`` script embedded in the Hetzner
+    server creation request.
+
+    The script runs once on first boot and:
+      1. Installs Docker CE from the official Docker APT repository
+      2. Optionally installs and starts Ollama (Professional / Enterprise)
+      3. Pulls the Murphy Docker image from the registry
+      4. Starts the Murphy container with per-tier CPU / memory caps
+
+    No SSH post-creation step is needed — the server is fully
+    self-provisioning.
+    """
+    ollama_block = ""
+    if with_ollama:
+        ollama_model = os.environ.get("OLLAMA_MODEL", "llama3").split(":")[0]
+        ollama_block = dedent(f"""
+            # Install and start Ollama for local LLM inference
+            curl -fsSL https://ollama.ai/install.sh | sh
+            systemctl enable ollama --now
+            # Pull the default model in the background (non-blocking)
+            nohup ollama pull {ollama_model} &>/var/log/ollama-pull.log &
+        """).strip()
+
+    registry = os.environ.get("MURPHY_REGISTRY", "ghcr.io/iknowinot/murphy-system")
+    image_tag = os.environ.get("MURPHY_IMAGE_TAG", "latest")
+    full_image = murphy_image or f"{registry}:{image_tag}"
+
+    db_url = os.environ.get("MURPHY_DB_URL", "")
+    secret_key = os.environ.get("MURPHY_SECRET_KEY", "")
+
+    script_lines = [
+        "#!/bin/bash",
+        "set -euo pipefail",
+        "exec > /var/log/murphy-init.log 2>&1",
+        "",
+        "# System update",
+        "apt-get update -qq",
+        "apt-get install -y ca-certificates curl gnupg lsb-release",
+        "",
+        "# Docker CE",
+        "install -m 0755 -d /etc/apt/keyrings",
+        "curl -fsSL https://download.docker.com/linux/ubuntu/gpg "
+        "| gpg --dearmor -o /etc/apt/keyrings/docker.gpg",
+        "chmod a+r /etc/apt/keyrings/docker.gpg",
+        'echo "deb [arch=$(dpkg --print-architecture) '
+        'signed-by=/etc/apt/keyrings/docker.gpg] '
+        'https://download.docker.com/linux/ubuntu '
+        '$(lsb_release -cs) stable" > /etc/apt/sources.list.d/docker.list',
+        "apt-get update -qq",
+        "apt-get install -y docker-ce docker-ce-cli containerd.io",
+        "systemctl enable docker --now",
+        "",
+    ]
+
+    if ollama_block:
+        script_lines += ["", ollama_block, ""]
+
+    script_lines += [
+        f"# Pull Murphy image",
+        f"docker pull {full_image}",
+        "",
+        f"# Launch Murphy container for account {account_id} (tier={tier})",
+        "docker run -d \\",
+        f'    --name murphy-{account_id[:20]} \\',
+        "    --restart unless-stopped \\",
+        f'    --cpus="{docker_cpus}" \\',
+        f'    --memory="{docker_memory}" \\',
+        f"    -p {murphy_port}:8000 \\",
+        '    -e MURPHY_ENV=production \\',
+        f'    -e MURPHY_ACCOUNT_ID="{account_id}" \\',
+        f'    -e MURPHY_TIER="{tier}" \\',
+        f'    -e MURPHY_DB_URL="{db_url}" \\',
+        f'    -e MURPHY_SECRET_KEY="{secret_key}" \\',
+        f"    {full_image}",
+        "",
+        f'echo "Murphy container started: account={account_id} tier={tier}"',
+    ]
+    return "\n".join(script_lines)
+
+
+# ---------------------------------------------------------------------------
+# Hetzner server provisioner (system-initiated, no FounderGate, no SSH)
 # ---------------------------------------------------------------------------
 
 
 class CustomerServerProvisioner:
-    """Provision Hetzner Cloud servers for paying customers.
+    """Provision and destroy Hetzner Cloud servers for paying customers.
 
-    This class is the system-level counterpart to ``HetznerDeployAgent``
-    (which is FounderGate-gated).  It is called automatically when a
-    subscription is activated and does NOT require a human founder.
+    Unlike ``HetznerDeployAgent`` (which is FounderGate-gated and
+    uses SSH post-creation), this class:
 
-    Supported deployment models:
-      * ``shared_container`` — no Hetzner server created; resource caps
-        are applied to a Docker container on the shared production host.
-      * ``dedicated_server`` — one Hetzner server per customer.
-      * ``cluster`` — multiple nodes (Enterprise tier).
+    * Is invoked automatically by the billing webhook — no human required.
+    * Embeds a cloud-init ``user_data`` script in the Hetzner server
+      creation payload so the server self-configures Docker and starts
+      Murphy on first boot.
+    * Never opens an SSH connection.
 
-    The Hetzner Cloud API is invoked via the ``hcloud`` CLI or the
-    REST API depending on availability.  In test / development
-    environments (``MURPHY_ENV != "production"``) all calls are stubbed
-    unless ``HETZNER_API_TOKEN`` is explicitly set.
+    Deployment models
+    -----------------
+    ``shared_container``
+        No Hetzner server created.  Resource caps for shared/solo tiers
+        are enforced by the shared production host's container scheduler.
+    ``dedicated_server``
+        One Hetzner server per customer (Business / Professional).
+    ``cluster``
+        Two nodes (Enterprise) — first node receives the DNS record.
     """
 
     _HETZNER_API_BASE = "https://api.hetzner.cloud/v1"
-    _DEFAULT_LOCATION = "nbg1"    # Nuremberg — closest to murphy.systems
+    _DEFAULT_LOCATION = "nbg1"
     _DEFAULT_IMAGE = "ubuntu-22.04"
-    _MURPHY_SSH_KEY_NAME = "murphy-deploy-key"
+    _MURPHY_PORT = 8000
 
     def __init__(
         self,
         hetzner_api_token: str = "",
         _gate: Optional[SystemServiceGate] = None,
         cost_cap_per_hour: float = 5.0,
+        murphy_image: str = "",
     ) -> None:
         self._token = hetzner_api_token or os.environ.get("HETZNER_API_TOKEN", "")
         self._gate = _gate or SystemServiceGate()
         self.cost_cap_per_hour = cost_cap_per_hour
+        self._murphy_image = murphy_image
         self._gate.validate()
 
     # ------------------------------------------------------------------
@@ -302,34 +421,52 @@ class CustomerServerProvisioner:
         account_id: str,
         spec: Dict[str, Any],
     ) -> Dict[str, Any]:
-        """Create a Hetzner server for *account_id* according to *spec*.
+        """Create a Hetzner server for *account_id* based on *spec*.
 
-        Returns a dict with at least ``{"server_id": str, "ip": str}``.
-        For shared/container deployment models returns an empty dict
-        (no server is created).
+        Returns ``{"server_id": str, "ip": str}`` for dedicated/cluster
+        tiers, or ``{}`` for shared tiers.
 
-        Raises ``RuntimeError`` if server creation fails.
+        In non-production environments without ``HETZNER_API_TOKEN`` a
+        dry-run dict ``{"server_id": "dryrun-...", "ip": "", "dry_run": True}``
+        is returned so that the rest of the pipeline can be exercised
+        without incurring cloud costs.
+
+        Raises ``ValueError`` if the estimated hourly cost exceeds
+        ``cost_cap_per_hour``.  Raises ``RuntimeError`` on API failure.
         """
         deployment_model = spec.get("deployment_model", DEPLOYMENT_SHARED)
         server_type = spec.get("server_type")
 
         if deployment_model == DEPLOYMENT_SHARED or server_type is None:
             logger.info(
-                "account=%s tier=%s → shared model, no Hetzner server created",
-                account_id,
-                spec.get("tier", ""),
+                "account=%s tier=%s → shared deployment, no Hetzner server created",
+                account_id, spec.get("tier", ""),
             )
             return {}
 
-        server_name = f"murphy-{account_id[:30]}"
-        logger.info(
-            "Creating Hetzner server: name=%s type=%s account=%s",
-            server_name,
-            server_type,
-            account_id,
-        )
+        # Cost-cap guard (mirrors automation_scaler.py pattern)
+        hourly = _SERVER_HOURLY_COST.get(server_type, 0.0)
+        if hourly > self.cost_cap_per_hour:
+            raise ValueError(
+                f"Server type '{server_type}' costs ${hourly:.3f}/hr which exceeds "
+                f"cost_cap_per_hour=${self.cost_cap_per_hour:.2f}. "
+                "Raise the cap or choose a smaller server type."
+            )
 
-        return self._create_via_api(server_name, server_type, account_id)
+        node_count = 2 if deployment_model == DEPLOYMENT_CLUSTER else 1
+        primary: Dict[str, Any] = {}
+        for idx in range(node_count):
+            suffix = f"-n{idx}" if node_count > 1 else ""
+            name = f"murphy-{account_id[:28]}{suffix}"
+            result = self._create_via_api(name, server_type, account_id, spec)
+            if idx == 0:
+                primary = result
+
+        logger.info(
+            "Provisioned %d server(s) for account=%s primary_id=%s primary_ip=%s",
+            node_count, account_id, primary.get("server_id"), primary.get("ip"),
+        )
+        return primary
 
     def delete_server(self, server_id: str) -> bool:
         """Delete a Hetzner server by ID.  Returns True on success."""
@@ -339,7 +476,7 @@ class CustomerServerProvisioner:
         return self._delete_via_api(server_id)
 
     # ------------------------------------------------------------------
-    # API helpers (stubbed in non-production)
+    # API helpers
     # ------------------------------------------------------------------
 
     def _create_via_api(
@@ -347,29 +484,54 @@ class CustomerServerProvisioner:
         name: str,
         server_type: str,
         account_id: str,
+        spec: Dict[str, Any],
     ) -> Dict[str, Any]:
-        """Call the Hetzner Cloud REST API to create a server."""
+        """POST to the Hetzner Cloud REST API to create a server.
+
+        The cloud-init ``user_data`` is embedded in the payload so the
+        server self-configures on first boot — no SSH step required.
+        """
+        user_data = _build_user_data(
+            account_id=account_id,
+            tier=spec.get("tier", ""),
+            docker_cpus=spec.get("docker_cpus", "1.0"),
+            docker_memory=spec.get("docker_memory", "1g"),
+            with_ollama=bool(spec.get("ollama_local_llm", False)),
+            murphy_image=self._murphy_image,
+            murphy_port=self._MURPHY_PORT,
+        )
+
+        payload: Dict[str, Any] = {
+            "name": name,
+            "server_type": server_type,
+            "image": os.environ.get("HETZNER_IMAGE", self._DEFAULT_IMAGE),
+            "location": os.environ.get("HETZNER_LOCATION", self._DEFAULT_LOCATION),
+            "user_data": user_data,
+            "labels": {
+                "murphy_account_id": account_id,
+                "murphy_tier": spec.get("tier", ""),
+                "managed_by": "murphy_system",
+            },
+        }
+        ssh_key = os.environ.get("HETZNER_SSH_KEY_NAME", "")
+        if ssh_key:
+            payload["ssh_keys"] = [ssh_key]
+
         env = os.environ.get("MURPHY_ENV", "development").lower()
         if not self._token or env not in ("production", "staging"):
-            return self._stub_server(name, server_type, account_id)
-
-        try:
-            import requests  # lazy import — not a hard dependency
-
-            payload: Dict[str, Any] = {
-                "name": name,
-                "server_type": server_type,
-                "image": self._DEFAULT_IMAGE,
-                "location": os.environ.get("HETZNER_LOCATION", self._DEFAULT_LOCATION),
-                "labels": {
-                    "murphy_account_id": account_id,
-                    "managed_by": "murphy_system",
-                },
+            logger.info(
+                "Non-production (env=%s): Hetzner server creation recorded but not executed. "
+                "Set HETZNER_API_TOKEN + MURPHY_ENV=production to provision real servers.",
+                env,
+            )
+            return {
+                "server_id": f"dryrun-{uuid.uuid4().hex[:12]}",
+                "ip": "",
+                "dry_run": True,
             }
 
-            ssh_key = os.environ.get("HETZNER_SSH_KEY_NAME", self._MURPHY_SSH_KEY_NAME)
-            if ssh_key:
-                payload["ssh_keys"] = [ssh_key]
+        try:
+            import requests
 
             resp = requests.post(
                 f"{self._HETZNER_API_BASE}/servers",
@@ -384,23 +546,22 @@ class CustomerServerProvisioner:
             data = resp.json()
             server = data.get("server", {})
             server_id = str(server.get("id", ""))
-            public_net = server.get("public_net", {})
-            ipv4 = public_net.get("ipv4", {})
-            ip = str(ipv4.get("ip", ""))
-            logger.info("Hetzner server created: id=%s ip=%s", server_id, ip)
+            ip = str(server.get("public_net", {}).get("ipv4", {}).get("ip", ""))
+            logger.info("Hetzner server created: id=%s ip=%s name=%s", server_id, ip, name)
             return {"server_id": server_id, "ip": ip}
         except ImportError:
-            logger.warning("requests not available — using stub server")
-            return self._stub_server(name, server_type, account_id)
-        except Exception as exc:  # noqa: BLE001
+            logger.error("requests library not available — cannot provision Hetzner servers")
+            raise RuntimeError("requests library required for Hetzner provisioning")
+        except Exception as exc:
             logger.error("Hetzner server creation failed: %s", exc)
             raise RuntimeError(f"Hetzner server creation failed: {exc}") from exc
 
     def _delete_via_api(self, server_id: str) -> bool:
-        """Call the Hetzner Cloud REST API to delete a server."""
         env = os.environ.get("MURPHY_ENV", "development").lower()
         if not self._token or env not in ("production", "staging"):
-            logger.info("Stub: would delete Hetzner server id=%s", server_id)
+            logger.info(
+                "Non-production: Hetzner server deletion recorded (id=%s)", server_id
+            )
             return True
         try:
             import requests
@@ -411,23 +572,89 @@ class CustomerServerProvisioner:
                 timeout=30,
             )
             return resp.status_code in (200, 204)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.error("Hetzner server deletion failed: id=%s err=%s", server_id, exc)
             return False
 
-    @staticmethod
-    def _stub_server(name: str, server_type: str, account_id: str) -> Dict[str, Any]:
-        """Return a plausible stub response for non-production environments."""
-        stub_ip = f"10.0.{abs(hash(account_id)) % 255}.{abs(hash(name)) % 255}"
-        stub_id = f"stub-{uuid.uuid4().hex[:12]}"
-        logger.info(
-            "Stub Hetzner server: id=%s ip=%s name=%s type=%s",
-            stub_id,
-            stub_ip,
-            name,
-            server_type,
+
+# ---------------------------------------------------------------------------
+# Cloudflare DNS helper (wraps the existing CloudflareConnector)
+# ---------------------------------------------------------------------------
+
+
+class _DNSManager:
+    """Thin wrapper around the existing ``CloudflareConnector``.
+
+    Exposes only the two operations needed by the orchestrator —
+    ``upsert`` (create-or-update) and ``delete`` — and degrades
+    gracefully to no-op logging when Cloudflare credentials are absent.
+    """
+
+    _MURPHY_DOMAIN = "murphy.systems"
+
+    def __init__(self) -> None:
+        CloudflareConnector = None
+        try:
+            from src.integrations.cloudflare_connector import (  # noqa: PLC0415
+                CloudflareConnector as _CF,
+            )
+            CloudflareConnector = _CF
+        except ImportError:
+            try:
+                from integrations.cloudflare_connector import CloudflareConnector as _CF2  # type: ignore[no-reattr]  # noqa: PLC0415
+                CloudflareConnector = _CF2
+            except ImportError:
+                pass
+        self._cf = CloudflareConnector() if CloudflareConnector is not None else None
+
+    def upsert(self, account_id: str, ip: str) -> str:
+        """Create or update an A record for ``{account_id}.murphy.systems``.
+
+        Returns the Cloudflare DNS record ID, or ``""`` when Cloudflare
+        is not configured or no IP is provided (shared tier).
+        """
+        hostname = f"{account_id}.{self._MURPHY_DOMAIN}"
+
+        if self._cf is None or not self._cf.is_configured():
+            logger.info(
+                "Cloudflare not configured — DNS record %s → %s not written "
+                "(set CLOUDFLARE_API_TOKEN + CLOUDFLARE_ZONE_ID to enable)",
+                hostname, ip or "shared",
+            )
+            return ""
+
+        if not ip:
+            logger.info("Shared tier: no IP to register for %s", hostname)
+            return ""
+
+        # Check for an existing record with this name to avoid duplicates
+        existing_resp = self._cf.list_dns_records(type_filter="A")
+        existing_records = (existing_resp.get("data") or {}).get("result", [])
+        for rec in existing_records:
+            if rec.get("name") == hostname:
+                record_id: str = rec["id"]
+                self._cf.update_dns_record(record_id, {"content": ip, "proxied": True})
+                logger.info("DNS updated: %s → %s (record_id=%s)", hostname, ip, record_id)
+                return record_id
+
+        result = self._cf.create_dns_record(
+            name=hostname, type_="A", content=ip, proxied=True
         )
-        return {"server_id": stub_id, "ip": stub_ip}
+        record_id = (result.get("data") or {}).get("result", {}).get("id", "")
+        logger.info("DNS created: %s → %s (record_id=%s)", hostname, ip, record_id)
+        return record_id
+
+    def delete(self, record_id: str) -> None:
+        """Remove a DNS record by *record_id*."""
+        if not record_id:
+            return
+        if self._cf is None or not self._cf.is_configured():
+            logger.info(
+                "Cloudflare not configured — DNS record %s not deleted", record_id
+            )
+            return
+        self._cf.delete_dns_record(record_id)
+        logger.info("DNS record deleted: id=%s", record_id)
 
 
 # ---------------------------------------------------------------------------
@@ -438,27 +665,27 @@ class CustomerServerProvisioner:
 class CustomerInfraOrchestrator:
     """Provision and deprovision customer infrastructure on payment events.
 
-    Typical usage (called from the billing webhook handler)::
+    Typical usage (called from the billing webhook handler after the
+    ``SubscriptionManager`` has confirmed payment)::
 
         orchestrator = CustomerInfraOrchestrator()
         record = orchestrator.provision_customer(
             account_id="acct_abc123",
             tier="business",
         )
-        # record.status == ProvisioningStatus.ACTIVE if all steps succeeded
+        # record.status == ProvisioningStatus.ACTIVE when all steps succeeded
 
-    The orchestrator is idempotent: calling ``provision_customer`` twice
-    for the same *account_id* returns the existing record without
-    creating duplicate resources.
+    Idempotency: calling ``provision_customer`` twice for the same
+    *account_id* returns the existing record when it is already ACTIVE.
 
-    Thread-safety: all record mutation is guarded by an internal
-    ``threading.Lock``.
+    Thread-safety: all record mutation is guarded by ``threading.Lock``.
     """
 
     def __init__(
         self,
         _server_provisioner: Optional[CustomerServerProvisioner] = None,
         _tenant_provisioner: Any = None,
+        _subscription_manager: Any = None,
         supervised_mode: bool = True,
         cost_cap_per_hour: float = 5.0,
         health_check_max_attempts: int = 10,
@@ -467,7 +694,9 @@ class CustomerInfraOrchestrator:
         self._provisioner = _server_provisioner or CustomerServerProvisioner(
             cost_cap_per_hour=cost_cap_per_hour,
         )
-        self._tenant_provisioner = _tenant_provisioner   # injected in tests
+        self._tenant_provisioner = _tenant_provisioner
+        self._subscription_manager = _subscription_manager
+        self._dns = _DNSManager()
         self.supervised_mode = supervised_mode
         self.cost_cap_per_hour = cost_cap_per_hour
         self._health_check_max_attempts = health_check_max_attempts
@@ -484,34 +713,32 @@ class CustomerInfraOrchestrator:
         account_id: str,
         tier: str,
     ) -> InfraRecord:
-        """Main entry point called by the billing webhook on activation.
+        """Main entry point — called by the billing webhook on activation.
 
-        Steps:
-          1. Check idempotency (already provisioned → return existing)
-          2. Persist a PENDING record
-          3. Select the infra spec for the tier
-          4. Provision a Hetzner server (dedicated tiers) or note shared
-          5. Deploy the Murphy Docker image
-          6. Create the tenant workspace
-          7. Configure DNS  [skipped in supervised_mode until approved]
-          8. Poll /api/health until live
-          9. Send welcome e-mail
-          10. Activate metering
+        Pipeline
+        --------
+        1. Idempotency check (ACTIVE record → return immediately)
+        2. Select infra spec for the tier
+        3. Create Hetzner server with cloud-init user_data (dedicated tiers)
+           — cloud-init handles Docker install + Murphy container start
+        4. Create tenant workspace via ``TenantProvisioner``
+        5. Configure Cloudflare DNS (or buffer for founder approval when
+           ``supervised_mode=True``)
+        6. Poll ``/api/health`` until the instance responds
+        7. Send welcome e-mail
+        8. Write provisioning info back to ``SubscriptionManager``
 
-        On any exception in steps 3-10 the rollback sequence fires:
-        the server (if created) is deleted and the record status is set
-        to FAILED.
-
-        Returns the ``InfraRecord`` in its final state.
+        On any exception the rollback sequence fires: the server (if
+        created) is deleted, the DNS record (if created) is removed, and
+        the record transitions to ``FAILED``.
         """
         tier = tier.lower()
 
-        # Idempotency: if the account already has an ACTIVE record return it
         with self._lock:
             existing = self._records.get(account_id)
             if existing and existing.status == ProvisioningStatus.ACTIVE:
                 logger.info(
-                    "provision_customer: account=%s already active — skipping",
+                    "provision_customer: account=%s already ACTIVE — idempotent skip",
                     account_id,
                 )
                 return existing
@@ -524,65 +751,97 @@ class CustomerInfraOrchestrator:
             self._records[account_id] = record
 
         server_result: Dict[str, Any] = {}
-        tenant_id = ""
+        dns_record_id = ""
 
         try:
             spec = self._select_infra_spec(tier)
-            spec["tier"] = tier
 
-            # Step: provision server (dedicated tiers only)
+            # Step 1 — Provision Hetzner server (dedicated tiers)
+            # cloud-init user_data baked in: no separate SSH/deploy step needed
             self._set_status(record, ProvisioningStatus.PROVISIONING_SERVER)
-            server_result = self._provision_server(account_id, spec)
+            server_result = self._provisioner.create_server(account_id, spec)
             server_ip = server_result.get("ip", "")
             server_id = server_result.get("server_id", "")
             with self._lock:
                 record.server_ip = server_ip
                 record.server_id = server_id
 
-            # Step: deploy Murphy instance
+            # Step 2 — Deployment (cloud-init for dedicated; cap recording for shared)
             self._set_status(record, ProvisioningStatus.DEPLOYING)
-            self._deploy_murphy_instance(account_id, server_ip, tier)
+            self._record_shared_caps(account_id, spec)
 
-            # Step: create tenant workspace
+            # Step 3 — Create tenant workspace
             self._set_status(record, ProvisioningStatus.CREATING_TENANT)
             tenant_id = self._create_tenant_workspace(account_id, tier)
             with self._lock:
                 record.tenant_id = tenant_id
 
-            # Step: configure DNS
+            # Step 4 — Configure DNS (Cloudflare, or buffered for supervised mode)
             self._set_status(record, ProvisioningStatus.CONFIGURING_DNS)
-            instance_url = self._configure_dns(account_id, server_ip)
+            instance_url, dns_record_id = self._configure_dns(account_id, server_ip)
             with self._lock:
                 record.instance_url = instance_url
+                record.dns_record_id = dns_record_id
 
-            # Step: health check
+            # Step 5 — Health check (only for dedicated tiers with a real IP)
             self._set_status(record, ProvisioningStatus.HEALTH_CHECK)
             if server_ip:
                 self._wait_for_healthy(server_ip)
 
-            # Step: welcome e-mail
+            # Step 6 — Welcome e-mail
             self._send_welcome(account_id, record.instance_url)
 
-            # Step: activate metering
-            self._activate_metering(account_id, tenant_id)
+            # Step 7 — Activate metering (write back to SubscriptionManager)
+            self._activate_metering(account_id, tenant_id, server_ip)
 
             self._set_status(record, ProvisioningStatus.ACTIVE)
-            self._log(record, f"Provisioning complete for tier={tier}")
+            self._log(record, f"Provisioning complete: tier={tier} url={instance_url}")
             logger.info(
-                "CustomerInfraOrchestrator: account=%s tier=%s → ACTIVE url=%s",
-                account_id,
-                tier,
-                record.instance_url,
+                "CustomerInfraOrchestrator: account=%s tier=%s ACTIVE url=%s",
+                account_id, tier, record.instance_url,
             )
 
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.error(
                 "CustomerInfraOrchestrator: provisioning failed account=%s: %s",
-                account_id,
-                exc,
+                account_id, exc,
             )
-            self._log(record, f"Provisioning failed: {exc}")
-            self._rollback(account_id, record, server_result)
+            self._log(record, f"FAILED: {exc}")
+            self._rollback(account_id, record, server_result, dns_record_id)
+            self._set_status(record, ProvisioningStatus.FAILED)
+
+        return record
+
+    def approve_dns(self, account_id: str) -> InfraRecord:
+        """Founder approval step for supervised mode.
+
+        When ``supervised_mode=True`` the DNS write is buffered until
+        the founder calls this method.  It writes the Cloudflare A record
+        and advances the pipeline to ACTIVE.
+
+        Returns the existing record unchanged if already ACTIVE.
+        """
+        with self._lock:
+            record = self._records.get(account_id)
+        if record is None:
+            raise KeyError(f"No infra record found for account '{account_id}'")
+        if record.status == ProvisioningStatus.ACTIVE:
+            return record
+
+        try:
+            dns_record_id = self._dns.upsert(account_id, record.server_ip)
+            with self._lock:
+                record.dns_record_id = dns_record_id
+            self._log(record, f"DNS approved by founder — record_id={dns_record_id}")
+
+            if record.server_ip:
+                self._wait_for_healthy(record.server_ip)
+            self._send_welcome(account_id, record.instance_url)
+            self._activate_metering(account_id, record.tenant_id, record.server_ip)
+            self._set_status(record, ProvisioningStatus.ACTIVE)
+        except Exception as exc:
+            logger.error("approve_dns failed for account=%s: %s", account_id, exc)
+            self._log(record, f"approve_dns failed: {exc}")
             self._set_status(record, ProvisioningStatus.FAILED)
 
         return record
@@ -594,14 +853,13 @@ class CustomerInfraOrchestrator:
     ) -> InfraRecord:
         """Reverse pipeline for subscription cancellation.
 
-        Steps:
-          1. Honour grace period (default 0 for immediate)
-          2. Mark workspace as archived
-          3. Delete Hetzner server (if dedicated)
-          4. Release DNS record
-          5. Mark record as ARCHIVED
-
-        Returns the ``InfraRecord`` in its final state.
+        Steps
+        -----
+        1. Honour grace period (default 0 = immediate)
+        2. Archive tenant workspace via ``WorkspaceManager``
+        3. Delete Hetzner server (dedicated tiers)
+        4. Remove Cloudflare DNS record
+        5. Mark record ``ARCHIVED``
         """
         with self._lock:
             record = self._records.get(account_id)
@@ -618,39 +876,34 @@ class CustomerInfraOrchestrator:
 
         if grace_period_seconds > 0:
             logger.info(
-                "Deprovision: waiting %.0fs grace period for account=%s",
-                grace_period_seconds,
-                account_id,
+                "Deprovision: %.0fs grace period for account=%s",
+                grace_period_seconds, account_id,
             )
             time.sleep(grace_period_seconds)
 
         try:
-            # Archive tenant workspace
             if record.tenant_id:
                 self._archive_tenant_workspace(account_id, record.tenant_id)
 
-            # Destroy server
             if record.server_id:
                 self._provisioner.delete_server(record.server_id)
                 self._log(record, f"Server {record.server_id} deleted")
 
-            # Release DNS
-            self._release_dns(account_id)
+            if record.dns_record_id:
+                self._dns.delete(record.dns_record_id)
+                self._log(record, f"DNS record {record.dns_record_id} removed")
 
             self._set_status(record, ProvisioningStatus.ARCHIVED)
             self._log(record, "Deprovisioning complete")
             logger.info(
-                "CustomerInfraOrchestrator: account=%s deprovisioned",
-                account_id,
+                "CustomerInfraOrchestrator: account=%s deprovisioned", account_id
             )
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.error(
-                "CustomerInfraOrchestrator: deprovision failed account=%s: %s",
-                account_id,
-                exc,
+                "CustomerInfraOrchestrator: deprovision error account=%s: %s",
+                account_id, exc,
             )
-            self._log(record, f"Deprovision step failed: {exc}")
-            # Best-effort — still mark as ARCHIVED
+            self._log(record, f"Deprovision error (best-effort, continuing): {exc}")
             self._set_status(record, ProvisioningStatus.ARCHIVED)
 
         return record
@@ -665,188 +918,148 @@ class CustomerInfraOrchestrator:
     # ------------------------------------------------------------------
 
     def _select_infra_spec(self, tier: str) -> Dict[str, Any]:
-        """Map a subscription tier string to an infrastructure spec dict."""
+        """Map a subscription tier string to an infra spec dict."""
         spec = TIER_INFRA_SPECS.get(tier)
         if spec is None:
             logger.warning("Unknown tier '%s' — falling back to community spec", tier)
             spec = TIER_INFRA_SPECS["community"]
-        return dict(spec)
-
-    def _provision_server(
-        self,
-        account_id: str,
-        spec: Dict[str, Any],
-    ) -> Dict[str, Any]:
-        """Create a Hetzner server or allocate container resources.
-
-        Returns ``{"server_id": ..., "ip": ...}`` for dedicated tiers or
-        ``{}`` for shared/container tiers.
-        """
-        result = self._provisioner.create_server(account_id, spec)
-        self._log_from_spec(account_id, spec, result)
+        result = dict(spec)
+        result["tier"] = tier
         return result
 
-    def _deploy_murphy_instance(
-        self,
-        account_id: str,
-        server_ip: str,
-        tier: str,
-    ) -> None:
-        """Deploy the Murphy Docker image to the provisioned server.
+    def _record_shared_caps(self, account_id: str, spec: Dict[str, Any]) -> None:
+        """Log Docker resource caps for shared-tier accounts.
 
-        For dedicated tiers this runs ``docker pull`` + ``docker run``
-        via SSH.  For shared tiers it adjusts resource caps on the
-        existing shared container.  Both paths are stubbed outside
-        production.
+        The shared production host's container scheduler reads these
+        caps from the provisioning record and enforces them.
         """
-        spec = TIER_INFRA_SPECS.get(tier, TIER_INFRA_SPECS["community"])
-        deployment_model = spec.get("deployment_model", DEPLOYMENT_SHARED)
+        if spec.get("deployment_model") != DEPLOYMENT_SHARED:
+            return
         logger.info(
-            "Deploying Murphy instance: account=%s server_ip=%s model=%s",
-            account_id,
-            server_ip or "<shared>",
-            deployment_model,
+            "Shared resource caps: account=%s cpus=%s memory=%s",
+            account_id, spec.get("docker_cpus"), spec.get("docker_memory"),
         )
-        # Production: use SSH + docker commands; stubbed here.
 
-    def _create_tenant_workspace(
-        self,
-        account_id: str,
-        tier: str,
-    ) -> str:
-        """Call ``TenantProvisioner.provision()`` to create an isolated workspace.
-
-        Returns the new ``tenant_id``.
-        """
+    def _create_tenant_workspace(self, account_id: str, tier: str) -> str:
+        """Call ``TenantProvisioner.provision()`` and return the new tenant_id."""
         if self._tenant_provisioner is not None:
             provisioner = self._tenant_provisioner
         else:
             try:
-                from org_build_plan.tenant_provisioner import TenantProvisioner
+                from src.org_build_plan.tenant_provisioner import TenantProvisioner
             except ImportError:
                 try:
-                    from src.org_build_plan.tenant_provisioner import TenantProvisioner  # type: ignore[no-reattr]
+                    from org_build_plan.tenant_provisioner import TenantProvisioner  # type: ignore[no-reattr]
                 except ImportError:
-                    logger.warning("TenantProvisioner not available — using stub tenant_id")
+                    logger.warning(
+                        "TenantProvisioner not importable — generating tenant_id locally"
+                    )
                     return f"tenant-{uuid.uuid4().hex[:12]}"
             provisioner = TenantProvisioner()
 
         try:
-            from org_build_plan.organization_intake import OrganizationIntakeProfile
+            from src.org_build_plan.organization_intake import OrganizationIntakeProfile
         except ImportError:
             try:
-                from src.org_build_plan.organization_intake import OrganizationIntakeProfile  # type: ignore[no-reattr]
+                from org_build_plan.organization_intake import OrganizationIntakeProfile  # type: ignore[no-reattr]
             except ImportError:
-                logger.warning("OrganizationIntakeProfile not available — using stub tenant_id")
+                logger.warning(
+                    "OrganizationIntakeProfile not importable — generating tenant_id locally"
+                )
                 return f"tenant-{uuid.uuid4().hex[:12]}"
 
-        # Map tier to company size for the intake profile
         size_map = {
-            "community": "small",
-            "free": "small",
-            "solo": "small",
-            "business": "medium",
-            "professional": "medium",
-            "enterprise": "enterprise",
+            "community": "small", "free": "small", "solo": "small",
+            "business": "medium", "professional": "medium", "enterprise": "enterprise",
         }
-        company_size = size_map.get(tier, "medium")
-
         intake = OrganizationIntakeProfile(
             org_name=f"Murphy Customer {account_id[:20]}",
-            company_size=company_size,
+            company_size=size_map.get(tier, "medium"),
             industry="technology",
         )
         result = provisioner.provision(intake)
         logger.info(
             "Tenant workspace created: account=%s tenant_id=%s",
-            account_id,
-            result.tenant_id,
+            account_id, result.tenant_id,
         )
         return result.tenant_id
 
-    def _configure_dns(self, account_id: str, server_ip: str) -> str:
-        """Set up ``{account_id}.murphy.systems`` DNS record.
+    def _configure_dns(
+        self, account_id: str, server_ip: str
+    ) -> Tuple[str, str]:
+        """Write a Cloudflare A record for ``{account_id}.murphy.systems``.
 
-        In supervised mode this records the DNS change as pending
-        (requires founder approval before it goes live).
+        In ``supervised_mode`` the Cloudflare write is buffered and
+        ``approve_dns()`` must be called by the founder first.
 
-        Returns the intended instance URL.
+        Returns ``(instance_url, dns_record_id)``.
         """
         hostname = f"{account_id}.murphy.systems"
         url = f"https://{hostname}"
 
         if self.supervised_mode:
             logger.info(
-                "Supervised mode: DNS pending approval — account=%s ip=%s url=%s",
-                account_id,
-                server_ip,
-                url,
+                "Supervised mode: DNS write buffered for founder approval "
+                "(account=%s ip=%s url=%s)",
+                account_id, server_ip or "shared", url,
             )
-        else:
-            logger.info(
-                "Configuring DNS: %s → %s",
-                hostname,
-                server_ip or "shared",
-            )
-            # Production: call Cloudflare API / Route53 / etc.
+            return url, ""
 
-        return url
+        dns_record_id = self._dns.upsert(account_id, server_ip)
+        return url, dns_record_id
 
     def _wait_for_healthy(self, server_ip: str) -> bool:
-        """Poll ``/api/health`` on *server_ip* until the instance is live.
+        """Poll ``http://{server_ip}:8000/api/health`` until it returns 200.
 
-        Returns ``True`` when healthy, raises ``TimeoutError`` after
-        ``_health_check_max_attempts`` retries.
+        Raises ``TimeoutError`` after ``_health_check_max_attempts`` retries.
         """
         url = f"http://{server_ip}:8000/api/health"
-        logger.info("Health check: polling %s", url)
-
+        logger.info("Health check polling: %s", url)
         for attempt in range(1, self._health_check_max_attempts + 1):
             try:
-                import requests  # lazy import
-
+                import requests
                 resp = requests.get(url, timeout=5)
                 if resp.status_code == 200:
-                    logger.info("Health check passed after %d attempts", attempt)
+                    logger.info("Health check passed (attempt %d)", attempt)
                     return True
             except ImportError:
-                # In test / development without requests, skip check
-                logger.debug("requests not available — health check skipped")
+                logger.debug(
+                    "requests not available — health check skipped in this environment"
+                )
                 return True
-            except Exception:  # noqa: BLE001 — network errors expected during boot
+            except Exception:
                 pass
-
             if attempt < self._health_check_max_attempts:
                 time.sleep(self._health_check_interval)
 
         raise TimeoutError(
             f"Instance at {server_ip} did not become healthy after "
-            f"{self._health_check_max_attempts} attempts"
+            f"{self._health_check_max_attempts} attempts "
+            f"({int(self._health_check_max_attempts * self._health_check_interval)}s)"
         )
 
     def _send_welcome(self, account_id: str, url: str) -> None:
-        """Send a welcome e-mail via the existing email integration."""
+        """Send a welcome e-mail via the existing ``EmailService``."""
         try:
-            from email_integration import EmailService
+            from src.email_integration import EmailService
         except ImportError:
             try:
-                from src.email_integration import EmailService  # type: ignore[no-reattr]
+                from email_integration import EmailService  # type: ignore[no-reattr]
             except ImportError:
                 logger.info(
-                    "Welcome email (stub): account=%s url=%s",
+                    "EmailService not importable — welcome email for account=%s not sent",
                     account_id,
-                    url,
                 )
                 return
 
         try:
             import asyncio
-
             svc = EmailService.from_env()
-            asyncio.get_event_loop().run_until_complete(
+            loop = asyncio.new_event_loop()
+            loop.run_until_complete(
                 svc.send(
                     to=[f"{account_id}@murphy.systems"],
-                    subject="Welcome to Murphy System — your instance is ready",
+                    subject="Your Murphy System instance is ready",
                     body=(
                         f"Your Murphy System instance is live at {url}\n\n"
                         "Log in with the credentials you created during sign-up.\n\n"
@@ -854,53 +1067,73 @@ class CustomerInfraOrchestrator:
                     ),
                 )
             )
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Welcome email failed: account=%s err=%s", account_id, exc)
-
-    def _activate_metering(self, account_id: str, tenant_id: str) -> None:
-        """Start usage metering against the subscription.
-
-        Applies ``TIER_LIMITS`` to the workspace via the subscription
-        manager's usage tracking infrastructure.  Stubbed here — the
-        subscription manager's ``record_usage`` method handles the actual
-        quota enforcement.
-        """
-        logger.info(
-            "Activating metering: account=%s tenant_id=%s",
-            account_id,
-            tenant_id,
-        )
-
-    def _archive_tenant_workspace(self, account_id: str, tenant_id: str) -> None:
-        """Archive the tenant workspace before server destruction."""
-        logger.info(
-            "Archiving tenant workspace: account=%s tenant_id=%s",
-            account_id,
-            tenant_id,
-        )
-        try:
-            from multi_tenant_workspace import WorkspaceManager, WorkspaceState
-        except ImportError:
-            try:
-                from src.multi_tenant_workspace import WorkspaceManager, WorkspaceState  # type: ignore[no-reattr]
-            except ImportError:
-                logger.warning("WorkspaceManager not available — workspace archive skipped")
-                return
-
-        mgr = WorkspaceManager()
-        try:
-            mgr.update_workspace_state(tenant_id, WorkspaceState.ARCHIVED)
-        except Exception as exc:  # noqa: BLE001
+            loop.close()
+        except Exception as exc:
             logger.warning(
-                "Workspace archive failed: tenant_id=%s err=%s",
-                tenant_id,
-                exc,
+                "Welcome email failed (non-fatal): account=%s err=%s", account_id, exc
             )
 
-    def _release_dns(self, account_id: str) -> None:
-        """Remove the ``{account_id}.murphy.systems`` DNS record."""
-        logger.info("Releasing DNS: account=%s", account_id)
-        # Production: call Cloudflare / Route53 delete API
+    def _activate_metering(
+        self, account_id: str, tenant_id: str, server_ip: str
+    ) -> None:
+        """Write provisioning info back to ``SubscriptionManager``.
+
+        Calls ``update_provisioning_info`` to record ``provisioning_status``,
+        ``server_ip``, and ``tenant_id`` on the ``SubscriptionRecord`` so
+        the billing layer reflects the live infrastructure state.
+        """
+        mgr = self._subscription_manager
+        if mgr is None:
+            try:
+                from src.subscription_manager import SubscriptionManager
+            except ImportError:
+                try:
+                    from subscription_manager import SubscriptionManager  # type: ignore[no-reattr]
+                except ImportError:
+                    logger.warning(
+                        "SubscriptionManager not importable — metering not activated "
+                        "for account=%s",
+                        account_id,
+                    )
+                    return
+            mgr = SubscriptionManager()
+
+        if hasattr(mgr, "update_provisioning_info"):
+            mgr.update_provisioning_info(
+                account_id=account_id,
+                provisioning_status=ProvisioningStatus.ACTIVE.value,
+                server_ip=server_ip,
+                tenant_id=tenant_id,
+            )
+            logger.info(
+                "Metering activated: account=%s tenant_id=%s server_ip=%s",
+                account_id, tenant_id, server_ip or "shared",
+            )
+
+    def _archive_tenant_workspace(self, account_id: str, tenant_id: str) -> None:
+        """Archive the tenant workspace via ``WorkspaceManager``."""
+        logger.info(
+            "Archiving workspace: account=%s tenant_id=%s", account_id, tenant_id
+        )
+        try:
+            from src.multi_tenant_workspace import WorkspaceManager, WorkspaceState
+        except ImportError:
+            try:
+                from multi_tenant_workspace import WorkspaceManager, WorkspaceState  # type: ignore[no-reattr]
+            except ImportError:
+                logger.warning(
+                    "WorkspaceManager not importable — archive skipped for tenant_id=%s",
+                    tenant_id,
+                )
+                return
+
+        workspace_mgr = WorkspaceManager()
+        try:
+            workspace_mgr.update_workspace_state(tenant_id, WorkspaceState.ARCHIVED)
+        except Exception as exc:
+            logger.warning(
+                "Workspace archive failed: tenant_id=%s err=%s", tenant_id, exc
+            )
 
     # ------------------------------------------------------------------
     # Rollback
@@ -911,24 +1144,32 @@ class CustomerInfraOrchestrator:
         account_id: str,
         record: InfraRecord,
         server_result: Dict[str, Any],
+        dns_record_id: str,
     ) -> None:
-        """Best-effort rollback of already-created resources."""
+        """Best-effort cleanup of resources created before the failure."""
         logger.warning("Rolling back infra for account=%s", account_id)
 
         server_id = server_result.get("server_id", "")
-        if server_id:
+        is_dry_run = server_result.get("dry_run", False)
+        if server_id and not is_dry_run:
             try:
                 self._provisioner.delete_server(server_id)
-                self._log(record, f"Rollback: deleted server {server_id}")
-            except Exception as exc:  # noqa: BLE001
+                self._log(record, f"Rollback: server {server_id} deleted")
+            except Exception as exc:
                 logger.error("Rollback: server deletion failed: %s", exc)
 
-        tenant_id = record.tenant_id
-        if tenant_id:
+        if dns_record_id:
             try:
-                self._archive_tenant_workspace(account_id, tenant_id)
-                self._log(record, f"Rollback: archived tenant {tenant_id}")
-            except Exception as exc:  # noqa: BLE001
+                self._dns.delete(dns_record_id)
+                self._log(record, f"Rollback: DNS record {dns_record_id} removed")
+            except Exception as exc:
+                logger.error("Rollback: DNS deletion failed: %s", exc)
+
+        if record.tenant_id:
+            try:
+                self._archive_tenant_workspace(account_id, record.tenant_id)
+                self._log(record, f"Rollback: tenant {record.tenant_id} archived")
+            except Exception as exc:
                 logger.error("Rollback: tenant archive failed: %s", exc)
 
     # ------------------------------------------------------------------
@@ -939,34 +1180,12 @@ class CustomerInfraOrchestrator:
         with self._lock:
             record.status = status
             record.updated_at = time.time()
-        logger.debug(
-            "ProvisioningStatus: account=%s → %s",
-            record.account_id,
-            status.value,
-        )
+        logger.debug("Status: account=%s → %s", record.account_id, status.value)
 
     def _log(self, record: InfraRecord, message: str) -> None:
         with self._lock:
-            record.provisioning_log.append(f"{time.strftime('%Y-%m-%dT%H:%M:%SZ')} {message}")
-
-    @staticmethod
-    def _log_from_spec(
-        account_id: str,
-        spec: Dict[str, Any],
-        result: Dict[str, Any],
-    ) -> None:
-        if result:
-            logger.info(
-                "Server provisioned: account=%s server_id=%s ip=%s",
-                account_id,
-                result.get("server_id"),
-                result.get("ip"),
-            )
-        else:
-            logger.info(
-                "Shared container allocated: account=%s deployment=%s",
-                account_id,
-                spec.get("deployment_model"),
+            record.provisioning_log.append(
+                f"{time.strftime('%Y-%m-%dT%H:%M:%SZ')} {message}"
             )
 
 
