@@ -166,3 +166,123 @@ class TestAPIRouter:
         from automations.api import create_automations_router
         router = create_automations_router()
         assert router is not None
+
+
+# ===================================================================
+# Phase 7 additions: Recurrence, Templates, Webhook, Cross-board
+# ===================================================================
+
+class TestRecurrenceScheduler:
+    def test_schedule_creates_recurrence(self):
+        from automations.models import RecurrenceFrequency
+        from automations.engine import RecurrenceScheduler
+        eng = AutomationEngine()
+        rule = eng.create_rule("Sched", "b1", TriggerType.SCHEDULE,
+                               [AutomationAction(action_type=ActionType.NOTIFY)])
+        scheduler = RecurrenceScheduler(eng)
+        rec = scheduler.schedule(rule.id, RecurrenceFrequency.DAILY)
+        assert rec.rule_id == rule.id
+        assert rec.frequency.value == "daily"
+        assert len(scheduler.list_recurrences()) == 1
+
+    def test_unschedule(self):
+        from automations.models import RecurrenceFrequency
+        from automations.engine import RecurrenceScheduler
+        eng = AutomationEngine()
+        rule = eng.create_rule("R", "b1", TriggerType.SCHEDULE,
+                               [AutomationAction(action_type=ActionType.NOTIFY)])
+        scheduler = RecurrenceScheduler(eng)
+        rec = scheduler.schedule(rule.id, RecurrenceFrequency.WEEKLY)
+        assert scheduler.unschedule(rec.id)
+        assert len(scheduler.list_recurrences()) == 0
+
+    def test_tick_fires_due_rules(self):
+        from automations.models import RecurrenceFrequency
+        from automations.engine import RecurrenceScheduler
+        eng = AutomationEngine()
+        rule = eng.create_rule("Tick", "b1", TriggerType.SCHEDULE,
+                               [AutomationAction(action_type=ActionType.NOTIFY)])
+        scheduler = RecurrenceScheduler(eng)
+        scheduler.schedule(rule.id, RecurrenceFrequency.HOURLY,
+                           next_run_at="2000-01-01T00:00:00+00:00")
+        results = scheduler.tick("2026-01-01T00:00:00+00:00")
+        assert len(results) == 1
+        assert rule.run_count == 1
+
+    def test_engine_scheduler_property(self):
+        from automations.models import RecurrenceFrequency
+        eng = AutomationEngine()
+        rule = eng.create_rule("R2", "b1", TriggerType.SCHEDULE,
+                               [AutomationAction(action_type=ActionType.NOTIFY)])
+        rec = eng.scheduler.schedule(rule.id, RecurrenceFrequency.DAILY)
+        assert rec.rule_id == rule.id
+
+
+class TestAutomationTemplates:
+    def test_builtin_templates_loaded(self):
+        eng = AutomationEngine()
+        templates = eng.list_templates()
+        assert len(templates) >= 5
+
+    def test_list_templates_by_category(self):
+        eng = AutomationEngine()
+        notif = eng.list_templates(category="notifications")
+        assert all(t.category == "notifications" for t in notif)
+        assert len(notif) >= 1
+
+    def test_get_template(self):
+        eng = AutomationEngine()
+        templates = eng.list_templates()
+        t = eng.get_template(templates[0].id)
+        assert t is not None
+        assert t.id == templates[0].id
+
+    def test_create_custom_template(self):
+        eng = AutomationEngine()
+        tmpl = eng.create_template(
+            "My Template", TriggerType.ITEM_CREATED,
+            [AutomationAction(action_type=ActionType.NOTIFY)],
+            category="custom",
+        )
+        assert tmpl.category == "custom"
+        assert eng.get_template(tmpl.id) is not None
+
+    def test_create_rule_from_template(self):
+        eng = AutomationEngine()
+        notif_templates = eng.list_templates(category="notifications")
+        assert notif_templates
+        rule = eng.create_rule_from_template(notif_templates[0].id, "board-x")
+        assert rule.board_id == "board-x"
+        assert rule.id in [r.id for r in eng.list_rules()]
+
+    def test_template_to_dict(self):
+        eng = AutomationEngine()
+        t = eng.list_templates()[0]
+        d = t.to_dict()
+        assert "trigger_type" in d
+        assert "actions" in d
+
+
+class TestWebhookTrigger:
+    def test_receive_webhook_fires_rules(self):
+        eng = AutomationEngine()
+        eng.create_rule("WH Rule", "b1", TriggerType.WEBHOOK,
+                        [AutomationAction(action_type=ActionType.NOTIFY)])
+        results = eng.receive_webhook("b1", {"event": "new_lead"})
+        assert len(results) == 1
+
+    def test_webhook_handler_called(self):
+        eng = AutomationEngine()
+        calls = []
+        eng.register_webhook_handler(lambda bid, p: calls.append((bid, p)))
+        eng.receive_webhook("b1", {"key": "val"})
+        assert calls == [("b1", {"key": "val"})]
+
+    def test_cross_board_action_types(self):
+        from automations.models import ActionType
+        assert ActionType.CROSS_BOARD_CREATE.value == "cross_board_create"
+        assert ActionType.CROSS_BOARD_UPDATE.value == "cross_board_update"
+
+    def test_schedule_trigger_type(self):
+        assert TriggerType.SCHEDULE.value == "schedule"
+        assert TriggerType.WEBHOOK.value == "webhook"

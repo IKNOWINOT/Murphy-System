@@ -177,3 +177,96 @@ class CRMActivity:
             "details": self.details,
             "created_at": self.created_at,
         }
+
+
+# ---------------------------------------------------------------------------
+# Email interaction tracking
+# ---------------------------------------------------------------------------
+
+class EmailDirection(Enum):
+    """Whether an email was sent or received."""
+    SENT = "sent"
+    RECEIVED = "received"
+
+
+@dataclass
+class EmailInteraction:
+    """A sent or received email linked to a contact and/or deal.
+
+    Email interactions are distinct from generic :class:`CRMActivity` entries
+    so they can be queried, threaded, and analysed separately.
+    """
+    id: str = field(default_factory=_new_id)
+    contact_id: str = ""
+    deal_id: str = ""
+    user_id: str = ""           # CRM user who sent/received the email
+    direction: EmailDirection = EmailDirection.SENT
+    subject: str = ""
+    body_preview: str = ""      # first 500 chars; full body stored externally
+    from_address: str = ""
+    to_addresses: List[str] = field(default_factory=list)
+    message_id: str = ""        # RFC-2822 Message-ID for threading
+    thread_id: str = ""         # optional conversation thread grouping
+    opened_at: str = ""         # ISO-8601 if tracked open pixel fired
+    clicked_at: str = ""        # ISO-8601 if a tracked link was clicked
+    created_at: str = field(default_factory=_now)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "contact_id": self.contact_id,
+            "deal_id": self.deal_id,
+            "user_id": self.user_id,
+            "direction": self.direction.value,
+            "subject": self.subject,
+            "body_preview": self.body_preview,
+            "from_address": self.from_address,
+            "to_addresses": self.to_addresses,
+            "message_id": self.message_id,
+            "thread_id": self.thread_id,
+            "opened_at": self.opened_at,
+            "clicked_at": self.clicked_at,
+            "created_at": self.created_at,
+        }
+
+
+# ---------------------------------------------------------------------------
+# Pipeline templates
+# ---------------------------------------------------------------------------
+
+_BUILTIN_PIPELINE_TEMPLATES: List[Dict[str, Any]] = [
+    {
+        "name": "Standard Sales Pipeline",
+        "stages": [
+            {"name": "Lead", "order": 0, "probability": 0.1},
+            {"name": "Qualified", "order": 1, "probability": 0.3},
+            {"name": "Proposal", "order": 2, "probability": 0.5},
+            {"name": "Negotiation", "order": 3, "probability": 0.75},
+            {"name": "Closed Won", "order": 4, "probability": 1.0},
+            {"name": "Closed Lost", "order": 5, "probability": 0.0},
+        ],
+    },
+    {
+        "name": "Enterprise Sales Cycle",
+        "stages": [
+            {"name": "Prospecting", "order": 0, "probability": 0.05},
+            {"name": "Discovery", "order": 1, "probability": 0.15},
+            {"name": "Demo", "order": 2, "probability": 0.30},
+            {"name": "Technical Eval", "order": 3, "probability": 0.45},
+            {"name": "Proposal", "order": 4, "probability": 0.60},
+            {"name": "Legal / Contract", "order": 5, "probability": 0.80},
+            {"name": "Closed Won", "order": 6, "probability": 1.0},
+            {"name": "Closed Lost", "order": 7, "probability": 0.0},
+        ],
+    },
+    {
+        "name": "SaaS Trial Pipeline",
+        "stages": [
+            {"name": "Trial Started", "order": 0, "probability": 0.2},
+            {"name": "Engaged", "order": 1, "probability": 0.4},
+            {"name": "Expansion Talk", "order": 2, "probability": 0.6},
+            {"name": "Converted", "order": 3, "probability": 1.0},
+            {"name": "Churned", "order": 4, "probability": 0.0},
+        ],
+    },
+]

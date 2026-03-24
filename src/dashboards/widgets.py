@@ -196,6 +196,35 @@ def render_text_widget(
     }
 
 
+def render_crm_summary_widget(
+    widget: WidgetConfig,
+    engine: AggregationEngine,
+) -> Dict[str, Any]:
+    """Render a CRM pipeline / deal summary widget.
+
+    Pulls pre-computed CRM summary data from ``widget.settings["crm_summary"]``
+    if provided (populated by the dashboard aggregation layer when a
+    :class:`~crm.CRMManager` is wired in), otherwise returns an empty
+    summary structure so the widget always has the correct shape.
+    """
+    summary = widget.settings.get("crm_summary", {})
+    return {
+        "widget_type": WidgetType.CRM_SUMMARY.value,
+        "title": widget.title,
+        "data": {
+            "total_contacts": summary.get("total_contacts", 0),
+            "total_deals": summary.get("total_deals", 0),
+            "open_deals": summary.get("open_deals", 0),
+            "won_deals": summary.get("won_deals", 0),
+            "total_pipeline_value": summary.get("total_pipeline_value", 0.0),
+            "open_pipeline_value": summary.get("open_pipeline_value", 0.0),
+            "won_revenue": summary.get("won_revenue", 0.0),
+            "emails_sent": summary.get("emails_sent", 0),
+            "emails_received": summary.get("emails_received", 0),
+        },
+    }
+
+
 # ---------------------------------------------------------------------------
 # Dispatcher
 # ---------------------------------------------------------------------------
@@ -207,6 +236,7 @@ _RENDERERS: Dict[WidgetType, Callable[..., Dict[str, Any]]] = {
     WidgetType.TIMELINE: render_timeline_widget,
     WidgetType.BATTERY: render_battery_widget,
     WidgetType.TEXT: render_text_widget,
+    WidgetType.CRM_SUMMARY: render_crm_summary_widget,
 }
 
 

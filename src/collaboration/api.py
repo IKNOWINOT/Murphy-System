@@ -72,7 +72,8 @@ class ConnectionManager:
         for ws in list(self._connections.get(board_id, set())):
             try:
                 await ws.send_text(payload)
-            except Exception:  # noqa: BLE001
+            except (RuntimeError, OSError, Exception) as exc:  # noqa: BLE001 – stale WS connections must not crash broadcast
+                logger.debug("Dropping stale WS connection for board=%s: %s", board_id, exc)
                 dead.append(ws)
         for ws in dead:
             self.disconnect(board_id, ws)
