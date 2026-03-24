@@ -36,6 +36,8 @@ class TriggerType(Enum):
     PERIOD_ELAPSED = "period_elapsed"
     PERSON_ASSIGNED = "person_assigned"
     FORM_SUBMITTED = "form_submitted"
+    SCHEDULE = "schedule"          # recurrence / cron-based trigger
+    WEBHOOK = "webhook"            # external HTTP trigger
 
 
 class ActionType(Enum):
@@ -49,6 +51,8 @@ class ActionType(Enum):
     ARCHIVE_ITEM = "archive_item"
     DUPLICATE_ITEM = "duplicate_item"
     ASSIGN_PERSON = "assign_person"
+    CROSS_BOARD_CREATE = "cross_board_create"   # create item on another board
+    CROSS_BOARD_UPDATE = "cross_board_update"   # update item on another board
 
 
 class ConditionOperator(Enum):

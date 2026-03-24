@@ -2,30 +2,84 @@
 Collaboration System – REST API
 =================================
 
-FastAPI router exposing comment CRUD, notifications, and activity feed
-endpoints.
+FastAPI router exposing comment CRUD, notifications, activity feed, and
+WebSocket real-time push endpoints.
 
-All endpoints live under ``/api/collaboration``.
+All endpoints live under ``/api/collaboration``.  WebSocket connections are
+accepted at ``/api/collaboration/ws/{board_id}`` and receive JSON-encoded
+push events whenever a comment is posted, an item is updated, or a
+notification is sent for that board.
 
 Copyright 2024 Inoni LLC – BSL-1.1
 """
 
 from __future__ import annotations
 
+import asyncio
+import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 try:
-    from fastapi import APIRouter, HTTPException, Query
+    from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconnect
     from fastapi.responses import JSONResponse
     from pydantic import BaseModel, Field
 except ImportError:  # pragma: no cover
     APIRouter = None  # type: ignore[assignment,misc]
+    WebSocket = None  # type: ignore[assignment,misc,misc]
+    WebSocketDisconnect = Exception  # type: ignore[assignment,misc]
 
 from .comment_manager import CommentManager
 from .models import CommentEntityType, NotificationStatus
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# WebSocket connection manager
+# ---------------------------------------------------------------------------
+
+class ConnectionManager:
+    """Manages active WebSocket connections per board.
+
+    Allows broadcasting JSON-serialisable event dicts to all clients
+    subscribed to a board, without requiring an external message broker.
+    """
+
+    def __init__(self) -> None:
+        # board_id → set of live websockets
+        self._connections: Dict[str, Set["WebSocket"]] = {}
+
+    async def connect(self, board_id: str, websocket: "WebSocket") -> None:
+        """Accept the handshake and register the connection."""
+        await websocket.accept()
+        self._connections.setdefault(board_id, set()).add(websocket)
+        logger.debug("WS connect board=%s total=%d", board_id,
+                     len(self._connections[board_id]))
+
+    def disconnect(self, board_id: str, websocket: "WebSocket") -> None:
+        """Remove a disconnected websocket."""
+        board_conns = self._connections.get(board_id, set())
+        board_conns.discard(websocket)
+        if not board_conns:
+            self._connections.pop(board_id, None)
+        logger.debug("WS disconnect board=%s", board_id)
+
+    async def broadcast(self, board_id: str, event: Dict[str, Any]) -> None:
+        """Send *event* to every client subscribed to *board_id*."""
+        payload = json.dumps(event)
+        dead: List["WebSocket"] = []
+        for ws in list(self._connections.get(board_id, set())):
+            try:
+                await ws.send_text(payload)
+            except Exception:  # noqa: BLE001
+                dead.append(ws)
+        for ws in dead:
+            self.disconnect(board_id, ws)
+
+    def subscriber_count(self, board_id: str) -> int:
+        """Return the number of active connections for a board."""
+        return len(self._connections.get(board_id, set()))
 
 # ---------------------------------------------------------------------------
 # Pydantic request schemas
@@ -58,8 +112,20 @@ if APIRouter is not None:
 # Router factory
 # ---------------------------------------------------------------------------
 
+_default_ws_manager: Optional[ConnectionManager] = None
+
+
+def get_ws_manager() -> ConnectionManager:
+    """Return the module-level :class:`ConnectionManager` singleton."""
+    global _default_ws_manager
+    if _default_ws_manager is None:
+        _default_ws_manager = ConnectionManager()
+    return _default_ws_manager
+
+
 def create_collaboration_router(
     manager: Optional[CommentManager] = None,
+    ws_manager: Optional[ConnectionManager] = None,
 ) -> "APIRouter":
     """Build and return a FastAPI :class:`APIRouter` for the collaboration system."""
     if APIRouter is None:
@@ -67,6 +133,9 @@ def create_collaboration_router(
 
     if manager is None:
         manager = CommentManager()
+
+    if ws_manager is None:
+        ws_manager = get_ws_manager()
 
     router = APIRouter(prefix="/api/collaboration", tags=["collaboration"])
 
@@ -202,5 +271,50 @@ def create_collaboration_router(
     async def item_feed(item_id: str, limit: int = Query(50, ge=1, le=500)):
         entries = manager.feed.get_item_feed(item_id, limit=limit)
         return JSONResponse([e.to_dict() for e in entries])
+
+    # -- WebSocket real-time push -------------------------------------------
+
+    @router.websocket("/ws/{board_id}")
+    async def board_websocket(board_id: str, websocket: "WebSocket"):
+        """WebSocket endpoint for real-time board event push.
+
+        Clients connect to ``/api/collaboration/ws/{board_id}`` and receive
+        JSON messages whenever a comment is added or updated for that board.
+        The server sends a ``{"type": "ping"}`` keepalive every 30 s.
+        Clients may send any text frame to keep the connection alive; the
+        server echoes back ``{"type": "pong"}``.
+        """
+        await ws_manager.connect(board_id, websocket)
+        try:
+            # Send a welcome handshake so the client knows the connection is live
+            await websocket.send_text(json.dumps({
+                "type": "connected",
+                "board_id": board_id,
+                "subscribers": ws_manager.subscriber_count(board_id),
+            }))
+            while True:
+                try:
+                    # Wait up to 30 s for a client message; send keepalive if none arrives
+                    data = await asyncio.wait_for(websocket.receive_text(), timeout=30)
+                    await websocket.send_text(json.dumps({"type": "pong"}))
+                except asyncio.TimeoutError:
+                    await websocket.send_text(json.dumps({"type": "ping"}))
+        except WebSocketDisconnect:
+            ws_manager.disconnect(board_id, websocket)
+
+    @router.post("/ws/{board_id}/broadcast")
+    async def broadcast_event(board_id: str, event: Dict[str, Any]):
+        """Push a custom JSON event to all WebSocket subscribers of a board.
+
+        This endpoint is used internally (e.g. by the board system) to
+        notify connected clients of mutations.  The ``event`` body must be
+        a JSON object; a ``board_id`` key is injected automatically.
+        """
+        event.setdefault("board_id", board_id)
+        await ws_manager.broadcast(board_id, event)
+        return JSONResponse({
+            "broadcasted": True,
+            "subscribers": ws_manager.subscriber_count(board_id),
+        })
 
     return router
