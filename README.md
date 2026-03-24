@@ -940,6 +940,27 @@ feedback into its operational models.
 
 ---
 
+## 🚀 Founder Update Engine (ARCH-007)
+
+The Founder Update Engine gives Murphy's operator a live operating picture and
+actionable recommendations for keeping the system current, secure, and healthy.
+
+| Module | Class | Purpose |
+| --- | --- | --- |
+| `src/founder_update_engine/recommendation_engine.py` | `RecommendationEngine` | Central recommendation store (9 types, 5 priorities) |
+| `src/founder_update_engine/subsystem_registry.py` | `SubsystemRegistry` | Fleet health tracking — auto-discovers all subsystems |
+| `src/founder_update_engine/update_coordinator.py` | `UpdateCoordinator` | Maintenance-window scheduling and update audit trail |
+| `src/founder_update_engine/sdk_update_scanner.py` | `SdkUpdateScanner` | Scans requirements files for outdated/vulnerable packages |
+| `src/founder_update_engine/auto_update_applicator.py` | `AutoUpdateApplicator` | Health-gated, rate-limited auto-application of safe updates |
+| `src/founder_update_engine/bug_response_handler.py` | `BugResponseHandler` | Classifies bug reports, drafts responses, creates recommendations |
+| `src/founder_update_engine/operating_analysis_dashboard.py` | `OperatingAnalysisDashboard` | Aggregates fleet metrics → DashboardSnapshot + threshold-triggered recs |
+
+**Safety:** All actions are proposals. Nothing modifies source files. Founder approval required for security issues and major version bumps. Health-gate prevents updates when any subsystem is FAILED.
+
+**Tests:** 133 passing in `tests/test_founder_update_engine.py`.
+
+---
+
 ## 🎯 Get Started Now
 
 ```bash
@@ -965,26 +986,28 @@ curl http://localhost:8000/api/status
 
 ---
 
-## 📈 System Completion Summary (as of 2026-03-16)
+## 📈 System Completion Summary (as of 2026-03-24)
 
 | Category | Completion |
 |----------|-----------|
-| Core Architecture & Engine Wiring | 93% |
+| Core Architecture & Engine Wiring | 95% |
 | Hero Flow (Describe → Execute → Refine) | 85% |
 | Librarian Command Coverage & Triage | 100% |
 | Security Hardening | 80% |
-| Test Coverage | 87% |
-| Documentation | 87% |
+| Test Coverage | 89% |
+| Documentation | 92% |
 | UI/UX | 100% |
-| Management Parity (12 Phases) | 70% |
+| Management Parity (12 Phases) | 72% |
+| Founder Observability (ARCH-007) | 75% |
 | CI/CD Pipeline | 90% |
 | Production Deployment Readiness | 65% |
-| **Weighted Overall** | **~83%** |
+| **Weighted Overall** | **~85%** |
 
-> The overall percentage reflects the reality that while code coverage is extensive
-> (978 modules, 922 in `src/`, 644 test files), the critical **E2E validation of the
-> hero flow** and **production deployment hardening** are the primary gaps preventing
-> a 100% readiness declaration.
+> PR 1–3 of ARCH-007 (Founder Update Engine) complete: 133 tests, 7 modules.
+> PR 4 (API routes + Founder Dashboard UI) pending.
+> The overall percentage reflects that while code coverage is extensive
+> (978+ modules, 644+ test files), **E2E validation of the hero flow** and
+> **production deployment hardening** remain the primary gaps.
 
 ---
 
