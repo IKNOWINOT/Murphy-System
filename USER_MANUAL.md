@@ -1220,7 +1220,7 @@ curl http://localhost:8000/api/health
 
 ## Chapter 19: License
 
-Murphy System is available under the Business Source License 1.1. See [LICENSE](../LICENSE) for details.
+Murphy System is available under the Business Source License 1.1. See [LICENSE](LICENSE) for details.
 
 ---
 

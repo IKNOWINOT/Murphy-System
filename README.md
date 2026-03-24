@@ -69,7 +69,7 @@ Murphy's hero flow inverts the traditional automation paradigm — you describe 
 
 **No drag-and-drop. No connector wiring. No trigger logic.** Just a plain English sentence.
 
-Murphy uses [`ai_workflow_generator.py`](<Murphy System/src/ai_workflow_generator.py>) to convert your description into a structured workflow, [`nocode_workflow_terminal.py`](<Murphy System/src/nocode_workflow_terminal.py>) as the Librarian-powered conversation interface, and [`workflow_canvas.html`](<Murphy System/workflow_canvas.html>) as the optional visual refinement layer once the plan is generated.
+Murphy uses [`ai_workflow_generator.py`](src/ai_workflow_generator.py) to convert your description into a structured workflow, [`nocode_workflow_terminal.py`](src/nocode_workflow_terminal.py) as the Librarian-powered conversation interface, and [`workflow_canvas.html`](workflow_canvas.html) as the optional visual refinement layer once the plan is generated.
 
 **📖 For comprehensive documentation on voice/typed command automation, see:**
 - [Generative Automation Presets](documentation/features/GENERATIVE_AUTOMATION_PRESETS.md) — Complete guide to natural language workflow generation, industry presets, role-based execution, and human-in-the-loop governance
@@ -120,9 +120,9 @@ The script handles the virtual environment, installs **all** dependencies (inclu
 
 **📚 Documentation:**
 - **Complete Guide:** [GETTING_STARTED.md](GETTING_STARTED.md)
-- **Quick Start:** [Murphy System/MURPHY_1.0_QUICK_START.md](Murphy%20System/MURPHY_1.0_QUICK_START.md)
-- **API Reference:** [Murphy System/API_DOCUMENTATION.md](Murphy%20System/API_DOCUMENTATION.md)
-- **Deployment Guide:** [Murphy System/DEPLOYMENT_GUIDE.md](Murphy%20System/DEPLOYMENT_GUIDE.md)
+- **Quick Start:** [Murphy System/MURPHY_1.0_QUICK_START.md](MURPHY_1.0_QUICK_START.md)
+- **API Reference:** [Murphy System/API_DOCUMENTATION.md](API_DOCUMENTATION.md)
+- **Deployment Guide:** [Murphy System/DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)
 
 ---
 
@@ -183,7 +183,7 @@ See [docs/TIERED_RUNTIME.md](docs/TIERED_RUNTIME.md) for details.
 | E2E Hero Flow Validation | **85%** | Describe→Generate→Execute chain validated: 49 integration tests pass; real-user validation and production load testing remain |
 | Librarian Command Coverage | **100%** | All 154 commands wired into Librarian; `generate_command()` + triage escalation tested across every category |
 | Librarian Triage Escalation | **100%** | Mode-aware (ASK/ONBOARDING/PRODUCTION/ASSISTANT); triage→execution path validated with 57 tests |
-| **Weighted overall** | **~83%** | See [Production Readiness Audit](Murphy%20System/strategic/PRODUCTION_READINESS_AUDIT.md) |
+| **Weighted overall** | **~83%** | See [Production Readiness Audit](Murphy System/strategic/PRODUCTION_READINESS_AUDIT.md) |
 
 > **Test status:** 644 test files with 17,368 test functions; 1,611 verified passing.
 > Skipped tests require optional packages (Flask, Textual, torch).
@@ -687,7 +687,7 @@ The Murphy System Runtime exposes a FastAPI-based REST API. Start the server wit
 | `POST` | `/api/ucp/execute` | Yes | Universal Control Protocol execution |
 | `GET` | `/api/integrations/{status}` | Yes | List integrations filtered by status |
 
-> **Authentication:** Production mode (`MURPHY_ENV=production`) requires `Authorization: Bearer <key>` or `X-API-Key: <key>` header on all non-health endpoints. Development mode allows unauthenticated access. See [`Murphy System/documentation/api/AUTHENTICATION.md`](<Murphy System/documentation/api/AUTHENTICATION.md>) for full details.
+> **Authentication:** Production mode (`MURPHY_ENV=production`) requires `Authorization: Bearer <key>` or `X-API-Key: <key>` header on all non-health endpoints. Development mode allows unauthenticated access. See [`Murphy System/documentation/api/AUTHENTICATION.md`](Murphy System/documentation/api/AUTHENTICATION.md) for full details.
 
 ---
 
@@ -731,15 +731,15 @@ Copy `Murphy System/.env.example` to `Murphy System/.env` and fill in the values
 
 | Document | Description |
 | --- | --- |
-| [Quick Start](Murphy%20System/MURPHY_1.0_QUICK_START.md) | Get started in 5 minutes |
+| [Quick Start](MURPHY_1.0_QUICK_START.md) | Get started in 5 minutes |
 | [Roadmap](ROADMAP.md) | Public revenue-first sprint plan |
-| [Specification](<Murphy System/MURPHY_SYSTEM_1.0_SPECIFICATION.md>) | Complete system spec |
-| [API Documentation](<Murphy System/API_DOCUMENTATION.md>) | API reference |
-| [Deployment Guide](<Murphy System/DEPLOYMENT_GUIDE.md>) | Deployment instructions |
-| [User Manual](<Murphy System/USER_MANUAL.md>) | Comprehensive user manual |
-| [Launch Automation Plan](<Murphy System/docs/LAUNCH_AUTOMATION_PLAN.md>) | Self-automating launch strategy |
-| [Operations & Testing Plan](<Murphy System/docs/OPERATIONS_TESTING_PLAN.md>) | Iterative test-fix-document cycle |
-| [Gap Analysis](<Murphy System/docs/GAP_ANALYSIS.md>) | System gap analysis and status |
+| [Specification](MURPHY_SYSTEM_1.0_SPECIFICATION.md) | Complete system spec |
+| [API Documentation](API_DOCUMENTATION.md) | API reference |
+| [Deployment Guide](DEPLOYMENT_GUIDE.md) | Deployment instructions |
+| [User Manual](USER_MANUAL.md) | Comprehensive user manual |
+| [Launch Automation Plan](Murphy System/docs/LAUNCH_AUTOMATION_PLAN.md) | Self-automating launch strategy |
+| [Operations & Testing Plan](Murphy System/docs/OPERATIONS_TESTING_PLAN.md) | Iterative test-fix-document cycle |
+| [Gap Analysis](Murphy System/docs/GAP_ANALYSIS.md) | System gap analysis and status |
 | [API Docs](http://localhost:8000/docs) | Interactive API docs (requires running server) |
 | [Archive](https://github.com/IKNOWINOT/murphy-system-archive) | Legacy versions and artifacts (separate repository) |
 
@@ -933,7 +933,7 @@ Murphy includes built-in self-improvement infrastructure:
 - ❌ Modify source code (requires human review via code proposals)
 - ⚠️ Complex emergent bugs require manual diagnosis
 
-See [`docs/SELF_FIX_LOOP.md`](<Murphy System/docs/SELF_FIX_LOOP.md>) for full documentation on the autonomous self-fix loop.
+See [`docs/SELF_FIX_LOOP.md`](Murphy System/docs/SELF_FIX_LOOP.md) for full documentation on the autonomous self-fix loop.
 
 File an issue or submit a patch — Murphy's learning loop will incorporate the
 feedback into its operational models.

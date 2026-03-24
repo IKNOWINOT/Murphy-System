@@ -85,7 +85,7 @@ def get_cors_origins() -> List[str]:
 
 def get_configured_api_keys() -> List[str]:
     """Get configured API keys from environment."""
-    keys_str = os.environ.get("MURPHY_API_KEYS", "")
+    keys_str = os.environ.get("MURPHY_API_KEY", "") or os.environ.get("MURPHY_API_KEYS", "")
     if not keys_str:
         return []
     return [k.strip() for k in keys_str.split(",") if k.strip()]
