@@ -155,17 +155,21 @@ if _FASTAPI_AVAILABLE:
 
     class RecommendationOut(BaseModel):  # type: ignore[valid-type]
         recommendation_id: str
+        subsystem: str
+        recommendation_type: str
         category: str
         priority: str
-        title: str
-        description: str
-        affected_subsystems: List[str]
-        proposed_actions: List[Dict[str, Any]]
         confidence_score: float
-        requires_human_approval: bool
-        status: str
+        description: str
+        suggested_action: str
+        estimated_effort: str
+        risk_level: str
+        auto_applicable: bool
+        requires_review: bool
+        related_proposals: List[str]
         created_at: str
-        updated_at: Optional[str]
+        status: str
+        dismissed_reason: str
         metadata: Dict[str, Any]
 
 else:  # pragma: no cover
