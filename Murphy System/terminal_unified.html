@@ -265,6 +265,26 @@
   /* ===========================================================
      2. HELPERS — HTML generation utilities
      =========================================================== */
+  function showInputError(inputId, errorPlaceholder, defaultPlaceholder) {
+    var el = document.getElementById(inputId);
+    if (!el) return;
+    el.style.border = '1px solid #ff4444';
+    el.placeholder  = errorPlaceholder;
+    setTimeout(function () {
+      el.style.border = '';
+      el.placeholder  = defaultPlaceholder;
+    }, 3000);
+  }
+
+  function showSelectError(selector) {
+    var el = document.querySelector(selector);
+    if (el) {
+      el.style.border = '1px solid #ff4444';
+      setTimeout(function () { el.style.border = ''; }, 3000);
+    } else {
+      console.warn('Please select a value for: ' + selector);
+    }
+  }
   function esc(s) {
     var d = document.createElement('div');
     d.textContent = s == null ? '' : String(s);
@@ -1600,7 +1620,7 @@
       if (btnPull && inpPull) {
         btnPull.addEventListener('click', async function() {
           var model = inpPull.value.trim();
-          if (!model) { (function(){var e=document.getElementById('llm-pull-input');if(e){e.style.border='1px solid #ff4444';e.placeholder='⚠ Enter a model name first';setTimeout(function(){e.style.border='';e.placeholder='Enter model name (e.g. phi4, deepseek-coder, gemma3…)';},3000);}})(); return; }
+          if (!model) { showInputError('llm-pull-input', '⚠ Enter a model name first', 'Enter model name (e.g. phi4, deepseek-coder, gemma3…)'); return; }
           btnPull.disabled  = true;
           btnPull.innerHTML = icon('download', 14) + ' Downloading\u2026';
           btnPull.classList.add('murphy-btn-loading');
@@ -1629,8 +1649,8 @@
         btnSave.addEventListener('click', async function() {
           var provider = selProv ? selProv.value : '';
           var apiKey   = inpKey  ? inpKey.value.trim() : '';
-          if (!provider) { (function(){var el=document.querySelector('#llm-uni-provider-select,#provider-select,[id*=provider]');if(el){el.style.border='1px solid #ff4444';setTimeout(function(){el.style.border='';},3000);}else{console.warn('Please select a provider');}})(); return; }
-          if (!apiKey)   { (function(){var el=document.getElementById('llm-uni-api-key-input');if(el){el.style.border='1px solid #ff4444';el.placeholder='⚠ API key required';setTimeout(function(){el.style.border='';el.placeholder='Paste API key here…';},3000);}})(); return; }
+          if (!provider) { showSelectError('#llm-uni-provider-select,#provider-select,[id*=provider]'); return; }
+          if (!apiKey)   { showInputError('llm-uni-api-key-input', '⚠ API key required', 'Paste API key here…'); return; }
           btnSave.disabled    = true;
           btnSave.textContent = 'Saving\u2026';
           try {
