@@ -293,7 +293,7 @@ _DOMAINS_A: List[SubsystemDomain] = [
                "AnalysisBot", "OpenAI-compatible provider (openai/groq/onboard auto-detect).",
                deps=["enhanced_local_llm"]),
             _e("enhanced_local_llm", "murphy-llm-requests", "murphy-ai",
-               "AnalysisBot", "Enhanced local LLM (replaces mock_compatible_local_llm).",
+               "AnalysisBot", "Enhanced local LLM — real implementation replacing the deprecated mock shim.",
                deps=["local_model_layer"]),
             _e("large_action_model", "murphy-llm-requests", "murphy-ai",
                "AnalysisBot", "Large action model (LAM) for multi-step tasks.",
