@@ -9,15 +9,11 @@ forms of recommendation for any subsystem, and coordinates maintenance
 integrations.
 
 Public exports:
-  - RecommendationEngine
-  - RecommendationType
-  - RecommendationPriority
-  - Recommendation
-  - SubsystemRegistry
-  - SubsystemInfo
-  - UpdateCoordinator
-  - MaintenanceWindow
-  - UpdateRecord
+  - RecommendationEngine / RecommendationType / RecommendationPriority / Recommendation
+  - SubsystemRegistry / SubsystemInfo
+  - UpdateCoordinator / MaintenanceWindow / UpdateRecord
+  - SdkUpdateScanner / SdkScanReport / PackageScanRecord
+  - AutoUpdateApplicator / ApplicationCycle / ApplicationRecord / ApplicationOutcome
 
 Copyright © 2020 Inoni Limited Liability Company
 Creator: Corey Post
@@ -43,6 +39,17 @@ from .update_coordinator import (
     UpdateCoordinator,
     UpdateRecord,
 )
+from .sdk_update_scanner import (
+    PackageScanRecord,
+    SdkScanReport,
+    SdkUpdateScanner,
+)
+from .auto_update_applicator import (
+    ApplicationCycle,
+    ApplicationOutcome,
+    ApplicationRecord,
+    AutoUpdateApplicator,
+)
 
 __all__ = [
     # recommendation_engine
@@ -61,4 +68,13 @@ __all__ = [
     "MaintenanceWindow",
     "UpdateCoordinator",
     "UpdateRecord",
+    # sdk_update_scanner
+    "PackageScanRecord",
+    "SdkScanReport",
+    "SdkUpdateScanner",
+    # auto_update_applicator
+    "ApplicationCycle",
+    "ApplicationOutcome",
+    "ApplicationRecord",
+    "AutoUpdateApplicator",
 ]
