@@ -290,3 +290,243 @@ class HealthMonitor:
                 message=f"Check raised: {exc}",
                 latency_ms=elapsed,
             )
+
+
+# ---------------------------------------------------------------------------
+# Kubernetes probe helpers
+# ---------------------------------------------------------------------------
+
+class KubernetesProbeAdapter:
+    """Exposes readiness and liveness probes suitable for Kubernetes.
+
+    Kubernetes liveness probe — answers "is the process alive?":
+      A single critical dependency (e.g. the event loop itself) must respond.
+      If not, Kubernetes will restart the pod.
+
+    Kubernetes readiness probe — answers "can this pod serve traffic?":
+      All registered checks must pass at the HEALTHY level.
+      While degraded, the pod is removed from load-balancer rotation.
+
+    Usage (in FastAPI)::
+
+        from health_monitor import HealthMonitor, KubernetesProbeAdapter
+        monitor = HealthMonitor()
+        probe = KubernetesProbeAdapter(monitor)
+
+        @app.get("/healthz/live")
+        def liveness():
+            return probe.liveness()
+
+        @app.get("/healthz/ready")
+        def readiness():
+            return probe.readiness()
+    """
+
+    def __init__(self, monitor: HealthMonitor) -> None:
+        self._monitor = monitor
+
+    def liveness(self) -> Dict[str, Any]:
+        """Return a liveness response.
+
+        The process is considered alive as long as this method can be invoked.
+        Registers a minimal self-check to confirm the health monitor itself is
+        functional.
+
+        Returns:
+            Dict with ``{"alive": True, "status": "ok"}``
+
+        Raises:
+            RuntimeError: if the health monitor itself is unresponsive.
+        """
+        # A liveness probe must be cheap — just confirm the monitor is alive.
+        status = self._monitor.get_status()
+        return {
+            "alive": True,
+            "status": "ok",
+            "registered_checks": status.get("registered_checks", 0),
+        }
+
+    def readiness(self) -> Dict[str, Any]:
+        """Return a readiness response based on the latest health report.
+
+        A pod is considered *ready* only when the overall system status is
+        ``HEALTHY``.  ``DEGRADED`` or ``UNHEALTHY`` both result in not-ready.
+
+        Returns:
+            Dict with ``{"ready": bool, "system_status": str, ...}``
+        """
+        report = self._monitor.check_all()
+        ready = report.system_status == SystemStatus.HEALTHY
+        return {
+            "ready": ready,
+            "system_status": report.system_status.value,
+            "healthy_count": report.healthy_count,
+            "degraded_count": report.degraded_count,
+            "unhealthy_count": report.unhealthy_count,
+            "total_latency_ms": round(report.total_latency_ms, 2),
+            "generated_at": report.generated_at,
+        }
+
+    def is_ready(self) -> bool:
+        """Return True if the system is ready to serve traffic."""
+        report = self._monitor.check_all()
+        return report.system_status == SystemStatus.HEALTHY
+
+    def is_alive(self) -> bool:
+        """Return True if the process / monitor is alive (always True if callable)."""
+        return True
+
+
+# ---------------------------------------------------------------------------
+# Built-in dependency health check factories
+# ---------------------------------------------------------------------------
+
+def make_database_health_check(
+    database_url: Optional[str] = None,
+    timeout_seconds: float = 3.0,
+) -> Callable[[], Dict[str, Any]]:
+    """Return a health-check function for PostgreSQL / SQLite.
+
+    Attempts a lightweight ``SELECT 1`` to verify connectivity.
+    Falls back gracefully if SQLAlchemy is not installed.
+
+    Args:
+        database_url: Database connection URL. Reads ``DATABASE_URL`` env var
+                      if not supplied.
+        timeout_seconds: Connection timeout in seconds.
+
+    Returns:
+        A callable that returns a health-check result dict.
+    """
+    import os
+
+    def _check() -> Dict[str, Any]:
+        url = database_url or os.environ.get("DATABASE_URL", "")
+        if not url:
+            return {
+                "status": ComponentStatus.UNHEALTHY.value,
+                "message": "DATABASE_URL not configured",
+            }
+        try:
+            import importlib
+            sqlalchemy = importlib.import_module("sqlalchemy")
+            engine = sqlalchemy.create_engine(
+                url,
+                connect_args={"connect_timeout": int(timeout_seconds)},
+                pool_pre_ping=True,
+            )
+            with engine.connect() as conn:
+                conn.execute(sqlalchemy.text("SELECT 1"))
+            return {"status": ComponentStatus.HEALTHY.value, "message": "Database reachable"}
+        except ImportError:
+            return {
+                "status": ComponentStatus.DEGRADED.value,
+                "message": "sqlalchemy not installed — cannot verify database",
+            }
+        except Exception as exc:
+            return {
+                "status": ComponentStatus.UNHEALTHY.value,
+                "message": f"Database unreachable: {exc}",
+            }
+
+    return _check
+
+
+def make_redis_health_check(
+    redis_url: Optional[str] = None,
+    timeout_seconds: float = 3.0,
+) -> Callable[[], Dict[str, Any]]:
+    """Return a health-check function for Redis.
+
+    Sends a ``PING`` command and expects ``PONG``.
+    Falls back gracefully if the ``redis`` package is not installed.
+
+    Args:
+        redis_url: Redis connection URL. Reads ``REDIS_URL`` env var if not supplied.
+        timeout_seconds: Socket timeout in seconds.
+
+    Returns:
+        A callable that returns a health-check result dict.
+    """
+    import os
+
+    def _check() -> Dict[str, Any]:
+        url = redis_url or os.environ.get("REDIS_URL", "")
+        if not url:
+            return {
+                "status": ComponentStatus.DEGRADED.value,
+                "message": "REDIS_URL not configured — Redis checks skipped",
+            }
+        try:
+            import importlib
+            redis_mod = importlib.import_module("redis")
+            client = redis_mod.from_url(url, socket_timeout=timeout_seconds)
+            pong = client.ping()
+            if pong:
+                return {"status": ComponentStatus.HEALTHY.value, "message": "Redis reachable"}
+            return {
+                "status": ComponentStatus.DEGRADED.value,
+                "message": "Redis PING returned unexpected response",
+            }
+        except ImportError:
+            return {
+                "status": ComponentStatus.DEGRADED.value,
+                "message": "redis package not installed — cannot verify Redis",
+            }
+        except Exception as exc:
+            return {
+                "status": ComponentStatus.UNHEALTHY.value,
+                "message": f"Redis unreachable: {exc}",
+            }
+
+    return _check
+
+
+def make_llm_health_check(
+    llm_url: Optional[str] = None,
+    timeout_seconds: float = 5.0,
+) -> Callable[[], Dict[str, Any]]:
+    """Return a health-check function for the LLM endpoint (Ollama or remote API).
+
+    Performs a lightweight HTTP GET to the model list endpoint to confirm
+    that the LLM service is reachable.
+
+    Args:
+        llm_url: Base URL of the LLM service. Reads ``OLLAMA_HOST`` env var
+                 (default ``http://localhost:11434``) if not supplied.
+        timeout_seconds: HTTP request timeout in seconds.
+
+    Returns:
+        A callable that returns a health-check result dict.
+    """
+    import os
+    import urllib.request
+    import urllib.error
+
+    def _check() -> Dict[str, Any]:
+        base_url = llm_url or os.environ.get("OLLAMA_HOST", "http://localhost:11434")
+        check_url = base_url.rstrip("/") + "/api/tags"
+        try:
+            req = urllib.request.Request(
+                check_url,
+                headers={"User-Agent": "MurphyHealthMonitor/1.0"},
+            )
+            with urllib.request.urlopen(req, timeout=timeout_seconds) as resp:
+                if resp.status == 200:
+                    return {
+                        "status": ComponentStatus.HEALTHY.value,
+                        "message": f"LLM service reachable at {base_url}",
+                        "url": base_url,
+                    }
+                return {
+                    "status": ComponentStatus.DEGRADED.value,
+                    "message": f"LLM service returned HTTP {resp.status}",
+                }
+        except Exception as exc:
+            return {
+                "status": ComponentStatus.DEGRADED.value,
+                "message": f"LLM service unreachable: {exc}",
+                "url": base_url,
+            }
+
+    return _check

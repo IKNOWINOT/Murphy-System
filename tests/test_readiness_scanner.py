@@ -159,3 +159,126 @@ class TestConvenienceFunction:
         report = run_readiness_scan(base_url=None)
         assert "ready" in report
         assert "score" in report
+
+
+# ---------------------------------------------------------------------------
+# DeploymentGateRunner tests
+# ---------------------------------------------------------------------------
+
+class TestDeploymentGateRunner:
+    """Tests for the five production-blocking deployment gates."""
+
+    def test_runner_has_five_default_gates(self):
+        """DeploymentGateRunner has exactly 5 default gates."""
+        from readiness_scanner import DeploymentGateRunner
+        runner = DeploymentGateRunner()
+        result = runner.run_all()
+        assert len(result["gates"]) == 5
+
+    def test_runner_result_has_expected_keys(self):
+        """run_all() response contains all required keys."""
+        from readiness_scanner import DeploymentGateRunner
+        runner = DeploymentGateRunner()
+        result = runner.run_all()
+        for key in ("all_passed", "gates", "failed_gates", "passed_count",
+                    "failed_count", "evaluated_at"):
+            assert key in result
+
+    def test_get_status_returns_compact_dict(self):
+        """get_status() returns a compact summary dict."""
+        from readiness_scanner import DeploymentGateRunner
+        runner = DeploymentGateRunner()
+        status = runner.get_status()
+        for key in ("all_passed", "gates_total", "gates_passed",
+                    "gates_failed", "blocked_by", "evaluated_at"):
+            assert key in status
+
+    def test_security_scan_gate_fails_without_murphy_env(self, monkeypatch):
+        """security_scan gate fails when MURPHY_ENV is not set."""
+        from readiness_scanner import DeploymentGateRunner
+        monkeypatch.delenv("MURPHY_ENV", raising=False)
+        runner = DeploymentGateRunner()
+        result = runner.run_all()
+        sec_gate = next(g for g in result["gates"] if g["gate"] == "security_scan")
+        assert sec_gate["passed"] is False
+
+    def test_security_scan_gate_passes_in_development(self, monkeypatch):
+        """security_scan gate passes in development environment."""
+        from readiness_scanner import DeploymentGateRunner
+        monkeypatch.setenv("MURPHY_ENV", "development")
+        runner = DeploymentGateRunner()
+        result = runner.run_all()
+        sec_gate = next(g for g in result["gates"] if g["gate"] == "security_scan")
+        assert sec_gate["passed"] is True
+
+    def test_test_pass_gate_skipped_in_development(self, monkeypatch):
+        """test_pass gate passes (skipped) in development environment."""
+        from readiness_scanner import DeploymentGateRunner
+        monkeypatch.setenv("MURPHY_ENV", "development")
+        runner = DeploymentGateRunner()
+        result = runner.run_all()
+        tp_gate = next(g for g in result["gates"] if g["gate"] == "test_pass")
+        assert tp_gate["passed"] is True
+
+    def test_test_pass_gate_fails_in_production_without_flag(self, monkeypatch):
+        """test_pass gate fails in production when MURPHY_TESTS_PASSED != 1."""
+        from readiness_scanner import DeploymentGateRunner
+        monkeypatch.setenv("MURPHY_ENV", "production")
+        monkeypatch.delenv("MURPHY_TESTS_PASSED", raising=False)
+        runner = DeploymentGateRunner()
+        result = runner.run_all()
+        tp_gate = next(g for g in result["gates"] if g["gate"] == "test_pass")
+        assert tp_gate["passed"] is False
+
+    def test_test_pass_gate_passes_in_production_with_flag(self, monkeypatch):
+        """test_pass gate passes in production when MURPHY_TESTS_PASSED=1."""
+        from readiness_scanner import DeploymentGateRunner
+        monkeypatch.setenv("MURPHY_ENV", "production")
+        monkeypatch.setenv("MURPHY_TESTS_PASSED", "1")
+        runner = DeploymentGateRunner()
+        result = runner.run_all()
+        tp_gate = next(g for g in result["gates"] if g["gate"] == "test_pass")
+        assert tp_gate["passed"] is True
+
+    def test_secret_availability_gate_skipped_in_development(self, monkeypatch):
+        """secret_availability gate passes (skipped) in development."""
+        from readiness_scanner import DeploymentGateRunner
+        monkeypatch.setenv("MURPHY_ENV", "development")
+        runner = DeploymentGateRunner()
+        result = runner.run_all()
+        sa_gate = next(g for g in result["gates"] if g["gate"] == "secret_availability")
+        assert sa_gate["passed"] is True
+
+    def test_secret_availability_gate_fails_in_production_without_secrets(self, monkeypatch):
+        """secret_availability gate fails in production when secrets are missing."""
+        from readiness_scanner import DeploymentGateRunner
+        monkeypatch.setenv("MURPHY_ENV", "production")
+        for k in ("MURPHY_API_KEYS", "MURPHY_CREDENTIAL_MASTER_KEY",
+                  "MURPHY_JWT_SECRET", "POSTGRES_PASSWORD", "MURPHY_SECRET_KEY"):
+            monkeypatch.delenv(k, raising=False)
+        runner = DeploymentGateRunner()
+        result = runner.run_all()
+        sa_gate = next(g for g in result["gates"] if g["gate"] == "secret_availability")
+        assert sa_gate["passed"] is False
+
+    def test_add_custom_gate(self, monkeypatch):
+        """Custom gate can be added and evaluated."""
+        from readiness_scanner import DeploymentGateRunner
+        runner = DeploymentGateRunner()
+        runner.add_gate("custom_test", "custom", lambda: (True, "custom gate passed"))
+        result = runner.run_all()
+        custom = next((g for g in result["gates"] if g["gate"] == "custom_test"), None)
+        assert custom is not None
+        assert custom["passed"] is True
+
+    def test_all_gates_pass_in_development_with_server_mocked(self, monkeypatch):
+        """All non-infra gates pass in development env (health skipped via custom)."""
+        from readiness_scanner import DeploymentGateRunner, DeploymentGate
+        monkeypatch.setenv("MURPHY_ENV", "development")
+        runner = DeploymentGateRunner()
+        # Override health check gate to always pass (no server running)
+        for gate in runner._gates:
+            if gate.name == "health_check":
+                gate._check_fn = lambda: (True, "health check bypassed for test")
+        result = runner.run_all()
+        assert result["all_passed"] is True
