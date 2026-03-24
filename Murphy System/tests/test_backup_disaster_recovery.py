@@ -27,6 +27,7 @@ import datetime
 import json
 import os
 import shutil
+import sys
 import tempfile
 import threading
 import time
@@ -42,6 +43,8 @@ import pytest
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SRC_DIR = PROJECT_ROOT / "src"
 
+sys.path.insert(0, str(PROJECT_ROOT))
+sys.path.insert(0, str(SRC_DIR))
 
 from backup_disaster_recovery import (
     BackupManager,
@@ -725,3 +728,120 @@ def print_summary():
         icon = "✅" if r.passed else "❌"
         print(f"  {icon} {r.check_id}: {r.description}")
     print(f"{'=' * 70}")
+
+
+# ============================================================================
+# BACKUP SCHEDULER (RPO/RTO)
+# ============================================================================
+
+class TestBackupScheduler:
+    """Tests for BackupScheduler, RPO/RTO targets, and automated verification."""
+
+    def test_rpo_rto_constants_exported(self):
+        """BDR-120: RPO and RTO constants are exported and have correct values."""
+        from backup_disaster_recovery import RPO_TARGET_SECONDS, RTO_TARGET_SECONDS
+        assert record(
+            "BDR-120", "RPO target is 1 hour",
+            3600, RPO_TARGET_SECONDS,
+            cause="System must not lose more than 1 hour of data",
+            effect="RPO_TARGET_SECONDS = 3600",
+            lesson="RPO drives backup frequency: backup every <= RPO seconds",
+        )
+        assert record(
+            "BDR-121", "RTO target is 30 minutes",
+            1800, RTO_TARGET_SECONDS,
+            cause="Service must be restored within 30 minutes",
+            effect="RTO_TARGET_SECONDS = 1800",
+            lesson="RTO drives restore test requirements",
+        )
+
+    def test_default_schedule_covers_rpo(self):
+        """BDR-122: Default schedule has at least one interval <= RPO target."""
+        from backup_disaster_recovery import _DEFAULT_SCHEDULE, RPO_TARGET_SECONDS
+        min_interval = min(_DEFAULT_SCHEDULE.values())
+        assert record(
+            "BDR-122", "Shortest backup interval meets RPO",
+            True, min_interval <= RPO_TARGET_SECONDS,
+            cause="RPO requires data loss no greater than 1 hour",
+            effect=f"Shortest interval is {min_interval}s which is <= {RPO_TARGET_SECONDS}s",
+            lesson="Always configure at least one backup type with interval <= RPO",
+        )
+
+    def test_scheduler_starts_and_stops(self, tmp_dir: Path):
+        """BDR-123: Scheduler can be started and stopped cleanly."""
+        from backup_disaster_recovery import BackupScheduler
+        backend = LocalStorageBackend(tmp_dir)
+        mgr = BackupManager(backend, project_root=tmp_dir)
+        sched = BackupScheduler(mgr, schedule={"full": 9999})  # very long interval
+
+        sched.start()
+        assert record(
+            "BDR-123a", "Scheduler reports running=True after start",
+            True, sched.is_running,
+            cause="start() called",
+            effect="is_running is True",
+            lesson="Scheduler must report its running state accurately",
+        )
+
+        sched.stop(timeout=2.0)
+        assert record(
+            "BDR-123b", "Scheduler reports running=False after stop",
+            False, sched.is_running,
+            cause="stop() called",
+            effect="is_running is False",
+            lesson="stop() must be idempotent and thread-safe",
+        )
+
+    def test_force_backup_creates_completed_backup(self, tmp_dir: Path):
+        """BDR-124: force_backup() creates a COMPLETED backup immediately."""
+        from backup_disaster_recovery import BackupScheduler
+        backend = LocalStorageBackend(tmp_dir)
+        mgr = BackupManager(backend, project_root=tmp_dir)
+        sched = BackupScheduler(mgr, verify_after_backup=True)
+
+        manifest = sched.force_backup(BackupType.FULL.value)
+        assert record(
+            "BDR-124", "force_backup produces COMPLETED manifest",
+            BackupStatus.COMPLETED.value, manifest.status,
+            cause="force_backup called with FULL backup type",
+            effect="Manifest status is COMPLETED",
+            lesson="On-demand pre-deploy backups must always complete successfully",
+        )
+
+    def test_scheduler_status_has_required_keys(self, tmp_dir: Path):
+        """BDR-125: get_status() returns all expected keys."""
+        from backup_disaster_recovery import BackupScheduler
+        backend = LocalStorageBackend(tmp_dir)
+        mgr = BackupManager(backend, project_root=tmp_dir)
+        sched = BackupScheduler(mgr)
+
+        status = sched.get_status()
+        required_keys = {
+            "running", "rpo_target_seconds", "rto_target_seconds",
+            "schedule_intervals_seconds", "retention_days",
+            "backups_triggered", "backups_verified", "verification_failures",
+        }
+        assert record(
+            "BDR-125", "Scheduler status contains all required keys",
+            True, required_keys.issubset(status.keys()),
+            cause="get_status() called",
+            effect=f"Status keys: {set(status.keys())}",
+            lesson="Observability keys must be stable for monitoring integrations",
+        )
+
+    def test_verify_after_backup_increments_verified_count(self, tmp_dir: Path):
+        """BDR-126: verify_after_backup=True increments backups_verified."""
+        from backup_disaster_recovery import BackupScheduler
+        backend = LocalStorageBackend(tmp_dir)
+        mgr = BackupManager(backend, project_root=tmp_dir)
+        sched = BackupScheduler(mgr, verify_after_backup=True)
+
+        sched.force_backup(BackupType.CONFIG_ONLY.value)
+        status = sched.get_status()
+        assert record(
+            "BDR-126", "backups_verified incremented after verified force backup",
+            True, status["backups_verified"] >= 1,
+            cause="force_backup with verify_after_backup=True",
+            effect=f"backups_verified = {status['backups_verified']}",
+            lesson="RTO test requires backup integrity be verified after every backup",
+        )
