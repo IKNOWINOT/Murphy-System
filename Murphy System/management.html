@@ -247,8 +247,8 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
       </div>
       <div class="m-header-actions">
         <input type="search" class="m-search" placeholder="Search tasks…" aria-label="Search tasks">
-        <button class="m-btn">Filter</button>
-        <button class="m-btn">Sort</button>
+        <button class="m-btn" id="btn-filter-tasks" aria-label="Filter tasks">Filter</button>
+        <button class="m-btn" id="btn-sort-tasks" aria-label="Sort tasks">Sort</button>
         <button class="m-btn-primary m-btn" onclick="openModal('task-modal')">+ Add Task</button>
       </div>
     </div>
@@ -414,7 +414,43 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
   </div>
 </div>
 
+<div class="modal-overlay" id="artifact-modal" hidden role="dialog" aria-modal="true" aria-labelledby="artifact-modal-title">
+  <div class="modal">
+    <h2 class="modal-title" id="artifact-modal-title">Create Artifact — Murphy AI Recommendation</h2>
+    <div id="artifact-modal-loading" style="text-align:center;padding:24px 0">
+      <div style="font-size:28px;margin-bottom:8px">🤖</div>
+      <div style="color:var(--text-muted);font-size:13px">Murphy is thinking…</div>
+    </div>
+    <div id="artifact-modal-form" hidden>
+      <div class="form-group"><label class="form-label">Title</label><input class="form-input" id="artifact-title" placeholder="Artifact title…"></div>
+      <div class="form-group"><label class="form-label">Content</label><textarea class="form-textarea" id="artifact-content" style="min-height:140px" placeholder="AI-generated recommendation…"></textarea></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group"><label class="form-label">Type</label>
+          <select class="form-select" id="artifact-type">
+            <option value="action_plan">Action Plan</option>
+            <option value="recommendation">Recommendation</option>
+            <option value="task_breakdown">Task Breakdown</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Priority</label>
+          <select class="form-select" id="artifact-priority">
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium" selected>Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="m-btn" onclick="closeModal('artifact-modal')">Cancel</button>
+      <button class="m-btn-primary m-btn" id="artifact-submit-btn" hidden onclick="createArtifact()">Create Artifact</button>
+    </div>
+  </div>
+</div>
+
 <script src="static/murphy-components.js"></script>
+<script src="murphy_auth.js"></script>
 <script>
 // ── DATA ──────────────────────────────────────────────────────────
 const SAMPLE = {
@@ -577,9 +613,39 @@ function openDetail(id) {
 function closeDetail() { document.getElementById('detail-panel').classList.add('closed'); }
 
 function murphySuggest(id) {
-  fetch('/api/librarian/query',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:`Suggest next steps for task ${id}`})})
-    .then(r=>r.json()).then(d=>alert('Murphy AI: '+(d.response||'Focus on breaking this into sub-tasks and assign a reviewer for early feedback.')))
-    .catch(()=>alert('Murphy AI: Break this task into 2-3 subtasks, assign a reviewer, and set a milestone checkpoint for mid-sprint.'));
+  const t = (tasks[currentProj]||[]).find(x=>x.id===id);
+  if(!t) return;
+  const modal = document.getElementById('artifact-modal');
+  document.getElementById('artifact-modal-loading').hidden = false;
+  document.getElementById('artifact-modal-form').hidden = true;
+  document.getElementById('artifact-submit-btn').hidden = true;
+  modal.hidden = false;
+  const fallback = `Based on the current task "${t.title}" (${t.priority} priority, ${t.progress}% complete), here are recommended next steps:\n\n1. Break this task into 2-3 focused subtasks with clear acceptance criteria.\n2. Assign a dedicated reviewer for early feedback before the ${t.due} deadline.\n3. Set a milestone checkpoint at the midpoint of the sprint.\n4. Update progress tracking daily and flag any blockers immediately.`;
+  const query = `Suggest detailed next steps for the following task:\nTitle: ${t.title}\nStatus: ${t.status}\nPriority: ${t.priority}\nAssignee: ${t.assignee}\nProgress: ${t.progress}%\nDue Date: ${t.due}\nTags: ${(t.tags||[]).join(', ')}\n\nProvide actionable, specific recommendations to help complete this task successfully.`;
+  fetch('/api/librarian/query',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query})})
+    .then(r=>r.json()).then(d=>_populateArtifactModal(t,d.response||fallback))
+    .catch(()=>_populateArtifactModal(t,fallback));
+}
+
+function _populateArtifactModal(t, content) {
+  document.getElementById('artifact-title').value = `Next Steps: ${t.title}`;
+  document.getElementById('artifact-content').value = content;
+  document.getElementById('artifact-priority').value = t.priority;
+  document.getElementById('artifact-modal-loading').hidden = true;
+  document.getElementById('artifact-modal-form').hidden = false;
+  document.getElementById('artifact-submit-btn').hidden = false;
+}
+
+function createArtifact() {
+  const title = document.getElementById('artifact-title').value.trim();
+  const content = document.getElementById('artifact-content').value.trim();
+  const type = document.getElementById('artifact-type').value;
+  const priority = document.getElementById('artifact-priority').value;
+  if(!title||!content) return;
+  fetch('/api/artifacts/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,content,type,priority})})
+    .then(r=>r.ok?r.json():Promise.reject())
+    .then(()=>closeModal('artifact-modal'))
+    .catch(()=>closeModal('artifact-modal'));
 }
 
 // ── SWITCHING ─────────────────────────────────────────────────────
@@ -606,6 +672,7 @@ function switchProject(p) {
 function openModal(id) { document.getElementById(id).hidden=false; }
 function closeModal(id) { document.getElementById(id).hidden=true; }
 document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.hidden=true;}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-overlay:not([hidden])').forEach(m=>m.hidden=true);});
 
 function addTask() {
   const title = document.getElementById('new-task-title').value.trim();
@@ -661,6 +728,50 @@ function handleAIAccept() {
 }
 
 // ── INIT ──────────────────────────────────────────────────────────
+
+  /* ── Filter/Sort buttons ── */
+  (function () {
+    var filterBtn = document.getElementById('btn-filter-tasks');
+    var sortBtn   = document.getElementById('btn-sort-tasks');
+    var filterStates = ['all','active','completed','blocked','todo'];
+    var sortModes    = ['default','priority','due','assignee'];
+    var fi = 0, si = 0;
+    if (filterBtn) {
+      filterBtn.addEventListener('click', function () {
+        fi = (fi + 1) % filterStates.length;
+        var f = filterStates[fi];
+        filterBtn.textContent = 'Filter: ' + (f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1));
+        document.querySelectorAll('.task-row, [data-status]').forEach(function (row) {
+          var s = row.dataset.status || row.getAttribute('data-status') || '';
+          row.style.display = (f === 'all' || !s || s === f) ? '' : 'none';
+        });
+      });
+    }
+    if (sortBtn) {
+      sortBtn.addEventListener('click', function () {
+        si = (si + 1) % sortModes.length;
+        var s = sortModes[si];
+        sortBtn.textContent = 'Sort: ' + s.charAt(0).toUpperCase() + s.slice(1);
+        var container = document.querySelector('.task-list, #task-list, [id*="task"]');
+        if (!container) return;
+        var rows = Array.from(container.querySelectorAll('.task-row, [data-priority]'));
+        var PRIO = {critical:0,high:1,medium:2,low:3};
+        rows.sort(function (a, b) {
+          if (s === 'priority') {
+            return (PRIO[a.dataset.priority] || 9) - (PRIO[b.dataset.priority] || 9);
+          }
+          if (s === 'due') {
+            return (a.dataset.due || '9999') < (b.dataset.due || '9999') ? -1 : 1;
+          }
+          if (s === 'assignee') {
+            return (a.dataset.assignee || '') < (b.dataset.assignee || '') ? -1 : 1;
+          }
+          return 0;
+        });
+        rows.forEach(function (r) { container.appendChild(r); });
+      });
+    }
+  }());
 loadData();
 renderBoard();
 </script>

@@ -587,7 +587,10 @@
     if (!confirm('Manually trigger emergency stop? This will switch to paper mode and halt all trading.')) return;
     apiPost('/api/trading/emergency/trigger', { reason: 'Manual trigger from risk dashboard' })
       .then(function () { loadEmergencyStop(); })
-      .catch(function (e) { alert('Error triggering stop: ' + e.message); });
+      .catch(function (e) {
+        var ins = document.getElementById('estop-detail');
+        if (ins) ins.textContent = '⚠️ Error triggering stop: ' + e.message;
+      });
   });
 
   document.getElementById('btn-estop-reset').addEventListener('click', function () {
@@ -595,9 +598,15 @@
     apiPost('/api/trading/emergency/reset', { reset_by: 'dashboard_user' })
       .then(function (d) {
         if (d.success) { loadEmergencyStop(); }
-        else           { alert(d.detail || 'Reset failed — cooldown may still be active.'); }
+        else           {
+          var ins = document.getElementById('estop-detail');
+          if (ins) ins.textContent = '⚠️ ' + (d.detail || 'Reset failed — cooldown may still be active.');
+        }
       })
-      .catch(function (e) { alert('Reset error: ' + e.message); });
+      .catch(function (e) {
+        var ins = document.getElementById('estop-detail');
+        if (ins) ins.textContent = '⚠️ Reset error: ' + e.message;
+      });
   });
 
   /* ── Graduation confirm ── */
@@ -605,10 +614,18 @@
     if (!confirm('Confirm graduation to live trading? This will enable real money trading. Make sure all criteria are genuinely met.')) return;
     apiPost('/api/trading/graduation/confirm', { confirmed_by: 'dashboard_user' })
       .then(function (d) {
-        if (d.success) { alert('✅ ' + d.message); loadGraduation(); }
-        else           { alert('❌ ' + (d.detail || 'Confirmation failed')); }
+        var ins = document.getElementById('murphy-risk-insight');
+        if (d.success) {
+          if (ins) ins.textContent = '✅ ' + (d.message || 'Graduation confirmed — live trading enabled.');
+          loadGraduation();
+        } else {
+          if (ins) ins.textContent = '❌ ' + (d.detail || 'Confirmation failed — check criteria.');
+        }
       })
-      .catch(function (e) { alert('Error: ' + e.message); });
+      .catch(function (e) {
+        var ins = document.getElementById('murphy-risk-insight');
+        if (ins) ins.textContent = '⚠️ Error confirming graduation: ' + e.message;
+      });
   });
 
   /* ── Refresh all ── */
@@ -638,6 +655,22 @@
   setInterval(loadEmergencyStop, ESTOP_REFRESH_MS);
   /* Auto-refresh audit log every 60 s */
   setInterval(loadAuditLog, AUDIT_REFRESH_MS);
+
+  /* ── Theme toggle ── */
+  (function () {
+    var btn = document.getElementById('theme-toggle-btn');
+    if (!btn) return;
+    var root = document.documentElement;
+    var stored = localStorage.getItem('murphy_theme') || 'dark';
+    if (stored === 'light') root.classList.add('murphy-light');
+    btn.textContent = stored === 'light' ? '☀️' : '🌙';
+    btn.addEventListener('click', function () {
+      var isLight = root.classList.toggle('murphy-light');
+      var next = isLight ? 'light' : 'dark';
+      localStorage.setItem('murphy_theme', next);
+      btn.textContent = isLight ? '☀️' : '🌙';
+    });
+  }());
 
 })();
 </script>

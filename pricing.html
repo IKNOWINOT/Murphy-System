@@ -4,12 +4,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Murphy System Pricing — Free Tier, Solo $29/mo, Business $99/mo | AI Automation</title>
-<meta name="description" content="Murphy System pricing: Free tier forever (10 actions/day), Solo at $29/mo, Business at $99/mo. AI Shadow Agents, CRM, compliance, workflow automation. No credit card required.">
+<title>Murphy System Pricing — Free Tier, Solo $99/mo, Business $299/mo, Professional $599/mo | AI Automation</title>
+<meta name="description" content="Murphy System pricing: Free tier forever (10 actions/day), Solo at $99/mo, Business at $299/mo, Professional at $599/mo. AI automation platform. No setup fees.">
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="https://murphy.systems/ui/pricing">
 <meta property="og:title" content="Murphy System Pricing — Start Free, Scale When Ready">
-<meta property="og:description" content="Free tier forever. Solo $29/mo. Business $99/mo. All the automation your business needs.">
+<meta property="og:description" content="Free tier forever. Solo $99/mo. Business $299/mo. Professional $599/mo. All the automation your business needs.">
 <meta property="og:type" content="website">
 <link rel="icon" href="static/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="static/murphy-design-system.css">
@@ -449,6 +449,63 @@
     .comparison-table th,
     .comparison-table td { padding: 0.625rem 0.75rem; }
   }
+
+  /* ── Trial modal ── */
+  .trial-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 900;
+    display: flex; align-items: center; justify-content: center; padding: 1rem;
+  }
+  .trial-overlay[hidden] { display: none; }
+  .trial-modal {
+    background: var(--bg-surface); border: 1px solid var(--border-default);
+    border-radius: var(--radius-xl); width: 100%; max-width: 480px;
+    max-height: 90vh; overflow-y: auto; padding: 2rem; position: relative;
+  }
+  .trial-modal-close {
+    position: absolute; top: 1rem; right: 1rem; background: none; border: none;
+    color: var(--text-muted); font-size: 1.4rem; cursor: pointer; line-height: 1;
+    padding: 0.25rem 0.5rem; border-radius: var(--radius-sm);
+  }
+  .trial-modal-close:hover { color: var(--text-primary); background: var(--bg-elevated); }
+  .trial-modal-title {
+    font-size: var(--text-xl); font-weight: 700; color: var(--text-primary);
+    font-family: var(--font-ui); margin-bottom: 0.25rem;
+  }
+  .trial-modal-subtitle { color: var(--text-muted); font-size: var(--text-sm); margin-bottom: 1.5rem; }
+  .trial-field { margin-bottom: 1rem; }
+  .trial-field label { display: block; font-size: var(--text-xs); color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: .06em; margin-bottom: 0.375rem; }
+  .trial-field input, .trial-field select {
+    width: 100%; background: var(--bg-elevated); border: 1px solid var(--border-default);
+    border-radius: var(--radius-md); padding: 0.625rem 0.875rem;
+    color: var(--text-primary); font-family: var(--font-ui); font-size: var(--text-sm);
+    box-sizing: border-box;
+  }
+  .trial-field input:focus, .trial-field select:focus {
+    outline: none; border-color: var(--teal);
+  }
+  .trial-org-note {
+    background: rgba(0,212,170,.08); border: 1px solid rgba(0,212,170,.3);
+    border-radius: var(--radius-md); padding: 0.75rem 1rem;
+    font-size: var(--text-sm); color: var(--text-secondary); margin-bottom: 1rem;
+  }
+  .trial-submit-btn {
+    width: 100%; padding: 0.75rem 1.5rem; background: linear-gradient(135deg,var(--teal),#3b9eff);
+    border: none; border-radius: var(--radius-md); color: #0C1017; font-weight: 700;
+    font-family: var(--font-ui); font-size: var(--text-base); cursor: pointer;
+    transition: opacity var(--transition-fast);
+  }
+  .trial-submit-btn:hover { opacity: 0.88; }
+  .trial-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .trial-terms { font-size: var(--text-xs); color: var(--text-muted); margin-top: 0.75rem; text-align: center; }
+  .trial-terms a { color: var(--teal); }
+  .trial-error { color: #ef4444; font-size: var(--text-sm); margin-top: 0.5rem; text-align: center; }
+  .org-req-badge {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    background: rgba(0,212,170,.1); border: 1px solid rgba(0,212,170,.35);
+    color: var(--teal); border-radius: var(--radius-full);
+    font-size: 11px; font-weight: 600; padding: 2px 8px; margin-bottom: 0.75rem;
+  }
 </style>
 </head>
 <body class="murphy-no-sidebar pricing-page">
@@ -504,10 +561,10 @@
       <article class="pricing-card" aria-labelledby="tier-solo">
         <div class="pricing-tier" id="tier-solo">Solo</div>
         <div class="pricing-price" aria-live="polite" aria-atomic="true">
-          <span class="pricing-price-amount" data-monthly="$29" data-annual="$24">$29</span>
+          <span class="pricing-price-amount" data-monthly="$99" data-annual="$79">$99</span>
           <span class="pricing-price-period">/month</span>
         </div>
-        <p class="pricing-desc">Perfect for solo operators automating their own workflows.</p>
+        <p class="pricing-desc">For solo operators. Murphy learns your workflows and grows smarter the more you use it.</p>
         <ul class="pricing-features" aria-label="Solo plan features">
           <li>1 user</li>
           <li>3 automations</li>
@@ -515,6 +572,7 @@
           <li>Community templates</li>
           <li>Murphy terminal access</li>
           <li>Basic compliance (GDPR / SOC 2)</li>
+          <li>AI learns your patterns</li>
         </ul>
         <button class="pricing-cta pricing-cta-outline" data-tier="solo" aria-label="Start free trial on Solo plan">
           Start Free Trial
@@ -526,7 +584,7 @@
         <span class="pricing-badge" aria-label="Most popular plan">Most Popular</span>
         <div class="pricing-tier" id="tier-business">Business</div>
         <div class="pricing-price" aria-live="polite" aria-atomic="true">
-          <span class="pricing-price-amount" data-monthly="$99" data-annual="$79">$99</span>
+          <span class="pricing-price-amount" data-monthly="$299" data-annual="$239">$299</span>
           <span class="pricing-price-period">/month</span>
         </div>
         <p class="pricing-desc">Grow your team with unlimited automations and priority support.</p>
@@ -546,11 +604,12 @@
 
       <!-- Professional -->
       <article class="pricing-card" aria-labelledby="tier-professional">
+        <span class="org-req-badge" aria-label="Required for organizations">🏢 Org Creation</span>
         <div class="pricing-tier" id="tier-professional">Professional</div>
         <div class="pricing-price" aria-live="polite" aria-atomic="true">
-          <span class="pricing-price-amount" data-monthly="Custom" data-annual="Custom" style="font-size:1.8rem">Custom</span>
+          <span class="pricing-price-amount" data-monthly="$599" data-annual="$479">$599</span>
         </div>
-        <p class="pricing-desc">Enterprise-grade power with full compliance and white-label options. Tailored to your needs.</p>
+        <p class="pricing-desc">Enterprise-grade power with full compliance and white-label options. Required to start an organization.</p>
         <ul class="pricing-features" aria-label="Professional plan features">
           <li>Unlimited users</li>
           <li>Unlimited automations</li>
@@ -560,10 +619,11 @@
           <li>White-label options</li>
           <li>Dedicated onboarding</li>
           <li>SLA 99.9% uptime</li>
+          <li><strong>Organization creation ✓</strong></li>
         </ul>
-        <a href="mailto:sales@murphy.ai" class="pricing-cta pricing-cta-outline" aria-label="Contact us for unique Professional offerings">
-          Contact for Unique Offerings
-        </a>
+        <button class="pricing-cta pricing-cta-outline" data-tier="professional" aria-label="Start free trial on Professional plan">
+          Start Free Trial
+        </button>
       </article>
 
       <!-- Enterprise -->
@@ -764,6 +824,13 @@
             <td><span class="dash">—</span></td>
             <td><span class="check">✓</span></td>
           </tr>
+          <tr>
+            <td>Create organizations</td>
+            <td><span class="dash">—</span></td>
+            <td><span class="dash">—</span></td>
+            <td><span class="check">✓</span></td>
+            <td><span class="check">✓</span></td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -800,6 +867,59 @@
   </section>
 
 </main>
+
+<!-- ── Trial Signup Modal ── -->
+<div id="trial-modal" class="trial-overlay" role="dialog" aria-modal="true" aria-labelledby="trial-modal-title" hidden>
+  <div class="trial-modal">
+    <button class="trial-modal-close" id="trial-modal-close" aria-label="Close trial modal">×</button>
+
+    <h2 class="trial-modal-title" id="trial-modal-title">
+      Start Your 14-Day Free Trial
+      — <span id="trial-plan-badge" style="color:var(--teal)"></span>
+    </h2>
+    <p class="trial-modal-subtitle">No credit card required. Cancel anytime.</p>
+
+    <div id="trial-form-section">
+      <div class="trial-field">
+        <label for="trial-name">Full Name</label>
+        <input type="text" id="trial-name" autocomplete="name" placeholder="Jane Smith" required>
+      </div>
+      <div class="trial-field">
+        <label for="trial-email">Work Email</label>
+        <input type="email" id="trial-email" autocomplete="email" placeholder="jane@company.com" required>
+      </div>
+      <div class="trial-field">
+        <label for="trial-use-case">What will you automate? <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+        <select id="trial-use-case">
+          <option value="">Select your primary use case…</option>
+          <option value="workflow_automation">Workflow &amp; process automation</option>
+          <option value="ai_assistant">AI assistant for daily tasks</option>
+          <option value="crm_sales">CRM &amp; sales automation</option>
+          <option value="compliance">Compliance &amp; audit management</option>
+          <option value="data_analysis">Data analysis &amp; reporting</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <p id="trial-org-note" class="trial-org-note" hidden>
+        🏢 <strong>Organization features</strong> are included — you'll be able to invite team members and set up your org structure after completing setup.
+      </p>
+      <button type="button" id="trial-submit-btn" class="trial-submit-btn">Start Free Trial →</button>
+      <p class="trial-terms">By starting a trial you agree to our <a href="/ui/docs#terms">Terms of Service</a>. Your 14-day trial begins immediately.</p>
+      <p id="trial-error-msg" class="trial-error" hidden></p>
+    </div>
+
+    <div id="trial-success-section" hidden style="text-align:center;padding:1.5rem 0">
+      <div style="font-size:3rem;margin-bottom:1rem">✅</div>
+      <h3 style="color:var(--teal);margin-bottom:0.5rem;font-family:var(--font-ui)">Trial Started!</h3>
+      <p style="color:var(--text-secondary);margin-bottom:1.5rem;font-size:var(--text-sm)">
+        Your 14-day trial is active. Let's get you set up.
+      </p>
+      <a id="trial-continue-link" href="/ui/signup" class="trial-submit-btn" style="display:inline-block;text-decoration:none;text-align:center">
+        Continue to Setup →
+      </a>
+    </div>
+  </div>
+</div>
 
 <!-- ── Footer ── -->
 <footer class="murphy-footer">
@@ -841,21 +961,95 @@
   btnMonthly.addEventListener('click', function () { updatePrices('monthly'); });
   btnAnnual.addEventListener('click',  function () { updatePrices('annual');  });
 
+  // ── Trial modal ──────────────────────────────────────────
+  var trialModal       = document.getElementById('trial-modal');
+  var trialPlanBadge   = document.getElementById('trial-plan-badge');
+  var trialFormSection = document.getElementById('trial-form-section');
+  var trialSuccessSection = document.getElementById('trial-success-section');
+  var trialSubmitBtn   = document.getElementById('trial-submit-btn');
+  var trialErrorMsg    = document.getElementById('trial-error-msg');
+  var trialContinueLink = document.getElementById('trial-continue-link');
+  var trialOrgNote     = document.getElementById('trial-org-note');
+  var currentTier      = '';
+  var TIER_LABELS      = { solo: 'Solo', business: 'Business', professional: 'Professional' };
+
+  function openTrialModal(tier) {
+    currentTier = tier;
+    trialPlanBadge.textContent = TIER_LABELS[tier] || tier;
+    trialFormSection.hidden = false;
+    trialSuccessSection.hidden = true;
+    trialErrorMsg.hidden = true;
+    trialOrgNote.hidden = (tier !== 'professional');
+    trialModal.hidden = false;
+    var nameInput = document.getElementById('trial-name');
+    if (nameInput) nameInput.focus();
+  }
+
+  function closeTrialModal() {
+    trialModal.hidden = true;
+    document.getElementById('trial-name').value = '';
+    document.getElementById('trial-email').value = '';
+    document.getElementById('trial-use-case').value = '';
+  }
+
+  document.getElementById('trial-modal-close').addEventListener('click', closeTrialModal);
+  trialModal.addEventListener('click', function (e) { if (e.target === trialModal) closeTrialModal(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !trialModal.hidden) closeTrialModal();
+  });
+
+  trialSubmitBtn.addEventListener('click', function () {
+    var name  = document.getElementById('trial-name').value.trim();
+    var email = document.getElementById('trial-email').value.trim();
+    var useCase = document.getElementById('trial-use-case').value;
+
+    if (!name) { showTrialError('Please enter your full name.'); return; }
+    if (!email || !email.includes('@')) { showTrialError('Please enter a valid email address.'); return; }
+
+    trialSubmitBtn.disabled = true;
+    trialSubmitBtn.textContent = 'Starting trial…';
+    trialErrorMsg.hidden = true;
+
+    fetch('/api/billing/start-trial', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tier: currentTier, name: name, email: email, use_case: useCase }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.success) {
+          var redirectUrl = data.redirect_url || ('/ui/signup?tier=' + currentTier + '&trial=started');
+          trialContinueLink.href = redirectUrl + '&email=' + encodeURIComponent(email);
+          trialFormSection.hidden = true;
+          trialSuccessSection.hidden = false;
+        } else {
+          showTrialError(data.error || 'Something went wrong. Please try again.');
+        }
+      })
+      .catch(function () {
+        // Graceful degradation: redirect to signup even if API is unavailable
+        window.location.href = '/ui/signup?tier=' + encodeURIComponent(currentTier) +
+          '&interval=' + encodeURIComponent(currentInterval) +
+          '&email=' + encodeURIComponent(email);
+      })
+      .finally(function () {
+        trialSubmitBtn.disabled = false;
+        trialSubmitBtn.textContent = 'Start Free Trial →';
+      });
+  });
+
+  function showTrialError(msg) {
+    trialErrorMsg.textContent = msg;
+    trialErrorMsg.hidden = false;
+  }
+
   // ── Checkout buttons ─────────────────────────────────────
-  // Public pricing page visitors (unauthenticated or authenticated) are
-  // directed to the signup/login flow first, with the selected tier and
-  // billing interval passed as query params. The signup page uses those
-  // params to pre-select the plan and, once an account_id is available,
-  // complete the billing checkout via /api/billing/checkout.
+  // Clicking "Start Free Trial" now opens the trial modal to collect
+  // name + email and call /api/billing/start-trial before proceeding.
   document.querySelectorAll('.pricing-cta[data-tier]').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      var tier     = btn.getAttribute('data-tier');
-      var interval = currentInterval;
-
-      // Redirect to signup page with tier/interval pre-selected (standard SaaS pattern)
-      window.location.href =
-        '/ui/signup?tier=' + encodeURIComponent(tier) +
-        '&interval=' + encodeURIComponent(interval);
+      var tier = btn.getAttribute('data-tier');
+      openTrialModal(tier);
     });
   });
 

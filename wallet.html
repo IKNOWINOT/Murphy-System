@@ -753,6 +753,11 @@
         t.classList.remove('active'); t.setAttribute('aria-selected', 'false');
       });
       tab.classList.add('active'); tab.setAttribute('aria-selected', 'true');
+      var chain = tab.dataset.chain || 'all';
+      document.querySelectorAll('.wallet-asset-row,[data-chain]').forEach(function (row) {
+        var rc = row.dataset.chain || 'all';
+        row.style.display = (chain === 'all' || rc === chain || rc === 'all') ? '' : 'none';
+      });
     });
   });
 
@@ -788,6 +793,22 @@
     addrEl.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); copyAddress(); } });
   }
 
+  /* ── Action panel openers ── */
+  (function () {
+    function showPanel(id) {
+      ['send-panel','receive-panel','swap-panel'].forEach(function (p) {
+        var el = document.getElementById(p);
+        if (el) el.style.display = p === id ? 'block' : 'none';
+      });
+    }
+    var sendOpen = document.getElementById('btn-send-open');
+    if (sendOpen) sendOpen.addEventListener('click', function () { showPanel('send-panel'); });
+    var recvOpen = document.getElementById('btn-receive-open');
+    if (recvOpen) recvOpen.addEventListener('click', function () { showPanel('receive-panel'); });
+    var swapOpen = document.getElementById('btn-swap-open');
+    if (swapOpen) swapOpen.addEventListener('click', function () { showPanel('swap-panel'); });
+  }());
+
   /* ── MAX button ── */
   var balances = { btc: '0.3142', eth: '3.875', sol: '28.5', usdc: '985.29', matic: '1240' };
   document.getElementById('btn-send-max').addEventListener('click', function () {
@@ -800,8 +821,8 @@
     var to     = document.getElementById('send-to').value.trim();
     var amount = document.getElementById('send-amount').value.trim();
     var asset  = document.getElementById('send-asset').value.toUpperCase();
-    if (!to) { alert('Please enter a recipient address.'); return; }
-    if (!amount || parseFloat(amount) <= 0) { alert('Please enter a valid amount.'); return; }
+    if (!to) { (function(){var el=document.getElementById('send-to');if(el){el.style.border='1px solid #ff4444';el.focus();setTimeout(function(){el.style.border='';},3000);}})(); return; }
+    if (!amount || parseFloat(amount) <= 0) { (function(){var el=document.getElementById('send-amount');if(el){el.style.border='1px solid #ff4444';el.focus();setTimeout(function(){el.style.border='';},3000);}})(); return; }
     if (!confirm('Send ' + amount + ' ' + asset + ' to\n' + to + '?\n\nThis action cannot be undone.')) return;
     fetch('/api/wallet/send', {
       method: 'POST',
@@ -811,15 +832,15 @@
     .then(function (r) { return r.json(); })
     .then(function (d) {
       if (d.success) {
-        alert('✅ Transaction submitted! TX ID: ' + (d.transaction && d.transaction.id || 'pending'));
+        (function(txId){var el=document.getElementById('send-panel-status')||document.querySelector('.send-status,.wallet-status');if(el){el.textContent='✅ Transaction submitted! TX ID: '+(txId||'pending');el.style.color='#00D4AA';el.style.display='block';}else{var d2=document.createElement('div');d2.style.cssText='padding:8px 12px;background:rgba(0,212,170,.1);border:1px solid #00D4AA;border-radius:6px;color:#00D4AA;margin-top:8px;font-size:.85rem;';d2.textContent='✅ Transaction submitted! TX ID: '+(txId||'pending');var p=document.getElementById('send-panel');if(p)p.appendChild(d2);}})(d.transaction && d.transaction.id || 'pending');
         document.getElementById('send-to').value = '';
         document.getElementById('send-amount').value = '';
         refreshBalances();
       } else {
-        alert('❌ ' + (d.error || 'Transaction failed'));
+        (function(msg){var el=document.getElementById('send-panel-status')||document.querySelector('.send-status,.wallet-status');if(el){el.textContent='❌ '+(msg||'Transaction failed');el.style.color='#ff4444';el.style.display='block';}else{var d2=document.createElement('div');d2.style.cssText='padding:8px 12px;background:rgba(255,68,68,.1);border:1px solid #ff4444;border-radius:6px;color:#ff4444;margin-top:8px;font-size:.85rem;';d2.textContent='❌ '+(msg||'Transaction failed');var p=document.getElementById('send-panel');if(p)p.appendChild(d2);}})(d.error || 'Transaction failed');
       }
     })
-    .catch(function () { alert('❌ Network error — could not submit transaction.'); });
+    .catch(function () { (function(){var el=document.getElementById('send-panel-status')||document.querySelector('.send-status,.wallet-status');if(el){el.textContent='❌ Network error — could not submit transaction.';el.style.color='#ff4444';el.style.display='block';}else{var d2=document.createElement('div');d2.style.cssText='padding:8px 12px;background:rgba(255,68,68,.1);border:1px solid #ff4444;border-radius:6px;color:#ff4444;margin-top:8px;font-size:.85rem;';d2.textContent='❌ Network error — could not submit transaction.';var p=document.getElementById('send-panel');if(p)p.appendChild(d2);}})(); });
   });
 
   /* ── Receive asset change (update address stub) ── */

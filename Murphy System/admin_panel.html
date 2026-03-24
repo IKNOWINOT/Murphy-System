@@ -876,8 +876,8 @@ async function viewOrgMembers(id, name) {
   try {
     const d = await API('/api/admin/organizations/' + id + '/members');
     const members = d.members || [];
-    alert('Members of "' + name + '" (' + members.length + '):\n' +
-      (members.length ? members.map(m => m.email + ' [' + m.role + ']').join('\n') : '(none)'));
+    var _notif = document.getElementById('admin-notification') || document.querySelector('.admin-notice,.notice,.notification');
+    if (_notif) { _notif.textContent = 'Loaded ' + members.length + ' member(s) of "' + (name || 'this org') + '".'; _notif.style.display='block'; setTimeout(function(){_notif.style.display='none';},4000); }
   } catch { toast('Failed to load members','error'); }
 }
 

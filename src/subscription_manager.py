@@ -179,8 +179,8 @@ PRICING_PLANS: Dict[SubscriptionTier, PricingPlan] = {
     SubscriptionTier.SOLO: PricingPlan(
         tier=SubscriptionTier.SOLO,
         name="Solo",
-        monthly_price=29.00,
-        annual_price=24.00,
+        monthly_price=99.00,
+        annual_price=79.00,
         max_users=1,
         max_automations=3,
         stripe_price_id_monthly=os.environ.get("STRIPE_PRICE_SOLO_MONTHLY", ""),
@@ -218,8 +218,8 @@ PRICING_PLANS: Dict[SubscriptionTier, PricingPlan] = {
     SubscriptionTier.PROFESSIONAL: PricingPlan(
         tier=SubscriptionTier.PROFESSIONAL,
         name="Professional",
-        monthly_price=0.00,   # custom pricing — contact sales
-        annual_price=0.00,
+        monthly_price=599.00,
+        annual_price=479.00,
         max_users=-1,
         max_automations=-1,
         stripe_price_id_monthly=os.environ.get("STRIPE_PRICE_PRO_MONTHLY", ""),
@@ -761,6 +761,7 @@ class SubscriptionManager:
             "priority_support": False,
             "crypto_wallet": True,            # free crypto wallet
             "daily_action_limit": 10,         # 10 actions per day for free
+            "can_create_org": False,          # requires Professional or higher
         },
         SubscriptionTier.SOLO: {
             "terminal_access": True,
@@ -781,6 +782,7 @@ class SubscriptionManager:
             "matrix_bridge": False,
             "custom_workflows": False,
             "priority_support": False,
+            "can_create_org": False,          # requires Professional or higher
         },
         SubscriptionTier.BUSINESS: {
             "terminal_access": True,
@@ -801,6 +803,7 @@ class SubscriptionManager:
             "matrix_bridge": True,
             "custom_workflows": True,
             "priority_support": True,
+            "can_create_org": False,          # requires Professional or higher
         },
         SubscriptionTier.PROFESSIONAL: {
             "terminal_access": True,
@@ -821,6 +824,7 @@ class SubscriptionManager:
             "matrix_bridge": True,
             "custom_workflows": True,
             "priority_support": True,
+            "can_create_org": True,           # Professional+ can create organizations
         },
         SubscriptionTier.ENTERPRISE: {
             "terminal_access": True,
@@ -841,6 +845,7 @@ class SubscriptionManager:
             "matrix_bridge": True,
             "custom_workflows": True,
             "priority_support": True,
+            "can_create_org": True,           # Professional+ can create organizations
         },
     }
 
@@ -976,6 +981,24 @@ class SubscriptionManager:
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+
+    def start_trial(self, account_id: str, tier: SubscriptionTier) -> "SubscriptionRecord":
+        """Start a 14-day free trial for an account without requiring payment.
+
+        Creates (or updates) a TRIAL subscription record for the given tier.
+        Enterprise tier is not available for self-service trials.
+        """
+        if tier == SubscriptionTier.ENTERPRISE:
+            raise ValueError("Enterprise requires custom pricing — contact sales@murphy.ai")
+        sub = self._upsert_subscription(
+            account_id=account_id,
+            tier=tier,
+            status=SubscriptionStatus.TRIAL,
+            provider=PaymentProvider.STRIPE,
+            external_id="",
+        )
+        self._audit("trial_started", account_id, {"tier": tier.value, "trial_days": _TRIAL_DAYS})
+        return sub
 
     def _upsert_subscription(
         self,
