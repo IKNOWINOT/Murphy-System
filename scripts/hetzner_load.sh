@@ -562,8 +562,11 @@ if [ "$SKIP_HEALTH" = false ]; then
       warn "PostgreSQL not ready — check: docker logs murphy-postgres"
     fi
 
-    # Redis
-    if docker exec murphy-redis redis-cli ping 2>/dev/null | grep -q "PONG"; then
+    # Redis — check Docker health status first (handles password-protected Redis)
+    REDIS_HEALTH=$(docker inspect --format='{{.State.Health.Status}}' murphy-redis 2>/dev/null || echo "unknown")
+    if [ "$REDIS_HEALTH" = "healthy" ]; then
+      ok "Redis      (murphy-redis)         — healthy"
+    elif docker exec murphy-redis redis-cli ping 2>/dev/null | grep -q "PONG"; then
       ok "Redis      (murphy-redis)         — PONG"
     else
       warn "Redis not ready — check: docker logs murphy-redis"
