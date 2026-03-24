@@ -1,20 +1,44 @@
 """
 Conversation Handler - Engages naturally with user questions
 Clearly marks Generated vs Verified responses
+
+Stateful multi-turn support (Hero Flow Task 4): pass a
+:class:`murphy_state_graph.GraphState` instance to enable context
+carryover between turns (previous entities, commands, topics).
 """
 
 import logging
 import re
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger("conversation_handler")
 
 
 class ConversationHandler:
-    """Handles natural conversation with clear G/V markers"""
+    """Handles natural conversation with clear G/V markers.
 
-    def __init__(self):
+    Stateful multi-turn support
+    ---------------------------
+    Pass a :class:`murphy_state_graph.GraphState` instance as *state_graph*
+    to enable context carryover between turns.  The handler stores:
+
+    - ``_conv_topics``: topics discussed in this session
+    - ``_conv_history``: list of ``{"role", "content", "marker"}`` dicts
+    - ``_conv_entities``: entities (commands, topics) referenced so far
+
+    When *state_graph* is ``None`` the handler falls back to stateless mode.
+    """
+
+    # Maximum stored history entries (CWE-770 guard)
+    _MAX_HISTORY: int = 200
+
+    def __init__(self, state_graph: Optional[Any] = None) -> None:
         self.topics = self._load_topics()
+        self._state_graph = state_graph
+        # Bootstrap in-memory state if no graph supplied
+        if self._state_graph is None:
+            self._local_history: List[Dict[str, Any]] = []
+            self._local_entities: List[str] = []
 
     def _load_topics(self) -> Dict[str, Dict]:
         """Load verified knowledge on various topics"""
@@ -45,33 +69,152 @@ class ConversationHandler:
         }
 
     def handle(self, user_input: str) -> Dict[str, Any]:
-        """
-        Handle conversational input
+        """Handle conversational input with stateful context carryover.
 
-        Returns:
-            Dict with response, marker (G/V), and confidence
+        Reads previous conversation context from the state graph (or
+        in-memory fallback), routes the input to the appropriate handler,
+        then persists the result back to state.
+
+        Returns
+        -------
+        Dict with keys: ``response``, ``marker`` (G/V), ``confidence``,
+        ``topic``, and ``context`` (list of recent history entries).
         """
         input_lower = user_input.lower()
 
+        # Resolve prior context from state graph
+        prior_topics = self._get_state("_conv_topics") or []
+        prior_entities = self._get_state("_conv_entities") or []
+
+        # Check if user is referring back to a previous topic/entity
+        enriched_input = self._apply_context(user_input, prior_topics, prior_entities)
+        enriched_lower = enriched_input.lower()
+
         # Check for specific topics we have verified knowledge about
+        result = None
         for topic, data in self.topics.items():
-            if topic in input_lower:
-                return self._create_verified_response(topic, data, user_input)
+            if topic in enriched_lower:
+                result = self._create_verified_response(topic, data, enriched_input)
+                self._track_entity(topic)
+                break
 
-        # Check for opinion/subjective questions
-        if self._is_opinion_question(input_lower):
-            return self._handle_opinion_question(user_input)
+        if result is None:
+            if self._is_opinion_question(enriched_lower):
+                result = self._handle_opinion_question(enriched_input)
+            elif self._is_capability_question(enriched_lower):
+                result = self._handle_capability_question()
+            elif self._is_greeting(enriched_lower):
+                result = self._handle_greeting()
+            else:
+                result = self._handle_general(enriched_input)
 
-        # Check for capability questions
-        if self._is_capability_question(input_lower):
-            return self._handle_capability_question()
+        # Persist to state
+        topic_hit = result.get("topic")
+        if topic_hit and topic_hit not in prior_topics:
+            prior_topics = prior_topics + [topic_hit]
+        self._set_state("_conv_topics", prior_topics[-50:])
 
-        # Check for greeting
-        if self._is_greeting(input_lower):
-            return self._handle_greeting()
+        history_entry = {
+            "role": "user",
+            "content": user_input,
+            "marker": result.get("marker", "G"),
+        }
+        self._append_history(history_entry)
+        result["context"] = self._get_recent_history(5)
+        return result
 
-        # Default: acknowledge and offer help
-        return self._handle_general(user_input)
+    # ------------------------------------------------------------------
+    # State graph integration helpers
+    # ------------------------------------------------------------------
+
+    def _get_state(self, key: str) -> Any:
+        """Read *key* from state graph or in-memory fallback."""
+        if self._state_graph is not None:
+            try:
+                return self._state_graph.get(key)
+            except Exception:
+                pass
+        if key == "_conv_topics":
+            return []
+        if key == "_conv_entities":
+            return self._local_entities if hasattr(self, "_local_entities") else []
+        if key == "_conv_history":
+            return self._local_history if hasattr(self, "_local_history") else []
+        return None
+
+    def _set_state(self, key: str, value: Any) -> None:
+        """Write *key* = *value* to state graph or in-memory fallback."""
+        if self._state_graph is not None:
+            try:
+                self._state_graph.set(key, value)
+                return
+            except Exception:
+                pass
+        if key == "_conv_topics":
+            pass  # local topics are derived from history
+        elif key == "_conv_entities":
+            self._local_entities = value
+        elif key == "_conv_history":
+            self._local_history = value
+
+    def _append_history(self, entry: Dict[str, Any]) -> None:
+        """Append *entry* to conversation history (bounded)."""
+        if self._state_graph is not None:
+            try:
+                history = self._state_graph.get("_conv_history") or []
+                if len(history) >= self._MAX_HISTORY:
+                    history = history[-(self._MAX_HISTORY // 2):]
+                history.append(entry)
+                self._state_graph.set("_conv_history", history)
+                return
+            except Exception:
+                pass
+        # Fallback to in-memory
+        if not hasattr(self, "_local_history"):
+            self._local_history = []
+        if len(self._local_history) >= self._MAX_HISTORY:
+            self._local_history = self._local_history[-(self._MAX_HISTORY // 2):]
+        self._local_history.append(entry)
+
+    def _get_recent_history(self, n: int) -> List[Dict[str, Any]]:
+        """Return the last *n* history entries."""
+        history = self._get_state("_conv_history") or []
+        if not history and hasattr(self, "_local_history"):
+            history = self._local_history
+        return history[-n:] if history else []
+
+    def _track_entity(self, entity: str) -> None:
+        """Record *entity* as referenced in this conversation."""
+        entities = self._get_state("_conv_entities") or []
+        if not hasattr(self, "_local_entities"):
+            self._local_entities = []
+        if entity not in entities:
+            entities = entities + [entity]
+            self._set_state("_conv_entities", entities[-100:])
+            if not self._state_graph:
+                self._local_entities = entities[-100:]
+
+    @staticmethod
+    def _apply_context(
+        user_input: str,
+        prior_topics: List[str],
+        prior_entities: List[str],
+    ) -> str:
+        """Enrich *user_input* with pronoun/reference resolution.
+
+        When the user says "tell me more about it" or "what about that",
+        append the most recent topic so downstream matchers can identify it.
+        """
+        reference_words = [
+            "it", "that", "this", "the same", "the topic", "more about",
+            "tell me more", "elaborate", "expand on",
+        ]
+        lower = user_input.lower()
+        if any(ref in lower for ref in reference_words) and prior_topics:
+            last_topic = prior_topics[-1]
+            if last_topic not in lower:
+                return f"{user_input} [{last_topic}]"
+        return user_input
 
     def _is_opinion_question(self, text: str) -> bool:
         """Detect if user is asking for opinion"""

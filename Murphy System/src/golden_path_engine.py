@@ -6,6 +6,15 @@ GoldenPathEngine drives the gold-glow recommendation system.
 
 Every UI page calls GET /api/golden-path and applies gold-glow CSS to the
 elements the engine marks as highest-priority for the current user.
+
+Hero Flow fast-track (Task 5)
+------------------------------
+:meth:`GoldenPathEngine.is_eligible_for_fast_track` detects whether a command
+is simple/common enough to skip the full pipeline.
+
+:meth:`GoldenPathEngine.execute_fast_path` attempts fast-track execution
+via :class:`~golden_path_bridge.GoldenPathBridge` and falls back to the
+full pipeline when a golden path is not available.
 """
 
 from __future__ import annotations
@@ -13,7 +22,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -197,3 +206,119 @@ class GoldenPathEngine:
             }
             for phase, desc in mfgc_phases
         ]
+
+    # ------------------------------------------------------------------
+    # Hero Flow fast-track — Task 5
+    # ------------------------------------------------------------------
+
+    # Commands/patterns considered "simple" enough for golden-path fast-track.
+    # A command is eligible when it matches one of these patterns AND the
+    # golden-path bridge has a recorded path for it with sufficient confidence.
+    _FAST_TRACK_PATTERNS: List[str] = [
+        # Read-only / informational
+        "/status", "/help", "/memory", "/confidence", "/gates",
+        "/swarmmonitor", "/docs", "/module", "/learning",
+        # Simple automations that have been run many times
+        "list", "show", "get", "fetch", "query", "search",
+    ]
+
+    # Minimum bridge confidence to fast-track
+    _FAST_TRACK_MIN_CONFIDENCE: float = 0.75
+
+    def is_eligible_for_fast_track(
+        self,
+        command: str,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> bool:
+        """Return True when *command* may be fast-tracked via golden path.
+
+        A command is eligible when:
+        1. It matches one of the ``_FAST_TRACK_PATTERNS``.
+        2. It is not a high-risk/write command (no ``create``, ``delete``,
+           ``autonomous``, ``governance`` destructive keywords).
+
+        Parameters
+        ----------
+        command:
+            The raw command or task string.
+        context:
+            Optional context dict; reserved for future risk scoring.
+        """
+        cmd_lower = command.strip().lower()
+
+        # Blocklist — never fast-track these
+        blocklist = ["delete", "remove", "destroy", "drop", "purge", "reset",
+                     "create automation", "autonomous start"]
+        if any(bl in cmd_lower for bl in blocklist):
+            return False
+
+        return any(pat in cmd_lower for pat in self._FAST_TRACK_PATTERNS)
+
+    def execute_fast_path(
+        self,
+        command: str,
+        bridge: Any,
+        domain: str = "default",
+        *,
+        fallback_fn: Optional[Any] = None,
+    ) -> Dict[str, Any]:
+        """Attempt fast-track execution via *bridge*.
+
+        If a golden path exists with sufficient confidence, replays it and
+        returns the execution spec.  Otherwise calls *fallback_fn* (or
+        returns a ``{"fast_path": False}`` sentinel so the caller can
+        invoke the full pipeline).
+
+        Parameters
+        ----------
+        command:
+            The command/task string to execute.
+        bridge:
+            A :class:`~golden_path_bridge.GoldenPathBridge` instance.
+        domain:
+            Domain hint for path matching.
+        fallback_fn:
+            Optional callable ``(command) -> dict`` to invoke when no
+            golden path is available.  When ``None``, the method returns
+            ``{"fast_path": False, "command": command}``.
+
+        Returns
+        -------
+        A dict with ``"fast_path": True`` and execution spec keys on a
+        cache hit, or ``{"fast_path": False, ...}`` on a miss.
+        """
+        try:
+            matches = bridge.find_matching_paths(
+                command,
+                domain=domain,
+                min_confidence=self._FAST_TRACK_MIN_CONFIDENCE,
+            )
+        except Exception as exc:
+            logger.warning("GoldenPathEngine: bridge lookup failed: %s", exc)
+            matches = []
+
+        if matches:
+            best = matches[0]
+            spec = bridge.replay_path(best.path_id)
+            if spec is not None:
+                logger.info(
+                    "GoldenPathEngine: fast-track hit for %r (path=%s, score=%.2f)",
+                    command, best.path_id, best.match_score,
+                )
+                return {
+                    "fast_path": True,
+                    "path_id": best.path_id,
+                    "match_score": best.match_score,
+                    "confidence": best.confidence,
+                    **spec,
+                }
+
+        logger.debug("GoldenPathEngine: no fast-track path for %r — falling back", command)
+
+        if fallback_fn is not None:
+            try:
+                return fallback_fn(command)
+            except Exception as exc:
+                logger.error("GoldenPathEngine: fallback_fn raised: %s", exc)
+
+        return {"fast_path": False, "command": command}
