@@ -184,3 +184,65 @@ class TestStatus:
     def test_wired_status(self, wired_tracker):
         s = wired_tracker.get_status()
         assert s["persistence_attached"] is True
+
+
+# ------------------------------------------------------------------
+# Business metrics integration (ARCH-007)
+# ------------------------------------------------------------------
+
+class TestBusinessKPIs:
+    def test_business_kpis_included(self, tracker):
+        """Verify all business KPIs are in the default set."""
+        kpis = {k["kpi_id"]: k for k in tracker.list_kpis()}
+        assert "kpi-crm-leads" in kpis
+        assert "kpi-deal-close-rate" in kpis
+        assert "kpi-ticket-resolution-time" in kpis
+        assert "kpi-customer-satisfaction" in kpis
+        assert "kpi-feature-adoption" in kpis
+        assert "kpi-monthly-revenue" in kpis
+
+    def test_crm_source_mapping(self, tracker):
+        obs = tracker.record_from_source("crm", {"lead_count": 15.0, "deal_close_rate": 22.0})
+        non_null = [o for o in obs if o is not None]
+        assert len(non_null) == 2
+        recorded_kpis = {o.kpi_id for o in non_null}
+        assert "kpi-crm-leads" in recorded_kpis
+        assert "kpi-deal-close-rate" in recorded_kpis
+
+    def test_billing_source_mapping(self, tracker):
+        obs = tracker.record_from_source("billing", {"monthly_revenue_usd": 5000.0})
+        non_null = [o for o in obs if o is not None]
+        assert len(non_null) == 1
+        assert non_null[0].kpi_id == "kpi-monthly-revenue"
+        assert non_null[0].value == 5000.0
+
+    def test_service_source_mapping(self, tracker):
+        obs = tracker.record_from_source("service", {"avg_resolution_hours": 6.0})
+        non_null = [o for o in obs if o is not None]
+        assert len(non_null) == 1
+        assert non_null[0].kpi_id == "kpi-ticket-resolution-time"
+
+    def test_unknown_source_returns_empty(self, tracker):
+        obs = tracker.record_from_source("unknown_source", {"foo": 1.0})
+        assert obs == []
+
+    def test_crm_partial_metrics(self, tracker):
+        obs = tracker.record_from_source("crm", {"lead_count": 5.0})
+        non_null = [o for o in obs if o is not None]
+        assert len(non_null) == 1
+        assert non_null[0].kpi_id == "kpi-crm-leads"
+
+    def test_record_from_source_updates_snapshot(self, tracker):
+        tracker.record_from_source("billing", {"monthly_revenue_usd": 2000.0})
+        snap = tracker.snapshot()
+        revenue_result = next(
+            (r for r in snap.results if r.kpi_id == "kpi-monthly-revenue"), None
+        )
+        assert revenue_result is not None
+        assert revenue_result.current_value == pytest.approx(2000.0)
+        assert revenue_result.status.value == "met"
+
+    def test_total_kpis_includes_business(self, tracker):
+        kpis = tracker.list_kpis()
+        # Default system (8) + business (6) = 14
+        assert len(kpis) >= 14

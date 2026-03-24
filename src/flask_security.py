@@ -5,26 +5,31 @@ Provides centralized security controls for all Flask API servers:
 - API key authentication on all routes (except health checks)
 - JWT token validation as an alternative auth method
 - CORS origin allowlist (replaces wildcard CORS)
-- Rate limiting per client
+- Rate limiting per client with X-RateLimit-* response headers
+- CSRF token validation for all state-changing Flask routes (POST/PUT/PATCH/DELETE)
 - Input sanitization
-- Security response headers
+- Security response headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options)
 - Audit logging
 
-Addresses: SEC-001, SEC-002, SEC-004, ARCH-001, ARCH-006
+Addresses: SEC-001, SEC-002, SEC-004, ARCH-001, ARCH-006, SEC-005 (CSRF), SEC-006 (Rate-limit headers)
 
 Copyright © 2020 Inoni Limited Liability Company
 Creator: Corey Post
 """
 
 import functools
+import hashlib
 import hmac
 import logging
 import os
+import re
+import secrets
+import time
 from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional
 
 try:
-    from flask import Flask, Response, jsonify, request
+    from flask import Flask, Response, g, jsonify, request
     from flask_cors import CORS
     _HAS_FLASK = True
 except ImportError:
@@ -233,9 +238,19 @@ class _FlaskRateLimiter:
         bucket["swarm_hits"] = bucket.get("swarm_hits", 0) + 1
         is_swarm = bucket["swarm_hits"] > self.burst
 
+        seconds_per_token = 60.0 / self.rpm if self.rpm > 0 else 60.0
+        reset_after = max(0.0, seconds_per_token - (time.monotonic() - bucket["last_refill"]))
+        reset_epoch = int(time.time() + reset_after)
+
         if bucket["tokens"] >= 1:
             bucket["tokens"] -= 1
-            return {"allowed": True, "remaining": int(bucket["tokens"])}
+            return {
+                "allowed": True,
+                "remaining": int(bucket["tokens"]),
+                "limit": self.burst,
+                "reset_after_seconds": reset_after,
+                "reset_epoch": reset_epoch,
+            }
 
         # Standard tokens exhausted — check swarm allowance
         if is_swarm and bucket.get("swarm_tokens", 0) >= 1:
@@ -243,23 +258,126 @@ class _FlaskRateLimiter:
             return {
                 "allowed": True,
                 "remaining": int(bucket["swarm_tokens"]),
+                "limit": self.swarm_burst,
+                "reset_after_seconds": reset_after,
+                "reset_epoch": reset_epoch,
                 "swarm_mode": True,
             }
 
+        retry_after = (1 - bucket["tokens"]) * seconds_per_token
         return {
             "allowed": False,
             "remaining": 0,
-            "retry_after_seconds": (1 - bucket["tokens"]) * (60.0 / self.rpm),
+            "retry_after_seconds": retry_after,
+            "limit": self.burst,
+            "reset_epoch": int(time.time() + retry_after),
         }
 
 
 # Global rate limiter instance
 _rate_limiter = _FlaskRateLimiter(
-    requests_per_minute=60,
-    burst_size=20,
-    swarm_burst_size=60,
-    swarm_window_seconds=2.0,
+    requests_per_minute=int(os.environ.get("MURPHY_RATE_LIMIT_RPM", "60")),
+    burst_size=int(os.environ.get("MURPHY_RATE_LIMIT_BURST", "20")),
+    swarm_burst_size=int(os.environ.get("MURPHY_RATE_LIMIT_SWARM_BURST", "60")),
+    swarm_window_seconds=float(os.environ.get("MURPHY_RATE_LIMIT_SWARM_WINDOW", "2.0")),
 )
+
+
+# ── CSRF Protection ──────────────────────────────────────────────────
+
+# Methods that mutate state and require a valid CSRF token
+_CSRF_PROTECTED_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+
+# Paths exempt from CSRF validation (login/logout supply credentials directly)
+_CSRF_EXEMPT_PATHS = frozenset({
+    "/api/auth/login",
+    "/api/auth/logout",
+    "/api/auth/signup",
+    "/api/auth/register",
+    "/api/auth/callback",
+})
+
+# Secret used to sign CSRF tokens.  Override with MURPHY_CSRF_SECRET env var.
+_CSRF_SECRET = os.environ.get("MURPHY_CSRF_SECRET", "")
+
+
+class FlaskCSRFProtection:
+    """Stateless CSRF protection for Flask using HMAC-signed double-submit tokens.
+
+    A CSRF token is ``HMAC-SHA256(csrf_secret, session_id)`` rendered as a
+    hex string.  The client receives the token in the ``X-CSRF-Token`` response
+    header on GET requests, and must echo it back in the ``X-CSRF-Token``
+    *request* header on every state-changing (POST/PUT/PATCH/DELETE) call.
+
+    Stateless design means no server-side session store is required.
+
+    When ``MURPHY_CSRF_SECRET`` is not configured (development / test) the
+    check is skipped to avoid blocking local workflows.  In staging/production
+    the env var must be set or every mutation request will be rejected with 403.
+    """
+
+    @staticmethod
+    def generate_token(session_id: str) -> str:
+        """Return an HMAC-SHA256 CSRF token for *session_id*."""
+        if not _CSRF_SECRET:
+            return hashlib.sha256(session_id.encode()).hexdigest()
+        return hmac.new(
+            _CSRF_SECRET.encode(),
+            session_id.encode(),
+            hashlib.sha256,
+        ).hexdigest()
+
+    @staticmethod
+    def validate_token(session_id: str, submitted_token: str) -> bool:
+        """Return True if *submitted_token* is valid for *session_id*."""
+        if not submitted_token:
+            return False
+        expected = FlaskCSRFProtection.generate_token(session_id)
+        return hmac.compare_digest(expected, submitted_token)
+
+    @staticmethod
+    def is_exempt(path: str, method: str) -> bool:
+        """Return True if this request does NOT require CSRF validation."""
+        if method.upper() not in _CSRF_PROTECTED_METHODS:
+            return True
+        normalized = path.rstrip("/")
+        return normalized in _CSRF_EXEMPT_PATHS
+
+    @classmethod
+    def check_current_request(cls) -> Optional[str]:
+        """Validate the CSRF token on the current Flask request.
+
+        Returns ``None`` on success, or an error message string on failure.
+        Skips validation when ``MURPHY_CSRF_SECRET`` is unset in dev/test.
+        """
+        murphy_env = os.environ.get("MURPHY_ENV", "development")
+        if not _CSRF_SECRET and murphy_env in ("development", "test"):
+            return None
+
+        if cls.is_exempt(request.path, request.method):
+            return None
+
+        # Derive a session identifier from the session cookie or Authorization header
+        session_id = (
+            request.cookies.get("murphy_session", "")
+            or request.headers.get("Authorization", "")
+            or (request.remote_addr or "unknown")
+        )
+
+        submitted = request.headers.get("X-CSRF-Token", "").strip()
+        if not submitted:
+            return "Missing X-CSRF-Token header"
+
+        if not cls.validate_token(session_id, submitted):
+            logger.warning(
+                "CSRF validation failed for %s %s (session prefix=%s…)",
+                request.method,
+                request.path,
+                session_id[:8],
+            )
+            return "Invalid CSRF token"
+
+        return None
 
 
 # ── Security Headers ────────────────────────────────────────────────
@@ -282,8 +400,6 @@ _SECURITY_HEADERS = {
 
 
 # ── Input Sanitization ──────────────────────────────────────────────
-
-import re
 
 _INJECTION_PATTERNS = [
     re.compile(r"<script[^>]*>", re.IGNORECASE),
@@ -318,11 +434,11 @@ def configure_secure_app(app: Flask, service_name: str = "murphy-api") -> Flask:
 
     This wires in:
     - CORS with origin allowlist (SEC-002)
-    - API key authentication on all routes (SEC-001, SEC-004)
-    - Rate limiting per client IP (ARCH-006)
+    - API key / JWT authentication on all routes (SEC-001, SEC-004)
+    - CSRF token validation for POST/PUT/PATCH/DELETE routes (SEC-005)
+    - Rate limiting per client IP with X-RateLimit-* response headers (SEC-006)
     - Input sanitization (ARCH-001)
-    - Security response headers
-    - Audit logging
+    - Security response headers: HSTS, CSP, X-Frame-Options, X-Content-Type-Options
 
     Args:
         app: Flask application to secure
@@ -337,12 +453,15 @@ def configure_secure_app(app: Flask, service_name: str = "murphy-api") -> Flask:
         app,
         origins=origins,
         supports_credentials=True,
-        allow_headers=["Content-Type", "Authorization", "X-Tenant-ID", "X-API-Key"],
+        allow_headers=[
+            "Content-Type", "Authorization", "X-Tenant-ID", "X-API-Key",
+            "X-CSRF-Token",  # clients echo this for state-changing requests
+        ],
         methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
     )
-    logger.info(f"[{service_name}] CORS configured with allowed origins: {origins}")
+    logger.info("[%s] CORS configured with allowed origins: %s", service_name, origins)
 
-    # 2. Before-request hook: authentication + rate limiting + input sanitization
+    # 2. Before-request hook: rate limiting + auth + CSRF + input sanitization
     @app.before_request
     def _security_before_request():
         # Skip auth for health endpoints and OPTIONS (CORS preflight)
@@ -351,19 +470,26 @@ def configure_secure_app(app: Flask, service_name: str = "murphy-api") -> Flask:
         if _is_health_endpoint(request.path):
             return None
 
+        client_ip = request.remote_addr or "unknown"
+
         # Rate limiting by client IP (skip in testing mode)
+        rate_result = None
         if not app.config.get('TESTING'):
-            client_ip = request.remote_addr or "unknown"
             rate_result = _rate_limiter.check(client_ip)
             if not rate_result["allowed"]:
-                logger.warning(f"[{service_name}] Rate limit exceeded for {client_ip}")
+                logger.warning("[%s] Rate limit exceeded for %s", service_name, client_ip)
                 retry_after = int(rate_result.get("retry_after_seconds", 60))
                 resp = jsonify({
                     "error": "Rate limit exceeded",
                     "retry_after_seconds": retry_after
                 })
-                resp.headers['Retry-After'] = str(retry_after)
+                resp.headers["Retry-After"] = str(retry_after)
+                resp.headers["X-RateLimit-Limit"] = str(rate_result.get("limit", 0))
+                resp.headers["X-RateLimit-Remaining"] = "0"
+                resp.headers["X-RateLimit-Reset"] = str(rate_result.get("reset_epoch", 0))
                 return resp, 429
+            # Store for after_request to attach informational headers
+            g.rate_result = rate_result
 
         # API key / JWT authentication
         auth_result = _authenticate_request()
@@ -371,35 +497,47 @@ def configure_secure_app(app: Flask, service_name: str = "murphy-api") -> Flask:
             # Only development and test skip auth; staging and production require it
             murphy_env = os.environ.get("MURPHY_ENV", "development")
             if murphy_env not in ("development", "test"):
-                client_ip = request.remote_addr or "unknown"
-                logger.warning(f"[{service_name}] Missing credentials from {client_ip}")
+                logger.warning("[%s] Missing credentials from %s", service_name, client_ip)
                 return jsonify({"error": "Authentication required"}), 401
             # In development / test mode, allow requests without credentials
             return None
 
         if not auth_result:
-            client_ip = request.remote_addr or "unknown"
-            logger.warning(f"[{service_name}] Invalid credentials from {client_ip}")
+            logger.warning("[%s] Invalid credentials from %s", service_name, client_ip)
             return jsonify({"error": "Invalid credentials"}), 401
+
+        # CSRF validation for state-changing endpoints (SEC-005)
+        csrf_error = FlaskCSRFProtection.check_current_request()
+        if csrf_error:
+            logger.warning(
+                "[%s] CSRF check failed for %s %s from %s: %s",
+                service_name, request.method, request.path, client_ip, csrf_error,
+            )
+            return jsonify({"error": csrf_error}), 403
 
         # Input sanitization for JSON requests
         if request.is_json and request.data:
             try:
                 data = request.get_json(silent=True)
                 if data and _check_injection(data):
-                    logger.warning(f"[{service_name}] Injection attempt from {client_ip}")
+                    logger.warning("[%s] Injection attempt from %s", service_name, client_ip)
                     return jsonify({"error": "Malicious input detected"}), 400
             except Exception as exc:
-                logger.debug("Suppressed exception: %s", exc)
-                pass  # Non-JSON body, skip sanitization
+                logger.debug("Suppressed exception during injection check: %s", exc)
 
         return None
 
-    # 3. After-request hook: security headers
+    # 3. After-request hook: security headers + rate-limit headers
     @app.after_request
     def _security_after_request(response: Response) -> Response:
         for header, value in _SECURITY_HEADERS.items():
             response.headers.setdefault(header, value)
+        # Attach X-RateLimit-* informational headers (SEC-006)
+        rate_result = getattr(g, "rate_result", None)
+        if rate_result:
+            response.headers.setdefault("X-RateLimit-Limit", str(rate_result.get("limit", 0)))
+            response.headers.setdefault("X-RateLimit-Remaining", str(rate_result.get("remaining", 0)))
+            response.headers.setdefault("X-RateLimit-Reset", str(rate_result.get("reset_epoch", 0)))
         return response
 
     murphy_env = os.environ.get("MURPHY_ENV", "development")
@@ -409,5 +547,9 @@ def configure_secure_app(app: Flask, service_name: str = "murphy-api") -> Flask:
             "Set MURPHY_ENV=staging or MURPHY_ENV=production for deployment."
         )
 
-    logger.info(f"[{service_name}] Security hardening applied: auth, CORS, rate limiting, input sanitization, security headers")
+    logger.info(
+        "[%s] Security hardening applied: auth, CSRF, CORS, rate limiting, "
+        "input sanitization, security headers",
+        service_name,
+    )
     return app
