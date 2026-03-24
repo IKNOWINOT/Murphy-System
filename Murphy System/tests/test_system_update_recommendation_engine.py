@@ -188,7 +188,7 @@ class TestInitialisation:
     def test_status_no_subsystems(self, engine):
         status = engine.get_status()
         assert status["engine"] == "SystemUpdateRecommendationEngine"
-        assert status["design_label"] == "ARCH-008"
+        assert status["design_label"] == "ARCH-020"
         assert status["total_active_recommendations"] == 0
         assert status["cycles_completed"] == 0
 
