@@ -779,6 +779,155 @@ These endpoints return `501 Not Implemented` and will be fully implemented in fu
 
 ---
 
+## Communication Hub (FastAPI — src/comms_hub_routes.py)
+
+Unified onboard communication system: IM, voice, video, email, automation rules, and a Discord-style moderator console.  All data is persisted to SQLite via the ORM models in `src/db.py`.
+
+### Instant Messaging (IM)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | /api/comms/im/threads | Yes | Create a new IM thread (direct or group) |
+| GET | /api/comms/im/threads | Yes | List all threads; filter by `?user=` |
+| GET | /api/comms/im/threads/{tid} | Yes | Get a specific thread |
+| POST | /api/comms/im/threads/{tid}/messages | Yes | Post a message to a thread — runs automod + automation rules |
+| GET | /api/comms/im/threads/{tid}/messages | Yes | Get messages; filter with `?limit=` |
+| POST | /api/comms/im/threads/{tid}/messages/{mid}/reactions | Yes | Add emoji reaction |
+
+### Voice Calls
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | /api/comms/voice/sessions | Yes | Initiate a voice call (SDP offer optional) |
+| GET | /api/comms/voice/sessions | Yes | List voice sessions; filter by `?user=` `?state=` |
+| GET | /api/comms/voice/sessions/{sid} | Yes | Get voice session |
+| POST | /api/comms/voice/sessions/{sid}/answer | Yes | Answer a call (SDP answer optional) |
+| POST | /api/comms/voice/sessions/{sid}/hold | Yes | Put call on hold |
+| POST | /api/comms/voice/sessions/{sid}/end | Yes | End call (optional `voicemail_url`) |
+| POST | /api/comms/voice/sessions/{sid}/reject | Yes | Reject an incoming call |
+| POST | /api/comms/voice/sessions/{sid}/ice | Yes | Submit an ICE candidate |
+
+### Video Calls
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | /api/comms/video/sessions | Yes | Initiate a video call |
+| GET | /api/comms/video/sessions | Yes | List video sessions |
+| GET | /api/comms/video/sessions/{sid} | Yes | Get video session |
+| POST | /api/comms/video/sessions/{sid}/answer | Yes | Answer a video call |
+| POST | /api/comms/video/sessions/{sid}/end | Yes | End a video call |
+| POST | /api/comms/video/sessions/{sid}/ice | Yes | Submit an ICE candidate |
+
+### Email
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | /api/comms/email/send | Yes | Compose and send an email |
+| GET | /api/comms/email/inbox | Yes | Get user's inbox — `?user=` |
+| GET | /api/comms/email/outbox | Yes | Get user's outbox — `?user=` |
+| GET | /api/comms/email/{eid} | Yes | Get a specific email |
+| POST | /api/comms/email/{eid}/read | Yes | Mark email as read — body `{user}` |
+
+### Automation Rules
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | /api/comms/automate/rules | Yes | Create an automation rule |
+| GET | /api/comms/automate/rules | Yes | List rules; filter by `?channel=` |
+| GET | /api/comms/automate/rules/{rid} | Yes | Get a specific rule |
+| PATCH | /api/comms/automate/rules/{rid}/toggle | Yes | Enable / disable a rule |
+| DELETE | /api/comms/automate/rules/{rid} | Yes | Delete a rule |
+| POST | /api/comms/automate/evaluate | Yes | Evaluate rules against a payload — returns matched rules |
+
+### Moderator Console
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /api/moderator/users | Yes | List all moderated users |
+| POST | /api/moderator/users/{user}/role | Yes | Set user role (admin / moderator / member) |
+| POST | /api/moderator/users/{user}/warn | Yes | Issue a warning |
+| POST | /api/moderator/users/{user}/mute | Yes | Mute a user |
+| POST | /api/moderator/users/{user}/unmute | Yes | Unmute a user |
+| POST | /api/moderator/users/{user}/kick | Yes | Kick a user |
+| POST | /api/moderator/users/{user}/ban | Yes | Ban a user |
+| POST | /api/moderator/users/{user}/unban | Yes | Unban a user |
+| DELETE | /api/moderator/messages/{channel}/{mid} | Yes | Delete a message |
+| GET | /api/moderator/automod/words | Yes | List default and custom blocked words |
+| POST | /api/moderator/automod/words | Yes | Add custom blocked words |
+| DELETE | /api/moderator/automod/words/{word} | Yes | Remove a blocked word |
+| POST | /api/moderator/automod/check | Yes | Check content against automod rules |
+| GET | /api/moderator/broadcast/targets | Yes | List registered broadcast targets |
+| POST | /api/moderator/broadcast/targets | Yes | Register a broadcast target |
+| DELETE | /api/moderator/broadcast/targets/{platform}/{channel_id} | Yes | Unregister a target |
+| POST | /api/moderator/broadcast | Yes | Broadcast to multiple platforms simultaneously |
+| GET | /api/moderator/broadcast/history | Yes | Broadcast history |
+| GET | /api/moderator/audit | Yes | Moderator audit log |
+
+**UI Route:** `/ui/comms-hub` → `communication_hub.html`
+
+---
+
+## System Update Recommendation Engine (FastAPI — src/system_update_api.py)
+
+Founder-level orchestrator (ARCH-020) exposing the `SystemUpdateRecommendationEngine` with five recommendation domains: maintenance, SDK updates, auto-updates, bug report auto-responses, and system operations analysis.
+
+### Status & Recommendations
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /api/system-updates/status | Yes | Current engine status and summary |
+| GET | /api/system-updates/recommendations | Yes | List all recommendations; filter with `?category=` `?priority=` `?status=` |
+| GET | /api/system-updates/recommendations/{rec_id} | Yes | Get a specific recommendation by ID |
+| PUT | /api/system-updates/recommendations/{rec_id}/status | Yes | Approve or dismiss a recommendation — body: `{"action": "approve"|"dismiss", "reason": "…", "approved_by": "…"}` |
+
+### Maintenance Domain
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | /api/system-updates/maintenance/scan | Yes | Trigger a maintenance integration scan |
+| GET | /api/system-updates/maintenance/recommendations | Yes | Get maintenance-specific recommendations; filter with `?priority=` `?status=` |
+
+### SDK Update Domain
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | /api/system-updates/sdk/scan | Yes | Trigger an SDK/dependency update scan |
+| GET | /api/system-updates/sdk/recommendations | Yes | Get SDK update recommendations; filter with `?priority=` `?status=` |
+
+### Auto-Update Domain
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | /api/system-updates/auto-update/scan | Yes | Trigger an auto-update assessment |
+| GET | /api/system-updates/auto-update/recommendations | Yes | Get auto-update recommendations; filter with `?priority=` `?status=` |
+
+### Bug Report Auto-Response Domain
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | /api/system-updates/bug-responses/ingest | Yes | Ingest a bug report for automated triage — body: `{title, description, component, severity, stack_trace, reporter}` |
+| GET | /api/system-updates/bug-responses/recommendations | Yes | Get bug response recommendations; filter with `?priority=` `?status=` |
+
+### System Operations Domain
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | /api/system-updates/operations/analyze | Yes | Trigger a system operations analysis |
+| GET | /api/system-updates/operations/recommendations | Yes | Get operations recommendations; filter with `?priority=` `?status=` |
+
+### Full Scan
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | /api/system-updates/full-scan | Yes | Trigger a full scan across all 5 domains simultaneously |
+
+**Valid filter values:**
+- `category`: `maintenance`, `sdk_update`, `auto_update`, `bug_response`, `operations`
+- `priority`: `critical`, `high`, `medium`, `low`, `informational`
+- `status`: `pending`, `approved`, `dismissed`, `executed`
+
+---
+
 ## Frontend Architecture
 
 ### API Clients
