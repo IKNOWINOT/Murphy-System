@@ -7818,6 +7818,7 @@ def create_app() -> FastAPI:
     _org_store: "Dict[str, Dict[str, Any]]" = {}          # org_id → org record
     _admin_audit_log: "List[Dict[str, Any]]" = []         # chronological events
     _artifacts_store: "Dict[str, Dict[str, Any]]" = {}    # artifact_id → artifact record
+    _demo_specs_store: "Dict[str, Dict[str, Any]]" = {}   # spec_id → automation spec
 
     def _require_admin(request: "Request") -> "Optional[Dict[str, Any]]":
         """Return the account dict if the caller has admin/owner role.
@@ -11330,6 +11331,18 @@ def create_app() -> FastAPI:
                 status_code=500,
             )
 
+        # Generate automation spec (the key sales asset)
+        automation_spec: Optional[Dict[str, Any]] = None
+        spec_id: Optional[str] = None
+        try:
+            from src.demo_deliverable_generator import generate_automation_spec
+            automation_spec = generate_automation_spec(query, librarian_context=librarian_context or None)
+            spec_id = automation_spec.get("spec_id")
+            if spec_id:
+                _demo_specs_store[spec_id] = automation_spec
+        except Exception as _spec_exc:
+            logger.debug("Automation spec generation skipped: %s", _spec_exc)
+
         # Step 3: Wingman validation — sensors calibrate the output, result
         # is recorded back into the Librarian knowledge layers.
         wingman_validation: Optional[Dict[str, Any]] = None
@@ -11388,12 +11401,37 @@ def create_app() -> FastAPI:
             "deliverable": deliverable,
             "usage": usage_out,
         }
+        if automation_spec is not None:
+            response_body["automation_spec"] = {
+                "spec_id": automation_spec.get("spec_id"),
+                "title": automation_spec.get("title"),
+                "workflow_count": automation_spec.get("workflow_count"),
+                "hours_saved_month": automation_spec.get("hours_saved_month"),
+                "monthly_savings_usd": automation_spec.get("monthly_savings_usd"),
+                "net_monthly_benefit": automation_spec.get("net_monthly_benefit"),
+                "annual_benefit": automation_spec.get("annual_benefit"),
+                "roi_multiple": automation_spec.get("roi_multiple"),
+                "murphy_cost": automation_spec.get("murphy_cost"),
+                "recommended_tier": automation_spec.get("recommended_tier"),
+                "signup_url": automation_spec.get("signup_url"),
+                "integrations": automation_spec.get("integrations", [])[:6],
+            }
+        if spec_id:
+            response_body["spec_id"] = spec_id
         if wingman_validation is not None:
             response_body["wingman_validation"] = wingman_validation
         if api_gaps is not None:
             response_body["api_gaps"] = api_gaps
 
         return JSONResponse(response_body)
+
+    @app.get("/api/demo/spec/{spec_id}")
+    async def get_demo_spec(spec_id: str):
+        """Retrieve a generated automation spec by spec_id (used during signup to pre-load config)."""
+        spec = _demo_specs_store.get(spec_id)
+        if not spec:
+            return JSONResponse({"success": False, "error": "not_found"}, status_code=404)
+        return JSONResponse({"success": True, "spec": spec})
 
     def _build_env_template(workflows):
         """Build .env.example content from workflow API suggestions."""

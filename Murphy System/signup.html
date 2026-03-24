@@ -4,7 +4,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Murphy System — Sign Up</title>
+<title>Sign Up Free — Murphy System | AI Business Automation, Shadow Agents, Crypto Wallet</title>
+<meta name="description" content="Create your free Murphy System account. Get 10 AI actions per day, Shadow Agent training, a crypto wallet, and access to every automation capability. No credit card required.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://murphy.systems/ui/signup">
+<meta property="og:title" content="Start Free — Murphy System AI Automation">
+<meta property="og:description" content="Sign up free. 10 actions/day. Shadow Agent training. Crypto wallet. No credit card.">
+<meta property="og:type" content="website">
 <link rel="icon" href="static/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="static/murphy-design-system.css">
 <style>
@@ -654,6 +660,46 @@
     }
   }());
 
+  // ── Spec pre-load from demo ──────────────────────────────────────────
+  (function() {
+    var params = new URLSearchParams(window.location.search);
+    var specId = params.get('spec');
+    if (!specId) return;
+    // Show "Your Automation Plan is Ready" banner
+    var banner = document.getElementById('spec-ready-banner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'spec-ready-banner';
+      banner.style.cssText = 'background:linear-gradient(135deg,rgba(0,212,170,.12),rgba(0,136,204,.12));border:1px solid rgba(0,212,170,.4);border-radius:10px;padding:1rem 1.25rem;margin-bottom:1.25rem;font-size:.88rem;line-height:1.6;';
+      banner.innerHTML = '<div style="font-weight:700;color:#00D4AA;margin-bottom:.25rem;">🚀 Your Automation Plan is Ready</div>' +
+        '<div style="color:#cdd6e0;">Murphy has configured <strong>all your workflows</strong> based on your demo session. Sign up below to activate them automatically — no setup required.</div>' +
+        '<div style="margin-top:.5rem;font-size:.78rem;color:#94a3b8;">Spec ID: ' + specId + '</div>';
+      var form = document.getElementById('signup-form') || document.querySelector('form');
+      if (form && form.parentNode) form.parentNode.insertBefore(banner, form);
+    }
+    // Store spec_id in session storage so it can be passed on account creation
+    sessionStorage.setItem('murphy_pending_spec', specId);
+    // Pre-fill "how can Murphy help?" field if present
+    var useCaseField = document.getElementById('use_case') || document.querySelector('[name=use_case],[id*=use.case],[id*=usecase]');
+    if (useCaseField) {
+      fetch('/api/demo/spec/' + encodeURIComponent(specId))
+        .then(function(r){return r.json();})
+        .then(function(d){
+          if(d.spec && d.spec.title) {
+            useCaseField.value = 'Activate automation plan: ' + d.spec.title;
+          }
+        })
+        .catch(function(){});
+    }
+    // Hook into form submit to persist spec_id
+    var form2 = document.getElementById('signup-form') || document.querySelector('form');
+    if (form2) {
+      form2.addEventListener('submit', function() {
+        sessionStorage.setItem('murphy_pending_spec', specId);
+      }, true);
+    }
+  }());
+
   // ── OAuth provider availability check ────────────────
   // Query /api/auth/providers and hide buttons for unconfigured providers.
   // Only show providers that are actually configured and ready to use.
@@ -826,7 +872,8 @@
     var payload = {
       full_name:  document.getElementById('full-name').value.trim(),
       job_title:  document.getElementById('job-title').value.trim(),
-      company:    document.getElementById('company').value.trim()
+      company:    document.getElementById('company').value.trim(),
+      spec_id:    sessionStorage.getItem('murphy_pending_spec') || undefined,
     };
 
     if (isEmailTab) {
