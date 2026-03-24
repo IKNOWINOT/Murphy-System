@@ -29,12 +29,61 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
 .m-btn-success:hover{background:rgba(34,197,94,.25)}
 .m-btn-danger{background:rgba(239,68,68,.15);color:#ef4444;border-color:rgba(239,68,68,.3)}
 .m-btn-danger:hover{background:rgba(239,68,68,.25)}
-.m-btn-warning{background:rgba(255,166,62,.15);color:#ffa63e;border-color:rgba(255,166,62,.3)}
-.m-btn-warning:hover{background:rgba(255,166,62,.25)}
 .m-btn-sm{padding:4px 10px;font-size:12px}
 .m-btn-icon{padding:6px;border:none;background:none;color:var(--text-secondary);cursor:pointer;border-radius:var(--radius-sm);display:flex;align-items:center}
 .m-btn-icon:hover{background:var(--bg-elevated);color:var(--text-primary)}
-.m-btn:disabled{opacity:.5;cursor:not-allowed}
+.m-btn:disabled,.m-btn-primary:disabled{opacity:.5;cursor:not-allowed}
+
+/* ================================================================
+   READINESS OVERLAY — shown first, before main app
+   ================================================================ */
+#readiness-overlay{position:fixed;inset:0;background:var(--bg-base);z-index:900;display:flex;flex-direction:column;overflow:hidden}
+#readiness-overlay.hidden{display:none}
+.rdy-topbar{height:var(--topbar-h);background:var(--bg-surface);border-bottom:1px solid var(--border-default);display:flex;align-items:center;padding:0 24px;gap:12px;flex-shrink:0}
+.rdy-topbar .m-brand{color:var(--teal);font-weight:700;text-decoration:none;display:flex;align-items:center;gap:8px;font-size:1rem;letter-spacing:.05em}
+.rdy-body{flex:1;overflow-y:auto;padding:32px 40px}
+.rdy-hero{margin-bottom:32px}
+.rdy-hero-title{font-size:24px;font-weight:700;color:var(--text-primary);margin-bottom:6px}
+.rdy-hero-sub{font-size:14px;color:var(--text-secondary)}
+.rdy-section-title{font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+.rdy-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:12px;margin-bottom:32px}
+/* Individual API readiness card */
+.rdy-card{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:16px;transition:border-color .2s}
+.rdy-card.ok{border-color:rgba(34,197,94,.4)}
+.rdy-card.warn{border-color:rgba(255,166,62,.4)}
+.rdy-card.fail{border-color:rgba(239,68,68,.4)}
+.rdy-card.checking{border-color:rgba(0,212,170,.2)}
+.rdy-card-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:8px}
+.rdy-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;margin-top:3px}
+.rdy-dot-checking{background:rgba(0,212,170,.4);animation:pulse 1s ease-in-out infinite}
+.rdy-dot-ok{background:#22c55e;box-shadow:0 0 6px rgba(34,197,94,.5)}
+.rdy-dot-warn{background:#ffa63e;box-shadow:0 0 6px rgba(255,166,62,.5)}
+.rdy-dot-fail{background:#ef4444;box-shadow:0 0 6px rgba(239,68,68,.5)}
+.rdy-card-name{font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:2px}
+.rdy-card-method{font-size:11px;color:var(--text-muted);font-family:monospace;background:var(--bg-elevated);padding:2px 6px;border-radius:4px}
+.rdy-card-desc{font-size:12px;color:var(--text-secondary);margin-bottom:10px;line-height:1.5}
+.rdy-card-status{font-size:12px;margin-bottom:10px}
+.rdy-status-ok{color:#22c55e}
+.rdy-status-warn{color:#ffa63e}
+.rdy-status-fail{color:#ef4444}
+.rdy-status-checking{color:var(--teal)}
+.rdy-fix-box{background:var(--bg-elevated);border-radius:var(--radius-md);padding:12px;margin-bottom:10px;border-left:3px solid #ef4444;display:none}
+.rdy-card.fail .rdy-fix-box,.rdy-card.warn .rdy-fix-box{display:block}
+.rdy-fix-title{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.rdy-fix-step{font-size:12px;color:var(--text-secondary);padding:3px 0;display:flex;gap:6px;align-items:flex-start}
+.rdy-fix-step-num{color:var(--teal);font-weight:700;flex-shrink:0;min-width:16px}
+.rdy-fix-links{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.rdy-fix-links a{font-size:12px;color:var(--teal);text-decoration:none}
+.rdy-fix-links a:hover{text-decoration:underline}
+.rdy-card-actions{display:flex;gap:8px}
+/* Progress bar */
+.rdy-progress-wrap{background:var(--bg-elevated);border-radius:var(--radius-full);height:6px;margin-bottom:24px;overflow:hidden}
+.rdy-progress-bar{height:100%;background:var(--teal);border-radius:var(--radius-full);transition:width .4s ease}
+/* Footer bar */
+.rdy-footer{border-top:1px solid var(--border-subtle);padding:16px 40px;display:flex;align-items:center;justify-content:space-between;background:var(--bg-surface);flex-shrink:0}
+.rdy-summary{font-size:13px;color:var(--text-secondary)}
+.rdy-summary strong{color:var(--text-primary)}
+/* ================================================================ */
 
 /* AGENT BAR */
 .agent-bar{background:linear-gradient(90deg,rgba(0,212,170,.12),rgba(0,212,170,.05));border-bottom:1px solid rgba(0,212,170,.3);padding:10px 20px;display:flex;align-items:center;gap:12px;font-size:13px;color:var(--text-primary);flex-shrink:0}
@@ -118,8 +167,9 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
 .scan-result-title{font-size:12px;font-weight:600;margin-bottom:4px}
 .scan-result-action{font-size:11px;color:var(--text-muted);margin-bottom:8px}
 .scan-result-btns{display:flex;gap:6px;flex-wrap:wrap}
-.spin{animation:spin .8s linear infinite}
+.spin{animation:spin .8s linear infinite;display:inline-block}
 @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
 
 /* RECOMMENDATIONS BOARD */
 .kanban{display:flex;gap:16px;align-items:flex-start;min-height:100%}
@@ -154,7 +204,7 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
 /* ERROR CARDS */
 .error-card{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:var(--radius-lg);padding:16px;margin-bottom:12px}
 .error-card-title{font-size:13px;font-weight:600;color:#ef4444;margin-bottom:6px}
-.error-card-endpoint{font-size:12px;color:var(--text-muted);font-family:var(--font-mono,monospace);margin-bottom:4px}
+.error-card-endpoint{font-size:12px;color:var(--text-muted);font-family:monospace;margin-bottom:4px}
 .error-card-msg{font-size:12px;color:var(--text-secondary);margin-bottom:10px}
 .error-card-links{display:flex;gap:12px;flex-wrap:wrap}
 .error-card-links a{font-size:12px;color:var(--teal);text-decoration:none}
@@ -164,7 +214,6 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
 .state-empty{text-align:center;padding:40px;color:var(--text-muted);font-size:13px}
 .state-loading{text-align:center;padding:40px;color:var(--text-muted);font-size:13px}
 .loading-dot{display:inline-block;animation:pulse 1.2s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
 
 /* DETAIL PANEL */
 .detail-panel{width:var(--panel-width);background:var(--bg-surface);border-left:1px solid var(--border-default);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;transition:width var(--transition-base)}
@@ -176,18 +225,6 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
 .detail-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;font-size:13px}
 .detail-row-label{color:var(--text-muted);width:120px;flex-shrink:0;font-size:12px;padding-top:1px}
 .detail-actions{display:flex;gap:8px;padding:16px;flex-wrap:wrap}
-
-/* MODAL */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;display:flex;align-items:center;justify-content:center}
-.modal-overlay[hidden]{display:none}
-.modal{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-xl);width:520px;max-height:85vh;overflow-y:auto;padding:24px}
-.modal-title{font-size:16px;font-weight:700;margin-bottom:20px;color:var(--text-primary)}
-.form-group{margin-bottom:14px}
-.form-label{display:block;font-size:12px;color:var(--text-muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em}
-.form-input,.form-select,.form-textarea{width:100%;background:var(--bg-elevated);border:1px solid var(--border-default);color:var(--text-primary);padding:8px 10px;border-radius:var(--radius-md);font-family:var(--font-ui);font-size:13px;outline:none}
-.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--teal)}
-.form-textarea{resize:vertical;min-height:80px}
-.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border-subtle)}
 
 /* FOOTER */
 .m-footer{padding:12px 20px;border-top:1px solid var(--border-subtle);display:flex;gap:16px;font-size:12px;color:var(--text-muted);background:var(--bg-surface);flex-shrink:0}
@@ -205,8 +242,47 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
 <body>
 <a href="#main-content" class="murphy-skip-link">Skip to main content</a>
 
+<!-- ================================================================
+     READINESS OVERLAY — Phase 1: shown before main app
+     ================================================================ -->
+<div id="readiness-overlay">
+  <!-- Topbar clone -->
+  <div class="rdy-topbar">
+    <a href="/ui/landing" class="m-brand" aria-label="Murphy System home">
+      <svg width="24" height="24" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#00D4AA"/><text x="12" y="17" text-anchor="middle" fill="#000" font-size="13" font-weight="700" font-family="Inter,sans-serif">M</text></svg>
+      <span>MURPHY</span>
+    </a>
+    <span style="font-size:13px;color:var(--text-muted);margin-left:4px">/ System Management — Readiness Check</span>
+  </div>
+  <div class="rdy-body" id="rdy-body">
+    <div class="rdy-hero">
+      <div class="rdy-hero-title">&#x1F50D; System Readiness Check</div>
+      <div class="rdy-hero-sub">Checking all required APIs before entering Founder Operations mode. Fix any red items to unlock full functionality.</div>
+    </div>
+    <!-- Progress bar -->
+    <div class="rdy-progress-wrap">
+      <div class="rdy-progress-bar" id="rdy-progress" style="width:0%"></div>
+    </div>
+    <div class="rdy-section-title" id="rdy-section-label">Checking APIs…</div>
+    <div class="rdy-grid" id="rdy-grid">
+      <!-- Cards rendered by JS -->
+    </div>
+  </div>
+  <div class="rdy-footer">
+    <div class="rdy-summary" id="rdy-summary">Checking…</div>
+    <div style="display:flex;gap:10px">
+      <button class="m-btn m-btn-sm" onclick="runReadinessCheck()" id="btn-recheck">&#x21BB; Re-check All</button>
+      <button class="m-btn m-btn-sm" onclick="enterApp()" id="btn-proceed" disabled>Proceed anyway &#x2192;</button>
+      <button class="m-btn m-btn-primary m-btn-sm" onclick="enterApp()" id="btn-enter" style="display:none">&#x2713; Enter Operations Hub &#x2192;</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     MAIN APP — Phase 3: shown after readiness check
+     ================================================================ -->
 <!-- TOPBAR -->
-<header class="m-topbar" role="banner">
+<header class="m-topbar" role="banner" id="main-topbar">
   <div style="display:flex;align-items:center;gap:12px">
     <button class="m-btn-icon" id="sidebar-toggle" aria-label="Toggle sidebar">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
@@ -217,6 +293,7 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
     </a>
   </div>
   <nav class="m-topbar-right" aria-label="Top navigation">
+    <button class="m-btn m-btn-sm" id="btn-readiness-again" onclick="showReadiness()" title="Re-run readiness check">&#x1F50D; Readiness</button>
     <a href="/ui/workspace" class="m-btn">Workspace</a>
     <a href="/ui/terminal-unified" class="m-btn">Terminal</a>
     <div class="m-avatar" aria-label="User: Corey Post">CP</div>
@@ -225,21 +302,21 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
 
 <!-- MURPHY AGENT BAR -->
 <div class="agent-bar" id="agent-bar" role="status" aria-live="polite">
-  <span class="agent-bar-icon">🤖</span>
+  <span class="agent-bar-icon">&#x1F916;</span>
   <div class="agent-bar-info">
     <div class="agent-bar-title">Murphy Agent</div>
     <div class="agent-bar-sub" id="agent-bar-sub">Initializing — loading system state…</div>
   </div>
   <div class="agent-bar-actions">
     <button class="m-btn m-btn-primary" id="btn-full-scan" onclick="runFullScan()">
-      <span id="full-scan-icon">🔍</span> Run Full Scan
+      <span id="full-scan-icon">&#x1F50D;</span> Run Full Scan
     </button>
     <div class="agent-bar-sep"></div>
-    <button class="m-btn m-btn-sm" onclick="runScan('maintenance')" title="Maintenance scan">🔧 Maintenance</button>
-    <button class="m-btn m-btn-sm" onclick="runScan('sdk')" title="SDK/dependency scan">📦 SDK</button>
-    <button class="m-btn m-btn-sm" onclick="runScan('auto-update')" title="Auto-update scan">♻️ Updates</button>
-    <button class="m-btn m-btn-sm" onclick="runScan('bug-responses')" title="Bug response scan">🐛 Bugs</button>
-    <button class="m-btn m-btn-sm" onclick="runScan('operations')" title="Operations scan">�� Ops</button>
+    <button class="m-btn m-btn-sm" onclick="runScan('maintenance')" title="Maintenance scan">&#x1F527; Maintenance</button>
+    <button class="m-btn m-btn-sm" onclick="runScan('sdk')" title="SDK/dependency scan">&#x1F4E6; SDK</button>
+    <button class="m-btn m-btn-sm" onclick="runScan('auto-update')" title="Auto-update scan">&#x267B;&#xFE0F; Updates</button>
+    <button class="m-btn m-btn-sm" onclick="runScan('bug-responses')" title="Bug response scan">&#x1F41B; Bugs</button>
+    <button class="m-btn m-btn-sm" onclick="runScan('operations')" title="Operations scan">&#x1F4CA; Ops</button>
   </div>
 </div>
 
@@ -253,23 +330,23 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
     </div>
     <div class="m-sidebar-section">
       <div class="m-sidebar-item active" id="nav-health" onclick="switchView('health')">
-        <span>🏥</span> Health Overview
+        <span>&#x1F3E5;</span> Health Overview
       </div>
       <div class="m-sidebar-item" id="nav-scans" onclick="switchView('scans')">
-        <span>🔍</span> Run Scans
+        <span>&#x1F50D;</span> Run Scans
       </div>
       <div class="m-sidebar-item" id="nav-board" onclick="switchView('board')">
-        <span>📋</span> Recommendations
+        <span>&#x1F4CB;</span> Recommendations
         <span class="m-sidebar-badge teal" id="badge-pending" style="display:none">0</span>
       </div>
       <div class="m-sidebar-item" id="nav-subsystems" onclick="switchView('subsystems')">
-        <span>🔧</span> Subsystems
+        <span>&#x1F527;</span> Subsystems
       </div>
       <div class="m-sidebar-item" id="nav-reports" onclick="switchView('reports')">
-        <span>📊</span> Reports
+        <span>&#x1F4CA;</span> Reports
       </div>
-      <div class="m-sidebar-item" id="nav-inbox" onclick="switchView('board');document.querySelector('[data-status=pending]')?.click()">
-        <span>📬</span> Inbox
+      <div class="m-sidebar-item" id="nav-inbox" onclick="switchView('board')">
+        <span>&#x1F4EC;</span> Inbox
         <span class="m-sidebar-badge" id="badge-inbox" style="display:none">0</span>
       </div>
     </div>
@@ -302,8 +379,8 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
           <option value="60000">60s</option>
           <option value="0">Off</option>
         </select>
-        <button class="m-btn m-btn-sm" onclick="refreshAll()" title="Refresh now">↻ Refresh</button>
-        <button class="m-btn-primary m-btn" onclick="runFullScan()">🔍 Run Full Scan</button>
+        <button class="m-btn m-btn-sm" onclick="refreshAll()" title="Refresh now">&#x21BB; Refresh</button>
+        <button class="m-btn-primary m-btn" onclick="runFullScan()">&#x1F50D; Run Full Scan</button>
       </div>
     </div>
 
@@ -331,31 +408,31 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
         <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Domain Scans</div>
         <div class="scan-grid" id="scan-cards">
           <div class="scan-card">
-            <div class="scan-card-title">🔧 Maintenance</div>
+            <div class="scan-card-title">&#x1F527; Maintenance</div>
             <div class="scan-card-desc">Check for maintenance tasks and system upkeep needs.</div>
             <button class="m-btn m-btn-sm" onclick="runScanInCard('maintenance', this)">Run Scan</button>
             <div class="scan-results" id="results-maintenance"></div>
           </div>
           <div class="scan-card">
-            <div class="scan-card-title">📦 SDK / Dependencies</div>
-            <div class="scan-card-desc">Scan for outdated packages, SDK version drifts.</div>
+            <div class="scan-card-title">&#x1F4E6; SDK / Dependencies</div>
+            <div class="scan-card-desc">Scan for outdated packages and SDK version drifts.</div>
             <button class="m-btn m-btn-sm" onclick="runScanInCard('sdk', this)">Run Scan</button>
             <div class="scan-results" id="results-sdk"></div>
           </div>
           <div class="scan-card">
-            <div class="scan-card-title">♻️ Auto-Updates</div>
+            <div class="scan-card-title">&#x267B;&#xFE0F; Auto-Updates</div>
             <div class="scan-card-desc">Check for available auto-update recommendations.</div>
             <button class="m-btn m-btn-sm" onclick="runScanInCard('auto-update', this)">Run Scan</button>
             <div class="scan-results" id="results-auto-update"></div>
           </div>
           <div class="scan-card">
-            <div class="scan-card-title">🐛 Bug Responses</div>
+            <div class="scan-card-title">&#x1F41B; Bug Responses</div>
             <div class="scan-card-desc">Ingest and triage open bug reports and responses.</div>
             <button class="m-btn m-btn-sm" onclick="runScanInCard('bug-responses', this)">Run Scan</button>
             <div class="scan-results" id="results-bug-responses"></div>
           </div>
           <div class="scan-card">
-            <div class="scan-card-title">📊 Operations</div>
+            <div class="scan-card-title">&#x1F4CA; Operations</div>
             <div class="scan-card-desc">Analyze operational metrics and capacity planning.</div>
             <button class="m-btn m-btn-sm" onclick="runScanInCard('operations', this)">Run Scan</button>
             <div class="scan-results" id="results-operations"></div>
@@ -433,45 +510,312 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
 <script src="static/murphy-components.js"></script>
 <script src="murphy_auth.js"></script>
 <script>
-// ── API CLIENT ────────────────────────────────────────────────────
+// ================================================================
+// API CLIENT
+// ================================================================
 const api = new MurphyAPI('/api');
 
-// ── STATE ─────────────────────────────────────────────────────────
+// ================================================================
+// READINESS CHECK DEFINITIONS
+// Each entry describes one required API endpoint.
+// ================================================================
+const READINESS_APIS = [
+  {
+    id: 'health',
+    name: 'System Health',
+    method: 'GET',
+    path: '/health',
+    desc: 'Core platform health endpoint. Required for all health indicators.',
+    docsAnchor: 'health',
+    fixSteps: [
+      'Ensure the Murphy backend is running: python3 src/runtime/app.py',
+      'Check server logs for startup errors',
+      'Verify port 8000 (or configured port) is not blocked by firewall',
+    ],
+  },
+  {
+    id: 'founder-summary',
+    name: 'Founder Maintenance Summary',
+    method: 'GET',
+    path: '/founder/maintenance/summary',
+    desc: 'Dashboard summary: recommendation counts, system state.',
+    docsAnchor: 'founder-maintenance',
+    fixSteps: [
+      'Ensure FounderMaintenanceRecommendationEngine is registered in app.py',
+      'Check: GET /api/founder/maintenance/summary returns 200',
+      'If 404: the founder_maintenance_api router is not mounted — add it to create_app()',
+    ],
+  },
+  {
+    id: 'founder-subsystems',
+    name: 'Founder Subsystems',
+    method: 'GET',
+    path: '/founder/maintenance/subsystems',
+    desc: 'List all registered subsystems and their health status.',
+    docsAnchor: 'founder-maintenance',
+    fixSteps: [
+      'Requires FounderMaintenanceRecommendationEngine to have subsystems registered',
+      'Call POST /api/founder/maintenance/scan to auto-register subsystems',
+      'Or register manually via the engine API',
+    ],
+  },
+  {
+    id: 'founder-recommendations',
+    name: 'Founder Recommendations',
+    method: 'GET',
+    path: '/founder/maintenance/recommendations',
+    desc: 'Live recommendations list for the Kanban board.',
+    docsAnchor: 'founder-maintenance',
+    fixSteps: [
+      'Run POST /api/founder/maintenance/scan to generate recommendations',
+      'Or POST /api/system-updates/full-scan for a full-system recommendation pass',
+    ],
+  },
+  {
+    id: 'system-updates-status',
+    name: 'System Updates Status',
+    method: 'GET',
+    path: '/system-updates/status',
+    desc: 'Overall update/scan status across all domains.',
+    docsAnchor: 'system-updates',
+    fixSteps: [
+      'Ensure SystemUpdateRecommendationEngine is registered in app.py',
+      'Check: GET /api/system-updates/status returns 200',
+      'If 404: the system_update_api router is not mounted — add it to create_app()',
+    ],
+  },
+  {
+    id: 'system-updates-maintenance-scan',
+    name: 'Maintenance Scan (POST)',
+    method: 'POST',
+    path: '/system-updates/maintenance/scan',
+    desc: 'Triggers the maintenance domain scan.',
+    docsAnchor: 'system-updates',
+    fixSteps: [
+      'Same as System Updates Status — register the system_update_api router',
+      'Test: curl -X POST http://localhost:8000/api/system-updates/maintenance/scan',
+    ],
+  },
+];
+
+// State per API: 'checking' | 'ok' | 'warn' | 'fail'
+const _rdyState = {};
+
+// ================================================================
+// READINESS CHECK — Phase 1
+// ================================================================
+async function runReadinessCheck() {
+  const grid = document.getElementById('rdy-grid');
+  const progress = document.getElementById('rdy-progress');
+  const summary = document.getElementById('rdy-summary');
+  const btnProceed = document.getElementById('btn-proceed');
+  const btnEnter = document.getElementById('btn-enter');
+  const sectionLabel = document.getElementById('rdy-section-label');
+
+  // Reset state
+  READINESS_APIS.forEach(a => { _rdyState[a.id] = 'checking'; });
+  sectionLabel.textContent = 'Checking APIs…';
+  progress.style.width = '0%';
+  summary.textContent = 'Checking…';
+  btnProceed.disabled = true;
+  btnEnter.style.display = 'none';
+  btnProceed.style.display = '';
+
+  // Render initial checking cards
+  grid.innerHTML = READINESS_APIS.map(a => rdyCardHTML(a, 'checking', null)).join('');
+
+  // Run checks in parallel
+  const results = await Promise.allSettled(
+    READINESS_APIS.map(a => checkOneAPI(a))
+  );
+
+  results.forEach((result, i) => {
+    const api_def = READINESS_APIS[i];
+    const { state, statusText } = result.status === 'fulfilled'
+      ? result.value
+      : { state: 'fail', statusText: String(result.reason) };
+    _rdyState[api_def.id] = state;
+    // Update card
+    const card = document.getElementById('rdy-card-' + api_def.id);
+    if (card) {
+      card.outerHTML = rdyCardHTML(api_def, state, statusText);
+    }
+    // Update progress
+    const done = Object.values(_rdyState).filter(s => s !== 'checking').length;
+    progress.style.width = Math.round(done / READINESS_APIS.length * 100) + '%';
+  });
+
+  // Summary
+  const okCount  = Object.values(_rdyState).filter(s => s === 'ok').length;
+  const warnCount = Object.values(_rdyState).filter(s => s === 'warn').length;
+  const failCount = Object.values(_rdyState).filter(s => s === 'fail').length;
+  const total = READINESS_APIS.length;
+
+  sectionLabel.textContent = 'Readiness Results';
+  progress.style.width = '100%';
+
+  if (failCount === 0 && warnCount === 0) {
+    summary.innerHTML = '<strong style="color:#22c55e">&#x2713; All ' + total + ' APIs functional</strong> — Entering Operations Hub automatically…';
+    btnEnter.style.display = '';
+    btnProceed.style.display = 'none';
+    // Auto-enter after brief delay
+    setTimeout(enterApp, 1800);
+  } else if (failCount === 0) {
+    summary.innerHTML = '<strong style="color:#ffa63e">&#x26A0; ' + okCount + '/' + total + ' fully healthy, ' + warnCount + ' warning(s)</strong> — Partial functionality available.';
+    btnEnter.style.display = '';
+    btnProceed.style.display = 'none';
+  } else {
+    summary.innerHTML = '<strong style="color:#ef4444">&#x2717; ' + failCount + ' API(s) unreachable</strong>, ' + okCount + ' functional, ' + warnCount + ' warning(s). Fix red items below, then re-check.';
+    btnProceed.disabled = false;
+  }
+}
+
+async function checkOneAPI(api_def) {
+  try {
+    const res = api_def.method === 'POST'
+      ? await api.post(api_def.path, {})
+      : await api.get(api_def.path);
+
+    if (res.ok) {
+      return { state: 'ok', statusText: '200 OK — Functional' };
+    }
+    // 404 = not mounted, 5xx = server error
+    const s = res.status;
+    if (s === 401 || s === 403) {
+      // Auth required but API is reachable
+      return { state: 'warn', statusText: s + ' — Auth required (API is reachable)' };
+    }
+    if (s === 404) {
+      return { state: 'fail', statusText: '404 Not Found — Router not mounted or route missing' };
+    }
+    if (s >= 500) {
+      return { state: 'warn', statusText: s + ' Server Error — Reachable but failing' };
+    }
+    return { state: 'warn', statusText: s + ' — Unexpected response' };
+  } catch (err) {
+    return { state: 'fail', statusText: 'Network error: ' + String(err).slice(0, 80) };
+  }
+}
+
+function rdyCardHTML(api_def, state, statusText) {
+  const dotClass = {
+    checking: 'rdy-dot-checking',
+    ok:       'rdy-dot-ok',
+    warn:     'rdy-dot-warn',
+    fail:     'rdy-dot-fail',
+  }[state] || 'rdy-dot-checking';
+
+  const statusClass = {
+    checking: 'rdy-status-checking',
+    ok:       'rdy-status-ok',
+    warn:     'rdy-status-warn',
+    fail:     'rdy-status-fail',
+  }[state] || 'rdy-status-checking';
+
+  const statusMsg = state === 'checking'
+    ? 'Checking…'
+    : (statusText || (state === 'ok' ? 'Functional' : 'Unavailable'));
+
+  const icon = { checking: '&#x23F3;', ok: '&#x2713;', warn: '&#x26A0;', fail: '&#x2717;' }[state] || '';
+
+  const fixBox = (state === 'fail' || state === 'warn') && api_def.fixSteps ? `
+    <div class="rdy-fix-box">
+      <div class="rdy-fix-title">How to fix</div>
+      ${api_def.fixSteps.map((step, i) => `<div class="rdy-fix-step"><span class="rdy-fix-step-num">${i+1}.</span><span>${escHtml(step)}</span></div>`).join('')}
+      <div class="rdy-fix-links">
+        <a href="/docs#/${escHtml(api_def.docsAnchor || '')}" target="_blank" rel="noopener">&#x1F4D6; API Docs (/docs#/${escHtml(api_def.docsAnchor || '')})</a>
+        <a href="/ui/terminal-unified#${escHtml(api_def.docsAnchor || '')}" target="_blank" rel="noopener">&#x1F4BB; Try in Terminal</a>
+        <a href="javascript:void(0)" onclick="recheckOne('${escHtml(api_def.id)}', this)" style="color:var(--teal)">&#x21BB; Retry this check</a>
+      </div>
+    </div>` : '';
+
+  return `<div class="rdy-card ${escHtml(state)}" id="rdy-card-${escHtml(api_def.id)}">
+    <div class="rdy-card-top">
+      <div class="rdy-dot ${dotClass}"></div>
+      <div style="flex:1">
+        <div class="rdy-card-name">${escHtml(api_def.name)}</div>
+        <span class="rdy-card-method">${escHtml(api_def.method)} /api${escHtml(api_def.path)}</span>
+      </div>
+    </div>
+    <div class="rdy-card-desc">${escHtml(api_def.desc)}</div>
+    <div class="rdy-card-status ${statusClass}">${icon} ${escHtml(statusMsg)}</div>
+    ${fixBox}
+  </div>`;
+}
+
+async function recheckOne(id, linkEl) {
+  const api_def = READINESS_APIS.find(a => a.id === id);
+  if (!api_def) return;
+  _rdyState[id] = 'checking';
+  const card = document.getElementById('rdy-card-' + id);
+  if (card) card.outerHTML = rdyCardHTML(api_def, 'checking', null);
+  const { state, statusText } = await checkOneAPI(api_def);
+  _rdyState[id] = state;
+  const updated = document.getElementById('rdy-card-' + id);
+  if (updated) updated.outerHTML = rdyCardHTML(api_def, state, statusText);
+
+  // Recount and update summary/buttons
+  const okCount  = Object.values(_rdyState).filter(s => s === 'ok').length;
+  const failCount = Object.values(_rdyState).filter(s => s === 'fail').length;
+  const warnCount = Object.values(_rdyState).filter(s => s === 'warn').length;
+  const total = READINESS_APIS.length;
+  const summary = document.getElementById('rdy-summary');
+  const btnEnter = document.getElementById('btn-enter');
+  const btnProceed = document.getElementById('btn-proceed');
+
+  if (failCount === 0 && warnCount === 0) {
+    summary.innerHTML = '<strong style="color:#22c55e">&#x2713; All ' + total + ' APIs functional</strong> — Ready to enter.';
+    btnEnter.style.display = '';
+    btnProceed.style.display = 'none';
+  } else if (failCount === 0) {
+    summary.innerHTML = '<strong style="color:#ffa63e">&#x26A0; ' + okCount + '/' + total + ' healthy, ' + warnCount + ' warning(s)</strong>';
+    btnEnter.style.display = '';
+    btnProceed.style.display = 'none';
+  } else {
+    summary.innerHTML = '<strong style="color:#ef4444">&#x2717; ' + failCount + ' still unreachable</strong>, ' + okCount + ' functional.';
+    btnProceed.disabled = false;
+  }
+}
+
+function showReadiness() {
+  document.getElementById('readiness-overlay').classList.remove('hidden');
+  runReadinessCheck();
+}
+
+function enterApp() {
+  document.getElementById('readiness-overlay').classList.add('hidden');
+  initApp();
+}
+
+// ================================================================
+// MAIN APP — Phase 3
+// ================================================================
 let _refreshTimer = null;
 let _refreshInterval = 30000;
 let _recommendations = [];
 let _subsystems = [];
 let _currentView = 'health';
 let _scanInProgress = false;
+let _appInited = false;
 
-// ── ERROR DISPLAY ─────────────────────────────────────────────────
-function errorCard(containerId, endpoint, method, error, docsAnchor) {
-  const container = document.getElementById(containerId);
-  if (!container) return;
-  const anchor = docsAnchor || endpoint.split('/')[2] || 'founder-maintenance';
-  const card = document.createElement('div');
-  card.className = 'error-card';
-  card.innerHTML = `
-    <div class="error-card-title">⚠️ Could not reach ${endpoint}</div>
-    <div class="error-card-endpoint">${method} ${endpoint}</div>
-    <div class="error-card-msg">${escHtml(String(error))}</div>
-    <div class="error-card-links">
-      <a href="/docs#/${encodeURIComponent(anchor)}" target="_blank" rel="noopener">→ Open API Docs (/docs#/${anchor})</a>
-      <a href="/ui/terminal-unified#${encodeURIComponent(anchor)}" target="_blank" rel="noopener">→ Try in Terminal</a>
-    </div>`;
-  container.appendChild(card);
+function initApp() {
+  if (_appInited) return;
+  _appInited = true;
+  (async function () {
+    updateAgentBar('Loading system state…', true);
+    await loadHealthOverview();
+    updateAgentBar('System state loaded. Use scan buttons to run diagnostics.', false);
+    setRefreshInterval(_refreshInterval);
+  }());
 }
 
-function clearErrors(containerId) {
-  const el = document.getElementById(containerId);
-  if (el) el.innerHTML = '';
-}
-
+// ================================================================
+// UTILITY
+// ================================================================
 function escHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ── TOAST ─────────────────────────────────────────────────────────
 function showToast(msg, type) {
   const c = document.getElementById('toast-container');
   const t = document.createElement('div');
@@ -481,7 +825,32 @@ function showToast(msg, type) {
   setTimeout(() => t.remove(), 4000);
 }
 
-// ── HEALTH OVERVIEW ───────────────────────────────────────────────
+function errorCard(containerId, endpoint, method, error, docsAnchor) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const anchor = docsAnchor || 'founder-maintenance';
+  const card = document.createElement('div');
+  card.className = 'error-card';
+  card.innerHTML = `
+    <div class="error-card-title">&#x26A0;&#xFE0F; Could not reach ${escHtml(endpoint)}</div>
+    <div class="error-card-endpoint">${escHtml(method)} ${escHtml(endpoint)}</div>
+    <div class="error-card-msg">${escHtml(String(error))}</div>
+    <div class="error-card-links">
+      <a href="/docs#/${encodeURIComponent(anchor)}" target="_blank" rel="noopener">&#x2192; Open API Docs (/docs#/${escHtml(anchor)})</a>
+      <a href="/ui/terminal-unified#${encodeURIComponent(anchor)}" target="_blank" rel="noopener">&#x2192; Try in Terminal</a>
+      <a href="javascript:void(0)" onclick="showReadiness()" style="color:var(--teal)">&#x2192; Re-run Readiness Check</a>
+    </div>`;
+  container.appendChild(card);
+}
+
+function clearErrors(containerId) {
+  const el = document.getElementById(containerId);
+  if (el) el.innerHTML = '';
+}
+
+// ================================================================
+// HEALTH OVERVIEW
+// ================================================================
 async function loadHealthOverview() {
   clearErrors('health-errors');
   await Promise.all([loadSummary(), loadSubsystemHealth()]);
@@ -496,37 +865,37 @@ async function loadSummary() {
     return;
   }
   const d = res.data || {};
-  const total = d.total_recommendations ?? '—';
-  const pending = d.pending_count ?? '—';
-  const applied = d.applied_count ?? '—';
+  const total   = d.total_recommendations ?? '—';
+  const pending  = d.pending_count ?? '—';
+  const applied  = d.applied_count ?? '—';
 
-  // Also fetch /api/health for system health
   const hres = await api.get('/health');
-  let healthLabel = '—';
-  let healthColor = 'var(--text-muted)';
+  let healthLabel = '—', healthColor = 'var(--text-muted)';
   if (hres.ok && hres.data) {
     const st = (hres.data.status || '').toLowerCase();
-    if (st === 'healthy' || st === 'ok') { healthLabel = '✓ Healthy'; healthColor = '#22c55e'; }
-    else if (st === 'degraded' || st === 'warning') { healthLabel = '⚠ Degraded'; healthColor = '#ffa63e'; }
-    else if (st === 'critical' || st === 'unhealthy') { healthLabel = '✗ Critical'; healthColor = '#ef4444'; }
-    else { healthLabel = st || '?'; }
+    if (st === 'healthy' || st === 'ok')          { healthLabel = '&#x2713; Healthy';  healthColor = '#22c55e'; }
+    else if (st === 'degraded' || st === 'warning') { healthLabel = '&#x26A0; Degraded'; healthColor = '#ffa63e'; }
+    else if (st === 'critical' || st === 'unhealthy'){ healthLabel = '&#x2717; Critical'; healthColor = '#ef4444'; }
+    else { healthLabel = escHtml(st || '?'); }
   } else {
     healthLabel = 'Unavailable';
   }
 
   statsEl.innerHTML = [
-    {label:'Total Recommendations', value: total, color:'var(--teal)'},
-    {label:'Pending', value: pending, color:'#3b9eff'},
-    {label:'Applied', value: applied, color:'#22c55e'},
-    {label:'System Health', value: healthLabel, color: healthColor},
-  ].map(s => `<div class="health-card"><div class="health-card-value" style="color:${s.color};font-size:${typeof s.value==='string'&&s.value.length>4?'18px':'32px'}">${escHtml(String(s.value))}</div><div class="health-card-label">${s.label}</div></div>`).join('');
+    {label:'Total Recommendations', value: total,   color:'var(--teal)'},
+    {label:'Pending',               value: pending,  color:'#3b9eff'},
+    {label:'Applied',               value: applied,  color:'#22c55e'},
+    {label:'System Health',         value: healthLabel, color: healthColor, raw: true},
+  ].map(s => `<div class="health-card">
+    <div class="health-card-value" style="color:${s.color};font-size:${typeof s.value==='string'&&s.value.length>4?'18px':'32px'}">${s.raw ? s.value : escHtml(String(s.value))}</div>
+    <div class="health-card-label">${s.label}</div>
+  </div>`).join('');
 
-  // Update inbox badge with pending count
   if (typeof pending === 'number' && pending > 0) {
-    const badge = document.getElementById('badge-inbox');
-    if (badge) { badge.textContent = pending; badge.style.display = ''; }
-    const badgePending = document.getElementById('badge-pending');
-    if (badgePending) { badgePending.textContent = pending; badgePending.style.display = ''; }
+    ['badge-inbox', 'badge-pending'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.textContent = pending; el.style.display = ''; }
+    });
   }
 }
 
@@ -540,7 +909,7 @@ async function loadSubsystemHealth() {
   }
   _subsystems = Array.isArray(res.data) ? res.data : (res.data?.subsystems || []);
   if (_subsystems.length === 0) {
-    el.innerHTML = `<div class="state-empty">No subsystems registered yet.<br><a href="/docs#/founder-maintenance" style="color:var(--teal)">→ Register subsystems via API</a></div>`;
+    el.innerHTML = `<div class="state-empty">No subsystems registered yet.<br><a href="/docs#/founder-maintenance" style="color:var(--teal)">&#x2192; Register subsystems via API</a></div>`;
     return;
   }
   el.innerHTML = _subsystems.map(s => {
@@ -557,7 +926,9 @@ async function loadSubsystemHealth() {
   }).join('');
 }
 
-// ── RECOMMENDATIONS BOARD ─────────────────────────────────────────
+// ================================================================
+// RECOMMENDATIONS BOARD
+// ================================================================
 const REC_COLS = [
   {id:'pending',  label:'Pending',  color:'#3b9eff'},
   {id:'approved', label:'Approved', color:'#00d4aa'},
@@ -593,8 +964,9 @@ function renderRecommendationsBoard() {
         <span class="col-count">${recs.length}</span>
       </div>
       <div class="kanban-col-body">
-        ${recs.length === 0 ? `<div style="font-size:12px;color:var(--text-muted);padding:8px 0;text-align:center">Empty</div>` :
-          recs.map(r => recCard(r)).join('')}
+        ${recs.length === 0
+          ? '<div style="font-size:12px;color:var(--text-muted);padding:8px 0;text-align:center">Empty</div>'
+          : recs.map(r => recCard(r)).join('')}
       </div>
     </div>`;
   }).join('');
@@ -602,28 +974,30 @@ function renderRecommendationsBoard() {
 
 function recCard(r) {
   const priority = (r.priority || 'low').toLowerCase();
-  const status = (r.status || 'pending').toLowerCase();
+  const status   = (r.status   || 'pending').toLowerCase();
   const actionBtns = [];
   if (status === 'pending') {
-    actionBtns.push(`<button class="m-btn m-btn-sm m-btn-success" onclick="approveRec('${escHtml(r.id)}',event)">✓ Approve</button>`);
-    actionBtns.push(`<button class="m-btn m-btn-sm m-btn-danger" onclick="rejectRec('${escHtml(r.id)}',event)">✗ Reject</button>`);
+    actionBtns.push(`<button class="m-btn m-btn-sm m-btn-success" onclick="approveRec('${escHtml(r.id)}',event)">&#x2713; Approve</button>`);
+    actionBtns.push(`<button class="m-btn m-btn-sm m-btn-danger"  onclick="rejectRec('${escHtml(r.id)}',event)">&#x2717; Reject</button>`);
   }
   if (status === 'approved' && r.auto_applicable) {
-    actionBtns.push(`<button class="m-btn m-btn-sm m-btn-primary" onclick="applyRec('${escHtml(r.id)}',event)">⚡ Apply</button>`);
+    actionBtns.push(`<button class="m-btn m-btn-sm m-btn-primary" onclick="applyRec('${escHtml(r.id)}',event)">&#x26A1; Apply</button>`);
   }
-  return `<div class="rec-card" onclick="openRecDetail('${escHtml(r.id)}')" tabindex="0" role="button" aria-label="Recommendation: ${escHtml(r.title || r.id)}">
+  return `<div class="rec-card" onclick="openRecDetail('${escHtml(r.id)}')" tabindex="0" role="button" aria-label="Recommendation: ${escHtml(r.title||r.id)}">
     <div class="rec-card-title">${escHtml(r.title || r.id)}</div>
     <div class="rec-card-meta">
       <span class="priority-badge p-${priority}">${priority.charAt(0).toUpperCase()+priority.slice(1)}</span>
       ${r.subsystem ? `<span class="tag-chip">${escHtml(r.subsystem)}</span>` : ''}
-      ${r.category ? `<span class="tag-chip">${escHtml(r.category)}</span>` : ''}
+      ${r.category  ? `<span class="tag-chip">${escHtml(r.category)}</span>`  : ''}
     </div>
-    ${r.description ? `<div class="rec-card-sub">${escHtml((r.description||'').slice(0,80))}${r.description.length>80?'…':''}</div>` : ''}
+    ${r.description ? `<div class="rec-card-sub">${escHtml((r.description||'').slice(0,80))}${r.description.length>80?'&#x2026;':''}</div>` : ''}
     ${actionBtns.length ? `<div class="rec-card-actions">${actionBtns.join('')}</div>` : ''}
   </div>`;
 }
 
-// ── SUBSYSTEMS TABLE ──────────────────────────────────────────────
+// ================================================================
+// SUBSYSTEMS TABLE
+// ================================================================
 async function loadSubsystemsTable() {
   clearErrors('subsystem-errors');
   const res = await api.get('/founder/maintenance/subsystems');
@@ -640,53 +1014,53 @@ async function loadSubsystemsTable() {
   }
   tbody.innerHTML = subs.map(s => {
     const status = (s.health_status || s.status || 'unknown').toLowerCase();
-    const pillClass = status === 'healthy' ? 's-healthy' : status === 'warning' ? 's-warning' : status === 'critical' ? 's-critical' : 's-unknown';
+    const pillClass = { healthy:'s-healthy', warning:'s-warning', critical:'s-critical' }[status] || 's-unknown';
     const lastCheck = s.last_check ? new Date(s.last_check).toLocaleString() : 'never';
-    const recCount = s.recommendation_count ?? s.recommendations_count ?? '—';
+    const recCount  = s.recommendation_count ?? s.recommendations_count ?? '—';
     return `<tr>
       <td style="font-weight:500">${escHtml(s.name || s.id || 'unknown')}</td>
       <td><span class="status-pill ${pillClass}">${escHtml(status)}</span></td>
       <td style="color:var(--text-muted)">${escHtml(lastCheck)}</td>
       <td>${escHtml(String(recCount))}</td>
-      <td><button class="m-btn m-btn-sm" onclick="runSubsystemScan('${escHtml(s.id || s.name || '')}', this)">Scan</button></td>
+      <td><button class="m-btn m-btn-sm" onclick="runSubsystemScan('${escHtml(s.id||s.name||'')}',(this))">Scan</button></td>
     </tr>`;
   }).join('');
 }
 
-// ── REPORTS VIEW ──────────────────────────────────────────────────
+// ================================================================
+// REPORTS
+// ================================================================
 async function loadReports() {
   clearErrors('reports-errors');
-  const [statusRes, recRes] = await Promise.all([
+  const [statusRes, sysUpdRes] = await Promise.all([
     api.get('/status'),
     api.get('/system-updates/status'),
   ]);
   const el = document.getElementById('reports-content');
   let html = '';
-
   if (!statusRes.ok) {
     errorCard('reports-errors', '/api/status', 'GET', statusRes.error || statusRes.status, 'status');
   } else {
-    const d = statusRes.data || {};
-    html += `<div style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:16px;margin-bottom:16px">
-      <div style="font-size:14px;font-weight:600;margin-bottom:12px">System Status</div>
-      <pre style="font-size:12px;color:var(--text-secondary);white-space:pre-wrap;word-break:break-word">${escHtml(JSON.stringify(d, null, 2))}</pre>
-    </div>`;
+    html += section('System Status', statusRes.data);
   }
-
-  if (!recRes.ok) {
-    errorCard('reports-errors', '/api/system-updates/status', 'GET', recRes.error || recRes.status, 'system-updates');
+  if (!sysUpdRes.ok) {
+    errorCard('reports-errors', '/api/system-updates/status', 'GET', sysUpdRes.error || sysUpdRes.status, 'system-updates');
   } else {
-    const d = recRes.data || {};
-    html += `<div style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:16px;margin-bottom:16px">
-      <div style="font-size:14px;font-weight:600;margin-bottom:12px">System Updates Status</div>
-      <pre style="font-size:12px;color:var(--text-secondary);white-space:pre-wrap;word-break:break-word">${escHtml(JSON.stringify(d, null, 2))}</pre>
-    </div>`;
+    html += section('System Updates Status', sysUpdRes.data);
   }
-
   el.innerHTML = html || `<div class="state-empty">No report data available.</div>`;
 }
 
-// ── SCANS ─────────────────────────────────────────────────────────
+function section(title, data) {
+  return `<div style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:16px;margin-bottom:16px">
+    <div style="font-size:14px;font-weight:600;margin-bottom:12px">${escHtml(title)}</div>
+    <pre style="font-size:12px;color:var(--text-secondary);white-space:pre-wrap;word-break:break-word">${escHtml(JSON.stringify(data, null, 2))}</pre>
+  </div>`;
+}
+
+// ================================================================
+// SCANS
+// ================================================================
 const SCAN_ENDPOINT_MAP = {
   'maintenance':   '/system-updates/maintenance/scan',
   'sdk':           '/system-updates/sdk/scan',
@@ -698,10 +1072,10 @@ const SCAN_ENDPOINT_MAP = {
 async function runFullScan() {
   if (_scanInProgress) return;
   _scanInProgress = true;
-  const btn = document.getElementById('btn-full-scan');
+  const btn  = document.getElementById('btn-full-scan');
   const icon = document.getElementById('full-scan-icon');
-  if (btn) btn.disabled = true;
-  if (icon) { icon.classList.add('spin'); icon.textContent = '⟳'; }
+  if (btn)  btn.disabled = true;
+  if (icon) { icon.classList.add('spin'); icon.innerHTML = '&#x27F3;'; }
   updateAgentBar('Running full system scan…', true);
 
   const resultsEl = document.getElementById('full-scan-results');
@@ -709,30 +1083,23 @@ async function runFullScan() {
 
   const res = await api.post('/founder/maintenance/scan', {});
   _scanInProgress = false;
-  if (btn) btn.disabled = false;
-  if (icon) { icon.classList.remove('spin'); icon.textContent = '🔍'; }
+  if (btn)  btn.disabled = false;
+  if (icon) { icon.classList.remove('spin'); icon.innerHTML = '&#x1F50D;'; }
 
   if (!res.ok) {
     updateAgentBar('Full scan failed — see Scans tab for details.', false);
     if (resultsEl) {
-      const card = document.createElement('div');
-      card.className = 'error-card';
-      card.innerHTML = `<div class="error-card-title">⚠️ Full scan failed</div>
-        <div class="error-card-endpoint">POST /api/founder/maintenance/scan</div>
-        <div class="error-card-msg">${escHtml(String(res.error || res.status))}</div>
-        <div class="error-card-links">
-          <a href="/docs#/founder-maintenance" target="_blank" rel="noopener">→ Open API Docs</a>
-          <a href="/ui/terminal-unified#maintenance" target="_blank" rel="noopener">→ Try in Terminal</a>
-        </div>`;
-      resultsEl.appendChild(card);
+      resultsEl.innerHTML = '';
+      const eid = 'full-scan-err';
+      resultsEl.innerHTML = `<div id="${eid}"></div>`;
+      errorCard(eid, '/api/founder/maintenance/scan', 'POST', res.error || res.status, 'founder-maintenance');
     }
     showToast('Full scan failed', 'error');
     return;
   }
 
   const data = res.data || {};
-  const recs = Array.isArray(data.recommendations) ? data.recommendations :
-               Array.isArray(data) ? data : [];
+  const recs = Array.isArray(data.recommendations) ? data.recommendations : Array.isArray(data) ? data : [];
   updateAgentBar(`Full scan complete — ${recs.length} recommendation(s) found.`, false);
   showToast(`Full scan complete: ${recs.length} recommendations`, 'success');
 
@@ -740,8 +1107,6 @@ async function runFullScan() {
     resultsEl.innerHTML = `<div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Full Scan Results (${recs.length})</div>` +
       recs.map(r => scanResultItem(r)).join('');
   }
-
-  // Refresh recommendations board
   await loadRecommendations();
 }
 
@@ -754,11 +1119,9 @@ async function runScan(type) {
     updateAgentBar(`${type} scan failed.`, false);
     showToast(`${type} scan failed: ${res.error || res.status}`, 'error');
   } else {
-    const data = res.data || {};
-    const recs = Array.isArray(data.recommendations) ? data.recommendations :
-                 Array.isArray(data) ? data : [];
+    const recs = extractRecs(res.data);
     updateAgentBar(`${type} scan complete — ${recs.length} result(s).`, false);
-    showToast(`${type} scan: ${recs.length} results`, 'success');
+    showToast(`${type} scan: ${recs.length} result(s)`, 'success');
   }
 }
 
@@ -766,7 +1129,7 @@ async function runScanInCard(type, btn) {
   const endpoint = SCAN_ENDPOINT_MAP[type];
   if (!endpoint) return;
   const resultsEl = document.getElementById('results-' + type);
-  if (btn) { btn.disabled = true; btn.textContent = '⟳ Scanning…'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Scanning…'; }
   if (resultsEl) resultsEl.innerHTML = `<div class="state-loading"><span class="loading-dot">Scanning…</span></div>`;
 
   const res = await api.post(endpoint, {});
@@ -774,23 +1137,24 @@ async function runScanInCard(type, btn) {
 
   if (!res.ok) {
     if (resultsEl) {
-      resultsEl.innerHTML = '';
-      const errContId = 'scan-error-' + type;
-      resultsEl.innerHTML = `<div id="${errContId}"></div>`;
-      errorCard(errContId, '/api' + endpoint, 'POST', res.error || res.status, 'system-updates');
+      const eid = 'scan-err-' + type;
+      resultsEl.innerHTML = `<div id="${eid}"></div>`;
+      errorCard(eid, '/api' + endpoint, 'POST', res.error || res.status, 'system-updates');
     }
     return;
   }
-
-  const data = res.data || {};
-  const recs = Array.isArray(data.recommendations) ? data.recommendations :
-               Array.isArray(data) ? data : [];
+  const recs = extractRecs(res.data);
   if (resultsEl) {
     resultsEl.innerHTML = recs.length === 0
       ? `<div style="font-size:12px;color:var(--text-muted);padding-top:8px">No issues found.</div>`
       : recs.map(r => scanResultItem(r)).join('');
   }
   showToast(`${type} scan: ${recs.length} result(s)`, recs.length > 0 ? '' : 'success');
+}
+
+function extractRecs(data) {
+  return Array.isArray(data?.recommendations) ? data.recommendations :
+         Array.isArray(data) ? data : [];
 }
 
 function scanResultItem(r) {
@@ -802,79 +1166,71 @@ function scanResultItem(r) {
       <span class="priority-badge p-${priority}">${priority.charAt(0).toUpperCase()+priority.slice(1)}</span>
       ${r.subsystem ? `<span class="tag-chip">${escHtml(r.subsystem)}</span>` : ''}
     </div>
-    <div class="scan-result-action">${escHtml((r.suggested_action || r.description || '').slice(0,120))}${(r.suggested_action||r.description||'').length>120?'…':''}</div>
+    <div class="scan-result-action">${escHtml((r.suggested_action||r.description||'').slice(0,120))}${(r.suggested_action||r.description||'').length>120?'&#x2026;':''}</div>
     <div class="scan-result-btns">
-      ${id ? `<button class="m-btn m-btn-sm m-btn-success" onclick="approveRec('${escHtml(id)}')">✓ Approve</button>` : ''}
-      ${id ? `<button class="m-btn m-btn-sm m-btn-danger" onclick="rejectRec('${escHtml(id)}')">✗ Reject</button>` : ''}
-      ${id && r.auto_applicable ? `<button class="m-btn m-btn-sm m-btn-primary" onclick="applyRec('${escHtml(id)}')">⚡ Apply</button>` : ''}
+      ${id ? `<button class="m-btn m-btn-sm m-btn-success" onclick="approveRec('${escHtml(id)}')">&#x2713; Approve</button>` : ''}
+      ${id ? `<button class="m-btn m-btn-sm m-btn-danger"  onclick="rejectRec('${escHtml(id)}')">&#x2717; Reject</button>`  : ''}
+      ${id && r.auto_applicable ? `<button class="m-btn m-btn-sm m-btn-primary" onclick="applyRec('${escHtml(id)}')">&#x26A1; Apply</button>` : ''}
     </div>
   </div>`;
 }
 
 async function runSubsystemScan(subsystemId, btn) {
-  if (btn) { btn.disabled = true; btn.textContent = '⟳'; }
+  if (btn) { btn.disabled = true; btn.textContent = '&#x27F3;'; }
   const res = await api.post('/founder/maintenance/scan', {subsystem: subsystemId});
   if (btn) { btn.disabled = false; btn.textContent = 'Scan'; }
   if (!res.ok) {
     showToast(`Scan failed for ${subsystemId}: ${res.error || res.status}`, 'error');
   } else {
-    const data = res.data || {};
-    const recs = Array.isArray(data.recommendations) ? data.recommendations :
-                 Array.isArray(data) ? data : [];
+    const recs = extractRecs(res.data);
     showToast(`Scan complete for ${subsystemId}: ${recs.length} result(s)`, 'success');
     await loadSubsystemsTable();
   }
 }
 
-// ── RECOMMENDATION ACTIONS ────────────────────────────────────────
+// ================================================================
+// RECOMMENDATION ACTIONS
+// ================================================================
 async function approveRec(id, evt) {
-  if (evt) { evt.stopPropagation(); }
+  if (evt) evt.stopPropagation();
   const res = await api.post(`/founder/maintenance/recommendations/${id}/approve`, {});
-  if (!res.ok) {
-    showToast(`Approve failed: ${res.error || res.status}`, 'error');
-    return;
-  }
+  if (!res.ok) { showToast(`Approve failed: ${res.error || res.status}`, 'error'); return; }
   showToast('Recommendation approved', 'success');
   await loadRecommendations();
 }
 
 async function rejectRec(id, evt) {
-  if (evt) { evt.stopPropagation(); }
+  if (evt) evt.stopPropagation();
   const res = await api.post(`/founder/maintenance/recommendations/${id}/reject`, {reason: 'Rejected by founder'});
-  if (!res.ok) {
-    showToast(`Reject failed: ${res.error || res.status}`, 'error');
-    return;
-  }
+  if (!res.ok) { showToast(`Reject failed: ${res.error || res.status}`, 'error'); return; }
   showToast('Recommendation rejected', '');
   await loadRecommendations();
 }
 
 async function applyRec(id, evt) {
-  if (evt) { evt.stopPropagation(); }
+  if (evt) evt.stopPropagation();
   const res = await api.post(`/founder/maintenance/recommendations/${id}/apply`, {});
-  if (!res.ok) {
-    showToast(`Apply failed: ${res.error || res.status}`, 'error');
-    return;
-  }
+  if (!res.ok) { showToast(`Apply failed: ${res.error || res.status}`, 'error'); return; }
   showToast('Recommendation applied!', 'success');
   await loadRecommendations();
 }
 
-// ── DETAIL PANEL ──────────────────────────────────────────────────
+// ================================================================
+// DETAIL PANEL
+// ================================================================
 function openRecDetail(id) {
   const r = _recommendations.find(x => x.id === id);
   if (!r) return;
-  const panel = document.getElementById('detail-panel');
-  panel.classList.remove('closed');
+  document.getElementById('detail-panel').classList.remove('closed');
   const priority = (r.priority || 'low').toLowerCase();
-  const status = (r.status || 'pending').toLowerCase();
+  const status   = (r.status   || 'pending').toLowerCase();
   const actionBtns = [];
   if (status === 'pending') {
-    actionBtns.push(`<button class="m-btn m-btn-success" onclick="approveRec('${escHtml(id)}');closeDetail()">✓ Approve</button>`);
-    actionBtns.push(`<button class="m-btn m-btn-danger" onclick="rejectRec('${escHtml(id)}');closeDetail()">✗ Reject</button>`);
+    actionBtns.push(`<button class="m-btn m-btn-success" onclick="approveRec('${escHtml(id)}');closeDetail()">&#x2713; Approve</button>`);
+    actionBtns.push(`<button class="m-btn m-btn-danger"  onclick="rejectRec('${escHtml(id)}');closeDetail()">&#x2717; Reject</button>`);
   }
   if ((status === 'approved' || r.auto_applicable) && status !== 'applied') {
-    actionBtns.push(`<button class="m-btn m-btn-primary" onclick="applyRec('${escHtml(id)}');closeDetail()">⚡ Apply</button>`);
+    actionBtns.push(`<button class="m-btn m-btn-primary" onclick="applyRec('${escHtml(id)}');closeDetail()">&#x26A1; Apply</button>`);
   }
   document.getElementById('detail-content').innerHTML = `
     <div class="detail-section">
@@ -883,7 +1239,7 @@ function openRecDetail(id) {
         <span class="priority-badge p-${priority}">${priority.charAt(0).toUpperCase()+priority.slice(1)}</span>
         <span class="status-pill s-${status}">${status.charAt(0).toUpperCase()+status.slice(1)}</span>
         ${r.subsystem ? `<span class="tag-chip">${escHtml(r.subsystem)}</span>` : ''}
-        ${r.category ? `<span class="tag-chip">${escHtml(r.category)}</span>` : ''}
+        ${r.category  ? `<span class="tag-chip">${escHtml(r.category)}</span>`  : ''}
       </div>
     </div>
     <div class="detail-section">
@@ -907,28 +1263,19 @@ function closeDetail() {
   document.getElementById('detail-panel').classList.add('closed');
 }
 
-// ── AGENT BAR ─────────────────────────────────────────────────────
+// ================================================================
+// AGENT BAR
+// ================================================================
 function updateAgentBar(msg, loading) {
   const sub = document.getElementById('agent-bar-sub');
-  if (sub) sub.textContent = loading ? '⟳ ' + msg : msg;
+  if (sub) sub.textContent = loading ? '&#x27F3; ' + msg : msg;
 }
 
-// ── VIEW SWITCHING ────────────────────────────────────────────────
-const VIEW_TITLES = {
-  health: 'Health Overview',
-  scans: 'Run Scans',
-  board: 'Recommendations',
-  subsystems: 'Subsystems',
-  reports: 'Reports',
-};
-
-const VIEW_LOADERS = {
-  health: loadHealthOverview,
-  scans: () => Promise.resolve(),
-  board: loadRecommendations,
-  subsystems: loadSubsystemsTable,
-  reports: loadReports,
-};
+// ================================================================
+// VIEW SWITCHING
+// ================================================================
+const VIEW_TITLES = { health:'Health Overview', scans:'Run Scans', board:'Recommendations', subsystems:'Subsystems', reports:'Reports' };
+const VIEW_LOADERS = { health: loadHealthOverview, scans: () => Promise.resolve(), board: loadRecommendations, subsystems: loadSubsystemsTable, reports: loadReports };
 
 function switchView(v) {
   _currentView = v;
@@ -944,32 +1291,30 @@ function switchView(v) {
   if (VIEW_LOADERS[v]) VIEW_LOADERS[v]();
 }
 
-// ── AUTO REFRESH ──────────────────────────────────────────────────
+// ================================================================
+// AUTO REFRESH
+// ================================================================
 function setRefreshInterval(ms) {
   _refreshInterval = parseInt(ms, 10) || 0;
   if (_refreshTimer) { clearInterval(_refreshTimer); _refreshTimer = null; }
-  if (_refreshInterval > 0) {
-    _refreshTimer = setInterval(refreshAll, _refreshInterval);
-  }
+  if (_refreshInterval > 0) _refreshTimer = setInterval(refreshAll, _refreshInterval);
 }
 
 function refreshAll() {
   if (VIEW_LOADERS[_currentView]) VIEW_LOADERS[_currentView]();
 }
 
-// ── SIDEBAR TOGGLE ────────────────────────────────────────────────
+// ================================================================
+// SIDEBAR TOGGLE
+// ================================================================
 document.getElementById('sidebar-toggle').addEventListener('click', () => {
   document.getElementById('m-sidebar').classList.toggle('collapsed');
 });
 
-// ── INIT ──────────────────────────────────────────────────────────
-(async function init() {
-  updateAgentBar('Loading system state…', true);
-  await loadHealthOverview();
-  updateAgentBar('System state loaded. Use scan buttons to run diagnostics.', false);
-  // Start auto-refresh
-  setRefreshInterval(_refreshInterval);
-}());
+// ================================================================
+// BOOT — always start with readiness check
+// ================================================================
+runReadinessCheck();
 </script>
 </body>
 </html>
