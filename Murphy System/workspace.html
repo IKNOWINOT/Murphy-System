@@ -2578,7 +2578,7 @@
       return;
     }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-      alert('Screen sharing is not supported in this browser.');
+      (function(){var el=document.querySelector('.screen-share-status,.call-status,#call-status');if(el){el.textContent='Screen sharing is not supported in this browser.';el.style.color='#ff9944';}else{console.warn('Screen sharing is not supported in this browser.');}})();
       return;
     }
     navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })
@@ -3101,7 +3101,7 @@
 
   function mmMurphyGenerate() {
     var topic = document.getElementById('mm-murphy-topic').value.trim();
-    if (!topic) { alert('Enter a topic first.'); return; }
+    if (!topic) { (function(){var el=document.querySelector('#mm-murphy-topic,[id*=topic]');if(el){el.style.border='1px solid #ff4444';el.placeholder='⚠ Enter a topic first';el.focus();setTimeout(function(){el.style.border='';el.placeholder=el.placeholder.replace('⚠ ','');},3000);}})(); return; }
     document.getElementById('mm-murphy-gen').textContent = '⏳ Generating…';
     fetch('/api/librarian/query', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -3194,7 +3194,7 @@
 
   function loadPrezi() {
     var url = document.getElementById('prezi-url-input').value.trim();
-    if (!url) { alert('Please paste a Prezi share URL.'); return; }
+    if (!url) { (function(){var el=document.querySelector('#prezi-url-input,[id*=prezi]');if(el){el.style.border='1px solid #ff4444';el.placeholder='⚠ Paste a Prezi share URL first';el.focus();setTimeout(function(){el.style.border='';},3000);}else{console.warn('Please paste a Prezi share URL');}})(); return; }
     var embedUrl = url.includes('prezi.com/p/')
       ? url.replace('prezi.com/p/', 'prezi.com/view/').replace(/\/$/, '')
       : url.replace(/\/$/, '');
@@ -3717,9 +3717,9 @@
     card.addEventListener('click', function () {
       var type = card.dataset.draft;
       var content = sai.drafts[type];
-      if (!content) { alert('Draft not yet generated. Start a session and click "Generate Drafts".'); return; }
+      if (!content) { console.warn('Draft not yet generated. Start a session and click "Generate Drafts".'); return; }
       var win = window.open('/ui/meeting-intelligence', '_blank');
-      if (!win) alert('Draft:\n\n' + content);
+      if (!win) console.warn('Draft:\n\n' + content);
     });
   });
 
