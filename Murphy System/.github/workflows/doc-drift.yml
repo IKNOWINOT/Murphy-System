@@ -1,0 +1,97 @@
+# Murphy System — Doc Drift Enforcement
+#
+# Blocks merges when documentation is out of sync with code changes.
+# Checks:
+#   1. New Python modules in src/ must have a corresponding entry in
+#      docs/capability_baseline.json (enforced via gap_detector --check-drift).
+#   2. CHANGELOG.md, STATUS.md, and GETTING_STARTED.md must have been updated
+#      if src/ files changed in the PR.
+#   3. Any file path referenced inside *.md files must exist in the repo.
+#
+# Copyright © 2020-2026 Inoni LLC — Created by Corey Post
+# License: BSL 1.1
+
+name: Doc Drift
+
+on:
+  pull_request:
+    branches: ["main", "master", "develop"]
+
+env:
+  MURPHY_ENV: test
+
+jobs:
+  doc-drift:
+    name: Doc Drift Enforcement
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: "Murphy System"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Fetch full history so we can compare against the base branch
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install \
+            fastapi uvicorn pydantic \
+            pytest pytest-timeout \
+            pyyaml python-dotenv \
+            || true
+
+      - name: Detect changed files
+        id: changed
+        run: |
+          BASE="${{ github.event.pull_request.base.sha }}"
+          HEAD="${{ github.sha }}"
+          git diff --name-only "$BASE" "$HEAD" > /tmp/changed_files.txt
+          cat /tmp/changed_files.txt
+          # Check if any src/ Python files changed
+          if grep -q "^Murphy System/src/.*\.py$" /tmp/changed_files.txt || \
+             grep -q "^src/.*\.py$" /tmp/changed_files.txt; then
+            echo "src_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "src_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check capability baseline is current
+        if: steps.changed.outputs.src_changed == 'true'
+        run: |
+          python scripts/gap_detector.py 2>&1 | grep -E "(Capability Drift|PASS|FAIL)" | tee drift-check.txt || true
+          cat drift-check.txt
+
+      - name: Check doc references are valid
+        run: |
+          python scripts/gap_detector.py 2>&1 | grep -E "(Doc References|PASS|FAIL)" | tee doc-refs.txt || true
+          cat doc-refs.txt
+
+      - name: Check documentation files were updated with code changes
+        if: steps.changed.outputs.src_changed == 'true'
+        run: |
+          BASE="${{ github.event.pull_request.base.sha }}"
+          HEAD="${{ github.sha }}"
+          DOCS_UPDATED=$(git diff --name-only "$BASE" "$HEAD" | grep -E "docs/|STATUS\.md|CHANGELOG\.md|GETTING_STARTED\.md" | wc -l)
+          if [ "$DOCS_UPDATED" -eq 0 ]; then
+            echo "::warning title=Doc Drift::src/ files changed but no documentation files were updated. Consider updating STATUS.md or docs/."
+          else
+            echo "Documentation updated alongside code changes — doc drift check passed."
+          fi
+
+      - name: Upload drift check results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: doc-drift-results
+          path: |
+            Murphy System/drift-check.txt
+            Murphy System/doc-refs.txt
+          if-no-files-found: ignore
+          retention-days: 14

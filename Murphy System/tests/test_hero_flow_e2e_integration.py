@@ -66,40 +66,34 @@ class TestDescribeExecuteRefineCycle:
         """RefinementCycle.refine() returns a structured response."""
         cycle = _new_cycle()
         resp = cycle.refine(
-            user_feedback="make it shorter",
-            previous_summary="The system shows 5 active workflows.",
+            "make it shorter",
+            {"summary": "The system shows 5 active workflows."},
         )
         assert isinstance(resp, dict)
-        assert "response" in resp or "refined_response" in resp or "summary" in resp
+        assert "response" in resp or "refined_plan" in resp
 
     def test_cycle_history_accumulates(self):
         """Successive refine() calls accumulate into history."""
         cycle = _new_cycle()
-        cycle.refine(user_feedback="expand the details", previous_summary="System ok.")
-        cycle.refine(user_feedback="now shorten it", previous_summary="System ok.")
+        cycle.refine("expand the details", {"summary": "System ok."})
+        cycle.refine("now shorten it", {"summary": "System ok."})
         history = cycle.get_history()
         assert len(history) >= 2
 
     def test_full_cycle_describe_then_refine(self):
-        """Full cycle: wire a description → pass summary to RefinementCycle."""
+        """Full cycle: wire a description → pass plan to RefinementCycle."""
         wirer = _new_wirer()
         plan = wirer.wire("create a weekly report on task completion rates")
-        # Extract summary from the plan (or use a fallback string)
-        summary = plan.get("summary") or plan.get("user_message") or "report plan created"
-
         cycle = _new_cycle()
-        resp = cycle.refine(
-            user_feedback="add cost breakdown",
-            previous_summary=summary,
-        )
+        resp = cycle.refine("add cost breakdown", plan)
         assert isinstance(resp, dict)
 
     def test_refine_cycle_preserves_confidence(self):
         """Refine returns a confidence value between 0.0 and 1.0."""
         cycle = _new_cycle()
         resp = cycle.refine(
-            user_feedback="looks good, finalize",
-            previous_summary="Workflow has 3 steps.",
+            "looks good, finalize",
+            {"summary": "Workflow has 3 steps."},
         )
         confidence = resp.get("confidence")
         if confidence is not None:
@@ -199,13 +193,13 @@ class TestErrorHandling:
     def test_refine_with_empty_feedback_does_not_crash(self):
         """RefinementCycle.refine() with empty feedback returns a dict."""
         cycle = _new_cycle()
-        result = cycle.refine(user_feedback="", previous_summary="Previous summary.")
+        result = cycle.refine("", {"summary": "Previous summary."})
         assert isinstance(result, dict)
 
-    def test_refine_with_empty_summary_does_not_crash(self):
-        """RefinementCycle.refine() with empty previous_summary returns a dict."""
+    def test_refine_with_empty_plan_does_not_crash(self):
+        """RefinementCycle.refine() with empty plan returns a dict."""
         cycle = _new_cycle()
-        result = cycle.refine(user_feedback="make it better", previous_summary="")
+        result = cycle.refine("make it better", {})
         assert isinstance(result, dict)
 
 
@@ -275,7 +269,7 @@ class TestMultiTurnConversationState:
     def test_clear_history_resets_state(self):
         """After clear_history() on the refinement cycle, history is empty."""
         cycle = _new_cycle()
-        cycle.refine(user_feedback="more detail", previous_summary="Summary A")
-        cycle.refine(user_feedback="even more", previous_summary="Summary B")
+        cycle.refine("more detail", {"summary": "Summary A"})
+        cycle.refine("even more", {"summary": "Summary B"})
         cycle.clear_history()
         assert cycle.get_history() == []
