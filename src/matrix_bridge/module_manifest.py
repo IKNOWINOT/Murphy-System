@@ -2648,6 +2648,15 @@ MODULE_MANIFEST: List[ModuleEntry] = [
         consumes=["task_submitted"],
         description="Production assistant engine — request lifecycle management with deliverable gate validation via EventBackbone",
     ),
+    ModuleEntry(
+        module="founder_update_orchestrator",
+        room="founder-updates",
+        commands=["founder report", "founder health", "founder recommendations"],
+        persona="FounderBot",
+        emits=["founder_report_generated", "recommendation_accepted", "recommendation_rejected"],
+        consumes=["self_fix_completed", "alert_fired", "learning_feedback", "task_completed"],
+        description="Founder-level unified update orchestrator",
+    ),
 ]
 
 
