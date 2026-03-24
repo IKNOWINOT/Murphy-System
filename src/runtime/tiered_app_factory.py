@@ -76,8 +76,14 @@ def create_tiered_app(orchestrator: Any) -> Any:
         CORSMiddleware,
         allow_origins=_allowed_origins,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+        allow_headers=[
+            "Content-Type",
+            "Authorization",
+            "X-Tenant-ID",
+            "X-API-Key",
+            "X-CSRF-Token",
+        ],
     )
 
     # ── Global exception handler ─────────────────────────────────────────────
