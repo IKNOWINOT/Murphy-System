@@ -28,7 +28,7 @@
                                   ▼
         ┌─────────────────────────────────────────────────────┐
         │          REST API (FastAPI - Port 8000)             │
-        │     murphy_complete_backend_extended.py             │
+        │     src/runtime/app.py                              │
         └─────────────────────────────────────────────────────┘
                                   │
                 ┌─────────────────┴─────────────────┐
@@ -127,7 +127,7 @@
 
 ### 1. REST API Layer
 
-**Component:** `murphy_complete_backend_extended.py`
+**Component:** `src/runtime/app.py`
 
 **Responsibilities:**
 - Exposes 30+ REST endpoints for system interaction
@@ -869,17 +869,14 @@ murphy_system_1.0_runtime.py
     ├─ Requires: universal_control_plane.py
     ├─ Requires: inoni_business_automation.py
     ├─ Requires: two_phase_orchestrator.py
-    ├─ Requires: murphy_complete_backend_extended.py
+    ├─ Requires: src/runtime/app.py
     └─ Requires: All src/ modules
 
 universal_control_plane.py
     ├─ Requires: 7 engines (sensor, actuator, database, api, content, command, agent)
     └─ Requires: Module manager
 
-murphy_complete_backend_extended.py
-    ├─ Requires: murphy_complete_backend.py (base)
-    ├─ Requires: Form handlers (src/form_intake)
-    ├─ Requires: Confidence engine
+src/runtime/app.py
     ├─ Requires: Execution engine
     ├─ Requires: Learning engine
     └─ Requires: HITL system
