@@ -4,14 +4,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Murphy System — Project Management</title>
+<title>Murphy System — System Management — Founder Operations</title>
 <link rel="icon" href="static/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="static/murphy-design-system.css">
 <style>
 :root {
   --sidebar-width: 260px;
   --topbar-h: 52px;
-  --panel-width: 380px;
+  --panel-width: 420px;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-ui);overflow:hidden;height:100vh;display:flex;flex-direction:column}
@@ -25,18 +25,25 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
 .m-btn:hover{background:var(--bg-input);border-color:var(--teal)}
 .m-btn-primary{background:var(--teal);color:#000;border-color:var(--teal);font-weight:600}
 .m-btn-primary:hover{background:#00b890}
+.m-btn-success{background:rgba(34,197,94,.15);color:#22c55e;border-color:rgba(34,197,94,.3)}
+.m-btn-success:hover{background:rgba(34,197,94,.25)}
+.m-btn-danger{background:rgba(239,68,68,.15);color:#ef4444;border-color:rgba(239,68,68,.3)}
+.m-btn-danger:hover{background:rgba(239,68,68,.25)}
+.m-btn-warning{background:rgba(255,166,62,.15);color:#ffa63e;border-color:rgba(255,166,62,.3)}
+.m-btn-warning:hover{background:rgba(255,166,62,.25)}
+.m-btn-sm{padding:4px 10px;font-size:12px}
 .m-btn-icon{padding:6px;border:none;background:none;color:var(--text-secondary);cursor:pointer;border-radius:var(--radius-sm);display:flex;align-items:center}
 .m-btn-icon:hover{background:var(--bg-elevated);color:var(--text-primary)}
+.m-btn:disabled{opacity:.5;cursor:not-allowed}
 
-/* AI BAR */
-.ai-bar{background:linear-gradient(90deg,rgba(0,212,170,.12),rgba(0,212,170,.05));border-bottom:1px solid rgba(0,212,170,.3);padding:8px 20px;display:flex;align-items:center;gap:12px;font-size:13px;color:var(--text-primary);flex-shrink:0}
-.ai-bar-icon{font-size:18px}
-.ai-bar-text{flex:1}
-.ai-bar-text strong{color:var(--teal)}
-.ai-bar-actions{display:flex;gap:8px}
-.ai-bar-accept{background:var(--teal);color:#000;border:none;padding:4px 12px;border-radius:var(--radius-sm);cursor:pointer;font-size:12px;font-weight:600}
-.ai-bar-dismiss{background:none;border:1px solid var(--border-default);color:var(--text-secondary);padding:4px 12px;border-radius:var(--radius-sm);cursor:pointer;font-size:12px}
-.ai-bar[hidden]{display:none}
+/* AGENT BAR */
+.agent-bar{background:linear-gradient(90deg,rgba(0,212,170,.12),rgba(0,212,170,.05));border-bottom:1px solid rgba(0,212,170,.3);padding:10px 20px;display:flex;align-items:center;gap:12px;font-size:13px;color:var(--text-primary);flex-shrink:0}
+.agent-bar-icon{font-size:20px;flex-shrink:0}
+.agent-bar-info{flex:1}
+.agent-bar-title{font-weight:600;color:var(--teal);margin-bottom:2px}
+.agent-bar-sub{font-size:12px;color:var(--text-secondary)}
+.agent-bar-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.agent-bar-sep{width:1px;height:20px;background:var(--border-default)}
 
 /* SHELL */
 .m-shell{display:flex;flex:1;overflow:hidden}
@@ -51,9 +58,8 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
 .m-sidebar-item{display:flex;align-items:center;gap:10px;padding:7px 16px;cursor:pointer;font-size:13px;color:var(--text-secondary);border-radius:0;transition:background var(--transition-fast);user-select:none}
 .m-sidebar-item:hover{background:var(--bg-elevated);color:var(--text-primary)}
 .m-sidebar-item.active{background:var(--teal-glow);color:var(--teal)}
-.m-proj-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
-.m-sidebar-add{display:flex;align-items:center;gap:8px;padding:6px 16px;font-size:12px;color:var(--teal);cursor:pointer;background:none;border:none;font-family:var(--font-ui);width:100%}
-.m-sidebar-add:hover{background:var(--bg-elevated)}
+.m-sidebar-badge{margin-left:auto;background:var(--danger,#ef4444);color:#fff;border-radius:9px;padding:1px 6px;font-size:10px}
+.m-sidebar-badge.teal{background:var(--teal);color:#000}
 .m-user{display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid var(--border-subtle);margin-top:auto}
 .m-avatar{width:32px;height:32px;border-radius:50%;background:var(--teal);color:#000;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .m-avatar-sm{width:24px;height:24px;border-radius:50%;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
@@ -67,15 +73,55 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
 .m-tab{padding:5px 14px;border-radius:var(--radius-sm);border:none;background:none;color:var(--text-secondary);font-size:13px;cursor:pointer;font-family:var(--font-ui);transition:background var(--transition-fast)}
 .m-tab.active{background:var(--bg-surface);color:var(--text-primary);font-weight:500}
 .m-header-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
-.m-search{background:var(--bg-elevated);border:1px solid var(--border-default);color:var(--text-primary);padding:6px 10px;border-radius:var(--radius-md);font-size:13px;font-family:var(--font-ui);width:200px}
-.m-search:focus{outline:none;border-color:var(--teal)}
+.refresh-select{background:var(--bg-elevated);border:1px solid var(--border-default);color:var(--text-secondary);padding:5px 8px;border-radius:var(--radius-md);font-size:12px;font-family:var(--font-ui);cursor:pointer}
+.refresh-select:focus{outline:none;border-color:var(--teal)}
 
 /* CONTENT */
 .m-content{flex:1;overflow:auto;padding:16px 20px}
 .view-panel{display:none}
 .view-panel.active{display:block}
 
-/* BOARD */
+/* PRIORITY BADGES */
+.priority-badge{padding:2px 7px;border-radius:var(--radius-full);font-size:11px;font-weight:600}
+.p-critical{background:rgba(239,68,68,.2);color:#ef4444}
+.p-high{background:rgba(255,166,62,.2);color:#ffa63e}
+.p-medium{background:rgba(59,158,255,.2);color:#3b9eff}
+.p-low{background:rgba(86,103,120,.2);color:#8899aa}
+.tag-chip{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-full);padding:2px 7px;font-size:11px;color:var(--text-secondary)}
+
+/* HEALTH OVERVIEW */
+.health-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+.health-card{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:16px}
+.health-card-value{font-size:32px;font-weight:700;color:var(--teal)}
+.health-card-label{font-size:12px;color:var(--text-muted);margin-top:4px}
+.subsystem-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.subsystem-card{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:14px;display:flex;align-items:center;gap:12px}
+.health-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.hd-healthy{background:#22c55e;box-shadow:0 0 6px rgba(34,197,94,.5)}
+.hd-warning{background:#ffa63e;box-shadow:0 0 6px rgba(255,166,62,.5)}
+.hd-critical{background:#ef4444;box-shadow:0 0 6px rgba(239,68,68,.5)}
+.hd-unknown{background:#566778}
+.subsystem-name{font-size:13px;font-weight:500;color:var(--text-primary)}
+.subsystem-meta{font-size:11px;color:var(--text-muted);margin-top:2px}
+
+/* SCANS */
+.scan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.scan-card{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:16px}
+.scan-card-title{font-size:13px;font-weight:600;margin-bottom:4px}
+.scan-card-desc{font-size:12px;color:var(--text-muted);margin-bottom:12px}
+.scan-results{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.scan-result-item{background:var(--bg-elevated);border-radius:var(--radius-md);padding:10px 12px;border-left:3px solid var(--teal)}
+.scan-result-item.priority-critical{border-left-color:#ef4444}
+.scan-result-item.priority-high{border-left-color:#ffa63e}
+.scan-result-item.priority-medium{border-left-color:#3b9eff}
+.scan-result-item.priority-low{border-left-color:#566778}
+.scan-result-title{font-size:12px;font-weight:600;margin-bottom:4px}
+.scan-result-action{font-size:11px;color:var(--text-muted);margin-bottom:8px}
+.scan-result-btns{display:flex;gap:6px;flex-wrap:wrap}
+.spin{animation:spin .8s linear infinite}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+/* RECOMMENDATIONS BOARD */
 .kanban{display:flex;gap:16px;align-items:flex-start;min-height:100%}
 .kanban-col{width:260px;flex-shrink:0;background:var(--bg-surface);border-radius:var(--radius-lg);border:1px solid var(--border-subtle)}
 .kanban-col-header{padding:12px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border-subtle)}
@@ -83,20 +129,12 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
 .col-title{font-size:13px;font-weight:600;color:var(--text-primary)}
 .col-count{background:var(--bg-elevated);border-radius:var(--radius-full);padding:1px 7px;font-size:11px;color:var(--text-muted);margin-left:auto}
 .kanban-col-body{padding:10px;display:flex;flex-direction:column;gap:8px;min-height:40px}
-.task-card{background:var(--bg-elevated);border-radius:var(--radius-md);border:1px solid var(--border-subtle);padding:10px 12px;cursor:pointer;transition:border-color var(--transition-fast),transform var(--transition-fast)}
-.task-card:hover{border-color:var(--teal);transform:translateY(-1px)}
-.task-card-title{font-size:13px;font-weight:500;color:var(--text-primary);margin-bottom:8px;line-height:1.4}
-.task-card-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.priority-badge{padding:2px 7px;border-radius:var(--radius-full);font-size:11px;font-weight:600}
-.p-critical{background:rgba(239,68,68,.2);color:#ef4444}
-.p-high{background:rgba(255,166,62,.2);color:#ffa63e}
-.p-medium{background:rgba(59,158,255,.2);color:#3b9eff}
-.p-low{background:rgba(86,103,120,.2);color:#8899aa}
-.tag-chip{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-full);padding:2px 7px;font-size:11px;color:var(--text-secondary)}
-.task-card-footer{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:var(--text-muted)}
-.task-card-footer .m-avatar-sm{margin-left:auto}
-.kanban-add{display:flex;align-items:center;gap:6px;padding:8px 14px;font-size:12px;color:var(--text-muted);cursor:pointer;background:none;border:none;width:100%;font-family:var(--font-ui)}
-.kanban-add:hover{color:var(--teal)}
+.rec-card{background:var(--bg-elevated);border-radius:var(--radius-md);border:1px solid var(--border-subtle);padding:10px 12px;cursor:pointer;transition:border-color var(--transition-fast),transform var(--transition-fast)}
+.rec-card:hover{border-color:var(--teal);transform:translateY(-1px)}
+.rec-card-title{font-size:13px;font-weight:500;color:var(--text-primary);margin-bottom:6px;line-height:1.4}
+.rec-card-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.rec-card-sub{font-size:11px;color:var(--text-muted);margin-bottom:6px}
+.rec-card-actions{display:flex;gap:4px;flex-wrap:wrap}
 
 /* TABLE */
 .m-table{width:100%;border-collapse:collapse;font-size:13px}
@@ -104,57 +142,45 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
 .m-table td{padding:10px 12px;border-bottom:1px solid var(--border-subtle);vertical-align:middle}
 .m-table tr:hover td{background:var(--bg-elevated)}
 .status-pill{padding:3px 10px;border-radius:var(--radius-full);font-size:11px;font-weight:600;display:inline-block}
-.s-backlog{background:rgba(86,103,120,.2);color:#8899aa}
-.s-todo{background:rgba(59,158,255,.15);color:#3b9eff}
-.s-inprogress{background:rgba(0,212,170,.15);color:#00d4aa}
-.s-review{background:rgba(232,121,249,.15);color:#e879f9}
-.s-done{background:rgba(34,197,94,.15);color:#22c55e}
-.progress-bar{height:6px;background:var(--bg-elevated);border-radius:3px;min-width:80px}
-.progress-fill{height:100%;border-radius:3px;background:var(--teal)}
+.s-healthy{background:rgba(34,197,94,.15);color:#22c55e}
+.s-warning{background:rgba(255,166,62,.15);color:#ffa63e}
+.s-critical{background:rgba(239,68,68,.15);color:#ef4444}
+.s-unknown{background:rgba(86,103,120,.15);color:#8899aa}
+.s-pending{background:rgba(59,158,255,.15);color:#3b9eff}
+.s-approved{background:rgba(0,212,170,.15);color:#00d4aa}
+.s-applied{background:rgba(34,197,94,.15);color:#22c55e}
+.s-rejected{background:rgba(86,103,120,.15);color:#8899aa}
 
-/* TIMELINE */
-.timeline-wrap{overflow-x:auto}
-.timeline-grid{display:grid;grid-template-columns:200px 1fr;min-width:700px}
-.tl-label-col{border-right:1px solid var(--border-subtle)}
-.tl-label{padding:8px 12px;font-size:12px;color:var(--text-secondary);border-bottom:1px solid var(--border-subtle);height:40px;display:flex;align-items:center}
-.tl-header{display:grid;grid-template-columns:repeat(8,1fr);background:var(--bg-surface);border-bottom:1px solid var(--border-subtle)}
-.tl-week{font-size:11px;color:var(--text-muted);padding:8px 4px;text-align:center;border-right:1px solid var(--border-subtle)}
-.tl-row{display:grid;grid-template-columns:repeat(8,1fr);position:relative;height:40px;border-bottom:1px solid var(--border-subtle)}
-.tl-col-bg:nth-child(even){background:rgba(255,255,255,.01)}
-.tl-bar{position:absolute;height:20px;top:10px;border-radius:var(--radius-sm);display:flex;align-items:center;padding:0 8px;font-size:11px;font-weight:500;color:#000;z-index:1}
+/* ERROR CARDS */
+.error-card{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:var(--radius-lg);padding:16px;margin-bottom:12px}
+.error-card-title{font-size:13px;font-weight:600;color:#ef4444;margin-bottom:6px}
+.error-card-endpoint{font-size:12px;color:var(--text-muted);font-family:var(--font-mono,monospace);margin-bottom:4px}
+.error-card-msg{font-size:12px;color:var(--text-secondary);margin-bottom:10px}
+.error-card-links{display:flex;gap:12px;flex-wrap:wrap}
+.error-card-links a{font-size:12px;color:var(--teal);text-decoration:none}
+.error-card-links a:hover{text-decoration:underline}
 
-/* DASHBOARD */
-.dash-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
-.dash-stat{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:16px}
-.dash-stat-value{font-size:32px;font-weight:700;color:var(--teal)}
-.dash-stat-label{font-size:12px;color:var(--text-muted);margin-top:4px}
-.dash-charts{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.dash-chart{background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:16px}
-.dash-chart-title{font-size:13px;font-weight:600;margin-bottom:12px}
+/* EMPTY / LOADING STATES */
+.state-empty{text-align:center;padding:40px;color:var(--text-muted);font-size:13px}
+.state-loading{text-align:center;padding:40px;color:var(--text-muted);font-size:13px}
+.loading-dot{display:inline-block;animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
 
 /* DETAIL PANEL */
 .detail-panel{width:var(--panel-width);background:var(--bg-surface);border-left:1px solid var(--border-default);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;transition:width var(--transition-base)}
 .detail-panel.closed{width:0;overflow:hidden}
-.detail-header{padding:16px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between}
+.detail-header{padding:16px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .detail-section{padding:16px;border-bottom:1px solid var(--border-subtle)}
 .detail-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
-.detail-title-input{width:100%;background:none;border:none;color:var(--text-primary);font-size:16px;font-weight:600;font-family:var(--font-ui);padding:0;outline:none}
-.detail-title-input:focus{border-bottom:1px solid var(--teal)}
-.detail-textarea{width:100%;background:var(--bg-elevated);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-size:13px;font-family:var(--font-ui);padding:8px;resize:vertical;min-height:80px;outline:none}
-.detail-textarea:focus{border-color:var(--teal)}
-.detail-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px}
-.detail-row-label{color:var(--text-muted);width:90px;flex-shrink:0;font-size:12px}
-.comment{display:flex;gap:10px;margin-bottom:12px}
-.comment-body{flex:1;font-size:13px;color:var(--text-secondary);line-height:1.5}
-.comment-time{font-size:11px;color:var(--text-muted)}
-.murphy-ai-btn{background:linear-gradient(135deg,var(--teal),#3b9eff);color:#000;border:none;padding:8px 16px;border-radius:var(--radius-md);font-weight:600;font-size:13px;cursor:pointer;width:100%;font-family:var(--font-ui)}
-.subtask{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-subtle);font-size:13px}
-.subtask input[type=checkbox]{accent-color:var(--teal)}
+.detail-value{font-size:13px;color:var(--text-primary);line-height:1.5}
+.detail-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;font-size:13px}
+.detail-row-label{color:var(--text-muted);width:120px;flex-shrink:0;font-size:12px;padding-top:1px}
+.detail-actions{display:flex;gap:8px;padding:16px;flex-wrap:wrap}
 
 /* MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;display:flex;align-items:center;justify-content:center}
 .modal-overlay[hidden]{display:none}
-.modal{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-xl);width:480px;max-height:85vh;overflow-y:auto;padding:24px}
+.modal{background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-xl);width:520px;max-height:85vh;overflow-y:auto;padding:24px}
 .modal-title{font-size:16px;font-weight:700;margin-bottom:20px;color:var(--text-primary)}
 .form-group{margin-bottom:14px}
 .form-label{display:block;font-size:12px;color:var(--text-muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em}
@@ -167,6 +193,13 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
 .m-footer{padding:12px 20px;border-top:1px solid var(--border-subtle);display:flex;gap:16px;font-size:12px;color:var(--text-muted);background:var(--bg-surface);flex-shrink:0}
 .m-footer a{color:var(--text-muted);text-decoration:none}
 .m-footer a:hover{color:var(--teal)}
+
+/* TOAST */
+.toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--bg-elevated);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:10px 16px;font-size:13px;color:var(--text-primary);max-width:320px;animation:slideIn .2s ease;display:flex;align-items:center;gap:8px}
+.toast.success{border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.1);color:#22c55e}
+.toast.error{border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.1);color:#ef4444}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:none;opacity:1}}
 </style>
 </head>
 <body>
@@ -185,18 +218,28 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
   </div>
   <nav class="m-topbar-right" aria-label="Top navigation">
     <a href="/ui/workspace" class="m-btn">Workspace</a>
-    <a href="/ui/calendar" class="m-btn">Calendar</a>
+    <a href="/ui/terminal-unified" class="m-btn">Terminal</a>
     <div class="m-avatar" aria-label="User: Corey Post">CP</div>
   </nav>
 </header>
 
-<!-- AI BAR -->
-<div class="ai-bar" id="ai-bar" role="status" aria-live="polite">
-  <span class="ai-bar-icon">🤖</span>
-  <span class="ai-bar-text"><strong>Murphy AI:</strong> I'm watching your board. 3 tasks are overdue. Want me to auto-reassign them based on team availability?</span>
-  <div class="ai-bar-actions">
-    <button class="ai-bar-accept" onclick="handleAIAccept()">Accept</button>
-    <button class="ai-bar-dismiss" onclick="document.getElementById('ai-bar').hidden=true">Dismiss</button>
+<!-- MURPHY AGENT BAR -->
+<div class="agent-bar" id="agent-bar" role="status" aria-live="polite">
+  <span class="agent-bar-icon">🤖</span>
+  <div class="agent-bar-info">
+    <div class="agent-bar-title">Murphy Agent</div>
+    <div class="agent-bar-sub" id="agent-bar-sub">Initializing — loading system state…</div>
+  </div>
+  <div class="agent-bar-actions">
+    <button class="m-btn m-btn-primary" id="btn-full-scan" onclick="runFullScan()">
+      <span id="full-scan-icon">🔍</span> Run Full Scan
+    </button>
+    <div class="agent-bar-sep"></div>
+    <button class="m-btn m-btn-sm" onclick="runScan('maintenance')" title="Maintenance scan">🔧 Maintenance</button>
+    <button class="m-btn m-btn-sm" onclick="runScan('sdk')" title="SDK/dependency scan">📦 SDK</button>
+    <button class="m-btn m-btn-sm" onclick="runScan('auto-update')" title="Auto-update scan">♻️ Updates</button>
+    <button class="m-btn m-btn-sm" onclick="runScan('bug-responses')" title="Bug response scan">🐛 Bugs</button>
+    <button class="m-btn m-btn-sm" onclick="runScan('operations')" title="Operations scan">�� Ops</button>
   </div>
 </div>
 
@@ -204,33 +247,37 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
 <div class="m-shell">
 
   <!-- SIDEBAR -->
-  <aside class="m-sidebar" id="m-sidebar" aria-label="Project navigation">
+  <aside class="m-sidebar" id="m-sidebar" aria-label="System navigation">
     <div class="m-sidebar-header">
-      <span class="m-sidebar-title">Projects</span>
-      <button class="m-btn-icon" onclick="openModal('project-modal')" aria-label="New project" title="New Project">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      </button>
+      <span class="m-sidebar-title">Systems</span>
     </div>
     <div class="m-sidebar-section">
-      <div class="m-sidebar-item active" onclick="switchProject('murphy')" data-proj="murphy">
-        <span class="m-proj-dot" style="background:#00D4AA"></span>Murphy Platform v1.0
+      <div class="m-sidebar-item active" id="nav-health" onclick="switchView('health')">
+        <span>🏥</span> Health Overview
       </div>
-      <div class="m-sidebar-item" onclick="switchProject('marketing')" data-proj="marketing">
-        <span class="m-proj-dot" style="background:#e879f9"></span>Marketing Launch
+      <div class="m-sidebar-item" id="nav-scans" onclick="switchView('scans')">
+        <span>🔍</span> Run Scans
       </div>
-    </div>
-    <div class="m-sidebar-label">Navigation</div>
-    <div class="m-sidebar-section">
-      <div class="m-sidebar-item"><span>📋</span> My Tasks</div>
-      <div class="m-sidebar-item"><span>📅</span> Calendar</div>
-      <div class="m-sidebar-item"><span>📊</span> Reports</div>
-      <div class="m-sidebar-item"><span>📬</span> Inbox <span style="margin-left:auto;background:var(--danger);color:#fff;border-radius:9px;padding:1px 6px;font-size:10px">3</span></div>
+      <div class="m-sidebar-item" id="nav-board" onclick="switchView('board')">
+        <span>📋</span> Recommendations
+        <span class="m-sidebar-badge teal" id="badge-pending" style="display:none">0</span>
+      </div>
+      <div class="m-sidebar-item" id="nav-subsystems" onclick="switchView('subsystems')">
+        <span>🔧</span> Subsystems
+      </div>
+      <div class="m-sidebar-item" id="nav-reports" onclick="switchView('reports')">
+        <span>📊</span> Reports
+      </div>
+      <div class="m-sidebar-item" id="nav-inbox" onclick="switchView('board');document.querySelector('[data-status=pending]')?.click()">
+        <span>📬</span> Inbox
+        <span class="m-sidebar-badge" id="badge-inbox" style="display:none">0</span>
+      </div>
     </div>
     <div class="m-user">
       <div class="m-avatar">CP</div>
       <div>
         <div style="font-size:13px;font-weight:500">Corey Post</div>
-        <div style="font-size:11px;color:var(--text-muted)">Admin</div>
+        <div style="font-size:11px;color:var(--text-muted)">Founder</div>
       </div>
     </div>
   </aside>
@@ -238,93 +285,116 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
   <!-- MAIN -->
   <main class="m-main" id="main-content">
     <div class="m-main-header">
-      <span class="m-breadcrumb"><span>Projects</span> / <strong id="proj-name">Murphy Platform v1.0</strong></span>
+      <span class="m-breadcrumb">Systems / <strong id="view-title">Health Overview</strong></span>
       <div class="m-tabs" role="tablist">
-        <button class="m-tab active" role="tab" aria-selected="true" data-view="board" onclick="switchView('board')">Board</button>
-        <button class="m-tab" role="tab" aria-selected="false" data-view="table" onclick="switchView('table')">Table</button>
-        <button class="m-tab" role="tab" aria-selected="false" data-view="timeline" onclick="switchView('timeline')">Timeline</button>
-        <button class="m-tab" role="tab" aria-selected="false" data-view="dashboard" onclick="switchView('dashboard')">Dashboard</button>
+        <button class="m-tab active" role="tab" data-view="health" onclick="switchView('health')">Health</button>
+        <button class="m-tab" role="tab" data-view="scans" onclick="switchView('scans')">Scans</button>
+        <button class="m-tab" role="tab" data-view="board" onclick="switchView('board')">Recommendations</button>
+        <button class="m-tab" role="tab" data-view="subsystems" onclick="switchView('subsystems')">Subsystems</button>
+        <button class="m-tab" role="tab" data-view="reports" onclick="switchView('reports')">Reports</button>
       </div>
       <div class="m-header-actions">
-        <input type="search" class="m-search" placeholder="Search tasks…" aria-label="Search tasks">
-        <button class="m-btn" id="btn-filter-tasks" aria-label="Filter tasks">Filter</button>
-        <button class="m-btn" id="btn-sort-tasks" aria-label="Sort tasks">Sort</button>
-        <button class="m-btn-primary m-btn" onclick="openModal('task-modal')">+ Add Task</button>
+        <label for="refresh-select" style="font-size:12px;color:var(--text-muted)">Auto-refresh:</label>
+        <select id="refresh-select" class="refresh-select" onchange="setRefreshInterval(this.value)" aria-label="Auto-refresh interval">
+          <option value="5000">5s</option>
+          <option value="10000">10s</option>
+          <option value="30000" selected>30s</option>
+          <option value="60000">60s</option>
+          <option value="0">Off</option>
+        </select>
+        <button class="m-btn m-btn-sm" onclick="refreshAll()" title="Refresh now">↻ Refresh</button>
+        <button class="m-btn-primary m-btn" onclick="runFullScan()">🔍 Run Full Scan</button>
       </div>
     </div>
 
     <div class="m-content">
 
-      <!-- BOARD VIEW -->
-      <div class="view-panel active" id="view-board" role="tabpanel">
-        <div class="kanban" id="kanban-board">
-          <!-- Columns rendered by JS -->
+      <!-- HEALTH OVERVIEW -->
+      <div class="view-panel active" id="view-health" role="tabpanel">
+        <div id="health-errors"></div>
+        <div class="health-grid" id="health-stats">
+          <div class="health-card"><div class="health-card-value loading-dot">…</div><div class="health-card-label">Total Recommendations</div></div>
+          <div class="health-card"><div class="health-card-value loading-dot">…</div><div class="health-card-label">Pending</div></div>
+          <div class="health-card"><div class="health-card-value loading-dot">…</div><div class="health-card-label">Applied</div></div>
+          <div class="health-card"><div class="health-card-value loading-dot">…</div><div class="health-card-label">System Health</div></div>
+        </div>
+        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Subsystems</div>
+        <div class="subsystem-grid" id="health-subsystems">
+          <div class="state-loading"><span class="loading-dot">Loading subsystems…</span></div>
         </div>
       </div>
 
-      <!-- TABLE VIEW -->
-      <div class="view-panel" id="view-table" role="tabpanel">
-        <table class="m-table" aria-label="Tasks table">
+      <!-- SCANS VIEW -->
+      <div class="view-panel" id="view-scans" role="tabpanel">
+        <div id="scan-errors"></div>
+        <div id="full-scan-results" style="margin-bottom:16px"></div>
+        <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Domain Scans</div>
+        <div class="scan-grid" id="scan-cards">
+          <div class="scan-card">
+            <div class="scan-card-title">🔧 Maintenance</div>
+            <div class="scan-card-desc">Check for maintenance tasks and system upkeep needs.</div>
+            <button class="m-btn m-btn-sm" onclick="runScanInCard('maintenance', this)">Run Scan</button>
+            <div class="scan-results" id="results-maintenance"></div>
+          </div>
+          <div class="scan-card">
+            <div class="scan-card-title">📦 SDK / Dependencies</div>
+            <div class="scan-card-desc">Scan for outdated packages, SDK version drifts.</div>
+            <button class="m-btn m-btn-sm" onclick="runScanInCard('sdk', this)">Run Scan</button>
+            <div class="scan-results" id="results-sdk"></div>
+          </div>
+          <div class="scan-card">
+            <div class="scan-card-title">♻️ Auto-Updates</div>
+            <div class="scan-card-desc">Check for available auto-update recommendations.</div>
+            <button class="m-btn m-btn-sm" onclick="runScanInCard('auto-update', this)">Run Scan</button>
+            <div class="scan-results" id="results-auto-update"></div>
+          </div>
+          <div class="scan-card">
+            <div class="scan-card-title">🐛 Bug Responses</div>
+            <div class="scan-card-desc">Ingest and triage open bug reports and responses.</div>
+            <button class="m-btn m-btn-sm" onclick="runScanInCard('bug-responses', this)">Run Scan</button>
+            <div class="scan-results" id="results-bug-responses"></div>
+          </div>
+          <div class="scan-card">
+            <div class="scan-card-title">📊 Operations</div>
+            <div class="scan-card-desc">Analyze operational metrics and capacity planning.</div>
+            <button class="m-btn m-btn-sm" onclick="runScanInCard('operations', this)">Run Scan</button>
+            <div class="scan-results" id="results-operations"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RECOMMENDATIONS BOARD -->
+      <div class="view-panel" id="view-board" role="tabpanel">
+        <div id="board-errors"></div>
+        <div class="kanban" id="rec-board">
+          <div class="state-loading"><span class="loading-dot">Loading recommendations…</span></div>
+        </div>
+      </div>
+
+      <!-- SUBSYSTEMS TABLE -->
+      <div class="view-panel" id="view-subsystems" role="tabpanel">
+        <div id="subsystem-errors"></div>
+        <table class="m-table" aria-label="Subsystems table">
           <thead>
             <tr>
-              <th style="width:30px"><input type="checkbox" aria-label="Select all"></th>
-              <th>Task Name</th>
-              <th>Assignee</th>
-              <th>Status</th>
-              <th>Priority</th>
-              <th>Due Date</th>
-              <th>Progress</th>
+              <th>Subsystem</th>
+              <th>Health</th>
+              <th>Last Check</th>
+              <th>Recommendations</th>
+              <th>Actions</th>
             </tr>
           </thead>
-          <tbody id="table-body"></tbody>
+          <tbody id="subsystem-table-body">
+            <tr><td colspan="5" class="state-loading"><span class="loading-dot">Loading subsystems…</span></td></tr>
+          </tbody>
         </table>
       </div>
 
-      <!-- TIMELINE VIEW -->
-      <div class="view-panel" id="view-timeline" role="tabpanel">
-        <div class="timeline-wrap">
-          <div class="timeline-grid">
-            <div class="tl-label-col">
-              <div class="tl-label" style="background:var(--bg-surface);font-weight:600;color:var(--text-muted);font-size:11px;text-transform:uppercase">Task</div>
-              <div id="tl-labels"></div>
-            </div>
-            <div>
-              <div class="tl-header" id="tl-header"></div>
-              <div id="tl-rows"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- DASHBOARD VIEW -->
-      <div class="view-panel" id="view-dashboard" role="tabpanel">
-        <div class="dash-stats" id="dash-stats"></div>
-        <div class="dash-charts">
-          <div class="dash-chart">
-            <div class="dash-chart-title">Burndown Chart</div>
-            <svg width="100%" height="160" viewBox="0 0 320 160" aria-label="Burndown chart">
-              <defs><linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#00D4AA" stop-opacity=".3"/><stop offset="100%" stop-color="#00D4AA" stop-opacity="0"/></linearGradient></defs>
-              <polyline points="0,20 40,35 80,45 120,70 160,80 200,100 240,120 280,130 320,140" fill="none" stroke="#00D4AA" stroke-width="2"/>
-              <polyline points="0,20 320,140" fill="none" stroke="#566778" stroke-width="1" stroke-dasharray="4,4"/>
-              <text x="4" y="155" fill="#566778" font-size="10">Ideal</text>
-            </svg>
-          </div>
-          <div class="dash-chart">
-            <div class="dash-chart-title">Priority Distribution</div>
-            <svg width="120" height="120" viewBox="0 0 120 120" aria-label="Priority donut">
-              <circle cx="60" cy="60" r="40" fill="none" stroke="#ef4444" stroke-width="18" stroke-dasharray="50 202" stroke-dashoffset="0"/>
-              <circle cx="60" cy="60" r="40" fill="none" stroke="#ffa63e" stroke-width="18" stroke-dasharray="75 202" stroke-dashoffset="-50"/>
-              <circle cx="60" cy="60" r="40" fill="none" stroke="#3b9eff" stroke-width="18" stroke-dasharray="50 202" stroke-dashoffset="-125"/>
-              <circle cx="60" cy="60" r="40" fill="none" stroke="#566778" stroke-width="18" stroke-dasharray="27 202" stroke-dashoffset="-175"/>
-              <text x="60" y="65" text-anchor="middle" fill="var(--text-primary)" font-size="11" font-weight="700">Tasks</text>
-            </svg>
-            <div style="font-size:11px;margin-top:8px;display:flex;flex-wrap:wrap;gap:8px">
-              <span><span style="color:#ef4444">●</span> Critical</span>
-              <span><span style="color:#ffa63e">●</span> High</span>
-              <span><span style="color:#3b9eff">●</span> Medium</span>
-              <span><span style="color:#566778">●</span> Low</span>
-            </div>
-          </div>
+      <!-- REPORTS VIEW -->
+      <div class="view-panel" id="view-reports" role="tabpanel">
+        <div id="reports-errors"></div>
+        <div id="reports-content">
+          <div class="state-loading"><span class="loading-dot">Loading system status…</span></div>
         </div>
       </div>
 
@@ -332,14 +402,14 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
   </main>
 
   <!-- DETAIL PANEL -->
-  <aside class="detail-panel closed" id="detail-panel" aria-label="Task detail">
+  <aside class="detail-panel closed" id="detail-panel" aria-label="Recommendation detail">
     <div class="detail-header">
-      <span style="font-size:13px;font-weight:600">Task Detail</span>
+      <span style="font-size:13px;font-weight:600">Recommendation Detail</span>
       <button class="m-btn-icon" onclick="closeDetail()" aria-label="Close panel">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
-    <div id="detail-content" style="padding:16px"></div>
+    <div id="detail-content" style="flex:1;overflow-y:auto"></div>
   </aside>
 
 </div><!-- /m-shell -->
@@ -357,423 +427,549 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
   <span style="margin-left:auto">© 2020 Inoni LLC · BSL 1.1</span>
 </footer>
 
-<!-- MODALS -->
-<div class="modal-overlay" id="task-modal" hidden role="dialog" aria-modal="true" aria-labelledby="task-modal-title">
-  <div class="modal">
-    <h2 class="modal-title" id="task-modal-title">Add New Task</h2>
-    <div class="form-group"><label class="form-label">Title</label><input class="form-input" id="new-task-title" placeholder="Task title…"></div>
-    <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="new-task-desc" placeholder="What needs to be done?"></textarea></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <div class="form-group"><label class="form-label">Status</label>
-        <select class="form-select" id="new-task-status">
-          <option value="backlog">Backlog</option><option value="todo">To Do</option>
-          <option value="inprogress">In Progress</option><option value="review">Review</option><option value="done">Done</option>
-        </select>
-      </div>
-      <div class="form-group"><label class="form-label">Priority</label>
-        <select class="form-select" id="new-task-priority">
-          <option value="critical">Critical</option><option value="high">High</option>
-          <option value="medium" selected>Medium</option><option value="low">Low</option>
-        </select>
-      </div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <div class="form-group"><label class="form-label">Assignee</label><input class="form-input" id="new-task-assignee" placeholder="Name or email"></div>
-      <div class="form-group"><label class="form-label">Due Date</label><input type="date" class="form-input" id="new-task-due"></div>
-    </div>
-    <div class="form-group"><label class="form-label">Tags (comma-separated)</label><input class="form-input" id="new-task-tags" placeholder="e.g. frontend, bug, sprint-2"></div>
-    <div class="modal-footer">
-      <button class="m-btn" onclick="closeModal('task-modal')">Cancel</button>
-      <button class="m-btn-primary m-btn" onclick="addTask()">Create Task</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="project-modal" hidden role="dialog" aria-modal="true" aria-labelledby="proj-modal-title">
-  <div class="modal">
-    <h2 class="modal-title" id="proj-modal-title">New Project</h2>
-    <div class="form-group"><label class="form-label">Project Name</label><input class="form-input" id="new-proj-name" placeholder="Project name…"></div>
-    <div class="form-group"><label class="form-label">Color</label>
-      <div style="display:flex;gap:8px" id="color-picker">
-        <span class="color-opt" data-color="#00D4AA" style="width:24px;height:24px;border-radius:50%;background:#00D4AA;cursor:pointer;border:2px solid #fff"></span>
-        <span class="color-opt" data-color="#e879f9" style="width:24px;height:24px;border-radius:50%;background:#e879f9;cursor:pointer"></span>
-        <span class="color-opt" data-color="#3b9eff" style="width:24px;height:24px;border-radius:50%;background:#3b9eff;cursor:pointer"></span>
-        <span class="color-opt" data-color="#ffa63e" style="width:24px;height:24px;border-radius:50%;background:#ffa63e;cursor:pointer"></span>
-        <span class="color-opt" data-color="#ef4444" style="width:24px;height:24px;border-radius:50%;background:#ef4444;cursor:pointer"></span>
-      </div>
-    </div>
-    <div class="form-group"><label class="form-label">Template</label>
-      <select class="form-select" id="new-proj-template">
-        <option>Blank</option><option>Sprint</option><option>Product Roadmap</option><option>Bug Tracker</option><option>Marketing</option>
-      </select>
-    </div>
-    <div class="modal-footer">
-      <button class="m-btn" onclick="closeModal('project-modal')">Cancel</button>
-      <button class="m-btn-primary m-btn" onclick="addProject()">Create Project</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="artifact-modal" hidden role="dialog" aria-modal="true" aria-labelledby="artifact-modal-title">
-  <div class="modal">
-    <h2 class="modal-title" id="artifact-modal-title">Create Artifact — Murphy AI Recommendation</h2>
-    <div id="artifact-modal-loading" style="text-align:center;padding:24px 0">
-      <div style="font-size:28px;margin-bottom:8px">🤖</div>
-      <div style="color:var(--text-muted);font-size:13px">Murphy is thinking…</div>
-    </div>
-    <div id="artifact-modal-form" hidden>
-      <div class="form-group"><label class="form-label">Title</label><input class="form-input" id="artifact-title" placeholder="Artifact title…"></div>
-      <div class="form-group"><label class="form-label">Content</label><textarea class="form-textarea" id="artifact-content" style="min-height:140px" placeholder="AI-generated recommendation…"></textarea></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div class="form-group"><label class="form-label">Type</label>
-          <select class="form-select" id="artifact-type">
-            <option value="action_plan">Action Plan</option>
-            <option value="recommendation">Recommendation</option>
-            <option value="task_breakdown">Task Breakdown</option>
-          </select>
-        </div>
-        <div class="form-group"><label class="form-label">Priority</label>
-          <select class="form-select" id="artifact-priority">
-            <option value="critical">Critical</option>
-            <option value="high">High</option>
-            <option value="medium" selected>Medium</option>
-            <option value="low">Low</option>
-          </select>
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="m-btn" onclick="closeModal('artifact-modal')">Cancel</button>
-      <button class="m-btn-primary m-btn" id="artifact-submit-btn" hidden onclick="createArtifact()">Create Artifact</button>
-    </div>
-  </div>
-</div>
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toast-container" aria-live="polite"></div>
 
 <script src="static/murphy-components.js"></script>
 <script src="murphy_auth.js"></script>
 <script>
-// ── DATA ──────────────────────────────────────────────────────────
-const SAMPLE = {
-  murphy: [
-    {id:'t1',title:'Set up CI/CD pipeline for production',status:'done',priority:'high',assignee:'CP',due:'2024-06-10',tags:['devops','infra'],subtasks:3,comments:5,progress:100},
-    {id:'t2',title:'Design Murphy AI ambient intelligence API',status:'inprogress',priority:'critical',assignee:'JL',due:'2024-06-20',tags:['api','ai'],subtasks:4,comments:8,progress:65},
-    {id:'t3',title:'Implement shadow agent consent system',status:'inprogress',priority:'high',assignee:'CP',due:'2024-06-18',tags:['legal','privacy'],subtasks:2,comments:3,progress:40},
-    {id:'t4',title:'Build meeting intelligence transcript parser',status:'review',priority:'high',assignee:'MR',due:'2024-06-15',tags:['nlp','meetings'],subtasks:5,comments:12,progress:90},
-    {id:'t5',title:'Performance audit on workspace SSE',status:'todo',priority:'medium',assignee:'JL',due:'2024-06-25',tags:['performance'],subtasks:1,comments:2,progress:0},
-    {id:'t6',title:'Write onboarding documentation',status:'backlog',priority:'low',assignee:'CP',due:'2024-07-01',tags:['docs'],subtasks:0,comments:1,progress:0},
-  ],
-  marketing: [
-    {id:'m1',title:'Draft product launch press release',status:'inprogress',priority:'high',assignee:'SR',due:'2024-06-12',tags:['content','pr'],subtasks:2,comments:4,progress:55},
-    {id:'m2',title:'Create landing page hero section',status:'todo',priority:'critical',assignee:'CP',due:'2024-06-14',tags:['design','web'],subtasks:3,comments:6,progress:0},
-    {id:'m3',title:'Set up email campaign in Mailchimp',status:'backlog',priority:'medium',assignee:'SR',due:'2024-06-28',tags:['email','campaign'],subtasks:0,comments:1,progress:0},
-  ]
-};
+// ── API CLIENT ────────────────────────────────────────────────────
+const api = new MurphyAPI('/api');
 
-const COLS = [
-  {id:'backlog',label:'Backlog',color:'#566778'},
-  {id:'todo',label:'To Do',color:'#3b9eff'},
-  {id:'inprogress',label:'In Progress',color:'#00d4aa'},
-  {id:'review',label:'Review',color:'#e879f9'},
-  {id:'done',label:'Done',color:'#22c55e'}
-];
+// ── STATE ─────────────────────────────────────────────────────────
+let _refreshTimer = null;
+let _refreshInterval = 30000;
+let _recommendations = [];
+let _subsystems = [];
+let _currentView = 'health';
+let _scanInProgress = false;
 
-let currentProj = 'murphy';
-let tasks = {};
-
-function loadData() {
-  const saved = localStorage.getItem('murphy-mgmt-tasks');
-  tasks = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(SAMPLE));
+// ── ERROR DISPLAY ─────────────────────────────────────────────────
+function errorCard(containerId, endpoint, method, error, docsAnchor) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const anchor = docsAnchor || endpoint.split('/')[2] || 'founder-maintenance';
+  const card = document.createElement('div');
+  card.className = 'error-card';
+  card.innerHTML = `
+    <div class="error-card-title">⚠️ Could not reach ${endpoint}</div>
+    <div class="error-card-endpoint">${method} ${endpoint}</div>
+    <div class="error-card-msg">${escHtml(String(error))}</div>
+    <div class="error-card-links">
+      <a href="/docs#/${encodeURIComponent(anchor)}" target="_blank" rel="noopener">→ Open API Docs (/docs#/${anchor})</a>
+      <a href="/ui/terminal-unified#${encodeURIComponent(anchor)}" target="_blank" rel="noopener">→ Try in Terminal</a>
+    </div>`;
+  container.appendChild(card);
 }
-function saveData() { localStorage.setItem('murphy-mgmt-tasks', JSON.stringify(tasks)); }
 
-// ── RENDER ────────────────────────────────────────────────────────
-function renderBoard() {
-  const board = document.getElementById('kanban-board');
-  const projTasks = tasks[currentProj] || [];
-  board.innerHTML = COLS.map(col => {
-    const colTasks = projTasks.filter(t => t.status === col.id);
-    return `<div class="kanban-col" data-col="${col.id}">
-      <div class="kanban-col-header">
-        <span class="col-label" style="background:${col.color}"></span>
-        <span class="col-title">${col.label}</span>
-        <span class="col-count">${colTasks.length}</span>
+function clearErrors(containerId) {
+  const el = document.getElementById(containerId);
+  if (el) el.innerHTML = '';
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────
+function showToast(msg, type) {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = 'toast' + (type ? ' ' + type : '');
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 4000);
+}
+
+// ── HEALTH OVERVIEW ───────────────────────────────────────────────
+async function loadHealthOverview() {
+  clearErrors('health-errors');
+  await Promise.all([loadSummary(), loadSubsystemHealth()]);
+}
+
+async function loadSummary() {
+  const res = await api.get('/founder/maintenance/summary');
+  const statsEl = document.getElementById('health-stats');
+  if (!res.ok) {
+    errorCard('health-errors', '/api/founder/maintenance/summary', 'GET', res.error || res.status, 'founder-maintenance');
+    statsEl.innerHTML = `<div class="health-card"><div class="health-card-value" style="color:#ef4444">!</div><div class="health-card-label">Summary unavailable</div></div>`;
+    return;
+  }
+  const d = res.data || {};
+  const total = d.total_recommendations ?? '—';
+  const pending = d.pending_count ?? '—';
+  const applied = d.applied_count ?? '—';
+
+  // Also fetch /api/health for system health
+  const hres = await api.get('/health');
+  let healthLabel = '—';
+  let healthColor = 'var(--text-muted)';
+  if (hres.ok && hres.data) {
+    const st = (hres.data.status || '').toLowerCase();
+    if (st === 'healthy' || st === 'ok') { healthLabel = '✓ Healthy'; healthColor = '#22c55e'; }
+    else if (st === 'degraded' || st === 'warning') { healthLabel = '⚠ Degraded'; healthColor = '#ffa63e'; }
+    else if (st === 'critical' || st === 'unhealthy') { healthLabel = '✗ Critical'; healthColor = '#ef4444'; }
+    else { healthLabel = st || '?'; }
+  } else {
+    healthLabel = 'Unavailable';
+  }
+
+  statsEl.innerHTML = [
+    {label:'Total Recommendations', value: total, color:'var(--teal)'},
+    {label:'Pending', value: pending, color:'#3b9eff'},
+    {label:'Applied', value: applied, color:'#22c55e'},
+    {label:'System Health', value: healthLabel, color: healthColor},
+  ].map(s => `<div class="health-card"><div class="health-card-value" style="color:${s.color};font-size:${typeof s.value==='string'&&s.value.length>4?'18px':'32px'}">${escHtml(String(s.value))}</div><div class="health-card-label">${s.label}</div></div>`).join('');
+
+  // Update inbox badge with pending count
+  if (typeof pending === 'number' && pending > 0) {
+    const badge = document.getElementById('badge-inbox');
+    if (badge) { badge.textContent = pending; badge.style.display = ''; }
+    const badgePending = document.getElementById('badge-pending');
+    if (badgePending) { badgePending.textContent = pending; badgePending.style.display = ''; }
+  }
+}
+
+async function loadSubsystemHealth() {
+  const res = await api.get('/founder/maintenance/subsystems');
+  const el = document.getElementById('health-subsystems');
+  if (!res.ok) {
+    errorCard('health-errors', '/api/founder/maintenance/subsystems', 'GET', res.error || res.status, 'founder-maintenance');
+    el.innerHTML = `<div class="state-empty">Subsystem data unavailable — see error above.</div>`;
+    return;
+  }
+  _subsystems = Array.isArray(res.data) ? res.data : (res.data?.subsystems || []);
+  if (_subsystems.length === 0) {
+    el.innerHTML = `<div class="state-empty">No subsystems registered yet.<br><a href="/docs#/founder-maintenance" style="color:var(--teal)">→ Register subsystems via API</a></div>`;
+    return;
+  }
+  el.innerHTML = _subsystems.map(s => {
+    const status = (s.health_status || s.status || 'unknown').toLowerCase();
+    const dotClass = status === 'healthy' ? 'hd-healthy' : status === 'warning' ? 'hd-warning' : status === 'critical' ? 'hd-critical' : 'hd-unknown';
+    const lastCheck = s.last_check ? new Date(s.last_check).toLocaleTimeString() : 'never';
+    return `<div class="subsystem-card">
+      <div class="health-dot ${dotClass}"></div>
+      <div>
+        <div class="subsystem-name">${escHtml(s.name || s.id || 'unknown')}</div>
+        <div class="subsystem-meta">${escHtml(status)} · checked ${escHtml(lastCheck)}</div>
       </div>
-      <div class="kanban-col-body">
-        ${colTasks.map(t => taskCard(t)).join('')}
-      </div>
-      <button class="kanban-add" onclick="openModal('task-modal')" aria-label="Add task to ${col.label}">＋ Add Task</button>
     </div>`;
   }).join('');
 }
 
-function taskCard(t) {
-  return `<div class="task-card" onclick="openDetail('${t.id}')" tabindex="0" role="button" aria-label="Task: ${t.title}">
-    <div class="task-card-title">${t.title}</div>
-    <div class="task-card-meta">
-      <span class="priority-badge p-${t.priority}">${t.priority.charAt(0).toUpperCase()+t.priority.slice(1)}</span>
-      ${t.tags.slice(0,2).map(g=>`<span class="tag-chip">${g}</span>`).join('')}
+// ── RECOMMENDATIONS BOARD ─────────────────────────────────────────
+const REC_COLS = [
+  {id:'pending',  label:'Pending',  color:'#3b9eff'},
+  {id:'approved', label:'Approved', color:'#00d4aa'},
+  {id:'applied',  label:'Applied',  color:'#22c55e'},
+  {id:'rejected', label:'Rejected', color:'#566778'},
+];
+
+async function loadRecommendations() {
+  clearErrors('board-errors');
+  const res = await api.get('/founder/maintenance/recommendations');
+  const board = document.getElementById('rec-board');
+  if (!res.ok) {
+    errorCard('board-errors', '/api/founder/maintenance/recommendations', 'GET', res.error || res.status, 'founder-maintenance');
+    board.innerHTML = `<div class="state-empty">Could not load recommendations — see error above.</div>`;
+    return;
+  }
+  _recommendations = Array.isArray(res.data) ? res.data : (res.data?.recommendations || []);
+  renderRecommendationsBoard();
+}
+
+function renderRecommendationsBoard() {
+  const board = document.getElementById('rec-board');
+  if (_recommendations.length === 0) {
+    board.innerHTML = `<div class="state-empty">No recommendations yet.<br>Run a scan to generate recommendations.</div>`;
+    return;
+  }
+  board.innerHTML = REC_COLS.map(col => {
+    const recs = _recommendations.filter(r => (r.status || '').toLowerCase() === col.id);
+    return `<div class="kanban-col">
+      <div class="kanban-col-header">
+        <span class="col-label" style="background:${col.color}"></span>
+        <span class="col-title">${col.label}</span>
+        <span class="col-count">${recs.length}</span>
+      </div>
+      <div class="kanban-col-body">
+        ${recs.length === 0 ? `<div style="font-size:12px;color:var(--text-muted);padding:8px 0;text-align:center">Empty</div>` :
+          recs.map(r => recCard(r)).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function recCard(r) {
+  const priority = (r.priority || 'low').toLowerCase();
+  const status = (r.status || 'pending').toLowerCase();
+  const actionBtns = [];
+  if (status === 'pending') {
+    actionBtns.push(`<button class="m-btn m-btn-sm m-btn-success" onclick="approveRec('${escHtml(r.id)}',event)">✓ Approve</button>`);
+    actionBtns.push(`<button class="m-btn m-btn-sm m-btn-danger" onclick="rejectRec('${escHtml(r.id)}',event)">✗ Reject</button>`);
+  }
+  if (status === 'approved' && r.auto_applicable) {
+    actionBtns.push(`<button class="m-btn m-btn-sm m-btn-primary" onclick="applyRec('${escHtml(r.id)}',event)">⚡ Apply</button>`);
+  }
+  return `<div class="rec-card" onclick="openRecDetail('${escHtml(r.id)}')" tabindex="0" role="button" aria-label="Recommendation: ${escHtml(r.title || r.id)}">
+    <div class="rec-card-title">${escHtml(r.title || r.id)}</div>
+    <div class="rec-card-meta">
+      <span class="priority-badge p-${priority}">${priority.charAt(0).toUpperCase()+priority.slice(1)}</span>
+      ${r.subsystem ? `<span class="tag-chip">${escHtml(r.subsystem)}</span>` : ''}
+      ${r.category ? `<span class="tag-chip">${escHtml(r.category)}</span>` : ''}
     </div>
-    <div class="task-card-footer">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      ${t.due}
-      <span>📎 ${t.subtasks}</span>
-      <span>💬 ${t.comments}</span>
-      <div class="m-avatar-sm" style="background:var(--teal);color:#000">${t.assignee}</div>
+    ${r.description ? `<div class="rec-card-sub">${escHtml((r.description||'').slice(0,80))}${r.description.length>80?'…':''}</div>` : ''}
+    ${actionBtns.length ? `<div class="rec-card-actions">${actionBtns.join('')}</div>` : ''}
+  </div>`;
+}
+
+// ── SUBSYSTEMS TABLE ──────────────────────────────────────────────
+async function loadSubsystemsTable() {
+  clearErrors('subsystem-errors');
+  const res = await api.get('/founder/maintenance/subsystems');
+  const tbody = document.getElementById('subsystem-table-body');
+  if (!res.ok) {
+    errorCard('subsystem-errors', '/api/founder/maintenance/subsystems', 'GET', res.error || res.status, 'founder-maintenance');
+    tbody.innerHTML = `<tr><td colspan="5" class="state-empty">Could not load subsystems — see error above.</td></tr>`;
+    return;
+  }
+  const subs = Array.isArray(res.data) ? res.data : (res.data?.subsystems || []);
+  if (subs.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" class="state-empty">No subsystems registered. <a href="/docs#/founder-maintenance" style="color:var(--teal)">Register via API</a></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = subs.map(s => {
+    const status = (s.health_status || s.status || 'unknown').toLowerCase();
+    const pillClass = status === 'healthy' ? 's-healthy' : status === 'warning' ? 's-warning' : status === 'critical' ? 's-critical' : 's-unknown';
+    const lastCheck = s.last_check ? new Date(s.last_check).toLocaleString() : 'never';
+    const recCount = s.recommendation_count ?? s.recommendations_count ?? '—';
+    return `<tr>
+      <td style="font-weight:500">${escHtml(s.name || s.id || 'unknown')}</td>
+      <td><span class="status-pill ${pillClass}">${escHtml(status)}</span></td>
+      <td style="color:var(--text-muted)">${escHtml(lastCheck)}</td>
+      <td>${escHtml(String(recCount))}</td>
+      <td><button class="m-btn m-btn-sm" onclick="runSubsystemScan('${escHtml(s.id || s.name || '')}', this)">Scan</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── REPORTS VIEW ──────────────────────────────────────────────────
+async function loadReports() {
+  clearErrors('reports-errors');
+  const [statusRes, recRes] = await Promise.all([
+    api.get('/status'),
+    api.get('/system-updates/status'),
+  ]);
+  const el = document.getElementById('reports-content');
+  let html = '';
+
+  if (!statusRes.ok) {
+    errorCard('reports-errors', '/api/status', 'GET', statusRes.error || statusRes.status, 'status');
+  } else {
+    const d = statusRes.data || {};
+    html += `<div style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:16px;margin-bottom:16px">
+      <div style="font-size:14px;font-weight:600;margin-bottom:12px">System Status</div>
+      <pre style="font-size:12px;color:var(--text-secondary);white-space:pre-wrap;word-break:break-word">${escHtml(JSON.stringify(d, null, 2))}</pre>
+    </div>`;
+  }
+
+  if (!recRes.ok) {
+    errorCard('reports-errors', '/api/system-updates/status', 'GET', recRes.error || recRes.status, 'system-updates');
+  } else {
+    const d = recRes.data || {};
+    html += `<div style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:16px;margin-bottom:16px">
+      <div style="font-size:14px;font-weight:600;margin-bottom:12px">System Updates Status</div>
+      <pre style="font-size:12px;color:var(--text-secondary);white-space:pre-wrap;word-break:break-word">${escHtml(JSON.stringify(d, null, 2))}</pre>
+    </div>`;
+  }
+
+  el.innerHTML = html || `<div class="state-empty">No report data available.</div>`;
+}
+
+// ── SCANS ─────────────────────────────────────────────────────────
+const SCAN_ENDPOINT_MAP = {
+  'maintenance':   '/system-updates/maintenance/scan',
+  'sdk':           '/system-updates/sdk/scan',
+  'auto-update':   '/system-updates/auto-update/scan',
+  'bug-responses': '/system-updates/bug-responses/ingest',
+  'operations':    '/system-updates/operations/analyze',
+};
+
+async function runFullScan() {
+  if (_scanInProgress) return;
+  _scanInProgress = true;
+  const btn = document.getElementById('btn-full-scan');
+  const icon = document.getElementById('full-scan-icon');
+  if (btn) btn.disabled = true;
+  if (icon) { icon.classList.add('spin'); icon.textContent = '⟳'; }
+  updateAgentBar('Running full system scan…', true);
+
+  const resultsEl = document.getElementById('full-scan-results');
+  if (resultsEl) resultsEl.innerHTML = '';
+
+  const res = await api.post('/founder/maintenance/scan', {});
+  _scanInProgress = false;
+  if (btn) btn.disabled = false;
+  if (icon) { icon.classList.remove('spin'); icon.textContent = '🔍'; }
+
+  if (!res.ok) {
+    updateAgentBar('Full scan failed — see Scans tab for details.', false);
+    if (resultsEl) {
+      const card = document.createElement('div');
+      card.className = 'error-card';
+      card.innerHTML = `<div class="error-card-title">⚠️ Full scan failed</div>
+        <div class="error-card-endpoint">POST /api/founder/maintenance/scan</div>
+        <div class="error-card-msg">${escHtml(String(res.error || res.status))}</div>
+        <div class="error-card-links">
+          <a href="/docs#/founder-maintenance" target="_blank" rel="noopener">→ Open API Docs</a>
+          <a href="/ui/terminal-unified#maintenance" target="_blank" rel="noopener">→ Try in Terminal</a>
+        </div>`;
+      resultsEl.appendChild(card);
+    }
+    showToast('Full scan failed', 'error');
+    return;
+  }
+
+  const data = res.data || {};
+  const recs = Array.isArray(data.recommendations) ? data.recommendations :
+               Array.isArray(data) ? data : [];
+  updateAgentBar(`Full scan complete — ${recs.length} recommendation(s) found.`, false);
+  showToast(`Full scan complete: ${recs.length} recommendations`, 'success');
+
+  if (recs.length > 0 && resultsEl) {
+    resultsEl.innerHTML = `<div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Full Scan Results (${recs.length})</div>` +
+      recs.map(r => scanResultItem(r)).join('');
+  }
+
+  // Refresh recommendations board
+  await loadRecommendations();
+}
+
+async function runScan(type) {
+  const endpoint = SCAN_ENDPOINT_MAP[type];
+  if (!endpoint) return;
+  updateAgentBar(`Running ${type} scan…`, true);
+  const res = await api.post(endpoint, {});
+  if (!res.ok) {
+    updateAgentBar(`${type} scan failed.`, false);
+    showToast(`${type} scan failed: ${res.error || res.status}`, 'error');
+  } else {
+    const data = res.data || {};
+    const recs = Array.isArray(data.recommendations) ? data.recommendations :
+                 Array.isArray(data) ? data : [];
+    updateAgentBar(`${type} scan complete — ${recs.length} result(s).`, false);
+    showToast(`${type} scan: ${recs.length} results`, 'success');
+  }
+}
+
+async function runScanInCard(type, btn) {
+  const endpoint = SCAN_ENDPOINT_MAP[type];
+  if (!endpoint) return;
+  const resultsEl = document.getElementById('results-' + type);
+  if (btn) { btn.disabled = true; btn.textContent = '⟳ Scanning…'; }
+  if (resultsEl) resultsEl.innerHTML = `<div class="state-loading"><span class="loading-dot">Scanning…</span></div>`;
+
+  const res = await api.post(endpoint, {});
+  if (btn) { btn.disabled = false; btn.textContent = 'Run Scan'; }
+
+  if (!res.ok) {
+    if (resultsEl) {
+      resultsEl.innerHTML = '';
+      const errContId = 'scan-error-' + type;
+      resultsEl.innerHTML = `<div id="${errContId}"></div>`;
+      errorCard(errContId, '/api' + endpoint, 'POST', res.error || res.status, 'system-updates');
+    }
+    return;
+  }
+
+  const data = res.data || {};
+  const recs = Array.isArray(data.recommendations) ? data.recommendations :
+               Array.isArray(data) ? data : [];
+  if (resultsEl) {
+    resultsEl.innerHTML = recs.length === 0
+      ? `<div style="font-size:12px;color:var(--text-muted);padding-top:8px">No issues found.</div>`
+      : recs.map(r => scanResultItem(r)).join('');
+  }
+  showToast(`${type} scan: ${recs.length} result(s)`, recs.length > 0 ? '' : 'success');
+}
+
+function scanResultItem(r) {
+  const priority = (r.priority || 'low').toLowerCase();
+  const id = r.id || '';
+  return `<div class="scan-result-item priority-${priority}">
+    <div class="scan-result-title">${escHtml(r.title || r.id || 'Untitled')}</div>
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px">
+      <span class="priority-badge p-${priority}">${priority.charAt(0).toUpperCase()+priority.slice(1)}</span>
+      ${r.subsystem ? `<span class="tag-chip">${escHtml(r.subsystem)}</span>` : ''}
+    </div>
+    <div class="scan-result-action">${escHtml((r.suggested_action || r.description || '').slice(0,120))}${(r.suggested_action||r.description||'').length>120?'…':''}</div>
+    <div class="scan-result-btns">
+      ${id ? `<button class="m-btn m-btn-sm m-btn-success" onclick="approveRec('${escHtml(id)}')">✓ Approve</button>` : ''}
+      ${id ? `<button class="m-btn m-btn-sm m-btn-danger" onclick="rejectRec('${escHtml(id)}')">✗ Reject</button>` : ''}
+      ${id && r.auto_applicable ? `<button class="m-btn m-btn-sm m-btn-primary" onclick="applyRec('${escHtml(id)}')">⚡ Apply</button>` : ''}
     </div>
   </div>`;
 }
 
-function renderTable() {
-  const projTasks = tasks[currentProj] || [];
-  const statusClass = {backlog:'s-backlog',todo:'s-todo',inprogress:'s-inprogress',review:'s-review',done:'s-done'};
-  const statusLabel = {backlog:'Backlog',todo:'To Do',inprogress:'In Progress',review:'Review',done:'Done'};
-  document.getElementById('table-body').innerHTML = projTasks.map(t => `
-    <tr>
-      <td><input type="checkbox" aria-label="Select ${t.title}"></td>
-      <td style="font-weight:500">${t.title}</td>
-      <td><div style="display:flex;align-items:center;gap:6px"><div class="m-avatar-sm" style="background:var(--teal);color:#000">${t.assignee}</div>${t.assignee}</div></td>
-      <td><span class="status-pill ${statusClass[t.status]}">${statusLabel[t.status]}</span></td>
-      <td><span class="priority-badge p-${t.priority}">${t.priority}</span></td>
-      <td style="color:var(--text-muted)">${t.due}</td>
-      <td><div class="progress-bar"><div class="progress-fill" style="width:${t.progress}%"></div></div></td>
-    </tr>`).join('');
+async function runSubsystemScan(subsystemId, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = '⟳'; }
+  const res = await api.post('/founder/maintenance/scan', {subsystem: subsystemId});
+  if (btn) { btn.disabled = false; btn.textContent = 'Scan'; }
+  if (!res.ok) {
+    showToast(`Scan failed for ${subsystemId}: ${res.error || res.status}`, 'error');
+  } else {
+    const data = res.data || {};
+    const recs = Array.isArray(data.recommendations) ? data.recommendations :
+                 Array.isArray(data) ? data : [];
+    showToast(`Scan complete for ${subsystemId}: ${recs.length} result(s)`, 'success');
+    await loadSubsystemsTable();
+  }
 }
 
-function renderTimeline() {
-  const projTasks = tasks[currentProj] || [];
-  const weeks = ['Jun W1','Jun W2','Jun W3','Jun W4','Jul W1','Jul W2','Jul W3','Jul W4'];
-  const barColors = ['#00d4aa','#3b9eff','#e879f9','#ffa63e','#22c55e','#ef4444'];
-  document.getElementById('tl-header').innerHTML = weeks.map(w=>`<div class="tl-week">${w}</div>`).join('');
-  document.getElementById('tl-labels').innerHTML = projTasks.map(t=>`<div class="tl-label">${t.title.slice(0,28)}…</div>`).join('');
-  document.getElementById('tl-rows').innerHTML = projTasks.map((t,i)=>{
-    const start = (i%4)*12.5, width = 20+Math.random()*30;
-    const col = barColors[i%barColors.length];
-    return `<div class="tl-row">${weeks.map(()=>`<div class="tl-col-bg" style="border-right:1px solid var(--border-subtle)"></div>`).join('')}
-      <div class="tl-bar" style="left:${start}%;width:${width}%;background:${col}" title="${t.title}">${t.assignee}</div>
-    </div>`;
-  }).join('');
+// ── RECOMMENDATION ACTIONS ────────────────────────────────────────
+async function approveRec(id, evt) {
+  if (evt) { evt.stopPropagation(); }
+  const res = await api.post(`/founder/maintenance/recommendations/${id}/approve`, {});
+  if (!res.ok) {
+    showToast(`Approve failed: ${res.error || res.status}`, 'error');
+    return;
+  }
+  showToast('Recommendation approved', 'success');
+  await loadRecommendations();
 }
 
-function renderDashboard() {
-  const projTasks = tasks[currentProj] || [];
-  const total=projTasks.length, done=projTasks.filter(t=>t.status==='done').length;
-  const overdue=projTasks.filter(t=>t.due < new Date().toISOString().slice(0,10) && t.status!=='done').length;
-  const inp=projTasks.filter(t=>t.status==='inprogress').length;
-  document.getElementById('dash-stats').innerHTML = [
-    {label:'Total Tasks',value:total,color:'var(--text-primary)'},
-    {label:'Completed',value:done,color:'#22c55e'},
-    {label:'Overdue',value:overdue,color:'#ef4444'},
-    {label:'In Progress',value:inp,color:'#00d4aa'},
-  ].map(s=>`<div class="dash-stat"><div class="dash-stat-value" style="color:${s.color}">${s.value}</div><div class="dash-stat-label">${s.label}</div></div>`).join('');
+async function rejectRec(id, evt) {
+  if (evt) { evt.stopPropagation(); }
+  const res = await api.post(`/founder/maintenance/recommendations/${id}/reject`, {reason: 'Rejected by founder'});
+  if (!res.ok) {
+    showToast(`Reject failed: ${res.error || res.status}`, 'error');
+    return;
+  }
+  showToast('Recommendation rejected', '');
+  await loadRecommendations();
+}
+
+async function applyRec(id, evt) {
+  if (evt) { evt.stopPropagation(); }
+  const res = await api.post(`/founder/maintenance/recommendations/${id}/apply`, {});
+  if (!res.ok) {
+    showToast(`Apply failed: ${res.error || res.status}`, 'error');
+    return;
+  }
+  showToast('Recommendation applied!', 'success');
+  await loadRecommendations();
 }
 
 // ── DETAIL PANEL ──────────────────────────────────────────────────
-function openDetail(id) {
-  const t = (tasks[currentProj]||[]).find(x=>x.id===id);
-  if(!t) return;
+function openRecDetail(id) {
+  const r = _recommendations.find(x => x.id === id);
+  if (!r) return;
   const panel = document.getElementById('detail-panel');
   panel.classList.remove('closed');
+  const priority = (r.priority || 'low').toLowerCase();
+  const status = (r.status || 'pending').toLowerCase();
+  const actionBtns = [];
+  if (status === 'pending') {
+    actionBtns.push(`<button class="m-btn m-btn-success" onclick="approveRec('${escHtml(id)}');closeDetail()">✓ Approve</button>`);
+    actionBtns.push(`<button class="m-btn m-btn-danger" onclick="rejectRec('${escHtml(id)}');closeDetail()">✗ Reject</button>`);
+  }
+  if ((status === 'approved' || r.auto_applicable) && status !== 'applied') {
+    actionBtns.push(`<button class="m-btn m-btn-primary" onclick="applyRec('${escHtml(id)}');closeDetail()">⚡ Apply</button>`);
+  }
   document.getElementById('detail-content').innerHTML = `
     <div class="detail-section">
-      <input class="detail-title-input" value="${t.title}" aria-label="Task title">
+      <div style="font-size:16px;font-weight:600;line-height:1.4;margin-bottom:8px">${escHtml(r.title || r.id)}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <span class="priority-badge p-${priority}">${priority.charAt(0).toUpperCase()+priority.slice(1)}</span>
+        <span class="status-pill s-${status}">${status.charAt(0).toUpperCase()+status.slice(1)}</span>
+        ${r.subsystem ? `<span class="tag-chip">${escHtml(r.subsystem)}</span>` : ''}
+        ${r.category ? `<span class="tag-chip">${escHtml(r.category)}</span>` : ''}
+      </div>
     </div>
     <div class="detail-section">
       <div class="detail-label">Description</div>
-      <textarea class="detail-textarea" placeholder="Add a description…">Implement the ${t.title.toLowerCase()} feature as specified in the project roadmap.</textarea>
+      <div class="detail-value">${escHtml(r.description || '—')}</div>
     </div>
     <div class="detail-section">
-      <div class="detail-row"><span class="detail-row-label">Assignee</span><div class="m-avatar-sm" style="background:var(--teal);color:#000">${t.assignee}</div>${t.assignee}</div>
-      <div class="detail-row"><span class="detail-row-label">Status</span><span class="status-pill s-${t.status}">${t.status}</span></div>
-      <div class="detail-row"><span class="detail-row-label">Priority</span><span class="priority-badge p-${t.priority}">${t.priority}</span></div>
-      <div class="detail-row"><span class="detail-row-label">Due Date</span>${t.due}</div>
-      <div class="detail-row"><span class="detail-row-label">Progress</span><div class="progress-bar" style="flex:1"><div class="progress-fill" style="width:${t.progress}%"></div></div></div>
+      <div class="detail-label">Suggested Action</div>
+      <div class="detail-value" style="color:var(--teal)">${escHtml(r.suggested_action || '—')}</div>
     </div>
     <div class="detail-section">
-      <div class="detail-label">Subtasks</div>
-      <div class="subtask"><input type="checkbox" ${t.progress>50?'checked':''}> Define acceptance criteria</div>
-      <div class="subtask"><input type="checkbox" ${t.progress>80?'checked':''}> Write unit tests</div>
-      <div class="subtask"><input type="checkbox" ${t.status==='done'?'checked':''}> Review & merge PR</div>
+      <div class="detail-row"><span class="detail-row-label">ID</span><code style="font-size:11px;color:var(--text-muted)">${escHtml(r.id || '—')}</code></div>
+      <div class="detail-row"><span class="detail-row-label">Auto-Applicable</span>${r.auto_applicable ? '<span style="color:#22c55e">Yes</span>' : '<span style="color:var(--text-muted)">No</span>'}</div>
+      ${r.created_at ? `<div class="detail-row"><span class="detail-row-label">Created</span>${escHtml(new Date(r.created_at).toLocaleString())}</div>` : ''}
+      ${r.updated_at ? `<div class="detail-row"><span class="detail-row-label">Updated</span>${escHtml(new Date(r.updated_at).toLocaleString())}</div>` : ''}
     </div>
-    <div class="detail-section">
-      <div class="detail-label">Comments</div>
-      <div class="comment">
-        <div class="m-avatar-sm" style="background:var(--teal);color:#000">CP</div>
-        <div><div class="comment-body">Reviewed the requirements — looks good to proceed.</div><div class="comment-time">2 hours ago · Corey Post</div></div>
-      </div>
-      <div class="comment">
-        <div class="m-avatar-sm" style="background:#3b9eff;color:#000">JL</div>
-        <div><div class="comment-body">I'll pick this up in today's sprint.</div><div class="comment-time">1 hour ago · Jordan Lee</div></div>
-      </div>
-      <textarea class="detail-textarea" placeholder="Add a comment…" style="margin-top:8px" aria-label="New comment"></textarea>
-    </div>
-    <div class="detail-section">
-      <button class="murphy-ai-btn" onclick="murphySuggest('${id}')">🤖 Ask Murphy AI for Next Steps</button>
-    </div>`;
-}
-function closeDetail() { document.getElementById('detail-panel').classList.add('closed'); }
-
-function murphySuggest(id) {
-  const t = (tasks[currentProj]||[]).find(x=>x.id===id);
-  if(!t) return;
-  const modal = document.getElementById('artifact-modal');
-  document.getElementById('artifact-modal-loading').hidden = false;
-  document.getElementById('artifact-modal-form').hidden = true;
-  document.getElementById('artifact-submit-btn').hidden = true;
-  modal.hidden = false;
-  const fallback = `Based on the current task "${t.title}" (${t.priority} priority, ${t.progress}% complete), here are recommended next steps:\n\n1. Break this task into 2-3 focused subtasks with clear acceptance criteria.\n2. Assign a dedicated reviewer for early feedback before the ${t.due} deadline.\n3. Set a milestone checkpoint at the midpoint of the sprint.\n4. Update progress tracking daily and flag any blockers immediately.`;
-  const query = `Suggest detailed next steps for the following task:\nTitle: ${t.title}\nStatus: ${t.status}\nPriority: ${t.priority}\nAssignee: ${t.assignee}\nProgress: ${t.progress}%\nDue Date: ${t.due}\nTags: ${(t.tags||[]).join(', ')}\n\nProvide actionable, specific recommendations to help complete this task successfully.`;
-  fetch('/api/librarian/query',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query})})
-    .then(r=>r.json()).then(d=>_populateArtifactModal(t,d.response||fallback))
-    .catch(()=>_populateArtifactModal(t,fallback));
+    ${actionBtns.length ? `<div class="detail-actions">${actionBtns.join('')}</div>` : ''}`;
 }
 
-function _populateArtifactModal(t, content) {
-  document.getElementById('artifact-title').value = `Next Steps: ${t.title}`;
-  document.getElementById('artifact-content').value = content;
-  document.getElementById('artifact-priority').value = t.priority;
-  document.getElementById('artifact-modal-loading').hidden = true;
-  document.getElementById('artifact-modal-form').hidden = false;
-  document.getElementById('artifact-submit-btn').hidden = false;
+function closeDetail() {
+  document.getElementById('detail-panel').classList.add('closed');
 }
 
-function createArtifact() {
-  const title = document.getElementById('artifact-title').value.trim();
-  const content = document.getElementById('artifact-content').value.trim();
-  const type = document.getElementById('artifact-type').value;
-  const priority = document.getElementById('artifact-priority').value;
-  if(!title||!content) return;
-  fetch('/api/artifacts/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,content,type,priority})})
-    .then(r=>r.ok?r.json():Promise.reject())
-    .then(()=>closeModal('artifact-modal'))
-    .catch(()=>closeModal('artifact-modal'));
+// ── AGENT BAR ─────────────────────────────────────────────────────
+function updateAgentBar(msg, loading) {
+  const sub = document.getElementById('agent-bar-sub');
+  if (sub) sub.textContent = loading ? '⟳ ' + msg : msg;
 }
 
-// ── SWITCHING ─────────────────────────────────────────────────────
+// ── VIEW SWITCHING ────────────────────────────────────────────────
+const VIEW_TITLES = {
+  health: 'Health Overview',
+  scans: 'Run Scans',
+  board: 'Recommendations',
+  subsystems: 'Subsystems',
+  reports: 'Reports',
+};
+
+const VIEW_LOADERS = {
+  health: loadHealthOverview,
+  scans: () => Promise.resolve(),
+  board: loadRecommendations,
+  subsystems: loadSubsystemsTable,
+  reports: loadReports,
+};
+
 function switchView(v) {
-  document.querySelectorAll('.view-panel').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.m-tab').forEach(t=>{t.classList.remove('active');t.setAttribute('aria-selected','false')});
-  document.getElementById('view-'+v).classList.add('active');
-  const tab = document.querySelector(`[data-view="${v}"]`);
-  if(tab){tab.classList.add('active');tab.setAttribute('aria-selected','true');}
-  if(v==='board') renderBoard();
-  else if(v==='table') renderTable();
-  else if(v==='timeline') renderTimeline();
-  else if(v==='dashboard') renderDashboard();
+  _currentView = v;
+  document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.m-tab').forEach(t => t.classList.toggle('active', t.dataset.view === v));
+  document.querySelectorAll('[id^="nav-"]').forEach(n => n.classList.remove('active'));
+  const panel = document.getElementById('view-' + v);
+  if (panel) panel.classList.add('active');
+  const navEl = document.getElementById('nav-' + v);
+  if (navEl) navEl.classList.add('active');
+  const titleEl = document.getElementById('view-title');
+  if (titleEl) titleEl.textContent = VIEW_TITLES[v] || v;
+  if (VIEW_LOADERS[v]) VIEW_LOADERS[v]();
 }
 
-function switchProject(p) {
-  currentProj = p;
-  document.querySelectorAll('[data-proj]').forEach(el=>el.classList.toggle('active',el.dataset.proj===p));
-  document.getElementById('proj-name').textContent = p==='murphy'?'Murphy Platform v1.0':'Marketing Launch';
-  renderBoard();
+// ── AUTO REFRESH ──────────────────────────────────────────────────
+function setRefreshInterval(ms) {
+  _refreshInterval = parseInt(ms, 10) || 0;
+  if (_refreshTimer) { clearInterval(_refreshTimer); _refreshTimer = null; }
+  if (_refreshInterval > 0) {
+    _refreshTimer = setInterval(refreshAll, _refreshInterval);
+  }
 }
 
-// ── MODAL ─────────────────────────────────────────────────────────
-function openModal(id) { document.getElementById(id).hidden=false; }
-function closeModal(id) { document.getElementById(id).hidden=true; }
-document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.hidden=true;}));
-document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-overlay:not([hidden])').forEach(m=>m.hidden=true);});
-
-function addTask() {
-  const title = document.getElementById('new-task-title').value.trim();
-  if(!title) return;
-  const t = {
-    id:'t'+Date.now(),
-    title,
-    status:document.getElementById('new-task-status').value,
-    priority:document.getElementById('new-task-priority').value,
-    assignee:document.getElementById('new-task-assignee').value||'?',
-    due:document.getElementById('new-task-due').value||'2024-07-01',
-    tags:document.getElementById('new-task-tags').value.split(',').map(s=>s.trim()).filter(Boolean),
-    subtasks:0,comments:0,progress:0
-  };
-  if(!tasks[currentProj]) tasks[currentProj]=[];
-  tasks[currentProj].push(t);
-  saveData();
-  closeModal('task-modal');
-  renderBoard();
+function refreshAll() {
+  if (VIEW_LOADERS[_currentView]) VIEW_LOADERS[_currentView]();
 }
 
-function addProject() {
-  const name = document.getElementById('new-proj-name').value.trim();
-  if(!name) return;
-  const key = name.toLowerCase().replace(/\s+/g,'-');
-  tasks[key] = [];
-  saveData();
-  const sidebar = document.querySelector('.m-sidebar .m-sidebar-section');
-  const item = document.createElement('div');
-  item.className='m-sidebar-item';
-  item.dataset.proj=key;
-  const selColor = document.querySelector('.color-opt[style*="border: 2px"]')?.dataset.color||'#00d4aa';
-  item.innerHTML=`<span class="m-proj-dot" style="background:${selColor}"></span>${name}`;
-  item.onclick=()=>switchProject(key);
-  sidebar.appendChild(item);
-  closeModal('project-modal');
-}
-
-// color picker
-document.querySelectorAll('.color-opt').forEach(opt=>opt.addEventListener('click',function(){
-  document.querySelectorAll('.color-opt').forEach(o=>o.style.border='none');
-  this.style.border='2px solid #fff';
-}));
-
-// sidebar collapse
-document.getElementById('sidebar-toggle').addEventListener('click',()=>{
+// ── SIDEBAR TOGGLE ────────────────────────────────────────────────
+document.getElementById('sidebar-toggle').addEventListener('click', () => {
   document.getElementById('m-sidebar').classList.toggle('collapsed');
 });
 
-function handleAIAccept() {
-  document.getElementById('ai-bar').hidden=true;
-  alert('Murphy AI: Reassigning overdue tasks based on current team capacity and workload balance.');
-}
-
 // ── INIT ──────────────────────────────────────────────────────────
-
-  /* ── Filter/Sort buttons ── */
-  (function () {
-    var filterBtn = document.getElementById('btn-filter-tasks');
-    var sortBtn   = document.getElementById('btn-sort-tasks');
-    var filterStates = ['all','active','completed','blocked','todo'];
-    var sortModes    = ['default','priority','due','assignee'];
-    var fi = 0, si = 0;
-    if (filterBtn) {
-      filterBtn.addEventListener('click', function () {
-        fi = (fi + 1) % filterStates.length;
-        var f = filterStates[fi];
-        filterBtn.textContent = 'Filter: ' + (f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1));
-        document.querySelectorAll('.task-row, [data-status]').forEach(function (row) {
-          var s = row.dataset.status || row.getAttribute('data-status') || '';
-          row.style.display = (f === 'all' || !s || s === f) ? '' : 'none';
-        });
-      });
-    }
-    if (sortBtn) {
-      sortBtn.addEventListener('click', function () {
-        si = (si + 1) % sortModes.length;
-        var s = sortModes[si];
-        sortBtn.textContent = 'Sort: ' + s.charAt(0).toUpperCase() + s.slice(1);
-        var container = document.querySelector('.task-list, #task-list, [id*="task"]');
-        if (!container) return;
-        var rows = Array.from(container.querySelectorAll('.task-row, [data-priority]'));
-        var PRIO = {critical:0,high:1,medium:2,low:3};
-        rows.sort(function (a, b) {
-          if (s === 'priority') {
-            return (PRIO[a.dataset.priority] || 9) - (PRIO[b.dataset.priority] || 9);
-          }
-          if (s === 'due') {
-            return (a.dataset.due || '9999') < (b.dataset.due || '9999') ? -1 : 1;
-          }
-          if (s === 'assignee') {
-            return (a.dataset.assignee || '') < (b.dataset.assignee || '') ? -1 : 1;
-          }
-          return 0;
-        });
-        rows.forEach(function (r) { container.appendChild(r); });
-      });
-    }
-  }());
-loadData();
-renderBoard();
+(async function init() {
+  updateAgentBar('Loading system state…', true);
+  await loadHealthOverview();
+  updateAgentBar('System state loaded. Use scan buttons to run diagnostics.', false);
+  // Start auto-refresh
+  setRefreshInterval(_refreshInterval);
+}());
 </script>
 </body>
 </html>
