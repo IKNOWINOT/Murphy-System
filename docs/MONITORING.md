@@ -204,7 +204,7 @@ amtool silence add alertname="MurphyAPIDown" --duration=2h --comment="Planned ma
 ## Related Documentation
 
 - [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) — Hetzner K8s deployment
-- [ARCHITECTURE_MAP.md](ARCHITECTURE_MAP.md) — System architecture
-- [API_DOCUMENTATION.md](API_DOCUMENTATION.md) — Full API reference
-- [CONTRIBUTING.md](CONTRIBUTING.md) — Development setup & UI page index
+- [ARCHITECTURE_MAP.md](../ARCHITECTURE_MAP.md) — System architecture
+- [API_DOCUMENTATION.md](../API_DOCUMENTATION.md) — Full API reference
+- [CONTRIBUTING.md](../CONTRIBUTING.md) — Development setup & UI page index
 - [SCALING.md](../documentation/deployment/SCALING.md) — Scaling guide

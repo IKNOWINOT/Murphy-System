@@ -4,6 +4,21 @@
 
 ---
 
+## Phase 4 Closure Status (PR #407)
+
+| Gap Category | Status | Notes |
+|-------------|--------|-------|
+| CRITICAL: MURPHY_API_KEY mismatch | ✅ Resolved | Code now accepts both MURPHY_API_KEY (canonical) and MURPHY_API_KEYS (legacy) |
+| ARCH-001/002: Phantom entry point | ✅ Resolved | ARCHITECTURE_MAP.md and DEPENDENCY_GRAPH.md updated to reference src/runtime/app.py |
+| API Routes (151 missing) | ✅ Resolved | API_ROUTES.md updated with all missing routes |
+| API Routes (83 stale) | ✅ Resolved | Stale /api/comms/* routes marked as Planned/Not Yet Implemented |
+| ENV-001+: .env.example canonical name | ✅ Resolved | MURPHY_API_KEY documented as canonical |
+| SEC-001-008: Security docs gaps | ✅ Resolved | SECURITY.md updated with CSRF, rate limiting, brute-force, key rotation docs |
+| DEPLOY-001+: Alembic/POSTGRES_PASSWORD | ✅ Resolved | DEPLOYMENT_GUIDE.md updated with Alembic migration steps |
+| XREF-001-007: Broken links | ✅ Resolved | 25 broken relative links fixed across README.md, GETTING_STARTED.md, USER_MANUAL.md, CONTRIBUTING.md, SECURITY.md, docs/MONITORING.md |
+
+---
+
 ## Methodology
 
 This analysis was performed by:

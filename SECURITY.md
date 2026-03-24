@@ -38,7 +38,7 @@ When deploying Murphy System:
 - Run behind a reverse proxy (nginx/Caddy) in production
 - Enable HTTPS for all external connections
 - Restrict CORS origins to your known domains
-- Review the [Deployment Guide](Murphy%20System/DEPLOYMENT_GUIDE.md) for hardening steps
+- Review the [Deployment Guide](DEPLOYMENT_GUIDE.md) for hardening steps
 
 ## Authentication Architecture
 
@@ -88,3 +88,51 @@ All planned security enhancements have been implemented. The following multi-age
 - **Bot identity verification** — HMAC-SHA256 message signing with key revocation (`src/security_plane/bot_identity_verifier.py`)
 - **Behavioral anomaly detection** — z-score analysis, resource spikes, and API pattern monitoring (`src/security_plane/bot_anomaly_detector.py`)
 - **Unified security dashboard** — event aggregation, correlation, and compliance reporting (`src/security_plane/security_dashboard.py`)
+
+## CSRF Protection
+
+Murphy System implements CSRF protection via the `_CSRFProtection` class in `src/fastapi_security.py`:
+
+- **SameSite cookies:** Session cookies are issued with `SameSite=lax` (development) or `SameSite=strict` (production), providing browser-level CSRF protection for same-origin requests.
+- **Double-submit pattern:** Mutating API endpoints (`POST`, `PUT`, `DELETE`, `PATCH`) require the caller to supply the session token in the `Authorization: Bearer <token>` header or `X-API-Key` header — both inaccessible to cross-origin attackers who can only trigger cookie-bearing requests via HTML forms.
+- **Origin validation:** The middleware rejects requests whose `Origin` header does not match the configured `MURPHY_CORS_ORIGINS` allow-list in staging/production environments.
+
+## Rate Limiting
+
+Murphy System enforces per-IP and per-user rate limits to prevent abuse:
+
+| Response Header | Meaning |
+|----------------|---------|
+| `X-RateLimit-Limit` | Maximum requests allowed in the current window |
+| `X-RateLimit-Remaining` | Requests remaining in the current window |
+| `X-RateLimit-Reset` | Unix timestamp when the window resets |
+
+**Configuration:** Set `MURPHY_RATE_LIMIT_RPM` environment variable to control the requests-per-minute limit (default: 60 RPM in production, unlimited in development).
+
+When the limit is exceeded, the API returns HTTP `429 Too Many Requests` with a `Retry-After` header.
+
+## Brute-Force Protection
+
+Authentication endpoints (`/api/auth/login`, `/api/auth/signup`) include brute-force lockout protection:
+
+- **Lockout threshold:** After a configurable number of consecutive failed authentication attempts (default: 10), the source IP is locked out.
+- **Lockout duration:** Lockouts expire after a configurable window (default: 15 minutes).
+- **Scope:** Lockouts are tracked per IP address using the in-memory counter store (replace with Redis for multi-process deployments).
+- **Logging:** All lockout events are written to the security audit log with timestamps and source IP.
+
+## API Key Rotation Policy
+
+Murphy System provides automated key rotation via the `ScheduledKeyRotator` class in `src/secure_key_manager.py`:
+
+| Action | Command / Notes |
+|--------|----------------|
+| Generate a new key | `python -c "import secrets; print(secrets.token_urlsafe(32))"` |
+| Set new key | Update `MURPHY_API_KEY` in your secrets manager |
+| Grace period | Old key remains valid for a configurable grace window (default: 24 h) during dual-key transition |
+| Revoke old key | Remove the old value from `MURPHY_API_KEY` / `MURPHY_API_KEYS` after the grace period |
+| Scheduled rotation | `ScheduledKeyRotator` can automate the above cycle on a configurable interval |
+
+**Environment variables:**
+- `MURPHY_API_KEY` — Canonical API key variable (recommended).
+- `MURPHY_API_KEYS` — Legacy comma-separated multi-key alias; accepted for backward compatibility.
+- `MURPHY_KEY_ROTATION_INTERVAL_DAYS` — Days between automated rotations (default: 90).

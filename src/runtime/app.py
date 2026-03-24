@@ -10703,7 +10703,7 @@ def create_app() -> FastAPI:
 
         async def dispatch(self, request: Request, call_next):
             if request.url.path.startswith("/api/") and request.url.path not in self.EXEMPT_PATHS:
-                expected_key = os.environ.get("MURPHY_API_KEY", "")
+                expected_key = os.environ.get("MURPHY_API_KEY", "") or os.environ.get("MURPHY_API_KEYS", "")
                 if expected_key:
                     # Starlette normalises header names to lowercase (RFC 7230);
                     # use lowercase "x-api-key" here to match that behaviour.
