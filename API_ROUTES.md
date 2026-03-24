@@ -781,6 +781,8 @@ These endpoints return `501 Not Implemented` and will be fully implemented in fu
 
 ## Communication Hub (FastAPI — src/comms_hub_routes.py)
 
+> ⚠️ **Status: Planned — Not Yet Implemented.** The routes in this section are documented as part of the Communication Hub roadmap but are not currently present in `src/runtime/app.py`. They will be implemented in a future release.
+
 Unified onboard communication system: IM, voice, video, email, automation rules, and a Discord-style moderator console.  All data is persisted to SQLite via the ORM models in `src/db.py`.
 
 ### Instant Messaging (IM)
@@ -978,3 +980,189 @@ All links below are accessible after login. Section dividers group related pages
 | ACCOUNT | 🏢 ORG PORTAL | `/ui/org-portal` | Organisation self-service portal |
 | ACCOUNT | 📚 DOCS | `/ui/docs` | Documentation |
 | ACCOUNT | ⚙ ADMIN | `/ui/admin` | Admin panel (admin/owner only) |
+
+---
+
+## Auto-Generated Route Index (Phase 4)
+
+The following routes exist in `src/runtime/app.py` and were cataloged as missing from API_ROUTES.md in gap analysis items API-001 through API-043. They are documented here for completeness.
+
+### Admin Routes
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /api/admin/users | Yes | List all users |
+| POST | /api/admin/users | Yes | Create a user |
+| GET | /api/admin/users/{user_id} | Yes | Get user details |
+| PATCH | /api/admin/users/{user_id} | Yes | Update user |
+| DELETE | /api/admin/users/{user_id} | Yes | Delete user |
+| POST | /api/admin/users/{user_id}/reset-password | Yes | Reset user password |
+| POST | /api/admin/users/{user_id}/suspend | Yes | Suspend user |
+| POST | /api/admin/users/{user_id}/unsuspend | Yes | Unsuspend user |
+| GET | /api/admin/organizations | Yes | List organizations |
+| POST | /api/admin/organizations | Yes | Create organization |
+| GET | /api/admin/organizations/{org_id} | Yes | Get organization |
+| PATCH | /api/admin/organizations/{org_id} | Yes | Update organization |
+| DELETE | /api/admin/organizations/{org_id} | Yes | Delete organization |
+| GET | /api/admin/organizations/{org_id}/members | Yes | List org members |
+| POST | /api/admin/organizations/{org_id}/members | Yes | Add org member |
+| DELETE | /api/admin/organizations/{org_id}/members/{user_id} | Yes | Remove org member |
+| GET | /api/admin/stats | Yes | System statistics |
+| GET | /api/admin/sessions | Yes | List active sessions |
+| DELETE | /api/admin/sessions/{account_id} | Yes | Revoke session |
+| GET | /api/admin/audit-log | Yes | Admin audit log |
+
+### Auth Routes
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /api/auth/role | No | Get current user role |
+| GET | /api/auth/permissions | No | Get current user permissions |
+
+### Onboarding Routes
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /api/onboarding/wizard/questions | No | Get onboarding questions |
+| POST | /api/onboarding/wizard/answer | No | Submit onboarding answer |
+| GET | /api/onboarding/wizard/profile | No | Get generated profile |
+| POST | /api/onboarding/wizard/validate | No | Validate onboarding data |
+| POST | /api/onboarding/wizard/generate-config | No | Generate system config |
+| GET | /api/onboarding/wizard/config | No | Get wizard config |
+| GET | /api/onboarding/wizard/summary | No | Get wizard summary |
+| POST | /api/onboarding/wizard/reset | No | Reset wizard state |
+| POST | /api/onboarding/mfgc-chat | No | MFGC chat endpoint |
+| POST | /api/onboarding/finalize | No | Finalize onboarding |
+| POST | /api/onboarding/employees | Yes | Create employee profile |
+| GET | /api/onboarding/employees | Yes | List employee profiles |
+| GET | /api/onboarding/employees/{profile_id} | Yes | Get employee profile |
+| POST | /api/onboarding/employees/{profile_id}/tasks/{task_id}/complete | Yes | Complete onboarding task |
+| POST | /api/onboarding/employees/{profile_id}/tasks/{task_id}/skip | Yes | Skip onboarding task |
+| GET | /api/onboarding/status | Yes | Get onboarding status |
+
+### Workflow Terminal Routes
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | /api/workflow-terminal/sessions | Yes | Create terminal session |
+| POST | /api/workflow-terminal/sessions/{session_id}/message | Yes | Send message to session |
+| GET | /api/workflow-terminal/sessions/{session_id} | Yes | Get session state |
+| GET | /api/workflow-terminal/sessions/{session_id}/compile | Yes | Compile session workflow |
+| GET | /api/workflow-terminal/sessions/{session_id}/agents/{agent_id} | Yes | Get agent in session |
+| GET | /api/workflow-terminal/sessions | Yes | List sessions |
+| GET | /api/workflow-terminal/list | Yes | List saved workflows |
+| POST | /api/workflow-terminal/save | Yes | Save workflow |
+| GET | /api/workflow-terminal/load | Yes | Load workflow |
+| POST | /api/workflow-terminal/execute | Yes | Execute workflow |
+
+### Swarm Routes
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /api/swarm/status | Yes | Swarm status |
+| POST | /api/swarm/propose | Yes | Propose swarm task |
+| POST | /api/swarm/execute | Yes | Execute swarm task |
+| POST | /api/swarm/phase | Yes | Execute swarm phase |
+| GET | /api/swarm/rosetta | Yes | Rosetta translation map |
+
+### HITL & Corrections Routes
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /api/hitl/interventions/pending | Yes | List pending interventions |
+| POST | /api/hitl/interventions/{intervention_id}/respond | Yes | Respond to intervention |
+| GET | /api/hitl/statistics | Yes | HITL statistics |
+| GET | /api/corrections/patterns | Yes | Correction patterns |
+| GET | /api/corrections/statistics | Yes | Correction statistics |
+| GET | /api/corrections/training-data | Yes | Training data export |
+
+### Cost & Efficiency Routes
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /api/costs/summary | Yes | Cost summary |
+| GET | /api/costs/by-department | Yes | Costs by department |
+| GET | /api/costs/by-project | Yes | Costs by project |
+| GET | /api/costs/by-bot | Yes | Costs by bot |
+| POST | /api/costs/assign | Yes | Assign cost |
+| PATCH | /api/costs/budget | Yes | Update budget |
+| GET | /api/efficiency/costs | Yes | Efficiency cost analysis |
+| GET | /api/usage/daily | Yes | Daily usage metrics |
+
+### Self-Fix & Repair Routes
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /api/self-fix/status | Yes | Self-fix status |
+| POST | /api/self-fix/run | Yes | Trigger self-fix |
+| GET | /api/self-fix/history | Yes | Self-fix history |
+| GET | /api/self-fix/plans | Yes | Self-fix plans |
+| GET | /api/repair/status | Yes | Repair status |
+| POST | /api/repair/run | Yes | Trigger repair |
+| GET | /api/repair/history | Yes | Repair history |
+| GET | /api/repair/wiring | Yes | Repair wiring map |
+| GET | /api/repair/proposals | Yes | Repair proposals |
+
+### Scheduler & Automation Routes
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /api/scheduler/status | Yes | Scheduler status |
+| POST | /api/scheduler/start | Yes | Start scheduler |
+| POST | /api/scheduler/stop | Yes | Stop scheduler |
+| POST | /api/scheduler/trigger | Yes | Trigger scheduled job |
+| GET | /api/self-automation/status | Yes | Self-automation status |
+| POST | /api/self-automation/task | Yes | Submit automation task |
+| GET | /api/self-automation/tasks | Yes | List automation tasks |
+| GET | /api/self-improvement/status | Yes | Self-improvement status |
+| GET | /api/self-improvement/proposals | Yes | Self-improvement proposals |
+| GET | /api/self-improvement/corrections | Yes | Self-improvement corrections |
+
+### Wingman & Heatmap Routes
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /api/wingman/status | Yes | Wingman status |
+| GET | /api/wingman/suggestions | Yes | Wingman suggestions |
+| POST | /api/wingman/validate | Yes | Validate with wingman |
+| GET | /api/wingman/api-gaps | Yes | API gap list |
+| POST | /api/wingman/api-gaps/scan | Yes | Scan for API gaps |
+| POST | /api/wingman/api-gaps/build | Yes | Build missing APIs |
+| GET | /api/heatmap/data | Yes | Heatmap data |
+| GET | /api/heatmap/coverage | Yes | Coverage heatmap |
+
+### Org, Events & Other Routes
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /api/org/info | Yes | Organization info |
+| POST | /api/org/join | Yes | Join organization |
+| POST | /api/org/invite | Yes | Invite to organization |
+| POST | /api/org/create | Yes | Create organization |
+| GET | /api/org/portal/{org_id} | Yes | Org portal |
+| GET | /api/org/portal/{org_id}/members | Yes | Org portal members |
+| POST | /api/org/portal/{org_id}/members/invite | Yes | Invite org portal member |
+| DELETE | /api/org/portal/{org_id}/members/{user_id} | Yes | Remove org portal member |
+| PATCH | /api/org/portal/{org_id}/members/{user_id}/role | Yes | Update member role |
+| GET | /api/org/portal/{org_id}/channels | Yes | Org channels |
+| POST | /api/events/subscribe | Yes | Subscribe to events |
+| GET | /api/events/history/{subscriber_id} | Yes | Event history |
+| GET | /api/events/stream/{subscriber_id} | Yes | SSE event stream |
+| GET | /api/golden-path | Yes | Golden path workflows |
+| GET | /api/golden-path/{workflow_id} | Yes | Specific golden path |
+| POST | /api/feedback | Yes | Submit feedback |
+| POST | /api/images/generate | Yes | Generate image |
+| GET | /api/images/styles | Yes | Available image styles |
+| GET | /api/images/stats | Yes | Image generation stats |
+| GET | /api/platform/automation-status | Yes | Platform automation status |
+| GET | /api/platform/capabilities | Yes | Platform capabilities |
+| GET | /api/sdk/status | Yes | SDK status |
+| GET | /api/creator/moderation/status | Yes | Moderation status |
+| POST | /api/creator/moderation/check | Yes | Run content moderation check |
+| POST | /api/client-portfolio/save | Yes | Save client portfolio |
+| GET | /api/client-portfolio/{client_id} | Yes | Get client portfolio |
+| PUT | /api/client-portfolio/{client_id}/selections | Yes | Update portfolio selections |
+| GET | /api/legal/terms | No | Terms of service |
+| GET | /api/legal/privacy | No | Privacy policy |
+| POST | /api/auar/provision | Yes | Provision AUAR resource |
+| GET | /api/manifest | No | System manifest |

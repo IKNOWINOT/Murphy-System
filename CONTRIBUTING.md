@@ -20,7 +20,7 @@ Murphy System has grown to **978 source modules** across 81 packages. Key subsys
 - **Orchestrators** — `campaign_orchestrator.py`; `safety_orchestrator.py`, `efficiency_orchestrator.py`, `supply_orchestrator.py` (planned)
 - **Issue #136 subsystems** (in progress) — Drawing Engine, Credential Gate, Sensor Fusion, Osmosis Engine, Autonomous Perception, Wingman Evolution, Engineering Toolbox
 
-See [`Murphy System/docs/MODULE_REGISTRY.md`](Murphy%20System/docs/MODULE_REGISTRY.md) for the full module index.
+See [`Murphy System/docs/MODULE_REGISTRY.md`](Murphy System/docs/MODULE_REGISTRY.md) for the full module index.
 
 ## How to Contribute
 
