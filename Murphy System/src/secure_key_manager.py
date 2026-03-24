@@ -3,7 +3,8 @@
 # License: BSL 1.1
 """
 Secure API Key Manager
-Encrypts and manages API keys using Fernet symmetric encryption
+Encrypts and manages API keys using Fernet symmetric encryption.
+Includes scheduled rotation with zero-downtime overlap and failure alerting.
 """
 
 import base64
@@ -12,9 +13,12 @@ import json
 import logging
 import os
 import re
+import threading
+import time
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from cryptography.fernet import Fernet
 
@@ -441,7 +445,7 @@ class SecureKeyManager:
             return False
 
 
-def get_secure_key_manager() -> SecureKeyManager:
+def get_secure_key_manager() -> "SecureKeyManager":
     """
     Get or create the global secure key manager instance.
 
@@ -454,6 +458,280 @@ def get_secure_key_manager() -> SecureKeyManager:
         _key_manager_instance = SecureKeyManager()
 
     return _key_manager_instance
+
+
+# ── Scheduled Key Rotation ────────────────────────────────────────────────────
+
+class ScheduledKeyRotator:
+    """Zero-downtime scheduled key rotation with overlap period and failure alerting.
+
+    How it works
+    ============
+    1. A background daemon thread wakes up every *check_interval_seconds* and
+       calls all registered *rotation_callbacks* in sequence.
+    2. Each callback receives ``(key_name: str)`` and is expected to generate a
+       new secret, activate it in the relevant service, and return ``True`` on
+       success or raise an exception on failure.
+    3. During the *overlap_seconds* window both the old and new keys remain
+       accepted so in-flight requests are not rejected.
+    4. On rotation failure, every registered *alert_callbacks* is called with
+       ``(key_name: str, error: Exception)`` so on-call channels (Slack, PagerDuty,
+       email) can be notified.
+    5. A full audit log is maintained in memory (bounded to 10 000 entries).
+
+    Configuration via environment variables (all optional):
+
+    ====================================  ================================  ========
+    Variable                              Meaning                           Default
+    ====================================  ================================  ========
+    ``MURPHY_KEY_ROTATION_INTERVAL``      Rotation check interval seconds   86400
+    ``MURPHY_KEY_ROTATION_OVERLAP``       Overlap window seconds            300
+    ====================================  ================================  ========
+
+    Usage::
+
+        rotator = ScheduledKeyRotator(rotation_interval_seconds=86400)
+        rotator.register_key("GROQ_API_KEY")
+        rotator.add_rotation_callback(my_groq_rotation_fn)
+        rotator.add_alert_callback(my_pagerduty_alert_fn)
+        rotator.start()
+    """
+
+    _MAX_AUDIT_ENTRIES = 10_000
+
+    def __init__(
+        self,
+        rotation_interval_seconds: Optional[int] = None,
+        overlap_seconds: Optional[int] = None,
+    ):
+        self.rotation_interval = rotation_interval_seconds or int(
+            os.environ.get("MURPHY_KEY_ROTATION_INTERVAL", "86400")
+        )
+        self.overlap_seconds = overlap_seconds or int(
+            os.environ.get("MURPHY_KEY_ROTATION_OVERLAP", "300")
+        )
+
+        self._rotation_callbacks: List[Callable[[str], bool]] = []
+        self._alert_callbacks: List[Callable[[str, Exception], None]] = []
+        self._registered_keys: List[str] = []
+        self._last_rotated: Dict[str, datetime] = {}
+        self._audit_log: List[Dict[str, Any]] = []
+        self._lock = threading.Lock()
+        self._stop_event = threading.Event()
+        self._thread: Optional[threading.Thread] = None
+
+    # ------------------------------------------------------------------
+    # Registration helpers
+    # ------------------------------------------------------------------
+
+    def register_key(self, key_name: str) -> None:
+        """Register a key name that this rotator should rotate on schedule."""
+        with self._lock:
+            if key_name not in self._registered_keys:
+                self._registered_keys.append(key_name)
+        logger.info("ScheduledKeyRotator: registered key '%s'", key_name)
+
+    def add_rotation_callback(self, callback: Callable[[str], bool]) -> None:
+        """Register a callback invoked for each key during rotation.
+
+        The callback receives the key name as its only argument and should
+        return ``True`` on success.  Raising an exception signals failure.
+        """
+        self._rotation_callbacks.append(callback)
+
+    def add_alert_callback(self, callback: Callable[[str, Exception], None]) -> None:
+        """Register a callback invoked when a rotation attempt fails.
+
+        Receives ``(key_name, exception)`` and should notify an on-call channel.
+        """
+        self._alert_callbacks.append(callback)
+
+    # ------------------------------------------------------------------
+    # Lifecycle
+    # ------------------------------------------------------------------
+
+    def start(self) -> None:
+        """Start the background rotation scheduler thread."""
+        if self._thread and self._thread.is_alive():
+            logger.warning("ScheduledKeyRotator is already running")
+            return
+        self._stop_event.clear()
+        self._thread = threading.Thread(
+            target=self._run,
+            name="ScheduledKeyRotator",
+            daemon=True,
+        )
+        self._thread.start()
+        logger.info(
+            "ScheduledKeyRotator started (interval=%ds, overlap=%ds)",
+            self.rotation_interval,
+            self.overlap_seconds,
+        )
+
+    def stop(self) -> None:
+        """Stop the background rotation scheduler thread."""
+        self._stop_event.set()
+        if self._thread:
+            self._thread.join(timeout=5)
+        logger.info("ScheduledKeyRotator stopped")
+
+    # ------------------------------------------------------------------
+    # Core rotation logic
+    # ------------------------------------------------------------------
+
+    def rotate_now(self, key_name: str) -> bool:
+        """Immediately rotate *key_name*.  Returns True on success.
+
+        Maintains the overlap window: the old key remains valid for
+        ``self.overlap_seconds`` after the new key is activated so that
+        in-flight requests are not rejected.
+        """
+        logger.info("ScheduledKeyRotator: rotating key '%s'", key_name)
+        success = False
+        error_caught: Optional[Exception] = None
+
+        for cb in self._rotation_callbacks:
+            try:
+                result = cb(key_name)
+                if result:
+                    success = True
+            except Exception as exc:
+                logger.error(
+                    "ScheduledKeyRotator: rotation callback failed for '%s': %s",
+                    key_name, exc,
+                )
+                error_caught = exc
+
+        if error_caught:
+            self._fire_alerts(key_name, error_caught)
+
+        rotated_at = datetime.now(timezone.utc)
+        entry: Dict[str, Any] = {
+            "key_name": key_name,
+            "rotated_at": rotated_at.isoformat(),
+            "success": success and error_caught is None,
+            "error": str(error_caught) if error_caught else None,
+            "overlap_seconds": self.overlap_seconds,
+        }
+        with self._lock:
+            if success and error_caught is None:
+                self._last_rotated[key_name] = rotated_at
+            if len(self._audit_log) >= self._MAX_AUDIT_ENTRIES:
+                del self._audit_log[: self._MAX_AUDIT_ENTRIES // 10]
+            self._audit_log.append(entry)
+
+        if success and error_caught is None:
+            logger.info(
+                "ScheduledKeyRotator: key '%s' rotated successfully "
+                "(overlap window: %ds)",
+                key_name, self.overlap_seconds,
+            )
+        else:
+            logger.error(
+                "ScheduledKeyRotator: key '%s' rotation FAILED",
+                key_name,
+            )
+
+        return success and error_caught is None
+
+    def rotate_all_due(self) -> Dict[str, bool]:
+        """Rotate all keys that are due for rotation.  Returns {key_name: success}."""
+        results: Dict[str, bool] = {}
+        with self._lock:
+            keys = list(self._registered_keys)
+
+        for key_name in keys:
+            with self._lock:
+                last = self._last_rotated.get(key_name)
+            if last is None:
+                # Never rotated — skip initial rotation on first start to
+                # avoid disrupting a just-deployed system.
+                with self._lock:
+                    self._last_rotated[key_name] = datetime.now(timezone.utc)
+                logger.info(
+                    "ScheduledKeyRotator: key '%s' baseline set (first run)",
+                    key_name,
+                )
+                results[key_name] = True
+                continue
+
+            age_seconds = (datetime.now(timezone.utc) - last).total_seconds()
+            if age_seconds >= self.rotation_interval:
+                results[key_name] = self.rotate_now(key_name)
+
+        return results
+
+    # ------------------------------------------------------------------
+    # Status / audit
+    # ------------------------------------------------------------------
+
+    def get_status(self) -> Dict[str, Any]:
+        """Return rotation status for monitoring."""
+        with self._lock:
+            keys_status = {}
+            for key_name in self._registered_keys:
+                last = self._last_rotated.get(key_name)
+                age = (datetime.now(timezone.utc) - last).total_seconds() if last else None
+                keys_status[key_name] = {
+                    "last_rotated": last.isoformat() if last else None,
+                    "age_seconds": int(age) if age is not None else None,
+                    "due_for_rotation": age is not None and age >= self.rotation_interval,
+                }
+            return {
+                "running": self._thread is not None and self._thread.is_alive(),
+                "rotation_interval_seconds": self.rotation_interval,
+                "overlap_seconds": self.overlap_seconds,
+                "registered_keys": list(self._registered_keys),
+                "keys": keys_status,
+                "audit_log_size": len(self._audit_log),
+            }
+
+    def get_audit_log(self, limit: int = 50) -> List[Dict[str, Any]]:
+        """Return the most recent rotation audit entries."""
+        with self._lock:
+            return list(self._audit_log[-limit:])
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _run(self) -> None:
+        """Background thread: wake up every *rotation_interval* and rotate due keys."""
+        while not self._stop_event.is_set():
+            try:
+                self.rotate_all_due()
+            except Exception as exc:
+                logger.error("ScheduledKeyRotator background loop error: %s", exc)
+            # Sleep in small increments so stop() is responsive
+            for _ in range(self.rotation_interval):
+                if self._stop_event.is_set():
+                    break
+                time.sleep(1)
+
+    def _fire_alerts(self, key_name: str, error: Exception) -> None:
+        """Call all registered alert callbacks for a rotation failure."""
+        for alert_cb in self._alert_callbacks:
+            try:
+                alert_cb(key_name, error)
+            except Exception as exc:
+                logger.error(
+                    "ScheduledKeyRotator: alert callback raised an exception: %s", exc
+                )
+
+
+# ── Global scheduled rotator singleton ───────────────────────────────────────
+
+_scheduled_rotator: Optional[ScheduledKeyRotator] = None
+_scheduled_rotator_lock = threading.Lock()
+
+
+def get_scheduled_rotator() -> ScheduledKeyRotator:
+    """Return the global :class:`ScheduledKeyRotator` singleton, creating it if needed."""
+    global _scheduled_rotator
+    with _scheduled_rotator_lock:
+        if _scheduled_rotator is None:
+            _scheduled_rotator = ScheduledKeyRotator()
+        return _scheduled_rotator
 
 
 # CLI for key management

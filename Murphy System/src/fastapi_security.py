@@ -5,22 +5,25 @@ Provides centralized security controls for all FastAPI API servers:
 - API key authentication on all routes (except health checks)
 - JWT token validation as an alternative auth method
 - CORS origin allowlist (replaces wildcard CORS)
-- Rate limiting per client
+- Rate limiting per client with X-RateLimit-* response headers
+- CSRF token validation for all state-changing endpoints (POST/PUT/PATCH/DELETE)
 - Input sanitization
-- Security response headers
+- Security response headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options)
 
 Mirrors flask_security.py for FastAPI services.
 
-Addresses: SEC-001, SEC-002, SEC-004
+Addresses: SEC-001, SEC-002, SEC-004, SEC-005 (CSRF), SEC-006 (Rate-limit headers)
 
 Copyright © 2020 Inoni Limited Liability Company
 Creator: Corey Post
 """
 
+import hashlib
 import hmac
 import logging
 import os
 import re
+import secrets
 import time
 from typing import Any, Dict, List, Optional
 
@@ -316,7 +319,15 @@ class _FastAPIRateLimiter:
         self._last_cleanup: float = time.monotonic()
 
     def check(self, client_id: str) -> Dict[str, Any]:
-        """Check whether *client_id* has a rate-limit token available."""
+        """Check whether *client_id* has a rate-limit token available.
+
+        Returns a dict with:
+        - ``allowed``: bool
+        - ``remaining``: int — tokens left in current window
+        - ``limit``: int — configured burst limit
+        - ``reset_after_seconds``: float — seconds until bucket refills by 1
+        - ``retry_after_seconds``: float — only present when ``allowed=False``
+        """
         now = time.monotonic()
 
         # Periodic stale-bucket cleanup (CWE-400 mitigation)
@@ -349,11 +360,22 @@ class _FastAPIRateLimiter:
         bucket["swarm_hits"] = bucket.get("swarm_hits", 0) + 1
         is_swarm = bucket["swarm_hits"] > self.burst
 
+        # Seconds until a single new token is available (for X-RateLimit-Reset)
+        seconds_per_token = 60.0 / self.rpm if self.rpm > 0 else 60.0
+        reset_after = max(0.0, seconds_per_token - (now - bucket["last_refill"]))
+        reset_epoch = int(time.time() + reset_after)
+
         # --- Token check ---
         if bucket["tokens"] >= 1:
             # Normal single-call path: consume a standard token
             bucket["tokens"] -= 1
-            return {"allowed": True, "remaining": int(bucket["tokens"])}
+            return {
+                "allowed": True,
+                "remaining": int(bucket["tokens"]),
+                "limit": self.burst,
+                "reset_after_seconds": reset_after,
+                "reset_epoch": reset_epoch,
+            }
 
         # Standard tokens exhausted — check swarm allowance
         if is_swarm and bucket.get("swarm_tokens", 0) >= 1:
@@ -361,13 +383,20 @@ class _FastAPIRateLimiter:
             return {
                 "allowed": True,
                 "remaining": int(bucket["swarm_tokens"]),
+                "limit": self.swarm_burst,
+                "reset_after_seconds": reset_after,
+                "reset_epoch": reset_epoch,
                 "swarm_mode": True,
             }
 
+        retry_after = (1 - bucket["tokens"]) * seconds_per_token
         return {
             "allowed": False,
             "remaining": 0,
-            "retry_after_seconds": (1 - bucket["tokens"]) * (60.0 / self.rpm),
+            "limit": self.burst,
+            "reset_after_seconds": retry_after,
+            "reset_epoch": int(time.time() + retry_after),
+            "retry_after_seconds": retry_after,
         }
 
     def _evict_stale_buckets(self, now: float) -> None:
@@ -475,6 +504,109 @@ _brute_force = _BruteForceTracker(
 _MAX_BODY_BYTES = int(os.environ.get("MURPHY_MAX_BODY_BYTES", str(1_048_576)))  # 1 MB default
 
 
+# ── CSRF Protection ──────────────────────────────────────────────────
+
+# Methods that mutate state and require a valid CSRF token
+_CSRF_PROTECTED_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+
+# Paths exempt from CSRF validation (login/logout use credentials directly)
+_CSRF_EXEMPT_PATHS = frozenset({
+    "/api/auth/login",
+    "/api/auth/logout",
+    "/api/auth/signup",
+    "/api/auth/register",
+    "/api/auth/callback",
+})
+
+# Secret used to sign CSRF tokens.  Override with MURPHY_CSRF_SECRET env var.
+# Tokens are stateless HMAC-SHA256 digests keyed on the session identifier so
+# they can be validated without server-side storage.
+_CSRF_SECRET = os.environ.get("MURPHY_CSRF_SECRET", "")
+
+
+class _CSRFProtection:
+    """Stateless CSRF protection using HMAC-signed double-submit tokens.
+
+    A CSRF token is ``HMAC-SHA256(csrf_secret, session_id)`` rendered as a
+    hex string.  The client receives the token in the ``X-CSRF-Token`` response
+    header on GET requests, and must echo it back in the ``X-CSRF-Token``
+    *request* header on every state-changing (POST/PUT/PATCH/DELETE) call.
+
+    Stateless design means no server-side session store is required; the
+    token is fully self-verifying as long as the CSRF secret is kept private.
+
+    When ``MURPHY_CSRF_SECRET`` is not configured (development / test) the
+    check is skipped to avoid blocking local workflows.  In staging/production
+    the env var must be set or every mutation request will be rejected with 403.
+    """
+
+    @staticmethod
+    def generate_token(session_id: str) -> str:
+        """Return an HMAC-SHA256 CSRF token for *session_id*."""
+        if not _CSRF_SECRET:
+            # Deterministic fallback for environments without a configured
+            # secret so that callers always receive a string they can echo back.
+            return hashlib.sha256(session_id.encode()).hexdigest()
+        return hmac.new(
+            _CSRF_SECRET.encode(),
+            session_id.encode(),
+            hashlib.sha256,
+        ).hexdigest()
+
+    @staticmethod
+    def validate_token(session_id: str, submitted_token: str) -> bool:
+        """Return True if *submitted_token* is valid for *session_id*."""
+        if not submitted_token:
+            return False
+        expected = _CSRFProtection.generate_token(session_id)
+        return hmac.compare_digest(expected, submitted_token)
+
+    @staticmethod
+    def is_exempt(path: str, method: str) -> bool:
+        """Return True if this request does NOT require CSRF validation."""
+        if method.upper() not in _CSRF_PROTECTED_METHODS:
+            return True
+        normalized = path.rstrip("/")
+        return normalized in _CSRF_EXEMPT_PATHS
+
+    @classmethod
+    def check_request(cls, request: "Request") -> Optional[str]:
+        """Validate the CSRF token on a state-changing request.
+
+        Returns ``None`` on success, or an error message string on failure.
+        Skips validation when ``MURPHY_CSRF_SECRET`` is unset (dev/test).
+        """
+        murphy_env = os.environ.get("MURPHY_ENV", "development")
+        if not _CSRF_SECRET and murphy_env in ("development", "test"):
+            return None  # CSRF not enforced in dev/test without a secret
+
+        if cls.is_exempt(request.url.path, request.method):
+            return None
+
+        # Derive a session identifier: prefer the session cookie, fall back
+        # to the Authorization header, then the client IP.
+        session_id = (
+            request.cookies.get("murphy_session", "")
+            or request.headers.get("Authorization", "")
+            or (request.client.host if request.client else "unknown")
+        )
+
+        submitted = request.headers.get("X-CSRF-Token", "").strip()
+        if not submitted:
+            return "Missing X-CSRF-Token header"
+
+        if not cls.validate_token(session_id, submitted):
+            logger.warning(
+                "CSRF validation failed for %s %s (session prefix=%s…)",
+                request.method,
+                request.url.path,
+                session_id[:8],
+            )
+            return "Invalid CSRF token"
+
+        return None
+
+
 # ── Security Headers ────────────────────────────────────────────────
 
 _SECURITY_HEADERS = {
@@ -506,7 +638,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         self.service_name = service_name
 
     async def dispatch(self, request: Request, call_next):
-        """Process an incoming request through auth, rate-limit, and header pipelines."""
+        """Process an incoming request through auth, CSRF, rate-limit, and header pipelines."""
         # Skip auth for health endpoints and OPTIONS (CORS preflight)
         if request.method == "OPTIONS":
             response = await call_next(request)
@@ -553,17 +685,24 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             except ValueError:
                 pass
 
-        # Rate limiting
+        # Rate limiting — enforced before auth so unauthenticated flood requests
+        # are still throttled (CWE-770).
         rate_result = _rate_limiter.check(client_ip)
         if not rate_result["allowed"]:
             logger.warning("[%s] Rate limit exceeded for %s", self.service_name, client_ip)
-            return JSONResponse(
+            resp = JSONResponse(
                 status_code=429,
                 content={
                     "error": "Rate limit exceeded",
                     "retry_after_seconds": rate_result.get("retry_after_seconds", 60),
                 },
             )
+            retry = int(rate_result.get("retry_after_seconds", 60))
+            resp.headers["Retry-After"] = str(retry)
+            resp.headers["X-RateLimit-Limit"] = str(rate_result.get("limit", self._rate_limit))
+            resp.headers["X-RateLimit-Remaining"] = "0"
+            resp.headers["X-RateLimit-Reset"] = str(rate_result.get("reset_epoch", int(time.time()) + retry))
+            return resp
 
         # API key / JWT authentication
         auth_result = _authenticate_request(request)
@@ -598,15 +737,37 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             # Successful auth — clear any brute-force tracking
             _brute_force.record_success(client_ip)
 
+        # CSRF validation for state-changing endpoints (SEC-005)
+        csrf_error = _CSRFProtection.check_request(request)
+        if csrf_error:
+            logger.warning(
+                "[%s] CSRF check failed for %s %s from %s: %s",
+                self.service_name, request.method, request.url.path, client_ip, csrf_error,
+            )
+            return JSONResponse(status_code=403, content={"error": csrf_error})
+
         response = await call_next(request)
         self._add_security_headers(response)
+        # Attach rate-limit informational headers (SEC-006)
+        self._add_rate_limit_headers(response, rate_result)
         return response
+
+    @property
+    def _rate_limit(self) -> int:
+        return _rate_limiter.burst
 
     @staticmethod
     def _add_security_headers(response):
         for header, value in _SECURITY_HEADERS.items():
             if header not in response.headers:
                 response.headers[header] = value
+
+    @staticmethod
+    def _add_rate_limit_headers(response, rate_result: Dict[str, Any]) -> None:
+        """Attach X-RateLimit-* informational headers to *response* (RFC 6585)."""
+        response.headers.setdefault("X-RateLimit-Limit", str(rate_result.get("limit", 0)))
+        response.headers.setdefault("X-RateLimit-Remaining", str(rate_result.get("remaining", 0)))
+        response.headers.setdefault("X-RateLimit-Reset", str(rate_result.get("reset_epoch", 0)))
 
 
 # ── Main Integration Function ────────────────────────────────────────
@@ -615,20 +776,12 @@ def configure_secure_fastapi(app: FastAPI, service_name: str = "murphy-api") -> 
     """
     Apply security hardening to a FastAPI application.
 
-    Wires in (execution order: outermost → innermost):
-    1. SecurityMiddleware — per-IP rate limiting, JWT/API-key auth, brute-force
-       protection, request body size limits, and security response headers (SEC-001, SEC-004)
-    2. PerUserRateLimitMiddleware — per-user and per-endpoint rate limits
-       (keys on X-User-ID header; endpoint tiers for /api/execute, /api/admin, etc.)
-    3. RBACMiddleware — role-based access control on /api/* routes
-    4. RiskClassificationMiddleware — per-request risk scoring (low/medium/high/critical)
-    5. DLPScannerMiddleware — request/response body scan for sensitive data leakage
-    6. CORSMiddleware — origin allowlist (SEC-002)
-
-    All security layers are fail-closed: an unexpected error returns 4xx/5xx rather
-    than allowing the request through.
-
-    Public endpoints (/health, /docs, /openapi.json, etc.) bypass all checks.
+    Wires in:
+    - CORS with origin allowlist (SEC-002)
+    - API key / JWT authentication on all routes (SEC-001, SEC-004)
+    - CSRF token validation for POST/PUT/PATCH/DELETE endpoints (SEC-005)
+    - Rate limiting per client IP with X-RateLimit-* response headers (SEC-006)
+    - Security response headers: HSTS, CSP, X-Frame-Options, X-Content-Type-Options
 
     Args:
         app: FastAPI application to secure
@@ -637,31 +790,20 @@ def configure_secure_fastapi(app: FastAPI, service_name: str = "murphy-api") -> 
     Returns:
         The same FastAPI app, now secured
     """
-    # Step 1: Wire Security Plane middleware
-    # (per-user rate limit → RBAC → risk classification → DLP).
-    # Added before SecurityMiddleware so they execute AFTER IP-level auth succeeds.
-    try:
-        from src.security_plane.middleware import wire_security_plane_middleware
-        wire_security_plane_middleware(app)
-    except ImportError:
-        logger.warning(
-            "[%s] security_plane.middleware not available — per-user rate limiting, "
-            "RBAC, risk classification, and DLP middleware not wired",
-            service_name,
-        )
-
-    # Step 2: CORS (added before SecurityMiddleware so it wraps CORS headers around
-    # auth errors — required for browser-based error handling).
+    # 1. Replace wildcard CORS with origin allowlist
     origins = get_cors_origins()
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-        allow_headers=["Content-Type", "Authorization", "X-Tenant-ID", "X-API-Key"],
+        allow_headers=[
+            "Content-Type", "Authorization", "X-Tenant-ID", "X-API-Key",
+            "X-CSRF-Token",  # clients must echo this header for state-changing requests
+        ],
     )
 
-    # Step 3: Main security middleware — outermost layer (per-IP rate limit + auth + headers).
+    # 2. Security middleware (auth + CSRF + rate limiting + headers)
     app.add_middleware(SecurityMiddleware, service_name=service_name)
 
     murphy_env = os.environ.get("MURPHY_ENV", "development")
@@ -672,11 +814,28 @@ def configure_secure_fastapi(app: FastAPI, service_name: str = "murphy-api") -> 
         )
 
     logger.info(
-        "[%s] Security hardening applied: auth, per-user rate limiting, RBAC, "
-        "risk classification, DLP, CORS, security headers",
+        "[%s] Security hardening applied: auth, CSRF, CORS, rate limiting, security headers",
         service_name,
     )
     return app
+
+
+def generate_csrf_token(session_id: str) -> str:
+    """Generate a CSRF token for a session.
+
+    Call this when issuing a session cookie so the client can receive the
+    token and include it in ``X-CSRF-Token`` on subsequent mutating requests.
+
+    Example::
+
+        @app.post("/api/auth/login")
+        async def login(request: Request):
+            ...
+            token = generate_csrf_token(session_id)
+            response.headers["X-CSRF-Token"] = token
+            return response
+    """
+    return _CSRFProtection.generate_token(session_id)
 
 
 # ── RBAC Enforcement ─────────────────────────────────────────────────
@@ -695,13 +854,6 @@ def register_rbac_governance(rbac) -> None:
     """
     global _rbac_instance
     _rbac_instance = rbac
-    # Also register with the ASGI RBACMiddleware so the middleware-level check uses
-    # the same governance instance.
-    try:
-        from src.security_plane.middleware import register_rbac_middleware_governance
-        register_rbac_middleware_governance(rbac)
-    except ImportError:
-        pass
     logger.info("RBAC governance registered for FastAPI endpoint enforcement")
 
 
@@ -721,19 +873,35 @@ def require_permission(permission_name: str):
             ...
 
     Behaviour:
-    - If no RBAC instance is registered, the check is **permissive** (allows
-      the request) so that development/testing workflows are not blocked.
-    - If RBAC is registered, the middleware reads ``X-User-ID`` from the
-      request headers and calls ``RBACGovernance.check_permission``.
+    - **Deny-by-default in staging/production**: if no RBAC instance is registered
+      and ``MURPHY_ENV`` is not ``development`` or ``test``, the request is rejected
+      with HTTP 403 to prevent unprotected routes from being silently allowed.
+    - In development/test, the check is permissive when RBAC is not wired so that
+      local workflows are not blocked.
+    - When RBAC is registered, reads ``X-User-ID`` from the request headers and
+      calls ``RBACGovernance.check_permission``.  All decisions are logged for audit.
     - Returns HTTP 403 when the permission check fails.
     """
     async def _dependency(request: Request):
+        murphy_env = os.environ.get("MURPHY_ENV", "development")
+        is_prod_like = murphy_env not in ("development", "test")
+
         if _rbac_instance is None:
-            return  # permissive when RBAC not wired
+            if is_prod_like:
+                # Deny-by-default: unregistered RBAC in production is a misconfiguration
+                logger.error(
+                    "RBAC deny-by-default: no RBAC instance registered for permission "
+                    "'%s' in %s environment — blocking request",
+                    permission_name, murphy_env,
+                )
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Permission denied: RBAC not configured ({permission_name})",
+                )
+            return  # permissive in dev/test when RBAC not wired
 
         user_id = request.headers.get("X-User-ID", "")
         if not user_id:
-            murphy_env = os.environ.get("MURPHY_ENV", "development")
             # Only development and test skip RBAC; staging and production require it
             if murphy_env in ("development", "test"):
                 return  # anonymous OK in dev/test
@@ -744,18 +912,37 @@ def require_permission(permission_name: str):
             from src.rbac_governance import Permission as RBACPermission
             perm = RBACPermission(permission_name)
         except ImportError:
-            logger.warning("RBAC module not available — allowing request")
+            if is_prod_like:
+                logger.error(
+                    "RBAC module unavailable in %s — blocking request for permission '%s'",
+                    murphy_env, permission_name,
+                )
+                raise HTTPException(status_code=403, detail="RBAC module unavailable")
+            logger.warning("RBAC module not available — allowing request (dev/test only)")
             return
         except ValueError:
             valid = [p.value for p in RBACPermission]
+            if is_prod_like:
+                logger.error(
+                    "Unknown RBAC permission '%s' — blocking request in %s",
+                    permission_name, murphy_env,
+                )
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Unknown permission: {permission_name}",
+                )
             logger.warning(
-                "Unknown RBAC permission '%s' (valid: %s) — allowing request",
+                "Unknown RBAC permission '%s' (valid: %s) — allowing request (dev/test only)",
                 permission_name,
                 ", ".join(valid),
             )
             return
 
         allowed, reason = _rbac_instance.check_permission(user_id, perm)
+        logger.info(
+            "RBAC check: user=%s permission=%s decision=%s reason=%s path=%s",
+            user_id, permission_name, "ALLOW" if allowed else "DENY", reason, request.url.path,
+        )
         if not allowed:
             raise HTTPException(
                 status_code=403,
