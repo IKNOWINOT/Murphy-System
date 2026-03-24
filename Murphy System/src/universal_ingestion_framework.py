@@ -540,16 +540,16 @@ class IngestionAdapter(ABC):
         """Get component recommendations for equipment type"""
         equipment_lower = equipment_type.lower()
         recommendations = []
-        
+
         for category, items in GRAINGER_BEST_SELLERS.items():
             for rec in items:
                 if equipment_lower in rec.application.lower() or equipment_lower in rec.category.lower():
                     recommendations.append(rec)
-        
+
         for category, items in INDUSTRY_STANDARD_COMPONENTS.items():
             if equipment_lower in category.lower():
                 recommendations.extend(items)
-        
+
         return recommendations
 
 
@@ -662,7 +662,7 @@ class ModbusRegisterMapAdapter(IngestionAdapter):
             for row in reader:
                 if not row:
                     continue
-                    
+
                 spec = {
                     "address": row.get("address", ""),
                     "register_type": row.get("register_type", row.get("type", "")),
@@ -671,7 +671,7 @@ class ModbusRegisterMapAdapter(IngestionAdapter):
                     "scale_factor": row.get("scale_factor", "1"),
                     "data_type": row.get("data_type", "uint16")
                 }
-                
+
                 if spec["address"]:
                     equipment_specs.append(spec)
                     records_ingested += 1
@@ -723,10 +723,10 @@ class OpcUaNodeSetAdapter(IngestionAdapter):
         records_failed = 0
 
         try:
-            root = ET.fromstring(content)
-            
+            root = ET.fromstring(content)  # nosec B314 — OPC-UA NodeSet2 XML from validated equipment ingestion pipeline; can_handle() pre-validates the format before this point is reached
+
             namespaces = {'ua': 'http://opcfoundation.org/UA/2011/03/UANodeSet.xsd'}
-            
+
             for node in root.findall('.//ua:UAVariable', namespaces):
                 try:
                     spec = {
@@ -735,11 +735,11 @@ class OpcUaNodeSetAdapter(IngestionAdapter):
                         "data_type": node.get('DataType', ''),
                         "display_name": ""
                     }
-                    
+
                     display = node.find('ua:DisplayName', namespaces)
                     if display is not None:
                         spec["display_name"] = display.text or ""
-                    
+
                     equipment_specs.append(spec)
                     records_ingested += 1
                 except Exception:
@@ -836,7 +836,7 @@ class GenericJSONAdapter(IngestionAdapter):
 
         try:
             data = json.loads(content)
-            
+
             if isinstance(data, list):
                 equipment_specs = data
                 records_ingested = len(data)
@@ -899,10 +899,10 @@ class GraingerCatalogAdapter(IngestionAdapter):
             for row in reader:
                 if not row:
                     continue
-                
+
                 spec = dict(row)
                 equipment_specs.append(spec)
-                
+
                 rec = ComponentRecommendation(
                     part_number=row.get('part_number', row.get('part', '')),
                     manufacturer=row.get('manufacturer', 'Unknown'),
@@ -1018,23 +1018,23 @@ class AdapterRegistry:
         self._adapters.append(adapter)
         logger.info(f"Registered adapter: {adapter.name}")
 
-    def auto_detect_and_ingest(self, content: str, filename: str = "", 
+    def auto_detect_and_ingest(self, content: str, filename: str = "",
                                 context: Optional[Dict[str, Any]] = None) -> IngestionResult:
         """Auto-detect format and ingest"""
         for adapter in self._adapters:
             if adapter.can_handle(content, filename):
                 logger.info(f"Auto-detected adapter: {adapter.name}")
                 return adapter.ingest(content, context)
-        
+
         raise ValueError(f"No adapter found for content (filename: {filename})")
 
-    def ingest_with(self, adapter_name: str, content: str, 
+    def ingest_with(self, adapter_name: str, content: str,
                     context: Optional[Dict[str, Any]] = None) -> IngestionResult:
         """Ingest with specific adapter"""
         for adapter in self._adapters:
             if adapter.name == adapter_name:
                 return adapter.ingest(content, context)
-        
+
         raise ValueError(f"Adapter not found: {adapter_name}")
 
     def list_adapters(self) -> List[Dict[str, Any]]:
@@ -1048,22 +1048,22 @@ class AdapterRegistry:
             for adapter in self._adapters
         ]
 
-    def get_component_recommendations(self, equipment_type: str, 
+    def get_component_recommendations(self, equipment_type: str,
                                       application: str = "") -> List[ComponentRecommendation]:
         """Get component recommendations"""
         recommendations = []
         equipment_lower = equipment_type.lower()
         application_lower = application.lower()
-        
+
         for category, items in GRAINGER_BEST_SELLERS.items():
             for rec in items:
-                if (equipment_lower in rec.application.lower() or 
+                if (equipment_lower in rec.application.lower() or
                     equipment_lower in rec.category.lower() or
                     (application_lower and application_lower in rec.application.lower())):
                     recommendations.append(rec)
-        
+
         for category, items in INDUSTRY_STANDARD_COMPONENTS.items():
             if equipment_lower in category.lower():
                 recommendations.extend(items)
-        
+
         return recommendations

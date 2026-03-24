@@ -30,12 +30,12 @@ except ImportError:  # pragma: no cover
     CompleteRequest = None  # type: ignore[misc,assignment]
     ResumeRequest = None  # type: ignore[misc,assignment]
 
-from .task_catalog import TASK_CATALOG
-from .workflow_definition import create_onboarding_workflow
-from .priority_scorer import PriorityScorer
-from .wait_state_handler import WaitStateHandler
-from .progress_tracker import ProgressTracker
 from .onboarding_session import OnboardingSession
+from .priority_scorer import PriorityScorer
+from .progress_tracker import ProgressTracker
+from .task_catalog import TASK_CATALOG
+from .wait_state_handler import WaitStateHandler
+from .workflow_definition import create_onboarding_workflow
 
 _sessions: Dict[str, OnboardingSession] = {}
 _task_map = {t.task_id: t for t in TASK_CATALOG}

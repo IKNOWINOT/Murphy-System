@@ -806,12 +806,12 @@ def _build_mss_controller():
         sys.path.insert(0, _src_dir)
 
     # Use bare imports — consistent with mss_controls.py's own internal imports
-    from mss_controls import MSSController  # noqa: PLC0415
-    from information_quality import InformationQualityEngine  # noqa: PLC0415
     from concept_translation import ConceptTranslationEngine  # noqa: PLC0415
-    from simulation_engine import StrategicSimulationEngine  # noqa: PLC0415
-    from resolution_scoring import ResolutionDetectionEngine  # noqa: PLC0415
     from information_density import InformationDensityEngine  # noqa: PLC0415
+    from information_quality import InformationQualityEngine  # noqa: PLC0415
+    from mss_controls import MSSController  # noqa: PLC0415
+    from resolution_scoring import ResolutionDetectionEngine  # noqa: PLC0415
+    from simulation_engine import StrategicSimulationEngine  # noqa: PLC0415
     from structural_coherence import StructuralCoherenceEngine  # noqa: PLC0415
     rde = ResolutionDetectionEngine()
     ide = InformationDensityEngine()
@@ -965,8 +965,8 @@ def _build_automation_blueprint(query: str, mss_result: Optional[Dict[str, Any]]
     # ── Generate real workflow via AIWorkflowGenerator ──────────────────────
     workflow: Dict[str, Any] = {}
     try:
-        import sys as _sys
         import os as _os
+        import sys as _sys
         _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
         from ai_workflow_generator import AIWorkflowGenerator
         generator = AIWorkflowGenerator()
@@ -1192,15 +1192,15 @@ def _build_quality_plan(
         f"■ PRE-OPTIMIZATION SUGGESTIONS\n"
         f"──────────────────────────────\n"
         + "\n".join(suggestions) + "\n"
-        f"\n"
-        f"■ CLIENT PORTFOLIO — SAVE & CUSTOMIZE\n"
-        f"──────────────────────────────────────\n"
-        f"  Your quality plan selections can be saved as a client portfolio.\n"
-        f"  POST /api/client-portfolio/save  with your selected service IDs.\n"
-        f"  GET  /api/client-portfolio/{{id}}  to retrieve your portfolio.\n"
-        f"\n"
-        f"  Mix & match services at any time. Upgrade or downgrade tiers\n"
-        f"  with pre-optimization suggestions based on your usage patterns.\n"
+        "\n"
+        "■ CLIENT PORTFOLIO — SAVE & CUSTOMIZE\n"
+        "──────────────────────────────────────\n"
+        "  Your quality plan selections can be saved as a client portfolio.\n"
+        "  POST /api/client-portfolio/save  with your selected service IDs.\n"
+        "  GET  /api/client-portfolio/{id}  to retrieve your portfolio.\n"
+        "\n"
+        "  Mix & match services at any time. Upgrade or downgrade tiers\n"
+        "  with pre-optimization suggestions based on your usage patterns.\n"
     )
 
 
@@ -1249,6 +1249,7 @@ def _generate_llm_content(
         enriched_context = "\n\n".join(context_parts)
         try:
             import asyncio
+
             from src.llm_controller import LLMController, LLMRequest
             controller = LLMController()
             llm_prompt = (
@@ -1289,6 +1290,7 @@ def _generate_llm_content(
 
     try:
         import asyncio
+
         from src.llm_controller import LLMController, LLMRequest
         controller = LLMController()
         req = LLMRequest(prompt=prompt, max_tokens=1024)
@@ -1550,8 +1552,8 @@ def make_fingerprint(request_ip: str, user_agent: str) -> str:
 # pre-seeds the subscriber's account on signup.
 # =============================================================================
 
-import uuid as _uuid_mod
 import json as _json_mod
+import uuid as _uuid_mod
 
 # ---------------------------------------------------------------------------
 # Competitor pricing data (kept here so it stays in sync with spec output)
@@ -2086,7 +2088,7 @@ def generate_automation_spec(
         _MURPHY_ASCII_LOGO,
         "",
         "═" * 72,
-        f"  AUTOMATION SPECIFICATION",
+        "  AUTOMATION SPECIFICATION",
         f"  {title}",
         "═" * 72,
         "",
@@ -2179,16 +2181,16 @@ def generate_automation_spec(
         "  TIME & COST SAVINGS ANALYSIS",
         "─" * 72,
         "",
-        f"  Current state (manual):",
+        "  Current state (manual):",
         f"    • {manual_hours_month} hours/month spent on these workflows",
         f"    • Staff cost (@ ${hourly_rate}/hr): ${manual_hours_month * hourly_rate:,}/month",
         "",
-        f"  With Murphy System:",
-        f"    • ~1 hour/month (oversight, exception handling, approvals)",
+        "  With Murphy System:",
+        "    • ~1 hour/month (oversight, exception handling, approvals)",
         f"    • Platform cost: ${tier_cost}/month",
         f"    • Total cost: ${tier_cost + hourly_rate:,}/month",
         "",
-        f"  Savings breakdown:",
+        "  Savings breakdown:",
         f"    • Hours freed per month  : {hours_saved} hrs",
         f"    • Value of freed capacity: ${monthly_savings:,}/month",
         f"    • Murphy subscription    : −${tier_cost}/month",
@@ -2220,7 +2222,7 @@ def generate_automation_spec(
         "─" * 72,
         "",
         f"  When you sign up with Spec ID  {spec_id}",
-        f"  Murphy will automatically:",
+        "  Murphy will automatically:",
         "",
     ]
     for i, wf in enumerate(workflows, 1):
@@ -2245,7 +2247,7 @@ def generate_automation_spec(
         "  [ ] Activate and watch your operations run automatically",
         "  [ ] Go live in under 10 minutes — no developers required",
         "",
-        f"  Questions? Contact us at hello@murphy.systems",
+        "  Questions? Contact us at hello@murphy.systems",
         "",
     ]
 

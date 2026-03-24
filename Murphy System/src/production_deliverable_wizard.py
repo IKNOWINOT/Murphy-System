@@ -662,7 +662,7 @@ class DeliverableWizard:
             dt = answer.strip().lower()
             valid = {t.value for t in DeliverableType}
             session.deliverable_type = dt if dt in valid else DeliverableType.UNKNOWN.value
-            
+
             # Detect industry type for manufacturing/BAS/industrial-related deliverables
             if dt in ["workflow", "automation", "org_chart"]:
                 # Check if this is BAS/industrial related from context or answer
@@ -757,7 +757,7 @@ class DeliverableWizard:
             raw_answers=dict(session.questions_answered),
             industry_type=session.industry_type,
         )
-        
+
         # NOTE: If industry_type is set, the IndustryAutomationWizard should be consulted
         # for industry-specific automation setup (e.g., BAS/manufacturing workflows)
 

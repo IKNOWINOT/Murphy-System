@@ -85,10 +85,10 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from src.communication_hub import (
-    im_store,
+    automation_store,
     call_store,
     email_store,
-    automation_store,
+    im_store,
     mod_console,
 )
 

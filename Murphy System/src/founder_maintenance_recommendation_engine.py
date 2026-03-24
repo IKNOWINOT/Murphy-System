@@ -72,7 +72,7 @@ except Exception:  # pragma: no cover
     _BACKBONE_AVAILABLE = False
 
 try:
-    from self_improvement_engine import SelfImprovementEngine, ImprovementProposal
+    from self_improvement_engine import ImprovementProposal, SelfImprovementEngine
     _IMPROVEMENT_AVAILABLE = True
 except Exception:  # pragma: no cover
     SelfImprovementEngine = None  # type: ignore[assignment,misc]

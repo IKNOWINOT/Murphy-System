@@ -4,15 +4,18 @@ Virtual Controller Module
 Provides virtual controller emulation and wiring verification for BAS equipment.
 """
 
-from dataclasses import dataclass, field
-from typing import List, Dict, Optional, Any
-from datetime import datetime
 import random
 import uuid
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from bas_equipment_ingestion import (
-    EquipmentSpec, ControllerPoint, EquipmentPointType, 
-    EquipmentProtocol, EquipmentCategory
+    ControllerPoint,
+    EquipmentCategory,
+    EquipmentPointType,
+    EquipmentProtocol,
+    EquipmentSpec,
 )
 
 
@@ -148,7 +151,7 @@ class VirtualController:
         self.protocol = EquipmentProtocol.BACNET_IP
         self.points: Dict[str, ControllerPoint] = {}
         self.connected = False
-        
+
         if spec:
             self.populate_from_spec(spec)
 
@@ -163,11 +166,11 @@ class VirtualController:
         """Read a point value (returns current_value or simulated)"""
         if point_id not in self.points:
             return None
-        
+
         point = self.points[point_id]
         if point.current_value is not None:
             return point.current_value
-        
+
         # Return simulated value
         return self.simulate_reading(point)
 
@@ -175,19 +178,19 @@ class VirtualController:
         """Write to a commandable point"""
         if point_id not in self.points:
             return False
-        
+
         point = self.points[point_id]
-        
+
         # Only commandable outputs can be written
         if not point.is_commandable:
             return False
-        
+
         # Clamp to limits
         if value < point.low_limit:
             value = point.low_limit
         elif value > point.high_limit:
             value = point.high_limit
-        
+
         point.current_value = value
         return True
 
@@ -234,18 +237,18 @@ class VirtualController:
     def simulate_reading(self, point: ControllerPoint) -> float:
         """Generate realistic simulated value within limits"""
         # Use normal_value as baseline with some variance
-        if point.point_type in [EquipmentPointType.DI, EquipmentPointType.DO, 
+        if point.point_type in [EquipmentPointType.DI, EquipmentPointType.DO,
                                 EquipmentPointType.BV]:
             # Binary points: 0 or 1
             return float(random.choice([0, 1]))
-        
+
         # Analog points: add +/- 10% variance to normal_value
         variance = (point.high_limit - point.low_limit) * 0.1
         value = point.normal_value + random.uniform(-variance, variance)
-        
+
         # Clamp to limits
         value = max(point.low_limit, min(point.high_limit, value))
-        
+
         return round(value, 2)
 
 
@@ -255,25 +258,25 @@ class WiringVerificationEngine:
     def verify(self, spec: EquipmentSpec) -> VerificationReport:
         """Perform complete wiring verification"""
         issues: List[WiringIssue] = []
-        
+
         # Run all checks
         self._check_minimum_points(spec, issues)
         self._check_units_validity(spec, issues)
         self._check_range_logic(spec, issues)
         self._check_duplicate_instances(spec, issues)
         self._check_commandable_outputs(spec, issues)
-        
+
         # Count by severity
         error_count = sum(1 for issue in issues if issue.severity == "error")
         warning_count = sum(1 for issue in issues if issue.severity == "warning")
         info_count = sum(1 for issue in issues if issue.severity == "info")
-        
+
         # Passed if no errors
         passed = error_count == 0
-        
+
         # Overall recommendation
         overall_rec = self._generate_overall_recommendation(spec, issues)
-        
+
         report = VerificationReport(
             report_id=str(uuid.uuid4()),
             spec_id=spec.spec_id,
@@ -287,7 +290,7 @@ class WiringVerificationEngine:
             point_count_summary=spec.point_summary(),
             overall_recommendation=overall_rec
         )
-        
+
         return report
 
     def _check_minimum_points(self, spec: EquipmentSpec, issues: List[WiringIssue]):
@@ -295,18 +298,18 @@ class WiringVerificationEngine:
         requirements = MINIMUM_POINT_REQUIREMENTS.get(spec.category)
         if not requirements:
             return
-        
+
         # Count points by type
         point_counts = {pt: 0 for pt in EquipmentPointType}
         for point in spec.points:
             point_counts[point.point_type] += 1
-        
+
         # Check required types
         missing_types = []
         for req_type in requirements["required_types"]:
             if point_counts[req_type] < 1:
                 missing_types.append(req_type.name)
-        
+
         if missing_types:
             issues.append(WiringIssue(
                 point_id="",
@@ -316,7 +319,7 @@ class WiringVerificationEngine:
                 message=f"Missing required point types: {', '.join(missing_types)}",
                 recommendation=requirements["description"]
             ))
-        
+
         # Check total count
         total_points = len(spec.points)
         if total_points < requirements["min_count"]:
@@ -335,7 +338,7 @@ class WiringVerificationEngine:
             valid_units = VALID_UNITS_PER_TYPE.get(point.point_type, [])
             if not valid_units:
                 continue
-            
+
             if point.engineering_units and point.engineering_units not in valid_units:
                 issues.append(WiringIssue(
                     point_id=point.point_id,
@@ -359,7 +362,7 @@ class WiringVerificationEngine:
                     message=f"low_limit ({point.low_limit}) >= high_limit ({point.high_limit})",
                     recommendation="Correct the limit values so low_limit < high_limit"
                 ))
-            
+
             # Check normal value in range
             if not (point.low_limit <= point.normal_value <= point.high_limit):
                 issues.append(WiringIssue(
@@ -370,7 +373,7 @@ class WiringVerificationEngine:
                     message=f"normal_value ({point.normal_value}) outside operational range",
                     recommendation="Set normal_value within low_limit and high_limit"
                 ))
-            
+
             # Check alarm limits if present
             if point.alarm_low is not None and point.alarm_low < point.low_limit:
                 issues.append(WiringIssue(
@@ -381,7 +384,7 @@ class WiringVerificationEngine:
                     message=f"alarm_low ({point.alarm_low}) below operational range",
                     recommendation="Set alarm_low >= low_limit"
                 ))
-            
+
             if point.alarm_high is not None and point.alarm_high > point.high_limit:
                 issues.append(WiringIssue(
                     point_id=point.point_id,
@@ -397,7 +400,7 @@ class WiringVerificationEngine:
         # Only relevant for BACnet protocols
         if "BACNET" not in spec.protocol.name:
             return
-        
+
         # Group by object_type
         instances_by_type: Dict[str, List[tuple]] = {}
         for point in spec.points:
@@ -405,7 +408,7 @@ class WiringVerificationEngine:
             if obj_type not in instances_by_type:
                 instances_by_type[obj_type] = []
             instances_by_type[obj_type].append((point.object_instance, point.point_id, point.point_name))
-        
+
         # Check for duplicates
         for obj_type, instances in instances_by_type.items():
             instance_nums = [inst[0] for inst in instances]
@@ -442,7 +445,7 @@ class WiringVerificationEngine:
         """Generate overall recommendation based on issues"""
         error_count = sum(1 for issue in issues if issue.severity == "error")
         warning_count = sum(1 for issue in issues if issue.severity == "warning")
-        
+
         if error_count == 0 and warning_count == 0:
             return f"{spec.equipment_name} wiring verified successfully. Equipment is ready for commissioning."
         elif error_count == 0:
