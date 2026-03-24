@@ -54,8 +54,6 @@ SUBSYSTEM_ROOMS: Dict[str, _RoomSpec] = {
     "compliance-engine":                ("governance", True),
     "compliance-as-code-engine":        ("governance", True),
     "compliance-monitoring":            ("governance", True),
-    "outreach-compliance-integration":  ("governance", True),
-    "contact-compliance-governor":      ("governance", True),
     "rbac-governance":                  ("governance", True),
     "authority-gate":                   ("governance", True),
     "gate-bypass-controller":           ("governance", True),
@@ -112,8 +110,6 @@ SUBSYSTEM_ROOMS: Dict[str, _RoomSpec] = {
     "agentic-api-provisioner":          ("swarm-agents", False),
     "agentic-onboarding-engine":        ("swarm-agents", False),
     "declarative-fleet-manager":        ("swarm-agents", False),
-    "self-codebase-swarm":              ("swarm-agents", False),
-    "visual-swarm-builder":             ("swarm-agents", False),
 
     # ── Business & Finance ───────────────────────────────────────────────────
     "niche-business-generator":         ("business-finance", False),
@@ -149,7 +145,6 @@ SUBSYSTEM_ROOMS: Dict[str, _RoomSpec] = {
     "content-creator-platform-modulator": ("comms-notifications", False),
     "campaign-orchestrator":            ("comms-notifications", False),
     "adaptive-campaign-engine":         ("comms-notifications", False),
-    "self-marketing-orchestrator":      ("comms-notifications", False),
 
     # ── Infrastructure & DevOps ──────────────────────────────────────────────
     "docker-containerization":          ("infrastructure", False),
@@ -202,7 +197,6 @@ SUBSYSTEM_ROOMS: Dict[str, _RoomSpec] = {
     "log-analysis-engine":              ("monitoring", False),
     "alert-rules-engine":               ("monitoring", False),
     "causal-spike-analyzer":            ("monitoring", False),
-    "self-introspection":               ("monitoring", False),
 
     # ── Self-Healing & Resilience ────────────────────────────────────────────
     "autonomous-repair-system":         ("self-healing", False),
@@ -218,6 +212,7 @@ SUBSYSTEM_ROOMS: Dict[str, _RoomSpec] = {
     "predictive-failure-engine":        ("self-healing", False),
     "predictive-maintenance-engine":    ("self-healing", False),
     "blackstart-controller":            ("self-healing", False),
+    "system-update-recommendation-engine": ("self-healing", False),
 
     # ── Domain & Expert Systems ──────────────────────────────────────────────
     "domain-engine":                    ("domain-expert", False),
@@ -347,12 +342,6 @@ SUBSYSTEM_ROOMS: Dict[str, _RoomSpec] = {
     "murphy-foundation-model":          ("additional", False),
     "execution-packet-compiler":        ("additional", False),
     "execution":                        ("additional", False),
-    "ceo-branch":                       ("additional", False),
-    "cutsheet-engine":                  ("additional", False),
-    "production-assistant-engine":      ("additional", False),
-    # Collaborative Task Orchestrator + UI Trainer spaces (added 2026-03-16)
-    "murphy-swarm-coordinator":         ("swarm-agents", False),
-    "murphy-ui-trainer":                ("ui-trainer", False),
 
     # ── Well-known system rooms ───────────────────────────────────────────────
     "system-status":                    ("system", False),

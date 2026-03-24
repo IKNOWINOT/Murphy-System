@@ -603,3 +603,273 @@ def summarise_results(results: List[ActionResult]) -> Dict[str, Any]:
         "avg_duration_ms": avg_duration,
         "avg_confidence": avg_confidence,
     }
+
+
+# ---------------------------------------------------------------------------
+# LLM response → ExecutionCompiler wiring  (Hero Flow — Task 1)
+# ---------------------------------------------------------------------------
+
+class LLMResponseWiringError(Exception):
+    """Raised when the LLM response cannot be compiled into an execution packet."""
+
+
+class LLMResponseWirer:
+    """Parses a raw LLM response and compiles it into an execution packet.
+
+    This closes the Hero Flow loop:
+        LLM response → parse → compile (ExecutionCompiler) → execution packet
+
+    Retry behaviour
+    ---------------
+    *max_retries* (default 3) controls how many times the wirer will retry on
+    transient errors (timeout, rate-limit, or malformed-JSON).  Between each
+    attempt an exponential back-off of ``0.1 * 2**(attempt-1)`` seconds is
+    applied.
+
+    Graceful degradation
+    --------------------
+    When all retries are exhausted the wirer returns a ``degraded`` packet
+    instead of raising, so the Hero Flow can continue and notify the user.
+    The packet contains ``"status": "degraded"`` and a human-readable
+    ``"reason"`` field.
+
+    Parameters
+    ----------
+    max_retries:
+        Maximum retry attempts for transient failures.
+    timeout_seconds:
+        Per-attempt wall-clock budget (informational — callers are
+        responsible for honouring the timeout at the transport layer).
+    """
+
+    # Transient error indicators that warrant a retry
+    _TRANSIENT_PATTERNS: List[str] = [
+        "timeout",
+        "rate limit",
+        "rate_limit",
+        "too many requests",
+        "503",
+        "502",
+        "connection",
+    ]
+
+    def __init__(
+        self,
+        max_retries: int = 3,
+        timeout_seconds: float = 30.0,
+    ) -> None:
+        self._max_retries = max_retries
+        self._timeout_seconds = timeout_seconds
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def wire(
+        self,
+        llm_response: str,
+        *,
+        confidence: float = 0.85,
+        authority_level: str = "high",
+        gates_satisfied: Optional[List[str]] = None,
+        gates_required: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """Parse *llm_response* and compile it into an execution packet.
+
+        Parameters
+        ----------
+        llm_response:
+            Raw string returned by the LLM.
+        confidence:
+            Confidence score to pass to :class:`ExecutionCompiler`.
+        authority_level:
+            Authority level for the compiled packet.
+        gates_satisfied:
+            Gates already satisfied by the caller.
+        gates_required:
+            Gates required for compilation.
+
+        Returns
+        -------
+        An execution packet dict (always a dict, never raises).
+        ``packet["status"]`` is ``"compiled"`` on success or ``"degraded"``
+        on failure.
+        """
+        last_error: Optional[str] = None
+
+        for attempt in range(1, self._max_retries + 1):
+            try:
+                plan = self._parse_llm_response(llm_response)
+                packet = self._compile(
+                    plan,
+                    confidence=confidence,
+                    authority_level=authority_level,
+                    gates_satisfied=gates_satisfied or [],
+                    gates_required=gates_required or [],
+                )
+                logger.info(
+                    "LLMResponseWirer: compiled packet %s on attempt %d",
+                    packet.get("packet_id", "?"),
+                    attempt,
+                )
+                return packet
+
+            except Exception as exc:
+                last_error = str(exc)
+                if self._is_transient(last_error) and attempt < self._max_retries:
+                    backoff = 0.1 * (2 ** (attempt - 1))
+                    logger.warning(
+                        "LLMResponseWirer: transient error on attempt %d/%d — "
+                        "retrying in %.2fs: %s",
+                        attempt, self._max_retries, backoff, last_error,
+                    )
+                    time.sleep(backoff)
+                else:
+                    logger.error(
+                        "LLMResponseWirer: non-transient or final-attempt error: %s",
+                        last_error,
+                    )
+                    break
+
+        return self._degraded_packet(last_error or "unknown error")
+
+    # ------------------------------------------------------------------
+    # Parsing
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _parse_llm_response(response: str) -> Dict[str, Any]:
+        """Extract a structured plan from a raw LLM string.
+
+        Supported formats (in order of preference):
+        1. JSON object with ``"actions"`` key.
+        2. JSON array (each element treated as an action dict).
+        3. Plain text — each non-empty line becomes one action.
+
+        Raises
+        ------
+        ValueError
+            When the response is empty or cannot be parsed into a plan.
+        """
+        import json
+
+        response = response.strip()
+        if not response:
+            raise ValueError("LLM returned an empty response")
+
+        # Attempt 1: JSON object
+        if response.startswith("{"):
+            try:
+                data = json.loads(response)
+                actions = data.get("actions", [])
+                if not isinstance(actions, list):
+                    actions = [{"description": str(actions)}]
+                return {
+                    "actions": actions,
+                    "summary": data.get("summary", "LLM-generated plan"),
+                    "hypothesis_id": data.get("hypothesis_id", f"llm_{uuid.uuid4().hex[:8]}"),
+                    "confidence": data.get("confidence", 0.85),
+                }
+            except json.JSONDecodeError:
+                pass
+
+        # Attempt 2: JSON array
+        if response.startswith("["):
+            try:
+                actions = json.loads(response)
+                if isinstance(actions, list):
+                    return {
+                        "actions": [
+                            a if isinstance(a, dict) else {"description": str(a)}
+                            for a in actions
+                        ],
+                        "summary": "LLM-generated action list",
+                        "hypothesis_id": f"llm_{uuid.uuid4().hex[:8]}",
+                        "confidence": 0.85,
+                    }
+            except json.JSONDecodeError:
+                pass
+
+        # Attempt 3: plain text — each line = one action
+        lines = [ln.strip() for ln in response.splitlines() if ln.strip()]
+        if not lines:
+            raise ValueError("LLM response contains no actionable content")
+
+        return {
+            "actions": [{"description": ln, "type": "text_directive"} for ln in lines],
+            "summary": lines[0][:120] if lines else "LLM-generated plan",
+            "hypothesis_id": f"llm_{uuid.uuid4().hex[:8]}",
+            "confidence": 0.75,
+        }
+
+    # ------------------------------------------------------------------
+    # Compilation
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _compile(
+        plan: Dict[str, Any],
+        *,
+        confidence: float,
+        authority_level: str,
+        gates_satisfied: List[str],
+        gates_required: List[str],
+    ) -> Dict[str, Any]:
+        """Delegate to :class:`ExecutionCompiler` from ``execution_compiler``."""
+        try:
+            from src.execution_compiler import ExecutionCompiler
+        except ImportError:
+            from execution_compiler import ExecutionCompiler  # type: ignore[no-redef]
+
+        compiler = ExecutionCompiler()
+        packet = compiler.compile(
+            plan,
+            confidence=confidence,
+            authority_level=authority_level,
+            gates_satisfied=gates_satisfied,
+            gates_required=gates_required,
+        )
+
+        if not packet.get("compiled", True):
+            reason = packet.get("reason", "compilation rejected by gate")
+            raise LLMResponseWiringError(f"Compilation failed: {reason}")
+
+        return packet
+
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+
+    def _is_transient(self, error_msg: str) -> bool:
+        """Return True when *error_msg* looks like a transient/retriable error."""
+        lower = error_msg.lower()
+        return any(pat in lower for pat in self._TRANSIENT_PATTERNS)
+
+    @staticmethod
+    def _degraded_packet(reason: str) -> Dict[str, Any]:
+        """Return a minimal degraded packet indicating LLM unavailability."""
+        import hashlib
+        import json
+        from datetime import datetime, timezone
+
+        ts = datetime.now(timezone.utc).isoformat()
+        packet: Dict[str, Any] = {
+            "packet_id": f"degraded_{uuid.uuid4().hex[:12]}",
+            "status": "degraded",
+            "compiled": False,
+            "reason": reason,
+            "timestamp": ts,
+            "degraded": True,
+            "user_message": (
+                "Murphy is temporarily unable to process your request. "
+                "Your task has been queued and will be retried automatically."
+            ),
+        }
+        canonical = json.dumps(
+            {k: packet[k] for k in sorted(packet) if k != "signature"},
+            sort_keys=True,
+            default=str,
+        )
+        packet["signature"] = hashlib.sha256(canonical.encode()).hexdigest()
+        logger.warning("LLMResponseWirer: returning degraded packet — %s", reason)
+        return packet

@@ -91,7 +91,6 @@ MODULE_TO_ROOM: dict[str, str] = {
     "local_inference_engine": "murphy-llm",
     "local_model_layer": "murphy-llm",
     "prompt_amplifier": "murphy-llm",
-    "mock_compatible_local_llm": "murphy-llm",
     # ── Intelligence ─────────────────────────────────────────────────────
     "reasoning_engine": "murphy-intelligence",
     "concept_graph_engine": "murphy-intelligence",

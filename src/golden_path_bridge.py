@@ -279,6 +279,81 @@ class GoldenPathBridge:
             "bridge_operational": True,
         }
 
+    # ------------------------------------------------------------------
+    # Pipeline connection — Hero Flow Task 5
+    # ------------------------------------------------------------------
+
+    def execute_or_record(
+        self,
+        task_pattern: str,
+        domain: str,
+        execution_fn: Any,
+        *,
+        min_confidence: float = 0.75,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Attempt golden-path replay; on miss, execute and record the result.
+
+        This is the single method that connects the golden path bridge back
+        to the main execution pipeline:
+
+        1. Look up matching golden paths with *min_confidence*.
+        2. On hit — replay the stored execution spec (fast path).
+        3. On miss — call *execution_fn(task_pattern)* (full pipeline),
+           record a success, and return the result.
+        4. On execution failure — call :meth:`record_failure` and re-raise.
+
+        Parameters
+        ----------
+        task_pattern:
+            The task or command string.
+        domain:
+            Domain hint for path matching.
+        execution_fn:
+            Callable ``(task_pattern: str) -> dict`` that executes the task
+            via the full pipeline.
+        min_confidence:
+            Minimum bridge confidence to qualify for the fast path.
+        metadata:
+            Optional metadata to attach when recording a new path.
+
+        Returns
+        -------
+        A dict with ``"source": "golden_path"`` on a cache hit or
+        ``"source": "full_pipeline"`` on a cache miss (after executing).
+        """
+        matches = self.find_matching_paths(
+            task_pattern, domain=domain, min_confidence=min_confidence
+        )
+
+        if matches:
+            best = matches[0]
+            spec = self.replay_path(best.path_id)
+            if spec is not None:
+                logger.info(
+                    "GoldenPathBridge: fast-path hit for %r (path=%s, conf=%.2f)",
+                    task_pattern, best.path_id, best.confidence,
+                )
+                return {"source": "golden_path", "path_id": best.path_id, **spec}
+
+        # Full pipeline execution
+        try:
+            result = execution_fn(task_pattern)
+        except Exception as exc:
+            self.record_failure(task_pattern, domain)
+            raise
+
+        # Record the successful execution as a new golden path
+        self.record_success(
+            task_pattern,
+            domain,
+            result if isinstance(result, dict) else {"raw": result},
+            metadata=metadata,
+        )
+        result_dict = result if isinstance(result, dict) else {"raw": result}
+        result_dict["source"] = "full_pipeline"
+        return result_dict
+
 
 # ------------------------------------------------------------------
 # Helpers
