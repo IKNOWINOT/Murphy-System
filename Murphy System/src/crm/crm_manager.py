@@ -22,6 +22,7 @@ except ImportError:
         target_list.append(item)
 
 from .models import (
+    _BUILTIN_PIPELINE_TEMPLATES,
     ActivityType,
     Contact,
     ContactType,
@@ -32,7 +33,6 @@ from .models import (
     EmailInteraction,
     Pipeline,
     Stage,
-    _BUILTIN_PIPELINE_TEMPLATES,
     _now,
 )
 

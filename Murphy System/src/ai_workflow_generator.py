@@ -122,7 +122,6 @@ STEP_KEYWORDS = {
     "tag": "data_filtering",
     "notify_team": "notification",
     "alert_manager": "notification",
-    "approve": "approval",
     "reject": "approval",
     "sign": "approval",
 }
@@ -530,7 +529,7 @@ class AIWorkflowGenerator:
         handler so that every step actually produces real output when executed.
         """
         try:
-            from workflow_dag_engine import WorkflowDefinition, StepDefinition
+            from workflow_dag_engine import StepDefinition, WorkflowDefinition
         except ImportError as exc:
             raise ImportError("workflow_dag_engine is required") from exc
 

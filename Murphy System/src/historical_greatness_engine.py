@@ -42,13 +42,12 @@ Creator:      Corey Post
 
 from __future__ import annotations
 
+import logging
 import math
 import threading
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
-
-import logging
 
 logger = logging.getLogger(__name__)
 

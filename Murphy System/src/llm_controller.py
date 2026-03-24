@@ -528,8 +528,11 @@ class LLMController:
         """Query local small model — tries Ollama first, then placeholder."""
         try:
             from src.local_llm_fallback import (
-                _check_ollama_available, _query_ollama,
-                _ollama_base_url, _preferred_ollama_models, _OLLAMA_SMALL_MODELS,
+                _OLLAMA_SMALL_MODELS,
+                _check_ollama_available,
+                _ollama_base_url,
+                _preferred_ollama_models,
+                _query_ollama,
             )
             _base = _ollama_base_url()
             # Honour OLLAMA_MODEL if set, but keep small models at the front
@@ -570,8 +573,11 @@ class LLMController:
         """Query local medium model — tries Ollama first, then placeholder."""
         try:
             from src.local_llm_fallback import (
-                _check_ollama_available, _query_ollama,
-                _ollama_base_url, _preferred_ollama_models, _OLLAMA_MEDIUM_MODELS,
+                _OLLAMA_MEDIUM_MODELS,
+                _check_ollama_available,
+                _ollama_base_url,
+                _preferred_ollama_models,
+                _query_ollama,
             )
             _base = _ollama_base_url()
             # Honour OLLAMA_MODEL if set, but keep medium models at the front

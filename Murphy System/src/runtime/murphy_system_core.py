@@ -16,8 +16,8 @@ globals().update(
     {k: v for k, v in vars(_runtime_deps).items() if not k.startswith("_")}
 )
 del _runtime_deps
-from src.runtime.living_document import LivingDocument
 from src.murphy_identity import MURPHY_SYSTEM_IDENTITY
+from src.runtime.living_document import LivingDocument
 
 
 class MurphySystem:
@@ -3075,7 +3075,7 @@ class MurphySystem:
         activation_preview: Dict[str, Any],
     ) -> List[Dict[str, Any]]:
         """Attempt to generate clarifying questions via the configured LLM.
-        
+
         Returns empty list when in onboard mode (no external LLM configured)
         to allow fallback to onboard clarifying questions.
         """
@@ -3083,7 +3083,7 @@ class MurphySystem:
         librarian_status = self._get_librarian_status()
         if librarian_status.get("mode") == "onboard":
             return []
-        
+
         dip = activation_preview.get("dynamic_implementation") or {}
         info_gaps = dip.get("information_gaps", [])
         next_actions = dip.get("next_actions", [])
@@ -12116,7 +12116,7 @@ class MurphySystem:
         """
         # Providers that indicate onboard/local fallback mode (not external API)
         _ONBOARD_PROVIDERS = frozenset(("onboard", "local", "local_fallback", "pattern_matcher"))
-        
+
         librarian = getattr(self, "librarian", None)
         llm_status = self._get_llm_status()
         # Check if using external LLM provider (not onboard/local)

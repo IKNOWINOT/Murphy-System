@@ -329,8 +329,9 @@ class ProfitSweep:
     def get_next_sweep_info(self) -> Dict[str, Any]:
         """Return information about the next scheduled sweep."""
         try:
-            import pytz
             from datetime import timedelta
+
+            import pytz
             tz  = pytz.timezone(_SWEEP_TZ)
             now = datetime.now(tz)
             h, m = map(int, _SWEEP_TIME.split(":"))

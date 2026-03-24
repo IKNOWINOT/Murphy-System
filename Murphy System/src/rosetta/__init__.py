@@ -2,13 +2,12 @@
 from .rosetta_manager import RosettaManager
 from .rosetta_models import AgentState, Goal, Identity, RosettaAgentState, SystemState, Task
 from .subsystem_wiring import (
+    RosettaSubsystemWiring,
     WiringPoint,
     WiringResult,
     WiringStatus,
-    RosettaSubsystemWiring,
     bootstrap_wiring,
 )
-from .subsystem_wiring import RosettaSubsystemWiring, bootstrap_wiring
 
 __all__ = [
     "RosettaAgentState",

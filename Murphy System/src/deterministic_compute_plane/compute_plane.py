@@ -24,9 +24,9 @@ class DeterministicComputePlane:
     """
 
     def __init__(self):
-        from src.deterministic_routing_engine import DeterministicRoutingEngine
-        from src.compute_plane.service import ComputeService
         from src.compute_plane.models.compute_request import ComputeRequest
+        from src.compute_plane.service import ComputeService
+        from src.deterministic_routing_engine import DeterministicRoutingEngine
 
         self._router = DeterministicRoutingEngine()
         self._compute = ComputeService()

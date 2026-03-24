@@ -480,7 +480,7 @@ Which platforms need to be integrated? Murphy supports Shopify, Stripe, Gmail, S
 💡 Add a Groq API key (`set key groq gsk_...`) to unlock full AI-powered planning."""
 
         elif response_type == "business":
-            return f"""Thanks for sharing information about your business!
+            return """Thanks for sharing information about your business!
 
 To help you automate effectively, Murphy needs a few details:
 
@@ -501,7 +501,7 @@ Once I understand your workflow, I can build an automation blueprint for you. Ty
 💡 **Pro tip**: Add a Groq API key for richer, more tailored automation planning."""
 
         elif response_type == "help":
-            return f"""I'm Murphy — your AI automation assistant. Here's how I can help:
+            return """I'm Murphy — your AI automation assistant. Here's how I can help:
 
 **Available Commands**:
 • `start interview` — Begin guided onboarding to set up your first automation

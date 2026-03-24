@@ -241,22 +241,22 @@ class ProConDecisionEngine:
             return "No decision could be made — all options failed safety or compliance requirements."
         lines = [
             f"Decision: {decision.question}",
-            f"",
+            "",
             f"Best Option: {decision.winner.name}",
             f"Why: {decision.reasoning}",
-            f"",
+            "",
             f"Pros score: {decision.winner.total_pro_score:.1f}",
             f"Cons score: {decision.winner.total_con_score:.1f}",
             f"Net score: {decision.winner.net_score:.1f}",
         ]
         if decision.runner_up:
             lines.extend([
-                f"",
+                "",
                 f"Second choice: {decision.runner_up.name} (score {decision.runner_up.net_score:.1f})",
             ])
         eliminated = [o for o in decision.options if not o.viable]
         if eliminated:
-            lines.extend([f"", f"Eliminated (failed safety/compliance):"])
+            lines.extend(["", "Eliminated (failed safety/compliance):"])
             for o in eliminated:
                 lines.append(f"  - {o.name}: {'; '.join(o.constraint_violations[:2])}")
         return "\n".join(lines)

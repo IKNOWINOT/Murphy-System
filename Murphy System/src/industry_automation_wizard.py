@@ -5,11 +5,11 @@ Comprehensive wizard covering 10 industries with automation type catalog,
 question-driven flow, and onboarding context integration.
 """
 
-from dataclasses import dataclass, field
-from typing import List, Dict, Optional, Set, Any
-from enum import Enum
-from datetime import datetime
 import uuid
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set
 
 # Import for BAS/manufacturing integration
 try:
@@ -124,14 +124,14 @@ class IndustryAutomationSession:
 
 
 # ============================================================================
-# AUTOMATION CATALOG - All automation types per industry  
+# AUTOMATION CATALOG - All automation types per industry
 # ============================================================================
 
 def _build_automation_catalog() -> Dict:
     """Build complete automation catalog for all 10 industries"""
     from typing import Dict as DictType
     catalog: DictType[IndustryType, list] = {}
-    
+
     # Helper to create automation type
     def at(type_id, name, desc, duration, complexity, recs):
         return AutomationType(
@@ -146,10 +146,10 @@ def _build_automation_catalog() -> Dict:
             recommendations=recs,
             tags=[type_id]
         )
-    
+
     # TECHNOLOGY
     catalog[IndustryType.TECHNOLOGY] = [
-        at("ci_cd_pipeline", "CI/CD Pipeline", "Continuous integration", "2-3 hours", "medium", 
+        at("ci_cd_pipeline", "CI/CD Pipeline", "Continuous integration", "2-3 hours", "medium",
            ["Use trunk-based development", "Automate rollback"]),
         at("code_review_automation", "Code Review", "Automated code review", "1-2 hours", "low",
            ["Enable automatic formatting", "Require 2+ approvals"]),
@@ -170,8 +170,8 @@ def _build_automation_catalog() -> Dict:
         at("user_analytics", "User Analytics", "Track user behavior", "2 hours", "medium",
            ["Respect privacy", "Track key metrics"]),
     ]
-    
-    # HEALTHCARE 
+
+    # HEALTHCARE
     catalog[IndustryType.HEALTHCARE] = [
         at("patient_intake", "Patient Intake", "Automate patient registration", "2-3 hours", "medium",
            ["HIPAA requires minimum necessary information", "Enable audit logging"]),
@@ -186,7 +186,7 @@ def _build_automation_catalog() -> Dict:
         at("ehr_integration", "EHR Integration", "Integrate with EHR", "5 hours", "high",
            ["Use HL7 FHIR standard", "Implement patient matching"]),
     ]
-    
+
     # FINANCE
     catalog[IndustryType.FINANCE] = [
         at("transaction_monitoring", "Transaction Monitoring", "Monitor transactions", "3 hours", "medium",
@@ -202,7 +202,7 @@ def _build_automation_catalog() -> Dict:
         at("kyc_automation", "KYC Automation", "Automate KYC checks", "3 hours", "medium",
            ["Use government ID verification", "Monitor for changes"]),
     ]
-    
+
     # RETAIL
     catalog[IndustryType.RETAIL] = [
         at("inventory_management", "Inventory Management", "Automate inventory tracking", "3 hours", "medium",
@@ -218,7 +218,7 @@ def _build_automation_catalog() -> Dict:
         at("dynamic_pricing", "Dynamic Pricing", "Automate price adjustments", "3 hours", "high",
            ["Consider demand elasticity", "Track conversion rates"]),
     ]
-    
+
     # MANUFACTURING (includes BAS types)
     catalog[IndustryType.MANUFACTURING] = [
         at("quality_control_inspection", "Quality Control", "Automate inspections", "3 hours", "medium",
@@ -238,7 +238,7 @@ def _build_automation_catalog() -> Dict:
         at("oee_tracking", "OEE Tracking", "Track Overall Equipment Effectiveness", "3 hours", "medium",
            ["Target 85% OEE", "Track Six Big Losses"]),
     ]
-    
+
     # EDUCATION
     catalog[IndustryType.EDUCATION] = [
         at("student_enrollment", "Student Enrollment", "Automate student enrollment", "3 hours", "medium",
@@ -254,7 +254,7 @@ def _build_automation_catalog() -> Dict:
         at("parent_communications", "Parent Communications", "Automate parent communications", "2 hours", "low",
            ["Use multi-channel approach", "Translate for non-English speakers"]),
     ]
-    
+
     # PROFESSIONAL_SERVICES
     catalog[IndustryType.PROFESSIONAL_SERVICES] = [
         at("project_management_automation", "Project Management", "Automate project workflows", "3 hours", "medium",
@@ -270,7 +270,7 @@ def _build_automation_catalog() -> Dict:
         at("resource_allocation", "Resource Allocation", "Optimize resource allocation", "3 hours", "medium",
            ["Balance workload", "Track availability"]),
     ]
-    
+
     # MEDIA
     catalog[IndustryType.MEDIA] = [
         at("content_publishing_workflow", "Content Publishing", "Automate content publishing", "2 hours", "medium",
@@ -286,7 +286,7 @@ def _build_automation_catalog() -> Dict:
         at("content_moderation", "Content Moderation", "Moderate user-generated content", "2 hours", "medium",
            ["Use AI for initial screening", "Human review for edge cases"]),
     ]
-    
+
     # NONPROFIT
     catalog[IndustryType.NONPROFIT] = [
         at("donor_management", "Donor Management", "Manage donor relationships", "3 hours", "medium",
@@ -302,7 +302,7 @@ def _build_automation_catalog() -> Dict:
         at("beneficiary_tracking", "Beneficiary Tracking", "Track program beneficiaries", "3 hours", "medium",
            ["Protect privacy", "Track outcomes"]),
     ]
-    
+
     # OTHER (generic)
     catalog[IndustryType.OTHER] = [
         at("task_automation", "Task Automation", "Automate repetitive tasks", "1-2 hours", "low",
@@ -318,12 +318,12 @@ def _build_automation_catalog() -> Dict:
         at("approval_workflow", "Approval Workflow", "Automate approval processes", "2 hours", "low",
            ["Set SLAs for approvals", "Allow delegation"]),
     ]
-    
+
     # Set correct industry on each automation type
     for industry, automations in catalog.items():
         for automation in automations:
             automation.industry = industry
-    
+
     return catalog
 
 
@@ -337,7 +337,7 @@ AUTOMATION_CATALOG = _build_automation_catalog()
 def _build_question_bank() -> List[IndustryWizardQuestion]:
     """Build the question bank"""
     questions = []
-    
+
     # Universal questions
     questions.append(IndustryWizardQuestion(
         question_id="industry_selection",
@@ -349,7 +349,7 @@ def _build_question_bank() -> List[IndustryWizardQuestion]:
         order=1,
         recommendation="Selecting the correct industry ensures you see relevant automation types and best practices."
     ))
-    
+
     questions.append(IndustryWizardQuestion(
         question_id="automation_type_selection",
         question="What type of automation do you want to set up?",
@@ -360,7 +360,7 @@ def _build_question_bank() -> List[IndustryWizardQuestion]:
         order=2,
         recommendation="Choose automations that address your highest-impact pain points first."
     ))
-    
+
     questions.append(IndustryWizardQuestion(
         question_id="goal",
         question="What is the primary goal of this automation?",
@@ -371,7 +371,7 @@ def _build_question_bank() -> List[IndustryWizardQuestion]:
         order=3,
         recommendation="Clear goals enable better measurement of automation success. Set specific, measurable targets."
     ))
-    
+
     questions.append(IndustryWizardQuestion(
         question_id="stakeholders",
         question="Who will be the primary users of this automation?",
@@ -383,7 +383,7 @@ def _build_question_bank() -> List[IndustryWizardQuestion]:
         recommendation="Involve stakeholders early in design. Successful automation requires user buy-in and training.",
         onboarding_key="team_size"
     ))
-    
+
     questions.append(IndustryWizardQuestion(
         question_id="timeline",
         question="What is your target timeline?",
@@ -394,7 +394,7 @@ def _build_question_bank() -> List[IndustryWizardQuestion]:
         order=5,
         recommendation="Start with pilot phase in production. Iterate based on real-world usage before full rollout."
     ))
-    
+
     # Technology-specific questions
     questions.append(IndustryWizardQuestion(
         question_id="repo_url",
@@ -408,7 +408,7 @@ def _build_question_bank() -> List[IndustryWizardQuestion]:
         automation_types={"ci_cd_pipeline", "code_review_automation"},
         recommendation="Use trunk-based development with feature flags rather than long-lived branches. Automate rollback on >1% error rate spike."
     ))
-    
+
     questions.append(IndustryWizardQuestion(
         question_id="branch_strategy",
         question="What branching strategy do you use?",
@@ -421,7 +421,7 @@ def _build_question_bank() -> List[IndustryWizardQuestion]:
         automation_types={"ci_cd_pipeline"},
         recommendation="Trunk-based development with feature flags enables faster feedback and reduces merge conflicts."
     ))
-    
+
     # Healthcare-specific questions
     questions.append(IndustryWizardQuestion(
         question_id="hipaa_compliance",
@@ -434,7 +434,7 @@ def _build_question_bank() -> List[IndustryWizardQuestion]:
         industry_types={"Healthcare"},
         recommendation="HIPAA requires minimum necessary information. Collect only fields needed for care. Enable audit logging on all PHI access."
     ))
-    
+
     questions.append(IndustryWizardQuestion(
         question_id="patient_data_fields",
         question="What patient data fields are required?",
@@ -447,7 +447,7 @@ def _build_question_bank() -> List[IndustryWizardQuestion]:
         automation_types={"patient_intake", "ehr_integration"},
         recommendation="Follow HIPAA minimum necessary standard. Only collect data essential for the workflow."
     ))
-    
+
     # Manufacturing BAS-specific questions
     questions.append(IndustryWizardQuestion(
         question_id="equipment_upload",
@@ -461,7 +461,7 @@ def _build_question_bank() -> List[IndustryWizardQuestion]:
         automation_types={"bas_energy_management", "bas_hvac_control", "bas_power_monitoring"},
         recommendation="ASHRAE 90.1 Appendix G requires energy monitoring. Use EDE format for BACnet devices for best compatibility."
     ))
-    
+
     questions.append(IndustryWizardQuestion(
         question_id="protocol_selection",
         question="What protocol does your equipment use?",
@@ -474,7 +474,7 @@ def _build_question_bank() -> List[IndustryWizardQuestion]:
         automation_types={"bas_energy_management", "bas_hvac_control", "bas_power_monitoring", "industrial_plc_integration"},
         recommendation="BACnet/IP is standard for HVAC. Modbus TCP for industrial. OPC-UA for modern PLCs with security."
     ))
-    
+
     questions.append(IndustryWizardQuestion(
         question_id="ip_address",
         question="What is the equipment IP address?",
@@ -487,7 +487,7 @@ def _build_question_bank() -> List[IndustryWizardQuestion]:
         automation_types={"bas_energy_management", "bas_hvac_control", "bas_power_monitoring"},
         recommendation="Use static IP or DHCP reservation. Document all equipment IP addresses in network diagram."
     ))
-    
+
     questions.append(IndustryWizardQuestion(
         question_id="point_verification",
         question="Verify all points are correctly configured?",
@@ -500,7 +500,7 @@ def _build_question_bank() -> List[IndustryWizardQuestion]:
         automation_types={"bas_energy_management", "bas_hvac_control", "bas_power_monitoring"},
         recommendation="Always verify wiring before commissioning. Check that limits, units, and instance numbers are correct."
     ))
-    
+
     # Add more industry-specific questions...
     # Finance
     questions.append(IndustryWizardQuestion(
@@ -515,7 +515,7 @@ def _build_question_bank() -> List[IndustryWizardQuestion]:
         automation_types={"regulatory_compliance_reporting", "audit_trail_automation"},
         recommendation="Maintain comprehensive audit trails. SOX requires segregation of duties and change management controls."
     ))
-    
+
     # Retail
     questions.append(IndustryWizardQuestion(
         question_id="sku_count",
@@ -529,7 +529,7 @@ def _build_question_bank() -> List[IndustryWizardQuestion]:
         automation_types={"inventory_management", "demand_forecasting"},
         recommendation="High SKU counts benefit from automated reorder point calculations and demand forecasting."
     ))
-    
+
     # Education
     questions.append(IndustryWizardQuestion(
         question_id="grading_system",
@@ -543,7 +543,7 @@ def _build_question_bank() -> List[IndustryWizardQuestion]:
         automation_types={"grade_automation"},
         recommendation="Use rubrics for consistency. Provide timely feedback to students within 1 week of submission."
     ))
-    
+
     # Professional Services
     questions.append(IndustryWizardQuestion(
         question_id="billing_rates",
@@ -557,7 +557,7 @@ def _build_question_bank() -> List[IndustryWizardQuestion]:
         automation_types={"billable_hours_tracking", "client_reporting"},
         recommendation="Target 70-75% billable utilization for professional services firms. Track realization rates."
     ))
-    
+
     # Media
     questions.append(IndustryWizardQuestion(
         question_id="platforms",
@@ -571,7 +571,7 @@ def _build_question_bank() -> List[IndustryWizardQuestion]:
         automation_types={"social_media_scheduling"},
         recommendation="Post at platform-specific optimal times. Use native scheduling tools for best reach."
     ))
-    
+
     # Nonprofit
     questions.append(IndustryWizardQuestion(
         question_id="donor_segments",
@@ -585,7 +585,7 @@ def _build_question_bank() -> List[IndustryWizardQuestion]:
         automation_types={"donor_management", "fundraising_automation"},
         recommendation="Acknowledge all donations within 48 hours. Segment donors for targeted communications."
     ))
-    
+
     return questions
 
 
@@ -598,12 +598,12 @@ QUESTION_BANK = _build_question_bank()
 
 class IndustryAutomationWizard:
     """Main wizard for industry automation setup"""
-    
+
     def __init__(self):
         self.sessions: Dict[str, IndustryAutomationSession] = {}
         self.catalog = AUTOMATION_CATALOG
         self.questions = QUESTION_BANK
-    
+
     def create_session(
         self,
         industry: Optional[str] = None,
@@ -612,22 +612,22 @@ class IndustryAutomationWizard:
     ) -> IndustryAutomationSession:
         """Create a new wizard session"""
         session_id = str(uuid.uuid4())
-        
+
         if onboarding_context is None:
             onboarding_context = {}
-        
+
         # Pre-fill from onboarding context
         pre_filled = {}
         if industry:
             pre_filled["industry_selection"] = industry
         if automation_type:
             pre_filled["automation_type_selection"] = automation_type
-        
+
         # Check onboarding context for pre-fills
         for question in self.questions:
             if question.onboarding_key and question.onboarding_key in onboarding_context:
                 pre_filled[question.question_id] = str(onboarding_context[question.onboarding_key])
-        
+
         session = IndustryAutomationSession(
             session_id=session_id,
             industry=industry or "",
@@ -637,48 +637,48 @@ class IndustryAutomationWizard:
             pre_filled=pre_filled,
             status="in_progress"
         )
-        
+
         self.sessions[session_id] = session
         return session
-    
+
     def next_question(self, session_id: str) -> Optional[dict]:
         """Get the next unanswered question"""
         session = self.sessions.get(session_id)
         if not session:
             return None
-        
+
         # Filter questions based on industry and automation type
         applicable_questions = []
         for q in sorted(self.questions, key=lambda x: x.order):
             # Check if already answered
             if q.question_id in session.questions_answered:
                 continue
-            
+
             # Check if pre-filled
             if q.question_id in session.pre_filled:
                 continue
-            
+
             # Check industry filter
             if q.industry_types and session.industry and session.industry not in q.industry_types:
                 continue
-            
+
             # Check automation type filter
             if q.automation_types and session.automation_type and session.automation_type not in q.automation_types:
                 continue
-            
+
             applicable_questions.append(q)
-        
+
         if not applicable_questions:
             return None
-        
+
         # Return first unanswered question
         question = applicable_questions[0]
-        
+
         # For automation_type_selection, populate options dynamically
         options = question.options
         if question.question_id == "automation_type_selection" and session.industry:
             options = self.get_automation_types(session.industry)
-        
+
         return {
             "question_id": question.question_id,
             "question": question.question,
@@ -688,37 +688,37 @@ class IndustryAutomationWizard:
             "help_text": question.help_text,
             "recommendation": question.recommendation
         }
-    
+
     def answer(self, session_id: str, question_id: str, answer: str) -> dict:
         """Record an answer and return progress"""
         session = self.sessions.get(session_id)
         if not session:
             return {"error": "Session not found"}
-        
+
         # Record answer
         session.questions_answered[question_id] = {
             "answer": answer,
             "timestamp": datetime.now().isoformat()
         }
-        
+
         # Update session fields
         if question_id == "industry_selection":
             session.industry = answer
         elif question_id == "automation_type_selection":
             session.automation_type = answer
-        
+
         # Calculate progress
-        total_questions = len([q for q in self.questions 
+        total_questions = len([q for q in self.questions
                               if (not q.industry_types or session.industry in q.industry_types)
                               and (not q.automation_types or session.automation_type in q.automation_types)])
         answered = len(session.questions_answered) + len(session.pre_filled)
-        
+
         return {
             "success": True,
             "progress": f"{answered}/{total_questions}",
             "percentage": int((answered / max(total_questions, 1)) * 100)
         }
-    
+
     def get_automation_types(self, industry: str) -> List[dict]:
         """Get automation types for an industry"""
         # Find industry enum
@@ -727,53 +727,53 @@ class IndustryAutomationWizard:
             if ind.value == industry or ind.name == industry:
                 industry_enum = ind
                 break
-        
+
         if not industry_enum or industry_enum not in self.catalog:
             return []
-        
+
         automation_types = self.catalog[industry_enum]
-        return [{"id": at.type_id, "name": at.name, "description": at.description} 
+        return [{"id": at.type_id, "name": at.name, "description": at.description}
                 for at in automation_types]
-    
+
     def generate_spec(self, session_id: str) -> Optional[IndustryAutomationSpec]:
         """Generate the final automation spec"""
         session = self.sessions.get(session_id)
         if not session:
             return None
-        
+
         # Find automation type details
         industry_enum = None
         for ind in IndustryType:
             if ind.value == session.industry or ind.name == session.industry:
                 industry_enum = ind
                 break
-        
+
         automation_detail = None
         if industry_enum and industry_enum in self.catalog:
             for at in self.catalog[industry_enum]:
                 if at.type_id == session.automation_type:
                     automation_detail = at
                     break
-        
+
         if not automation_detail:
             return None
-        
+
         # Combine answers and pre-filled
         all_answers = {**session.pre_filled, **{k: v["answer"] for k, v in session.questions_answered.items()}}
-        
+
         # Build spec
         title = f"{automation_detail.name} Automation"
         description = automation_detail.description
-        
+
         # Collect recommendations
         recommendations = list(automation_detail.recommendations)
-        
+
         # Add question-specific recommendations
         for q in self.questions:
             if q.question_id in session.questions_answered and q.recommendation:
                 if q.recommendation not in recommendations:
                     recommendations.append(q.recommendation)
-        
+
         # For BAS types, add equipment-specific recommendations
         equipment_specs = []
         virtual_controller_ids = []
@@ -788,7 +788,7 @@ class IndustryAutomationWizard:
                     # Add generic BAS recommendations
                     recommendations.append("ASHRAE 90.1 requires building energy monitoring")
                     recommendations.append("Commission all control sequences per ASHRAE Guideline 1.1")
-        
+
         spec = IndustryAutomationSpec(
             spec_id=str(uuid.uuid4()),
             session_id=session_id,
@@ -806,28 +806,28 @@ class IndustryAutomationWizard:
             complexity=automation_detail.complexity,
             tags=automation_detail.tags
         )
-        
+
         session.spec = spec
         session.status = "completed"
-        
+
         return spec
-    
+
     def get_recommendations(self, session_id: str) -> List[str]:
         """Get all accumulated recommendations so far"""
         session = self.sessions.get(session_id)
         if not session:
             return []
-        
+
         recommendations = []
-        
+
         # Get recommendations from answered questions
         for q in self.questions:
             if q.question_id in session.questions_answered and q.recommendation:
                 if q.recommendation not in recommendations:
                     recommendations.append(q.recommendation)
-        
+
         return recommendations
-    
+
     def get_session(self, session_id: str) -> Optional[IndustryAutomationSession]:
         """Get session by ID"""
         return self.sessions.get(session_id)

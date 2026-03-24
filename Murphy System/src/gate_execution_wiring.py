@@ -378,7 +378,7 @@ class GateExecutionWiring:
         Returns *self* for fluent chaining.
         """
         try:
-            from src.execution_engine import TaskExecutor, Task, TaskState, create_task
+            from src.execution_engine import Task, TaskExecutor, TaskState, create_task
             from src.execution_orchestrator import ExecutionOrchestrator
 
             _task_executor = TaskExecutor()
