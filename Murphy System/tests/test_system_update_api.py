@@ -35,6 +35,7 @@ import system_update_api as api_module
 from system_update_recommendation_engine import (
     BugReportInput,
     Recommendation,
+    RecommendationType,
     SystemUpdateRecommendationEngine,
     CATEGORY_MAINTENANCE,
     CATEGORY_SDK_UPDATE,
@@ -45,6 +46,14 @@ from system_update_recommendation_engine import (
     STATUS_APPROVED,
     STATUS_DISMISSED,
 )
+
+_CATEGORY_TO_REC_TYPE = {
+    CATEGORY_MAINTENANCE: RecommendationType.MAINTENANCE,
+    CATEGORY_SDK_UPDATE: RecommendationType.SDK_UPDATE,
+    CATEGORY_AUTO_UPDATE: RecommendationType.AUTO_UPDATE,
+    CATEGORY_BUG_RESPONSE: RecommendationType.BUG_REPORT_RESPONSE,
+    CATEGORY_OPERATIONS: RecommendationType.OPERATIONAL_ANALYSIS,
+}
 
 
 # ---------------------------------------------------------------------------
@@ -75,15 +84,16 @@ def _add_pending_rec(
     """Insert a pending recommendation directly into the engine store."""
     rec = Recommendation(
         recommendation_id=str(uuid.uuid4()),
-        category=category,
+        subsystem="test_subsystem",
+        recommendation_type=_CATEGORY_TO_REC_TYPE[category],
         priority=priority,
-        title=f"Test {category} rec",
-        description="Test description",
-        affected_subsystems=["test_subsystem"],
-        proposed_actions=[],
         confidence_score=0.8,
-        requires_human_approval=True,
-        status=STATUS_PENDING,
+        description="Test description",
+        suggested_action="Test action",
+        estimated_effort="< 1h",
+        risk_level="low",
+        auto_applicable=False,
+        requires_review=True,
     )
     with engine._lock:
         engine._recommendations[rec.recommendation_id] = rec
