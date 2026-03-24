@@ -500,8 +500,8 @@ def make_llm_health_check(
         A callable that returns a health-check result dict.
     """
     import os
-    import urllib.request
     import urllib.error
+    import urllib.request
 
     def _check() -> Dict[str, Any]:
         base_url = llm_url or os.environ.get("OLLAMA_HOST", "http://localhost:11434")

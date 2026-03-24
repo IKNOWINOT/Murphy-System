@@ -47,7 +47,7 @@ class MeetingsBridge:
         """Start a new meeting session."""
         # Generate session_id
         session_id = hashlib.sha256(f"{title}{_now_iso()}".encode()).hexdigest()[:16]
-        
+
         # Create IM thread for all participants
         try:
             from src.communication_hub import im_store
@@ -56,7 +56,7 @@ class MeetingsBridge:
         except Exception as exc:
             logger.warning("Could not create IM thread for meeting: %s", exc)
             im_thread_id = None
-        
+
         # Build session record
         session = {
             "session_id": session_id,
@@ -69,10 +69,10 @@ class MeetingsBridge:
             "status": "active",
             "metadata": {},
         }
-        
+
         # Persist to DB
         try:
-            from src.db import _get_session_factory, MeetingSession
+            from src.db import MeetingSession, _get_session_factory
             factory = _get_session_factory()
             db_session = factory()
             try:
@@ -93,16 +93,16 @@ class MeetingsBridge:
         except Exception as exc:
             logger.debug("Could not persist meeting to DB, using fallback: %s", exc)
             self._sessions_fallback[session_id] = session
-        
+
         return session
 
     def end_meeting(self, session_id: str) -> dict:
         """End a meeting session and email summary to participants."""
         ended_at = _now_iso()
-        
+
         # Update DB
         try:
-            from src.db import _get_session_factory, MeetingSession
+            from src.db import MeetingSession, _get_session_factory
             factory = _get_session_factory()
             db_session = factory()
             try:
@@ -134,10 +134,10 @@ class MeetingsBridge:
                 session = self._sessions_fallback[session_id]
             else:
                 session = None
-        
+
         if not session:
             return {"error": "Meeting not found"}
-        
+
         # Email summary to all participants
         try:
             from src.communication_hub import email_store
@@ -152,14 +152,14 @@ class MeetingsBridge:
             )
         except Exception as exc:
             logger.warning("Could not send meeting summary email: %s", exc)
-        
+
         return session
 
     def add_transcript_entry(self, session_id: str, speaker: str, text: str, is_ai: bool = False) -> dict:
         """Add a transcript entry to a meeting."""
         entry_id = _uid()
         timestamp = _now_iso()
-        
+
         entry = {
             "id": entry_id,
             "session_id": session_id,
@@ -168,10 +168,10 @@ class MeetingsBridge:
             "timestamp": timestamp,
             "is_ai": is_ai,
         }
-        
+
         # Persist to DB
         try:
-            from src.db import _get_session_factory, MeetingTranscriptEntry
+            from src.db import MeetingTranscriptEntry, _get_session_factory
             factory = _get_session_factory()
             db_session = factory()
             try:
@@ -189,7 +189,7 @@ class MeetingsBridge:
                 db_session.close()
         except Exception as exc:
             logger.debug("Could not persist transcript entry: %s", exc)
-        
+
         return entry
 
     def shadow_suggest(self, session_id: str, agent_id: str, suggestion_type: str, content: str) -> dict:
@@ -198,7 +198,7 @@ class MeetingsBridge:
         meeting = self.get_meeting(session_id)
         if not meeting:
             return {"error": "Meeting not found"}
-        
+
         # Post to meeting IM thread
         im_thread_id = meeting.get("im_thread_id")
         if im_thread_id:
@@ -207,7 +207,7 @@ class MeetingsBridge:
                 im_store.post_message(im_thread_id, f"shadow-agent:{agent_id}", f"[{suggestion_type}] {content}")
             except Exception as exc:
                 logger.warning("Could not post shadow suggestion to IM: %s", exc)
-        
+
         # Email suggestion to all participants
         try:
             from src.communication_hub import email_store
@@ -221,13 +221,13 @@ class MeetingsBridge:
             )
         except Exception as exc:
             logger.warning("Could not email shadow suggestion: %s", exc)
-        
+
         return {"ok": True, "session_id": session_id, "agent_id": agent_id, "suggestion_type": suggestion_type}
 
     def get_meeting(self, session_id: str) -> Optional[dict]:
         """Get a meeting session by ID."""
         try:
-            from src.db import _get_session_factory, MeetingSession
+            from src.db import MeetingSession, _get_session_factory
             factory = _get_session_factory()
             db_session = factory()
             try:
@@ -248,14 +248,14 @@ class MeetingsBridge:
                 db_session.close()
         except Exception as exc:
             logger.debug("Could not fetch meeting from DB: %s", exc)
-        
+
         # Fallback
         return self._sessions_fallback.get(session_id)
 
     def list_meetings(self, account_id: Optional[str] = None) -> List[dict]:
         """List all meetings, optionally filtered by account_id."""
         try:
-            from src.db import _get_session_factory, MeetingSession
+            from src.db import MeetingSession, _get_session_factory
             factory = _get_session_factory()
             db_session = factory()
             try:
@@ -281,7 +281,7 @@ class MeetingsBridge:
                 db_session.close()
         except Exception as exc:
             logger.debug("Could not list meetings from DB: %s", exc)
-        
+
         # Fallback
         sessions = list(self._sessions_fallback.values())
         if account_id:
@@ -291,7 +291,7 @@ class MeetingsBridge:
     def get_transcript(self, session_id: str) -> List[dict]:
         """Get transcript entries for a meeting."""
         try:
-            from src.db import _get_session_factory, MeetingTranscriptEntry
+            from src.db import MeetingTranscriptEntry, _get_session_factory
             factory = _get_session_factory()
             db_session = factory()
             try:
@@ -328,9 +328,9 @@ class AmbientBridge:
         content = delivery_data["content"]
         recipient = delivery_data.get("recipient", "ambient-general")
         subject = delivery_data.get("subject", "Ambient Insight")
-        
+
         delivered = False
-        
+
         if channel in ["im", "both"]:
             try:
                 from src.communication_hub import im_store
@@ -344,7 +344,7 @@ class AmbientBridge:
                 delivered = True
             except Exception as exc:
                 logger.warning("Could not deliver ambient insight via IM: %s", exc)
-        
+
         if channel in ["email", "both"]:
             try:
                 from src.communication_hub import email_store
@@ -358,7 +358,7 @@ class AmbientBridge:
                 delivered = True
             except Exception as exc:
                 logger.warning("Could not deliver ambient insight via email: %s", exc)
-        
+
         # Store delivery
         try:
             from src.ambient_context_store import AmbientContextStore
@@ -373,7 +373,7 @@ class AmbientBridge:
             })
         except Exception as exc:
             logger.debug("Could not store ambient delivery: %s", exc)
-        
+
         return {"ok": True, "channel": channel, "delivered": delivered}
 
 
@@ -389,14 +389,14 @@ class ShadowCommsBridge:
         """Route a shadow agent observation to the user."""
         if cc_accounts is None:
             cc_accounts = []
-        
+
         content = f"Shadow Agent {agent_id} observed: {observation}"
         log_id = _uid()
         timestamp = _now_iso()
-        
+
         im_thread_id = None
         email_ids = []
-        
+
         # Post IM message
         if primary_account:
             try:
@@ -409,7 +409,7 @@ class ShadowCommsBridge:
                 im_store.post_message(im_thread_id, f"shadow-agent:{agent_id}", content)
             except Exception as exc:
                 logger.warning("Could not post shadow observation to IM: %s", exc)
-        
+
         # Email to primary + CC
         if primary_account:
             try:
@@ -425,7 +425,7 @@ class ShadowCommsBridge:
                 email_ids.append(email.get("id"))
             except Exception as exc:
                 logger.warning("Could not email shadow observation: %s", exc)
-        
+
         # Persist to DB
         log_entry = {
             "id": log_id,
@@ -438,9 +438,9 @@ class ShadowCommsBridge:
             "email_ids": email_ids,
             "timestamp": timestamp,
         }
-        
+
         try:
-            from src.db import _get_session_factory, ShadowAgentCommsLog
+            from src.db import ShadowAgentCommsLog, _get_session_factory
             factory = _get_session_factory()
             db_session = factory()
             try:
@@ -461,21 +461,21 @@ class ShadowCommsBridge:
                 db_session.close()
         except Exception as exc:
             logger.debug("Could not persist shadow comms log: %s", exc)
-        
+
         return log_entry
 
     def route_question(self, agent_id: str, question: dict, primary_account: Optional[str], cc_accounts: Optional[List[str]] = None) -> dict:
         """Route a shadow agent clarifying question to the user."""
         if cc_accounts is None:
             cc_accounts = []
-        
+
         content = f"Shadow Agent {agent_id} asks: {question}"
         log_id = _uid()
         timestamp = _now_iso()
-        
+
         im_thread_id = None
         email_ids = []
-        
+
         # Post IM message
         if primary_account:
             try:
@@ -488,7 +488,7 @@ class ShadowCommsBridge:
                 im_store.post_message(im_thread_id, f"shadow-agent:{agent_id}", content)
             except Exception as exc:
                 logger.warning("Could not post shadow question to IM: %s", exc)
-        
+
         # Email
         if primary_account:
             try:
@@ -497,14 +497,14 @@ class ShadowCommsBridge:
                 email = email_store.compose_and_send(
                     sender=f"shadow-agent-{agent_id}@system",
                     recipients=recipients,
-                    subject=f"Shadow Agent Question",
+                    subject="Shadow Agent Question",
                     body=content,
                     priority="normal",
                 )
                 email_ids.append(email.get("id"))
             except Exception as exc:
                 logger.warning("Could not email shadow question: %s", exc)
-        
+
         # Persist to DB
         log_entry = {
             "id": log_id,
@@ -517,9 +517,9 @@ class ShadowCommsBridge:
             "email_ids": email_ids,
             "timestamp": timestamp,
         }
-        
+
         try:
-            from src.db import _get_session_factory, ShadowAgentCommsLog
+            from src.db import ShadowAgentCommsLog, _get_session_factory
             factory = _get_session_factory()
             db_session = factory()
             try:
@@ -540,21 +540,21 @@ class ShadowCommsBridge:
                 db_session.close()
         except Exception as exc:
             logger.debug("Could not persist shadow comms log: %s", exc)
-        
+
         return log_entry
 
     def route_proposal(self, agent_id: str, proposal: dict, primary_account: Optional[str], cc_accounts: Optional[List[str]] = None) -> dict:
         """Route a shadow agent automation proposal to the user."""
         if cc_accounts is None:
             cc_accounts = []
-        
+
         content = f"Shadow Agent {agent_id} proposes automation: {proposal}"
         log_id = _uid()
         timestamp = _now_iso()
-        
+
         im_thread_id = None
         email_ids = []
-        
+
         # Post IM message
         if primary_account:
             try:
@@ -567,7 +567,7 @@ class ShadowCommsBridge:
                 im_store.post_message(im_thread_id, f"shadow-agent:{agent_id}", content)
             except Exception as exc:
                 logger.warning("Could not post shadow proposal to IM: %s", exc)
-        
+
         # Email with special subject
         if primary_account:
             try:
@@ -584,7 +584,7 @@ class ShadowCommsBridge:
                 email_ids.append(email.get("id"))
             except Exception as exc:
                 logger.warning("Could not email shadow proposal: %s", exc)
-        
+
         # Persist to DB
         log_entry = {
             "id": log_id,
@@ -597,9 +597,9 @@ class ShadowCommsBridge:
             "email_ids": email_ids,
             "timestamp": timestamp,
         }
-        
+
         try:
-            from src.db import _get_session_factory, ShadowAgentCommsLog
+            from src.db import ShadowAgentCommsLog, _get_session_factory
             factory = _get_session_factory()
             db_session = factory()
             try:
@@ -620,7 +620,7 @@ class ShadowCommsBridge:
                 db_session.close()
         except Exception as exc:
             logger.debug("Could not persist shadow comms log: %s", exc)
-        
+
         return log_entry
 
 
@@ -645,7 +645,7 @@ class AvatarCommsBridge:
         """Avatar speaks to a user."""
         log_id = _uid()
         timestamp = _now_iso()
-        
+
         # Load avatar profile
         avatar_name = avatar_id
         voice = "neutral"
@@ -658,11 +658,11 @@ class AvatarCommsBridge:
                 voice = profile.get("voice", "neutral")
         except Exception as exc:
             logger.debug("Could not load avatar profile: %s", exc)
-        
+
         # Inject persona
         persona_prefix = f"[{avatar_name} — {voice}] "
         enriched_content = persona_prefix + content
-        
+
         # Get escalation chain if org_node_id provided
         cc_accounts = []
         if org_node_id:
@@ -673,7 +673,7 @@ class AvatarCommsBridge:
                 cc_accounts = [node.get("account_id") for node in chain if node.get("account_id")]
             except Exception as exc:
                 logger.debug("Could not get escalation chain: %s", exc)
-        
+
         # Apply Rosetta terminology if available
         rosetta_translated = 0
         if rosetta_agent_id:
@@ -685,10 +685,10 @@ class AvatarCommsBridge:
                 rosetta_translated = 1
             except Exception as exc:
                 logger.debug("Could not apply Rosetta translation: %s", exc)
-        
+
         im_thread_id = None
         email_id = None
-        
+
         # Route via IM
         if channel in ["im", "both"]:
             try:
@@ -701,7 +701,7 @@ class AvatarCommsBridge:
                 im_store.post_message(im_thread_id, avatar_id, enriched_content)
             except Exception as exc:
                 logger.warning("Could not deliver avatar message via IM: %s", exc)
-        
+
         # Route via email
         if channel in ["email", "both"]:
             try:
@@ -717,7 +717,7 @@ class AvatarCommsBridge:
                 email_id = email.get("id")
             except Exception as exc:
                 logger.warning("Could not deliver avatar message via email: %s", exc)
-        
+
         # Persist to DB
         log_entry = {
             "id": log_id,
@@ -733,9 +733,9 @@ class AvatarCommsBridge:
             "rosetta_translated": rosetta_translated,
             "timestamp": timestamp,
         }
-        
+
         try:
-            from src.db import _get_session_factory, AvatarCommsLog
+            from src.db import AvatarCommsLog, _get_session_factory
             factory = _get_session_factory()
             db_session = factory()
             try:
@@ -759,7 +759,7 @@ class AvatarCommsBridge:
                 db_session.close()
         except Exception as exc:
             logger.debug("Could not persist avatar comms log: %s", exc)
-        
+
         return log_entry
 
 
@@ -782,11 +782,11 @@ avatar_comms = AvatarCommsBridge()
 def _register_with_dispatch():
     """Register all bridge actions as Dispatch tools."""
     try:
-        from src.dispatch import register_tool, Tool
-        
+        from src.dispatch import Tool, register_tool
+
         # Already registered in dispatch.py via handlers
         # This is a placeholder for any future custom tools
-        
+
     except Exception as exc:
         logger.debug("Could not register with Dispatch: %s", exc)
 

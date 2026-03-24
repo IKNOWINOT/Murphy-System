@@ -42,10 +42,10 @@ except ImportError:  # pragma: no cover
     APIRouter = None  # type: ignore[assignment,misc]
 
 from dynamic_risk_manager import DynamicRiskManager
-from trajectory_engine import TrajectoryEngine, Candle
-from hidden_cost_tracker import HiddenCostTracker
-from graduation_controller import GraduationController, GraduationStatus
 from emergency_stop import TradingEmergencyStop
+from graduation_controller import GraduationController, GraduationStatus
+from hidden_cost_tracker import HiddenCostTracker
+from trajectory_engine import Candle, TrajectoryEngine
 
 logger = logging.getLogger(__name__)
 
@@ -306,7 +306,7 @@ if _HAS_FASTAPI:
             until:       Optional[str] = Query(None, description="ISO timestamp"),
             limit:       int           = Query(100, ge=1, le=1000),
         ) -> JSONResponse:
-            from audit_logger import TradingAuditLogger, TradeOutcome
+            from audit_logger import TradeOutcome, TradingAuditLogger
             logger_inst = _get_audit_logger()
             outcome_enum = None
             if outcome:

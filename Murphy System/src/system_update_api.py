@@ -49,16 +49,16 @@ except Exception:  # pragma: no cover
 
 try:
     from system_update_recommendation_engine import (
-        BugReportInput,
-        SystemUpdateRecommendationEngine,
-        CATEGORY_MAINTENANCE,
-        CATEGORY_SDK_UPDATE,
         CATEGORY_AUTO_UPDATE,
         CATEGORY_BUG_RESPONSE,
+        CATEGORY_MAINTENANCE,
         CATEGORY_OPERATIONS,
-        STATUS_PENDING,
+        CATEGORY_SDK_UPDATE,
         STATUS_APPROVED,
         STATUS_DISMISSED,
+        STATUS_PENDING,
+        BugReportInput,
+        SystemUpdateRecommendationEngine,
     )
     _ENGINE_AVAILABLE = True
 except Exception as exc:  # pragma: no cover

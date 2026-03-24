@@ -58,7 +58,7 @@ except ImportError:
     SelfFixLoop = None  # type: ignore[misc,assignment]
 
 try:
-    from self_improvement_engine import SelfImprovementEngine, ExecutionOutcome, OutcomeType
+    from self_improvement_engine import ExecutionOutcome, OutcomeType, SelfImprovementEngine
 except ImportError:
     SelfImprovementEngine = None  # type: ignore[misc,assignment]
     ExecutionOutcome = None  # type: ignore[misc,assignment]

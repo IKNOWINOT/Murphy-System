@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 # Optional Murphy subsystem imports — all guarded with try/except
 # ---------------------------------------------------------------------------
 try:
-    from workflow_dag_engine import WorkflowDAGEngine, WorkflowDefinition, StepDefinition
+    from workflow_dag_engine import StepDefinition, WorkflowDAGEngine, WorkflowDefinition
     _DAG_AVAILABLE = True
 except ImportError:
     _DAG_AVAILABLE = False
@@ -34,7 +34,7 @@ except ImportError:
     StepDefinition = None  # type: ignore[assignment,misc]
 
 try:
-    from swarm_proposal_generator import SwarmProposalGenerator, SwarmProposal, SwarmStep, SwarmExecutionResult
+    from swarm_proposal_generator import SwarmExecutionResult, SwarmProposal, SwarmProposalGenerator, SwarmStep
     _SWARM_PROPOSAL_AVAILABLE = True
 except ImportError:
     _SWARM_PROPOSAL_AVAILABLE = False
@@ -51,7 +51,7 @@ except ImportError:
     DurableSwarmOrchestrator = None  # type: ignore[assignment,misc]
 
 try:
-    from split_screen_coordinator import SplitScreenCoordinator, SplitScreenLayout, CoordinationReport
+    from split_screen_coordinator import CoordinationReport, SplitScreenCoordinator, SplitScreenLayout
     _SPLIT_SCREEN_AVAILABLE = True
 except ImportError:
     _SPLIT_SCREEN_AVAILABLE = False
@@ -67,7 +67,7 @@ except ImportError:
     _LAYOUT_AVAILABLE = _SPLIT_SCREEN_AVAILABLE
 
 try:
-    from true_swarm_system import TypedGenerativeWorkspace, Artifact, ArtifactType, Phase
+    from true_swarm_system import Artifact, ArtifactType, Phase, TypedGenerativeWorkspace
     _TGW_AVAILABLE = True
 except ImportError:
     _TGW_AVAILABLE = False
@@ -78,10 +78,18 @@ except ImportError:
 
 try:
     from memory_artifact_system import (
-        MemoryArtifactSystem,
         Artifact as MASArtifact,
+    )
+    from memory_artifact_system import (
         ArtifactState as MASArtifactState,
+    )
+    from memory_artifact_system import (
+        MemoryArtifactSystem,
+    )
+    from memory_artifact_system import (
         MemoryPlane as MASMemoryPlane,
+    )
+    from memory_artifact_system import (
         VerificationSource as MASVerificationSource,
     )
     _MAS_AVAILABLE = True
@@ -624,6 +632,7 @@ class CollaborativeTaskOrchestrator:
         if self._llm_controller is not None:
             try:
                 import asyncio
+
                 from llm_controller import LLMRequest
                 prompt = (
                     f"You are an execution agent in the Murphy swarm system.\n"
