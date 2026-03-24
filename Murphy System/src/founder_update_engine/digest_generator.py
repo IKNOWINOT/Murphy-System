@@ -107,11 +107,13 @@ class FounderDigestGenerator:
         observability_counters=None,
         operating_analysis_dashboard=None,
         subsystem_registry=None,
+        max_digest_history: int = _MAX_DIGEST_HISTORY,
     ) -> None:
         self._lock = threading.Lock()
         self._counters = observability_counters
         self._dashboard = operating_analysis_dashboard
         self._registry = subsystem_registry
+        self._max_digest_history = max_digest_history
         self._digests: List[FounderDigest] = []
 
         # Lazy-load defaults if not provided
@@ -144,7 +146,7 @@ class FounderDigestGenerator:
             degraded_subsystems=degraded,
             failed_subsystems=failed,
             total_behavior_fixes=counter_summary.get("behavior_fix", 0),
-            total_coverage_events=counter_summary.get("coverage", 0),
+            total_coverage_events=counter_summary.get("permutation_coverage", 0),
             error_rate_pct=error_rate,
             open_recommendations=open_recs,
             counter_summary=counter_summary,
@@ -152,8 +154,9 @@ class FounderDigestGenerator:
         )
 
         with self._lock:
-            if len(self._digests) >= _MAX_DIGEST_HISTORY:
-                self._digests = self._digests[_MAX_DIGEST_HISTORY // 10:]
+            if len(self._digests) >= self._max_digest_history:
+                evict = max(1, self._max_digest_history // 10)
+                self._digests = self._digests[evict:]
             self._digests.append(digest)
 
         logger.info(
@@ -183,12 +186,28 @@ class FounderDigestGenerator:
     # ------------------------------------------------------------------
 
     def _collect_counter_summary(self) -> Dict[str, int]:
-        """Collect category totals from ObservabilitySummaryCounters."""
+        """Collect category totals from ObservabilitySummaryCounters.
+
+        The counters API returns ``{'status': 'ok', 'categories': {name: count, ...},
+        'total': N}``.  We extract the nested ``categories`` dict and also expose the
+        overall ``total`` for convenience.
+        """
         if self._counters is None:
             return {}
         try:
             summary = self._counters.get_category_summary()
-            return {k: int(v) for k, v in summary.items() if isinstance(v, (int, float))}
+            result: Dict[str, int] = {}
+            # Extract nested categories if present
+            categories = summary.get("categories")
+            if isinstance(categories, dict):
+                for k, v in categories.items():
+                    if isinstance(v, (int, float)):
+                        result[k] = int(v)
+            # Also include flat numeric keys (e.g. 'total')
+            for k, v in summary.items():
+                if k != "categories" and isinstance(v, (int, float)):
+                    result[k] = int(v)
+            return result
         except Exception as exc:
             logger.debug("Counter summary collection failed: %s", exc)
             return {}
@@ -239,9 +258,14 @@ class FounderDigestGenerator:
         return subsystem_health, healthy, degraded, failed, total, open_recs
 
     def _compute_error_rate(self, counter_summary: Dict[str, int]) -> float:
-        """Compute error rate from counter summary."""
+        """Compute error rate from counter summary.
+
+        Uses behavior_fix / (behavior_fix + permutation_coverage) as a proxy for
+        error rate: a high proportion of fixes vs. coverage events indicates
+        more bugs being patched.
+        """
         fixes = counter_summary.get("behavior_fix", 0)
-        coverage = counter_summary.get("coverage", 0)
+        coverage = counter_summary.get("permutation_coverage", 0)
         total_events = fixes + coverage
         if total_events == 0:
             return 0.0
