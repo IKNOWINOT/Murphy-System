@@ -207,3 +207,101 @@ class TestStatus:
 
     def test_status_with_backbone(self, wired_monitor):
         assert wired_monitor.get_status()["event_backbone_attached"] is True
+
+
+# ------------------------------------------------------------------
+# Kubernetes probe tests
+# ------------------------------------------------------------------
+
+class TestKubernetesProbeAdapter:
+    """Tests for KubernetesProbeAdapter readiness / liveness probes."""
+
+    def setup_method(self):
+        from health_monitor import HealthMonitor, KubernetesProbeAdapter
+        self.monitor = HealthMonitor()
+        self.probe = KubernetesProbeAdapter(self.monitor)
+
+    def test_is_alive_always_true(self):
+        """Liveness probe always returns True when the monitor is callable."""
+        assert self.probe.is_alive() is True
+
+    def test_liveness_returns_alive_key(self):
+        """liveness() response contains alive=True."""
+        result = self.probe.liveness()
+        assert result["alive"] is True
+        assert result["status"] == "ok"
+
+    def test_is_ready_with_no_checks_is_healthy(self):
+        """is_ready() returns True when there are no registered checks (vacuously healthy)."""
+        assert self.probe.is_ready() is True
+
+    def test_is_ready_false_when_unhealthy_check_registered(self):
+        """is_ready() returns False when at least one check is unhealthy."""
+        from health_monitor import HealthMonitor, KubernetesProbeAdapter
+        m = HealthMonitor()
+        m.register("db", lambda: {"status": "unhealthy", "message": "down"})
+        probe = KubernetesProbeAdapter(m)
+        assert probe.is_ready() is False
+
+    def test_readiness_returns_required_keys(self):
+        """readiness() response contains all expected keys."""
+        result = self.probe.readiness()
+        for key in ("ready", "system_status", "healthy_count", "degraded_count",
+                    "unhealthy_count", "total_latency_ms", "generated_at"):
+            assert key in result, f"Missing key: {key}"
+
+    def test_readiness_ready_when_all_checks_pass(self):
+        """readiness() reports ready=True when all checks are healthy."""
+        from health_monitor import HealthMonitor, KubernetesProbeAdapter
+        m = HealthMonitor()
+        m.register("api", lambda: {"status": "healthy", "message": "ok"})
+        m.register("db", lambda: {"status": "healthy", "message": "ok"})
+        probe = KubernetesProbeAdapter(m)
+        result = probe.readiness()
+        assert result["ready"] is True
+        assert result["system_status"] == "healthy"
+
+
+class TestDependencyHealthCheckFactories:
+    """Tests for make_database_health_check, make_redis_health_check, make_llm_health_check."""
+
+    def test_database_health_check_no_url(self):
+        """Database health check returns unhealthy when no URL is configured."""
+        import os
+        from health_monitor import make_database_health_check
+        check = make_database_health_check(database_url="")
+        env_backup = os.environ.pop("DATABASE_URL", None)
+        try:
+            result = check()
+            assert result["status"] in ("unhealthy", "degraded")
+        finally:
+            if env_backup is not None:
+                os.environ["DATABASE_URL"] = env_backup
+
+    def test_redis_health_check_no_url(self):
+        """Redis health check returns degraded when no URL is configured."""
+        import os
+        from health_monitor import make_redis_health_check
+        check = make_redis_health_check(redis_url="")
+        env_backup = os.environ.pop("REDIS_URL", None)
+        try:
+            result = check()
+            assert result["status"] in ("degraded", "unhealthy")
+        finally:
+            if env_backup is not None:
+                os.environ["REDIS_URL"] = env_backup
+
+    def test_llm_health_check_unreachable_url(self):
+        """LLM health check returns degraded when the server is unreachable."""
+        from health_monitor import make_llm_health_check
+        check = make_llm_health_check(llm_url="http://127.0.0.1:19999")
+        result = check()
+        assert result["status"] in ("degraded", "unhealthy")
+
+    def test_llm_health_check_returns_status_key(self):
+        """LLM health check always returns a dict with a 'status' key."""
+        from health_monitor import make_llm_health_check
+        check = make_llm_health_check(llm_url="http://127.0.0.1:19999")
+        result = check()
+        assert "status" in result
+        assert "message" in result
