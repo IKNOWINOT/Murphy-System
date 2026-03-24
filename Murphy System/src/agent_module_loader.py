@@ -215,32 +215,105 @@ class MultiCursorActionResult:
 
 class MultiCursorBrowser:
     """Murphy's multi-cursor browser automation system.
-    
+
     Everything Playwright has, plus:
     - Multiple independent cursors per session
-    - Split-screen zone management
+    - Split-screen zone management (up to 64 physical zones)
+    - Auto-layout: picks the tightest grid for N tasks automatically
+    - Arbitrary zone subdivision via split_zone()
+    - Virtual tab stacking for >12 zones on one viewport
     - Parallel task execution across zones
+    - Nested MCB: spawn_child() creates a child MCB sharing the same
+      Chromium process but with its own BrowserContext (max depth 8)
     - Desktop automation integration
     - Agent handoff and context preservation
     - Recording and playback
     - OCR-based element detection
-    
+
+    ── SPLIT DECISION RULES ──────────────────────────────────────────
+    auto_layout(n) selects the tightest named grid that fits n zones:
+      1  → single       (1×1)
+      2  → dual_h       (1×2, side by side — independent tasks)
+           dual_v       (2×1, stacked   — sequential/related tasks)
+      3  → triple_h     (1×3)
+      4  → quad         (2×2)
+      6  → hexa         (2×3)
+      9  → nona         (3×3)
+     12  → dodeca       (3×4)
+     16  → hex4         (4×4)
+     >16 → virtual      (tabs within existing zones; no new pages)
+
+    The caller can override with an explicit layout name or use
+    split_zone(zone_id, "h"|"v") to halve any existing zone.
+
+    ── HARD LIMITS ───────────────────────────────────────────────────
+    MCB_MAX_ZONES   = 64   physical zones per instance
+    MCB_VIRT_THRESH = 12   above this, new zones become virtual tabs
+    MCB_MAX_DEPTH   =  8   maximum nesting levels (MCB inside MCB)
+
+    ── NESTED MCB ────────────────────────────────────────────────────
+    child = await browser.spawn_child(zone_id)
+    # child is a full MCB; it shares the parent Playwright Browser
+    # process but gets its own BrowserContext (cookies/storage
+    # isolated).  close() the child to free its context; the parent
+    # Browser process stays alive.  Depth is tracked via _depth.
+
     Usage:
         browser = MultiCursorBrowser()
         await browser.launch()
-        zones = browser.apply_layout("dual_h")
-        await browser.navigate(zones[0]["zone_id"], "https://example.com")
+        zones = browser.auto_layout(4)          # picks "quad"
+        await browser.navigate(zones[0]["zone_id"], "https://murphy.systems")
         await browser.click(zones[0]["zone_id"], "#submit")
-        await browser.close()
+        child = await browser.spawn_child(zones[1]["zone_id"])
+        await child.navigate("main", "https://murphy.systems/ui/admin")
+        await browser.close()                   # closes child too
     """
-    
-    def __init__(self, screen_width: int = 1920, screen_height: int = 1080, headless: bool = True):
-        self.screen_width = screen_width
+
+    # ── class-level constants ──────────────────────────────────────
+    MCB_MAX_ZONES: int   = 64
+    MCB_VIRT_THRESH: int = 12
+    MCB_MAX_DEPTH: int   =  8
+
+    # Ordered grid presets: (cols, rows, name)
+    _GRID_PRESETS: List[tuple] = [
+        (1, 1,  "single"),
+        (2, 1,  "dual_h"),
+        (1, 2,  "dual_v"),
+        (3, 1,  "triple_h"),
+        (2, 2,  "quad"),
+        (3, 2,  "hexa"),
+        (3, 3,  "nona"),
+        (4, 3,  "dodeca"),
+        (4, 4,  "hex4"),
+    ]
+
+    def __init__(
+        self,
+        screen_width: int  = 1920,
+        screen_height: int = 1080,
+        headless: bool     = True,
+        _depth: int        = 0,
+        _parent: Optional["MultiCursorBrowser"] = None,
+    ):
+        self.screen_width  = screen_width
         self.screen_height = screen_height
-        self.headless = headless
-        self._zones: Dict[str, Dict[str, Any]] = {}
+        self.headless      = headless
+        self._depth        = _depth          # nesting depth (0 = root)
+        self._parent       = _parent         # parent MCB instance or None
+        self._children: List["MultiCursorBrowser"] = []
+
+        self._zones:   Dict[str, Dict[str, Any]] = {}
         self._cursors: Dict[str, Dict[str, Any]] = {}
-        self._browser: Any = None
+
+        # Playwright handles — populated by launch() / inherited by children
+        self._pw_instance: Any = None        # AsyncPlaywright (root only)
+        self._browser:     Any = None        # Browser process (root owns it)
+        self._pw_context:  Any = None        # BrowserContext (one per MCB)
+        self._pages: Dict[str, Any] = {}     # zone_id → playwright Page
+
+        # Virtual tab stacks for zones beyond MCB_VIRT_THRESH
+        self._virtual_tabs: Dict[str, List[str]] = {}  # zone_id → [url, ...]
+
         self._recording: List[MultiCursorAction] = []
         self._checkpoints: Dict[str, Dict[str, Any]] = {}
         self._is_recording = False
@@ -260,54 +333,315 @@ class MultiCursorBrowser:
         }
     
     async def launch(self, browser_type: str = "chromium", **kwargs: Any) -> "MultiCursorBrowser":
-        """Launch browser."""
-        logger.info(f"Launching MultiCursor browser ({browser_type})")
-        try:
-            from playwright.async_api import async_playwright
-            pw = await async_playwright().start()
-            self._browser = await getattr(pw, browser_type).launch(headless=self.headless, **kwargs)
-        except ImportError:
-            self._browser = None
+        """Launch browser and create a shared BrowserContext.
+
+        Root MCB creates the Playwright instance + Browser process.
+        Child MCBs (spawned via spawn_child) inherit the Browser and
+        create only a new BrowserContext — no extra Chromium process.
+        """
+        logger.info(f"[MCB depth={self._depth}] Launching ({browser_type})")
+        if self._parent is not None:
+            # Child: reuse parent's browser process, new isolated context
+            self._browser = self._parent._browser
+            self._pw_instance = self._parent._pw_instance
+        else:
+            try:
+                from playwright.async_api import async_playwright
+                self._pw_instance = await async_playwright().start()
+                launch_args = {
+                    "headless": self.headless,
+                    "args": ["--no-sandbox", "--disable-dev-shm-usage"],
+                }
+                launch_args.update(kwargs)
+                self._browser = await getattr(self._pw_instance, browser_type).launch(**launch_args)
+            except ImportError:
+                self._browser = None
+                self._pw_instance = None
+
+        if self._browser is not None:
+            self._pw_context = await self._browser.new_context(
+                viewport={"width": self.screen_width, "height": self.screen_height},
+                ignore_https_errors=True,
+            )
         return self
-    
+
+    # ── Child spawning ─────────────────────────────────────────────
+
+    async def spawn_child(
+        self,
+        zone_id: Optional[str] = None,
+        screen_width: Optional[int] = None,
+        screen_height: Optional[int] = None,
+    ) -> "MultiCursorBrowser":
+        """Spawn a nested MCB that shares this Browser process.
+
+        The child gets:
+        - Its own BrowserContext (isolated cookies/storage/sessions)
+        - Its own zone/cursor/page tables
+        - screen dimensions defaulting to the zone's dimensions if
+          zone_id is given, otherwise the parent's full screen
+
+        Raises RuntimeError if MCB_MAX_DEPTH would be exceeded.
+        """
+        if self._depth >= MultiCursorBrowser.MCB_MAX_DEPTH:
+            raise RuntimeError(
+                f"MCB nesting depth limit ({MultiCursorBrowser.MCB_MAX_DEPTH}) reached. "
+                "Cannot spawn another child at this level."
+            )
+        if self._browser is None:
+            raise RuntimeError("Parent MCB must be launched before spawning children.")
+
+        # Determine child viewport from zone geometry if available
+        if zone_id and zone_id in self._zones:
+            z = self._zones[zone_id]
+            w = screen_width  or z["width"]
+            h = screen_height or z["height"]
+        else:
+            w = screen_width  or self.screen_width
+            h = screen_height or self.screen_height
+
+        child = MultiCursorBrowser(
+            screen_width=w,
+            screen_height=h,
+            headless=self.headless,
+            _depth=self._depth + 1,
+            _parent=self,
+        )
+        await child.launch()
+        self._children.append(child)
+        logger.info(
+            f"[MCB depth={self._depth}] Spawned child MCB "
+            f"(depth={child._depth}, {w}×{h}) in zone={zone_id!r}. "
+            f"Total children: {len(self._children)}"
+        )
+        return child
+
+    # ── Lifecycle ──────────────────────────────────────────────────
+
     async def close(self) -> None:
-        """Close browser."""
-        if self._browser and hasattr(self._browser, "close"):
-            await self._browser.close()
-    
+        """Close pages, context, children.  Root also stops the browser."""
+        # Close all children first
+        for child in list(self._children):
+            try:
+                await child.close()
+            except Exception:
+                pass
+        self._children.clear()
+
+        # Close own pages
+        for page in list(self._pages.values()):
+            try:
+                if not page.is_closed():
+                    await page.close()
+            except Exception:
+                pass
+        self._pages.clear()
+
+        # Close own context
+        if self._pw_context:
+            try:
+                await self._pw_context.close()
+            except Exception:
+                pass
+            self._pw_context = None
+
+        # Only root owns + closes the browser process
+        if self._parent is None:
+            if self._browser:
+                try:
+                    await self._browser.close()
+                except Exception:
+                    pass
+            if self._pw_instance:
+                try:
+                    await self._pw_instance.stop()
+                except Exception:
+                    pass
+
+    # ── Page management ────────────────────────────────────────────
+
+    async def _get_page(self, zone_id: str) -> Any:
+        """Get or create a Playwright page for the given zone."""
+        if self._pw_context is None:
+            return None
+        if zone_id not in self._pages or self._pages[zone_id].is_closed():
+            self._pages[zone_id] = await self._pw_context.new_page()
+        return self._pages[zone_id]
+
+    # ── Layout engine ──────────────────────────────────────────────
+
+    @classmethod
+    def _best_grid(cls, n: int) -> tuple:
+        """Return (cols, rows, name) for the tightest preset fitting n zones."""
+        for cols, rows, name in cls._GRID_PRESETS:
+            if cols * rows >= n:
+                return (cols, rows, name)
+        # Beyond hex4 (16): caller should use virtual tabs
+        return (4, 4, "hex4")
+
+    def auto_layout(self, n: int) -> List[Dict[str, Any]]:
+        """Choose the tightest grid layout for n simultaneous zones.
+
+        Rules
+        -----
+        n == 1          → single  (1×1)
+        n == 2          → dual_h  (side-by-side for independent tasks)
+                          use apply_layout("dual_v") manually for
+                          sequential / comparison tasks
+        n == 3          → triple_h
+        n == 4          → quad    (2×2)
+        n == 6          → hexa    (2×3)
+        n == 9          → nona    (3×3)
+        n <= 12         → dodeca  (3×4)
+        n <= 16         → hex4    (4×4)
+        n > 16          → hex4 + virtual tab stacking
+                          (zones reuse screens; extra pages go into
+                          _virtual_tabs[zone_id] list)
+
+        Returns the list of zone dicts (same as apply_layout).
+        """
+        physical_n = min(n, MultiCursorBrowser.MCB_MAX_ZONES)
+        if physical_n > MultiCursorBrowser.MCB_VIRT_THRESH:
+            # Use max physical grid + mark overflow as virtual
+            cols, rows, name = MultiCursorBrowser._best_grid(MultiCursorBrowser.MCB_VIRT_THRESH)
+        else:
+            cols, rows, name = MultiCursorBrowser._best_grid(physical_n)
+
+        zones = self.apply_layout(name)
+
+        # If caller wants more zones than physical, create virtual stacks
+        if n > len(zones):
+            zone_ids = [z["zone_id"] for z in zones]
+            extra = n - len(zones)
+            for i in range(extra):
+                target_zone = zone_ids[i % len(zone_ids)]
+                if target_zone not in self._virtual_tabs:
+                    self._virtual_tabs[target_zone] = []
+                self._virtual_tabs[target_zone].append(f"virtual_{i}")
+            logger.info(
+                f"[MCB] auto_layout({n}): {len(zones)} physical zones + "
+                f"{n - len(zones)} virtual tab slots"
+            )
+        return zones
+
     def apply_layout(self, layout: str) -> List[Dict[str, Any]]:
-        """Apply split-screen layout: single, dual_h, dual_v, triple_h, quad, hexa."""
+        """Apply a named split-screen layout.
+
+        Named layouts
+        -------------
+        single     1×1    1 zone  (full screen)
+        dual_h     1×2    2 zones (side by side)
+        dual_v     2×1    2 zones (top / bottom)
+        triple_h   1×3    3 zones (three columns)
+        quad       2×2    4 zones
+        hexa       2×3    6 zones
+        nona       3×3    9 zones
+        dodeca     3×4   12 zones
+        hex4       4×4   16 zones  ← practical maximum for readability
+
+        Any unrecognised name falls back to "single".
+        Use split_zone(zone_id, direction) to subdivide a specific zone
+        after a layout has been applied.
+        """
         self._zones.clear()
         self._cursors.clear()
+        self._virtual_tabs.clear()
         W, H = self.screen_width, self.screen_height
-        
-        layouts = {
-            "single": [{"name": "main", "x": 0, "y": 0, "width": W, "height": H}],
-            "dual_h": [
-                {"name": "left", "x": 0, "y": 0, "width": W // 2, "height": H},
-                {"name": "right", "x": W // 2, "y": 0, "width": W - W // 2, "height": H},
-            ],
-            "dual_v": [
-                {"name": "top", "x": 0, "y": 0, "width": W, "height": H // 2},
-                {"name": "bottom", "x": 0, "y": H // 2, "width": W, "height": H - H // 2},
-            ],
-            "quad": [
-                {"name": "tl", "x": 0, "y": 0, "width": W // 2, "height": H // 2},
-                {"name": "tr", "x": W // 2, "y": 0, "width": W - W // 2, "height": H // 2},
-                {"name": "bl", "x": 0, "y": H // 2, "width": W // 2, "height": H - H // 2},
-                {"name": "br", "x": W // 2, "y": H // 2, "width": W - W // 2, "height": H - H // 2},
-            ],
+
+        def _grid(cols: int, rows: int) -> List[Dict[str, Any]]:
+            zones = []
+            cw = W // cols
+            rh = H // rows
+            for r in range(rows):
+                for c in range(cols):
+                    idx = r * cols + c
+                    name = f"z{idx}"
+                    x = c * cw
+                    y = r * rh
+                    w = cw if c < cols - 1 else W - x
+                    h = rh if r < rows - 1 else H - y
+                    zones.append({"name": name, "x": x, "y": y, "width": w, "height": h})
+            return zones
+
+        named = {
+            "single":   _grid(1, 1),
+            "dual_h":   _grid(2, 1),
+            "dual_v":   _grid(1, 2),
+            "triple_h": _grid(3, 1),
+            "quad":     _grid(2, 2),
+            "hexa":     _grid(3, 2),
+            "nona":     _grid(3, 3),
+            "dodeca":   _grid(4, 3),
+            "hex4":     _grid(4, 4),
         }
-        zones = layouts.get(layout, layouts["single"])
+        # Legacy aliases kept for backward-compat
+        named["triple"] = named["triple_h"]
+
+        zones = named.get(layout, named["single"])
         for z in zones:
             z["zone_id"] = z["name"]
+            z["layout"]  = layout
             self._zones[z["zone_id"]] = z
             self._cursors[z["zone_id"]] = {
-                "cursor_id": f"cursor_{z['zone_id']}", "zone_id": z["zone_id"],
-                "x": z["x"] + z["width"] // 2, "y": z["y"] + z["height"] // 2,
-                "buttons": set(), "history": [],
+                "cursor_id": f"cursor_{z['zone_id']}",
+                "zone_id":   z["zone_id"],
+                "x":         z["x"] + z["width"]  // 2,
+                "y":         z["y"] + z["height"] // 2,
+                "buttons":   set(),
+                "history":   [],
             }
+        logger.debug(f"[MCB depth={self._depth}] layout={layout!r} → {len(zones)} zones")
         return list(self._zones.values())
+
+    def split_zone(self, zone_id: str, direction: str = "h") -> List[Dict[str, Any]]:
+        """Halve an existing zone to create two sub-zones.
+
+        direction="h"  splits left|right
+        direction="v"  splits top|bottom
+
+        The original zone is removed and two new zones are registered.
+        Returns the two new zone dicts.
+
+        Raises ValueError if MCB_MAX_ZONES would be exceeded or the
+        zone_id does not exist.
+        """
+        if len(self._zones) >= MultiCursorBrowser.MCB_MAX_ZONES:
+            raise ValueError(
+                f"Cannot split: already at MCB_MAX_ZONES ({MultiCursorBrowser.MCB_MAX_ZONES})."
+            )
+        if zone_id not in self._zones:
+            raise ValueError(f"Zone {zone_id!r} does not exist.")
+
+        parent = self._zones.pop(zone_id)
+        self._cursors.pop(zone_id, None)
+        if zone_id in self._pages and not self._pages[zone_id].is_closed():
+            # Keep page in a temporary key so it isn't lost
+            self._pages[f"__closed_{zone_id}"] = self._pages.pop(zone_id)
+
+        x, y, W, H = parent["x"], parent["y"], parent["width"], parent["height"]
+        a_id = f"{zone_id}_a"
+        b_id = f"{zone_id}_b"
+
+        if direction == "h":
+            half = W // 2
+            a = {"zone_id": a_id, "name": a_id, "x": x,        "y": y, "width": half,     "height": H, "layout": "split_h"}
+            b = {"zone_id": b_id, "name": b_id, "x": x + half, "y": y, "width": W - half, "height": H, "layout": "split_h"}
+        else:
+            half = H // 2
+            a = {"zone_id": a_id, "name": a_id, "x": x, "y": y,        "width": W, "height": half,     "layout": "split_v"}
+            b = {"zone_id": b_id, "name": b_id, "x": x, "y": y + half, "width": W, "height": H - half, "layout": "split_v"}
+
+        for z in (a, b):
+            self._zones[z["zone_id"]] = z
+            self._cursors[z["zone_id"]] = {
+                "cursor_id": f"cursor_{z['zone_id']}",
+                "zone_id":   z["zone_id"],
+                "x":         z["x"] + z["width"]  // 2,
+                "y":         z["y"] + z["height"] // 2,
+                "buttons":   set(),
+                "history":   [],
+            }
+        return [a, b]
     
     def list_zones(self) -> List[Dict[str, Any]]:
         return list(self._zones.values())
@@ -394,27 +728,357 @@ class MultiCursorBrowser:
         parameters: Optional[Dict[str, Any]] = None,
         timeout_ms: int = 30000,
     ) -> MultiCursorActionResult:
+        """Execute an action using the real Playwright page for the zone.
+
+        If the browser is not launched (e.g. unit-test without browser),
+        the action is logged but returns COMPLETED with no side-effects.
+        """
         start = time.monotonic()
+        params = parameters or {}
         action = MultiCursorAction(
             action_type=action_type,
             zone_id=zone_id,
             cursor_id=self._cursors.get(zone_id, {}).get("cursor_id"),
             selector=MultiCursorSelector(selector) if selector else None,
-            parameters=parameters or {},
+            parameters=params,
             timeout_ms=timeout_ms,
         )
         if self._is_recording:
             self._recording.append(action)
-        
-        await asyncio.sleep(0.001)  # Simulate async operation
+
+        status = MultiCursorTaskStatus.COMPLETED
+        data: Dict[str, Any] = dict(params)
+        error: Optional[str] = None
+
+        page = await self._get_page(zone_id)  # None when headless browser unavailable
+
+        try:
+            AT = MultiCursorActionType
+            # ── Navigation ──────────────────────────────────────────
+            if action_type == AT.NAVIGATE:
+                if page:
+                    resp = await page.goto(
+                        params["url"],
+                        wait_until="domcontentloaded",
+                        timeout=timeout_ms,
+                    )
+                    data["status_code"] = resp.status if resp else None
+                    data["url"] = page.url
+
+            elif action_type == AT.RELOAD:
+                if page:
+                    await page.reload(wait_until="domcontentloaded", timeout=timeout_ms)
+
+            elif action_type == AT.GO_BACK:
+                if page:
+                    await page.go_back(wait_until="domcontentloaded", timeout=timeout_ms)
+
+            elif action_type == AT.GO_FORWARD:
+                if page:
+                    await page.go_forward(wait_until="domcontentloaded", timeout=timeout_ms)
+
+            # ── Mouse ────────────────────────────────────────────────
+            elif action_type == AT.CLICK:
+                if page and selector:
+                    await page.click(selector, timeout=timeout_ms)
+
+            elif action_type == AT.DOUBLE_CLICK:
+                if page and selector:
+                    await page.dbl_click(selector, timeout=timeout_ms)
+
+            elif action_type == AT.RIGHT_CLICK:
+                if page and selector:
+                    await page.click(selector, button="right", timeout=timeout_ms)
+
+            elif action_type == AT.HOVER:
+                if page and selector:
+                    await page.hover(selector, timeout=timeout_ms)
+
+            elif action_type == AT.DRAG:
+                if page:
+                    src = params.get("source_selector", selector)
+                    dst = params.get("target_selector", "")
+                    if src and dst:
+                        await page.drag_and_drop(src, dst, timeout=timeout_ms)
+
+            elif action_type == AT.SCROLL:
+                if page and selector:
+                    await page.eval_on_selector(
+                        selector,
+                        "(el, d) => el.scrollBy(0, d)",
+                        params.get("delta_y", 300),
+                    )
+                elif page:
+                    await page.mouse.wheel(0, params.get("delta_y", 300))
+
+            # ── Keyboard ─────────────────────────────────────────────
+            elif action_type == AT.FILL:
+                if page and selector:
+                    await page.fill(selector, params.get("value", ""), timeout=timeout_ms)
+
+            elif action_type == AT.TYPE:
+                if page and selector:
+                    await page.type(selector, params.get("text", ""), timeout=timeout_ms)
+
+            elif action_type == AT.PRESS:
+                if page and selector:
+                    await page.press(selector, params.get("key", "Enter"), timeout=timeout_ms)
+                elif page:
+                    await page.keyboard.press(params.get("key", "Enter"))
+
+            elif action_type == AT.FOCUS:
+                if page and selector:
+                    await page.focus(selector, timeout=timeout_ms)
+
+            # ── Form ─────────────────────────────────────────────────
+            elif action_type == AT.SELECT_OPTION:
+                if page and selector:
+                    await page.select_option(selector, value=params.get("value"), timeout=timeout_ms)
+
+            elif action_type == AT.CHECK:
+                if page and selector:
+                    await page.check(selector, timeout=timeout_ms)
+
+            elif action_type == AT.UNCHECK:
+                if page and selector:
+                    await page.uncheck(selector, timeout=timeout_ms)
+
+            # ── Read ─────────────────────────────────────────────────
+            elif action_type == AT.GET_TEXT:
+                if page and selector:
+                    data["text"] = await page.inner_text(selector, timeout=timeout_ms)
+
+            elif action_type == AT.GET_INNER_HTML:
+                if page and selector:
+                    data["html"] = await page.inner_html(selector, timeout=timeout_ms)
+
+            elif action_type == AT.GET_ATTRIBUTE:
+                if page and selector:
+                    data["value"] = await page.get_attribute(
+                        selector, params.get("attribute", ""), timeout=timeout_ms
+                    )
+
+            elif action_type == AT.GET_BOUNDING_BOX:
+                if page and selector:
+                    data["box"] = await page.eval_on_selector(
+                        selector,
+                        "el => { const b=el.getBoundingClientRect(); return {x:b.x,y:b.y,width:b.width,height:b.height}; }",
+                    )
+
+            elif action_type == AT.IS_VISIBLE:
+                if page and selector:
+                    data["visible"] = await page.is_visible(selector, timeout=timeout_ms)
+
+            elif action_type == AT.IS_ENABLED:
+                if page and selector:
+                    data["enabled"] = await page.is_enabled(selector, timeout=timeout_ms)
+
+            elif action_type == AT.IS_CHECKED:
+                if page and selector:
+                    data["checked"] = await page.is_checked(selector, timeout=timeout_ms)
+
+            elif action_type == AT.QUERY_SELECTOR:
+                if page and selector:
+                    el = await page.query_selector(selector)
+                    data["found"] = el is not None
+
+            elif action_type == AT.QUERY_SELECTOR_ALL:
+                if page and selector:
+                    els = await page.query_selector_all(selector)
+                    data["count"] = len(els)
+
+            # ── Wait ─────────────────────────────────────────────────
+            elif action_type == AT.WAIT_FOR_SELECTOR:
+                if page and selector:
+                    await page.wait_for_selector(selector, timeout=timeout_ms)
+
+            elif action_type == AT.WAIT_FOR_NAVIGATION:
+                if page:
+                    async with page.expect_navigation(timeout=timeout_ms):
+                        pass
+
+            elif action_type == AT.WAIT_FOR_LOAD_STATE:
+                if page:
+                    await page.wait_for_load_state(
+                        params.get("state", "networkidle"), timeout=timeout_ms
+                    )
+
+            elif action_type == AT.WAIT_FOR_TIMEOUT:
+                await asyncio.sleep(params.get("ms", 500) / 1000)
+
+            elif action_type == AT.WAIT_FOR_FUNCTION:
+                if page:
+                    await page.wait_for_function(
+                        params.get("expression", "() => true"), timeout=timeout_ms
+                    )
+
+            # ── JS evaluation ────────────────────────────────────────
+            elif action_type == AT.EVALUATE:
+                if page:
+                    expr = params.get("expression", "undefined")
+                    data["result"] = await page.evaluate(expr)
+
+            # ── Screenshot / PDF ─────────────────────────────────────
+            elif action_type == AT.SCREENSHOT:
+                if page:
+                    path = params.get("path")
+                    shot_bytes: bytes = await page.screenshot(
+                        path=path, full_page=params.get("full_page", False)
+                    )
+                    data["bytes"] = len(shot_bytes)
+                    data["path"]  = path
+                    data["url"]   = page.url
+                    data["title"] = await page.title()
+
+            elif action_type == AT.PDF:
+                if page:
+                    path = params.get("path")
+                    pdf_bytes = await page.pdf(path=path)
+                    data["bytes"] = len(pdf_bytes)
+                    data["path"]  = path
+
+            # ── Viewport ─────────────────────────────────────────────
+            elif action_type == AT.SET_VIEWPORT:
+                if page:
+                    await page.set_viewport_size(
+                        {"width": params.get("width", 1280), "height": params.get("height", 800)}
+                    )
+
+            # ── File / Dialog / Network ──────────────────────────────
+            elif action_type == AT.FILE_UPLOAD:
+                if page and selector:
+                    async with page.expect_file_chooser() as fc_info:
+                        await page.click(selector, timeout=timeout_ms)
+                    fc = await fc_info.value
+                    await fc.set_files(params.get("files", []))
+
+            elif action_type == AT.DIALOG_ACCEPT:
+                page.on("dialog", lambda d: asyncio.ensure_future(d.accept(params.get("text", ""))))
+
+            elif action_type == AT.DIALOG_DISMISS:
+                page.on("dialog", lambda d: asyncio.ensure_future(d.dismiss()))
+
+            elif action_type == AT.REQUEST_INTERCEPT:
+                async def _handle(route: Any) -> None:
+                    action_name = params.get("intercept_action", "continue")
+                    if action_name == "abort":
+                        await route.abort()
+                    elif action_name == "fulfill":
+                        await route.fulfill(
+                            status=params.get("status", 200),
+                            body=params.get("body", ""),
+                        )
+                    else:
+                        await route.continue_()
+                if page:
+                    await page.route(params.get("url_pattern", "**/*"), _handle)
+
+            # ── Close ────────────────────────────────────────────────
+            elif action_type == AT.CLOSE:
+                if page and not page.is_closed():
+                    await page.close()
+                    self._pages.pop(zone_id, None)
+
+            # ── Assertions ───────────────────────────────────────────
+            elif action_type == AT.ASSERT_TEXT:
+                if page and selector:
+                    actual = await page.inner_text(selector, timeout=timeout_ms)
+                    expected = params.get("expected", "")
+                    data["actual"]   = actual
+                    data["expected"] = expected
+                    data["passed"]   = expected in actual
+                    if not data["passed"]:
+                        status = MultiCursorTaskStatus.FAILED
+                        error  = f"ASSERT_TEXT failed: expected {expected!r} in {actual!r}"
+
+            elif action_type == AT.ASSERT_VISIBLE:
+                if page and selector:
+                    visible = await page.is_visible(selector, timeout=timeout_ms)
+                    data["visible"] = visible
+                    data["passed"]  = visible
+                    if not visible:
+                        status = MultiCursorTaskStatus.FAILED
+                        error  = f"ASSERT_VISIBLE failed: {selector!r} not visible"
+
+            elif action_type == AT.ASSERT_URL:
+                if page:
+                    actual = page.url
+                    expected = params.get("expected", "")
+                    data["actual"]   = actual
+                    data["expected"] = expected
+                    data["passed"]   = expected in actual
+                    if not data["passed"]:
+                        status = MultiCursorTaskStatus.FAILED
+                        error  = f"ASSERT_URL failed: expected {expected!r} in {actual!r}"
+
+            elif action_type == AT.ASSERT_TITLE:
+                if page:
+                    actual = await page.title()
+                    expected = params.get("expected", "")
+                    data["actual"]   = actual
+                    data["expected"] = expected
+                    data["passed"]   = expected in actual
+                    if not data["passed"]:
+                        status = MultiCursorTaskStatus.FAILED
+                        error  = f"ASSERT_TITLE failed: expected {expected!r} in {actual!r}"
+
+            # ── Desktop automation ───────────────────────────────────
+            elif action_type == AT.DESKTOP_CLICK:
+                if page:
+                    await page.mouse.click(params.get("x", 0), params.get("y", 0))
+
+            elif action_type == AT.DESKTOP_TYPE:
+                if page:
+                    await page.keyboard.type(params.get("text", ""))
+
+            elif action_type == AT.DESKTOP_HOTKEY:
+                if page:
+                    await page.keyboard.press(params.get("key", ""))
+
+            elif action_type == AT.DESKTOP_OCR:
+                if page:
+                    # Best-effort: dump all visible text from the page
+                    data["text"] = await page.evaluate(
+                        "() => document.body ? document.body.innerText : ''"
+                    )
+
+            # ── Cursor management (logical only) ─────────────────────
+            elif action_type in (AT.CURSOR_CREATE, AT.CURSOR_WARP, AT.CURSOR_MOVE,
+                                 AT.CURSOR_ATTACH_ZONE, AT.CURSOR_SYNC):
+                cursor = self._cursors.get(zone_id, {})
+                if action_type == AT.CURSOR_WARP:
+                    cursor["x"] = params.get("x", cursor.get("x", 0))
+                    cursor["y"] = params.get("y", cursor.get("y", 0))
+
+            # ── Zone ops (handled structurally, not via page) ─────────
+            elif action_type == AT.ZONE_SPLIT:
+                direction = params.get("direction", "h")
+                self.split_zone(zone_id, direction)
+
+            # ── Checkpointing (already handled above _execute) ───────
+            elif action_type in (AT.AGENT_CHECKPOINT, AT.AGENT_ROLLBACK,
+                                 AT.RECORD_START, AT.RECORD_STOP,
+                                 AT.PARALLEL_START, AT.PARALLEL_JOIN, AT.PARALLEL_ALL,
+                                 AT.AGENT_HANDOFF, AT.AGENT_CLARIFY,
+                                 AT.PLAYBACK_START, AT.ZONE_CREATE, AT.ZONE_RESIZE,
+                                 AT.ZONE_CAPTURE, AT.DESKTOP_WINDOW_FOCUS,
+                                 AT.DESKTOP_OCR_CLICK):
+                pass  # Structural / orchestration — no page-level op needed
+
+        except Exception as exc:
+            status = MultiCursorTaskStatus.FAILED
+            error  = f"{type(exc).__name__}: {exc}"
+            logger.debug("[MCB] action %s zone=%s error: %s", action_type.value, zone_id, error)
+
         result = MultiCursorActionResult(
             action_id=action.action_id,
             action_type=action_type,
-            status=MultiCursorTaskStatus.COMPLETED,
+            status=status,
             zone_id=zone_id,
             cursor_id=action.cursor_id,
             duration_ms=(time.monotonic() - start) * 1000,
-            data=parameters or {},
+            data=data,
+            error=error,
         )
         self._action_history.append(result)
         return result
