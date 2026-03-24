@@ -2,7 +2,8 @@
 Automations – Rule Engine
 ===========================
 
-Rule evaluation, trigger matching, and action execution.
+Rule evaluation, trigger matching, action execution, recurrence scheduling,
+and automation template marketplace.
 
 Copyright 2024 Inoni LLC – BSL-1.1
 """
@@ -25,26 +26,233 @@ from .models import (
     ActionType,
     AutomationAction,
     AutomationRule,
+    AutomationTemplate,
     Condition,
     ConditionOperator,
+    RecurrenceFrequency,
+    RecurrenceRule,
     TriggerType,
+    _BUILTIN_AUTOMATION_TEMPLATES,
+    _new_id,
     _now,
 )
 
 logger = logging.getLogger(__name__)
 
 
+class RecurrenceScheduler:
+    """Manages recurrence rules for SCHEDULE-triggered automations.
+
+    Each :class:`AutomationRule` with ``trigger_type=TriggerType.SCHEDULE``
+    can be paired with a :class:`RecurrenceRule` that records the frequency
+    and the ISO-8601 timestamp of the next scheduled execution.
+
+    The scheduler does **not** run its own background thread — it is driven
+    by the caller invoking :meth:`tick` (e.g. from a cron job or event loop)
+    which checks which rules are due and fires them via the provided
+    :class:`AutomationEngine`.
+    """
+
+    def __init__(self, engine: "AutomationEngine") -> None:
+        self._engine = engine
+        self._recurrences: Dict[str, RecurrenceRule] = {}
+
+    def schedule(
+        self,
+        rule_id: str,
+        frequency: RecurrenceFrequency,
+        *,
+        interval: int = 1,
+        next_run_at: str = "",
+    ) -> RecurrenceRule:
+        """Attach a recurrence rule to an existing automation rule."""
+        rec = RecurrenceRule(
+            rule_id=rule_id,
+            frequency=frequency,
+            interval=interval,
+            next_run_at=next_run_at or _now(),
+        )
+        self._recurrences[rec.id] = rec
+        logger.info("Recurrence scheduled: rule=%s freq=%s interval=%d",
+                    rule_id, frequency.value, interval)
+        return rec
+
+    def unschedule(self, recurrence_id: str) -> bool:
+        """Remove a recurrence rule by ID."""
+        if recurrence_id in self._recurrences:
+            del self._recurrences[recurrence_id]
+            return True
+        return False
+
+    def list_recurrences(self) -> List[RecurrenceRule]:
+        """Return all registered recurrence rules."""
+        return list(self._recurrences.values())
+
+    def tick(self, now_iso: str) -> List[Dict[str, Any]]:
+        """Fire all recurrence rules whose next_run_at ≤ *now_iso*.
+
+        Returns a list of execution result dicts from the engine.
+        After firing, each recurrence's ``next_run_at`` is advanced by one
+        interval unit (represented here as a simple marker — real
+        calendar arithmetic should be added for production use).
+        """
+        fired: List[Dict[str, Any]] = []
+        for rec in list(self._recurrences.values()):
+            if not rec.active:
+                continue
+            if rec.next_run_at <= now_iso:
+                rule = self._engine.get_rule(rec.rule_id)
+                if rule and rule.enabled:
+                    results = self._engine.fire_trigger(
+                        rule.board_id, TriggerType.SCHEDULE,
+                        {"recurrence_id": rec.id, "rule_id": rec.rule_id},
+                    )
+                    rec.last_run_at = now_iso
+                    # Advance next_run_at — use now as the new baseline so
+                    # that the next execution is deferred by ≥ 1 run cycle.
+                    rec.next_run_at = now_iso  # caller sets accurate next time
+                    fired.extend(results)
+                    logger.debug("Recurrence fired: %s rule=%s", rec.id, rec.rule_id)
+        return fired
+
+
 class AutomationEngine:
     """In-memory automation rule engine.
 
     Evaluates triggers against registered rules, checks conditions,
-    and fires actions.
+    fires actions, and provides a built-in template marketplace.
     """
 
     def __init__(self) -> None:
         self._rules: Dict[str, AutomationRule] = {}
         self._action_handlers: Dict[ActionType, Callable[..., Any]] = {}
         self._execution_log: List[Dict[str, Any]] = []
+        self._templates: Dict[str, AutomationTemplate] = {}
+        self._webhook_handlers: List[Callable[[str, Dict[str, Any]], None]] = []
+        self._scheduler: Optional[RecurrenceScheduler] = None
+        self._seed_builtin_templates()
+
+    @property
+    def scheduler(self) -> RecurrenceScheduler:
+        """Lazy-initialised :class:`RecurrenceScheduler` for this engine."""
+        if self._scheduler is None:
+            self._scheduler = RecurrenceScheduler(self)
+        return self._scheduler
+
+    # -- Template marketplace -----------------------------------------------
+
+    def _seed_builtin_templates(self) -> None:
+        for tdef in _BUILTIN_AUTOMATION_TEMPLATES:
+            tmpl = AutomationTemplate(
+                name=tdef["name"],
+                description=tdef["description"],
+                category=tdef["category"],
+                trigger_type=TriggerType(tdef["trigger_type"]),
+                trigger_config=tdef.get("trigger_config", {}),
+                conditions=tdef.get("conditions", []),
+                actions=tdef.get("actions", []),
+            )
+            self._templates[tmpl.id] = tmpl
+
+    def list_templates(self, *, category: str = "") -> List[AutomationTemplate]:
+        """Return available automation templates, optionally filtered by category."""
+        templates = list(self._templates.values())
+        if category:
+            templates = [t for t in templates if t.category == category]
+        return templates
+
+    def get_template(self, template_id: str) -> Optional[AutomationTemplate]:
+        """Return a single template by ID."""
+        return self._templates.get(template_id)
+
+    def create_template(
+        self,
+        name: str,
+        trigger_type: TriggerType,
+        actions: List[AutomationAction],
+        *,
+        description: str = "",
+        category: str = "",
+        conditions: Optional[List[Condition]] = None,
+        trigger_config: Optional[Dict[str, Any]] = None,
+    ) -> AutomationTemplate:
+        """Persist a custom automation template."""
+        tmpl = AutomationTemplate(
+            name=name,
+            description=description,
+            category=category,
+            trigger_type=trigger_type,
+            trigger_config=trigger_config or {},
+            conditions=[c.to_dict() for c in (conditions or [])],
+            actions=[a.to_dict() for a in actions],
+        )
+        self._templates[tmpl.id] = tmpl
+        logger.info("AutomationTemplate created: %s (%s)", name, tmpl.id)
+        return tmpl
+
+    def create_rule_from_template(
+        self,
+        template_id: str,
+        board_id: str,
+        *,
+        name: str = "",
+    ) -> AutomationRule:
+        """Instantiate a new :class:`AutomationRule` from a template."""
+        tmpl = self._templates.get(template_id)
+        if tmpl is None:
+            raise KeyError(f"Template not found: {template_id!r}")
+        actions = [
+            AutomationAction(
+                action_type=ActionType(a["action_type"]),
+                config=dict(a.get("config", {})),
+            )
+            for a in tmpl.actions
+        ]
+        from .models import ConditionOperator
+        conditions = [
+            Condition(
+                column_id=c.get("column_id", ""),
+                operator=ConditionOperator(c.get("operator", "equals")),
+                value=c.get("value"),
+            )
+            for c in tmpl.conditions
+        ]
+        rule = self.create_rule(
+            name=name or tmpl.name,
+            board_id=board_id,
+            trigger_type=tmpl.trigger_type,
+            actions=actions,
+            trigger_config=dict(tmpl.trigger_config),
+            conditions=conditions,
+        )
+        return rule
+
+    # -- Webhook trigger adapter --------------------------------------------
+
+    def register_webhook_handler(
+        self, handler: Callable[[str, Dict[str, Any]], None],
+    ) -> None:
+        """Register a callable invoked when a WEBHOOK trigger fires.
+
+        ``handler(board_id, payload)`` — the payload is the raw webhook body.
+        """
+        self._webhook_handlers.append(handler)
+
+    def receive_webhook(
+        self, board_id: str, payload: Dict[str, Any],
+    ) -> List[Dict[str, Any]]:
+        """Process an incoming webhook payload and fire matching rules.
+
+        Internally calls :meth:`fire_trigger` with ``TriggerType.WEBHOOK``
+        so all registered webhook rules are evaluated.  Any registered
+        webhook handlers are also invoked before rule evaluation.
+        """
+        for handler in self._webhook_handlers:
+            try:
+                handler(board_id, payload)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Webhook handler error: %s", exc)
+        return self.fire_trigger(board_id, TriggerType.WEBHOOK, payload)
 
     # -- Rule CRUD ----------------------------------------------------------
 

@@ -17,8 +17,10 @@ from .models import (
     BlockType,
     DocPermission,
     DocStatus,
+    DocTemplate,
     Document,
     DocVersion,
+    _BUILTIN_TEMPLATES,
     _now,
 )
 
@@ -28,11 +30,14 @@ logger = logging.getLogger(__name__)
 class DocManager:
     """In-memory collaborative document manager.
 
-    Manages documents with block-based content, versioning, and sharing.
+    Manages documents with block-based content, versioning, sharing, and
+    a built-in template library.
     """
 
     def __init__(self) -> None:
         self._documents: Dict[str, Document] = {}
+        self._templates: Dict[str, DocTemplate] = {}
+        self._seed_builtin_templates()
 
     # -- Document CRUD ------------------------------------------------------
 
@@ -226,3 +231,74 @@ class DocManager:
             doc.collaborator_ids.remove(user_id)
             return True
         return False
+
+    # -- Template library ---------------------------------------------------
+
+    def _seed_builtin_templates(self) -> None:
+        for tdef in _BUILTIN_TEMPLATES:
+            tmpl = DocTemplate(
+                name=tdef["name"],
+                description=tdef["description"],
+                category=tdef["category"],
+                block_definitions=tdef["block_definitions"],
+            )
+            self._templates[tmpl.id] = tmpl
+
+    def list_templates(self, *, category: str = "") -> List[DocTemplate]:
+        """Return available document templates, optionally filtered by category."""
+        templates = list(self._templates.values())
+        if category:
+            templates = [t for t in templates if t.category == category]
+        return templates
+
+    def get_template(self, template_id: str) -> Optional[DocTemplate]:
+        """Return a single template by ID, or ``None``."""
+        return self._templates.get(template_id)
+
+    def create_template(
+        self,
+        name: str,
+        *,
+        description: str = "",
+        category: str = "",
+        block_definitions: Optional[List[Dict[str, Any]]] = None,
+    ) -> DocTemplate:
+        """Persist a new custom document template."""
+        tmpl = DocTemplate(
+            name=name,
+            description=description,
+            category=category,
+            block_definitions=block_definitions or [],
+        )
+        self._templates[tmpl.id] = tmpl
+        logger.info("DocTemplate created: %s (%s)", name, tmpl.id)
+        return tmpl
+
+    def create_from_template(
+        self,
+        template_id: str,
+        title: str,
+        *,
+        owner_id: str = "",
+        board_id: str = "",
+        permission: DocPermission = DocPermission.PRIVATE,
+    ) -> Document:
+        """Create a new document pre-populated with a template's blocks."""
+        tmpl = self._templates.get(template_id)
+        if tmpl is None:
+            raise KeyError(f"Template not found: {template_id!r}")
+        doc = self.create_document(title, owner_id=owner_id, board_id=board_id,
+                                   permission=permission)
+        for bdef in tmpl.block_definitions:
+            try:
+                btype = BlockType(bdef.get("block_type", "text"))
+            except ValueError:
+                btype = BlockType.TEXT
+            self.add_block(
+                doc.id,
+                btype,
+                bdef.get("content", ""),
+                metadata=bdef.get("metadata", {}),
+            )
+        logger.info("Document created from template %s: %s", template_id, doc.id)
+        return doc

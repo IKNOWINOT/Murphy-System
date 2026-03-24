@@ -11,6 +11,9 @@ Provides a complete collaboration layer including:
 - **Notifications** – in-app notification engine with read/archive
 - **Activity Feed** – board-level, item-level, user-level, and global feeds
 - **Reactions** – emoji reactions on comments
+- **WebSocket Push** – real-time event broadcast to board subscribers via
+  :class:`ConnectionManager` and the ``/api/collaboration/ws/{board_id}``
+  WebSocket endpoint.
 
 Quick start::
 
@@ -28,7 +31,7 @@ Quick start::
 Copyright 2024 Inoni LLC – BSL-1.1
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __codename__ = "Collab"
 
 # -- Models -----------------------------------------------------------------
@@ -61,9 +64,11 @@ from .notifications import NotificationEngine
 
 # -- API (optional – requires fastapi) -------------------------------------
 try:
-    from .api import create_collaboration_router
+    from .api import ConnectionManager, create_collaboration_router, get_ws_manager
 except Exception:  # pragma: no cover
+    ConnectionManager = None  # type: ignore[assignment,misc]
     create_collaboration_router = None  # type: ignore[assignment]
+    get_ws_manager = None  # type: ignore[assignment]
 
 __all__ = [
     # Models
@@ -86,6 +91,9 @@ __all__ = [
     "ActivityFeed",
     # Manager
     "CommentManager",
+    # WebSocket
+    "ConnectionManager",
+    "get_ws_manager",
     # API
     "create_collaboration_router",
 ]
