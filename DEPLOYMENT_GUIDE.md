@@ -615,7 +615,7 @@ POSTGRES_PASSWORD=<strong-random-password>
 
 Generate a secure password:
 ```bash
-python -c "import secrets; print(secrets.token_urlsafe(24))"
+python3 -c "import secrets; print(secrets.token_urlsafe(24))"
 ```
 
 ### Rolling Back Migrations
