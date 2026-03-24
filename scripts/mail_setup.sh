@@ -167,12 +167,25 @@ create_account() {
     # Generate a secure random password if not provided
     local password="${3:-$(openssl rand -base64 16)}"
 
-    if docker exec "$CONTAINER" setup email list 2>/dev/null | grep -qi "^${email}"; then
+    # Check postfix-accounts.cf directly (pre-provisioned accounts) and also
+    # query the container's live list — handle both gracefully.
+    local accounts_cf="/tmp/docker-mailserver/postfix-accounts.cf"
+    local already_exists=false
+    if docker exec "$CONTAINER" grep -qF "${email}|" "${accounts_cf}" 2>/dev/null; then
+        already_exists=true
+    elif docker exec "$CONTAINER" setup email list 2>/dev/null | grep -qi "${email}"; then
+        already_exists=true
+    fi
+
+    if [ "$already_exists" = true ]; then
         warn "Account ${email} already exists — skipping."
     else
-        docker exec "$CONTAINER" setup email add "${email}" "${password}"
-        success "Created ${email} (${display}) — password: ${password}"
-        echo "  ${email}:${password}" >> /tmp/murphy-mail-passwords.txt
+        if docker exec "$CONTAINER" setup email add "${email}" "${password}" 2>/dev/null; then
+            success "Created ${email} (${display}) — password: ${password}"
+            echo "  ${email}:${password}" >> /tmp/murphy-mail-passwords.txt
+        else
+            warn "Failed to create ${email} — it may already exist or setup email add returned an error."
+        fi
     fi
 
     # Set 5 GB quota
