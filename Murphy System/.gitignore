@@ -10,3 +10,6 @@ eqemu-assets/
 *.sql.gz
 eqemu-server-*.zip
 data/mfm_shadow_logs/
+
+# Mail server TLS certificates (generated at deploy time, not tracked)
+config/mail/ssl/

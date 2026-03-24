@@ -433,6 +433,20 @@ if [ "$SKIP_DOCKER" = false ]; then
     warn "Env file ${MURPHY_ENV_FILE} not found — docker compose may fail on required vars"
   fi
 
+  # Generate self-signed TLS certificates for mail server if they don't exist
+  MAIL_KEY="${REPO_DIR}/config/mail/ssl/mail.murphy.systems-key.pem"
+  MAIL_CERT="${REPO_DIR}/config/mail/ssl/mail.murphy.systems-cert.pem"
+  MAIL_CA="${REPO_DIR}/config/mail/ssl/demoCA/cacert.pem"
+  if [ ! -f "$MAIL_KEY" ] || [ ! -f "$MAIL_CERT" ] || [ ! -f "$MAIL_CA" ]; then
+    info "Generating self-signed TLS certificates for mail server ..."
+    mkdir -p "${REPO_DIR}/config/mail/ssl/demoCA"
+    openssl req -x509 -nodes -days 3650 -newkey rsa:4096 \
+      -keyout "$MAIL_KEY" -out "$MAIL_CERT" \
+      -subj "/CN=${MURPHY_MAIL_HOSTNAME:-mail.murphy.systems}"
+    cp "$MAIL_CERT" "$MAIL_CA"
+    ok "Self-signed TLS certificates generated"
+  fi
+
   info "Pulling latest Docker images ..."
   ${COMPOSE_CMD} pull --quiet 2>/dev/null \
     || warn "Some images could not be pulled (continuing with cached versions)"
