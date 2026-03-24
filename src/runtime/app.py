@@ -2306,7 +2306,7 @@ def create_app() -> FastAPI:
                     "success": False,
                     "error": "Running automations requires a paid subscription. "
                              "Free accounts have 10 actions/day for exploring the system. "
-                             "Upgrade to Solo ($29/mo) for 3 automations.",
+                             "Upgrade to Solo ($99/mo) for 3 automations.",
                     "tier": tier,
                     "upgrade_url": "/ui/pricing",
                 }, status_code=403)
@@ -3983,7 +3983,7 @@ def create_app() -> FastAPI:
                     "success": False,
                     "error": "Running automated workflows requires a paid subscription. "
                              "Free accounts can create and view workflows. "
-                             "Upgrade to Solo ($29/mo) for 3 automations.",
+                             "Upgrade to Solo ($99/mo) for 3 automations.",
                     "tier": tier,
                     "upgrade_url": "/ui/pricing",
                 }, status_code=403)
@@ -6146,7 +6146,7 @@ def create_app() -> FastAPI:
                         tier_restricted = True
                         tier_message = (
                             "Compliance frameworks require a paid subscription. "
-                            "Upgrade to Solo ($29/mo) for GDPR and SOC 2 compliance."
+                            "Upgrade to Solo ($99/mo) for GDPR and SOC 2 compliance."
                         )
                 elif not features.get("advanced_compliance", False):
                     # SOLO tier — basic only
@@ -6156,7 +6156,7 @@ def create_app() -> FastAPI:
                         tier_restricted = True
                         tier_message = (
                             "Your Solo plan supports GDPR and SOC 2 only. "
-                            "Upgrade to Business ($99/mo) for HIPAA, PCI-DSS, "
+                            "Upgrade to Business ($299/mo) for HIPAA, PCI-DSS, "
                             "ISO 27001, and more."
                         )
                 elif not features.get("all_compliance_frameworks", False):

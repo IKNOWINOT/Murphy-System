@@ -2207,7 +2207,7 @@ def generate_automation_spec(
         "",
         _format_competitor_table(),
         "",
-        "  ★  Murphy delivers the same automation scope for $29/month.",
+        "  ★  Murphy delivers the same automation scope for $99/month.",
         "     No task limits. No per-user charges. No setup fees.",
         "     AI-powered planning, execution, monitoring, and self-improvement.",
         "",

@@ -11587,9 +11587,9 @@ class MurphySystem:
             return self._chat_response(
                 "**Billing Tiers:**\n\n"
                 "• **Community** (Free) — Core modules, 1 automation, local LLM\n"
-                "• **Solo** ($29/mo) — 3 automations, email support, basic compliance\n"
+                "• **Solo** ($99/mo) — 3 automations, email support, basic compliance\n"
                 "• **Business** ($299/mo) — Unlimited automations, 10 users, all integrations\n"
-                "• **Professional** (Custom) — Unlimited users, HITL graduation, white-label\n"
+                "• **Professional** ($599/mo) — Unlimited users, HITL graduation, white-label\n"
                 "• **Enterprise** (Contact us) — Dedicated instance, custom SLA, on-prem option",
                 session_id, intent=intent
             )
