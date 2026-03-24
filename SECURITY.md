@@ -126,7 +126,7 @@ Murphy System provides automated key rotation via the `ScheduledKeyRotator` clas
 
 | Action | Command / Notes |
 |--------|----------------|
-| Generate a new key | `python -c "import secrets; print(secrets.token_urlsafe(32))"` |
+| Generate a new key | `python3 -c "import secrets; print(secrets.token_urlsafe(32))"` |
 | Set new key | Update `MURPHY_API_KEY` in your secrets manager |
 | Grace period | Old key remains valid for a configurable grace window (default: 24 h) during dual-key transition |
 | Revoke old key | Remove the old value from `MURPHY_API_KEY` / `MURPHY_API_KEYS` after the grace period |
