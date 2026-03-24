@@ -138,3 +138,104 @@ class Document:
             "created_at": self.created_at,
             "updated_at": self.updated_at,
         }
+
+
+# ---------------------------------------------------------------------------
+# Document templates
+# ---------------------------------------------------------------------------
+
+@dataclass
+class DocTemplate:
+    """A reusable document template with pre-seeded blocks.
+
+    Templates are named blueprints from which new documents can be
+    instantiated via :meth:`DocManager.create_from_template`.
+    """
+    id: str = field(default_factory=_new_id)
+    name: str = ""
+    description: str = ""
+    category: str = ""  # e.g. "meeting_notes", "project_brief", "retrospective"
+    block_definitions: List[Dict[str, Any]] = field(default_factory=list)
+    created_at: str = field(default_factory=_now)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "category": self.category,
+            "block_count": len(self.block_definitions),
+            "created_at": self.created_at,
+        }
+
+
+# ---------------------------------------------------------------------------
+# Built-in template definitions
+# ---------------------------------------------------------------------------
+
+_BUILTIN_TEMPLATES: List[Dict[str, Any]] = [
+    {
+        "name": "Meeting Notes",
+        "description": "Structured template for capturing meeting outcomes",
+        "category": "meeting_notes",
+        "block_definitions": [
+            {"block_type": "heading", "content": "Meeting Notes", "metadata": {"level": 1}},
+            {"block_type": "text", "content": "**Date:** "},
+            {"block_type": "text", "content": "**Attendees:** "},
+            {"block_type": "heading", "content": "Agenda", "metadata": {"level": 2}},
+            {"block_type": "bullet_list", "content": "Agenda item 1"},
+            {"block_type": "heading", "content": "Discussion", "metadata": {"level": 2}},
+            {"block_type": "text", "content": ""},
+            {"block_type": "heading", "content": "Action Items", "metadata": {"level": 2}},
+            {"block_type": "checklist", "content": "Follow-up task"},
+        ],
+    },
+    {
+        "name": "Project Brief",
+        "description": "One-page overview for a new project or initiative",
+        "category": "project_brief",
+        "block_definitions": [
+            {"block_type": "heading", "content": "Project Brief", "metadata": {"level": 1}},
+            {"block_type": "heading", "content": "Overview", "metadata": {"level": 2}},
+            {"block_type": "text", "content": ""},
+            {"block_type": "heading", "content": "Goals", "metadata": {"level": 2}},
+            {"block_type": "bullet_list", "content": "Goal 1"},
+            {"block_type": "heading", "content": "Scope", "metadata": {"level": 2}},
+            {"block_type": "text", "content": ""},
+            {"block_type": "heading", "content": "Timeline", "metadata": {"level": 2}},
+            {"block_type": "table", "content": ""},
+            {"block_type": "heading", "content": "Stakeholders", "metadata": {"level": 2}},
+            {"block_type": "table", "content": ""},
+        ],
+    },
+    {
+        "name": "Sprint Retrospective",
+        "description": "What went well, what to improve, action items",
+        "category": "retrospective",
+        "block_definitions": [
+            {"block_type": "heading", "content": "Sprint Retrospective", "metadata": {"level": 1}},
+            {"block_type": "heading", "content": "What Went Well", "metadata": {"level": 2}},
+            {"block_type": "bullet_list", "content": ""},
+            {"block_type": "heading", "content": "What Could Be Improved", "metadata": {"level": 2}},
+            {"block_type": "bullet_list", "content": ""},
+            {"block_type": "heading", "content": "Action Items", "metadata": {"level": 2}},
+            {"block_type": "checklist", "content": ""},
+        ],
+    },
+    {
+        "name": "Technical Spec",
+        "description": "Engineering specification with requirements, design, and API contracts",
+        "category": "technical_spec",
+        "block_definitions": [
+            {"block_type": "heading", "content": "Technical Specification", "metadata": {"level": 1}},
+            {"block_type": "heading", "content": "Problem Statement", "metadata": {"level": 2}},
+            {"block_type": "text", "content": ""},
+            {"block_type": "heading", "content": "Proposed Solution", "metadata": {"level": 2}},
+            {"block_type": "text", "content": ""},
+            {"block_type": "heading", "content": "API Design", "metadata": {"level": 2}},
+            {"block_type": "code", "content": "", "metadata": {"language": "json"}},
+            {"block_type": "heading", "content": "Open Questions", "metadata": {"level": 2}},
+            {"block_type": "numbered_list", "content": ""},
+        ],
+    },
+]

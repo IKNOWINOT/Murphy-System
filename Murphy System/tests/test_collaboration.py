@@ -10,8 +10,10 @@ Covers:
   6. API router
 """
 
+import sys
 import os
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 import pytest
 
@@ -411,6 +413,40 @@ class TestAPIRouter:
             from collaboration.api import create_collaboration_router
             mgr = CommentManager()
             router = create_collaboration_router(mgr)
+            assert router is not None
+        except ImportError:
+            pytest.skip("FastAPI not available")
+
+
+# ===================================================================
+# Phase 2 additions: WebSocket ConnectionManager
+# ===================================================================
+
+class TestConnectionManager:
+    def test_connection_manager_import(self):
+        from collaboration.api import ConnectionManager, get_ws_manager
+        mgr = ConnectionManager()
+        assert mgr.subscriber_count("board-1") == 0
+
+    def test_disconnect_nonexistent_is_safe(self):
+        from collaboration.api import ConnectionManager
+        mgr = ConnectionManager()
+        # Should not raise even if no connections exist
+        mgr.disconnect("board-1", object())
+        assert mgr.subscriber_count("board-1") == 0
+
+    def test_get_ws_manager_singleton(self):
+        from collaboration.api import get_ws_manager
+        m1 = get_ws_manager()
+        m2 = get_ws_manager()
+        assert m1 is m2
+
+    def test_create_router_with_ws_manager(self):
+        try:
+            from collaboration.api import ConnectionManager, create_collaboration_router
+            from collaboration.comment_manager import CommentManager
+            ws = ConnectionManager()
+            router = create_collaboration_router(CommentManager(), ws_manager=ws)
             assert router is not None
         except ImportError:
             pytest.skip("FastAPI not available")

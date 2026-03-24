@@ -12,13 +12,11 @@ Copyright 2024 Inoni LLC – BSL-1.1
 from __future__ import annotations
 
 import logging
-import time
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 try:
     from fastapi import APIRouter, HTTPException, Query
-    from fastapi.responses import JSONResponse, StreamingResponse
+    from fastapi.responses import JSONResponse
     from pydantic import BaseModel, Field
 except ImportError:  # pragma: no cover
     APIRouter = None  # type: ignore[assignment,misc]
@@ -102,100 +100,6 @@ def create_dashboard_router(
     ):
         dashboards = manager.list_dashboards(owner_id=owner_id, workspace_id=workspace_id)
         return JSONResponse([d.to_dict() for d in dashboards])
-
-    # -----------------------------------------------------------------------
-    # Live metrics — must be registered BEFORE the /{dashboard_id} wildcard
-    # so FastAPI route-matching order does not shadow them.
-    # -----------------------------------------------------------------------
-
-    @router.get("/live-metrics/snapshot")
-    async def live_metrics_snapshot():
-        """Return a single live-metrics snapshot (JSON, non-streaming).
-
-        Useful for polling clients or health checks that do not support SSE.
-        """
-        snapshot: Dict[str, Any] = {
-            "ts": datetime.now(timezone.utc).isoformat(),
-            "dashboards_count": len(manager._dashboards),
-            "learning_connector": None,
-            "event_backbone": None,
-        }
-
-        try:
-            from src.learning_engine_connector import get_connector  # type: ignore
-            conn = get_connector()
-            if conn is not None:
-                snapshot["learning_connector"] = conn.status()
-        except Exception:
-            pass
-
-        try:
-            import src.event_backbone  # type: ignore  # noqa: F401
-            snapshot["event_backbone"] = {"available": True}
-        except Exception:
-            snapshot["event_backbone"] = {"available": False}
-
-        return JSONResponse(snapshot)
-
-    @router.get("/live-metrics")
-    async def live_metrics_sse(interval: float = Query(5.0, ge=1.0, le=60.0)):
-        """Stream live system metrics as a Server-Sent Events (SSE) feed.
-
-        Clients subscribe once and receive a JSON metric snapshot every
-        *interval* seconds (default 5 s, range 1–60 s).
-
-        Each SSE message is a JSON object with keys::
-
-            {
-              "ts":                   "<ISO-8601 UTC timestamp>",
-              "uptime_seconds":        <float>,
-              "dashboards_count":      <int>,
-              "learning_connector":    { <status dict> | null },
-              "event_backbone":        { <status dict> | null }
-            }
-        """
-        import json as _json
-
-        _boot_time = time.monotonic()
-
-        def _collect_snapshot() -> Dict[str, Any]:
-            snap: Dict[str, Any] = {
-                "ts": datetime.now(timezone.utc).isoformat(),
-                "uptime_seconds": round(time.monotonic() - _boot_time, 1),
-                "dashboards_count": len(manager._dashboards),
-                "learning_connector": None,
-                "event_backbone": None,
-            }
-            try:
-                from src.learning_engine_connector import get_connector  # type: ignore
-                conn = get_connector()
-                if conn is not None:
-                    snap["learning_connector"] = conn.status()
-            except Exception:
-                pass
-            try:
-                import src.event_backbone  # type: ignore  # noqa: F401
-                snap["event_backbone"] = {"available": True}
-            except Exception:
-                snap["event_backbone"] = {"available": False}
-            return snap
-
-        async def _event_generator():
-            import asyncio as _asyncio
-            while True:
-                try:
-                    data = _collect_snapshot()
-                    yield f"data: {_json.dumps(data)}\n\n"
-                except Exception as exc:
-                    logger.warning("live_metrics_sse: snapshot error: %s", exc)
-                    yield f"data: {{\"error\": \"{exc}\"}}\n\n"
-                await _asyncio.sleep(interval)
-
-        return StreamingResponse(
-            _event_generator(),
-            media_type="text/event-stream",
-            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
-        )
 
     @router.get("/{dashboard_id}")
     async def get_dashboard(dashboard_id: str):

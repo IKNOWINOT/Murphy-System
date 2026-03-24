@@ -39,6 +39,7 @@ class WidgetType(Enum):
     TIMELINE = "timeline"
     BATTERY = "battery"
     TEXT = "text"
+    CRM_SUMMARY = "crm_summary"   # Phase 8 – CRM pipeline / deal summary widget
 
 
 class ChartKind(Enum):
