@@ -1042,7 +1042,7 @@ class NoCodeWorkflowTerminal:
                     self._org_chart_generators[session.session_id] = ocg
                 except Exception as exc:
                     logger.debug("OrgChartGenerator init failed: %s", exc)
-            
+
             # If deliverable is manufacturing/industrial/BAS-related, also instantiate IndustryAutomationWizard
             if dw_sess and dw_sess.industry_type and dw_sess.deliverable_type in ["workflow", "automation"]:
                 try:

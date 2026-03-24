@@ -5,14 +5,14 @@ Handles ingestion of Building Automation System (BAS) and Energy Management Syst
 equipment data from various formats (CSV, JSON, EDE).
 """
 
-from dataclasses import dataclass, field
-from typing import List, Dict, Optional, Any
-from enum import Enum
-from datetime import datetime
 import csv
-import json
 import io
+import json
 import uuid
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional
 
 
 class EquipmentPointType(Enum):
@@ -229,7 +229,7 @@ class EquipmentDataIngestion:
         """
         reader = csv.DictReader(io.StringIO(content))
         points = []
-        
+
         for idx, row in enumerate(reader):
             # Map point_type string to enum
             pt_type = row.get("point_type", "AI").upper()
@@ -237,7 +237,7 @@ class EquipmentDataIngestion:
                 point_type = EquipmentPointType[pt_type]
             except KeyError:
                 point_type = EquipmentPointType.AI  # Fallback
-            
+
             point = ControllerPoint(
                 point_id=f"point_{idx}",
                 point_name=row.get("point_name", f"Point_{idx}"),
@@ -253,11 +253,11 @@ class EquipmentDataIngestion:
                 is_commandable=pt_type in ["AO", "DO"]
             )
             points.append(point)
-        
+
         # Build spec
         protocol_enum = self._parse_protocol(protocol)
         category = self.detect_equipment_category(equipment_name, points)
-        
+
         spec = EquipmentSpec(
             spec_id=str(uuid.uuid4()),
             equipment_id=str(uuid.uuid4()),
@@ -279,20 +279,20 @@ class EquipmentDataIngestion:
             upload_format="CSV",
             created_at=datetime.now().isoformat()
         )
-        
+
         return spec
 
     def ingest_json(self, data: dict) -> EquipmentSpec:
         """Ingest JSON format equipment data"""
         points = []
-        
+
         for idx, pt in enumerate(data.get("points", [])):
             pt_type_str = pt.get("point_type", "AI").upper()
             try:
                 point_type = EquipmentPointType[pt_type_str]
             except KeyError:
                 point_type = EquipmentPointType.AI
-            
+
             point = ControllerPoint(
                 point_id=pt.get("point_id", f"point_{idx}"),
                 point_name=pt.get("point_name", f"Point_{idx}"),
@@ -308,11 +308,11 @@ class EquipmentDataIngestion:
                 is_commandable=pt_type_str in ["AO", "DO"]
             )
             points.append(point)
-        
+
         equipment_name = data.get("equipment_name", "Equipment")
         protocol = self.detect_protocol(data)
         category = self.detect_equipment_category(equipment_name, points)
-        
+
         spec = EquipmentSpec(
             spec_id=data.get("spec_id", str(uuid.uuid4())),
             equipment_id=data.get("equipment_id", str(uuid.uuid4())),
@@ -334,7 +334,7 @@ class EquipmentDataIngestion:
             upload_format="JSON",
             created_at=data.get("created_at", datetime.now().isoformat())
         )
-        
+
         return spec
 
     def ingest_ede(self, content: str) -> EquipmentSpec:
@@ -345,33 +345,33 @@ class EquipmentDataIngestion:
         """
         lines = content.strip().split("\n")
         points = []
-        
+
         # Find header line
         header_idx = 0
         for i, line in enumerate(lines):
             if line.startswith("#object-name") or "object-name" in line.lower():
                 header_idx = i
                 break
-        
+
         # Parse data lines
         for idx, line in enumerate(lines[header_idx + 1:]):
             if not line.strip() or line.startswith("#"):
                 continue
-            
+
             parts = line.split("\t")
             if len(parts) < 3:
                 continue
-            
+
             object_name = parts[0].strip()
             object_type = parts[1].strip() if len(parts) > 1 else "analog-input"
             object_instance = int(parts[2]) if len(parts) > 2 and parts[2].strip().isdigit() else idx
             description = parts[3].strip() if len(parts) > 3 else ""
             default_value = float(parts[4]) if len(parts) > 4 and parts[4].strip() else 0.0
             units_code = parts[5].strip() if len(parts) > 5 else ""
-            
+
             # Map BACnet object type to point type
             point_type = self._bacnet_object_to_point_type(object_type)
-            
+
             point = ControllerPoint(
                 point_id=f"point_{idx}",
                 point_name=object_name,
@@ -386,10 +386,10 @@ class EquipmentDataIngestion:
                 is_commandable="output" in object_type.lower()
             )
             points.append(point)
-        
+
         equipment_name = "BACnet Device"
         category = self.detect_equipment_category(equipment_name, points)
-        
+
         spec = EquipmentSpec(
             spec_id=str(uuid.uuid4()),
             equipment_id=str(uuid.uuid4()),
@@ -411,7 +411,7 @@ class EquipmentDataIngestion:
             upload_format="EDE",
             created_at=datetime.now().isoformat()
         )
-        
+
         return spec
 
     def ingest_auto(self, content: str, filename: str = "") -> EquipmentSpec:
@@ -426,7 +426,7 @@ class EquipmentDataIngestion:
             elif ext in ["ede", "txt"]:
                 if "#object-name" in content or "object-type" in content:
                     return self.ingest_ede(content)
-        
+
         # Content-based detection
         if content.strip().startswith("{") or content.strip().startswith("["):
             return self.ingest_json(json.loads(content))
@@ -441,44 +441,44 @@ class EquipmentDataIngestion:
     def detect_equipment_category(self, equipment_type: str, points: List[ControllerPoint]) -> EquipmentCategory:
         """Detect equipment category from type and points"""
         eq_lower = equipment_type.lower()
-        
+
         # Plumbing keywords - check first as "flow" and "water" are more specific than "meter"
         plumb_keywords = ["flow", "water", "pressure", "plumbing", "pump"]
         if any(kw in eq_lower for kw in plumb_keywords):
             return EquipmentCategory.PLUMBING
-        
+
         # HVAC keywords
-        hvac_keywords = ["ahu", "air handler", "rtu", "vav", "fcu", "chiller", "boiler", 
+        hvac_keywords = ["ahu", "air handler", "rtu", "vav", "fcu", "chiller", "boiler",
                          "cooling tower", "heat pump", "fan coil", "hvac"]
         if any(kw in eq_lower for kw in hvac_keywords):
             return EquipmentCategory.HVAC
-        
+
         # Electrical keywords
         elec_keywords = ["power", "meter", "ups", "generator", "vfd", "mcc", "electrical",
                         "voltage", "current", "kwh"]
         if any(kw in eq_lower for kw in elec_keywords):
             return EquipmentCategory.ELECTRICAL
-        
+
         # Lighting keywords
         light_keywords = ["light", "lighting", "occupancy", "daylight"]
         if any(kw in eq_lower for kw in light_keywords):
             return EquipmentCategory.LIGHTING
-        
+
         # Fire safety keywords
         fire_keywords = ["fire", "alarm", "emergency", "sprinkler"]
         if any(kw in eq_lower for kw in fire_keywords):
             return EquipmentCategory.FIRE_SAFETY
-        
+
         # Industrial PLC keywords
         plc_keywords = ["plc", "scada", "robot", "cnc", "conveyor", "press"]
         if any(kw in eq_lower for kw in plc_keywords):
             return EquipmentCategory.INDUSTRIAL_PLC
-        
+
         # Metering keywords
         meter_keywords = ["meter", "btu", "gas meter", "water meter"]
         if any(kw in eq_lower for kw in meter_keywords):
             return EquipmentCategory.METERING
-        
+
         # Point-based heuristics
         point_names = " ".join([p.point_name.lower() for p in points])
         if "temp" in point_names and "fan" in point_names:
@@ -487,13 +487,13 @@ class EquipmentDataIngestion:
             return EquipmentCategory.ELECTRICAL
         elif "flow" in point_names:
             return EquipmentCategory.PLUMBING
-        
+
         return EquipmentCategory.HVAC  # Default
 
     def detect_protocol(self, raw_data: dict) -> EquipmentProtocol:
         """Detect protocol from raw data"""
         protocol_str = raw_data.get("protocol", "").upper()
-        
+
         if "BACNET" in protocol_str:
             return EquipmentProtocol.BACNET_IP
         elif "MODBUS" in protocol_str:
@@ -508,29 +508,29 @@ class EquipmentDataIngestion:
     def validate_point(self, point: ControllerPoint) -> List[str]:
         """Validate a point and return list of warnings"""
         warnings = []
-        
+
         if point.low_limit >= point.high_limit:
             warnings.append(f"{point.point_name}: low_limit >= high_limit")
-        
+
         if point.alarm_low is not None and point.alarm_low < point.low_limit:
             warnings.append(f"{point.point_name}: alarm_low below operational range")
-        
+
         if point.alarm_high is not None and point.alarm_high > point.high_limit:
             warnings.append(f"{point.point_name}: alarm_high above operational range")
-        
+
         if not point.engineering_units:
             warnings.append(f"{point.point_name}: missing engineering units")
-        
+
         if point.point_type in [EquipmentPointType.AO, EquipmentPointType.DO] and not point.is_commandable:
             warnings.append(f"{point.point_name}: output point should be commandable")
-        
+
         return warnings
 
     def get_recommendations(self, spec: EquipmentSpec) -> List[str]:
         """Get industry best-practice recommendations for equipment"""
         recommendations = []
         eq_type = spec.equipment_type.lower()
-        
+
         if "chiller" in eq_type:
             recommendations.append(
                 "ASHRAE 90.1 requires chiller plant optimization; consider delta-T optimization at 10-14°F"
@@ -541,7 +541,7 @@ class EquipmentDataIngestion:
             recommendations.append(
                 "Implement condenser water temperature reset based on wet-bulb temperature"
             )
-        
+
         if "ahu" in eq_type or "air handler" in eq_type:
             recommendations.append(
                 "ASHRAE 62.1 minimum OA requirement; enable demand-controlled ventilation with CO2 sensors"
@@ -552,7 +552,7 @@ class EquipmentDataIngestion:
             recommendations.append(
                 "Monitor filter differential pressure; replace filters at 1.5-2.0 inWC"
             )
-        
+
         if "boiler" in eq_type:
             recommendations.append(
                 "Implement outdoor air reset control for supply water temperature"
@@ -560,7 +560,7 @@ class EquipmentDataIngestion:
             recommendations.append(
                 "Monitor combustion efficiency; maintain >80% for gas-fired boilers"
             )
-        
+
         if "power" in eq_type or "meter" in eq_type or spec.category == EquipmentCategory.ELECTRICAL:
             recommendations.append(
                 "Install sub-metering per LEED EA Credit; 15-minute interval logging recommended"
@@ -571,7 +571,7 @@ class EquipmentDataIngestion:
             recommendations.append(
                 "Track power factor; maintain >0.95 to avoid utility penalties"
             )
-        
+
         if "vav" in eq_type:
             recommendations.append(
                 "Set minimum airflow to greater of code minimum or 30% of design CFM"
@@ -579,7 +579,7 @@ class EquipmentDataIngestion:
             recommendations.append(
                 "Calibrate damper actuators annually; verify full stroke 0-100%"
             )
-        
+
         if spec.category == EquipmentCategory.INDUSTRIAL_PLC:
             recommendations.append(
                 "Implement redundant safety interlocks per OSHA requirements"
@@ -587,7 +587,7 @@ class EquipmentDataIngestion:
             recommendations.append(
                 "Log all alarm and fault events with timestamp and operator ID"
             )
-        
+
         if not recommendations:
             recommendations.append(
                 "Implement continuous monitoring and trending of key performance indicators"
@@ -595,7 +595,7 @@ class EquipmentDataIngestion:
             recommendations.append(
                 "Schedule preventive maintenance per manufacturer recommendations"
             )
-        
+
         return recommendations[:5]  # Return max 5
 
     def _parse_protocol(self, protocol: str) -> EquipmentProtocol:

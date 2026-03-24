@@ -1,7 +1,7 @@
 """
 Climate Resilience Engine
 
-ASHRAE 169-2021 climate zone system + resilience design matrix + 
+ASHRAE 169-2021 climate zone system + resilience design matrix +
 location-based recommendations for building systems.
 """
 
@@ -576,17 +576,17 @@ class ClimateResilienceEngine:
     def lookup_climate_zone(self, location: str) -> Optional[ClimateZone]:
         """Lookup climate zone by location"""
         location_lower = location.lower().strip()
-        
+
         for zone_id, zone in self.climate_zones.items():
             for city in zone.representative_cities:
                 if location_lower in city.lower():
                     return zone
-        
+
         for city_key in self.resilience_data.keys():
             if location_lower in city_key.lower():
                 zone_id = self.resilience_data[city_key]["climate_zone"]
                 return self.climate_zones.get(zone_id)
-        
+
         logger.warning(f"Location '{location}' not found, returning default zone 4A")
         return self.climate_zones.get("4A")
 
@@ -594,12 +594,12 @@ class ClimateResilienceEngine:
         """Get resilience factors for location"""
         location_key = None
         location_lower = location.lower().strip()
-        
+
         for key in self.resilience_data.keys():
             if location_lower in key.lower():
                 location_key = key
                 break
-        
+
         if not location_key:
             logger.warning(f"Location '{location}' not found in resilience database")
             climate_zone = self.lookup_climate_zone(location)
@@ -620,10 +620,10 @@ class ClimateResilienceEngine:
                     wind_speed_design=90,
                     snowload_psf=20.0
                 )
-        
+
         data = self.resilience_data[location_key]
         climate_zone = self.climate_zones[data["climate_zone"]]
-        
+
         return ResilienceFactors(
             location=location_key,
             climate_zone=climate_zone,
@@ -647,7 +647,7 @@ class ClimateResilienceEngine:
         recommendations = []
         zone = factors.climate_zone
         equipment_lower = equipment_type.lower()
-        
+
         if zone.zone_number in [1, 2]:
             recommendations.append("Specify corrosion-resistant materials for coastal/humid environments")
             recommendations.append("Design for high cooling loads with efficient chillers (>0.6 kW/ton)")
@@ -656,14 +656,14 @@ class ClimateResilienceEngine:
                 recommendations.append("Elevate equipment above base flood elevation plus 2 feet")
             if factors.extreme_heat_risk:
                 recommendations.append("Oversized cooling capacity by 15% for extreme heat events")
-        
+
         if zone.zone_number in [3, 4]:
             recommendations.append("Implement economizer controls for free cooling (ASHRAE 90.1)")
             recommendations.append("Energy recovery ventilator (ERV) for balanced loads")
             recommendations.append("Variable speed drives on all fans and pumps >5 HP")
             if factors.freeze_thaw_cycles > 40:
                 recommendations.append("Freeze protection on outdoor equipment and piping")
-        
+
         if zone.zone_number in [5, 6]:
             recommendations.append("Condensing boilers for high heating efficiency (>90% AFUE)")
             recommendations.append("Heat trace on outdoor piping and drain lines")
@@ -671,45 +671,45 @@ class ClimateResilienceEngine:
             recommendations.append("Snow melt controls for outdoor equipment pads")
             if factors.freeze_thaw_cycles > 100:
                 recommendations.append("Insulated equipment enclosures with trace heating")
-        
+
         if zone.zone_number in [7, 8]:
             recommendations.append("Permafrost foundation design with thermosyphons")
             recommendations.append("Extreme cold startup procedures (-40°F rated equipment)")
             recommendations.append("Triple-pane windows (U-factor < 0.20)")
             recommendations.append("Heat recovery mandatory on all exhaust systems")
             recommendations.append("Vestibule entries with air curtains at all doors")
-        
+
         if factors.seismic_zone in ["high", "very_high"]:
             recommendations.append("Seismic bracing per ASCE 7 and local amendments")
             recommendations.append("Flexible connections on all piping and ductwork")
             recommendations.append("Seismic shutoff valves on gas lines")
-        
+
         if factors.wildfire_risk in ["moderate", "high"]:
             recommendations.append("Fire-rated exterior equipment enclosures")
             recommendations.append("Automatic dampers to prevent smoke infiltration")
             recommendations.append("Backup power for critical life safety systems")
-        
+
         if "chiller" in equipment_lower:
             recommendations.append(f"Design chiller for {factors.design_temp_cooling}°F entering condenser water")
             if zone.zone_number <= 3:
                 recommendations.append("Water-cooled chiller recommended for high cooling hours")
-        
+
         if "boiler" in equipment_lower:
             recommendations.append(f"Design heating for {factors.design_temp_heating}°F outdoor air")
             if zone.zone_number >= 5:
                 recommendations.append("Condensing boiler technology for high efficiency")
-        
+
         if "roof" in equipment_lower or "rtu" in equipment_lower:
             recommendations.append(f"Roof equipment rated for {factors.wind_speed_design} mph wind")
             recommendations.append(f"Structural support designed for {factors.snowload_psf} PSF snow load")
-        
+
         return recommendations
 
     def get_energy_targets(self, location: str, building_type: str) -> EnergyTarget:
         """Get energy performance targets"""
         climate_zone = self.lookup_climate_zone(location)
         zone_id = climate_zone.zone_id if climate_zone else "4A"
-        
+
         eui_targets = {
             "office": {
                 "1A": 65.0, "2A": 60.0, "2B": 58.0, "3A": 55.0, "3B": 53.0, "3C": 48.0,
@@ -732,7 +732,7 @@ class ClimateResilienceEngine:
                 "6A": 100.0, "6B": 97.0, "7": 110.0, "8": 125.0
             }
         }
-        
+
         building_lower = building_type.lower()
         if "office" in building_lower:
             eui = eui_targets["office"].get(zone_id, 55.0)
@@ -749,24 +749,24 @@ class ClimateResilienceEngine:
         else:
             eui = 65.0
             btype = "general"
-        
+
         ecms = ["LED lighting upgrade", "economizer controls", "demand controlled ventilation"]
         if climate_zone and climate_zone.zone_number >= 5:
             heating_rec = "Condensing boiler with outdoor air reset"
             ecms.append("heat recovery from exhaust")
         else:
             heating_rec = "High efficiency boiler or heat pump"
-        
+
         if climate_zone and climate_zone.zone_number <= 3:
             cooling_rec = "High efficiency chiller (>0.6 kW/ton) or VRF"
             ecms.append("chilled water temperature reset")
         else:
             cooling_rec = "High efficiency RTU with economizer"
-        
+
         envelope_r_roof = 30.0 if climate_zone and climate_zone.zone_number <= 3 else 40.0
         envelope_r_walls = 15.0 if climate_zone and climate_zone.zone_number <= 3 else 20.0
         window_u = 0.45 if climate_zone and climate_zone.zone_number <= 3 else 0.35
-        
+
         return EnergyTarget(
             climate_zone=zone_id,
             building_type=btype,
@@ -789,22 +789,22 @@ class ClimateResilienceEngine:
             "cooling_oversizing_factor": 1.0,
             "backup_power_factor": 1.0
         }
-        
+
         if factors.design_temp_heating < 0:
             sizing["heating_oversizing_factor"] = 1.15
         elif factors.design_temp_heating < 15:
             sizing["heating_oversizing_factor"] = 1.10
-        
+
         if factors.extreme_heat_risk:
             sizing["cooling_oversizing_factor"] = 1.15
         elif factors.design_temp_cooling > 95:
             sizing["cooling_oversizing_factor"] = 1.10
-        
+
         if factors.hurricane_risk in ["moderate", "high"]:
             sizing["backup_power_factor"] = 1.5
         elif factors.wildfire_risk == "high":
             sizing["backup_power_factor"] = 1.3
-        
+
         return sizing
 
     def assess_resilience(self, location: str, systems: List[str]) -> Dict[str, any]:
@@ -817,7 +817,7 @@ class ClimateResilienceEngine:
             "system_risks": {},
             "mitigation_recommendations": []
         }
-        
+
         risks = []
         if factors.hurricane_risk in ["moderate", "high"]:
             risks.append(f"Hurricane risk: {factors.hurricane_risk}")
@@ -833,44 +833,44 @@ class ClimateResilienceEngine:
             risks.append(f"High freeze/thaw cycles: {factors.freeze_thaw_cycles}")
         if factors.permafrost:
             risks.append("Permafrost foundation considerations")
-        
+
         assessment["risk_summary"] = risks
-        
+
         for system in systems:
             system_lower = system.lower()
             system_risks = []
-            
+
             if "hvac" in system_lower or "cooling" in system_lower:
                 if factors.extreme_heat_risk:
                     system_risks.append("Cooling capacity inadequate during heat waves")
                 if factors.hurricane_risk == "high":
                     system_risks.append("Wind damage to outdoor equipment")
-            
+
             if "electrical" in system_lower or "power" in system_lower:
                 if factors.hurricane_risk in ["moderate", "high"]:
                     system_risks.append("Grid outage from storms")
                 if factors.wildfire_risk in ["moderate", "high"]:
                     system_risks.append("Power interruption from wildfires")
-            
+
             if system_lower in ["plumbing", "water"]:
                 if factors.freeze_thaw_cycles > 50:
                     system_risks.append("Pipe freezing risk")
-            
+
             assessment["system_risks"][system] = system_risks
-        
+
         if factors.hurricane_risk in ["moderate", "high"]:
             assessment["mitigation_recommendations"].append("Install backup generator with 7-day fuel supply")
             assessment["mitigation_recommendations"].append("Elevate critical equipment above flood plain")
-        
+
         if factors.seismic_zone in ["high", "very_high"]:
             assessment["mitigation_recommendations"].append("Retrofit equipment with seismic restraints")
             assessment["mitigation_recommendations"].append("Install flexible utility connections")
-        
+
         if factors.wildfire_risk in ["moderate", "high"]:
             assessment["mitigation_recommendations"].append("Create defensible space around equipment")
             assessment["mitigation_recommendations"].append("Install ember-resistant louvers")
-        
+
         if factors.freeze_thaw_cycles > 80:
             assessment["mitigation_recommendations"].append("Implement comprehensive freeze protection program")
-        
+
         return assessment

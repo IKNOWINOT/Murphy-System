@@ -70,7 +70,7 @@ def create_dispatch_router() -> APIRouter:
     def call_tool(req: ToolCallRequest):
         """Execute a single tool call."""
         try:
-            from src.dispatch import dispatcher, ToolCall
+            from src.dispatch import ToolCall, dispatcher
             tc = ToolCall(
                 tool_name=req.tool_name,
                 args=req.args,
@@ -99,7 +99,7 @@ def create_dispatch_router() -> APIRouter:
     def batch_call(req: BatchCallRequest):
         """Execute multiple tool calls sequentially."""
         try:
-            from src.dispatch import dispatcher, ToolCall
+            from src.dispatch import ToolCall, dispatcher
             calls = [
                 ToolCall(
                     tool_name=tc.tool_name,
@@ -190,7 +190,7 @@ def create_dispatch_router() -> APIRouter:
         text = body.get("text", "").strip()
         if not text:
             return JSONResponse(status_code=400, content={"ok": False, "error": "text is required"})
-        from src.dispatch import parse_natural_language, dispatcher
+        from src.dispatch import dispatcher, parse_natural_language
         caller_id = body.get("caller_id", "human")
         caller_type = body.get("caller_type", "human")
         tc = parse_natural_language(text, caller_id=caller_id)
@@ -245,7 +245,7 @@ def create_dispatch_router() -> APIRouter:
         Approve a pending tool call and execute it immediately.
         Body: {approved_by?: str}
         """
-        from src.dispatch import approval_store, dispatcher, ToolCall
+        from src.dispatch import ToolCall, approval_store, dispatcher
         approved_by = body.get("approved_by", "user")
         tc = approval_store.approve(call_id, approved_by=approved_by)
         if tc is None:

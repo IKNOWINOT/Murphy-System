@@ -254,6 +254,7 @@ class AutomationCommissioner:
         if self._llm_controller is not None:
             try:
                 import asyncio
+
                 from llm_controller import LLMRequest
                 req = LLMRequest(prompt=prompt, max_tokens=max_tokens)
                 try:
@@ -273,7 +274,7 @@ class AutomationCommissioner:
             from local_llm_fallback import LocalLLMFallback
             return LocalLLMFallback().generate(prompt, max_tokens=max_tokens)
         except Exception:
-            return f"Expected output for automation step."
+            return "Expected output for automation step."
 
     def _infer_expected_outputs(
         self,

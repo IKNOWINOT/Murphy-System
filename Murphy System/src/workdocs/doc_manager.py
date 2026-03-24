@@ -13,6 +13,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from .models import (
+    _BUILTIN_TEMPLATES,
     Block,
     BlockType,
     DocPermission,
@@ -20,7 +21,6 @@ from .models import (
     DocTemplate,
     Document,
     DocVersion,
-    _BUILTIN_TEMPLATES,
     _now,
 )
 

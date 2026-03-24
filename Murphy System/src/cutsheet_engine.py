@@ -467,7 +467,7 @@ class CommissioningTest:
         if not self.test_id:
             import hashlib as _hl
             seed = f"{self.cutsheet_id}|{self.test_type}|{self.test_description}"
-            self.test_id = _hl.sha1(seed.encode()).hexdigest()[:10]
+            self.test_id = _hl.sha256(seed.encode()).hexdigest()[:10]
 
     def to_dict(self) -> Dict[str, Any]:
         return {

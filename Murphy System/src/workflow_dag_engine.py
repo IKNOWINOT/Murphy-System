@@ -129,6 +129,7 @@ class WorkflowDAGEngine:
             if llm_controller is not None:
                 try:
                     import asyncio
+
                     from llm_controller import LLMRequest
                     req = LLMRequest(prompt=f"{topic}: {detail}", max_tokens=max_tokens)
                     try:
