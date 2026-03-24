@@ -6770,6 +6770,22 @@ def create_app() -> FastAPI:
         resp.delete_cookie("murphy_session")
         return resp
 
+    @app.get("/api/auth/session-token")
+    async def get_session_token(request: Request):
+        """Return a lightweight session validation token for the current session."""
+        account = _get_account_from_session(request)
+        if not account:
+            return JSONResponse({"success": False, "error": "not_authenticated"}, status_code=401)
+        import secrets as _secrets
+        token = _secrets.token_urlsafe(32)
+        return JSONResponse({
+            "success": True,
+            "token": token,
+            "account_id": account.get("account_id", ""),
+            "email": account.get("email", ""),
+            "tier": account.get("tier", "free"),
+        })
+
     @app.post("/api/auth/forgot-password")
     async def auth_forgot_password(request: Request):
         """Initiate a password-reset flow.
@@ -6799,6 +6815,7 @@ def create_app() -> FastAPI:
     # In-process token store for password-reset flows.
     # Each entry: token → { account_id, expires_at, used }
     _password_reset_tokens: "Dict[str, Dict[str, Any]]" = {}
+    _comms_rules_store: "Dict[str, Dict[str, Any]]" = {}
 
     @app.post("/api/auth/change-password")
     async def auth_change_password(request: Request):
@@ -8766,6 +8783,38 @@ def create_app() -> FastAPI:
             "preferred_domains": [d["domain"] for d in PREFERRED_DOMAINS],
         })
 
+    @app.get("/api/comms/automate/rules")
+    async def comms_automate_rules_list():
+        """List communication automation rules."""
+        hub = getattr(murphy, "communication_hub", None)
+        if hub and hasattr(hub, "get_automation_rules"):
+            try:
+                rules = hub.get_automation_rules()
+                return JSONResponse({"success": True, "rules": rules})
+            except Exception:
+                pass
+        return JSONResponse({"success": True, "rules": [], "message": "No automation rules configured yet."})
+
+    @app.post("/api/comms/automate/rules")
+    async def comms_automate_rules_create(request: Request):
+        """Create a communication automation rule."""
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+        rule_id = str(uuid4())[:12]
+        rule = {
+            "id": rule_id,
+            "trigger": data.get("trigger", ""),
+            "action": data.get("action", ""),
+            "channel": data.get("channel", "all"),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        if not rule["trigger"] or not rule["action"]:
+            return JSONResponse({"success": False, "error": "trigger and action required"}, status_code=400)
+        _comms_rules_store[rule_id] = rule
+        return JSONResponse({"success": True, "rule": rule}, status_code=201)
+
     # ==================== MEETING INTELLIGENCE API ====================
     # In-memory stores for drafts and votes — keyed by session_id.
     # TODO: migrate to DB models (MeetingDraft, MeetingVote) in a future sprint.
@@ -9005,6 +9054,25 @@ def create_app() -> FastAPI:
         """Persist ambient engine settings."""
         body = await request.json()
         return JSONResponse({"ok": True, "settings": body, "ts": _now_iso()})
+
+    @app.get("/api/ambient/stats")
+    async def ambient_stats():
+        """Return ambient intelligence statistics."""
+        try:
+            ambient = getattr(murphy, "ambient_intelligence", None)
+            if ambient and hasattr(ambient, "get_stats"):
+                return JSONResponse({"success": True, **ambient.get_stats()})
+        except Exception:
+            pass
+        return JSONResponse({
+            "success": True,
+            "insights_generated": 0,
+            "emails_sent": 0,
+            "active_rules": 0,
+            "last_run": None,
+            "status": "idle",
+            "message": "Ambient intelligence initialising — connect email to activate."
+        })
 
 
     # Serve the static/ directory (CSS, JS, SVG assets) and all HTML UI pages

@@ -1540,3 +1540,742 @@ def make_fingerprint(request_ip: str, user_agent: str) -> str:
     """Derive an anonymous fingerprint from IP + User-Agent."""
     raw = f"{request_ip}:{user_agent}"
     return hashlib.sha256(raw.encode()).hexdigest()[:32]
+
+
+# =============================================================================
+# AUTOMATION SPECIFICATION ENGINE
+# =============================================================================
+# Generates a full Automation Specification: workflows inventory, integration
+# map, time/cost savings, competitor pricing table, and a spec_id that
+# pre-seeds the subscriber's account on signup.
+# =============================================================================
+
+import uuid as _uuid_mod
+import json as _json_mod
+
+# ---------------------------------------------------------------------------
+# Competitor pricing data (kept here so it stays in sync with spec output)
+# ---------------------------------------------------------------------------
+
+COMPETITOR_PRICING: list[dict] = [
+    {"name": "Custom Developer (US senior)",  "price": "$8,000 – $20,000/mo", "notes": "Setup + monthly retainer; no AI planning"},
+    {"name": "Boutique Automation Agency",     "price": "$3,000 – $8,000/mo",  "notes": "Agency overhead; long lead times"},
+    {"name": "Zapier Business",                "price": "$299/mo",             "notes": "5,000 task/mo limit; no AI; basic logic only"},
+    {"name": "Make.com Business",              "price": "$159/mo",             "notes": "10,000 ops/mo limit; no AI planning"},
+    {"name": "UiPath Automation Suite",        "price": "$420/mo",             "notes": "RPA only; no AI; steep learning curve"},
+    {"name": "Microsoft Power Automate Prem.", "price": "$150/mo",             "notes": "Microsoft ecosystem lock-in; per-user pricing"},
+    {"name": "n8n Cloud Pro",                  "price": "$50/mo",              "notes": "Technical setup required; no AI strategy layer"},
+    {"name": "━━ Murphy Solo",                 "price": "$99/mo",              "notes": "✦ UNLIMITED automations · AI-powered · no setup fee"},
+    {"name": "━━ Murphy Business",             "price": "$299/mo",             "notes": "✦ Teams + orgs + dedicated support"},
+    {"name": "━━ Murphy Professional",         "price": "$599/mo",             "notes": "✦ Full org management · white-label · SSO"},
+]
+
+# ---------------------------------------------------------------------------
+# Per-scenario automation specs
+# ---------------------------------------------------------------------------
+
+_AUTO_SPECS: dict[str, dict] = {
+    "onboarding": {
+        "title": "Client Onboarding Automation",
+        "business_context": "professional services / agency",
+        "manual_hours_month": 40,
+        "hourly_rate": 65,
+        "recommended_tier": "Solo ($99/mo)",
+        "workflows": [
+            {
+                "name": "New Client Intake",
+                "trigger": "Form submission or CRM deal moves to 'Won'",
+                "steps": [
+                    "Send branded welcome email with portal link",
+                    "Generate and route NDA for e-signature (DocuSign / HelloSign)",
+                    "Create client record in CRM (HubSpot / Salesforce / Pipedrive)",
+                    "Provision client folder in Google Drive / SharePoint",
+                ],
+                "integrations": ["Email (SMTP/SendGrid)", "DocuSign/HelloSign", "CRM", "Google Drive"],
+                "hours_saved_month": 8,
+            },
+            {
+                "name": "Contract & Invoicing",
+                "trigger": "NDA counter-signed event",
+                "steps": [
+                    "Generate Master Service Agreement from template",
+                    "Route MSA for dual e-signature",
+                    "Create initial invoice in accounting system",
+                    "Send invoice with payment link (Stripe/Square)",
+                    "Record payment when received; notify team via Slack",
+                ],
+                "integrations": ["DocuSign", "QuickBooks/Xero", "Stripe/Square", "Slack"],
+                "hours_saved_month": 6,
+            },
+            {
+                "name": "Project Workspace Setup",
+                "trigger": "Contract fully executed",
+                "steps": [
+                    "Create project in task manager (Asana / ClickUp / Monday)",
+                    "Generate sprint backlog from template (14 tasks)",
+                    "Assign team members by role",
+                    "Schedule kickoff call via Calendar AI",
+                    "Send client onboarding packet (PDF + links)",
+                ],
+                "integrations": ["Asana/ClickUp/Monday", "Google Calendar / Outlook", "Email"],
+                "hours_saved_month": 10,
+            },
+            {
+                "name": "Ongoing Client Health Monitoring",
+                "trigger": "Scheduled: weekly",
+                "steps": [
+                    "Pull project status from task manager",
+                    "Calculate health score (on-track / at-risk / blocked)",
+                    "Send weekly status digest to client and team",
+                    "Escalate blocked items to account manager",
+                ],
+                "integrations": ["Asana/ClickUp", "Email", "Slack"],
+                "hours_saved_month": 6,
+            },
+        ],
+    },
+    "finance": {
+        "title": "Financial Reporting & Accounting Automation",
+        "business_context": "small-to-mid business",
+        "manual_hours_month": 32,
+        "hourly_rate": 75,
+        "recommended_tier": "Solo ($99/mo)",
+        "workflows": [
+            {
+                "name": "Automated Transaction Ingestion",
+                "trigger": "Daily scheduled pull from bank + accounting system",
+                "steps": [
+                    "Fetch new transactions from QuickBooks / Xero / FreshBooks",
+                    "AI-categorize expenses (98%+ accuracy)",
+                    "Flag uncategorized or anomalous transactions for review",
+                    "Post categorized entries to chart of accounts",
+                ],
+                "integrations": ["QuickBooks / Xero / FreshBooks", "Bank feed API"],
+                "hours_saved_month": 8,
+            },
+            {
+                "name": "Monthly / Quarterly Report Generation",
+                "trigger": "End of month or quarter (scheduled)",
+                "steps": [
+                    "Aggregate P&L, balance sheet, cash flow data",
+                    "Build revenue breakdown by client / product line",
+                    "Generate 6-month forecast with confidence band",
+                    "Produce 24-page PDF + Google Sheets export",
+                    "Email report to stakeholders automatically",
+                ],
+                "integrations": ["QuickBooks / Xero", "Google Sheets", "Email"],
+                "hours_saved_month": 10,
+            },
+            {
+                "name": "Accounts Receivable Follow-up",
+                "trigger": "Invoice overdue by 7 / 14 / 30 days",
+                "steps": [
+                    "Detect unpaid invoices past due date",
+                    "Send tiered reminder sequence (friendly → formal → demand)",
+                    "Escalate to team at 30 days",
+                    "Log all contact attempts in CRM",
+                ],
+                "integrations": ["QuickBooks / Stripe", "Email", "CRM"],
+                "hours_saved_month": 6,
+            },
+            {
+                "name": "Payroll & Expense Reconciliation",
+                "trigger": "Bi-weekly payroll run",
+                "steps": [
+                    "Pull approved expenses from expense system",
+                    "Match receipts to card transactions (AI OCR)",
+                    "Generate payroll variance report",
+                    "Submit to payroll provider (Gusto / ADP)",
+                ],
+                "integrations": ["Gusto / ADP / Rippling", "Expensify / Ramp", "Bank feed"],
+                "hours_saved_month": 8,
+            },
+        ],
+    },
+    "hr": {
+        "title": "HR & Recruitment Automation",
+        "business_context": "growing team / SMB",
+        "manual_hours_month": 50,
+        "hourly_rate": 70,
+        "recommended_tier": "Solo ($99/mo)",
+        "workflows": [
+            {
+                "name": "Job Posting & Distribution",
+                "trigger": "New role created in HR system",
+                "steps": [
+                    "Auto-post to LinkedIn, Indeed, Glassdoor simultaneously",
+                    "Generate job description with AI (role-specific)",
+                    "Set up applicant tracking pipeline in ATS",
+                    "Notify hiring manager via Slack",
+                ],
+                "integrations": ["LinkedIn / Indeed / Glassdoor APIs", "Greenhouse / Lever / ATS", "Slack"],
+                "hours_saved_month": 6,
+            },
+            {
+                "name": "Applicant Screening & Ranking",
+                "trigger": "New application received",
+                "steps": [
+                    "Parse resume with AI (skills, experience, education)",
+                    "Score against job requirements (0–100 fit score)",
+                    "Auto-reject below-threshold applicants with personalized email",
+                    "Rank shortlist and present top 5 to hiring manager",
+                ],
+                "integrations": ["ATS (Greenhouse/Lever)", "Email", "Slack"],
+                "hours_saved_month": 16,
+            },
+            {
+                "name": "Interview Scheduling",
+                "trigger": "Candidate advanced to interview stage",
+                "steps": [
+                    "Check interviewer calendar availability",
+                    "Send candidate scheduling link (Calendly-style)",
+                    "Send confirmation + prep materials to candidate",
+                    "Create calendar events with video link",
+                    "Send reminder 24h before interview",
+                ],
+                "integrations": ["Google Calendar / Outlook", "Email", "Zoom / Google Meet"],
+                "hours_saved_month": 10,
+            },
+            {
+                "name": "Offer & Onboarding Pipeline",
+                "trigger": "Candidate marked as 'Hire'",
+                "steps": [
+                    "Generate offer letter from template",
+                    "Route for internal approval + e-sign",
+                    "Send to candidate for e-signature",
+                    "Trigger IT provisioning (email, laptop, tools)",
+                    "Create employee record in HRIS",
+                    "Schedule Day 1 orientation + 30/60/90 check-ins",
+                ],
+                "integrations": ["DocuSign", "BambooHR / Workday", "IT ticketing (Jira/ServiceNow)", "Email"],
+                "hours_saved_month": 12,
+            },
+        ],
+    },
+    "compliance": {
+        "title": "Compliance & Audit Automation",
+        "business_context": "regulated industry / SaaS",
+        "manual_hours_month": 60,
+        "hourly_rate": 120,
+        "recommended_tier": "Business ($299/mo)",
+        "workflows": [
+            {
+                "name": "Continuous Controls Monitoring",
+                "trigger": "Scheduled: daily",
+                "steps": [
+                    "Scan access control logs for anomalies",
+                    "Check encryption status of data stores",
+                    "Verify backup jobs completed successfully",
+                    "Generate controls status dashboard update",
+                ],
+                "integrations": ["AWS / GCP / Azure", "SIEM (Splunk/Datadog)", "Slack"],
+                "hours_saved_month": 20,
+            },
+            {
+                "name": "Audit Evidence Collection",
+                "trigger": "Audit period opened (quarterly / annually)",
+                "steps": [
+                    "Auto-collect evidence from 12+ control categories",
+                    "Package evidence into auditor-ready folders",
+                    "Generate gap analysis report (findings + severity)",
+                    "Create remediation task list with owners and deadlines",
+                ],
+                "integrations": ["AWS / GCP", "GitHub", "HRIS", "Ticketing"],
+                "hours_saved_month": 24,
+            },
+            {
+                "name": "Policy & Training Tracking",
+                "trigger": "Policy update OR new employee added",
+                "steps": [
+                    "Send policy acknowledgment requests to affected staff",
+                    "Track completion; send escalating reminders",
+                    "Record completion with timestamp in compliance log",
+                    "Report non-compliance to CISO / HR automatically",
+                ],
+                "integrations": ["HRIS", "Email", "LMS (if present)"],
+                "hours_saved_month": 8,
+            },
+        ],
+    },
+    "project": {
+        "title": "Project Management Automation",
+        "business_context": "agency / product team",
+        "manual_hours_month": 35,
+        "hourly_rate": 65,
+        "recommended_tier": "Solo ($99/mo)",
+        "workflows": [
+            {
+                "name": "Project Kickoff Automation",
+                "trigger": "New project created",
+                "steps": [
+                    "AI-generate sprint backlog from project brief",
+                    "Allocate tasks to team by skill profile",
+                    "Build Gantt timeline with milestones",
+                    "Create project channel in Slack",
+                    "Schedule kickoff + milestone review calls",
+                ],
+                "integrations": ["Asana / ClickUp / Monday", "Slack", "Google Calendar"],
+                "hours_saved_month": 8,
+            },
+            {
+                "name": "Daily Standup Automation",
+                "trigger": "Scheduled: daily 9 AM",
+                "steps": [
+                    "Pull yesterday's task completions from PM tool",
+                    "Identify blocked tasks and at-risk milestones",
+                    "Post standup digest in Slack team channel",
+                    "Escalate P1 blockers to project lead",
+                ],
+                "integrations": ["Asana / ClickUp", "Slack", "Email"],
+                "hours_saved_month": 6,
+            },
+            {
+                "name": "Client Status Reporting",
+                "trigger": "Scheduled: weekly (Friday)",
+                "steps": [
+                    "Aggregate weekly progress from PM system",
+                    "Calculate % complete, velocity, forecast completion",
+                    "Generate branded status report PDF",
+                    "Email to client contacts automatically",
+                ],
+                "integrations": ["Asana / ClickUp", "Email", "Google Drive"],
+                "hours_saved_month": 8,
+            },
+            {
+                "name": "Budget & Scope Monitoring",
+                "trigger": "Continuous (event-driven)",
+                "steps": [
+                    "Track logged hours vs. budget in real-time",
+                    "Alert PM when project exceeds 80% of budget",
+                    "Generate change order draft when scope creep detected",
+                    "Log all scope changes with client sign-off requirement",
+                ],
+                "integrations": ["Harvest / Toggl / Clockify", "Email", "DocuSign"],
+                "hours_saved_month": 6,
+            },
+        ],
+    },
+    "invoice": {
+        "title": "Accounts Payable & Invoice Processing Automation",
+        "business_context": "operations / finance team",
+        "manual_hours_month": 25,
+        "hourly_rate": 60,
+        "recommended_tier": "Solo ($99/mo)",
+        "workflows": [
+            {
+                "name": "Invoice Ingestion & Parsing",
+                "trigger": "Invoice received via email or upload",
+                "steps": [
+                    "Extract vendor, amount, due date, line items with AI OCR",
+                    "Match to open purchase orders automatically",
+                    "Detect duplicates and flag discrepancies",
+                    "Route matched invoices for one-click approval",
+                ],
+                "integrations": ["Email (IMAP)", "QuickBooks / Xero", "PO system"],
+                "hours_saved_month": 8,
+            },
+            {
+                "name": "Approval Routing",
+                "trigger": "Invoice parsed and unmatched or > approval threshold",
+                "steps": [
+                    "Determine approver by amount and department",
+                    "Send mobile-friendly approval request",
+                    "Escalate if no response in 48 hours",
+                    "Log approval chain for audit trail",
+                ],
+                "integrations": ["Email / Slack", "HRIS (for org chart routing)"],
+                "hours_saved_month": 5,
+            },
+            {
+                "name": "Payment Scheduling & Execution",
+                "trigger": "Invoice approved",
+                "steps": [
+                    "Schedule ACH / wire payment for optimal cash flow date",
+                    "Batch payments (3 runs/week by default)",
+                    "Record payment in accounting system",
+                    "Send remittance advice to vendor",
+                ],
+                "integrations": ["QuickBooks / Xero", "Bank ACH API", "Email"],
+                "hours_saved_month": 6,
+            },
+            {
+                "name": "Vendor Statement Reconciliation",
+                "trigger": "Scheduled: end of month",
+                "steps": [
+                    "Request vendor statements automatically",
+                    "AI-reconcile against internal records",
+                    "Generate discrepancy report",
+                    "Create tasks for AP team to resolve gaps",
+                ],
+                "integrations": ["Email", "QuickBooks / Xero", "Task manager"],
+                "hours_saved_month": 4,
+            },
+        ],
+    },
+}
+
+
+def _get_spec_for_query(query: str) -> dict:
+    """Return the spec template that best matches the query, or build a generic one."""
+    scenario_key = _detect_scenario(query)
+    if scenario_key and scenario_key in _AUTO_SPECS:
+        return _AUTO_SPECS[scenario_key]
+    # Generic fallback — derive what we can from the query
+    return _build_generic_spec(query)
+
+
+def _build_generic_spec(query: str) -> dict:
+    """Build a reasonable automation spec for an arbitrary query."""
+    q = query.lower()
+    # Rough domain detection
+    if any(k in q for k in ["sale", "lead", "crm", "pipeline", "deal", "prospect"]):
+        domain = "sales automation"
+        ctx = "sales team / revenue operations"
+        hrs = 30
+        rate = 70
+    elif any(k in q for k in ["market", "email campaign", "newsletter", "social", "content", "seo"]):
+        domain = "marketing automation"
+        ctx = "marketing / growth team"
+        hrs = 25
+        rate = 65
+    elif any(k in q for k in ["support", "ticket", "helpdesk", "customer service", "chat"]):
+        domain = "customer support automation"
+        ctx = "support / customer success"
+        hrs = 35
+        rate = 55
+    elif any(k in q for k in ["inventory", "supply", "order", "fulfil", "warehouse", "logistics"]):
+        domain = "operations & fulfillment automation"
+        ctx = "operations / supply chain"
+        hrs = 40
+        rate = 65
+    else:
+        domain = "business process automation"
+        ctx = "general operations"
+        hrs = 30
+        rate = 65
+
+    words = query.strip().rstrip("?!.").title()
+    return {
+        "title": f"{words} Automation",
+        "business_context": ctx,
+        "manual_hours_month": hrs,
+        "hourly_rate": rate,
+        "recommended_tier": "Solo ($99/mo)",
+        "workflows": [
+            {
+                "name": f"Intake & Routing — {words}",
+                "trigger": "New request received (form / email / API event)",
+                "steps": [
+                    "Classify and validate incoming request with AI",
+                    "Route to appropriate team or system automatically",
+                    "Acknowledge requester with status and ETA",
+                    "Create task in project management tool",
+                ],
+                "integrations": ["Email / Forms", "Slack", "Task manager (Asana/ClickUp)"],
+                "hours_saved_month": round(hrs * 0.3),
+            },
+            {
+                "name": f"Processing & Execution — {words}",
+                "trigger": "Task assigned and confirmed",
+                "steps": [
+                    "Execute core business logic with Murphy AI",
+                    "Pull data from relevant connected systems",
+                    "Apply rules engine and quality checks",
+                    "Update all downstream systems atomically",
+                ],
+                "integrations": ["CRM / ERP", "Accounting system", "Data warehouse"],
+                "hours_saved_month": round(hrs * 0.4),
+            },
+            {
+                "name": "Reporting & Notification",
+                "trigger": "Scheduled daily + on completion events",
+                "steps": [
+                    "Aggregate activity metrics into dashboard",
+                    "Generate daily/weekly digest for stakeholders",
+                    "Alert on exceptions or SLA breaches",
+                    "Log all actions for audit trail",
+                ],
+                "integrations": ["Email", "Slack", "Google Sheets / BI tool"],
+                "hours_saved_month": round(hrs * 0.2),
+            },
+        ],
+    }
+
+
+def _format_competitor_table() -> str:
+    """Render the competitor pricing comparison as aligned ASCII table."""
+    lines = []
+    lines.append("  ┌──────────────────────────────────────────────┬────────────────────┬──────────────────────────────────────────────┐")
+    lines.append("  │ Platform / Option                            │ Monthly Cost       │ Notes                                        │")
+    lines.append("  ├──────────────────────────────────────────────┼────────────────────┼──────────────────────────────────────────────┤")
+    for c in COMPETITOR_PRICING:
+        name  = c["name"][:44].ljust(44)
+        price = c["price"][:18].ljust(18)
+        notes = c["notes"][:44].ljust(44)
+        lines.append(f"  │ {name} │ {price} │ {notes} │")
+    lines.append("  └──────────────────────────────────────────────┴────────────────────┴──────────────────────────────────────────────┘")
+    return "\n".join(lines)
+
+
+def generate_automation_spec(
+    query: str,
+    librarian_context: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Generate a full Automation Specification for a given query.
+
+    Returns a dict with:
+      spec_id        — short ID (SPEC-xxxxxxxx) for signup pre-seeding
+      title          — spec title
+      business_context — inferred domain
+      workflows      — list of workflow dicts (name, trigger, steps, integrations, hours_saved_month)
+      integrations   — deduplicated list of all required integrations
+      manual_hours_month — estimated current manual hours
+      hours_saved_month  — total hours Murphy saves
+      hourly_rate    — assumed rate for ROI calc
+      monthly_savings_usd — hours_saved * rate
+      murphy_cost    — recommended tier cost
+      net_monthly_benefit — monthly_savings - murphy_cost
+      annual_benefit — net * 12
+      roi_multiple   — (monthly_savings / murphy_cost)
+      competitor_table_text — formatted ASCII pricing table
+      recommended_tier — Solo / Business / Enterprise
+      content_txt    — full formatted plain-text specification
+      signup_url     — https://murphy.systems/ui/signup?spec=SPEC-xxx
+      generated_at   — ISO timestamp
+    """
+    spec_id = "SPEC-" + _uuid_mod.uuid4().hex[:8].upper()
+    spec_template = _get_spec_for_query(query)
+
+    title              = spec_template["title"]
+    business_context   = spec_template["business_context"]
+    workflows          = spec_template["workflows"]
+    manual_hours_month = spec_template["manual_hours_month"]
+    hourly_rate        = spec_template["hourly_rate"]
+    recommended_tier   = spec_template["recommended_tier"]
+
+    # Derive tier cost
+    tier_cost = 99 if "Solo" in recommended_tier else (299 if "Business" in recommended_tier else (599 if "Professional" in recommended_tier else 99))
+
+    # Total hours saved = sum of per-workflow savings (capped below manual total)
+    hours_saved = min(
+        sum(w.get("hours_saved_month", 0) for w in workflows),
+        manual_hours_month - 1,  # always leave ≥1 hr for human oversight
+    )
+
+    monthly_savings = hours_saved * hourly_rate
+    net_monthly     = monthly_savings - tier_cost
+    annual_benefit  = net_monthly * 12
+    roi_multiple    = round(monthly_savings / tier_cost, 1) if tier_cost else 0
+
+    # Deduplicate integrations across all workflows
+    all_integrations: list[str] = []
+    seen_integrations: set[str] = set()
+    for wf in workflows:
+        for intg in wf.get("integrations", []):
+            if intg not in seen_integrations:
+                seen_integrations.add(intg)
+                all_integrations.append(intg)
+
+    signup_url = f"https://murphy.systems/ui/signup?spec={spec_id}"
+    now_iso    = datetime.now(timezone.utc).isoformat()
+    now_str    = datetime.now(timezone.utc).strftime("%B %d, %Y at %H:%M UTC")
+
+    # ── Build the formatted plain-text spec ──────────────────────────────
+    lines: list[str] = [
+        _MURPHY_ASCII_LOGO,
+        "",
+        "═" * 72,
+        f"  AUTOMATION SPECIFICATION",
+        f"  {title}",
+        "═" * 72,
+        "",
+        f"  Specification ID : {spec_id}",
+        f"  Generated        : {now_str}",
+        f"  For Request      : {query[:120]}",
+        f"  Business Context : {business_context}",
+        f"  Activation URL   : {signup_url}",
+        "",
+        "─" * 72,
+        "  HOW TO USE THIS DOCUMENT",
+        "─" * 72,
+        "",
+        "  This document specifies the automations Murphy System would build",
+        "  and operate for you. You may:",
+        "",
+        "  1. Take it to any developer, agency, or automation platform to get",
+        "     a competitive quote — then compare with Murphy's price.",
+        "  2. Sign up at the Activation URL above to have Murphy configure all",
+        f"     {len(workflows)} workflows in your account automatically.",
+        "  3. Share with stakeholders to align on your automation roadmap.",
+        "",
+    ]
+
+    # ── Executive Summary ──────────────────────────────────────────────
+    lines += [
+        "─" * 72,
+        "  EXECUTIVE SUMMARY",
+        "─" * 72,
+        "",
+        f"  Murphy System will automate {len(workflows)} core workflows for your",
+        f"  {business_context}, saving approximately {hours_saved} hours/month",
+        f"  ({manual_hours_month} hours currently manual → ~1 hr oversight only).",
+        "",
+        f"  At a ${hourly_rate}/hr blended rate, that is ${monthly_savings:,}/month in",
+        f"  recovered productivity. Murphy costs ${tier_cost}/month.",
+        "",
+        f"  Net monthly benefit  : ${net_monthly:,}",
+        f"  Annual benefit       : ${annual_benefit:,}",
+        f"  Return on investment : {roi_multiple}× in the first year",
+        "",
+    ]
+
+    # ── Automation Inventory ──────────────────────────────────────────
+    lines += [
+        "─" * 72,
+        f"  AUTOMATION INVENTORY  ({len(workflows)} workflows)",
+        "─" * 72,
+        "",
+    ]
+
+    for i, wf in enumerate(workflows, 1):
+        lines += [
+            f"  ┌─ Workflow {i} of {len(workflows)}: {wf['name']}",
+            f"  │  Trigger      : {wf['trigger']}",
+            f"  │  Hours saved  : {wf.get('hours_saved_month', '?')} hrs/month",
+            "  │",
+            "  │  Steps:",
+        ]
+        for step in wf.get("steps", []):
+            lines.append(f"  │    → {step}")
+        lines += [
+            "  │",
+            "  │  Integrations required:",
+        ]
+        for intg in wf.get("integrations", []):
+            lines.append(f"  │    • {intg}")
+        lines += ["  └" + "─" * 65, ""]
+
+    # ── Integration Map ────────────────────────────────────────────────
+    lines += [
+        "─" * 72,
+        f"  INTEGRATION MAP  ({len(all_integrations)} systems)",
+        "─" * 72,
+        "",
+    ]
+    for intg in all_integrations:
+        lines.append(f"  ✓  {intg}")
+    lines.append("")
+    lines += [
+        "  All integrations use OAuth 2.0 or API key authentication.",
+        "  Murphy never stores credentials in plain text.",
+        "  Data never leaves your connected accounts.",
+        "",
+    ]
+
+    # ── ROI Analysis ──────────────────────────────────────────────────
+    lines += [
+        "─" * 72,
+        "  TIME & COST SAVINGS ANALYSIS",
+        "─" * 72,
+        "",
+        f"  Current state (manual):",
+        f"    • {manual_hours_month} hours/month spent on these workflows",
+        f"    • Staff cost (@ ${hourly_rate}/hr): ${manual_hours_month * hourly_rate:,}/month",
+        "",
+        f"  With Murphy System:",
+        f"    • ~1 hour/month (oversight, exception handling, approvals)",
+        f"    • Platform cost: ${tier_cost}/month",
+        f"    • Total cost: ${tier_cost + hourly_rate:,}/month",
+        "",
+        f"  Savings breakdown:",
+        f"    • Hours freed per month  : {hours_saved} hrs",
+        f"    • Value of freed capacity: ${monthly_savings:,}/month",
+        f"    • Murphy subscription    : −${tier_cost}/month",
+        f"    • Net monthly benefit    : ${net_monthly:,}/month",
+        f"    • Annual ROI             : ${annual_benefit:,} (${annual_benefit + tier_cost * 12:,} saved − ${tier_cost * 12} platform cost)",
+        f"    • ROI multiple           : {roi_multiple}× — Murphy pays for itself {roi_multiple}× over each month",
+        "",
+    ]
+
+    # ── Competitor Pricing ─────────────────────────────────────────────
+    lines += [
+        "─" * 72,
+        "  COMPETITOR PRICING COMPARISON",
+        "  For the same scope as this specification:",
+        "─" * 72,
+        "",
+        _format_competitor_table(),
+        "",
+        "  ★  Murphy delivers the same automation scope for $29/month.",
+        "     No task limits. No per-user charges. No setup fees.",
+        "     AI-powered planning, execution, monitoring, and self-improvement.",
+        "",
+    ]
+
+    # ── Configuration Blueprint ────────────────────────────────────────
+    lines += [
+        "─" * 72,
+        "  CONFIGURATION BLUEPRINT  (auto-loaded on signup)",
+        "─" * 72,
+        "",
+        f"  When you sign up with Spec ID  {spec_id}",
+        f"  Murphy will automatically:",
+        "",
+    ]
+    for i, wf in enumerate(workflows, 1):
+        lines.append(f"    {i}. Configure \"{wf['name']}\" workflow")
+    lines += [
+        "",
+        "  All workflow templates are pre-built. You connect your tools via",
+        "  OAuth (one click each) and Murphy activates everything.",
+        "  Average time from signup to fully live: under 10 minutes.",
+        "",
+    ]
+
+    # ── Next Steps ─────────────────────────────────────────────────────
+    lines += [
+        "─" * 72,
+        "  NEXT STEPS",
+        "─" * 72,
+        "",
+        f"  [ ] Visit {signup_url}",
+        "  [ ] Murphy detects your spec and pre-configures all workflows",
+        "  [ ] Connect your tools (one-click OAuth per integration)",
+        "  [ ] Activate and watch your operations run automatically",
+        "  [ ] Go live in under 10 minutes — no developers required",
+        "",
+        f"  Questions? Contact us at hello@murphy.systems",
+        "",
+    ]
+
+    lines.append(_LICENSE_FOOTER)
+
+    content_txt = "\n".join(lines)
+
+    # Sanitise filename
+    slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")
+    filename = f"murphy-spec-{slug}-{spec_id.lower()}.txt"
+
+    return {
+        "spec_id":               spec_id,
+        "title":                 title,
+        "business_context":      business_context,
+        "workflows":             workflows,
+        "integrations":          all_integrations,
+        "workflow_count":        len(workflows),
+        "manual_hours_month":    manual_hours_month,
+        "hours_saved_month":     hours_saved,
+        "hourly_rate":           hourly_rate,
+        "monthly_savings_usd":   monthly_savings,
+        "murphy_cost":           tier_cost,
+        "net_monthly_benefit":   net_monthly,
+        "annual_benefit":        annual_benefit,
+        "roi_multiple":          roi_multiple,
+        "recommended_tier":      recommended_tier,
+        "competitor_pricing":    COMPETITOR_PRICING,
+        "content_txt":           content_txt,
+        "signup_url":            signup_url,
+        "generated_at":          now_iso,
+        "filename":              filename,
+    }

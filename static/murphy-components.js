@@ -125,6 +125,9 @@ class MurphySidebar extends HTMLElement {
       { icon: '💬', label: 'WORKSPACE',    href: '/ui/workspace' },
       { icon: '🏘', label: 'COMMUNITY',    href: '/ui/community' },
       { icon: '📋', label: 'MANAGEMENT',   href: '/ui/management' },
+      { icon: '✉', label: 'COMMS HUB',   href: '/ui/comms-hub' },
+      { icon: '💰', label: 'WALLET',      href: '/ui/wallet' },
+      { icon: '⚙', label: 'ADMIN',       href: '/ui/admin' },
     ];
 
     const links = navItems.map(item => `
@@ -228,6 +231,9 @@ class MurphyCommandPalette extends HTMLElement {
       { icon:'💬', label:'Workspace',                href:'/ui/workspace',                shortcut:'' },
       { icon:'🏘', label:'Community Forum',          href:'/ui/community',                shortcut:'' },
       { icon:'📋', label:'Management',               href:'/ui/management',               shortcut:'' },
+      { icon:'✉',  label:'Communications Hub',  href:'/ui/comms-hub',  shortcut:'' },
+      { icon:'💰', label:'Wallet & Assets',      href:'/ui/wallet',     shortcut:'' },
+      { icon:'⚙',  label:'Admin Panel',          href:'/ui/admin',      shortcut:'' },
     ];
 
     this._selected = 0;
