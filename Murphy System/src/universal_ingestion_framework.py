@@ -723,7 +723,7 @@ class OpcUaNodeSetAdapter(IngestionAdapter):
         records_failed = 0
 
         try:
-            root = ET.fromstring(content)  # nosec B314 — OPC-UA NodeSet XML originates from trusted internal files
+            root = ET.fromstring(content)  # nosec B314 — OPC-UA NodeSet2 XML from validated equipment ingestion pipeline; can_handle() pre-validates the format before this point is reached
 
             namespaces = {'ua': 'http://opcfoundation.org/UA/2011/03/UANodeSet.xsd'}
 
