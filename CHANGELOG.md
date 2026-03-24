@@ -5,7 +5,48 @@ All notable changes to Murphy System will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — Communication Hub: IM, Voice, Video, Email + Moderator Console
+## [Unreleased] — Founder Update Engine (ARCH-007) + UI Navigation Overhaul
+
+### Added
+
+#### Founder Update Engine — PR 1: Core Recommendation Engine
+- **`src/founder_update_engine/recommendation_engine.py`** (`RecommendationEngine`): Central recommendation store with 9 recommendation types (SDK_UPDATE, SECURITY, PERFORMANCE, MAINTENANCE, BUG_RESPONSE, AUTO_UPDATE, CONFIGURATION, DEPENDENCY_UPGRADE, GENERAL), 5 priority levels, full persistence, and 6 query methods
+- **`src/founder_update_engine/subsystem_registry.py`** (`SubsystemRegistry`): Central registry of all Murphy subsystems — auto-discovers modules from `src/`, tracks health status (healthy/degraded/failed/unknown), update history, and pending recommendation counts
+- **`src/founder_update_engine/update_coordinator.py`** (`UpdateCoordinator`): Coordinates update application within configurable maintenance windows; rate-limits changes per window; full audit trail via `UpdateRecord`
+- **`src/founder_update_engine/__init__.py`**: Package exports for all public classes and constants
+
+#### Founder Update Engine — PR 2: SDK Scanner & Auto-Update Applicator
+- **`src/founder_update_engine/sdk_update_scanner.py`** (`SdkUpdateScanner`): Scans `requirements*.txt` files, detects patch/minor/major version bumps, integrates with `DependencyAuditEngine` for vulnerability data, generates `SDK_UPDATE`, `SECURITY`, and `AUTO_UPDATE` recommendations. Returns `SdkScanReport` with per-package `PackageScanRecord`
+- **`src/founder_update_engine/auto_update_applicator.py`** (`AutoUpdateApplicator`): Consumes `auto_applicable` recommendations, applies them with health-gated safety checks, rate-limiting, and dry-run mode. Records outcomes via 7 `ApplicationOutcome` codes (APPLIED, SKIPPED_HEALTH, SKIPPED_RATE_LIMIT, SKIPPED_DRY_RUN, FAILED, ALREADY_APPLIED, NOT_APPLICABLE). Returns `ApplicationCycle` with full `ApplicationRecord` list
+
+#### Founder Update Engine — PR 3: Bug Response Handler & Operating Analysis Dashboard
+- **`src/founder_update_engine/bug_response_handler.py`** (`BugResponseHandler`): Ingests `BugReport` objects, classifies severity (critical/high/medium/low) and category (crash/security/performance/regression/data_loss/other) via keyword heuristics, generates root-cause hypotheses + structured action items + human-readable response drafts, creates `BUG_RESPONSE` and (for security-category bugs) `SECURITY` recommendations. Integrates with `BugPatternDetector` for pattern correlation. Full persistence and event publishing
+- **`src/founder_update_engine/operating_analysis_dashboard.py`** (`OperatingAnalysisDashboard`): Aggregates operational data from `SubsystemRegistry` (health scores), `BugPatternDetector` (active patterns), `SelfHealingCoordinator` (recovery rates), `DependencyAuditEngine` (vulnerability counts), and `RecommendationEngine` (open recommendation counts). Generates `PERFORMANCE`, `MAINTENANCE`, and `SECURITY` recommendations when configured thresholds are exceeded. Produces `DashboardSnapshot` objects with durable history
+  - Health score < 80% → `PERFORMANCE` recommendation
+  - Health score < 50% → `MAINTENANCE` (critical) recommendation
+  - Active bug patterns > 5 → `MAINTENANCE` recommendation
+  - Recovery success rate < 70% → `MAINTENANCE` recommendation
+  - Open vulnerabilities > 3 → `SECURITY` recommendation
+- **133 tests** in `tests/test_founder_update_engine.py` covering all PR 1–3 modules
+
+#### UI Navigation Overhaul
+- **Sidebar sections** (`static/murphy-components.js`): Sidebar redesigned with 7 named section groups — **SETUP · TERMINAL · BUILD · FINANCE · OPS · COMMUNITY · ACCOUNT** — rendered as non-clickable divider labels between navigation groups
+- **6 previously unreachable pages** added to sidebar navigation:
+  - `🚀 ONBOARDING` → `/ui/onboarding` (Onboarding Wizard — first item under SETUP, primary post-login setup entry point)
+  - `🔍 VISUALIZER` → `/ui/system-visualizer` (System Visualizer — under SETUP)
+  - `📊 GRANT DASH` → `/ui/grant-dashboard` (Grant Dashboard — under FINANCE alongside Grant Wizard)
+  - `💼 FINANCING` → `/ui/financing` (Financing Options — under FINANCE)
+  - `🏢 ORG PORTAL` → `/ui/org-portal` (Org Portal — under ACCOUNT)
+  - `📚 DOCS` → `/ui/docs` (Documentation — under ACCOUNT)
+- **Command palette expanded**: 21 → 28 destinations; all new pages added to Ctrl+K palette
+- Both `static/murphy-components.js` and `Murphy System/static/murphy-components.js` updated in sync
+
+### Changed
+- `src/founder_update_engine/__init__.py`: Updated to export all PR 1–3 classes: `BugCategory`, `BugReport`, `BugResponse`, `BugResponseHandler`, `BugSeverity`, `DashboardSnapshot`, `OperatingAnalysisDashboard`, `SubsystemHealthSummary`
+- `tests/test_ui_wiring_improvements.py`: Sidebar expected hrefs updated from 12 → 20; command palette expected hrefs updated from 11 → 19
+- Both `tests/test_ui_wiring_improvements.py` and `Murphy System/tests/test_ui_wiring_improvements.py` updated in sync
+
+
 
 ### Added
 - **Communication Hub engine** (`src/communication_hub.py`): Unified onboard communication system with full SQLite persistence via `src/db.py` ORM. Includes:
