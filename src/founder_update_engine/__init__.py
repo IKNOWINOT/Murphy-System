@@ -14,6 +14,8 @@ Public exports:
   - UpdateCoordinator / MaintenanceWindow / UpdateRecord
   - SdkUpdateScanner / SdkScanReport / PackageScanRecord
   - AutoUpdateApplicator / ApplicationCycle / ApplicationRecord / ApplicationOutcome
+  - BugResponseHandler / BugReport / BugResponse / BugSeverity / BugCategory
+  - OperatingAnalysisDashboard / DashboardSnapshot / SubsystemHealthSummary
 
 Copyright © 2020 Inoni Limited Liability Company
 Creator: Corey Post
@@ -50,6 +52,18 @@ from .auto_update_applicator import (
     ApplicationRecord,
     AutoUpdateApplicator,
 )
+from .bug_response_handler import (
+    BugCategory,
+    BugReport,
+    BugResponse,
+    BugResponseHandler,
+    BugSeverity,
+)
+from .operating_analysis_dashboard import (
+    DashboardSnapshot,
+    OperatingAnalysisDashboard,
+    SubsystemHealthSummary,
+)
 
 __all__ = [
     # recommendation_engine
@@ -77,4 +91,14 @@ __all__ = [
     "ApplicationOutcome",
     "ApplicationRecord",
     "AutoUpdateApplicator",
+    # bug_response_handler
+    "BugCategory",
+    "BugReport",
+    "BugResponse",
+    "BugResponseHandler",
+    "BugSeverity",
+    # operating_analysis_dashboard
+    "DashboardSnapshot",
+    "OperatingAnalysisDashboard",
+    "SubsystemHealthSummary",
 ]

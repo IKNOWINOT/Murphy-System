@@ -1190,3 +1190,496 @@ class TestAutoUpdateApplicatorPersistence:
     def test_application_outcome_enum_coverage(self):
         for outcome in ApplicationOutcome:
             assert outcome.value  # all have non-empty string values
+
+
+# ===========================================================================
+# PR 3 — BugResponseHandler & OperatingAnalysisDashboard tests
+# ===========================================================================
+
+from founder_update_engine import (
+    BugCategory,
+    BugReport,
+    BugResponse,
+    BugResponseHandler,
+    BugSeverity,
+    DashboardSnapshot,
+    OperatingAnalysisDashboard,
+    SubsystemHealthSummary,
+)
+
+
+# ---------------------------------------------------------------------------
+# Shared PR-3 fixtures
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def bug_handler(rec_engine, pm):
+    return BugResponseHandler(
+        recommendation_engine=rec_engine,
+        persistence_manager=pm,
+    )
+
+
+@pytest.fixture
+def dashboard(rec_engine, registry, pm):
+    return OperatingAnalysisDashboard(
+        registry=registry,
+        recommendation_engine=rec_engine,
+        persistence_manager=pm,
+    )
+
+
+def _make_report(**kwargs) -> BugReport:
+    defaults = dict(
+        title="Test bug",
+        description="Something went wrong",
+        component="billing",
+        severity="medium",
+    )
+    defaults.update(kwargs)
+    return BugReport(**defaults)
+
+
+# ---------------------------------------------------------------------------
+# BugResponseHandler — ingestion
+# ---------------------------------------------------------------------------
+
+class TestBugResponseHandlerIngest:
+    def test_ingest_returns_bug_response(self, bug_handler):
+        report = _make_report()
+        response = bug_handler.ingest(report)
+        assert isinstance(response, BugResponse)
+        assert response.report_id == report.report_id
+
+    def test_ingest_has_response_draft(self, bug_handler):
+        report = _make_report(title="Invoice crash", description="crash on invoice generation")
+        response = bug_handler.ingest(report)
+        assert len(response.response_draft) > 20
+        assert report.report_id in response.response_draft
+
+    def test_ingest_produces_hypotheses(self, bug_handler):
+        report = _make_report(title="Crash bug", description="traceback in module")
+        response = bug_handler.ingest(report)
+        assert len(response.root_cause_hypotheses) >= 1
+
+    def test_ingest_produces_actions(self, bug_handler):
+        report = _make_report()
+        response = bug_handler.ingest(report)
+        assert len(response.suggested_actions) >= 1
+
+    def test_ingest_generates_recommendations(self, bug_handler, rec_engine):
+        report = _make_report()
+        response = bug_handler.ingest(report)
+        assert len(response.recommendation_ids) >= 1
+        all_recs = rec_engine.get_all_recommendations()
+        rec_ids = {r.id for r in all_recs}
+        for rid in response.recommendation_ids:
+            assert rid in rec_ids
+
+    def test_ingest_stores_in_history(self, bug_handler):
+        report = _make_report()
+        bug_handler.ingest(report)
+        history = bug_handler.get_responses(limit=10)
+        assert any(r.report_id == report.report_id for r in history)
+
+    def test_get_response_by_report_id(self, bug_handler):
+        report = _make_report()
+        bug_handler.ingest(report)
+        found = bug_handler.get_response_by_report_id(report.report_id)
+        assert found is not None
+        assert found.report_id == report.report_id
+
+    def test_get_response_not_found_returns_none(self, bug_handler):
+        result = bug_handler.get_response_by_report_id("nonexistent-id")
+        assert result is None
+
+
+# ---------------------------------------------------------------------------
+# BugResponseHandler — classification
+# ---------------------------------------------------------------------------
+
+class TestBugResponseHandlerClassification:
+    def test_classify_critical_severity(self, bug_handler):
+        report = _make_report(severity="critical")
+        response = bug_handler.ingest(report)
+        assert response.classified_severity == BugSeverity.CRITICAL
+
+    def test_classify_high_severity(self, bug_handler):
+        report = _make_report(severity="high")
+        response = bug_handler.ingest(report)
+        assert response.classified_severity == BugSeverity.HIGH
+
+    def test_classify_low_severity(self, bug_handler):
+        report = _make_report(severity="low")
+        response = bug_handler.ingest(report)
+        assert response.classified_severity == BugSeverity.LOW
+
+    def test_classify_security_category(self, bug_handler):
+        report = _make_report(
+            title="SQL injection in login",
+            description="sql injection vulnerability in auth endpoint",
+        )
+        response = bug_handler.ingest(report)
+        assert response.category == BugCategory.SECURITY
+
+    def test_classify_crash_category(self, bug_handler):
+        report = _make_report(
+            title="Null pointer",
+            description="AttributeError traceback in billing",
+            stack_trace="Traceback (most recent call last):",
+        )
+        response = bug_handler.ingest(report)
+        assert response.category == BugCategory.CRASH
+
+    def test_classify_performance_category(self, bug_handler):
+        report = _make_report(
+            title="Slow query",
+            description="query timeout after 30s, high latency observed",
+        )
+        response = bug_handler.ingest(report)
+        assert response.category == BugCategory.PERFORMANCE
+
+    def test_classify_regression_category(self, bug_handler):
+        report = _make_report(
+            title="Regression in billing",
+            description="this used to work before the last deploy",
+        )
+        response = bug_handler.ingest(report)
+        assert response.category == BugCategory.REGRESSION
+
+    def test_classify_data_loss_category(self, bug_handler):
+        report = _make_report(
+            title="Data lost",
+            description="customer data disappeared after the migration",
+        )
+        response = bug_handler.ingest(report)
+        assert response.category == BugCategory.DATA_LOSS
+
+
+# ---------------------------------------------------------------------------
+# BugResponseHandler — security escalation
+# ---------------------------------------------------------------------------
+
+class TestBugResponseHandlerSecurity:
+    def test_security_bug_generates_security_recommendation(self, bug_handler, rec_engine):
+        report = _make_report(
+            title="XSS in dashboard",
+            description="cross-site scripting xss exploit found in dashboard",
+        )
+        bug_handler.ingest(report)
+        from founder_update_engine import RecommendationType
+        security_recs = rec_engine.get_recommendations_by_type(RecommendationType.SECURITY)
+        assert len(security_recs) >= 1
+
+    def test_security_bug_requires_founder_approval(self, bug_handler, rec_engine):
+        report = _make_report(
+            title="Auth bypass",
+            description="auth token bypass vulnerability found",
+        )
+        bug_handler.ingest(report)
+        from founder_update_engine import RecommendationType
+        security_recs = rec_engine.get_recommendations_by_type(RecommendationType.SECURITY)
+        assert all(r.requires_founder_approval for r in security_recs)
+
+    def test_security_draft_mentions_escalation(self, bug_handler):
+        report = _make_report(
+            title="CSRF vulnerability",
+            description="csrf token missing on password reset endpoint",
+        )
+        response = bug_handler.ingest(report)
+        assert "security" in response.response_draft.lower()
+
+
+# ---------------------------------------------------------------------------
+# BugResponseHandler — persistence
+# ---------------------------------------------------------------------------
+
+class TestBugResponseHandlerPersistence:
+    def test_persistence_round_trip(self, rec_engine, pm):
+        h1 = BugResponseHandler(recommendation_engine=rec_engine, persistence_manager=pm)
+        report = _make_report(title="Persist test")
+        h1.ingest(report)
+
+        h2 = BugResponseHandler(persistence_manager=pm)
+        history = h2.get_responses(limit=10)
+        assert any(r.report_id == report.report_id for r in history)
+
+    def test_get_status(self, bug_handler):
+        bug_handler.ingest(_make_report(severity="high"))
+        bug_handler.ingest(_make_report(severity="low"))
+        status = bug_handler.get_status()
+        assert status["total_responses"] == 2
+        assert "high" in status["by_severity"]
+        assert "low" in status["by_severity"]
+
+
+# ---------------------------------------------------------------------------
+# BugResponseHandler — BugPatternDetector integration
+# ---------------------------------------------------------------------------
+
+class TestBugResponseHandlerDetectorIntegration:
+    def test_integrates_with_bug_pattern_detector(self, rec_engine, pm):
+        from bug_pattern_detector import BugPatternDetector
+        detector = BugPatternDetector()
+        handler = BugResponseHandler(
+            recommendation_engine=rec_engine,
+            bug_detector=detector,
+            persistence_manager=pm,
+        )
+        report = _make_report(
+            title="Repeated crash",
+            description="NullPointerException in billing.calculate()",
+            component="billing",
+            stack_trace="Traceback...",
+        )
+        response = handler.ingest(report)
+        # Should not raise; response should still be valid
+        assert isinstance(response, BugResponse)
+
+    def test_no_detector_still_works(self, rec_engine, pm):
+        handler = BugResponseHandler(recommendation_engine=rec_engine, persistence_manager=pm)
+        response = handler.ingest(_make_report())
+        assert isinstance(response, BugResponse)
+
+
+# ---------------------------------------------------------------------------
+# OperatingAnalysisDashboard — snapshot capture
+# ---------------------------------------------------------------------------
+
+class TestOperatingAnalysisDashboardSnapshot:
+    def test_capture_returns_snapshot(self, dashboard):
+        snap = dashboard.capture_snapshot()
+        assert isinstance(snap, DashboardSnapshot)
+        assert snap.snapshot_id.startswith("snap-")
+
+    def test_capture_empty_registry(self, dashboard):
+        snap = dashboard.capture_snapshot()
+        # No subsystems registered — counts should be 0
+        assert snap.total_subsystems == 0
+        assert snap.health_score == 1.0  # no subsystems → perfect health
+
+    def test_capture_with_healthy_subsystems(self, dashboard, registry):
+        for i in range(3):
+            registry.register_subsystem(
+                SubsystemInfo(name=f"svc_{i}", module_path=f"src/s{i}.py", health_status=HEALTH_HEALTHY)
+            )
+        snap = dashboard.capture_snapshot()
+        assert snap.total_subsystems == 3
+        assert snap.healthy_count == 3
+        assert snap.health_score == 1.0
+
+    def test_capture_detects_failed_subsystem(self, dashboard, registry):
+        registry.register_subsystem(
+            SubsystemInfo(name="good", module_path="src/g.py", health_status=HEALTH_HEALTHY)
+        )
+        registry.register_subsystem(
+            SubsystemInfo(name="bad", module_path="src/b.py", health_status=HEALTH_FAILED)
+        )
+        snap = dashboard.capture_snapshot()
+        assert snap.failed_count == 1
+        assert snap.health_score < 1.0
+
+    def test_snapshot_includes_subsystem_summaries(self, dashboard, registry):
+        registry.register_subsystem(
+            SubsystemInfo(name="api", module_path="src/api.py", health_status=HEALTH_HEALTHY)
+        )
+        snap = dashboard.capture_snapshot()
+        names = [s.name for s in snap.subsystem_summaries]
+        assert "api" in names
+
+    def test_get_latest_snapshot(self, dashboard):
+        assert dashboard.get_latest_snapshot() is None
+        dashboard.capture_snapshot()
+        snap = dashboard.get_latest_snapshot()
+        assert snap is not None
+        assert isinstance(snap, DashboardSnapshot)
+
+    def test_snapshot_history_accumulates(self, dashboard):
+        dashboard.capture_snapshot()
+        dashboard.capture_snapshot()
+        history = dashboard.get_snapshot_history()
+        assert len(history) == 2
+
+    def test_snapshot_history_newest_first(self, dashboard):
+        snap1 = dashboard.capture_snapshot()
+        snap2 = dashboard.capture_snapshot()
+        history = dashboard.get_snapshot_history()
+        assert history[0].snapshot_id == snap2.snapshot_id
+        assert history[1].snapshot_id == snap1.snapshot_id
+
+
+# ---------------------------------------------------------------------------
+# OperatingAnalysisDashboard — analysis and recommendations
+# ---------------------------------------------------------------------------
+
+class TestOperatingAnalysisDashboardAnalysis:
+    def test_all_healthy_no_recommendations(self, dashboard, registry):
+        for i in range(5):
+            registry.register_subsystem(
+                SubsystemInfo(name=f"s{i}", module_path=f"src/s{i}.py", health_status=HEALTH_HEALTHY)
+            )
+        snap = dashboard.capture_snapshot()
+        assert snap.recommendations_generated == 0
+        assert "normal operating" in snap.analysis_notes[0].lower()
+
+    def test_critical_health_generates_maintenance_rec(self, rec_engine, pm):
+        registry = SubsystemRegistry(persistence_manager=pm)
+        # 3 failed out of 4 → health_score = 0.25 < 0.50 critical threshold
+        for i in range(3):
+            registry.register_subsystem(
+                SubsystemInfo(name=f"bad{i}", module_path=f"src/b{i}.py", health_status=HEALTH_FAILED)
+            )
+        registry.register_subsystem(
+            SubsystemInfo(name="good", module_path="src/g.py", health_status=HEALTH_HEALTHY)
+        )
+        dash = OperatingAnalysisDashboard(
+            registry=registry,
+            recommendation_engine=rec_engine,
+            persistence_manager=pm,
+        )
+        snap = dash.capture_snapshot()
+        assert snap.recommendations_generated >= 1
+        from founder_update_engine import RecommendationType
+        maint_recs = rec_engine.get_recommendations_by_type(RecommendationType.MAINTENANCE)
+        assert len(maint_recs) >= 1
+
+    def test_degraded_health_generates_performance_rec(self, rec_engine, pm):
+        registry = SubsystemRegistry(persistence_manager=pm)
+        # 3 degraded out of 5 → health_score = 0.4 / 5... wait, let's do 2 healthy, 3 degraded
+        # health_score = healthy/total = 2/5 = 0.40 < 0.50 → critical rec
+        # Let's make it 4 healthy, 1 degraded → 4/5 = 0.80 (boundary), need < 0.80
+        # 3 healthy, 2 degraded → 3/5 = 0.60  → between 0.50 and 0.80 → PERFORMANCE rec
+        for i in range(3):
+            registry.register_subsystem(
+                SubsystemInfo(name=f"ok{i}", module_path=f"src/ok{i}.py", health_status=HEALTH_HEALTHY)
+            )
+        for i in range(2):
+            registry.register_subsystem(
+                SubsystemInfo(name=f"deg{i}", module_path=f"src/d{i}.py", health_status=HEALTH_DEGRADED)
+            )
+        dash = OperatingAnalysisDashboard(
+            registry=registry,
+            recommendation_engine=rec_engine,
+            persistence_manager=pm,
+        )
+        snap = dash.capture_snapshot()
+        assert snap.recommendations_generated >= 1
+        from founder_update_engine import RecommendationType
+        perf_recs = rec_engine.get_recommendations_by_type(RecommendationType.PERFORMANCE)
+        assert len(perf_recs) >= 1
+
+    def test_high_vulnerability_count_generates_security_rec(self, rec_engine, pm):
+        from dependency_audit_engine import DependencyAuditEngine
+        dep_audit = DependencyAuditEngine()
+        # Seed 4 vulnerable packages (> VULN_WARN=3)
+        for i in range(4):
+            dep_audit.register_dependency(f"pkg{i}", "1.0.0")
+            dep_audit.ingest_advisory(
+                cve_id=f"CVE-2023-{i:04d}",
+                package_name=f"pkg{i}",
+                affected_versions=">=1.0.0,<2.0.0",
+                severity="high",
+                description="Test vuln",
+                fixed_version="2.0.0",
+            )
+        dep_audit.run_audit_cycle()
+
+        dash = OperatingAnalysisDashboard(
+            recommendation_engine=rec_engine,
+            dependency_audit=dep_audit,
+            persistence_manager=pm,
+        )
+        snap = dash.capture_snapshot()
+        assert snap.open_vulnerability_count >= 4
+        assert snap.recommendations_generated >= 1
+        from founder_update_engine import RecommendationType
+        sec_recs = rec_engine.get_recommendations_by_type(RecommendationType.SECURITY)
+        assert len(sec_recs) >= 1
+
+    def test_high_bug_pattern_count_generates_maintenance_rec(self, rec_engine, pm):
+        from bug_pattern_detector import BugPatternDetector
+        detector = BugPatternDetector(min_occurrences=1)
+        # Ingest 6 distinct errors (> BUG_PATTERN_WARN=5)
+        for i in range(6):
+            detector.ingest_error(f"Unique error message #{i}", component="api")
+        detector.run_detection_cycle()
+
+        dash = OperatingAnalysisDashboard(
+            recommendation_engine=rec_engine,
+            bug_detector=detector,
+            persistence_manager=pm,
+        )
+        snap = dash.capture_snapshot()
+        assert snap.active_bug_patterns >= 6
+        assert snap.recommendations_generated >= 1
+        from founder_update_engine import RecommendationType
+        maint_recs = rec_engine.get_recommendations_by_type(RecommendationType.MAINTENANCE)
+        assert len(maint_recs) >= 1
+
+
+# ---------------------------------------------------------------------------
+# OperatingAnalysisDashboard — persistence
+# ---------------------------------------------------------------------------
+
+class TestOperatingAnalysisDashboardPersistence:
+    def test_persistence_round_trip(self, rec_engine, registry, pm):
+        dash1 = OperatingAnalysisDashboard(
+            registry=registry,
+            recommendation_engine=rec_engine,
+            persistence_manager=pm,
+        )
+        snap = dash1.capture_snapshot()
+
+        dash2 = OperatingAnalysisDashboard(persistence_manager=pm)
+        loaded = dash2.get_latest_snapshot()
+        assert loaded is not None
+        assert loaded.snapshot_id == snap.snapshot_id
+
+    def test_get_status(self, dashboard):
+        dashboard.capture_snapshot()
+        status = dashboard.get_status()
+        assert status["total_snapshots"] == 1
+        assert "latest_snapshot" in status
+        assert status["latest_snapshot"] is not None
+
+
+# ---------------------------------------------------------------------------
+# OperatingAnalysisDashboard — SubsystemHealthSummary model
+# ---------------------------------------------------------------------------
+
+class TestSubsystemHealthSummary:
+    def test_to_dict(self):
+        summary = SubsystemHealthSummary(
+            name="api",
+            health_status=HEALTH_HEALTHY,
+            pending_recommendations=2,
+            last_updated="2026-01-01T00:00:00+00:00",
+            update_count=3,
+        )
+        d = summary.to_dict()
+        assert d["name"] == "api"
+        assert d["health_status"] == HEALTH_HEALTHY
+        assert d["pending_recommendations"] == 2
+        assert d["update_count"] == 3
+
+
+# ---------------------------------------------------------------------------
+# DashboardSnapshot — model
+# ---------------------------------------------------------------------------
+
+class TestDashboardSnapshot:
+    def test_to_dict_round_trip(self, dashboard):
+        snap = dashboard.capture_snapshot()
+        d = snap.to_dict()
+        assert "snapshot_id" in d
+        assert "health_score" in d
+        assert "captured_at" in d
+        assert isinstance(d["subsystem_summaries"], list)
+        assert isinstance(d["analysis_notes"], list)
+
+    def test_health_score_between_0_and_1(self, dashboard, registry):
+        registry.register_subsystem(
+            SubsystemInfo(name="x", module_path="src/x.py", health_status=HEALTH_HEALTHY)
+        )
+        snap = dashboard.capture_snapshot()
+        assert 0.0 <= snap.health_score <= 1.0
