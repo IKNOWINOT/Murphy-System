@@ -25,7 +25,18 @@ class CommandParser:
             '/reset': self.cmd_reset,
             '/help': self.cmd_help,
             '/status': self.cmd_status,
-            '/docs': self._cmd_docs
+            '/docs': self._cmd_docs,
+            # --------------- newly-added categories (Hero Flow Task 3) -----
+            '/gates': self.cmd_gates,
+            '/confidence': self.cmd_confidence,
+            '/workflow': self.cmd_workflow,
+            '/governance': self.cmd_governance,
+            '/llm': self.cmd_llm,
+            '/analysis': self.cmd_analysis,
+            '/integration': self.cmd_integration,
+            '/learning': self.cmd_learning,
+            '/autonomous': self.cmd_autonomous,
+            '/module': self.cmd_module,
         }
 
     def is_command(self, message: str) -> bool:
@@ -223,6 +234,22 @@ class CommandParser:
 • `/help` - Show this help message
 • `/docs [filename|search query]` - View or search documentation
 
+**Workflow & Orchestration:**
+• `/workflow [id]` - Show workflow status or list active workflows
+• `/governance [rule]` - Query governance policies and gate rules
+
+**AI & LLM:**
+• `/llm [query]` - Query the LLM directly or show LLM status
+• `/analysis [topic]` - Run analysis on a topic or data set
+
+**Integration & Automation:**
+• `/integration [name]` - Show integration status or trigger an integration
+• `/learning` - Show learning engine status and recent feedback cycles
+• `/autonomous` - Show autonomous operation status and queued tasks
+
+**Module Management:**
+• `/module [name]` - Show module status or list coupled modules
+
 **Usage Tips:**
 • Commands are case-insensitive
 • Use `/swarmauto` for complex, multi-step tasks
@@ -393,3 +420,434 @@ class CommandParser:
                 'confidence': 1.0
             }
 
+
+    # -----------------------------------------------------------------------
+    # New command implementations — Hero Flow Task 3
+    # -----------------------------------------------------------------------
+
+    def cmd_gates(self, args: str) -> Dict[str, Any]:
+        """Show active safety gates."""
+        try:
+            if hasattr(self.system, 'get_active_gates'):
+                gates = self.system.get_active_gates()
+            else:
+                state = self.system.get_system_state()
+                gates = state.get('active_gates', []) if isinstance(state, dict) else []
+
+            if not gates:
+                gate_text = "• No gates currently active"
+            else:
+                gate_text = "\n".join(f"• {g}" for g in gates)
+
+            response = f"""## Active Safety Gates
+
+{gate_text}
+
+Active gate count: {len(gates) if isinstance(gates, list) else 0}
+"""
+        except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
+            response = f"Gates status not available: {exc}"
+
+        return {
+            'content': response,
+            'band': 'introductory',
+            'confidence': 1.0,
+            'is_command': True,
+            'command': 'gates',
+        }
+
+    def cmd_confidence(self, args: str) -> Dict[str, Any]:
+        """Show current confidence levels."""
+        try:
+            state = self.system.get_system_state()
+            if isinstance(state, dict):
+                confidence = state.get('confidence', 0.0)
+                band = state.get('band', 'unknown')
+                domain = state.get('domain', 'unknown')
+            else:
+                confidence = getattr(state, 'confidence', 0.0)
+                band = getattr(state, 'band', 'unknown')
+                domain = getattr(state, 'domain', 'unknown')
+
+            response = f"""## Confidence Levels
+
+**Overall Confidence:** {confidence:.2%}
+**Operating Band:** {str(band).upper()}
+**Domain:** {domain}
+
+**Band Thresholds:**
+• Introductory:  0.00 – 0.33
+• Working:       0.34 – 0.66
+• Exploratory:   0.67 – 1.00
+"""
+        except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
+            response = f"Confidence status not available: {exc}"
+
+        return {
+            'content': response,
+            'band': 'introductory',
+            'confidence': 1.0,
+            'is_command': True,
+            'command': 'confidence',
+        }
+
+    def cmd_workflow(self, args: str) -> Dict[str, Any]:
+        """Show workflow status or list active workflows."""
+        try:
+            if hasattr(self.system, 'get_workflow_status'):
+                workflows = self.system.get_workflow_status(args.strip() or None)
+            else:
+                workflows = []
+
+            if not workflows:
+                wf_text = "• No active workflows"
+            elif isinstance(workflows, list):
+                wf_text = "\n".join(
+                    f"• {w.get('id', '?')}: {w.get('name', '?')} [{w.get('status', '?')}]"
+                    for w in workflows[:20]
+                    if isinstance(w, dict)
+                ) or "• No workflow data"
+            else:
+                wf_text = str(workflows)
+
+            response = f"""## Workflow Status{' — ' + args if args else ''}
+
+{wf_text}
+"""
+        except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
+            response = f"Workflow status not available: {exc}"
+
+        return {
+            'content': response,
+            'band': 'introductory',
+            'confidence': 1.0,
+            'is_command': True,
+            'command': 'workflow',
+        }
+
+    def cmd_governance(self, args: str) -> Dict[str, Any]:
+        """Query governance policies and gate rules."""
+        try:
+            if hasattr(self.system, 'get_governance_policies'):
+                policies = self.system.get_governance_policies(args.strip() or None)
+            else:
+                policies = []
+
+            if not policies:
+                pol_text = "• No governance policies configured"
+            elif isinstance(policies, list):
+                pol_text = "\n".join(f"• {p}" for p in policies[:20])
+            else:
+                pol_text = str(policies)
+
+            response = f"""## Governance Policies{' — ' + args if args else ''}
+
+{pol_text}
+"""
+        except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
+            response = f"Governance policies not available: {exc}"
+
+        return {
+            'content': response,
+            'band': 'introductory',
+            'confidence': 1.0,
+            'is_command': True,
+            'command': 'governance',
+        }
+
+    def cmd_llm(self, args: str) -> Dict[str, Any]:
+        """Query the LLM directly or show LLM status."""
+        if not args:
+            # Show LLM status
+            try:
+                if hasattr(self.system, 'get_llm_status'):
+                    status = self.system.get_llm_status()
+                else:
+                    state = self.system.get_system_state()
+                    status = (
+                        state.get('llm_status', {})
+                        if isinstance(state, dict)
+                        else {}
+                    )
+
+                provider = status.get('provider', 'unknown')
+                mode = status.get('mode', 'unknown')
+                available = status.get('available', False)
+
+                response = f"""## LLM Status
+
+**Provider:** {provider}
+**Mode:** {mode}
+**Available:** {'✓ Yes' if available else '✗ No'}
+"""
+            except Exception as exc:
+                logger.debug("Caught exception: %s", exc)
+                response = f"LLM status not available: {exc}"
+        else:
+            response = (
+                f"**[G] LLM Query**\n\n"
+                f"Query: {args}\n\n"
+                f"Use the main chat interface to send queries to the LLM.\n"
+                f"The `/llm` command shows LLM status. Use plain text for queries."
+            )
+
+        return {
+            'content': response,
+            'band': 'introductory',
+            'confidence': 1.0,
+            'is_command': True,
+            'command': 'llm',
+        }
+
+    def cmd_analysis(self, args: str) -> Dict[str, Any]:
+        """Run analysis on a topic or dataset."""
+        if not args:
+            return {
+                'content': (
+                    "Please provide a topic to analyse.\n"
+                    "Usage: `/analysis [topic or dataset name]`"
+                ),
+                'band': 'introductory',
+                'confidence': 1.0,
+                'is_command': True,
+                'command': 'analysis',
+            }
+
+        try:
+            if hasattr(self.system, 'run_analysis'):
+                result = self.system.run_analysis(args)
+                response = f"## Analysis — {args}\n\n{result}"
+            else:
+                response = (
+                    f"## Analysis — {args}\n\n"
+                    f"Analysis module not coupled. Ensure the telemetry/analysis "
+                    f"module is active and retry."
+                )
+        except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
+            response = f"Analysis not available: {exc}"
+
+        return {
+            'content': response,
+            'band': 'introductory',
+            'confidence': 1.0,
+            'is_command': True,
+            'command': 'analysis',
+        }
+
+    def cmd_integration(self, args: str) -> Dict[str, Any]:
+        """Show integration status or trigger an integration."""
+        try:
+            if hasattr(self.system, 'get_integration_status'):
+                status = self.system.get_integration_status(args.strip() or None)
+            else:
+                status = {}
+
+            if isinstance(status, dict):
+                lines = [f"• {k}: {v}" for k, v in list(status.items())[:20]]
+                int_text = "\n".join(lines) or "• No integration data"
+            elif isinstance(status, list):
+                int_text = "\n".join(f"• {s}" for s in status[:20]) or "• No integrations"
+            else:
+                int_text = str(status)
+
+            response = f"""## Integration Status{' — ' + args if args else ''}
+
+{int_text}
+"""
+        except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
+            response = f"Integration status not available: {exc}"
+
+        return {
+            'content': response,
+            'band': 'introductory',
+            'confidence': 1.0,
+            'is_command': True,
+            'command': 'integration',
+        }
+
+    def cmd_learning(self, args: str) -> Dict[str, Any]:
+        """Show learning engine status and recent feedback cycles."""
+        try:
+            if hasattr(self.system, 'get_learning_status'):
+                status = self.system.get_learning_status()
+            else:
+                status = {}
+
+            cycles = status.get('cycles_completed', 0)
+            last_cycle = status.get('last_cycle', 'never')
+            pending = status.get('pending_feedback', 0)
+
+            response = f"""## Learning Engine Status
+
+**Cycles Completed:** {cycles}
+**Last Cycle:** {last_cycle}
+**Pending Feedback Items:** {pending}
+
+The learning engine runs in the background, integrating feedback signals
+to adjust confidence scores and reduce uncertainty over time.
+"""
+        except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
+            response = f"Learning status not available: {exc}"
+
+        return {
+            'content': response,
+            'band': 'introductory',
+            'confidence': 1.0,
+            'is_command': True,
+            'command': 'learning',
+        }
+
+    def cmd_autonomous(self, args: str) -> Dict[str, Any]:
+        """Show autonomous operation status and queued tasks."""
+        try:
+            if hasattr(self.system, 'get_autonomous_status'):
+                status = self.system.get_autonomous_status()
+            else:
+                status = {}
+
+            mode = status.get('mode', 'unknown')
+            queued = status.get('queued_tasks', 0)
+            running = status.get('running_tasks', 0)
+            graduated = status.get('graduated_systems', [])
+
+            grad_text = (
+                "\n".join(f"  • {g}" for g in graduated[:10])
+                or "  • None"
+            )
+
+            response = f"""## Autonomous Operation Status
+
+**Mode:** {str(mode).upper()}
+**Queued Tasks:** {queued}
+**Running Tasks:** {running}
+
+**Graduated Systems:**
+{grad_text}
+"""
+        except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
+            response = f"Autonomous status not available: {exc}"
+
+        return {
+            'content': response,
+            'band': 'introductory',
+            'confidence': 1.0,
+            'is_command': True,
+            'command': 'autonomous',
+        }
+
+    def cmd_module(self, args: str) -> Dict[str, Any]:
+        """Show module status or list coupled modules."""
+        try:
+            if hasattr(self.system, 'get_module_status'):
+                modules = self.system.get_module_status(args.strip() or None)
+            else:
+                modules = []
+
+            if not modules:
+                mod_text = "• No modules coupled"
+            elif isinstance(modules, list):
+                mod_text = "\n".join(
+                    f"• {m.get('name', m) if isinstance(m, dict) else m}"
+                    for m in modules[:30]
+                )
+            elif isinstance(modules, dict):
+                mod_text = "\n".join(
+                    f"• {k}: {v}" for k, v in list(modules.items())[:30]
+                )
+            else:
+                mod_text = str(modules)
+
+            response = f"""## Module Status{' — ' + args if args else ''}
+
+{mod_text}
+"""
+        except Exception as exc:
+            logger.debug("Caught exception: %s", exc)
+            response = f"Module status not available: {exc}"
+
+        return {
+            'content': response,
+            'band': 'introductory',
+            'confidence': 1.0,
+            'is_command': True,
+            'command': 'module',
+        }
+
+    def get_command_object(self, message: str) -> Optional[Dict[str, Any]]:
+        """Return a structured command object for a command message.
+
+        Cross-references with :class:`DynamicCommandDiscovery` when available
+        to return a fully-structured command descriptor that includes
+        category, risk level, and parameter metadata.
+
+        Parameters
+        ----------
+        message:
+            The raw command string (e.g. ``"/workflow my-id"``).
+
+        Returns
+        -------
+        A dict with keys ``command``, ``args``, ``category``, ``risk_level``,
+        ``structured``, and ``handler`` (the callable), or ``None`` when the
+        message is not a recognised command.
+        """
+        message = message.strip()
+        message_lower = message.lower()
+
+        matched_cmd = None
+        handler = None
+        for cmd_name, cmd_func in self.commands.items():
+            if message_lower.startswith(cmd_name):
+                matched_cmd = cmd_name
+                handler = cmd_func
+                break
+
+        if matched_cmd is None:
+            return None
+
+        args = message[len(matched_cmd):].strip()
+
+        # Map command prefix → DynamicCommandDiscovery category
+        _CMD_CATEGORY = {
+            '/swarmmonitor':  'system',
+            '/swarmauto':     'agentic',
+            '/memory':        'system',
+            '/reset':         'system',
+            '/help':          'system',
+            '/status':        'system',
+            '/docs':          'system',
+            '/gates':         'governance',
+            '/confidence':    'system',
+            '/workflow':      'workflow',
+            '/governance':    'governance',
+            '/llm':           'llm',
+            '/analysis':      'analysis',
+            '/integration':   'integration',
+            '/learning':      'learning',
+            '/autonomous':    'autonomous',
+            '/module':        'module',
+        }
+
+        _CMD_RISK = {
+            '/reset': 'medium',
+            '/swarmauto': 'medium',
+            '/autonomous': 'high',
+            '/governance': 'medium',
+        }
+
+        return {
+            'command': matched_cmd,
+            'args': args,
+            'category': _CMD_CATEGORY.get(matched_cmd, 'system'),
+            'risk_level': _CMD_RISK.get(matched_cmd, 'low'),
+            'structured': True,
+            'handler': handler,
+        }
