@@ -247,8 +247,8 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
       </div>
       <div class="m-header-actions">
         <input type="search" class="m-search" placeholder="Search tasks…" aria-label="Search tasks">
-        <button class="m-btn">Filter</button>
-        <button class="m-btn">Sort</button>
+        <button class="m-btn" id="btn-filter-tasks" aria-label="Filter tasks">Filter</button>
+        <button class="m-btn" id="btn-sort-tasks" aria-label="Sort tasks">Sort</button>
         <button class="m-btn-primary m-btn" onclick="openModal('task-modal')">+ Add Task</button>
       </div>
     </div>
@@ -450,6 +450,7 @@ body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-
 </div>
 
 <script src="static/murphy-components.js"></script>
+<script src="murphy_auth.js"></script>
 <script>
 // ── DATA ──────────────────────────────────────────────────────────
 const SAMPLE = {
@@ -727,6 +728,50 @@ function handleAIAccept() {
 }
 
 // ── INIT ──────────────────────────────────────────────────────────
+
+  /* ── Filter/Sort buttons ── */
+  (function () {
+    var filterBtn = document.getElementById('btn-filter-tasks');
+    var sortBtn   = document.getElementById('btn-sort-tasks');
+    var filterStates = ['all','active','completed','blocked','todo'];
+    var sortModes    = ['default','priority','due','assignee'];
+    var fi = 0, si = 0;
+    if (filterBtn) {
+      filterBtn.addEventListener('click', function () {
+        fi = (fi + 1) % filterStates.length;
+        var f = filterStates[fi];
+        filterBtn.textContent = 'Filter: ' + (f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1));
+        document.querySelectorAll('.task-row, [data-status]').forEach(function (row) {
+          var s = row.dataset.status || row.getAttribute('data-status') || '';
+          row.style.display = (f === 'all' || !s || s === f) ? '' : 'none';
+        });
+      });
+    }
+    if (sortBtn) {
+      sortBtn.addEventListener('click', function () {
+        si = (si + 1) % sortModes.length;
+        var s = sortModes[si];
+        sortBtn.textContent = 'Sort: ' + s.charAt(0).toUpperCase() + s.slice(1);
+        var container = document.querySelector('.task-list, #task-list, [id*="task"]');
+        if (!container) return;
+        var rows = Array.from(container.querySelectorAll('.task-row, [data-priority]'));
+        var PRIO = {critical:0,high:1,medium:2,low:3};
+        rows.sort(function (a, b) {
+          if (s === 'priority') {
+            return (PRIO[a.dataset.priority] || 9) - (PRIO[b.dataset.priority] || 9);
+          }
+          if (s === 'due') {
+            return (a.dataset.due || '9999') < (b.dataset.due || '9999') ? -1 : 1;
+          }
+          if (s === 'assignee') {
+            return (a.dataset.assignee || '') < (b.dataset.assignee || '') ? -1 : 1;
+          }
+          return 0;
+        });
+        rows.forEach(function (r) { container.appendChild(r); });
+      });
+    }
+  }());
 loadData();
 renderBoard();
 </script>
