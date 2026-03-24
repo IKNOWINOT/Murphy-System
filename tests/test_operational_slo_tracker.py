@@ -312,3 +312,87 @@ class TestThreadSafety:
         t2.join()
 
         assert errors == []
+
+
+# ------------------------------------------------------------------
+# Alert Rules Engine wiring (ARCH-007)
+# ------------------------------------------------------------------
+
+class TestAlertRulesEngineWiring:
+    def test_init_without_alert_engine(self):
+        t = OperationalSLOTracker()
+        s = t.get_status()
+        assert s["alert_rules_engine_attached"] is False
+
+    def test_init_with_alert_engine(self):
+        import sys
+        import os
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+        from alert_rules_engine import AlertRulesEngine
+        engine = AlertRulesEngine()
+        t = OperationalSLOTracker(alert_rules_engine=engine)
+        s = t.get_status()
+        assert s["alert_rules_engine_attached"] is True
+
+    def test_get_fired_alerts_empty(self):
+        t = OperationalSLOTracker()
+        assert t.get_fired_alerts() == []
+
+    def test_slo_breach_fires_alert(self):
+        import sys
+        import os
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+        from alert_rules_engine import AlertRulesEngine, AlertRule, AlertSeverity, Comparator
+        engine = AlertRulesEngine()
+        engine.add_rule(AlertRule(
+            "rule-test-success", "Test SLO Breach", AlertSeverity.CRITICAL,
+            "success_rate", Comparator.LT, 0.95, 0.0, "SLO breach test"
+        ))
+        t = OperationalSLOTracker(alert_rules_engine=engine)
+        t.add_slo_target(SLOTarget("slo-success", "success_rate", 0.95, 3600.0))
+        # Record 3 successes and 7 failures → success_rate=0.3 < 0.95
+        for _ in range(3):
+            t.record_execution(_make_record(success=True))
+        for _ in range(7):
+            t.record_execution(_make_record(success=False))
+        compliance = t.check_slo_compliance()
+        assert compliance["slo-success"]["compliant"] is False
+        alerts = t.get_fired_alerts()
+        assert len(alerts) >= 1
+        assert alerts[0]["rule_name"] == "Test SLO Breach"
+
+    def test_compliant_slo_no_alert(self):
+        import sys
+        import os
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+        from alert_rules_engine import AlertRulesEngine, AlertRule, AlertSeverity, Comparator
+        engine = AlertRulesEngine()
+        engine.add_rule(AlertRule(
+            "rule-test-success2", "Test SLO Breach2", AlertSeverity.WARNING,
+            "success_rate", Comparator.LT, 0.95, 0.0
+        ))
+        t = OperationalSLOTracker(alert_rules_engine=engine)
+        t.add_slo_target(SLOTarget("slo-ok", "success_rate", 0.95, 3600.0))
+        # Record 10 successes → success_rate=1.0 >= 0.95
+        for _ in range(10):
+            t.record_execution(_make_record(success=True))
+        compliance = t.check_slo_compliance()
+        assert compliance["slo-ok"]["compliant"] is True
+        assert t.get_fired_alerts() == []
+
+    def test_get_fired_alerts_limit(self):
+        import sys
+        import os
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+        from alert_rules_engine import AlertRulesEngine, AlertRule, AlertSeverity, Comparator
+        engine = AlertRulesEngine()
+        engine.add_rule(AlertRule(
+            "rule-limit", "Limit Test", AlertSeverity.WARNING,
+            "success_rate", Comparator.LT, 0.99, 0.0
+        ))
+        t = OperationalSLOTracker(alert_rules_engine=engine)
+        t.add_slo_target(SLOTarget("slo-limit", "success_rate", 0.99, 3600.0))
+        for _ in range(3):
+            t.record_execution(_make_record(success=False))
+        t.check_slo_compliance()
+        assert len(t.get_fired_alerts(limit=1)) == 1
