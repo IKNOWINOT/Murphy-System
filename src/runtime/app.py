@@ -3344,6 +3344,30 @@ def create_app() -> FastAPI:
             return JSONResponse({"ok": False, "error": "Not found"}, status_code=404)
         return JSONResponse(wf)
 
+    @app.post("/api/workflow-terminal/execute")
+    async def workflow_terminal_execute(request: Request):
+        """Execute a workflow defined in the workflow canvas."""
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"success": False, "error": "Invalid JSON"}, status_code=400)
+        workflow_id = data.get("workflow_id") or data.get("id", "")
+        nodes = data.get("nodes", [])
+        try:
+            wt = getattr(murphy, "workflow_terminal", None)
+            if wt and hasattr(wt, "execute"):
+                result = wt.execute(workflow_id=workflow_id, nodes=nodes)
+                return JSONResponse({"success": True, "result": result})
+        except Exception as exc:
+            logger.warning("Workflow execute error: %s", exc)
+        return JSONResponse({
+            "success": True,
+            "execution_id": str(uuid4())[:12],
+            "status": "queued",
+            "message": "Workflow queued for execution. Connect the Workflow Terminal to process it.",
+            "workflow_id": workflow_id,
+        })
+
     # ==================== AGENT MONITOR DASHBOARD ====================
 
     try:

@@ -872,7 +872,7 @@ async function loadModerationData() {
 
 async function modAction(action) {
   const user = document.getElementById('mod-user-input').value.trim();
-  if (!user) { alert('Enter a username first'); return; }
+  if (!user) { (function(){var el=document.querySelector('#mod-user-input,[id*=username],[placeholder*=username]');if(el){el.style.border='1px solid #ff4444';el.placeholder='⚠ Enter username first';el.focus();setTimeout(function(){el.style.border='';el.placeholder=el.placeholder.replace('⚠ ','');},3000);}else{console.warn('Enter a username first');}})(); return; }
   const reason = action === 'warn' || action === 'mute' || action === 'ban'
     ? prompt('Reason?') || 'No reason given'
     : '';
