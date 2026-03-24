@@ -631,3 +631,562 @@ class TestThreadSafety:
         all_names = {s.name for s in registry.get_all_subsystems()}
         for i in range(10):
             assert f"concurrent_{i}" in all_names
+
+
+# ===========================================================================
+# PR 2 — SdkUpdateScanner & AutoUpdateApplicator tests
+# ===========================================================================
+
+from founder_update_engine import (
+    AutoUpdateApplicator,
+    ApplicationCycle,
+    ApplicationOutcome,
+    ApplicationRecord,
+    PackageScanRecord,
+    SdkScanReport,
+    SdkUpdateScanner,
+)
+
+
+# ---------------------------------------------------------------------------
+# Shared PR-2 fixtures
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def scanner(rec_engine, pm):
+    return SdkUpdateScanner(
+        recommendation_engine=rec_engine,
+        persistence_manager=pm,
+    )
+
+
+@pytest.fixture
+def scanner_with_root(rec_engine, pm, tmp_path):
+    """Scanner pointed at a tmp project root containing fake requirements files."""
+    req = tmp_path / "requirements.txt"
+    req.write_text(
+        "requests>=2.28.0\n"
+        "flask>=3.0.0\n"
+        "pydantic>=2.0.0\n"
+        "# a comment\n"
+        "numpy>=1.24.0\n",
+        encoding="utf-8",
+    )
+    req2 = tmp_path / "requirements_core.txt"
+    req2.write_text(
+        "fastapi>=0.100.0\n"
+        "uvicorn[standard]>=0.22.0\n",
+        encoding="utf-8",
+    )
+    return SdkUpdateScanner(
+        recommendation_engine=rec_engine,
+        persistence_manager=pm,
+        project_root=str(tmp_path),
+    )
+
+
+@pytest.fixture
+def applicator(rec_engine, registry, coordinator, pm):
+    return AutoUpdateApplicator(
+        recommendation_engine=rec_engine,
+        registry=registry,
+        coordinator=coordinator,
+        persistence_manager=pm,
+        max_per_cycle=10,
+    )
+
+
+# ---------------------------------------------------------------------------
+# SdkUpdateScanner — known-version registry
+# ---------------------------------------------------------------------------
+
+class TestSdkUpdateScannerVersionRegistry:
+    def test_register_and_get_known_version(self, scanner):
+        scanner.register_known_version("requests", "2.32.0")
+        assert scanner.get_known_version("requests") == "2.32.0"
+
+    def test_known_version_case_insensitive(self, scanner):
+        scanner.register_known_version("Requests", "2.32.0")
+        assert scanner.get_known_version("requests") == "2.32.0"
+        assert scanner.get_known_version("REQUESTS") == "2.32.0"
+
+    def test_get_unknown_version_returns_none(self, scanner):
+        assert scanner.get_known_version("nonexistent_pkg") is None
+
+    def test_register_overwrites_old_version(self, scanner):
+        scanner.register_known_version("flask", "2.0.0")
+        scanner.register_known_version("flask", "3.1.0")
+        assert scanner.get_known_version("flask") == "3.1.0"
+
+
+# ---------------------------------------------------------------------------
+# SdkUpdateScanner — requirements file parsing
+# ---------------------------------------------------------------------------
+
+class TestSdkUpdateScannerParsing:
+    def test_parse_requirements_file(self, scanner, tmp_path):
+        req = tmp_path / "requirements.txt"
+        req.write_text(
+            "requests>=2.28.0\n"
+            "flask>=3.0.0  # with comment\n"
+            "pydantic==2.1.0\n"
+            "numpy  # no version — should be skipped\n"
+            "-r other.txt\n",
+            encoding="utf-8",
+        )
+        parsed = scanner._parse_requirements_file(str(req))
+        names = [p[0] for p in parsed]
+        assert "requests" in names
+        assert "flask" in names
+        assert "pydantic" in names
+        # bare names and -r lines must be excluded
+        assert "numpy" not in names
+        assert len([p for p in parsed if p[0] == "requests"]) == 1
+
+    def test_parse_handles_extras(self, scanner, tmp_path):
+        req = tmp_path / "req.txt"
+        req.write_text("uvicorn[standard]>=0.22.0\n", encoding="utf-8")
+        parsed = scanner._parse_requirements_file(str(req))
+        assert parsed[0][0] == "uvicorn"
+
+    def test_parse_missing_file(self, scanner):
+        result = scanner._parse_requirements_file("/nonexistent/requirements.txt")
+        assert result == []
+
+    def test_discover_requirements_files(self, scanner_with_root):
+        from pathlib import Path
+        files = scanner_with_root._discover_requirements_files()
+        filenames = [Path(f).name for f in files]
+        assert "requirements.txt" in filenames
+        assert "requirements_core.txt" in filenames
+
+    def test_discover_no_root(self, scanner):
+        # scanner has no project_root and can't resolve one from __file__ in tests
+        # — should not raise, just return []
+        result = scanner._discover_requirements_files()
+        assert isinstance(result, list)
+
+
+# ---------------------------------------------------------------------------
+# SdkUpdateScanner — scan logic
+# ---------------------------------------------------------------------------
+
+class TestSdkUpdateScannerScan:
+    def test_run_scan_no_root_returns_empty_report(self, rec_engine, pm):
+        # Use an explicit nonexistent path so no requirements files are found
+        scanner = SdkUpdateScanner(
+            recommendation_engine=rec_engine,
+            persistence_manager=pm,
+            project_root="/nonexistent/path/does/not/exist",
+        )
+        report = scanner.run_scan()
+        assert isinstance(report, SdkScanReport)
+        assert report.packages_scanned == 0
+        assert report.updates_available == 0
+
+    def test_run_scan_detects_update(self, scanner_with_root):
+        scanner_with_root.register_known_version("requests", "2.32.3")
+        report = scanner_with_root.run_scan()
+        assert report.packages_scanned >= 1
+        assert report.updates_available >= 1
+        names = [r.name for r in report.scan_records if r.update_available]
+        assert "requests" in names
+
+    def test_run_scan_no_update_when_already_latest(self, scanner_with_root):
+        # flask is declared as >=3.0.0 — tell scanner 3.0.0 is latest
+        scanner_with_root.register_known_version("flask", "3.0.0")
+        report = scanner_with_root.run_scan()
+        flask_records = [r for r in report.scan_records if r.name == "flask"]
+        assert len(flask_records) >= 1
+        assert not flask_records[0].update_available
+
+    def test_run_scan_classifies_patch_update(self, scanner_with_root):
+        scanner_with_root.register_known_version("pydantic", "2.0.1")
+        report = scanner_with_root.run_scan()
+        pydantic_rec = next((r for r in report.scan_records if r.name == "pydantic"), None)
+        assert pydantic_rec is not None
+        assert pydantic_rec.update_type == "patch"
+
+    def test_run_scan_classifies_minor_update(self, scanner_with_root):
+        scanner_with_root.register_known_version("flask", "3.1.0")
+        report = scanner_with_root.run_scan()
+        flask_rec = next((r for r in report.scan_records if r.name == "flask"), None)
+        assert flask_rec is not None
+        assert flask_rec.update_type == "minor"
+
+    def test_run_scan_classifies_major_update(self, scanner_with_root):
+        scanner_with_root.register_known_version("numpy", "2.0.0")
+        report = scanner_with_root.run_scan()
+        numpy_rec = next((r for r in report.scan_records if r.name == "numpy"), None)
+        assert numpy_rec is not None
+        assert numpy_rec.update_type == "major"
+
+    def test_run_scan_generates_recommendations(self, scanner_with_root, rec_engine):
+        scanner_with_root.register_known_version("requests", "2.32.3")
+        report = scanner_with_root.run_scan()
+        assert report.recommendations_generated >= 1
+        # At least SDK_UPDATE and AUTO_UPDATE recs should exist for a patch bump
+        from founder_update_engine import RecommendationType
+        all_recs = rec_engine.get_all_recommendations()
+        types = {r.recommendation_type for r in all_recs}
+        assert RecommendationType.SDK_UPDATE in types or RecommendationType.AUTO_UPDATE in types
+
+    def test_run_scan_generates_security_rec_for_vulnerability(self, rec_engine, pm, tmp_path):
+        req = tmp_path / "requirements.txt"
+        req.write_text("requests>=2.25.0\n", encoding="utf-8")
+        from dependency_audit_engine import DependencyAuditEngine
+        audit = DependencyAuditEngine()
+        audit.ingest_advisory(
+            cve_id="CVE-2023-TEST",
+            package_name="requests",
+            affected_versions=">=2.0.0,<2.30.0",
+            severity="high",
+            description="Test vulnerability",
+            fixed_version="2.30.0",
+        )
+        scanner = SdkUpdateScanner(
+            recommendation_engine=rec_engine,
+            dependency_audit=audit,
+            project_root=str(tmp_path),
+            persistence_manager=pm,
+        )
+        report = scanner.run_scan()
+        assert report.vulnerable_packages >= 1
+        from founder_update_engine import RecommendationType
+        security_recs = rec_engine.get_recommendations_by_type(RecommendationType.SECURITY)
+        assert len(security_recs) >= 1
+
+    def test_scan_history_is_recorded(self, scanner_with_root):
+        scanner_with_root.run_scan()
+        history = scanner_with_root.get_scan_history()
+        assert len(history) >= 1
+        assert "scan_id" in history[0]
+
+    def test_get_status(self, scanner_with_root):
+        scanner_with_root.run_scan()
+        status = scanner_with_root.get_status()
+        assert "total_scans" in status
+        assert status["total_scans"] >= 1
+
+    def test_scan_persistence_round_trip(self, pm, tmp_path, rec_engine):
+        req = tmp_path / "requirements.txt"
+        req.write_text("requests>=2.28.0\n", encoding="utf-8")
+        scanner1 = SdkUpdateScanner(
+            recommendation_engine=rec_engine,
+            project_root=str(tmp_path),
+            persistence_manager=pm,
+        )
+        scanner1.register_known_version("requests", "2.32.0")
+        scanner1.run_scan()
+
+        scanner2 = SdkUpdateScanner(persistence_manager=pm)
+        assert scanner2.get_known_version("requests") == "2.32.0"
+        assert len(scanner2.get_scan_history()) >= 1
+
+
+# ---------------------------------------------------------------------------
+# SdkUpdateScanner — semver helpers
+# ---------------------------------------------------------------------------
+
+class TestSdkScannerSemverHelpers:
+    def test_is_patch_bump(self):
+        from founder_update_engine.sdk_update_scanner import _is_patch_bump
+        assert _is_patch_bump("2.0.0", "2.0.1") is True
+        assert _is_patch_bump("2.0.0", "2.1.0") is False
+        assert _is_patch_bump("2.0.0", "3.0.0") is False
+
+    def test_is_minor_bump(self):
+        from founder_update_engine.sdk_update_scanner import _is_minor_bump
+        assert _is_minor_bump("2.0.0", "2.1.0") is True
+        assert _is_minor_bump("2.0.0", "2.0.1") is False
+        assert _is_minor_bump("2.0.0", "3.0.0") is False
+
+
+# ---------------------------------------------------------------------------
+# AutoUpdateApplicator — dry-run
+# ---------------------------------------------------------------------------
+
+class TestAutoUpdateApplicatorDryRun:
+    def _seed_auto_update_rec(self, rec_engine, subsystem="auto_sub"):
+        """Seed a single AUTO_UPDATE recommendation into rec_engine."""
+        from founder_update_engine.recommendation_engine import (
+            Recommendation,
+            RecommendationType,
+            RecommendationPriority,
+        )
+        import uuid as _uuid
+        rec = Recommendation(
+            id=str(_uuid.uuid4()),
+            subsystem=subsystem,
+            recommendation_type=RecommendationType.AUTO_UPDATE,
+            priority=RecommendationPriority.LOW,
+            title=f"Auto-update: test_pkg 1.0.0 → 1.0.1",
+            description="Patch update available.",
+            rationale="Semver patch.",
+            proposed_actions=[{"action": "auto_update_package", "package": "test_pkg"}],
+            estimated_impact={"risk": "low", "effort": "none", "benefit": "maintenance"},
+            auto_applicable=True,
+            requires_founder_approval=False,
+            source_analysis={"engine": "test"},
+            created_at=datetime.now(timezone.utc),
+        )
+        with rec_engine._lock:
+            rec_engine._recommendations[rec.id] = rec
+        return rec
+
+    def test_dry_run_does_not_change_status(self, applicator, rec_engine, registry):
+        registry.register_subsystem(
+            SubsystemInfo(name="auto_sub", module_path="src/a.py", health_status=HEALTH_HEALTHY)
+        )
+        rec = self._seed_auto_update_rec(rec_engine)
+        cycle = applicator.run_cycle(dry_run=True)
+        assert cycle.dry_run is True
+        # Status must remain pending since it was a dry run
+        with rec_engine._lock:
+            r = rec_engine._recommendations[rec.id]
+        assert r.status == "pending"
+
+    def test_dry_run_reports_would_apply(self, applicator, rec_engine, registry):
+        registry.register_subsystem(
+            SubsystemInfo(name="auto_sub", module_path="src/a.py", health_status=HEALTH_HEALTHY)
+        )
+        self._seed_auto_update_rec(rec_engine)
+        cycle = applicator.run_cycle(dry_run=True)
+        dry_records = [r for r in cycle.records if r.outcome == ApplicationOutcome.SKIPPED_DRY_RUN]
+        assert len(dry_records) >= 1
+
+    def test_dry_run_total_candidates(self, applicator, rec_engine, registry):
+        registry.register_subsystem(
+            SubsystemInfo(name="auto_sub", module_path="src/a.py", health_status=HEALTH_HEALTHY)
+        )
+        for _ in range(3):
+            self._seed_auto_update_rec(rec_engine)
+        cycle = applicator.run_cycle(dry_run=True)
+        assert cycle.total_candidates >= 3
+
+
+# ---------------------------------------------------------------------------
+# AutoUpdateApplicator — live application
+# ---------------------------------------------------------------------------
+
+class TestAutoUpdateApplicatorLive:
+    def _seed_auto_update_rec(self, rec_engine, subsystem="live_sub"):
+        from founder_update_engine.recommendation_engine import (
+            Recommendation,
+            RecommendationType,
+            RecommendationPriority,
+        )
+        import uuid as _uuid
+        rec = Recommendation(
+            id=str(_uuid.uuid4()),
+            subsystem=subsystem,
+            recommendation_type=RecommendationType.AUTO_UPDATE,
+            priority=RecommendationPriority.LOW,
+            title="Auto-update: pkg 1.0.0 → 1.0.1",
+            description="Patch.",
+            rationale="Patch.",
+            proposed_actions=[],
+            estimated_impact={},
+            auto_applicable=True,
+            requires_founder_approval=False,
+            source_analysis={},
+            created_at=datetime.now(timezone.utc),
+        )
+        with rec_engine._lock:
+            rec_engine._recommendations[rec.id] = rec
+        return rec
+
+    def test_live_apply_marks_recommendation_applied(self, applicator, rec_engine, registry):
+        registry.register_subsystem(
+            SubsystemInfo(name="live_sub", module_path="src/l.py", health_status=HEALTH_HEALTHY)
+        )
+        rec = self._seed_auto_update_rec(rec_engine)
+        cycle = applicator.run_cycle(dry_run=False)
+        applied_records = [r for r in cycle.records if r.outcome == ApplicationOutcome.APPLIED]
+        assert len(applied_records) >= 1
+        with rec_engine._lock:
+            r = rec_engine._recommendations[rec.id]
+        assert r.status == "applied"
+
+    def test_live_apply_records_update_history(self, applicator, rec_engine, registry):
+        info = SubsystemInfo(name="live_sub", module_path="src/l.py", health_status=HEALTH_HEALTHY)
+        registry.register_subsystem(info)
+        self._seed_auto_update_rec(rec_engine)
+        applicator.run_cycle(dry_run=False)
+        sub = registry.get_subsystem("live_sub")
+        assert len(sub.update_history) >= 1
+        assert sub.update_history[-1]["type"] == "auto_update"
+
+    def test_failed_subsystem_is_skipped(self, applicator, rec_engine, registry):
+        registry.register_subsystem(
+            SubsystemInfo(name="live_sub", module_path="src/l.py", health_status=HEALTH_FAILED)
+        )
+        self._seed_auto_update_rec(rec_engine)
+        cycle = applicator.run_cycle(dry_run=False)
+        skipped = [r for r in cycle.records if r.outcome == ApplicationOutcome.SKIPPED_PREREQUISITES]
+        assert len(skipped) >= 1
+
+    def test_non_auto_applicable_rec_is_skipped(self, applicator, rec_engine, registry):
+        from founder_update_engine.recommendation_engine import (
+            Recommendation,
+            RecommendationType,
+            RecommendationPriority,
+        )
+        import uuid as _uuid
+        registry.register_subsystem(
+            SubsystemInfo(name="manual_sub", module_path="src/m.py", health_status=HEALTH_HEALTHY)
+        )
+        rec = Recommendation(
+            id=str(_uuid.uuid4()),
+            subsystem="manual_sub",
+            recommendation_type=RecommendationType.AUTO_UPDATE,
+            priority=RecommendationPriority.LOW,
+            title="Manual only",
+            description="",
+            rationale="",
+            proposed_actions=[],
+            estimated_impact={},
+            auto_applicable=False,  # not auto-applicable
+            requires_founder_approval=True,
+            source_analysis={},
+            created_at=datetime.now(timezone.utc),
+        )
+        with rec_engine._lock:
+            rec_engine._recommendations[rec.id] = rec
+        cycle = applicator.run_cycle(dry_run=False)
+        skipped = [r for r in cycle.records if r.outcome == ApplicationOutcome.SKIPPED_NOT_AUTO_APPLICABLE]
+        assert len(skipped) >= 1
+
+    def test_already_applied_rec_is_skipped(self, applicator, rec_engine, registry):
+        registry.register_subsystem(
+            SubsystemInfo(name="live_sub", module_path="src/l.py", health_status=HEALTH_HEALTHY)
+        )
+        rec = self._seed_auto_update_rec(rec_engine)
+        # First cycle applies it
+        applicator.run_cycle(dry_run=False)
+        # Second cycle should skip it
+        cycle2 = applicator.run_cycle(dry_run=False)
+        already = [r for r in cycle2.records if r.outcome == ApplicationOutcome.SKIPPED_ALREADY_APPLIED]
+        assert len(already) >= 1
+
+    def test_rate_limit_respected(self, rec_engine, registry, coordinator, pm):
+        applicator = AutoUpdateApplicator(
+            recommendation_engine=rec_engine,
+            registry=registry,
+            coordinator=coordinator,
+            persistence_manager=pm,
+            max_per_cycle=2,
+        )
+        registry.register_subsystem(
+            SubsystemInfo(name="live_sub", module_path="src/l.py", health_status=HEALTH_HEALTHY)
+        )
+        for _ in range(5):
+            from founder_update_engine.recommendation_engine import (
+                Recommendation, RecommendationType, RecommendationPriority,
+            )
+            import uuid as _uuid
+            r = Recommendation(
+                id=str(_uuid.uuid4()),
+                subsystem="live_sub",
+                recommendation_type=RecommendationType.AUTO_UPDATE,
+                priority=RecommendationPriority.LOW,
+                title="Rate limit test",
+                description="",
+                rationale="",
+                proposed_actions=[],
+                estimated_impact={},
+                auto_applicable=True,
+                requires_founder_approval=False,
+                source_analysis={},
+                created_at=datetime.now(timezone.utc),
+            )
+            with rec_engine._lock:
+                rec_engine._recommendations[r.id] = r
+        cycle = applicator.run_cycle(dry_run=False)
+        assert cycle.applied <= 2
+        rate_limited = [r for r in cycle.records if r.outcome == ApplicationOutcome.SKIPPED_RATE_LIMITED]
+        assert len(rate_limited) >= 3
+
+
+# ---------------------------------------------------------------------------
+# AutoUpdateApplicator — apply_single
+# ---------------------------------------------------------------------------
+
+class TestAutoUpdateApplicatorSingle:
+    def _seed(self, rec_engine, subsystem="single_sub"):
+        from founder_update_engine.recommendation_engine import (
+            Recommendation, RecommendationType, RecommendationPriority,
+        )
+        import uuid as _uuid
+        rec = Recommendation(
+            id=str(_uuid.uuid4()),
+            subsystem=subsystem,
+            recommendation_type=RecommendationType.AUTO_UPDATE,
+            priority=RecommendationPriority.LOW,
+            title="Single apply test",
+            description="",
+            rationale="",
+            proposed_actions=[],
+            estimated_impact={},
+            auto_applicable=True,
+            requires_founder_approval=False,
+            source_analysis={},
+            created_at=datetime.now(timezone.utc),
+        )
+        with rec_engine._lock:
+            rec_engine._recommendations[rec.id] = rec
+        return rec
+
+    def test_apply_single_live(self, applicator, rec_engine, registry):
+        registry.register_subsystem(
+            SubsystemInfo(name="single_sub", module_path="src/s.py", health_status=HEALTH_HEALTHY)
+        )
+        rec = self._seed(rec_engine)
+        record = applicator.apply_single(rec.id, dry_run=False)
+        assert record.outcome == ApplicationOutcome.APPLIED
+
+    def test_apply_single_dry_run(self, applicator, rec_engine, registry):
+        registry.register_subsystem(
+            SubsystemInfo(name="single_sub", module_path="src/s.py", health_status=HEALTH_HEALTHY)
+        )
+        rec = self._seed(rec_engine)
+        record = applicator.apply_single(rec.id, dry_run=True)
+        assert record.outcome == ApplicationOutcome.SKIPPED_DRY_RUN
+        assert record.dry_run is True
+
+    def test_apply_single_not_found(self, applicator):
+        record = applicator.apply_single("nonexistent-id")
+        assert record.outcome == ApplicationOutcome.FAILED
+
+
+# ---------------------------------------------------------------------------
+# AutoUpdateApplicator — persistence
+# ---------------------------------------------------------------------------
+
+class TestAutoUpdateApplicatorPersistence:
+    def test_cycle_history_persists(self, rec_engine, registry, coordinator, pm):
+        app1 = AutoUpdateApplicator(
+            recommendation_engine=rec_engine,
+            registry=registry,
+            coordinator=coordinator,
+            persistence_manager=pm,
+        )
+        registry.register_subsystem(
+            SubsystemInfo(name="persist_sub", module_path="src/p.py", health_status=HEALTH_HEALTHY)
+        )
+        app1.run_cycle(dry_run=True)
+        status1 = app1.get_status()
+
+        app2 = AutoUpdateApplicator(persistence_manager=pm)
+        status2 = app2.get_status()
+        assert status2["total_cycles"] == status1["total_cycles"]
+
+    def test_get_status_after_cycles(self, applicator):
+        applicator.run_cycle(dry_run=True)
+        applicator.run_cycle(dry_run=True)
+        status = applicator.get_status()
+        assert status["total_cycles"] == 2
+
+    def test_application_outcome_enum_coverage(self):
+        for outcome in ApplicationOutcome:
+            assert outcome.value  # all have non-empty string values
