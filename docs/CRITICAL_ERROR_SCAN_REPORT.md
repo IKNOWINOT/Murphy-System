@@ -345,3 +345,111 @@ All 6 Critical and 7 of 8 High findings from the PR #27 QA audit have been fully
 - ✅ IDOR protection on execution registry
 - ✅ Rate limiting enforced on all API routes
 - ✅ 56 regression tests proving each gap is closed
+
+---
+
+---
+
+# Phase 4 — Documentation-Code Gap Analysis & Hardening
+
+**Date**: 2026-03-24  
+**Scope**: Documentation sync, CORS hardening in tiered mode, dangerous-pattern scan  
+**Phase**: 4 of the PR improvement chain (follows Phase 1–3 Critical Error Scan → Plan → Fix → Test)
+
+---
+
+## Phase 4 Executive Summary
+
+Phase 4 focused on three areas:
+
+1. **CORS hardening** — `src/runtime/tiered_app_factory.py` used `allow_methods=["*"]` and `allow_headers=["*"]` while the canonical `src/fastapi_security.py` already used explicit allowlists. This inconsistency was closed.
+2. **Dangerous-pattern scan** — Full scan for `eval()`, `exec()`, `pickle.load()`, and `subprocess.Popen(shell=True)` across all of `src/`. All findings are legitimate and documented below.
+3. **Documentation verification** — Key documentation files were validated against code reality. Gaps found and closed or flagged.
+
+---
+
+## Phase 4 Findings
+
+### HARD-001 — Wildcard `allow_methods` / `allow_headers` in Tiered App Factory
+
+| Field | Value |
+|-------|-------|
+| **Severity** | HIGH — **RESOLVED** |
+| **Component** | `src/runtime/tiered_app_factory.py` |
+| **Description** | `allow_methods=["*"]` and `allow_headers=["*"]` in `CORSMiddleware` configuration — overly permissive, inconsistent with the explicit lists in `src/fastapi_security.py` |
+| **Resolution** | Replaced with `allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]` and an explicit `allow_headers` list matching `fastapi_security.py` (`Content-Type`, `Authorization`, `X-Tenant-ID`, `X-API-Key`, `X-CSRF-Token`) |
+| **Tests Added** | `TestCORSConfiguration::test_tiered_app_factory_no_wildcard_allow_methods`, `TestCORSConfiguration::test_tiered_app_factory_no_wildcard_allow_headers` in `tests/test_critical_error_scan.py` |
+
+---
+
+## Phase 4 Dangerous-Pattern Scan Results
+
+### `eval()` Usage
+
+| File | Line(s) | Assessment |
+|------|---------|-----------|
+| `src/compliance_as_code_engine.py` | ~196–211 | **Safe** — uses `_safe_eval()` with full AST validation via `_validate_ast()` before calling `_sandbox_eval()` with `{"__builtins__": {}}`. Comment documents the security rationale. |
+| `src/security_audit_scanner.py` | ~67–68 | **Safe** — string literals in audit rule descriptions only; no actual `eval()` call. |
+| `src/integration_engine/sandbox_quarantine.py` | ~140 | **Safe** — string literal in a recommendation message; no actual `eval()` call. |
+| `src/enhanced_local_llm.py` | ~412, ~459 | **Safe** — comment explicitly says "no eval(); walk the AST instead". |
+| `src/neuro_symbolic_models/*.py` | Multiple | **Safe** — PyTorch `model.eval()` (switch to inference mode), not Python built-in `eval()`. |
+| `src/murphy_foundation_model/mfm_trainer.py` | ~257 | **Safe** — PyTorch `base.eval()` call. |
+
+### `exec()` Usage
+
+| File | Line(s) | Assessment |
+|------|---------|-----------|
+| `src/murphy_repl.py` | ~173 | **Acceptable** — REPL requires `exec`; has `# noqa: S102` and `# nosec` comment with justification. Input is user-supplied REPL commands, not untrusted external data. |
+| `src/integration_engine/sandbox_quarantine.py` | ~146 | **Safe** — string literal in a recommendation message; no actual `exec()` call. |
+
+### `pickle.load()` Usage
+
+| File | Line(s) | Assessment |
+|------|---------|-----------|
+| `src/integration_engine/sandbox_quarantine.py` | ~134 | **Safe** — string literal in a security recommendation message (the scanner recommends avoiding `pickle.load`); no actual `pickle.load()` call. |
+
+### `subprocess.Popen(shell=True)` Usage
+
+| File | Line(s) | Assessment |
+|------|---------|-----------|
+| None found | — | **Clean** — No `subprocess.Popen(shell=True)` patterns detected in `src/`. |
+
+**Overall**: Zero dangerous patterns requiring remediation. All `eval()`/`exec()` appearances are either PyTorch API calls, AST-validated sandboxed evaluation, REPL use with documented justification, or string literals in security scanners.
+
+---
+
+## Phase 4 Documentation Audit
+
+### API_DOCUMENTATION.md
+**Status**: ✅ Adequate  
+The file correctly redirects to `docs/API_REFERENCE.md` (the canonical full API reference) and `documentation/api/ENDPOINTS.md`. Provides a quick-reference table of core endpoints. No changes required.
+
+### SECURITY.md
+**Status**: ✅ Up to date  
+Covers: authentication architecture, CSRF protection (double-submit + SameSite), rate limiting (per-IP with `X-RateLimit-*` headers), brute-force lockout, API key rotation (`ScheduledKeyRotator`), cryptographic hash policy (SHA-256 minimum), multi-agent security controls, and the security enhancement roadmap. All sections reflect current code in `src/fastapi_security.py`, `src/flask_security.py`, `src/secure_key_manager.py`, and `src/security_plane/`.
+
+### tiered_app_factory.py vs fastapi_security.py CORS Alignment
+**Status**: ✅ Resolved (HARD-001 above)  
+Previously: `allow_methods=["*"]`, `allow_headers=["*"]`  
+Now: Explicit allowlists matching `fastapi_security.py`.
+
+---
+
+## Phase 4 Test Coverage
+
+| Finding ID | Test Class | Tests Added | All Pass? |
+|------------|-----------|-------------|-----------|
+| HARD-001 | `TestCORSConfiguration` | 2 | ✅ Yes |
+| Dangerous patterns | N/A (scan-only, nothing to fix) | 0 | ✅ N/A |
+| **Total** | 1 class | **2 tests** | ✅ **Pass** |
+
+Run Phase 4 tests:
+```bash
+MURPHY_ENV=test python3 -m pytest tests/test_critical_error_scan.py::TestCORSConfiguration -v --override-ini="addopts="
+```
+
+---
+
+## Phase 4 Conclusion
+
+The tiered app factory now uses the same explicit CORS method and header allowlists as the main FastAPI security module. No dangerous code patterns (`eval`, `exec`, `pickle`, `shell=True`) require remediation — all instances are safe by design or have documented justification. Documentation for API, security, and architecture accurately reflects current code state.
