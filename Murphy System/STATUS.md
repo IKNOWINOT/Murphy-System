@@ -1,6 +1,6 @@
 # Murphy System — Project Status
 
-> **Last updated**: 2026-03-24
+> **Last updated**: 2026-03-24 (Security hardening PR — all Critical/High QA findings resolved)
 > **License**: BSL 1.1 (Business Source License)
 > Copyright © 2020 Inoni Limited Liability Company · Creator: Corey Post
 
@@ -10,12 +10,11 @@
 
 | Area | Status | Notes |
 |------|--------|-------|
-| Core Runtime | ✅ Operational | FastAPI server, 1056+ modules, modular engine architecture |
-| Core Runtime | ✅ Operational | FastAPI server, 1056+ modules, modular engine architecture |
+| Core Runtime | ✅ Operational | FastAPI server, 620+ modules, modular engine architecture |
 | Control Plane | ✅ Operational | Execution packets, state vectors, formal constraints |
 | Governance Framework | ✅ Operational | HITL gates, governance kernel, compliance scheduling |
 | Confidence Engine | ✅ Operational | Bayesian scoring, Murphy Index, artifact graphs |
-| Security Plane | ⚠️ Partial | Authentication, authorization, DLP implemented; formal pen-test pending |
+| Security Plane | ✅ Hardened | Authentication (JWT + API key), CORS allowlist, rate limiting, CSRF, RBAC enforce at API layer; 56 regression tests; formal pen-test pending |
 | AUAR Pipeline | ✅ Operational | 7-layer routing with ML optimization |
 | AionMind Kernel | ✅ Operational | Context engine, reasoning engine, orchestration engine |
 | Setup Wizard | ✅ Operational | 6 deployment presets, guided onboarding |
@@ -54,7 +53,28 @@ Murphy System is **aligned with** (not formally attested to) the following frame
 - **Total test files**: 648+
 - **CI configuration**: `python -m pytest --timeout=60 -v --tb=short`
 - **CI pipeline**: GitHub Actions runs lint, test (Python 3.10/3.11/3.12), integration, security, and build jobs
-- **Key test suites**: concept graph engine (48), unified control protocol (62), session context (37), crypto trading system (102), shadow learning + real-money guard (48), email integration real-SMTP/SendGrid (29), Rosetta subsystem wiring (38)
+- **Key test suites**: concept graph engine (48), unified control protocol (62), session context (37), crypto trading system (102), shadow learning + real-money guard (48), email integration real-SMTP/SendGrid (29), Rosetta subsystem wiring (38), **critical security fixes (56 — new)**
+
+## Security Hardening Status (PR #27 QA Audit Findings)
+
+All 6 Critical and 8 High findings from the pre-launch QA audit have been resolved.
+See `docs/CRITICAL_ERROR_SCAN_REPORT.md` for full details.
+
+| Finding | Description | Status |
+|---------|-------------|--------|
+| SEC-001 | Zero auth on all routes | ✅ **RESOLVED** — `SecurityMiddleware` wired via `configure_secure_fastapi()` |
+| SEC-002 | Wildcard CORS | ✅ **RESOLVED** — Origin allowlist from `MURPHY_CORS_ORIGINS` env var |
+| SEC-003 | Simulated cryptography | ✅ **RESOLVED** — Real Fernet + ECDSA; PQC stubs log warnings |
+| SEC-004 | SecurityMiddleware never instantiated | ✅ **RESOLVED** — Registered in all API server startup |
+| ARCH-001 | security_hardening_config.py missing | ✅ **RESOLVED** — File created with full security controls |
+| ARCH-002 | agentic_api_provisioner.py missing | ✅ **RESOLVED** — File created with full provisioner interface |
+| ARCH-003 | Global ArtifactGraph (no tenant isolation) | ✅ **RESOLVED** — Per-tenant graphs keyed by X-Tenant-ID |
+| ARCH-004 | Execution registry IDOR | ✅ **RESOLVED** — Ownership check on all abort/pause/resume routes |
+| ARCH-006 | Rate limiting not applied | ✅ **RESOLVED** — Token bucket enforced in SecurityMiddleware |
+| API-002 | Placeholder credential verifiers | ✅ **RESOLVED** — HMAC constant-time API key comparison; JWT validation |
+| API-004 | Master key in plaintext .env | ✅ **RESOLVED** — Fernet encryption at rest; RuntimeError in production if unset |
+| SEC-005 | RBAC not enforced at API layer | ✅ **RESOLVED** — `require_permission()` decorator + deny-by-default |
+| DOC-001 | API docs document absence of auth | ✅ **RESOLVED** — API_DOCUMENTATION.md and API_ROUTES.md updated |
 
 ## Known Gaps
 
