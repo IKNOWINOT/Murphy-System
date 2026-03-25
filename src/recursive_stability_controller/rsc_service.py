@@ -213,7 +213,7 @@ class RecursiveStabilityController:
 
 # Flask application
 app = Flask(__name__)
-from flask_security import configure_secure_app
+from src.flask_security import configure_secure_app
 
 configure_secure_app(app, service_name="recursive-stability-controller")
 
