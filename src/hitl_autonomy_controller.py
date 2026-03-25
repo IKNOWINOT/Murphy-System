@@ -457,3 +457,317 @@ class HITLAutonomyController:
         self._autonomy_sessions.clear()
         self._cooldowns.clear()
         logger.info("HITLAutonomyController state reset")
+
+    # ------------------------------------------------------------------
+    # Permutation Calibration Integration (Spec Section 3.6)
+    # ------------------------------------------------------------------
+
+    def register_learned_procedure_policy(
+        self,
+        sequence_id: str,
+        domain: str,
+        stability_score: float,
+        confidence_score: float,
+        requires_review: bool = True,
+    ) -> str:
+        """Register a policy for a learned procedure from permutation calibration.
+
+        This implements spec Section 3.6: Require human review for high-impact
+        learned procedures.
+
+        Args:
+            sequence_id: The sequence ID from permutation registry
+            domain: Domain for the procedure
+            stability_score: Stability of the learned ordering (0.0-1.0)
+            confidence_score: Confidence in the procedure (0.0-1.0)
+            requires_review: Whether HITL is required for this procedure
+
+        Returns:
+            The policy_id for the registered policy
+        """
+        policy_id = f"learned-{domain}-{sequence_id[:8]}"
+
+        # Adjust confidence threshold based on stability
+        # Less stable procedures require higher confidence for autonomy
+        adjusted_threshold = 0.95 - (stability_score * 0.15)
+
+        policy = AutonomyPolicy(
+            policy_id=policy_id,
+            name=f"Learned Procedure: {domain}",
+            confidence_threshold=adjusted_threshold,
+            hitl_required=requires_review,
+            auto_approve_below_risk=0.1 if stability_score > 0.8 else 0.05,
+            max_autonomous_actions=20 if stability_score > 0.7 else 10,
+            cooldown_seconds=180 if stability_score > 0.8 else 300,
+            enabled=True,
+        )
+
+        self.register_policy(policy)
+
+        # Store metadata about the learned procedure
+        self._autonomy_sessions[policy_id].update({
+            "sequence_id": sequence_id,
+            "domain": domain,
+            "stability_score": stability_score,
+            "confidence_score": confidence_score,
+            "source": "permutation_learning",
+        })
+
+        logger.info(
+            "Registered learned procedure policy %s (stability=%.2f, conf_threshold=%.2f)",
+            policy_id, stability_score, adjusted_threshold
+        )
+        return policy_id
+
+    def evaluate_learned_procedure_autonomy(
+        self,
+        sequence_id: str,
+        domain: str,
+        execution_confidence: float,
+        risk_level: float,
+    ) -> Dict[str, Any]:
+        """Evaluate autonomy for a learned procedure execution.
+
+        This method adds specific checks for learned procedures, including
+        stability-based throttling.
+
+        Args:
+            sequence_id: The sequence ID from permutation registry
+            domain: Domain for lookup
+            execution_confidence: Confidence for this execution
+            risk_level: Risk level for the execution
+
+        Returns:
+            Autonomy decision with learned procedure metadata
+        """
+        # Find the learned procedure policy
+        policy_id = f"learned-{domain}-{sequence_id[:8]}"
+
+        if policy_id not in self._policies:
+            return {
+                "autonomous": False,
+                "reason": "no_learned_procedure_policy",
+                "policy_applied": None,
+                "sequence_id": sequence_id,
+                "requires_hitl": True,
+            }
+
+        session = self._autonomy_sessions.get(policy_id, {})
+        stability = session.get("stability_score", 0.0)
+
+        # Throttle autonomy when stability is weak (Spec 3.6: reduce autonomy
+        # when policy stability is weak)
+        if stability < 0.5:
+            return {
+                "autonomous": False,
+                "reason": "policy_stability_too_weak",
+                "policy_applied": policy_id,
+                "sequence_id": sequence_id,
+                "stability_score": stability,
+                "requires_hitl": True,
+            }
+
+        # Evaluate standard autonomy
+        result = self.evaluate_autonomy(
+            task_type=f"learned_procedure:{domain}",
+            confidence=execution_confidence,
+            risk_level=risk_level,
+            policy_id=policy_id,
+        )
+
+        # Add learned procedure metadata
+        result["sequence_id"] = sequence_id
+        result["stability_score"] = stability
+        result["source"] = "permutation_learning"
+
+        return result
+
+    def request_procedure_promotion_review(
+        self,
+        sequence_id: str,
+        domain: str,
+        promotion_reason: str,
+        metrics: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Request human review for promoting a learned procedure.
+
+        This implements spec Section 3.6: Escalate when learned order-sensitivity
+        is too high.
+
+        Args:
+            sequence_id: The sequence ID requesting promotion
+            domain: Domain for the procedure
+            promotion_reason: Why promotion is being requested
+            metrics: Performance metrics for the procedure
+
+        Returns:
+            Review request details
+        """
+        review_id = uuid.uuid4().hex[:12]
+
+        # Check if order sensitivity is high enough to require escalation
+        sensitivity = metrics.get("order_sensitivity", 0.0)
+        fragility = metrics.get("fragility", 0.0)
+
+        escalation_required = sensitivity > 0.7 or fragility > 0.4
+
+        review_record = {
+            "review_id": review_id,
+            "sequence_id": sequence_id,
+            "domain": domain,
+            "promotion_reason": promotion_reason,
+            "metrics": metrics,
+            "escalation_required": escalation_required,
+            "status": "pending_review",
+            "requested_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+        capped_append(self._action_history, {
+            "action_id": review_id,
+            "task_type": "procedure_promotion_review",
+            "autonomous": False,
+            "outcome": "pending",
+            "confidence": metrics.get("confidence", 0.0),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "review_details": review_record,
+        })
+
+        logger.info(
+            "Requested procedure promotion review %s for sequence %s (escalation=%s)",
+            review_id, sequence_id, escalation_required
+        )
+
+        return review_record
+
+    def approve_procedure_promotion(
+        self,
+        review_id: str,
+        approver: str,
+    ) -> Dict[str, Any]:
+        """Approve a procedure promotion request.
+
+        Args:
+            review_id: The review ID to approve
+            approver: Who is approving
+
+        Returns:
+            Approval result
+        """
+        for action in self._action_history:
+            if action.get("action_id") == review_id:
+                if action.get("task_type") != "procedure_promotion_review":
+                    continue
+
+                action["outcome"] = "approved"
+                review_details = action.get("review_details", {})
+                review_details["status"] = "approved"
+                review_details["approved_by"] = approver
+                review_details["approved_at"] = datetime.now(timezone.utc).isoformat()
+
+                logger.info("Approved procedure promotion %s by %s", review_id, approver)
+                return {
+                    "status": "approved",
+                    "review_id": review_id,
+                    "approver": approver,
+                    "sequence_id": review_details.get("sequence_id"),
+                }
+
+        return {"status": "error", "reason": "review_not_found", "review_id": review_id}
+
+    def reject_procedure_promotion(
+        self,
+        review_id: str,
+        reviewer: str,
+        reason: str,
+    ) -> Dict[str, Any]:
+        """Reject a procedure promotion request.
+
+        Args:
+            review_id: The review ID to reject
+            reviewer: Who is rejecting
+            reason: Reason for rejection
+
+        Returns:
+            Rejection result
+        """
+        for action in self._action_history:
+            if action.get("action_id") == review_id:
+                if action.get("task_type") != "procedure_promotion_review":
+                    continue
+
+                action["outcome"] = "rejected"
+                review_details = action.get("review_details", {})
+                review_details["status"] = "rejected"
+                review_details["rejected_by"] = reviewer
+                review_details["rejection_reason"] = reason
+                review_details["rejected_at"] = datetime.now(timezone.utc).isoformat()
+
+                logger.info("Rejected procedure promotion %s by %s: %s", review_id, reviewer, reason)
+                return {
+                    "status": "rejected",
+                    "review_id": review_id,
+                    "reviewer": reviewer,
+                    "reason": reason,
+                    "sequence_id": review_details.get("sequence_id"),
+                }
+
+        return {"status": "error", "reason": "review_not_found", "review_id": review_id}
+
+    def get_pending_procedure_reviews(self) -> List[Dict[str, Any]]:
+        """Get all pending procedure promotion reviews.
+
+        Returns:
+            List of pending reviews
+        """
+        pending = []
+        for action in self._action_history:
+            if action.get("task_type") == "procedure_promotion_review":
+                review_details = action.get("review_details", {})
+                if review_details.get("status") == "pending_review":
+                    pending.append(review_details)
+        return pending
+
+    def get_learned_procedure_stats(self) -> Dict[str, Any]:
+        """Get statistics for learned procedure policies.
+
+        Returns:
+            Stats on learned procedure autonomy
+        """
+        learned_policies = []
+        for policy_id, session in self._autonomy_sessions.items():
+            if session.get("source") == "permutation_learning":
+                policy = self._policies.get(policy_id)
+                if policy:
+                    learned_policies.append({
+                        "policy_id": policy_id,
+                        "domain": session.get("domain"),
+                        "sequence_id": session.get("sequence_id"),
+                        "stability_score": session.get("stability_score", 0.0),
+                        "autonomous_actions": session.get("autonomous_action_count", 0),
+                        "enabled": policy.enabled,
+                    })
+
+        # Count reviews
+        total_reviews = sum(
+            1 for a in self._action_history
+            if a.get("task_type") == "procedure_promotion_review"
+        )
+        pending_reviews = len(self.get_pending_procedure_reviews())
+        approved_reviews = sum(
+            1 for a in self._action_history
+            if a.get("task_type") == "procedure_promotion_review" and a.get("outcome") == "approved"
+        )
+        rejected_reviews = sum(
+            1 for a in self._action_history
+            if a.get("task_type") == "procedure_promotion_review" and a.get("outcome") == "rejected"
+        )
+
+        return {
+            "status": "ok",
+            "learned_procedure_policies": len(learned_policies),
+            "policies": learned_policies,
+            "total_promotion_reviews": total_reviews,
+            "pending_reviews": pending_reviews,
+            "approved_reviews": approved_reviews,
+            "rejected_reviews": rejected_reviews,
+        }

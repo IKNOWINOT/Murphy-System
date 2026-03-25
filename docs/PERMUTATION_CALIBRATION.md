@@ -420,6 +420,142 @@ if drift["drift_detected"]:
     # Start new exploration cycle...
 ```
 
+## Additional Module Integrations
+
+### Deterministic Routing Engine (Section 3.3)
+
+The routing engine now supports permutation-aware policies:
+
+```python
+from src.deterministic_routing_engine import DeterministicRoutingEngine
+
+engine = DeterministicRoutingEngine()
+
+# Register a routing policy from permutation learning
+policy_id = engine.register_permutation_policy(
+    domain="sales",
+    sequence_id="seq-12345678",
+    ordering=["crm", "analytics", "feedback"],
+    route_type="hybrid",
+)
+
+# Route with permutation awareness
+decision = engine.route_with_permutation_awareness(
+    task_type="sales_task",
+    domain="sales",
+    confidence=0.8,
+)
+
+# Switch between exploratory (Mode A) and procedural (Mode B) modes
+engine.switch_routing_mode("sales", "exploratory")
+engine.switch_routing_mode("sales", "procedural")
+```
+
+### Golden Path Bridge (Section 3.4)
+
+The golden path bridge now records and replays sequence-based paths:
+
+```python
+from src.golden_path_bridge import GoldenPathBridge
+
+bridge = GoldenPathBridge()
+
+# Record a sequence path
+path_id = bridge.record_sequence_path(
+    sequence_id="seq-abc123",
+    domain="crm_integration",
+    ordering=["crm", "analytics", "feedback"],
+    execution_spec={"steps": ["step1", "step2"]},
+    outcome_quality=0.85,
+)
+
+# Find matching sequence paths
+matches = bridge.find_sequence_matches(
+    current_ordering=["crm", "analytics", "feedback"],
+    domain="crm_integration",
+)
+
+# Replay a sequence path
+spec = bridge.replay_sequence_path("seq-abc123", "crm_integration")
+```
+
+### HITL Autonomy Controller (Section 3.6)
+
+The HITL controller now supports learned procedure review:
+
+```python
+from src.hitl_autonomy_controller import HITLAutonomyController
+
+controller = HITLAutonomyController()
+
+# Register a learned procedure policy
+policy_id = controller.register_learned_procedure_policy(
+    sequence_id="seq-learned-001",
+    domain="crm_domain",
+    stability_score=0.8,
+    confidence_score=0.85,
+    requires_review=True,
+)
+
+# Evaluate autonomy for learned procedure
+result = controller.evaluate_learned_procedure_autonomy(
+    sequence_id="seq-learned-001",
+    domain="crm_domain",
+    execution_confidence=0.95,
+    risk_level=0.1,
+)
+
+# Request promotion review
+review = controller.request_procedure_promotion_review(
+    sequence_id="seq-promo-001",
+    domain="promo_domain",
+    promotion_reason="Consistent performance",
+    metrics={"confidence": 0.85, "order_sensitivity": 0.4},
+)
+
+# Approve or reject
+controller.approve_procedure_promotion(review["review_id"], "admin")
+```
+
+### ML Strategy Engine (Section 3.2)
+
+The ML engine now provides sequence scoring and ranking:
+
+```python
+from src.ml_strategy_engine import MLStrategyEngine
+
+engine = MLStrategyEngine()
+
+# Score a sequence family
+evaluations = [
+    {"outcome_quality": 0.85, "calibration_quality": 0.8, "stability_score": 0.75}
+    for _ in range(15)
+]
+score = engine.score_sequence_family("seq-001", evaluations)
+print(f"Composite score: {score['composite_score']}")
+print(f"Promotion ready: {score['promotion_ready']}")
+
+# Rank candidates for promotion
+candidates = [
+    {"sequence_id": "seq-001", "domain": "test", "evaluations": [...]},
+    {"sequence_id": "seq-002", "domain": "test", "evaluations": [...]},
+]
+ranked = engine.rank_sequence_candidates(candidates)
+
+# Detect ordering anomalies
+result = engine.detect_ordering_anomalies(
+    domain="sales",
+    recent_scores=[0.5, 0.52, 0.48],  # Recent poor performance
+    historical_scores=[0.8, 0.82, 0.79, 0.81],  # Historical baseline
+)
+print(f"Drift detected: {result['drift_detected']}")
+print(f"Recommendation: {result['recommendation']}")
+
+# Online learning for sequence success
+engine.online_sequence_learning("seq-001", {"feature_a": 0.8}, success=True)
+prediction = engine.predict_sequence_success("seq-001", {"feature_a": 0.8})
+```
+
 ## Files Changed
 
 ### New Files
@@ -427,13 +563,17 @@ if drift["drift_detected"]:
 - `src/permutation_calibration_adapter.py` - Exploration adapter
 - `src/procedural_distiller.py` - Procedure distillation
 - `src/order_sensitivity_metrics.py` - Statistical metrics
-- `tests/test_permutation_calibration.py` - Comprehensive tests (69 tests)
+- `tests/test_permutation_calibration.py` - Comprehensive tests (88 tests)
 
 ### Modified Files
 - `src/self_improvement_engine.py` - Added `PermutationLearningExtension`
 - `src/observability_counters.py` - Added permutation categories and recorders
 - `src/gate_execution_wiring.py` - Added permutation gates
 - `src/semantics_boundary_controller.py` - Added order invariance checking
+- `src/deterministic_routing_engine.py` - Added permutation-aware routing (Section 3.3)
+- `src/golden_path_bridge.py` - Added sequence path recording/replay (Section 3.4)
+- `src/hitl_autonomy_controller.py` - Added learned procedure review (Section 3.6)
+- `src/ml_strategy_engine.py` - Added sequence scoring/ranking (Section 3.2)
 
 ## References
 
