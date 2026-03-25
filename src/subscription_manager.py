@@ -1059,6 +1059,47 @@ class SubscriptionManager:
                 if status == SubscriptionStatus.CANCELED:
                     sub.canceled_at = datetime.now(timezone.utc).isoformat()
 
+    def update_provisioning_info(
+        self,
+        account_id: str,
+        provisioning_status: Optional[str] = None,
+        server_ip: str = "",
+        tenant_id: str = "",
+    ) -> None:
+        """Write infrastructure provisioning fields onto an existing subscription record.
+
+        Called by ``CustomerInfraOrchestrator._activate_metering`` once the
+        full provisioning pipeline completes so the billing layer reflects the
+        live infrastructure state.
+
+        Args:
+            account_id: The account whose record should be updated.
+            provisioning_status: A ``ProvisioningStatus`` value (string) such as
+                ``"active"`` or ``"failed"``.
+            server_ip: Public IP of the customer's Hetzner server, or ``""``
+                for shared-tier accounts.
+            tenant_id: The ``tenant_id`` returned by ``TenantProvisioner``.
+        """
+        with self._lock:
+            sub = self._subscriptions.get(account_id)
+            if sub is None:
+                return
+            if provisioning_status is not None:
+                sub.provisioning_status = provisioning_status
+            if server_ip:
+                sub.server_ip = server_ip
+            if tenant_id:
+                sub.tenant_id = tenant_id
+        self._audit(
+            "provisioning_info_updated",
+            account_id,
+            {
+                "provisioning_status": provisioning_status,
+                "server_ip": server_ip,
+                "tenant_id": tenant_id,
+            },
+        )
+
     def _is_duplicate_event(self, event_id: str) -> bool:
         """Check if an event has already been processed (idempotency guard).
 

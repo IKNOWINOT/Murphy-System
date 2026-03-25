@@ -21,31 +21,10 @@ import sys
 from datetime import datetime
 from typing import Any, Dict, List
 
-# ── Murphy System imports with mock fallback ──────────────────────────────────
+# ── Murphy System imports ─────────────────────────────────────────────────────
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
-try:
-    from src.confidence_engine.murphy_gate   import MurphyGate
-    from src.confidence_engine.murphy_models import Phase, GateAction, GateResult
-    MURPHY_AVAILABLE = True
-except ImportError:
-    MURPHY_AVAILABLE = False
-
-    class Phase:  # type: ignore[no-redef]
-        EXPAND    = "EXPAND"
-        EXECUTE   = "EXECUTE"
-        CONSTRAIN = "CONSTRAIN"
-
-    class GateAction:  # type: ignore[no-redef]
-        PROCEED_AUTOMATICALLY   = "PROCEED_AUTOMATICALLY"
-        PROCEED_WITH_MONITORING = "PROCEED_WITH_MONITORING"
-        REQUIRE_HUMAN_APPROVAL  = "REQUIRE_HUMAN_APPROVAL"
-        BLOCK_EXECUTION         = "BLOCK_EXECUTION"
-
-    class GateResult:  # type: ignore[no-redef]
-        def __init__(self, passed, action, message):
-            self.passed   = passed
-            self.action   = action
-            self.message  = message
+from src.confidence_engine.murphy_gate   import MurphyGate
+from src.confidence_engine.murphy_models import Phase, GateAction, GateResult
 
 # ── Standalone confidence engine (zero external deps) ────────────────────────
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
@@ -163,7 +142,6 @@ def main() -> Dict[str, Any]:
     print("=" * 60)
     print("  MURPHY SYSTEM — Healthcare AI Safety Demo")
     print("  Simulating Clinical Decision Support")
-    print(f"  Murphy System available: {MURPHY_AVAILABLE}")
     print("=" * 60)
 
     case_results = [_run_clinical_case(c) for c in CLINICAL_CASES]
