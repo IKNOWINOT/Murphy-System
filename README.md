@@ -2,7 +2,7 @@
 
 **Universal AI Automation System**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/IKNOWINOT/Murphy-System) [![License](https://img.shields.io/badge/license-BSL%201.1-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.10+-yellow.svg)](https://www.python.org/) [![CI](https://github.com/IKNOWINOT/Murphy-System/actions/workflows/ci.yml/badge.svg)](https://github.com/IKNOWINOT/Murphy-System/actions/workflows/ci.yml) [![Tests](https://img.shields.io/badge/tests-17368%20passing-brightgreen.svg)](#-test-status)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/IKNOWINOT/Murphy-System) [![License](https://img.shields.io/badge/license-BSL%201.1-blue.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.10+-yellow.svg)](https://www.python.org/) [![CI](https://github.com/IKNOWINOT/Murphy-System/actions/workflows/ci.yml/badge.svg)](https://github.com/IKNOWINOT/Murphy-System/actions/workflows/ci.yml) [![Tests](https://img.shields.io/badge/tests-17368%20defined-brightgreen.svg)](#-test-status)
 
 ---
 
@@ -12,7 +12,7 @@
 > developed and maintained by a **single developer** ([@IKNOWINOT](https://github.com/IKNOWINOT)).
 > While the architecture is comprehensive and the test suite covers thousands of
 > functions, **not everything works as intended**. Emergent bugs are still being
-> discovered and classified across the 978-module surface area.
+> discovered and classified across the 535-module surface area.
 >
 > **What this means for you:**
 >
@@ -24,7 +24,7 @@
 >   unexpected behavior. Edge cases are actively being catalogued.
 > - 🔧 **Self-healing capabilities** — Murphy includes a self-improvement engine,
 >   bug pattern detector, and correction loop.
-> - 📊 **Test coverage is extensive** — 644 test files with comprehensive coverage.
+> - 📊 **Test coverage is extensive** — 706 test files with comprehensive coverage.
 >   CI runs automatically on push/PR via GitHub Actions.
 > - 🤝 **Contributions welcome** — see [CONTRIBUTING.md](CONTRIBUTING.md).
 >
@@ -53,6 +53,7 @@ Murphy is a **complete, operational AI automation system** that can automate any
 ✅ **Orchestrators** - Safety, efficiency, and supply chain orchestration  
 ✅ **Container Deployment** - Docker and Kubernetes configs included (security hardening required before production)
 
+> **Recently added:** Room LLM Brain (MSS-aligned MAGNIFY/SIMPLIFY/SOLIDIFY in every room), World Knowledge Calibrator (algebraic sensor anchors), Agentic Communications Router (agent-to-agent messaging), Bot Room Registry (multi-room persona mapping), Rosetta Platform State (3-layer platform/agent/combined copy system), Optimal Routing Wiring (Triage→Librarian→Causality→Rubix→GoldenPath pipeline), Room Cognitive Roles (MSS role per room)  
 > **Coming in #136:** Drawing Engine, Credential Gate, Sensor Fusion, Osmosis Engine, Autonomous Perception, Wingman Evolution, Engineering Toolbox
 
 ---
@@ -173,7 +174,7 @@ See [docs/TIERED_RUNTIME.md](docs/TIERED_RUNTIME.md) for details.
 | Compliance validation | **90%** | Framework complete; formal attestation (SOC 2, ISO 27001) pending |
 | Operational automation | **85%** | Core flows working; Phases 2–8 all implemented and verified |
 | File system cleanup | **100%** | Complete |
-| Test coverage (dynamic chains) | **85%** | 644 test files, 17,368 test functions; 1,611 verified passing across 37+ suites |
+| Test coverage (dynamic chains) | **85%** | 706 test files, 17,368 test functions across 37+ suites |
 | UI + user testing | **75%** | 14 web interfaces built; UI completion PR pending |
 | Security hardening | **80%** | Auth/CORS/CSP/JWT done; E2EE stub gated for production |
 | Code quality audit (90 categories) | **90%** | Audit complete; remediation for remaining items in progress |
@@ -185,7 +186,7 @@ See [docs/TIERED_RUNTIME.md](docs/TIERED_RUNTIME.md) for details.
 | Librarian Triage Escalation | **100%** | Mode-aware (ASK/ONBOARDING/PRODUCTION/ASSISTANT); triage→execution path validated with 57 tests |
 | **Weighted overall** | **~83%** | See [Production Readiness Audit](Murphy System/strategic/PRODUCTION_READINESS_AUDIT.md) |
 
-> **Test status:** 644 test files with 17,368 test functions; 1,611 verified passing.
+> **Test status:** 706 test files with 17,368 test functions.
 > Skipped tests require optional packages (Flask, Textual, torch).
 > CI pipeline runs on every push/PR — see [Test Status](#-test-status) below.
 
@@ -213,7 +214,7 @@ Murphy-System/
     ├── murphy                          ← CLI tool (start/stop/status/…)
     ├── murphy_system_1.0_runtime.py    ← Single production runtime
     ├── src/                            ← 978 production modules
-    ├── tests/                          ← 644 test files
+    ├── tests/                          ← 706 test files
     ├── bots/                           ← 104 bot modules
     ├── documentation/                  ← Structured API/user docs
     ├── docs/                           ← Technical docs
