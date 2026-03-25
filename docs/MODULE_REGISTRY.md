@@ -13,7 +13,7 @@ Murphy System organised by subsystem. It is the authoritative reference
 for understanding what each module does, where it lives, and its current
 operational status.
 
-**Counts (as of 2026-03-14):** 1,122 source modules across 71 packages in `src/`.
+**Counts (as of 2026-03-25):** 1,122 source modules across 71 packages (1,166 manifest entries; 1,223 .py files total) in `src/`.
 
 Legend:
 - ✅ **Operational** — module is active and tested

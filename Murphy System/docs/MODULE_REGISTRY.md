@@ -13,7 +13,7 @@ Murphy System organised by subsystem. It is the authoritative reference
 for understanding what each module does, where it lives, and its current
 operational status.
 
-**Counts (as of 2026-03-14):** 656+ source modules across 57 packages in `src/`.
+**Counts (as of 2026-03-25):** 1,122 source modules across 71 packages (1,166 manifest entries; 1,223 .py files total) in `src/`.
 
 Legend:
 - ✅ **Operational** — module is active and tested
@@ -26,7 +26,7 @@ Legend:
 
 | Module | Path | Description | Status | Key Dependencies |
 |--------|------|-------------|--------|-----------------|
-| `murphy_system_1.0_runtime.py` | `Murphy System/` | Thin entry-point; re-exports all public symbols — implementation lives in `src/runtime/` (INC-13 closed) | ✅ | fastapi, uvicorn, pydantic |
+| `murphy_system_1.0_runtime.py` | `` | Thin entry-point; re-exports all public symbols — implementation lives in `src/runtime/` (INC-13 closed) | ✅ | fastapi, uvicorn, pydantic |
 | `config.py` | `src/config.py` | Pydantic `BaseSettings`; loads `.env`, provides typed config | ✅ | pydantic-settings |
 | `command_system.py` | `src/command_system.py` | CLI command dispatcher | ✅ | — |
 | `command_parser.py` | `src/command_parser.py` | Natural-language command parser | ✅ | — |
@@ -394,43 +394,6 @@ additive-manufacturing cells.
 | `time_tracking/settings_api.py` | `src/time_tracking/settings_api.py` | Time tracking settings API | ✅ Operational | time_tracking |
 | `time_tracking/config.py` | `src/time_tracking/config.py` | Time tracking configuration | ✅ Operational | time_tracking |
 
-## Runtime Packs
-
-The tiered runtime groups modules into **packs** by tier and capability.
-Set `MURPHY_RUNTIME_MODE=tiered` to opt in.  The monolith (`murphy_system_core.py`)
-remains the default and the fallback.  See [TIERED_RUNTIME.md](../../docs/TIERED_RUNTIME.md).
-
-### Tier 0 — KERNEL (always loaded)
-
-| Pack | Modules | Capabilities |
-|------|---------|-------------|
-| `kernel_security` | `src.security_plane`, `src.authority_gate` | security, auth_gate |
-| `kernel_events` | `src.event_backbone` | event_bus, event_routing |
-| `kernel_governance` | `src.governance_kernel` | governance, policy_enforcement |
-| `kernel_health` | `src.health_monitor`, `src.shutdown_manager` | health_check, graceful_shutdown |
-
-### Tier 1 — PLATFORM (loaded at startup)
-
-| Pack | Modules | Capabilities |
-|------|---------|-------------|
-| `platform_api` | `src.runtime._deps` | http_api, health_endpoint, auth_endpoint |
-| `platform_llm` | `src.llm_controller`, `src.openai_compatible_provider` | llm_inference, openai_compatible |
-| `platform_persistence` | `src.persistence_manager` | data_persistence, db_access |
-| `platform_confidence` | `src.confidence_engine` | confidence_scoring, gate_synthesis |
-
-### Tier 2 — DOMAIN (loaded on-demand from onboarding profile)
-
-| Pack | Modules | Capabilities |
-|------|---------|-------------|
-| `domain_crm` | `src.crm_automation`, `src.outreach_campaign_planner`, `src.adaptive_campaign_engine`, `src.competitive_intelligence_engine` | crm_automation |
-| `domain_matrix` | `src.matrix_bridge.matrix_client`, `src.matrix_bridge.event_handler`, `src.matrix_bridge.module_manifest` | communication_automation, notification_automation, matrix_bridge |
-| `domain_content` | `src.content_generation_engine`, `src.digital_asset_manager`, `src.auto_documentation_engine`, `src.code_generation_gateway` | content_generation, digital_asset_management |
-| `domain_hvac` | `src.hvac_controller`, `src.industrial_protocols`, `src.sensor_fusion` | hvac_control, industrial_control |
-| `domain_payments` | `src.payment_processor`, `src.billing_manager`, `src.subscription_manager` | payment_processing, billing_automation |
-| `domain_onboarding` | `src.agentic_onboarding_engine`, `src.onboarding_flow`, `src.team_pipeline` | onboarding, team_pipeline, code_management, project_tracking, scheduling_automation |
-| `domain_observability` | `src.observability_engine`, `src.metrics_collector`, `src.alert_rules_engine` | monitoring, metrics, alerting, reporting_automation |
-| `domain_ml` | `src.ml_pipeline`, `src.shadow_learning_engine`, `src.learning_engine` | data_processing, ml_pipeline, shadow_learning |
-
 ---
 
 ## Related Documents
@@ -440,7 +403,6 @@ remains the default and the fallback.  See [TIERED_RUNTIME.md](../../docs/TIERED
 - [GAP_ANALYSIS.md](GAP_ANALYSIS.md) — Gap analysis including #136 subsystem tracking
 - [GAP_CLOSURE.md](GAP_CLOSURE.md) — Code gap remediation log
 - [ARCHITECTURE_MAP.md](../ARCHITECTURE_MAP.md) — High-level system architecture
-- [TIERED_RUNTIME.md](../../docs/TIERED_RUNTIME.md) — Tiered runtime architecture and configuration
 
 ---
 
