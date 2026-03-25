@@ -474,11 +474,13 @@ class OrderSensitivityMetrics:
         group_keys = list(groups.keys())
         
         for i, key1 in enumerate(group_keys):
-            ordering1 = eval(key1) if key1.startswith("(") else key1
+            # Use ast.literal_eval for safe parsing of tuple strings
+            import ast
+            ordering1 = ast.literal_eval(key1) if key1.startswith("(") else key1
             scores1 = [o.outcome_score for o in groups[key1]]
             
             for key2 in group_keys[i+1:]:
-                ordering2 = eval(key2) if key2.startswith("(") else key2
+                ordering2 = ast.literal_eval(key2) if key2.startswith("(") else key2
                 
                 # Check if orderings differ by exactly one adjacent swap
                 if self._is_adjacent_swap(list(ordering1), list(ordering2)):
