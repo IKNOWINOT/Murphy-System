@@ -11144,6 +11144,49 @@ def create_app() -> FastAPI:
     except Exception as _rep_exc:
         logger.warning("Repair API endpoints not available: %s", _rep_exc)
 
+    # DEMO RUN — real-pipeline demo execution
+    # ══════════════════════════════════════════════════════════════════════
+
+    @app.post("/api/demo/run")
+    async def demo_run(request: Request):
+        """Execute a demo scenario through the real Murphy pipeline.
+
+        Accepts JSON body: {"query": "..."}
+
+        Returns structured pipeline steps (MFGC → MSS → Workflow → Spec)
+        that the demo terminal can display as real system output.
+        """
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+
+        query = str(body.get("query", "")).strip()[:500]
+        if not query:
+            return JSONResponse(
+                {"success": False, "error": "missing_query", "message": "query is required"},
+                status_code=400,
+            )
+
+        try:
+            from src.demo_runner import DemoRunner
+            runner = DemoRunner()
+            result = runner.run_scenario(query)
+            return JSONResponse({
+                "success": True,
+                "steps": result["steps"],
+                "roi_message": result["roi_message"],
+                "scenario_key": result["scenario_key"],
+                "duration_ms": result["duration_ms"],
+                "spec": result["spec"],
+            })
+        except Exception as exc:
+            logger.warning("demo/run error: %s", exc)
+            return JSONResponse(
+                {"success": False, "error": "pipeline_error", "message": str(exc)},
+                status_code=500,
+            )
+
     # ══════════════════════════════════════════════════════════════════════
     # DEMO EXPORT — downloadable project bundle with licensing
     # ══════════════════════════════════════════════════════════════════════

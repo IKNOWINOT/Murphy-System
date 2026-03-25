@@ -727,19 +727,24 @@ def generate_predefined_deliverable(
     if librarian_context and librarian_context.strip():
         content = content.rstrip() + "\n\n" + _format_librarian_section(librarian_context)
 
-    # Add automation blueprint bonus if this is an automation-heavy query.
-    # Run MSS first so the blueprint uses real Solidify implementation steps.
-    mss_result: Optional[Dict[str, Any]] = None
-    if _detect_major_automation(query):
-        mss_result = _run_mss_pipeline(query, {})
-        content = content.rstrip() + "\n\n" + _build_automation_blueprint(query, mss_result)
+    # Always run MSS to enrich every scenario with real Magnify/Solidify output.
+    # This ensures the deliverable is a usable automation schematic, not just
+    # a static template — MSS adds functional requirements, implementation steps,
+    # and (when major automation is detected) a full workflow blueprint.
+    mss_result: Optional[Dict[str, Any]] = _run_mss_pipeline(query, {})
+
+    # Append MSS intelligence section (functional requirements + impl plan)
+    mss_section = _format_mss_context(mss_result)
+    if mss_section:
+        content = content.rstrip() + "\n\n" + mss_section
+
+    # Append Automation Blueprint for all scenarios (not just major automation)
+    content = content.rstrip() + "\n\n" + _build_automation_blueprint(query, mss_result)
 
     # Always append Quality Plan for project scenarios — this provides
     # the itemized service catalog, technical specification, and client
     # portfolio structure that the plan deliverable requires.
     if scenario_key == "project":
-        if mss_result is None:
-            mss_result = _run_mss_pipeline(query, {})
         content = content.rstrip() + "\n\n" + _build_quality_plan(
             query, mss_result=mss_result, librarian_context=librarian_context,
         )

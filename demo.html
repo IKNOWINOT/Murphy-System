@@ -237,42 +237,109 @@ function demoReset(){
 }
 
 function demoRun(query){
-  var scenario=demoMatch(query);
-  var term=document.getElementById('demo-term');
-  var roiBlock=document.getElementById('demo-roi-block');
-  var inputWrap=document.getElementById('demo-input-wrap');
-  inputWrap.style.display='none';
-  term.innerHTML='';
-  term.hidden=false;
-  roiBlock.hidden=true;
-  var lines=scenario.lines;
-  function addLine(i){
-    if(i>=lines.length){
-      setTimeout(function(){
-        document.getElementById('demo-roi-stat').textContent=scenario.roi;
-        roiBlock.hidden=false;
-      },400);
-      return;
+  _lastDemoQuery = query;
+  var scenario = demoMatch(query);
+  var term = document.getElementById('demo-term');
+  var roiBlock = document.getElementById('demo-roi-block');
+  var inputWrap = document.getElementById('demo-input-wrap');
+  inputWrap.style.display = 'none';
+  term.innerHTML = '';
+  term.hidden = false;
+  roiBlock.hidden = true;
+
+  // Show a "connecting" line while we call the real API
+  var connectLine = document.createElement('div');
+  connectLine.className = 'dt-line dt-cyan';
+  connectLine.textContent = '→ Routing through Murphy System pipeline…';
+  term.appendChild(connectLine);
+
+  // Try the real backend API first
+  fetch('/api/demo/run', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({query: query})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    term.innerHTML = '';
+    if(data.success && data.steps && data.steps.length > 0){
+      // Animate real pipeline steps from the API
+      _animateSteps(data.steps, term, function(){
+        var roi = data.roi_message || scenario.roi;
+        document.getElementById('demo-roi-stat').textContent = roi;
+        roiBlock.hidden = false;
+      });
+    } else {
+      // Fall back to hardcoded scenario animation
+      _animateHardcoded(scenario, term, roiBlock);
     }
-    var div=document.createElement('div');
-    div.className='dt-line dt-'+lines[i].c;
+  })
+  .catch(function(){
+    // Network/server unavailable — fall back to hardcoded animation
+    term.innerHTML = '';
+    _animateHardcoded(scenario, term, roiBlock);
+  });
+}
+
+function _animateSteps(steps, term, onDone){
+  function addStep(i){
+    if(i >= steps.length){ setTimeout(onDone, 400); return; }
+    var s = steps[i];
+    var cls = s.cls || s['class'] || 'cyan';
+    var div = document.createElement('div');
+    div.className = 'dt-line dt-' + cls;
     term.appendChild(div);
-    term.scrollTop=term.scrollHeight;
-    if(!lines[i].t){setTimeout(function(){addLine(i+1);},80);return;}
-    var txt=lines[i].t,pos=0;
-    var cursor=document.createElement('span');
-    cursor.className='demo-cursor';
+    term.scrollTop = term.scrollHeight;
+    var txt = s.label || '';
+    if(!txt){ setTimeout(function(){ addStep(i+1); }, 80); return; }
+    var pos = 0;
+    var cursor = document.createElement('span');
+    cursor.className = 'demo-cursor';
     div.appendChild(cursor);
-    var iv=setInterval(function(){
-      if(pos<txt.length){
-        cursor.insertAdjacentText('beforebegin',txt[pos++]);
-        term.scrollTop=term.scrollHeight;
-      }else{
+    var iv = setInterval(function(){
+      if(pos < txt.length){
+        cursor.insertAdjacentText('beforebegin', txt[pos++]);
+        term.scrollTop = term.scrollHeight;
+      } else {
         clearInterval(iv);
         cursor.remove();
-        setTimeout(function(){addLine(i+1);},lines[i].c==='roi'?600:80+Math.random()*120);
+        var delay = (cls === 'roi' || cls === 'done') ? 600 : 80 + Math.random()*120;
+        setTimeout(function(){ addStep(i+1); }, delay);
       }
-    },18+Math.random()*14);
+    }, 14 + Math.random()*10);
+  }
+  addStep(0);
+}
+
+function _animateHardcoded(scenario, term, roiBlock){
+  var lines = scenario.lines;
+  function addLine(i){
+    if(i >= lines.length){
+      setTimeout(function(){
+        document.getElementById('demo-roi-stat').textContent = scenario.roi;
+        roiBlock.hidden = false;
+      }, 400);
+      return;
+    }
+    var div = document.createElement('div');
+    div.className = 'dt-line dt-' + lines[i].c;
+    term.appendChild(div);
+    term.scrollTop = term.scrollHeight;
+    if(!lines[i].t){ setTimeout(function(){ addLine(i+1); }, 80); return; }
+    var txt = lines[i].t, pos = 0;
+    var cursor = document.createElement('span');
+    cursor.className = 'demo-cursor';
+    div.appendChild(cursor);
+    var iv = setInterval(function(){
+      if(pos < txt.length){
+        cursor.insertAdjacentText('beforebegin', txt[pos++]);
+        term.scrollTop = term.scrollHeight;
+      } else {
+        clearInterval(iv);
+        cursor.remove();
+        setTimeout(function(){ addLine(i+1); }, lines[i].c === 'roi' ? 600 : 80 + Math.random()*120);
+      }
+    }, 18 + Math.random()*14);
   }
   addLine(0);
 }
@@ -286,10 +353,6 @@ function demoRun(query){
   document.querySelectorAll('.demo-chip').forEach(function(c){c.addEventListener('click',function(){demoRun(c.dataset.query);});});
   if(inp)inp.focus();
 })();
-
-var _lastDemoQuery='';
-var _origDemoRun=demoRun;
-demoRun=function(query){_lastDemoQuery=query;_origDemoRun(query);};
 
 function exportText(filename,content){
   var a=document.createElement('a');
