@@ -36,6 +36,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+import threading
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query, Request
@@ -151,6 +152,60 @@ def create_billing_router(
     )
     cc = currency_converter or get_converter()
 
+    # Lazy-import the orchestrator inside the factory so that billing routes
+    # can be mounted without requiring all infra dependencies to be present.
+    def _get_orchestrator() -> Any:
+        try:
+            from src.customer_infra_orchestrator import CustomerInfraOrchestrator
+        except ImportError:
+            try:
+                from customer_infra_orchestrator import CustomerInfraOrchestrator  # type: ignore[no-reattr]
+            except ImportError:
+                return None
+        return CustomerInfraOrchestrator(_subscription_manager=mgr)
+
+    _orchestrator_cache: Dict[str, Any] = {}
+
+    def _orchestrator() -> Any:
+        if "instance" not in _orchestrator_cache:
+            _orchestrator_cache["instance"] = _get_orchestrator()
+        return _orchestrator_cache["instance"]
+
+    def _trigger_provision(account_id: str, tier: str) -> None:
+        """Fire provisioning in a background thread so the webhook returns fast."""
+        orch = _orchestrator()
+        if orch is None:
+            logger.warning(
+                "CustomerInfraOrchestrator unavailable — skipping provisioning "
+                "for account=%s tier=%s",
+                account_id, tier,
+            )
+            return
+        t = threading.Thread(
+            target=orch.provision_customer,
+            args=(account_id, tier),
+            daemon=True,
+            name=f"provision-{account_id[:20]}",
+        )
+        t.start()
+        logger.info(
+            "Provisioning triggered in background: account=%s tier=%s", account_id, tier
+        )
+
+    def _trigger_deprovision(account_id: str) -> None:
+        """Fire deprovisioning in a background thread."""
+        orch = _orchestrator()
+        if orch is None:
+            return
+        t = threading.Thread(
+            target=orch.deprovision_customer,
+            args=(account_id,),
+            daemon=True,
+            name=f"deprovision-{account_id[:20]}",
+        )
+        t.start()
+        logger.info("Deprovisioning triggered in background: account=%s", account_id)
+
     router = APIRouter(prefix="/api/billing", tags=["billing"])
 
     # ── Currencies ───────────────────────────────────────────────────
@@ -209,8 +264,7 @@ def create_billing_router(
             tier = SubscriptionTier(body.tier)
             interval = BillingInterval(body.interval)
         except ValueError as exc:
-            logger.debug("Invalid tier/interval in PayPal checkout: %s", exc)
-            raise HTTPException(status_code=400, detail="Invalid billing tier or interval") from exc
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
 
         try:
             approval_url = mgr.create_paypal_order(
@@ -219,8 +273,7 @@ def create_billing_router(
                 interval=interval,
             )
         except ValueError as exc:
-            logger.debug("PayPal order creation rejected: %s", exc)
-            raise HTTPException(status_code=400, detail="Invalid billing configuration") from exc
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
         except Exception as exc:
             logger.error("PayPal checkout failed: %s", exc)
             raise HTTPException(status_code=502, detail="Payment provider unavailable") from exc
@@ -256,8 +309,7 @@ def create_billing_router(
             tier = SubscriptionTier(body.tier)
             interval = BillingInterval(body.interval)
         except ValueError as exc:
-            logger.debug("Invalid tier/interval in crypto checkout: %s", exc)
-            raise HTTPException(status_code=400, detail="Invalid billing tier or interval") from exc
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
 
         try:
             hosted_url = mgr.create_crypto_charge(
@@ -266,8 +318,7 @@ def create_billing_router(
                 interval=interval,
             )
         except ValueError as exc:
-            logger.debug("Crypto charge creation rejected: %s", exc)
-            raise HTTPException(status_code=400, detail="Invalid billing configuration") from exc
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
         except Exception as exc:
             logger.error("Crypto checkout failed: %s", exc)
             raise HTTPException(status_code=502, detail="Payment provider unavailable") from exc
@@ -307,8 +358,22 @@ def create_billing_router(
                 signature=signature,
             )
         except ValueError as exc:
-            logger.debug("PayPal webhook rejected: %s", exc)
-            raise HTTPException(status_code=400, detail="Invalid webhook payload") from exc
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+        # Trigger infra provisioning / deprovisioning in background
+        event_type = payload.get("event_type", "")
+        account_id = payload.get("resource", {}).get("custom_id", "")
+        if account_id:
+            if event_type == "BILLING.SUBSCRIPTION.ACTIVATED":
+                sub = mgr.get_subscription(account_id)
+                tier = sub.tier.value if sub else "solo"
+                _trigger_provision(account_id, tier)
+            elif event_type in (
+                "BILLING.SUBSCRIPTION.CANCELLED",
+                "BILLING.SUBSCRIPTION.EXPIRED",
+                "BILLING.SUBSCRIPTION.SUSPENDED",
+            ):
+                _trigger_deprovision(account_id)
 
         return JSONResponse(result)
 
@@ -342,8 +407,16 @@ def create_billing_router(
                 raw_body=raw_body,
             )
         except ValueError as exc:
-            logger.debug("Coinbase webhook rejected: %s", exc)
-            raise HTTPException(status_code=400, detail="Invalid webhook payload") from exc
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+        # Trigger infra provisioning on confirmed payment
+        event_type = payload.get("type", "")
+        metadata = payload.get("data", {}).get("metadata", {})
+        account_id = metadata.get("murphy_account_id", "")
+        if account_id and event_type == "charge:confirmed":
+            sub = mgr.get_subscription(account_id)
+            tier = sub.tier.value if sub else metadata.get("tier", "solo")
+            _trigger_provision(account_id, tier)
 
         return JSONResponse(result)
 
@@ -365,8 +438,7 @@ def create_billing_router(
         try:
             sub = mgr.cancel_subscription(account_id)
         except ValueError as exc:
-            logger.debug("Cancel subscription rejected: %s", exc)
-            raise HTTPException(status_code=404, detail="Subscription not found") from exc
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
         return JSONResponse(sub.to_dict())
 
     @router.post("/subscription/{account_id}/upgrade")
@@ -380,8 +452,7 @@ def create_billing_router(
             new_tier = SubscriptionTier(body.new_tier)
             sub = mgr.upgrade_subscription(account_id, new_tier)
         except ValueError as exc:
-            logger.debug("Subscription upgrade rejected: %s", exc)
-            raise HTTPException(status_code=400, detail="Invalid subscription upgrade request") from exc
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
         return JSONResponse(sub.to_dict())
 
     # ── Usage ────────────────────────────────────────────────────────
