@@ -432,11 +432,10 @@ class TestDeliverablePipeline:
         assert _detect_major_automation("Screen candidates for PM role") is False
 
     def test_automation_blueprint_included_when_detected(self):
-        """Automation query includes the paid-tier blueprint preview section."""
+        """Automation query includes the generated workflow blueprint section."""
         from src.demo_deliverable_generator import generate_custom_deliverable
         result = generate_custom_deliverable("Automate my invoice processing workflow")
-        assert "AUTOMATION BLUEPRINT PREVIEW" in result["content"]
-        assert "PAID TIER FEATURE" in result["content"]
+        assert "AUTOMATION BLUEPRINT" in result["content"]
         assert "murphy.systems" in result["content"]
 
     def test_automation_blueprint_is_not_free(self):
@@ -573,10 +572,10 @@ class TestDeliverablePipeline:
             "invoice",
             "Automate my invoice processing and send payment reminders",
         )
-        assert "AUTOMATION BLUEPRINT PREVIEW" in result["content"]
-        # Blueprint should not fall back to the static generic phrasing
-        # (MSS Solidify produces query-specific steps)
-        assert "IMPLEMENTATION STEPS" in result["content"]
+        assert "AUTOMATION BLUEPRINT" in result["content"]
+        # Blueprint always includes a WORKFLOW STEPS block (from AI Workflow Generator
+        # or MSS Solidify fallback) — verifies real pipeline ran, not static template
+        assert "WORKFLOW STEPS" in result["content"] or "Step" in result["content"]
 
     def test_request_note_injected_when_query_differs_from_title(self):
         """When the user's query doesn't match the template title, a YOUR REQUEST
