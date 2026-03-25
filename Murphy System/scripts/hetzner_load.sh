@@ -80,6 +80,8 @@ Options:
   --skip-docker        Skip Docker Compose services
   --skip-mail-setup    Skip post-boot mailbox provisioning
   --no-health-check    Skip post-start health checks
+  --repair             Force full rebuild: nuke venv, recreate env from template,
+                       recreate Docker volumes (destructive — use when normal run fails)
 
 What gets started (in order):
   1. git pull origin main
@@ -122,6 +124,7 @@ Examples:
   $(basename "$0") --skip-deps         # Skip pip (code-only change)
   $(basename "$0") --skip-docker       # Docker services already running
   $(basename "$0") --skip-ollama       # Ollama already healthy
+  $(basename "$0") --repair            # Force full rebuild (broken venv, corrupt env, etc.)
   OLLAMA_MODEL=llama3 $(basename "$0") # Use llama3 instead of phi3
 
 One-liner (from anywhere on the server):
@@ -154,6 +157,7 @@ SKIP_OLLAMA=false
 SKIP_DOCKER=false
 SKIP_MAIL_SETUP=false
 SKIP_HEALTH=false
+REPAIR=false
 
 # ── Parse arguments ───────────────────────────────────────────────────────────
 for arg in "$@"; do
@@ -168,6 +172,7 @@ for arg in "$@"; do
     --skip-docker)      SKIP_DOCKER=true ;;
     --skip-mail-setup)  SKIP_MAIL_SETUP=true ;;
     --no-health-check)  SKIP_HEALTH=true ;;
+    --repair)           REPAIR=true ;;
     *)
       echo "Unknown option: $arg" >&2
       echo "Run '$(basename "$0") --help' for usage." >&2
@@ -273,11 +278,85 @@ docker compose version &>/dev/null 2>&1 \
 ok "Devils in the details...."
 cd "$REPO_DIR"
 
+# ── Preflight: disk space ──────────────────────────────────────────────────────
+AVAIL_KB=$(df -k "${REPO_DIR}" 2>/dev/null | awk 'NR==2{print $4}' || echo "")
+if [ -n "${AVAIL_KB}" ] && [ "${AVAIL_KB}" -lt 2097152 ]; then
+  fail "Insufficient disk space: $((AVAIL_KB / 1024)) MB free on ${REPO_DIR} (need ≥ 2 GB). Free space first."
+fi
+ok "Disk space: $((${AVAIL_KB:-0} / 1024)) MB free on ${REPO_DIR}"
+
+# ── Preflight: RAM ────────────────────────────────────────────────────────────
+AVAIL_RAM_MB=$(free -m 2>/dev/null | awk '/^Mem:/{print $7}' || echo "")
+if [ -n "${AVAIL_RAM_MB}" ] && [ "${AVAIL_RAM_MB}" -lt 1024 ]; then
+  warn "Low RAM: ${AVAIL_RAM_MB} MB available (pip + PyTorch + Ollama may OOM)"
+else
+  ok "RAM: ${AVAIL_RAM_MB:-?} MB available"
+fi
+
+# ── Preflight: stale lock files ───────────────────────────────────────────────
+for _lockfile in /var/lib/dpkg/lock-frontend /var/lib/apt/lists/lock; do
+  if [ -f "${_lockfile}" ]; then
+    _lock_pid=$(lsof "${_lockfile}" 2>/dev/null | awk 'NR==2{print $2}' || echo "")
+    if [ -z "${_lock_pid}" ] || ! kill -0 "${_lock_pid}" 2>/dev/null; then
+      warn "Stale system lock file detected (not held by any process): ${_lockfile}"
+    fi
+  fi
+done
+unset _lockfile _lock_pid
+
+# ── Preflight: key path ownership ─────────────────────────────────────────────
+_murphy_user="${SUDO_USER:-$(id -un 2>/dev/null || echo root)}"
+for _chkpath in "${REPO_DIR}" "${VENV_DIR}"; do
+  if [ -e "${_chkpath}" ]; then
+    _owner=$(stat -c '%U' "${_chkpath}" 2>/dev/null || echo "?")
+    if [ "${_owner}" != "${_murphy_user}" ] && [ "${_owner}" != "root" ]; then
+      warn "Path ${_chkpath} is owned by '${_owner}' (expected '${_murphy_user}' or root)"
+    fi
+  fi
+done
+unset _chkpath _owner _murphy_user
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # STEP 1 — Pull latest code
 # ═══════════════════════════════════════════════════════════════════════════════
 section "Step 1 — Code Update"
 if [ "$SKIP_PULL" = false ]; then
+  # ── Remove stale git lock files ──────────────────────────────────────────────
+  GIT_LOCK="${REPO_DIR}/.git/index.lock"
+  if [ -f "${GIT_LOCK}" ]; then
+    _lock_pid=$(cat "${GIT_LOCK}" 2>/dev/null | head -c 20 | tr -d '[:space:]' || echo "")
+    if [ -z "${_lock_pid}" ] || ! kill -0 "${_lock_pid}" 2>/dev/null; then
+      warn "Removing stale .git/index.lock ..."
+      rm -f "${GIT_LOCK}"
+      ok "Stale .git/index.lock removed"
+    else
+      warn ".git/index.lock held by PID ${_lock_pid} — another git operation may be running"
+    fi
+    unset _lock_pid
+  fi
+
+  # ── Detect detached HEAD or wrong branch ─────────────────────────────────────
+  _cur_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+  if [ "${_cur_branch}" = "HEAD" ]; then
+    warn "Detached HEAD detected — checking out main ..."
+    git checkout main
+    ok "Switched to main branch"
+  elif [ "${_cur_branch}" != "main" ]; then
+    warn "On branch '${_cur_branch}' (not main) — switching to main ..."
+    git checkout main
+    ok "Switched to main branch"
+  fi
+  unset _cur_branch
+
+  # ── Stash dirty working tree ──────────────────────────────────────────────────
+  if ! git diff --quiet 2>/dev/null || ! git diff --cached --quiet 2>/dev/null; then
+    warn "Dirty working tree detected — stashing local changes ..."
+    git stash push -m "hetzner_load.sh auto-stash $(date -u +%Y%m%dT%H%M%SZ)" 2>/dev/null \
+      || warn "git stash failed — attempting hard reset ..."  \
+      && git reset --hard HEAD 2>/dev/null || true
+    ok "Local changes stashed (restore with: git stash pop)"
+  fi
+
   info "git pull origin main ..."
   git pull origin main
   ok "Code updated"
@@ -292,17 +371,121 @@ ok "Active commit: ${DEPLOY_COMMIT}"
 # ═══════════════════════════════════════════════════════════════════════════════
 section "Step 2 — Python Dependencies"
 if [ "$SKIP_DEPS" = false ]; then
-  if [ -f "${VENV_DIR}/bin/pip" ]; then
-    info "pip install --upgrade (venv) ..."
-    "${VENV_DIR}/bin/pip" install --quiet --upgrade -r "$REQUIREMENTS_FILE"
-    ok "Dependencies updated (venv: ${VENV_DIR})"
-  elif command -v pip3 &>/dev/null; then
-    info "pip3 install --upgrade (system) ..."
-    pip3 install --quiet --upgrade -r "$REQUIREMENTS_FILE"
-    ok "Dependencies updated (system pip3)"
-  else
-    warn "No pip found — skipping Python dependency update"
+
+  # ── Helper: run pip install with heartbeat ticker and timeout ─────────────────
+  _run_pip_install() {
+    local extra_flags="${1:-}"
+    local timeout_s=600
+    local start elapsed
+    start=$(date +%s)
+
+    # shellcheck disable=SC2086
+    "${VENV_DIR}/bin/pip" install --upgrade \
+      --progress-bar off \
+      ${extra_flags} \
+      -r "${REQUIREMENTS_FILE}" \
+      > /tmp/murphy-pip-install.log 2>&1 &
+    local pid=$!
+
+    while kill -0 "${pid}" 2>/dev/null; do
+      sleep 30
+      kill -0 "${pid}" 2>/dev/null || break
+      elapsed=$(( $(date +%s) - start ))
+      info "  still installing... ${elapsed}s elapsed"
+      if [ "${elapsed}" -ge "${timeout_s}" ]; then
+        warn "pip install timed out after ${timeout_s}s — killing"
+        kill "${pid}" 2>/dev/null || true
+        wait "${pid}" 2>/dev/null || true
+        return 124
+      fi
+    done
+    wait "${pid}"
+  }
+
+  # ── venv validation / creation / repair ──────────────────────────────────────
+  VENV_OK=false
+  if [ "${REPAIR}" = true ] && [ -d "${VENV_DIR}" ]; then
+    warn "--repair: removing existing venv for full rebuild ..."
+    rm -rf "${VENV_DIR}"
   fi
+
+  if [ -d "${VENV_DIR}" ]; then
+    if "${VENV_DIR}/bin/python" -c "import sys" &>/dev/null 2>&1; then
+      VENV_OK=true
+      ok "venv OK: ${VENV_DIR}"
+    else
+      warn "venv corrupted (python -c 'import sys' failed) — rebuilding ..."
+      rm -rf "${VENV_DIR}"
+    fi
+  else
+    info "venv not found at ${VENV_DIR} — creating ..."
+  fi
+
+  if [ "${VENV_OK}" = false ]; then
+    python3 -m venv "${VENV_DIR}" \
+      || fail "python3 -m venv failed — install python3-venv first: apt install python3-venv"
+    ok "venv created: ${VENV_DIR}"
+  fi
+
+  # ── Clean half-installed .dist-info dirs (no RECORD file) ────────────────────
+  SITE_PKG=$("${VENV_DIR}/bin/python" -c \
+    "import site; print(site.getsitepackages()[0])" 2>/dev/null || true)
+  if [ -n "${SITE_PKG}" ] && [ -d "${SITE_PKG}" ]; then
+    _orphaned=0
+    while IFS= read -r -d '' _di; do
+      if [ ! -f "${_di}/RECORD" ]; then
+        warn "Removing half-installed package: $(basename "${_di}")"
+        rm -rf "${_di}"
+        _orphaned=$(( _orphaned + 1 ))
+      fi
+    done < <(find "${SITE_PKG}" -maxdepth 1 -name "*.dist-info" -print0 2>/dev/null)
+    [ "${_orphaned}" -gt 0 ] && ok "Cleaned ${_orphaned} half-installed package(s)"
+    unset _di _orphaned
+  fi
+
+  # ── Upgrade pip itself before tackling 190 packages ──────────────────────────
+  info "Upgrading pip ..."
+  "${VENV_DIR}/bin/pip" install --quiet --upgrade pip \
+    || warn "pip self-upgrade failed — continuing with existing pip"
+
+  # ── Install requirements ──────────────────────────────────────────────────────
+  if [ ! -f "${REQUIREMENTS_FILE}" ]; then
+    warn "Requirements file not found: ${REQUIREMENTS_FILE} — skipping dep install"
+  else
+    info "Installing requirements (may take 10-30 min on first install) ..."
+    _pip_exit=0
+    _run_pip_install || _pip_exit=$?
+
+    if [ "${_pip_exit}" -eq 124 ]; then
+      warn "pip timed out — clearing cache and retrying ..."
+      "${VENV_DIR}/bin/pip" cache purge 2>/dev/null \
+        || rm -rf ~/.cache/pip 2>/dev/null || true
+      _pip_exit=0
+      _run_pip_install "--no-cache-dir" || _pip_exit=$?
+    fi
+
+    if [ "${_pip_exit}" -ne 0 ]; then
+      warn "pip install failed (exit ${_pip_exit}). Last 20 lines:"
+      tail -20 /tmp/murphy-pip-install.log >&2 || true
+      warn "Retrying with cache clear ..."
+      "${VENV_DIR}/bin/pip" cache purge 2>/dev/null \
+        || rm -rf ~/.cache/pip 2>/dev/null || true
+      _run_pip_install "--no-cache-dir" \
+        || fail "pip install failed after retry — check ${REQUIREMENTS_FILE} and network connectivity"
+    fi
+
+    ok "Dependencies updated (venv: ${VENV_DIR})"
+    unset _pip_exit
+  fi
+
+  # ── Purge stale __pycache__ / .pyc (prevents bytecode import errors) ─────────
+  info "Purging stale __pycache__ / .pyc files ..."
+  find "${REPO_DIR}/src" -name '__pycache__' -type d \
+    -exec rm -rf {} + 2>/dev/null || true
+  find "${REPO_DIR}/src" -name '*.pyc' -type f \
+    -delete 2>/dev/null || true
+  ok "Bytecode cache cleared"
+
 else
   info "Skipping pip install (--skip-deps)"
 fi
@@ -359,6 +542,45 @@ if [ "$SKIP_ENV_AUDIT" = false ]; then
         ok "MATRIX_BOT_USER auto-populated from MATRIX_USER_ID"
       fi
     fi
+
+    # ── Syntax validation: every non-comment, non-blank line must be KEY=value ──
+    _bad_lines=$(grep -vE '^\s*#|^\s*$|^[A-Za-z_][A-Za-z0-9_]*=' \
+      "${MURPHY_ENV_FILE}" 2>/dev/null | wc -l)
+    if [ "${_bad_lines}" -gt 0 ]; then
+      warn "Env file has ${_bad_lines} malformed line(s) (not KEY=value):"
+      grep -nvE '^\s*#|^\s*$|^[A-Za-z_][A-Za-z0-9_]*=' "${MURPHY_ENV_FILE}" \
+        2>/dev/null | head -10 >&2 || true
+      warn "This may indicate a truncated/corrupted env file."
+      warn "  To regenerate: bash ${REPO_DIR}/scripts/generate_secrets.sh --production"
+    else
+      ok "Env file syntax OK"
+    fi
+    unset _bad_lines
+
+    # ── CHANGEME placeholder detection ────────────────────────────────────────
+    _changeme_count=$(grep -cE 'CHANGEME' "${MURPHY_ENV_FILE}" 2>/dev/null || echo 0)
+    if [ "${_changeme_count}" -gt 0 ]; then
+      warn "Env file still contains ${_changeme_count} CHANGEME placeholder(s) — fill in real values:"
+      grep -nE 'CHANGEME' "${MURPHY_ENV_FILE}" 2>/dev/null | head -10 >&2 || true
+    fi
+    unset _changeme_count
+
+    # ── Deduplicate keys (last value wins) ────────────────────────────────────
+    _dedup_tmp=$(mktemp)
+    tac "${MURPHY_ENV_FILE}" | awk -F= '
+      /^[[:space:]]*#/ || /^[[:space:]]*$/ { print; next }
+      /^[A-Za-z_][A-Za-z0-9_]*=/ { key=$1; if (!(key in seen)) { seen[key]=1; print }; next }
+      { print }
+    ' | tac > "${_dedup_tmp}"
+    _orig_lines=$(wc -l < "${MURPHY_ENV_FILE}")
+    _dedup_lines=$(wc -l < "${_dedup_tmp}")
+    _removed=$(( _orig_lines - _dedup_lines ))
+    if [ "${_removed}" -gt 0 ]; then
+      cp "${_dedup_tmp}" "${MURPHY_ENV_FILE}"
+      ok "Env file deduplicated: removed ${_removed} duplicate key(s) (last value kept)"
+    fi
+    rm -f "${_dedup_tmp}"
+    unset _dedup_tmp _orig_lines _dedup_lines _removed
   else
     warn "Env file not found at ${MURPHY_ENV_FILE}"
     warn "Murphy will start with defaults. To enable all subsystem connections:"
@@ -480,6 +702,52 @@ if [ "$SKIP_DOCKER" = false ]; then
   ${COMPOSE_CMD} pull --quiet 2>/dev/null \
     || warn "Some images could not be pulled (continuing with cached versions)"
 
+  # ── Docker disk space check ───────────────────────────────────────────────────
+  _docker_avail_kb=$(df -k /var/lib/docker 2>/dev/null | awk 'NR==2{print $4}' \
+    || df -k / 2>/dev/null | awk 'NR==2{print $4}' || echo "")
+  if [ -n "${_docker_avail_kb}" ] && [ "${_docker_avail_kb}" -lt 2097152 ]; then
+    warn "Low disk space for Docker: $(( _docker_avail_kb / 1024 )) MB free — pruning unused resources ..."
+    docker system prune -f 2>/dev/null || true
+    ok "Docker system pruned"
+  fi
+  unset _docker_avail_kb
+
+  # ── Port conflict detection ───────────────────────────────────────────────────
+  for _port in 5432 6379 9090 3000 25 587 993; do
+    if ss -ltnp 2>/dev/null | grep -q ":${_port}[[:space:]]" \
+        || ss -ltnp 2>/dev/null | grep -q ":${_port}$"; then
+      # Only warn if it's not already one of our docker containers
+      if ! docker ps --format '{{.Ports}}' 2>/dev/null | grep -q ":${_port}->"; then
+        _conflict=$(ss -ltnp 2>/dev/null | grep ":${_port}" | grep -oP '"[^"]+"' | head -1 || echo "unknown process")
+        warn "Port ${_port} already in use by ${_conflict} — may conflict with Docker services"
+      fi
+    fi
+  done
+  unset _port _conflict
+
+  # ── Detect containers stuck in restart loops ──────────────────────────────────
+  _looping=$(docker ps --format '{{.Names}}\t{{.Status}}' 2>/dev/null \
+    | grep -i "restarting" || true)
+  if [ -n "${_looping}" ]; then
+    warn "Containers in restart loop detected:"
+    echo "${_looping}" | while IFS= read -r _line; do warn "  ${_line}"; done
+    if [ "${REPAIR}" = true ]; then
+      warn "--repair: stopping restart-looping containers ..."
+      echo "${_looping}" | awk '{print $1}' | xargs docker stop 2>/dev/null || true
+      echo "${_looping}" | awk '{print $1}' | xargs docker rm -f 2>/dev/null || true
+      ok "Restart-looping containers removed"
+    else
+      warn "  Re-run with --repair to forcibly remove these containers (may lose data)"
+    fi
+  fi
+  unset _looping _line
+
+  # ── Bring down orphaned/renamed services before up ────────────────────────────
+  if [ "${REPAIR}" = true ]; then
+    info "--repair: running docker compose down --remove-orphans ..."
+    ${COMPOSE_CMD} down --remove-orphans 2>/dev/null || true
+  fi
+
   info "Starting all support services ..."
   ${COMPOSE_CMD} up -d --remove-orphans
 
@@ -566,6 +834,36 @@ else
   info "Restarting ${SERVICE_NAME} (commit: ${DEPLOY_COMMIT}) ..."
   systemctl restart "${SERVICE_NAME}"
   ok "${SERVICE_NAME} restarted"
+
+  # ── Check installed unit file matches repo template ───────────────────────────
+  _unit_installed="/etc/systemd/system/${SERVICE_NAME}.service"
+  _unit_template="${REPO_DIR}/config/systemd/murphy-production.service"
+  if [ -f "${_unit_installed}" ] && [ -f "${_unit_template}" ]; then
+    if ! diff -q "${_unit_installed}" "${_unit_template}" &>/dev/null; then
+      warn "Installed systemd unit differs from repo template — may be outdated"
+      warn "  To update: sudo cp ${_unit_template} ${_unit_installed} && sudo systemctl daemon-reload"
+    else
+      ok "Systemd unit file is up to date"
+    fi
+  fi
+  unset _unit_installed _unit_template
+
+  # ── Journal disk usage warning ────────────────────────────────────────────────
+  if command -v journalctl &>/dev/null; then
+    _jinfo=$(journalctl --disk-usage 2>/dev/null || true)
+    if [ -n "${_jinfo}" ]; then
+      # Warn if journals consume ≥ 2 GiB (match "2 GiB", "2.5 GiB", "10 GiB", etc.)
+      if echo "${_jinfo}" | grep -qE '[2-9][0-9]*(\.[0-9]+)?[[:space:]]+GiB|[1-9][0-9]{2,}(\.[0-9]+)?[[:space:]]+MiB'; then
+        _jusage=$(echo "${_jinfo}" | grep -oE '[0-9.]+ [KMGT]iB' | head -1 || echo "large")
+        warn "Journal logs consuming ${_jusage} of disk space"
+        warn "  To limit: sudo journalctl --vacuum-size=500M"
+      else
+        _jusage=$(echo "${_jinfo}" | grep -oE '[0-9.]+ [KMGT]iB' | head -1 || echo "ok")
+        ok "Journal size: ${_jusage}"
+      fi
+      unset _jinfo _jusage
+    fi
+  fi
 fi
 
 # ═══════════════════════════════════════════════════════════════════════════════
