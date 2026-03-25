@@ -1547,5 +1547,483 @@ class TestSemanticsBoundaryExtension:
         assert summary["invariant_count"] >= 1
 
 
+# ------------------------------------------------------------------
+# Deterministic Routing Engine Integration Tests
+# ------------------------------------------------------------------
+
+class TestDeterministicRoutingIntegration:
+    """Tests for permutation-aware routing in deterministic_routing_engine."""
+
+    def test_register_permutation_policy(self):
+        """Test registering a permutation-derived routing policy."""
+        from src.deterministic_routing_engine import DeterministicRoutingEngine
+
+        engine = DeterministicRoutingEngine()
+
+        policy_id = engine.register_permutation_policy(
+            domain="sales",
+            sequence_id="seq-12345678",
+            ordering=["crm", "analytics", "feedback"],
+            route_type="hybrid",
+            priority=15,
+        )
+
+        assert policy_id == "perm-sales-seq-1234"
+
+        policy = engine.get_policy(policy_id)
+        assert policy["status"] == "ok"
+        assert policy["route_type"] == "hybrid"
+        assert policy["guardrails"]["learned_policy"] is True
+
+    def test_route_with_permutation_awareness(self):
+        """Test routing with permutation awareness."""
+        from src.deterministic_routing_engine import DeterministicRoutingEngine
+
+        engine = DeterministicRoutingEngine()
+
+        # Register a permutation policy first
+        engine.register_permutation_policy(
+            domain="support",
+            sequence_id="seq-abcdefgh",
+            ordering=["ticket", "history", "resolution"],
+            route_type="deterministic",
+        )
+
+        decision = engine.route_with_permutation_awareness(
+            task_type="support_ticket",
+            domain="support",
+            confidence=0.8,
+        )
+
+        assert decision["permutation_policy_applied"] is True
+        assert decision["permutation_ordering"] == ["ticket", "history", "resolution"]
+
+    def test_switch_routing_mode(self):
+        """Test switching between exploratory and procedural modes."""
+        from src.deterministic_routing_engine import DeterministicRoutingEngine
+
+        engine = DeterministicRoutingEngine()
+
+        engine.register_permutation_policy(
+            domain="test_domain",
+            sequence_id="seq-test1234",
+            ordering=["a", "b", "c"],
+        )
+
+        # Switch to exploratory mode
+        result = engine.switch_routing_mode("test_domain", "exploratory")
+        assert result["status"] == "ok"
+        assert result["mode"] == "exploratory"
+        assert len(result["affected_policies"]) == 1
+
+        # Switch back to procedural mode
+        result = engine.switch_routing_mode("test_domain", "procedural")
+        assert result["mode"] == "procedural"
+
+    def test_get_permutation_routing_stats(self):
+        """Test getting permutation-specific routing stats."""
+        from src.deterministic_routing_engine import DeterministicRoutingEngine
+
+        engine = DeterministicRoutingEngine()
+
+        engine.register_permutation_policy("domain1", "seq-1", ["a", "b"])
+        engine.register_permutation_policy("domain2", "seq-2", ["x", "y"])
+
+        stats = engine.get_permutation_routing_stats()
+
+        assert stats["status"] == "ok"
+        assert stats["total_permutation_policies"] == 2
+        assert stats["enabled_policies"] == 2
+
+
+# ------------------------------------------------------------------
+# Golden Path Bridge Integration Tests
+# ------------------------------------------------------------------
+
+class TestGoldenPathBridgeIntegration:
+    """Tests for sequence-based golden path recording."""
+
+    def test_record_sequence_path(self):
+        """Test recording a sequence-based golden path."""
+        from src.golden_path_bridge import GoldenPathBridge
+
+        bridge = GoldenPathBridge()
+
+        path_id = bridge.record_sequence_path(
+            sequence_id="seq-abc123",
+            domain="crm_integration",
+            ordering=["crm", "analytics", "feedback"],
+            execution_spec={"steps": ["step1", "step2"]},
+            outcome_quality=0.85,
+        )
+
+        assert path_id is not None
+
+        path = bridge.get_path(path_id)
+        assert path is not None
+        # Ordering is stored in 'extra' due to normalization
+        extra = path.execution_spec.get("extra", {})
+        assert extra.get("learned_ordering") == ["crm", "analytics", "feedback"]
+        assert extra.get("sequence_id") == "seq-abc123"
+
+    def test_find_sequence_matches(self):
+        """Test finding matching sequence paths."""
+        from src.golden_path_bridge import GoldenPathBridge
+
+        bridge = GoldenPathBridge()
+
+        # Record a few sequence paths
+        bridge.record_sequence_path(
+            sequence_id="seq-001",
+            domain="sales",
+            ordering=["a", "b", "c"],
+            execution_spec={},
+            outcome_quality=0.9,
+        )
+        bridge.record_sequence_path(
+            sequence_id="seq-002",
+            domain="sales",
+            ordering=["a", "c", "b"],
+            execution_spec={},
+            outcome_quality=0.8,
+        )
+
+        # Find matches for a similar ordering
+        matches = bridge.find_sequence_matches(
+            current_ordering=["a", "b", "c"],
+            domain="sales",
+            min_confidence=0.5,
+        )
+
+        assert len(matches) >= 1
+        assert matches[0]["sequence_id"] in ["seq-001", "seq-002"]
+        assert "similarity" in matches[0]
+
+    def test_replay_sequence_path(self):
+        """Test replaying a sequence path."""
+        from src.golden_path_bridge import GoldenPathBridge
+
+        bridge = GoldenPathBridge()
+
+        bridge.record_sequence_path(
+            sequence_id="seq-replay-test",
+            domain="test_domain",
+            ordering=["x", "y", "z"],
+            execution_spec={"steps": ["execute"]},
+            outcome_quality=0.85,
+        )
+
+        spec = bridge.replay_sequence_path("seq-replay-test", "test_domain")
+
+        assert spec is not None
+        assert spec.get("learned_ordering") == ["x", "y", "z"]
+        assert "replayed_from" in spec
+
+    def test_get_sequence_path_stats(self):
+        """Test getting sequence path statistics."""
+        from src.golden_path_bridge import GoldenPathBridge
+
+        bridge = GoldenPathBridge()
+
+        # Record both sequence and regular paths
+        bridge.record_sequence_path(
+            sequence_id="seq-stat-test",
+            domain="stats_domain",
+            ordering=["a", "b"],
+            execution_spec={},
+            outcome_quality=0.8,
+        )
+        bridge.record_success(
+            task_pattern="regular_task",
+            domain="stats_domain",
+            execution_spec={"type": "regular"},
+        )
+
+        stats = bridge.get_sequence_path_stats()
+
+        assert stats["status"] == "ok"
+        assert stats["total_sequence_paths"] >= 1
+        assert stats["total_regular_paths"] >= 1
+
+
+# ------------------------------------------------------------------
+# HITL Autonomy Controller Integration Tests
+# ------------------------------------------------------------------
+
+class TestHITLAutonomyControllerIntegration:
+    """Tests for learned procedure review in HITL autonomy controller."""
+
+    def test_register_learned_procedure_policy(self):
+        """Test registering a learned procedure policy."""
+        from src.hitl_autonomy_controller import HITLAutonomyController
+
+        controller = HITLAutonomyController()
+
+        policy_id = controller.register_learned_procedure_policy(
+            sequence_id="seq-learned-001",
+            domain="crm_domain",
+            stability_score=0.8,
+            confidence_score=0.85,
+            requires_review=True,
+        )
+
+        assert policy_id == "learned-crm_domain-seq-lear"
+
+        policy = controller.get_policy(policy_id)
+        assert policy["status"] == "ok"
+        assert policy["hitl_required"] is True
+
+    def test_evaluate_learned_procedure_autonomy(self):
+        """Test evaluating autonomy for a learned procedure."""
+        from src.hitl_autonomy_controller import HITLAutonomyController
+
+        controller = HITLAutonomyController()
+
+        controller.register_learned_procedure_policy(
+            sequence_id="seq-eval-001",
+            domain="eval_domain",
+            stability_score=0.85,
+            confidence_score=0.9,
+            requires_review=False,
+        )
+
+        result = controller.evaluate_learned_procedure_autonomy(
+            sequence_id="seq-eval-001",
+            domain="eval_domain",
+            execution_confidence=0.95,
+            risk_level=0.1,
+        )
+
+        assert result["sequence_id"] == "seq-eval-001"
+        assert result["stability_score"] == 0.85
+        assert result["source"] == "permutation_learning"
+
+    def test_evaluate_weak_stability_requires_hitl(self):
+        """Test that weak stability requires HITL."""
+        from src.hitl_autonomy_controller import HITLAutonomyController
+
+        controller = HITLAutonomyController()
+
+        controller.register_learned_procedure_policy(
+            sequence_id="seq-weak-001",
+            domain="weak_domain",
+            stability_score=0.3,  # Low stability
+            confidence_score=0.7,
+        )
+
+        result = controller.evaluate_learned_procedure_autonomy(
+            sequence_id="seq-weak-001",
+            domain="weak_domain",
+            execution_confidence=0.95,
+            risk_level=0.1,
+        )
+
+        assert result["autonomous"] is False
+        assert result["reason"] == "policy_stability_too_weak"
+        assert result["requires_hitl"] is True
+
+    def test_request_and_approve_procedure_promotion(self):
+        """Test procedure promotion review workflow."""
+        from src.hitl_autonomy_controller import HITLAutonomyController
+
+        controller = HITLAutonomyController()
+
+        # Request promotion review
+        review = controller.request_procedure_promotion_review(
+            sequence_id="seq-promo-001",
+            domain="promo_domain",
+            promotion_reason="Consistent high performance",
+            metrics={
+                "confidence": 0.85,
+                "order_sensitivity": 0.4,
+                "fragility": 0.2,
+            },
+        )
+
+        assert review["status"] == "pending_review"
+        assert review["escalation_required"] is False
+
+        # Approve the promotion
+        approval = controller.approve_procedure_promotion(
+            review_id=review["review_id"],
+            approver="admin",
+        )
+
+        assert approval["status"] == "approved"
+
+    def test_high_sensitivity_requires_escalation(self):
+        """Test that high sensitivity requires escalation."""
+        from src.hitl_autonomy_controller import HITLAutonomyController
+
+        controller = HITLAutonomyController()
+
+        review = controller.request_procedure_promotion_review(
+            sequence_id="seq-sensitive-001",
+            domain="sensitive_domain",
+            promotion_reason="Testing escalation",
+            metrics={
+                "confidence": 0.8,
+                "order_sensitivity": 0.8,  # High sensitivity
+                "fragility": 0.5,  # High fragility
+            },
+        )
+
+        assert review["escalation_required"] is True
+
+    def test_get_learned_procedure_stats(self):
+        """Test getting learned procedure statistics."""
+        from src.hitl_autonomy_controller import HITLAutonomyController
+
+        controller = HITLAutonomyController()
+
+        controller.register_learned_procedure_policy(
+            sequence_id="seq-stat-001",
+            domain="stat_domain",
+            stability_score=0.8,
+            confidence_score=0.85,
+        )
+
+        controller.request_procedure_promotion_review(
+            sequence_id="seq-stat-002",
+            domain="stat_domain",
+            promotion_reason="Stats test",
+            metrics={"confidence": 0.8},
+        )
+
+        stats = controller.get_learned_procedure_stats()
+
+        assert stats["status"] == "ok"
+        assert stats["learned_procedure_policies"] >= 1
+        assert stats["pending_reviews"] >= 1
+
+
+# ------------------------------------------------------------------
+# ML Strategy Engine Integration Tests
+# ------------------------------------------------------------------
+
+class TestMLStrategyEngineIntegration:
+    """Tests for sequence scoring in ML strategy engine."""
+
+    def test_score_sequence_family(self):
+        """Test scoring a sequence family."""
+        from src.ml_strategy_engine import MLStrategyEngine
+
+        engine = MLStrategyEngine()
+
+        evaluations = [
+            {"outcome_quality": 0.85, "calibration_quality": 0.8, "stability_score": 0.75}
+            for _ in range(15)
+        ]
+
+        result = engine.score_sequence_family("seq-score-001", evaluations)
+
+        assert result["status"] == "ok"
+        assert result["sample_count"] == 15
+        assert result["avg_outcome_quality"] > 0.8
+        assert result["is_robust"] is True
+        assert result["promotion_ready"] is True
+
+    def test_score_brittle_sequence(self):
+        """Test scoring a brittle sequence."""
+        from src.ml_strategy_engine import MLStrategyEngine
+        import random
+
+        engine = MLStrategyEngine()
+
+        # High variance evaluations
+        evaluations = [
+            {
+                "outcome_quality": random.uniform(0.3, 0.9),
+                "calibration_quality": random.uniform(0.3, 0.9),
+                "stability_score": random.uniform(0.3, 0.9),
+            }
+            for _ in range(15)
+        ]
+
+        result = engine.score_sequence_family("seq-brittle-001", evaluations)
+
+        assert result["status"] == "ok"
+        assert result["brittleness"] > 0.02
+        assert result["promotion_ready"] is False
+
+    def test_rank_sequence_candidates(self):
+        """Test ranking sequence candidates."""
+        from src.ml_strategy_engine import MLStrategyEngine
+
+        engine = MLStrategyEngine()
+
+        candidates = [
+            {
+                "sequence_id": "seq-rank-001",
+                "domain": "test",
+                "ordering": ["a", "b"],
+                "evaluations": [
+                    {"outcome_quality": 0.9, "calibration_quality": 0.85, "stability_score": 0.8}
+                    for _ in range(12)
+                ],
+            },
+            {
+                "sequence_id": "seq-rank-002",
+                "domain": "test",
+                "ordering": ["b", "a"],
+                "evaluations": [
+                    {"outcome_quality": 0.6, "calibration_quality": 0.55, "stability_score": 0.5}
+                    for _ in range(8)
+                ],
+            },
+        ]
+
+        ranked = engine.rank_sequence_candidates(candidates)
+
+        assert len(ranked) == 2
+        assert ranked[0]["rank"] == 1
+        assert ranked[0]["sequence_id"] == "seq-rank-001"  # Better scores
+        assert ranked[1]["rank"] == 2
+
+    def test_detect_ordering_anomalies(self):
+        """Test detecting ordering anomalies."""
+        from src.ml_strategy_engine import MLStrategyEngine
+
+        engine = MLStrategyEngine()
+
+        historical = [0.8, 0.82, 0.79, 0.81, 0.8, 0.83, 0.78, 0.8]
+        recent_degraded = [0.5, 0.52, 0.48]  # Much worse
+
+        result = engine.detect_ordering_anomalies(
+            domain="anomaly_test",
+            recent_scores=recent_degraded,
+            historical_scores=historical,
+        )
+
+        assert result["status"] == "ok"
+        assert result["drift_detected"] is True
+        assert result["degradation"] is True
+        assert result["recommendation"] == "reopen_exploration"
+
+    def test_online_sequence_learning(self):
+        """Test online learning for sequences."""
+        from src.ml_strategy_engine import MLStrategyEngine
+
+        engine = MLStrategyEngine()
+
+        # Train on some examples
+        for i in range(20):
+            engine.online_sequence_learning(
+                sequence_id="seq-online-001",
+                features={"feature_a": 0.8, "feature_b": 0.6},
+                success=i % 3 != 0,  # 2/3 success rate
+            )
+
+        # Predict
+        prediction = engine.predict_sequence_success(
+            sequence_id="seq-online-001",
+            features={"feature_a": 0.8, "feature_b": 0.6},
+        )
+
+        assert prediction["status"] == "ok"
+        assert "predicted_success" in prediction
+        assert "confidence" in prediction
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

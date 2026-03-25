@@ -390,3 +390,174 @@ class DeterministicRoutingEngine:
             self._policy_hits.clear()
             self._load_defaults()
             logger.info("Routing engine cleared and defaults reloaded")
+
+    # ------------------------------------------------------------------
+    # Permutation Calibration Integration (Spec Section 3.3)
+    # ------------------------------------------------------------------
+
+    def register_permutation_policy(
+        self,
+        domain: str,
+        sequence_id: str,
+        ordering: List[str],
+        route_type: str = "hybrid",
+        priority: int = 15,
+    ) -> str:
+        """Register a routing policy derived from permutation learning.
+
+        This implements spec Section 3.3: Take promoted sequence policies from
+        learning, use them as routing defaults.
+
+        Args:
+            domain: The domain this policy applies to
+            sequence_id: The promoted sequence ID from permutation registry
+            ordering: The learned optimal ordering
+            route_type: The routing strategy (deterministic, llm, hybrid)
+            priority: Policy priority (higher = higher priority)
+
+        Returns:
+            The policy_id for the registered policy
+        """
+        policy_id = f"perm-{domain}-{sequence_id[:8]}"
+        policy = RoutingPolicy(
+            policy_id=policy_id,
+            name=f"Permutation Policy: {domain}",
+            task_tags=[domain, f"seq:{sequence_id}"],
+            route_type=route_type,
+            priority=priority,
+            fallback_route="deterministic",
+            guardrails={
+                "permutation_ordering": ordering,
+                "sequence_id": sequence_id,
+                "learned_policy": True,
+            },
+            enabled=True,
+        )
+        return self.register_policy(policy)
+
+    def route_with_permutation_awareness(
+        self,
+        task_type: str,
+        domain: str,
+        tags: Optional[List[str]] = None,
+        confidence: float = 0.5,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Route a task with awareness of learned permutation policies.
+
+        This method checks if a learned permutation policy exists for the domain
+        and includes the ordering information in the routing decision.
+
+        Args:
+            task_type: Type of task being routed
+            domain: Domain for permutation policy lookup
+            tags: Additional tags for policy matching
+            confidence: Confidence score for the routing
+            context: Additional context for guardrail evaluation
+
+        Returns:
+            Routing decision with permutation ordering if available
+        """
+        tags = tags or []
+        context = context or {}
+
+        # Check for permutation policies for this domain
+        permutation_policies = []
+        with self._lock:
+            for policy in self._policies.values():
+                if policy.enabled and policy.guardrails.get("learned_policy"):
+                    if domain in policy.task_tags:
+                        permutation_policies.append(policy)
+
+        # Standard routing first
+        decision = self.route_task(task_type, tags + [domain], confidence, context)
+
+        # Enrich with permutation information if available
+        if permutation_policies:
+            best_policy = max(permutation_policies, key=lambda p: p.priority)
+            decision["permutation_policy_applied"] = True
+            decision["permutation_ordering"] = best_policy.guardrails.get("permutation_ordering", [])
+            decision["sequence_id"] = best_policy.guardrails.get("sequence_id")
+            logger.info(
+                "Applied permutation policy %s for domain %s",
+                best_policy.policy_id, domain
+            )
+        else:
+            decision["permutation_policy_applied"] = False
+            decision["permutation_ordering"] = None
+            decision["sequence_id"] = None
+
+        return decision
+
+    def switch_routing_mode(
+        self,
+        domain: str,
+        mode: str,  # "exploratory" or "procedural"
+    ) -> Dict[str, Any]:
+        """Switch between exploratory (Mode A) and procedural (Mode B) routing.
+
+        This implements the spec requirement to switch between deterministic,
+        hybrid, and exploratory behavior based on learning state.
+
+        Args:
+            domain: The domain to switch modes for
+            mode: Either "exploratory" (Mode A) or "procedural" (Mode B)
+
+        Returns:
+            Status of the mode switch
+        """
+        with self._lock:
+            affected_policies = []
+            for policy in self._policies.values():
+                if policy.guardrails.get("learned_policy") and domain in policy.task_tags:
+                    if mode == "exploratory":
+                        # Disable procedural policies in Mode A
+                        policy.enabled = False
+                        affected_policies.append(policy.policy_id)
+                    elif mode == "procedural":
+                        # Enable procedural policies in Mode B
+                        policy.enabled = True
+                        affected_policies.append(policy.policy_id)
+
+        logger.info("Switched domain %s to %s mode, affected policies: %s",
+                    domain, mode, affected_policies)
+
+        return {
+            "status": "ok",
+            "domain": domain,
+            "mode": mode,
+            "affected_policies": affected_policies,
+        }
+
+    def get_permutation_routing_stats(self) -> Dict[str, Any]:
+        """Get statistics specific to permutation-based routing.
+
+        Returns:
+            Stats on permutation policies and their usage
+        """
+        with self._lock:
+            permutation_policies = [
+                p for p in self._policies.values()
+                if p.guardrails.get("learned_policy")
+            ]
+            enabled = [p for p in permutation_policies if p.enabled]
+            disabled = [p for p in permutation_policies if not p.enabled]
+
+            # Count decisions that used permutation policies
+            perm_policy_ids = {p.policy_id for p in permutation_policies}
+            perm_decisions = [
+                d for d in self._decisions
+                if d.get("matched_policy") in perm_policy_ids
+            ]
+
+        return {
+            "status": "ok",
+            "total_permutation_policies": len(permutation_policies),
+            "enabled_policies": len(enabled),
+            "disabled_policies": len(disabled),
+            "permutation_routing_decisions": len(perm_decisions),
+            "domains_with_policies": list(set(
+                tag for p in permutation_policies
+                for tag in p.task_tags if not tag.startswith("seq:")
+            )),
+        }
