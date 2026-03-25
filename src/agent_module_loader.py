@@ -574,6 +574,14 @@ class MultiCursorBrowser:
             "dodeca":   _grid(4, 3),
             "hex4":     _grid(4, 4),
         }
+        # Semantic zone names for well-known 2-zone layouts
+        _SEMANTIC_NAMES: Dict[str, List[str]] = {
+            "dual_h": ["left", "right"],
+            "dual_v": ["top", "bottom"],
+        }
+        for layout_name, sem_names in _SEMANTIC_NAMES.items():
+            for zone, sem in zip(named[layout_name], sem_names):
+                zone["name"] = sem
         # Legacy aliases kept for backward-compat
         named["triple"] = named["triple_h"]
 
@@ -713,6 +721,36 @@ class MultiCursorBrowser:
 
     async def playback(self, actions: List[MultiCursorAction]) -> List[MultiCursorActionResult]:
         return [await self._execute(a.action_type, a.zone_id or "main", parameters=a.parameters) for a in actions]
+
+    async def replay(self, actions: List[MultiCursorAction]) -> bool:
+        """Alias for playback — replays a recorded action list and returns True on success."""
+        results = await self.playback(actions)
+        return all(r.status == MultiCursorTaskStatus.COMPLETED for r in results)
+
+    async def parallel_probe(self, zone_probes: List[tuple]) -> List[tuple]:
+        """Run multiple (zone, url) probes simultaneously across zones.
+
+        Args:
+            zone_probes: list of (zone_id, url) or (zone_id, url, label) tuples
+
+        Returns:
+            list of (zone_id, url, label, status, result) tuples
+        """
+        import asyncio as _asyncio
+        async def _probe(zone_id: str, url: str, label: str):
+            result = await self.navigate(zone_id, url)
+            return (zone_id, url, label, result.status, result)
+
+        tasks = []
+        for item in zone_probes:
+            if len(item) == 2:
+                zone_id, url = item
+                label = url
+            else:
+                zone_id, url, label = item
+            tasks.append(_asyncio.create_task(_probe(zone_id, url, label)))
+
+        return await _asyncio.gather(*tasks)
 
     async def assert_text(self, zone_id: str, selector: str, expected: str) -> MultiCursorActionResult:
         return await self._execute(MultiCursorActionType.ASSERT_TEXT, zone_id, selector=selector, parameters={"expected": expected})

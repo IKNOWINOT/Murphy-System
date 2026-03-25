@@ -16,6 +16,7 @@
 # │  ② Env audit      /etc/murphy-production/environment:                  │
 # │                   DATABASE_URL, REDIS_URL, OLLAMA_HOST,                 │
 # │                   SMTP_HOST, MATRIX_HOMESERVER_URL, MURPHY_SECRET_KEY   │
+# │                   MATRIX_USER_ID / MATRIX_ACCESS_TOKEN (or BOT aliases) │
 # │                                                                         │
 # │  ③ Nginx          Reverse proxy / TLS — routes everything:             │
 # │                   /  /ui/ /api/ /static/ /docs → Murphy API :8000       │
@@ -38,8 +39,11 @@
 # │  ⑦ Murphy app     murphy-production (systemd):                         │
 # │                   • REST API          /api/*                            │
 # │                   • Website           / + /ui/* + /static/*             │
-# │                   • Matrix IM bridge  (runs inside Murphy process)      │
+# │                   • Matrix IM bridge  (MATRIX_BOT_TOKEN / BOT_USER)     │
 # │                   • Slack/Twilio IM   (runs inside Murphy process)      │
+# │                   • Trading engine    /api/trading/* (paper + live)     │
+# │                   • Game creation     /api/game/* + /ui/game-creation   │
+# │                   • EQ mod system     src/eq/ (25 modules, 140 tasks)   │
 # │                   • Metrics           /metrics                          │
 # │                                                                         │
 # │  ⑧ Health checks  Every subsystem verified                             │
@@ -334,6 +338,27 @@ if [ "$SKIP_ENV_AUDIT" = false ]; then
     audit_var "MATRIX_HOMESERVER_URL"  "Matrix IM bridge inactive (optional)"
     audit_var "MATRIX_ACCESS_TOKEN"    "Matrix IM bridge inactive (optional)"
     audit_var "MATRIX_USER_ID"         "Matrix IM bridge inactive (optional)"
+    audit_var "MATRIX_BOT_TOKEN"       "Matrix client token alias missing — will be auto-populated from MATRIX_ACCESS_TOKEN"
+    audit_var "MATRIX_BOT_USER"        "Matrix client user alias missing — will be auto-populated from MATRIX_USER_ID"
+
+    # Sanitize: quote any values containing spaces that aren't already quoted
+    if [ -f "$MURPHY_ENV_FILE" ]; then
+      sed -i -E 's/^([A-Za-z_][A-Za-z0-9_]*)=([^"'"'"'].*[[:space:]].*)/\1="\2"/' "$MURPHY_ENV_FILE"
+    fi
+
+    # Auto-populate MATRIX_BOT_* aliases from MATRIX_* if missing
+    if [ -f "$MURPHY_ENV_FILE" ]; then
+      if grep -q "^MATRIX_ACCESS_TOKEN=" "$MURPHY_ENV_FILE" && ! grep -q "^MATRIX_BOT_TOKEN=" "$MURPHY_ENV_FILE"; then
+        MATRIX_TOKEN_VAL=$(grep "^MATRIX_ACCESS_TOKEN=" "$MURPHY_ENV_FILE" | cut -d= -f2- | sed 's/^"\(.*\)"$/\1/')
+        echo "MATRIX_BOT_TOKEN=\"${MATRIX_TOKEN_VAL}\"" >> "$MURPHY_ENV_FILE"
+        ok "MATRIX_BOT_TOKEN auto-populated from MATRIX_ACCESS_TOKEN"
+      fi
+      if grep -q "^MATRIX_USER_ID=" "$MURPHY_ENV_FILE" && ! grep -q "^MATRIX_BOT_USER=" "$MURPHY_ENV_FILE"; then
+        MATRIX_USER_VAL=$(grep "^MATRIX_USER_ID=" "$MURPHY_ENV_FILE" | cut -d= -f2- | sed 's/^"\(.*\)"$/\1/')
+        echo "MATRIX_BOT_USER=\"${MATRIX_USER_VAL}\"" >> "$MURPHY_ENV_FILE"
+        ok "MATRIX_BOT_USER auto-populated from MATRIX_USER_ID"
+      fi
+    fi
   else
     warn "Env file not found at ${MURPHY_ENV_FILE}"
     warn "Murphy will start with defaults. To enable all subsystem connections:"

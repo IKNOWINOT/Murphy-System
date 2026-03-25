@@ -16,7 +16,9 @@ Configuration (environment variables)
 --------------------------------------
 MATRIX_HOMESERVER_URL   homeserver base URL
 MATRIX_BOT_USER         full Matrix user ID, e.g. ``@murphy:example.com``
+MATRIX_USER_ID          alias for MATRIX_BOT_USER (fallback)
 MATRIX_BOT_TOKEN        access token (preferred over password)
+MATRIX_ACCESS_TOKEN     alias for MATRIX_BOT_TOKEN (fallback)
 MATRIX_BOT_PASSWORD     password (fallback when no token)
 MATRIX_DEVICE_ID        device ID to reuse (optional)
 MATRIX_E2E_ENABLED      ``true`` to enable E2E encryption (default ``false``)
@@ -348,8 +350,8 @@ class MatrixClient:
         self.homeserver: str = (
             homeserver or os.environ.get("MATRIX_HOMESERVER_URL", "http://localhost:8008")
         ).rstrip("/")
-        self.user_id: str = user_id or os.environ.get("MATRIX_BOT_USER", "")
-        self.token: Optional[str] = token or os.environ.get("MATRIX_BOT_TOKEN") or None
+        self.user_id: str = user_id or os.environ.get("MATRIX_BOT_USER") or os.environ.get("MATRIX_USER_ID", "")
+        self.token: Optional[str] = token or os.environ.get("MATRIX_BOT_TOKEN") or os.environ.get("MATRIX_ACCESS_TOKEN") or None
         self.password: Optional[str] = password or os.environ.get("MATRIX_BOT_PASSWORD") or None
         self.device_id: Optional[str] = device_id or os.environ.get("MATRIX_DEVICE_ID") or None
         self.e2e_enabled: bool = e2e_enabled or (

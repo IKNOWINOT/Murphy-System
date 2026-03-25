@@ -59,6 +59,7 @@ SUBSYSTEM_ROOMS: Dict[str, _RoomSpec] = {
     "gate-bypass-controller":           ("governance", True),
     "governance-kernel":                ("governance", True),
     "governance-toggle":                ("governance", True),
+    "outreach-compliance-integration":  ("governance", True),
 
     # ── Safety & HITL ────────────────────────────────────────────────────────
     "hitl-autonomy-controller":         ("safety-hitl", False),
@@ -145,6 +146,8 @@ SUBSYSTEM_ROOMS: Dict[str, _RoomSpec] = {
     "content-creator-platform-modulator": ("comms-notifications", False),
     "campaign-orchestrator":            ("comms-notifications", False),
     "adaptive-campaign-engine":         ("comms-notifications", False),
+    "self-marketing-orchestrator":      ("comms-notifications", False),
+    "contact-compliance-governor":      ("comms-notifications", False),
 
     # ── Infrastructure & DevOps ──────────────────────────────────────────────
     "docker-containerization":          ("infrastructure", False),
@@ -268,6 +271,13 @@ SUBSYSTEM_ROOMS: Dict[str, _RoomSpec] = {
     "advanced-research":                ("misc-systems", False),
     "multi-source-research":            ("misc-systems", False),
     "competitive-intelligence-engine":  ("misc-systems", False),
+    "self-introspection":               ("misc-systems", False),
+    "self-codebase-swarm":              ("misc-systems", False),
+    "cutsheet-engine":                  ("misc-systems", False),
+    "visual-swarm-builder":             ("misc-systems", False),
+    "ceo-branch":                       ("misc-systems", False),
+    "production-assistant-engine":      ("misc-systems", False),
+    "founder-updates":                  ("misc-systems", False),
 
     # ── Runtime & State ──────────────────────────────────────────────────────
     "runtime":                          ("runtime-state", False),
@@ -351,6 +361,18 @@ SUBSYSTEM_ROOMS: Dict[str, _RoomSpec] = {
     "finance":                          ("system", True),
     "monitoring":                       ("system", False),
     "admin":                            ("system", True),
+
+    # ── Additional rooms for previously unregistered packages ────────────
+    "document-export":                  ("additional", False),
+    "game-creation-pipeline":           ("misc-systems", False),
+    "management-systems":               ("misc-systems", False),
+    "matrix-bridge":                    ("misc-systems", False),
+    "multiverse-game-framework":        ("misc-systems", False),
+    "org-build-plan":                   ("org-workflow", False),
+    "platform-onboarding":              ("org-workflow", False),
+    "service-module":                   ("misc-systems", False),
+    "strategy-templates":               ("misc-systems", False),
+    "workdocs":                         ("additional", False),
 }
 
 
@@ -528,4 +550,11 @@ class RoomRegistry:
         }
 
 
-__all__ = ["RoomRegistry", "RoomInfo", "SUBSYSTEM_ROOMS"]
+__all__ = ["RoomRegistry", "RoomInfo", "SUBSYSTEM_ROOMS", "ROOM_COGNITIVE_ROLES"]
+
+# Re-export ROOM_COGNITIVE_ROLES so callers can do:
+#   from src.matrix_bridge.room_registry import ROOM_COGNITIVE_ROLES
+try:
+    from .room_cognitive_roles import ROOM_COGNITIVE_ROLES
+except ImportError:
+    ROOM_COGNITIVE_ROLES = {}  # type: ignore[assignment]
