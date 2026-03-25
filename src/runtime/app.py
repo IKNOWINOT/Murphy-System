@@ -646,6 +646,20 @@ def create_app() -> FastAPI:
         )
     except Exception as _risk_exc:
         logger.warning("Trading Risk API not available: %s", _risk_exc)
+    # ── Founder Maintenance API ──────────────────────────────────────────
+    try:
+        from src.founder_maintenance_api import router as _founder_maint_router
+        app.include_router(_founder_maint_router)
+        logger.info("Founder Maintenance API registered at /api/founder/maintenance/*")
+    except Exception as _fm_exc:
+        logger.warning("Founder Maintenance API not available: %s", _fm_exc)
+    # ── Founder Update API ───────────────────────────────────────────────
+    try:
+        from src.founder_update_api import router as _founder_update_router
+        app.include_router(_founder_update_router)
+        logger.info("Founder Update API registered at /api/founder/*")
+    except Exception as _fu_exc:
+        logger.warning("Founder Update API not available: %s", _fu_exc)
     # ── Platform Onboarding DAG ──────────────────────────────────────────
     try:
         from src.platform_onboarding.onboarding_api import create_onboarding_router
@@ -7880,14 +7894,15 @@ def create_app() -> FastAPI:
     def _require_admin(request: "Request") -> "Optional[Dict[str, Any]]":
         """Return the account dict if the caller has admin/owner role.
 
-        Returns None if the request is not authenticated or the account does
-        not have the required role.  Callers should return HTTP 401/403.
+        Returns None  → caller is NOT authenticated       (send HTTP 401)
+        Returns False → caller IS authenticated, not admin (send HTTP 403)
+        Returns dict  → caller IS an admin/owner           (proceed)
         """
         account = _get_account_from_session(request)
         if account is None:
-            return None
+            return None           # not authenticated → 401
         if account.get("role") not in ("admin", "owner"):
-            return None
+            return False          # authenticated but wrong role → 403
         return account
 
     def _admin_log(actor_id: str, action: str, target: str, detail: "Dict[str, Any]") -> None:
@@ -7909,7 +7924,9 @@ def create_app() -> FastAPI:
         """List all platform users. Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         q = (request.query_params.get("q") or "").lower()
         role_f = request.query_params.get("role", "")
@@ -7948,7 +7965,9 @@ def create_app() -> FastAPI:
         """Admin-create a user account (bypasses self-signup flow). Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         try:
             data = await request.json()
@@ -7992,7 +8011,9 @@ def create_app() -> FastAPI:
         """Get a single user's full profile. Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         user = _user_store.get(user_id)
         if not user:
@@ -8006,7 +8027,9 @@ def create_app() -> FastAPI:
         """Update a user's role, tier, status, name, or email. Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         user = _user_store.get(user_id)
         if not user:
@@ -8044,7 +8067,9 @@ def create_app() -> FastAPI:
         """Deactivate (soft-delete) a user account. Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         user = _user_store.get(user_id)
         if not user:
@@ -8068,7 +8093,9 @@ def create_app() -> FastAPI:
         """Force-reset a user's password. Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         user = _user_store.get(user_id)
         if not user:
@@ -8100,7 +8127,9 @@ def create_app() -> FastAPI:
         """Suspend a user account (blocks login). Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         user = _user_store.get(user_id)
         if not user:
@@ -8124,7 +8153,9 @@ def create_app() -> FastAPI:
         """Restore a suspended user account. Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         user = _user_store.get(user_id)
         if not user:
@@ -8142,7 +8173,9 @@ def create_app() -> FastAPI:
         """List all organisations. Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         q = (request.query_params.get("q") or "").lower()
         orgs = list(_org_store.values())
@@ -8155,7 +8188,9 @@ def create_app() -> FastAPI:
         """Create a new organisation. Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         try:
             data = await request.json()
@@ -8190,7 +8225,9 @@ def create_app() -> FastAPI:
         """Get a single organisation. Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         org = _org_store.get(org_id)
         if not org:
@@ -8202,7 +8239,9 @@ def create_app() -> FastAPI:
         """Update an organisation's name, description, plan, or status. Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         org = _org_store.get(org_id)
         if not org:
@@ -8228,7 +8267,9 @@ def create_app() -> FastAPI:
         """Deactivate an organisation. Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         org = _org_store.get(org_id)
         if not org:
@@ -8244,7 +8285,9 @@ def create_app() -> FastAPI:
         """List members of an organisation. Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         org = _org_store.get(org_id)
         if not org:
@@ -8268,7 +8311,9 @@ def create_app() -> FastAPI:
         """Add a user to an organisation. Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         org = _org_store.get(org_id)
         if not org:
@@ -8293,7 +8338,9 @@ def create_app() -> FastAPI:
         """Remove a user from an organisation. Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         org = _org_store.get(org_id)
         if not org:
@@ -8311,7 +8358,9 @@ def create_app() -> FastAPI:
         """Platform-wide statistics. Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         with _session_lock:
             active_sessions = len(_session_store)
@@ -8348,7 +8397,9 @@ def create_app() -> FastAPI:
         """List all active sessions (token → account summary). Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         with _session_lock:
             session_snapshot = dict(_session_store)
@@ -8369,7 +8420,9 @@ def create_app() -> FastAPI:
         """Revoke all sessions for an account. Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         with _session_lock:
             dead = [t for t, uid in _session_store.items() if uid == account_id]
@@ -8384,7 +8437,9 @@ def create_app() -> FastAPI:
         """Return the admin audit log (newest first). Admin/owner only."""
         actor = _require_admin(request)
         if actor is None:
-            return JSONResponse({"error": "Admin access required"}, status_code=403)
+            return JSONResponse({"error": "Unauthorized", "detail": "Authentication required"}, status_code=401)
+        if actor is False:
+            return JSONResponse({"error": "Forbidden", "detail": "Admin access required"}, status_code=403)
 
         limit = min(int(request.query_params.get("limit", "100")), 500)
         offset = int(request.query_params.get("offset", "0"))
@@ -9223,6 +9278,7 @@ def create_app() -> FastAPI:
             "/ui/grant-application": "grant_application.html",
             "/ui/financing": "financing_options.html",
             "/ui/comms-hub": "communication_hub.html",
+            "/ui/communication-hub": "communication_hub.html",
             "/ui/admin": "admin_panel.html",
             "/ui/org-portal": "org_portal.html",
             "/ui/change-password": "change_password.html",
