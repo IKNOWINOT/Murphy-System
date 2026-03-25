@@ -52,8 +52,9 @@ Murphy is a **complete, operational AI automation system** that can automate any
 ✅ **HITL Graduation** - Structured human-to-automation handoff pipeline  
 ✅ **Orchestrators** - Safety, efficiency, and supply chain orchestration  
 ✅ **Container Deployment** - Docker and Kubernetes configs included (security hardening required before production)
+✅ **Permutation Calibration** - Learn optimal information ordering for each domain ([docs](docs/PERMUTATION_CALIBRATION.md))
 
-> **Recently added:** Room LLM Brain (MSS-aligned MAGNIFY/SIMPLIFY/SOLIDIFY in every room), World Knowledge Calibrator (algebraic sensor anchors), Agentic Communications Router (agent-to-agent messaging), Bot Room Registry (multi-room persona mapping), Rosetta Platform State (3-layer platform/agent/combined copy system), Optimal Routing Wiring (Triage→Librarian→Causality→Rubix→GoldenPath pipeline), Room Cognitive Roles (MSS role per room)  
+> **Recently added:** Permutation Calibration System (Mode A exploration → Mode B procedural execution with drift detection), Room LLM Brain (MSS-aligned MAGNIFY/SIMPLIFY/SOLIDIFY in every room), World Knowledge Calibrator (algebraic sensor anchors), Agentic Communications Router (agent-to-agent messaging), Bot Room Registry (multi-room persona mapping), Rosetta Platform State (3-layer platform/agent/combined copy system), Optimal Routing Wiring (Triage→Librarian→Causality→Rubix→GoldenPath pipeline), Room Cognitive Roles (MSS role per room)  
 > **Coming in #136:** Drawing Engine, Credential Gate, Sensor Fusion, Osmosis Engine, Autonomous Perception, Wingman Evolution, Engineering Toolbox
 
 ---
