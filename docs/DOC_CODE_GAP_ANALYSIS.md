@@ -260,7 +260,7 @@ A selection of the highest-impact missing env vars (full list: 205 total):
 | Gap ID | Type | Code Location | Doc Location | Description | Severity |
 |--------|------|---------------|--------------|-------------|----------|
 | FEAT-001 | Incorrect Doc | — | README.md badge | README.md badge claims `tests-17368 passing`. Actual test function count from `tests/*.py` is approximately 24,246. Test pass rate is separately documented as "1,611 verified passing". Badge count is inconsistent. | Medium |
-| FEAT-002 | Missing Doc | src/agent_module_loader.py | — | `MultiCursorBrowser` with 70 action types is not documented in USER_MANUAL.md or ARCHITECTURE_MAP.md despite being a major UI interaction subsystem. | High |
+| FEAT-002 | **RESOLVED** | src/agent_module_loader.py | ARCHITECTURE_MAP.md §14, docs/MULTICURSOR_AGENT_CONTROLLER.md | `MultiCursorBrowser` (now 120+ action types) is documented as the de-facto agent controller in ARCHITECTURE_MAP.md §14 and has a full reference at docs/MULTICURSOR_AGENT_CONTROLLER.md. Wired into BaseSwarmAgent, ShadowAgent, DecisionLearner. | High |
 | FEAT-003 | Missing Doc | src/agent_module_loader.py | — | `ToolRegistry` with 194 tools is not documented in USER_MANUAL.md or API_ROUTES.md | High |
 | FEAT-004 | Missing Doc | src/agent_module_loader.py | — | `HITLModalSystem` (Human-in-the-Loop modals) and `CreationChainManager` are undocumented features in USER_MANUAL.md | High |
 | FEAT-005 | Missing Doc | src/agent_module_loader.py | — | `LibrarianExecutionSuggestor` (Copilot-style PR suggestions) is not documented | Medium |

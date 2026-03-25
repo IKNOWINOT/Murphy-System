@@ -75,6 +75,12 @@ class DecisionLearner:
 
     The corpus grows over time; accuracy metrics are recomputed on each
     ``get_accuracy_metrics()`` call.
+
+    ── MCB AGENT CONTROLLER ──────────────────────────────────────────
+    DecisionLearner checks out a MultiCursorBrowser controller at init,
+    keyed as ``"copilot_decision_learner"``.  This makes MCB the single
+    browser/UI controller for any UI validation steps the learner
+    performs (e.g. scraping decision context from live pages).
     """
 
     def __init__(self) -> None:
@@ -82,6 +88,14 @@ class DecisionLearner:
         self._corpus: List[DecisionRecord] = []
         self._trainer: Any = None
         self._integration: Any = None
+
+        # ── MCB controller checkout ───────────────────────────────────
+        try:
+            from agent_module_loader import MultiCursorBrowser as _MCB
+            self._mcb = _MCB.get_controller(agent_id="copilot_decision_learner")
+        except Exception:
+            self._mcb = None
+
         self._initialize()
 
     def _initialize(self) -> None:
