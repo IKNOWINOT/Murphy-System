@@ -213,7 +213,7 @@ Murphy-System/
 └── Murphy System/                      ← ACTIVE SYSTEM
     ├── murphy                          ← CLI tool (start/stop/status/…)
     ├── murphy_system_1.0_runtime.py    ← Single production runtime
-    ├── src/                            ← 978 production modules
+    ├── src/                            ← 535 production modules (464 root .py + 71 packages)
     ├── tests/                          ← 706 test files
     ├── bots/                           ← 104 bot modules
     ├── documentation/                  ← Structured API/user docs
@@ -884,7 +884,7 @@ Murphy is the **only automation platform** that covers the entire stack — from
 
 | Metric | Value |
 | --- | --- |
-| **Source Files** | 978 Python modules |
+| **Source Files** | 535 Python modules (src/ root + sub-packages) |
 | **Source Lines** | 218,497 |
 | **Classes** | 2,487 |
 | **Functions / Methods** | 8,472 |
@@ -1018,7 +1018,7 @@ curl http://localhost:8000/api/status
 > PR 1–3 of ARCH-007 (Founder Update Engine) complete: 133 tests, 7 modules.
 > PR 4 (API routes + Founder Dashboard UI) pending.
 > The overall percentage reflects that while code coverage is extensive
-> (978+ modules, 644+ test files), **E2E validation of the hero flow** and
+> (535+ modules, 706+ test files), **E2E validation of the hero flow** and
 > **production deployment hardening** remain the primary gaps.
 
 ---
