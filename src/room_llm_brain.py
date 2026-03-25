@@ -179,9 +179,9 @@ def _build_system_prompt(ctx: RoomContext, sensors: List[SensorReading]) -> str:
             for r in sensors
         )
 
-    if ctx.cognitive_role == CognitiveRole.EXPAND:
+    if ctx.cognitive_role == CognitiveRole.MAGNIFY:
         role_instruction = (
-            "Your role is EXPAND. Take the input and MAGNIFY it: add rich context, "
+            "Your role is MAGNIFY. Take the input and MAGNIFY it: add rich context, "
             "implications, sub-tasks, related signals, and downstream consequences. "
             "Depth is more valuable than brevity here."
         )
@@ -215,9 +215,9 @@ def _rule_based_response(
 
     role = req.override_role or ctx.cognitive_role
 
-    if role == CognitiveRole.EXPAND:
+    if role == CognitiveRole.MAGNIFY:
         lines = [
-            f"[{ctx.room_key} / EXPAND]",
+            f"[{ctx.room_key} / MAGNIFY]",
             f"Input: {req.content[:120]}",
             "",
             "Expansion (rule-based):",
@@ -395,7 +395,7 @@ class RoomBrainRegistry:
             ``{room_key: (category, encrypted)}`` mapping.
         cognitive_roles:
             Optional ``{room_key: CognitiveRole}`` override map.
-            Rooms not present default to :attr:`CognitiveRole.EXPAND`.
+            Rooms not present default to :attr:`CognitiveRole.MAGNIFY`.
         module_manifest:
             List of ``ModuleEntry`` objects.  Used to populate each room
             context with its commands, persona, emits/consumes.
@@ -414,7 +414,7 @@ class RoomBrainRegistry:
 
         instance = cls()
         for room_key, (category, _encrypted) in subsystem_rooms.items():
-            role     = roles.get(room_key, CognitiveRole.EXPAND)
+            role     = roles.get(room_key, CognitiveRole.MAGNIFY)
             entries  = room_to_entries.get(room_key, [])
             persona  = entries[0].persona if entries else "TriageBot"
             commands = [cmd for e in entries for cmd in e.commands]
@@ -450,7 +450,7 @@ class RoomBrainRegistry:
         """
         Run inference in *room_key*.
 
-        If the room is not registered a minimal EXPAND brain is created on
+        If the room is not registered a minimal MAGNIFY brain is created on
         demand and cached for future calls.
         """
         with self._lock:
@@ -459,7 +459,7 @@ class RoomBrainRegistry:
                 ctx = RoomContext(
                     room_key=room_key,
                     category="unknown",
-                    cognitive_role=CognitiveRole.EXPAND,
+                    cognitive_role=CognitiveRole.MAGNIFY,
                 )
                 brain = RoomLLMBrain(ctx, None)
                 self._brains[room_key] = brain
