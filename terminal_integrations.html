@@ -499,7 +499,7 @@
   async function renderLLMConfig() {
     contentEl.innerHTML = sectionHeader('LLM Config') + skeletonCards(4);
     try {
-      var res   = await api.get('/llm/config');
+      var res   = await api.get('/llm/status');
       var data  = (res && res.data) || res || {};
       var items = data.providers || data.models || data.items || (Array.isArray(data) ? data : []);
 
