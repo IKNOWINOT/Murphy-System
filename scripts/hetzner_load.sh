@@ -509,8 +509,10 @@ if [ "$SKIP_ENV_AUDIT" = false ]; then
     # set +u is scoped narrowly to the source call only — the env file may
     # legitimately have unset variables which is exactly what we are auditing.
     set +u
+    set -a          # auto-export all sourced variables so printenv can see them
     # shellcheck disable=SC1090,SC1091
     source "$MURPHY_ENV_FILE" 2>/dev/null || true
+    set +a          # stop auto-exporting
     set -u
 
     audit_var "MURPHY_SECRET_KEY"      "sessions will be insecure — generate: python3 -c \"import secrets; print(secrets.token_urlsafe(48))\""
@@ -547,7 +549,7 @@ if [ "$SKIP_ENV_AUDIT" = false ]; then
 
     # ── Syntax validation: every non-comment, non-blank line must be KEY=value ──
     _bad_lines=$(grep -vE '^\s*#|^\s*$|^[A-Za-z_][A-Za-z0-9_]*=' \
-      "${MURPHY_ENV_FILE}" 2>/dev/null | wc -l)
+      "${MURPHY_ENV_FILE}" 2>/dev/null | wc -l) || _bad_lines=0
     if [ "${_bad_lines}" -gt 0 ]; then
       warn "Env file has ${_bad_lines} malformed line(s) (not KEY=value):"
       grep -nvE '^\s*#|^\s*$|^[A-Za-z_][A-Za-z0-9_]*=' "${MURPHY_ENV_FILE}" \
