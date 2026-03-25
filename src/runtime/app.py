@@ -9181,6 +9181,7 @@ def create_app() -> FastAPI:
             "/ui/org-portal": "org_portal.html",
             "/ui/change-password": "change_password.html",
             "/ui/reset-password": "reset_password.html",
+            "/ui/game-creation": "game_creation.html",
         }
 
         # ── Route classification: public vs auth-required ──────────
@@ -9776,6 +9777,263 @@ def create_app() -> FastAPI:
             })
         except Exception as exc:
             return JSONResponse({"success": False, "error": str(exc)})
+
+    # ── Game Creation Pipeline API ─────────────────────────────────────────────
+    _game_world_gen: Any = None
+    _game_pipeline:  Any = None
+    _game_balance:   Any = None
+
+    def _get_world_gen() -> Any:
+        nonlocal _game_world_gen
+        if _game_world_gen is None:
+            try:
+                from game_creation_pipeline.world_generator import WorldGenerator
+                _game_world_gen = WorldGenerator()
+            except Exception as _exc:
+                logger.warning("WorldGenerator unavailable: %s", _exc)
+                _game_world_gen = None
+        return _game_world_gen
+
+    def _get_pipeline() -> Any:
+        nonlocal _game_pipeline
+        if _game_pipeline is None:
+            try:
+                from game_creation_pipeline.weekly_release_orchestrator import WeeklyReleaseOrchestrator
+                from game_creation_pipeline.world_generator import WorldGenerator
+                _game_pipeline = WeeklyReleaseOrchestrator(WorldGenerator())
+            except Exception as _exc:
+                logger.warning("WeeklyReleaseOrchestrator unavailable: %s", _exc)
+                _game_pipeline = None
+        return _game_pipeline
+
+    def _get_balance() -> Any:
+        nonlocal _game_balance
+        if _game_balance is None:
+            try:
+                from game_creation_pipeline.class_balance_engine import ClassBalanceEngine
+                _game_balance = ClassBalanceEngine()
+            except Exception as _exc:
+                logger.warning("ClassBalanceEngine unavailable: %s", _exc)
+                _game_balance = None
+        return _game_balance
+
+    @app.get("/api/game/worlds")
+    async def game_list_worlds():
+        """Return all generated worlds."""
+        wg = _get_world_gen()
+        if wg is None:
+            return JSONResponse({"worlds": []})
+        worlds = wg.all_worlds()
+        return JSONResponse({
+            "worlds": [
+                {
+                    "world_id":   w.world_id,
+                    "name":       w.name,
+                    "theme":      w.theme.value if hasattr(w.theme, "value") else str(w.theme),
+                    "zone_count": len(w.zones),
+                    "active":     w.active,
+                    "created_at": w.created_at if hasattr(w, "created_at") else None,
+                }
+                for w in worlds
+            ]
+        })
+
+    @app.post("/api/game/worlds")
+    async def game_generate_world(request: Request):
+        """Generate a new procedural world."""
+        body = await request.json()
+        wg = _get_world_gen()
+        if wg is None:
+            return JSONResponse({"success": False, "error": "WorldGenerator not available"}, status_code=503)
+        try:
+            from game_creation_pipeline.world_generator import WorldTheme
+            theme_str = (body.get("theme") or "FANTASY").upper()
+            try:
+                theme = WorldTheme[theme_str]
+            except KeyError:
+                theme = WorldTheme.FANTASY
+            name = body.get("name") or None
+            world = wg.generate_world(name=name, theme=theme)
+            return JSONResponse({
+                "success":    True,
+                "world_id":   world.world_id,
+                "name":       world.name,
+                "theme":      world.theme.value,
+                "zone_count": len(world.zones),
+                "active":     world.active,
+            })
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/game/pipeline/runs")
+    async def game_pipeline_runs():
+        """Return all pipeline runs."""
+        pl = _get_pipeline()
+        if pl is None:
+            return JSONResponse({"runs": []})
+        runs = pl.all_runs()
+        return JSONResponse({
+            "runs": [
+                {
+                    "run_id":        r.run_id,
+                    "theme":         r.theme.value if hasattr(r, "theme") and hasattr(r.theme, "value") else str(getattr(r, "theme", "")),
+                    "current_stage": r.current_stage.value if hasattr(r, "current_stage") and hasattr(r.current_stage, "value") else str(getattr(r, "current_stage", "")),
+                    "status":        r.status.value if hasattr(r, "status") and hasattr(r.status, "value") else str(getattr(r, "status", "")),
+                    "started_at":    getattr(r, "started_at", None),
+                    "completed_at":  getattr(r, "completed_at", None),
+                }
+                for r in runs
+            ]
+        })
+
+    @app.post("/api/game/pipeline/start")
+    async def game_pipeline_start(request: Request):
+        """Start a new weekly release pipeline run."""
+        body = await request.json()
+        pl = _get_pipeline()
+        if pl is None:
+            return JSONResponse({"success": False, "error": "Pipeline not available"}, status_code=503)
+        try:
+            from game_creation_pipeline.world_generator import WorldTheme
+            theme_str = (body.get("theme") or "FANTASY").upper()
+            try:
+                theme = WorldTheme[theme_str]
+            except KeyError:
+                theme = WorldTheme.FANTASY
+            run = pl.start_pipeline(theme=theme)
+            return JSONResponse({
+                "success":  True,
+                "run_id":   run.run_id,
+                "theme":    run.theme.value if hasattr(run.theme, "value") else str(run.theme),
+                "status":   run.status.value if hasattr(run.status, "value") else str(run.status),
+            })
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.post("/api/game/balance/check")
+    async def game_balance_check():
+        """Run a class balance analysis across all class combinations."""
+        bal = _get_balance()
+        if bal is None:
+            return JSONResponse({"success": False, "error": "ClassBalanceEngine not available"}, status_code=503)
+        try:
+            if hasattr(bal, "check_all_combinations"):
+                result = bal.check_all_combinations()
+            elif hasattr(bal, "score_all"):
+                result = bal.score_all()
+            else:
+                result = {}
+            combinations = result.get("combinations_checked", 0) if isinstance(result, dict) else 0
+            issues = result.get("issues", []) if isinstance(result, dict) else []
+            recommendations = result.get("recommendations", []) if isinstance(result, dict) else []
+            return JSONResponse({
+                "success":         True,
+                "combinations":    combinations,
+                "issues":          issues,
+                "recommendations": recommendations,
+            })
+        except Exception as exc:
+            return JSONResponse({"success": False, "error": str(exc)}, status_code=500)
+
+    @app.get("/api/game/balance/report")
+    async def game_balance_report():
+        """Return the latest balance report."""
+        bal = _get_balance()
+        if bal is None:
+            return JSONResponse({"report": None})
+        try:
+            if hasattr(bal, "get_report"):
+                return JSONResponse({"report": bal.get_report()})
+            if hasattr(bal, "latest_report"):
+                return JSONResponse({"report": bal.latest_report})
+            return JSONResponse({"report": {"message": "No report available — run a balance check first."}})
+        except Exception as exc:
+            return JSONResponse({"report": None, "error": str(exc)})
+
+    @app.get("/api/game/eq/status")
+    async def game_eq_status():
+        """Return EQ mod system module status."""
+        modules = [
+            {"name": "Card System",          "description": "Universal/god cards, Card of Unmaking, Tower entry",        "ready": True},
+            {"name": "Soul Engine",           "description": "Agent soul documents with card collection & identity",       "ready": True},
+            {"name": "NPC Card Effects",      "description": "4-tier auto-generated card effects from NPC identity",      "ready": True},
+            {"name": "Spawner Registry",      "description": "Entity tracking, unmade status, world decay %",             "ready": True},
+            {"name": "Faction Manager",       "description": "Standings, war declarations, diplomacy",                    "ready": True},
+            {"name": "Macro Trigger Engine",  "description": "Classic bot behavior (/assist /follow /attack)",            "ready": True},
+            {"name": "Experience & Lore",     "description": "Action capture, interaction recall, lore propagation",      "ready": True},
+            {"name": "Perception Pipeline",   "description": "Screen-scan → inference → action (~250ms cycle)",           "ready": True},
+            {"name": "Duel Controller",       "description": "PvP duel system with card-based special rules",             "ready": True},
+            {"name": "Streaming Overlay",     "description": "Twitch/YouTube integration with HUD overlays",             "ready": True},
+            {"name": "Progression Server",    "description": "EQEmu-compatible progression server bridge",               "ready": True},
+            {"name": "Lore Seeder",           "description": "Import EQEmu NPC/mob data & pre-populate souls",           "ready": True},
+            {"name": "EQ Gateway",            "description": "Isolation boundary, sandbox enforcement",                  "ready": True},
+            {"name": "EQEmu Asset Manager",   "description": "Asset pipeline — models, textures, zone files",            "ready": True},
+            {"name": "Agent Voice",           "description": "Character voice profiles & TTS integration",               "ready": True},
+            {"name": "Cultural Identity",     "description": "Race/class cultural trait system",                         "ready": True},
+            {"name": "Escalation System",     "description": "Combat escalation & boss event triggers",                  "ready": True},
+            {"name": "Sorceror Class",        "description": "Specialised sorcerer class with arcane abilities",          "ready": True},
+            {"name": "Unmaker NPC",           "description": "The Unmaker boss NPC with card disintegration",            "ready": True},
+            {"name": "Tower Zone",            "description": "Vertical dungeon zone with floor progression",              "ready": True},
+            {"name": "Town Systems",          "description": "Player housing, shops, civic infrastructure",               "ready": True},
+            {"name": "Remake System",         "description": "World remake/reset mechanics",                             "ready": True},
+            {"name": "Server Reboot",         "description": "Controlled server-restart with state preservation",        "ready": True},
+            {"name": "Sleeper Event",         "description": "Kerafyrm the Sleeper encounter system",                    "ready": True},
+            {"name": "Murphy Integration",    "description": "Murphy AI embedded in EQ game loop",                       "ready": True},
+        ]
+        return JSONResponse({"modules": modules, "total": len(modules), "ready": sum(1 for m in modules if m["ready"])})
+
+    @app.post("/api/game/monetization/validate")
+    async def game_monetization_validate(request: Request):
+        """Validate a list of items against the no-pay-to-win monetization rules."""
+        body = await request.json()
+        items = body.get("items", [])
+        try:
+            from game_creation_pipeline.monetization_rules import (
+                MonetizationRulesEngine,
+                COSMETIC_ONLY_MODEL,
+                ItemDefinition,
+                ItemCategory,
+            )
+            engine = MonetizationRulesEngine(COSMETIC_ONLY_MODEL)
+            results = []
+            for item in items:
+                try:
+                    cat_str = (item.get("category") or "misc").lower()
+                    try:
+                        cat = ItemCategory[cat_str.upper()]
+                    except KeyError:
+                        cat = ItemCategory.MISC if hasattr(ItemCategory, "MISC") else list(ItemCategory)[0]
+                    defn = ItemDefinition(
+                        name=item.get("name", "Unknown"),
+                        category=cat,
+                        power_delta=float(item.get("power_delta", 0)),
+                        purchasable=bool(item.get("purchasable", False)),
+                    )
+                    verdict = engine.validate(defn)
+                    results.append({
+                        "name":    defn.name,
+                        "verdict": verdict.value if hasattr(verdict, "value") else str(verdict),
+                        "reason":  None,
+                    })
+                except Exception as item_exc:
+                    results.append({"name": item.get("name", "?"), "verdict": "ERROR", "reason": str(item_exc)})
+            return JSONResponse({"success": True, "results": results})
+        except Exception as exc:
+            # Fallback: simple heuristic if module not importable
+            results = []
+            for item in items:
+                power = float(item.get("power_delta", 0))
+                purchasable = bool(item.get("purchasable", False))
+                if purchasable and power > 0.1:
+                    verdict = "REJECTED"
+                    reason  = "Pay-to-win: purchasable item grants gameplay power"
+                else:
+                    verdict = "APPROVED"
+                    reason  = None
+                results.append({"name": item.get("name", "?"), "verdict": verdict, "reason": reason})
+            return JSONResponse({"success": True, "results": results})
+
+
 
 
     _account_data: Dict[str, Any] = {

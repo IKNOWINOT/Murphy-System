@@ -16,6 +16,7 @@
 # │  ② Env audit      /etc/murphy-production/environment:                  │
 # │                   DATABASE_URL, REDIS_URL, OLLAMA_HOST,                 │
 # │                   SMTP_HOST, MATRIX_HOMESERVER_URL, MURPHY_SECRET_KEY   │
+# │                   MATRIX_USER_ID / MATRIX_ACCESS_TOKEN (or BOT aliases) │
 # │                                                                         │
 # │  ③ Nginx          Reverse proxy / TLS — routes everything:             │
 # │                   /  /ui/ /api/ /static/ /docs → Murphy API :8000       │
@@ -38,8 +39,11 @@
 # │  ⑦ Murphy app     murphy-production (systemd):                         │
 # │                   • REST API          /api/*                            │
 # │                   • Website           / + /ui/* + /static/*             │
-# │                   • Matrix IM bridge  (runs inside Murphy process)      │
+# │                   • Matrix IM bridge  (MATRIX_BOT_TOKEN / BOT_USER)     │
 # │                   • Slack/Twilio IM   (runs inside Murphy process)      │
+# │                   • Trading engine    /api/trading/* (paper + live)     │
+# │                   • Game creation     /api/game/* + /ui/game-creation   │
+# │                   • EQ mod system     src/eq/ (25 modules, 140 tasks)   │
 # │                   • Metrics           /metrics                          │
 # │                                                                         │
 # │  ⑧ Health checks  Every subsystem verified                             │
