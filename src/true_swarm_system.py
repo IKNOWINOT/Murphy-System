@@ -196,7 +196,7 @@ class SwarmMode(Enum):
 
 class BaseSwarmAgent(ABC):
     """
-    Base class for swarm agents
+    Base class for swarm agents.
 
     Agents are inference operators that transform inputs into:
     - hypotheses
@@ -204,12 +204,33 @@ class BaseSwarmAgent(ABC):
     - risks
     - gates
 
-    Never actions.
+    Never direct actions — all browser/UI/desktop actions are delegated
+    to the MultiCursorBrowser controller checked out at agent startup.
+
+    ── MCB AGENT CONTROLLER ─────────────────────────────────────────────
+    Every BaseSwarmAgent subclass automatically receives a MultiCursorBrowser
+    controller at construction time via ``MultiCursorBrowser.get_controller()``.
+    This mirrors the Copilot skill-checkout pattern: before an agent can
+    interact with any UI surface it must declare its controller identity.
+
+    Access the controller via ``self._mcb``.  The browser is NOT launched
+    automatically — call ``await self._mcb.launch()`` before issuing
+    page-level actions.  Use ``MultiCursorBrowser.list_controllers()`` to
+    audit which agents have checked out a controller at any point in time.
     """
 
     def __init__(self, instance: AgentInstance, llm_controller=None):
         self.instance = instance
         self._llm = llm_controller  # Optional[LLMController] — injected at spawn time
+
+        # ── MCB agent controller checkout ────────────────────────────
+        # Every agent checks out its own MultiCursorBrowser controller
+        # on construction, keyed by its unique instance id.
+        try:
+            from agent_module_loader import MultiCursorBrowser as _MCB
+            self._mcb = _MCB.get_controller(agent_id=instance.instance_id)
+        except Exception:
+            self._mcb = None  # Graceful degradation in headless/test environments
 
     def _llm_generate(self, prompt: str, context: Optional[str] = None, max_tokens: int = 800) -> Optional[str]:
         """Call LLMController.query_llm() synchronously; returns None on any failure.

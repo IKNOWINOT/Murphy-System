@@ -75,7 +75,10 @@ except ImportError:
 class MultiCursorActionType(Enum):
     """All browser/desktop automation action types.
 
-    Includes everything from Playwright plus Murphy extensions.
+    Complete superset of every Playwright Page action plus Murphy extensions.
+    MCB is the de-facto agent controller for all Murphy agents — every agent
+    that performs UI, browser, or desktop interaction must acquire an MCB
+    instance via MultiCursorBrowser.get_controller() before acting.
     """
     # === PLAYWRIGHT CORE ACTIONS ===
     NAVIGATE = "navigate"
@@ -88,31 +91,67 @@ class MultiCursorActionType(Enum):
     SELECT_OPTION = "select_option"
     CHECK = "check"
     UNCHECK = "uncheck"
+    SET_CHECKED = "set_checked"           # playwright: page.set_checked()
     HOVER = "hover"
     FOCUS = "focus"
+    TAP = "tap"                           # playwright: page.tap() — mobile touch
     DRAG = "drag"
     SCROLL = "scroll"
     SCREENSHOT = "screenshot"
     PDF = "pdf"
     EVALUATE = "evaluate"
+    EVALUATE_HANDLE = "evaluate_handle"   # playwright: page.evaluate_handle()
+    EVAL_ON_SELECTOR = "eval_on_selector" # playwright: page.eval_on_selector()
+    EVAL_ON_SELECTOR_ALL = "eval_on_selector_all"
     WAIT_FOR_SELECTOR = "wait_for_selector"
     WAIT_FOR_NAVIGATION = "wait_for_navigation"
     WAIT_FOR_LOAD_STATE = "wait_for_load_state"
     WAIT_FOR_TIMEOUT = "wait_for_timeout"
     WAIT_FOR_FUNCTION = "wait_for_function"
+    WAIT_FOR_URL = "wait_for_url"         # playwright: page.wait_for_url()
+    WAIT_FOR_REQUEST = "wait_for_request" # playwright: page.expect_request()
+    WAIT_FOR_RESPONSE = "wait_for_response" # playwright: page.expect_response()
+    WAIT_FOR_EVENT = "wait_for_event"     # playwright: page.expect_event()
+    WAIT_FOR_DOWNLOAD = "wait_for_download" # playwright: page.expect_download()
+    WAIT_FOR_POPUP = "wait_for_popup"     # playwright: page.expect_popup()
     GET_ATTRIBUTE = "get_attribute"
     GET_TEXT = "get_text"
     GET_INNER_HTML = "get_inner_html"
     GET_BOUNDING_BOX = "get_bounding_box"
+    GET_CONTENT = "get_content"           # playwright: page.content() — full HTML
+    GET_TITLE = "get_title"               # playwright: page.title()
+    GET_URL = "get_url"                   # playwright: page.url
+    INPUT_VALUE = "input_value"           # playwright: page.input_value()
+    TEXT_CONTENT = "text_content"         # playwright: page.text_content()
     IS_VISIBLE = "is_visible"
     IS_ENABLED = "is_enabled"
     IS_CHECKED = "is_checked"
+    IS_HIDDEN = "is_hidden"               # playwright: page.is_hidden()
+    IS_DISABLED = "is_disabled"           # playwright: page.is_disabled()
+    IS_EDITABLE = "is_editable"           # playwright: page.is_editable()
     QUERY_SELECTOR = "query_selector"
     QUERY_SELECTOR_ALL = "query_selector_all"
+    # Playwright semantic locators — prefer over CSS when available
+    GET_BY_ROLE = "get_by_role"           # playwright: page.get_by_role()
+    GET_BY_TEXT = "get_by_text"           # playwright: page.get_by_text()
+    GET_BY_LABEL = "get_by_label"         # playwright: page.get_by_label()
+    GET_BY_PLACEHOLDER = "get_by_placeholder" # playwright: page.get_by_placeholder()
+    GET_BY_ALT_TEXT = "get_by_alt_text"   # playwright: page.get_by_alt_text()
+    GET_BY_TITLE = "get_by_title"         # playwright: page.get_by_title()
+    GET_BY_TEST_ID = "get_by_test_id"     # playwright: page.get_by_test_id()
     SET_VIEWPORT = "set_viewport"
+    SET_CONTENT = "set_content"           # playwright: page.set_content()
+    SET_EXTRA_HEADERS = "set_extra_headers" # playwright: page.set_extra_http_headers()
+    SET_INPUT_FILES = "set_input_files"   # playwright: page.set_input_files()
+    SET_GEOLOCATION = "set_geolocation"   # playwright: page.context.set_geolocation()
+    SET_OFFLINE = "set_offline"           # playwright: page.context.set_offline()
+    SET_DEFAULT_TIMEOUT = "set_default_timeout"
+    SET_DEFAULT_NAV_TIMEOUT = "set_default_nav_timeout"
+    EMULATE_MEDIA = "emulate_media"       # playwright: page.emulate_media()
     GO_BACK = "go_back"
     GO_FORWARD = "go_forward"
     RELOAD = "reload"
+    BRING_TO_FRONT = "bring_to_front"     # playwright: page.bring_to_front()
     CLOSE = "close"
 
     # === PLAYWRIGHT FILE/DIALOG/NETWORK ===
@@ -121,6 +160,49 @@ class MultiCursorActionType(Enum):
     DIALOG_ACCEPT = "dialog_accept"
     DIALOG_DISMISS = "dialog_dismiss"
     REQUEST_INTERCEPT = "request_intercept"
+    ROUTE_FULFILL = "route_fulfill"       # playwright: route.fulfill() — mock responses
+    ROUTE_ABORT = "route_abort"           # playwright: route.abort()
+    ROUTE_FROM_HAR = "route_from_har"     # playwright: page.route_from_har()
+    UNROUTE = "unroute"                   # playwright: page.unroute()
+    EXPOSE_FUNCTION = "expose_function"   # playwright: page.expose_function()
+    EXPOSE_BINDING = "expose_binding"     # playwright: page.expose_binding()
+    ADD_INIT_SCRIPT = "add_init_script"   # playwright: page.add_init_script()
+    ADD_STYLE_TAG = "add_style_tag"       # playwright: page.add_style_tag()
+    ADD_SCRIPT_TAG = "add_script_tag"     # playwright: page.add_script_tag()
+    DISPATCH_EVENT = "dispatch_event"     # playwright: page.dispatch_event()
+    GRANT_PERMISSIONS = "grant_permissions" # playwright: context.grant_permissions()
+    CLEAR_PERMISSIONS = "clear_permissions" # playwright: context.clear_permissions()
+    GET_COOKIES = "get_cookies"           # playwright: context.cookies()
+    SET_COOKIES = "set_cookies"           # playwright: context.add_cookies()
+    CLEAR_COOKIES = "clear_cookies"       # playwright: context.clear_cookies()
+    STORAGE_STATE = "storage_state"       # playwright: context.storage_state()
+    # Frames
+    FRAME_LOCATOR = "frame_locator"       # playwright: page.frame_locator()
+    FRAME_NAVIGATE = "frame_navigate"     # navigate a named frame
+    # Accessibility
+    ACCESSIBILITY_SNAPSHOT = "accessibility_snapshot" # playwright: page.accessibility.snapshot()
+    # Keyboard granular
+    KEYBOARD_DOWN = "keyboard_down"       # playwright: page.keyboard.down()
+    KEYBOARD_UP = "keyboard_up"           # playwright: page.keyboard.up()
+    KEYBOARD_INSERT_TEXT = "keyboard_insert_text" # playwright: page.keyboard.insert_text()
+    # Mouse granular
+    MOUSE_MOVE = "mouse_move"             # playwright: page.mouse.move()
+    MOUSE_DOWN = "mouse_down"             # playwright: page.mouse.down()
+    MOUSE_UP = "mouse_up"                 # playwright: page.mouse.up()
+    MOUSE_WHEEL = "mouse_wheel"           # playwright: page.mouse.wheel()
+    # Touchscreen
+    TOUCHSCREEN_TAP = "touchscreen_tap"   # playwright: page.touchscreen.tap()
+    # Clock / time control
+    CLOCK_INSTALL = "clock_install"       # playwright: page.clock.install()
+    CLOCK_SET_FIXED_TIME = "clock_set_fixed_time"
+    CLOCK_FAST_FORWARD = "clock_fast_forward"
+    CLOCK_RUN_FOR = "clock_run_for"
+    # Console / network inspection
+    CONSOLE_MESSAGES = "console_messages" # playwright: page.console_messages
+    PAGE_ERRORS = "page_errors"           # playwright: page.page_errors
+    NETWORK_REQUESTS = "network_requests" # playwright: page.requests
+    # WebSocket
+    ROUTE_WEBSOCKET = "route_websocket"   # playwright: page.route_web_socket()
 
     # === MURPHY MULTI-CURSOR EXTENSIONS ===
     CURSOR_CREATE = "cursor_create"
@@ -159,11 +241,20 @@ class MultiCursorActionType(Enum):
     RECORD_STOP = "record_stop"
     PLAYBACK_START = "playback_start"
 
-    # === MURPHY ASSERTIONS ===
+    # === MURPHY ASSERTIONS (extended) ===
     ASSERT_TEXT = "assert_text"
     ASSERT_VISIBLE = "assert_visible"
     ASSERT_URL = "assert_url"
     ASSERT_TITLE = "assert_title"
+    ASSERT_COUNT = "assert_count"         # assert number of matching elements
+    ASSERT_ENABLED = "assert_enabled"     # assert element is enabled
+    ASSERT_DISABLED = "assert_disabled"   # assert element is disabled
+    ASSERT_HIDDEN = "assert_hidden"       # assert element is hidden
+    ASSERT_EDITABLE = "assert_editable"   # assert element is editable
+    ASSERT_VALUE = "assert_value"         # assert input field value
+    ASSERT_ATTRIBUTE = "assert_attribute" # assert element attribute value
+    ASSERT_CLASS = "assert_class"         # assert element has CSS class
+    ASSERT_CHECKED = "assert_checked"     # assert checkbox is checked
 
 
 class MultiCursorTaskStatus(Enum):
@@ -216,19 +307,44 @@ class MultiCursorActionResult:
 class MultiCursorBrowser:
     """Murphy's multi-cursor browser automation system.
 
-    Everything Playwright has, plus:
-    - Multiple independent cursors per session
-    - Split-screen zone management (up to 64 physical zones)
-    - Auto-layout: picks the tightest grid for N tasks automatically
-    - Arbitrary zone subdivision via split_zone()
-    - Virtual tab stacking for >12 zones on one viewport
-    - Parallel task execution across zones
-    - Nested MCB: spawn_child() creates a child MCB sharing the same
-      Chromium process but with its own BrowserContext (max depth 8)
-    - Desktop automation integration
-    - Agent handoff and context preservation
-    - Recording and playback
-    - OCR-based element detection
+    Complete superset of every Playwright Page action, plus Murphy extensions.
+    MCB is the **de-facto agent controller** for all Murphy agents.  Every
+    agent that performs UI, browser, or desktop interaction must acquire an
+    MCB instance via ``MultiCursorBrowser.get_controller()`` before acting,
+    mirroring the way a Copilot session checks out its allowed skill set at
+    startup.
+
+    Agent startup protocol::
+
+        # In any agent __init__ or startup:
+        from src.agent_module_loader import MultiCursorBrowser
+        self._mcb = MultiCursorBrowser.get_controller(agent_id=self.id)
+        # MCB is now the single source-of-truth for all browser/UI actions.
+
+    ── PLAYWRIGHT COMPLETENESS ────────────────────────────────────────
+    All Playwright Page methods are mapped 1-to-1 to MultiCursorActionType
+    values and implemented in _execute().  New Playwright APIs added in
+    this release:
+      TAP, SET_CHECKED, EVAL_ON_SELECTOR, EVAL_ON_SELECTOR_ALL,
+      WAIT_FOR_URL, WAIT_FOR_REQUEST, WAIT_FOR_RESPONSE, WAIT_FOR_EVENT,
+      WAIT_FOR_DOWNLOAD, WAIT_FOR_POPUP, GET_CONTENT, GET_TITLE, GET_URL,
+      INPUT_VALUE, TEXT_CONTENT, IS_HIDDEN, IS_DISABLED, IS_EDITABLE,
+      GET_BY_ROLE, GET_BY_TEXT, GET_BY_LABEL, GET_BY_PLACEHOLDER,
+      GET_BY_ALT_TEXT, GET_BY_TITLE, GET_BY_TEST_ID, SET_CONTENT,
+      SET_EXTRA_HEADERS, SET_INPUT_FILES, SET_GEOLOCATION, SET_OFFLINE,
+      SET_DEFAULT_TIMEOUT, SET_DEFAULT_NAV_TIMEOUT, EMULATE_MEDIA,
+      BRING_TO_FRONT, ROUTE_FULFILL, ROUTE_ABORT, ROUTE_FROM_HAR, UNROUTE,
+      EXPOSE_FUNCTION, EXPOSE_BINDING, ADD_INIT_SCRIPT, ADD_STYLE_TAG,
+      ADD_SCRIPT_TAG, DISPATCH_EVENT, GRANT_PERMISSIONS, CLEAR_PERMISSIONS,
+      GET_COOKIES, SET_COOKIES, CLEAR_COOKIES, STORAGE_STATE, FRAME_LOCATOR,
+      FRAME_NAVIGATE, ACCESSIBILITY_SNAPSHOT, KEYBOARD_DOWN, KEYBOARD_UP,
+      KEYBOARD_INSERT_TEXT, MOUSE_MOVE, MOUSE_DOWN, MOUSE_UP, MOUSE_WHEEL,
+      TOUCHSCREEN_TAP, CLOCK_INSTALL, CLOCK_SET_FIXED_TIME,
+      CLOCK_FAST_FORWARD, CLOCK_RUN_FOR, CONSOLE_MESSAGES, PAGE_ERRORS,
+      NETWORK_REQUESTS, ROUTE_WEBSOCKET, EVALUATE_HANDLE,
+      ASSERT_COUNT, ASSERT_ENABLED, ASSERT_DISABLED, ASSERT_HIDDEN,
+      ASSERT_EDITABLE, ASSERT_VALUE, ASSERT_ATTRIBUTE, ASSERT_CLASS,
+      ASSERT_CHECKED.
 
     ── SPLIT DECISION RULES ──────────────────────────────────────────
     auto_layout(n) selects the tightest named grid that fits n zones:
@@ -273,6 +389,59 @@ class MultiCursorBrowser:
     MCB_MAX_ZONES: int   = 64
     MCB_VIRT_THRESH: int = 12
     MCB_MAX_DEPTH: int   =  8
+
+    # ── Agent controller registry ─────────────────────────────────
+    # One MCB instance per agent_id — ensures each agent controls its
+    # own browser scope without shared state pollution.
+    _agent_registry: Dict[str, "MultiCursorBrowser"] = {}
+
+    @classmethod
+    def get_controller(
+        cls,
+        agent_id: str = "default",
+        **kwargs: Any,
+    ) -> "MultiCursorBrowser":
+        """Return (or create) the MCB controller for a given agent.
+
+        This is the canonical agent startup entry-point.  Every agent that
+        performs any UI/browser/desktop action calls this at init time,
+        mirroring the Copilot skill-checkout pattern::
+
+            self._mcb = MultiCursorBrowser.get_controller(agent_id=self.id)
+
+        A new ``MultiCursorBrowser`` instance is created on the first call
+        for a given ``agent_id`` and cached for re-use.  The browser is
+        **not** launched automatically — call ``await self._mcb.launch()``
+        before issuing any page actions.
+
+        Args:
+            agent_id: Unique identifier for the calling agent (e.g.
+                      ``"shadow_agent"``, ``"swarm_control_agent"``).
+            **kwargs: Forwarded to ``MultiCursorBrowser.__init__`` for the
+                      first-time creation (headless, screen dimensions, etc.).
+
+        Returns:
+            The MCB controller instance bound to this agent_id.
+        """
+        if agent_id not in cls._agent_registry:
+            cls._agent_registry[agent_id] = cls(**kwargs)
+            logger.debug("[MCB] controller registered for agent_id=%r", agent_id)
+        return cls._agent_registry[agent_id]
+
+    @classmethod
+    def release_controller(cls, agent_id: str) -> None:
+        """Release the MCB controller for an agent (e.g. on agent shutdown).
+
+        Does NOT close the browser — call ``await mcb.close()`` first if
+        the browser is still running.
+        """
+        cls._agent_registry.pop(agent_id, None)
+        logger.debug("[MCB] controller released for agent_id=%r", agent_id)
+
+    @classmethod
+    def list_controllers(cls) -> List[str]:
+        """Return the list of all currently registered agent_ids."""
+        return list(cls._agent_registry.keys())
 
     # Ordered grid presets: (cols, rows, name)
     _GRID_PRESETS: List[tuple] = [
@@ -758,6 +927,210 @@ class MultiCursorBrowser:
     async def assert_visible(self, zone_id: str, selector: str) -> MultiCursorActionResult:
         return await self._execute(MultiCursorActionType.ASSERT_VISIBLE, zone_id, selector=selector)
 
+    # ── New convenience methods (Playwright completeness additions) ────
+
+    async def tap(self, zone_id: str, selector: str) -> MultiCursorActionResult:
+        """Mobile tap on element."""
+        return await self._execute(MultiCursorActionType.TAP, zone_id, selector=selector)
+
+    async def get_content(self, zone_id: str) -> MultiCursorActionResult:
+        """Return full page HTML (playwright: page.content())."""
+        return await self._execute(MultiCursorActionType.GET_CONTENT, zone_id)
+
+    async def get_title(self, zone_id: str) -> MultiCursorActionResult:
+        """Return page title."""
+        return await self._execute(MultiCursorActionType.GET_TITLE, zone_id)
+
+    async def get_url(self, zone_id: str) -> MultiCursorActionResult:
+        """Return current page URL."""
+        return await self._execute(MultiCursorActionType.GET_URL, zone_id)
+
+    async def input_value(self, zone_id: str, selector: str) -> MultiCursorActionResult:
+        """Return current value of an input field."""
+        return await self._execute(MultiCursorActionType.INPUT_VALUE, zone_id, selector=selector)
+
+    async def text_content(self, zone_id: str, selector: str) -> MultiCursorActionResult:
+        """Return text content of element (incl. hidden text)."""
+        return await self._execute(MultiCursorActionType.TEXT_CONTENT, zone_id, selector=selector)
+
+    async def is_hidden(self, zone_id: str, selector: str) -> MultiCursorActionResult:
+        """Check if element is hidden."""
+        return await self._execute(MultiCursorActionType.IS_HIDDEN, zone_id, selector=selector)
+
+    async def is_disabled(self, zone_id: str, selector: str) -> MultiCursorActionResult:
+        """Check if element is disabled."""
+        return await self._execute(MultiCursorActionType.IS_DISABLED, zone_id, selector=selector)
+
+    async def is_editable(self, zone_id: str, selector: str) -> MultiCursorActionResult:
+        """Check if element is editable."""
+        return await self._execute(MultiCursorActionType.IS_EDITABLE, zone_id, selector=selector)
+
+    async def get_by_role(self, zone_id: str, role: str, name: Optional[str] = None) -> MultiCursorActionResult:
+        """Locate elements by ARIA role."""
+        return await self._execute(MultiCursorActionType.GET_BY_ROLE, zone_id, parameters={"role": role, "name": name})
+
+    async def get_by_text(self, zone_id: str, text: str, exact: bool = False) -> MultiCursorActionResult:
+        """Locate elements by visible text."""
+        return await self._execute(MultiCursorActionType.GET_BY_TEXT, zone_id, parameters={"text": text, "exact": exact})
+
+    async def get_by_label(self, zone_id: str, text: str, exact: bool = False) -> MultiCursorActionResult:
+        """Locate form elements by their label."""
+        return await self._execute(MultiCursorActionType.GET_BY_LABEL, zone_id, parameters={"text": text, "exact": exact})
+
+    async def get_by_placeholder(self, zone_id: str, text: str, exact: bool = False) -> MultiCursorActionResult:
+        """Locate inputs by placeholder."""
+        return await self._execute(MultiCursorActionType.GET_BY_PLACEHOLDER, zone_id, parameters={"text": text, "exact": exact})
+
+    async def get_by_alt_text(self, zone_id: str, text: str, exact: bool = False) -> MultiCursorActionResult:
+        """Locate elements by alt text."""
+        return await self._execute(MultiCursorActionType.GET_BY_ALT_TEXT, zone_id, parameters={"text": text, "exact": exact})
+
+    async def get_by_title(self, zone_id: str, text: str, exact: bool = False) -> MultiCursorActionResult:
+        """Locate elements by title attribute."""
+        return await self._execute(MultiCursorActionType.GET_BY_TITLE, zone_id, parameters={"text": text, "exact": exact})
+
+    async def get_by_test_id(self, zone_id: str, test_id: str) -> MultiCursorActionResult:
+        """Locate elements by data-testid attribute."""
+        return await self._execute(MultiCursorActionType.GET_BY_TEST_ID, zone_id, parameters={"test_id": test_id})
+
+    async def set_content(self, zone_id: str, html: str) -> MultiCursorActionResult:
+        """Set the page HTML content directly."""
+        return await self._execute(MultiCursorActionType.SET_CONTENT, zone_id, parameters={"html": html})
+
+    async def set_extra_headers(self, zone_id: str, headers: Dict[str, str]) -> MultiCursorActionResult:
+        """Set extra HTTP headers for all requests from this page."""
+        return await self._execute(MultiCursorActionType.SET_EXTRA_HEADERS, zone_id, parameters={"headers": headers})
+
+    async def emulate_media(self, zone_id: str, media: Optional[str] = None,
+                            color_scheme: Optional[str] = None) -> MultiCursorActionResult:
+        """Emulate media type (print/screen) or color scheme."""
+        return await self._execute(MultiCursorActionType.EMULATE_MEDIA, zone_id,
+                                   parameters={"media": media, "color_scheme": color_scheme})
+
+    async def bring_to_front(self, zone_id: str) -> MultiCursorActionResult:
+        """Bring this page/tab to the front."""
+        return await self._execute(MultiCursorActionType.BRING_TO_FRONT, zone_id)
+
+    async def add_init_script(self, zone_id: str, script: Optional[str] = None,
+                              path: Optional[str] = None) -> MultiCursorActionResult:
+        """Add a script that runs before page load."""
+        return await self._execute(MultiCursorActionType.ADD_INIT_SCRIPT, zone_id,
+                                   parameters={"script": script, "path": path})
+
+    async def add_style_tag(self, zone_id: str, content: Optional[str] = None,
+                            url: Optional[str] = None) -> MultiCursorActionResult:
+        """Inject a CSS style tag into the page."""
+        return await self._execute(MultiCursorActionType.ADD_STYLE_TAG, zone_id,
+                                   parameters={"content": content, "url": url})
+
+    async def add_script_tag(self, zone_id: str, content: Optional[str] = None,
+                             url: Optional[str] = None) -> MultiCursorActionResult:
+        """Inject a script tag into the page."""
+        return await self._execute(MultiCursorActionType.ADD_SCRIPT_TAG, zone_id,
+                                   parameters={"content": content, "url": url})
+
+    async def dispatch_event(self, zone_id: str, selector: str,
+                             event_type: str, event_init: Optional[Dict] = None) -> MultiCursorActionResult:
+        """Dispatch a custom DOM event on an element."""
+        return await self._execute(MultiCursorActionType.DISPATCH_EVENT, zone_id,
+                                   selector=selector,
+                                   parameters={"event_type": event_type, "event_init": event_init})
+
+    async def get_cookies(self, zone_id: str = "main") -> MultiCursorActionResult:
+        """Return all cookies for the current context."""
+        return await self._execute(MultiCursorActionType.GET_COOKIES, zone_id)
+
+    async def set_cookies(self, zone_id: str, cookies: List[Dict]) -> MultiCursorActionResult:
+        """Add cookies to the current context."""
+        return await self._execute(MultiCursorActionType.SET_COOKIES, zone_id, parameters={"cookies": cookies})
+
+    async def clear_cookies(self, zone_id: str = "main") -> MultiCursorActionResult:
+        """Clear all cookies for the current context."""
+        return await self._execute(MultiCursorActionType.CLEAR_COOKIES, zone_id)
+
+    async def storage_state(self, zone_id: str = "main", path: Optional[str] = None) -> MultiCursorActionResult:
+        """Return (and optionally save) the storage state (cookies + localStorage)."""
+        return await self._execute(MultiCursorActionType.STORAGE_STATE, zone_id, parameters={"path": path})
+
+    async def accessibility_snapshot(self, zone_id: str,
+                                     selector: Optional[str] = None) -> MultiCursorActionResult:
+        """Return an accessibility tree snapshot."""
+        return await self._execute(MultiCursorActionType.ACCESSIBILITY_SNAPSHOT, zone_id, selector=selector)
+
+    async def wait_for_url(self, zone_id: str, url: str, timeout_ms: int = 30000) -> MultiCursorActionResult:
+        """Wait for page URL to match pattern."""
+        return await self._execute(MultiCursorActionType.WAIT_FOR_URL, zone_id,
+                                   parameters={"url": url}, timeout_ms=timeout_ms)
+
+    async def assert_count(self, zone_id: str, selector: str, expected: int) -> MultiCursorActionResult:
+        """Assert number of elements matching selector."""
+        return await self._execute(MultiCursorActionType.ASSERT_COUNT, zone_id,
+                                   selector=selector, parameters={"expected": expected})
+
+    async def assert_value(self, zone_id: str, selector: str, expected: str) -> MultiCursorActionResult:
+        """Assert input field value."""
+        return await self._execute(MultiCursorActionType.ASSERT_VALUE, zone_id,
+                                   selector=selector, parameters={"expected": expected})
+
+    async def assert_attribute(self, zone_id: str, selector: str,
+                               attribute: str, expected: str) -> MultiCursorActionResult:
+        """Assert element attribute equals expected value."""
+        return await self._execute(MultiCursorActionType.ASSERT_ATTRIBUTE, zone_id,
+                                   selector=selector,
+                                   parameters={"attribute": attribute, "expected": expected})
+
+    async def keyboard_down(self, zone_id: str, key: str) -> MultiCursorActionResult:
+        """Press and hold a key."""
+        return await self._execute(MultiCursorActionType.KEYBOARD_DOWN, zone_id, parameters={"key": key})
+
+    async def keyboard_up(self, zone_id: str, key: str) -> MultiCursorActionResult:
+        """Release a held key."""
+        return await self._execute(MultiCursorActionType.KEYBOARD_UP, zone_id, parameters={"key": key})
+
+    async def mouse_move(self, zone_id: str, x: float, y: float) -> MultiCursorActionResult:
+        """Move mouse to absolute coordinates."""
+        return await self._execute(MultiCursorActionType.MOUSE_MOVE, zone_id, parameters={"x": x, "y": y})
+
+    async def mouse_down(self, zone_id: str, button: str = "left") -> MultiCursorActionResult:
+        """Press mouse button down."""
+        return await self._execute(MultiCursorActionType.MOUSE_DOWN, zone_id, parameters={"button": button})
+
+    async def mouse_up(self, zone_id: str, button: str = "left") -> MultiCursorActionResult:
+        """Release mouse button."""
+        return await self._execute(MultiCursorActionType.MOUSE_UP, zone_id, parameters={"button": button})
+
+    async def touchscreen_tap(self, zone_id: str, x: float, y: float) -> MultiCursorActionResult:
+        """Touchscreen tap at absolute coordinates."""
+        return await self._execute(MultiCursorActionType.TOUCHSCREEN_TAP, zone_id, parameters={"x": x, "y": y})
+
+    async def route_fulfill(self, zone_id: str, url_pattern: str,
+                            status: int = 200, body: str = "",
+                            content_type: str = "application/json") -> MultiCursorActionResult:
+        """Mock a network request — fulfill with static response."""
+        return await self._execute(MultiCursorActionType.ROUTE_FULFILL, zone_id,
+                                   parameters={"url_pattern": url_pattern, "status": status,
+                                               "body": body, "content_type": content_type})
+
+    async def route_abort(self, zone_id: str, url_pattern: str,
+                          error_code: str = "failed") -> MultiCursorActionResult:
+        """Abort a network request."""
+        return await self._execute(MultiCursorActionType.ROUTE_ABORT, zone_id,
+                                   parameters={"url_pattern": url_pattern, "error_code": error_code})
+
+    async def grant_permissions(self, zone_id: str, permissions: List[str],
+                                origin: Optional[str] = None) -> MultiCursorActionResult:
+        """Grant browser permissions (e.g. geolocation, notifications)."""
+        return await self._execute(MultiCursorActionType.GRANT_PERMISSIONS, zone_id,
+                                   parameters={"permissions": permissions, "origin": origin})
+
+    async def clock_install(self, zone_id: str, time: Any = None) -> MultiCursorActionResult:
+        """Install a fake clock for time-controlled testing."""
+        return await self._execute(MultiCursorActionType.CLOCK_INSTALL, zone_id, parameters={"time": time})
+
+    async def clock_fast_forward(self, zone_id: str, ticks: int) -> MultiCursorActionResult:
+        """Fast-forward the fake clock by N milliseconds."""
+        return await self._execute(MultiCursorActionType.CLOCK_FAST_FORWARD, zone_id, parameters={"ticks": ticks})
+
     async def _execute(
         self,
         action_type: MultiCursorActionType,
@@ -1080,6 +1453,523 @@ class MultiCursorBrowser:
                         "() => document.body ? document.body.innerText : ''"
                     )
 
+            # ── NEW: Playwright completeness additions ────────────────
+
+            # TAP (mobile touch)
+            elif action_type == AT.TAP:
+                if page and selector:
+                    await page.tap(selector, timeout=timeout_ms)
+
+            # SET_CHECKED
+            elif action_type == AT.SET_CHECKED:
+                if page and selector:
+                    await page.set_checked(
+                        selector, params.get("checked", True), timeout=timeout_ms
+                    )
+
+            # EVAL_ON_SELECTOR / EVAL_ON_SELECTOR_ALL
+            elif action_type == AT.EVAL_ON_SELECTOR:
+                if page and selector:
+                    data["result"] = await page.eval_on_selector(
+                        selector, params.get("expression", "el => el"), params.get("arg")
+                    )
+
+            elif action_type == AT.EVAL_ON_SELECTOR_ALL:
+                if page and selector:
+                    data["result"] = await page.eval_on_selector_all(
+                        selector, params.get("expression", "els => els.length"), params.get("arg")
+                    )
+
+            # EVALUATE_HANDLE
+            elif action_type == AT.EVALUATE_HANDLE:
+                if page:
+                    handle = await page.evaluate_handle(params.get("expression", "undefined"))
+                    data["json"] = await handle.json_value()
+
+            # WAIT_FOR_URL
+            elif action_type == AT.WAIT_FOR_URL:
+                if page:
+                    await page.wait_for_url(
+                        params.get("url", "**"), timeout=timeout_ms
+                    )
+
+            # WAIT_FOR_REQUEST
+            elif action_type == AT.WAIT_FOR_REQUEST:
+                if page:
+                    async with page.expect_request(
+                        params.get("url_pattern", "**"), timeout=timeout_ms
+                    ) as req_info:
+                        pass
+                    req = await req_info.value
+                    data["url"] = req.url
+                    data["method"] = req.method
+
+            # WAIT_FOR_RESPONSE
+            elif action_type == AT.WAIT_FOR_RESPONSE:
+                if page:
+                    async with page.expect_response(
+                        params.get("url_pattern", "**"), timeout=timeout_ms
+                    ) as resp_info:
+                        pass
+                    resp = await resp_info.value
+                    data["url"] = resp.url
+                    data["status"] = resp.status
+
+            # WAIT_FOR_DOWNLOAD
+            elif action_type == AT.WAIT_FOR_DOWNLOAD:
+                if page:
+                    async with page.expect_download(timeout=timeout_ms) as dl_info:
+                        if selector:
+                            await page.click(selector, timeout=timeout_ms)
+                    dl = await dl_info.value
+                    save_path = params.get("path")
+                    if save_path:
+                        await dl.save_as(save_path)
+                    data["suggested_filename"] = dl.suggested_filename
+
+            # WAIT_FOR_POPUP
+            elif action_type == AT.WAIT_FOR_POPUP:
+                if page:
+                    async with page.expect_popup(timeout=timeout_ms) as popup_info:
+                        if selector:
+                            await page.click(selector, timeout=timeout_ms)
+                    popup = await popup_info.value
+                    data["url"] = popup.url
+
+            # WAIT_FOR_EVENT
+            elif action_type == AT.WAIT_FOR_EVENT:
+                if page:
+                    async with page.expect_event(
+                        params.get("event", "load"), timeout=timeout_ms
+                    ) as ev_info:
+                        pass
+                    data["event"] = params.get("event")
+
+            # GET_CONTENT
+            elif action_type == AT.GET_CONTENT:
+                if page:
+                    data["html"] = await page.content()
+
+            # GET_TITLE
+            elif action_type == AT.GET_TITLE:
+                if page:
+                    data["title"] = await page.title()
+
+            # GET_URL
+            elif action_type == AT.GET_URL:
+                if page:
+                    data["url"] = page.url
+
+            # INPUT_VALUE
+            elif action_type == AT.INPUT_VALUE:
+                if page and selector:
+                    data["value"] = await page.input_value(selector, timeout=timeout_ms)
+
+            # TEXT_CONTENT
+            elif action_type == AT.TEXT_CONTENT:
+                if page and selector:
+                    data["text"] = await page.text_content(selector, timeout=timeout_ms)
+
+            # IS_HIDDEN
+            elif action_type == AT.IS_HIDDEN:
+                if page and selector:
+                    data["hidden"] = await page.is_hidden(selector, timeout=timeout_ms)
+
+            # IS_DISABLED
+            elif action_type == AT.IS_DISABLED:
+                if page and selector:
+                    data["disabled"] = await page.is_disabled(selector, timeout=timeout_ms)
+
+            # IS_EDITABLE
+            elif action_type == AT.IS_EDITABLE:
+                if page and selector:
+                    data["editable"] = await page.is_editable(selector, timeout=timeout_ms)
+
+            # GET_BY_* semantic locators — return count + first visible text
+            elif action_type == AT.GET_BY_ROLE:
+                if page:
+                    loc = page.get_by_role(params.get("role", "button"), name=params.get("name"))
+                    data["count"] = await loc.count()
+            elif action_type == AT.GET_BY_TEXT:
+                if page:
+                    loc = page.get_by_text(params.get("text", ""), exact=params.get("exact", False))
+                    data["count"] = await loc.count()
+            elif action_type == AT.GET_BY_LABEL:
+                if page:
+                    loc = page.get_by_label(params.get("text", ""), exact=params.get("exact", False))
+                    data["count"] = await loc.count()
+            elif action_type == AT.GET_BY_PLACEHOLDER:
+                if page:
+                    loc = page.get_by_placeholder(params.get("text", ""), exact=params.get("exact", False))
+                    data["count"] = await loc.count()
+            elif action_type == AT.GET_BY_ALT_TEXT:
+                if page:
+                    loc = page.get_by_alt_text(params.get("text", ""), exact=params.get("exact", False))
+                    data["count"] = await loc.count()
+            elif action_type == AT.GET_BY_TITLE:
+                if page:
+                    loc = page.get_by_title(params.get("text", ""), exact=params.get("exact", False))
+                    data["count"] = await loc.count()
+            elif action_type == AT.GET_BY_TEST_ID:
+                if page:
+                    loc = page.get_by_test_id(params.get("test_id", ""))
+                    data["count"] = await loc.count()
+
+            # SET_CONTENT
+            elif action_type == AT.SET_CONTENT:
+                if page:
+                    await page.set_content(params.get("html", ""), timeout=timeout_ms)
+
+            # SET_EXTRA_HEADERS
+            elif action_type == AT.SET_EXTRA_HEADERS:
+                if page:
+                    await page.set_extra_http_headers(params.get("headers", {}))
+
+            # SET_INPUT_FILES
+            elif action_type == AT.SET_INPUT_FILES:
+                if page and selector:
+                    await page.set_input_files(selector, params.get("files", []), timeout=timeout_ms)
+
+            # SET_GEOLOCATION
+            elif action_type == AT.SET_GEOLOCATION:
+                if self._pw_context:
+                    await self._pw_context.set_geolocation(params.get("geolocation"))
+
+            # SET_OFFLINE
+            elif action_type == AT.SET_OFFLINE:
+                if self._pw_context:
+                    await self._pw_context.set_offline(params.get("offline", False))
+
+            # SET_DEFAULT_TIMEOUT / SET_DEFAULT_NAV_TIMEOUT
+            elif action_type == AT.SET_DEFAULT_TIMEOUT:
+                if page:
+                    page.set_default_timeout(params.get("timeout", 30000))
+            elif action_type == AT.SET_DEFAULT_NAV_TIMEOUT:
+                if page:
+                    page.set_default_navigation_timeout(params.get("timeout", 30000))
+
+            # EMULATE_MEDIA
+            elif action_type == AT.EMULATE_MEDIA:
+                if page:
+                    await page.emulate_media(
+                        media=params.get("media"),
+                        color_scheme=params.get("color_scheme"),
+                        reduced_motion=params.get("reduced_motion"),
+                    )
+
+            # BRING_TO_FRONT
+            elif action_type == AT.BRING_TO_FRONT:
+                if page:
+                    await page.bring_to_front()
+
+            # ROUTE_FULFILL
+            elif action_type == AT.ROUTE_FULFILL:
+                async def _fulfill(route: Any) -> None:
+                    await route.fulfill(
+                        status=params.get("status", 200),
+                        content_type=params.get("content_type", "application/json"),
+                        body=params.get("body", ""),
+                        headers=params.get("headers", {}),
+                    )
+                if page:
+                    await page.route(params.get("url_pattern", "**/*"), _fulfill)
+
+            # ROUTE_ABORT
+            elif action_type == AT.ROUTE_ABORT:
+                async def _abort(route: Any) -> None:
+                    await route.abort(params.get("error_code", "failed"))
+                if page:
+                    await page.route(params.get("url_pattern", "**/*"), _abort)
+
+            # ROUTE_FROM_HAR
+            elif action_type == AT.ROUTE_FROM_HAR:
+                if page:
+                    await page.route_from_har(
+                        params.get("har_path", ""),
+                        url=params.get("url_pattern", "**/*"),
+                        update=params.get("update", False),
+                    )
+
+            # UNROUTE
+            elif action_type == AT.UNROUTE:
+                if page:
+                    await page.unroute(params.get("url_pattern", "**/*"))
+
+            # EXPOSE_FUNCTION
+            elif action_type == AT.EXPOSE_FUNCTION:
+                if page:
+                    await page.expose_function(
+                        params.get("name", "_mcb_fn"),
+                        params.get("callback", lambda *a: None),
+                    )
+
+            # EXPOSE_BINDING
+            elif action_type == AT.EXPOSE_BINDING:
+                if self._pw_context:
+                    await self._pw_context.expose_binding(
+                        params.get("name", "_mcb_binding"),
+                        params.get("callback", lambda source, *a: None),
+                        handle=params.get("handle", False),
+                    )
+
+            # ADD_INIT_SCRIPT
+            elif action_type == AT.ADD_INIT_SCRIPT:
+                if page:
+                    await page.add_init_script(
+                        script=params.get("script"),
+                        path=params.get("path"),
+                    )
+
+            # ADD_STYLE_TAG
+            elif action_type == AT.ADD_STYLE_TAG:
+                if page:
+                    await page.add_style_tag(
+                        content=params.get("content"),
+                        url=params.get("url"),
+                        path=params.get("path"),
+                    )
+
+            # ADD_SCRIPT_TAG
+            elif action_type == AT.ADD_SCRIPT_TAG:
+                if page:
+                    handle = await page.add_script_tag(
+                        content=params.get("content"),
+                        url=params.get("url"),
+                        path=params.get("path"),
+                        type=params.get("type"),
+                    )
+
+            # DISPATCH_EVENT
+            elif action_type == AT.DISPATCH_EVENT:
+                if page and selector:
+                    await page.dispatch_event(
+                        selector, params.get("event_type", "click"),
+                        event_init=params.get("event_init"),
+                        timeout=timeout_ms,
+                    )
+
+            # GRANT_PERMISSIONS / CLEAR_PERMISSIONS
+            elif action_type == AT.GRANT_PERMISSIONS:
+                if self._pw_context:
+                    await self._pw_context.grant_permissions(
+                        params.get("permissions", []),
+                        origin=params.get("origin"),
+                    )
+            elif action_type == AT.CLEAR_PERMISSIONS:
+                if self._pw_context:
+                    await self._pw_context.clear_permissions()
+
+            # GET_COOKIES / SET_COOKIES / CLEAR_COOKIES
+            elif action_type == AT.GET_COOKIES:
+                if self._pw_context:
+                    data["cookies"] = await self._pw_context.cookies(
+                        params.get("urls")
+                    )
+            elif action_type == AT.SET_COOKIES:
+                if self._pw_context:
+                    await self._pw_context.add_cookies(params.get("cookies", []))
+            elif action_type == AT.CLEAR_COOKIES:
+                if self._pw_context:
+                    await self._pw_context.clear_cookies()
+
+            # STORAGE_STATE
+            elif action_type == AT.STORAGE_STATE:
+                if self._pw_context:
+                    state = await self._pw_context.storage_state(
+                        path=params.get("path")
+                    )
+                    data["storage_state"] = state
+
+            # FRAME_LOCATOR
+            elif action_type == AT.FRAME_LOCATOR:
+                if page:
+                    frame_loc = page.frame_locator(
+                        params.get("frame_selector", "iframe")
+                    )
+                    inner = frame_loc.locator(selector or "*")
+                    data["count"] = await inner.count()
+
+            # FRAME_NAVIGATE
+            elif action_type == AT.FRAME_NAVIGATE:
+                if page:
+                    frame = page.frame(
+                        name=params.get("name"), url=params.get("url_pattern")
+                    )
+                    if frame:
+                        await frame.goto(params.get("navigate_url", ""), timeout=timeout_ms)
+
+            # ACCESSIBILITY_SNAPSHOT
+            elif action_type == AT.ACCESSIBILITY_SNAPSHOT:
+                if page:
+                    snap = await page.accessibility.snapshot(
+                        interesting_only=params.get("interesting_only", True),
+                        root=await page.query_selector(selector) if selector else None,
+                    )
+                    data["snapshot"] = snap
+
+            # KEYBOARD granular
+            elif action_type == AT.KEYBOARD_DOWN:
+                if page:
+                    await page.keyboard.down(params.get("key", ""))
+            elif action_type == AT.KEYBOARD_UP:
+                if page:
+                    await page.keyboard.up(params.get("key", ""))
+            elif action_type == AT.KEYBOARD_INSERT_TEXT:
+                if page:
+                    await page.keyboard.insert_text(params.get("text", ""))
+
+            # MOUSE granular
+            elif action_type == AT.MOUSE_MOVE:
+                if page:
+                    await page.mouse.move(params.get("x", 0), params.get("y", 0))
+            elif action_type == AT.MOUSE_DOWN:
+                if page:
+                    await page.mouse.down(button=params.get("button", "left"))
+            elif action_type == AT.MOUSE_UP:
+                if page:
+                    await page.mouse.up(button=params.get("button", "left"))
+            elif action_type == AT.MOUSE_WHEEL:
+                if page:
+                    await page.mouse.wheel(
+                        params.get("delta_x", 0), params.get("delta_y", 0)
+                    )
+
+            # TOUCHSCREEN
+            elif action_type == AT.TOUCHSCREEN_TAP:
+                if page:
+                    await page.touchscreen.tap(params.get("x", 0), params.get("y", 0))
+
+            # CLOCK / time control
+            elif action_type == AT.CLOCK_INSTALL:
+                if page:
+                    await page.clock.install(time=params.get("time"))
+            elif action_type == AT.CLOCK_SET_FIXED_TIME:
+                if page:
+                    await page.clock.set_fixed_time(params.get("time", 0))
+            elif action_type == AT.CLOCK_FAST_FORWARD:
+                if page:
+                    await page.clock.fast_forward(params.get("ticks", 1000))
+            elif action_type == AT.CLOCK_RUN_FOR:
+                if page:
+                    await page.clock.run_for(params.get("ticks", 1000))
+
+            # CONSOLE_MESSAGES / PAGE_ERRORS / NETWORK_REQUESTS
+            elif action_type == AT.CONSOLE_MESSAGES:
+                if page:
+                    data["messages"] = [
+                        {"type": m.type, "text": m.text}
+                        for m in page.console_messages
+                    ]
+            elif action_type == AT.PAGE_ERRORS:
+                if page:
+                    data["errors"] = [str(e) for e in page.page_errors]
+            elif action_type == AT.NETWORK_REQUESTS:
+                if page:
+                    data["requests"] = [
+                        {"url": r.url, "method": r.method}
+                        for r in page.requests
+                    ]
+
+            # ROUTE_WEBSOCKET
+            elif action_type == AT.ROUTE_WEBSOCKET:
+                if page:
+                    await page.route_web_socket(
+                        params.get("url_pattern", "**"),
+                        params.get("handler", lambda ws: None),
+                    )
+
+            # ── Extended assertions ───────────────────────────────────
+
+            elif action_type == AT.ASSERT_COUNT:
+                if page and selector:
+                    count = await page.locator(selector).count()
+                    expected = params.get("expected", 0)
+                    data["count"] = count
+                    data["passed"] = count == expected
+                    if not data["passed"]:
+                        status = MultiCursorTaskStatus.FAILED
+                        error = f"ASSERT_COUNT: expected {expected}, got {count} for {selector!r}"
+
+            elif action_type == AT.ASSERT_ENABLED:
+                if page and selector:
+                    enabled = await page.is_enabled(selector, timeout=timeout_ms)
+                    data["enabled"] = enabled
+                    data["passed"] = enabled
+                    if not enabled:
+                        status = MultiCursorTaskStatus.FAILED
+                        error = f"ASSERT_ENABLED failed: {selector!r} is not enabled"
+
+            elif action_type == AT.ASSERT_DISABLED:
+                if page and selector:
+                    disabled = await page.is_disabled(selector, timeout=timeout_ms)
+                    data["disabled"] = disabled
+                    data["passed"] = disabled
+                    if not disabled:
+                        status = MultiCursorTaskStatus.FAILED
+                        error = f"ASSERT_DISABLED failed: {selector!r} is not disabled"
+
+            elif action_type == AT.ASSERT_HIDDEN:
+                if page and selector:
+                    hidden = await page.is_hidden(selector, timeout=timeout_ms)
+                    data["hidden"] = hidden
+                    data["passed"] = hidden
+                    if not hidden:
+                        status = MultiCursorTaskStatus.FAILED
+                        error = f"ASSERT_HIDDEN failed: {selector!r} is not hidden"
+
+            elif action_type == AT.ASSERT_EDITABLE:
+                if page and selector:
+                    editable = await page.is_editable(selector, timeout=timeout_ms)
+                    data["editable"] = editable
+                    data["passed"] = editable
+                    if not editable:
+                        status = MultiCursorTaskStatus.FAILED
+                        error = f"ASSERT_EDITABLE failed: {selector!r} is not editable"
+
+            elif action_type == AT.ASSERT_VALUE:
+                if page and selector:
+                    actual = await page.input_value(selector, timeout=timeout_ms)
+                    expected = params.get("expected", "")
+                    data["actual"] = actual
+                    data["expected"] = expected
+                    data["passed"] = actual == expected
+                    if not data["passed"]:
+                        status = MultiCursorTaskStatus.FAILED
+                        error = f"ASSERT_VALUE: expected {expected!r}, got {actual!r}"
+
+            elif action_type == AT.ASSERT_ATTRIBUTE:
+                if page and selector:
+                    actual = await page.get_attribute(
+                        selector, params.get("attribute", ""), timeout=timeout_ms
+                    )
+                    expected = params.get("expected", "")
+                    data["actual"] = actual
+                    data["expected"] = expected
+                    data["passed"] = actual == expected
+                    if not data["passed"]:
+                        status = MultiCursorTaskStatus.FAILED
+                        error = f"ASSERT_ATTRIBUTE [{params.get('attribute')}]: expected {expected!r}, got {actual!r}"
+
+            elif action_type == AT.ASSERT_CLASS:
+                if page and selector:
+                    cls_val = await page.get_attribute(selector, "class", timeout=timeout_ms) or ""
+                    expected = params.get("expected", "")
+                    data["classes"] = cls_val
+                    data["passed"] = expected in cls_val
+                    if not data["passed"]:
+                        status = MultiCursorTaskStatus.FAILED
+                        error = f"ASSERT_CLASS: expected class {expected!r} in {cls_val!r}"
+
+            elif action_type == AT.ASSERT_CHECKED:
+                if page and selector:
+                    checked = await page.is_checked(selector, timeout=timeout_ms)
+                    expected = params.get("expected", True)
+                    data["checked"] = checked
+                    data["passed"] = checked == expected
+                    if not data["passed"]:
+                        status = MultiCursorTaskStatus.FAILED
+                        error = f"ASSERT_CHECKED: expected checked={expected}, got {checked}"
+
             # ── Cursor management (logical only) ─────────────────────
             elif action_type in (AT.CURSOR_CREATE, AT.CURSOR_WARP, AT.CURSOR_MOVE,
                                  AT.CURSOR_ATTACH_ZONE, AT.CURSOR_SYNC):
@@ -1102,6 +1992,7 @@ class MultiCursorBrowser:
                                  AT.ZONE_CAPTURE, AT.DESKTOP_WINDOW_FOCUS,
                                  AT.DESKTOP_OCR_CLICK):
                 pass  # Structural / orchestration — no page-level op needed
+
 
         except Exception as exc:
             status = MultiCursorTaskStatus.FAILED

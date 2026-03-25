@@ -1,0 +1,170 @@
+{
+  "flow": "onboarding_to_profit_chain",
+  "steps": [
+    "1. Landing page: problem/solution messaging",
+    "2. Signup: account creation",
+    "3. Onboarding wizard: org profile + compliance + integrations",
+    "4. Production wizard: work orders + HITL gate + deliverables",
+    "5. Grant wizard: funding discovery by industry/project",
+    "6. Grant dashboard: application tracking",
+    "7. Compliance dashboard: regulatory posture + CCE scan",
+    "8. Partner request: custom integration + revenue sharing",
+    "9. Pricing: tier selection + financing"
+  ],
+  "viewpoints": {
+    "founder": {
+      "priority": "revenue, growth, investor narrative",
+      "questions": [
+        "Does this flow generate revenue?",
+        "Is the value proposition clear?",
+        "Does it reduce cost or increase output?"
+      ],
+      "observations": [
+        "Step '1. Landing page: problem/solution messaging' reviewed from founder perspective",
+        "Step '2. Signup: account creation' reviewed from founder perspective",
+        "Step '3. Onboarding wizard: org profile + compliance + integrations' reviewed from founder perspective",
+        "Step '4. Production wizard: work orders + HITL gate + deliverables' reviewed from founder perspective",
+        "Step '5. Grant wizard: funding discovery by industry/project' reviewed from founder perspective",
+        "Step '6. Grant dashboard: application tracking' reviewed from founder perspective",
+        "Step '7. Compliance dashboard: regulatory posture + CCE scan' reviewed from founder perspective",
+        "Step '8. Partner request: custom integration + revenue sharing' reviewed from founder perspective",
+        "Step '9. Pricing: tier selection + financing' reviewed from founder perspective"
+      ],
+      "suggestions": [
+        "Add inline ROI calculator showing cost saved per automated step",
+        "Surface 'time saved this week' metric on dashboard after each flow",
+        "Add upsell prompt when user hits plan limit mid-flow"
+      ],
+      "gate_recommendations": [
+        {
+          "after_step": "production_config_save",
+          "gate": "financial_review",
+          "reason": "Production config may commit spend"
+        }
+      ]
+    },
+    "compliance_officer": {
+      "priority": "regulatory adherence, audit trail, data protection",
+      "questions": [
+        "Is every action logged?",
+        "Are compliance gates enforced before high-risk steps?",
+        "Is HITL required for irreversible actions?"
+      ],
+      "observations": [
+        "Step '1. Landing page: problem/solution messaging' reviewed from compliance_officer perspective",
+        "Step '2. Signup: account creation' reviewed from compliance_officer perspective",
+        "Step '3. Onboarding wizard: org profile + compliance + integrations' reviewed from compliance_officer perspective",
+        "Step '4. Production wizard: work orders + HITL gate + deliverables' reviewed from compliance_officer perspective",
+        "Step '5. Grant wizard: funding discovery by industry/project' reviewed from compliance_officer perspective",
+        "Step '6. Grant dashboard: application tracking' reviewed from compliance_officer perspective",
+        "Step '7. Compliance dashboard: regulatory posture + CCE scan' reviewed from compliance_officer perspective",
+        "Step '8. Partner request: custom integration + revenue sharing' reviewed from compliance_officer perspective",
+        "Step '9. Pricing: tier selection + financing' reviewed from compliance_officer perspective"
+      ],
+      "suggestions": [
+        "Require HITL gate before any step that modifies org data",
+        "Auto-seal audit block at end of each wizard completion",
+        "Add regulatory framework auto-detection on onboarding step 2"
+      ],
+      "gate_recommendations": [
+        {
+          "after_step": "onboarding_complete",
+          "gate": "compliance_profile_lock",
+          "reason": "Lock compliance profile before production use"
+        },
+        {
+          "after_step": "grant_submission",
+          "gate": "legal_review",
+          "reason": "Grant applications are legal documents"
+        }
+      ]
+    },
+    "customer": {
+      "priority": "ease of use, speed to value, clarity",
+      "questions": [
+        "Can I complete this in under 5 minutes?",
+        "Is the next step always obvious?",
+        "Are errors explained in plain language?"
+      ],
+      "observations": [
+        "Step '1. Landing page: problem/solution messaging' reviewed from customer perspective",
+        "Step '2. Signup: account creation' reviewed from customer perspective",
+        "Step '3. Onboarding wizard: org profile + compliance + integrations' reviewed from customer perspective",
+        "Step '4. Production wizard: work orders + HITL gate + deliverables' reviewed from customer perspective",
+        "Step '5. Grant wizard: funding discovery by industry/project' reviewed from customer perspective",
+        "Step '6. Grant dashboard: application tracking' reviewed from customer perspective",
+        "Step '7. Compliance dashboard: regulatory posture + CCE scan' reviewed from customer perspective",
+        "Step '8. Partner request: custom integration + revenue sharing' reviewed from customer perspective",
+        "Step '9. Pricing: tier selection + financing' reviewed from customer perspective"
+      ],
+      "suggestions": [
+        "Show progress percentage at top of each wizard step",
+        "Pre-fill known data from previous wizard steps",
+        "Add 'Skip for now' option on optional integration steps"
+      ],
+      "gate_recommendations": []
+    },
+    "investor": {
+      "priority": "scalability, defensibility, unit economics",
+      "questions": [
+        "Does automation reduce marginal cost?",
+        "Is the data moat growing?",
+        "Are the metrics visible and real?"
+      ],
+      "observations": [
+        "Step '1. Landing page: problem/solution messaging' reviewed from investor perspective",
+        "Step '2. Signup: account creation' reviewed from investor perspective",
+        "Step '3. Onboarding wizard: org profile + compliance + integrations' reviewed from investor perspective",
+        "Step '4. Production wizard: work orders + HITL gate + deliverables' reviewed from investor perspective",
+        "Step '5. Grant wizard: funding discovery by industry/project' reviewed from investor perspective",
+        "Step '6. Grant dashboard: application tracking' reviewed from investor perspective",
+        "Step '7. Compliance dashboard: regulatory posture + CCE scan' reviewed from investor perspective",
+        "Step '8. Partner request: custom integration + revenue sharing' reviewed from investor perspective",
+        "Step '9. Pricing: tier selection + financing' reviewed from investor perspective"
+      ],
+      "suggestions": [
+        "Track and expose completion rate per wizard step (funnel analytics)",
+        "Show aggregate automation value ($ saved) across all accounts",
+        "Add cohort retention metric tied to onboarding completion"
+      ],
+      "gate_recommendations": [
+        {
+          "after_step": "pricing_upgrade",
+          "gate": "revenue_recognition",
+          "reason": "Ensure billing event is recorded"
+        }
+      ]
+    },
+    "operator": {
+      "priority": "reliability, uptime, observability",
+      "questions": [
+        "Can I see what's running right now?",
+        "Are failures surfaced immediately?",
+        "Can I roll back any action?"
+      ],
+      "observations": [
+        "Step '1. Landing page: problem/solution messaging' reviewed from operator perspective",
+        "Step '2. Signup: account creation' reviewed from operator perspective",
+        "Step '3. Onboarding wizard: org profile + compliance + integrations' reviewed from operator perspective",
+        "Step '4. Production wizard: work orders + HITL gate + deliverables' reviewed from operator perspective",
+        "Step '5. Grant wizard: funding discovery by industry/project' reviewed from operator perspective",
+        "Step '6. Grant dashboard: application tracking' reviewed from operator perspective",
+        "Step '7. Compliance dashboard: regulatory posture + CCE scan' reviewed from operator perspective",
+        "Step '8. Partner request: custom integration + revenue sharing' reviewed from operator perspective",
+        "Step '9. Pricing: tier selection + financing' reviewed from operator perspective"
+      ],
+      "suggestions": [
+        "Expose /api/health check status inline on each wizard page",
+        "Add rollback button for every wizard step that calls an API",
+        "Log every wizard step transition to the BAT audit trail"
+      ],
+      "gate_recommendations": [
+        {
+          "after_step": "integration_connected",
+          "gate": "connectivity_test",
+          "reason": "Verify integration before marking active"
+        }
+      ]
+    }
+  }
+}

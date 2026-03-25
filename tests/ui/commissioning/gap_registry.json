@@ -1,0 +1,17 @@
+{
+  "generated": "2026-03-25T22:55:08.502342+00:00",
+  "total": 1,
+  "open": 1,
+  "closed": 0,
+  "gaps": [
+    {
+      "gap_id": "GAP-LAND-002",
+      "spec_id": "LAND-002",
+      "description": "nav_solutions: 'href='#solutions'' not found in source",
+      "severity": "medium",
+      "fix_applied": "",
+      "verified": false,
+      "fixed_at": null
+    }
+  ]
+}
