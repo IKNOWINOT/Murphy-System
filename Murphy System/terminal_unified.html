@@ -1750,26 +1750,223 @@
     contentEl.innerHTML = sectionHeader('Credentials') + skeletonRows(6);
     try {
       var res   = await api.get('/credentials/list');
-      var items = (res && res.data) || (Array.isArray(res) ? res : []);
-      var html  = sectionHeader('Credentials', 'Credential vault');
+      var raw   = (res && res.data) || (Array.isArray(res) ? res : []);
+      var items = Array.isArray(raw) ? raw : [];
+      var html  = sectionHeader('Credentials', 'Platform credential vault — secrets stored server-side, never exposed');
+
+      // ── Add-credential button ────────────────────────────────────────────
+      html += '<div style="display:flex;justify-content:flex-end;margin-bottom:16px;">' +
+        '<button class="murphy-btn murphy-btn-primary" id="btn-add-credential" style="gap:6px;">' +
+        icon('plus', 14) + ' Add Credential</button></div>';
 
       if (!items.length) {
-        html += emptyState('No Credentials', 'No credentials stored.');
+        html += '<div class="murphy-card" style="text-align:center;padding:40px 20px;">' +
+          '<div style="font-size:32px;margin-bottom:12px;">🔑</div>' +
+          '<div style="font-weight:600;margin-bottom:6px;">No credentials stored yet</div>' +
+          '<div style="font-size:13px;color:var(--text-muted);margin-bottom:18px;">' +
+          'Add your API keys and tokens — Murphy stores them as encrypted platform secrets.</div>' +
+          '<button class="murphy-btn murphy-btn-primary" id="btn-add-credential-empty">' +
+          icon('plus', 14) + ' Add First Credential</button></div>';
       } else {
-        html += tableHTML(
-          [
-            { key: 'name',    label: 'Name' },
-            { key: 'type',    label: 'Type' },
-            { key: 'status',  label: 'Status', render: function (v) { return badge(v || 'active', v === 'active' ? 'success' : (v === 'expired' ? 'danger' : 'warning')); } },
-            { key: 'expires', label: 'Expires' }
-          ],
-          items
-        );
+        html += '<div class="murphy-card"><div class="murphy-card-body" style="padding:0;">';
+        html += '<table style="width:100%;border-collapse:collapse;">';
+        html += '<thead><tr style="border-bottom:1px solid rgba(255,255,255,0.08);">' +
+          '<th style="padding:10px 16px;text-align:left;font-size:12px;color:var(--text-muted);">Integration</th>' +
+          '<th style="padding:10px 16px;text-align:left;font-size:12px;color:var(--text-muted);">Env Variable</th>' +
+          '<th style="padding:10px 16px;text-align:left;font-size:12px;color:var(--text-muted);">Status</th>' +
+          '<th style="padding:10px 16px;text-align:left;font-size:12px;color:var(--text-muted);">Actions</th>' +
+          '</tr></thead><tbody>';
+        items.forEach(function(item) {
+          var st = item.configured ? 'active' : 'missing';
+          html += '<tr style="border-bottom:1px solid rgba(255,255,255,0.05);">' +
+            '<td style="padding:10px 16px;font-size:13px;font-weight:500;">' + esc(item.name || item.integration || '') + '</td>' +
+            '<td style="padding:10px 16px;font-size:11px;font-family:monospace;color:var(--text-muted);">' + esc(item.env_var || '') + '</td>' +
+            '<td style="padding:10px 16px;">' + badge(st, st === 'active' ? 'success' : 'danger') + '</td>' +
+            '<td style="padding:10px 16px;">' +
+            '<button class="murphy-btn murphy-btn-secondary" style="padding:2px 8px;font-size:11px;" ' +
+            'data-update-id="' + esc(item.integration || item.name || '') + '" ' +
+            'data-update-label="' + esc(item.name || item.integration || '') + '">' +
+            (item.configured ? '🔄 Update' : '🔑 Add') + '</button></td></tr>';
+        });
+        html += '</tbody></table></div></div>';
       }
       contentEl.innerHTML = html;
+
+      // Wire add buttons
+      function wireAddBtn(el) {
+        if (!el) return;
+        el.addEventListener('click', function() { openAddKeyModal('', 'New Credential'); });
+      }
+      wireAddBtn(document.getElementById('btn-add-credential'));
+      wireAddBtn(document.getElementById('btn-add-credential-empty'));
+      contentEl.querySelectorAll('[data-update-id]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          openAddKeyModal(btn.getAttribute('data-update-id'), btn.getAttribute('data-update-label'));
+        });
+      });
     } catch (e) {
       contentEl.innerHTML = sectionHeader('Credentials') + errorCard(e.message, '#credentials');
     }
+  }
+
+  /* ===========================================================
+     openAddKeyModal — inline modal for adding / updating a
+     platform API credential.  POSTs to /api/credentials/store.
+     =========================================================== */
+  function openAddKeyModal(integrationId, integrationLabel) {
+    // Pre-populate known integration options
+    var KNOWN = [
+      {id:'groq',           label:'Groq',              hint:'gsk_…'},
+      {id:'openai',         label:'OpenAI',             hint:'sk-…'},
+      {id:'anthropic',      label:'Anthropic / Claude', hint:'sk-ant-…'},
+      {id:'sendgrid',       label:'SendGrid',           hint:'SG.…'},
+      {id:'slack',          label:'Slack Bot Token',    hint:'xoxb-…'},
+      {id:'stripe',         label:'Stripe Secret Key',  hint:'sk_live_… or sk_test_…'},
+      {id:'hubspot',        label:'HubSpot API Key',    hint:'pat-…'},
+      {id:'github',         label:'GitHub Token',       hint:'ghp_… or github_pat_…'},
+      {id:'twilio',         label:'Twilio Auth Token',  hint:''},
+      {id:'google_calendar',label:'Google Calendar Key',hint:''},
+      {id:'google_sheets',  label:'Google Sheets Key',  hint:''},
+      {id:'datadog',        label:'Datadog API Key',    hint:''},
+      {id:'openweather',    label:'OpenWeather API Key',hint:''},
+      {id:'postgres',       label:'PostgreSQL URL',     hint:'postgresql://user:pass@host/db'},
+      {id:'redis',          label:'Redis URL',          hint:'redis://…'},
+      {id:'notion',         label:'Notion API Key',     hint:'secret_…'},
+      {id:'airtable',       label:'Airtable API Key',   hint:'pat…'},
+      {id:'jira',           label:'Jira API Token',     hint:''},
+      {id:'salesforce',     label:'Salesforce Key',     hint:''},
+      {id:'discord',        label:'Discord Bot Token',  hint:''},
+      {id:'telegram',       label:'Telegram Bot Token', hint:''},
+      {id:'zoom',           label:'Zoom Client Secret', hint:''},
+      {id:'monday',         label:'Monday.com API Key', hint:''},
+      {id:'shopify',        label:'Shopify Access Token',hint:'shpat_…'},
+      {id:'twitch',         label:'Twitch Client Secret',hint:''},
+      {id:'pagerduty',      label:'PagerDuty API Key',  hint:''},
+      {id:'matrix',         label:'Matrix Access Token',hint:'syt_…'},
+      {id:'ollama',         label:'Ollama Host URL',    hint:'http://localhost:11434'},
+    ];
+    var selectOpts = KNOWN.map(function(k) {
+      return '<option value="' + esc(k.id) + '" data-hint="' + esc(k.hint) + '"' +
+        (k.id === integrationId ? ' selected' : '') + '>' + esc(k.label) + '</option>';
+    }).join('');
+
+    var modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
+    modal.innerHTML =
+      '<div style="background:#111827;border:1px solid rgba(255,255,255,0.14);border-radius:12px;max-width:480px;width:100%;padding:28px;">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">' +
+          '<h3 style="font-size:17px;font-weight:700;margin:0;">🔑 ' + esc(integrationLabel || 'Add API Credential') + '</h3>' +
+          '<button id="cred-modal-close" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:20px;line-height:1;">✕</button>' +
+        '</div>' +
+
+        '<div id="cred-modal-banner" style="display:none;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:13px;"></div>' +
+
+        '<div style="margin-bottom:14px;">' +
+          '<label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:6px;font-weight:500;">Integration</label>' +
+          '<select id="cred-modal-select" class="murphy-input" style="width:100%;">' +
+            '<option value="">— choose an integration —</option>' +
+            selectOpts +
+          '</select>' +
+        '</div>' +
+
+        '<div style="margin-bottom:6px;">' +
+          '<label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:6px;font-weight:500;">API Key / Secret <span style="color:#6b7280;font-weight:400;">(stored as platform secret — not visible after save)</span></label>' +
+          '<input id="cred-modal-key" type="password" class="murphy-input" placeholder="Paste your API key or secret…" autocomplete="off" style="width:100%;font-family:monospace;" />' +
+          '<div id="cred-modal-hint" style="font-size:11px;color:#6b7280;margin-top:4px;"></div>' +
+        '</div>' +
+
+        '<div style="display:flex;align-items:center;gap:8px;margin:10px 0 18px;">' +
+          '<input type="checkbox" id="cred-modal-show" style="cursor:pointer;">' +
+          '<label for="cred-modal-show" style="font-size:12px;color:var(--text-muted);cursor:pointer;">Show key while typing</label>' +
+        '</div>' +
+
+        '<div style="display:flex;gap:10px;">' +
+          '<button id="cred-modal-save" class="murphy-btn murphy-btn-primary" style="flex:1;font-weight:600;">Save Secret</button>' +
+          '<button id="cred-modal-cancel" class="murphy-btn murphy-btn-secondary" style="flex:1;">Cancel</button>' +
+        '</div>' +
+        '<div style="margin-top:12px;font-size:11px;color:#6b7280;text-align:center;">' +
+          'Secrets are written to the server environment file and never returned to the browser.' +
+        '</div>' +
+      '</div>';
+
+    document.body.appendChild(modal);
+
+    var selEl    = modal.querySelector('#cred-modal-select');
+    var keyEl    = modal.querySelector('#cred-modal-key');
+    var hintEl   = modal.querySelector('#cred-modal-hint');
+    var showEl   = modal.querySelector('#cred-modal-show');
+    var saveEl   = modal.querySelector('#cred-modal-save');
+    var bannerEl = modal.querySelector('#cred-modal-banner');
+
+    // Update hint text when integration changes
+    function updateHint() {
+      var opt = selEl.options[selEl.selectedIndex];
+      var hint = opt ? (opt.getAttribute('data-hint') || '') : '';
+      hintEl.textContent = hint ? 'Format: ' + hint : '';
+      if (!keyEl.value && hint) keyEl.placeholder = hint;
+    }
+    selEl.addEventListener('change', updateHint);
+    updateHint();
+
+    // Toggle visibility
+    showEl.addEventListener('change', function() {
+      keyEl.type = showEl.checked ? 'text' : 'password';
+    });
+
+    function showBanner(msg, type) {
+      bannerEl.style.display = '';
+      bannerEl.style.background = type === 'success' ? '#064e3b' : '#450a0a';
+      bannerEl.style.border = '1px solid ' + (type === 'success' ? '#10b981' : '#ef4444');
+      bannerEl.style.color  = type === 'success' ? '#10b981' : '#f87171';
+      bannerEl.textContent  = msg;
+    }
+
+    // Save
+    saveEl.addEventListener('click', async function() {
+      var integration = selEl.value.trim();
+      var credential  = keyEl.value.trim();
+      if (!integration) { showBanner('⚠ Please select an integration.', 'error'); selEl.focus(); return; }
+      if (!credential)  { showBanner('⚠ Please paste your API key or secret.', 'error'); keyEl.focus(); return; }
+
+      saveEl.disabled    = true;
+      saveEl.textContent = 'Saving…';
+      bannerEl.style.display = 'none';
+
+      try {
+        var r = await api.post('/credentials/store', { integration: integration, credential: credential });
+        var ok = r && (r.ok || (r.data && r.data.success) || r.success);
+        if (ok) {
+          showBanner('✓ ' + (selEl.options[selEl.selectedIndex].text) + ' saved successfully.', 'success');
+          keyEl.value    = '';
+          saveEl.textContent = 'Saved ✓';
+          setTimeout(function() {
+            modal.remove();
+            // Refresh whichever view is currently active
+            if (views[currentView]) views[currentView]();
+          }, 1200);
+        } else {
+          var errMsg = (r && r.data && r.data.error) || (r && r.error) || 'Failed to save credential';
+          showBanner('✗ ' + errMsg, 'error');
+          saveEl.disabled    = false;
+          saveEl.textContent = 'Save Secret';
+        }
+      } catch (err) {
+        showBanner('✗ ' + (err.message || 'Network error'), 'error');
+        saveEl.disabled    = false;
+        saveEl.textContent = 'Save Secret';
+      }
+    });
+
+    // Allow Enter key in the key field to trigger save
+    keyEl.addEventListener('keydown', function(e) { if (e.key === 'Enter') saveEl.click(); });
+
+    // Close handlers
+    modal.querySelector('#cred-modal-close').addEventListener('click', function() { modal.remove(); });
+    modal.querySelector('#cred-modal-cancel').addEventListener('click', function() { modal.remove(); });
+    modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
+
+    // Focus the key field if integration is pre-selected, else the select
+    setTimeout(function() { integrationId ? keyEl.focus() : selEl.focus(); }, 50);
   }
 
   /* ===========================================================
@@ -1970,14 +2167,20 @@
         });
       });
 
+      contentEl.querySelectorAll('[data-addkey-id]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          openAddKeyModal(btn.getAttribute('data-addkey-id'), btn.getAttribute('data-addkey-label'));
+        });
+      });
+
     } catch (e) {
       contentEl.innerHTML = sectionHeader('API Setup') + errorCard(e.message, '#setup');
     }
   }
 
   function renderSetupItem(item) {
-    var statusColor = item.configured ? '#10b981' : '#f59e0b';
     var statusIcon  = item.configured ? '✅' : '⬜';
+    var integId     = (item.id || '').replace('integration_','').replace('llm_','');
     var html = '<div style="display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);">';
     html += '<span style="font-size:18px;margin-top:2px;">' + statusIcon + '</span>';
     html += '<div style="flex:1;">';
@@ -1989,8 +2192,12 @@
     html += '<div style="font-size:11px;color:var(--text-muted);margin-top:3px;">' + esc(item.description || '') + '</div>';
     if (!item.configured) {
       html += '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">';
-      html += '<button class="murphy-btn murphy-btn-primary" data-guide-id="' + esc(item.id.replace('integration_','').replace('llm_','')) + '" style="padding:3px 10px;font-size:11px;">📖 Get Guide</button>';
-      html += '<a href="#credentials" onclick="navigate(\'credentials\')" class="murphy-btn murphy-btn-secondary" style="padding:3px 10px;font-size:11px;">🔑 Add Key</a>';
+      html += '<button class="murphy-btn murphy-btn-primary" data-guide-id="' + esc(integId) + '" style="padding:3px 10px;font-size:11px;">📖 Get Guide</button>';
+      html += '<button class="murphy-btn murphy-btn-secondary" data-addkey-id="' + esc(integId) + '" data-addkey-label="' + esc(item.label) + '" style="padding:3px 10px;font-size:11px;">🔑 Add Key</button>';
+      html += '</div>';
+    } else {
+      html += '<div style="margin-top:6px;">';
+      html += '<button class="murphy-btn murphy-btn-secondary" data-addkey-id="' + esc(integId) + '" data-addkey-label="' + esc(item.label) + '" style="padding:2px 8px;font-size:11px;">🔄 Update Key</button>';
       html += '</div>';
     }
     html += '</div></div>';
@@ -2032,13 +2239,17 @@
         inner += '<div style="margin-top:16px;font-size:11px;color:#9ca3af;background:rgba(255,255,255,0.04);padding:10px;border-radius:6px;">' + esc(guide.notes) + '</div>';
       }
       inner += '<div style="margin-top:20px;display:flex;gap:10px;">';
-      inner += '<a href="#credentials" onclick="navigate(\'credentials\');modal.remove();" class="murphy-btn murphy-btn-primary" style="flex:1;text-align:center;">🔑 Add Key Now</a>';
+      inner += '<button id="guide-addkey" class="murphy-btn murphy-btn-primary" style="flex:1;text-align:center;">🔑 Add Key Now</button>';
       inner += '<button id="guide-close2" class="murphy-btn murphy-btn-secondary" style="flex:1;">Close</button>';
       inner += '</div></div>';
       modal.innerHTML = inner;
       document.body.appendChild(modal);
       modal.querySelector('#guide-close').onclick  = function() { modal.remove(); };
       modal.querySelector('#guide-close2').onclick = function() { modal.remove(); };
+      modal.querySelector('#guide-addkey').onclick  = function() {
+        modal.remove();
+        openAddKeyModal(integrationId, guide.name || integrationId);
+      };
       modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
     } catch (e) {
       console.warn('Could not load guide: ' + e.message);
