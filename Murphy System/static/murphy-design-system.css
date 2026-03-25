@@ -1316,6 +1316,7 @@ body.murphy-light .murphy-topbar {
   display: block;
   width: 100%;
   height: 100%;
+  max-width: none;   /* override the global reset */
 }
 
 /* ============================================================
@@ -1328,7 +1329,14 @@ body.murphy-light .murphy-topbar {
   overflow: hidden;
 }
 
-.murphy-split-pane-top,
+.murphy-split-pane-top {
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  position: relative;
+}
+
 .murphy-split-pane-bottom {
   overflow: auto;
   flex: 1;
