@@ -4,14 +4,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Murphy System — AI Business Operating System | 1,100+ Modules, Local LLM, Full Automation</title>
-<meta name="description" content="Murphy System is a complete AI business OS: onboard Ollama LLM, hosted mail server, Matrix messaging bridge, HITL safety gates, Shadow Agents and 1,100+ interconnected modules all wired to 453 live API endpoints.">
+<title>Murphy System — AI Business Operating System | Automate Operations, Ensure Compliance, Replace 12+ SaaS Tools</title>
+<meta name="description" content="Murphy System solves real business problems: AI automation, unified communications, compliance, trading, and custom integrations — one platform, your infrastructure, 1,100+ modules.">
 <meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large">
 <link rel="canonical" href="https://murphy.systems/">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://murphy.systems/">
 <meta property="og:title" content="Murphy System — AI Business Operating System">
-<meta property="og:description" content="One platform. 1,100+ modules. Local LLM via Ollama. Matrix messaging. Full automation from intake to delivery.">
+<meta property="og:description" content="Stop hiring for repetitive work. Kill SaaS sprawl. Never fail an audit. One platform solves it all.">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Murphy System","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"AI-powered business OS: 1,100+ modules, onboard Ollama LLM, Matrix bridge, mail server, HITL gates, Shadow Agents, compliance automation, 453 API endpoints.","url":"https://murphy.systems","offers":[{"@type":"Offer","name":"Free","price":"0","priceCurrency":"USD"},{"@type":"Offer","name":"Solo","price":"99","priceCurrency":"USD"},{"@type":"Offer","name":"Business","price":"299","priceCurrency":"USD"}]}</script>
 <link rel="icon" href="static/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="static/murphy-design-system.css">
@@ -85,27 +85,47 @@ h2.stitle{font-size:clamp(1.8rem,4vw,2.8rem);font-weight:800;line-height:1.2;bac
 .sp-text{font-size:.85rem;color:var(--muted);white-space:nowrap;}
 .ind-icons{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;justify-content:center;}
 .ind-pill{display:inline-flex;align-items:center;gap:.4rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:.3rem .8rem;font-size:.75rem;color:#aaa;}
-/* Architecture grid */
-#architecture{background:var(--bg3);}
-.arch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:1rem;margin-top:2rem;}
-.arch-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1.25rem;display:flex;flex-direction:column;gap:.5rem;transition:border-color .2s,transform .15s;}
-.arch-card:hover{border-color:rgba(0,212,170,.4);transform:translateY(-2px);}
-.arch-card-title{font-size:.85rem;font-weight:700;color:var(--cyan);}
-.arch-card-count{font-size:.75rem;font-family:'Courier New',monospace;color:var(--teal);}
-.arch-card-desc{font-size:.75rem;color:var(--muted);line-height:1.4;}
-/* Integrations */
-.int-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.25rem;margin-top:2rem;}
-.int-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.5rem;display:flex;flex-direction:column;gap:.5rem;transition:border-color .25s,transform .2s;}
-.int-card:hover{border-color:rgba(0,255,65,.35);transform:translateY(-2px);}
-.int-card-header{display:flex;align-items:center;gap:.75rem;}
-.int-card-icon{font-size:1.4rem;}
-.int-card-name{font-size:.95rem;font-weight:700;}
-.int-card-status{margin-left:auto;font-size:.7rem;font-family:'Courier New',monospace;}
-.int-card-status.live{color:var(--green);}
-.int-card-status.config{color:#f59e0b;}
-.int-card-desc{font-size:.8rem;color:var(--muted);line-height:1.5;}
-.int-card-link{font-size:.78rem;color:var(--teal);text-decoration:none;display:inline-flex;align-items:center;gap:.3rem;margin-top:.25rem;}
-.int-card-link:hover{color:var(--cyan);}
+/* Solutions section */
+#solutions{background:var(--bg3);}
+.sol-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;margin-top:2rem;}
+.sol-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1.75rem;display:flex;flex-direction:column;gap:.6rem;transition:border-color .25s,transform .2s,box-shadow .25s;}
+.sol-card:hover{border-color:rgba(0,212,170,.45);transform:translateY(-4px);box-shadow:0 10px 35px rgba(0,212,170,.1);}
+.sol-icon{font-size:2rem;margin-bottom:.25rem;}
+.sol-problem{font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#f59e0b;margin-bottom:.25rem;}
+.sol-card h3{font-size:1rem;font-weight:800;color:#fff;margin-bottom:.25rem;}
+.sol-card p{font-size:.83rem;color:var(--muted);line-height:1.55;flex:1;}
+.sol-outcome{font-size:.78rem;font-weight:700;color:var(--green);font-family:'Courier New',monospace;background:rgba(0,255,65,.06);border:1px solid rgba(0,255,65,.15);border-radius:6px;padding:.3rem .65rem;display:inline-block;margin-top:.25rem;}
+.sol-card .btn-s{font-size:.78rem;padding:.4rem .9rem;margin-top:.5rem;width:fit-content;}
+/* Industries section */
+#industries{background:var(--bg);}
+.ind-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.25rem;margin-top:2rem;}
+.ind-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.4rem;transition:border-color .25s,transform .2s,box-shadow .25s;}
+.ind-card:hover{border-color:rgba(0,255,255,.4);transform:translateY(-3px);box-shadow:0 8px 28px rgba(0,255,255,.07);}
+.ind-card-icon{font-size:1.6rem;margin-bottom:.6rem;}
+.ind-card h3{font-size:.9rem;font-weight:800;color:var(--cyan);margin-bottom:.3rem;}
+.ind-card-pain{font-size:.75rem;color:#f59e0b;font-weight:600;margin-bottom:.6rem;}
+.ind-card ul{list-style:none;display:flex;flex-direction:column;gap:.3rem;margin-bottom:.8rem;}
+.ind-card ul li{font-size:.75rem;color:var(--muted);display:flex;align-items:flex-start;gap:.4rem;}
+.ind-card ul li::before{content:'▸';color:var(--teal);flex-shrink:0;margin-top:.05rem;}
+.ind-card .btn-s{font-size:.72rem;padding:.3rem .7rem;width:100%;justify-content:center;}
+/* How It Works */
+#how-it-works{background:var(--bg3);}
+/* Inline Demo */
+#demo{background:var(--bg);}
+.demo-inline-wrap{background:#000;border:1px solid rgba(0,255,65,.25);border-radius:16px;padding:2rem;margin-top:2rem;}
+.demo-inline-header{display:flex;align-items:center;gap:.5rem;margin-bottom:1.25rem;font-size:.8rem;font-family:'Courier New',monospace;color:var(--muted);}
+.demo-inline-header::before{content:'● ● ●';letter-spacing:.15em;margin-right:.25rem;}
+.demo-inline-header span{color:var(--green);}
+.demo-term-inline{font-family:'Courier New',monospace;font-size:.82rem;color:var(--green);min-height:180px;max-height:280px;overflow-y:auto;line-height:1.75;margin-bottom:1rem;}
+.demo-prompt-row{display:flex;align-items:center;gap:.5rem;background:#0a0a0a;border:1px solid rgba(0,255,65,.35);border-radius:8px;padding:.55rem .75rem;}
+.demo-prompt-dollar{color:var(--green);font-family:'Courier New',monospace;font-size:1rem;font-weight:700;}
+.demo-prompt-input{flex:1;background:transparent;border:none;outline:none;color:var(--green);font-family:'Courier New',monospace;font-size:.9rem;}
+.demo-run-btn{padding:.3rem .8rem;font-size:.8rem;border-radius:6px;}
+.demo-chips{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.75rem;}
+.demo-chip{background:rgba(0,212,170,.08);border:1px solid rgba(0,212,170,.28);color:var(--teal);font-size:.76rem;font-weight:600;padding:.28rem .65rem;border-radius:20px;cursor:pointer;transition:background .15s;}
+.demo-chip:hover{background:rgba(0,212,170,.2);}
+.demo-cursor{display:inline-block;width:.5em;height:.9em;background:var(--green);vertical-align:text-bottom;animation:blink .7s step-end infinite;}
+@keyframes blink{50%{opacity:0;}}
 /* AI section */
 #ai-engine{background:var(--bg3);}
 .seg-layout{display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center;}
@@ -144,19 +164,39 @@ h2.stitle{font-size:clamp(1.8rem,4vw,2.8rem);font-weight:800;line-height:1.2;bac
 .pamt span{font-size:.9rem;font-weight:400;color:var(--muted);}
 .pdesc{font-size:.82rem;color:var(--muted);margin:.75rem 0 1.25rem;flex:1;}
 .pcard .btn-p{width:100%;justify-content:center;font-size:.85rem;padding:.6rem 1rem;}
+/* Partner section */
+#partner{background:var(--bg);}
+.partner-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;margin-top:2rem;}
+.partner-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.5rem;text-align:center;transition:border-color .25s,transform .2s;}
+.partner-card:hover{border-color:rgba(0,212,170,.4);transform:translateY(-3px);}
+.partner-card-icon{font-size:2rem;margin-bottom:.75rem;}
+.partner-card h3{font-size:.95rem;font-weight:700;color:var(--cyan);margin-bottom:.4rem;}
+.partner-card p{font-size:.82rem;color:var(--muted);line-height:1.55;}
 /* Stats */
-#proof{background:var(--bg);}
+#proof{background:var(--bg3);}
 .stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.5rem;text-align:center;transition:border-color .25s,transform .2s;}
 .stat-card:hover{border-color:rgba(0,255,65,.4);transform:translateY(-3px);}
 .snum{font-size:2.4rem;font-weight:900;font-family:'Courier New',monospace;background:linear-gradient(135deg,var(--green),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.1;margin-bottom:.4rem;}
 .slbl{font-size:.85rem;color:var(--muted);}
 /* Guarantee */
-#guarantee{background:var(--bg3);}
+#guarantee{background:var(--bg);}
 .gcard{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.5rem;text-align:center;transition:border-color .25s,transform .2s;}
 .gcard:hover{border-color:rgba(0,255,255,.35);transform:translateY(-3px);}
 .gicon{font-size:2rem;margin-bottom:.75rem;}
 .gcard h3{font-size:1rem;font-weight:700;color:var(--cyan);margin-bottom:.4rem;}
 .gcard p{font-size:.83rem;color:var(--muted);}
+/* Under the Hood collapsible */
+#under-the-hood{background:var(--bg3);}
+.uth-toggle{background:none;border:1px solid var(--border);border-radius:8px;color:var(--teal);font-size:.88rem;font-weight:600;padding:.6rem 1.2rem;cursor:pointer;display:flex;align-items:center;gap:.5rem;transition:border-color .2s,background .2s;margin-top:1.5rem;}
+.uth-toggle:hover{border-color:rgba(0,212,170,.4);background:rgba(0,212,170,.06);}
+.uth-content{display:none;margin-top:1.5rem;}
+.uth-content.open{display:block;}
+.arch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:1rem;margin-top:1.5rem;}
+.arch-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1.25rem;display:flex;flex-direction:column;gap:.5rem;transition:border-color .2s,transform .15s;}
+.arch-card:hover{border-color:rgba(0,212,170,.4);transform:translateY(-2px);}
+.arch-card-title{font-size:.85rem;font-weight:700;color:var(--cyan);}
+.arch-card-count{font-size:.75rem;font-family:'Courier New',monospace;color:var(--teal);}
+.arch-card-desc{font-size:.75rem;color:var(--muted);line-height:1.4;}
 /* Final CTA */
 #final-cta{padding:6rem 2rem;text-align:center;background:radial-gradient(ellipse 70% 60% at 50% 50%,rgba(0,212,170,.1) 0%,transparent 70%);border-top:1px solid var(--border);}
 #final-cta h2{font-size:clamp(2rem,4vw,3rem);font-weight:900;background:linear-gradient(135deg,#fff 0%,var(--cyan) 60%,var(--teal) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:1rem;}
@@ -177,17 +217,7 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
 .mclose:hover{color:var(--text);}
 .mtitle{font-size:1.3rem;font-weight:700;color:var(--cyan);margin-bottom:.5rem;}
 .msub{color:var(--muted);font-size:.9rem;margin-bottom:1.5rem;}
-.demo-term{background:#000;border:1px solid rgba(0,255,65,.2);border-radius:10px;padding:1.25rem;font-family:'Courier New',monospace;font-size:.82rem;color:var(--green);min-height:180px;max-height:300px;overflow-y:auto;line-height:1.75;}
-.demo-input-wrap{margin-bottom:.75rem;}
-.demo-prompt-row{display:flex;align-items:center;gap:.5rem;background:#000;border:1px solid rgba(0,255,65,.35);border-radius:8px;padding:.55rem .75rem;}
-.demo-prompt-dollar{color:var(--green);font-family:'Courier New',monospace;font-size:1rem;font-weight:700;}
-.demo-prompt-input{flex:1;background:transparent;border:none;outline:none;color:var(--green);font-family:'Courier New',monospace;font-size:.9rem;}
-.demo-run-btn{padding:.3rem .8rem;font-size:.8rem;border-radius:6px;}
-.demo-chips{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.6rem;}
-.demo-chip{background:rgba(0,212,170,.08);border:1px solid rgba(0,212,170,.28);color:var(--teal);font-size:.76rem;font-weight:600;padding:.28rem .65rem;border-radius:20px;cursor:pointer;transition:background .15s;}
-.demo-chip:hover{background:rgba(0,212,170,.2);}
-.demo-cursor{display:inline-block;width:.5em;height:.9em;background:var(--green);vertical-align:text-bottom;animation:blink .7s step-end infinite;}
-@keyframes blink{50%{opacity:0;}}
+.modal-demo-term{background:#000;border:1px solid rgba(0,255,65,.2);border-radius:10px;padding:1.25rem;font-family:'Courier New',monospace;font-size:.82rem;color:var(--green);min-height:180px;max-height:300px;overflow-y:auto;line-height:1.75;}
 /* Mobile */
 @media(max-width:768px){
   .murphy-nav-links{display:none;}
@@ -197,9 +227,9 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
   .g2,.g3,.g4{grid-template-columns:1fr 1fr;}
   .seg-layout{grid-template-columns:1fr;}
   .seg-vis{display:none;}
-  .int-grid,.arch-grid{grid-template-columns:1fr;}
+  .sol-grid,.ind-grid,.partner-grid{grid-template-columns:1fr 1fr;}
 }
-@media(max-width:480px){.g2,.g3,.g4{grid-template-columns:1fr;}}
+@media(max-width:480px){.g2,.g3,.g4,.sol-grid,.ind-grid,.partner-grid{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
@@ -212,13 +242,12 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
     <span class="topbar-brand-name">Murphy System</span>
   </a>
   <nav class="murphy-nav-links" id="main-nav" role="menubar">
-    <a href="#architecture" role="menuitem">Architecture</a>
-    <a href="#integrations" role="menuitem">Integrations</a>
-    <a href="#ai-engine" role="menuitem">AI Engine</a>
-    <a href="#compliance" role="menuitem">Compliance</a>
+    <a href="#solutions" role="menuitem">Solutions</a>
+    <a href="#industries" role="menuitem">Industries</a>
+    <a href="#demo" role="menuitem">Demo</a>
+    <a href="#partner" role="menuitem">Partner</a>
     <a href="#pricing" role="menuitem">Pricing</a>
     <a href="/ui/grant-wizard" role="menuitem">Financing</a>
-    <a href="#demo-modal" id="demo-nav-btn" role="menuitem">Demo</a>
   </nav>
   <div class="topbar-right">
     <span class="sys-pill" id="sys-status-pill" title="Live system status"><span class="dot"></span><span id="sys-status-text">checking&#8230;</span></span>
@@ -234,29 +263,29 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
 <section id="hero" aria-labelledby="hero-h">
   <div class="hero-inner">
     <div class="hero-badge"><span class="dot" aria-hidden="true"></span>Open Beta &#8212; 537,071 lines shipped</div>
-    <h1 id="hero-h">The AI Operating System<br>for Your Entire Business.</h1>
-    <p class="hero-sub">Murphy replaces 12+ SaaS tools with one unified platform: onboard Ollama LLM, Matrix messaging, hosted mail, HITL safety gates, Shadow Agents, and 1,100+ interconnected modules &#8212; all running on your infrastructure.</p>
+    <h1 id="hero-h">Stop Patching Tools.<br>Start Running Your Business.</h1>
+    <p class="hero-sub">Murphy replaces your stack of disconnected SaaS tools with one unified AI operating system &#8212; automating operations, enforcing compliance, and keeping you in control. Your infrastructure. Your data.</p>
     <div class="hero-ctas">
       <a class="btn-p lg" href="/ui/signup">&#9889; Start Free &#8212; No Card Required</a>
-      <a class="btn-s lg" href="#demo-modal" id="hero-demo-btn">&#9654; Live Demo</a>
+      <a class="btn-s lg" href="#demo" id="hero-demo-btn">&#9654; See It Live</a>
     </div>
     <p class="hero-note">Free tier forever &#183; No setup fees &#183; Self-hostable</p>
     <div class="stats-row" aria-label="Platform statistics">
-      <span class="stat-badge">537,071 lines of production code</span>
-      <span class="stat-badge">24,341 test functions</span>
-      <span class="stat-badge">1,100+ modules</span>
+      <span class="stat-badge">60% avg ops cost reduction</span>
+      <span class="stat-badge">12+ SaaS tools replaced</span>
+      <span class="stat-badge">Always audit-ready</span>
     </div>
     <div class="sp-strip" aria-label="Industries served">
-      <span class="sp-text">Used by teams in:</span>
+      <span class="sp-text">Solving real problems for:</span>
       <div class="ind-icons">
         <span class="ind-pill">&#127981; Manufacturing</span>
         <span class="ind-pill">&#9878;&#65039; Legal</span>
         <span class="ind-pill">&#127973; Healthcare</span>
         <span class="ind-pill">&#127959; Construction</span>
         <span class="ind-pill">&#128176; Finance</span>
-        <span class="ind-pill">&#127918; Gaming</span>
-        <span class="ind-pill">&#129302; Robotics</span>
         <span class="ind-pill">&#127891; Education</span>
+        <span class="ind-pill">&#128187; SaaS / Tech</span>
+        <span class="ind-pill">&#128203; Professional Services</span>
       </div>
     </div>
   </div>
@@ -279,146 +308,255 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
   </div>
 </section>
 
-<!-- ARCHITECTURE -->
-<section id="architecture" aria-labelledby="arch-h">
+<!-- SOLUTIONS -->
+<section id="solutions" aria-labelledby="sol-h">
   <div class="si">
-    <span class="slabel">Platform Architecture</span>
-    <h2 class="stitle" id="arch-h">71 Subsystems.<br>1,166 Registered Modules.</h2>
-    <p class="ssub">Every business function is a real, tested module with its own API endpoint, Matrix room, and bot persona. Not a feature checklist &#8212; living, testable code.</p>
-    <div class="arch-grid" role="list">
-      <div class="arch-card" role="listitem"><div class="arch-card-title">&#9889; Execution Engine</div><div class="arch-card-count">/api/execute &#183; /api/compute-plane/*</div><div class="arch-card-desc">Deterministic routing, two-phase commit, task dispatch and orchestration across all subsystems.</div></div>
-      <div class="arch-card" role="listitem"><div class="arch-card-title">&#129504; AI / LLM Layer</div><div class="arch-card-count">/api/llm/* &#183; Ollama + cloud fallback</div><div class="arch-card-desc">Onboard Ollama LLM with cloud fallback. Murphy Foundation Model, neuro-symbolic reasoning, swarm inference.</div></div>
-      <div class="arch-card" role="listitem"><div class="arch-card-title">&#128274; Security Plane</div><div class="arch-card-count">/api/security/* &#183; /api/compliance/*</div><div class="arch-card-desc">CSRF, RBAC deny-by-default, rate limiting, scheduled key rotation, input validation, full audit logging.</div></div>
-      <div class="arch-card" role="listitem"><div class="arch-card-title">&#128172; Matrix Bridge</div><div class="arch-card-count">/api/matrix/* &#183; 287 rooms</div><div class="arch-card-desc">Matrix protocol messaging with 287 registered rooms, bot personas, HITL approvals over chat, webhooks.</div></div>
-      <div class="arch-card" role="listitem"><div class="arch-card-title">&#9993;&#65039; Mail Server</div><div class="arch-card-count">/api/email/* &#183; SMTP/IMAP</div><div class="arch-card-desc">Hosted email on murphy.systems domains. Automated send, account management, SMTP/IMAP config via API.</div></div>
-      <div class="arch-card" role="listitem"><div class="arch-card-title">&#129309; HITL Gates</div><div class="arch-card-count">/api/hitl/* &#183; /api/gate-synthesis/*</div><div class="arch-card-desc">Human-in-the-loop approval queues with auto-graduation, executive/security/compliance gate layers.</div></div>
-      <div class="arch-card" role="listitem"><div class="arch-card-title">&#128257; Self-Healing</div><div class="arch-card-count">/api/self-fix/* &#183; /api/repair/*</div><div class="arch-card-desc">Automated repair proposals, pattern detection, self-improvement engine with HITL review.</div></div>
-      <div class="arch-card" role="listitem"><div class="arch-card-title">&#128029; Swarm Agents</div><div class="arch-card-count">/api/swarm/* &#183; /api/agents/*</div><div class="arch-card-desc">Multi-agent execution, shadow agent training, Rosetta state consensus, parallel task swarms.</div></div>
-      <div class="arch-card" role="listitem"><div class="arch-card-title">&#128202; Trading Engine</div><div class="arch-card-count">/api/trading/* &#183; /api/market/*</div><div class="arch-card-desc">Paper trading, real-time market data, compliance graduation, live order management with risk gates.</div></div>
-      <div class="arch-card" role="listitem"><div class="arch-card-title">&#127959; Gate Synthesis</div><div class="arch-card-count">/api/gate-synthesis/*</div><div class="arch-card-desc">Dynamic gate generation, failure-mode enumeration, retirement conditions, authority matrices.</div></div>
-      <div class="arch-card" role="listitem"><div class="arch-card-title">&#128203; Workflow Terminal</div><div class="arch-card-count">/api/workflow-terminal/* &#183; /ui/terminal-*</div><div class="arch-card-desc">9 terminal UIs: integrated, unified, architect, orgchart, costs, operator, worker, orchestrator, enhanced.</div></div>
-      <div class="arch-card" role="listitem"><div class="arch-card-title">&#128225; Telemetry &amp; Observability</div><div class="arch-card-count">/api/telemetry &#183; Prometheus metrics</div><div class="arch-card-desc">Structured telemetry, Prometheus metrics, drift detection, Lyapunov stability monitoring.</div></div>
-    </div>
-  </div>
-</section>
+    <span class="slabel">Solutions</span>
+    <h2 class="stitle" id="sol-h">What Problem<br>Can We Solve Today?</h2>
+    <p class="ssub">Every Murphy solution targets a real, expensive business problem &#8212; with measurable outcomes, not feature lists.</p>
+    <div class="sol-grid" role="list">
 
-<!-- INTEGRATIONS -->
-<section id="integrations" aria-labelledby="int-h" style="background:var(--bg);">
-  <div class="si">
-    <span class="slabel">Backend Integrations</span>
-    <h2 class="stitle" id="int-h">Every System Wired.<br>Nothing Left Disconnected.</h2>
-    <p class="ssub">Every integration ships with a live API endpoint, a dedicated UI page, and test coverage. Configure once &#8212; Murphy handles the rest.</p>
-    <div class="int-grid" role="list">
-
-      <div class="int-card" role="listitem">
-        <div class="int-card-header">
-          <span class="int-card-icon">&#129422;</span>
-          <span class="int-card-name">Ollama (Onboard LLM)</span>
-          <span class="int-card-status live">&#9679; LIVE</span>
-        </div>
-        <p class="int-card-desc">Local language model inference &#8212; zero data leaves your server. Pull models, check status, configure provider fallback to OpenAI/Anthropic/etc.</p>
-        <a class="int-card-link" href="/ui/terminal-integrations#llm">Configure LLM &#8594; <code>/api/llm/status</code></a>
+      <div class="sol-card" role="listitem">
+        <div class="sol-icon">&#129504;</div>
+        <div class="sol-problem">Problem: You're hiring for repetitive work</div>
+        <h3>AI Automation</h3>
+        <p>Shadow Agents observe how you work, then propose automations. They graduate through HITL safety gates to full autonomy &#8212; you approve every step.</p>
+        <span class="sol-outcome">&#9660; 60% ops cost reduction</span>
+        <a class="btn-s" href="/ui/signup">Automate Your Ops &#8594;</a>
       </div>
 
-      <div class="int-card" role="listitem">
-        <div class="int-card-header">
-          <span class="int-card-icon">&#9993;&#65039;</span>
-          <span class="int-card-name">Murphy Mail Server</span>
-          <span class="int-card-status live">&#9679; LIVE</span>
-        </div>
-        <p class="int-card-desc">Hosted SMTP/IMAP on murphy.systems. Create accounts, send programmatic email, retrieve config. Full email automation built in &#8212; no SendGrid needed.</p>
-        <a class="int-card-link" href="/ui/terminal-integrations#connections">Configure Mail &#8594; <code>/api/email/config</code></a>
+      <div class="sol-card" role="listitem">
+        <div class="sol-icon">&#128172;</div>
+        <div class="sol-problem">Problem: SaaS sprawl is killing your margins</div>
+        <h3>Unified Communications</h3>
+        <p>Murphy ships with a hosted mail server, Matrix messaging bridge, and 287 communication rooms. One platform. One bill. One admin panel.</p>
+        <span class="sol-outcome">&#9660; One bill, one admin panel</span>
+        <a class="btn-s" href="/ui/terminal-integrations#connections">Kill the Sprawl &#8594;</a>
       </div>
 
-      <div class="int-card" role="listitem">
-        <div class="int-card-header">
-          <span class="int-card-icon">&#128172;</span>
-          <span class="int-card-name">Matrix Bridge</span>
-          <span class="int-card-status live">&#9679; LIVE</span>
-        </div>
-        <p class="int-card-desc">287 Matrix rooms with bot personas. Real-time event dispatch, HITL approvals over chat, command routing (<code>!murphy help</code>), module manifest sync.</p>
-        <a class="int-card-link" href="/ui/matrix">Open Matrix &#8594; <code>/api/matrix/status</code></a>
+      <div class="sol-card" role="listitem">
+        <div class="sol-icon">&#128274;</div>
+        <div class="sol-problem">Problem: Your next audit terrifies you</div>
+        <h3>Compliance Automation</h3>
+        <p>The Compliance as Code Engine auto-detects your regulatory frameworks, scans continuously, and emits remediations. Every action is blockchain-sealed.</p>
+        <span class="sol-outcome">&#9989; Always audit-ready</span>
+        <a class="btn-s" href="/ui/compliance">Get Audit-Ready &#8594;</a>
       </div>
 
-      <div class="int-card" role="listitem">
-        <div class="int-card-header">
-          <span class="int-card-icon">&#128274;</span>
-          <span class="int-card-name">OAuth / SSO</span>
-          <span class="int-card-status config">&#9680; CONFIGURABLE</span>
-        </div>
-        <p class="int-card-desc">Google, GitHub and custom OAuth2 providers. Session tokens, RBAC roles, password reset, MFA-ready architecture out of the box.</p>
-        <a class="int-card-link" href="/ui/login">Auth Portal &#8594; <code>/api/auth/providers</code></a>
+      <div class="sol-card" role="listitem">
+        <div class="sol-icon">&#128200;</div>
+        <div class="sol-problem">Problem: Real capital at risk before you're ready</div>
+        <h3>Trading &amp; Finance</h3>
+        <p>Paper trade with full compliance gates before touching real money. Graduate to live trading only when risk, compliance, and performance criteria are met.</p>
+        <span class="sol-outcome">&#128293; Controlled risk graduation</span>
+        <a class="btn-s" href="/ui/paper-trading">Start Paper Trading &#8594;</a>
       </div>
 
-      <div class="int-card" role="listitem">
-        <div class="int-card-header">
-          <span class="int-card-icon">&#128178;</span>
-          <span class="int-card-name">Billing &amp; Stripe</span>
-          <span class="int-card-status config">&#9680; CONFIGURABLE</span>
-        </div>
-        <p class="int-card-desc">Subscription tiers, checkout, trial management, feature gating and limit checks. Stripe-compatible billing API wired through <code>/api/billing/*</code>.</p>
-        <a class="int-card-link" href="/ui/pricing">Pricing &#8594; <code>/api/billing/tiers</code></a>
+      <div class="sol-card" role="listitem">
+        <div class="sol-icon">&#127758;</div>
+        <div class="sol-problem">Problem: Your tools don't talk to each other</div>
+        <h3>Custom Integrations</h3>
+        <p>Murphy's universal integration framework connects any external service. Register, configure, and execute &#8212; all through a unified API. 100+ services pre-wired.</p>
+        <span class="sol-outcome">&#9889; 100+ services wired</span>
+        <a class="btn-s" href="/ui/partner">Request Integration &#8594;</a>
       </div>
 
-      <div class="int-card" role="listitem">
-        <div class="int-card-header">
-          <span class="int-card-icon">&#128200;</span>
-          <span class="int-card-name">Market Data &amp; Trading</span>
-          <span class="int-card-status live">&#9679; LIVE</span>
-        </div>
-        <p class="int-card-desc">Real-time quotes, candles, instruments. Paper trading with compliance graduation. Coinbase integration. Risk gates before any live order.</p>
-        <a class="int-card-link" href="/ui/paper-trading">Trading &#8594; <code>/api/market/status</code></a>
-      </div>
-
-      <div class="int-card" role="listitem">
-        <div class="int-card-header">
-          <span class="int-card-icon">&#127758;</span>
-          <span class="int-card-name">Universal Integrations</span>
-          <span class="int-card-status live">&#9679; LIVE</span>
-        </div>
-        <p class="int-card-desc">Register any external service. Configure, execute actions, manage credentials securely. 100+ pre-wired services.</p>
-        <a class="int-card-link" href="/ui/terminal-integrations#integrations">Manage &#8594; <code>/api/universal-integrations/services</code></a>
-      </div>
-
-      <div class="int-card" role="listitem">
-        <div class="int-card-header">
-          <span class="int-card-icon">&#128421;&#65039;</span>
-          <span class="int-card-name">Blockchain Audit Trail</span>
-          <span class="int-card-status live">&#9679; LIVE</span>
-        </div>
-        <p class="int-card-desc">Immutable audit blocks for every action. Seal, verify and export the full audit chain at any time via the BAT engine.</p>
-        <a class="int-card-link" href="/ui/terminal-architect">Audit Trail &#8594; <code>/api/bat/health</code></a>
-      </div>
-
-      <div class="int-card" role="listitem">
-        <div class="int-card-header">
-          <span class="int-card-icon">&#128302;</span>
-          <span class="int-card-name">Prometheus Metrics</span>
-          <span class="int-card-status live">&#9679; LIVE</span>
-        </div>
-        <p class="int-card-desc">Metrics exported at <code>/api/telemetry</code>. Integrates with Grafana on Hetzner. Cost-by-bot, heatmap and efficiency dashboards built in.</p>
-        <a class="int-card-link" href="/ui/terminal-unified#costs">Telemetry &#8594; <code>/api/telemetry</code></a>
+      <div class="sol-card" role="listitem">
+        <div class="sol-icon">&#128274;</div>
+        <div class="sol-problem">Problem: Your data is living on someone else's server</div>
+        <h3>Local AI / Privacy First</h3>
+        <p>Murphy runs Ollama on your own infrastructure. Every inference is private. Cloud LLM providers are strictly opt-in fallbacks &#8212; you choose per request.</p>
+        <span class="sol-outcome">&#128274; Zero data leakage</span>
+        <a class="btn-s" href="/ui/terminal-integrations#llm">Go Private &#8594;</a>
       </div>
 
     </div>
   </div>
 </section>
 
-<!-- AI ENGINE -->
+<!-- INDUSTRIES -->
+<section id="industries" aria-labelledby="ind-h">
+  <div class="si">
+    <span class="slabel">Industries</span>
+    <h2 class="stitle" id="ind-h">Built for Your Industry.<br>Not Just &#8220;Any Business.&#8221;</h2>
+    <p class="ssub">Murphy ships with vertical-specific compliance profiles, workflow templates, and integrations for eight major industries.</p>
+    <div class="ind-grid" role="list">
+
+      <div class="ind-card" role="listitem">
+        <div class="ind-card-icon">&#127973;</div>
+        <h3>Healthcare</h3>
+        <div class="ind-card-pain">HIPAA compliance &amp; clinical workflow</div>
+        <ul>
+          <li>HIPAA-compliant automation gates</li>
+          <li>Clinical workflow orchestration</li>
+          <li>Patient data privacy by default</li>
+        </ul>
+        <a class="btn-s" href="/ui/signup?industry=healthcare">See Demo &#8594;</a>
+      </div>
+
+      <div class="ind-card" role="listitem">
+        <div class="ind-card-icon">&#127981;</div>
+        <h3>Manufacturing</h3>
+        <div class="ind-card-pain">SCADA integration &amp; predictive maintenance</div>
+        <ul>
+          <li>OPC-UA / SCADA connectivity</li>
+          <li>Predictive maintenance alerts</li>
+          <li>Production line automation</li>
+        </ul>
+        <a class="btn-s" href="/ui/signup?industry=manufacturing">See Demo &#8594;</a>
+      </div>
+
+      <div class="ind-card" role="listitem">
+        <div class="ind-card-icon">&#128176;</div>
+        <h3>Finance &amp; Banking</h3>
+        <div class="ind-card-pain">SOX/PCI-DSS compliance &amp; trading</div>
+        <ul>
+          <li>SOX &amp; PCI-DSS automation</li>
+          <li>Paper trading graduation path</li>
+          <li>Blockchain audit trail</li>
+        </ul>
+        <a class="btn-s" href="/ui/signup?industry=finance">See Demo &#8594;</a>
+      </div>
+
+      <div class="ind-card" role="listitem">
+        <div class="ind-card-icon">&#9878;&#65039;</div>
+        <h3>Legal</h3>
+        <div class="ind-card-pain">Case management &amp; document automation</div>
+        <ul>
+          <li>Matter &amp; case workflow automation</li>
+          <li>Document generation pipelines</li>
+          <li>Privilege protection gates</li>
+        </ul>
+        <a class="btn-s" href="/ui/signup?industry=legal">See Demo &#8594;</a>
+      </div>
+
+      <div class="ind-card" role="listitem">
+        <div class="ind-card-icon">&#127959;</div>
+        <h3>Construction</h3>
+        <div class="ind-card-pain">Project timelines &amp; safety compliance</div>
+        <ul>
+          <li>Timeline &amp; milestone automation</li>
+          <li>Safety compliance monitoring</li>
+          <li>Subcontractor workflow routing</li>
+        </ul>
+        <a class="btn-s" href="/ui/signup?industry=construction">See Demo &#8594;</a>
+      </div>
+
+      <div class="ind-card" role="listitem">
+        <div class="ind-card-icon">&#128187;</div>
+        <h3>Technology / SaaS</h3>
+        <div class="ind-card-pain">Embed Murphy into your product</div>
+        <ul>
+          <li>White-label AI automation engine</li>
+          <li>API-first, embed anywhere</li>
+          <li>Partner revenue sharing</li>
+        </ul>
+        <a class="btn-s" href="/ui/partner">Partner Program &#8594;</a>
+      </div>
+
+      <div class="ind-card" role="listitem">
+        <div class="ind-card-icon">&#128203;</div>
+        <h3>Professional Services</h3>
+        <div class="ind-card-pain">Multi-client workflow management</div>
+        <ul>
+          <li>Per-client org isolation</li>
+          <li>Billing &amp; invoicing automation</li>
+          <li>Shadow Agent per engagement</li>
+        </ul>
+        <a class="btn-s" href="/ui/signup?industry=services">See Demo &#8594;</a>
+      </div>
+
+      <div class="ind-card" role="listitem">
+        <div class="ind-card-icon">&#127891;</div>
+        <h3>Education</h3>
+        <div class="ind-card-pain">FERPA compliance &amp; curriculum automation</div>
+        <ul>
+          <li>FERPA-compliant data handling</li>
+          <li>Curriculum workflow automation</li>
+          <li>Student privacy by default</li>
+        </ul>
+        <a class="btn-s" href="/ui/signup?industry=education">See Demo &#8594;</a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how-it-works" aria-labelledby="hiw-h" style="background:var(--bg3);">
+  <div class="si">
+    <span class="slabel">How It Works</span>
+    <h2 class="stitle" id="hiw-h">Running Your Business<br>in Four Steps.</h2>
+    <div class="g4" style="margin-top:2rem;" role="list">
+      <article class="card" role="listitem" style="text-align:center;">
+        <div style="display:inline-flex;align-items:center;justify-content:center;width:2.5rem;height:2.5rem;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--cyan));color:#0a0a0a;font-size:1rem;font-weight:800;margin-bottom:1rem;">1</div>
+        <h3>Onboard in Minutes</h3>
+        <p>The onboarding wizard builds your org chart, assigns AI agents to your team, and configures your compliance profile automatically. No IT required.</p>
+      </article>
+      <article class="card" role="listitem" style="text-align:center;">
+        <div style="display:inline-flex;align-items:center;justify-content:center;width:2.5rem;height:2.5rem;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--cyan));color:#0a0a0a;font-size:1rem;font-weight:800;margin-bottom:1rem;">2</div>
+        <h3>Connect Your Stack</h3>
+        <p>Plug in your existing tools via the integrations terminal. Mail, LLM, trading, messaging &#8212; each with real-time status and a live config panel.</p>
+      </article>
+      <article class="card" role="listitem" style="text-align:center;">
+        <div style="display:inline-flex;align-items:center;justify-content:center;width:2.5rem;height:2.5rem;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--cyan));color:#0a0a0a;font-size:1rem;font-weight:800;margin-bottom:1rem;">3</div>
+        <h3>Automate with Confidence</h3>
+        <p>Shadow Agents learn your decisions, propose automations, and earn autonomy through HITL safety gates &#8212; you stay in control at every stage.</p>
+      </article>
+      <article class="card" role="listitem" style="text-align:center;">
+        <div style="display:inline-flex;align-items:center;justify-content:center;width:2.5rem;height:2.5rem;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--cyan));color:#0a0a0a;font-size:1rem;font-weight:800;margin-bottom:1rem;">4</div>
+        <h3>Scale Without Chaos</h3>
+        <p>Add modules, agents, and integrations as you grow. Every action is audit-trailed, every agent is transparent. Nothing is a black box.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- INLINE DEMO -->
+<section id="demo" aria-labelledby="demo-h">
+  <div class="si">
+    <span class="slabel">Live Demo</span>
+    <h2 class="stitle" id="demo-h">Try Murphy.<br>Right Now.</h2>
+    <p class="ssub">Type any business command and see how Murphy routes it to the right module automatically. No login required.</p>
+    <div class="demo-inline-wrap">
+      <div class="demo-inline-header"><span>murphy-system v1.0 — interactive demo</span></div>
+      <div class="demo-term-inline" id="demo-term-inline" aria-live="polite" aria-label="Demo terminal output">
+        <span style="color:var(--muted)">Murphy System v1.0 &#8212; ready. Type a command or click an example below.</span><br>
+        <span class="demo-cursor"></span>
+      </div>
+      <div class="demo-prompt-row">
+        <span class="demo-prompt-dollar">$</span>
+        <input class="demo-prompt-input" id="demo-input-inline" type="text" placeholder="e.g. send invoice to Acme Corp" autocomplete="off" aria-label="Enter a Murphy command">
+        <button class="btn-p demo-run-btn" id="demo-run-inline">Run</button>
+      </div>
+      <div class="demo-chips" role="group" aria-label="Example commands">
+        <button class="demo-chip" data-target="inline" data-cmd="llm status">&#129504; llm status</button>
+        <button class="demo-chip" data-target="inline" data-cmd="email send invoice">&#9993; email invoice</button>
+        <button class="demo-chip" data-target="inline" data-cmd="hitl pending">&#129309; hitl queue</button>
+        <button class="demo-chip" data-target="inline" data-cmd="swarm execute audit">&#128029; swarm audit</button>
+        <button class="demo-chip" data-target="inline" data-cmd="matrix status">&#128172; matrix status</button>
+        <button class="demo-chip" data-target="inline" data-cmd="compliance scan">&#128274; compliance scan</button>
+        <button class="demo-chip" data-target="inline" data-cmd="self-fix status">&#128257; self-fix</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- AI ENGINE — Reframed as Privacy Benefit -->
 <section id="ai-engine" aria-labelledby="ai-h">
   <div class="si">
     <span class="slabel">AI Engine</span>
     <div class="seg-layout">
       <div>
-        <h2 class="stitle" id="ai-h">Local LLM.<br>No Data Leaves.</h2>
-        <p style="color:var(--muted);margin-bottom:1.5rem;">Murphy runs Ollama on your own server. Every inference is private. Cloud providers are optional fallbacks &#8212; you choose what goes where, per request.</p>
+        <h2 class="stitle" id="ai-h">Your Data Never<br>Leaves Your Server.</h2>
+        <p style="color:var(--muted);margin-bottom:1.5rem;">Murphy runs the LLM on your own infrastructure via Ollama. Every AI inference is private. Cloud providers are optional fallbacks &#8212; you decide what goes where, per request.</p>
         <ul class="uc-list">
-          <li>Pull any model: <code>/api/llm/models/pull</code></li>
-          <li>Live model list: <code>/api/llm/models/local</code></li>
-          <li>Test connectivity: <code>/api/llm/test</code></li>
+          <li>Onboard Ollama &#8212; pull any open model</li>
           <li>Multi-provider routing &#8212; local first, cloud fallback</li>
           <li>Murphy Foundation Model for domain-specific tasks</li>
           <li>Swarm inference across multiple agent instances</li>
+          <li>Prompts, data, and outputs stay on your machine</li>
+          <li>Fully auditable &#8212; every inference logged</li>
         </ul>
         <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
           <a class="btn-p" href="/ui/terminal-integrations#llm">Configure LLM</a>
@@ -437,108 +575,14 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
         <span class="tl te">&#10003; Inference: 47ms &#183; tokens/s: 38.2</span>
         <span class="tl te">&#10003; Shadow agent: active on llama3.2</span>
         <span class="tl">  All 6 LLM endpoints: healthy</span>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- MAIL + MATRIX -->
-<section id="comms" aria-labelledby="comms-h" style="background:var(--bg3);">
-  <div class="si">
-    <span class="slabel">Communications Infrastructure</span>
-    <h2 class="stitle" id="comms-h">Mail Server &amp; Matrix.<br>Both Built In.</h2>
-    <p class="ssub">Murphy ships with a hosted mail server and a full Matrix bridge &#8212; not integrations, not webhooks, real infrastructure you control from day one.</p>
-    <div class="g2" style="margin-top:2rem;">
-      <div class="card feat">
-        <div class="card-icon">&#9993;&#65039;</div>
-        <h3>Hosted Mail Server</h3>
-        <p>Create <code>@murphy.systems</code> accounts via API. Send transactional and automated email. Retrieve SMTP/IMAP config for any mail client. Murphy&#8217;s own mail infrastructure &#8212; no SendGrid required.</p>
-        <div style="margin-top:1.25rem;display:flex;flex-direction:column;gap:.4rem;">
-          <code style="font-size:.75rem;color:var(--teal)">POST /api/email/accounts</code>
-          <code style="font-size:.75rem;color:var(--teal)">POST /api/email/send</code>
-          <code style="font-size:.75rem;color:var(--teal)">GET  /api/email/config</code>
-        </div>
-        <a class="btn-s" style="margin-top:1.25rem;font-size:.82rem;" href="/ui/terminal-integrations#connections">Configure Mail</a>
-      </div>
-      <div class="card feat">
-        <div class="card-icon">&#128172;</div>
-        <h3>Matrix Protocol Bridge</h3>
-        <p>287 registered Matrix rooms, each mapped to a subsystem. Bot personas (TriageBot, SecurityBot, LibrarianBot&#8230;) respond to commands. HITL approvals arrive as Matrix messages. Run <code>!murphy help</code> in any room.</p>
-        <div style="margin-top:1.25rem;display:flex;flex-direction:column;gap:.4rem;">
-          <code style="font-size:.75rem;color:var(--teal)">GET  /api/matrix/status</code>
-          <code style="font-size:.75rem;color:var(--teal)">GET  /api/matrix/rooms</code>
-          <code style="font-size:.75rem;color:var(--teal)">POST /api/matrix/send</code>
-        </div>
-        <a class="btn-s" style="margin-top:1.25rem;font-size:.82rem;" href="/ui/matrix">Open Matrix UI</a>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- HOW IT WORKS -->
-<section id="how-it-works" aria-labelledby="hiw-h" style="background:var(--bg);">
-  <div class="si">
-    <span class="slabel">How It Works</span>
-    <h2 class="stitle" id="hiw-h">From Intake to Delivery.<br>Four Steps.</h2>
-    <div class="g4" style="margin-top:2rem;" role="list">
-      <article class="card" role="listitem" style="text-align:center;">
-        <div style="display:inline-flex;align-items:center;justify-content:center;width:2.5rem;height:2.5rem;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--cyan));color:#0a0a0a;font-size:1rem;font-weight:800;margin-bottom:1rem;">1</div>
-        <h3>Onboard</h3>
-        <p>Complete the wizard. Murphy builds your org chart, assigns Shadow Agents, and configures your compliance profile automatically via <code>/api/onboarding/wizard/*</code>.</p>
-      </article>
-      <article class="card" role="listitem" style="text-align:center;">
-        <div style="display:inline-flex;align-items:center;justify-content:center;width:2.5rem;height:2.5rem;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--cyan));color:#0a0a0a;font-size:1rem;font-weight:800;margin-bottom:1rem;">2</div>
-        <h3>Connect</h3>
-        <p>Wire your tools via the integrations terminal. Mail, Ollama LLM, trading, Matrix, billing &#8212; each has a live API endpoint and a real-time status indicator.</p>
-      </article>
-      <article class="card" role="listitem" style="text-align:center;">
-        <div style="display:inline-flex;align-items:center;justify-content:center;width:2.5rem;height:2.5rem;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--cyan));color:#0a0a0a;font-size:1rem;font-weight:800;margin-bottom:1rem;">3</div>
-        <h3>Automate</h3>
-        <p>Shadow Agents observe your decisions, propose automations, and graduate to autonomous execution through HITL safety gates at <code>/api/hitl/*</code>.</p>
-      </article>
-      <article class="card" role="listitem" style="text-align:center;">
-        <div style="display:inline-flex;align-items:center;justify-content:center;width:2.5rem;height:2.5rem;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--cyan));color:#0a0a0a;font-size:1rem;font-weight:800;margin-bottom:1rem;">4</div>
-        <h3>Scale</h3>
-        <p>Add subsystems, modules and agents as you grow. Every module has an API, a Matrix room, and test coverage. Nothing is a black box.</p>
-      </article>
-    </div>
-  </div>
-</section>
-
-<!-- HITL / SAFETY -->
-<section id="safety" aria-labelledby="safety-h" style="background:var(--bg3);">
-  <div class="si">
-    <span class="slabel">Human-in-the-Loop</span>
-    <div class="seg-layout">
-      <div class="seg-vis" aria-hidden="true">
-        <span class="tl cy">$ murphy hitl status</span>
-        <span class="tl">  Pending approvals: 3</span>
-        <span class="tl te">  &#9658; [EXEC-042] Invoice send &#183; gate: financial 94%</span>
-        <span class="tl te">  &#9658; [SEC-018]  OAuth app registered &#183; security 88%</span>
-        <span class="tl te">  &#9658; [OPS-031]  Scale worker pool &#215;3 &#183; executive 91%</span>
-        <span class="tl cy" style="margin-top:.6rem">$ murphy hitl approve EXEC-042</span>
-        <span class="tl te">&#10003; Approved &#183; Invoice dispatched via /api/email/send</span>
-        <span class="tl dim">  Audit block sealed: BAT-7291</span>
-      </div>
-      <div>
-        <h2 class="stitle" id="safety-h">AI Does the Work.<br>You Keep Control.</h2>
-        <p style="color:var(--muted);margin-bottom:1.5rem;">Every high-stakes action passes through a HITL gate. Approve via the dashboard, terminal, or a Matrix message. Every decision is sealed in the blockchain audit trail.</p>
-        <ul class="uc-list">
-          <li>Executive, security, financial, compliance gate layers</li>
-          <li>Confidence scoring &#8212; auto-approve above threshold</li>
-          <li>Approve, reject, modify, defer or escalate any action</li>
-          <li>Approval via UI <em>or</em> <code>!murphy hitl approve ID</code> in Matrix</li>
-          <li>Every decision logged to immutable BAT audit trail</li>
-          <li>Gate graduation &#8212; agents earn autonomy over time</li>
-        </ul>
-        <a class="btn-p" href="/ui/terminal-unified#hitl">Open HITL Queue</a>
+        <span class="tl dim" style="margin-top:.6rem">  &#128274; No data sent externally</span>
       </div>
     </div>
   </div>
 </section>
 
 <!-- COMPARE -->
-<section id="compare" aria-labelledby="cmp-h">
+<section id="compare" aria-labelledby="cmp-h" style="background:var(--bg3);">
   <div class="si">
     <span class="slabel">Why Murphy</span>
     <h2 class="stitle" id="cmp-h">Everything Else Needs 12 Tools.<br>Murphy Is One.</h2>
@@ -557,12 +601,12 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
           <tr><td>Hosted mail server</td><td class="mc">&#10003; Built-in</td><td class="xc">&#10007; 3rd-party</td><td class="xc">&#10007; 3rd-party</td></tr>
           <tr><td>Matrix messaging bridge</td><td class="mc">&#10003; 287 rooms</td><td class="xc">&#10007;</td><td class="xc">&#10007;</td></tr>
           <tr><td>Human-in-the-Loop gates</td><td class="mc">&#10003; Gate synthesis</td><td class="xc">&#10007; Manual only</td><td class="xc">&#10007; Approvals only</td></tr>
-          <tr><td>Self-healing / auto-repair</td><td class="mc">&#10003; /api/self-fix/*</td><td class="xc">&#10007;</td><td class="xc">&#10007;</td></tr>
+          <tr><td>Self-healing / auto-repair</td><td class="mc">&#10003; Built-in engine</td><td class="xc">&#10007;</td><td class="xc">&#10007;</td></tr>
           <tr><td>Blockchain audit trail</td><td class="mc">&#10003; BAT engine</td><td class="xc">&#10007;</td><td class="xc">&#8764; Partial</td></tr>
           <tr><td>Shadow Agent training</td><td class="mc">&#10003; Observe &#8594; Assist &#8594; Auto</td><td class="xc">&#10007;</td><td class="xc">&#8764; Einstein AI</td></tr>
-          <tr><td>Module registry (1,166 entries)</td><td class="mc">&#10003; Live manifest</td><td class="xc">&#10007;</td><td class="xc">&#10007;</td></tr>
           <tr><td>Compliance automation (SOC2/HIPAA)</td><td class="mc">&#10003; CCE engine</td><td class="xc">&#10007; Manual</td><td class="xc">&#8764; Partial</td></tr>
           <tr><td>Fully self-hostable</td><td class="mc">&#10003; Hetzner deploy</td><td class="xc">&#10007; Cloud only</td><td class="xc">&#10007; Cloud only</td></tr>
+          <tr><td>Data never leaves your server (LLM)</td><td class="mc">&#10003; Onboard Ollama</td><td class="xc">&#10007;</td><td class="xc">&#10007;</td></tr>
           <tr><td>Open source (BSL 1.1)</td><td class="mc">&#10003;</td><td class="xc">&#10007; Proprietary</td><td class="xc">&#10007; Proprietary</td></tr>
           <tr><td>Monthly cost &#8212; 5-person team</td><td class="mc">$299/mo all-in</td><td class="xc">$800&#8211;1,400/mo</td><td class="xc">$1,500+/mo</td></tr>
         </tbody>
@@ -591,17 +635,17 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
       <div class="card">
         <div class="card-icon">&#128269;</div>
         <h3>CCE Scan Engine</h3>
-        <p>Continuous scanning with rule-based remediations. Export full compliance reports via <code>/api/cce/scans/{id}/report</code>.</p>
+        <p>Continuous scanning with rule-based remediations. Export full compliance reports at any time. Always know your posture.</p>
       </div>
       <div class="card">
         <div class="card-icon">&#128279;</div>
         <h3>Blockchain Audit Trail</h3>
-        <p>Every action sealed in an immutable block. Verify, export and present the audit chain at any time via <code>/api/bat/*</code>.</p>
+        <p>Every action sealed in an immutable block. Verify, export and present the audit chain at any time. Regulators love it.</p>
       </div>
       <div class="card">
         <div class="card-icon">&#128678;</div>
         <h3>RBAC + Deny-by-Default</h3>
-        <p>Role-based access, deny-by-default policy. Security events at <code>/api/security/events</code>. Full key rotation on schedule.</p>
+        <p>Role-based access, deny-by-default policy. Security events tracked. Full key rotation on schedule. Zero trust from day one.</p>
       </div>
     </div>
     <div style="margin-top:1.5rem;">
@@ -610,26 +654,8 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
   </div>
 </section>
 
-<!-- PROOF STATS -->
-<section id="proof" aria-labelledby="proof-h">
-  <div class="si">
-    <span class="slabel">By the Numbers</span>
-    <h2 class="stitle" id="proof-h">Real Code.<br>Verified Numbers.</h2>
-    <div class="g4" style="margin-top:2rem;" role="list">
-      <article class="stat-card" role="listitem"><div class="snum">537,071</div><div class="slbl">Lines of production code</div></article>
-      <article class="stat-card" role="listitem"><div class="snum">24,341</div><div class="slbl">Test functions</div></article>
-      <article class="stat-card" role="listitem"><div class="snum">1,100+</div><div class="slbl">Modules</div></article>
-      <article class="stat-card" role="listitem"><div class="snum">71</div><div class="slbl">Integrated subsystems</div></article>
-      <article class="stat-card" role="listitem"><div class="snum">453</div><div class="slbl">Live API endpoints</div></article>
-      <article class="stat-card" role="listitem"><div class="snum">287</div><div class="slbl">Matrix rooms</div></article>
-      <article class="stat-card" role="listitem"><div class="snum">706</div><div class="slbl">Test files</div></article>
-      <article class="stat-card" role="listitem"><div class="snum">1,166</div><div class="slbl">Manifest entries</div></article>
-    </div>
-  </div>
-</section>
-
 <!-- PRICING -->
-<section id="pricing" aria-labelledby="pricing-h">
+<section id="pricing" aria-labelledby="pricing-h" style="background:var(--bg3);">
   <div class="si">
     <span class="slabel">Pricing</span>
     <h2 class="stitle" id="pricing-h">Start Free.<br>Scale When You&#8217;re Ready.</h2>
@@ -668,6 +694,52 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
   </div>
 </section>
 
+<!-- PARTNER -->
+<section id="partner" aria-labelledby="partner-h">
+  <div class="si">
+    <span class="slabel">Partner Program</span>
+    <h2 class="stitle" id="partner-h">Build on Murphy.<br>Sell with Murphy.</h2>
+    <p class="ssub">Request a custom integration for your platform. We build, verify, harden, and deliver it &#8212; then you embed it in your product or sell it to your customers.</p>
+    <div class="partner-grid" role="list">
+      <div class="partner-card" role="listitem">
+        <div class="partner-card-icon">&#128736;&#65039;</div>
+        <h3>Custom Integration Pipeline</h3>
+        <p>Submit an integration request. Our team builds, tests, and hardens it against Murphy&#8217;s full security and compliance stack. You get a production-ready module.</p>
+      </div>
+      <div class="partner-card" role="listitem">
+        <div class="partner-card-icon">&#128176;</div>
+        <h3>Revenue Sharing</h3>
+        <p>Sell Murphy capabilities under your brand. Earn recurring revenue on every subscription your customers activate through your integration.</p>
+      </div>
+      <div class="partner-card" role="listitem">
+        <div class="partner-card-icon">&#127968;</div>
+        <h3>White-Label Ready</h3>
+        <p>Embed Murphy into your SaaS product with full white-label support. Your branding, your domain, your pricing &#8212; Murphy handles the backend.</p>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:2rem;">
+      <a class="btn-p lg" href="/ui/partner">&#128338; Request a Custom Integration</a>
+    </div>
+  </div>
+</section>
+
+<!-- PROOF STATS -->
+<section id="proof" aria-labelledby="proof-h" style="background:var(--bg3);">
+  <div class="si">
+    <span class="slabel">By the Numbers</span>
+    <h2 class="stitle" id="proof-h">Real Code.<br>Verified Numbers.</h2>
+    <div class="g4" style="margin-top:2rem;" role="list">
+      <article class="stat-card" role="listitem"><div class="snum">537,071</div><div class="slbl">Lines of production code</div></article>
+      <article class="stat-card" role="listitem"><div class="snum">24,341</div><div class="slbl">Test functions</div></article>
+      <article class="stat-card" role="listitem"><div class="snum">1,100+</div><div class="slbl">Modules</div></article>
+      <article class="stat-card" role="listitem"><div class="snum">71</div><div class="slbl">Integrated subsystems</div></article>
+      <article class="stat-card" role="listitem"><div class="snum">453</div><div class="slbl">Live API endpoints</div></article>
+      <article class="stat-card" role="listitem"><div class="snum">287</div><div class="slbl">Matrix rooms</div></article>
+      <article class="stat-card" role="listitem"><div class="snum">706</div><div class="slbl">Test files</div></article>
+    </div>
+  </div>
+</section>
+
 <!-- GUARANTEE -->
 <section id="guarantee" aria-labelledby="guar-h">
   <div class="si">
@@ -682,15 +754,51 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
   </div>
 </section>
 
+<!-- UNDER THE HOOD (collapsible) -->
+<section id="under-the-hood" aria-labelledby="uth-h">
+  <div class="si">
+    <span class="slabel">Platform Architecture</span>
+    <h2 class="stitle" id="uth-h">71 Subsystems.<br>1,166 Registered Modules.</h2>
+    <p class="ssub">Every business function is a real, tested module with its own API endpoint, Matrix room, and bot persona. Not a feature checklist &#8212; living, testable code.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:1.5rem;margin-top:.5rem;">
+      <div class="stat-badge">&#9889; 453 live endpoints</div>
+      <div class="stat-badge">&#128029; 71 subsystems</div>
+      <div class="stat-badge">&#128172; 287 Matrix rooms</div>
+      <div class="stat-badge">&#128274; CSRF + RBAC + key rotation</div>
+      <div class="stat-badge">&#128257; Self-healing engine</div>
+      <div class="stat-badge">&#128421;&#65039; Blockchain audit trail</div>
+    </div>
+    <button class="uth-toggle" id="uth-toggle-btn" aria-expanded="false" aria-controls="uth-content">
+      <span id="uth-toggle-icon">&#9660;</span> Show Full Architecture
+    </button>
+    <div class="uth-content" id="uth-content" role="region" aria-label="Architecture details">
+      <div class="arch-grid" role="list">
+        <div class="arch-card" role="listitem"><div class="arch-card-title">&#9889; Execution Engine</div><div class="arch-card-count">/api/execute &#183; /api/compute-plane/*</div><div class="arch-card-desc">Deterministic routing, two-phase commit, task dispatch and orchestration across all subsystems.</div></div>
+        <div class="arch-card" role="listitem"><div class="arch-card-title">&#129504; AI / LLM Layer</div><div class="arch-card-count">/api/llm/* &#183; Ollama + cloud fallback</div><div class="arch-card-desc">Onboard Ollama LLM with cloud fallback. Murphy Foundation Model, neuro-symbolic reasoning, swarm inference.</div></div>
+        <div class="arch-card" role="listitem"><div class="arch-card-title">&#128274; Security Plane</div><div class="arch-card-count">/api/security/* &#183; /api/compliance/*</div><div class="arch-card-desc">CSRF, RBAC deny-by-default, rate limiting, scheduled key rotation, input validation, full audit logging.</div></div>
+        <div class="arch-card" role="listitem"><div class="arch-card-title">&#128172; Matrix Bridge</div><div class="arch-card-count">/api/matrix/* &#183; 287 rooms</div><div class="arch-card-desc">Matrix protocol messaging with 287 registered rooms, bot personas, HITL approvals over chat, webhooks.</div></div>
+        <div class="arch-card" role="listitem"><div class="arch-card-title">&#9993;&#65039; Mail Server</div><div class="arch-card-count">/api/email/* &#183; SMTP/IMAP</div><div class="arch-card-desc">Hosted email on murphy.systems domains. Automated send, account management, SMTP/IMAP config via API.</div></div>
+        <div class="arch-card" role="listitem"><div class="arch-card-title">&#129309; HITL Gates</div><div class="arch-card-count">/api/hitl/* &#183; /api/gate-synthesis/*</div><div class="arch-card-desc">Human-in-the-loop approval queues with auto-graduation, executive/security/compliance gate layers.</div></div>
+        <div class="arch-card" role="listitem"><div class="arch-card-title">&#128257; Self-Healing</div><div class="arch-card-count">/api/self-fix/* &#183; /api/repair/*</div><div class="arch-card-desc">Automated repair proposals, pattern detection, self-improvement engine with HITL review.</div></div>
+        <div class="arch-card" role="listitem"><div class="arch-card-title">&#128029; Swarm Agents</div><div class="arch-card-count">/api/swarm/* &#183; /api/agents/*</div><div class="arch-card-desc">Multi-agent execution, shadow agent training, Rosetta state consensus, parallel task swarms.</div></div>
+        <div class="arch-card" role="listitem"><div class="arch-card-title">&#128202; Trading Engine</div><div class="arch-card-count">/api/trading/* &#183; /api/market/*</div><div class="arch-card-desc">Paper trading, real-time market data, compliance graduation, live order management with risk gates.</div></div>
+        <div class="arch-card" role="listitem"><div class="arch-card-title">&#127959; Gate Synthesis</div><div class="arch-card-count">/api/gate-synthesis/*</div><div class="arch-card-desc">Dynamic gate generation, failure-mode enumeration, retirement conditions, authority matrices.</div></div>
+        <div class="arch-card" role="listitem"><div class="arch-card-title">&#128203; Workflow Terminal</div><div class="arch-card-count">/api/workflow-terminal/* &#183; /ui/terminal-*</div><div class="arch-card-desc">9 terminal UIs: integrated, unified, architect, orgchart, costs, operator, worker, orchestrator, enhanced.</div></div>
+        <div class="arch-card" role="listitem"><div class="arch-card-title">&#128225; Telemetry &amp; Observability</div><div class="arch-card-count">/api/telemetry &#183; Prometheus metrics</div><div class="arch-card-desc">Structured telemetry, Prometheus metrics, drift detection, Lyapunov stability monitoring.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- FINAL CTA -->
 <section id="final-cta">
   <div class="si">
     <h2>One System.<br>Your Entire Business.</h2>
-    <p>Start free today. Wire Ollama, mail, Matrix and your first automations in under 15 minutes.</p>
+    <p>Start free today. Automate your first operation in under 15 minutes. No card required.</p>
     <div class="fcbtns">
       <a class="btn-p lg" href="/ui/signup">&#9889; Start Free Trial</a>
-      <a class="btn-s lg" href="/ui/terminal-unified">View Live Dashboard</a>
-      <a class="btn-s lg" href="/ui/docs">Read the Docs</a>
+      <a class="btn-s lg" href="#demo">&#9654; Live Demo</a>
+      <a class="btn-s lg" href="/ui/partner">&#129309; Partner With Us</a>
     </div>
   </div>
 </section>
@@ -701,15 +809,17 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
   <div class="footer-inner">
     <nav class="flinks" aria-label="Footer navigation">
       <a href="/ui/landing">Home</a>
-      <a href="/ui/docs">Docs</a>
-      <a href="/ui/pricing">Pricing</a>
-      <a href="/ui/compliance">Compliance</a>
-      <a href="/ui/terminal-unified">Dashboard</a>
-      <a href="/ui/terminal-integrations">Integrations</a>
-      <a href="/ui/matrix">Matrix</a>
-      <a href="/ui/paper-trading">Trading</a>
+      <a href="#solutions">Solutions</a>
+      <a href="#industries">Industries</a>
+      <a href="#demo">Demo</a>
+      <a href="#pricing">Pricing</a>
       <a href="/ui/grant-wizard">Financing</a>
       <a href="/ui/partner">Partner</a>
+      <a href="/ui/compliance">Compliance</a>
+      <a href="/ui/docs">Docs</a>
+      <a href="/ui/terminal-unified">Dashboard</a>
+      <a href="/ui/matrix">Matrix</a>
+      <a href="/ui/paper-trading">Trading</a>
       <a href="/ui/blog">Blog</a>
       <a href="/ui/careers">Careers</a>
       <a href="/ui/legal">Terms</a>
@@ -719,29 +829,29 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
   </div>
 </footer>
 
-<!-- DEMO MODAL -->
+<!-- DEMO MODAL (kept for backward-compat with any deep-links) -->
 <div class="modal-overlay" id="demo-modal" role="dialog" aria-modal="true" aria-labelledby="demo-modal-title">
   <div class="mbox">
     <button class="mclose" id="demo-close" aria-label="Close demo">&#10005;</button>
     <div class="mtitle" id="demo-modal-title">&#9654; Murphy Live Demo</div>
     <div class="msub">Try any command. Murphy routes it to the right module automatically.</div>
-    <div class="demo-input-wrap">
+    <div style="margin-bottom:.75rem;">
       <div class="demo-prompt-row">
         <span class="demo-prompt-dollar">$</span>
-        <input class="demo-prompt-input" id="demo-input" type="text" placeholder="e.g. send invoice to Acme Corp" autocomplete="off" aria-label="Enter a Murphy command">
-        <button class="btn-p demo-run-btn" id="demo-run">Run</button>
+        <input class="demo-prompt-input" id="demo-input-modal" type="text" placeholder="e.g. send invoice to Acme Corp" autocomplete="off" aria-label="Enter a Murphy command">
+        <button class="btn-p demo-run-btn" id="demo-run-modal">Run</button>
       </div>
-      <div class="demo-chips" role="group" aria-label="Example commands">
-        <button class="demo-chip" data-cmd="llm status">llm status</button>
-        <button class="demo-chip" data-cmd="email send invoice">email invoice</button>
-        <button class="demo-chip" data-cmd="hitl pending">hitl queue</button>
-        <button class="demo-chip" data-cmd="swarm execute audit">swarm audit</button>
-        <button class="demo-chip" data-cmd="matrix status">matrix status</button>
-        <button class="demo-chip" data-cmd="compliance scan">compliance scan</button>
-        <button class="demo-chip" data-cmd="self-fix status">self-fix</button>
+      <div class="demo-chips" role="group" aria-label="Example commands" style="margin-top:.6rem;">
+        <button class="demo-chip" data-target="modal" data-cmd="llm status">llm status</button>
+        <button class="demo-chip" data-target="modal" data-cmd="email send invoice">email invoice</button>
+        <button class="demo-chip" data-target="modal" data-cmd="hitl pending">hitl queue</button>
+        <button class="demo-chip" data-target="modal" data-cmd="swarm execute audit">swarm audit</button>
+        <button class="demo-chip" data-target="modal" data-cmd="matrix status">matrix status</button>
+        <button class="demo-chip" data-target="modal" data-cmd="compliance scan">compliance scan</button>
+        <button class="demo-chip" data-target="modal" data-cmd="self-fix status">self-fix</button>
       </div>
     </div>
-    <div class="demo-term" id="demo-term" aria-live="polite" aria-label="Demo terminal output">
+    <div class="modal-demo-term" id="demo-term-modal" aria-live="polite" aria-label="Demo terminal output">
       <span style="color:var(--muted)">Murphy System v1.0 &#8212; ready. Type a command or click an example.</span><br>
       <span class="demo-cursor"></span>
     </div>
@@ -755,44 +865,74 @@ footer{background:var(--bg);border-top:1px solid var(--border);padding:2.5rem 2r
 var hbtn=document.getElementById('hamburger-btn'),nav=document.getElementById('main-nav');
 if(hbtn&&nav)hbtn.addEventListener('click',function(){var o=nav.classList.toggle('open');hbtn.setAttribute('aria-expanded',o);});
 /* Modal */
-function openModal(id){var m=document.getElementById(id);if(m){m.classList.add('open');var inp=document.getElementById('demo-input');if(inp)inp.focus();}}
+function openModal(id){var m=document.getElementById(id);if(m){m.classList.add('open');var inp=document.getElementById('demo-input-modal');if(inp)inp.focus();}}
 function closeModal(id){var m=document.getElementById(id);if(m)m.classList.remove('open');}
-['hero-demo-btn','demo-nav-btn'].forEach(function(id){var el=document.getElementById(id);if(el)el.addEventListener('click',function(e){e.preventDefault();openModal('demo-modal');});});
 var dc=document.getElementById('demo-close');if(dc)dc.addEventListener('click',function(){closeModal('demo-modal');});
 var dm=document.getElementById('demo-modal');if(dm)dm.addEventListener('click',function(e){if(e.target===this)closeModal('demo-modal');});
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal('demo-modal');});
-/* Demo terminal */
+/* Demo responses */
 var RESP={
-  'llm status':['$ murphy llm status','&#10003; Ollama: running at http://localhost:11434','  llama3.2:latest  4.7 GB  &#9679; active','  mistral:7b        4.1 GB  &#9679; loaded','  Route: /api/llm/status'],
+  'llm status':['$ murphy llm status','&#10003; Ollama: running at http://localhost:11434','  llama3.2:latest  4.7 GB  &#9679; active','  mistral:7b        4.1 GB  &#9679; loaded','  &#128274; No data sent externally'],
   'email send invoice':['$ murphy email send invoice to Acme Corp','&#10003; Invoice #1042 composed via /api/email/send','  From: billing@murphy.systems','  To:   acme@acme.com','  Status: dispatched'],
-  'hitl pending':['$ murphy hitl pending','  3 actions pending:','  &#9658; [EXEC-042] Invoice dispatch  financial 94%','  &#9658; [SEC-018]  OAuth app          security 88%','  Route: /api/hitl/pending'],
+  'hitl pending':['$ murphy hitl pending','  3 actions pending:','  &#9658; [EXEC-042] Invoice dispatch  financial 94%','  &#9658; [SEC-018]  OAuth app          security 88%','  &#9658; [OPS-031]  Scale worker pool   executive 91%'],
   'swarm execute audit':['$ murphy swarm execute audit','&#10003; Swarm phase: initiated','  Agents spawned: 5  Mode: audit','  Route: /api/swarm/execute','  ETA: 12s'],
   'matrix status':['$ murphy matrix status','&#10003; Matrix bridge: connected','  Rooms: 287  Bots: 12 active','  Route: /api/matrix/status'],
   'compliance scan':['$ murphy compliance scan','&#10003; CCE scan started','  Rules: 47  Issues: 2','  Route: /api/cce/scan'],
   'self-fix status':['$ murphy self-fix status','  Last repair: 2h ago  Plans: 3','  Route: /api/self-fix/status']
 };
-function writeLines(lines){
-  var t=document.getElementById('demo-term');if(!t)return;
+function writeLines(lines,termId){
+  var t=document.getElementById(termId);if(!t)return;
   t.innerHTML='';var i=0;
   function nx(){
     if(i>=lines.length){t.innerHTML+='<span class="demo-cursor"></span>';return;}
     var s=document.createElement('span');s.style.display='block';
     var l=lines[i];
     if(l.startsWith('$'))s.style.color='var(--cyan)';
-    else if(l.startsWith('\u2713')||l.startsWith('&#10003;'))s.style.color='var(--teal)';
-    else if(l.indexOf('Route:')>=0)s.style.color='#555';
+    else if(l.startsWith('\u2713')||l.indexOf('&#10003;')>=0)s.style.color='var(--teal)';
+    else if(l.indexOf('Route:')>=0||l.indexOf('&#128274;')>=0)s.style.color='#555';
     s.innerHTML=l;t.appendChild(s);t.scrollTop=t.scrollHeight;
     i++;setTimeout(nx,80);
   }nx();
 }
-function runDemo(cmd){
+function runDemo(cmd,termId){
   var key=Object.keys(RESP).find(function(k){return cmd.toLowerCase().indexOf(k)>=0;});
-  if(key)writeLines(RESP[key]);
-  else writeLines(['$ murphy '+cmd,'&#10003; Command routed to execution engine','  Dispatching via /api/execute...','  &#8594; '+cmd.split(' ')[0]+'_completed event emitted.']);
+  if(key)writeLines(RESP[key],termId);
+  else writeLines(['$ murphy '+cmd,'&#10003; Command routed to execution engine','  Dispatching to right module...','  &#8594; '+cmd.split(' ')[0]+'_completed event emitted.'],termId);
 }
-var dr=document.getElementById('demo-run');if(dr)dr.addEventListener('click',function(){var v=(document.getElementById('demo-input').value||'').trim();if(v)runDemo(v);});
-var di=document.getElementById('demo-input');if(di)di.addEventListener('keydown',function(e){if(e.key==='Enter'){var v=(this.value||'').trim();if(v)runDemo(v);}});
-document.querySelectorAll('.demo-chip').forEach(function(c){c.addEventListener('click',function(){var cmd=this.getAttribute('data-cmd');document.getElementById('demo-input').value=cmd;runDemo(cmd);});});
+/* Inline demo */
+var drI=document.getElementById('demo-run-inline');
+if(drI)drI.addEventListener('click',function(){var v=(document.getElementById('demo-input-inline').value||'').trim();if(v)runDemo(v,'demo-term-inline');});
+var diI=document.getElementById('demo-input-inline');
+if(diI)diI.addEventListener('keydown',function(e){if(e.key==='Enter'){var v=(this.value||'').trim();if(v)runDemo(v,'demo-term-inline');}});
+/* Modal demo */
+var drM=document.getElementById('demo-run-modal');
+if(drM)drM.addEventListener('click',function(){var v=(document.getElementById('demo-input-modal').value||'').trim();if(v)runDemo(v,'demo-term-modal');});
+var diM=document.getElementById('demo-input-modal');
+if(diM)diM.addEventListener('keydown',function(e){if(e.key==='Enter'){var v=(this.value||'').trim();if(v)runDemo(v,'demo-term-modal');}});
+/* Demo chips — route to correct terminal */
+document.querySelectorAll('.demo-chip').forEach(function(c){
+  c.addEventListener('click',function(){
+    var cmd=this.getAttribute('data-cmd');
+    var target=this.getAttribute('data-target');
+    if(target==='modal'){
+      var mi=document.getElementById('demo-input-modal');if(mi)mi.value=cmd;
+      runDemo(cmd,'demo-term-modal');
+    } else {
+      var ii=document.getElementById('demo-input-inline');if(ii)ii.value=cmd;
+      runDemo(cmd,'demo-term-inline');
+    }
+  });
+});
+/* Under the Hood toggle */
+var uthBtn=document.getElementById('uth-toggle-btn');
+var uthContent=document.getElementById('uth-content');
+var uthIcon=document.getElementById('uth-toggle-icon');
+if(uthBtn&&uthContent)uthBtn.addEventListener('click',function(){
+  var open=uthContent.classList.toggle('open');
+  uthBtn.setAttribute('aria-expanded',open);
+  if(uthIcon)uthIcon.textContent=open?'&#9650;':'&#9660;';
+  uthBtn.querySelector('span:last-child')?uthBtn.lastChild.textContent=(open?' Hide Architecture':' Show Full Architecture'):null;
+});
 /* Live status probe */
 function setLstat(id,ok){var el=document.getElementById(id);if(!el)return;var ld=el.querySelector('.ld');if(ld)ld.className='ld '+(ok?'ld-ok':'ld-warn');}
 function probe(){
