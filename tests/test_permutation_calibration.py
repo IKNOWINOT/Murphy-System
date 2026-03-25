@@ -1182,5 +1182,370 @@ class TestPaperTradingIntegration:
         assert len(obs) >= 1
 
 
+# ------------------------------------------------------------------
+# Extended Module Integration Tests
+# ------------------------------------------------------------------
+
+class TestSelfImprovementExtension:
+    """Tests for PermutationLearningExtension in self_improvement_engine."""
+    
+    def test_extension_initialization(self):
+        """Test extension initializes correctly."""
+        from src.self_improvement_engine import SelfImprovementEngine, PermutationLearningExtension
+        
+        engine = SelfImprovementEngine()
+        ext = PermutationLearningExtension(engine)
+        
+        status = ext.get_learning_status()
+        assert status["status"] == "ok"
+        assert status["exploratory_outcomes"] == 0
+        assert status["procedural_outcomes"] == 0
+    
+    def test_record_exploratory_outcome(self):
+        """Test recording exploratory outcomes."""
+        from src.self_improvement_engine import SelfImprovementEngine, PermutationLearningExtension
+        
+        engine = SelfImprovementEngine()
+        ext = PermutationLearningExtension(engine)
+        
+        record = ext.record_exploratory_outcome(
+            domain="test_domain",
+            ordering=["a", "b", "c"],
+            outcome_quality=0.8,
+            calibration_quality=0.75,
+            session_id="session-1",
+        )
+        
+        assert record["domain"] == "test_domain"
+        assert record["mode"] == "exploratory"
+        assert record["outcome_quality"] == 0.8
+        
+        status = ext.get_learning_status()
+        assert status["exploratory_outcomes"] == 1
+    
+    def test_record_procedural_outcome(self):
+        """Test recording procedural outcomes."""
+        from src.self_improvement_engine import SelfImprovementEngine, PermutationLearningExtension
+        
+        engine = SelfImprovementEngine()
+        ext = PermutationLearningExtension(engine)
+        
+        record = ext.record_procedural_outcome(
+            domain="test_domain",
+            sequence_id="seq-001",
+            ordering=["a", "b", "c"],
+            outcome_quality=0.85,
+            calibration_quality=0.8,
+            session_id="session-2",
+        )
+        
+        assert record["domain"] == "test_domain"
+        assert record["mode"] == "procedural"
+        assert record["sequence_id"] == "seq-001"
+    
+    def test_compare_exploratory_vs_procedural(self):
+        """Test comparing exploratory vs procedural outcomes."""
+        from src.self_improvement_engine import SelfImprovementEngine, PermutationLearningExtension
+        
+        engine = SelfImprovementEngine()
+        ext = PermutationLearningExtension(engine)
+        
+        # Record exploratory outcomes
+        for i in range(5):
+            ext.record_exploratory_outcome(
+                domain="compare_domain",
+                ordering=["a", "b"],
+                outcome_quality=0.7,
+                calibration_quality=0.65,
+                session_id=f"exp-{i}",
+            )
+        
+        # Record procedural outcomes (better)
+        for i in range(5):
+            ext.record_procedural_outcome(
+                domain="compare_domain",
+                sequence_id="seq-1",
+                ordering=["a", "b"],
+                outcome_quality=0.85,
+                calibration_quality=0.8,
+                session_id=f"proc-{i}",
+            )
+        
+        comparison = ext.compare_exploratory_vs_procedural("compare_domain")
+        
+        assert comparison["status"] == "ok"
+        assert comparison["quality_improvement"] > 0
+        assert comparison["recommendation"] == "maintain_procedural"
+    
+    def test_detect_drift(self):
+        """Test drift detection in procedural execution."""
+        from src.self_improvement_engine import SelfImprovementEngine, PermutationLearningExtension
+        
+        engine = SelfImprovementEngine()
+        ext = PermutationLearningExtension(engine)
+        
+        # Record good outcomes first
+        for i in range(20):
+            ext.record_procedural_outcome(
+                domain="drift_domain",
+                sequence_id="seq-1",
+                ordering=["a", "b"],
+                outcome_quality=0.85,
+                calibration_quality=0.8,
+                session_id=f"good-{i}",
+            )
+        
+        # Then bad outcomes
+        for i in range(20):
+            ext.record_procedural_outcome(
+                domain="drift_domain",
+                sequence_id="seq-1",
+                ordering=["a", "b"],
+                outcome_quality=0.5,  # Much worse
+                calibration_quality=0.55,
+                session_id=f"bad-{i}",
+            )
+        
+        drift = ext.detect_drift("drift_domain")
+        
+        assert drift["status"] == "ok"
+        assert drift["drift_detected"] is True
+        assert drift["recommendation"] == "reopen_exploration"
+
+
+class TestObservabilityCountersExtension:
+    """Tests for permutation calibration additions to observability counters."""
+    
+    def test_record_exploration(self):
+        """Test recording exploration runs."""
+        from src.observability_counters import ObservabilitySummaryCounters
+        
+        counters = ObservabilitySummaryCounters()
+        counter_id = counters.record_exploration("test_domain", 25, "Test exploration run")
+        
+        counter = counters.get_counter(counter_id)
+        assert counter["value"] == 25
+        assert counter["category"] == "permutation_exploration"
+    
+    def test_record_sequence_learning(self):
+        """Test recording sequence learning."""
+        from src.observability_counters import ObservabilitySummaryCounters
+        
+        counters = ObservabilitySummaryCounters()
+        counter_id = counters.record_sequence_learning("test_domain", 3, "Learned 3 sequences")
+        
+        counter = counters.get_counter(counter_id)
+        assert counter["value"] == 3
+        assert counter["category"] == "sequence_learning"
+    
+    def test_record_promotion_and_demotion(self):
+        """Test recording promotion and demotion events."""
+        from src.observability_counters import ObservabilitySummaryCounters
+        
+        counters = ObservabilitySummaryCounters()
+        counters.record_promotion("test_domain", "Promoted sequence A")
+        counters.record_promotion("test_domain", "Promoted sequence B")
+        counters.record_demotion("test_domain", "Demoted sequence C")
+        
+        summary = counters.get_permutation_calibration_summary()
+        assert summary["promotions"] == 2
+        assert summary["demotions"] == 1
+    
+    def test_permutation_calibration_summary(self):
+        """Test getting full permutation calibration summary."""
+        from src.observability_counters import ObservabilitySummaryCounters
+        
+        counters = ObservabilitySummaryCounters()
+        
+        counters.record_exploration("domain1", 50, "Exploration 1")
+        counters.record_sequence_learning("domain1", 5, "Learning 1")
+        counters.record_promotion("domain1", "Promotion 1")
+        counters.record_drift_detection("domain1", "Drift detected")
+        
+        summary = counters.get_permutation_calibration_summary()
+        
+        assert summary["status"] == "ok"
+        assert summary["exploration_total"] == 50
+        assert summary["sequences_learned"] == 5
+        assert summary["promotions"] == 1
+        assert summary["drift_detections"] == 1
+
+
+class TestGateExecutionWiringExtension:
+    """Tests for permutation gates in gate_execution_wiring."""
+    
+    def test_register_exploration_gate(self):
+        """Test registering permutation exploration gate."""
+        from src.gate_execution_wiring import GateExecutionWiring, GateType
+        
+        gates = GateExecutionWiring()
+        gates.register_permutation_exploration_gate(
+            max_candidates=100,
+            allowed_domains=["domain_a", "domain_b"],
+        )
+        
+        status = gates.get_status()
+        assert GateType.PERMUTATION_EXPLORATION.value in status["registered_gates"]
+    
+    def test_register_promotion_gate(self):
+        """Test registering sequence promotion gate."""
+        from src.gate_execution_wiring import GateExecutionWiring, GateType
+        
+        gates = GateExecutionWiring()
+        gates.register_sequence_promotion_gate(
+            min_evaluations=10,
+            min_confidence=0.7,
+        )
+        
+        status = gates.get_status()
+        assert GateType.SEQUENCE_PROMOTION.value in status["registered_gates"]
+    
+    def test_exploration_gate_evaluation(self):
+        """Test exploration gate evaluation."""
+        from src.gate_execution_wiring import GateExecutionWiring, GateDecision
+        
+        gates = GateExecutionWiring()
+        gates.register_permutation_exploration_gate(max_candidates=50)
+        
+        # Should approve exploration within limits
+        task_ok = {
+            "permutation_exploration": True,
+            "domain": "test",
+            "max_candidates": 30,
+        }
+        
+        allowed, evals = gates.can_execute(task_ok, "session-1")
+        exploration_eval = next(
+            (e for e in evals if e.gate_type.value == "permutation_exploration"),
+            None
+        )
+        assert exploration_eval is not None
+        assert exploration_eval.decision == GateDecision.APPROVED
+    
+    def test_promotion_gate_needs_approval(self):
+        """Test promotion gate requires approval."""
+        from src.gate_execution_wiring import GateExecutionWiring, GateDecision
+        
+        gates = GateExecutionWiring()
+        gates.register_sequence_promotion_gate(
+            require_approval=True,
+            min_evaluations=10,
+            min_confidence=0.7,
+        )
+        
+        # Should need review without approval
+        task = {
+            "sequence_promotion": True,
+            "total_evaluations": 15,
+            "confidence_score": 0.8,
+            "gate_approved": False,
+        }
+        
+        allowed, evals = gates.can_execute(task, "session-1")
+        promotion_eval = next(
+            (e for e in evals if e.gate_type.value == "sequence_promotion"),
+            None
+        )
+        assert promotion_eval is not None
+        assert promotion_eval.decision == GateDecision.NEEDS_REVIEW
+
+
+class TestSemanticsBoundaryExtension:
+    """Tests for order invariance checking in semantics_boundary_controller."""
+    
+    def test_check_order_invariance_invariant(self):
+        """Test detecting order invariance."""
+        from src.semantics_boundary_controller import SemanticsBoundaryController
+        
+        controller = SemanticsBoundaryController()
+        
+        result = controller.check_order_invariance(
+            domain="test",
+            ordering_a=["a", "b", "c"],
+            result_a=0.85,
+            ordering_b=["c", "b", "a"],
+            result_b=0.84,  # Within tolerance
+            tolerance=0.05,
+        )
+        
+        assert result["is_invariant"] is True
+        assert result["classification"] == "invariant"
+    
+    def test_check_order_invariance_sensitive(self):
+        """Test detecting order sensitivity."""
+        from src.semantics_boundary_controller import SemanticsBoundaryController
+        
+        controller = SemanticsBoundaryController()
+        
+        result = controller.check_order_invariance(
+            domain="test",
+            ordering_a=["a", "b", "c"],
+            result_a=0.9,
+            ordering_b=["c", "b", "a"],
+            result_b=0.5,  # Very different
+            tolerance=0.05,
+        )
+        
+        assert result["is_invariant"] is False
+        assert result["classification"] == "highly_sensitive"
+    
+    def test_classify_domain_sensitivity_stable(self):
+        """Test classifying a stable domain."""
+        from src.semantics_boundary_controller import SemanticsBoundaryController
+        
+        controller = SemanticsBoundaryController()
+        
+        # Very consistent results
+        observations = [
+            {"ordering": ["a", "b"], "result": 0.8 + i * 0.001}
+            for i in range(15)
+        ]
+        
+        result = controller.classify_domain_sensitivity(
+            domain="stable_domain",
+            observations=observations,
+        )
+        
+        assert result["status"] == "ok"
+        assert result["classification"] == "stable"
+    
+    def test_classify_domain_sensitivity_fragile(self):
+        """Test classifying a fragile domain."""
+        from src.semantics_boundary_controller import SemanticsBoundaryController
+        import random
+        
+        controller = SemanticsBoundaryController()
+        
+        # High variance results
+        observations = [
+            {"ordering": ["a", "b"], "result": 0.5 + random.uniform(-0.3, 0.3)}
+            for _ in range(15)
+        ]
+        
+        result = controller.classify_domain_sensitivity(
+            domain="fragile_domain",
+            observations=observations,
+        )
+        
+        assert result["status"] == "ok"
+        assert result["classification"] in ["fragile", "highly_fragile", "sensitive"]
+    
+    def test_get_order_invariance_summary(self):
+        """Test getting order invariance summary."""
+        from src.semantics_boundary_controller import SemanticsBoundaryController
+        
+        controller = SemanticsBoundaryController()
+        
+        # Register some checks
+        controller.check_order_invariance("d1", ["a"], 0.8, ["a"], 0.8, 0.05)
+        controller.check_order_invariance("d2", ["b"], 0.8, ["b"], 0.5, 0.05)
+        
+        summary = controller.get_order_invariance_summary()
+        
+        assert summary["total_checks"] == 2
+        assert summary["verified_checks"] == 2
+        assert summary["invariant_count"] >= 1
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
