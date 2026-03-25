@@ -12,7 +12,7 @@
 > developed and maintained by a **single developer** ([@IKNOWINOT](https://github.com/IKNOWINOT)).
 > While the architecture is comprehensive and the test suite covers thousands of
 > functions, **not everything works as intended**. Emergent bugs are still being
-> discovered and classified across the 535-module surface area.
+> discovered and classified across the 1,100+ module surface area.
 >
 > **What this means for you:**
 >
@@ -213,7 +213,7 @@ Murphy-System/
 └── Murphy System/                      ← ACTIVE SYSTEM
     ├── murphy                          ← CLI tool (start/stop/status/…)
     ├── murphy_system_1.0_runtime.py    ← Single production runtime
-    ├── src/                            ← 535 production modules (464 root .py + 71 packages)
+    ├── src/                            ← 1,122 named modules across 71 packages (1,223 .py files total)
     ├── tests/                          ← 706 test files
     ├── bots/                           ← 104 bot modules
     ├── documentation/                  ← Structured API/user docs
@@ -884,7 +884,7 @@ Murphy is the **only automation platform** that covers the entire stack — from
 
 | Metric | Value |
 | --- | --- |
-| **Source Files** | 535 Python modules (src/ root + sub-packages) |
+| **Source Files** | 1,122 named Python modules across 71 packages (1,223 .py files total) |
 | **Source Lines** | 218,497 |
 | **Classes** | 2,487 |
 | **Functions / Methods** | 8,472 |
@@ -1018,7 +1018,7 @@ curl http://localhost:8000/api/status
 > PR 1–3 of ARCH-007 (Founder Update Engine) complete: 133 tests, 7 modules.
 > PR 4 (API routes + Founder Dashboard UI) pending.
 > The overall percentage reflects that while code coverage is extensive
-> (535+ modules, 706+ test files), **E2E validation of the hero flow** and
+> (1,100+ modules, 706+ test files), **E2E validation of the hero flow** and
 > **production deployment hardening** remain the primary gaps.
 
 ---
