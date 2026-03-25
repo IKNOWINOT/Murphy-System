@@ -710,8 +710,11 @@ def create_app() -> FastAPI:
     @app.post("/api/execute")
     async def execute_task(request: Request, _rbac=Depends(_perm_execute)):
         """Execute a task — routes through AionMind cognitive pipeline when available."""
-        data = await request.json()
-        task_description = data.get('task_description', '')
+        try:
+            data = await request.json()
+        except Exception:
+            data = {}
+        task_description = data.get('task_description', '') or data.get('command', '')
         task_type = data.get('task_type', 'general')
 
         # Route through AionMind cognitive pipeline if available
